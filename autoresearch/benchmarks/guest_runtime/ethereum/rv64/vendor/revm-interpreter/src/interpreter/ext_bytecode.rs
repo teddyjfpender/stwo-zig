@@ -129,6 +129,16 @@ impl LoopControl for ExtBytecode {
 
 impl Jumps for ExtBytecode {
     #[inline]
+    fn stwo_ip(&self) -> *const u8 {
+        self.instruction_pointer
+    }
+
+    #[inline]
+    fn stwo_set_ip(&mut self, ip: *const u8) {
+        self.instruction_pointer = ip;
+    }
+
+    #[inline]
     fn relative_jump(&mut self, offset: isize) {
         self.instruction_pointer = unsafe { self.instruction_pointer.offset(offset) };
     }

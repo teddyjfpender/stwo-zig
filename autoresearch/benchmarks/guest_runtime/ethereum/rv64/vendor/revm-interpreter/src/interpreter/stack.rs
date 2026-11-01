@@ -48,6 +48,17 @@ impl Clone for Stack {
 
 impl StackTr for Stack {
     #[inline]
+    fn stwo_base(&mut self) -> *mut U256 {
+        debug_assert!(self.data.capacity() >= STACK_LIMIT);
+        self.data.as_mut_ptr()
+    }
+
+    #[inline]
+    unsafe fn stwo_set_len(&mut self, len: usize) {
+        unsafe { self.data.set_len(len) }
+    }
+
+    #[inline]
     fn len(&self) -> usize {
         self.len()
     }

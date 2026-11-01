@@ -329,7 +329,11 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
         host: &mut H,
     ) -> InterpreterAction {
         let e = if hot_ops_are_mainnet(instruction_table) {
-            self.run_hot_inline(instruction_table, gas_table, host)
+            if !self.stack.stwo_base().is_null() && !self.bytecode.stwo_ip().is_null() {
+                self.run_hot_regs(instruction_table, gas_table, host)
+            } else {
+                self.run_hot_inline(instruction_table, gas_table, host)
+            }
         } else {
             loop {
                 if let Err(e) = self.step(instruction_table, gas_table, host) {
@@ -391,6 +395,10 @@ macro_rules! hot_ops {
             MSTORE => memory::mstore::<IW, H>,
             CALLDATALOAD => system::calldataload::<IW, H>,
             SELFDESTRUCT => host::selfdestruct::<IW, H>,
+            PUSH3 => stack::push::<3, IW, H>,
+            DUP8 => stack::dup::<8, IW, H>,
+            SWAP6 => stack::swap::<6, IW, H>,
+            XOR => bitwise::bitxor::<IW, H>,
         }
     };
 }
@@ -439,6 +447,220 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
             if let Err(e) = hot_ops!(dispatch) {
                 cold_path();
                 return e;
+            }
+        }
+    }
+}
+
+impl<IW: InterpreterTypes> Interpreter<IW> {
+    /// stwo: the hot-opcode loop with the instruction pointer, remaining gas
+    /// and stack length held in locals. Stack, jump and arithmetic opcodes are
+    /// executed here on the raw stack (each mirrors the table function it
+    /// replaces, including its error codes); every other opcode syncs the
+    /// locals back, runs its function (the inlined ones of
+    /// `run_hot_inline` or the table entry) and reloads them. Static gas is
+    /// charged exactly as `Gas::record_cost_unsafe` does.
+    #[inline(never)]
+    fn run_hot_regs<H: Host + ?Sized>(
+        &mut self,
+        instruction_table: &InstructionTable<IW, H>,
+        gas_table: &GasTable,
+        host: &mut H,
+    ) -> InstructionResult {
+        use crate::instructions::{bitwise, control, host as host_ops, memory, stack, system};
+        use bytecode::opcode::*;
+        use primitives::U256;
+        use crate::interpreter::STACK_LIMIT;
+
+        let mut base: *mut U256 = self.stack.stwo_base();
+        let mut ip: *const u8 = self.bytecode.stwo_ip();
+        let mut gas: u64 = self.gas.remaining();
+        let mut len: usize = self.stack.len();
+
+        macro_rules! sync {
+            () => {{
+                self.bytecode.stwo_set_ip(ip);
+                self.gas.set_remaining(gas);
+                // SAFETY: `len` only moves over initialized slots below STACK_LIMIT
+                unsafe { self.stack.stwo_set_len(len) };
+            }};
+        }
+        macro_rules! reload {
+            () => {{
+                base = self.stack.stwo_base();
+                ip = self.bytecode.stwo_ip();
+                gas = self.gas.remaining();
+                len = self.stack.len();
+            }};
+        }
+        macro_rules! fail {
+            ($e:expr) => {{
+                cold_path();
+                sync!();
+                return $e;
+            }};
+        }
+        // slot `i` from the top (0 = top)
+        macro_rules! slot {
+            ($i:expr) => {
+                unsafe { &mut *base.add(len - 1 - $i) }
+            };
+        }
+        macro_rules! push_n {
+            ($n:literal) => {{
+                if len == STACK_LIMIT {
+                    fail!(InstructionResult::StackOverflow);
+                }
+                unsafe {
+                    *base.add(len) = crate::be_word::load_u256_n::<$n>(ip);
+                    ip = ip.add($n);
+                }
+                len += 1;
+            }};
+        }
+        macro_rules! dup_n {
+            ($n:literal) => {{
+                if (len < $n) | (len + 1 > STACK_LIMIT) {
+                    fail!(InstructionResult::StackOverflow);
+                }
+                unsafe { *base.add(len) = *base.add(len - $n) };
+                len += 1;
+            }};
+        }
+        macro_rules! swap_n {
+            ($n:literal) => {{
+                if $n >= len {
+                    fail!(InstructionResult::StackUnderflow);
+                }
+                unsafe {
+                    let a = base.add(len - 1);
+                    let b = base.add(len - 1 - $n);
+                    let t = *a;
+                    *a = *b;
+                    *b = t;
+                }
+            }};
+        }
+        // popn_top!([op1], op2): op2 = f(op1, op2)
+        macro_rules! binop {
+            (|$a:ident, $b:ident| $e:expr) => {{
+                if len < 2 {
+                    fail!(InstructionResult::StackUnderflow);
+                }
+                let $a = *slot!(0);
+                let $b = *slot!(1);
+                *slot!(1) = $e;
+                len -= 1;
+            }};
+        }
+        macro_rules! unop {
+            (|$a:ident| $e:expr) => {{
+                if len < 1 {
+                    fail!(InstructionResult::StackUnderflow);
+                }
+                let $a = *slot!(0);
+                *slot!(0) = $e;
+            }};
+        }
+        macro_rules! jump_to {
+            ($target:expr) => {{
+                let target = usize::try_from($target).unwrap_or(usize::MAX);
+                if !self.bytecode.is_valid_legacy_jump(target) {
+                    fail!(InstructionResult::InvalidJump);
+                }
+                self.bytecode.absolute_jump(target);
+                ip = self.bytecode.stwo_ip();
+            }};
+        }
+        // any other opcode: run its function on synced state
+        macro_rules! call {
+            ($f:expr) => {{
+                sync!();
+                let r = ($f)(InstructionContext { interpreter: &mut *self, host: &mut *host });
+                reload!();
+                if let Err(e) = r {
+                    cold_path();
+                    return e;
+                }
+            }};
+        }
+
+        loop {
+            // SAFETY: bytecode is padded so execution never runs past it
+            let opcode = unsafe { *ip };
+            ip = unsafe { ip.add(1) };
+            let static_gas = unsafe { *gas_table.get_unchecked(opcode as usize) } as u64;
+            if gas < static_gas {
+                gas = gas.wrapping_sub(static_gas);
+                fail!(InstructionResult::OutOfGas);
+            }
+            gas -= static_gas;
+            match opcode {
+                STOP => call!(control::stop::<IW, H>),
+                PUSH1 => push_n!(1),
+                PUSH2 => push_n!(2),
+                PUSH3 => push_n!(3),
+                PUSH4 => push_n!(4),
+                PUSH20 => push_n!(20),
+                PUSH32 => push_n!(32),
+                JUMPDEST => {}
+                POP => {
+                    if len < 1 {
+                        fail!(InstructionResult::StackUnderflow);
+                    }
+                    len -= 1;
+                }
+                JUMP => {
+                    if len < 1 {
+                        fail!(InstructionResult::StackUnderflow);
+                    }
+                    let target = *slot!(0);
+                    len -= 1;
+                    jump_to!(target);
+                }
+                JUMPI => {
+                    if len < 2 {
+                        fail!(InstructionResult::StackUnderflow);
+                    }
+                    let target = *slot!(0);
+                    let cond = *slot!(1);
+                    len -= 2;
+                    if !cond.is_zero() {
+                        jump_to!(target);
+                    }
+                }
+                DUP1 => dup_n!(1),
+                DUP2 => dup_n!(2),
+                DUP3 => dup_n!(3),
+                DUP4 => dup_n!(4),
+                DUP5 => dup_n!(5),
+                DUP6 => dup_n!(6),
+                DUP7 => dup_n!(7),
+                DUP8 => dup_n!(8),
+                SWAP1 => swap_n!(1),
+                SWAP2 => swap_n!(2),
+                SWAP3 => swap_n!(3),
+                SWAP4 => swap_n!(4),
+                SWAP5 => swap_n!(5),
+                SWAP6 => swap_n!(6),
+                ADD => binop!(|a, b| a.wrapping_add(b)),
+                SUB => binop!(|a, b| a.wrapping_sub(b)),
+                AND => binop!(|a, b| a & b),
+                OR => binop!(|a, b| a | b),
+                XOR => binop!(|a, b| a ^ b),
+                EQ => binop!(|a, b| U256::from(a == b)),
+                LT => binop!(|a, b| U256::from(a < b)),
+                GT => binop!(|a, b| U256::from(a > b)),
+                NOT => unop!(|a| !a),
+                ISZERO => unop!(|a| U256::from(a.is_zero())),
+                PUSH0 => call!(stack::push0::<IW, H>),
+                SHL => call!(bitwise::shl::<IW, H>),
+                SHR => call!(bitwise::shr::<IW, H>),
+                MLOAD => call!(memory::mload::<IW, H>),
+                MSTORE => call!(memory::mstore::<IW, H>),
+                CALLDATALOAD => call!(system::calldataload::<IW, H>),
+                SELFDESTRUCT => call!(host_ops::selfdestruct::<IW, H>),
+                _ => call!(|ctx| instruction_table[opcode as usize].execute(ctx)),
             }
         }
     }

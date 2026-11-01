@@ -84,25 +84,26 @@ pub(crate) unsafe fn store_u256(p: *mut u8, v: &U256) {
 /// `p..p + N` must be readable.
 #[inline(always)]
 pub(crate) unsafe fn load_u256_n<const N: usize>(p: *const u8) -> U256 {
-    let mut limbs = [0u64; 4];
-    let mut k = 0;
-    while k < 4 {
-        // limb k holds bytes [N - 8(k + 1), N - 8k) of the big-endian input
-        let hi = N as isize - 8 * k as isize;
-        if hi <= 0 {
-            break;
-        }
-        let lo = if hi >= 8 { hi - 8 } else { 0 };
-        let mut x = 0u64;
-        let mut i = lo;
-        while i < hi {
-            x = (x << 8) | unsafe { read_volatile(p.offset(i)) } as u64;
-            i += 1;
-        }
-        limbs[k] = x;
-        k += 1;
+    unsafe { U256::from_limbs([limb_n::<N>(p, 0), limb_n::<N>(p, 1), limb_n::<N>(p, 2), limb_n::<N>(p, 3)]) }
+}
+
+/// Limb `k` of the big-endian `N`-byte number at `p`: bytes
+/// `[N - 8(k + 1), N - 8k)` clamped to `[0, N)`. With `N` and `k` constant
+/// the loop unrolls to straight-line byte loads (no array on the stack).
+#[inline(always)]
+unsafe fn limb_n<const N: usize>(p: *const u8, k: usize) -> u64 {
+    let hi = N as isize - 8 * k as isize;
+    if hi <= 0 {
+        return 0;
     }
-    U256::from_limbs(limbs)
+    let lo = if hi >= 8 { hi - 8 } else { 0 };
+    let mut x = 0u64;
+    let mut i = lo;
+    while i < hi {
+        x = (x << 8) | unsafe { read_volatile(p.offset(i)) } as u64;
+        i += 1;
+    }
+    x
 }
 
 #[cfg(test)]

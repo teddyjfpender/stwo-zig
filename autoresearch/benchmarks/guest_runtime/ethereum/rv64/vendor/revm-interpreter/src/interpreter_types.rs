@@ -66,6 +66,20 @@ pub trait LegacyBytecode {
 
 /// Trait for Interpreter to be able to jump
 pub trait Jumps {
+    /// stwo: the raw instruction pointer, or null if the type does not expose
+    /// it (then the register-resident interpreter loop is not used).
+    #[doc(hidden)]
+    #[inline]
+    fn stwo_ip(&self) -> *const u8 {
+        core::ptr::null()
+    }
+
+    /// stwo: sets the raw instruction pointer (only called when `stwo_ip`
+    /// returned non-null).
+    #[doc(hidden)]
+    #[inline]
+    fn stwo_set_ip(&mut self, _ip: *const u8) {}
+
     /// Relative jumps does not require checking for overflow.
     fn relative_jump(&mut self, offset: isize);
     /// Absolute jumps require checking for overflow and if target is a jump destination
@@ -167,6 +181,22 @@ pub trait MemoryTr {
 
 /// Functions needed for Interpreter Stack operations.
 pub trait StackTr {
+    /// stwo: base pointer of a stack with `STACK_LIMIT` slots of capacity,
+    /// or null if the type does not expose it.
+    #[doc(hidden)]
+    #[inline]
+    fn stwo_base(&mut self) -> *mut primitives::U256 {
+        core::ptr::null_mut()
+    }
+
+    /// stwo: sets the length (only called when `stwo_base` is non-null).
+    ///
+    /// # Safety
+    /// Slots below `len` must be initialized and `len <= STACK_LIMIT`.
+    #[doc(hidden)]
+    #[inline]
+    unsafe fn stwo_set_len(&mut self, _len: usize) {}
+
     /// Returns stack length.
     fn len(&self) -> usize;
 
