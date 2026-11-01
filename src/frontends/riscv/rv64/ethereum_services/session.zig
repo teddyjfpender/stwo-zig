@@ -11,6 +11,7 @@ pub const PROFILE = "rv64im-ethereum-services-v1";
 pub const PROFILE_WORDS = "rv64im-ethereum-services-v2";
 pub const PROFILE_V3 = "rv64im-ethereum-services-v3";
 pub const sha256 = @import("sha256.zig");
+pub const keccak_sponge = @import("keccak_sponge.zig");
 pub const SecpCall = struct {
     kind: secp256k1.Kind,
     packet_format: profile.SecpPacketFormat = .big_endian_bytes_v1,
@@ -63,27 +64,31 @@ pub const Event = union(enum) {
     keccak: K.Call,
     secp: SecpCall,
     sha256: Sha256Call,
+    sponge: keccak_sponge.Event,
     pub fn retirement(self: Event) machine.Retirement {
         return switch (self) {
+            .sponge => |e| e.call.retirement(),
             .keccak => |call| call.retirement(),
             .secp => |call| call.retirement(),
             .sha256 => |call| call.retirement(),
         };
     }
 };
-pub const Error = K.Error || error{InvalidProjectiveInputCount};
+pub const Error = K.Error || keccak_sponge.Error || error{InvalidProjectiveInputCount};
 pub const Session = struct {
     keccak: K.Session,
     execution_profile: profile.Profile = .ethereum_services_v1,
     add_calls: u64 = 0,
     double_calls: u64 = 0,
     sha256_calls: u64 = 0,
+    sponge_calls: u64 = 0,
+    allocator: std.mem.Allocator = undefined,
     pub fn init(a: std.mem.Allocator, cpu: machine.Cpu, mem: *memory.Memory, options: Base.Options) Error!Session {
         return initWithProfile(a, cpu, mem, options, .ethereum_services_v1);
     }
     pub fn initWithProfile(a: std.mem.Allocator, cpu: machine.Cpu, mem: *memory.Memory, options: Base.Options, execution_profile: profile.Profile) Error!Session {
         if (execution_profile != .ethereum_services_v1 and execution_profile != .ethereum_services_v2 and execution_profile != .ethereum_services_v3) return error.UnsupportedService;
-        return .{ .keccak = try K.Session.init(a, cpu, mem, options), .execution_profile = execution_profile };
+        return .{ .keccak = try K.Session.init(a, cpu, mem, options), .execution_profile = execution_profile, .allocator = a };
     }
     pub fn deinit(self: *Session) void {
         self.keccak.deinit();
@@ -95,6 +100,10 @@ pub const Session = struct {
         const row = self.keccak.step(&call) catch |err| {
             if (err != error.UnsupportedService) return err;
             // v3-only tags are dispatched before secp; v2 never sees them.
+            if (self.execution_profile == .ethereum_services_v3 and self.keccak.base.cpu.read(profile.TAG_REGISTER) == profile.KECCAK_SPONGE_TAG) {
+                event.* = .{ .sponge = try self.sponge() };
+                return null;
+            }
             if (profile.admitsV3(self.execution_profile, self.keccak.base.cpu.read(profile.TAG_REGISTER))) {
                 event.* = .{ .sha256 = try self.compress() };
                 return null;
@@ -104,6 +113,18 @@ pub const Session = struct {
         };
         if (row == null) event.* = .{ .keccak = call };
         return row;
+    }
+    /// Admitted Keccak-256 sponge; every check precedes the state store.
+    fn sponge(self: *Session) Error!keccak_sponge.Event {
+        const cpu = &self.keccak.base.cpu;
+        if (self.sponge_calls == std.math.maxInt(u64)) return error.ServiceCounterOverflow;
+        const pointer = cpu.read(profile.POINTER_REGISTER);
+        const done = try keccak_sponge.execute(self.allocator, self.keccak.base.memory, pointer);
+        const call = keccak_sponge.Call{ .clock = cpu.retired + 1, .pc = cpu.pc, .pointer = pointer };
+        cpu.pc +%= 4;
+        cpu.retired += 1;
+        self.sponge_calls += 1;
+        return .{ .call = call, .packet = done.packet, .state_before = done.state_before };
     }
     /// All checks precede the atomic state write; a trap changes nothing.
     fn compress(self: *Session) Error!Sha256Call {

@@ -32,6 +32,7 @@ pub const Capture = struct {
         } else try self.publish(record.clock, &.{}, memory);
     }
     pub fn appendEvent(self: *Capture, event: Event, memory: *Memory) !void {
+        if (event == .sponge) return self.appendSponge(event.sponge, memory);
         var transitions: [25]Transition = undefined;
         var count: usize = 0;
         const clock = switch (event) {
@@ -50,6 +51,7 @@ pub const Capture = struct {
                 }
                 break :blk call.clock;
             },
+            .sponge => unreachable,
             .sha256 => |call| blk: {
                 count = call.before.len;
                 if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (8 * count - 1)) return error.InvalidBoundaryService;
@@ -63,9 +65,34 @@ pub const Capture = struct {
         };
         try self.publish(clock, transitions[0..count], memory);
     }
+    /// Packet and message words are reads; the 25 state words go from the
+    /// recorded before-values to current memory (ethereum_services/keccak_sponge).
+    fn appendSponge(self: *Capture, e: @import("ethereum_services/keccak_sponge.zig").Event, memory: *Memory) !void {
+        const p = e.packet;
+        const words = p.words();
+        const transitions = try self.allocator.alloc(Transition, 4 + 25 + words);
+        defer self.allocator.free(transitions);
+        for (0..4) |k| {
+            const address = e.call.pointer + 8 * k;
+            const value = memory.backing.load(address, 8).value;
+            transitions[k] = .{ .address = address, .before = value, .after = value, .writable_required = false };
+        }
+        for (0..25) |l| {
+            const address = p.state + 8 * l;
+            transitions[4 + l] = .{ .address = address, .before = e.state_before[l], .after = memory.backing.load(address, 8).value, .writable_required = true };
+        }
+        for (0..words) |j| {
+            const address = p.base() + 8 * j;
+            const value = memory.backing.load(address, 8).value;
+            transitions[29 + j] = .{ .address = address, .before = value, .after = value, .writable_required = false };
+        }
+        try self.publish(e.call.clock, transitions, memory);
+    }
     fn publish(self: *Capture, clock: u64, transitions: []const Transition, memory: *Memory) !void {
         if (self.steps == self.max_steps or clock != self.initial_clock + self.steps + 1) return error.InvalidBoundaryClock;
-        var masks: [25]u2 = undefined;
+        var small: [25]u2 = undefined;
+        const masks = if (transitions.len <= small.len) small[0..transitions.len] else try self.allocator.alloc(u2, transitions.len);
+        defer if (transitions.len > small.len) self.allocator.free(masks);
         var fresh: u32 = 0;
         const tick = 4 * (self.steps + 1);
         for (transitions, 0..) |transition, i| {

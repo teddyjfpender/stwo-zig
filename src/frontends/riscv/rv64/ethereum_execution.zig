@@ -48,6 +48,9 @@ const CaptureStats = struct {
     secp_add_calls: u64 = 0,
     secp_double_calls: u64 = 0,
     sha256_calls: u64 = 0,
+    keccak_sponge_calls: u64 = 0,
+    keccak_sponge_permutations: u64 = 0,
+    keccak_sponge_bytes: u64 = 0,
     peak_retained_bytes: usize = 0,
     step_bytes: usize = @sizeOf(rv.compact_tape.Step),
     legacy_retirement_bytes: usize = @sizeOf(rv.machine.Retirement),
@@ -256,17 +259,37 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.service_ram_word_transitions += call.before.len;
                     if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 4);
                 },
+                .sponge => |e| {
+                    const p = e.packet;
+                    report.keccak_sponge_calls += 1;
+                    report.keccak_sponge_permutations += p.permutations();
+                    report.keccak_sponge_bytes += p.len;
+                    report.service_ram_word_transitions += 29 + p.words();
+                    if (census) |*value| {
+                        for (0..4) |k| {
+                            const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
+                            try value.observe(e.call.pointer + 8 * k, w, w, false);
+                        }
+                        for (e.state_before, 0..) |before, l| try value.observe(p.state + 8 * l, before, memory.backing.load(p.state + 8 * l, 8).value, true);
+                        for (0..p.words()) |j| {
+                            const w = memory.backing.load(p.base() + 8 * j, 8).value;
+                            try value.observe(p.base() + 8 * j, w, w, false);
+                        }
+                    }
+                },
             }
             report.opcode_counts[@intFromEnum(rv.decode.Opcode.ECALL)] += 1;
             if (report.pc_profile) |*profile| {
                 const pc = retirement.pc.toInt();
                 if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
             }
-            if (census) |*value| try value.retireService(switch (event) {
-                .keccak => .keccak,
-                .secp => |call| if (call.kind == .add) .secp_add else .secp_double,
-                .sha256 => .sha256,
-            });
+            if (census) |*value| switch (event) {
+                // The sponge is counted as a plain ECALL retirement.
+                .sponge => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .keccak => try value.retireService(.keccak),
+                .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
+                .sha256 => try value.retireService(.sha256),
+            };
             continue;
         }
         const row = optional_row.?;

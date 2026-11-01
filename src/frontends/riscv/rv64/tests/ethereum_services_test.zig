@@ -185,6 +185,38 @@ test "Ethereum services v3: misaligned or read-only SHA-256 packets trap without
     try std.testing.expectEqualDeep(before, try shaPacket(&mem));
     try std.testing.expectEqual(@as(u64, 0), session.keccak.base.cpu.retired);
 }
+test "Ethereum services v3: admitted Keccak sponge hashes, records a payload-free call, and v2 traps" {
+    var mem = memory.Memory.init(a, .{});
+    defer mem.deinit();
+    try mem.map(.{ .start = 0x1000, .size = 12, .permissions = .{ .read = true, .execute = true } });
+    try mem.initialize(0x1000, &.{ 0x73, 0, 0, 0, 0x73, 0, 0, 0, 0x13, 0, 0, 0 });
+    try mem.map(.{ .start = 0x4000, .size = 0x2000, .permissions = .{ .read = true, .write = true } });
+    var data: [300]u8 = undefined;
+    for (&data, 0..) |*b, i| b.* = @truncate(i *% 29 +% 1);
+    try mem.initialize(0x5003, &data);
+    try mem.storeWords(0x4000, &.{ 0x4100, 0x5003, data.len, eth.keccak_sponge.FINALIZE | eth.keccak_sponge.FRESH });
+    var machine_cpu = machine.Cpu.init(0x1000, 0);
+    machine_cpu.regs[10] = 0x4000;
+    machine_cpu.regs[17] = profile.KECCAK_SPONGE_TAG;
+    var v2 = try eth.Session.initWithProfile(a, machine_cpu, &mem, .{ .cache_entries = 1 }, .ethereum_services_v2);
+    defer v2.deinit();
+    var event: eth.Event = undefined;
+    try std.testing.expectError(error.UnsupportedService, v2.step(&event));
+    var v3 = try eth.Session.initWithProfile(a, machine_cpu, &mem, .{ .cache_entries = 1 }, .ethereum_services_v3);
+    defer v3.deinit();
+    try std.testing.expect((try v3.step(&event)) == null);
+    try std.testing.expect(event == .sponge);
+    try std.testing.expectEqual(@as(u64, 3), event.sponge.packet.permutations());
+    try std.testing.expectEqual(profile.KECCAK_SPONGE_TAG, event.retirement().rhs.toInt());
+    try std.testing.expectEqual(@as(u64, 0x4000), event.retirement().lhs.toInt());
+    var want: [32]u8 = undefined;
+    std.crypto.hash.sha3.Keccak256.hash(&data, &want, .{});
+    var got: [32]u8 = undefined;
+    for (0..4) |l| std.mem.writeInt(u64, got[8 * l ..][0..8], try mem.load(0x4100 + 8 * l, 8), .little);
+    try std.testing.expectEqualSlices(u8, &want, &got);
+    try std.testing.expectEqual(@as(u64, 1), v3.keccak.base.cpu.retired);
+}
 test {
     _ = eth.sha256;
+    _ = eth.keccak_sponge;
 }

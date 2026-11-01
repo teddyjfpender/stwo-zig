@@ -123,8 +123,16 @@ pub const Tape = struct {
         try self.appendRecord(call.retirement());
         self.sha256_calls.appendAssumeCapacity(call);
     }
+    /// The admitted Keccak sponge carries no tape payload: the ECALL step
+    /// (pointer, tag, clock) is the whole call and provers replay it on their
+    /// RAM ledger. Not counted by serviceCount; the tape wire is unchanged.
+    pub fn appendSponge(self: *Tape, call: ethereum.keccak_sponge.Call) !void {
+        if (self.execution_profile != .ethereum_services_v3) return error.InvalidTapeService;
+        try self.appendRecord(call.retirement());
+    }
     pub fn appendEvent(self: *Tape, event: ethereum.Event) !void {
         switch (event) {
+            .sponge => |e| try self.appendSponge(e.call),
             .keccak => |call| try self.appendService(call),
             .secp => |call| try self.appendSecp(call),
             .sha256 => |call| try self.appendSha256(call),
