@@ -29,9 +29,17 @@ flowchart LR
     Shape --> Proof
 ```
 
-The JSON decoder rejects unknown fields and non-canonical field elements. The
-binary decoder requires the `STWOPRW1` header, rejects unsupported versions,
-truncation, trailing bytes, and out-of-range values.
+The default API preserves the historical QM31 JSON and `STWOPRW1` binary bytes.
+Use `ForField(core.fields.om31.OM31)` explicitly for eight-coordinate proofs.
+That codec requires `STWOPRW8` in binary and the
+`{ "protocol": "stwo-om31-proof-v1", "proof": ... }` envelope in JSON. Each
+secure value has exactly eight canonical M31 coordinates, including the upper
+half. Cross-field binary headers and JSON envelopes are rejected.
+
+Both decoders reject unknown fields, non-canonical coordinates, truncation,
+trailing binary bytes, and out-of-range values. Binary vector counts are
+checked against the remaining bytes before allocation, using the selected
+field's encoded element size.
 
 This package does **not** bind a proof to an application statement, choose
 security parameters, run the verifier, or provide the fixed-memory preflight
@@ -53,6 +61,7 @@ defer decoded.deinit(allocator);
 
 | Area | Exports |
 | :--- | :--- |
+| Explicit field selection | `ForField` (QM31 or OM31) |
 | Concrete proof identity | `Hasher`, `Proof` |
 | Wire shape | `ProofWire`, `PcsConfigWire`, `FriConfigWire`, `FriProofWire`, `FriLayerWire`, `MerkleDecommitmentWire` |
 | Scalar encodings | `HashWire`, `Qm31Wire` |

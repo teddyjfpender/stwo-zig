@@ -1,0 +1,65 @@
+{
+  "schema": "rv64-services-gkr-stage1-wire-v1",
+  "base": "2eba4a21c",
+  "production_selected": false,
+  "execution_acceptance": false,
+  "whole_protocol_128_claim": false,
+  "speedup_claim": false,
+  "format": {
+    "magic": "RV64MGK1",
+    "total_cap_bytes": 67108864,
+    "child_cap_bytes": 16777216,
+    "receiver_owned": [
+      "complete roster",
+      "execution identity",
+      "worker statement identities",
+      "FIXED roots",
+      "global relation presence",
+      "local argument selection/geometry",
+      "conservative global event mass bounds"
+    ],
+    "encoded": [
+      "ordered MAIN commitments",
+      "canonical child proofs",
+      "child receipts"
+    ]
+  },
+  "qualification": {
+    "safe_exit": 0,
+    "fast_exit": 0,
+    "direct_fast_tests": 40,
+    "minimum_test_ratchet": 40,
+    "guard_fast_exit": 0,
+    "actual_crypto": "two real local GKR children plus one classic truth slot, decoded and freshly verified into the same pending manifest; child decoding storage released before artifact comparison",
+    "adversarial": [
+      "every truncated prefix rejected before allocations",
+      "trailing byte/profile/execution/count/ordinal/local flag/child length substitutions",
+      "noncanonical nested coordinate",
+      "changed MAIN root rejected by fresh child receiver",
+      "exact declared polynomial length including trailing-zero coefficient (codec-only altered proof; no acceptance claim)",
+      "per-worker event bounds below p whose complete sum reaches p rejected before allocation",
+      "u64max mass/absent-relation mass rejected",
+      "all nested decode/encode/verify allocation failures"
+    ],
+    "ownership": "stable caller allocator for independent child arenas; owned entries and partial-child cleanup; checked artifacts outlive decoded file"
+  },
+  "commands": [
+    "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe -j2 --summary all",
+    "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast -j2 --summary all"
+  ],
+  "pending": [
+    "receiver derives exact/conservative event counts from admitted request/program geometry",
+    "every physical PCS proof and local terminal binding",
+    "per-role physical claim presence and transcript binding",
+    "independent RAM/KIO/Wire closure from verified records",
+    "coverage/public image/final-output/endpoints",
+    "complete block and whole-protocol security review"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig": "67e70da23e2d6e09cdb1f3589756d56e1300db07dc7270d9b461731ec3de9a6c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest_test.zig": "92ece8206601b13759498d76b7ac7b7cb9a856659e7e544cebcc62877f698fd8",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest_wire.zig": "421bc509af6ebfde2bb071ec4e85a0b19f6bb969b32e5a826ca564481299578c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest_wire_test.zig": "3d1d872ccefac621239b76cd761b821362abc3de9b5d399183b93cfb9d82968d",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/wire.zig": "992e8d68a39365ee839d3a7a976bf20d3636211e632c05d39bd26ee33f9e67ca"
+  }
+}

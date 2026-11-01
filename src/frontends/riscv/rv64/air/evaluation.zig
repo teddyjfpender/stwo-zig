@@ -4,6 +4,8 @@ const std = @import("std");
 const core = @import("stwo_core");
 pub const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
+pub const NativeO = core.fields.om31.OM31;
+const WideSinks = @import("wide_sinks.zig");
 pub const L = @import("layout.zig");
 pub const O = @import("../decode.zig").Opcode;
 pub const Fixed = [L.fixed.COUNT]Q;
@@ -17,10 +19,10 @@ pub const lane = @import("lane.zig");
 pub const isExternalLane = lane.isExternal;
 pub const assertExternalLane = lane.assertExternalLane;
 
-/// Lane families: the QM31 verifier lane and the two packed SIMD domain lanes
-/// share QM31-valued constants; an external lane supplies its own constants.
+/// Legacy lanes share QM31 constants; explicitly tagged wide lanes share OM31
+/// constants. An external lane supplies its own constant wires.
 pub fn isNativeLane(comptime F: type) bool {
-    return F == Q or F == PackedBase or F == PackedSecure;
+    return F == Q or F == PackedBase or F == PackedSecure or F == NativeO or F == PackedFields.PackedOmBase or F == PackedFields.PackedOmSecure;
 }
 fn assertLane(comptime F: type) void {
     comptime {
@@ -31,12 +33,13 @@ fn assertLane(comptime F: type) void {
 /// constraint instantiated over trace lane F.
 pub fn ConstFor(comptime F: type) type {
     assertLane(F);
+    if (F == NativeO or F == PackedFields.PackedOmBase or F == PackedFields.PackedOmSecure) return NativeO;
     return if (isExternalLane(F)) F else Q;
 }
-/// Component storage lane: `Q` for the native family, an external lane itself.
+/// Component storage lane: Q or native OM31, or an external lane itself.
 pub fn assertConstLane(comptime Lane: type) void {
     comptime {
-        if (Lane != Q and !isExternalLane(Lane)) @compileError("unsupported RV64 constant lane");
+        if (Lane != Q and Lane != NativeO and !isExternalLane(Lane)) @compileError("unsupported RV64 constant lane");
     }
 }
 /// Public base-field counts: native integers, or lane values for an external lane.
@@ -131,6 +134,8 @@ pub fn ViewFor(comptime F: type) type {
 }
 pub fn SecureFor(comptime F: type) type {
     if (F == Q) return Q;
+    if (F == NativeO) return NativeO;
+    if (F == PackedFields.PackedOmBase or F == PackedFields.PackedOmSecure) return PackedFields.PackedOmSecure;
     if (F == PackedBase or F == PackedSecure) return PackedSecure;
     if (isExternalLane(F)) return F;
     @compileError("unsupported RV64 arithmetic lane");
@@ -138,6 +143,9 @@ pub fn SecureFor(comptime F: type) type {
 pub const secureTypeFor = SecureFor;
 pub inline fn qFor(comptime F: type, value: u32) F {
     if (F == Q) return q(value);
+    if (F == NativeO) return NativeO.fromBase(M.fromCanonical(value));
+    if (F == PackedFields.PackedOmBase) return F.fromCanonical(value);
+    if (F == PackedFields.PackedOmSecure) return F.splat(NativeO.fromBase(M.fromCanonical(value)));
     if (F == PackedBase) return PackedBase.fromCanonical(value);
     if (F == PackedSecure) return PackedSecure.splat(q(value));
     if (comptime isExternalLane(F)) return F.fromU32(value);
@@ -145,18 +153,21 @@ pub inline fn qFor(comptime F: type, value: u32) F {
 }
 pub inline fn liftFor(comptime F: type, value: F) SecureFor(F) {
     if (F == PackedBase) return PackedSecure.fromBase(value);
+    if (F == PackedFields.PackedOmBase) return PackedFields.PackedOmSecure.fromBase(value);
     return value;
 }
 /// A constant of the lane's constant family as a secure lane value.
 pub inline fn splatFor(comptime F: type, value: ConstFor(F)) SecureFor(F) {
     if (F == PackedBase or F == PackedSecure) return PackedSecure.splat(value);
+    if (F == PackedFields.PackedOmBase or F == PackedFields.PackedOmSecure) return PackedFields.PackedOmSecure.splat(value);
     return value;
 }
 pub inline fn mulBaseFor(comptime F: type, secure: SecureFor(F), base: F) SecureFor(F) {
-    if (F == PackedBase) return secure.mulBase(base);
+    if (F == PackedBase or F == PackedFields.PackedOmBase) return secure.mulBase(base);
     return secure.mul(base);
 }
 pub inline fn secureFromCoordinatesFor(comptime F: type, values: [4]F) SecureFor(F) {
+    comptime if (extensionDegree(ConstFor(F)) != 4) @compileError("four-column secure storage cannot encode degree-eight values; use secureFromCoordinatesForField");
     if (F == Q) return Q.fromPartialEvals(values);
     if (F == PackedBase) return PackedSecure.fromCoordinates(values);
     if (F == PackedSecure) return PackedSecure.fromPartialEvals(values);
@@ -177,12 +188,16 @@ pub inline fn denominatorFor(comptime F: type, offset: ConstFor(F), coefficients
 }
 pub fn SinkFor(comptime F: type) type {
     if (F == Q) return Sink;
+    if (F == NativeO) return WideSinks.Sink(NativeO, NativeO, NativeO);
+    if (F == PackedFields.PackedOmBase or F == PackedFields.PackedOmSecure) return WideSinks.Sink(NativeO, PackedFields.PackedOmBase, PackedFields.PackedOmSecure);
     if (F == PackedBase or F == PackedSecure) return PackedSink;
     if (isExternalLane(F)) return lane.Sink(F);
     @compileError("unsupported RV64 arithmetic lane");
 }
 pub fn WeightedAccumulatorFor(comptime F: type) type {
     if (F == Q) return WeightedAccumulator;
+    if (F == NativeO) return WideSinks.Weighted(NativeO, NativeO);
+    if (F == PackedFields.PackedOmBase or F == PackedFields.PackedOmSecure) return WideSinks.Weighted(NativeO, PackedFields.PackedOmSecure);
     if (F == PackedBase or F == PackedSecure) return PackedWeightedAccumulator;
     @compileError("unsupported RV64 arithmetic lane");
 }
@@ -339,4 +354,24 @@ fn ranges(v: View, out: *Sink, support: L.Support) void {
         out.emit(enabled.mul(v.m[L.previousClock(slot)].add(v.m[L.gap(slot)]).add(one).sub(v.f[L.fixed.tick_start + slot])));
     }
     for ([_]usize{ L.readable, L.writable, L.divisor_zero, L.sign_a, L.sign_b, L.negate, L.apply_negate, L.equal, L.taken }) |column| boolean(out, v.m[column]);
+}
+
+/// Storage width is explicit protocol authority, never inferred from an old
+/// four-coordinate component layout. External wires declare their own degree.
+pub fn extensionDegree(comptime C: type) comptime_int {
+    if (C == NativeO) return 8;
+    if (C == Q) return 4;
+    if (isExternalLane(C)) return if (@hasDecl(C, "rv64_extension_degree")) C.rv64_extension_degree else 4;
+    @compileError("unsupported RV64 secure field identity");
+}
+pub inline fn secureFromCoordinatesForField(comptime C: type, comptime F: type, values: [extensionDegree(C)]F) SecureFor(F) {
+    comptime if (ConstFor(F) != C) @compileError("RV64 secure coordinate field/lane mismatch");
+    if (extensionDegree(C) == 4) return secureFromCoordinatesFor(F, values);
+    if (F == PackedFields.PackedOmBase) return PackedFields.PackedOmSecure.fromCoordinates(values);
+    if (comptime F == PackedFields.PackedOmSecure or isExternalLane(F)) return F.fromPartialEvals(values);
+    if (F == NativeO) return NativeO.fromPartialEvals(values);
+    @compileError("unsupported RV64 degree-eight coordinate lane");
+}
+pub inline fn secureForField(comptime C: type, comptime F: type, coordinates: []const F, index: usize) SecureFor(F) {
+    return secureFromCoordinatesForField(C, F, coordinates[index..][0..extensionDegree(C)].*);
 }

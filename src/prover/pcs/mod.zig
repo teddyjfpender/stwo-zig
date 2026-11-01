@@ -64,3 +64,24 @@ pub fn flushPendingCommit(
 ) !void {
     try deferred_commit.resolve(MC, commitment_scheme, allocator, channel);
 }
+
+/// Secure proof/quotient selection; M31 commitment ownership is shared.
+pub fn ForField(comptime S: type) type {
+    return struct {
+        const selected = @import("scheme.zig").ForField(S);
+        pub const CommitmentSchemeProver = selected.CommitmentSchemeProver;
+        pub const TreeBuilder = selected.TreeBuilder;
+        pub const StreamingTreeBuilder = selected.StreamingTreeBuilder;
+        pub const CommitmentSchemeError = selected.CommitmentSchemeError;
+        pub const ColumnEvaluation = selected.ColumnEvaluation;
+        pub const ColumnSource = @import("column_source.zig").ColumnSource;
+        pub const CommitmentTreeProver = selected.CommitmentTreeProver;
+        pub const CommitmentTreeProverForBackend = @import("commitment_tree.zig").CommitmentTreeProverForBackend;
+        pub const TreeDecommitmentResult = selected.TreeDecommitmentResult;
+        pub const quotient_ops = @import("quotient_ops.zig").ForField(S);
+        pub const proof_of_work = @import("proof_of_work.zig");
+        pub const column_preparation = @import("columns/preparation.zig");
+        pub const revision_lifting = @import("revision_lifting.zig");
+        pub const flushPendingCommit = @import("mod.zig").flushPendingCommit;
+    };
+}

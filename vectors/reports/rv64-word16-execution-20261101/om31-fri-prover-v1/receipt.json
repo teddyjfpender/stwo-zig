@@ -1,0 +1,63 @@
+{
+  "schema": "rv64-om31-fri-prover-qualification-v1",
+  "implementation_commit": "8d1c10a9e",
+  "required_core_fix": "66039e6d4",
+  "base": "1e13af3ab",
+  "dependency_commits": [
+    "b9830295b",
+    "fec40a847"
+  ],
+  "qualification": "additive owned eight-coordinate FRI commit/decommit/native verification; current default Q protocol unchanged",
+  "apis": {
+    "prover": "prover.fri.ForField(OM31).FriProver(cpu.Om31FriBackend,H,MC)",
+    "column": "prover.secure_column.SecureColumnByCoordsFor(OM31)",
+    "line": "prover.line.LineEvaluationFor(OM31)",
+    "receiver": "core.fri.ForField(OM31).FriVerifier(H,MC)",
+    "channel": "core.channel.raw_mod_m31.Om31Channel"
+  },
+  "passed": {
+    "native_release_safe": 8,
+    "native_release_fast": 8,
+    "core_release_safe": 144,
+    "core_release_fast": 144,
+    "historical_qm31_gkr_prototype_release_fast": 22,
+    "qm31_actual_wire_gkr_circuit_release_fast": 9,
+    "historical_qm31_gkr_prototype_release_safe": 22,
+    "qm31_actual_wire_gkr_circuit_release_safe": 9
+  },
+  "cases": [
+    "nonconstant polynomial with nonzero values in all eight coordinates",
+    "fold-step1 ungrouped and fold-step4 packed Merkle leaves",
+    "fresh independently initialized native core verifier",
+    "high-coordinate opened witness tampering rejected",
+    "changed transcript/challenge stream rejected",
+    "high-coordinate terminal polynomial tampering rejected",
+    "missing inner-layer geometry rejected",
+    "exhaustive allocation-failure injection across actual commit/decommit/verification",
+    "forced final-resize OOM preserves original owner and completed-fold prefix",
+    "existing native Q roundtrip, invalid-domain and terminal-degree cases"
+  ],
+  "fixes": [
+    "first-layer commit releases input owned column if Merkle/packing allocation fails",
+    "multi-fold core preflights workspace and keeps original allocation until single final resize; on failure contents may be prefix-folded but original owner remains valid"
+  ],
+  "qm31_proof_parity": {
+    "ls_log": 20,
+    "tail_log": 18,
+    "proof_bytes": 381800,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "fresh_receiver_accepted": true,
+    "reference": "vectors/reports/rv64-word16-execution-20261101/gkr-circuit-cost-v1/real-ls20-tail18.proof.bin"
+  },
+  "limits": [
+    "No production frontend or protocol field selection changed",
+    "No whole-protocol 128-bit certificate",
+    "No wide PCS/DEEP/AIR/recursive proof gate in this slice",
+    "Wide lazy quotient provider route awaits explicit prover PCS family integration; owned route qualified",
+    "OM31 CPU adapter forwards M31 Merkle only and uses shared core wide arithmetic, not legacy Q-typed optimized hooks",
+    "Micro examples qualify arithmetic and binding, not production-scale throughput or peak memory",
+    "Logical work profiling is not an OM31 primitive-cost benchmark"
+  ],
+  "performance_claim": null,
+  "host": "shared host; no controlled speedup claim"
+}

@@ -24,6 +24,7 @@ pub const GkrProverError = error{
     NotConstantPoly,
     InvalidLayerStructure,
     InvalidSumcheck,
+    OutOfMemory,
 };
 
 /// Evaluations of `eq((0, x), y)` over the boolean hypercube.

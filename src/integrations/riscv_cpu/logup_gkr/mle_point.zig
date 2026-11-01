@@ -27,6 +27,7 @@ pub const Error = error{
     /// A coordinate in {0, 1}: the carry quotients divide by it. Completeness only.
     DegenerateEvalPoint,
     DivisionByZero,
+    NonBaseField,
 };
 
 /// Lagrange kernel over the boolean hypercube.
@@ -66,7 +67,7 @@ pub fn MleEvalPointFor(comptime F: type) type {
             out.n = point.len;
             @memset(&out.p, F.zero());
             @memcpy(out.p[0..point.len], point);
-            if (F == QM31) for (point) |v| {
+            if (F == QM31 or F == core.fields.om31.OM31) for (point) |v| {
                 if (v.isZero() or v.eql(F.one())) return error.DegenerateEvalPoint;
             };
             out.eq0 = F.one();

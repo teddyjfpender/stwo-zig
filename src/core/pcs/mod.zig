@@ -31,25 +31,22 @@ pub const PcsConfig = struct {
     }
 
     pub fn mixInto(self: PcsConfig, channel: anytype) void {
-        const packed_config_1 = QM31.fromU32Unchecked(
-            self.pow_bits,
-            self.fri_config.log_blowup_factor,
-            @as(u32, @intCast(self.fri_config.n_queries)),
-            self.fri_config.log_last_layer_degree_bound,
-        );
-
-        // Preserve the upstream transcript unless fork-only parameters are
-        // explicitly selected. Default proofs must remain Rust-compatible.
+        const Channel = @typeInfo(@TypeOf(channel)).pointer.child;
+        const F = if (@hasDecl(Channel, "SecureField")) Channel.SecureField else QM31;
+        const degree = @typeInfo(@TypeOf(F.zero().toM31Array())).array.len;
+        var coordinates = [_]M31{M31.zero()} ** degree;
+        coordinates[0] = M31.fromU32Unchecked(self.pow_bits);
+        coordinates[1] = M31.fromU32Unchecked(self.fri_config.log_blowup_factor);
+        coordinates[2] = M31.fromU32Unchecked(@intCast(self.fri_config.n_queries));
+        coordinates[3] = M31.fromU32Unchecked(self.fri_config.log_last_layer_degree_bound);
+        const packed_config_1 = F.fromM31Array(coordinates);
         if (self.fri_config.fold_step != fri.FOLD_STEP or self.lifting_log_size != null) {
-            const packed_config_2 = QM31.fromU32Unchecked(
-                self.fri_config.fold_step,
-                self.lifting_log_size orelse 0,
-                0,
-                0,
-            );
-            channel.mixFelts(&[_]QM31{ packed_config_1, packed_config_2 });
+            coordinates = [_]M31{M31.zero()} ** degree;
+            coordinates[0] = M31.fromU32Unchecked(self.fri_config.fold_step);
+            coordinates[1] = M31.fromU32Unchecked(self.lifting_log_size orelse 0);
+            channel.mixFelts(&[_]F{ packed_config_1, F.fromM31Array(coordinates) });
         } else {
-            channel.mixFelts(&[_]QM31{packed_config_1});
+            channel.mixFelts(&[_]F{packed_config_1});
         }
     }
 
@@ -61,67 +58,11 @@ pub const PcsConfig = struct {
     }
 };
 
-pub fn CommitmentSchemeProof(comptime H: type) type {
-    return struct {
-        config: PcsConfig,
-        commitments: TreeVec(H.Hash),
-        sampled_values: TreeVec([][]QM31),
-        decommitments: TreeVec(vcs_verifier.MerkleDecommitmentLifted(H)),
-        queried_values: TreeVec([][]M31),
-        proof_of_work: u64,
-        fri_proof: FriProof(H),
-        /// The `proving_5a7c5ed` configuration of a revision proof: `config`
-        /// is then its FRI/PoW view and the proof's own configuration, with
-        /// both lifting heights, is this (the bincode `PcsConfig` of that
-        /// revision). Null for the existing lanes, which `config` defines.
-        revision_config: ?config_v2.PcsConfigV2 = null,
-
-        const Self = @This();
-
-        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-            self.commitments.deinit(allocator);
-            self.sampled_values.deinitDeep(allocator);
-            for (self.decommitments.items) |*decommitment| decommitment.deinit(allocator);
-            self.decommitments.deinit(allocator);
-            self.queried_values.deinitDeep(allocator);
-            self.fri_proof.deinit(allocator);
-            self.* = undefined;
-        }
-    };
-}
-
-pub fn CommitmentSchemeProofAux(comptime H: type) type {
-    return struct {
-        unsorted_query_locations: []usize,
-        trace_decommitment: TreeVec(vcs_verifier.MerkleDecommitmentLiftedAux(H)),
-        fri: FriProofAux(H),
-
-        const Self = @This();
-
-        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-            allocator.free(self.unsorted_query_locations);
-            for (self.trace_decommitment.items) |*decommitment_aux| decommitment_aux.deinit(allocator);
-            self.trace_decommitment.deinit(allocator);
-            self.fri.deinit(allocator);
-            self.* = undefined;
-        }
-    };
-}
-
-pub fn ExtendedCommitmentSchemeProof(comptime H: type) type {
-    return struct {
-        proof: CommitmentSchemeProof(H),
-        aux: CommitmentSchemeProofAux(H),
-
-        const Self = @This();
-
-        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-            self.proof.deinit(allocator);
-            self.aux.deinit(allocator);
-            self.* = undefined;
-        }
-    };
-}
+pub const ForField = @import("mod_family.zig").ForField;
+const Default = ForField(QM31);
+pub const CommitmentSchemeProof = Default.CommitmentSchemeProof;
+pub const CommitmentSchemeProofAux = Default.CommitmentSchemeProofAux;
+pub const ExtendedCommitmentSchemeProof = Default.ExtendedCommitmentSchemeProof;
 
 test "pcs config: security bits" {
     const cfg = PcsConfig{

@@ -7,11 +7,10 @@ const canonic = @import("poly/circle/canonic.zig");
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 
-pub const LineCoeffs = struct {
-    a: QM31,
-    b: QM31,
-    c: QM31,
-};
+pub fn LineCoeffsFor(comptime F: type) type {
+    return struct { a: F, b: F, c: F };
+}
+pub const LineCoeffs = LineCoeffsFor(QM31);
 
 /// Evaluates a coset vanishing polynomial at `p`.
 pub fn cosetVanishing(comptime F: type, coset: circle.Coset, p_in: circle.CirclePoint(F)) F {
@@ -75,25 +74,41 @@ pub fn complexConjugateLine(
     value: QM31,
     p: circle.CirclePointM31,
 ) !QM31 {
-    if (point.y.eql(point.y.complexConjugate())) return error.DegenerateLine;
-
-    const dy = value.complexConjugate().sub(value);
-    const y_offset = point.y.neg().add(QM31.fromBase(p.y));
-    const denom = point.complexConjugate().y.sub(point.y);
-    const frac = try dy.mul(y_offset).div(denom);
-    return value.add(frac);
+    return quadraticConjugateLine(QM31, point, value, p);
 }
 
 pub fn complexConjugateLineCoeffs(point: circle.CirclePointQM31, value: QM31, alpha: QM31) !LineCoeffs {
-    if (point.y.eql(point.y.complexConjugate())) return error.DegenerateLine;
-    const a = value.complexConjugate().sub(value);
-    const c = point.complexConjugate().y.sub(point.y);
+    return quadraticConjugateLineCoeffs(QM31, point, value, alpha);
+}
+
+/// One authority for a quadratic tower's DEEP interpolation. F explicitly owns
+/// its fixed field and involution; no field is chosen from witness metadata.
+pub fn quadraticConjugateLine(comptime F: type, point: circle.CirclePoint(F), value: F, p: circle.CirclePointM31) !F {
+    if (point.y.eql(point.y.quadraticConjugate())) return error.DegenerateLine;
+    const dy = value.quadraticConjugate().sub(value);
+    const offset = F.fromBase(p.y).sub(point.y);
+    const denominator = point.y.quadraticConjugate().sub(point.y);
+    return value.add(try dy.mul(offset).div(denominator));
+}
+
+pub fn quadraticConjugateLineCoeffs(comptime F: type, point: circle.CirclePoint(F), value: F, alpha: F) !LineCoeffsFor(F) {
+    if (point.y.eql(point.y.quadraticConjugate())) return error.DegenerateLine;
+    const a = value.quadraticConjugate().sub(value);
+    const c = point.y.quadraticConjugate().sub(point.y);
     const b = value.mul(c).sub(a.mul(point.y));
     return .{
         .a = alpha.mul(a),
         .b = alpha.mul(b),
         .c = alpha.mul(c),
     };
+}
+
+/// Half-field denominator underlying the same line. For QM31 the result is
+/// CM31; for OM31 it is QM31. Its lift times -2*generator equals pairVanishing.
+pub fn quadraticLineDenominator(comptime F: type, sample: circle.CirclePoint(F), p: circle.CirclePointM31) F.InnerField {
+    const H = F.InnerField;
+    return sample.x.c0.sub(H.fromBase(p.x)).mul(sample.y.c1)
+        .sub(sample.y.c0.sub(H.fromBase(p.y)).mul(sample.x.c1));
 }
 
 fn fromBase(comptime F: type, value: M31) F {

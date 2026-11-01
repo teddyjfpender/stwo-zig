@@ -15,6 +15,7 @@ pub const operations = @import("operations.zig");
 pub const control_policy = @import("control_policy.zig");
 pub const encoding = @import("encoding.zig");
 pub const full = struct {
+    pub const coset_evaluation = @import("full/coset_evaluation.zig");
     pub const packed_frame = @import("full/packed_frame.zig");
     pub const packed_control_constraints = @import("full/packed_control_constraints.zig");
     pub const parallel = @import("full/parallel.zig");
@@ -176,3 +177,10 @@ pub const word16_index_control = struct {
 pub const word16_execution = @import("word16_execution/mod.zig");
 
 pub const native_output_pages = @import("native_output_pages.zig");
+
+/// Additive MAIN-only authorities for an explicitly wide, GKR-closed route.
+pub const main_only = struct {
+    pub const authority = @import("main_only/authority.zig");
+    pub const component = @import("main_only/component.zig");
+    pub const global_classic = @import("main_only/global_classic.zig");
+};

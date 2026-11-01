@@ -640,3 +640,9 @@ test "prover pcs quotient ops: lazy provider matches materialized output" {
         try std.testing.expect(mat_val.eql(lazy_val));
     }
 }
+
+/// Explicit secure-field family; the established QM31 optimized path is retained.
+pub fn ForField(comptime S: type) type {
+    if (S == QM31) return @This();
+    return @import("quotient_field.zig").ForField(S);
+}

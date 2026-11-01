@@ -22,6 +22,7 @@ pub const GkrProverError = error{
     NotConstantPoly,
     InvalidLayerStructure,
     InvalidSumcheck,
+    OutOfMemory,
 };
 
 /// Evaluations of `eq((0, x), y)` over the boolean hypercube.
@@ -169,24 +170,24 @@ pub fn ForField(comptime Secure: type) type {
 
                 return switch (self) {
                     .GrandProduct => |mle| blk: {
-                        const out = allocator.alloc(Secure, 1) catch return GkrProverError.ShapeMismatch;
+                        const out = try allocator.alloc(Secure, 1);
                         out[0] = mle.evalsSlice()[0];
                         break :blk out;
                     },
                     .LogUpGeneric => |inner| blk: {
-                        const out = allocator.alloc(Secure, 2) catch return GkrProverError.ShapeMismatch;
+                        const out = try allocator.alloc(Secure, 2);
                         out[0] = inner.numerators.evalsSlice()[0];
                         out[1] = inner.denominators.evalsSlice()[0];
                         break :blk out;
                     },
                     .LogUpMultiplicities => |inner| blk: {
-                        const out = allocator.alloc(Secure, 2) catch return GkrProverError.ShapeMismatch;
+                        const out = try allocator.alloc(Secure, 2);
                         out[0] = Secure.fromBase(inner.numerators.evalsSlice()[0]);
                         out[1] = inner.denominators.evalsSlice()[0];
                         break :blk out;
                     },
                     .LogUpSingles => |inner| blk: {
-                        const out = allocator.alloc(Secure, 2) catch return GkrProverError.ShapeMismatch;
+                        const out = try allocator.alloc(Secure, 2);
                         out[0] = Secure.one();
                         out[1] = inner.denominators.evalsSlice()[0];
                         break :blk out;
@@ -361,38 +362,38 @@ pub fn ForField(comptime Secure: type) type {
                     .GrandProduct => |mle| blk: {
                         if (mle.evalsSlice().len != 2) return GkrProverError.InvalidLayerStructure;
                         break :blk gkr_verifier_field.GkrMask.initOwned(
-                            allocator.dupe([2]Secure, &[_][2]Secure{.{
+                            try allocator.dupe([2]Secure, &[_][2]Secure{.{
                                 mle.evalsSlice()[0],
                                 mle.evalsSlice()[1],
-                            }}) catch return GkrProverError.ShapeMismatch,
+                            }}),
                         );
                     },
                     .LogUpGeneric => |inner| blk: {
                         if (inner.numerators.evalsSlice().len != 2 or inner.denominators.evalsSlice().len != 2) {
                             return GkrProverError.InvalidLayerStructure;
                         }
-                        const cols = allocator.dupe([2]Secure, &[_][2]Secure{
+                        const cols = try allocator.dupe([2]Secure, &[_][2]Secure{
                             .{ inner.numerators.evalsSlice()[0], inner.numerators.evalsSlice()[1] },
                             .{ inner.denominators.evalsSlice()[0], inner.denominators.evalsSlice()[1] },
-                        }) catch return GkrProverError.ShapeMismatch;
+                        });
                         break :blk gkr_verifier_field.GkrMask.initOwned(cols);
                     },
                     .LogUpMultiplicities => |inner| blk: {
                         if (inner.numerators.evalsSlice().len != 2 or inner.denominators.evalsSlice().len != 2) {
                             return GkrProverError.InvalidLayerStructure;
                         }
-                        const cols = allocator.dupe([2]Secure, &[_][2]Secure{
+                        const cols = try allocator.dupe([2]Secure, &[_][2]Secure{
                             .{ Secure.fromBase(inner.numerators.evalsSlice()[0]), Secure.fromBase(inner.numerators.evalsSlice()[1]) },
                             .{ inner.denominators.evalsSlice()[0], inner.denominators.evalsSlice()[1] },
-                        }) catch return GkrProverError.ShapeMismatch;
+                        });
                         break :blk gkr_verifier_field.GkrMask.initOwned(cols);
                     },
                     .LogUpSingles => |inner| blk: {
                         if (inner.denominators.evalsSlice().len != 2) return GkrProverError.InvalidLayerStructure;
-                        const cols = allocator.dupe([2]Secure, &[_][2]Secure{
+                        const cols = try allocator.dupe([2]Secure, &[_][2]Secure{
                             .{ Secure.one(), Secure.one() },
                             .{ inner.denominators.evalsSlice()[0], inner.denominators.evalsSlice()[1] },
-                        }) catch return GkrProverError.ShapeMismatch;
+                        });
                         break :blk gkr_verifier_field.GkrMask.initOwned(cols);
                     },
                 };

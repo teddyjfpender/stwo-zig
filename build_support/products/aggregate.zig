@@ -17,6 +17,7 @@ const common_allowed_files = [_][]const u8{
     "src/interop/output_transaction.zig",
     "src/interop/postcard.zig",
     "src/interop/proof_wire/mod.zig",
+    "src/interop/proof_wire/family.zig",
     "src/interop/riscv_artifact.zig",
     "src/integrations/native/product_identity.zig",
     "src/integrations/native/transaction.zig",

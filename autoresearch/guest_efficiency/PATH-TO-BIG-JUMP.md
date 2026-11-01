@@ -13,8 +13,8 @@ gets both metrics down far enough to start the GPU port. Numbers are on the
 | Rust guest, lean track (`codex/rv64-guest-rust-lean`) | 9.93 | 118,986 | yes |
 | evmone client (`client_evmone/`), admitted services | 8.32 | 101,192 | yes |
 | evmone client + candidate memory, SHA-256, arith256_mod + input adapter | 5.65 | 78,849 | no (services not yet in the prover) |
-| **evmone client, merged trie/state + interpreter tracks, admitted** | **6.80** | **85,987** | yes |
-| **same client + all candidate services (mem, SHA-256, arith, BN254, BLS12-381, Keccak sponge)** | **3.39** | **55,508** | no (services not yet in the prover) |
+| **evmone client, merged trie/state + interpreter tracks + EEST fixes, admitted** | **6.81** | **86,044** | yes |
+| **same client + all candidate services (mem, SHA-256, arith, BN254, BLS12-381, Keccak sponge)** | **3.39** | **55,556** | no (services being added to the prover) |
 | Reference: ZisK reth guest / ZisK production commit | 6.38 / - | - / ~95,000 | |
 | Target: ziskethone parity (L3) | 2.02 | ~23,000 | |
 
@@ -116,10 +116,12 @@ item only with its evidence.
 - [x] Soundness fix: payload state root, receipts root and gas used checked against re-execution (`d79ebdd47`)
 - [x] Verified signature-recovery hints via input adapter, Keccak memo (`004878ebc`, `1549143bb`)
 - [x] Zero-parse input evaluated: at most 4-6% available, not pursued (notes/evmone-port.md)
-- [ ] Ethereum execution spec tests on both clients, host and guest tiers (branch `codex/rv64-guest-prover-eest`, in progress)
+- [x] Ethereum execution spec tests (tests@v21.0.2, Prague/Osaka/BPO1/BPO2: 34,561 tests, 37,295 valid + 3,543 invalid blocks) on both clients, host and full RV64 guest tiers (`eest/`, receipt `eest-guests-v1.json`). evmone RV64: 36,942 valid pass, all 3,543 invalid rejected; two evmone bugs fixed (EIP-7702 delegation code, trie delete-before-insert), costing +0.1% on the basket. Rust guest: two reth consensus bugs (accepts 4 SYSTEM_CONTRACT_EMPTY invalid blocks; rejects 8 valid withdrawals-before-request blocks)
+- [ ] Fix the open evmone liveness bugs from EEST: BLS G2 crash on RV64 (portable-C blst path, 40 blocks), table sizing from the gas limit (>=500M gas), max-depth 7702 call-chain memory (branch `codex/rv64-guest-client-eest-fixes`, in progress)
+- [ ] Report the two reth consensus bugs upstream (write-up in `eest/upstream-reth-issues.md`; filing is a human decision)
 - [x] Port the Rust-lean techniques to the client's trie and state code (branch `codex/rv64-guest-client-trie-state`, 11 commits): admitted 8.317 -> 7.140 instr/gas; trie/MPT/receipts 0.825 -> 0.388, state tables 0.569 -> 0.430 instr/gas
 - [x] Interpreter tuned for RV64IM, first pass (branch `codex/rv64-guest-client-interpreter`, 11 commits): admitted 8.317 -> 7.978 instr/gas; interpreter 1.921 -> 1.659, JUMPDEST 0.299 -> 0.265 (MUL 211 -> 67, MLOAD ~153 -> ~89, SLOAD ~336 -> ~185 instructions)
-- [ ] Interpreter second pass to reach ~1.0: per-basic-block gas and stack checks cached per JUMPDEST, top-of-stack in registers in fused jumps, `rev8` via the ISA extension (each opcode still pays ~10 fixed instructions; dispatch alone is 1.12 instr/gas)
+- [ ] Interpreter second pass to reach ~1.0 (branch `codex/rv64-guest-client-interpreter2`, in progress): per-basic-block gas and stack checks cached per JUMPDEST, top-of-stack in registers in fused jumps, `rev8` via the ISA extension (each opcode still pays ~10 fixed instructions; dispatch alone is 1.12 instr/gas)
 - [x] Combined client verified (trie/state + interpreter + curves merged): admitted 6.801 scored / 6.566 all instr/gas, 85,987 bits/gas, all guards, promotable; all candidate services 3.390 scored, 55,508 bits/gas
 
 ### Move B: services
@@ -127,18 +129,19 @@ item only with its evidence.
 - [x] Candidate services measured on the evmone client: 5.65 instr/gas, 78,849 bits/gas (`519337489`)
 - [x] SHA-256 compression service in the prover: admitted profile `ethereum_services_v3`, truth AIR (one compression per row, degree 3, own PCS), secp/Word16 bridge `.sha256` kind, services lane family 3, receiver (v3-only), Ethereum driver (branch `codex/rv64-guest-prover-sha256`, 6 commits). Cost 8,551 cells per compression nominal, 12,151 padded on the real block (software was ~616k). v2 bundles byte-identical. Rust guest -12.4% instr/gas, -10.6% bits/gas, promotable
 - [x] **First provable v3 result:** 4-shard prefix of block 24,628,607 with the SHA-256 guest proved (29.5 s, 22.8 GB) and accepted by a fresh `verify-prefix` (2,771 compressions)
-- [ ] Integrate SHA-256, bulk-memory and arith256_mod prover branches into one v3 profile; re-qualify v2 byte identity and all suites
-- [ ] Recursion-circuit support for v3 services (SHA-256, bulk memory, arith256_mod)
+- [ ] Integrate SHA-256, bulk-memory and arith256_mod prover branches into one v3 profile; re-qualify v2 byte identity and all suites; evmone v3 guest proved (branch `codex/rv64-guest-prover-v3-integration`, in progress)
+- [ ] Recursion-circuit support for v3 services (SHA-256, bulk memory, arith256_mod) (branch `codex/rv64-guest-prover-recursion-v3`, in progress)
 - [x] Aligned memcpy/memset services in the prover: desc/copy/set components (degree <= 3), RAM bridge, services lane, fresh receiver; 17 bulk tests incl. 16 adversarial, v2 bundles byte-identical (branch `codex/rv64-guest-prover-bulk-memory`, `1d2f62e8c`). Measured cost 112 cells per call + 77 per copied word (~10x below the estimate)
-- [ ] Unaligned memcpy body row (byte shift across two source words): admitted aligned-only service saves just -2.15% instr/gas on the Rust guest vs -12% for the candidate, because most copies have mismatched alignment
-- [ ] memcmp service
+- [ ] Unaligned memcpy body row (byte shift across two source words) (branch `codex/rv64-guest-prover-bulk-unaligned`, in progress): admitted aligned-only service saves just -2.15% instr/gas on the Rust guest vs -12% for the candidate, because most copies have mismatched alignment
+- [ ] memcmp service (same branch, in progress)
 - [ ] Ethereum driver v3 work-packet route (native prepare, packet admission, authority) so a guest using v3 services can be prefix-proved
 - [ ] Guests routed to the admitted services; harness on `ethereum_services_v3` with measured costs in calibration.json
 - [x] arith256_mod service in the prover: truth AIR (degree 3, own PCS, exact identity over byte limbs, r < m by borrow chain, m = 0 flag), Word16 bridge kind 4, services lane family 4, fresh receiver; >1,000 known answers, adversarial rows, v2 bundles byte-identical (branch `codex/rv64-guest-prover-arith256`). Cost 2,779 cells per call unpadded (~18 instructions' worth; estimate was 6,500). Rust guest MULMOD/ADDMOD on the admitted tag: -0.71% scored, exact on 15 blocks, promotable
 - [ ] Route the evmone client's MULMOD/ADDMOD/modexp to the admitted arith256_mod packet (the candidate measured -9% instructions on the client)
 - [ ] Plain 512-bit arith256 (a*b+c) service, if MUL/EXP measure as worth it on the client
 - [x] BN254, BLS12-381 and Keccak-sponge operations as candidates, measured on the client (`fa8a2c7aa`, `683c40b2b`): client 5.653 -> 4.662 instr/gas (-17.5%), 78,849 -> 68,671 bits/gas (-12.9%); BLS/KZG 0.46 -> 0.09, Keccak glue 0.43 -> 0.08, BN254 0.30 -> 0.06 instr/gas
-- [ ] BN254, BLS12-381 and Keccak-sponge services in the prover (proposals: `bn254-g1-fp2.md`, `bls12-381-fp-fp2.md`, `keccak-sponge.md`)
+- [ ] BN254 and BLS12-381 services in the prover (branch `codex/rv64-guest-prover-curves`, in progress)
+- [ ] Keccak sponge service in the prover (branch `codex/rv64-guest-prover-keccak-sponge`, in progress)
 - [ ] Recursion-circuit support for each new service
 
 ### Move D: instruction-set extension (candidate first)
