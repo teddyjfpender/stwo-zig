@@ -80,7 +80,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1098,
       "secure_oods_samples_lower_bound": 965,
-      "secure_oods_samples_upper_bound": 3838,
+      "secure_oods_samples_upper_bound": 2152,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -179,7 +180,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1028,
       "secure_oods_samples_lower_bound": 897,
-      "secure_oods_samples_upper_bound": 3544,
+      "secure_oods_samples_upper_bound": 2016,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -278,7 +280,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 963,
       "secure_oods_samples_lower_bound": 834,
-      "secure_oods_samples_upper_bound": 3275,
+      "secure_oods_samples_upper_bound": 1890,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -377,7 +380,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1696,
       "secure_oods_samples_lower_bound": 1540,
-      "secure_oods_samples_upper_bound": 6160,
+      "secure_oods_samples_upper_bound": 3352,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -476,7 +480,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1406,
       "secure_oods_samples_lower_bound": 1258,
-      "secure_oods_samples_upper_bound": 4934,
+      "secure_oods_samples_upper_bound": 2776,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -575,7 +580,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1406,
       "secure_oods_samples_lower_bound": 1258,
-      "secure_oods_samples_upper_bound": 4934,
+      "secure_oods_samples_upper_bound": 2776,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -674,7 +680,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1608,
       "secure_oods_samples_lower_bound": 1454,
-      "secure_oods_samples_upper_bound": 5776,
+      "secure_oods_samples_upper_bound": 3180,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -773,7 +780,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1218,
       "secure_oods_samples_lower_bound": 1079,
-      "secure_oods_samples_upper_bound": 4270,
+      "secure_oods_samples_upper_bound": 2392,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -872,7 +880,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1250,
       "secure_oods_samples_lower_bound": 1110,
-      "secure_oods_samples_upper_bound": 4426,
+      "secure_oods_samples_upper_bound": 2460,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -971,7 +980,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1268,
       "secure_oods_samples_lower_bound": 1128,
-      "secure_oods_samples_upper_bound": 4516,
+      "secure_oods_samples_upper_bound": 2496,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1070,7 +1080,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1743,
       "secure_oods_samples_lower_bound": 1585,
-      "secure_oods_samples_upper_bound": 6339,
+      "secure_oods_samples_upper_bound": 3442,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1169,7 +1180,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1315,
       "secure_oods_samples_lower_bound": 1173,
-      "secure_oods_samples_upper_bound": 4695,
+      "secure_oods_samples_upper_bound": 2586,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1268,7 +1280,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1315,
       "secure_oods_samples_lower_bound": 1173,
-      "secure_oods_samples_upper_bound": 4695,
+      "secure_oods_samples_upper_bound": 2586,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1367,7 +1380,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1250,
       "secure_oods_samples_lower_bound": 1110,
-      "secure_oods_samples_upper_bound": 4426,
+      "secure_oods_samples_upper_bound": 2460,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1466,7 +1480,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1673,
       "secure_oods_samples_lower_bound": 1517,
-      "secure_oods_samples_upper_bound": 6045,
+      "secure_oods_samples_upper_bound": 3306,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1565,7 +1580,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1210,
       "secure_oods_samples_lower_bound": 1071,
-      "secure_oods_samples_upper_bound": 4278,
+      "secure_oods_samples_upper_bound": 2376,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1664,7 +1680,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1133,
       "secure_oods_samples_lower_bound": 997,
-      "secure_oods_samples_upper_bound": 3953,
+      "secure_oods_samples_upper_bound": 2234,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1763,7 +1780,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1093,
       "secure_oods_samples_lower_bound": 958,
-      "secure_oods_samples_upper_bound": 3805,
+      "secure_oods_samples_upper_bound": 2150,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1862,7 +1880,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1673,
       "secure_oods_samples_lower_bound": 1517,
-      "secure_oods_samples_upper_bound": 6045,
+      "secure_oods_samples_upper_bound": 3306,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -1961,7 +1980,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1678,
       "secure_oods_samples_lower_bound": 1522,
-      "secure_oods_samples_upper_bound": 6070,
+      "secure_oods_samples_upper_bound": 3316,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2060,7 +2080,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1631,
       "secure_oods_samples_lower_bound": 1477,
-      "secure_oods_samples_upper_bound": 5891,
+      "secure_oods_samples_upper_bound": 3226,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2159,7 +2180,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1315,
       "secure_oods_samples_lower_bound": 1173,
-      "secure_oods_samples_upper_bound": 4695,
+      "secure_oods_samples_upper_bound": 2586,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2258,7 +2280,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1075,
       "secure_oods_samples_lower_bound": 940,
-      "secure_oods_samples_upper_bound": 3715,
+      "secure_oods_samples_upper_bound": 2114,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2357,7 +2380,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1218,
       "secure_oods_samples_lower_bound": 1079,
-      "secure_oods_samples_upper_bound": 4270,
+      "secure_oods_samples_upper_bound": 2392,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2456,7 +2480,8 @@
       "fri_all_full_merkle_nodes_upper_bytes": 2147483648,
       "lifted_leaf_base_words_per_query": 1218,
       "secure_oods_samples_lower_bound": 1079,
-      "secure_oods_samples_upper_bound": 4270,
+      "secure_oods_samples_upper_bound": 2392,
+      "secure_oods_samples_exact": null,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2554,8 +2579,9 @@
       "fri_all_secure_layers_upper_bytes": 67108864,
       "fri_all_full_merkle_nodes_upper_bytes": 134217728,
       "lifted_leaf_base_words_per_query": 7371,
-      "secure_oods_samples_lower_bound": 7325,
-      "secure_oods_samples_upper_bound": 20439,
+      "secure_oods_samples_lower_bound": 13806,
+      "secure_oods_samples_upper_bound": 13806,
+      "secure_oods_samples_exact": 13806,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2653,8 +2679,9 @@
       "fri_all_secure_layers_upper_bytes": 67108864,
       "fri_all_full_merkle_nodes_upper_bytes": 134217728,
       "lifted_leaf_base_words_per_query": 7371,
-      "secure_oods_samples_lower_bound": 7325,
-      "secure_oods_samples_upper_bound": 20439,
+      "secure_oods_samples_lower_bound": 13806,
+      "secure_oods_samples_upper_bound": 13806,
+      "secure_oods_samples_exact": 13806,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2752,8 +2779,9 @@
       "fri_all_secure_layers_upper_bytes": 67108864,
       "fri_all_full_merkle_nodes_upper_bytes": 134217728,
       "lifted_leaf_base_words_per_query": 1801,
-      "secure_oods_samples_lower_bound": 1768,
-      "secure_oods_samples_upper_bound": 5113,
+      "secure_oods_samples_lower_bound": 1845,
+      "secure_oods_samples_upper_bound": 1845,
+      "secure_oods_samples_exact": 1845,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2851,8 +2879,9 @@
       "fri_all_secure_layers_upper_bytes": 1048576,
       "fri_all_full_merkle_nodes_upper_bytes": 2097152,
       "lifted_leaf_base_words_per_query": 1801,
-      "secure_oods_samples_lower_bound": 1768,
-      "secure_oods_samples_upper_bound": 5113,
+      "secure_oods_samples_lower_bound": 1845,
+      "secure_oods_samples_upper_bound": 1845,
+      "secure_oods_samples_exact": 1845,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2950,8 +2979,9 @@
       "fri_all_secure_layers_upper_bytes": 33554432,
       "fri_all_full_merkle_nodes_upper_bytes": 67108864,
       "lifted_leaf_base_words_per_query": 1801,
-      "secure_oods_samples_lower_bound": 1768,
-      "secure_oods_samples_upper_bound": 5113,
+      "secure_oods_samples_lower_bound": 1845,
+      "secure_oods_samples_upper_bound": 1845,
+      "secure_oods_samples_exact": 1845,
       "compact": {
         "streaming_column_cap": 64,
         "progressive_state_bytes_per_leaf_upper": 112,
@@ -2977,5 +3007,6 @@
         "opening_fri_full_retention_upper": 4196803712
       }
     }
-  ]
+  ],
+  "metadata_source": "claim-free shape_metadata and truth shapesForDeclaration/Shape.shifts; originalphysicalbytes unchanged"
 }

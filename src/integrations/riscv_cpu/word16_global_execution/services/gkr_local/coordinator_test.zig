@@ -38,7 +38,9 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     var store = try C.Store.initFullyParked(path, 128 << 20);
     defer store.deinit();
     var timings: [5]C.WorkerTiming = undefined;
-    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .stage2_order = &.{ 2, 0, 3, 1, 4 } });
+    var first_trace: [5]@import("../schedule.zig").Trace = undefined;
+    var second_trace: [5]@import("../schedule.zig").Trace = undefined;
+    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
     defer parked.deinit();
     for (timings, 0..) |t, i| {
         try std.testing.expect(t.stage1_completed and t.stage2_completed);
@@ -50,6 +52,13 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
             try std.testing.expect(t.seal_native_and_gkr_ns >= t.main_commit_ns + t.gkr_ns);
         } else try std.testing.expectEqual(@as(u64, 0), t.gkr_ns);
     }
+    for (first_trace, second_trace) |x, y| {
+        for ([_]@import("../schedule.zig").Trace{ x, y }) |trace| {
+            try std.testing.expect(trace.estimate_bytes > 0);
+            try std.testing.expect(trace.finished_ns >= trace.started_ns and trace.started_ns >= trace.claimed_ns);
+        }
+    }
+    try std.testing.expectError(error.InvalidWideScheduleTrace, (C.Options{ .stage1_trace = first_trace[0..4] }).validate(5));
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
     try std.testing.expect(store.stats().total_bytes > 0);

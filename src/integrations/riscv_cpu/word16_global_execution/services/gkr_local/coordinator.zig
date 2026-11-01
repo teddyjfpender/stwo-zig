@@ -51,6 +51,8 @@ pub const Options = struct {
     native_profiles: []const ?*@import("stwo_prover_api").stage_profile.Recorder = &.{},
     /// Operational execution order only; manifests and result slots keep original ordinals.
     stage2_order: []const usize = &.{},
+    stage1_trace: []Schedule.Trace = &.{},
+    stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
@@ -58,6 +60,7 @@ pub const Options = struct {
         if (self.native_profiles.len != 0 and self.native_profiles.len != count) return error.InvalidWideNativeProfiles;
         try self.schedule.validate();
         try Schedule.validateOrder(self.stage2_order, count);
+        if ((self.stage1_trace.len != 0 and self.stage1_trace.len != count) or (self.stage2_trace.len != 0 and self.stage2_trace.len != count)) return error.InvalidWideScheduleTrace;
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
         } else if (self.max_workers > 8) return error.BoundedWideCoordinatorLimit;
@@ -241,6 +244,8 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
     if (options.worker_timings) |timings| @memset(timings, .{});
+    @memset(options.stage1_trace, .{});
+    @memset(options.stage2_trace, .{});
     if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len) return error.InvalidCombinedInventory;
     const requests = try requestsFrom(a, native, advice);
     errdefer freeRequests(a, requests);
@@ -259,8 +264,8 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
     var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
-    const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{} };
-    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order };
+    const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
+    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
     // The complete ordered set of sealed MAINs and local children is joined once.
     var pending = try Manifest.verifyAndSeal(a, inventory.execution_identity, inventory.workers, stages);

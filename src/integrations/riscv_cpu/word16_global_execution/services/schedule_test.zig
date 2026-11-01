@@ -246,7 +246,11 @@ test "invalid task permutation rejects before allocation or callback and ordered
     try Schedule.runWithOptions(ProbeOrder, a, &probe, 3, .{ .lanes = 1, .workers_per_lane = 2 }, .{ .order = &.{ 2, 0, 1 } }, ProbeOrder.execute);
     try std.testing.expectEqualSlices(usize, &.{ 2, 0, 1 }, probe.values[0..probe.count]);
     probe = .{ .fail_index = 0 };
-    try std.testing.expectError(error.OrderedProbeFailure, Schedule.runWithOptions(ProbeOrder, a, &probe, 3, .{ .lanes = 1, .workers_per_lane = 2 }, .{ .order = &.{ 2, 0, 1 } }, ProbeOrder.execute));
+    var failure_trace: [3]Schedule.Trace = @splat(.{});
+    try std.testing.expectError(error.OrderedProbeFailure, Schedule.runWithOptions(ProbeOrder, a, &probe, 3, .{ .lanes = 1, .workers_per_lane = 2 }, .{ .order = &.{ 2, 0, 1 }, .trace = &failure_trace }, ProbeOrder.execute));
+    try std.testing.expect(failure_trace[0].finished_ns > 0);
+    try std.testing.expect(failure_trace[2].finished_ns > 0);
+    try std.testing.expectEqual(@as(u64, 0), failure_trace[1].finished_ns);
     try std.testing.expectEqualSlices(usize, &.{ 2, 0 }, probe.values[0..probe.count]);
     var parallel_failure = Probe{ .fail = true };
     try std.testing.expectError(error.SyntheticWorkerFailure, Schedule.runWithOptions(Probe, a, &parallel_failure, 8, .{ .lanes = 2, .workers_per_lane = 2 }, .{ .order = &.{ 1, 0, 2, 3, 4, 5, 6, 7 } }, Probe.execute));

@@ -56,7 +56,7 @@ pub const Contract = struct {
     max_trace_log: u32,
     // FIXED is immutable identity-owned; MAIN/INTER/composition are worker-owned.
     trees: [4]Tree,
-    binding_planes_per_local_role: u32 = 16,
+    binding_planes_per_local_role: u32 = @import("binding.zig").INTERACTION_COLUMNS,
     binding_bytes: u64,
     narrow_global_metadata_bytes: u64,
     local_proof_reserve_bytes: u64,
@@ -70,6 +70,7 @@ pub const Contract = struct {
     lifted_leaf_base_words_per_query: u64,
     secure_oods_samples_lower_bound: u64,
     secure_oods_samples_upper_bound: u64,
+    secure_oods_samples_exact: ?u64 = null,
     compact: struct {
         streaming_column_cap: u32 = 64,
         progressive_state_bytes_per_leaf_upper: usize = @sizeOf(std.crypto.hash.blake2.Blake2s256),
@@ -177,38 +178,51 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
     defer a.free(inter);
     const retained = try Retention.forCpu(a, setup, request, config, std.math.maxInt(usize), std.math.maxInt(usize));
     var role_coset_bytes: u64 = 0;
+    var sample_upper: u64 = 0;
     for (plan.slots) |slot| {
+        const descriptor = try @import("shape_metadata.zig").forOrigin(slot.origin);
         var width: u64 = 0;
-        if (slot.origin == .core) {
-            for (setup.materials.shapes()) |shape| if (shape.role == slot.origin.core) {
-                width = shape.widths[0] + shape.widths[1];
-                break;
-            };
-        } else {
-            const A = @import("stwo_riscv_frontend").rv64_air;
-            width = if (slot.origin.bridge == .keccak) A.crypto.keccak.word16_bridge.layout.FIXED + A.crypto.keccak.word16_bridge.layout.MAIN else A.crypto.secp256k1.word16_bridge.layout.FIXED + A.crypto.secp256k1.word16_bridge.layout.MAIN;
-        }
-        width = try add(width, (if (slot.binding_index != null) @as(u64, 16) else 0) + @import("global_cpu.zig").layout(slot.origin).width());
+        for (descriptor.widths) |count| width = try add(width, count);
         role_coset_bytes = @max(role_coset_bytes, try mul(try mul(width, try power(slot.log)), BASE_BYTES));
+        sample_upper = try add(sample_upper, try mul(width, descriptor.max_samples));
     }
-    return finish(fixed, main, inter, config.fri_config.log_blowup_factor, 1, retained, role_coset_bytes);
+    var result = try finish(fixed, main, inter, config.fri_config.log_blowup_factor, 1, retained, role_coset_bytes);
+    result.secure_oods_samples_upper_bound = try add(sample_upper, result.trees[3].columns);
+    return result;
 }
 pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig) !Contract {
-    const components = try Truth.Components.init(truth, undefined, undefined, &@as([5]W.O, @splat(W.O.zero())));
-    const fixed = try components.logs(a, 0);
+    const shapes = try Truth.shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
+    var counts: [3]usize = @splat(0);
+    for (shapes) |role| for (role.widths(), &counts) |width, *count| {
+        count.* = try std.math.add(usize, count.*, width);
+    };
+    const fixed = try a.alloc(u32, counts[0]);
     defer a.free(fixed);
-    const main = try components.logs(a, 1);
+    const main = try a.alloc(u32, counts[1]);
     defer a.free(main);
-    const inter = try components.logs(a, 2);
+    const inter = try a.alloc(u32, counts[2]);
     defer a.free(inter);
-    const retained = try TruthRetention.forTruth(a, truth, config, std.math.maxInt(usize));
+    const trees = [_][]u32{ fixed, main, inter };
+    var offsets: [3]usize = @splat(0);
     var role_coset_bytes: u64 = 0;
-    for (components.items) |role| {
+    var mask_samples: u64 = 0;
+    for (shapes) |role| {
         var width: u64 = 0;
-        for (role.widths()) |count| width = try add(width, count);
+        for (role.widths(), trees, &offsets, 0..) |count, tree, *offset, part| {
+            @memset(tree[offset.*..][0..count], role.log_size);
+            offset.* += count;
+            width = try add(width, count);
+            for (0..count) |column| mask_samples = try add(mask_samples, role.shifts(part, column).len);
+        }
         role_coset_bytes = @max(role_coset_bytes, try mul(try mul(width, try power(role.log_size)), BASE_BYTES));
     }
-    return finish(fixed, main, inter, config.fri_config.log_blowup_factor, if (truth == .keccak) 2 else 1, retained, role_coset_bytes);
+    const retained = try TruthRetention.forTruth(a, truth, config, std.math.maxInt(usize));
+    var result = try finish(fixed, main, inter, config.fri_config.log_blowup_factor, if (truth == .keccak) 2 else 1, retained, role_coset_bytes);
+    mask_samples = try add(mask_samples, result.trees[3].columns);
+    result.secure_oods_samples_lower_bound = mask_samples;
+    result.secure_oods_samples_upper_bound = mask_samples;
+    result.secure_oods_samples_exact = mask_samples;
+    return result;
 }
 
 test "resident OM layout preserves eight coordinates and separates beta from composition split" {

@@ -117,7 +117,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     if (count == 0) return;
     // Share only an immutable origin: Timer.read mutates its previous sample
     // and must not be called concurrently by independent lanes.
-    const origin = try std.time.Instant.now();
+    const origin: ?std.time.Instant = if (options.trace.len != 0) try std.time.Instant.now() else null;
     const current_pool = Pool.currentScopedPool();
     const reuse_pool = if (current_pool) |pool| pool.workerCount() == policy.workers(0) else false;
     if ((policy.lanes == 1 or count == 1) and reuse_pool) {
@@ -129,8 +129,9 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             const index = originalIndex(options.order, position);
             const start = elapsed(origin);
             const estimate = if (options.estimates.len != 0) options.estimates[index] else 0;
-            try execute(context, index);
+            const result = execute(context, index);
             if (options.trace.len != 0) options.trace[index] = .{ .lane = 0, .workers = @intCast(if (Pool.currentScopedPool()) |p| p.workerCount() else 1), .estimate_bytes = estimate, .claimed_ns = start, .started_ns = start, .finished_ns = elapsed(origin), .in_flight_bytes_at_start = estimate };
+            try result;
         }
         return;
     }
@@ -140,7 +141,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         policy: Policy,
         options: RunOptions,
         allocator: std.mem.Allocator,
-        origin: std.time.Instant,
+        origin: ?std.time.Instant,
         next: std.atomic.Value(usize) = .init(0),
         stop: std.atomic.Value(bool) = .init(false),
         errors: []?anyerror,
@@ -232,7 +233,8 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
 }
 
 /// Every reader owns its sample; the shared origin is immutable.
-fn elapsed(origin: std.time.Instant) u64 {
+fn elapsed(origin: ?std.time.Instant) u64 {
+    const start = origin orelse return 0;
     const current = std.time.Instant.now() catch unreachable;
-    return current.since(origin);
+    return current.since(start);
 }

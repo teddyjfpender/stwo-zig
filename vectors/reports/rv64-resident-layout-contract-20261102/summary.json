@@ -65,9 +65,10 @@
         },
         "lifted_leaf_base_words_per_query": 7371,
         "oods_samples_bounds": [
-          7325,
-          20439
-        ]
+          13806,
+          13806
+        ],
+        "oods_samples_exact": 13806
       }
     },
     "beta2": {
@@ -132,9 +133,10 @@
         },
         "lifted_leaf_base_words_per_query": 7371,
         "oods_samples_bounds": [
-          7325,
-          20439
-        ]
+          13806,
+          13806
+        ],
+        "oods_samples_exact": 13806
       }
     }
   },
@@ -162,5 +164,11 @@
     "Beta2 is candidategeometry only; no wholeprotocol128-bit certification. Querycount/security budget not frozen by memoryplan.",
     "Recursive exposure reports liftedM31leafwidth and secureOODSmaskbounds; it is not exact proof bytes/circuitgates. OM31uses8coordinates and existingQM31 wrappers cannot be assumed qualified.",
     "SingleGPUor4GPUthroughput projections require actual kernels, allocation telemetry, transfer accounting, realproof and freshreceiver; none inferred from CPU cells."
-  ]
+  ],
+  "pure_metadata_followup": {
+    "source_base": "8bfd2d95d",
+    "physical_bytes_unchanged": true,
+    "keccak_exact_oods_samples": 13806,
+    "scope": "Masksandcosetdimensions sourcedfromsamepure metadata asrealcomponents; nozero-claimcomponent constructed."
+  }
 }
