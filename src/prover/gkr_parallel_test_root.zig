@@ -1,4 +1,5 @@
 test {
+    _ = @import("lookups/owned_fold_test.zig");
     _ = @import("lookups/eq_parallel_test.zig");
     _ = @import("lookups/gkr_interpolation_test.zig");
     _ = @import("lookups/packed_rows_test.zig");

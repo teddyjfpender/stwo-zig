@@ -242,6 +242,27 @@ pub fn ForField(comptime Secure: type) type {
                 };
             }
 
+            /// Internal exclusive-owner path. Every failed partial fold still
+            /// owns valid buffers for deinit; the caller aborts the proof.
+            pub fn fixFirstVariableInPlace(self: *Layer, allocator: std.mem.Allocator, x0: Secure) !void {
+                if (self.nVariables() == 0) return;
+                switch (self.*) {
+                    .GrandProduct => |*mle| try mle.foldOwnedSecure(allocator, x0),
+                    .LogUpGeneric => |*inner| {
+                        try inner.numerators.foldOwnedSecure(allocator, x0);
+                        try inner.denominators.foldOwnedSecure(allocator, x0);
+                    },
+                    .LogUpSingles => |*inner| try inner.denominators.foldOwnedSecure(allocator, x0),
+                    .LogUpMultiplicities => {
+                        // The first base-to-secure lift keeps its existing
+                        // failure-atomic allocation path and immutable input.
+                        const next = try self.fixFirstVariable(allocator, x0);
+                        self.deinit(allocator);
+                        self.* = next;
+                    },
+                }
+            }
+
             /// Moves this internal layer; the immutable Eq owner must outlive
             /// the oracle and all sumcheck rounds. No input/table copy occurs.
             pub fn intoMultivariatePolyOwned(self: Layer, lambda: Secure, eq_evals: *const EqEvals) GkrMultivariatePolyOracle {
@@ -378,6 +399,18 @@ pub fn ForField(comptime Secure: type) type {
                     .input_layer = try self.input_layer.fixFirstVariable(allocator, challenge),
                     .lambda = self.lambda,
                 };
+            }
+
+            /// Optional sumcheck owner interface: keep immutable Eq custody,
+            /// consume only exclusive layer buffers, and preserve borrowed
+            /// caller matrices. Failure permits deinit only, not oracle reuse.
+            pub fn fixFirstVariableInPlace(self: *GkrMultivariatePolyOracle, allocator: std.mem.Allocator, challenge: Secure) !void {
+                if (self.isConstant()) return;
+                const n_variables = self.nVariables();
+                const z0 = self.eq_evals.ySlice()[self.eq_evals.ySlice().len - n_variables];
+                const eq_term = utils.eq(Secure, &.{challenge}, &.{z0}) catch return GkrProverError.ShapeMismatch;
+                try self.input_layer.fixFirstVariableInPlace(allocator, challenge);
+                self.eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term);
             }
 
             pub fn tryIntoMask(
