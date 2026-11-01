@@ -102,3 +102,38 @@ fn topology(comptime V: type) !builder.context.GateCounts {
 test "raw-mod circuit profile has fixed topology independent of witness value mode" {
     try std.testing.expectEqualDeep(try topology(Q), try topology(builder.ivalue.NoValue));
 }
+
+test "raw-mod actual Blake rare block keeps all eight coordinates and counter binding native exact" {
+    const counter: u32 = 107289826;
+    var ctx = try Context.init(a, 0);
+    defer ctx.deinit();
+    var circuit = try C.Om31Channel.init(Q, &ctx);
+    var native = R.Om31Channel.init();
+    // Independently fixed intermediate transcript checkpoint, not a protocol
+    // bypass API. Full constructor/tag mixing is qualified in the test above.
+    native.inner = .{ .n_draws = counter };
+    for (&circuit.inner.digest.words) |*word| word.* = try builder.wrappers.constU32(Q, &ctx, 0);
+    circuit.inner.n_draws = counter;
+    const counter_wire = try builder.wrappers.constU32(Q, &ctx, counter);
+    var oracle = native.inner;
+    const raw = oracle.drawU32s();
+    try std.testing.expectEqual(@as(u32, 0xffffffff), raw[2]);
+    const expected = native.drawSecureFelt();
+    const result = try circuit.drawSecureFelt(Q, &ctx);
+    try std.testing.expectEqualDeep(R.reduceWords(raw), result.value(&ctx).toM31Array());
+    try ctx.eq(result.c0, try ctx.constant(expected.c0));
+    try ctx.eq(result.c1, try ctx.constant(expected.c1));
+    try same(&ctx, circuit.inner, native.inner);
+    // The next raw draw must be counter+1, not the legacy retry's counter+2.
+    const next = native.drawU32s();
+    const next_wires = try circuit.drawU32s(Q, &ctx);
+    for (next_wires, next) |wire, value| try ctx.eq(wire.get(), (try builder.wrappers.constU32(Q, &ctx, value)).get());
+    try same(&ctx, circuit.inner, native.inner);
+    try ctx.finalize(false);
+    try std.testing.expect(try ctx.isCircuitValid());
+    const old_counter = ctx.value_table.items[counter_wire.get().idx];
+    ctx.value_table.items[counter_wire.get().idx] = builder.ivalue.packU32(Q, counter + 1);
+    try std.testing.expect(!try ctx.isCircuitValid());
+    ctx.value_table.items[counter_wire.get().idx] = old_counter;
+    try std.testing.expect(try ctx.isCircuitValid());
+}
