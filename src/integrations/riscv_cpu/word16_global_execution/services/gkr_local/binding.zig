@@ -47,6 +47,7 @@ pub fn MaskFor(comptime S: type) type {
     return struct { eq: S, eq_next2: S, prefix: S, prefix_previous: S };
 }
 pub const CONSTRAINTS = 3;
+pub const INTERACTION_COLUMNS = 2 * E.extensionDegree(@import("stwo_core").fields.om31.OM31);
 /// Original MAIN arithmetic and these constraints share ONE physical role MAIN
 /// span. q is the authenticated Eq recurrence's succinct carry polynomial.
 pub fn emitFor(comptime F: type, masks: MaskFor(E.SecureFor(F)), aux: AuxFor(E.SecureFor(F)), projection: E.SecureFor(F), target_per_row: E.SecureFor(F), sink: *E.SinkFor(F)) void {
