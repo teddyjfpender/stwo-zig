@@ -1,0 +1,2682 @@
+{
+  "schema_version": 1,
+  "runtime": "rv64",
+  "example": "word16_ethereum_physical",
+  "stages": [
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000711,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000397,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.003111,
+            "system_seconds": 0.000427,
+            "minor_faults": 3,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 28,
+            "process_peak_resident_bytes_at_end": 4335714304,
+            "process_resident_bytes_at_end": 4335697920,
+            "process_footprint_bytes_at_end": 4336438920,
+            "process_footprint_peak_bytes_at_end": 4336471688,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.003114,
+            "lane_system_seconds": 0.00043
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000282,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002403,
+            "system_seconds": 0.000375,
+            "minor_faults": 5,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 35,
+            "process_peak_resident_bytes_at_end": 4335779840,
+            "process_resident_bytes_at_end": 4335697920,
+            "process_footprint_bytes_at_end": 4336438920,
+            "process_footprint_peak_bytes_at_end": 4336520840,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.002401,
+            "lane_system_seconds": 0.000375
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.005525,
+        "system_seconds": 0.000846,
+        "minor_faults": 8,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 63,
+        "process_peak_resident_bytes_at_end": 4335779840,
+        "process_resident_bytes_at_end": 4335697920,
+        "process_footprint_bytes_at_end": 4336438920,
+        "process_footprint_peak_bytes_at_end": 4336520840,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.005525,
+        "lane_system_seconds": 0.000835
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.003627,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.002603,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.012732,
+            "system_seconds": 0.012281,
+            "minor_faults": 992,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 101,
+            "process_peak_resident_bytes_at_end": 4351950848,
+            "process_resident_bytes_at_end": 4351950848,
+            "process_footprint_bytes_at_end": 4352708256,
+            "process_footprint_peak_bytes_at_end": 4352708256,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.012733,
+            "lane_system_seconds": 0.012288
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.001007,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.011499,
+            "system_seconds": 0.000727,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 108,
+            "process_peak_resident_bytes_at_end": 4351950848,
+            "process_resident_bytes_at_end": 4351950848,
+            "process_footprint_bytes_at_end": 4352708256,
+            "process_footprint_peak_bytes_at_end": 4352708256,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.011503,
+            "lane_system_seconds": 0.000731
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.024242,
+        "system_seconds": 0.013045,
+        "minor_faults": 992,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 209,
+        "process_peak_resident_bytes_at_end": 4351950848,
+        "process_resident_bytes_at_end": 4351950848,
+        "process_footprint_bytes_at_end": 4352708256,
+        "process_footprint_peak_bytes_at_end": 4352708256,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.024246,
+        "lane_system_seconds": 0.013046
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.013416,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.009757,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.057826,
+            "system_seconds": 0.039873,
+            "minor_faults": 4002,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 145,
+            "process_peak_resident_bytes_at_end": 4417519616,
+            "process_resident_bytes_at_end": 4417519616,
+            "process_footprint_bytes_at_end": 4418309840,
+            "process_footprint_peak_bytes_at_end": 4418309840,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.057824,
+            "lane_system_seconds": 0.039881
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00363,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.050921,
+            "system_seconds": 0.000677,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 77,
+            "process_peak_resident_bytes_at_end": 4417519616,
+            "process_resident_bytes_at_end": 4417519616,
+            "process_footprint_bytes_at_end": 4418309840,
+            "process_footprint_peak_bytes_at_end": 4418309840,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.050923,
+            "lane_system_seconds": 0.00068
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.10876,
+        "system_seconds": 0.0406,
+        "minor_faults": 4003,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 222,
+        "process_peak_resident_bytes_at_end": 4417536000,
+        "process_resident_bytes_at_end": 4417536000,
+        "process_footprint_bytes_at_end": 4418326224,
+        "process_footprint_peak_bytes_at_end": 4418326224,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.108757,
+        "lane_system_seconds": 0.0406
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.020485,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.013888,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.11954,
+            "system_seconds": 0.070223,
+            "minor_faults": 8257,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 164,
+            "process_peak_resident_bytes_at_end": 4552818688,
+            "process_resident_bytes_at_end": 4552818688,
+            "process_footprint_bytes_at_end": 4553674544,
+            "process_footprint_peak_bytes_at_end": 4553674544,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.119541,
+            "lane_system_seconds": 0.070231
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006574,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.091184,
+            "system_seconds": 0.002115,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 142,
+            "process_peak_resident_bytes_at_end": 4552818688,
+            "process_resident_bytes_at_end": 4552818688,
+            "process_footprint_bytes_at_end": 4553674544,
+            "process_footprint_peak_bytes_at_end": 4553674544,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.091187,
+            "lane_system_seconds": 0.002121
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.210735,
+        "system_seconds": 0.072387,
+        "minor_faults": 8258,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 306,
+        "process_peak_resident_bytes_at_end": 4552835072,
+        "process_resident_bytes_at_end": 4552835072,
+        "process_footprint_bytes_at_end": 4553690928,
+        "process_footprint_peak_bytes_at_end": 4553690928,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.210738,
+        "lane_system_seconds": 0.072388
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.017213,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.010907,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.133114,
+            "system_seconds": 0.001688,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 161,
+            "process_peak_resident_bytes_at_end": 4552835072,
+            "process_resident_bytes_at_end": 4552835072,
+            "process_footprint_bytes_at_end": 4553690928,
+            "process_footprint_peak_bytes_at_end": 4553690928,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.133112,
+            "lane_system_seconds": 0.001696
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006275,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.092733,
+            "system_seconds": 0.00059,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 146,
+            "process_peak_resident_bytes_at_end": 4552835072,
+            "process_resident_bytes_at_end": 4552835072,
+            "process_footprint_bytes_at_end": 4553690928,
+            "process_footprint_peak_bytes_at_end": 4553690928,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.092731,
+            "lane_system_seconds": 0.00059
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.22586,
+        "system_seconds": 0.002335,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 307,
+        "process_peak_resident_bytes_at_end": 4552851456,
+        "process_resident_bytes_at_end": 4552851456,
+        "process_footprint_bytes_at_end": 4553707312,
+        "process_footprint_peak_bytes_at_end": 4553707312,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.225856,
+        "lane_system_seconds": 0.002332
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.033149,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.022673,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.182083,
+            "system_seconds": 0.047697,
+            "minor_faults": 10881,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 142,
+            "process_peak_resident_bytes_at_end": 4731125760,
+            "process_resident_bytes_at_end": 4731125760,
+            "process_footprint_bytes_at_end": 4732063656,
+            "process_footprint_peak_bytes_at_end": 4732063656,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.182084,
+            "lane_system_seconds": 0.047709
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.010459,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.147276,
+            "system_seconds": 0.002461,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 152,
+            "process_peak_resident_bytes_at_end": 4731125760,
+            "process_resident_bytes_at_end": 4731125760,
+            "process_footprint_bytes_at_end": 4732063656,
+            "process_footprint_peak_bytes_at_end": 4732063656,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.14728,
+            "lane_system_seconds": 0.002465
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.329371,
+        "system_seconds": 0.050201,
+        "minor_faults": 10881,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 294,
+        "process_peak_resident_bytes_at_end": 4731125760,
+        "process_resident_bytes_at_end": 4731125760,
+        "process_footprint_bytes_at_end": 4732063656,
+        "process_footprint_peak_bytes_at_end": 4732063656,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.329375,
+        "lane_system_seconds": 0.050203
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.028468,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.018178,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.178964,
+            "system_seconds": 0.05721,
+            "minor_faults": 10753,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 196,
+            "process_peak_resident_bytes_at_end": 4907302912,
+            "process_resident_bytes_at_end": 4907302912,
+            "process_footprint_bytes_at_end": 4908322848,
+            "process_footprint_peak_bytes_at_end": 4908322848,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.178963,
+            "lane_system_seconds": 0.057219
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.010273,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.146861,
+            "system_seconds": 0.001914,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 109,
+            "process_peak_resident_bytes_at_end": 4907302912,
+            "process_resident_bytes_at_end": 4907302912,
+            "process_footprint_bytes_at_end": 4908322848,
+            "process_footprint_peak_bytes_at_end": 4908322848,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.146861,
+            "lane_system_seconds": 0.00192
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.325837,
+        "system_seconds": 0.059166,
+        "minor_faults": 10753,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 305,
+        "process_peak_resident_bytes_at_end": 4907302912,
+        "process_resident_bytes_at_end": 4907302912,
+        "process_footprint_bytes_at_end": 4908322848,
+        "process_footprint_peak_bytes_at_end": 4908322848,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.325834,
+        "lane_system_seconds": 0.059168
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.021797,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.014327,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.187963,
+            "system_seconds": 0.003314,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 464,
+            "process_peak_resident_bytes_at_end": 4907302912,
+            "process_resident_bytes_at_end": 4907302912,
+            "process_footprint_bytes_at_end": 4908322848,
+            "process_footprint_peak_bytes_at_end": 4908322848,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.187965,
+            "lane_system_seconds": 0.003319
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.007444,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.112667,
+            "system_seconds": 0.001122,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 282,
+            "process_peak_resident_bytes_at_end": 4907302912,
+            "process_resident_bytes_at_end": 4907302912,
+            "process_footprint_bytes_at_end": 4908322848,
+            "process_footprint_peak_bytes_at_end": 4908322848,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.112665,
+            "lane_system_seconds": 0.001129
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.300643,
+        "system_seconds": 0.004489,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 746,
+        "process_peak_resident_bytes_at_end": 4907319296,
+        "process_resident_bytes_at_end": 4907319296,
+        "process_footprint_bytes_at_end": 4908339232,
+        "process_footprint_peak_bytes_at_end": 4908339232,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.300642,
+        "lane_system_seconds": 0.004488
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.045452,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.032162,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.19009,
+            "system_seconds": 0.076573,
+            "minor_faults": 10498,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 355,
+            "process_peak_resident_bytes_at_end": 5079318528,
+            "process_resident_bytes_at_end": 5079318528,
+            "process_footprint_bytes_at_end": 5080436912,
+            "process_footprint_peak_bytes_at_end": 5080436912,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.190095,
+            "lane_system_seconds": 0.07658
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.013272,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.195311,
+            "system_seconds": 0.002263,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 359,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.19531,
+            "lane_system_seconds": 0.002267
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.385412,
+        "system_seconds": 0.078878,
+        "minor_faults": 10499,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 714,
+        "process_peak_resident_bytes_at_end": 5079334912,
+        "process_resident_bytes_at_end": 5079334912,
+        "process_footprint_bytes_at_end": 5080453296,
+        "process_footprint_peak_bytes_at_end": 5080453296,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.385415,
+        "lane_system_seconds": 0.078877
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.027036,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.018396,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.194085,
+            "system_seconds": 0.001834,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 201,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.194085,
+            "lane_system_seconds": 0.001841
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.008622,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.123192,
+            "system_seconds": 0.000581,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 112,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.123192,
+            "lane_system_seconds": 0.000588
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.317288,
+        "system_seconds": 0.002457,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 313,
+        "process_peak_resident_bytes_at_end": 5079334912,
+        "process_resident_bytes_at_end": 5079334912,
+        "process_footprint_bytes_at_end": 5080453296,
+        "process_footprint_peak_bytes_at_end": 5080453296,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.317288,
+        "lane_system_seconds": 0.002459
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.026354,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.017756,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.192534,
+            "system_seconds": 0.001147,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 218,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.192534,
+            "lane_system_seconds": 0.001152
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00858,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.121776,
+            "system_seconds": 0.000626,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 144,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.121779,
+            "lane_system_seconds": 0.000633
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.314323,
+        "system_seconds": 0.001822,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 362,
+        "process_peak_resident_bytes_at_end": 5079334912,
+        "process_resident_bytes_at_end": 5079334912,
+        "process_footprint_bytes_at_end": 5080453296,
+        "process_footprint_peak_bytes_at_end": 5080453296,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.314325,
+        "lane_system_seconds": 0.001821
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.031323,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.017936,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.196094,
+            "system_seconds": 0.000822,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 170,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.196093,
+            "lane_system_seconds": 0.000828
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.01337,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.192781,
+            "system_seconds": 0.000708,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 153,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.192784,
+            "lane_system_seconds": 0.000714
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.388886,
+        "system_seconds": 0.001572,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 323,
+        "process_peak_resident_bytes_at_end": 5079334912,
+        "process_resident_bytes_at_end": 5079334912,
+        "process_footprint_bytes_at_end": 5080453296,
+        "process_footprint_peak_bytes_at_end": 5080453296,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.388886,
+        "lane_system_seconds": 0.001572
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.135172,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.102774,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.247548,
+            "system_seconds": 0.002767,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 218,
+            "process_peak_resident_bytes_at_end": 5079334912,
+            "process_resident_bytes_at_end": 5079334912,
+            "process_footprint_bytes_at_end": 5080453296,
+            "process_footprint_peak_bytes_at_end": 5080453296,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.247547,
+            "lane_system_seconds": 0.002773
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.032379,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.242663,
+            "system_seconds": 0.213435,
+            "minor_faults": 69632,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 993,
+            "process_peak_resident_bytes_at_end": 6220185600,
+            "process_resident_bytes_at_end": 6220185600,
+            "process_footprint_bytes_at_end": 6221861856,
+            "process_footprint_peak_bytes_at_end": 6221861856,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.242664,
+            "lane_system_seconds": 0.213444
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.490224,
+        "system_seconds": 0.21625,
+        "minor_faults": 69632,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1211,
+        "process_peak_resident_bytes_at_end": 6220185600,
+        "process_resident_bytes_at_end": 6220185600,
+        "process_footprint_bytes_at_end": 6221861856,
+        "process_footprint_peak_bytes_at_end": 6221861856,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.490222,
+        "lane_system_seconds": 0.21625
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.047014,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.040989,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.183718,
+            "system_seconds": 0.016107,
+            "minor_faults": 10240,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 16,
+            "process_peak_resident_bytes_at_end": 6387957760,
+            "process_resident_bytes_at_end": 6387957760,
+            "process_footprint_bytes_at_end": 6389716056,
+            "process_footprint_peak_bytes_at_end": 6389716056,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.183719,
+            "lane_system_seconds": 0.016114
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006008,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.090007,
+            "system_seconds": 0.002096,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 112,
+            "process_peak_resident_bytes_at_end": 6387957760,
+            "process_resident_bytes_at_end": 6387957760,
+            "process_footprint_bytes_at_end": 6389716056,
+            "process_footprint_peak_bytes_at_end": 6389716056,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.090008,
+            "lane_system_seconds": 0.002103
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.273737,
+        "system_seconds": 0.01825,
+        "minor_faults": 10240,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 128,
+        "process_peak_resident_bytes_at_end": 6387957760,
+        "process_resident_bytes_at_end": 6387957760,
+        "process_footprint_bytes_at_end": 6389716056,
+        "process_footprint_peak_bytes_at_end": 6389716056,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.273737,
+        "lane_system_seconds": 0.018251
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.064305,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.03884,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.186768,
+            "system_seconds": 0.001819,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 12,
+            "process_peak_resident_bytes_at_end": 6387957760,
+            "process_resident_bytes_at_end": 6387957760,
+            "process_footprint_bytes_at_end": 6389716056,
+            "process_footprint_peak_bytes_at_end": 6389716056,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.18677,
+            "lane_system_seconds": 0.001826
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025448,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.387573,
+            "system_seconds": 0.002073,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 499,
+            "process_peak_resident_bytes_at_end": 6387957760,
+            "process_resident_bytes_at_end": 6387957760,
+            "process_footprint_bytes_at_end": 6389716056,
+            "process_footprint_peak_bytes_at_end": 6389716056,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.387577,
+            "lane_system_seconds": 0.002076
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.574352,
+        "system_seconds": 0.003936,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 511,
+        "process_peak_resident_bytes_at_end": 6387957760,
+        "process_resident_bytes_at_end": 6387957760,
+        "process_footprint_bytes_at_end": 6389716056,
+        "process_footprint_peak_bytes_at_end": 6389716056,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.574355,
+        "lane_system_seconds": 0.003934
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.045565,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.039497,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.189595,
+            "system_seconds": 0.00225,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 15,
+            "process_peak_resident_bytes_at_end": 6387957760,
+            "process_resident_bytes_at_end": 6387957760,
+            "process_footprint_bytes_at_end": 6389716056,
+            "process_footprint_peak_bytes_at_end": 6389716056,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.189595,
+            "lane_system_seconds": 0.002259
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006045,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.092363,
+            "system_seconds": 0.000697,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 132,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.092362,
+            "lane_system_seconds": 0.0007
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.28197,
+        "system_seconds": 0.003005,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 147,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.281968,
+        "lane_system_seconds": 0.003005
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.044998,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.038893,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.188778,
+            "system_seconds": 0.002449,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 17,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.188779,
+            "lane_system_seconds": 0.002458
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006088,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.092507,
+            "system_seconds": 0.001035,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 221,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.092508,
+            "lane_system_seconds": 0.001043
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.281296,
+        "system_seconds": 0.003534,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 238,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.281296,
+        "lane_system_seconds": 0.003537
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.044569,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.038387,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.186152,
+            "system_seconds": 0.002174,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 19,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.186153,
+            "lane_system_seconds": 0.002179
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006164,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.089151,
+            "system_seconds": 0.003874,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 69,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.089149,
+            "lane_system_seconds": 0.003877
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.275314,
+        "system_seconds": 0.006093,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 88,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.275314,
+        "lane_system_seconds": 0.006089
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.064542,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.039214,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.188004,
+            "system_seconds": 0.002787,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 21,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.188005,
+            "lane_system_seconds": 0.002796
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.02531,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.385555,
+            "system_seconds": 0.00411,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 776,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.385555,
+            "lane_system_seconds": 0.004117
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.57357,
+        "system_seconds": 0.006945,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 797,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.573571,
+        "lane_system_seconds": 0.006947
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.046582,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.040423,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.186438,
+            "system_seconds": 0.007709,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 727,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.186437,
+            "lane_system_seconds": 0.007714
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00614,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.090256,
+            "system_seconds": 0.003272,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 331,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.090257,
+            "lane_system_seconds": 0.00328
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.276704,
+        "system_seconds": 0.011026,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1058,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.276705,
+        "lane_system_seconds": 0.011027
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.046154,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.04002,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.186561,
+            "system_seconds": 0.004793,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 747,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.186562,
+            "lane_system_seconds": 0.0048
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006116,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.091474,
+            "system_seconds": 0.0012,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 215,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.091474,
+            "lane_system_seconds": 0.001208
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.278046,
+        "system_seconds": 0.006043,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 962,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.278046,
+        "lane_system_seconds": 0.006044
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.065601,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.039928,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.190555,
+            "system_seconds": 0.002858,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 324,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.190555,
+            "lane_system_seconds": 0.002865
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025656,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.385559,
+            "system_seconds": 0.001369,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 258,
+            "process_peak_resident_bytes_at_end": 6387974144,
+            "process_resident_bytes_at_end": 6387974144,
+            "process_footprint_bytes_at_end": 6389732440,
+            "process_footprint_peak_bytes_at_end": 6389732440,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.38556,
+            "lane_system_seconds": 0.001374
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.576126,
+        "system_seconds": 0.004271,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 582,
+        "process_peak_resident_bytes_at_end": 6387974144,
+        "process_resident_bytes_at_end": 6387974144,
+        "process_footprint_bytes_at_end": 6389732440,
+        "process_footprint_peak_bytes_at_end": 6389732440,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.576127,
+        "lane_system_seconds": 0.004271
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.040374,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.034574,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.034149,
+            "system_seconds": 0.000396,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1,
+            "process_peak_resident_bytes_at_end": 6387990528,
+            "process_resident_bytes_at_end": 6387990528,
+            "process_footprint_bytes_at_end": 6389748824,
+            "process_footprint_peak_bytes_at_end": 6389748824,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.034149,
+            "lane_system_seconds": 0.000404
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.005782,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.089123,
+            "system_seconds": 0.000539,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 44,
+            "process_peak_resident_bytes_at_end": 6387990528,
+            "process_resident_bytes_at_end": 6387990528,
+            "process_footprint_bytes_at_end": 6389748824,
+            "process_footprint_peak_bytes_at_end": 6389748824,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.089121,
+            "lane_system_seconds": 0.000542
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.123283,
+        "system_seconds": 0.000977,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 45,
+        "process_peak_resident_bytes_at_end": 6387990528,
+        "process_resident_bytes_at_end": 6387990528,
+        "process_footprint_bytes_at_end": 6389748824,
+        "process_footprint_peak_bytes_at_end": 6389748824,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.123281,
+        "lane_system_seconds": 0.000974
+      }
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.067559,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.708086,
+        "system_seconds": 0.11014,
+        "minor_faults": 32963,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1045,
+        "process_peak_resident_bytes_at_end": 6925320192,
+        "process_resident_bytes_at_end": 6421512192,
+        "process_footprint_bytes_at_end": 6423254104,
+        "process_footprint_peak_bytes_at_end": 6927275408,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.396649,
+        "lane_system_seconds": 0.052229
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000968,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000464,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.00224,
+            "system_seconds": 0.001688,
+            "minor_faults": 200,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 75,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7892975616,
+            "process_footprint_bytes_at_end": 7895521976,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.002236,
+            "lane_system_seconds": 0.001692
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000466,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002718,
+            "system_seconds": 0.000863,
+            "minor_faults": 6,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 80,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7892992000,
+            "process_footprint_bytes_at_end": 7895538360,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.002721,
+            "lane_system_seconds": 0.000865
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.004969,
+        "system_seconds": 0.002604,
+        "minor_faults": 207,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 155,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7892992000,
+        "process_footprint_bytes_at_end": 7895538360,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.004968,
+        "lane_system_seconds": 0.002594
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.004874,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.002822,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.027218,
+            "system_seconds": 0.01093,
+            "minor_faults": 2049,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 128,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7926562816,
+            "process_footprint_bytes_at_end": 7929125584,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.027218,
+            "lane_system_seconds": 0.010934
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.002037,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.023509,
+            "system_seconds": 0.000873,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 100,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7892992000,
+            "process_footprint_bytes_at_end": 7895538360,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.023512,
+            "lane_system_seconds": 0.000879
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.050739,
+        "system_seconds": 0.01184,
+        "minor_faults": 2049,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 228,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7892992000,
+        "process_footprint_bytes_at_end": 7895538360,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.05074,
+        "lane_system_seconds": 0.011841
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.018458,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.011491,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.096933,
+            "system_seconds": 0.063717,
+            "minor_faults": 6656,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 383,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8002043904,
+            "process_footprint_bytes_at_end": 8004655896,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.096934,
+            "lane_system_seconds": 0.063724
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006949,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.086291,
+            "system_seconds": 0.001987,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 211,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7892992000,
+            "process_footprint_bytes_at_end": 7895538360,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.086291,
+            "lane_system_seconds": 0.001998
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.183238,
+        "system_seconds": 0.06575,
+        "minor_faults": 6656,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 594,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7892992000,
+        "process_footprint_bytes_at_end": 7895538360,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.183235,
+        "lane_system_seconds": 0.065752
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.029042,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.016911,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.194852,
+            "system_seconds": 0.00165,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 336,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.194857,
+            "lane_system_seconds": 0.001652
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.012113,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.17884,
+            "system_seconds": 0.000728,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 155,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.178841,
+            "lane_system_seconds": 0.000735
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.373707,
+        "system_seconds": 0.002434,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 491,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7893008384,
+        "process_footprint_bytes_at_end": 7895554744,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.373709,
+        "lane_system_seconds": 0.002432
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.027373,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.016362,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.195475,
+            "system_seconds": 0.004303,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 220,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.195475,
+            "lane_system_seconds": 0.004312
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.010993,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.158595,
+            "system_seconds": 0.001152,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 225,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.158597,
+            "lane_system_seconds": 0.001156
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.354081,
+        "system_seconds": 0.005497,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 445,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7893008384,
+        "process_footprint_bytes_at_end": 7895554744,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.354081,
+        "lane_system_seconds": 0.005498
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.032987,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.018982,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.197794,
+            "system_seconds": 0.002188,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 200,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.197794,
+            "lane_system_seconds": 0.002197
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.013987,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.199909,
+            "system_seconds": 0.000949,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 207,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.199909,
+            "lane_system_seconds": 0.000954
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.397716,
+        "system_seconds": 0.003186,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 407,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7893008384,
+        "process_footprint_bytes_at_end": 7895554744,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.397715,
+        "lane_system_seconds": 0.003186
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.027242,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.018475,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.201595,
+            "system_seconds": 0.000659,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 111,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.201596,
+            "lane_system_seconds": 0.000666
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.008748,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.123631,
+            "system_seconds": 0.00053,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 98,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.123631,
+            "lane_system_seconds": 0.000534
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.325239,
+        "system_seconds": 0.001237,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 209,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7893008384,
+        "process_footprint_bytes_at_end": 7895554744,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.325238,
+        "lane_system_seconds": 0.001235
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.026955,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.01832,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.197647,
+            "system_seconds": 0.001145,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 213,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893008384,
+            "process_footprint_bytes_at_end": 7895554744,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.197649,
+            "lane_system_seconds": 0.001152
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.008616,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.122583,
+            "system_seconds": 0.000858,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 174,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 7893024768,
+            "process_footprint_bytes_at_end": 7895571128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.122585,
+            "lane_system_seconds": 0.000865
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.320242,
+        "system_seconds": 0.002053,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 387,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7893024768,
+        "process_footprint_bytes_at_end": 7895571128,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.320245,
+        "lane_system_seconds": 0.002054
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.087574,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.049471,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.177068,
+            "system_seconds": 0.009002,
+            "minor_faults": 9728,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 7,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8052408320,
+            "process_footprint_bytes_at_end": 8055053128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.177067,
+            "lane_system_seconds": 0.009012
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.038084,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.475867,
+            "system_seconds": 0.085306,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 374,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8052408320,
+            "process_footprint_bytes_at_end": 8055053128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.475866,
+            "lane_system_seconds": 0.085311
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.652947,
+        "system_seconds": 0.094355,
+        "minor_faults": 9728,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 381,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8052408320,
+        "process_footprint_bytes_at_end": 8055053128,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.652943,
+        "lane_system_seconds": 0.094356
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.046543,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.040492,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.195192,
+            "system_seconds": 0.001385,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8052408320,
+            "process_footprint_bytes_at_end": 8055053128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.195193,
+            "lane_system_seconds": 0.001397
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006033,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.091903,
+            "system_seconds": 0.000701,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 139,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8052408320,
+            "process_footprint_bytes_at_end": 8055053128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.091904,
+            "lane_system_seconds": 0.000708
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.287108,
+        "system_seconds": 0.002136,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 144,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8052408320,
+        "process_footprint_bytes_at_end": 8055053128,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.287107,
+        "lane_system_seconds": 0.002136
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.047151,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.041038,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.198933,
+            "system_seconds": 0.003152,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 24,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8052408320,
+            "process_footprint_bytes_at_end": 8055053128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.198935,
+            "lane_system_seconds": 0.003158
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006092,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.090957,
+            "system_seconds": 0.000385,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 59,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8052408320,
+            "process_footprint_bytes_at_end": 8055053128,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.090957,
+            "lane_system_seconds": 0.000396
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.289902,
+        "system_seconds": 0.00359,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 83,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8052408320,
+        "process_footprint_bytes_at_end": 8055053128,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.289903,
+        "lane_system_seconds": 0.003589
+      }
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.046085,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.04049,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.075744,
+            "system_seconds": 0.004018,
+            "minor_faults": 4096,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8119533568,
+            "process_footprint_bytes_at_end": 8122211192,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.075745,
+            "lane_system_seconds": 0.004027
+          }
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.005569,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.086576,
+            "system_seconds": 0.000277,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 22,
+            "process_peak_resident_bytes_at_end": 18607030272,
+            "process_resident_bytes_at_end": 8119533568,
+            "process_footprint_bytes_at_end": 8122211192,
+            "process_footprint_peak_bytes_at_end": 18614597216,
+            "lane_threads": 16,
+            "lane_user_seconds": 0.086575,
+            "lane_system_seconds": 0.000283
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.162331,
+        "system_seconds": 0.004343,
+        "minor_faults": 4096,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 26,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8119533568,
+        "process_footprint_bytes_at_end": 8122211192,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.162331,
+        "lane_system_seconds": 0.004343
+      }
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.06252,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.714782,
+        "system_seconds": 0.082379,
+        "minor_faults": 32964,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1419,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7012204544,
+        "process_footprint_bytes_at_end": 7014357112,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.400626,
+        "lane_system_seconds": 0.04218
+      }
+    },
+    {
+      "id": "draw_random_coeff",
+      "label": "Draw random coefficient",
+      "seconds": 0.000017,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.000003,
+        "system_seconds": 0.000006,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7012237312,
+        "process_footprint_bytes_at_end": 7014357112,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.000003,
+        "lane_system_seconds": 0.000006
+      }
+    },
+    {
+      "id": "composition_trace_extract",
+      "label": "Composition trace extract",
+      "seconds": 0.000031,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.000006,
+        "system_seconds": 0.000016,
+        "minor_faults": 3,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 7012286464,
+        "process_footprint_bytes_at_end": 7014406264,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.000006,
+        "lane_system_seconds": 0.000016
+      }
+    },
+    {
+      "id": "composition_evaluation",
+      "label": "Composition evaluation",
+      "seconds": 2.684485,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 17.134522,
+        "system_seconds": 0.302373,
+        "minor_faults": 227340,
+        "major_faults": 0,
+        "voluntary_switches": 1,
+        "involuntary_switches": 17152,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8209448960,
+        "process_footprint_bytes_at_end": 8211962984,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 17.134525,
+        "lane_system_seconds": 0.30238
+      }
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "label": "Composition interpolate and split",
+      "seconds": 0.18807,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.179745,
+        "system_seconds": 0.008201,
+        "minor_faults": 7169,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 12,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8326905856,
+        "process_footprint_bytes_at_end": 8329469128,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.179745,
+        "lane_system_seconds": 0.008212
+      }
+    },
+    {
+      "id": "composition_commit",
+      "label": "Composition commit",
+      "seconds": 0.120236,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 1.212682,
+        "system_seconds": 0.123247,
+        "minor_faults": 65537,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1360,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8763064320,
+        "process_footprint_bytes_at_end": 8765824512,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 1.212681,
+        "lane_system_seconds": 0.123255
+      }
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "label": "OODS point and mask points",
+      "seconds": 0.000127,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.000062,
+        "system_seconds": 0.00005,
+        "minor_faults": 13,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8243150848,
+        "process_footprint_bytes_at_end": 8245664968,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.000062,
+        "lane_system_seconds": 0.00005
+      }
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "label": "Sampled-value evaluation",
+      "seconds": 0.135385,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 1.763285,
+        "system_seconds": 0.025159,
+        "minor_faults": 52,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 3281,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8243265536,
+        "process_footprint_bytes_at_end": 8245763272,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 1.763284,
+        "lane_system_seconds": 0.025164
+      }
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "label": "Sampled-value channel mix",
+      "seconds": 0.000172,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.000143,
+        "system_seconds": 0.00002,
+        "minor_faults": 3,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8243265536,
+        "process_footprint_bytes_at_end": 8245763272,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.000143,
+        "lane_system_seconds": 0.00002
+      }
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "label": "FRI quotient build + commit (lazy)",
+      "seconds": 1.459528,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 10.654385,
+        "system_seconds": 0.414674,
+        "minor_faults": 131827,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 9299,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8547090432,
+        "process_footprint_bytes_at_end": 8549735960,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 10.654387,
+        "lane_system_seconds": 0.414682
+      }
+    },
+    {
+      "id": "proof_of_work",
+      "label": "Proof of work",
+      "seconds": 0.110846,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 1.845708,
+        "system_seconds": 0.005368,
+        "minor_faults": 37,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1400,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8547106816,
+        "process_footprint_bytes_at_end": 8549752344,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.000031,
+        "lane_system_seconds": 0.000183
+      }
+    },
+    {
+      "id": "fri_decommit",
+      "label": "FRI decommit",
+      "seconds": 0.321035,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.310359,
+        "system_seconds": 0.010463,
+        "minor_faults": 60,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 23,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8244297728,
+        "process_footprint_bytes_at_end": 8246812016,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.31036,
+        "lane_system_seconds": 0.010473
+      }
+    },
+    {
+      "id": "trace_decommit",
+      "label": "Trace decommit",
+      "seconds": 0.340414,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 1.653243,
+        "system_seconds": 0.014726,
+        "minor_faults": 203,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 2414,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 8245985280,
+        "process_footprint_bytes_at_end": 8248499568,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 1.653247,
+        "lane_system_seconds": 0.014734
+      }
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "label": "Constraint check and assembly",
+      "seconds": 0.002328,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.00225,
+        "system_seconds": 0.000064,
+        "minor_faults": 6,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0,
+        "process_peak_resident_bytes_at_end": 18607030272,
+        "process_resident_bytes_at_end": 5364121600,
+        "process_footprint_bytes_at_end": 5365241376,
+        "process_footprint_peak_bytes_at_end": 18614597216,
+        "lane_threads": 16,
+        "lane_user_seconds": 0.00225,
+        "lane_system_seconds": 0.00006
+      }
+    }
+  ]
+}

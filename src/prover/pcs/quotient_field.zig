@@ -180,7 +180,10 @@ pub fn ForField(comptime S: type) type {
                         self.workspace.resetNumerators();
                         for (self.workspace.denominator_inverses, 0..) |*inverse, batch| inverse.* = self.scratch_inverses[batch * count + r];
                         for (self.groups.groups) |group| self.workspace.batch_numerators[group.batch_index] = self.workspace.batch_numerators[group.batch_index].add(group.at(position));
-                        const value = try Q.finalizeRowQuotients(&self.constants, point.y, self.workspace.batch_numerators, self.workspace.denominator_inverses);
+                        const value = if (S == core.fields.om31.OM31)
+                            try @import("wide_row_finalize.zig").finalize(&self.constants, point.y, self.workspace.batch_numerators, self.workspace.denominator_inverses)
+                        else
+                            try Q.finalizeRowQuotients(&self.constants, point.y, self.workspace.batch_numerators, self.workspace.denominator_inverses);
                         for (value.toM31Array(), 0..) |v, i| coordinates[i][offset + r] = v;
                     }
                     offset += count;
