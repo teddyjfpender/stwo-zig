@@ -29,13 +29,13 @@ functional observations, not a controlled performance comparison.
 | Existing evidence | Reusable authority | Current OM qualification gap |
 |---|---|---|
 | Legacy authenticated proof over all63 instructions | Same instruction array and machine retirement semantics | Closed by the new complete physical OM gate; one operand pattern per opcode, not an exhaustive edge-case corpus |
-| Sail 12,903-case continuous corpus, 1,032,240 retirements, all63 covered (`rv64-ls32-qualified-20261101/corpus-sail-report.json`) | `word16_qualification/sail_image.zig` and `sail_capture.zig`; compare every retirement and expected CPU/RAM endpoint | Its existing proof is the earlier Word16/QM route. Replay the captured corpus through the current OM coordinator and fresh receiver before claiming current-profile Sail qualification |
+| Sail 12,903-case continuous corpus, 1,032,240 retirements, all63 covered (`rv64-ls32-qualified-20261101/corpus-sail-report.json`) | `word16_qualification/sail_image.zig` and `sail_capture.zig`; compare every retirement and expected CPU/RAM endpoint | Now also qualified on current OM control and beta2 candidate; see `rv64-om-sail-qualification.md` and `rv64-om-sail-20261102` receipts |
 | Whole 17-case CSP suite with Unicorn agreement (`corpus-csp17-qualification.json`) | `csp_image.zig`, `csp_capture.zig`, opcode/shape counters and independent expected outputs | Current OM complete-suite proof/benchmark not yet run. Reuse capture and geometry selection; do not substitute Ethereum receipts or run the large ECDSA benchmark before the bounded ISA gate |
 | Pinned Rust Stwo verification (`rv64-delivery-20261030/rust-requalification-v1.json`) | Independent PCS/FRI implementation and fixture-scoped adapter methodology | Scope is explicitly ADDI/ADDI/SD/LD/ADD, dense-v2/four-coordinate adapter. It does not verify current eight-coordinate OM31, new GKR child/binding, schema7 or all63-opcode AIR |
 
-The next qualification steps are therefore current-profile Sail retirement
-corpus replay and one small CSP case with complete fresh acceptance, followed by
-the full CSP suite. Independent Rust qualification requires an explicit current
+The Sail corpus has now also passed current OM control and candidate fresh
+receivers. The next qualification steps are a small CSP case with complete
+fresh acceptance, followed by the full CSP suite. Independent Rust qualification requires an explicit current
 field/protocol and complete AIR adapter; existing Rust agreement cannot be
 expanded by changing a report label.
 

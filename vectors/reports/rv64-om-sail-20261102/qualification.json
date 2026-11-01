@@ -1,0 +1,38 @@
+{
+  "scope": "Actual current OM31/GKR complete independent Sail workload; functional observation, no speed/security/Rust/CSP promotion.",
+  "source_commit": "ff44ec329",
+  "source_base": "57fb907a842ca62c8fe4949fdc17dc4ba5d8ab62",
+  "tool_sha256": "eaf4da70ae70a11719c85247bf090685883e960f40b5613dfbaf9cd44d20e088",
+  "build": "zig build rv64-om-sail-qualification -Doptimize=ReleaseFast -j2 --summary all; PASS27s MaxRSS1G",
+  "image_config_sha256": "094efa4f2884c6e160db6c5d7a9fba55255a5b1363e23576a55bac59373aa020",
+  "oracle_sha256": "acd11c3af331517630f627444387c9bf29080f8e664523f96133115f4182ea87",
+  "rvfi_sha256": "099971a9ce6123c2c93d6b1d3672e89bbf1f0d019393e1b830b7f6429b923179",
+  "steps": 1032240,
+  "target_cases": 12903,
+  "all63_ordinary_opcodes": true,
+  "each_retirement_independently_compared": true,
+  "fresh_separate_process_cpu_ram_endpoint_bound": true,
+  "profile_adaptation": "After original pinned Sail capture, require allordinary/noECALL/EBREAK/service records; select existing services tape+ROMprofile for identical ordinary semantics. No prodguard changed.",
+  "worker_count": 8,
+  "allocator": "Existing large-block recycler4GiB over smp; SharedHostBudget48GiB requested plus separately retained cache; actual snapshots/RSS in receipts.",
+  "acceptance": {
+    "control": true,
+    "candidate": true,
+    "security_qualified": false
+  },
+  "negatives": {
+    "wrong_expected_final_register": "Both freshreceivers rejected",
+    "cross_mode_bundles": "Both returned GlobalGkrManifestExecution",
+    "invalid_workers_0_and_33": "InvalidOracleWorkers before image/key allocation",
+    "invalid_mode": "ExpectedModeConfigDirectory before inputread"
+  },
+  "independent_source_review": "Pipeline agent reviewed lifetime/authority/profileadaptation. Workerwidth/admission and singleJSON findings corrected before successful build/proofs.",
+  "commands": [
+    "EXE prove-control CONFIG /tmp/stwo-rv64-om-sail-control-v1",
+    "EXE verify-control CONFIG /tmp/stwo-rv64-om-sail-control-v1",
+    "EXE prove-candidate CONFIG /tmp/stwo-rv64-om-sail-candidate-v1",
+    "EXE verify-candidate CONFIG /tmp/stwo-rv64-om-sail-candidate-v1"
+  ],
+  "proof_storage": "Durable proof files remain in /tmp directories; only digests/receipts committed, not large witnesses/RVFI.",
+  "same_reference_corpus_as_prior_ls32_receipt": true
+}

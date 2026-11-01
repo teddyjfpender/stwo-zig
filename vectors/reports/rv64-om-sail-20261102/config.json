@@ -1,0 +1,8 @@
+{
+  "elf": "/private/tmp/rv64-word16-sail-workload-v2/workload.elf",
+  "elf_sha256": "ffd638bf944f6b43d8e96d8a2d495939abb9b17a6474f67afe912d27dd089229",
+  "oracle": "/private/tmp/rv64-word16-sail-workload-v2/oracle.json",
+  "oracle_sha256": "acd11c3af331517630f627444387c9bf29080f8e664523f96133115f4182ea87",
+  "rvfi": "/private/tmp/rv64-word16-sail-workload-v2/retirements.rvfi",
+  "workers": 8
+}
