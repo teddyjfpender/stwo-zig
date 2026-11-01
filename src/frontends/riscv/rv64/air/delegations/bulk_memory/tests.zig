@@ -1291,6 +1291,7 @@ test "jumpdest: random codes of every remainder close and match the reference wa
     for (0..17) |k| for (0..(k + 8) / 8) |j| {
         try testing.expectEqual(expected[k][j], w.states.get(0x30000 + 0x40 * @as(u64, k) + 8 * j).?.value);
     };
+}
 /// Sets a word's initial and final ledger value (a read-only word of the
 /// forged history, e.g. a packet field the prover rewrites).
 fn rewriteWord(w: *World, address: u64, value: u64) !void {

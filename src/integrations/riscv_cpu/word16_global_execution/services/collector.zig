@@ -376,6 +376,7 @@ fn bulkCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, tag: u64, e
             }
             call.examined = @intCast(words.items.len - start);
         },
+        .jumpdest => unreachable, // jumpdestCall
     }
     const body = words.items[start..];
     try BM.types.validateCall(call, body);
@@ -398,6 +399,7 @@ fn bulkCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, tag: u64, e
                 ledger.states.getPtr(call.dst + 8 * j).?.* = withValue(at, w.dst.value, w.dst.rights);
                 ledger.states.getPtr(call.word1 + 8 * j).?.* = withValue(at, w.src.value, w.src.rights);
             },
+            .jumpdest => unreachable,
         }
     }
     calls.appendAssumeCapacity(call);
@@ -434,6 +436,7 @@ fn jumpdestCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, epoch: 
     for (words.items[start..][0..n], 0..) |w, j| ledger.states.getPtr(call.dst + 8 * j).?.* = .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights };
     for (words.items[start + n ..][0..rows], 0..) |w, r| ledger.states.getPtr(call.word1 + 8 * r).?.* = .{ .value = bitmap[r], .epoch = epoch, .tick = tick, .rights = w.dst.rights };
     calls.appendAssumeCapacity(call);
+}
 fn withValue(clock: BM.types.State, value: u64, rights: u2) BM.types.State {
     return .{ .value = value, .epoch = clock.epoch, .tick = clock.tick, .rights = rights };
 }
