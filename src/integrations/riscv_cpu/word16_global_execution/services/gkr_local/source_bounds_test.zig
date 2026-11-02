@@ -31,6 +31,26 @@ test "source admission derives geometry and signed/support bounds without constr
     };
     var report = try Bounds.derive(a, captured.program.log_size, &cpu, &truth, &requests);
     defer report.deinit();
+    try std.testing.expectEqualStrings(Bounds.ACCOUNTING_PROFILE, report.accounting_profile);
+    for (report.cpu_scopes) |scope| try std.testing.expectEqual(@as(u8, 9), scope.namespace_count);
+    var paired = cpu;
+    for (&paired) |*d| {
+        d.geometry.cpu_fused_tail = true;
+        d.geometry.cpu_u8_pairs = true;
+    }
+    var paired_report = try Bounds.derive(a, captured.program.log_size, &paired, &truth, &requests);
+    defer paired_report.deinit();
+    try std.testing.expectEqualStrings(Bounds.ACCOUNTING_PROFILE, paired_report.accounting_profile);
+    for (paired_report.cpu_scopes) |scope| {
+        try std.testing.expectEqual(@as(u8, 10), scope.namespace_count);
+        try std.testing.expect(scope.relations[@intFromEnum(Relation.byte_pair)].unit_consumer_mass > 0);
+    }
+    var missing_sponge = requests;
+    missing_sponge[0].sponge = .{ .calls = 1, .perms = 1, .first_id = 2 };
+    try std.testing.expectError(error.InvalidCombinedBridgePresence, Bounds.derive(a, captured.program.log_size, &cpu, &truth, &missing_sponge));
+    var empty_sponge = cpu;
+    empty_sponge[0].bridges.sponge.call = 5;
+    try std.testing.expectError(error.InvalidCombinedBridgePresence, Bounds.derive(a, captured.program.log_size, &empty_sponge, &truth, &requests));
     try std.testing.expectEqual(@as(usize, 5), report.shape.native_proofs);
     try std.testing.expectEqual(@as(u32, 16), report.shape.max_trace_log);
     try std.testing.expectEqual(@as(u8, 5), report.shape.max_air_degree);

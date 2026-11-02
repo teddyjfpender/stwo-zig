@@ -20,6 +20,11 @@ const Mass = @import("mass_authority.zig");
 const Global = @import("global_cpu.zig");
 const Manifest = @import("manifest.zig");
 const MODULUS = core.fields.m31.Modulus;
+/// Reporting identity for the source-derived lookup accountant, not a new
+/// Fiat-Shamir/profile identifier or a whole-protocol security certificate.
+pub const ACCOUNTING_PROFILE = "rv64-source-derived-services-v3-lookup/v1";
+pub const LEGACY_LOCAL_NAMESPACES: u8 = @intFromEnum(F.Relation.byte_pair);
+pub const V3_LOCAL_NAMESPACES: u8 = @intCast(std.meta.fields(F.Relation).len);
 pub const Model = enum { unit_consistency, unit_membership_valid_support };
 pub const Bound = struct {
     model: Model = .unit_membership_valid_support,
@@ -36,6 +41,7 @@ pub const Bound = struct {
     }
 };
 pub const CpuScope = struct {
+    namespace_count: u8 = LEGACY_LOCAL_NAMESPACES,
     relations: [std.meta.fields(F.Relation).len]Bound,
     /// Disjoint TOKEN_JD_TABLE support inside OWNER19; denominator slots remain
     /// in relations.owner so collision/pole bounds include cross-partition pairs.
@@ -89,6 +95,7 @@ pub const ConditionalDegrees = struct {
     }
 };
 pub const Report = struct {
+    accounting_profile: []const u8 = ACCOUNTING_PROFILE,
     allocator: std.mem.Allocator,
     shape: Shape,
     cpu_scopes: []CpuScope,
@@ -241,6 +248,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         var constraints: usize = 0;
         var instances: usize = 0;
         scope.* = emptyCpu();
+        scope.namespace_count = if (declaration.geometry.cpu_u8_pairs) V3_LOCAL_NAMESPACES else LEGACY_LOCAL_NAMESPACES;
         for (Geometry.shapesForProgramLog(program_log, declaration.geometry)) |part| {
             if (!part.present()) continue;
             const origin = Frame.Origin{ .core = part.role };
@@ -285,13 +293,18 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
                 try globalSlots(&global_slots, origin, log);
             }
         }
-        for (Types.sponge_kinds) |kind| if (declaration.bridges.sponge.at(kind)) |log| {
-            _ = try A.crypto.keccak_sponge.types.validateGeometry(kind, request.sponge.rows(kind), log);
-            const origin = Frame.Origin{ .sponge = kind };
-            try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
-            try addCpuRole(scope, origin, log);
-            try globalSlots(&global_slots, origin, log);
-        };
+        for (Types.sponge_kinds) |kind| {
+            const optional = declaration.bridges.sponge.at(kind);
+            const active = request.sponge.rows(kind);
+            if ((optional != null) != (active != 0)) return error.InvalidCombinedBridgePresence;
+            if (optional) |log| {
+                _ = try A.crypto.keccak_sponge.types.validateGeometry(kind, active, log);
+                const origin = Frame.Origin{ .sponge = kind };
+                try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
+                try addCpuRole(scope, origin, log);
+                try globalSlots(&global_slots, origin, log);
+            }
+        }
         const dword_counts = try Types.dwordCounts(declaration.bridges, request.ls_dword);
         for (0..Types.DWORD_INSTANCES) |i| if (declaration.bridges.dwordLog(i)) |log| {
             if (dword_counts[i] >= try rows(log)) return error.CandidateSourceCountExceeded;
