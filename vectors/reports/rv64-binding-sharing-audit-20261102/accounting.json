@@ -1,0 +1,80 @@
+{
+  "scope": "source-derived CPU0 local binding accounting; no new protocol or measured speedup",
+  "authority_commit": "4d9aafacd",
+  "roster_bundle": "/tmp/stwo-rv64-om-full-stream68-k18-v1/bundle.json",
+  "bundle_sha256": "ba0979f02a818c4cb7d3afaec6681779d5e80bad833489ad67f564ab89b13325",
+  "cpu0_geometry": {
+    "cpu_log": 22,
+    "alu_log": 19,
+    "alu_tail_log": 16,
+    "binary_log": 19,
+    "binary_tail_log": 18,
+    "shift_log": 19,
+    "shift_tail_log": 18,
+    "jalr_log": 14,
+    "division_log": 5,
+    "omit_empty_division": true,
+    "multiplication_log": 13,
+    "ls_log": 20,
+    "ls_tail_log": 18,
+    "boundary_log": 5,
+    "initial_log": 21,
+    "terminal_log": 5
+  },
+  "cpu0_rom_log": 20,
+  "CPU0_binding_cells": 144052736,
+  "CPU0_binding_bytes": 576210944,
+  "identical_Eq_duplicate_cells": 13631488,
+  "identical_Eq_duplicate_bytes": 54525952,
+  "binding_saving_fraction": 0.09462845606764456,
+  "native_cells_saved_per_retirement": 3.250000774860567,
+  "Eq_columns_per_local_instance": 8,
+  "prefix_columns_per_local_instance": 8,
+  "sharing_key": [
+    "row_log",
+    "lane_log",
+    "exact common verified GKR point"
+  ],
+  "groups_with_duplicate_Eq": [
+    {
+      "row_log": 19,
+      "lane_log": 4,
+      "roles": [
+        "alu",
+        "binary",
+        "shift"
+      ],
+      "saved_cells": 8388608
+    },
+    {
+      "row_log": 18,
+      "lane_log": 4,
+      "roles": [
+        "binary_tail",
+        "shift_tail",
+        "ls_tail"
+      ],
+      "saved_cells": 4194304
+    },
+    {
+      "row_log": 16,
+      "lane_log": 4,
+      "roles": [
+        "alu_tail",
+        "shift_table"
+      ],
+      "saved_cells": 524288
+    },
+    {
+      "row_log": 16,
+      "lane_log": 0,
+      "roles": [
+        "range16",
+        "and_table"
+      ],
+      "saved_cells": 524288
+    }
+  ],
+  "whole_proof_speedup_established": false,
+  "protocol_implemented": false
+}
