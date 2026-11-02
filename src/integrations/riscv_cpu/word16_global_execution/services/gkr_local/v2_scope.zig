@@ -4,7 +4,8 @@
 //! exactly those three families. Every v3 extension of the classic services
 //! route (SHA-256, arith256_mod, curve/field families, bulk memory incl. the
 //! unaligned ucopy/cdesc/cmp and JUMPDEST jdesc/jscan/jtab kinds, Keccak
-//! sponge, and the throughput_v1 Keccak-f truth profile) is rejected here, at each admission boundary, instead of being
+//! sponge, and the throughput_v1 Keccak-f truth profile) and every v3 CPU AIR
+//! layout (fused-tail interaction, U8 byte-pair queries) is rejected here, at each admission boundary, instead of being
 //! silently dropped or mis-typed as a secp bridge. Lifting this requires
 //! porting each v3 family into the GKR roles and global authorities.
 const T = @import("../types.zig");
@@ -18,7 +19,20 @@ pub fn bridges(logs: T.Logs) !void {
     for (T.V3) |f| if (logs.at(f) != null) return error.GkrV3ServiceUnsupported;
     if (logs.bulk.any() or logs.sponge.any()) return error.GkrV3ServiceUnsupported;
 }
+/// CPU geometry: the local GKR lane replaces the CPU LogUp interaction with
+/// its own term layout (`roster.terms(.cpu)`) over the historical 40-column
+/// CPU AIR and the single-multiplicity AND table; it has no fused-tail or
+/// byte-pair variant.
+pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !void {
+    if (g.cpu_fused_tail or g.cpu_u8_pairs) return error.UnsupportedFusedTailInLocalGkr;
+}
+/// CPU declaration (wire/plan admission): geometry and bridges.
+pub fn declaration(d: @import("../wire.zig").CpuDeclaration) !void {
+    try geometry(d.geometry);
+    try bridges(d.bridges);
+}
 pub fn setup(s: *const R.CpuSetup) !void {
+    try geometry(s.materials.geometry);
     return bridges(s.bridges);
 }
 pub fn calls(all: [T.FAMILIES]u32, bulk: T.BulkCounts, sponge: T.SpongeCounts) !void {

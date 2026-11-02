@@ -69,7 +69,7 @@ fn finish(a: std.mem.Allocator, parts: []Part) !Report {
 }
 pub fn cpu(a: std.mem.Allocator, program_log: u32, declaration: Wire.CpuDeclaration) !Report {
     // v2 roster only (see v2_scope.zig): v3 bridges have no fixed provenance here.
-    try @import("v2_scope.zig").bridges(declaration.bridges);
+    try @import("v2_scope.zig").declaration(declaration);
     try declaration.geometry.validate();
     var list: std.ArrayList(Part) = .empty;
     defer list.deinit(a);

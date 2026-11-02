@@ -125,6 +125,19 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
     cpus[0].declaration.bridges.bulk.jscan = null;
     try Wire.validate(metadata, .{});
+    // v3 CPU AIR layouts: the GKR lane has only the historical CPU interaction
+    // and single-multiplicity AND table (pairs alone is also an invalid geometry).
+    cpus[0].declaration.geometry.cpu_fused_tail = true;
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Wire.validate(metadata, .{}));
+    cpus[0].declaration.geometry.cpu_u8_pairs = true;
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Wire.validate(metadata, .{}));
+    cpus[0].declaration.geometry.cpu_fused_tail = false;
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Wire.validate(metadata, .{}));
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Scope.geometry(cpus[0].declaration.geometry));
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Scope.declaration(cpus[0].declaration));
+    cpus[0].declaration.geometry.cpu_u8_pairs = false;
+    try Scope.declaration(cpus[0].declaration);
+    try Wire.validate(metadata, .{});
     const Truth = @typeInfo(@FieldType(Wire.Metadata, "truths")).pointer.child;
     var truth_claims = [_][8]u32{@splat(0)} ** 5;
     const truths = [_]Truth{.{ .declaration = .{ .family = .sha256, .first_id = 1, .calls = 1, .logs = .{ 5, 0 } }, .claims = &truth_claims, .proof = .{ .bytes = 1, .sha256 = @splat(0) } }};

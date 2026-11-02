@@ -84,7 +84,7 @@ pub fn validate(metadata: Metadata, limits: Limits) !void {
     if (metadata.schema != 1 or metadata.core_schema != @import("../../../word16_execution/protocol.zig").SCHEMA or metadata.field_degree != 8 or !std.mem.eql(u8, metadata.profile, Manifest.PROFILE)) return error.WideBundleProfile;
     // The wide route is v2-only; reject v3 declarations before shared preflight.
     for (metadata.cpus) |cpu| {
-        try Scope.bridges(cpu.declaration.bridges);
+        try Scope.declaration(cpu.declaration);
         try Scope.calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge);
     }
     for (metadata.truths) |truth| try Scope.truthDeclaration(truth.declaration);

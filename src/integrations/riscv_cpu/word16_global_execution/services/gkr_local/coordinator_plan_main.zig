@@ -100,7 +100,7 @@ pub fn main() !void {
         setup.materials.program.log_size = rom_log;
         setup.bridges = entry.declaration.bridges;
         const r = entry.request;
-        try Scope.bridges(entry.declaration.bridges);
+        try Scope.declaration(entry.declaration);
         try Scope.calls(r.all(), r.bulk, r.sponge);
         const request = P.Request{ .calls = r.all(), .bulk = r.bulk, .sponge = r.sponge, .base = .{ .cpu = r.cpu, .epoch = r.epoch, .division_requests = r.division_requests, .multiplication_requests = r.multiplication_requests, .memory = .{ .epoch = r.memory_epoch, .ls_count = r.ls_count, .initial = if (i == 0) cells else &.{}, .terminal = if (i + 1 == data.cpus.len) cells else &.{} } } };
         for (0..3) |tree| {
