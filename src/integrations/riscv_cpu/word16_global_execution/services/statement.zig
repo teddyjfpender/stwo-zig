@@ -23,10 +23,16 @@ pub const CpuClaims = struct {
     /// LS-D64 claims: RAM14, OWNER19, U16, U8. Zero and omitted from
     /// transcript and wire when the setup has no LS-D64 component.
     ls_dword: [T.DWORD_INSTANCES]T.DwordClaims = @splat(T.DwordClaims.zero()),
+    /// Zbb BINARY claims (AND, FUNCTION). Zero and omitted from transcript and
+    /// wire when the setup has no Zbb component.
+    zbb: T.ZbbClaims = T.zbbZero(),
     pub fn dwordValues(self: @This()) [4 * T.DWORD_INSTANCES]Q {
         var out: [4 * T.DWORD_INSTANCES]Q = undefined;
         for (self.ls_dword, 0..) |c, k| out[4 * k ..][0..4].* = c.values();
         return out;
+    }
+    pub fn zbbValues(self: @This()) [2]Q {
+        return .{ self.zbb.and_, self.zbb.function };
     }
     pub fn spongeValues(self: @This()) [12]Q {
         var out: [12]Q = undefined;
@@ -77,8 +83,10 @@ pub const CpuClaims = struct {
         if (setup.bridges.sponge.any()) channel.mixFelts(&self.spongeValues());
         // JUMPDEST block after the sponge, only when present.
         if (setup.bridges.bulk.jump()) channel.mixFelts(bulk[3 * T.BULK_EXT ..]);
-        // LS-D64 block last, only when present.
+        // LS-D64 block after JUMPDEST, only when present.
         for (self.ls_dword, 0..) |c, k| if (setup.bridges.dwordLog(k) != null) channel.mixFelts(&c.values());
+        // Zbb block last (after LS-D64), only when present.
+        if (setup.bridges.zbb != null) channel.mixFelts(&self.zbbValues());
     }
     pub fn canonical(self: @This()) !void {
         try Source.validateCanonicalClaims(self.base);
@@ -86,6 +94,7 @@ pub const CpuClaims = struct {
         for (self.bulkValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
         for (self.spongeValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
         for (self.dwordValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
+        for (self.zbbValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
     }
     pub fn presence(self: @This(), setup: *const R.CpuSetup) !void {
         for (self.extras, 0..) |c, k| if (setup.bridges.at(@enumFromInt(k)) == null) {
@@ -100,6 +109,7 @@ pub const CpuClaims = struct {
         for (self.ls_dword, 0..) |c, k| if (setup.bridges.dwordLog(k) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
+        if (setup.bridges.zbb == null) for (self.zbbValues()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
     }
     pub fn ram(self: @This()) Q {
         const base = G.Old.ramClaim(self.base);
@@ -117,6 +127,8 @@ pub const CpuClaims = struct {
         for (self.spongeValues()) |v| sum = sum.add(v);
         // LS-D64 OWNER/U16/U8 shares close with the CPU's in this proof.
         for (self.dwordValues()) |v| sum = sum.add(v);
+        // Zbb AND and FUNCTION close locally (core AND table, CPU FUNCTION).
+        for (self.zbbValues()) |v| sum = sum.add(v);
         sum = sum.sub(self.ram());
         for (self.extras) |c| sum = sum.sub(c.truth);
         for (self.sponge) |c| sum = sum.sub(c.io);

@@ -122,11 +122,22 @@ pub const Plan = struct {
         };
     }
 
+    /// Whether the full AIR admits `op`. Opcodes outside its RV64IM selector
+    /// domain (Zbb BINARY) are never allowed: callers must not index
+    /// `allowed_opcodes` by an arbitrary decoded opcode.
+    pub fn allows(self: *const Plan, op: E.O) bool {
+        const index = @intFromEnum(op);
+        return index < self.allowed_opcodes.len and self.allowed_opcodes[index];
+    }
+
     /// Borrows the existing public projection only during construction.
     pub fn init(projection: *const P.Projection, opcodes: []const E.O) Plan {
         var self: Plan = .{ .support = projection.support };
         self.allowed_opcodes = @splat(false);
         for (opcodes) |op| {
+            // The full AIR has selectors for the RV64IM domain only; a Zbb
+            // opcode stays disallowed (`allows` is false), so it fails closed.
+            if (!@import("../decode.zig").isBase(op)) continue;
             self.allowed_opcodes[@intFromEnum(op)] = true;
             switch (op) {
                 .AND, .ANDI, .OR, .ORI, .XOR, .XORI => {

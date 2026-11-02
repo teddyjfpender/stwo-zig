@@ -20,4 +20,6 @@ pub fn build(b: *std.Build) void {
     const ethereum_run = b.addRunArtifact(ethereum);
     if (b.args) |args| ethereum_run.addArgs(args);
     b.step("ethereum-run", "Census a pinned software Ethereum guest (execution only)").dependOn(&ethereum_run.step);
+    const audit = b.addExecutable(.{ .name = "rv64-isa-audit", .root_module = b.createModule(.{ .root_source_file = b.path("isa_audit.zig"), .target = target, .optimize = optimize }) });
+    b.installArtifact(audit);
 }

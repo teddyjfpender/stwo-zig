@@ -110,6 +110,20 @@ pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, ran
     return .{ .ram = 58 * @as(u64, r.sponge.calls) + 36 * @as(u64, r.sponge.perms), .range16 = range16, .range8 = range8, .io = 50 * (@as(u64, r.sponge.calls) + r.sponge.perms) };
 }
 
+/// Admitted Zbb BINARY component of one CPU proof (profile
+/// ethereum_services_v3_zbb). It is a pure truth provider: no public count,
+/// FUNCTION ids 19..24 close against the CPU and its 8 byte-AND requests per
+/// physical row join the core AND table. Present only for a Zbb-profile ROM;
+/// the total AND mass (BINARY + CPU pairs + sponge + Zbb) stays below p.
+/// Admitted Zbb geometry of one CPU proof; returns the Zbb chip's byte-AND
+/// lookup mass (8 per physical row, padding included), which joins the core
+/// AND table and so the joint AND-mass bound in `admit`.
+pub fn admitZbb(setup: *const R.CpuSetup) !u64 {
+    const log = setup.bridges.zbb orelse return 0;
+    if (!A.word16_execution.features.zbbProfile(setup.materials.program.profile)) return error.UnexpectedZbbComponent;
+    if (log < 5 or log > 22) return error.InvalidCombinedBridgeGeometry;
+    return 8 * (@as(u64, 1) << @intCast(log));
+}
 pub fn firstIds(requests: []const Request, index: usize) ![T.FAMILIES]u32 {
     if (index > requests.len) return error.InvalidCombinedOrdinal;
     var first: [T.FAMILIES]u64 = @splat(1);
@@ -148,13 +162,17 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
         const dword = try admitDword(setup, req);
+        const zbb_and = try admitZbb(setup);
         // The AND relation of this CPU proof (BINARY, every byte-pair consumer
-        // of the pair-capable table, sponge byte-AND) keeps its joint mass below p.
-        // Checked whenever any byte-pair layout is declared (each pair flag
-        // requires cpu_u8_pairs), not only with the LS-D64 pair layout.
-        if (setup.materials.geometry.cpu_u8_pairs or setup.materials.geometry.ls_dword_fused_pairs) {
+        // of the pair-capable table, Zbb byte-AND, sponge byte-AND) keeps its
+        // joint mass below p. Checked whenever any byte-pair layout is declared
+        // (each pair flag requires cpu_u8_pairs) or a Zbb chip is present.
+        if (setup.materials.geometry.cpu_u8_pairs or setup.materials.geometry.ls_dword_fused_pairs or setup.bridges.zbb != null) {
             const sponge_and: u64 = if (setup.bridges.sponge.perm) |l| @as(u64, KS.layout.andCount(.perm)) << @intCast(l) else 0;
-            if (try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.andMass(), sponge_and), dword.and_pairs) >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+            var and_mass = try std.math.add(u64, try setup.materials.geometry.andMass(), sponge_and);
+            and_mass = try std.math.add(u64, and_mass, dword.and_pairs);
+            and_mass = try std.math.add(u64, and_mass, zbb_and);
+            if (and_mass >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
         }
         sponge_io = try std.math.add(u64, sponge_io, sponge.io);
         sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
@@ -316,6 +334,15 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         for (T.dwordWidthsFor(s.materials.geometry)) |width| ch.mixU32s(&.{@intCast(width)});
         LSD.encoding.mix(ch);
         if (s.materials.geometry.ls_dword_fused_pairs) LSD.encoding.mixFused(ch);
+    }
+    // Zbb BINARY component: mixed only when present (every other transcript
+    // unchanged). Binds the chip (ids, constraints, widths), its log and the
+    // Zbb opcode map; the ROM program identity already binds the profile.
+    if (s.bridges.zbb) |log| {
+        const Z = A.word16_v1.binary_zbb;
+        ch.mixU32s(&.{ 0x5a424231, 1, Z.FIRST_ID, Z.OPS, @intCast(A.word16_v1.binary_lookup.zbb.CONSTRAINTS), Z.AND_REQUESTS, log });
+        for (T.zbbWidths()) |width| ch.mixU32s(&.{@intCast(width)});
+        G.Old.digest(ch, A.word16_execution.features.zbbIdentity());
     }
 }
 fn mixBulkKind(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, kind: T.BulkKind, k: usize) void {

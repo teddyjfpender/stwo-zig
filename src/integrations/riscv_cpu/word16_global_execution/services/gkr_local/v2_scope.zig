@@ -21,6 +21,8 @@ pub fn bridges(logs: T.Logs) !void {
     if (logs.bulk.any() or logs.sponge.any()) return error.GkrV3ServiceUnsupported;
     // LS-D64 has no GKR role, mass or statement; every LD/SD stays LS32 here.
     if (logs.ls_dword != null or logs.ls_dword_tail != null) return error.GkrV3ServiceUnsupported;
+    // The Zbb BINARY component has no GKR role (v3_zbb only).
+    if (logs.zbb != null) return error.UnsupportedGkrLocalZbbComponent;
 }
 /// CPU geometry: the local GKR lane replaces the CPU LogUp interaction with
 /// its own term layout (`roster.terms(.cpu)`) over the historical 40-column

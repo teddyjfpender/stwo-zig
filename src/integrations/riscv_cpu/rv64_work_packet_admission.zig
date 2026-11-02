@@ -33,7 +33,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     // extension (arith256_mod, then curve records) after the SHA-256 records.
     const sha_word = std.mem.readInt(u32, raw[28..32], .little);
     var facts = Facts{ .profile = tape_profile, .initial_pc = std.mem.readInt(u64, raw[32..40], .little), .first_step = std.mem.readInt(u64, raw[40..48], .little), .memory = std.mem.readInt(u32, raw[16..20], .little), .sha256 = sha_word & ~@as(u32, 1 << 31), .extended = sha_word & (1 << 31) != 0 };
-    try header(facts, h, public);
+    try header(facts, h, public, authority);
     const FileSteps = struct {
         reader: IO.Reader,
         fn next(self: *@This(), step: *[48]u8) !void {
@@ -43,7 +43,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     var steps = FileSteps{ .reader = .{ .file = file, .remaining = try std.math.mul(usize, public.statement.steps, 48) } };
     var walked = try walk(&steps, facts, public, authority);
     try steps.reader.finish();
-    if (tape_profile == .ethereum_services_v3 and facts.extended) {
+    if (rv.execution_profile.isV3(tape_profile) and facts.extended) {
         const keccak_records = std.mem.readInt(u32, raw[20..24], .little);
         const secp_records = std.mem.readInt(u32, raw[24..28], .little);
         var at = try std.math.add(usize, tape_start, rv.compact_tape_wire.HEADER_BYTES);
@@ -76,7 +76,7 @@ pub fn checkTape(tape: *const rv.compact_tape.Tape, metadata: H.Metadata, cells:
     const memory: u32 = std.math.cast(u32, tape.memory_before.items.len) orelse return error.InvalidWorkPacketBoundary;
     const facts = Facts{ .profile = tape.execution_profile, .initial_pc = tape.initial_pc, .first_step = tape.initial_clock, .memory = memory, .sha256 = sha256, .extended = arith != 0 or curve != 0, .arith = arith, .curve = curve };
     const h = H.Header{ .metadata = metadata, .cells = cells, .chunks = 0, .graph_bytes = 0, .tape_bytes = 0 };
-    try header(facts, h, public);
+    try header(facts, h, public, authority);
     const TapeSteps = struct {
         steps: []const rv.compact_tape.Step,
         at: usize = 0,
@@ -93,8 +93,8 @@ pub fn checkTape(tape: *const rv.compact_tape.Tape, metadata: H.Metadata, cells:
     var walked = try walk(&steps, facts, public, authority);
     return finish(&walked, facts, cells, public);
 }
-fn header(facts: Facts, h: H.Header, public: CPU.Public) !void {
-    if (!@import("rv64_ethereum_batch.zig").tapeMatches(facts.profile, public.execution_profile) or facts.initial_pc != public.statement.initial_pc or facts.first_step != h.metadata.first_step) return error.InvalidWorkPacketBoundary;
+fn header(facts: Facts, h: H.Header, public: CPU.Public, authority: *const Full.ProgramAuthority) !void {
+    if (public.execution_profile != authority.profile or !@import("rv64_ethereum_batch.zig").tapeAdmitted(facts.profile, authority) or facts.initial_pc != public.statement.initial_pc or facts.first_step != h.metadata.first_step) return error.InvalidWorkPacketBoundary;
 }
 const Walked = struct {
     pc: u64,
@@ -114,9 +114,9 @@ fn walk(source: anytype, facts: Facts, public: CPU.Public, authority: *const Ful
     for (0..public.statement.steps) |_| {
         var step: [48]u8 = undefined;
         try source.next(&step);
-        // lookup validates row.valid BEFORE accessing its decoded cache entry.
-        const index = try authority.program.lookup(w.pc);
-        const opcode = authority.program.decoded[index].instruction.opcode;
+        // instructionAt validates row.valid BEFORE accessing its decoded cache
+        // entry; an invalid row decodes only as a Zbb row of a Zbb ROM.
+        const opcode = (try authority.instructionAt(w.pc)).instruction.opcode;
         w.opcodes[@intFromEnum(opcode)] += 1;
         switch (opcode) {
             .DIV, .DIVU, .REM, .REMU, .DIVW, .DIVUW, .REMW, .REMUW => w.division += 1,
@@ -136,7 +136,7 @@ fn walk(source: anytype, facts: Facts, public: CPU.Public, authority: *const Ful
             },
             else => {},
         }
-        const has_memory = rv.execution_profile.effects(public.execution_profile, opcode).memory_width != 0;
+        const has_memory = rv.execution_profile.effects(authority.rom_profile, opcode).memory_width != 0;
         const memory_index = std.mem.readInt(u32, step[40..44], .little);
         if (has_memory) {
             if (memory_index != w.memory) return error.InvalidWorkPacketBoundary;
@@ -152,12 +152,12 @@ fn finish(w: *const Walked, facts: Facts, cells: u32, public: CPU.Public) !Opcod
     // the SHA-256 records (compact_tape_wire), present only when flagged.
     var arith_expected: u32 = 0;
     var curve_expected: u32 = 0;
-    if (tape_profile == .ethereum_services_v3 and facts.extended) {
+    if (rv.execution_profile.isV3(tape_profile) and facts.extended) {
         arith_expected = facts.arith;
         curve_expected = facts.curve;
         if (arith_expected == 0 and curve_expected == 0) return error.InvalidWorkPacketService;
     } else if (facts.extended or w.arith != 0 or w.curve != 0) return error.InvalidWorkPacketService;
-    if (tape_profile != .ethereum_services_v3 and w.bulk != 0) return error.InvalidWorkPacketService;
+    if (!rv.execution_profile.isV3(tape_profile) and w.bulk != 0) return error.InvalidWorkPacketService;
     const expected_calls = [_]u32{ public.keccak_calls, public.secp.add.calls, public.secp.double.calls };
     if (w.pc != public.statement.final_pc or w.division != public.division_requests or w.multiplication != public.multiplication_requests or w.memory != facts.memory or !std.mem.eql(u32, &w.calls, &expected_calls) or w.sha256 != facts.sha256 or w.arith != arith_expected or w.curve != curve_expected) return error.InvalidWorkPacketRequestCount;
     const ram_bound = @as(u64, w.memory) + 25 * @as(u64, w.calls[0]) + 32 * (@as(u64, w.calls[1]) + w.calls[2]) + 12 * @as(u64, w.sha256) + 20 * @as(u64, w.arith) + rv.ethereum_services.curves.MAX_WORDS * @as(u64, w.curve) + rv.execution_profile.BULK_MAX_TOUCHED_WORDS * @as(u64, w.bulk);

@@ -206,6 +206,13 @@ pub fn adviceCalls(advice: *const Advice, i: usize) [T.FAMILIES]u32 {
 /// use the same memory/bridge owner and range-merge authority.
 pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [T.FAMILIES]u32, consume_events: bool, recorder: ?*Profile.Recorder) !R.Sources {
     const g = setup.materials.geometry;
+    // Zbb BINARY provider: exactly the shard's FUNCTION 19..24 facts; a
+    // Zbb fact without a Zbb component fails closed.
+    var zbb: ?A.word16_v1.binary_source.Source = null;
+    errdefer if (zbb) |*s| s.deinit();
+    if (setup.bridges.zbb) |log| {
+        zbb = try A.word16_v1.binary_zbb_source.initWeighted(a, native.zbb.facts, native.zbb.weights, log);
+    } else if (native.zbb.facts.len != 0) return error.MissingZbbComponent;
     const initial = try a.dupe(Cell, request.base.memory.initial);
     const terminal = a.dupe(Cell, request.base.memory.terminal) catch |err| {
         a.free(initial);
@@ -294,7 +301,7 @@ pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P
             out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
         };
     }
-    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .ls_dword = ls_dword };
+    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .ls_dword = ls_dword, .zbb = zbb };
     // Locals own all fields until this final fallible operation succeeds.
     try source.mergeRanges();
     return source;

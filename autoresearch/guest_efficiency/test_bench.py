@@ -391,6 +391,18 @@ class ProfileCoefficientTest(unittest.TestCase):
         self.assertEqual(bench.committed_bits(cal, 3, 0, 1, 0, profile="ethereum_services_v2"), 130.0)
         self.assertEqual(bench.committed_bits(cal, 3, 0, 1, 0, profile="ethereum_services_v3"), 131.0)
 
+    def test_v3_zbb_takes_v3_coefficients_plus_required_zbb_component(self):
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 10.0, "cpu_cells_per_instruction_v3": 7.0,
+                                "keccak_cells_per_call": 100.0, "keccak_cells_per_call_v3": 60.0, "secp_cells_per_call": 100.0,
+                                "secp_cells_per_call_v3": 110.0, "zbb_binary_cells_per_instruction": 0.5, "composition_fraction": 0.0}}
+        self.assertEqual(bench.committed_bits(cal, 4, 1, 1, 0, profile="ethereum_services_v3"), 198.0)
+        self.assertEqual(bench.committed_bits(cal, 4, 1, 1, 0, profile="ethereum_services_v3_zbb"), 200.0)
+        del cal["coefficients"]["zbb_binary_cells_per_instruction"]
+        with self.assertRaises(KeyError):
+            bench.committed_bits(cal, 4, 1, 1, 0, profile="ethereum_services_v3_zbb")
+        self.assertIn("ethereum_services_v3_zbb", POLICY["allowed_execution_profiles"])
+        self.assertIn("zbb_binary_cells_per_instruction", CAL["coefficients"])
+
     def test_frozen_baseline_coefficients_unchanged(self):
         c = CAL["coefficients"]
         self.assertAlmostEqual(c["cpu_cells_per_instruction"], 154.81355455694023)

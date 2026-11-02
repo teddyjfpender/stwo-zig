@@ -50,3 +50,26 @@ test "diagnostic Word16 BINARY closes public consumer and AND in one unequal-dom
         } else |err| try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
     }
 }
+test "Zbb BINARY chip (andn orn xnor rev8 sext.b sext.h) closes public consumer and AND in one PCS proof" {
+    const Z = F.zbb;
+    const encoded = try Z.produce(a, false);
+    defer a.free(encoded.bytes);
+    // `verify` is a fresh receiver: it rebuilds the fixed columns, commitment
+    // verifier, transcript and components from the receiver-side spec only.
+    try Z.verify(a, encoded, false);
+    if (Z.verify(a, encoded, true)) |_| return error.ExpectedPrefixRejection else |_| {}
+    // Mismatched default-BINARY receiver must not accept a Zbb proof.
+    if (F.verify(a, encoded, false)) |_| return error.ExpectedChipMismatchRejection else |_| {}
+    var noncanonical = encoded;
+    noncanonical.claims[0].c0.a.v = core.fields.m31.Modulus;
+    try std.testing.expectError(error.NonCanonicalWord16Claim, Z.verify(a, noncanonical, false));
+    // Forged AND witness (wrong T), non-canonical byte split, wrong op id
+    // (ALU 0 / BINARY AND 16), wrong public result and a corrupted T bit.
+    for ([_]Z.Attack{ .output, .and_fact, .packed_alias, .cross_family, .foreign_binary_id, .wrong_result }) |attack| {
+        if (Z.produceWithAttack(a, attack)) |forged| {
+            a.free(forged.bytes);
+            std.debug.print("accepted attack {s}\n", .{@tagName(attack)});
+            return error.ExpectedFalseFactRejection;
+        } else |err| try std.testing.expectEqual(error.ConstraintsNotSatisfied, err);
+    }
+}

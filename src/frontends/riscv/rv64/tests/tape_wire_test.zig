@@ -142,7 +142,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
         call.pc += 4;
         try tape.appendService(call);
     }
-    if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2 or profile == .ethereum_services_v3) {
+    if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2 or rv.execution_profile.isV3(profile)) {
         for ([_]rv.ethereum_services.secp256k1.Kind{ .add, .double, .double }, 0..) |kind, i| {
             var call = rv.ethereum_services.SecpCall{ .kind = kind, .packet_format = if (profile != .ethereum_services_v1) .little_endian_words_v2 else .big_endian_bytes_v1, .call_id = if (kind == .add) 3 else i + 5, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
             for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |*before, *after, index| {
@@ -152,7 +152,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
             try tape.appendSecp(call);
         }
     }
-    if (profile == .ethereum_services_v3) {
+    if (rv.execution_profile.isV3(profile)) {
         for (0..3) |i| {
             var call = rv.ethereum_services.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
             for (&call.before, 0..) |*w, index| w.* = 0x0badc0ffee000000 +% index *% 0x9e3779b97f4a7c15;
