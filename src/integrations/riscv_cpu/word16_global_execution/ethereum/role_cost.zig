@@ -84,7 +84,7 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
     const dword_rows: [T.DWORD_INSTANCES]u32 = if (setup.bridges.ls_dword != null) try T.dwordCounts(setup.bridges, dword) else .{ 0, 0 };
     for (0..T.DWORD_INSTANCES) |k| {
         const log = setup.bridges.dwordLog(k);
-        result[COUNT - T.DWORD_INSTANCES + k] = try row(if (k == 0) "ls_dword" else "ls_dword_tail", log orelse 5, if (log != null) T.dwordWidths() else .{ 0, 0, 0 }, dword_rows[k]);
+        result[COUNT - T.DWORD_INSTANCES + k] = try row(if (k == 0) "ls_dword" else "ls_dword_tail", log orelse 5, if (log != null) T.dwordWidthsFor(setup.materials.geometry) else .{ 0, 0, 0 }, dword_rows[k]);
     }
     for (0..3) |tree| {
         var width: usize = 0;

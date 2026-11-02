@@ -118,6 +118,18 @@ pub const Source = struct {
     }
     /// Range dictionaries are accepted for call-site uniformity only: the
     /// public boundary chip has no range debt, so range claims stay zero.
+    /// Fused-pair layout (L.fused): the same RAM claim and prefix, without the
+    /// inverse column (the fraction is fused into the prefix residual).
+    pub fn generateFused(self: *Source, ch: T.Challenges) !T.Claims {
+        const n = self.size();
+        const compact = try self.allocator.alloc(M, L.fused.BOUND_INTERACTION * n);
+        errdefer self.allocator.free(compact);
+        const claims = try self.generate(ch, &.{}, &.{});
+        @memcpy(compact, self.interaction[4 * n ..][0 .. 4 * n]);
+        self.allocator.free(self.interaction);
+        self.interaction = compact;
+        return claims;
+    }
     pub fn generateSerial(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
         _ = dict16;
         _ = dict8;

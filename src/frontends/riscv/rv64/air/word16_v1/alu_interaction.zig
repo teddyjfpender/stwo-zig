@@ -31,14 +31,14 @@ fn generateImpl(source: *S.Source, challenges: P.Challenges, dictionary: []const
         range_claim = range_claim.add(inverse.mulM31(M.fromCanonical(@intCast(count))));
     }
     const a = source.allocator;
-    const output = try a.alloc(M, P.INTERACTION * n);
+    const output = try a.alloc(M, S.layoutFor(source.fused).width * n);
     errdefer a.free(output);
     @import("../native_output_pages.zig").prepare(output);
     const scratch = try a.alloc(Q, 2 * CHUNK * workers);
     defer a.free(scratch);
     const summaries = try a.alloc([2]Q, chunks);
     defer a.free(summaries);
-    const ctx = Context{ .metadata = source.metadata, .fact_count = source.fact_count, .log = source.log_size, .challenges = challenges, .dictionary = dictionary, .output = output };
+    const ctx = Context{ .metadata = source.metadata, .fact_count = source.fact_count, .log = source.log_size, .challenges = challenges, .dictionary = dictionary, .output = output, .fused = source.fused };
     var jobs: [work.MAX_WORKERS]Job = undefined;
     for (jobs[0..workers], 0..) |*job, i| job.* = .{ .ctx = ctx, .summaries = summaries, .scratch = scratch[2 * CHUNK * i ..][0 .. 2 * CHUNK], .start = chunks * i / workers, .end = chunks * (i + 1) / workers };
     var lease = try pool.?.acquire(try work.WorkerBudget.init(workers));
@@ -72,6 +72,7 @@ const Context = struct {
     challenges: P.Challenges,
     dictionary: []const Q,
     output: []M,
+    fused: bool,
 };
 const Job = struct {
     ctx: Context,
@@ -99,16 +100,18 @@ const Job = struct {
                     const logical = start + i;
                     const position = @import("../witness.zig").physical(logical, self.ctx.log);
                     const metadata = self.ctx.metadata[logical];
+                    const layout = S.layoutFor(self.ctx.fused);
                     for (0..@import("alu_encoding.zig").RANGE_QUERIES / 2) |batch| {
                         const x = self.ctx.dictionary[metadata.range_indices[2 * batch]];
                         const y = self.ctx.dictionary[metadata.range_indices[2 * batch + 1]];
-                        Support.store(self.ctx.output, n, position, 4 * batch, x.mul(y));
+                        if (!self.ctx.fused) Support.store(self.ctx.output, n, position, 4 * batch, x.mul(y)) else if (batch < P.fused.PAIR_WITNESSES) Support.store(self.ctx.output, n, position, 4 * batch, x.add(y));
                         sums[0] = sums[0].add(x).add(y);
                     }
                     const inverse = self.scratch[CHUNK + i];
-                    Support.store(self.ctx.output, n, position, P.FUNCTION_INVERSE, inverse);
-                    sums[1] = sums[1].sub(inverse.mulM31(M.fromCanonical(metadata.multiplicity())));
-                    Support.store(self.ctx.output, n, position, P.PREFIX, sums[0].add(sums[1]));
+                    const weighted = inverse.mulM31(M.fromCanonical(metadata.multiplicity()));
+                    Support.store(self.ctx.output, n, position, layout.function, if (self.ctx.fused) weighted else inverse);
+                    sums[1] = sums[1].sub(weighted);
+                    Support.store(self.ctx.output, n, position, layout.prefix, sums[0].add(sums[1]));
                 }
                 self.summaries[chunk] = sums;
             }
@@ -117,7 +120,7 @@ const Job = struct {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, self.ctx.log), self.ctx.log);
                 const offsets = self.summaries[logical / CHUNK];
                 for (offsets[0].add(offsets[1]).toM31Array(), 0..) |coordinate, i| {
-                    const at = (P.PREFIX + i) * n + position;
+                    const at = (S.layoutFor(self.ctx.fused).prefix + i) * n + position;
                     self.ctx.output[at] = self.ctx.output[at].add(coordinate);
                 }
             }
