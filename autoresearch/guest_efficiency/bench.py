@@ -143,6 +143,16 @@ def keccak_coefficient(calibration: dict, profile: str | None) -> float:
     return c["keccak_cells_per_call"]
 
 
+def profile_coefficient(calibration: dict, name: str, profile: str | None) -> float:
+    """Coefficient `name`, using `name`_v3 for the v3 profile when present.
+    The v3 entries are measured on a Word16 proof of the provable v3 client
+    (see calibration.json); v2 and baseline rows keep the frozen values."""
+    c = calibration["coefficients"]
+    if profile == V3_PROFILE and name + "_v3" in c:
+        return c[name + "_v3"]
+    return c[name]
+
+
 def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int,
                    candidate_calls: dict | None = None, admitted_calls: dict | None = None,
                    profile: str | None = None) -> float:
@@ -152,9 +162,9 @@ def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: 
     ({name: {"calls", "bytes"}}, see admitted_usage), costed by the measured
     calibration.json admitted_services table (each entry cites its derivation)."""
     c = calibration["coefficients"]
-    cells = (c["cpu_cells_per_instruction"] * instructions
+    cells = (profile_coefficient(calibration, "cpu_cells_per_instruction", profile) * instructions
              + keccak_coefficient(calibration, profile) * keccak
-             + c["secp_cells_per_call"] * (secp_add + secp_double)
+             + profile_coefficient(calibration, "secp_cells_per_call", profile) * (secp_add + secp_double)
              + candidate_cells(calibration, candidate_calls)
              + admitted_cells(calibration, admitted_calls))
     return c["bits_per_cell_at_lde"] * cells * (1.0 + c["composition_fraction"])
