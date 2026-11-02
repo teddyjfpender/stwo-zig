@@ -150,6 +150,10 @@ pub fn addProduct(context: Context) void {
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
         .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 1 },
+        .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 1 },
+        .{ "composition-ir-services", "src/integrations/riscv_cpu/rv64_composition_ir_services_test_root.zig", 1 },
+        .{ "composition-ir-truths", "src/integrations/riscv_cpu/rv64_composition_ir_truths_test_root.zig", 1 },
+        .{ "composition-ir-honest", "src/integrations/riscv_cpu/rv64_composition_ir_honest_test_root.zig", 1 },
     }) |suite| {
         context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
             .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),
@@ -193,6 +197,7 @@ pub fn addProduct(context: Context) void {
         .{ .name = "rv64-om-sail-qualification", .source = "src/integrations/riscv_cpu/rv64_om_sail_qualification_main.zig" },
         .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
         .{ .name = "rv64-word16-setup-ownership", .source = "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig" },
+        .{ .name = "rv64-composition-ir-stats", .source = "src/integrations/riscv_cpu/rv64_composition_ir_stats_main.zig" },
         .{ .name = "rv64-word16-csp", .source = "src/integrations/riscv_cpu/rv64_word16_csp_main.zig" },
         .{ .name = "rv64-word16-global-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_secp_fixture_main.zig" },
         .{ .name = "rv64-word16-shared-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shared_keccak_fixture_main.zig" },
