@@ -1,0 +1,11 @@
+{
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "output": null,
+  "cpu_proofs": 4,
+  "truth_proofs": 3,
+  "load_and_setup_ns": 2424327125,
+  "verify_ns": 483057708
+}

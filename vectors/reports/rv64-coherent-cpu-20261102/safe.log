@@ -1,0 +1,58 @@
+test-stwo-prover-gkr-resource
++- run test stderr
+GKR_ADMISSION single vars=1 OM peak=1512 plan=33040; Q peak=1224 plan=32912
+GKR_ADMISSION single vars=2 OM peak=2232 plan=61984; Q peak=1752 plan=61728
+GKR_ADMISSION single vars=8 OM peak=28408 plan=440320; Q peak=15848 plan=423936
+GKR_ADMISSION single vars=14 OM peak=1641000 plan=3272704; Q peak=854200 plan=2224128
+GKR_ADMISSION single vars=16 OM peak=6556312 plan=10235904; Q peak=3410224 plan=6041600
+GKR_ADMISSION mixed vars=16,14,15,12 OM peak=11147512 plan=17997824
+GKR_ADMISSION twelve vars=8 OM peak=322528 plan=1228800
+GKR_PHASE_CURRENT facts=262144 raw=9437184 tree_peak=26216104 full_numerical_peak=26217168 retained_after=9465304
+GKR_CHECKPOINT fieldBytes=16 oldPeak=3986792 checkpointPeak=2920415 ratio=1.365 old_ns=18782584 checkpoint_ns=19117375
+GKR_CHECKPOINT fieldBytes=32 oldPeak=7706424 checkpointPeak=5568735 ratio=1.384 old_ns=25953250 checkpoint_ns=27498958
+GKR_CONSUMED fieldBytes=16 oldPeak=3986792 consumedPeak=2399631 ratio=1.661 old_ns=18918959 consumed_ns=19258750
+GKR_CONSUMED fieldBytes=32 oldPeak=7706424 consumedPeak=4527871 ratio=1.702 old_ns=26055042 consumed_ns=27260292
+test-riscv64-truth-parallel
++- riscv test suite guard
+   +- run test stderr
+TRUTH_DOMAIN_CAPTURE bundle_sha256=eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386 proofs=5 fresh_global_closed=true
+test-riscv64-security-policy
++- riscv test suite guard
+   +- run test stderr
+OM31_SECURITY_CANDIDATE identity=16b0e3bee1f01b1d6a4384d91a8c8cd9953e08d4acd58c4339aa007795b975a7 conditional_weight=5447285479618932633766888
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+PRODUCTION_CAP streamed=false copies=false rowlog=12 terms=15 requested_peak=13111184 original_capacity_peak=13112752 plan=15024128
+PRODUCTION_CAP streamed=false copies=false rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6578000 plan=8060928
+PRODUCTION_CAP streamed=false copies=true rowlog=12 terms=15 requested_peak=13111184 original_capacity_peak=13111488 plan=15024128
+PRODUCTION_CAP streamed=false copies=true rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6576256 plan=8060928
+PRODUCTION_CAP streamed=true copies=false rowlog=12 terms=15 requested_peak=4745506 original_capacity_peak=4750290 plan=10305536
+PRODUCTION_CAP streamed=true copies=false rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4218848 plan=5701632
+PRODUCTION_CAP streamed=true copies=true rowlog=12 terms=15 requested_peak=5269666 original_capacity_peak=5269970 plan=10305536
+PRODUCTION_CAP streamed=true copies=true rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4217104 plan=5701632
+STREAM68_MIXED instances=12 requested_peak=9494274 original_capacity_peak=11944450 plan=25303296
+STREAM68_EQUAL instances=16 requested_peak=2225424 original_capacity_peak=2225728 plan=6053888
+
+Build Summary: 20/20 steps succeeded
+test-native-cpu-gkr-rows success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 21s MaxRSS:1G
+test-stwo-prover-gkr-resource success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 29s MaxRSS:1G
+test-stwo-prover-coefficient-storage success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 28s MaxRSS:1G
+test-riscv64-selective-openings success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 9s MaxRSS:530M
+test-riscv64-services-gkr-local success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 55s MaxRSS:2G
+test-riscv64-truth-parallel success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 41s MaxRSS:2G
+test-riscv64-security-policy success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4s MaxRSS:439M
+test-riscv64-om-classic-control success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 21s MaxRSS:1G
+test-riscv64-capture-prefetch success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 41s MaxRSS:2G
+test-riscv64-ethereum-chain success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:5G
+

@@ -1,5 +1,7 @@
 //! Native packed OM Montgomery chains and contribution dots. Scratch owners
 //! are supplied by the bounded witness plan; no allocation or transcript work.
+//! Concrete P.mul preserves the shared arithmetic while avoiding the generic
+//! 128-byte packed-operand/result call ABI in the live numerical loops.
 const std = @import("std");
 const core = @import("stwo_core");
 const O = core.fields.om31.OM31;
@@ -13,7 +15,7 @@ pub fn batchInverse(input: []const O, output: []O) !void {
     var product = P.splat(O.one());
     var at: usize = 0;
     while (at < input.len) : (at += W) {
-        product = product.mul(P.loadNative(input[at..]));
+        product = P.mul(product, P.loadNative(input[at..]));
         P.storeNative(output[at..], product);
     }
     var tail: [W]O = undefined;
@@ -24,8 +26,8 @@ pub fn batchInverse(input: []const O, output: []O) !void {
     at = input.len;
     while (at > W) {
         at -= W;
-        P.storeNative(output[at..], P.loadNative(output[at - W ..]).mul(inv));
-        inv = inv.mul(P.loadNative(input[at..]));
+        P.storeNative(output[at..], P.mul(P.loadNative(output[at - W ..]), inv));
+        inv = P.mul(inv, P.loadNative(input[at..]));
     }
     P.storeNative(output, inv);
 }
@@ -49,7 +51,7 @@ pub fn contributions(numerators: []const C.Numerator, inverses: []const O, out: 
                 .base => |v| O.fromBase(v),
                 .secure => |v| v,
             };
-            break :blk inv.mul(P.loadNative(&n));
+            break :blk P.mul(inv, P.loadNative(&n));
         };
         P.storeNative(out[at..], result);
     }

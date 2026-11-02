@@ -43,6 +43,7 @@ const Resources = struct {
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     /// Producer geometry experiment. The default preserves the admitted roster.
     keccak_max_log: u32 = 18,
+    checkpoint_above_gkr_bytes: usize = 0,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
@@ -77,6 +78,10 @@ const Resources = struct {
             try writer.objectField("keccak_max_log");
             try writer.write(self.keccak_max_log);
         }
+        if (self.checkpoint_above_gkr_bytes != 0) {
+            try writer.objectField("checkpoint_above_gkr_bytes");
+            try writer.write(self.checkpoint_above_gkr_bytes);
+        }
         try writer.endObject();
     }
 };
@@ -92,11 +97,12 @@ const CandidateResources = struct {
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     /// Producer geometry experiment. The default preserves the admitted roster.
     keccak_max_log: u32 = 18,
+    checkpoint_above_gkr_bytes: usize = 0,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
+        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .checkpoint_above_gkr_bytes = self.checkpoint_above_gkr_bytes, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
     }
     fn validate(self: CandidateResources) !void {
         if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
@@ -254,8 +260,9 @@ pub fn main() !void {
     defer a.free(worker_timings);
     // This CLI owns capture; both snapshots occur outside worker activity.
     const capture_before_proving = captured.ownership();
+    var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const capture_after_proving = captured.ownership();
@@ -268,7 +275,7 @@ pub fn main() !void {
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
@@ -395,4 +402,19 @@ test "Keccak shard operational resource remains explicit bounded and default-sch
     try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 65, 16));
     try std.testing.expectEqual(@as(usize, 8), try producerWorkerLimit(false, 8, 16));
     try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(false, 9, 16));
+}
+
+test "hybrid checkpoint resource is optional operational metadata and candidate forwarded" {
+    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .schedule = .{ .memory_cap_bytes = 5 } };
+    const before = try std.json.Stringify.valueAlloc(std.testing.allocator, limits, .{});
+    defer std.testing.allocator.free(before);
+    try std.testing.expect(std.mem.indexOf(u8, before, "checkpoint_above_gkr_bytes") == null);
+    limits.checkpoint_above_gkr_bytes = 12 << 30;
+    const encoded = try std.json.Stringify.valueAlloc(std.testing.allocator, limits, .{});
+    defer std.testing.allocator.free(encoded);
+    const decoded = try std.json.parseFromSlice(Resources, std.testing.allocator, encoded, .{});
+    defer decoded.deinit();
+    try std.testing.expectEqual(limits.checkpoint_above_gkr_bytes, decoded.value.checkpoint_above_gkr_bytes);
+    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 6, .checkpoint_above_gkr_bytes = 7, .schedule = .{ .memory_cap_bytes = 5 } };
+    try std.testing.expectEqual(@as(usize, 7), candidate.operational().checkpoint_above_gkr_bytes);
 }

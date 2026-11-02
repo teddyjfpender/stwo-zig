@@ -171,6 +171,10 @@ fn finish(fixed: []const u32, main: []const u32, inter: []const u32, beta: u32, 
     } };
 }
 pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig) !Contract {
+    const retained = try Retention.forCpu(a, setup, request, config, std.math.maxInt(usize), std.math.maxInt(usize));
+    return forCpuWithRetention(a, setup, config, retained);
+}
+pub fn forCpuWithRetention(a: std.mem.Allocator, setup: *const R.CpuSetup, config: W.PcsConfig, retained: Retention.RetentionPlan) !Contract {
     var plan = try Cpu.Plan.init(a, setup);
     defer plan.deinit();
     const fixed = try setup.logs(a, 0);
@@ -179,7 +183,6 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
     defer a.free(main);
     const inter = try plan.interLogs(a);
     defer a.free(inter);
-    const retained = try Retention.forCpu(a, setup, request, config, std.math.maxInt(usize), std.math.maxInt(usize));
     var role_coset_bytes: u64 = 0;
     var sample_upper: u64 = 0;
     for (plan.slots) |slot| {

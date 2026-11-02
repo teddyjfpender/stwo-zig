@@ -151,3 +151,34 @@ test "truth row scratch is explicitly capped and failure atomic" {
     try std.testing.expectError(error.WideTruthRowScratchBudgetExceeded, (Domain.WorkspacePlan{ .jobs = 17, .bytes = 0 }).allocate(a));
     try std.testing.checkAllAllocationFailures(a, workspaceAllocation, .{});
 }
+
+test "truth cached shift map matches scalar index authority at all offsets cosets block edges and large logs" {
+    const Map = Domain.ShiftMap;
+    for ([_]u32{ 5, 6, 9, 12, 16, 18, 26 }) |log| {
+        const n = @as(usize, 1) << @intCast(log);
+        for ([_]u32{ 1, 2 }) |split| {
+            for (0..@as(usize, 1) << @intCast(split)) |part| {
+                const all = log <= 12;
+                const blocks = if (all) n / E.LANES else 4;
+                for (0..blocks) |block| {
+                    const row = if (all) block * E.LANES else ([_]usize{ 0, n / 4, n / 2, n - E.LANES })[block];
+                    const map = try Map.init(log, split, part, row);
+                    for (Map.offsets, 0..) |shift, index| {
+                        try std.testing.expectEqual(index, Map.slot(shift).?);
+                        for (0..E.LANES) |lane| {
+                            const scalar = core.utils.offsetBitReversedCircleDomainIndex(part * n + row + lane, log, log + split, shift);
+                            const reconstructed = (if (map.previous[index][lane]) part ^ 1 else part) * n + map.rows[index][lane];
+                            try std.testing.expectEqual(scalar, reconstructed);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    try std.testing.expect(Map.slot(0) == null and Map.slot(3) == null and Map.slot(-3) == null);
+    try std.testing.expectError(error.InvalidWideTruthTrace, Map.init(4, 2, 0, 0));
+    try std.testing.expectError(error.InvalidWideTruthTrace, Map.init(5, 0, 0, 0));
+    try std.testing.expectError(error.InvalidWideTruthTrace, Map.init(5, 2, 4, 0));
+    try std.testing.expectError(error.InvalidWideTruthTrace, Map.init(5, 2, 0, 1));
+    try std.testing.expectError(error.InvalidWideTruthTrace, Map.init(5, 2, 0, 32));
+}

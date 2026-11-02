@@ -121,6 +121,26 @@ fn compareMetadata(source: *R.TruthSource) !void {
         try reference(source, instance, logical, &want);
         try std.testing.expectEqual(@as(usize, instance.queries), got.count);
         try std.testing.expectEqualDeep(want.entries[0..want.count], got.entries[0..got.count]);
+        // Concatenated bounded reads must reproduce the independent original
+        // full-row tuple authority, including padded rows and mixed namespaces.
+        got.count = 0;
+        var first: usize = 0;
+        while (first < instance.queries) {
+            const count = @min(@as(usize, 37), instance.queries - first);
+            try provider.emitRange(instance, logical, first, count, &got);
+            first += count;
+        }
+        try std.testing.expectEqualDeep(want.entries[0..want.count], got.entries[0..got.count]);
+        for ([_]usize{ 0, instance.queries / 2, instance.queries }) |start| {
+            var part = Capture{ .entries = x };
+            try provider.emitRange(instance, logical, start, 0, &part);
+            try std.testing.expectEqual(@as(usize, 0), part.count);
+            if (start < instance.queries) {
+                const count = @min(@as(usize, 3), instance.queries - start);
+                try provider.emitRange(instance, logical, start, count, &part);
+                try std.testing.expectEqualDeep(want.entries[start..][0..count], part.entries[0..part.count]);
+            }
+        }
     };
     const commit = try source.takeMain();
     defer commit.deinit(a);
@@ -128,6 +148,18 @@ fn compareMetadata(source: *R.TruthSource) !void {
         var got = Capture{ .entries = x };
         try provider.emit(instance, 0, &got);
         try std.testing.expectEqual(@as(usize, instance.queries), got.count);
+        got.count = 0;
+        try provider.emitRange(instance, 0, instance.queries - 1, 1, &got);
+        try std.testing.expectEqual(@as(usize, 1), got.count);
+        got.count = 0;
+        try std.testing.expectError(error.InvalidTruthGkrQueryRange, provider.emitRange(instance, 0, instance.queries + 1, 0, &got));
+        try std.testing.expectError(error.InvalidTruthGkrQueryRange, provider.emitRange(instance, 0, instance.queries, 1, &got));
+        try std.testing.expectError(error.InvalidTruthGkrQueryRange, provider.emitRange(instance, 0, 1, std.math.maxInt(usize), &got));
+        try std.testing.expectError(error.InvalidTruthGkrRow, provider.emitRange(instance, try instance.rows(), 0, 0, &got));
+        var changed = instance;
+        changed.queries += 1;
+        try std.testing.expectError(error.TruthGkrSourceGeometryMismatch, provider.emitRange(changed, 0, 0, 0, &got));
+        try std.testing.expectEqual(@as(usize, 0), got.count);
     }
 }
 test "truth durable packed Keccak all padded queries equal original tuple authority after MAIN take" {

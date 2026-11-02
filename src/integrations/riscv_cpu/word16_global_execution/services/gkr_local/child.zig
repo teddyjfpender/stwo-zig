@@ -95,10 +95,10 @@ pub fn parseTightAdmission(value: ?[]const u8) !bool {
     if (std.mem.eql(u8, text, "1")) return true;
     return error.InvalidGkrTightAdmissionPolicy;
 }
-pub fn parseStreamBottom(value: ?[]const u8, checkpointed: bool) !bool {
+pub fn parseStreamBottom(value: ?[]const u8) !bool {
     const text = value orelse return false;
     if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
-    if (!std.mem.eql(u8, text, "1") or !checkpointed) return error.InvalidGkrStreamBottomPolicy;
+    if (!std.mem.eql(u8, text, "1")) return error.InvalidGkrStreamBottomPolicy;
     return true;
 }
 pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
@@ -114,10 +114,19 @@ pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
         else => return err,
     };
     defer if (stream) |v| a.free(v);
-    return .{ .checkpointed = cp, .tight_admission = cp or tight, .stream_bottom = try parseStreamBottom(stream, cp) };
+    const streaming = try parseStreamBottom(stream);
+    return .{ .checkpointed = cp, .tight_admission = cp or tight or streaming, .stream_bottom = streaming };
 }
 
-pub const PhaseTiming = struct { inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
+pub const PhaseTiming = struct {
+    inputs_ns: u64 = 0,
+    numerical_ns: u64 = 0,
+    binding_ns: u64 = 0,
+    numerical_requested_peak_bytes: usize = 0,
+    including_binding_requested_peak_bytes: usize = 0,
+    admitted_gkr_peak_bytes: usize = 0,
+    gkr_allocator_limit_bytes: usize = 0,
+};
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
     budget: Budget,
@@ -138,9 +147,9 @@ pub const Unbound = struct {
     }
     pub fn proveTimedWithPolicy(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, timing: ?*PhaseTiming) !*Unbound {
         const checkpointed = policy.checkpointed;
-        if (policy.stream_bottom and !checkpointed) return error.InvalidGkrStreamBottomPolicy;
+        if (policy.stream_bottom and !policy.tight_admission) return error.InvalidGkrStreamBottomPolicy;
         const metrics = try treeMetrics(a);
-        const plan = try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
+        const plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithSourceStorage(instances, limit, checkpointed) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
@@ -155,7 +164,7 @@ pub const Unbound = struct {
         var source_inputs = if (policy.stream_bottom) try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(bounded, instances, &challenges, provider) else null;
         defer if (source_inputs) |*source| source.deinit();
         if (clock) |*timer| timing.?.inputs_ns = timer.lap();
-        var result = if (source_inputs) |source| try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
+        var result = if (source_inputs) |source| (if (checkpointed) try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else try GP.proveBatchSource(bounded, &ch, source.sources)) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
         const numerical_peak_bytes = self.budget.peak_live_bytes;
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
@@ -167,11 +176,17 @@ pub const Unbound = struct {
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
-        self.binding = if (checkpointed) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        self.binding = if (checkpointed or policy.stream_bottom) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
         if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+        if (timing) |value| {
+            value.numerical_requested_peak_bytes = numerical_peak_bytes;
+            value.including_binding_requested_peak_bytes = self.peak_gkr_owned_bytes;
+            value.admitted_gkr_peak_bytes = plan.peak_bytes;
+            value.gkr_allocator_limit_bytes = self.budget.limit;
+        }
         if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d} streamed_bottom={any} planned_input_reserve_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, @as(usize, if (policy.stream_bottom) 0 else plan.input_bytes), policy.tight_admission, plan.peak_bytes, self.budget.limit, policy.stream_bottom, plan.input_bytes });
         return self;
     }

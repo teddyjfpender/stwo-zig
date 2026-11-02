@@ -112,3 +112,114 @@ or a reason to change the default. The committed receipt includes actual stage
 intervals, live-admission traces, numerical caps, processRSS and every artifact
 hash. A lower per-job memory requirement may intentionally increase whole-host
 RSS when it permits more jobs to run together.
+
+## Streamed-bottom reserve
+
+Only the frozen policy with `stream_bottom=true`, checkpoint storage and tight
+admission selects this lower bound. Dense136 and nonstreamed104 are unchanged.
+The opaque source supplies canonical raw facts through bounded64-fact callbacks;
+no full raw M31-numerator/OM31-denominator owners exist. Their admitted input-byte
+count is therefore0. All already-created secure checkpoint/fold owners are still
+charged at their original creation capacities until freed, regardless of logical
+resize. The public opaque-oracle clone API can materialize a complete raw matrix;
+that API is explicitly excluded from the production source path, which transfers
+oracles into `sumcheck.proveBatchOwned` and never clones them.
+
+The geometric even checkpoint bank has at most64*sum(N)/3 bytes. An odd terminal height can add one constant-size terminal pair (at most64 bytes per instance); the unchanged checked metadata reserve covers this separately. At common
+height h>=2, geometric lower checkpoints, a current folded-half owner, shared Eq
+and one resize/copy fallback stay below that bank plus another16*sum(N), which is
+below68*sum(N). At h=1 there is no lower secure checkpoint; bounded source reads
+produce only the already-folded secure half (16*sum(N)), plus the smaller Eq and
+fallback. At h=0 all secure checkpoint owners have been consumed and destroyed.
+The first raw-source fold creates two secure half owners,32*sum(N) bytes total.
+Retaining these original capacities through inner folds plus shared Eq
+construction (conservatively12*Nmax) and one copy-half fallback (16*Nmax) is at
+most60*sum(N). The implemented working reserve is68*sum(N), leaving8 bytes per
+fact beyond this larger phase. Mixed dimensions can only reduce the simultaneous
+plane sizes; replacing Nmax by sum(N) is conservative. The original metadata
+reserve is unchanged and covers bounded source/reader/header descriptors.
+
+The binding-phase maximum is still64 bytes per row plus output headers, retained
+proof metadata and the actual-layout prepared-projection scratch bound. There
+are no raw planes in that phase. The final plan takes the maximum of numeric and
+binding phases and enforces it with the child's exact requested-byte cap. Free
+recycler cache, allocator rounding/bookkeeping, stacks, capture/setup and PCS
+scratch remain separately admitted and must not be presented as a process-RSS
+limit. Tests exercise original-capacity retention, compulsory allocation/copy
+fallbacks, many mixed instance sizes and synchronized equal-size first folds,
+with independent pending verification. No default promotion or unchecked clone
+fallback is introduced.
+
+## Reproducible policy and requested-byte observations
+
+The coordinator optionally writes `observed_tree_policy` from the same single
+frozen environment read used for admission and each worker. CPU timing records
+also expose numerical and including-binding requested peaks, admitted GKR peak,
+and the actual hard allocator limit. These are allocator-request observations,
+not RSS or retained-backing measurements; they do not enter the proof transcript.
+
+`rv64-om-retention-plan BUNDLE ROM_LOG BLOWUP [GLOBAL_BYTES]` uses that same
+frozen policy and the production `taskEstimates` authority. GLOBAL_BYTES defaults
+to8GiB. With no memory policy selected every pre-existing report field matches
+the earlier default136 report exactly. The full30-worker roster at ROMlog20 and
+beta1 yields maximum adjacent CPU stage-one payload leases54.722GiB (default136),
+43.300GiB (dense104), and30.450GiB (stream68). This predicts admission, not runtime
+overlap or a host-memory guarantee; capture, setup, PCS, allocator and kernel
+owners remain outside those task leases.
+
+The initial source push ran the repository pre-push lanes. Cairo Metal failed
+because `STWO_METAL_CORE_AOT_BUNDLE` was unavailable. The already-authorized
+hook exception was used after the focused RV64 Safe/Fast gates passed.
+
+## Streamed bottom, dense upper storage: independent operational choice
+
+`STWO_ZIG_GKR_STREAM_BOTTOM=1` also works with checkpoint policy unset. This
+streams raw facts, stores every secure upper tree level, and replays metadata
+for terminal binding. It automatically selects tight admission. Explicit
+checkpoint2 plus stream1 retains the existing stride-two source path and68N
+bound. Materialized default136 and tight dense104 controls remain unchanged.
+Invalid nonempty policies fail before worker admission; there is no fallback.
+
+The source-dense numerical payload reserve is80N plus the unchanged checked
+metadata. All original secure upper creation capacities total64*sum(N_i−1),
+less than64N, even if allocators retain backing after shrink. At common outer
+height h>=1, shared Eq construction is at most max(32,12Nmax/2^h) (<=6Nmax for production Frame N>=32; the scalar constant/header allowance is also covered by metadata), and one
+copy-half resize fallback is at most16Nmax/2^h (<=8Nmax). Instance folds and
+plane finalizers are sequential; parallel row jobs join before return. Thus
+these phases are below78N without assuming any bank-retirement discount.
+At bottom h0 every earlier upper oracle has been destroyed; source first folds
+own32N and Eq/copy transients are at most12Nmax+16Nmax, giving60N. Choose80N
+with metadata separately charged, and take the maximum with actual metadata-
+projection/binding scratch. No dense raw N/D planes exist. Explicit public
+opaque cloning/materialization is excluded from this production path.
+
+This bounds requested and original live payload capacities, not free recycler
+cache, allocator rounding, stacks, MAIN/PCS/setup/capture owners or RSS. The same
+frozen policy selects the scheduler retention estimate and hard child limit.
+
+The source-dense implementation is qualified in `0825ec08b`: QM31/OM31 mixed
+and tiny source proofs, artifacts and next draws match materialized dense;
+fresh terminal verification, pole behavior, callback errors, all allocation
+failures, joined workers and immutable held-lease fallback pass Safe/Fast.
+Production Child lifecycles and real CPU service proofs pass both modes. Exact
+caps cover mixed12 and synchronized16 instances with retaining/no-resize allocators.
+AIR independent code/resource review found no blocker.
+
+Same-binary prefix measurements are in
+`vectors/reports/rv64-gkr-stream-dense-upper-20261102/matched-prefix-receipt.json`.
+CPU0 ABCCBA and two-CPU ABBA produced44 identical authoritative artifact hashes
+and10 accepted fresh receivers. CPU0 numerical requested peak fell12.616GB to
+8.074GB (1.56x), while RSS fell16.388GB to11.849GB (1.38x); source-checkpoint68
+reached2.691GB numerical and8.543GB RSS. Two-CPU source-dense RSS fell30.657GB
+to21.833GB (1.40x) at the same two8-worker lanes. Mean proving times were9.655s
+vs9.768s for CPU0, and15.775s vs15.931s for two CPUs: these approximately1%
+differences are below the visible host variation, not evidence of a speedup.
+CPU0 checkpoint68 averaged10.030s. Numerical reductions still cost more under
+streaming; dense uppers remove checkpoint recomputation, not metadata replay.
+
+No host-wide quiet was established. A2-second own planner compilation overlapped
+the first source-dense CPU0 sample and is flagged; other agent compilation was
+active during parts of the sweep. Default controls remain unchanged. A complete
+matched block remains required before operational-policy promotion. The pure
+full-roster source80 plan places the heaviest adjacent CPU tasks at34.733GiB,
+below the36GiB payload admission cap, while preserving the physical-memory caveats.

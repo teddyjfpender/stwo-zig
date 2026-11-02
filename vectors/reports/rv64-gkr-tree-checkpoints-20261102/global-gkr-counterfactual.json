@@ -1,0 +1,89 @@
+{
+  "scope": "counterfactual separate authenticated GKR per global namespace/role; not implemented or measured speedup",
+  "source_base": "7f3b2e98e",
+  "bundle_sha256": "548a59ef4a46cf90155ebc306ec88d736f4d909a31a85fdd8742206b88d3635d",
+  "source_sha256": {
+    "global_cpu.zig": "6083b0a0af6b6b4b5ef4265d4748c7806c0964e515aa80400d1f16fb869459ed",
+    "truth_global.zig": "6c99079c44a81403c3711996244184b866a60617bedfea99cfb793f7ceed7657",
+    "binding.zig": "52de7ff2a821568bc94bb09e391ba1aea6490ca96e662879e8c08bd6e1d46eca",
+    "frame.zig": "cc29e39f5c1894b4febaf7c7a7b962f72ab493d66ae7c29058114842d224b549",
+    "manifest.zig": "67e70da23e2d6e09cdb1f3589756d56e1300db07dc7270d9b461731ec3de9a6c",
+    "cpu_worker.zig": "3e28f2c8de4d3ffb0cbd0123104d8f7cc983d8967fe98c1b8893f5be9d78a8b2"
+  },
+  "roles": {
+    "ls_log": {
+      "old_inter_cells": 444596224,
+      "separate_binding_cells": 444596224,
+      "padded_raw_facts": 55574528,
+      "instances": 25
+    },
+    "ls_tail_log": {
+      "old_inter_cells": 144179200,
+      "separate_binding_cells": 144179200,
+      "padded_raw_facts": 18022400,
+      "instances": 20
+    },
+    "initial_log": {
+      "old_inter_cells": 33566720,
+      "separate_binding_cells": 33566720,
+      "padded_raw_facts": 2097920,
+      "instances": 25
+    },
+    "terminal_log": {
+      "old_inter_cells": 33566720,
+      "separate_binding_cells": 33566720,
+      "padded_raw_facts": 2097920,
+      "instances": 25
+    },
+    "Kbridge_RAM": {
+      "old_inter_cells": 17793024,
+      "separate_binding_cells": 17793024,
+      "padded_raw_facts": 2224128,
+      "instances": 22
+    },
+    "Kbridge_KIO": {
+      "old_inter_cells": 17793024,
+      "separate_binding_cells": 17793024,
+      "padded_raw_facts": 2224128,
+      "instances": 22
+    },
+    "Sbridge_RAM": {
+      "old_inter_cells": 5959680,
+      "separate_binding_cells": 2383872,
+      "padded_raw_facts": 1191936,
+      "instances": 18
+    },
+    "Sbridge_Wire": {
+      "old_inter_cells": 2383872,
+      "separate_binding_cells": 2383872,
+      "padded_raw_facts": 297984,
+      "instances": 18
+    },
+    "Ktruth_KIO": {
+      "old_inter_cells": 109051904,
+      "separate_binding_cells": 8388608,
+      "padded_raw_facts": 16777216,
+      "instances": 2
+    },
+    "Struth_product_Wire": {
+      "old_inter_cells": 12648448,
+      "separate_binding_cells": 6324224,
+      "padded_raw_facts": 1581056,
+      "instances": 3
+    },
+    "Struth_linear_Wire": {
+      "old_inter_cells": 10616832,
+      "separate_binding_cells": 5308416,
+      "padded_raw_facts": 1327104,
+      "instances": 3
+    }
+  },
+  "totals": {
+    "current_global_inter_cells": 832155648,
+    "separate_global_gkr_binding_cells": 716283904,
+    "saved_cells": 115871744,
+    "all_main_inter_cells": 17461658112,
+    "saved_fraction": 0.006635781279005264,
+    "padded_raw_facts": 103416320
+  }
+}

@@ -61,10 +61,19 @@ pub fn forCpuWithOwnedCheckpoints(a: std.mem.Allocator, setup: *const R.CpuSetup
     return forCpuWithTightAdmission(a, setup, request, config, gkr_limit, global_limit, checkpointed, checkpointed);
 }
 pub fn forCpuWithTightAdmission(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool) !RetentionPlan {
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, tight, false);
+}
+pub fn forCpuWithStreamedBottom(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize) !RetentionPlan {
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, true, true, true);
+}
+pub fn forCpuWithSourceStorage(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool) !RetentionPlan {
+    return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true);
+}
+fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool, streamed: bool) !RetentionPlan {
     try @import("v2_scope.zig").request(request);
     const instances = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
-    const numerical = try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);
+    const numerical = if (streamed) try @import("resource.zig").Plan.forInstancesWithSourceStorage(instances, gkr_limit, checkpointed) else try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();
     const logs = try setup.logs(a, 1);

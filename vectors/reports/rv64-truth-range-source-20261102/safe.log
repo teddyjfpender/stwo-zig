@@ -1,0 +1,13 @@
+test-riscv64-truth-gkr
++- riscv test suite guard
+   +- run test stderr
+OM_FULL_ISA candidate=false opcodes=63 steps=63 prove_ns=651429208 fresh_and_tamper_ns=136879917 physical_bytes=140752
+OM_FULL_ISA candidate=true opcodes=63 steps=63 prove_ns=786281667 fresh_and_tamper_ns=322631875 physical_bytes=1585392
+CAPTURE_OWNERSHIP event_size=72 cpu_metadata_size=56 retired_events=72 prepared_payload_after=0 bytes_exact=true fresh=true
+
+Build Summary: 4/4 steps succeeded
+test-riscv64-truth-gkr success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:2G
+test-riscv64-classic-witness success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 5s MaxRSS:483M
+

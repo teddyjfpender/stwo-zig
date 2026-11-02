@@ -77,31 +77,33 @@ pub fn checkWithBaseline(comptime S: type, comptime Baseline: type, workers: ?us
     defer if (workers != null) pool.deinit();
     var binding = if (workers != null) try Pools.ScopedPoolBinding.init(&pool) else null;
     defer if (binding) |*b| b.deinit();
-    for ([_]bool{ false, true }) |held| {
-        var lease = if (held and workers != null) try pool.acquire(try Pools.WorkerBudget.init(workers.?)) else null;
-        defer if (lease) |*l| l.deinit();
-        var channel = Channel.init();
-        var actual = try G.proveBatchSourceCheckpointed(a, &channel, &sources);
-        defer actual.deinit(a);
-        const old = try std.json.Stringify.valueAlloc(a, .{ expected.proof, expected.artifact }, .{});
-        defer a.free(old);
-        const new = try std.json.Stringify.valueAlloc(a, .{ actual.proof, actual.artifact }, .{});
-        defer a.free(new);
-        try std.testing.expectEqualSlices(u8, old, new);
-        var old_copy = expected_channel;
-        try std.testing.expectEqualDeep(old_copy.drawSecureFelt(), channel.drawSecureFelt());
-        var fresh = Channel.init();
-        var artifact = try V.partiallyVerifyBatch(a, &.{ .LogUp, .LogUp, .LogUp, .LogUp }, &actual.proof, &fresh);
-        defer artifact.deinit(a);
-        var terminal: [readers.len][]S = undefined;
-        var terminal_done: usize = 0;
-        defer for (terminal[0..terminal_done]) |values| a.free(values);
-        for (layers, &terminal) |layer, *out| {
-            const point = artifact.ood_point[artifact.ood_point.len - layer.nVariables() ..];
-            out.* = try a.dupe(S, &.{ try layer.LogUpMultiplicities.numerators.evalAtPoint(a, point), try layer.LogUpMultiplicities.denominators.evalAtPoint(a, point) });
-            terminal_done += 1;
+    inline for ([_]bool{ false, true }) |checkpointed| {
+        for ([_]bool{ false, true }) |held| {
+            var lease = if (held and workers != null) try pool.acquire(try Pools.WorkerBudget.init(workers.?)) else null;
+            defer if (lease) |*l| l.deinit();
+            var channel = Channel.init();
+            var actual = if (checkpointed) try G.proveBatchSourceCheckpointed(a, &channel, &sources) else try G.proveBatchSource(a, &channel, &sources);
+            defer actual.deinit(a);
+            const old = try std.json.Stringify.valueAlloc(a, .{ expected.proof, expected.artifact }, .{});
+            defer a.free(old);
+            const new = try std.json.Stringify.valueAlloc(a, .{ actual.proof, actual.artifact }, .{});
+            defer a.free(new);
+            try std.testing.expectEqualSlices(u8, old, new);
+            var old_copy = expected_channel;
+            try std.testing.expectEqualDeep(old_copy.drawSecureFelt(), channel.drawSecureFelt());
+            var fresh = Channel.init();
+            var artifact = try V.partiallyVerifyBatch(a, &.{ .LogUp, .LogUp, .LogUp, .LogUp }, &actual.proof, &fresh);
+            defer artifact.deinit(a);
+            var terminal: [readers.len][]S = undefined;
+            var terminal_done: usize = 0;
+            defer for (terminal[0..terminal_done]) |values| a.free(values);
+            for (layers, &terminal) |layer, *out| {
+                const point = artifact.ood_point[artifact.ood_point.len - layer.nVariables() ..];
+                out.* = try a.dupe(S, &.{ try layer.LogUpMultiplicities.numerators.evalAtPoint(a, point), try layer.LogUpMultiplicities.denominators.evalAtPoint(a, point) });
+                terminal_done += 1;
+            }
+            try @import("verifier_kernel.zig").verifyTerminalInputs(S, &artifact, &terminal, V.NativeChecks{});
         }
-        try @import("verifier_kernel.zig").verifyTerminalInputs(S, &artifact, &terminal, V.NativeChecks{});
     }
 }
 test "streamed bottom Q OM mixed sizes constants and signed padding match dense proof artifact draw and fresh terminal binding" {
@@ -117,8 +119,11 @@ fn lifecycle(allocator: std.mem.Allocator) !void {
     var sources: [readers.len]GP.ForField(S).MultiplicitiesSource = undefined;
     for (&readers, &sources) |*r, *s| s.* = r.source();
     var channel = core.channel.raw_mod_m31.Om31Channel.init();
-    var actual = try GP.ForField(S).proveBatchSourceCheckpointed(allocator, &channel, &sources);
-    defer actual.deinit(allocator);
+    inline for ([_]bool{ false, true }) |checkpointed| {
+        channel = core.channel.raw_mod_m31.Om31Channel.init();
+        var actual = if (checkpointed) try GP.ForField(S).proveBatchSourceCheckpointed(allocator, &channel, &sources) else try GP.ForField(S).proveBatchSource(allocator, &channel, &sources);
+        defer actual.deinit(allocator);
+    }
 }
 test "streamed bottom releases every owned checkpoint oracle and result on every OOM" {
     try std.testing.checkAllAllocationFailures(a, lifecycle, .{});
@@ -170,9 +175,26 @@ test "streamed bottom clone materializes independent ownership and zero poles pr
     var old_ch = ch;
     var expected = try G.proveBatch(a, &old_ch, &.{layer});
     defer expected.deinit(a);
-    var actual = try G.proveBatchSourceCheckpointed(a, &ch, &.{source});
-    defer actual.deinit(a);
-    try std.testing.expect(actual.proof.output_claims_by_instance[0][1].isZero());
-    try std.testing.expectEqualDeep(expected.proof, actual.proof);
-    try std.testing.expectEqualDeep(old_ch.drawSecureFelt(), ch.drawSecureFelt());
+    inline for ([_]bool{ false, true }) |checkpointed| {
+        ch = core.channel.raw_mod_m31.Om31Channel.init();
+        var actual = if (checkpointed) try G.proveBatchSourceCheckpointed(a, &ch, &.{source}) else try G.proveBatchSource(a, &ch, &.{source});
+        defer actual.deinit(a);
+        try std.testing.expect(actual.proof.output_claims_by_instance[0][1].isZero());
+        try std.testing.expectEqualDeep(expected.proof, actual.proof);
+        var expected_ch = old_ch;
+        try std.testing.expectEqualDeep(expected_ch.drawSecureFelt(), ch.drawSecureFelt());
+    }
+}
+
+test "streamed dense upper rejects empty malformed and callback failures" {
+    const S = core.fields.om31.OM31;
+    const G = GP.ForField(S);
+    var reader = Reader(S){ .variables = 7, .fail_len = 32, .oom = true };
+    var ch = core.channel.raw_mod_m31.Om31Channel.init();
+    try std.testing.expectError(error.EmptyBatch, G.proveBatchSource(a, &ch, &.{}));
+    var source = reader.source();
+    source.variables = 0;
+    try std.testing.expectError(error.InvalidLayerStructure, G.proveBatchSource(a, &ch, &.{source}));
+    source = reader.source();
+    try std.testing.expectError(error.OutOfMemory, G.proveBatchSource(a, &ch, &.{source}));
 }

@@ -1,0 +1,18 @@
+{
+  "source": "f02c85792",
+  "base": "1e6e98ed0",
+  "status": "qualified immutable range-emission foundation; no production truth-GKR selection",
+  "checks": [
+    "test-riscv64-truth-gkr Safe/Fast PASS",
+    "test-riscv64-classic-witness Safe/Fast PASS",
+    "CLI ReleaseFast build PASS",
+    "Real4CPU+3truth serviceprefix10authoritative artifacts equal frozen accepted49/7d prefix; freshreceiveraccepts"
+  ],
+  "semantics": "emit delegates exactfullrange; frame/row/range checkedbeforeemit; Kinterval splitonceat1600; secp originalbytepolicy/offset; single-querytables rangechecked",
+  "resource_changes": "none: no allocation, fullMAIN/Q row, newquerymatrix or scheduler changes",
+  "performance_claim": false,
+  "security_qualified": false,
+  "complete_ethereum_block_qualified_by_this_receipt": false,
+  "pending": [],
+  "independent_read_only_review": "PASS: checked row/frame/range; overflow-safe bounds; CHI/XOR interval mapping/order/weights; secp stride/policy; padded unit queries preserve poles; no ownership/allocation/global relation changes. No independent runtime requalification claimed."
+}

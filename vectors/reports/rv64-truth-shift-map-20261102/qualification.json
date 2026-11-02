@@ -1,0 +1,54 @@
+{
+  "source_base": "33dcae19d06830a66f6fd617a1594687d0a4ee78",
+  "scope": "native OM truth packed domain shifted-address reuse",
+  "protocol_changed": false,
+  "sampling_index_authority": "core.utils.offsetBitReversedCircleDomainIndex",
+  "cached_offsets": [
+    -2,
+    -1,
+    1,
+    2
+  ],
+  "checked_fallback_for_other_offsets": true,
+  "per_block_metadata_bytes": 576,
+  "no_value_cache_or_heap_allocation": true,
+  "safe_gate": "PASS full test-riscv64-truth-parallel suite42s MaxRSS2G",
+  "fast_gate": "PASS full test-riscv64-truth-parallel suite42s MaxRSS2G",
+  "pinned_five_proof_sha256": "eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386",
+  "fresh_full_fixture_global_closure": true,
+  "initial_profile": {
+    "scope": "physical25/26 fullblock-capture-two receipt; concurrent timings",
+    "keccak_composition_seconds": [
+      30.912147,
+      31.861637
+    ],
+    "lane_user_seconds": [
+      190.090281,
+      189.96666
+    ],
+    "lane_threads": 8,
+    "fft_rows_split": "not available in original receipt"
+  },
+  "independent_review": "core agent source index/order/lifetime review PASS",
+  "gpu_execution_qualified": false,
+  "whole_protocol_128": false,
+  "matched_prefix": {
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "authoritative_files_byte_exact": 10,
+    "fresh_receivers_accepted": 2,
+    "completed_ethereum_block": false,
+    "keccak_log": 13,
+    "old_rows_seconds": 0.476438334,
+    "new_rows_seconds": 0.418739708,
+    "old_fft_seconds": 0.076320833,
+    "new_fft_seconds": 0.076413083,
+    "old_prove_seconds": 35.952207584,
+    "new_prove_seconds": 36.112569291,
+    "whole_prefix_speedup_claim": false,
+    "large_log18_gain_measured": false,
+    "cache_bytes": 1073741824,
+    "worker_lanes": 1,
+    "workers_per_lane": 16
+  }
+}

@@ -119,7 +119,7 @@ fn releaseBridgeLocals(source: anytype) void {
 }
 /// Optional caller-owned diagnostics. gkr_ns includes metadata projection and
 /// durable terminal-binding construction; these times never enter a transcript.
-pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0, inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
+pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0, inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0, numerical_requested_peak_bytes: usize = 0, including_binding_requested_peak_bytes: usize = 0, admitted_gkr_peak_bytes: usize = 0, gkr_allocator_limit_bytes: usize = 0 };
 pub const CpuWorker = struct {
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
@@ -216,6 +216,10 @@ pub const CpuWorker = struct {
             timing.inputs_ns = phase_timing.inputs_ns;
             timing.numerical_ns = phase_timing.numerical_ns;
             timing.binding_ns = phase_timing.binding_ns;
+            timing.numerical_requested_peak_bytes = phase_timing.numerical_requested_peak_bytes;
+            timing.including_binding_requested_peak_bytes = phase_timing.including_binding_requested_peak_bytes;
+            timing.admitted_gkr_peak_bytes = phase_timing.admitted_gkr_peak_bytes;
+            timing.gkr_allocator_limit_bytes = phase_timing.gkr_allocator_limit_bytes;
         }
         if (clock) |*timer| self.seal_timing.?.gkr_ns = timer.read();
         self.sealed = true;

@@ -424,3 +424,11 @@ test {
 test {
     _ = @import("source_inputs_test.zig");
 }
+
+test {
+    _ = @import("interaction_accounting.zig");
+}
+
+test {
+    _ = @import("tree_selection.zig");
+}

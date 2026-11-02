@@ -67,7 +67,10 @@ pub fn main() !void {
     const a = std.heap.page_allocator;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
-    if (args.len != 4) return error.ExpectedBundlePathRomLogBlowup;
+    if (args.len != 4 and args.len != 5) return error.ExpectedBundlePathRomLogBlowupOptionalGlobalBytes;
+    const policy = try @import("child.zig").readTreePolicy(a);
+    const global_bytes = if (args.len == 5) try std.fmt.parseInt(usize, args[4], 10) else @as(usize, 8) << 30;
+    if (global_bytes == 0) return error.MissingWideGlobalBudget;
     const rom_log = try std.fmt.parseInt(u32, args[2], 10);
     const blowup = try std.fmt.parseInt(u32, args[3], 10);
     if (rom_log < 5 or rom_log > 22 or blowup < 1 or blowup > 2) return error.InvalidDiagnosticGeometry;
@@ -83,6 +86,8 @@ pub fn main() !void {
     const config = W.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(W.O).FriConfig.init(0, blowup, 12) };
     const plans = try a.alloc(RP.RetentionPlan, data.cpus.len + data.truths.len);
     defer a.free(plans);
+    const task_estimates = try a.alloc(RP.TaskEstimates, plans.len);
+    defer a.free(task_estimates);
     const resident = try a.alloc(Resident.Contract, plans.len);
     defer a.free(resident);
     const fixed_source = try a.alloc(FixedSource.Report, plans.len);
@@ -92,6 +97,8 @@ pub fn main() !void {
         a.free(fixed_source);
     }
     var totals = Totals{};
+    var interaction_breakdown = @import("interaction_accounting.zig").Breakdown{};
+    var total_steps: u64 = 0;
     for (data.cpus, 0..) |entry, i| {
         fixed_source[i] = try FixedSource.cpu(a, rom_log, entry.declaration);
         fixed_done += 1;
@@ -102,6 +109,7 @@ pub fn main() !void {
         const r = entry.request;
         try Scope.declaration(entry.declaration);
         try Scope.calls(r.all(), r.bulk, r.sponge, r.ls_dword);
+        total_steps = try std.math.add(u64, total_steps, r.cpu.steps);
         const request = P.Request{ .calls = r.all(), .bulk = r.bulk, .sponge = r.sponge, .base = .{ .cpu = r.cpu, .epoch = r.epoch, .division_requests = r.division_requests, .multiplication_requests = r.multiplication_requests, .memory = .{ .epoch = r.memory_epoch, .ls_count = r.ls_count, .initial = if (i == 0) cells else &.{}, .terminal = if (i + 1 == data.cpus.len) cells else &.{} } } };
         for (0..3) |tree| {
             if (tree == 1) continue;
@@ -112,9 +120,11 @@ pub fn main() !void {
                 if (tree == 0) totals.legacy_fixed_bytes += amount else totals.legacy_interaction_bytes += amount;
             }
         }
-        plans[i] = try RP.forCpu(a, &setup, request, config, std.math.maxInt(usize), std.math.maxInt(usize));
+        plans[i] = if (policy.stream_bottom) try RP.forCpuWithSourceStorage(a, &setup, request, config, std.math.maxInt(usize), global_bytes, policy.checkpointed) else try RP.forCpuWithTightAdmission(a, &setup, request, config, std.math.maxInt(usize), global_bytes, policy.checkpointed, policy.tight_admission);
+        task_estimates[i] = try RP.taskEstimates(plans[i], global_bytes);
         try totals.record(plans[i]);
-        resident[i] = try Resident.forCpu(a, &setup, request, config);
+        try interaction_breakdown.recordCpu(plans[i]);
+        resident[i] = try Resident.forCpuWithRetention(a, &setup, config, plans[i]);
     }
     for (data.truths, 0..) |entry, i| {
         fixed_source[data.cpus.len + i] = try FixedSource.truth(a, entry.declaration);
@@ -141,14 +151,17 @@ pub fn main() !void {
                 if (tree == 0) totals.legacy_fixed_bytes += amount else totals.legacy_interaction_bytes += amount;
             }
         }
-        plans[data.cpus.len + i] = try TP.forTruth(a, truth, config, std.math.maxInt(usize));
+        plans[data.cpus.len + i] = try TP.forTruth(a, truth, config, global_bytes);
+        task_estimates[data.cpus.len + i] = try RP.taskEstimates(plans[data.cpus.len + i], global_bytes);
         try totals.record(plans[data.cpus.len + i]);
+        try interaction_breakdown.recordTruth(t, plans[data.cpus.len + i]);
         resident[data.cpus.len + i] = try Resident.forTruth(a, truth, config);
     }
+    try interaction_breakdown.reconcile(totals.new_interaction_bytes);
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
     const request_copy_bytes = 2 * @as(u64, data.memory_words) * @sizeOf(A.memory.closed_ram.types.Cell) + data.cpus.len * @sizeOf(P.Request);
-    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "shape-only admission model; no witness, setup or proof constructed; declarations are NOT verification authority", .bundle_sha256 = std.fmt.bytesToHex(digest, .lower), .rom_log = rom_log, .blowup = blowup, .cpu_workers = data.cpus.len, .truth_workers = data.truths.len, .totals = totals, .coordinator_request_copy_bytes = request_copy_bytes, .manifest_reserve_bytes = @import("manifest_wire.zig").MAX_BYTES, .fully_parked_frontend_total_bytes = totals.fully_parked_retained_bytes + request_copy_bytes + @import("manifest_wire.zig").MAX_BYTES, .physical_native_cells = .{ .fixed = totals.legacy_fixed_bytes / 4, .main = totals.coefficient_bytes / 4, .new_interaction = totals.new_interaction_bytes / 4, .old_interaction = totals.legacy_interaction_bytes / 4, .new_main_inter = (totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_main_inter = (totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .new_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .scope = "native M31 committed cells, excluding GKR working facts/planes andLDE; immutableFIXEDreferences counted perproof for baseline parity, not rehash work" }, .merkle_model = "main_merkle_node_bytes is unpruned bound; host_streaming_node_bytes follows current CpuBackend streaming compactForQueries bottom4 pruning at committedlog>=20; runtime parkingPlan/counter remains measurement authority", .outside_model = "immutable setup, original capture/advice inventory, source-construction and PCS transient scratch, allocator/kernel/RSS; mapping length is NOT RSS", .workers = plans, .resident_layout_contracts = resident, .fixed_source_metadata = fixed_source, .resident_scope = "explicit retained-coefficients + own-height LDE + full-nodes policy; FIXED independently shared; excludes allocator/kernel/source metadata and PCS extra scratch; not GPU admission or kernel qualification" }, .{ .whitespace = .indent_2 });
+    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "shape-only admission model; no witness, setup or proof constructed; declarations are NOT verification authority", .bundle_sha256 = std.fmt.bytesToHex(digest, .lower), .rom_log = rom_log, .blowup = blowup, .tree_policy = policy, .global_budget_bytes = global_bytes, .worker_task_estimates = task_estimates, .total_steps = total_steps, .interaction_breakdown = interaction_breakdown, .interaction_breakdown_total_cells = try interaction_breakdown.total(), .cpu_workers = data.cpus.len, .truth_workers = data.truths.len, .totals = totals, .coordinator_request_copy_bytes = request_copy_bytes, .manifest_reserve_bytes = @import("manifest_wire.zig").MAX_BYTES, .fully_parked_frontend_total_bytes = totals.fully_parked_retained_bytes + request_copy_bytes + @import("manifest_wire.zig").MAX_BYTES, .physical_native_cells = .{ .fixed = totals.legacy_fixed_bytes / 4, .main = totals.coefficient_bytes / 4, .new_interaction = totals.new_interaction_bytes / 4, .old_interaction = totals.legacy_interaction_bytes / 4, .new_main_inter = (totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_main_inter = (totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .new_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .scope = "native M31 committed cells, excluding GKR working facts/planes andLDE; immutableFIXEDreferences counted perproof for baseline parity, not rehash work" }, .merkle_model = "main_merkle_node_bytes is unpruned bound; host_streaming_node_bytes follows current CpuBackend streaming compactForQueries bottom4 pruning at committedlog>=20; runtime parkingPlan/counter remains measurement authority", .outside_model = "immutable setup, original capture/advice inventory, source-construction and PCS transient scratch, allocator/kernel/RSS; mapping length is NOT RSS", .workers = plans, .resident_layout_contracts = resident, .fixed_source_metadata = fixed_source, .resident_scope = "explicit retained-coefficients + own-height LDE + full-nodes policy; FIXED independently shared; excludes allocator/kernel/source metadata and PCS extra scratch; not GPU admission or kernel qualification" }, .{ .whitespace = .indent_2 });
     defer a.free(output);
     try std.fs.File.stdout().writeAll(output);
     try std.fs.File.stdout().writeAll("\n");
