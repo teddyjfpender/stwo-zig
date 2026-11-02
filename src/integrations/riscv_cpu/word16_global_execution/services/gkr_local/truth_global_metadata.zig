@@ -77,10 +77,11 @@ pub const Provider = struct {
                 const r = physical(logical, trace.log_size);
                 var fixed: [K.layout.FIXED]M = undefined;
                 for (&fixed, 0..) |*v, c| v.* = trace.fixed[c * n + r];
-                if (trace.policy.geometry() == .pair27) {
+                const policy = try Frame.keccakPolicy(self.source);
+                if (policy.geometry() == .pair27) {
                     const before_index = (logical + n - 1) % n;
                     const before = if (before_index < trace.metadata.len) &trace.metadata[before_index] else &empty;
-                    for (0..trace.policy.ioLookups()) |lane| sink.emitIo(K.equations.ioTupleR27Accessors(M, cells, PackedCells{ .row = before }, &fixed, lane), K.equations.ioActiveR27Accessors(M, cells, &fixed, lane));
+                    for (0..policy.ioLookups()) |lane| sink.emitIo(K.equations.ioTupleR27Accessors(M, cells, PackedCells{ .row = before }, &fixed, lane), K.equations.ioActiveR27Accessors(M, cells, &fixed, lane));
                     return;
                 }
                 const weight = K.equations.ioActiveAccessors(M, cells, &fixed);
