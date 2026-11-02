@@ -9,6 +9,7 @@ const H = A.crypto.sha256;
 const Ar = A.crypto.arith256;
 const Cv = A.crypto.curves;
 const CurveRoster = @import("../curves/roster.zig");
+const SecpRow = @import("../secp/row_roster.zig");
 const G = @import("../protocol.zig");
 const R = @import("roster.zig");
 const T = @import("types.zig");
@@ -229,6 +230,12 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
                 try CurveRoster.validateGeometry(t.setup.op, t.calls, t.first_id, t.setup.log);
                 wire = try std.math.add(u64, wire, CurveRoster.wireFractions(t.setup.op) * @as(u64, t.calls));
             },
+            // Row truth: one consume per packet coordinate and one produce per
+            // written coordinate per call (no internal wires).
+            .secp_row => |t| {
+                try SecpRow.validateGeometry(t.setup.kind, t.calls, t.first_id, t.setup.log);
+                wire = try std.math.add(u64, wire, SecpRow.wireFractions(t.setup.kind) * @as(u64, t.calls));
+            },
         }
         next[family] = try std.math.add(u64, next[family], truth.count());
     }
@@ -345,6 +352,11 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
             ch.mixU32s(&.{ 0x43525631, t.setup.log, 35 });
             ch.mixU32s(&CurveRoster.geometryWords(t.setup.op));
         },
+        // Distinct identity: an RCB secp spec can never equal a row spec.
+        .secp_row => |t| {
+            ch.mixU32s(&.{ SecpRow.IDENTITY, 1, t.setup.log, 35 });
+            ch.mixU32s(&SecpRow.geometryWords(t.setup.kind));
+        },
     }
 }
 pub const Shared = struct { ram: A.memory.closed_ram.types.RamChallenges, kio: K.equations.Io, wire: S.equations.Wire };
@@ -368,7 +380,7 @@ pub fn drawCpu(ch: *G.T.P.Channel, manifest: *const Manifest, index: usize) !G.O
     G.Old.digest(ch, manifest.digest);
     return G.Old.drawWithSharedRam(ch, common.ram);
 }
-pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges, curve: Cv.equations.Challenges };
+pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges, curve: Cv.equations.Challenges, secp_row: Cv.equations.Challenges };
 pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, ordinal: usize) !TruthDraw {
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x57534332, 1, 1, @intCast(ordinal), @intFromEnum(truth.family()) });
@@ -392,6 +404,10 @@ pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, 
         .curve => block: {
             ch.mixU32s(&.{ 0x43524231, 8 });
             break :block .{ .curve = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
+        },
+        .secp_row => block: {
+            ch.mixU32s(&.{ 0x53524231, 8 });
+            break :block .{ .secp_row = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
         },
     };
 }

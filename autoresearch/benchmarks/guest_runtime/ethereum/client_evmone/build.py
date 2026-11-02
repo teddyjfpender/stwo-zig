@@ -307,7 +307,7 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
     print(f"blst portable == assembly ({outs['asm'].count(chr(10))} results)")
     # Fused cgoto dispatch vs the plain switch dispatch (plus the xlat dispatch when the
     # parked translated-segment patch wip/0024 is applied), linked against the host build.
-    hobj = work / "obj-host"
+    hobj = work / ("obj-host-eest" if a.eest else "obj-host")  # the host variant's object dir
     fobj = tdir / "xlat_difffuzz.o"
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "xlat_difffuzz.cpp", "-o", fobj])
     link = sorted(hobj.glob("evmone__lib__evmone*__*.o")) + sorted(hobj.glob("evmone__lib__evmone_precompiles__*.o"))

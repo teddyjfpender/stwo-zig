@@ -8,6 +8,7 @@ const S = @import("../secp/roster.zig");
 const H = @import("../sha256/roster.zig");
 const Ar = @import("../arith256/roster.zig");
 const Cv = @import("../curves/roster.zig");
+const SR = @import("../secp/row_roster.zig");
 const Types = @import("../services/types.zig");
 const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
@@ -24,6 +25,8 @@ pub const Owner = struct {
     arith256_owners: std.ArrayList(*Ar.TruthSetup) = .{},
     /// Curve/field truth keys depend only on (op, log).
     curve_owners: std.ArrayList(*Cv.TruthSetup) = .{},
+    /// secp row truth keys depend only on (kind, log).
+    secp_row_owners: std.ArrayList(*SR.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
         return initPolicy(a, image, cpu, truth, false, Suite.production(), .{});
     }
@@ -92,7 +95,23 @@ pub const Owner = struct {
                 }
                 out.* = .{ .keccak = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
             },
-            .add, .double => {
+            .add, .double => if (W.isSecpRow(d)) {
+                const kind: SR.Kind = if (d.family == .add) .add else .double;
+                var found: ?*const SR.TruthSetup = null;
+                for (self.secp_row_owners.items) |s| if (s.kind == kind and s.log == d.logs[0]) {
+                    found = s;
+                    break;
+                };
+                if (found == null) {
+                    try self.secp_row_owners.ensureUnusedCapacity(a, 1);
+                    const s = try a.create(SR.TruthSetup);
+                    errdefer a.destroy(s);
+                    s.* = try SR.TruthSetup.initWithSuite(a, kind, d.logs[0], suite);
+                    self.secp_row_owners.appendAssumeCapacity(s);
+                    found = s;
+                }
+                out.* = .{ .secp_row = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
+            } else {
                 const kind: @import("stwo_riscv_frontend").rv64_air.crypto.secp256k1.program.Kind = if (d.family == .add) .add else .double;
                 var found: ?*const S.TruthSetup = null;
                 for (self.secp_owners.items) |s| if (s.kind == kind and std.meta.eql(s.logs, d.logs)) {
@@ -193,6 +212,11 @@ pub const Owner = struct {
             a.destroy(s);
         }
         self.curve_owners.deinit(a);
+        for (self.secp_row_owners.items) |s| {
+            s.deinit();
+            a.destroy(s);
+        }
+        self.secp_row_owners.deinit(a);
         self.cpu_owners.deinit(a);
         self.keccak_owners.deinit(a);
         self.secp_owners.deinit(a);

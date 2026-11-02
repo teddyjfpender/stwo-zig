@@ -18,6 +18,7 @@ const append = @import("../keccak/roster.zig").append;
 const Sha = @import("../sha256/roster.zig");
 const Arith = @import("../arith256/roster.zig");
 const Curve = @import("../curves/roster.zig");
+const SecpRow = @import("../secp/row_roster.zig");
 const M = core.fields.m31.M31;
 const Col = engine.pcs.ColumnEvaluation;
 pub const CpuSetup = struct {
@@ -587,6 +588,8 @@ pub const Truth = union(enum) {
     sha256: struct { setup: *const Sha.TruthSetup, first_id: u32, calls: u32 },
     arith256_mod: struct { setup: *const Arith.TruthSetup, first_id: u32, calls: u32 },
     curve: struct { setup: *const Curve.TruthSetup, first_id: u32, calls: u32 },
+    /// v3 secp256k1 `row_v1` profile (one RCB call per row), families 1/2.
+    secp_row: struct { setup: *const SecpRow.TruthSetup, first_id: u32, calls: u32 },
     pub fn family(self: @This()) T.Family {
         return switch (self) {
             .keccak => .keccak,
@@ -594,6 +597,7 @@ pub const Truth = union(enum) {
             .sha256 => .sha256,
             .arith256_mod => .arith256_mod,
             .curve => |t| T.curveFamily(t.setup.op),
+            .secp_row => |t| if (t.setup.kind == .add) .add else .double,
         };
     }
     pub fn first(self: @This()) u32 {
@@ -618,6 +622,7 @@ pub const Truth = union(enum) {
             .sha256 => |t| t.setup.logs(a, tree),
             .arith256_mod => |t| t.setup.logs(a, tree),
             .curve => |t| t.setup.logs(a, tree),
+            .secp_row => |t| t.setup.logs(a, tree),
         };
     }
 };
@@ -627,6 +632,7 @@ pub const TruthSource = union(enum) {
     sha256: Sha.TruthSource,
     arith256_mod: Arith.TruthSource,
     curve: Curve.TruthSource,
+    secp_row: SecpRow.TruthSource,
     pub fn init(a: std.mem.Allocator, truth: Truth, advice: *const @import("collector.zig").Advice) !TruthSource {
         if (truth.first() == 0) return error.InvalidCombinedTruthSpan;
         const begin: usize = truth.first() - 1;
@@ -665,23 +671,14 @@ pub const TruthSource = union(enum) {
                 break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpanPolicy(a, inputs, t.first_id, t.setup.log, t.setup.policy) };
             },
             .secp => |t| block: {
-                const inputs = try a.alloc(S.types.Call, t.calls);
+                const inputs = try secpSpan(a, advice, @intFromEnum(t.setup.kind) - 1, begin, end, t.calls);
                 defer a.free(inputs);
-                const family = @intFromEnum(t.setup.kind) - 1;
-                var offset: usize = 0;
-                var written: usize = 0;
-                for (advice.secp) |cc| {
-                    const lo = @max(begin, offset);
-                    const hi = @min(end, offset + cc[family].len);
-                    if (lo < hi) {
-                        const selected = cc[family][lo - offset .. hi - offset];
-                        @memcpy(inputs[written..][0..selected.len], selected);
-                        written += selected.len;
-                    }
-                    offset += cc[family].len;
-                }
-                if (written != t.calls) return error.InvalidCombinedTruthSpan;
                 break :block .{ .secp = try @import("../secp/roster.zig").TruthSource.init(a, t.setup, inputs, t.first_id) };
+            },
+            .secp_row => |t| block: {
+                const inputs = try secpSpan(a, advice, @intFromEnum(t.setup.kind) - 1, begin, end, t.calls);
+                defer a.free(inputs);
+                break :block .{ .secp_row = try SecpRow.TruthSource.init(a, t.setup, inputs, t.first_id) };
             },
             .sha256 => |t| block: {
                 const inputs = try a.alloc(S.types.Call, t.calls);
@@ -755,10 +752,13 @@ pub const TruthSource = union(enum) {
         if (self.* == .curve) return switch (self.curve) {
             inline else => |*s| takeCurve(s, tree),
         };
+        if (self.* == .secp_row) return switch (self.secp_row) {
+            inline else => |*s| takeCurve(s, tree),
+        };
         const a = switch (self.*) {
             .keccak => |s| s.permutation.allocator,
             .secp => |s| s.batch.product.allocator,
-            .sha256, .arith256_mod, .curve => unreachable,
+            .sha256, .arith256_mod, .curve, .secp_row => unreachable,
         };
         var matrices: [3]*[]M = undefined;
         var expected: [3]usize = undefined;
@@ -797,7 +797,7 @@ pub const TruthSource = union(enum) {
                 matrices[2] = if (tree == 1) &s.bytes.main else &s.bytes.interaction;
                 expected[2] = (if (tree == 1) @as(usize, 1) else 8) * 256;
             },
-            .sha256, .arith256_mod, .curve => unreachable,
+            .sha256, .arith256_mod, .curve, .secp_row => unreachable,
         }
         for (matrices, expected, 0..) |matrix, size, i| {
             if (matrix.len != size) return error.InvalidTruthBufferPhase;
@@ -826,7 +826,7 @@ pub const TruthSource = union(enum) {
                 s.batch.linear.owns_main = false;
                 s.bytes.main = byte_counts.?;
             },
-            .sha256, .arith256_mod, .curve => unreachable,
+            .sha256, .arith256_mod, .curve, .secp_row => unreachable,
         };
         return .{ .columns = headers, .backings = backings };
     }
@@ -846,6 +846,26 @@ pub const TruthSource = union(enum) {
         };
     }
 };
+/// Bridge calls of secp family `family` (0 ADD, 1 DOUBLE) with global call
+/// IDs begin+1..end, in shard order (the same span rule as the RCB truth).
+fn secpSpan(a: std.mem.Allocator, advice: *const @import("collector.zig").Advice, family: usize, begin: usize, end: usize, calls: u32) ![]S.types.Call {
+    const inputs = try a.alloc(S.types.Call, calls);
+    errdefer a.free(inputs);
+    var offset: usize = 0;
+    var written: usize = 0;
+    for (advice.secp) |cc| {
+        const lo = @max(begin, offset);
+        const hi = @min(end, offset + cc[family].len);
+        if (lo < hi) {
+            const selected = cc[family][lo - offset .. hi - offset];
+            @memcpy(inputs[written..][0..selected.len], selected);
+            written += selected.len;
+        }
+        offset += cc[family].len;
+    }
+    if (written != calls) return error.InvalidCombinedTruthSpan;
+    return inputs;
+}
 /// One wide SHA-256 MAIN/INTER matrix moves to the PCS; fixed stays key-owned.
 fn takeSha(s: *A.crypto.sha256.trace.Source, tree: usize) !Commit {
     const a = s.allocator;
