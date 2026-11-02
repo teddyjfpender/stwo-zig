@@ -49,3 +49,22 @@ comptime {
         @compileError("RV64 tail job ABI mismatch");
 }
 pub extern "c" fn stwo_rv64_sumcheck_tail_on(*anyopaque, u32, [*]const TailJob, u32) c_int;
+
+pub const FriFold = extern struct {
+    input: Plane,
+    output: Plane,
+    twiddles: [*]const u32,
+    twiddle_words: u64,
+    alpha: [*]const u32,
+    offsets: [4]u32,
+    count: u32,
+    steps: u32,
+    first_is_circle: u32,
+    accumulate_circle: u32,
+};
+comptime {
+    if (@sizeOf(FriFold) != 104 or @offsetOf(FriFold, "count") != 88)
+        @compileError("RV64 OM31 FRI fold ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_fri_fold_on(*anyopaque, u32, *const FriFold) c_int;
+pub extern "c" fn stwo_rv64_fri_leaves_on(*anyopaque, u32, Plane, u32, u32, u32, [*]u32, u64) c_int;

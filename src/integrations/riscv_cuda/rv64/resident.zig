@@ -13,7 +13,7 @@ pub const Plane = struct {
     fn shape(self: Plane, count: u32, coordinates: u32) !void {
         if (self.stride < count or self.coordinates != coordinates) return error.InvalidPlane;
     }
-    fn bind(self: Plane, context: anytype) !abi.Plane {
+    pub fn bind(self: Plane, context: anytype) !abi.Plane {
         if (self.stride == 0 or self.coordinates == 0 or self.coordinates > 32) return error.InvalidPlane;
         const words = try std.math.mul(usize, self.stride, self.coordinates);
         return .{

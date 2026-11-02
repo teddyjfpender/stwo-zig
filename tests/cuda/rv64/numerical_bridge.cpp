@@ -259,3 +259,16 @@ extern "C" uint32_t rv64_test_owned_failure(uint32_t kind, uint32_t* output) {
                    reinterpret_cast<RoundRecord*>(output));
     return state.status;
 }
+
+// Scalar oracle for independently checking native FRI domain/tower semantics.
+// GPU fused addressing is separately checked by pcs_smoke's stagewise oracle.
+extern "C" void rv64_test_fri_pairs(const uint32_t* input,const uint32_t* inverses,
+    const uint32_t* alpha,uint32_t count,const uint32_t* prior,uint32_t* output) {
+    const auto a=from_words(alpha),a2=mul(a,a);
+    for(uint32_t i=0;i<count/2;++i) {
+        const auto x=from_words(input+16*i),y=from_words(input+16*i+8);
+        auto value=add(add(x,y),scale(mul(a,sub(x,y)),inverses[i]));
+        if(prior)value=add(value,mul(a2,from_words(prior+8*i)));
+        for(uint32_t c=0;c<8;++c)output[8*i+c]=coordinate(value,c);
+    }
+}

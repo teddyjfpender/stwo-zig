@@ -14,3 +14,10 @@ export fn rv64_test_tail_batch(context: *Context, lane: u32, jobs: [*]const R.Ta
     commands.tailBatch(jobs[0..count]) catch return 1;
     return 0;
 }
+
+export fn rv64_test_pcs(context: *Context, lane: u32, input: *const @import("rv64/pcs.zig").Fold) c_int {
+    var commands = @import("rv64/pcs.zig").NativeCommands{ .context = context, .lane_index = lane };
+    commands.fold(input.*) catch return 1;
+    commands.leaves(input.input, input.count, input.steps, true, input.output.data) catch return 1;
+    return 0;
+}
