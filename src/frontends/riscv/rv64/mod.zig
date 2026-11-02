@@ -22,3 +22,4 @@ pub const ethereum_services = @import("ethereum_services/session.zig");
 pub const boundary_capture = @import("boundary_capture.zig");
 pub const ethereum_contract = @import("ethereum_contract.zig");
 pub const fast_execution = @import("fast_execution.zig");
+pub const checkpoint = @import("checkpoint.zig");

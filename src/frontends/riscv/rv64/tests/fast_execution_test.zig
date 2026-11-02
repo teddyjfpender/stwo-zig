@@ -9,6 +9,7 @@ const machine = @import("../machine.zig");
 const fast = @import("../fast_execution.zig");
 const eth = @import("../ethereum_services/session.zig");
 const profile = @import("../execution_profile.zig");
+const checkpoint = @import("../checkpoint.zig");
 const a = std.testing.allocator;
 
 const CODE: u64 = 0x10000;
@@ -364,6 +365,83 @@ test "fast engine: every Ethereum service interleaves exactly like the reference
         if (std.mem.indexOfScalar(u64, &must_complete, tag) != null) try std.testing.expectEqual(@as(?anyerror, error.StepLimit), fast_stop);
         if (std.process.hasEnvVarConstant("FAST_TEST_VERBOSE")) std.debug.print("tag {x} stop {?} fast {d} retired {d}\n", .{ tag, fast_stop, engine.fast_retired, cpu.retired });
     };
+}
+
+test "checkpoints: every segment re-executed by the reference from its image meets the next checkpoint" {
+    var prng = std.Random.DefaultPrng.init(0xc4ec);
+    const r = prng.random();
+    var segments_checked: usize = 0;
+    for (0..200) |_| {
+        var words: [SLOTS]u32 = undefined;
+        // Mostly ECALL-free so programs run long; ECALL traps under v3 tag 0.
+        for (&words, 0..) |*w, i| w.* = randomWord(r, i, r.uintLessThan(u32, 4) == 0);
+        var image = try Image.init(&words, r.int(u64));
+        defer image.deinit();
+        const total = 1 + r.uintLessThan(u64, 20000);
+        const step = 1 + r.uintLessThan(u64, 3000);
+        var session = try eth.Session.initWithProfile(a, initialCpu(r), &image.memory, .{ .max_retirements = total }, .ethereum_services_v3);
+        defer session.deinit();
+        var engine = try fast.Engine.init(a, &image.memory, .{});
+        defer engine.deinit();
+        engine.attach();
+        var recorder = try checkpoint.Recorder.init(a, &engine);
+        defer recorder.deinit();
+        var cps = std.ArrayList(checkpoint.Checkpoint).empty;
+        defer {
+            for (cps.items) |*cp| recorder.release(cp);
+            cps.deinit(a);
+        }
+        const cpu = &session.keccak.base.cpu;
+        var event: eth.Event = undefined;
+        var stopped = false;
+        while (!stopped) {
+            try cps.append(a, try recorder.take(&session));
+            const limit = @min(total, cpu.retired + step);
+            while (cpu.retired < limit) {
+                if (engine.run(cpu, limit) == .limit) break;
+                _ = session.step(&event) catch {
+                    stopped = true;
+                    break;
+                };
+            }
+            if (cpu.retired == total) stopped = true;
+        }
+        try cps.append(a, try recorder.take(&session));
+        // Re-execute each complete segment from its checkpoint with the reference only.
+        for (cps.items[0 .. cps.items.len - 1], cps.items[1..]) |*from, *to| {
+            if (to.cpu.retired - from.cpu.retired != step and to.cpu.retired != total) continue;
+            var m = try checkpoint.materialize(a, &image.memory, from);
+            defer m.deinit();
+            var dirty = checkpoint.Dirty{ .bits = try a.alloc(u64, engine.dirty.bits.len) };
+            defer a.free(dirty.bits);
+            @memset(dirty.bits, 0);
+            m.backing.dirty = &dirty;
+            var seg = try eth.Session.initWithProfile(a, from.cpu, &m, .{ .max_retirements = to.cpu.retired }, .ethereum_services_v3);
+            defer seg.deinit();
+            from.counters.apply(&seg);
+            while (seg.keccak.base.cpu.retired < to.cpu.retired) _ = seg.step(&event) catch break;
+            try std.testing.expect(checkpoint.matches(&seg, &dirty, to));
+            segments_checked += 1;
+            // Adversarial: a single flipped byte on any page, or a clock off by one, is rejected.
+            var it = m.backing.table.iterator();
+            if (it.next()) |e| {
+                const off = r.uintLessThan(usize, mem.PAGE_SIZE);
+                e.value_ptr.*[off] ^= 0x40;
+                const was = dirty.isSet(e.key_ptr.*);
+                dirty.mark(e.key_ptr.*);
+                try std.testing.expect(!checkpoint.matches(&seg, &dirty, to));
+                e.value_ptr.*[off] ^= 0x40;
+                if (!was) dirty.bits[@intCast(e.key_ptr.* / 64)] &= ~(@as(u64, 1) << @intCast(e.key_ptr.* % 64));
+            }
+            try std.testing.expect(checkpoint.matches(&seg, &dirty, to));
+            seg.keccak.base.cpu.retired += 1;
+            try std.testing.expect(!checkpoint.matches(&seg, &dirty, to));
+            seg.keccak.base.cpu.retired -= 1;
+            seg.keccak.calls += 1;
+            try std.testing.expect(!checkpoint.matches(&seg, &dirty, to));
+        }
+    }
+    try std.testing.expect(segments_checked > 300);
 }
 
 test {

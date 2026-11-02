@@ -27,6 +27,11 @@ pub const Options = struct {
     /// job packets concurrently (consumed in index order). 1 = serial reader.
     capture_inflight: u8 = 1,
     capture_inflight_set: bool = false,
+    /// Producer capture scheduling only (`-direct` modes): execute with the
+    /// fast first pass and re-execute this many batches concurrently from
+    /// its checkpoints; batches are the serial walk's. 0 = serial walk.
+    segment_workers: u8 = 0,
+    segment_workers_set: bool = false,
     /// Producer planning only: Keccak truths that take the throughput tables
     /// keep the triple batching (`throughput_v1`) instead of the v3 default
     /// quartet batching (`throughput_quartet_v1`). The profile word is
@@ -98,6 +103,11 @@ pub const Options = struct {
                 out.capture_inflight_set = true;
                 out.capture_inflight = try std.fmt.parseUnsigned(u8, arg["--capture-inflight=".len..], 10);
                 if (out.capture_inflight == 0 or out.capture_inflight > @import("capture_prefetch.zig").MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
+            } else if (std.mem.startsWith(u8, arg, "--segment-workers=")) {
+                if (out.segment_workers_set) return error.DuplicateOperationalOption;
+                out.segment_workers_set = true;
+                out.segment_workers = try std.fmt.parseUnsigned(u8, arg["--segment-workers=".len..], 10);
+                if (out.segment_workers > @import("../../rv64_ethereum_segments.zig").MAX_WORKERS) return error.InvalidEthereumCaptureOptions;
             } else if (std.mem.eql(u8, arg, "--no-ls-dword")) {
                 if (out.no_ls_dword) return error.DuplicateOperationalOption;
                 out.no_ls_dword = true;
@@ -154,7 +164,7 @@ pub const Options = struct {
         return .{ .max_inflight_packets = self.capture_inflight, .packet_heap_bytes = D.packet_heap_bytes, .max_inflight_packet_heap_bytes = n * D.packet_heap_bytes, .max_inflight_wire_bytes = n * D.max_inflight_wire_bytes };
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.capture_inflight_set or self.keccak_throughput_v1 or self.keccak_pair29 or self.layout_set;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.capture_inflight_set or self.segment_workers_set or self.keccak_throughput_v1 or self.keccak_pair29 or self.layout_set;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {

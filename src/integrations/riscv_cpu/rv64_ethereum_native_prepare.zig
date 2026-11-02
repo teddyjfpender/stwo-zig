@@ -39,7 +39,14 @@ const Persist = struct {
 pub const Walk = struct {
     allocator: std.mem.Allocator,
     config: Request.Config,
-    request: Request.Request,
+    /// Shared immutable setup (authority, policy, expected output). Owned by
+    /// the walk from `create`; borrowed from the parent by segment walks.
+    request: *Request.Request,
+    owns_request: bool,
+    /// Guest memory this walk executes on: the request's own image, or an
+    /// independently owned checkpoint image for a segment walk.
+    memory: *rv.memory.Memory,
+    owns_memory: bool,
     identity: Packet.Identity,
     session: rv.ethereum_services.Session,
     tape: rv.compact_tape.Tape,
@@ -56,26 +63,58 @@ pub const Walk = struct {
         batch: Native.Batch,
         finished: Native.Finished,
     };
+    /// A finished batch whose tape the walk has handed over (see `nextTaking`).
+    pub const Taken = struct {
+        index: u32,
+        finished: Native.Finished,
+        tape: rv.compact_tape.Tape,
+        pub fn deinit(self: *Taken) void {
+            self.finished.deinit();
+            self.tape.deinit();
+            self.* = undefined;
+        }
+    };
     pub fn create(a: std.mem.Allocator, config: Request.Config) !*Walk {
         try Request.validateBudget(config);
+        const request = try a.create(Request.Request);
+        errdefer a.destroy(request);
+        request.* = try Request.Request.init(a, config);
+        errdefer request.deinit();
+        const cpu = rv.machine.Cpu.init(request.loaded.info.entry, config.symbols.stack_top);
+        return createOn(a, config, request, true, &request.loaded.memory, false, cpu, .{}, 0);
+    }
+    /// A walk that executes batch `index` (and any later ones) from a fast
+    /// first-pass checkpoint, on its own copy of the checkpoint image. It
+    /// borrows `parent`'s request; `parent` must outlive it.
+    pub fn createSegment(a: std.mem.Allocator, parent: *const Walk, cp: *const rv.checkpoint.Checkpoint, index: u32) !*Walk {
+        const memory = try a.create(rv.memory.Memory);
+        errdefer a.destroy(memory);
+        memory.* = try rv.checkpoint.materialize(a, parent.memory, cp);
+        errdefer memory.deinit();
+        return createOn(a, parent.config, parent.request, false, memory, true, cp.cpu, cp.counters, index);
+    }
+    fn createOn(a: std.mem.Allocator, config: Request.Config, request: *Request.Request, owns_request: bool, memory: *rv.memory.Memory, owns_memory: bool, cpu_state: rv.machine.Cpu, counters: rv.checkpoint.Counters, index: u32) !*Walk {
         const self = try a.create(Walk);
         errdefer a.destroy(self);
         self.allocator = a;
         self.config = config;
-        self.request = try Request.Request.init(a, config);
-        errdefer self.request.deinit();
+        self.request = request;
+        self.owns_request = owns_request;
+        self.memory = memory;
+        self.owns_memory = owns_memory;
         self.identity = try Packet.identityFor(config, &self.request.authority, &self.request.policy);
-        self.session = try rv.ethereum_services.Session.initWithProfile(a, rv.machine.Cpu.init(self.request.loaded.info.entry, config.symbols.stack_top), &self.request.loaded.memory, .{ .max_retirements = config.max_steps }, Request.tapeProfile(config));
+        self.session = try rv.ethereum_services.Session.initWithProfile(a, cpu_state, memory, .{ .max_retirements = config.max_steps }, Request.tapeProfile(config));
         errdefer self.session.deinit();
+        counters.apply(&self.session);
         const cpu = &self.session.keccak.base.cpu;
         self.tape = try rv.compact_tape.Tape.init(a, config.batch_steps, cpu.pc, cpu.retired, Request.tapeProfile(config));
         errdefer self.tape.deinit();
         self.capture = try rv.boundary_capture.Capture.init(a, cpu.retired, config.batch_steps, 1 << 24);
-        self.batches = 0;
-        self.calls = @splat(0);
-        self.sha256_calls = 0;
-        self.arith256_calls = 0;
-        self.curve_calls = @splat(0);
+        self.batches = index;
+        self.calls = .{ counters.keccak, counters.add, counters.double };
+        self.sha256_calls = counters.sha256;
+        self.arith256_calls = counters.arith256_mod;
+        self.curve_calls = counters.curve;
         self.completed = false;
         self.pending = false;
         return self;
@@ -85,7 +124,14 @@ pub const Walk = struct {
         self.capture.deinit();
         self.tape.deinit();
         self.session.deinit();
-        self.request.deinit();
+        if (self.owns_memory) {
+            self.memory.deinit();
+            a.destroy(self.memory);
+        }
+        if (self.owns_request) {
+            self.request.deinit();
+            a.destroy(self.request);
+        }
         a.destroy(self);
     }
     pub fn cpuState(self: *Walk) *rv.machine.Cpu {
@@ -106,7 +152,7 @@ pub const Walk = struct {
         batch.sha256_first = @intCast(self.sha256_calls + 1);
         batch.arith256_first = @intCast(self.arith256_calls + 1);
         for (&batch.curve_first, self.curve_calls) |*first, total| first.* = @intCast(total + 1);
-        const memory = &self.request.loaded.memory;
+        const memory = self.memory;
         while (self.tape.len < self.tape.storage.len) {
             try Native.captureNext(&self.session, &self.tape, &self.capture, &batch);
             if (c.pc == config.terminal_pc) {
@@ -151,6 +197,13 @@ pub const Walk = struct {
         self.tape = fresh;
         self.account(batch);
         return taken;
+    }
+    /// `next` followed by `advanceTakingTape`: the caller owns the result.
+    pub fn nextTaking(self: *Walk) !?Taken {
+        var step = (try self.next()) orelse return null;
+        errdefer step.finished.deinit();
+        const tape = try self.advanceTakingTape(&step.batch);
+        return .{ .index = step.index, .finished = step.finished, .tape = tape };
     }
 };
 /// One batch's ordered publication: graph from the sparse cache, durable
@@ -215,6 +268,9 @@ pub const RunOptions = struct {
     /// Overlap execution with ordered publication. Requires a thread-safe
     /// allocator; output bytes are identical either way.
     pipeline: bool = true,
+    /// > 0: batches from a fast first pass plus this many concurrent segment
+    /// walks (rv64_ethereum_segments.zig); output bytes are identical.
+    segment_workers: u8 = 0,
 };
 pub fn run(a: std.mem.Allocator, config: Request.Config) !Summary {
     return runWithOptions(a, config, .{});
@@ -245,7 +301,7 @@ pub fn runWithOptions(a: std.mem.Allocator, config: Request.Config, options: Run
     var output_parent = try directory.openDir("..", .{});
     defer output_parent.close();
     try std.posix.fsync(output_parent.fd);
-    const request = &walk.request;
+    const request = walk.request;
     const identity = walk.identity;
     // Two-stage pipeline: this thread executes batch k+1 while a single
     // publisher builds batch k's frontier graph, writes and syncs its packet,
@@ -258,10 +314,12 @@ pub fn runWithOptions(a: std.mem.Allocator, config: Request.Config, options: Run
     var pending: ?*Publish = null;
     // On any error: still join the in-flight publisher before unwinding.
     errdefer if (pending) |p| p.finish() catch {};
-    while (try walk.next()) |step_value| {
+    var source = try @import("rv64_ethereum_segments.zig").Source.init(a, walk, options.segment_workers);
+    defer source.deinit();
+    while (try source.next()) |step_value| {
         var step = step_value;
         var finished_owned = true;
-        errdefer if (finished_owned) step.finished.deinit();
+        errdefer if (finished_owned) step.deinit();
         // The previous batch is durable and published before this one starts.
         if (pending) |p| {
             pending = null;
@@ -271,8 +329,7 @@ pub fn runWithOptions(a: std.mem.Allocator, config: Request.Config, options: Run
         errdefer a.destroy(item);
         // The batch's tape moves to the publisher; execution continues on a
         // fresh tape with the seed `clearRetainingCapacity` would produce.
-        const tape = try walk.advanceTakingTape(&step.batch);
-        item.* = .{ .shared = &shared, .index = step.index, .finished = step.finished, .tape = tape };
+        item.* = .{ .shared = &shared, .index = step.index, .finished = step.finished, .tape = step.tape };
         finished_owned = false;
         pending = item;
         item.start(options.pipeline);
