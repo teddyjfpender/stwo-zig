@@ -1,6 +1,6 @@
 # Packed LogUp producer wiring audit
 
-The retained source contradicts the claim that an entire packed LogUp producer is waiting to be wired into PR309. Both existing packed workstreams are already active. The exact quoted 2.3–3.4× per-thread / 15× at eight threads was not found in the retained receipts or recovered local agent traces. That does not disprove another measurement, but it cannot be added to current full-block timings as an unmerged gain.
+The retained source contradicts the claim that an entire packed LogUp producer is waiting to be wired into PR309. Both existing packed workstreams are already active. The exact quoted 2.3–3.4× per-thread / 15× at eight threads was not found in the retained receipts or recovered local agent traces. That does not disprove another measurement, but it cannot be added to current full-block timings as an unmerged gain. The explicitly requested RV32/main worktree at `/Users/theodorepender/code/cryptography/stwo-zig` was also checked read-only: clean at `66e26f6ed`, with the same shared Git ref/worktree universe, and no additional uncommitted packed LogUp source or matching retained benchmark note found. No edit, stash or build was performed there.
 
 | Work | Retained evidence | Production route |
 |---|---|---|
