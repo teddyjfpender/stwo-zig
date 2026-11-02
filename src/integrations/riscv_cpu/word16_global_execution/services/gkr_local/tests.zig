@@ -428,3 +428,7 @@ test {
 test {
     _ = @import("interaction_accounting.zig");
 }
+
+test {
+    _ = @import("tree_selection.zig");
+}

@@ -22,6 +22,7 @@ const Retention = @import("retention_plan.zig");
 const TruthRetention = @import("truth_retention.zig");
 pub const Store = @import("../../retained_main_store.zig").Store;
 pub const WorkerTiming = struct {
+    resolved_tree_policy: ?@import("child.zig").TreePolicy = null,
     source_ns: u64 = 0,
     seal_native_and_gkr_ns: u64 = 0,
     main_commit_ns: u64 = 0,
@@ -47,9 +48,11 @@ pub const WorkerTiming = struct {
     completed_worker_retired: bool = false,
 };
 pub const Options = struct {
-    /// Caller-owned observation, set once from the same frozen admission policy.
+    /// Caller-owned BASE policy observation; per-CPU resolution is in worker timings.
     observed_tree_policy: ?*@import("child.zig").TreePolicy = null,
     max_workers: usize = 8,
+    /// Strict source80 planned-peak threshold; zero disables hybrid selection.
+    checkpoint_above_gkr_bytes: usize = 0,
     /// Destructive opt-in for an exclusively owned Advice inventory. Successful
     /// CPU stage one has joined MAIN/local proofs and copied global LS caches;
     /// its original ordinary-memory events can then be retired. A later error
@@ -170,7 +173,7 @@ const Run = struct {
     stages: []Manifest.StageOne,
     results: []?Result,
     pending: ?*const Manifest.PendingManifest = null,
-    tree_policy: @import("child.zig").TreePolicy,
+    cpu_tree_policies: []const @import("child.zig").TreePolicy,
     fn stageOne(self: *Run, index: usize) !void {
         const timing = if (self.options.worker_timings) |values| &values[index] else null;
         var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
@@ -186,7 +189,7 @@ const Run = struct {
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
-            self.workers[index].?.cpu.tree_policy = self.tree_policy;
+            self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
@@ -283,6 +286,10 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 /// operational resource JSON or a producer bundle. It stays live through return.
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
     const policy = try @import("child.zig").readTreePolicy(a);
+    return produceFrozen(a, setups, truths, native, advice, expected, config, options, fixed, policy);
+}
+fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet, policy: @import("child.zig").TreePolicy) !Bundle {
+    try @import("tree_selection.zig").validate(policy, options.checkpoint_above_gkr_bytes);
     if (options.observed_tree_policy) |out| out.* = policy;
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
@@ -296,6 +303,9 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     defer inventory.deinit();
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy);
     defer estimates.deinit(a);
+    if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
+        timings[i].resolved_tree_policy = selected;
+    };
     const workers = try a.alloc(?Worker, count);
     defer a.free(workers);
     @memset(workers, null);
@@ -306,7 +316,7 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     defer a.free(results);
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
-    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .tree_policy = policy };
+    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .cpu_tree_policies = estimates.cpu_policies };
     const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
     const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
@@ -330,17 +340,21 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
 const Admission = struct {
     stage1: []u64,
     stage2: []u64,
+    cpu_policies: []@import("child.zig").TreePolicy,
     fn deinit(self: Admission, a: std.mem.Allocator) void {
         a.free(self.stage1);
         a.free(self.stage2);
+        a.free(self.cpu_policies);
     }
 };
 fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy) !Admission {
-    const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{} };
+    const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{}, .cpu_policies = &.{} };
     errdefer a.free(estimates.stage1);
     var result = estimates;
     result.stage2 = try a.alloc(u64, inventory.workers.len);
     errdefer a.free(result.stage2);
+    result.cpu_policies = try a.alloc(@import("child.zig").TreePolicy, setups.len);
+    errdefer a.free(result.cpu_policies);
     // Requests are coordinator-owned copies, separate from worker source lists.
     var retained: usize = ManifestWire.MAX_BYTES;
     retained = try std.math.add(usize, retained, try std.math.mul(usize, requests.len, @sizeOf(P.Request)));
@@ -348,7 +362,11 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
     const full_nodes = if (options.retained_store) |store| store.stats().merkle_parking_enabled else false;
     var disk: usize = 0;
     for (result.stage1, result.stage2, 0..) |*stage1, *stage2, i| {
-        const plan = if (i < setups.len) (if (policy.stream_bottom) try Retention.forCpuWithSourceStorage(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed) else try Retention.forCpuWithTightAdmission(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed, policy.tight_admission)) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
+        const plan = if (i < setups.len) blk: {
+            const selected = try @import("tree_selection.zig").forCpu(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy, options.checkpoint_above_gkr_bytes);
+            result.cpu_policies[i] = selected.policy;
+            break :blk selected.plan;
+        } else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;
@@ -365,3 +383,119 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
     }
     return result;
 }
+
+test "hybrid per-CPU policies preserve complete physical proofs fresh verification and admission OOM ownership" {
+    const a = std.testing.allocator;
+    const F = @import("coordinator_fixture.zig");
+    const Original = @import("../fixture.zig");
+    const Child = @import("child.zig");
+    var control = try F.Case.init(a);
+    defer control.deinit();
+    var captured = try Original.Captured.init(a);
+    defer captured.deinit();
+    var keys = try F.Keys.init(a);
+    defer keys.deinit();
+    const pointers = [_]*Native{ &captured.native[0], &captured.native[1] };
+    const requests = [_]P.Request{ try requestView(&pointers, &captured.advice, 0), try requestView(&pointers, &captured.advice, 1) };
+    const config = try F.config();
+    const base = Child.TreePolicy{ .stream_bottom = true, .tight_admission = true };
+    const p0 = try @import("tree_selection.zig").forCpu(a, keys.cpus[0], requests[0], config, 2 << 30, 1 << 30, base, 0);
+    const p1 = try @import("tree_selection.zig").forCpu(a, keys.cpus[1], requests[1], config, 2 << 30, 1 << 30, base, 0);
+    try std.testing.expect(p0.plan.gkr_peak_bytes != p1.plan.gkr_peak_bytes);
+    const threshold = @min(p0.plan.gkr_peak_bytes, p1.plan.gkr_peak_bytes);
+    var timings: [5]WorkerTiming = undefined;
+    var observed: Child.TreePolicy = undefined;
+    const options = Options{ .gkr_budget = 2 << 30, .checkpoint_above_gkr_bytes = threshold, .worker_timings = &timings, .observed_tree_policy = &observed, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 } };
+    const expected = Original.expectedFor(captured.program.identity);
+    var inventory = try Execution.Inventory.initWithAuthority(a, &keys.pointers(), &keys.truths(), &requests, expected, config, null);
+    defer inventory.deinit();
+    const AdmissionContext = struct {
+        setups: []const *const R.CpuSetup,
+        truths: []const R.Truth,
+        requests: []const P.Request,
+        inventory: *const Execution.Inventory,
+        config: W.PcsConfig,
+        options: Options,
+        policy: Child.TreePolicy,
+        fn run(allocator: std.mem.Allocator, context: @This()) !void {
+            const value = try admit(allocator, context.setups, context.truths, context.requests, context.inventory, context.config, context.options, context.policy);
+            defer value.deinit(allocator);
+        }
+    };
+    const setup_pointers = keys.pointers();
+    const truths = keys.truths();
+    try std.testing.checkAllAllocationFailures(a, AdmissionContext.run, .{AdmissionContext{ .setups = &setup_pointers, .truths = &truths, .requests = &requests, .inventory = &inventory, .config = config, .options = options, .policy = base }});
+    // A selected non-checkpoint CPU may not silently switch after its budget
+    // fails, even when checkpointing would have fit.
+    try std.testing.expectError(error.LocalGkrBudgetExceeded, @import("tree_selection.zig").forCpu(a, keys.cpus[0], requests[0], config, p0.plan.gkr_peak_bytes - 1, 1 << 30, base, std.math.maxInt(usize)));
+    const checkpoint_plan = try @import("tree_selection.zig").forCpu(a, keys.cpus[0], requests[0], config, 2 << 30, 1 << 30, base, 1);
+    try std.testing.expect(checkpoint_plan.plan.gkr_peak_bytes < p0.plan.gkr_peak_bytes);
+    const between = checkpoint_plan.plan.gkr_peak_bytes + (p0.plan.gkr_peak_bytes - checkpoint_plan.plan.gkr_peak_bytes) / 2;
+    const admitted_below_dense = try @import("tree_selection.zig").forCpu(a, keys.cpus[0], requests[0], config, between, 1 << 30, base, 1);
+    try std.testing.expect(admitted_below_dense.policy.checkpointed and admitted_below_dense.plan.gkr_peak_bytes <= between);
+    var conflicting = base;
+    conflicting.checkpointed = true;
+    try std.testing.expectError(error.InvalidHybridGkrTreePolicy, produceFrozen(a, &setup_pointers, &truths, &pointers, &captured.advice, expected, config, options, null, conflicting));
+    try std.testing.expect(captured.native[0].cpu != null and captured.native[1].cpu != null);
+    var bundle = try produceFrozen(a, &setup_pointers, &truths, &pointers, &captured.advice, expected, config, options, null, base);
+    defer bundle.deinit(a);
+    try std.testing.expectEqualDeep(base, observed);
+    for (timings, 0..) |timing, i| {
+        if (i < 2) {
+            const peak = if (i == 0) p0.plan.gkr_peak_bytes else p1.plan.gkr_peak_bytes;
+            const selected = try @import("tree_selection.zig").resolve(base, threshold, peak);
+            try std.testing.expectEqualDeep(selected, timing.resolved_tree_policy.?);
+            const selected_plan = try @import("tree_selection.zig").forCpu(a, keys.cpus[i], requests[i], config, options.gkr_budget, options.global_budget, base, threshold);
+            try std.testing.expectEqual(selected_plan.plan.gkr_peak_bytes, timing.admitted_gkr_peak_bytes);
+            try std.testing.expect(timing.including_binding_requested_peak_bytes <= timing.admitted_gkr_peak_bytes);
+            try std.testing.expect(timing.gkr_allocator_limit_bytes <= options.gkr_budget);
+        } else try std.testing.expect(timing.resolved_tree_policy == null);
+    }
+    try std.testing.expect(timings[0].resolved_tree_policy.?.checkpointed != timings[1].resolved_tree_policy.?.checkpointed);
+    try std.testing.expectEqualSlices(u8, control.bundle.stage_one_bytes, bundle.stage_one_bytes);
+    for (control.bundle.cpus, bundle.cpus) |before, after| {
+        try std.testing.expectEqualSlices(u8, before.bytes, after.bytes);
+        try std.testing.expectEqualDeep(before.claims, after.claims);
+    }
+    for (control.bundle.truths, bundle.truths) |before, after| try std.testing.expectEqualSlices(u8, before.bytes, after.bytes);
+    var fresh = try F.Keys.init(a);
+    defer fresh.deinit();
+    const result = try bundle.verify(a, &fresh.pointers(), &fresh.truths(), expected, config);
+    try std.testing.expect(result.completed);
+    // Fail the next allocation only after CPU0 has a complete owned child and
+    // physical MAIN. The serial outer lane then fails CPU1, exercising teardown
+    // of live workers, frozen policy storage and every pending owner together.
+    var failure_timings: [5]WorkerTiming = @splat(.{});
+    var failing = HybridFailureAllocator{ .child = a, .first = &failure_timings[0] };
+    var failed_capture = try Original.Captured.init(failing.allocator());
+    defer failed_capture.deinit();
+    var failure_options = options;
+    failure_options.worker_timings = &failure_timings;
+    failure_options.schedule = .{ .lanes = 1, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 };
+    try std.testing.expectError(error.OutOfMemory, produceFrozen(failing.allocator(), &setup_pointers, &truths, &.{ &failed_capture.native[0], &failed_capture.native[1] }, &failed_capture.advice, expected, config, failure_options, null, base));
+    try std.testing.expect(failure_timings[0].stage1_completed and !failure_timings[1].stage1_completed);
+}
+
+const HybridFailureAllocator = struct {
+    child: std.mem.Allocator,
+    first: *const WorkerTiming,
+    fn allocator(self: *@This()) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &.{ .alloc = alloc, .resize = resize, .remap = remap, .free = free } };
+    }
+    fn alloc(ctx: *anyopaque, len: usize, alignment: std.mem.Alignment, ra: usize) ?[*]u8 {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        return if (self.first.stage1_completed) null else self.child.rawAlloc(len, alignment, ra);
+    }
+    fn resize(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, len: usize, ra: usize) bool {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        return !self.first.stage1_completed and self.child.rawResize(memory, alignment, len, ra);
+    }
+    fn remap(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, len: usize, ra: usize) ?[*]u8 {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        return if (self.first.stage1_completed) null else self.child.rawRemap(memory, alignment, len, ra);
+    }
+    fn free(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, ra: usize) void {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        self.child.rawFree(memory, alignment, ra);
+    }
+};
