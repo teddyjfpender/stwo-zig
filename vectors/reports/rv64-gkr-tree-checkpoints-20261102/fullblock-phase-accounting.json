@@ -1,0 +1,155 @@
+{
+  "scope": "Derived exactly from committed complete-block reports/schedules; source-pinned individual observations, no new benchmark or causal attribution",
+  "warnings": [
+    "Worker durations overlap across lanes and must not be added to wall time",
+    "Native completion includes physical protocol stages and is not a numerical GKR-only measurement",
+    "Different geometry and operational settings are not isolated algorithm A/Bs",
+    "Candidate profile is not reviewed whole128"
+  ],
+  "runs": [
+    {
+      "source_report": "vectors/reports/rv64-om-ethereum-20261102/fullblock-tight-dense-owned-v1/report.json",
+      "source_schedule": "vectors/reports/rv64-om-ethereum-20261102/fullblock-tight-dense-owned-v1/schedule.json",
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "prove_seconds": 242.44355125,
+      "stage1_seconds": 103.454361542,
+      "stage2_seconds": 138.797936833,
+      "groups": {
+        "cpu": {
+          "proofs": 25,
+          "summed_worker_seconds": {
+            "source": 10.593769125,
+            "main_commit": 35.852551125,
+            "inputs": 8.499526417,
+            "numerical": 81.322094545,
+            "binding": 13.51853033,
+            "spill": 14.501541791,
+            "restore": 13.703216834,
+            "native_complete": 185.298973749
+          }
+        },
+        "truth": {
+          "proofs": 5,
+          "summed_worker_seconds": {
+            "source": 6.962636626,
+            "main_commit": 2.620373708,
+            "inputs": 0.0,
+            "numerical": 0.0,
+            "binding": 0.0,
+            "spill": 1.853174209,
+            "restore": 0.952941834,
+            "native_complete": 75.459173415
+          }
+        }
+      }
+    },
+    {
+      "source_report": "vectors/reports/rv64-om-ethereum-20261102/fullblock-stream80-k18-v1/report.json",
+      "source_schedule": "vectors/reports/rv64-om-ethereum-20261102/fullblock-stream80-k18-v1/schedule.json",
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "prove_seconds": 231.551140708,
+      "stage1_seconds": 95.321941417,
+      "stage2_seconds": 136.044935833,
+      "groups": {
+        "cpu": {
+          "proofs": 25,
+          "summed_worker_seconds": {
+            "source": 10.617300543,
+            "main_commit": 35.63200275,
+            "inputs": 2.6708e-05,
+            "numerical": 103.495178209,
+            "binding": 15.965922084,
+            "spill": 13.534065542,
+            "restore": 15.578259171,
+            "native_complete": 182.558570415
+          }
+        },
+        "truth": {
+          "proofs": 5,
+          "summed_worker_seconds": {
+            "source": 6.59981675,
+            "main_commit": 2.556062418,
+            "inputs": 0.0,
+            "numerical": 0.0,
+            "binding": 0.0,
+            "spill": 1.67626154,
+            "restore": 1.234621,
+            "native_complete": 70.306038
+          }
+        }
+      }
+    },
+    {
+      "source_report": "vectors/reports/rv64-om-ethereum-20261102/fullblock-stream80-k16-v1/report.json",
+      "source_schedule": "vectors/reports/rv64-om-ethereum-20261102/fullblock-stream80-k16-v1/schedule.json",
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "prove_seconds": 224.75163475,
+      "stage1_seconds": 90.368393792,
+      "stage2_seconds": 134.194701084,
+      "groups": {
+        "cpu": {
+          "proofs": 25,
+          "summed_worker_seconds": {
+            "source": 10.254439835,
+            "main_commit": 34.174931501,
+            "inputs": 2.1419e-05,
+            "numerical": 96.507715458,
+            "binding": 14.88192175,
+            "spill": 13.14256967,
+            "restore": 15.038020626,
+            "native_complete": 183.499082915
+          }
+        },
+        "truth": {
+          "proofs": 11,
+          "summed_worker_seconds": {
+            "source": 6.888295706,
+            "main_commit": 2.442660254,
+            "inputs": 0.0,
+            "numerical": 0.0,
+            "binding": 0.0,
+            "spill": 1.655037039,
+            "restore": 0.993867917,
+            "native_complete": 67.323339542
+          }
+        }
+      }
+    },
+    {
+      "source_report": "vectors/reports/rv64-om-ethereum-20261102/fullblock-source80-candidate-k18-v1/report.json",
+      "source_schedule": "vectors/reports/rv64-om-ethereum-20261102/fullblock-source80-candidate-k18-v1/schedule.json",
+      "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+      "prove_seconds": 305.363786916,
+      "stage1_seconds": 116.652017959,
+      "stage2_seconds": 188.521831167,
+      "groups": {
+        "cpu": {
+          "proofs": 25,
+          "summed_worker_seconds": {
+            "source": 10.403585748,
+            "main_commit": 81.767201209,
+            "inputs": 2.3623e-05,
+            "numerical": 98.932467333,
+            "binding": 15.273457709,
+            "spill": 13.387710295,
+            "restore": 16.815485458,
+            "native_complete": 274.959907623
+          }
+        },
+        "truth": {
+          "proofs": 5,
+          "summed_worker_seconds": {
+            "source": 6.267545209,
+            "main_commit": 5.123469625,
+            "inputs": 0.0,
+            "numerical": 0.0,
+            "binding": 0.0,
+            "spill": 1.670340709,
+            "restore": 1.672819291,
+            "native_complete": 77.630030376
+          }
+        }
+      }
+    }
+  ]
+}
