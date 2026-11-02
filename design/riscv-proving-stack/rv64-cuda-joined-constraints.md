@@ -51,8 +51,14 @@ the single-point output. This is numerical qualification, not PCS authentication
 - Sponge call and permutation MAIN match native OM31 residuals at arbitrary
   extension-field rows for public counts 0, 1 and 17.
 - Native physical Keccak sponge suite passes after the typed-public refactor.
-- RTX5090 OODS build/normal/sanitizer results are a separate qualification gate;
-  a live build is not a passing hardware receipt.
+- RTX5090 OODS: all ten cases match native OM31, with zero errors from
+  memcheck, racecheck, initcheck and synccheck. Domain regression passes all
+  20 cases and 12,446 signed mask positions; the ten domain kernel bodies are
+  byte-identical to their earlier qualified versions.
+- Sharing a noinline multiply body for single-point OODS bounds AOT code size.
+  The revised build took 66 seconds. The superseded fully inlined build was
+  still active after more than fourteen minutes and was stopped after the new
+  implementation passed. This is compile-time evidence, not a prover speedup.
 
 Remaining: native-versus-recorded complete joined residual parity, generation
 and device qualification of the joined role kernels, typed runtime metadata

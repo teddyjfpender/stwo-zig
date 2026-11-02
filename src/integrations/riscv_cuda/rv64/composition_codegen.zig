@@ -13,6 +13,7 @@ pub fn identity(program: *const Program) ![32]u8 {
     h.update(&program.identity);
     h.update(@embedFile("composition_codegen.zig"));
     h.update(sources.composition);
+    h.update(sources.oods);
     h.update(sources.om31);
     h.update(sources.quartic);
     return h.finalResult();
@@ -117,6 +118,9 @@ pub fn emit(a: std.mem.Allocator, w: anytype, program: *const Program, name: []c
 
 /// Emit one arithmetic DAG node. Callers own input addressing and output laws.
 pub fn emitValue(w: anytype, program: *const Program, sorts: []const ir.Sort, i: u32) !void {
+    return emitValueWithMultiply(w, program, sorts, i, "mul");
+}
+fn emitValueWithMultiply(w: anytype, program: *const Program, sorts: []const ir.Sort, i: u32, multiply: []const u8) !void {
     const node = program.nodes[i];
     const sort = sorts[i];
     switch (node.op) {
@@ -142,7 +146,7 @@ pub fn emitValue(w: anytype, program: *const Program, sorts: []const ir.Sort, i:
             } else if (node.op == .mul and sorts[node.lhs] != sorts[node.rhs]) {
                 try w.print(" const OM31 v{}=scale(v{},v{});\n", .{ i, if (sorts[node.lhs] == .secure) node.lhs else node.rhs, if (sorts[node.lhs] == .base) node.lhs else node.rhs });
             } else {
-                try w.print(" const OM31 v{}={s}(", .{ i, @tagName(node.op) });
+                try w.print(" const OM31 v{}={s}(", .{ i, if (node.op == .mul) multiply else @tagName(node.op) });
                 if (sorts[node.lhs] == .base) try w.print("base(v{})", .{node.lhs}) else try w.print("v{}", .{node.lhs});
                 try w.writeAll(",");
                 if (sorts[node.rhs] == .base) try w.print("base(v{})", .{node.rhs}) else try w.print("v{}", .{node.rhs});
@@ -181,18 +185,18 @@ pub fn emitOods(a: std.mem.Allocator, w: anytype, program: *const Program, name:
         next[j] = heads[root];
         heads[root] = @intCast(j);
     }
-    try w.writeAll("#include \"rv64/composition.cuh\"\nusing namespace stwo::cuda::rv64;\n");
+    try w.writeAll("#include \"rv64/oods.cuh\"\nusing namespace stwo::cuda::rv64;\n");
     try w.print("extern \"C\" __global__ void {s}(const uint32_t *inputs,const uint32_t *parameters,const uint32_t *powers,const uint32_t *inverse,uint32_t *output) {{\n if(blockIdx.x || threadIdx.x) return;\n OM31 folded=zero();\n", .{name});
     for (order) |i| {
         const node = program.nodes[i];
         if (node.op == .input) {
             try w.print(" const OM31 v{}=from_words(inputs+{}u);\n", .{ i, 8 * node.value });
-        } else try emitValue(w, program, sorts, i);
+        } else try emitValueWithMultiply(w, program, sorts, i, "oods_mul");
         var root = heads[i];
         while (root != std.math.maxInt(u32)) : (root = next[root]) {
             const power = 8 * (program.roots.len - 1 - root);
-            if (sorts[i] == .base) try w.print(" folded=add(folded,scale(from_words(powers+{}u),v{}));\n", .{ power, i }) else try w.print(" folded=add(folded,mul(from_words(powers+{}u),v{}));\n", .{ power, i });
+            if (sorts[i] == .base) try w.print(" folded=add(folded,scale(from_words(powers+{}u),v{}));\n", .{ power, i }) else try w.print(" folded=add(folded,oods_mul(from_words(powers+{}u),v{}));\n", .{ power, i });
         }
     }
-    try w.writeAll(" store(output,1,0,add(load(output,1,0),mul(folded,from_words(inverse))));\n}\n");
+    try w.writeAll(" store(output,1,0,add(load(output,1,0),oods_mul(folded,from_words(inverse))));\n}\n");
 }
