@@ -139,3 +139,33 @@ to the WGKR prototype and to services local GKR proofs.
   thread-safe budget owner.
 - The OM31 numbers use the services shape but synthetic data; a services
   proof through `services/gkr_local` with real metadata was not timed here.
+
+## Production route (on PR #308 head cb7f1f50b, after PR #309)
+
+Every speedup above was measured against the *pre-#309* scalar `gkr_prover`. PR #309 replaced that prover's numerical loops with its own packed kernels (`src/prover/lookups/packed_rows.zig`, pooled through `row_work.zig`). So the real question is whether `gkr_prover_fast` still beats the current production prover. It does not.
+
+The `om31` bench now runs `reference` (that is, production `gkr_prover.proveBatch`) on a scoped `WorkPool` of `threads` workers when threads > 1, which is how #309 parallelises. ReleaseFast, median of 3 runs. The host was on **battery power** with load about 2, so treat differences under about 5% as noise. Raw data: `vectors/reports/rv64-logup-cpu-performance/production-route-cb7f1f50b.txt`.
+
+| shape | production (#309) | fast | fast / production |
+|---|---|---|---|
+| OM31 2^14, 1T | 2.37 ms | 2.75 ms | 1.16 |
+| OM31 2^16, 1T | 9.42 ms | 9.30 ms | 0.99 |
+| OM31 2^18, 1T | 32.9 ms | 36.4 ms | 1.11 |
+| OM31 2^20, 1T | 130.5 ms | 146.7 ms | 1.12 |
+| OM31 2^20, 4T | 45.6 ms | 46.3 ms | 1.01 |
+| OM31 2^20, 8T | 33.9 ms | 32.8 ms | 0.97 |
+| OM31 2^18, 8T | 13.3 ms | 13.3 ms | 1.00 |
+| QM31 2^20 singles, 1T | 41.7 ms | 43.1 ms | 1.03 |
+| QM31 2^20 generic, 1T | 50.8 ms | 53.9 ms | 1.06 |
+
+Every pair produced the same SHA-256 over channel digest, OOD point, claims and round polynomials.
+
+**Decision: keep #309's kernels.** The services `gkr_local` child and coordinator and the OM truth GKR are not routed through `gkr_prover_fast`. The reasons:
+
+1. **No speed advantage.** The fast prover is slower at 1T and only matches production at 4-8T. Its 2.3-3.4x per-thread lead came entirely from the old scalar baseline.
+2. **Missing production paths.** The coordinator's default policy is `stream_bottom = true`, `tight_admission = true` (`proveBatchSource` / `proveBatchSourceCheckpointed`), and the fast prover implements neither. It also has no owned-checkpoint path (`proveBatchOwnedCheckpointed`). At most it could replace the dense `proveBatch` branch, which production does not use by default.
+3. **Allocator safety.** With `threads > 1`, the fast prover builds a `std.Thread.Pool` on the passed allocator. Pool closures are then freed from worker threads, which is unsafe with the single-threaded memory-budget allocator. With `threads = 1` it is safe but about 12% slower than production.
+
+`gkr_prover_fast` stays in the tree as the engine behind the WGKR prototype (`logup_gkr/fast_gkr.zig`). The cherry-picked services hook (`proveLayers` in `gkr_local/child.zig`) was dropped while resolving the conflict, so `child.zig` is byte-identical to the PR #308 head. OM GKR proof bytes are therefore unchanged by construction; no new route was introduced.
+
+What would still be worth porting from the fast prover is its fused sumcheck/fold layer, applied inside #309's pooled `row_work` structure rather than as a separate prover. Before doing that, re-measure on AC power.
