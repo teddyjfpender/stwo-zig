@@ -41,6 +41,12 @@ fn runV3(truth: R.Truth, source: R.TruthSource) !void {
     const a = std.testing.allocator;
     const O = P.O;
     const cfg = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 4) };
+    const declaration = @import("../wire.zig").TruthDeclaration.from(truth);
+    const descriptor = try C.descriptorForDeclaration(declaration);
+    const counts = try C.lookupCountsForDeclaration(declaration);
+    try std.testing.expectEqual((try C.shape(truth)).main, descriptor.shape.main);
+    try std.testing.expect(counts.wire_denominator_slots >= (try W.truthMass(truth)).wire);
+    _ = try @import("truth_v3_retention.zig").forTruth(a, truth, cfg, 256 << 20);
     const expected = Manifest.ExpectedWorker{ .kind = .delegation, .global_relations = .{ .ram = false, .kio = false, .wire = true }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatement(truth, cfg, @splat(17)), .fixed = truth.key().root, .local_instances = null };
     var worker = W.TruthWorker.init(a, truth, source, expected, cfg, 256 << 20) catch |err| {
         var owned = source;

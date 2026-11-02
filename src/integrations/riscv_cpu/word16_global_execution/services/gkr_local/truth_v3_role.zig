@@ -16,8 +16,19 @@ const Acc = core.air.accumulation.ForField(O).PointEvaluationAccumulator;
 pub const Component = struct {
     pub const LOCAL_GKR = false;
     pub const MAX_FIXED = 4;
-    pub const MAX_MAIN = A.crypto.sha256.layout.MAIN;
-    pub const MAX_INTER = 4096;
+    pub const MAX_MAIN = blk: {
+        var n: usize = A.crypto.sha256.layout.MAIN;
+        n = @max(n, A.crypto.arith256.layout.MAIN);
+        for (std.enums.values(A.crypto.curves.Op)) |op| n = @max(n, A.crypto.curves.Layout(op).MAIN);
+        for (std.enums.values(A.crypto.curves.spec.SecpKind)) |op| n = @max(n, A.crypto.curves.Layout(op).MAIN);
+        break :blk n;
+    };
+    pub const MAX_INTER = blk: {
+        var n: usize = A.crypto.arith256.layout.BATCHES * 8;
+        for (std.enums.values(A.crypto.curves.Op)) |op| n = @max(n, A.crypto.curves.Layout(op).BATCHES * 8);
+        for (std.enums.values(A.crypto.curves.spec.SecpKind)) |op| n = @max(n, A.crypto.curves.Layout(op).BATCHES * 8);
+        break :blk n;
+    };
     truth: R.Truth,
     offsets: [2]usize = .{ 0, 0 },
     inter_offset: usize = 0,

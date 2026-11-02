@@ -172,8 +172,11 @@ pub const NativeTruthWorker = struct {
         s.started = true;
         errdefer s.failed = true;
         const bytes = local(&s.channel);
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(s.native_recorder, "interaction_generation", "V3 truth local BYTE and global Wire cumulative interactions");
+        defer generation.end();
         var witness = try Gen.generate(a, &s.source, p.shared.wire, bytes, budget);
         defer witness.deinit();
+        generation.end();
         const claims = try a.dupe(O, &.{witness.claim});
         errdefer a.free(claims);
         var role = component(s.truth, p.shared.wire, bytes, witness.claim);
