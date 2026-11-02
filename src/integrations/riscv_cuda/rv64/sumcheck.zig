@@ -62,13 +62,15 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     try commands.eq(input.point, variables, work.eq);
     var current = input.fractions;
     for (0..variables) |at| {
-        try commands.sum(current, work.eq, input.lambda, work.scratch_a, work.scratch_b, work.sums);
+        if (at == 0 or !commands.fused_fold_sum) try commands.sum(current, work.eq, input.lambda, work.scratch_a, work.scratch_b, work.sums);
         const record = try work.records.sub(at * abi.round_record_words, abi.round_record_words);
         try commands.round(work.state, variables, @intCast(at), work.sums, input.point, record);
         const challenge = try record.sub(32, 8);
         var output = work.banks[at % 2];
         output.count = current.count / 2;
-        try commands.fold(current, challenge, output);
+        if (commands.fused_fold_sum and at + 1 < variables) {
+            try commands.foldSum(current, challenge, output, work.eq, input.lambda, work.scratch_a, work.scratch_b, work.sums);
+        } else try commands.fold(current, challenge, output);
         current = output;
     }
     try commands.packMask(current, work.terminal_mask);

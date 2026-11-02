@@ -37,16 +37,16 @@ extern "C" void rv64_test_sum(const uint32_t* n, const uint32_t* d, const uint32
 }
 
 #include "rv64/round.cuh"
+#include "rv64/fold_sum.cuh"
 #include <vector>
 #include <cstring>
 extern "C" void rv64_test_inverse(const uint32_t* a, uint32_t* out) {
     put(out, inverse_nonzero(from_words(a)));
 }
-extern "C" void rv64_test_sumcheck(const uint32_t* n, const uint32_t* d, uint32_t count,
-                                   uint32_t base_n, const uint32_t* point,
-                                   const uint32_t* lambda, const uint32_t* claim,
-                                   const uint32_t* seed, uint32_t* records, uint32_t* state,
-                                   uint32_t* terminal) {
+static void sumcheck_impl(bool fused, const uint32_t* n, const uint32_t* d, uint32_t count,
+                          uint32_t base_n, const uint32_t* point, const uint32_t* lambda,
+                          const uint32_t* claim, const uint32_t* seed, uint32_t* records,
+                          uint32_t* state, uint32_t* terminal) {
     uint32_t variables = 0;
     for (uint32_t m = count / 2; m > 1; m >>= 1) ++variables;
     auto* s = reinterpret_cast<RoundState*>(state);
@@ -63,10 +63,11 @@ extern "C" void rv64_test_sumcheck(const uint32_t* n, const uint32_t* d, uint32_
         }
         eq[i] = e;
     }
+    Pair next_raw{zero(), zero()};
     for (uint32_t round = 0; round < variables; ++round) {
-        Pair raw{zero(), zero()};
+        Pair raw = fused && round ? next_raw : Pair{zero(), zero()};
         const uint32_t terms = values.size() / 4;
-        for (uint32_t i = 0; i < terms; ++i) {
+        for (uint32_t i = 0; !(fused && round) && i < terms; ++i) {
             const auto t = sum_term(values[2 * i], values[2 * i + 1], values[2 * (terms + i)],
                                     values[2 * (terms + i) + 1], eq[i], from_words(lambda));
             raw.at0 = add(raw.at0, t.at0);
@@ -76,15 +77,58 @@ extern "C" void rv64_test_sumcheck(const uint32_t* n, const uint32_t* d, uint32_
         if (!advance_round(s, round, raw, from_words(point + 8 * round), record)) return;
         const auto x = record->challenge;
         const size_t half = values.size() / 2;
-        for (size_t i = 0; i < half; ++i)
-            values[i] = {fold(values[i].n, values[i + half].n, x),
-                         fold(values[i].d, values[i + half].d, x)};
+        if (fused && half >= 4) {
+            // Deliberately padded coordinate strides; disjoint ping-pong planes.
+            const uint32_t stride = values.size() + 3, out_stride = half + 5;
+            std::vector<uint32_t> ns(8 * stride), ds(8 * stride), on(8 * out_stride),
+                od(8 * out_stride);
+            const bool base_input = base_n && round == 0;
+            for (uint32_t i = 0; i < values.size(); ++i) {
+                if (base_input)
+                    ns[i] = coordinate(values[i].n, 0);
+                else
+                    store(ns.data(), stride, i, values[i].n);
+                store(ds.data(), stride, i, values[i].d);
+            }
+            const StwoRv64Plane np{ns.data(), stride, base_input ? 1u : 8u, 0},
+                dp{ds.data(), stride, 8, 0}, op{on.data(), out_stride, 8, 0},
+                oq{od.data(), out_stride, 8, 0};
+            next_raw = {zero(), zero()};
+            for (uint32_t i = 0; i < half / 4; ++i) {
+                const auto t = fold_sum_tile(np, dp, values.size(), i, x, eq[i],
+                                             from_words(lambda), op, oq);
+                next_raw.at0 = add(next_raw.at0, t.at0);
+                next_raw.at2 = add(next_raw.at2, t.at2);
+            }
+            for (uint32_t i = 0; i < half; ++i)
+                values[i] = {load(on.data(), out_stride, i), load(od.data(), out_stride, i)};
+        } else {
+            for (size_t i = 0; i < half; ++i)
+                values[i] = {fold(values[i].n, values[i + half].n, x),
+                             fold(values[i].d, values[i + half].d, x)};
+        }
         values.resize(half);
     }
     put(terminal, values[0].n);
     put(terminal + 8, values[1].n);
     put(terminal + 16, values[0].d);
     put(terminal + 24, values[1].d);
+}
+extern "C" void rv64_test_sumcheck(const uint32_t* n, const uint32_t* d, uint32_t count,
+                                   uint32_t base_n, const uint32_t* point,
+                                   const uint32_t* lambda, const uint32_t* claim,
+                                   const uint32_t* seed, uint32_t* records, uint32_t* state,
+                                   uint32_t* terminal) {
+    sumcheck_impl(false, n, d, count, base_n, point, lambda, claim, seed, records, state,
+                  terminal);
+}
+extern "C" void rv64_test_sumcheck_fused(const uint32_t* n, const uint32_t* d, uint32_t count,
+                                         uint32_t base_n, const uint32_t* point,
+                                         const uint32_t* lambda, const uint32_t* claim,
+                                         const uint32_t* seed, uint32_t* records,
+                                         uint32_t* state, uint32_t* terminal) {
+    sumcheck_impl(true, n, d, count, base_n, point, lambda, claim, seed, records, state,
+                  terminal);
 }
 extern "C" uint32_t rv64_test_round_failure(uint32_t kind) {
     uint32_t seed[9]{};

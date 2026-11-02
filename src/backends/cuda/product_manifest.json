@@ -149,6 +149,7 @@
       "stwo_rv64_gkr_eq_fused_on",
       "stwo_rv64_gkr_eq_on",
       "stwo_rv64_gkr_fold_on",
+      "stwo_rv64_gkr_fold_sum_on",
       "stwo_rv64_gkr_layer_on",
       "stwo_rv64_gkr_pack_mask_on",
       "stwo_rv64_gkr_project_on",

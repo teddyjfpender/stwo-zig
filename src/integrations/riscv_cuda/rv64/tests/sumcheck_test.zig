@@ -27,6 +27,7 @@ fn workspace() S.Workspace {
 const Commands = struct {
     context: *Context,
     poisoned: bool = false,
+    fused_fold_sum: bool = false,
     calls: usize = 0,
     folds: usize = 0,
     rounds: usize = 0,
@@ -40,6 +41,10 @@ const Commands = struct {
     pub fn sum(self: *@This(), f: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, _: R.Plane) !void {
         try std.testing.expectEqual(@as(u32, 16) >> @as(u5, @intCast(self.rounds)), f.count);
         self.calls += 1;
+    }
+    pub fn foldSum(self: *@This(), f: R.Fraction, challenge: Slice, out: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, _: R.Plane) !void {
+        try std.testing.expect(f.count >= 8);
+        try self.fold(f, challenge, out);
     }
     pub fn round(self: *@This(), _: Slice, _: u32, expected: u32, _: R.Plane, _: Slice, record: Slice) !void {
         try std.testing.expectEqual(@as(u32, @intCast(self.rounds)), expected);
@@ -87,4 +92,13 @@ test "RV64 CUDA preflight rejects alias stale generation and short reservations 
     try std.testing.expectEqual(@as(usize, 0), commands.calls);
     commands.poisoned = true;
     try std.testing.expectError(error.JobPoisoned, S.enqueue(&commands, input(), workspace()));
+}
+
+test "RV64 CUDA fused pipeline primes sums once and keeps terminal fold separate" {
+    var context = Context{};
+    var commands = Commands{ .context = &context, .fused_fold_sum = true };
+    const result = try S.enqueue(&commands, input(), workspace());
+    try std.testing.expectEqual(@as(usize, 10), commands.calls);
+    try std.testing.expectEqual(@as(usize, 3), commands.folds);
+    try std.testing.expectEqual(@as(u32, 2), result.terminal.count);
 }

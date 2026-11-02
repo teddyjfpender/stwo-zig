@@ -151,8 +151,59 @@ as four separate binary expansions, but keeps intermediate levels in registers.
 Eq-buffer traffic per old prefix drops from1440 to544 bytes (point loads and
 cache effects excluded). This is a structural count, not a bandwidth timing.
 
-The hardware harness now checks/times all four combinations of baseline/fused
-Eq and combined/split secure reductions, comparing complete round records and
+The hardware harness now checks/times six strategies: four combinations of baseline/fused
+Eq and combined/split secure reductions, plus fold/sum fusion with baseline/fused Eq, comparing complete round records and
 terminal masks. Fusion increases registers (four levels use128 on sm120) and
 reduces thread count, so fewer launches alone do not establish higher GPU
 utilization or lower latency. Use the full-round timings and Nsight to select.
+
+
+## Fold and next-round sum fusion
+
+Set `NativeCommands.fused_fold_sum=true` to fold nonterminal rounds and form
+next-round raw sums in one first-stage kernel. The first round still primes
+sums normally and the last uses the standalone terminal fold. This flag is
+independent of `fused_eq`; `split_secure_sum` affects the priming sum only when
+fold/sum fusion is enabled. Baseline remains default pending device profiling.
+
+Each thread owns four folded fraction rows and immediately consumes their
+register values for the next raw term. All eight source rows are read once;
+the folded table is still written for the following fold, but never reread
+by a separate sum kernel. No inter-block dependency, atomics, additional
+workspace or host round feedback is introduced. Reduction tails use the same
+deterministic multi-block reducer as the baseline. Every write reservation is
+checked against all inputs/outputs before the first dispatch.
+
+For an initial power-of-two count `n>=4`, this eliminates `log2(n)-2` launches
+and `64*(n-4)` bytes of logical fraction-table reads across the job, excluding
+cache effects, Eq/parameter reads and scratch reduction traffic. At `n=2^22`,
+that is20 launches and268,435,200 bytes (256 MiB minus256 bytes). Secure-input
+fold + next-sum fraction traffic per eight-row tile falls from1024 to768 bytes.
+The fused first stage uses128 registers/thread and256 shared bytes on sm89 and
+sm120, with no compiler-reported spills or stack frame. Fewer threads and
+higher work per thread may offset traffic savings; these are structural counts,
+not measured bandwidth or speedups.
+
+The numerical host test runs the exact tile helper on padded, disjoint SoA
+planes and compares complete records/state/terminal values with the baseline
+and native prover (14 cases,62 rounds, including zero polynomials, count4
+terminal-only and count8 minimum fused paths). This does not execute CUDA.
+The real-driver harness adds `fold_sum_ms` and `all_fused_ms` timings to the
+existing four variants and checks failed-round propagation through fused folds.
+Run shapes through `log_count=20`, including small tails, on each target GPU
+count; use Compute Sanitizer/Nsight before enabling a policy.
+
+
+A separate host replay checks22 size/base combinations under ASan/UBSan:
+
+```sh
+g++ -O1 -g -std=c++17 -fsanitize=address,undefined -fno-omit-frame-pointer \
+  -Itests/cuda/rv64/host_include -Isrc/backends/cuda/native \
+  tests/cuda/rv64/numerical_bridge.cpp tests/cuda/rv64/host_replay_test.cpp \
+  -o /tmp/rv64-host-replay-sanitize
+ASAN_OPTIONS=detect_leaks=0 /tmp/rv64-host-replay-sanitize
+```
+
+Leak scanning is disabled because this runner cannot inspect `/proc` thread
+state; address and undefined-behavior instrumentation remain enabled. This
+checks host memory safety only. GPU memcheck/racecheck/synccheck are pending.

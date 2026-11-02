@@ -54,6 +54,12 @@ int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64
 int stwo_rv64_gkr_sum_split_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64Plane d,
                                uint32_t count, StwoRv64Plane eq, const uint32_t* lambda,
                                StwoRv64Plane a, StwoRv64Plane b, StwoRv64Plane out);
+// Opt-in fold + next-round sums. count>=8; output fractions count/2,
+// Eq count/8; scratch banks each 16*ceil((count/8)/128) words. All write
+// ranges disjoint from every other range, including the assignment.
+int stwo_rv64_gkr_fold_sum_on(void*, uint32_t, StwoRv64Plane, StwoRv64Plane, uint32_t,
+                              const uint32_t*, StwoRv64Plane, StwoRv64Plane, StwoRv64Plane,
+                              const uint32_t*, StwoRv64Plane, StwoRv64Plane, StwoRv64Plane);
 // Gather the two final N and D rows into32 compact AoS words for proof
 // assembly; no complete fold bank needs to cross the device boundary.
 int stwo_rv64_gkr_pack_mask_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64Plane d,

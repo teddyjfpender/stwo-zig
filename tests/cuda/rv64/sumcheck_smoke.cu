@@ -30,7 +30,7 @@ struct Report {
     int device;
     uint32_t count;
     bool base;
-    float combined_ms, split_ms, fused_combined_ms, fused_split_ms;
+    float combined_ms, split_ms, fused_combined_ms, fused_split_ms, fold_sum_ms, all_fused_ms;
     uint64_t bytes;
 };
 static Report exercise(int device, uint32_t count, bool base_n) {
@@ -96,8 +96,23 @@ static Report exercise(int device, uint32_t count, bool base_n) {
     void* s = nullptr;
     CHECK(stwo_exec_context_lane_stream(o.ctx, 1, &s));
     const auto stream = reinterpret_cast<cudaStream_t>(s);
+    if (count >= 8) {
+        // Rejected calls must enqueue nothing, even when all addresses belong
+        // to the owner. Read/write aliasing is a range property, not ownership.
+        const auto rejected = [&](StwoRv64Plane on, StwoRv64Plane input_eq, uint32_t size) {
+            const int rc = stwo_rv64_gkr_fold_sum_on(o.ctx, 1, n, d, size, point.words, on, d0,
+                                                     input_eq, lambda.words, a, b, raw);
+            if (rc != int(cudaErrorInvalidValue))
+                throw std::runtime_error("fused fold preflight accepted invalid workspace");
+        };
+        rejected(d, eq, count);  // output aliases input denominator
+        auto short_eq = eq;
+        short_eq.stride = count / 8 - 1;
+        rejected(n0, short_eq, count);
+        rejected(n0, eq, 4);  // terminal fold has no subsequent sum
+    }
     StwoRv64Plane terminal_n = n, terminal_d = d;
-    auto wave = [&](bool split, bool fused) {
+    auto wave = [&](bool split, bool fused, bool fold_sum = false) {
         CHECK(stwo_rv64_sumcheck_init_on(o.ctx, 1, state.words, seed.words, claim.words,
                                          variables));
         if (fused)
@@ -107,18 +122,25 @@ static Report exercise(int device, uint32_t count, bool base_n) {
         auto current_n = n, current_d = d;
         uint32_t size = count;
         for (uint32_t r = 0; r < variables; ++r) {
-            if (split)
-                CHECK(stwo_rv64_gkr_sum_split_on(o.ctx, 1, current_n, current_d, size, eq,
-                                                 lambda.words, a, b, raw));
-            else
-                CHECK(stwo_rv64_gkr_sum_on(o.ctx, 1, current_n, current_d, size, eq,
-                                           lambda.words, a, b, raw));
+            if (!fold_sum || r == 0) {
+                if (split)
+                    CHECK(stwo_rv64_gkr_sum_split_on(o.ctx, 1, current_n, current_d, size, eq,
+                                                     lambda.words, a, b, raw));
+                else
+                    CHECK(stwo_rv64_gkr_sum_on(o.ctx, 1, current_n, current_d, size, eq,
+                                               lambda.words, a, b, raw));
+            }
             auto* record = records.words + r * round_record_words;
             CHECK(stwo_rv64_sumcheck_round_on(o.ctx, 1, state.words, variables, r, raw,
                                               point.words, record));
             const auto on = (r % 2 == 0) ? n0 : n1, od = (r % 2 == 0) ? d0 : d1;
-            CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, current_n, current_d, size, record + 32, on,
-                                        od));
+            if (fold_sum && size >= 8)
+                CHECK(stwo_rv64_gkr_fold_sum_on(o.ctx, 1, current_n, current_d, size,
+                                                record + 32, on, od, eq, lambda.words, a, b,
+                                                raw));
+            else
+                CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, current_n, current_d, size, record + 32,
+                                            on, od));
             current_n = on;
             current_d = od;
             size /= 2;
@@ -134,14 +156,17 @@ static Report exercise(int device, uint32_t count, bool base_n) {
         equal(o.read(compact), expected_terminal, "terminal mask");
     };
     auto begin = o.event(), end = o.event();
-    float medians[4]{};
-    for (int variant = 0; variant < 4; ++variant) {
-        for (int i = 0; i < 3; ++i) wave(variant & 1, variant >= 2);
+    float medians[6]{};
+    for (int variant = 0; variant < 6; ++variant) {
+        for (int i = 0; i < 3; ++i)
+            wave(variant < 4 && (variant & 1), (variant >= 2 && variant < 4) || variant == 5,
+                 variant >= 4);
         compare();
         std::vector<float> times;
         for (int i = 0; i < 11; ++i) {
             CHECK(cudaEventRecord(begin, stream));
-            wave(variant & 1, variant >= 2);
+            wave(variant < 4 && (variant & 1), (variant >= 2 && variant < 4) || variant == 5,
+                 variant >= 4);
             CHECK(cudaEventRecord(end, stream));
             CHECK(cudaEventSynchronize(end));
             float ms = 0;
@@ -158,7 +183,7 @@ static Report exercise(int device, uint32_t count, bool base_n) {
     put(bad_point, 0, one());
     o.upload(point, bad_point);
     CHECK(stwo_exec_context_sync(o.ctx));
-    wave(false, true);
+    wave(false, true, true);
     CHECK(stwo_exec_context_sync(o.ctx));
     const auto bad_state = o.read(state), bad_records = o.read(records);
     if (bad_state[10] != round_pole || bad_state[9] != 0)
@@ -171,8 +196,8 @@ static Report exercise(int device, uint32_t count, bool base_n) {
             throw std::runtime_error("failed record ordinal not invalidated");
     }
     CHECK(stwo_exec_context_dependency_release(o.ctx, &ready));
-    Report report{device,     count,      base_n,     medians[0],
-                  medians[1], medians[2], medians[3], o.allocated_bytes};
+    Report report{device,     count,      base_n,     medians[0], medians[1],
+                  medians[2], medians[3], medians[4], medians[5], o.allocated_bytes};
     o.close();
     return report;
 }
@@ -209,11 +234,13 @@ int main(int argc, char** argv) {
             std::printf(
                 "{\"schema\":\"rv64-cuda-resident-sumcheck-v1\",\"device\":%d,\"count\":%u,"
                 "\"base_n\":%s,\"combined_median_ms\":%.6f,\"split_median_ms\":%.6f,"
-                "\"fused_eq_combined_ms\":%.6f,\"fused_eq_split_ms\":%.6f,\"allocated_bytes\":%"
+                "\"fused_eq_combined_ms\":%.6f,\"fused_eq_split_ms\":%.6f,\"fold_sum_ms\":%.6f,"
+                "\"all_fused_ms\":%.6f,\"allocated_bytes\":%"
                 "llu,\"hot_h2d_bytes\":0,\"hot_d2h_bytes\":0,\"all_rounds_"
                 "verified\":true,\"full_block_verified\":false}\n",
                 r.device, r.count, r.base ? "true" : "false", r.combined_ms, r.split_ms,
-                r.fused_combined_ms, r.fused_split_ms, (unsigned long long)r.bytes);
+                r.fused_combined_ms, r.fused_split_ms, r.fold_sum_ms, r.all_fused_ms,
+                (unsigned long long)r.bytes);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "FAIL: %s\n", e.what());
         return 1;

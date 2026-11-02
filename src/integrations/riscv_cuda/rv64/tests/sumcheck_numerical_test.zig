@@ -11,6 +11,7 @@ const Channel = core.channel.raw_mod_m31.Om31Channel;
 const a = std.testing.allocator;
 extern "c" fn rv64_test_inverse(*const [8]u32, *[8]u32) void;
 extern "c" fn rv64_test_sumcheck([*]const [8]u32, [*]const [8]u32, u32, u32, [*]const [8]u32, *const [8]u32, *const [8]u32, *const [9]u32, [*]u32, *[40]u32, *[32]u32) void;
+extern "c" fn rv64_test_sumcheck_fused([*]const [8]u32, [*]const [8]u32, u32, u32, [*]const [8]u32, *const [8]u32, *const [8]u32, *const [9]u32, [*]u32, *[40]u32, *[32]u32) void;
 extern "c" fn rv64_test_round_failure(u32) u32;
 fn words(v: O) [8]u32 {
     var out: [8]u32 = undefined;
@@ -85,6 +86,13 @@ fn exercise(comptime count: usize, comptime base_mode: bool, comptime zero_mode:
     var state: [40]u32 = undefined;
     var terminal: [32]u32 = undefined;
     rv64_test_sumcheck(&nn, &dd, count, @intFromBool(base_mode), &yw, &words(lambda), &words(claim), &seed, &records, &state, &terminal);
+    var fused_records: [variables * 44]u32 = @splat(0xdeadbeef);
+    var fused_state: [40]u32 = undefined;
+    var fused_terminal: [32]u32 = undefined;
+    rv64_test_sumcheck_fused(&nn, &dd, count, @intFromBool(base_mode), &yw, &words(lambda), &words(claim), &seed, &fused_records, &fused_state, &fused_terminal);
+    try std.testing.expectEqualSlices(u32, &records, &fused_records);
+    try std.testing.expectEqualSlices(u32, &state, &fused_state);
+    try std.testing.expectEqualSlices(u32, &terminal, &fused_terminal);
     try std.testing.expectEqual(@as(u32, 0), state[10]);
     try std.testing.expectEqual(@as(u32, variables), state[9]);
     for (expected.proof.round_polys, expected.assignment, 0..) |poly, x, i| {
@@ -132,7 +140,7 @@ fn exercise(comptime count: usize, comptime base_mode: bool, comptime zero_mode:
     }
 }
 test "RV64 CUDA complete resident-round arithmetic matches native proof challenges terminal and transcript" {
-    inline for (.{ 4, 16, 64, 256 }) |count| {
+    inline for (.{ 4, 8, 16, 64, 256, 2048 }) |count| {
         try exercise(count, true, false);
         try exercise(count, false, false);
     }

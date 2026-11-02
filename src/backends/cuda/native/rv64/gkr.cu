@@ -1,5 +1,6 @@
 #include "om31.cuh"
 #include "eq_tile.cuh"
+#include "fold_sum.cuh"
 #include "custody.cuh"
 
 namespace stwo::cuda::rv64 {
@@ -145,6 +146,17 @@ __global__ void sum_first(StwoRv64Plane n, StwoRv64Plane d, uint32_t terms, Stwo
                               read_fraction(n, d, k), read_fraction(n, d, k + 1), e, l);
     }
     // Tail threads also participate in every shuffle and barrier.
+    block_sum(result, out);
+}
+// Fold and form the NEXT round's raw terms before evicting values.
+__global__ void fold_sum_first(StwoRv64Plane n, StwoRv64Plane d, uint32_t count,
+                               const uint32_t* x, StwoRv64Plane on, StwoRv64Plane od,
+                               StwoRv64Plane eq, const uint32_t* lambda, StwoRv64Plane out) {
+    const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    Pair result{zero(), zero()};
+    if (i < count / 8)
+        result = fold_sum_tile(n, d, count, i, from_words(x), load(eq.words, eq.stride, i),
+                               from_words(lambda), on, od);
     block_sum(result, out);
 }
 // Independent at0/at2 grids trade repeated first-half loads for shorter
@@ -306,6 +318,39 @@ extern "C" int stwo_rv64_gkr_eq_fused_on(void* context, uint32_t lane, const uin
     }
     return status;
 }
+static int finish_sum(cudaStream_t stream, uint32_t groups, StwoRv64Plane a, StwoRv64Plane b,
+                      StwoRv64Plane out) {
+    int status = launch_status();
+    auto current = a, next = b;
+    for (uint32_t pairs = groups; !status && pairs > 1;) {
+        const uint32_t grid = blocks(pairs);
+        sum_reduce<<<grid, threads, 0, stream>>>(current, pairs, grid == 1 ? out : next);
+        status = launch_status();
+        pairs = grid;
+        const auto old = current;
+        current = next;
+        next = old;
+    }
+    return status;
+}
+extern "C" int stwo_rv64_gkr_fold_sum_on(void* context, uint32_t lane, StwoRv64Plane n,
+                                         StwoRv64Plane d, uint32_t count, const uint32_t* x,
+                                         StwoRv64Plane on, StwoRv64Plane od, StwoRv64Plane eq,
+                                         const uint32_t* lambda, StwoRv64Plane a,
+                                         StwoRv64Plane b, StwoRv64Plane out) {
+    if (!power2(count) || count < 8 || count > max_count) return int(cudaErrorInvalidValue);
+    const uint32_t groups = blocks(count / 8);
+    Custody c(context, lane);
+    if (!c.numerator(n, count) || !c.plane(d, count, 8, false) || !c.range(x, 8, false) ||
+        !c.plane(on, count / 2, 8, true) || !c.plane(od, count / 2, 8, true) ||
+        !c.plane(eq, count / 8, 8, false) || !c.range(lambda, 8, false) ||
+        !c.plane(a, 2 * groups, 8, true) || !c.plane(b, 2 * groups, 8, true) ||
+        !c.plane(out, 2, 8, true))
+        return c.status;
+    fold_sum_first<<<groups, threads, 0, c.stream>>>(n, d, count, x, on, od, eq, lambda,
+                                                     groups == 1 ? out : a);
+    return finish_sum(c.stream, groups, a, b, out);
+}
 static int sum_on_impl(bool split_secure, void* context, uint32_t lane, StwoRv64Plane n,
                        StwoRv64Plane d, uint32_t count, StwoRv64Plane eq,
                        const uint32_t* lambda, StwoRv64Plane a, StwoRv64Plane b,
@@ -327,18 +372,7 @@ static int sum_on_impl(bool split_secure, void* context, uint32_t lane, StwoRv64
     else
         sum_first<false><<<groups, threads, 0, c.stream>>>(n, d, count / 4, eq, lambda,
                                                            groups == 1 ? out : a);
-    int status = launch_status();
-    auto current = a, next = b;
-    for (uint32_t pairs = groups; !status && pairs > 1;) {
-        const uint32_t grid = blocks(pairs);
-        sum_reduce<<<grid, threads, 0, c.stream>>>(current, pairs, grid == 1 ? out : next);
-        status = launch_status();
-        pairs = grid;
-        const auto old = current;
-        current = next;
-        next = old;
-    }
-    return status;
+    return finish_sum(c.stream, groups, a, b, out);
 }
 
 extern "C" int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane n,

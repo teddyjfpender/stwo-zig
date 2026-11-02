@@ -49,6 +49,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         /// Explicit tuning choice; preserve the established route by default.
         split_secure_sum: bool = false,
         fused_eq: bool = false,
+        fused_fold_sum: bool = false,
         launches: u64 = 0,
         const Self = @This();
 
@@ -159,6 +160,22 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try scratch_b.bind(self.context),
                 try output.bind(self.context),
             ), waves);
+        }
+
+        pub fn foldSum(self: *Self, input: Fraction, challenge: Slice, folded: Fraction, eq_values: Plane, lambda: Slice, scratch_a: Plane, scratch_b: Plane, output: Plane) !void {
+            try input.validate();
+            try folded.validate();
+            if (input.count < 8 or folded.count != input.count / 2) return error.InvalidGeometry;
+            try folded.n.shape(folded.count, 8);
+            var groups = (input.count / 8 + 127) / 128;
+            try eq_values.shape(input.count / 8, 8);
+            try scratch_a.shape(2 * groups, 8);
+            try scratch_b.shape(2 * groups, 8);
+            try output.shape(2, 8);
+            var waves: u64 = 1;
+            while (groups > 1) : (groups = (groups + 127) / 128) waves += 1;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_gkr_fold_sum_on(owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), input.count, try self.context.deviceSlicePointer(u32, challenge, 8), try folded.n.bind(self.context), try folded.d.bind(self.context), try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), try scratch_a.bind(self.context), try scratch_b.bind(self.context), try output.bind(self.context)), waves);
         }
 
         pub fn initSumcheck(self: *Self, state: Slice, seed: Slice, claim: Slice, variables: u32) !void {

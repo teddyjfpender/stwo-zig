@@ -38,6 +38,11 @@ const Fake = struct {
         calls += 1;
         return 0;
     }
+    pub fn stwo_rv64_gkr_fold_sum_on(_: *anyopaque, lane: u32, _: Abi.Plane, _: Abi.Plane, count: u32, _: [*]const u32, _: Abi.Plane, _: Abi.Plane, _: Abi.Plane, _: [*]const u32, _: Abi.Plane, _: Abi.Plane, _: Abi.Plane) c_int {
+        std.debug.assert(lane == 1 and count >= 8);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_eq_fused_on = stwo_rv64_gkr_eq_on;
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
@@ -95,4 +100,25 @@ test "RV64 CUDA fused Eq command records grouped dispatch count" {
     var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1, .fused_eq = true };
     try commands.eq(slice(), 5, plane(8));
     try std.testing.expectEqual(@as(u64, 2), commands.launches);
+}
+
+test "RV64 CUDA fused fold sum validates shape generation and enqueue failure" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    try commands.foldSum(leaf(16), slice(), fraction(8), plane(8), slice(), plane(8), plane(8), plane(8));
+    try std.testing.expectEqual(@as(u64, 1), commands.launches);
+    try std.testing.expectError(error.InvalidGeometry, commands.foldSum(fraction(4), slice(), fraction(2), plane(8), slice(), plane(8), plane(8), plane(8)));
+    try std.testing.expectError(error.InvalidGeometry, commands.foldSum(fraction(16), slice(), fraction(4), plane(8), slice(), plane(8), plane(8), plane(8)));
+    var stale = slice();
+    stale.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.foldSum(fraction(16), stale, fraction(8), plane(8), slice(), plane(8), plane(8), plane(8)));
+    var short_eq = plane(8);
+    short_eq.stride = 1;
+    try std.testing.expectError(error.InvalidPlane, commands.foldSum(fraction(16), slice(), fraction(8), short_eq, slice(), plane(8), plane(8), plane(8)));
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.foldSum(fraction(16), slice(), fraction(8), plane(8), slice(), plane(8), plane(8), plane(8)));
+    try std.testing.expectError(error.JobPoisoned, commands.foldSum(fraction(16), slice(), fraction(8), plane(8), slice(), plane(8), plane(8), plane(8)));
 }

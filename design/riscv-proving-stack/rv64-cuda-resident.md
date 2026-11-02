@@ -190,3 +190,31 @@ words from the two live numerator/denominator rows. Neither entire fold bank
 needs readback. The arena includes this output and all40 state/44-per-round
 record words. Parameter accounting explicitly includes the ninth seed word
 (the draw counter), avoiding a one-word short reservation at every geometry.
+
+
+## Cross-round fold/sum fusion
+
+The optional `fused_fold_sum` controller policy primes the first sums, then
+emits round feedback followed by a combined fold/next-sum for every
+nonterminal round. Each tile owns the four output rows required by one next
+raw term and reads their eight half-split source rows. Folded values feed
+`sum_term` before leaving registers; the disjoint output bank is still written
+for the next round's fold. Output ownership is unique across tiles, so no
+grid barrier or cooperative launch constraint is needed. Tail threads enter
+every reduction shuffle/barrier with neutral values. The terminal count4
+round uses the existing fold to two rows and compact-mask gather.
+
+The launch preflight validates all ten borrowed ranges before enqueue,
+including the assignment, Eq prefix, scratch and sums. A shared deterministic
+reduction tail serves both paths. A failed round's cleared challenge remains
+a defined input to subsequent fused kernels; sticky round status and fresh
+native proof verification remain publication gates. Fusion changes neither
+the transcript nor the numerical arena or device credit accounting.
+
+For count `n`, `log2(n)-2` dispatches and `64*(n-4)` logical table-read bytes
+are removed; no wall-time or occupancy benefit follows automatically. The
+kernel has128 registers/thread on both target architectures, no reported
+spills and no stack frame. Keep the policy opt-in until six-way full-round
+shape sweeps on actual2/4x4090/5090 hardware establish the crossover. This
+optimization does not add mixed-instance GKR, authenticated witness ingress,
+PCS or a multi-device worker pool.
