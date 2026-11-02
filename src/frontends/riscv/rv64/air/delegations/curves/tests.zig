@@ -17,10 +17,10 @@ const Big = spec.Big;
 const Op = spec.Op;
 const MODULUS = core.fields.m31.Modulus;
 
-fn q(v: u32) Q {
+pub fn q(v: u32) Q {
     return Q.fromBase(M.fromCanonical(v));
 }
-fn qi(v: i64) Q {
+pub fn qi(v: i64) Q {
     return Q.fromBase(M.fromU64(@intCast(@mod(v, MODULUS))));
 }
 
@@ -189,12 +189,13 @@ fn oracle(comptime op: Op, a: std.mem.Allocator, packet: []const u8) !?[spec.def
 
 // ------------------------------------------------------------ harness
 
-fn Harness(comptime op: Op) type {
+pub fn Harness(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Harness(@as(Op, op));
     return struct {
-        const N = NativeOf(op);
-        const L = N.L;
-        const d = L.DEF;
-        const Eq = EqOf.Equations(op);
+        pub const N = NativeOf(op);
+        pub const L = N.L;
+        pub const d = L.DEF;
+        pub const Eq = EqOf.Equations(op);
         pub const View = struct {
             fixed_values: [Base.FIXED]Q,
             main_values: []const Q,
@@ -217,14 +218,14 @@ fn Harness(comptime op: Op) type {
                 return self.previous_inter[c];
             }
         };
-        fn rowOf(packet: *const N.Packet, main: *[L.MAIN]Q) !N.Witness {
+        pub fn rowOf(packet: *const N.Packet, main: *[L.MAIN]Q) !N.Witness {
             var row: N.Row = undefined;
             const w = try N.fill(&row, packet);
             for (main, row) |*dst, v| dst.* = q(v);
             return w;
         }
         /// First nonzero MAIN residual (activity uses calls = 1000, row 0).
-        fn firstFailure(main: []const Q) ?usize {
+        pub fn firstFailure(main: []const Q) ?usize {
             const view = View{ .fixed_values = .{ q(0), q(1), q(0), q(0) }, .main_values = main, .previous_active = q(0) };
             var values: [L.MAIN_CONSTRAINTS]Q = undefined;
             var sink = E.Sink{ .values = &values };
@@ -233,7 +234,7 @@ fn Harness(comptime op: Op) type {
             for (values, 0..) |v, i| if (!v.isZero()) return i;
             return null;
         }
-        fn outOfRangeQuery(main: []const Q) bool {
+        pub fn outOfRangeQuery(main: []const Q) bool {
             const view = View{ .fixed_values = .{ q(0), q(1), q(0), q(0) }, .main_values = main, .previous_active = q(0) };
             for (0..L.BYTE_QUERIES) |i| {
                 const v = Eq.byteQuery(Q, &view, i).tryIntoM31() catch return true;
@@ -242,17 +243,17 @@ fn Harness(comptime op: Op) type {
             return false;
         }
         /// Accepted by MAIN residuals and every BYTE query in range.
-        fn accepted(main: []const Q) bool {
+        pub fn accepted(main: []const Q) bool {
             return firstFailure(main) == null and !outOfRangeQuery(main);
         }
-        fn packetOf(values: []const Big) N.Packet {
+        pub fn packetOf(values: []const Big) N.Packet {
             var p: N.Packet = @splat(0);
             for (values, 0..) |v, i| for (0..d.limbs) |b| {
                 p[i * d.limbs + b] = spec.limbOf(v, b);
             };
             return p;
         }
-        fn bytesOf(x: Big) [d.limbs]i64 {
+        pub fn bytesOf(x: Big) [d.limbs]i64 {
             var out: [d.limbs]i64 = undefined;
             for (&out, 0..) |*b, i| b.* = spec.limbOf(x, i);
             return out;
@@ -260,14 +261,14 @@ fn Harness(comptime op: Op) type {
         /// A cheating prover's row: arbitrary (possibly out-of-range) output
         /// and witness limbs, with q, carries, D and borrows recomputed as a
         /// prover would (floor divisions, never asserting a range).
-        fn forge(packet: *const N.Packet, outs: []const [d.limbs]i64, wits: []const [d.limbs]i64, main: *[L.MAIN]Q) void {
+        pub fn forge(packet: *const N.Packet, outs: []const [d.limbs]i64, wits: []const [d.limbs]i64, main: *[L.MAIN]Q) void {
             var vals = forgeValues(packet, outs, wits);
             inline for (0..L.RELATIONS) |r| setQuotient(r, &vals);
             deriveCarriesAndChecks(&vals);
             for (main, vals) |*dst, v| dst.* = qi(v);
         }
         const SB = i2048;
-        fn toSigned(v: []const i64, base: usize, n: usize) SB {
+        pub fn toSigned(v: []const i64, base: usize, n: usize) SB {
             var x: SB = 0;
             var i = n;
             while (i > 0) {
@@ -276,7 +277,7 @@ fn Harness(comptime op: Op) type {
             }
             return x;
         }
-        fn modulusOf(vals: *const [L.MAIN]i64) SB {
+        pub fn modulusOf(vals: *const [L.MAIN]i64) SB {
             return switch (d.modulus) {
                 .constant => |p| @intCast(p),
                 .variable => |m| toSigned(vals, L.column(.{ .in = m }), d.limbs),
@@ -284,7 +285,7 @@ fn Harness(comptime op: Op) type {
         }
         /// The honest row with the packet, outputs and witnesses replaced
         /// (signed integers; nothing re-derived yet).
-        fn forgeValues(packet: *const N.Packet, outs: []const [d.limbs]i64, wits: []const [d.limbs]i64) [L.MAIN]i64 {
+        pub fn forgeValues(packet: *const N.Packet, outs: []const [d.limbs]i64, wits: []const [d.limbs]i64) [L.MAIN]i64 {
             var row: N.Row = undefined;
             _ = N.fill(&row, packet) catch @memset(&row, 0);
             row[L.ACTIVE] = 1;
@@ -301,7 +302,7 @@ fn Harness(comptime op: Op) type {
         }
         /// Floor quotient of relation r into its q limbs (the top limb takes
         /// any overflow, so it may leave the byte range).
-        fn setQuotient(comptime r: usize, vals: *[L.MAIN]i64) void {
+        pub fn setQuotient(comptime r: usize, vals: *[L.MAIN]i64) void {
             const g = L.GEOMETRY[r];
             var sum: SB = @intCast(g.kp);
             inline for (d.relations[r]) |term| {
@@ -318,7 +319,7 @@ fn Harness(comptime op: Op) type {
         /// Carries, D bytes and borrows re-derived from the current (possibly
         /// tampered, possibly out-of-range) limbs exactly as a prover would:
         /// floor divisions, never asserting a range.
-        fn deriveCarriesAndChecks(vals: *[L.MAIN]i64) void {
+        pub fn deriveCarriesAndChecks(vals: *[L.MAIN]i64) void {
             inline for (0..L.RELATIONS) |r| {
                 const g = L.GEOMETRY[r];
                 var coef: [spec.MAX_COEFFICIENTS + 2]i64 = @splat(0);
@@ -376,7 +377,7 @@ fn Harness(comptime op: Op) type {
                 }
             }
         }
-        fn randomBelow(rng: std.Random, bound: Big) Big {
+        pub fn randomBelow(rng: std.Random, bound: Big) Big {
             var x: Big = 0;
             for (0..d.limbs / 8) |i| x |= @as(Big, rng.int(u64)) << @intCast(64 * i);
             return switch (rng.uintLessThan(u8, 8)) {
@@ -389,7 +390,7 @@ fn Harness(comptime op: Op) type {
             };
         }
         /// A random packet satisfying the preconditions.
-        fn randomPacket(rng: std.Random) N.Packet {
+        pub fn randomPacket(rng: std.Random) N.Packet {
             const full: Big = (@as(Big, 1) << @intCast(8 * d.limbs)) - 1;
             while (true) {
                 var vals: [d.inputs]Big = undefined;
@@ -421,8 +422,15 @@ fn Harness(comptime op: Op) type {
 
 // ------------------------------------------------------------ tests
 
+/// Every truth key of the generic authority: the seven curve/field ops and
+/// the secp256k1 RCB row truths (Wire35 kinds 1/2).
+pub const KEYS = .{ Op.bn254_g1_add, Op.bn254_g1_double, Op.bn254_fp2_mul, Op.bls12_381_fp2_mul, Op.arith384_mont, Op.bls12_381_g1_add, Op.bls12_381_g1_double, spec.SecpKind.add, spec.SecpKind.double };
+comptime {
+    if (KEYS.len != spec.ALL.len + 2) @compileError("curve test key roster drift");
+}
+
 test "geometry: exact carry certificates, widths and degree budget" {
-    inline for (spec.ALL) |op| {
+    inline for (KEYS) |op| {
         const L = Base.Layout(op);
         inline for (L.GEOMETRY) |g| {
             const radix: u64 = @as(u64, 1) << @intCast(8 * g.group);
@@ -557,7 +565,7 @@ test "candidate executor agreement: native packets equal the execution-only cand
 }
 
 test "adversarial: wrong outputs, non-canonical outputs and wrong slopes are rejected" {
-    inline for (spec.ALL) |op| {
+    inline for (KEYS) |op| {
         const H = Harness(op);
         const d = H.d;
         var prng = std.Random.DefaultPrng.init(0xbad + @as(u64, @intFromEnum(op)));
@@ -601,7 +609,9 @@ test "adversarial: wrong outputs, non-canonical outputs and wrong slopes are rej
                 try std.testing.expect(!H.accepted(&main));
             }
         }
-        try std.testing.expect(non_canonical > 0);
+        // secp outputs are almost never below 2^256 - p; the aliases are
+        // exercised on crafted zero outputs in secp_tests.zig.
+        if (comptime @TypeOf(op) == Op) try std.testing.expect(non_canonical > 0);
     }
 }
 
@@ -707,7 +717,7 @@ test "adversarial: arith384_mont even modulus, r >= m and non-canonical quotient
 }
 
 test "every single-cell perturbation of an honest row violates a MAIN residual or a lookup" {
-    inline for (spec.ALL) |op| {
+    inline for (KEYS) |op| {
         const H = Harness(op);
         var prng = std.Random.DefaultPrng.init(0xce11 + @as(u64, @intFromEnum(op)));
         const rng = prng.random();
@@ -767,7 +777,7 @@ test "activity prefix: exactly rows 0..calls-1 may be active" {
     try std.testing.expect(check(&main, .{ q(4), q(0), q(0), q(4) }, q(1)));
 }
 
-fn challenges() EqOf.Challenges {
+pub fn challenges() EqOf.Challenges {
     var wire: EqOf.Wire = undefined;
     wire.offset = q(0x1234567).add(Q.fromPartialEvals(.{ q(1), q(2), q(3), q(4) }));
     for (&wire.coefficients, 0..) |*c, i| c.* = Q.fromPartialEvals(.{ q(@intCast(i + 9)), q(@intCast(3 * i + 1)), q(77), q(@intCast(i * i + 5)) });
@@ -776,7 +786,7 @@ fn challenges() EqOf.Challenges {
 
 test "interaction: Wire35 claim equals the native sum and every residual vanishes" {
     const a = std.testing.allocator;
-    inline for (spec.ALL) |op| {
+    inline for (KEYS) |op| {
         const H = Harness(op);
         const T = TraceOf.Trace(op);
         const L = H.L;
@@ -792,7 +802,7 @@ test "interaction: Wire35 claim equals the native sum and every residual vanishe
         for (&packets, 0..) |*p, r| {
             const after = try H.N.after(p);
             for (0..L.WIRE_FRACTIONS) |id| {
-                const inv = try ch.wire.denominator(&TraceOf.externalTuple(L.PROGRAM_KIND, 11 + @as(u32, @intCast(r)), id, H.N.wireBytes(p, &after, id))).inv();
+                const inv = try ch.wire.denominator(&TraceOf.externalTuple(L.PROGRAM_KIND, 11 + @as(u32, @intCast(r)), L.wireLabel(id), H.N.wireBytes(p, &after, id))).inv();
                 expected = if (id >= L.COORDS) expected.add(inv) else expected.sub(inv);
             }
         }
@@ -831,7 +841,7 @@ test "interaction: Wire35 claim equals the native sum and every residual vanishe
 
 test "packed 16-lane residuals equal scalar residuals and every constraint has degree at most 3" {
     @setEvalBranchQuota(100_000_000);
-    inline for (spec.ALL) |op| {
+    inline for (KEYS) |op| {
         const H = Harness(op);
         const L = H.L;
         const TOTAL = Base.FIXED + L.MAIN + 1 + 2 * L.INTERACTION;
@@ -921,7 +931,7 @@ test "adversarial: carry forgery (field-solved carries for a wrong output) is re
     // excess in its top byte. The exactness certificate says only in-range
     // carries make the group equations integer identities, so either the
     // final group residual or a carry/top-byte range query must fail.
-    inline for (spec.ALL) |op| {
+    inline for (KEYS) |op| {
         const H = Harness(op);
         const d = H.d;
         const L = H.L;

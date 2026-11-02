@@ -17,7 +17,8 @@ const accumulation = engine.air.accumulation;
 const F = E.PackedBase;
 const LANES = E.LANES;
 
-pub fn Component(comptime op: spec.Op) type {
+pub fn Component(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Component(@as(spec.Op, op));
     return struct {
         const Self = @This();
         pub const Eq = EqOf.Equations(op);

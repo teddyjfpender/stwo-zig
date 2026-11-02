@@ -34,9 +34,11 @@ pub const Query = struct { column: usize, addend: u32 };
 /// One `x < modulus` check: x is an operand; the modulus is the op's.
 pub const Check = struct { x: Vec };
 
-pub fn Layout(comptime op: Op) type {
+/// `op` is a curve/field `Op` or a secp `SecpKind` (`spec.checkKey`).
+pub fn Layout(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Layout(@as(spec.Op, op));
     @setEvalBranchQuota(100_000_000);
-    const d = comptime spec.def(op);
+    const d = comptime spec.defOf(op);
     const R = d.relations.len;
     const geo = comptime blk: {
         var out: [R]spec.RelationGeometry = undefined;
@@ -54,8 +56,12 @@ pub fn Layout(comptime op: Op) type {
         pub const ACTIVE = ACTIVE_COLUMN;
         pub const PACKET = PACKET_COLUMN;
         pub const DEF = d;
-        pub const PROGRAM_KIND: u32 = @intFromEnum(op);
-        pub const TAG: u32 = spec.tag(op);
+        pub const PROGRAM_KIND: u32 = spec.kindOf(op);
+        pub const TAG: u32 = spec.tagOf(op);
+        /// Wire35 ID carried by fraction `id` (`spec.wireLabel`).
+        pub fn wireLabel(id: usize) u32 {
+            return spec.wireLabel(op, id);
+        }
         pub const LIMBS = d.limbs;
         pub const CHUNKS = d.limbs / 2;
         pub const COORDS = d.coords;

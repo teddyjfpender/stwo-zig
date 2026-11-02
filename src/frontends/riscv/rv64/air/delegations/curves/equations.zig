@@ -16,7 +16,8 @@ pub fn ChallengesFor(comptime C: type) type {
 }
 pub const Challenges = ChallengesFor(E.Q);
 
-pub fn Equations(comptime op: spec.Op) type {
+pub fn Equations(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Equations(@as(spec.Op, op));
     return struct {
         pub const L = LayoutOf(op);
         const d = L.DEF;
@@ -160,7 +161,7 @@ pub fn Equations(comptime op: spec.Op) type {
             var out: [Base.WIRE_ARITY]F = undefined;
             out[0] = k(F, L.PROGRAM_KIND);
             out[1] = E.firstIdFor(F, public).add(v.fixed(Base.ROW));
-            out[2] = k(F, @intCast(wire));
+            out[2] = k(F, L.wireLabel(wire));
             for (0..32) |b| out[3 + b] = v.main(if (wire < L.COORDS) L.PACKET + 32 * wire + b else L.afterColumn(wire - L.COORDS, b));
             return out;
         }
