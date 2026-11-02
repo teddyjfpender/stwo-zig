@@ -12,10 +12,13 @@ pub const Plan = struct {
     pub fn forInstances(instances: []const Instance, limit: usize) !Plan {
         return forInstancesWithOwnedCheckpoints(instances, limit, false);
     }
-    /// The lower reserve is valid ONLY for the fused stride2 owned producer and
-    /// metadata-only terminal binding. Original backing capacities remain in
-    /// the raw+working reserve until freed; logical resize is not a discount.
+    /// Source-checked tighter production-multiplicity reserve. Dense and owned
+    /// checkpoint paths have separate phase bounds. Original backing capacities
+    /// remain charged until freed; logical resize is not a physical discount.
     pub fn forInstancesWithOwnedCheckpoints(instances: []const Instance, limit: usize, checkpointed: bool) !Plan {
+        return forInstancesWithTightAdmission(instances, limit, checkpointed, checkpointed);
+    }
+    pub fn forInstancesWithTightAdmission(instances: []const Instance, limit: usize, checkpointed: bool, tight: bool) !Plan {
         if (limit == 0) return error.MissingLocalGkrBudget;
         var numerical = Numerical.Plan{};
         var p = Plan{};
@@ -31,7 +34,7 @@ pub const Plan = struct {
         p.input_bytes = numerical.input_bytes;
         // Retained field name for receipt compatibility; this is the complete
         // working-plane reserve, not an assertion that input is still cloned.
-        p.owned_layer_bytes = if (checkpointed) try std.math.mul(usize, facts, 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
+        p.owned_layer_bytes = if (tight) try std.math.mul(usize, facts, 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
         p.metadata_bytes = numerical.metadata_bytes;
         const binding_headers = try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31));
         const binding_phase = try std.math.add(usize, try std.math.add(usize, if (checkpointed) projection_scratch else p.input_bytes, p.binding_bytes), try std.math.add(usize, binding_headers, p.metadata_bytes));

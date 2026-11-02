@@ -416,3 +416,7 @@ test "owned checkpoint admission is checked source reserve and enforced exact al
     var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
     defer pending.deinit(a);
 }
+
+test {
+    _ = @import("admission_test.zig");
+}
