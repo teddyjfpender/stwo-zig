@@ -19,6 +19,14 @@ pub const Plan = struct {
         return forInstancesWithTightAdmission(instances, limit, checkpointed, checkpointed);
     }
     pub fn forInstancesWithTightAdmission(instances: []const Instance, limit: usize, checkpointed: bool, tight: bool) !Plan {
+        return forInstancesPolicy(instances, limit, checkpointed, tight, false);
+    }
+    /// Only for the source-checkpoint API: no dense N/D input owner exists,
+    /// opaque cloning/materialization is excluded from the production path.
+    pub fn forInstancesWithStreamedBottom(instances: []const Instance, limit: usize) !Plan {
+        return forInstancesPolicy(instances, limit, true, true, true);
+    }
+    fn forInstancesPolicy(instances: []const Instance, limit: usize, checkpointed: bool, tight: bool, streamed: bool) !Plan {
         if (limit == 0) return error.MissingLocalGkrBudget;
         var numerical = Numerical.Plan{};
         var p = Plan{};
@@ -31,7 +39,7 @@ pub const Plan = struct {
             p.binding_bytes = try std.math.add(usize, p.binding_bytes, try std.math.mul(usize, try instance.rows(), 64));
         }
         try numerical.finish();
-        p.input_bytes = numerical.input_bytes;
+        p.input_bytes = if (streamed) 0 else numerical.input_bytes;
         // Retained field name for receipt compatibility; this is the complete
         // working-plane reserve, not an assertion that input is still cloned.
         p.owned_layer_bytes = if (tight) try std.math.mul(usize, facts, 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
