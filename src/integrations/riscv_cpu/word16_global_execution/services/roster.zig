@@ -9,6 +9,8 @@ const S = A.crypto.secp256k1.word16_bridge;
 const BM = A.crypto.bulk_memory;
 const KS = A.crypto.keccak_sponge;
 const LSD = A.memory.load_store_dword;
+const ZS = A.word16_v1.binary_zbb_source;
+const BS = A.word16_v1.binary_source;
 const Mat = @import("../../word16_execution/setup.zig");
 const Core = @import("../../word16_execution/sources.zig");
 const Commit = @import("../../word16_execution/main_ownership.zig").Commit;
@@ -30,9 +32,17 @@ pub const CpuSetup = struct {
     sponge_fixed: [2][]M = @splat(&.{}),
     /// LS-D64 fixed columns (row index, first, last), after the sponge block.
     dword_fixed: [T.DWORD_INSTANCES][]M = @splat(&.{}),
+    /// Zbb BINARY fixed (first/last) columns, after the LS-D64 block.
+    zbb_fixed: []M = &.{},
     key: Key,
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
         return initProgramWithSuite(a, program, g, bridges, Mat.Suite.production());
+    }
+    /// Program ROM under an explicit execution profile (Zbb fixtures).
+    pub fn initProgramWithProfile(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs, profile: front.rv64.execution_profile.Profile) !CpuSetup {
+        var m = try Mat.Materials.initWithSuiteAndProfile(a, program, g, Mat.Suite.production(), profile);
+        errdefer m.deinit();
+        return seal(a, m, bridges);
     }
     pub fn initProgramWithSuite(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite) !CpuSetup {
         var m = try Mat.Materials.initWithSuite(a, program, g, suite);
@@ -98,6 +108,13 @@ pub const CpuSetup = struct {
             }
             dword_done += 1;
         }
+        errdefer a.free(self.zbb_fixed);
+        if (bridges.zbb) |log| {
+            // Only a Zbb-profile ROM can request FUNCTION ids 19..24; any
+            // other program with a Zbb component is rejected (fail closed).
+            if (!A.word16_execution.features.zbbProfile(m.program.profile)) return error.UnexpectedZbbComponent;
+            self.zbb_fixed = try BS.fixedForLog(a, log);
+        }
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
         self.key = try Key.sealWithSuiteAndCache(a, columns, m.suite, cache);
@@ -122,6 +139,8 @@ pub const CpuSetup = struct {
             self.materials.allocator.free(data.*);
             data.* = &.{};
         }
+        self.materials.allocator.free(self.zbb_fixed);
+        self.zbb_fixed = &.{};
     }
     pub fn deinit(self: *CpuSetup) void {
         self.key.deinit();
@@ -129,6 +148,7 @@ pub const CpuSetup = struct {
         for (self.bulk_fixed) |f| self.materials.allocator.free(f);
         for (self.sponge_fixed) |f| self.materials.allocator.free(f);
         for (self.dword_fixed) |f| self.materials.allocator.free(f);
+        self.materials.allocator.free(self.zbb_fixed);
         self.materials.deinit();
     }
     pub fn total(self: *const CpuSetup, tree: usize) usize {
@@ -190,8 +210,12 @@ pub const CpuSetup = struct {
         };
         return n;
     }
-    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+    /// The Zbb BINARY component follows the LS-D64 block.
+    pub fn zbbOffset(self: *const CpuSetup, tree: usize) usize {
         return self.dwordOffset(T.DWORD_INSTANCES, tree);
+    }
+    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+        return self.zbbOffset(tree) + if (self.bridges.zbb != null) T.zbbWidths()[tree] else 0;
     }
     pub fn fixedColumns(self: *const CpuSetup, a: std.mem.Allocator) ![]Col {
         const old = try self.materials.fixedColumns(a);
@@ -209,6 +233,7 @@ pub const CpuSetup = struct {
             append(out, &at, self.sponge_fixed[k], log);
         };
         for (0..T.DWORD_INSTANCES) |k| if (self.bridges.dwordLog(k)) |log| append(out, &at, self.dword_fixed[k], log);
+        if (self.bridges.zbb) |log| append(out, &at, self.zbb_fixed, log);
         return out;
     }
     pub fn logs(self: *const CpuSetup, a: std.mem.Allocator, tree: usize) ![]u32 {
@@ -237,6 +262,11 @@ pub const CpuSetup = struct {
             @memset(out[at..][0..width], log);
             at += width;
         };
+        if (self.bridges.zbb) |log| {
+            const width = T.zbbWidths()[tree];
+            @memset(out[at..][0..width], log);
+            at += width;
+        }
         return out;
     }
 };
@@ -255,7 +285,10 @@ pub const Sources = struct {
     sponge: [2]?KS.source.Source = @splat(null),
     /// LS-D64 source: every LD/SD event of this CPU proof.
     ls_dword: [T.DWORD_INSTANCES]?LSD.source.Source = @splat(null),
+    /// Zbb BINARY truth provider (FUNCTION ids 19..24 of this CPU proof).
+    zbb: ?BS.Source = null,
     pub fn deinit(self: *Sources) void {
+        if (self.zbb) |*s| s.deinit();
         for (&self.ls_dword) |*b| if (b.*) |*s| s.deinit();
         for (&self.sponge) |*b| if (b.*) |*s| s.deinit();
         if (self.sponge_plan) |plan| {
@@ -336,6 +369,16 @@ pub const Sources = struct {
                 append(out, &at, data, log);
             } else if (self.ls_dword[k] != null) return error.UnexpectedCombinedServiceSource;
         }
+        if (setup.bridges.zbb) |log| {
+            const s = self.zbb orelse return error.MissingCombinedServiceSource;
+            const data = switch (tree) {
+                1 => s.main,
+                2 => s.interaction,
+                else => return error.InvalidCombinedServiceSource,
+            };
+            if (s.log_size != log or data.len != T.zbbWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+            append(out, &at, data, log);
+        } else if (self.zbb != null) return error.UnexpectedCombinedServiceSource;
         return out;
     }
     pub fn mergeRanges(self: *Sources) !void {
@@ -351,6 +394,9 @@ pub const Sources = struct {
             if (s.counts_and.len != 0) try mergeAnd(&self.core, s.counts_and);
         };
         for (&self.ls_dword) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
+        // Zbb byte-AND lookups (8 per physical row, padding included) join the
+        // core AND table exactly like the BINARY chip's own requests.
+        if (self.zbb) |*s| try mergeAnd(&self.core, s.and_counts);
     }
     pub fn releaseMain(self: *Sources) !void {
         try self.core.releaseMain();
@@ -363,6 +409,7 @@ pub const Sources = struct {
         for (&self.bulk) |*b| if (b.*) |*s| s.releaseMain();
         for (&self.sponge) |*b| if (b.*) |*s| s.releaseMain();
         for (&self.ls_dword) |*b| if (b.*) |*s| s.releaseMain();
+        if (self.zbb) |*s| s.releaseMain();
     }
     /// Preflight all allocations and cross-family spans before moving anything.
     /// After core's own success-only handoff, only infallible slice moves remain.
@@ -390,6 +437,7 @@ pub const Sources = struct {
             count += 1;
         };
         for (0..T.DWORD_INSTANCES) |k| count += @intFromBool(setup.bridges.dwordLog(k) != null);
+        if (setup.bridges.zbb != null) count += 1;
         const backings = try a.alloc([]M, count);
         errdefer a.free(backings);
         inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
@@ -417,6 +465,14 @@ pub const Sources = struct {
                 if (overlap(data, try spanEnd(c.values), c.values, end)) return error.AliasedCombinedMain;
             }
         };
+        if (self.zbb) |*s| {
+            if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
+            const data = if (tree == 1) s.main else s.interaction;
+            const end = try spanEnd(data);
+            for (headers[0..setup.total(tree)]) |c| {
+                if (overlap(data, try spanEnd(c.values), c.values, end)) return error.AliasedCombinedMain;
+            }
+        }
         for (0..T.FAMILIES) |k| {
             const family: T.Family = @enumFromInt(k);
             const data = (self.matrixPtr(family, tree) orelse continue).*;
@@ -505,6 +561,17 @@ pub const Sources = struct {
             }
             at += 1;
         };
+        if (self.zbb) |*s| {
+            if (tree == 1) {
+                backings[at] = s.main;
+                s.main = &.{};
+                s.owns_main = false;
+            } else {
+                backings[at] = s.interaction;
+                s.interaction = &.{};
+            }
+            at += 1;
+        }
         return .{ .columns = headers, .backings = backings };
     }
 };

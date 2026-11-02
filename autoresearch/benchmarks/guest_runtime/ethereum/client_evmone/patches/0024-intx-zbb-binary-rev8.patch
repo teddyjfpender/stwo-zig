@@ -1,0 +1,15 @@
+diff --git a/include/intx/intx.hpp b/include/intx/intx.hpp
+--- a/include/intx/intx.hpp
++++ b/include/intx/intx.hpp
+@@ -1808,6 +1808,11 @@
+ inline swap_masks g_swap_masks{0x00FF00FF00FF00FF, 0x0000FFFF0000FFFF};
+ [[gnu::always_inline]] inline uint64_t bswap64(uint64_t x, swap_masks m) noexcept
+ {
++#ifdef STWO_ZBB_BINARY
++    // Admitted Zbb BINARY subset (profile ethereum_services_v3_zbb): one rev8.
++    (void)m;
++    return stwo_zbb_rev8(x);
++#endif
+     x = (x << 32) | (x >> 32);
+     x = ((x & m.m16) << 16) | ((x >> 16) & m.m16);
+     x = ((x & m.m8) << 8) | ((x >> 8) & m.m8);

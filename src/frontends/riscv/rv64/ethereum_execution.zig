@@ -16,10 +16,21 @@ const cisa = @import("candidate_isa.zig");
 /// `ethereum_services_v3` is ADMITTED (v2 + SHA-256 compression 0x0003_0010
 /// + arith256_mod 0x0003_0021 + aligned memcpy/memset 0x0003_0001/2)
 /// and supports compact capture for the prover.
-const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3 };
+/// `ethereum_services_v3_zbb` = v3 plus the ADMITTED-ISA Zbb BINARY subset
+/// (andn orn xnor rev8 sext.b sext.h zext.h; decode.Isa.rv64im_zbb_binary),
+/// counted in `zbb_binary_counts`; any other Zbb/Zba encoding traps.
+const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3, ethereum_services_v3_zbb };
+const ZBB_BINARY_OPS = [_]rv.decode.Opcode{ .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H };
+const ZbbBinaryCounts = struct { andn: u64 = 0, orn: u64 = 0, xnor: u64 = 0, rev8: u64 = 0, sext_b: u64 = 0, sext_h: u64 = 0, zext_h: u64 = 0 };
+fn bumpZbb(counts: *ZbbBinaryCounts, op: rv.decode.Opcode) void {
+    inline for (ZBB_BINARY_OPS, @typeInfo(ZbbBinaryCounts).@"struct".fields) |o, f| if (op == o) {
+        @field(counts, f.name) += 1;
+    };
+}
 const A = std.heap.smp_allocator;
 const OPCODE_NAMES = blk: {
-    const fields = @typeInfo(rv.decode.Opcode).@"enum".fields;
+    // The RV64IM schema; Zbb BINARY retirements are reported in zbb_binary_counts.
+    const fields = @typeInfo(rv.decode.Opcode).@"enum".fields[0..rv.decode.BASE_OPCODE_COUNT];
     if (fields.len != access.OPCODE_COUNT) @compileError("execution census opcode schema needs qualification");
     var result: [fields.len][]const u8 = undefined;
     for (fields, 0..) |field, i| result[i] = field.name;
@@ -37,6 +48,10 @@ const Config = struct {
     pc_profile: ?PcRange = null,
     execution_profile: Profile = .software,
     census_batch_steps: ?u32 = null,
+    /// v3_zbb diagnostic: distinct Zbb BINARY chip facts (op, rs1, rs2 value)
+    /// per consecutive window of this many retirements (= one CPU shard), i.e.
+    /// the rows the shard's deduplicated Zbb component needs.
+    zbb_shard_steps: ?u32 = null,
     compact_capture_batch_steps: ?u32 = null,
     capture_ram_boundaries: bool = false,
     frequent_operation_limit: ?usize = null,
@@ -144,7 +159,7 @@ const Report = struct {
     final_registers: [32]u64 = @splat(0),
     stopped_instruction: ?u32 = null,
     instructions: u64,
-    opcode_counts: [@typeInfo(rv.decode.Opcode).@"enum".fields.len]u64,
+    opcode_counts: [rv.decode.BASE_OPCODE_COUNT]u64,
     opcode_names: [OPCODE_NAMES.len][]const u8 = OPCODE_NAMES,
     loads: u64,
     stores: u64,
@@ -163,7 +178,23 @@ const Report = struct {
     frequent_operations: ?frequent.Summary = null,
     candidate_service_calls: ?candidate.Counts = null,
     candidate_isa_counts: ?cisa.Counts = null,
+    zbb_binary_counts: ?ZbbBinaryCounts = null,
+    zbb_shard_distinct_facts: ?[]const u64 = null,
     ls_histogram: ?LsHistogram = null,
+    /// Same fields in declaration order; `zbb_binary_counts` is emitted only
+    /// for the Zbb profile, so every other profile's report keeps its exact
+    /// pre-Zbb JSON shape (no new null key).
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(@This())) |field| {
+            const omit = comptime std.mem.eql(u8, field.name, "zbb_binary_counts") or std.mem.eql(u8, field.name, "zbb_shard_distinct_facts");
+            if (!omit or @field(self, field.name) != null) {
+                try jws.objectField(field.name);
+                try jws.write(@field(self, field.name));
+            }
+        }
+        try jws.endObject();
+    }
 };
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(A);
@@ -208,7 +239,7 @@ fn profileStep(session: *ethereum.Session, execution: Profile, event: *ethereum.
             if (row == null) event.* = .{ .keccak = call };
             break :blk row;
         },
-        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa, .ethereum_services_v3 => session.step(event),
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa, .ethereum_services_v3, .ethereum_services_v3_zbb => session.step(event),
     };
 }
 fn candidateInstruction(cpu: *rv.machine.Cpu, memory: anytype, report: *Report) bool {
@@ -231,6 +262,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     const memory = &loaded.memory;
     var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, switch (c.execution_profile) {
         .ethereum_services_v3 => .ethereum_services_v3,
+        .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
         .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
         else => .ethereum_services_v1,
     });
@@ -248,6 +280,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         // Unreachable with a tape (rejected above); never reaches the prover.
         .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
         .ethereum_services_v3 => .ethereum_services_v3,
+        .ethereum_services_v3_zbb => .ethereum_services_v3_zbb,
     };
     var tape: ?rv.compact_tape.Tape = if (c.compact_capture_batch_steps) |steps| try rv.compact_tape.Tape.init(A, steps, session.cpu.pc, 0, execution_profile) else null;
     defer if (tape) |*value| value.deinit();
@@ -260,6 +293,13 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     report.access_census_batch_steps = c.census_batch_steps;
     if (is_candidate) report.candidate_service_calls = .{};
     if (is_isa) report.candidate_isa_counts = .{};
+    if (c.execution_profile == .ethereum_services_v3_zbb) report.zbb_binary_counts = .{};
+    const ZbbKey = struct { op: rv.decode.Opcode, a: u64, b: u64 };
+    var zbb_window: std.AutoHashMapUnmanaged(ZbbKey, void) = .empty;
+    defer zbb_window.deinit(A);
+    var zbb_shards: std.ArrayList(u64) = .empty;
+    defer zbb_shards.deinit(A);
+    if (c.zbb_shard_steps != null and (c.execution_profile != .ethereum_services_v3_zbb or c.zbb_shard_steps.? == 0)) return error.InvalidZbbShardSteps;
     if (tape != null) report.compact_capture = .{};
     if (boundaries != null) report.ram_boundary_capture = .{};
     if (c.pc_profile) |range| {
@@ -427,7 +467,18 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         const row = optional_row.?;
         if (tape) |*value| try value.append(row);
         if (boundaries) |*value| try value.append(row, memory);
-        report.opcode_counts[@intFromEnum(row.opcode)] += 1;
+        if (rv.decode.isBase(row.opcode)) report.opcode_counts[@intFromEnum(row.opcode)] += 1 else bumpZbb(&report.zbb_binary_counts.?, row.opcode);
+        if (c.zbb_shard_steps) |window| {
+            // Window of this retirement (service ECALLs never reach here, so
+            // close every window passed since the last counted row).
+            const shard = (session.cpu.retired - 1) / window;
+            while (zbb_shards.items.len < shard) {
+                try zbb_shards.append(A, zbb_window.count());
+                zbb_window.clearRetainingCapacity();
+            }
+            // zext.h is the core BINARY AND, not a Zbb chip fact.
+            if (!rv.decode.isBase(row.opcode) and row.opcode != .ZEXT_H) try zbb_window.put(A, .{ .op = row.opcode, .a = row.lhs.toInt(), .b = row.rhs.toInt() }, {});
+        }
         if (frequent_census) |*value| try value.retire(row);
         if (report.pc_profile) |*profile| {
             const pc = row.pc.toInt();
@@ -462,6 +513,10 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                 break;
             }
         } else if (census) |*value| try value.retireOpcode(@intFromEnum(row.opcode));
+    }
+    if (c.zbb_shard_steps != null) {
+        try zbb_shards.append(A, zbb_window.count());
+        report.zbb_shard_distinct_facts = try A.dupe(u64, zbb_shards.items);
     }
     report.execution_ns = timer.read();
     report.instructions = session.cpu.retired;

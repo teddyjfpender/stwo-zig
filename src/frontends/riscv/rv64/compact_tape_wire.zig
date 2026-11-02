@@ -132,7 +132,7 @@ pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape
     try exact(file, &raw);
     if (!std.mem.eql(u8, raw[0..8], MAGIC)) return error.InvalidTapeWireHeader;
     const execution = std.meta.intToEnum(profile.Profile, get(u32, raw[8..12])) catch return error.InvalidTapeWireProfile;
-    if (execution != .ethereum_services_v3 and get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
+    if (!profile.isV3(execution) and get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
     const sha_word = get(u32, raw[28..32]);
     const extended_v3 = sha_word & V3_EXTENSION_FLAG != 0;
     const h = Header{ .execution = execution, .steps = get(u32, raw[12..16]), .memory = get(u32, raw[16..20]), .keccak = get(u32, raw[20..24]), .secp = get(u32, raw[24..28]), .sha256 = sha_word & ~V3_EXTENSION_FLAG, .pc = get(u64, raw[32..40]), .clock = get(u64, raw[40..48]) };
@@ -246,7 +246,7 @@ fn validate(tape: *const T.Tape) !void {
         previous_clock = call.clock;
         ids[family] = call.call_id;
     }
-    if (tape.execution_profile != .ethereum_services_v3 and tape.sha256_calls.items.len != 0) return error.InvalidTapeWireService;
+    if (!profile.isV3(tape.execution_profile) and tape.sha256_calls.items.len != 0) return error.InvalidTapeWireService;
     var previous_sha: ?S.Sha256Call = null;
     for (tape.sha256_calls.items) |call| {
         if (previous_sha) |prior| if (prior.clock >= call.clock or prior.call_id == std.math.maxInt(u64) or call.call_id != prior.call_id + 1) return error.InvalidTapeWireService;
@@ -255,7 +255,7 @@ fn validate(tape: *const T.Tape) !void {
         try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
         previous_sha = call;
     }
-    if (tape.execution_profile != .ethereum_services_v3 and tape.arith256_mod_calls.items.len != 0) return error.InvalidTapeWireService;
+    if (!profile.isV3(tape.execution_profile) and tape.arith256_mod_calls.items.len != 0) return error.InvalidTapeWireService;
     var previous_arith: ?S.Arith256ModCall = null;
     for (tape.arith256_mod_calls.items) |call| {
         if (previous_arith) |prior| if (prior.clock >= call.clock or prior.call_id == std.math.maxInt(u64) or call.call_id != prior.call_id + 1) return error.InvalidTapeWireService;
@@ -264,7 +264,7 @@ fn validate(tape: *const T.Tape) !void {
         try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
         previous_arith = call;
     }
-    if (tape.execution_profile != .ethereum_services_v3 and tape.curve_calls.items.len != 0) return error.InvalidTapeWireService;
+    if (!profile.isV3(tape.execution_profile) and tape.curve_calls.items.len != 0) return error.InvalidTapeWireService;
     var curve_clock: u64 = 0;
     var curve_ids: [S.curves.COUNT]?u64 = @splat(null);
     for (tape.curve_calls.items) |call| {

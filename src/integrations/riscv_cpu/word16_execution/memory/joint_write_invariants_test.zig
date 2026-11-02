@@ -207,7 +207,8 @@ test "services RAM writer inventory matches the joint write induction cases" {
     // Adding a roster source, a bridge kind, a bulk kind or a sponge kind
     // requires adding its case there first, then updating this inventory.
     const Roster = @import("../../word16_global_execution/services/roster.zig");
-    try expectNames(Roster.Sources, &.{ "core", "keccak", "add", "double", "sha256", "arith256_mod", "curves", "bulk", "sponge_plan", "sponge", "ls_dword" });
+    // `zbb` is a pure FUNCTION/AND truth provider with no RAM14 term (section 11 note).
+    try expectNames(Roster.Sources, &.{ "core", "keccak", "add", "double", "sha256", "arith256_mod", "curves", "bulk", "sponge_plan", "sponge", "ls_dword", "zbb" });
     try expectNames(S.types.Kind, &.{ "add", "double", "sha256", "arith256_mod", "bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul", "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double" });
     const BM = A.crypto.bulk_memory;
     try expectNames(BM.layout.Kind, &.{ "desc", "copy", "set", "ucopy", "cdesc", "cmp", "jdesc", "jscan", "jtab" });

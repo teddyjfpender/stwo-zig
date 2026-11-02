@@ -68,6 +68,9 @@ pub fn main() !void {
     var loaded = try W.read(a, dir, .{ .max_cpus = 64, .max_truths = 32, .max_metadata_bytes = 4 << 20, .max_total_proof_bytes = 512 << 20, .max_native_row_sum = 1 << 29, .max_total_steps = config.value.max_steps });
     defer loaded.deinit(a);
     const bundle = &loaded.bundle;
+    // No recursion lane has a Zbb BINARY role (CPU proofs are not wrapped and
+    // no leaf shape covers it): bundles with one are rejected, not partially wrapped.
+    for (loaded.cpu_declarations) |d| if (d.bridges.zbb != null) return error.UnsupportedRecursionZbbComponent;
     var program = try Program.initWithAuthority(a, &image.authority);
     defer program.deinit();
     const expected = try Receiver.expected(&image, program.identity, bundle, config.value.max_steps, config.value.batch_steps, full);

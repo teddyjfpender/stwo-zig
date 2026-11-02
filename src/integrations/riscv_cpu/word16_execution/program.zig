@@ -11,6 +11,8 @@ const M = core.fields.m31.M31;
 pub const Entry = X.features.Entry;
 pub const Metadata = @import("program_metadata.zig");
 pub const MAX_LOG = 22;
+/// Every decoded opcode (RV64IM plus the appended Zbb BINARY subset).
+pub const OPCODE_COUNT = @typeInfo(front.rv64.decode.Opcode).@"enum".fields.len;
 pub const Program = struct {
     allocator: std.mem.Allocator,
     words: []const u32,
@@ -24,7 +26,7 @@ pub const Program = struct {
     fixed_retired: bool = false,
     log_size: u32,
     identity: [32]u8,
-    opcodes: [65]bool,
+    opcodes: [OPCODE_COUNT]bool,
     profile: Execution.Profile,
     contiguous: bool,
     owns_raw: bool,
@@ -81,11 +83,13 @@ pub const Program = struct {
         const word_rows = try a.alloc(u32, words.len);
         errdefer a.free(word_rows);
         var count: usize = 0;
-        var opcodes: [65]bool = @splat(false);
+        var opcodes: [OPCODE_COUNT]bool = @splat(false);
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update("stwo-rv64/full-word16/program-rom/v1\x00");
         const feature_identity = X.features.identity();
         hash.update(&feature_identity);
+        // Zbb-profile ROMs also bind the Zbb opcode map; others are unchanged.
+        if (X.features.zbbProfile(profile)) hash.update(&X.features.zbbIdentity());
         var framed: [12]u8 = undefined;
         std.mem.writeInt(u32, framed[0..4], @intFromEnum(profile), .little);
         std.mem.writeInt(u64, framed[4..12], words.len, .little);
@@ -96,10 +100,18 @@ pub const Program = struct {
                 // Undefined/default invalid decode cache contents are NEVER read.
                 if (authority.program.rows[i][Raw.field.valid].v == 1) {
                     std.debug.assert(authority.program.decoded[i].raw == raw);
-                    entry.* = Entry.fromInstruction(raw, pc, authority.program.decoded[i].instruction);
+                    entry.* = Entry.fromInstructionFor(profile, raw, pc, authority.program.decoded[i].instruction);
+                } else if (X.features.zbbProfile(profile)) {
+                    // The legacy byte program authority has no Zbb rows (it keeps
+                    // them invalid); a Zbb-profile ROM decodes exactly those
+                    // words itself, with the same profile decoder as the
+                    // uncached path and program_metadata.validate.
+                    if (Execution.decode(profile, raw)) |instruction| {
+                        if (!front.rv64.decode.isBase(instruction.opcode) and Execution.admitted(profile, instruction.opcode)) entry.* = Entry.fromInstructionFor(profile, raw, pc, instruction);
+                    } else |_| {}
                 }
             } else if (Execution.decode(profile, raw)) |instruction| {
-                if (Execution.admitted(profile, instruction.opcode)) entry.* = Entry.fromInstruction(raw, pc, instruction);
+                if (Execution.admitted(profile, instruction.opcode)) entry.* = Entry.fromInstructionFor(profile, raw, pc, instruction);
             } else |_| {}
             first.* = @intCast(count);
             count = std.math.add(usize, count, if (entry.hasTakenEdge()) 2 else 1) catch return error.ExecutionRomGeometryLimit;

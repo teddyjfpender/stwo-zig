@@ -47,7 +47,11 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     // The formerly reserved word is the v3 SHA-256 record count (zero below
     // v3); its bit 31 announces the v3 extension (arith256_mod and curve records) that
     // follows the SHA-256 records (compact_tape_wire.zig).
-    const v3 = get32(tape[8..12]) == @intFromEnum(@import("stwo_riscv_frontend").rv64.execution_profile.Profile.ethereum_services_v3);
+    // Raw header word: compared against the v3 roster profiles without
+    // casting an untrusted u32 to the enum (unknown values are simply not v3).
+    const ExecutionProfile = @import("stwo_riscv_frontend").rv64.execution_profile.Profile;
+    const raw_profile = get32(tape[8..12]);
+    const v3 = raw_profile == @intFromEnum(ExecutionProfile.ethereum_services_v3) or raw_profile == @intFromEnum(ExecutionProfile.ethereum_services_v3_zbb);
     const sha_word = get32(tape[28..32]);
     const extended = sha_word & EXTENSION_FLAG != 0;
     const sha256 = sha_word & ~EXTENSION_FLAG;

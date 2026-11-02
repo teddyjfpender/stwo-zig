@@ -177,7 +177,9 @@ pub const Batch = struct {
     }
 };
 /// A v3 tape runs under the v2-decoded ROM authority (identical ISA effects);
-/// every other profile must match exactly.
+/// every other profile must match exactly. In particular a v3_zbb tape (which
+/// may retire Zbb BINARY instructions) needs a v3_zbb authority: its ROM is
+/// the only one that decodes them, so this deliberately does not use isV3.
 pub fn tapeMatches(tape: rv.execution_profile.Profile, authority: rv.execution_profile.Profile) bool {
     return tape == authority or (tape == .ethereum_services_v3 and authority == .ethereum_services_v2);
 }

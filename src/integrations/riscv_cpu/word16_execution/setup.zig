@@ -48,9 +48,14 @@ pub const Materials = struct {
         return initWithSuite(a, expected, geometry, Suite.production());
     }
     pub fn initWithSuite(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry, suite: Suite) !Materials {
+        return initWithSuiteAndProfile(a, expected, geometry, suite, air.word16_execution.features.PROFILE);
+    }
+    /// Program ROM decoded under an explicit execution profile (bound into
+    /// the program identity); e.g. ethereum_services_v3_zbb admits Zbb BINARY.
+    pub fn initWithSuiteAndProfile(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry, suite: Suite, profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) !Materials {
         try suite.validate();
         try geometry.validate();
-        var program = try Program.init(a, expected);
+        var program = try Program.initWithProfile(a, expected, profile);
         errdefer program.deinit();
         return fromProgram(a, program, geometry, suite);
     }

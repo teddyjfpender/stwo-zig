@@ -8,8 +8,9 @@ const R = @import("../services/roster.zig");
 const T = @import("../services/types.zig");
 /// Core roles, one row per service family bridge, then the six v3
 /// bulk-memory components (desc, copy, set, ucopy, cdesc, cmp) and the two v3 Keccak-sponge
-/// components (call, perm), then the v3 LS-D64 head and tail instances.
-pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len + T.sponge_kinds.len + T.DWORD_INSTANCES;
+/// components (call, perm), then the v3 LS-D64 head and tail instances and
+/// the v3_zbb Zbb BINARY component.
+pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len + T.sponge_kinds.len + T.DWORD_INSTANCES + 1;
 pub const Row = struct {
     role: []const u8,
     present: bool,
@@ -84,8 +85,10 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
     const dword_rows: [T.DWORD_INSTANCES]u32 = if (setup.bridges.ls_dword != null) try T.dwordCounts(setup.bridges, dword) else .{ 0, 0 };
     for (0..T.DWORD_INSTANCES) |k| {
         const log = setup.bridges.dwordLog(k);
-        result[COUNT - T.DWORD_INSTANCES + k] = try row(if (k == 0) "ls_dword" else "ls_dword_tail", log orelse 5, if (log != null) T.dwordWidths() else .{ 0, 0, 0 }, dword_rows[k]);
+        result[COUNT - 1 - T.DWORD_INSTANCES + k] = try row(if (k == 0) "ls_dword" else "ls_dword_tail", log orelse 5, if (log != null) T.dwordWidths() else .{ 0, 0, 0 }, dword_rows[k]);
     }
+    // Zbb BINARY component (v3_zbb): active rows = distinct Zbb facts.
+    result[COUNT - 1] = try row("zbb_binary", setup.bridges.zbb orelse 5, if (setup.bridges.zbb != null) T.zbbWidths() else .{ 0, 0, 0 }, if (setup.bridges.zbb != null) prepared.zbb.facts.len else 0);
     for (0..3) |tree| {
         var width: usize = 0;
         for (result) |value| width = try std.math.add(usize, width, value.columns[tree]);

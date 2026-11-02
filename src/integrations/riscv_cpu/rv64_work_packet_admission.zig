@@ -73,7 +73,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     // the SHA-256 records (compact_tape_wire), present only when flagged.
     var arith_expected: u32 = 0;
     var curve_expected: u32 = 0;
-    if (tape_profile == .ethereum_services_v3 and extended) {
+    if (rv.execution_profile.isV3(tape_profile) and extended) {
         const keccak_records = std.mem.readInt(u32, raw[20..24], .little);
         const secp_records = std.mem.readInt(u32, raw[24..28], .little);
         var at = try std.math.add(usize, tape_start, rv.compact_tape_wire.HEADER_BYTES);
@@ -89,7 +89,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
         curve_expected = std.mem.readInt(u32, extension[4..8], .little);
         if (arith_expected == 0 and curve_expected == 0) return error.InvalidWorkPacketService;
     } else if (extended or arith != 0 or curve != 0) return error.InvalidWorkPacketService;
-    if (tape_profile != .ethereum_services_v3 and bulk != 0) return error.InvalidWorkPacketService;
+    if (!rv.execution_profile.isV3(tape_profile) and bulk != 0) return error.InvalidWorkPacketService;
     const expected_calls = [_]u32{ public.keccak_calls, public.secp.add.calls, public.secp.double.calls };
     if (pc != public.statement.final_pc or division != public.division_requests or multiplication != public.multiplication_requests or memory != std.mem.readInt(u32, raw[16..20], .little) or !std.mem.eql(u32, &calls, &expected_calls) or sha256 != sha256_expected or arith != arith_expected or curve != curve_expected) return error.InvalidWorkPacketRequestCount;
     const ram_bound = @as(u64, memory) + 25 * @as(u64, calls[0]) + 32 * (@as(u64, calls[1]) + calls[2]) + 12 * @as(u64, sha256) + 20 * @as(u64, arith) + rv.ethereum_services.curves.MAX_WORDS * @as(u64, curve) + rv.execution_profile.BULK_MAX_TOUCHED_WORDS * @as(u64, bulk);

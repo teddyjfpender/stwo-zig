@@ -138,6 +138,14 @@ pub const Cpu = struct {
             .FENCE => {},
             .ECALL => return error.EnvironmentCall,
             .EBREAK => return error.Breakpoint,
+            // Zbb BINARY subset; decoded only under `Isa.rv64im_zbb_binary`.
+            .ANDN => result = a & ~b,
+            .ORN => result = a | ~b,
+            .XNOR => result = ~(a ^ b),
+            .REV8 => result = @byteSwap(a),
+            .SEXT_B => result = @bitCast(@as(i64, @as(i8, @bitCast(@as(u8, @truncate(a)))))),
+            .SEXT_H => result = @bitCast(@as(i64, @as(i16, @bitCast(@as(u16, @truncate(a)))))),
+            .ZEXT_H => result = a & 0xffff,
         }
         // Untaken branches do not trap on their unused target. Stores cannot
         // reach this failure, so CPU and memory remain unchanged on a trap.

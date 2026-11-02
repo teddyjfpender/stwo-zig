@@ -28,11 +28,12 @@ pub const CpuLayout = struct {
     /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
     /// instances are sized on the remainder.
     ls_dword: bool = false,
-    /// Default layout for a profile route. Only the admitted
-    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
-    /// LS-D64; every older route keeps its historical layout and bundle bytes.
+    /// Default layout for a profile route. Only the admitted v3 routes
+    /// (`ethereum_services_v3` and its Zbb variant `ethereum_services_v3_zbb`)
+    /// default to the fused tail, byte pairs and LS-D64; every older route
+    /// keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
-        const v3 = profile == .ethereum_services_v3;
+        const v3 = @import("stwo_riscv_frontend").rv64.execution_profile.isV3(profile);
         return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
     }
 };
@@ -102,6 +103,9 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         const sponge = captured.advice.sponge[i].counts();
         if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
         if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
+        // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure
+        // truth provider, every row may be active), only when the shard has one.
+        if (n.zbb.facts.len != 0) d.bridges.zbb = try Coverage.minimalLog(@intCast(n.zbb.facts.len));
         try g.validate();
     }
     return out;

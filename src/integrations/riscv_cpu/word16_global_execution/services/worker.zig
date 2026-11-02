@@ -69,7 +69,7 @@ const Air = union(enum) {
     truth: Adapters.TruthComponents,
     fn init(descriptor: Descriptor, draw: Draw, claims: Claims) !Air {
         return switch (descriptor) {
-            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = try Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk).withSponge(c.setup, c.request.sponge, draw.cpu.local, draw.cpu.shared, claims.cpu.sponge).withDword(c.setup, c.request.ls_dword, draw.cpu.local, claims.cpu.ls_dword) } },
+            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = (try Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk).withSponge(c.setup, c.request.sponge, draw.cpu.local, draw.cpu.shared, claims.cpu.sponge).withDword(c.setup, c.request.ls_dword, draw.cpu.local, claims.cpu.ls_dword)).withZbb(c.setup, draw.cpu.local, claims.cpu.zbb) } },
             .truth => |t| .{ .truth = try Adapters.TruthComponents.init(t.value, draw.truth, claims.truth) },
         };
     }
@@ -173,7 +173,8 @@ pub const Worker = struct {
                 for (&source.ls_dword, &ls_dword) |*b, *out| if (b.*) |*s| {
                     out.* = try s.generate(ch.memory, source.core.range16.dictionary, source.core.range8.dictionary);
                 };
-                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk, .sponge = sponge, .ls_dword = ls_dword };
+                const zbb = if (source.zbb) |*s| try s.generate(Adapters.zbbChallenges(ch)) else T.zbbZero();
+                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk, .sponge = sponge, .ls_dword = ls_dword, .zbb = zbb };
                 try claims.presence(self.descriptor.cpu.setup);
                 break :block .{ .cpu = claims };
             },

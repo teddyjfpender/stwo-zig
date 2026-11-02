@@ -16,6 +16,7 @@ const W = @import("../services/wire.zig");
 const ProgramMetadata = @import("../../word16_execution/program_metadata.zig");
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
+const rv_profile = @import("stwo_riscv_frontend").rv64.execution_profile;
 pub fn main() !void {
     var recycler = Recycler.init(std.heap.smp_allocator, 4 << 30);
     defer recycler.deinit();
@@ -85,7 +86,7 @@ pub fn main() !void {
     if (operational.no_ls_dword) cpu_layout.ls_dword = false;
     const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
-    const truth_declarations = try Plan.truthsForProfile(a, &captured, config.value.execution_profile == .ethereum_services_v3);
+    const truth_declarations = try Plan.truthsForProfile(a, &captured, rv_profile.isV3(config.value.execution_profile));
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     try admitProfile(config.value, cpu_declarations, truth_declarations);
@@ -123,7 +124,13 @@ pub fn main() !void {
 /// exist only in the admitted v3 roster. A v2 request can never accept a
 /// proof that relies on them.
 pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration) !void {
-    if (config.execution_profile == .ethereum_services_v3) return;
+    // The Zbb BINARY component exists only under ethereum_services_v3_zbb
+    // (its ROM decodes the Zbb subset); every other request rejects it.
+    if (config.execution_profile != .ethereum_services_v3_zbb) for (cpus) |d| if (d.bridges.zbb != null) return error.UnadmittedZbbBinaryComponent;
+    // v3_zbb is the v3 roster (every v3 service and CPU layout: fused tail,
+    // U8 byte pairs, LS-D64) plus the Zbb BINARY component; its ROM differs
+    // only in the Zbb rows, which the program identity binds.
+    if (rv_profile.isV3(config.execution_profile)) return;
     // The fused-tail CPU layout is admitted only on the v3 route. A v2
     // receiver keeps the historical CPU AIR and fails closed on any other.
     for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs) return error.UnadmittedFusedTailCpuLayout;

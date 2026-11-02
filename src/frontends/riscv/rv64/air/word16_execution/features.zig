@@ -4,7 +4,10 @@ const execution = @import("../../execution_profile.zig");
 const Old = @import("../word16_v1/operations.zig");
 const M = @import("stwo_core").fields.m31.M31;
 const L = @import("layout.zig");
+const Zbb = @import("../word16_v1/binary_zbb.zig");
 pub const PROFILE = execution.Profile.ethereum_services_v2;
+/// FUNCTION id of the BINARY AND (zext.h is AND with the ROM immediate 0xffff).
+pub const AND = 16;
 pub const JALR = 10;
 pub const Entry = struct {
     raw: u32,
@@ -27,13 +30,21 @@ pub const Entry = struct {
     /// must supply the instruction belonging to raw under PROFILE; this is not
     /// a receiver admission API for arbitrary producer-supplied decode records.
     pub fn fromInstruction(raw: u32, pc: u64, decoded: isa.Instruction) Entry {
+        return fromInstructionFor(PROFILE, raw, pc, decoded);
+    }
+    /// Same authority, for the program's execution profile. RV64IM opcodes
+    /// are admitted and mapped exactly as under PROFILE for EVERY profile (so
+    /// every pre-Zbb ROM, identity and transcript is unchanged); the Zbb
+    /// BINARY opcodes are valid only when `profile` decodes that ISA.
+    pub fn fromInstructionFor(profile: execution.Profile, raw: u32, pc: u64, decoded: isa.Instruction) Entry {
         var instruction = decoded;
         if (instruction.opcode == .ECALL) {
             instruction.rs1 = execution.POINTER_REGISTER;
             instruction.rs2 = execution.TAG_REGISTER;
         }
         var self = Entry{ .raw = raw, .pc = pc, .instruction = instruction };
-        if (pc & 3 != 0 or !execution.admitted(PROFILE, instruction.opcode)) return self;
+        const authority = if (isa.isBase(instruction.opcode)) PROFILE else profile;
+        if (pc & 3 != 0 or !execution.admitted(authority, instruction.opcode)) return self;
         self.valid = true;
         const effects = execution.effects(PROFILE, instruction.opcode);
         self.ids = .{ if (effects.reads_rs1) instruction.rs1 else 0, if (effects.reads_rs2) instruction.rs2 else 0, if (effects.writes_rd) instruction.rd else 0 };
@@ -98,6 +109,23 @@ pub const Entry = struct {
             // Already handled by the shared pure operation authority above.
             .ADD, .SUB, .SLL, .SLT, .SLTU, .XOR, .SRL, .SRA, .OR, .AND, .ADDI, .SLTI, .SLTIU, .XORI, .ORI, .ANDI, .SLLI, .SRLI, .SRAI, .ADDW, .SUBW, .SLLW, .SRLW, .SRAW, .ADDIW, .SLLIW, .SRLIW, .SRAIW, .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => unreachable,
             .EBREAK => unreachable,
+            // Zbb BINARY (admitted above only under a Zbb profile). The ROM
+            // pins B_effective for every unary op: use_immediate with the
+            // canonical immediate (rev8 0, sext.b 0x80, sext.h 0x8000), so a
+            // prover cannot choose the B operand of the FUNCTION tuple.
+            .ANDN, .ORN, .XNOR => self.operation = Zbb.busId(zbbOp(instruction.opcode)),
+            .REV8, .SEXT_B, .SEXT_H => {
+                const op = zbbOp(instruction.opcode);
+                self.operation = Zbb.busId(op);
+                self.use_immediate = true;
+                self.immediate = Zbb.canonicalB(op, 0);
+            },
+            // zext.h rd, rs1 = AND rd, rs1, 0xffff: the existing BINARY chip.
+            .ZEXT_H => {
+                self.operation = AND;
+                self.use_immediate = true;
+                self.immediate = 0xffff;
+            },
         }
         return self;
     }
@@ -127,6 +155,17 @@ pub const Entry = struct {
         return out;
     }
 };
+fn zbbOp(op: isa.Opcode) Zbb.Op {
+    return switch (op) {
+        .ANDN => .andn,
+        .ORN => .orn,
+        .XNOR => .xnor,
+        .REV8 => .rev8,
+        .SEXT_B => .sext_b,
+        .SEXT_H => .sext_h,
+        else => unreachable, // callers pass only the six chip opcodes
+    };
+}
 pub fn put(out: []M, at: usize, value: u64) void {
     for (0..4) |i| out[at + i] = M.fromCanonical(@as(u16, @truncate(value >> @as(u6, @intCast(16 * i)))));
 }
@@ -136,7 +175,8 @@ pub fn identity() [32]u8 {
     const std = @import("std");
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("rv64.word16-execution.full64.v3:main47/inter40/D3;zero=1-enabled;previous-clock=tick-1-gap16-65536*gap8;FUNCTION13:old-ALU0..9,JALR10-nonzero-I,JALR0-AND16,BIN16..18,SHIFT32..37,raw-MUL-DIV49..61;OWNER19:raw-LS28..38,ECALL63;epoch16/tick24;normalized-static-RHS;ROM30-link-and-taken");
-    for (std.enums.values(isa.Opcode)) |op| for ([_]i64{ 0, -16 }) |immediate| {
+    // RV64IM domain only: the v3 identity is byte-identical to the pre-Zbb build.
+    for (isa.baseOpcodes()) |op| for ([_]i64{ 0, -16 }) |immediate| {
         const entry = Entry.fromInstruction(0, 0, .{ .opcode = op, .rs1 = 1, .rs2 = 2, .rd = 3, .imm = immediate });
         const fields = [_]u8{ @intFromEnum(op), @intFromBool(entry.valid), entry.operation, entry.ids[0], entry.ids[1], entry.ids[2], @intFromBool(entry.use_immediate), @intFromBool(entry.branch), @intFromBool(entry.use_pc), @intFromBool(entry.dynamic_next), @intFromBool(entry.function) };
         hash.update(&fields);
@@ -167,4 +207,28 @@ pub fn fusedTailIdentity() [32]u8 {
     const base = identity();
     hash.update(&base);
     return hash.finalResult();
+}
+
+/// Zbb BINARY opcode map (profile ethereum_services_v3_zbb). Bound into the
+/// ROM program identity of Zbb-profile programs only; `identity()` and every
+/// pre-Zbb program identity are unchanged.
+pub fn zbbIdentity() [32]u8 {
+    const std = @import("std");
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.word16-execution.zbb-binary.v1:FUNCTION19..24=andn,orn,xnor,rev8,sext.b,sext.h;zext.h=AND16-imm0xffff;unary-B=ROM-immediate");
+    const base = identity();
+    hash.update(&base);
+    for ([_]isa.Opcode{ .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H }) |op| for ([_]i64{ 0, -16 }) |immediate| {
+        const entry = Entry.fromInstructionFor(.ethereum_services_v3_zbb, 0, 0, .{ .opcode = op, .rs1 = 1, .rs2 = 2, .rd = 3, .imm = immediate });
+        const fields = [_]u8{ @intFromEnum(op), @intFromBool(entry.valid), entry.operation, entry.ids[0], entry.ids[1], entry.ids[2], @intFromBool(entry.use_immediate), @intFromBool(entry.branch), @intFromBool(entry.use_pc), @intFromBool(entry.dynamic_next), @intFromBool(entry.function) };
+        hash.update(&fields);
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, entry.immediate, .little);
+        hash.update(&bytes);
+    };
+    return hash.finalResult();
+}
+/// Whether programs of `profile` bind `zbbIdentity()` (and may emit FUNCTION 19..24).
+pub fn zbbProfile(profile: execution.Profile) bool {
+    return execution.isaOf(profile) == .rv64im_zbb_binary;
 }

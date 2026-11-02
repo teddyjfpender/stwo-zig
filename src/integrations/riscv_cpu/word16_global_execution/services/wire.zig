@@ -98,16 +98,18 @@ pub const WireClaims = struct {
     /// LS-D64 head/tail claims; each present iff that instance is.
     ls_dword: ?T.DwordClaims = null,
     ls_dword_tail: ?T.DwordClaims = null,
+    /// Zbb BINARY claims (AND, FUNCTION); present iff the roster has Zbb.
+    zbb: ?T.ZbbClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
         var curves: [T.CURVES]?T.ExtraClaims = @splat(null);
         for (&curves, T.FIRST_CURVE..) |*out, k| out.* = if (bridges.at(@enumFromInt(k)) != null) c.extras[k] else null;
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..T.BULK_EXT].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .jumpdest = if (bridges.bulk.jump()) c.bulk[T.BULK_EXT..].* else null, .ls_dword = if (bridges.ls_dword != null) c.ls_dword[0] else null, .ls_dword_tail = if (bridges.ls_dword_tail != null) c.ls_dword[1] else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..T.BULK_EXT].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .jumpdest = if (bridges.bulk.jump()) c.bulk[T.BULK_EXT..].* else null, .ls_dword = if (bridges.ls_dword != null) c.ls_dword[0] else null, .ls_dword_tail = if (bridges.ls_dword_tail != null) c.ls_dword[1] else null, .zbb = if (bridges.zbb != null) c.zbb else null };
     }
     fn expand(self: @This()) E.CpuClaims {
         var extras: [T.FAMILIES]T.ExtraClaims = undefined;
         extras[0..5].* = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() };
         for (extras[T.FIRST_CURVE..], self.curves) |*out, c| out.* = c orelse T.ExtraClaims.zero();
-        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()) ++ (self.jumpdest orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()), .ls_dword = .{ self.ls_dword orelse T.DwordClaims.zero(), self.ls_dword_tail orelse T.DwordClaims.zero() } };
+        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()) ++ (self.jumpdest orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()), .ls_dword = .{ self.ls_dword orelse T.DwordClaims.zero(), self.ls_dword_tail orelse T.DwordClaims.zero() }, .zbb = self.zbb orelse T.zbbZero() };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curves) |c| if (c != null) return true;
@@ -153,6 +155,10 @@ pub const WireClaims = struct {
         }
         if (self.ls_dword_tail) |b| {
             try jws.objectField("ls_dword_tail");
+            try jws.write(b);
+        }
+        if (self.zbb) |b| {
+            try jws.objectField("zbb");
             try jws.write(b);
         }
         try jws.endObject();
@@ -257,6 +263,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.ls_dword != null) != (cpu.declaration.bridges.ls_dword != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.ls_dword_tail != null) != (cpu.declaration.bridges.ls_dword_tail != null)) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.zbb != null) != (cpu.declaration.bridges.zbb != null)) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;
         const claims = cpu.claims.expand();
         try claims.canonical();
@@ -272,6 +279,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         for (claims.ls_dword, 0..) |c, k| if (cpu.declaration.bridges.dwordLog(k) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
+        if (cpu.declaration.bridges.zbb == null) for (claims.zbbValues()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
     }
     for (m.truths) |truth| {
         // Single-component v3 truths (SHA-256, arith256_mod, curves) carry
@@ -351,6 +359,11 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
             mass16 = try std.math.add(u64, mass16, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U16.len) << @intCast(l));
             mass8 = try std.math.add(u64, mass8, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U8.len) << @intCast(l));
         };
+        // Zbb geometry: the same admission the receiver repeats in P.admitZbb.
+        if (cpu.declaration.bridges.zbb) |l| {
+            if (l < 5 or l > 22) return error.InvalidServicesWireRequest;
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(l));
+        }
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
         ram = try std.math.add(u64, ram, 58 * @as(u64, cpu.request.sponge.calls) + 36 * @as(u64, cpu.request.sponge.perms));
         ram = try std.math.add(u64, ram, 2 * (@as(u64, cpu.request.ls_count) + cpu.request.ls_dword));

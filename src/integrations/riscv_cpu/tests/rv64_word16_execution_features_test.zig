@@ -11,7 +11,11 @@ fn word(values: []const M) u64 {
     return out;
 }
 test "full CPU feature authority explicitly partitions every decoded opcode and true architectural effects" {
-    for (std.enums.values(isa.Opcode)) |opcode| {
+    // The Word16 v2/v3 ROM is RV64IM: Zbb BINARY opcodes are never valid entries.
+    for (std.enums.values(isa.Opcode)) |opcode| if (!isa.isBase(opcode)) {
+        try std.testing.expect(!X.Entry.fromInstruction(0, 0x1000, .{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4 }).valid);
+    };
+    for (isa.baseOpcodes()) |opcode| {
         const instruction = isa.Instruction{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4, .imm = -16 };
         const entry = X.Entry.fromInstruction(0, 0x1000, instruction);
         try std.testing.expectEqual(opcode != .EBREAK, entry.valid);
@@ -146,12 +150,13 @@ fn specimen(op: isa.Opcode) u32 {
         .FENCE => 0x0f,
         .ECALL => 0x73,
         .EBREAK => 0x00100073,
+        .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H => unreachable, // not RV64IM
     };
     const effects = isa.effects(op);
     return base | (if (effects.writes_rd) @as(u32, 1) << 7 else 0) | (if (effects.reads_rs1) @as(u32, 1) << 15 else 0) | (if (effects.reads_rs2) @as(u32, 2) << 20 else 0);
 }
 test "full CPU all65 raw encodings and cached independent decode have identical admission and ROM projection" {
-    for (std.enums.values(isa.Opcode)) |op| {
+    for (isa.baseOpcodes()) |op| {
         const raw = specimen(op);
         const decoded = try execution.decode(.ethereum_services_v2, raw);
         try std.testing.expectEqual(op, decoded.opcode);
@@ -206,4 +211,59 @@ test "derived register predecessor clocks roundtrip canonical extrema aliases an
     const last: u32 = (1 << 22) - 1;
     const row = try X.row.padding(last, 0x1004);
     for (0..3) |slot| try std.testing.expectEqual(M.zero(), X.tuples.previousClock(M, M.fromCanonical(last), &row, @intCast(slot)));
+}
+
+test "Zbb ROM mapping: v3_zbb ids 19..24, unary B pinned by the ROM immediate, zext.h is AND 0xffff, other profiles invalid" {
+    const Z = front.rv64_air.word16_v1.binary_zbb;
+    const zbb = execution.Profile.ethereum_services_v3_zbb;
+    const ops = [_]isa.Opcode{ .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H };
+    for (ops) |opcode| {
+        // Every non-Zbb profile keeps them invalid (fail closed).
+        for (std.enums.values(execution.Profile)) |p| if (p != zbb) {
+            try std.testing.expect(!X.Entry.fromInstructionFor(p, 0, 0x1000, .{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4 }).valid);
+        };
+        // A producer-chosen nonzero rs2 field / immediate never reaches a unary op's B.
+        const e = X.Entry.fromInstructionFor(zbb, 0, 0x1000, .{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4, .imm = -16 });
+        try std.testing.expect(e.valid and e.function and !e.branch and !e.use_pc and !e.dynamic_next);
+        const unary = opcode != .ANDN and opcode != .ORN and opcode != .XNOR;
+        try std.testing.expectEqual([3]u5{ 2, if (unary) 0 else 3, 4 }, e.ids);
+        try std.testing.expectEqual(unary, e.use_immediate);
+        const tuple = e.romTuple(false);
+        try std.testing.expectEqual(@as(u32, e.operation), tuple[L.rom.operation].v);
+        try std.testing.expectEqual(e.immediate, word(tuple[L.rom.immediate..][0..4]));
+        try std.testing.expectEqual(@as(u32, @intFromBool(unary)), tuple[L.rom.flags].v);
+        switch (opcode) {
+            .ANDN => try std.testing.expectEqual(@as(u8, 19), e.operation),
+            .ORN => try std.testing.expectEqual(@as(u8, 20), e.operation),
+            .XNOR => try std.testing.expectEqual(@as(u8, 21), e.operation),
+            .REV8 => try std.testing.expect(e.operation == 22 and e.immediate == 0),
+            .SEXT_B => try std.testing.expect(e.operation == 23 and e.immediate == 0x80),
+            .SEXT_H => try std.testing.expect(e.operation == 24 and e.immediate == 0x8000),
+            .ZEXT_H => try std.testing.expect(e.operation == X.features.AND and e.immediate == 0xffff),
+            else => unreachable,
+        }
+        if (opcode != .ZEXT_H) try std.testing.expectEqual(Z.canonicalB(@enumFromInt(e.operation - Z.FIRST_ID), 0x1234), if (unary) e.immediate else 0x1234);
+    }
+    // Every RV64IM entry is byte-identical under the Zbb profile, so the base
+    // identity and every pre-Zbb ROM are unchanged; the Zbb map is separate.
+    for (isa.baseOpcodes()) |opcode| for ([_]i64{ 0, -16, 4 }) |imm| {
+        const instruction = isa.Instruction{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4, .imm = imm };
+        try std.testing.expect(std.meta.eql(X.Entry.fromInstruction(0, 0x1000, instruction), X.Entry.fromInstructionFor(zbb, 0, 0x1000, instruction)));
+    };
+    try std.testing.expect(!std.mem.eql(u8, &X.features.identity(), &X.features.zbbIdentity()));
+    try std.testing.expect(X.features.zbbProfile(zbb) and !X.features.zbbProfile(.ethereum_services_v3));
+}
+
+test "Zbb program ROM: identity binds the profile and Zbb map, v3 ROM keeps Zbb words invalid" {
+    const Program = @import("../word16_execution/program.zig").Program;
+    const Zf = @import("../word16_global_execution/services/zbb_fixture.zig");
+    const words = [_]u32{ Zf.andn(5, 6, 7), Zf.rev8(8, 9), Zf.sextB(1, 2), Zf.sextH(1, 2), Zf.zextH(3, 4), Zf.orn(1, 2, 3), Zf.xnor(1, 2, 3) };
+    var zbb = try Program.initWithProfile(std.testing.allocator, .{ .base = 4096, .words = &words }, .ethereum_services_v3_zbb);
+    defer zbb.deinit();
+    var v3 = try Program.initWithProfile(std.testing.allocator, .{ .base = 4096, .words = &words }, .ethereum_services_v3);
+    defer v3.deinit();
+    try std.testing.expect(!std.mem.eql(u8, &zbb.identity, &v3.identity));
+    for (zbb.entries, v3.entries) |z, b| try std.testing.expect(z.valid and !b.valid);
+    try std.testing.expectError(error.InvalidExecutionProgramWord, v3.lookup(4096));
+    _ = try zbb.lookup(4096);
 }

@@ -13,6 +13,8 @@ const Coverage = @import("coverage.zig");
 const G = @import("geometry.zig");
 pub const Binary = @import("binary_dedup.zig");
 pub const Shift = @import("shift_dedup.zig");
+pub const Zbb = B.binary_zbb_source;
+const Execution = front.rv64.execution_profile;
 pub const Options = struct {
     deduplicate_binary: bool = true,
     deduplicate_shift: bool = false,
@@ -30,6 +32,10 @@ pub const Prepared = struct {
     shift_weights: []u32,
     division: []A.arithmetic.division.trace.Request,
     multiplication: []A.arithmetic.multiplication.trace.Request,
+    /// Zbb BINARY FUNCTION facts (ids 19..24), deduplicated. Non-empty only for
+    /// a Zbb-profile program on the v3 services route; their provider is the
+    /// services-lane Zbb component (no core role), so core-only routes reject them.
+    zbb: Zbb.Weighted,
     raw_counts: Coverage.Counts,
     unique_memory_words: u32,
     pub fn init(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
@@ -80,12 +86,15 @@ pub const Prepared = struct {
     /// Admitted v3 LE ABI: v2's three families plus SHA-256 compression. The
     /// v2 route above keeps its exact whitelist; v3 tags need v3 tapes.
     pub fn captureForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
-        if (tape.execution_profile != .ethereum_services_v3) return error.UnqualifiedWord16ServiceOwners;
+        if (!Execution.isV3(tape.execution_profile)) return error.UnqualifiedWord16ServiceOwners;
+        // A Zbb tape needs a Zbb ROM and a Zbb ROM needs a Zbb tape: the
+        // program profile (bound into the program identity) and the tape agree.
+        if (A.word16_execution.features.zbbProfile(tape.execution_profile) != A.word16_execution.features.zbbProfile(program.profile)) return error.UnqualifiedWord16ServiceOwners;
         return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_words_v3);
     }
     /// Either admitted combined profile, selected by the tape's own profile.
     pub fn captureForCombinedServices(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
-        return if (tape.execution_profile == .ethereum_services_v3) captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options) else captureForCombinedServicesLEv2(a, program, public, epoch, cpu_log, tape, options);
+        return if (Execution.isV3(tape.execution_profile)) captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options) else captureForCombinedServicesLEv2(a, program, public, epoch, cpu_log, tape, options);
     }
     pub fn initForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
         var result = try captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options);
@@ -119,6 +128,9 @@ pub const Prepared = struct {
         defer df.deinit(a);
         var mf: std.ArrayList(A.arithmetic.multiplication.trace.Request) = .empty;
         defer mf.deinit(a);
+        var zf: std.ArrayList(Zbb.Fact) = .empty;
+        defer zf.deinit(a);
+        const allow_zbb = service == .combined_words_v3 and A.word16_execution.features.zbbProfile(program.profile);
         for (cpu.functions.items) |f| switch (f.operation) {
             0...9 => try af.append(a, .{ .op = @enumFromInt(f.operation), .a = f.a, .b = f.b, .c = f.c }),
             10 => try jf.append(a, .{ .a = f.a, .b = f.b, .c = f.c }),
@@ -126,6 +138,7 @@ pub const Prepared = struct {
             32...37 => try sf.append(a, .{ .op = @enumFromInt(f.operation - 32), .a = f.a, .b = f.b, .c = f.c }),
             49...52, 57 => try mf.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
             53...56, 58...61 => try df.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
+            B.binary_zbb.FIRST_ID...B.binary_zbb.FIRST_ID + B.binary_zbb.OPS - 1 => if (allow_zbb) try zf.append(a, .{ .op = @enumFromInt(f.operation - B.binary_zbb.FIRST_ID), .a = f.a, .b = f.b, .c = f.c }) else return error.UnroutedWord16Function,
             else => return error.UnroutedWord16Function,
         };
         const raw_mul_count: u32 = @intCast(mf.items.len);
@@ -145,6 +158,8 @@ pub const Prepared = struct {
         errdefer alu.deinit();
         var binary = try Binary.collect(a, bf.items, options.deduplicate_binary);
         errdefer binary.deinit();
+        var zbb = try Zbb.collect(a, zf.items);
+        errdefer zbb.deinit();
         var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
         defer words.deinit(a);
         for (cpu.memory.items) |record| try words.put(a, record.effect.address.toInt() & ~@as(u64, 7), {});
@@ -160,7 +175,7 @@ pub const Prepared = struct {
         // Every provider fact is now independently owned. Avoid retaining a
         // second copy until all execution shards have sealed their MAIN.
         cpu.releaseFunctionFacts();
-        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
+        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .zbb = zbb, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
     }
     pub fn geometry(self: *const Prepared) !G.Geometry {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
@@ -217,6 +232,8 @@ pub const Prepared = struct {
         self.shift_weights = &.{};
         self.division = &.{};
         self.multiplication = &.{};
+        // `zbb` is consumed by the services-lane Zbb provider, built after the
+        // core sources release their facts; it is freed by deinit.
     }
     pub fn deinit(self: *Prepared) void {
         if (self.cpu) |*value| value.deinit();
@@ -227,6 +244,7 @@ pub const Prepared = struct {
         self.allocator.free(self.shift_weights);
         self.allocator.free(self.division);
         self.allocator.free(self.multiplication);
+        self.zbb.deinit();
         self.* = undefined;
     }
 };

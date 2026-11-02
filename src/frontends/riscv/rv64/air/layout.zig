@@ -74,6 +74,10 @@ pub const fixed = struct {
     pub const last = 2;
     pub const opcode_start = 3;
     pub const OPCODES = 65;
+    comptime {
+        // Selector domain = RV64IM; appended Zbb opcodes have no full-AIR selector.
+        if (OPCODES != @import("../decode.zig").BASE_OPCODE_COUNT) @compileError("full AIR opcode domain drifted from RV64IM");
+    }
     pub const rs1 = opcode_start + OPCODES;
     pub const rs2 = rs1 + 1;
     pub const rd = rs2 + 1;

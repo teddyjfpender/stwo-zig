@@ -105,7 +105,7 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
         var bc = try Components.init(&s.materials, encoded.request.base, ch, encoded.claims.base);
-        var bb = try Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras).withBulk(s, encoded.request.bulk, ch, encoded.claims.bulk).withSponge(s, encoded.request.sponge, ch, common, encoded.claims.sponge).withDword(s, encoded.request.ls_dword, ch, encoded.claims.ls_dword);
+        var bb = (try Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras).withBulk(s, encoded.request.bulk, ch, encoded.claims.bulk).withSponge(s, encoded.request.sponge, ch, common, encoded.claims.sponge).withDword(s, encoded.request.ls_dword, ch, encoded.claims.ls_dword)).withZbb(s, ch, encoded.claims.zbb);
         const handles = try cpuVerifierHandles(a, &bc, &bb);
         defer a.free(handles);
         owns = false;

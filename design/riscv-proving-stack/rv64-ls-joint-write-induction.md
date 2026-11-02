@@ -441,6 +441,12 @@ section 4 goes through unchanged.
 is argued in `rv64-jumpdest-service.md` J3-J6; its writer is case (a) like
 memset, so no new dependency edge. `sponge_plan` is the
 owned plan of the two sponge sources, not a component.
+`zbb` (profile
+ethereum_services_v3_zbb, `air/word16_v1/binary_zbb.zig`) is NOT a RAM
+writer: it is a pure FUNCTION truth provider (ids 19..24) with only byte-AND
+and FUNCTION interactions, no RAM14, OWNER19 or range terms, so it adds no case
+here; a Zbb instruction's register write is the ordinary CPU REG write
+(sections 1-10) of a FUNCTION-row result.
 
 ### 11.3 Notes and premises made explicit
 

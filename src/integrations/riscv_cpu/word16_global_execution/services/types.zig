@@ -53,6 +53,10 @@ pub const Logs = struct {
     /// instances. Absent: v2/v3 bytes unchanged.
     ls_dword: ?u32 = null,
     ls_dword_tail: ?u32 = null,
+    /// Zbb BINARY truth provider (profile ethereum_services_v3_zbb), the last
+    /// CPU-local block. It answers the CPU FUNCTION ids 19..24 against the
+    /// core byte-AND table; it takes no Family ordinal and has no public count.
+    zbb: ?u32 = null,
     pub fn dwordLog(self: @This(), k: usize) ?u32 {
         return if (k == 0) self.ls_dword else self.ls_dword_tail;
     }
@@ -104,6 +108,10 @@ pub const Logs = struct {
         }
         if (self.ls_dword_tail) |log| {
             try jws.objectField("ls_dword_tail");
+            try jws.write(log);
+        }
+        if (self.zbb) |log| {
+            try jws.objectField("zbb");
             try jws.write(log);
         }
         try jws.endObject();
@@ -345,4 +353,12 @@ pub fn dwordWidths() [3]usize {
 /// component present, exactly the LD/SD events are its rows.
 pub fn isDwordEvent(e: A.memory.load_store_v2.native.Event) bool {
     return A.memory.load_store_dword.source.admits(e);
+}
+/// Zbb BINARY component widths (fixed first/last, MAIN, interaction).
+pub const ZbbClaims = A.word16_v1.binary_lookup.Claims;
+pub fn zbbWidths() [3]usize {
+    return .{ 2, A.word16_v1.binary_lookup.zbb.MAIN, A.word16_v1.binary_lookup.zbb.INTERACTION };
+}
+pub fn zbbZero() ZbbClaims {
+    return .{ .and_ = Q.zero(), .function = Q.zero() };
 }

@@ -10,6 +10,9 @@ const KB = K.word16_bridge;
 const BM = A.crypto.bulk_memory;
 const KS = A.crypto.keccak_sponge;
 const LSD = A.memory.load_store_dword;
+pub fn zbbChallenges(ch: G.Old.Draw) A.word16_v1.binary_lookup.Challenges {
+    return .{ .function = .{ .offset = ch.cpu.function.offset, .coefficients = ch.cpu.function.coefficients }, .and_ = ch.and_ };
+}
 pub fn spongeChallenges(ch: G.Old.Draw, common: P.Shared) KS.types.Challenges {
     return .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .and_ = ch.and_, .range16 = ch.memory.range16, .range8 = ch.memory.range8 };
 }
@@ -29,6 +32,7 @@ pub const Bridges = struct {
     bulk: [T.bulk_kinds.len]?BM.component.Component = @splat(null),
     sponge: [2]?KS.component.Component = @splat(null),
     ls_dword: [T.DWORD_INSTANCES]?LSD.component.Component = @splat(null),
+    zbb: ?A.word16_v1.binary_component.Component = null,
     /// LS-D64 instances share the CPU proof's RAM14, OWNER19, U16 and U8
     /// challenges (the same Draw.memory the core LS32 instances use). Row
     /// counts are the canonical split of the public total.
@@ -38,6 +42,14 @@ pub const Bridges = struct {
         for (0..T.DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |log| {
             out.ls_dword[k] = .{ .log_size = log, .rows = rows[k], .offsets = .{ setup.dwordOffset(k, 0), setup.dwordOffset(k, 1), setup.dwordOffset(k, 2) }, .claims = claims[k], .challenges = ch.memory };
         };
+        return out;
+    }
+    /// The Zbb BINARY component uses the CPU proof's FUNCTION and AND
+    /// challenges, exactly like the core BINARY chip it extends.
+    pub fn withZbb(self: Bridges, setup: *const R.CpuSetup, ch: G.Old.Draw, claims: T.ZbbClaims) Bridges {
+        var out = self;
+        const log = setup.bridges.zbb orelse return out;
+        out.zbb = .{ .kind = .binary_zbb, .log_size = log, .offsets = .{ setup.zbbOffset(0), setup.zbbOffset(1), setup.zbbOffset(2) }, .challenges = zbbChallenges(ch), .claims = claims };
         return out;
     }
     /// Keccak-sponge components share the CPU proof's RAM14, OWNER19, AND and
@@ -87,6 +99,7 @@ pub const Bridges = struct {
         for (self.bulk) |b| n += @intFromBool(b != null);
         for (self.sponge) |b| n += @intFromBool(b != null);
         for (self.ls_dword) |b| n += @intFromBool(b != null);
+        n += @intFromBool(self.zbb != null);
         return n;
     }
 };
@@ -116,6 +129,10 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
         out[at] = c.asProverComponent();
         at += 1;
     };
+    if (bridges.zbb) |*c| {
+        out[at] = c.asProverComponent();
+        at += 1;
+    }
     return out;
 }
 pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]core.air.components.Component {
@@ -144,6 +161,10 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
         out[at] = c.asVerifierComponent();
         at += 1;
     };
+    if (bridges.zbb) |*c| {
+        out[at] = c.asVerifierComponent();
+        at += 1;
+    }
     return out;
 }
 pub const TruthComponents = union(enum) {

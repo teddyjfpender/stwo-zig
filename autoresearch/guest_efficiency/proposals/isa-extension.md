@@ -1,6 +1,10 @@
 # Proposal: admit a Zbb/Zba subset in the Word16 CPU AIR
 
-Status: candidate-measured, not built. Evidence: `notes/zbb-gap-report.md`,
+Status: group 1 partly built on `codex/rv64-ge-zbb` (2026-11-02): admitted-ISA decoder and
+executor profile `ethereum_services_v3_zbb`, static ISA audit, `rev8` client build
+(-4.1% instr/gas vs the same-tree v3 client), Zbb BINARY chip with a chip-level STARK fixture.
+CPU-lane ROM/role integration and a program proof are not done. See
+`notes/zbb-binary-admitted-20261102.md`. Earlier status: candidate-measured, not built. Evidence: `notes/zbb-gap-report.md`,
 `notes/candidate-isa-results-20261101.json`, costs in
 `proposals/candidate-isa-costs.json` (estimates).
 

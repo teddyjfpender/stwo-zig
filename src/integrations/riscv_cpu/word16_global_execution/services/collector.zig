@@ -183,7 +183,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     // v3 is v2 plus SHA-256 and bulk memory; a v2 tape can never carry a v3 record.
     // Bulk calls have no tape payload (the ECALL step is the call), so they are
     // counted from the CPU's own service records.
-    const v3 = tape.execution_profile == .ethereum_services_v3;
+    const v3 = front.rv64.execution_profile.isV3(tape.execution_profile);
     var bulk_records: usize = 0;
     if (v3) for (cpu.services.items) |rec| {
         bulk_records += @intFromBool(isBulkTag(rec.tag) or rec.tag == Sponge.TAG);
