@@ -207,7 +207,7 @@ test "services RAM writer inventory matches the joint write induction cases" {
     // Adding a roster source, a bridge kind, a bulk kind or a sponge kind
     // requires adding its case there first, then updating this inventory.
     const Roster = @import("../../word16_global_execution/services/roster.zig");
-    try expectNames(Roster.Sources, &.{ "core", "keccak", "add", "double", "sha256", "arith256_mod", "curves", "bulk", "sponge_plan", "sponge" });
+    try expectNames(Roster.Sources, &.{ "core", "keccak", "add", "double", "sha256", "arith256_mod", "curves", "bulk", "sponge_plan", "sponge", "ls_dword" });
     try expectNames(S.types.Kind, &.{ "add", "double", "sha256", "arith256_mod", "bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul", "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double" });
     const BM = A.crypto.bulk_memory;
     try expectNames(BM.layout.Kind, &.{ "desc", "copy", "set", "ucopy", "cdesc", "cmp" });
@@ -215,3 +215,37 @@ test "services RAM writer inventory matches the joint write induction cases" {
     try expectNames(A.crypto.keccak_sponge.layout.Kind, &.{ "call", "perm" });
     try std.testing.expectEqual(@as(usize, 2), @typeInfo(@FieldType(Roster.Sources, "sponge")).array.len);
 }
+
+test "LS-D64 writer case: unit OWNER/RAM coupling, CPU tick, LD after = before and SD after = B" {
+    // Section 12 of rv64-ls-joint-write-induction.md: LS-D64 is a restriction
+    // of the LS32 row, so its two writers are the LS32 LD and SD cases.
+    const D = A.memory.load_store_dword;
+    const before = R.types.State{ .value = 0x0123456789abcdef, .rights = 3 };
+    for ([_]front.rv64.decode.Opcode{ .LD, .SD }) |op| for (0..4) |index| {
+        const tick: u24 = @intCast(4 * index + 4);
+        const b: u64 = if (op == .SD) 0xfedcba9876543210 else 0;
+        const event = LS.native.Event{ .opcode = op, .a = 0x1000, .immediate = 8, .b = b, .c = if (op == .LD) before.value else 0, .epoch = 1, .tick = tick, .before = before, .after = .{ .value = if (op == .SD) b else before.value, .rights = 3, .epoch = 1, .tick = tick } };
+        try D.source.validate(event);
+        const physical = D.source.row(event);
+        const m = D.layout.expandFor(M, &physical);
+        // OWNER19 equals the CPU tuple of the same row; weight is RAM `active`.
+        var cpu: [X.layout.main.COUNT]Q = @splat(Q.zero());
+        cpu[X.layout.main.operation] = q(@intFromEnum(op));
+        cpu[X.layout.main.active] = Q.one();
+        cpu[X.layout.main.a] = q(0x1000);
+        const fixed = [_]Q{ q(@intCast(index)), Q.zero(), Q.zero() };
+        const owner = X.tuples.owner(Q, &fixed, &cpu, Q.one());
+        const dword_owner = D.equations.ownerTuple(M, &physical);
+        try std.testing.expect(owner[0].eql(Q.fromBase(dword_owner[0])));
+        try std.testing.expect(owner[18].eql(q(tick)) and dword_owner[18].v == tick);
+        try std.testing.expect(X.equations.weightsFor(Q, &cpu).owner.eql(Q.fromBase(m[0])));
+        // Written limbs: LD copies before (E3), SD copies B (E4); C is the
+        // before word for LD (E2) and zero for SD.
+        for (0..4) |c| {
+            const want = if (op == .LD) m[14 + c] else m[V.layout.b + c];
+            try std.testing.expectEqual(want.v, m[18 + c].v);
+            try std.testing.expectEqual(if (op == .LD) m[14 + c].v else 0, m[V.layout.c + c].v);
+        }
+    };
+}
+const M = core.fields.m31.M31;

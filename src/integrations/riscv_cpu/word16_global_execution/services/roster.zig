@@ -8,6 +8,7 @@ const K = A.crypto.keccak.word16_bridge;
 const S = A.crypto.secp256k1.word16_bridge;
 const BM = A.crypto.bulk_memory;
 const KS = A.crypto.keccak_sponge;
+const LSD = A.memory.load_store_dword;
 const Mat = @import("../../word16_execution/setup.zig");
 const Core = @import("../../word16_execution/sources.zig");
 const Commit = @import("../../word16_execution/main_ownership.zig").Commit;
@@ -27,6 +28,8 @@ pub const CpuSetup = struct {
     bulk_fixed: [T.bulk_kinds.len][]M = @splat(&.{}),
     /// Keccak-sponge fixed columns (call, perm), after the bulk block.
     sponge_fixed: [2][]M = @splat(&.{}),
+    /// LS-D64 fixed columns (row index, first, last), after the sponge block.
+    dword_fixed: [T.DWORD_INSTANCES][]M = @splat(&.{}),
     key: Key,
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
         return initProgramWithSuite(a, program, g, bridges, Mat.Suite.production());
@@ -85,6 +88,16 @@ pub const CpuSetup = struct {
             }
             sponge_done += 1;
         }
+        var dword_done: usize = 0;
+        errdefer for (self.dword_fixed[0..dword_done]) |f| a.free(f);
+        if (bridges.ls_dword_tail != null and bridges.ls_dword == null) return error.InvalidCombinedBridgePresence;
+        for (0..T.DWORD_INSTANCES) |k| {
+            if (bridges.dwordLog(k)) |log| {
+                if (log < 5 or log > T.DWORD_MAX_LOG) return error.InvalidCombinedServiceCount;
+                self.dword_fixed[k] = try LSD.source.fixed(a, log);
+            }
+            dword_done += 1;
+        }
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
         self.key = try Key.sealWithSuiteAndCache(a, columns, m.suite, cache);
@@ -105,12 +118,17 @@ pub const CpuSetup = struct {
             self.materials.allocator.free(data.*);
             data.* = &.{};
         }
+        for (&self.dword_fixed) |*data| {
+            self.materials.allocator.free(data.*);
+            data.* = &.{};
+        }
     }
     pub fn deinit(self: *CpuSetup) void {
         self.key.deinit();
         for (self.fixed) |f| self.materials.allocator.free(f);
         for (self.bulk_fixed) |f| self.materials.allocator.free(f);
         for (self.sponge_fixed) |f| self.materials.allocator.free(f);
+        for (self.dword_fixed) |f| self.materials.allocator.free(f);
         self.materials.deinit();
     }
     pub fn total(self: *const CpuSetup, tree: usize) usize {
@@ -157,12 +175,23 @@ pub const CpuSetup = struct {
         }
         return n;
     }
-    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+    fn spongeEnd(self: *const CpuSetup, tree: usize) usize {
         var n = self.bulkEnd(tree);
         for (T.sponge_kinds) |k| if (self.bridges.sponge.at(k) != null) {
             n += T.spongeWidths(k)[tree];
         };
         return n;
+    }
+    /// The LS-D64 instances (head, tail) follow the sponge block.
+    pub fn dwordOffset(self: *const CpuSetup, k: usize, tree: usize) usize {
+        var n = self.spongeEnd(tree);
+        for (0..k) |j| if (self.bridges.dwordLog(j) != null) {
+            n += T.dwordWidths()[tree];
+        };
+        return n;
+    }
+    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+        return self.dwordOffset(T.DWORD_INSTANCES, tree);
     }
     pub fn fixedColumns(self: *const CpuSetup, a: std.mem.Allocator) ![]Col {
         const old = try self.materials.fixedColumns(a);
@@ -179,6 +208,7 @@ pub const CpuSetup = struct {
         for (T.sponge_kinds, 0..) |kind, k| if (self.bridges.sponge.at(kind)) |log| {
             append(out, &at, self.sponge_fixed[k], log);
         };
+        for (0..T.DWORD_INSTANCES) |k| if (self.bridges.dwordLog(k)) |log| append(out, &at, self.dword_fixed[k], log);
         return out;
     }
     pub fn logs(self: *const CpuSetup, a: std.mem.Allocator, tree: usize) ![]u32 {
@@ -202,6 +232,11 @@ pub const CpuSetup = struct {
             @memset(out[at..][0..width], log);
             at += width;
         };
+        for (0..T.DWORD_INSTANCES) |k| if (self.bridges.dwordLog(k)) |log| {
+            const width = T.dwordWidths()[tree];
+            @memset(out[at..][0..width], log);
+            at += width;
+        };
         return out;
     }
 };
@@ -218,7 +253,10 @@ pub const Sources = struct {
     /// Keccak-sponge plan (owned) and its call/perm sources.
     sponge_plan: ?*KS.source.Plan = null,
     sponge: [2]?KS.source.Source = @splat(null),
+    /// LS-D64 source: every LD/SD event of this CPU proof.
+    ls_dword: [T.DWORD_INSTANCES]?LSD.source.Source = @splat(null),
     pub fn deinit(self: *Sources) void {
+        for (&self.ls_dword) |*b| if (b.*) |*s| s.deinit();
         for (&self.sponge) |*b| if (b.*) |*s| s.deinit();
         if (self.sponge_plan) |plan| {
             plan.deinit(self.core.allocator);
@@ -290,6 +328,14 @@ pub const Sources = struct {
                 append(out, &at, data, log);
             } else if (self.sponge[k] != null) return error.UnexpectedCombinedServiceSource;
         }
+        for (0..T.DWORD_INSTANCES) |k| {
+            if (setup.bridges.dwordLog(k)) |log| {
+                const s = self.ls_dword[k] orelse return error.MissingCombinedServiceSource;
+                const data = if (tree == 1) s.main else s.interaction;
+                if (s.log_size != log or data.len != T.dwordWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                append(out, &at, data, log);
+            } else if (self.ls_dword[k] != null) return error.UnexpectedCombinedServiceSource;
+        }
         return out;
     }
     pub fn mergeRanges(self: *Sources) !void {
@@ -304,6 +350,7 @@ pub const Sources = struct {
             try merge(&self.core, s.counts16, s.counts8);
             if (s.counts_and.len != 0) try mergeAnd(&self.core, s.counts_and);
         };
+        for (&self.ls_dword) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
     }
     pub fn releaseMain(self: *Sources) !void {
         try self.core.releaseMain();
@@ -315,6 +362,7 @@ pub const Sources = struct {
         for (&self.curves) |*c| if (c.*) |*s| s.releaseMain();
         for (&self.bulk) |*b| if (b.*) |*s| s.releaseMain();
         for (&self.sponge) |*b| if (b.*) |*s| s.releaseMain();
+        for (&self.ls_dword) |*b| if (b.*) |*s| s.releaseMain();
     }
     /// Preflight all allocations and cross-family spans before moving anything.
     /// After core's own success-only handoff, only infallible slice moves remain.
@@ -341,6 +389,7 @@ pub const Sources = struct {
         for (T.sponge_kinds) |kind| if (setup.bridges.sponge.at(kind) != null) {
             count += 1;
         };
+        for (0..T.DWORD_INSTANCES) |k| count += @intFromBool(setup.bridges.dwordLog(k) != null);
         const backings = try a.alloc([]M, count);
         errdefer a.free(backings);
         inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
@@ -353,6 +402,14 @@ pub const Sources = struct {
             if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
         };
         for (&self.sponge) |*b| if (b.*) |*s| {
+            if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
+            const data = if (tree == 1) s.main else s.interaction;
+            const end = try spanEnd(data);
+            for (headers[0..setup.total(tree)]) |c| {
+                if (overlap(data, try spanEnd(c.values), c.values, end)) return error.AliasedCombinedMain;
+            }
+        };
+        for (&self.ls_dword) |*b| if (b.*) |*s| {
             if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
             const data = if (tree == 1) s.main else s.interaction;
             const end = try spanEnd(data);
@@ -427,6 +484,17 @@ pub const Sources = struct {
             at += 1;
         };
         for (&self.sponge) |*b| if (b.*) |*s| {
+            if (tree == 1) {
+                backings[at] = s.main;
+                s.main = &.{};
+                s.owns_main = false;
+            } else {
+                backings[at] = s.interaction;
+                s.interaction = &.{};
+            }
+            at += 1;
+        };
+        for (&self.ls_dword) |*b| if (b.*) |*s| {
             if (tree == 1) {
                 backings[at] = s.main;
                 s.main = &.{};

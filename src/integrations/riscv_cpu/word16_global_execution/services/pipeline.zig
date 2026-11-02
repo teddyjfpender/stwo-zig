@@ -15,6 +15,37 @@ const Core = @import("../../word16_execution/sources.zig");
 const Memory = @import("../../word16_execution/memory/prepared.zig").Prepared;
 const Advice = @import("collector.zig").Advice;
 const Cell = A.memory.closed_ram.types.Cell;
+const LsEvent = A.memory.load_store_v2.native.Event;
+pub fn dwordCount(events: []const LsEvent) u32 {
+    var n: u32 = 0;
+    for (events) |e| n += @intFromBool(@import("types.zig").isDwordEvent(e));
+    return n;
+}
+/// Stable partition of one shard's LS events (owned copies; inputs untouched).
+pub const Split = struct {
+    general: []LsEvent,
+    dword: []LsEvent,
+    pub fn deinit(self: *Split, a: std.mem.Allocator) void {
+        a.free(self.general);
+        a.free(self.dword);
+    }
+};
+pub fn splitEvents(a: std.mem.Allocator, events: []const LsEvent, enabled: bool) !Split {
+    const d: usize = if (enabled) dwordCount(events) else 0;
+    const general = try a.alloc(LsEvent, events.len - d);
+    errdefer a.free(general);
+    const dword = try a.alloc(LsEvent, d);
+    var g: usize = 0;
+    var k: usize = 0;
+    for (events) |e| if (enabled and @import("types.zig").isDwordEvent(e)) {
+        dword[k] = e;
+        k += 1;
+    } else {
+        general[g] = e;
+        g += 1;
+    };
+    return .{ .general = general, .dword = dword };
+}
 const Stage1 = struct {
     allocator: std.mem.Allocator,
     setups: []const *const R.CpuSetup,
@@ -62,13 +93,45 @@ const Stage1 = struct {
             a.free(initial);
             return err;
         };
-        const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, self.advice.events[cpu.ordinal], initial, terminal, request.base.epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
+        // LS-D64 routing: with the component present every LD/SD event is its
+        // row and the core LS32 instances take the rest, in tape order.
+        var split = splitEvents(a, self.advice.events[cpu.ordinal], cpu.setup.bridges.ls_dword != null) catch |err| {
+            a.free(initial);
+            a.free(terminal);
+            return err;
+        };
+        defer split.deinit(a);
+        if (split.dword.len != request.ls_dword or split.general.len != request.base.memory.ls_count) {
+            a.free(initial);
+            a.free(terminal);
+            return error.InvalidCombinedServiceCount;
+        }
+        const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, split.general, initial, terminal, request.base.epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
         if (self.options.consume_memory_events) {
             a.free(self.advice.events[cpu.ordinal]);
             self.advice.events[cpu.ordinal] = &.{};
         }
-        var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &cpu.setup.materials, self.native[cpu.ordinal], memory, recorder);
+        // The native LS census hint is the core LS32 share once LS-D64 takes
+        // the LD/SD rows (prover-side consistency only; OWNER is the authority).
+        const native = self.native[cpu.ordinal];
+        if (native.raw_counts.memory != request.base.memory.ls_count + request.ls_dword) {
+            var owned = memory;
+            owned.deinit();
+            return error.InvalidCombinedServiceCount;
+        }
+        native.raw_counts.memory = request.base.memory.ls_count;
+        var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &cpu.setup.materials, native, memory, recorder);
         errdefer base.deinit();
+        var ls_dword: [@import("types.zig").DWORD_INSTANCES]?A.memory.load_store_dword.source.Source = @splat(null);
+        errdefer for (&ls_dword) |*b| if (b.*) |*s| s.deinit();
+        {
+            const rows = try @import("types.zig").dwordCounts(cpu.setup.bridges, request.ls_dword);
+            var at: usize = 0;
+            for (&ls_dword, rows, 0..) |*out, n, k| if (cpu.setup.bridges.dwordLog(k)) |log| {
+                out.* = try A.memory.load_store_dword.source.Source.init(a, split.dword[at..][0..n], log);
+                at += n;
+            };
+        }
         var k: ?A.crypto.keccak.word16_bridge.source.Source = null;
         errdefer if (k) |*s| s.deinit();
         var add: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
@@ -114,7 +177,7 @@ const Stage1 = struct {
                 out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
             };
         }
-        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
+        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .ls_dword = ls_dword };
         // Locals own all fields until this final fallible operation succeeds.
         try source.mergeRanges();
         return source;
@@ -147,7 +210,8 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         var calls: [@import("types.zig").FAMILIES]u32 = undefined;
         calls[0..5].* = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) };
         for (calls[5..], advice.curves[i]) |*c, list| c.* = @intCast(list.len);
-        r.* = .{ .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = calls, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        const dword: u32 = if (setups[i].bridges.ls_dword != null) dwordCount(advice.events[i]) else 0;
+        r.* = .{ .ls_dword = dword, .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = calls, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len - dword) } } };
     }
     // Sponge permutation IDs follow every Keccak-f call of the bundle.
     var next_sponge: u64 = 1;

@@ -130,6 +130,7 @@ pub fn addProduct(context: Context) void {
         .{ "keccak-sponge", "src/frontends/riscv/rv64_keccak_sponge_test_root.zig", 10 },
         .{ "ls-dword", "src/frontends/riscv/rv64_ls_dword_test_root.zig", 10 },
         .{ "word16-sponge-services", "src/integrations/riscv_cpu/rv64_word16_sponge_services_test_root.zig", 3 },
+        .{ "word16-ls-dword-services", "src/integrations/riscv_cpu/rv64_word16_ls_dword_services_test_root.zig", 3 },
         .{ "arith256-truth", "src/frontends/riscv/rv64_arith256_truth_test_root.zig", 8 },
         .{ "curves-truth", "src/frontends/riscv/rv64_curves_truth_test_root.zig", 9 },
         .{ "keccak", "src/integrations/riscv_cpu/delegations/keccak/test_root.zig", 54 },

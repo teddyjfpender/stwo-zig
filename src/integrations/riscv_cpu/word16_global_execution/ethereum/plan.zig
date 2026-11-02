@@ -18,12 +18,19 @@ pub fn ladder(count: usize, reserve: u32) !Ladder {
     return .{ .head = head, .tail = tail };
 }
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration {
+    return cpusWithLsDword(a, captured, false);
+}
+/// `ls_dword`: route every LD/SD of a shard to the LS-D64 component (the
+/// ethereum_services_v3 default); LS32 instances are sized on the remainder.
+pub fn cpusWithLsDword(a: std.mem.Allocator, captured: *const Capture, ls_dword: bool) ![]W.CpuDeclaration {
     const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
     errdefer a.free(out);
     const boundary = try Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len));
     for (captured.native.items, out, 0..) |n, *d, i| {
         var g = try n.geometryOmittingEmptyDivision();
-        const ls = try ladder(captured.advice.events[i].len, 1);
+        const events = captured.advice.events[i];
+        const dword: usize = if (ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+        const ls = try ladder(events.len - dword, 1);
         g.ls_log = ls.head;
         g.ls_tail_log = ls.tail;
         const alu = try ladder(n.alu.facts.len, 0);
@@ -39,6 +46,12 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         g.initial_log = if (i == 0) boundary else 5;
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
         d.* = .{ .geometry = g, .bridges = .{} };
+        // The same two-instance ladder as LS32 (one inactive row per instance).
+        if (dword != 0) {
+            const dl = try ladder(dword, 1);
+            d.bridges.ls_dword = dl.head;
+            d.bridges.ls_dword_tail = dl.tail;
+        }
         const k = captured.advice.keccak[i].len;
         const add = captured.advice.secp[i][0].len;
         const double = captured.advice.secp[i][1].len;

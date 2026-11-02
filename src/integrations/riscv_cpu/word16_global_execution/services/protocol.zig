@@ -19,7 +19,22 @@ pub const CORE_CLAIM_COUNT = G.Old.CLAIM_COUNT;
 pub const CPU_CLAIM_COUNT = CORE_CLAIM_COUNT + 15;
 /// A shard with the v3 SHA-256 bridge appends its five claims.
 pub const CPU_CLAIM_COUNT_V3 = CORE_CLAIM_COUNT + 20;
-pub const Request = struct { base: G.Old.Request, calls: [T.FAMILIES]u32, bulk: T.BulkCounts = .{}, sponge: T.SpongeCounts = .{} };
+/// `base.memory.ls_count` counts the core LS32 rows; `ls_dword` counts the
+/// LS-D64 rows (zero, and absent from transcript/wire, without that component).
+pub const Request = struct { base: G.Old.Request, calls: [T.FAMILIES]u32, bulk: T.BulkCounts = .{}, sponge: T.SpongeCounts = .{}, ls_dword: u32 = 0 };
+const LSD = A.memory.load_store_dword;
+/// Admitted LS-D64 geometry and masses of one CPU proof: present iff it has
+/// rows, one inactive terminal row, RAM14 gains 2 per row, U16 4 and U8 2 per
+/// physical row (padding included), OWNER19 at most 1 per row.
+pub fn admitDword(setup: *const R.CpuSetup, r: Request) !struct { range16: u64, range8: u64 } {
+    _ = try T.dwordCounts(setup.bridges, r.ls_dword);
+    var out: @TypeOf(admitDword(setup, r) catch unreachable) = .{ .range16 = 0, .range8 = 0 };
+    for (0..T.DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |l| {
+        out.range16 += @as(u64, LSD.layout.LOGICAL_U16.len) << @intCast(l);
+        out.range8 += @as(u64, LSD.layout.LOGICAL_U8.len) << @intCast(l);
+    };
+    return out;
+}
 const BM = A.crypto.bulk_memory;
 /// Admitted bulk-memory geometry and masses of one CPU proof. RAM14 gains
 /// `T.BulkCounts.ram` (6 per memcpy/memset call, 4 per aligned copy row, 2 per
@@ -118,15 +133,16 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        var service_calls: u64 = req.bulk.ecalls() + req.sponge.calls + req.base.memory.ls_count;
+        var service_calls: u64 = req.bulk.ecalls() + req.sponge.calls + req.base.memory.ls_count + req.ls_dword;
         for (req.calls) |c| service_calls += c;
         if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
+        const dword = try admitDword(setup, req);
         sponge_io = try std.math.add(u64, sponge_io, sponge.io);
         sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
-        var mass16 = try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16);
-        var mass8 = try std.math.add(u64, try setup.materials.geometry.range8Mass(), sponge.range8);
+        var mass16 = try std.math.add(u64, try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16), dword.range16);
+        var mass8 = try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range8Mass(), sponge.range8), dword.range8);
         for (0..T.FAMILIES) |k| {
             const family: T.Family = @enumFromInt(k);
             const log = setup.bridges.at(family);
@@ -145,7 +161,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
             totals[k] = try std.math.add(u64, totals[k], req.calls[k]);
         }
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
-        ram = try std.math.add(u64, ram, 2 * @as(u64, req.base.memory.ls_count));
+        ram = try std.math.add(u64, ram, 2 * (@as(u64, req.base.memory.ls_count) + req.ls_dword));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * req.calls[k]);
         ram = try std.math.add(u64, ram, bulk.ram);
         ram = try std.math.add(u64, ram, sponge.ram);
@@ -253,6 +269,15 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
             ch.mixU32s(&.{ @intCast(k), r.sponge.rows(kind), @intFromBool(s.bridges.sponge.at(kind) != null), s.bridges.sponge.at(kind) orelse 0, @intCast(KS.layout.constraints(kind)) });
             if (s.bridges.sponge.at(kind) != null) for (T.spongeWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
+    }
+    // LS-D64 extension: mixed only when present (every earlier transcript is
+    // unchanged). Binds the encoding identity, the row count and geometry;
+    // presence is also the routing rule (all LD/SD of this proof).
+    if (s.bridges.ls_dword != null or s.bridges.ls_dword_tail != null or r.ls_dword != 0) {
+        ch.mixU32s(&.{ 0x4c534436, 1, r.base.memory.ls_count, r.ls_dword });
+        for (0..T.DWORD_INSTANCES) |k| ch.mixU32s(&.{ @intCast(k), @intFromBool(s.bridges.dwordLog(k) != null), s.bridges.dwordLog(k) orelse 0 });
+        for (T.dwordWidths()) |width| ch.mixU32s(&.{@intCast(width)});
+        LSD.encoding.mix(ch);
     }
 }
 fn mixBulkKind(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, kind: T.BulkKind, k: usize) void {
