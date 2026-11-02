@@ -1,6 +1,6 @@
 {
- "schema": "stwo.rv64.eest-failure-classification.v1",
- "note": "Hand classification of every failure group seen in the tests@v21.0.2 run; the receipt embeds this file.",
+ "schema": "stwo.rv64.eest-failure-classification.v2",
+ "note": "Hand classification of every failure group seen in the tests@v21.0.2 runs. v1 = 2026-11-01 receipt (admitted v2 evmone client); v2 = 2026-11-02 re-run of the evmone v3 client only (rust not re-run, its groups carry over from v1). 'status_v2' gives each group's state in the v2 run; the receipt embeds this file.",
  "groups": [
   {
    "client": "rust",
@@ -10,7 +10,8 @@
    "expect_exception": "BlockException.SYSTEM_CONTRACT_EMPTY",
    "classification": "real consensus bug in the Rust client's dependency (stateless-validator-reth a134a621 on reth 3d270d93)",
    "detail": "The first Prague block runs while the EIP-7002 (or EIP-7251) predeploy has no code. The EIPs make such a block invalid; reth executes the empty system call and accepts it. Upstream stateless-validator-reth (reference_output) and reth's own stateful replay accept it too. evmone rejects ('withdrawal system contract empty'). Not reachable on mainnet, where both predeploys have code, but it is a spec soundness gap. The RV64 guest also completes with success on all 4 (tier 2 FAIL_NEG).",
-   "action": "report upstream (paradigmxyz/stateless, reth); not fixed here"
+   "action": "report upstream (paradigmxyz/stateless, reth); not fixed here",
+   "status_v2": "not re-run in v2 (rust client unchanged); v1 result stands"
   },
   {
    "client": "rust",
@@ -19,7 +20,8 @@
    "tests": "for_{prague,osaka}/prague/eip7685_general_purpose_el_requests/multi_type_requests/withdrawals_credited_before_request_system_call.json (all 4 cases each)",
    "classification": "real consensus bug in the Rust client's dependency (reth 3d270d93 / revm 42)",
    "detail": "Valid blocks whose withdrawals credit an account that the EIP-7002/7251 request system call then reads. reth's stateful replay gets a different state root (so the generator had no reth witness and used a full parent-state witness), and every stateless-validator-reth build (upstream workspace with its revm git patch, the crates.io host validator, and our lean-profile host) rejects. evmone reproduces the fixture's block hash and request root exactly. Mainnet-reachable in principle (a withdrawal to an address the request contract reads). The RV64 guest (production lean ELF) traps on the same 8 blocks.",
-   "action": "report upstream; not fixed here"
+   "action": "report upstream; not fixed here",
+   "status_v2": "not re-run in v2 (rust client unchanged); v1 result stands"
   },
   {
    "client": "evmone",
@@ -28,7 +30,8 @@
    "tests": "94 ported_static fixture files (stEIP1559, stStaticCall, stQuadraticComplexityTest, stRandom*, ...)",
    "classification": "client limitation, unreachable on mainnet",
    "detail": "Genesis gas limits of 2^52..2^63-1. glue/stwo_client.cpp pre-sizes the account and storage tables from the gas limit (gas_limit/2400 rows); the reserve throws bad_alloc on the host and cannot fit the guest heap. Mainnet gas limits move by at most 1/1024 per block (~60M today). On RV64 the same sizing exhausts the 212 MiB guest heap ('out of memory') already at a 500M gas limit: 82 eip7685 blocks of 'for_*/prague/eip7685_general_purpose_el_requests' (gas limit 500,000,000) fail only on the guest, plus 27 more blocks with gas limits from 1.5e9 up. 500M is ~8x today's mainnet limit, so this is a forward-looking liveness limit, not a current mainnet failure.",
-   "action": "open: size from min(gas_limit, a bound) with audited growth, or from the witness size"
+   "action": "closed; static_call1_mb1024_calldepth kept as a resource limit",
+   "status_v2": "fixed (row_reserve from min(gas_used, 60M) with on-demand growth, commit 365f1b165 lineage): every block of the group passes on host and RV64 v3 guest, except stStaticCall/static_call1_mb1024_calldepth block 1 on the guest: ~1024 frames x 1 MB EVM memory, host peak RSS 600 MB > the 212 MiB guest heap, stwo_guest_abort -> IllegalInstruction after 560k instructions (the Rust guest fails it too). Genuine guest resource limit on a synthetic block (gas limit 2^63-1)."
   },
   {
    "client": "evmone",
@@ -37,7 +40,8 @@
    "tests": "for_prague/prague/eip7702_set_code_tx/set_code_txs/set_code_max_depth_call_stack.json",
    "classification": "client resource bug",
    "detail": "A delegation chain called to the 1024 call-depth limit grows the native build past 38 GB RSS (killed at 4 GiB by the runner); the guest exhausts its heap. Valid block; reth and the Rust guest accept it.",
-   "action": "open: find the per-frame allocation (likely per-depth analysis or memory buffers on the delegated path)"
+   "action": "closed",
+   "status_v2": "fixed by the table-sizing fix (the 1e14 gas limit drove a ~4e10-row reserve, not per-frame growth); passes host and RV64 v3 guest"
   },
   {
    "client": "evmone",
@@ -46,7 +50,8 @@
    "tests": "every block that installs an EIP-7702 delegation and later calls the delegated account (eip7702_set_code_tx, eip7623, eip7939 clz_from_set_code)",
    "classification": "real client bug (witness dependence), fixed",
    "detail": "ziskethone registers the 0xef0100||address designator code only when a block access list exists (Amsterdam). Its own input generator supplies created code; a canonical EIP-8025 witness carries only pre-state code, so Contracts::index_of aborted. The mainnet basket passed because its witnesses (legacy mode) include created codes.",
-   "action": "fixed: client_evmone/patches/0005-ziskethone-7702-delegation-code.patch (register the designator like CREATE output)"
+   "action": "fixed: client_evmone/patches/0005-ziskethone-7702-delegation-code.patch (register the designator like CREATE output)",
+   "status_v2": "still fixed (passes host and RV64 v3 guest)"
   },
   {
    "client": "evmone",
@@ -55,7 +60,8 @@
    "tests": "for_osaka/mpt/storage_trie_structure/replace_child_within_branch_slot.json",
    "classification": "real client bug (witness dependence), fixed",
    "detail": "Post-state trie updates were applied in row order, so a deletion could collapse a branch before an insertion into it and then need a sibling node the canonical witness omits ('state key not in witness'). The full-state-witness control passed.",
-   "action": "fixed: glue/stwo_client.cpp applies inserts/updates before deletions in the storage and account tries"
+   "action": "fixed: glue/stwo_client.cpp applies inserts/updates before deletions in the storage and account tries",
+   "status_v2": "still fixed (passes host and RV64 v3 guest)"
   },
   {
    "client": "evmone",
@@ -64,7 +70,8 @@
    "tests": "for_{prague,osaka}/prague/eip2537_bls_12_381_precompiles: bls12_g2mul (all cases, incl. one_times_inf, call types) and single-pair bls12_g2msm",
    "classification": "real RV64 client bug (memory corruption in the G2 scalar-multiplication path), mainnet-reachable",
    "detail": "The guest traps with UnmappedAddress in memcpy (copy_forward) with a garbage source pointer (0xd201000000010000) after ~2.5M instructions. The native host build passes every case; it links blst's assembly, while the guest compiles blst portable C (__BLST_NO_ASM__) with patch 0002 (64-bit limbs, __int128). G1 operations, pairings and maps pass on the guest. BLS12-381 precompiles are live on mainnet since Prague: a block calling G2MUL/G2MSM would make this guest fail (liveness, not soundness).",
-   "action": "open: reproduce G2 mul in the portable-C blst build (host with __BLST_NO_ASM__ and patch 0002) to isolate"
+   "action": "closed",
+   "status_v2": "fixed (patch 0002: quot_rem_64 calls quot_rem_n with n=1 under __builtin_assume(n%2==0), UB with 64-bit limbs; weakened to n!=0; host test tests/blst_portable.c). All eip2537 blocks pass on the RV64 v3 guest."
   },
   {
    "client": "evmone",
@@ -73,7 +80,8 @@
    "tests": "eip2537 bls12_g1msm valid_gas_g1msm, bls12_g2msm valid_gas_g2msm, valid_multi_inf, invalid_multi_inf",
    "classification": "execution budget (10^10 RV64 instructions) exceeded",
    "detail": "Gas-heavy BLS MSM blocks on software blst; not a verdict.",
-   "action": "none (budget) or a BLS service"
+   "action": "closed",
+   "status_v2": "resolved: all 4 blocks (and their -fw controls) now complete with the exact output within the 10^10 budget on the v3 guest (BLS12-381 Fp2 + arith384_mont services, blst fixed-limb Montgomery 0026): valid_gas_g1msm 3,042,931,148 instr (59,123,867 gas, 51.5 instr/gas), valid_gas_g2msm 2,980,648,038 (109,598,580 gas, 27.2), valid_multi_inf 2,001,530,871 (112,686,854 gas, 17.8), invalid_multi_inf 1,997,312,852 (118,240,806 gas, 16.9)."
   },
   {
    "client": "rust",
@@ -82,7 +90,8 @@
    "tests": "ported_static stStaticCall/static_call1_mb1024_calldepth, stQuadraticComplexityTest/call1_mb1024_calldepth (heap trap), stQuadraticComplexityTest/call50000_sha256 (10^10 step limit)",
    "classification": "guest resource limits on synthetic blocks (gas limit 2^63-1, 139M-1.1G gas used)",
    "detail": "The host build passes all three.",
-   "action": "none"
+   "action": "none",
+   "status_v2": "not re-run in v2 (rust client unchanged); v1 result stands"
   }
  ],
  "not_applicable": {

@@ -28,9 +28,16 @@ pub const Header = struct {
         return std.math.add(usize, try std.math.add(usize, BYTES, try self.bodyBytes()), try std.math.add(usize, self.graph_bytes, self.tape_bytes));
     }
     pub fn validate(self: Header, limits: Limits) !void {
-        if (limits.bytes > 1024 * 1024 * 1024 or limits.allocation_bytes > 1024 * 1024 * 1024 or self.metadata.geometry != .chunk512 or self.cells > limits.cells or self.chunks > limits.chunks or self.cells > @as(u64, self.chunks) * 64 or (self.cells == 0) != (self.chunks == 0) or (self.chunks == 0) != (self.graph_bytes == 0) or self.tape_bytes < 48 or try self.totalBytes() > limits.bytes) return error.WorkPacketResourceLimit;
+        try self.validateResources(limits);
+        if ((self.chunks == 0) != (self.graph_bytes == 0)) return error.WorkPacketResourceLimit;
         for ([_]rv.memory.values.Digest{ self.metadata.before, self.metadata.after }) |digest| for (digest) |limb| if (limb >= 0x7fff_ffff) return error.InvalidWorkPacketRoot;
         if (self.chunks == 0 and !std.mem.eql(u32, &self.metadata.before, &self.metadata.after)) return error.InvalidWorkPacketRoot;
+    }
+    /// Geometry and resource limits that do not depend on the legacy frontier
+    /// graph section. `validate` adds graph presence and root rules; the
+    /// in-process handoff (no graph is ever built) applies exactly this part.
+    pub fn validateResources(self: Header, limits: Limits) !void {
+        if (limits.bytes > 1024 * 1024 * 1024 or limits.allocation_bytes > 1024 * 1024 * 1024 or self.metadata.geometry != .chunk512 or self.cells > limits.cells or self.chunks > limits.chunks or self.cells > @as(u64, self.chunks) * 64 or (self.cells == 0) != (self.chunks == 0) or self.tape_bytes < 48 or try self.totalBytes() > limits.bytes) return error.WorkPacketResourceLimit;
     }
 };
 pub fn encode(h: Header) ![BYTES]u8 {
