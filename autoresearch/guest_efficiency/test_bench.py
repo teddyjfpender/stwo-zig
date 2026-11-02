@@ -382,5 +382,20 @@ class KeccakProfileCoefficientTest(unittest.TestCase):
         self.assertLess(c["keccak_cells_per_call_v3"], c["keccak_cells_per_call"])
 
 
+class ProfileCoefficientTest(unittest.TestCase):
+    def test_v3_cpu_and_secp_coefficients_apply_only_to_v3(self):
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 10.0, "cpu_cells_per_instruction_v3": 7.0,
+                                "keccak_cells_per_call": 0.0, "secp_cells_per_call": 100.0, "secp_cells_per_call_v3": 110.0,
+                                "composition_fraction": 0.0}}
+        self.assertEqual(bench.committed_bits(cal, 3, 0, 1, 0), 130.0)
+        self.assertEqual(bench.committed_bits(cal, 3, 0, 1, 0, profile="ethereum_services_v2"), 130.0)
+        self.assertEqual(bench.committed_bits(cal, 3, 0, 1, 0, profile="ethereum_services_v3"), 131.0)
+
+    def test_frozen_baseline_coefficients_unchanged(self):
+        c = CAL["coefficients"]
+        self.assertAlmostEqual(c["cpu_cells_per_instruction"], 154.81355455694023)
+        self.assertAlmostEqual(c["secp_cells_per_call"], 18934.597441685477)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -19,9 +19,12 @@
   "bits_per_cell_at_lde": 62,
   "cpu_cells_per_instruction": 154.81355455694023,
   "keccak_cells_per_call": 72159.27004720572,
-  "keccak_cells_per_call_v3": 41072.02095325111,
+  "keccak_cells_per_call_v3": 38015.85704712977,
   "secp_cells_per_call": 18934.597441685477,
-  "composition_fraction": 0.045135955755284445
+  "composition_fraction": 0.045135955755284445,
+  "cpu_cells_per_instruction_v3": 134.9777619785695,
+  "secp_cells_per_call_v3": 20370.02210475733,
+  "v3_measured_note": "MEASURED MAIN+INTERACTION cells on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix). cpu_cells_per_instruction_v3 = 151.088 measured with the LS32 layout minus 16.110 (LS-D64 default, same prefix, MAIN+INTERACTION delta -270,280,704 cells). secp and keccak v3 values measured on the same prefix. Used only for ethereum_services_v3 rows; v2/baseline keep the frozen coefficients."
  },
  "frozen": true,
  "caveats": [
@@ -39,21 +42,21 @@
    "derivation": "Truth log12 (2,901 calls): MAIN 30,347,264 + INTER 32,768 = 30,380,032 cells (cost.json truth); Wire35 bridge rows (3 per call, MAIN 134 + INTER 244) over the 9 CPU proofs: 6,217,344 cells (roster.json sha256_bridge, 8,703 active rows); (30,380,032 + 6,217,344) / 2,901 = 12,615.4. Earlier 4-shard Rust-guest prefix measurement: 12,150.9 (2,771 calls). Nominal unpadded 8,551. Excludes the ECALL's CPU row (costed per instruction) and shared U16/U8 table multiplicities. design/riscv-proving-stack/rv64-sha256-service.md, rv64-services-v3-integration.md."
   },
   "arith256_mod": {
-   "cells_per_call": 4460.33855799373,
+   "cells_per_call": 3692.137931034483,
    "cells_per_byte": 0.0,
-   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "Truth log9 (319 calls, padded to 512 rows): MAIN 205,312 + INTER 249,856 = 455,168 cells; Word16 bridge rows (5 per call, MAIN 134 + INTER 244) over the CPU proofs: 967,680 cells (roster.json arith256_mod_bridge, 1,595 active rows); (455,168 + 967,680) / 319 = 4,460.3. Layout tier for comparison: 2,779 unpadded x 1/ln 2 = 4,009.3. design/riscv-proving-stack/rv64-arith256-service.md."
   },
   "memcpy": {
-   "cells_per_call": 154.28325441239775,
-   "cells_per_byte": 15.152186289181573,
-   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "cells_per_call": 156.21520998864926,
+   "cells_per_byte": 11.33222461759573,
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "desc rows (one per call, memcpy and memset share the component): 5,734,400 cells / 37,168 calls = 154.3 per call; copy rows: 50,462,720 cells / 3,330,392 copied bytes (416,299 words) = 15.152 per byte. Layout tier for comparison: 161.6 per call, 13.886 per byte (112 and 77/8 cells x 1/ln 2). design/riscv-proving-stack/rv64-bulk-memory-service.md."
   },
   "memset": {
-   "cells_per_call": 154.28325441239775,
-   "cells_per_byte": 8.45650054481849,
-   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "cells_per_call": 156.21520998864926,
+   "cells_per_byte": 9.434919619291371,
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "desc rows as memcpy (154.3 per call); set rows: 22,413,312 cells / 2,650,424 filled bytes (331,303 words) = 8.457 per byte. Layout tier: 161.6 per call, 8.656 per byte."
   },
   "bn254_g1_add": {
@@ -99,28 +102,28 @@
    "derivation": "truth row MAIN 1274 + INTER 2228 = 3502 + 3 bridge coordinates x 378 = 4636 cells x 1/ln 2 average padding = 6688.3. design/riscv-proving-stack/rv64-curve-services.md"
   },
   "memcpy_unaligned": {
-   "cells_per_call": 321.6358791555175,
-   "cells_per_byte": 20.91907809288997,
-   "status": "LAYOUT TIER from the proven component widths of the bulk-extension services fixture (services/bulk_ext_fixture.zig, real CPU STARKs, fresh receiver; test-riscv64-word16-bulk-services); not yet measured on a complete-block proof (desc share is the complete-block measurement of memcpy)",
+   "cells_per_call": 346.50477380781683,
+   "cells_per_byte": 23.786195477395946,
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "desc row as memcpy (154.3 per call, MEASURED complete block 24,628,607) + one ucopy lead row per call; ucopy row MAIN 56 + INTER 60 = 116 cells x 1/ln 2 average padding = 167.35 per row; per byte (bytes = len) 167.35 / 8 = 20.92. design/riscv-proving-stack/rv64-bulk-memory-service.md section 4b."
   },
   "memcmp": {
-   "cells_per_call": 186.10766027467628,
-   "cells_per_byte": 20.017393692334366,
-   "status": "LAYOUT TIER from the proven component widths of the bulk-extension services fixture (services/bulk_ext_fixture.zig, real CPU STARKs, fresh receiver; test-riscv64-word16-bulk-services); not yet measured on a complete-block proof",
+   "cells_per_call": 225.16363636363636,
+   "cells_per_byte": 17.807486631016044,
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "cdesc row MAIN 61 + INTER 68 = 129 cells x 1/ln 2 = 186.1 per call; cmp row MAIN 59 + INTER 52 = 111 cells x 1/ln 2 = 160.1 per examined word pair, charged per examined byte (report bytes = 8 x examined words): 20.02. design/riscv-proving-stack/rv64-bulk-memory-service.md section 4b."
   },
   "keccak_sponge": {
-   "cells_per_call": 1409.2986683576412,
+   "cells_per_call": 1211.2477804681193,
    "cells_per_byte": 0.0,
-   "cells_per_permutation": 43172.342801732855,
-   "status": "MEASURED geometry of the complete block 26,235,156 with the admitted evmone v3 guest routing Keccak-256 inputs > 64 bytes to the sponge (client_evmone build.py --profile v3 --v3-set sha,arith,mem,keccak; rv64-ethereum-proof nativeprepare: 5 packets, completed; rv64-word16-ethereum plan: 5 CPU shards, Keccak truth spans log18 + log16). Exact padded MAIN+INTERACTION cells = column widths x 2^log of the planned components (the same computation cost.json performs); fixed columns excluded. Confirmed by a produced proof: 1-packet prefix of the same block (rv64-word16-ethereum produce ... 1; fresh verify-prefix accepted), whose cost.json/roster.json report sponge_call log 12 (694+380 columns, 2,943 active rows, 4,399,104 cells = 1,494.7/call) and sponge_perm log 14 (973+688, 13,685 active rows, 27,213,824 cells = 1,988.6/permutation), matching the plan geometry.",
+   "cells_per_permutation": 40615.916813962984,
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "4,731 sponge calls, 19,562 permutations (2,499,833 bytes). call rows: logs 12/5/5/11 over the four sponge shards = 6,208 rows x (MAIN 694 + INTER 380) = 6,667,392 cells / 4,731 calls = 1,409.3 per call (nominal 1,074). perm rows: logs 14/5/7/13 = 24,736 rows x (973 + 688) = 41,086,496 / 19,562 = 2,100.3 per permutation (nominal 1,661). Each permutation also takes one Keccak-f truth ID: costed at the frozen keccak_cells_per_call (72,159.3, same truth AIR); this block's own truth measured 70,533.8 per ID (2^18 + 2^16 rows x 4,519 / 20,994 IDs). cells_per_permutation = 2,100.3 + 72,159.3. The per-call Word16 Keccak-f bridge rows that sponge permutations no longer need stay inside the frozen CPU coefficient. design/riscv-proving-stack/rv64-keccak-sponge-service.md section 6. Throughput-v1 Keccak-f truth (v3 default, 2026-11-02): each permutation's truth ID costed at keccak_cells_per_call_v3 = 41,072.0 instead of 72,159.3, so cells_per_permutation = 2,100.3 + 41,072.0 (was 74259.6)."
   },
   "jumpdest_bitmap": {
-   "cells_per_call": 29950.0,
-   "cells_per_byte": 11.7,
-   "status": "LAYOUT-EXACT from the verified services-lane fixture (test-riscv64-word16-jumpdest-services: two real CPU STARKs, fresh receiver; component widths and logs are the committed ones); padding at the expected 1/ln 2 over power-of-two logs as the bulk layout tier; the jtab table term is amortized over the basket's CPU proofs. NOT yet a complete-block cost.json measurement (block 24,628,607 proofs are scheduled by the coordinator); replace with it when available.",
+   "cells_per_call": 29963.90243902439,
+   "cells_per_byte": 12.57784790154623,
+   "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "Per 64 code bytes one jscan row: MAIN 287 + INTER 232 (110 fractions in 55 QM31 inverse slots + 3 prefixes) = 519 cells, 8.109 per byte raw, x 1/ln 2 = 11.70. Per call one jdesc row: MAIN 45 + INTER 60 = 105, x 1/ln 2 = 151.5. Transition table jtab: 2^14 rows x (MAIN 1 + INTER 16) = 278,528 cells in every CPU proof that issues a call (fixed columns excluded, as in every entry); upper bound with every CPU proof of the basket issuing calls: 1.84e9 v3 instructions / 3.94e6 per CPU proof (complete block 24,628,607: 35.5M instructions in 9 CPU proofs) = 467 proofs x 278,528 / 4,365 calls = 29,800 per call; 151.5 + 29,800 -> 29,950. design/riscv-proving-stack/rv64-jumpdest-service.md."
   }
  },
