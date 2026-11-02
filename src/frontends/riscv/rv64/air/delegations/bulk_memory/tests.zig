@@ -18,6 +18,53 @@ const M = core.fields.m31.M31;
 const Q = T.Q;
 const testing = std.testing;
 
+test "bulk all nine fraction authorities preserve QM31 law with full OM31 challenges" {
+    const O = core.fields.om31.OM31;
+    const Embed = struct {
+        fn pair(low: Q, high: Q) O {
+            var limbs: [8]M = undefined;
+            limbs[0..4].* = low.toM31Array();
+            limbs[4..8].* = high.toM31Array();
+            return O.fromM31Array(limbs);
+        }
+    };
+    const low = challenges();
+    var high = low;
+    high.ram.offset = q(701);
+    for (&high.ram.coefficients, 0..) |*c, i| c.* = q(@intCast(710 + i));
+    high.owner.offset = q(702);
+    for (&high.owner.coefficients, 0..) |*c, i| c.* = q(@intCast(740 + i));
+    high.range16 = .{ .offset = q(703), .coefficient = q(704) };
+    var wide: T.ChallengesFor(O) = undefined;
+    wide.ram.offset = Embed.pair(low.ram.offset, high.ram.offset);
+    for (&wide.ram.coefficients, low.ram.coefficients, high.ram.coefficients) |*w, a, b| w.* = Embed.pair(a, b);
+    wide.owner.offset = Embed.pair(low.owner.offset, high.owner.offset);
+    for (&wide.owner.coefficients, low.owner.coefficients, high.owner.coefficients) |*w, a, b| w.* = Embed.pair(a, b);
+    wide.range16 = .{ .offset = Embed.pair(low.range16.offset, high.range16.offset), .coefficient = Embed.pair(low.range16.coefficient, high.range16.coefficient) };
+    inline for (comptime std.enums.values(L.Kind)) |kind| {
+        var fixed: [L.fixedWidth(kind)]Q = undefined;
+        var main: [L.main(kind)]Q = undefined;
+        var wide_fixed: [fixed.len]O = undefined;
+        var wide_main: [main.len]O = undefined;
+        for (&fixed, &wide_fixed, 0..) |*a, *b, i| {
+            a.* = q(@intCast(i + 101));
+            b.* = O.fromInner(a.*);
+        }
+        for (&main, &wide_main, 0..) |*a, *b, i| {
+            a.* = q(@intCast(i + 201));
+            b.* = O.fromInner(a.*);
+        }
+        const a = Eq.fractions(Q, kind, &fixed, &main, low);
+        const b = Eq.fractions(Q, kind, &fixed, &main, high);
+        const actual = Eq.fractions(O, kind, &wide_fixed, &wide_main, wide);
+        for (actual, a, b) |w, x, y| {
+            try testing.expect(w.d.eql(Embed.pair(x.d, y.d)));
+            try testing.expect(w.w.eql(O.fromInner(x.w)));
+            try testing.expectEqual(x.relation, w.relation);
+        }
+    }
+}
+
 fn q(n: u32) Q {
     const h = n *% 0x9E3779B1;
     return Q.fromU32Unchecked((h % 0x7fff0000) + 1, ((h >> 3) % 0x7fff0000) + 3, ((h >> 7) % 0x7fff0000) + 7, ((h >> 11) % 0x7fff0000) + 11);

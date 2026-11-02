@@ -194,11 +194,11 @@ pub fn cdescAddress(comptime F: type, m: []const F, k: usize) [4]F {
 /// Lookup-cheap byte split of a canonical limb `lo + 256 hi`: `lo < 256` as
 /// two U16 facts and `hi < 2^16` as one; with the limb < 2^16 this forces
 /// `hi < 256` (lo + 256 hi < 2^24 < p is an integer equation).
-fn limbBytes(comptime F: type, ch: T.Challenges, lo: F, hi: F) [3]Fraction(F) {
+fn limbBytes(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), lo: F, hi: F) [3]Fraction(F) {
     const b = byteRanges(F, ch, lo);
     return .{ b[0], b[1], range(F, ch, hi) };
 }
-fn ramPair(comptime F: type, ch: T.Challenges, address: [4]F, k: []const F, after: [3]F, before_value: [4]F, after_value: [4]F, readable: F, writable: F, active: F) [2]Fraction(F) {
+fn ramPair(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), address: [4]F, k: []const F, after: [3]F, before_value: [4]F, after_value: [4]F, readable: F, writable: F, active: F) [2]Fraction(F) {
     const b = ch.ram.denominatorFor(F, ramTuple(F, address, k[L.clock.epoch], k[L.clock.low], k[L.clock.high], before_value, readable, writable));
     const a = ch.ram.denominatorFor(F, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable));
     return .{ .{ .d = b, .w = active, .relation = RAM }, .{ .d = a, .w = active.neg(), .relation = RAM } };
@@ -348,7 +348,7 @@ pub fn fractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []con
             out[at + 1] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], jdescPacket(F, m, 0), limbs(F, m, D.bitmap), words)), .w = a, .relation = OWNER };
             at += 2;
             out[at] = range(F, ch, m[D.tick_low]);
-            out[at + 1..][0..2].* = byteRanges(F, ch, m[D.tick_high]);
+            out[at + 1 ..][0..2].* = byteRanges(F, ch, m[D.tick_high]);
             out[at + 3] = range(F, ch, m[D.len_q0]);
             // code limb 0 = 64 q with q < 2^16 and 64 q < 2^16: q < 1024.
             out[at + 4] = range(F, ch, m[D.code_q]);

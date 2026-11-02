@@ -1,0 +1,5 @@
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-word16-bulk-memory success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 12s MaxRSS:1G
+

@@ -1,0 +1,26 @@
+{
+  "scope": "Native execution collection and classic producer-planned geometry; complete classic proof separately qualified",
+  "instructions": 26894777,
+  "cpu_batches": 7,
+  "truth_families_calls": {
+    "keccak": 29998,
+    "add": 10358,
+    "double": 9751,
+    "sha256": 2901,
+    "arith256_mod": 319
+  },
+  "curve_calls": "none on this block; requires separate basket/fixture coverage",
+  "cpu_layout_flags": {
+    "fused_tail": true,
+    "u8_pairs": true,
+    "ls_dword": true
+  },
+  "gkr_v3_admission": "GkrV3ServiceUnsupported (expected fail closed)",
+  "next_adapters": [
+    "bulk/JUMPDEST CPU roles",
+    "sponge CPU role and KIO closure",
+    "SHA256 OM truth",
+    "arith256_mod OM truth",
+    "new CPU layouts and throughput Keccak after conservative v3 support"
+  ]
+}
