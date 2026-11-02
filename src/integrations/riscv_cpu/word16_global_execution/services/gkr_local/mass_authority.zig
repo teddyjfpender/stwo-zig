@@ -28,7 +28,7 @@ pub const Globals = struct {
     }
 };
 pub fn cpu(request: Request) !Globals {
-    try @import("v2_scope.zig").request(request);
+    try @import("bulk_scope.zig").request(request);
     var out = Globals{};
     out.ram.positive = try std.math.add(u64, request.base.memory.ls_count, request.base.memory.terminal.len);
     out.ram.negative = try std.math.add(u64, request.base.memory.ls_count, request.base.memory.initial.len);
@@ -46,6 +46,10 @@ pub fn cpu(request: Request) !Globals {
         out.wire.positive = try std.math.add(u64, out.wire.positive, try std.math.mul(u64, calls, program.inputs));
         out.wire.negative = try std.math.add(u64, out.wire.negative, try std.math.mul(u64, calls, program.outputs.len));
     }
+    const bulk = request.bulk.ram();
+    if (bulk % 2 != 0) return error.GlobalBulkMassAuthorityMismatch;
+    out.ram.positive = try std.math.add(u64, out.ram.positive, bulk / 2);
+    out.ram.negative = try std.math.add(u64, out.ram.negative, bulk / 2);
     return out;
 }
 pub fn truth(d: Declaration) !Globals {

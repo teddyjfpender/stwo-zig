@@ -14,6 +14,7 @@ const Frame = @import("frame.zig");
 const Proof = @import("stwo_prover_engine").lookups.gkr_verifier.ForField(O).GkrBatchProof;
 pub const MAX_WORKERS = 65535;
 pub const PROFILE = "RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V1";
+pub const BULK_PROFILE = "RV64-SERVICES-CPU-GKR-BULK-OM31-V3-1";
 pub const Kind = enum(u32) { cpu, keccak, secp_add, secp_double };
 pub const Relations = struct {
     ram: bool,

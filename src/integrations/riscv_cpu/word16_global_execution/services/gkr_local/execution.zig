@@ -14,7 +14,7 @@ const Frame = @import("frame.zig");
 const Roster = @import("roster.zig");
 const CPU = @import("cpu_worker.zig");
 const Truth = @import("truth_worker.zig");
-const Scope = @import("v2_scope.zig");
+const Scope = @import("bulk_scope.zig");
 const FixedSet = @import("fixed_authority_set.zig").Set;
 
 /// Entirely receiver-derived context. Instances and first IDs are constructed
@@ -41,7 +41,7 @@ pub const Inventory = struct {
         // RAM rights, epoch, call spans, program, register/PC adjacency and
         // exact total/final endpoint authority. It does not verify proofs.
         if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
-        // v2 roster only: reject every v3 bridge, call, bulk/sponge row and truth.
+        // Admit only the qualified v2 families and bulk extension; other v3 routes remain closed.
         for (setups) |setup| try Scope.setup(setup);
         for (requests) |request| try Scope.request(request);
         for (truths) |truth| try Scope.truth(truth);

@@ -1,7 +1,7 @@
 //! Receiver-derived native shape and source-support bounds. Weighted valid
 //! provider support is DISTINCT from ordinary negative integer mass. This
 //! engineering preflight is not a reviewed whole-protocol security certificate.
-const Scope = @import("v2_scope.zig");
+const Scope = @import("bulk_scope.zig");
 const std = @import("std");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
@@ -35,7 +35,12 @@ pub const Bound = struct {
         if (self.unit_consumer_mass >= MODULUS or self.unit_positive_mass >= MODULUS or self.unit_negative_mass >= MODULUS) return error.CandidateCharacteristicBoundExceeded;
     }
 };
-pub const CpuScope = struct { relations: [std.meta.fields(F.Relation).len]Bound };
+pub const CpuScope = struct {
+    relations: [std.meta.fields(F.Relation).len]Bound,
+    /// Disjoint TOKEN_JD_TABLE support inside OWNER19; denominator slots remain
+    /// in relations.owner so collision/pole bounds include cross-partition pairs.
+    owner_table: Bound = .{ .model = .unit_membership_valid_support, .arity = 19, .consumer_sign = .negative },
+};
 pub const TruthScope = struct { relations: [std.meta.fields(TF.Relation).len]Bound };
 pub const Shape = struct {
     native_proofs: usize = 0,
@@ -112,7 +117,7 @@ fn rows(log: u32) !u64 {
     return @as(u64, 1) << @intCast(log);
 }
 fn emptyCpu() CpuScope {
-    var out: CpuScope = undefined;
+    var out: CpuScope = .{ .relations = undefined };
     for (std.enums.values(F.Relation), &out.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .model = switch (relation) {
         .register, .owner => .unit_consistency,
         .rom, .function, .range16, .range8, .and_, .shift, .selection => .unit_membership_valid_support,
@@ -134,6 +139,20 @@ fn addCpuRole(scope: *CpuScope, origin: Frame.Origin, log: u32) !void {
             if (queries % 2 != 0) return error.CandidateSourceRelationShape;
             bound.unit_positive_mass = try plus(bound.unit_positive_mass, slots / 2);
             bound.unit_negative_mass = try plus(bound.unit_negative_mass, slots / 2);
+        } else if (relation == .owner and origin == .bulk) {
+            const kind = origin.bulk;
+            const signs: [2]u64 = switch (kind) {
+                .desc => .{ 2, 1 },
+                .copy, .set, .ucopy => .{ 0, 1 },
+                .cdesc => .{ 1, 2 },
+                .cmp, .jdesc => .{ 1, 1 },
+                .jscan => .{ 0, 1 },
+                .jtab => .{ 0, 0 },
+            };
+            bound.unit_positive_mass = try plus(bound.unit_positive_mass, try times(count, signs[0]));
+            bound.unit_negative_mass = try plus(bound.unit_negative_mass, try times(count, signs[1]));
+            if (kind == .jscan) scope.owner_table.unit_consumer_mass = try plus(scope.owner_table.unit_consumer_mass, try times(count, 64));
+            if (kind == .jtab) scope.owner_table.valid_provider_support = try plus(scope.owner_table.valid_provider_support, A.crypto.bulk_memory.types.TABLE_ENTRIES);
         } else if (relation == .owner) {
             if (origin == .core and origin.core == .cpu) bound.unit_positive_mass = try plus(bound.unit_positive_mass, slots) else bound.unit_negative_mass = try plus(bound.unit_negative_mass, slots);
         } else {
@@ -200,9 +219,10 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     var global_slots: [3]u64 = @splat(0);
     var degrees = ConditionalDegrees{};
     for (cpu, requests, cpus, 0..) |declaration, request, *scope, ordinal| {
-        // v2 roster only (see v2_scope.zig); v3 roles have no candidate shapes.
+        // Explicit supported scope; unknown v3 families/layouts cannot enter these bounds.
         try Scope.declaration(declaration);
         try Scope.request(request);
+        try P.bulkCounts(request.bulk);
         try declaration.geometry.validate();
         _ = try A.word16_execution.types.inputs(request.base.cpu, request.base.epoch, declaration.geometry.cpu_log);
         _ = try declaration.geometry.lsCounts(request.base.memory.ls_count);
@@ -237,6 +257,20 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
                 try globalSlots(&global_slots, origin, log);
             }
         }
+        inline for (Types.bulk_kinds) |kind| {
+            const optional = declaration.bridges.bulk.at(kind);
+            const active = request.bulk.rows(kind);
+            if ((optional != null) != (active != 0)) return error.InvalidCombinedBridgePresence;
+            if (optional) |log| {
+                _ = try A.crypto.bulk_memory.types.validateGeometry(kind, active, log);
+                const origin = Frame.Origin{ .bulk = kind };
+                try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
+                try addCpuRole(scope, origin, log);
+                try globalSlots(&global_slots, origin, log);
+            }
+        }
+        try scope.owner_table.validate();
+        if (scope.owner_table.unit_consumer_mass != 0 and scope.owner_table.valid_provider_support != A.crypto.bulk_memory.types.TABLE_ENTRIES) return error.CandidateSourceRelationShape;
         try finishProof(&shape, columns, constraints, instances, 1);
         for (scope.relations) |bound| {
             try bound.validate();
@@ -316,4 +350,23 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     // false qualifications in Report, never a whole-protocol certificate.
     try degrees.requireLookupOnlyBits(Policy.TARGET_BITS);
     return .{ .allocator = a, .shape = shape, .cpu_scopes = cpus, .truth_scopes = truths, .global_signed = global, .global_denominator_slots = global_slots, .conditional_degrees = degrees };
+}
+
+test "weighted JUMPDEST OWNER support is partitioned from unit token mass and characteristic checked" {
+    const t = @import("std").testing;
+    var scope = emptyCpu();
+    try addCpuRole(&scope, .{ .bulk = .jscan }, 5);
+    try addCpuRole(&scope, .{ .bulk = .jtab }, 14);
+    try t.expectEqual(@as(u64, 2048), scope.owner_table.unit_consumer_mass);
+    try t.expectEqual(@as(u64, 8448), scope.owner_table.valid_provider_support);
+    const owner = scope.relations[@intFromEnum(F.Relation.owner)];
+    try t.expectEqual(@as(u64, 0), owner.unit_positive_mass);
+    try t.expectEqual(@as(u64, 32), owner.unit_negative_mass);
+    try t.expectEqual(@as(u64, 32 * 65 + 16384), owner.denominator_slots);
+    try scope.owner_table.validate();
+    scope.owner_table.unit_consumer_mass = MODULUS;
+    try t.expectError(error.CandidateCharacteristicBoundExceeded, scope.owner_table.validate());
+    const bulk = A.crypto.bulk_memory.types;
+    try t.expect(bulk.TOKEN_JD_TABLE >= 256 and bulk.TOKEN_JD_TABLE < MODULUS);
+    inline for (.{ bulk.TOKEN_COPY, bulk.TOKEN_SET, bulk.TOKEN_CMP, bulk.TOKEN_CMP_RESULT, bulk.TOKEN_JD }) |token| try t.expect(token != bulk.TOKEN_JD_TABLE);
 }

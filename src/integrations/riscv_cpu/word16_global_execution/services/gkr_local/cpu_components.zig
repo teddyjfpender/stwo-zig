@@ -24,7 +24,7 @@ pub const Plan = struct {
     claim_count: usize,
     binding_count: usize,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup) !Plan {
-        try @import("v2_scope.zig").setup(setup);
+        try @import("bulk_scope.zig").setup(setup);
         var slots = std.ArrayList(Slot).empty;
         errdefer slots.deinit(a);
         var inter: usize = 0;
@@ -46,6 +46,13 @@ pub const Plan = struct {
             claims = try std.math.add(usize, claims, Global.claimCount(origin));
             bindings += 1;
         };
+        inline for (@import("../types.zig").bulk_kinds) |kind| if (setup.bridges.bulk.at(kind)) |log| {
+            const origin = Frame.Origin{ .bulk = kind };
+            try slots.append(a, .{ .origin = origin, .log = log, .fixed_offset = setup.bulkOffset(kind, 0), .main_offset = setup.bulkOffset(kind, 1), .inter_offset = inter, .binding_index = bindings, .claim_offset = claims });
+            inter = try std.math.add(usize, inter, 16 + Global.layout(origin).width());
+            claims = try std.math.add(usize, claims, Global.claimCount(origin));
+            bindings += 1;
+        };
         return .{ .allocator = a, .slots = try slots.toOwnedSlice(a), .inter_columns = inter, .claim_count = claims, .binding_count = bindings };
     }
     pub fn deinit(self: *Plan) void {
@@ -61,7 +68,7 @@ pub const Plan = struct {
         return out;
     }
 };
-pub const Item = union(enum) { arithmetic: Role.Component, table: Table.Component, boundary: Boundary.Component, service: Service.Component };
+pub const Item = union(enum) { arithmetic: Role.Component, table: Table.Component, boundary: Boundary.Component, service: Service.Component, bulk: @import("bulk_role.zig").Component };
 pub const Set = struct {
     allocator: std.mem.Allocator,
     items: []Item,
@@ -77,6 +84,11 @@ pub const Set = struct {
         for (items, plan.slots) |*item, slot| {
             const nclaims = Global.claimCount(slot.origin);
             const claims = try Global.claimsFromVector(O, slot.origin, values[slot.claim_offset..][0..nclaims]);
+            if (slot.origin == .bulk) {
+                item.* = .{ .bulk = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.bulk.rows(slot.origin.bulk), .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                try item.bulk.validate();
+                continue;
+            }
             if (slot.origin == .bridge) {
                 const family = slot.origin.bridge;
                 const index = @intFromEnum(family);

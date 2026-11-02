@@ -67,6 +67,11 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32,
     hashValue(&h, struct { base: @TypeOf(request.base), calls: [3]u32 }{ .base = request.base, .calls = request.calls[0..3].* });
     hashValue(&h, first);
     hashValue(&h, config);
+    if (setup.bridges.bulk.any() or request.bulk.any()) {
+        h.update("RV64-BULK-GKR-V3-STATEMENT-1");
+        hashValue(&h, setup.bridges.bulk);
+        hashValue(&h, request.bulk);
+    }
     var out: [32]u8 = undefined;
     h.final(&out);
     return out;

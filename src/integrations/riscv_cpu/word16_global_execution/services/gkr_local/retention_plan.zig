@@ -17,6 +17,7 @@ pub const RetentionPlan = struct {
     binding_descriptor_bytes: usize = 0,
     projected_binding_bytes: usize = 0,
     global_metadata_bytes: usize = 0,
+    bulk_local_metadata_bytes: usize = 0,
     global_output_bytes: usize = 0,
     gkr_peak_bytes: usize = 0,
     main_merkle_bytes: usize = 0,
@@ -72,7 +73,7 @@ pub fn forCpuWithSourceStorage(a: std.mem.Allocator, setup: *const R.CpuSetup, r
     return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true);
 }
 fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool, streamed: bool) !RetentionPlan {
-    try @import("v2_scope.zig").request(request);
+    try @import("bulk_scope.zig").request(request);
     const instances = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
     const numerical = if (streamed) try @import("resource.zig").Plan.forInstancesWithSourceStorage(instances, gkr_limit, checkpointed) else try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);
@@ -101,7 +102,10 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     for (plan.slots) |slot| {
         const n = try rows(slot.log);
         switch (slot.origin) {
-            .bulk => return error.GkrV3ServiceUnsupported,
+            .bulk => |kind| {
+                out.global_metadata_bytes = try add(out.global_metadata_bytes, try @import("bulk_metadata.zig").requestUpperBound(request.bulk, kind));
+                out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try @import("bulk_metadata.zig").localUpperBound(request.bulk, kind, slot.log));
+            },
             .core => |role| switch (role) {
                 .ls, .ls_tail => out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_v2.source.Metadata))),
                 .initial, .terminal => out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_v2.boundary_source.Metadata))),
@@ -123,7 +127,7 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     out.resident_retained_bytes = try add(out.parked_retained_bytes, out.coefficient_bytes);
     // Scheduling estimates cover these represented frontend payloads. Source
     // construction, shared immutable setup and PCS proving scratch are separate.
-    out.stage1_task_bytes = try add(out.resident_retained_bytes, out.gkr_peak_bytes);
+    out.stage1_task_bytes = try add(try add(out.resident_retained_bytes, out.gkr_peak_bytes), out.bulk_local_metadata_bytes);
     out.stage2_task_bytes = try add(out.resident_retained_bytes, try add(out.global_output_bytes, out.global_scratch_bytes));
     return out;
 }
@@ -138,7 +142,7 @@ pub fn withDeferredBinding(input: RetentionPlan, gkr_limit: usize) !RetentionPla
     if (out.gkr_peak_bytes > gkr_limit) return error.LocalGkrBudgetExceeded;
     out.parked_retained_bytes = try add(try std.math.sub(usize, input.parked_retained_bytes, input.binding_bytes), out.projected_binding_bytes);
     out.resident_retained_bytes = try add(out.parked_retained_bytes, out.coefficient_bytes);
-    out.stage1_task_bytes = try add(out.resident_retained_bytes, out.gkr_peak_bytes);
+    out.stage1_task_bytes = try add(try add(out.resident_retained_bytes, out.gkr_peak_bytes), out.bulk_local_metadata_bytes);
     out.stage2_task_bytes = try add(out.resident_retained_bytes, try add(input.binding_bytes, try add(out.global_output_bytes, out.global_scratch_bytes)));
     return out;
 }

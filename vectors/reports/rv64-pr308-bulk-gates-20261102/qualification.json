@@ -1,0 +1,48 @@
+{
+  "scope": "Complete bulk-only native services gates; full Ethereum v3 candidate remains closed",
+  "pr308_snapshot": "4e94b9dfc6efbd844b39645ee344c17479ba9b40",
+  "merge_commit": "93b6c2928",
+  "checks": {
+    "Safe_and_Fast_services_GKR_and_v3_suites": true,
+    "all_nine_bulk_kinds_in_complete_two_shard_executions": true,
+    "fresh_independent_keys_and_wire_roundtrip": true,
+    "parked_MAIN_deferred_binding_two_lanes_reversed_stage_two": true,
+    "retained_cap_rejects_before_capture_consumption": true,
+    "actual_retained_metadata_below_request_bounds": true,
+    "source_allocation_failures_owned_take_and_idempotent_retirement": true,
+    "weighted_JUMPDEST_support_and_characteristic_guard": true,
+    "three_balanced_attacks_reject_after_physical_verification": "UnclosedGlobalGkrRam",
+    "proof_claim_order_count_geometry_profile_mutations_reject": true,
+    "saved_v2_GKR_and_classic_v3_bundles_freshly_accept": true
+  },
+  "correctness_profile": {
+    "field": "OM31",
+    "queries": 12,
+    "pow_bits": 0,
+    "security_claim": false
+  },
+  "limits": [
+    "No full Ethereum v3 GKR block yet",
+    "Other v3 providers/layouts remain unsupported",
+    "Conditional lookup source budget is not composed security certification",
+    "Memory estimates cover represented payload, not process RSS",
+    "No GPU or recursion qualification"
+  ],
+  "modified_Zig_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_execution_test.zig": "86d26b57a4d8d9022898cb60b06d3a84271b6443006f6917a050d8ac9aa60d0f",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_metadata.zig": "0a19794b97d46ba0da8a317a42b12cc8b70721e2df007150f69c11fb3d699dd7",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_scope.zig": "c12621612fac43ecd76e8606c2fdf9dbf04c30b8de340fd21181f1c2a06cd2c5",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bundle_wire.zig": "9605ed9ae3039c70b156a736c8bd2a021d35a3d6a076b6903ed3abbcc7c462bc",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator.zig": "28198386f0626d692c38597b5507591dcd49edb4c070e414e507fad68d3178c7",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_components.zig": "c0fdba1fa5e0aff7c4ea6320c40032d05abca608fda9d55940dd68ba03897c36",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig": "c7b5cfa1cc33cbfffd4c0eb3d722092d90d9ad3eb9eff5d8f61788010a58f98b",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/execution.zig": "dbe770d5f13c0aaadc24df28055d4f285512986e84273e7b201b6c5bf1b8c5f4",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig": "82d2ab2130dd3978b9e7aab27bddbbb9667fdb04cef25b6ad951172f1d35695d",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/mass_authority.zig": "900883a70685fea5bd867a2425b5814766aa392ea1c2254054c8e91b3ef5eb2c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/retention_plan.zig": "f665ec7e8b72dd33d8c257ddb7a586b3e294a06ce530b74b634aede7c278aff1",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/roster.zig": "5814a24ba17411cec7b07e02079e3ecd2495fc598f0e6d1a850188332a6aa3b6",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/source_bounds.zig": "c221535fda66945a3ba9be92fdb5227073f0e5b41c5d9143de4d411b2703f89e",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/tests.zig": "4f7274a6392ab381e26657ff477395994575891057aaf26a9f5591398e10f3c1",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/v2_scope.zig": "105716c1fc5113c827b91c58e7e295f2fa055b216191812ae0188870ca399f76"
+  }
+}

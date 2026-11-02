@@ -65,6 +65,7 @@ pub fn truth(t: R.Truth) !void {
 pub fn truthDeclaration(d: @import("../wire.zig").TruthDeclaration) !void {
     try family(d.family);
     if (d.family == .keccak and d.logs[1] != 0) return error.GkrV3ServiceUnsupported;
+    if (d.family != .keccak and d.logs[1] == 0) return error.GkrV3ServiceUnsupported;
 }
 /// Widen a v2 first-ID vector for shared v3-aware source construction. The
 /// v3 entries are unused because admitted setups have no v3 bridges.

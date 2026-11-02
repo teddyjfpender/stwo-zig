@@ -1,6 +1,6 @@
 # V3 bulk services: authenticated GKR foundation
 
-Scope: the nine bulk-memory/JUMPDEST components at PR308 snapshot
+Foundation snapshot: the nine bulk-memory/JUMPDEST components at PR308 snapshot
 `2490495dd16a35a2961cd113870a0a490ff36018`. This is a qualified component
 foundation, **not production v3 GKR admission**. `v2_scope.zig`, CPU roster
 admission and the retention planner continue to reject v3 requests.
@@ -99,3 +99,12 @@ are still pending; this child frame does not substitute for them.
 PR308 subsequently advanced to `10c6a084a1af3692077f1081f7c7892250defc30`
 (secp row truth, planning and EEST updates). That delta was fetched separately;
 this foundation's receipts stay pinned to the earlier integrated snapshot.
+
+## Worker-gate completion
+
+The follow-on [bounded review](rv64-bulk-weighted-owner-review.md) records the
+complete bulk-only worker plan, fresh transport receiver, cross-shard closure,
+request-derived retention bounds and weighted JUMPDEST support partition.
+Those gates supersede items1–3 above for the bulk extension. The full Ethereum
+v3 route, other service adapters, and full-v3 security-budget/benchmark gates
+remain separate; their production admission is still closed.

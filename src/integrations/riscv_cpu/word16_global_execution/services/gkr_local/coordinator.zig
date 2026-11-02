@@ -144,9 +144,7 @@ fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Ad
         r.* = request;
         done += 1;
         // Faithful counts first (requestView), then fail closed on any v3 advice.
-        try @import("v2_scope.zig").request(r.*);
-        // Faithful counts first, then fail closed on any v3 advice.
-        try @import("v2_scope.zig").request(r.*);
+        try @import("bulk_scope.zig").request(r.*);
     }
     return requests;
 }
@@ -193,7 +191,7 @@ const Run = struct {
             timing.?.stage1_ns = clock.read();
         };
         if (index < self.setups.len) {
-            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, @import("v2_scope.zig").widenFirstIds(self.inventory.first_ids[index]), false, null);
+            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, @import("bulk_scope.zig").widenFirstIds(self.inventory.first_ids[index]), false, null);
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();

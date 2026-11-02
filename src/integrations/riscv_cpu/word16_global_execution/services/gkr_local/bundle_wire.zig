@@ -15,7 +15,7 @@ const Manifest = @import("manifest.zig");
 const StageWire = @import("manifest_wire.zig");
 const Cells = @import("../../../word16_execution/cells_wire.zig");
 const Receipt = @import("../../../rv64_ethereum_batch_receipt.zig");
-const Scope = @import("v2_scope.zig");
+const Scope = @import("bulk_scope.zig");
 pub const Limits = Legacy.Limits;
 pub const CpuDeclaration = Legacy.CpuDeclaration;
 pub const TruthDeclaration = Legacy.TruthDeclaration;
@@ -75,14 +75,29 @@ fn claimCount(declaration: CpuDeclaration) usize {
     for (std.enums.values(@import("../types.zig").Family)) |family| if (declaration.bridges.at(family) != null) {
         n += Global.claimCount(.{ .bridge = family });
     };
+    inline for (@import("../types.zig").bulk_kinds) |kind| if (declaration.bridges.bulk.at(kind) != null) {
+        n += Global.claimCount(.{ .bulk = kind });
+    };
     return n;
+}
+fn hasBulk(cpus: []const Cpu) bool {
+    for (cpus) |cpu| if (cpu.declaration.bridges.bulk.any() or cpu.request.bulk.any()) return true;
+    return false;
 }
 fn canonical(values: []const [8]u32) !void {
     for (values) |value| for (value) |coordinate| if (coordinate >= core.fields.m31.Modulus) return error.NoncanonicalWideBundleClaim;
 }
 pub fn validate(metadata: Metadata, limits: Limits) !void {
-    if (metadata.schema != 1 or metadata.core_schema != @import("../../../word16_execution/protocol.zig").SCHEMA or metadata.field_degree != 8 or !std.mem.eql(u8, metadata.profile, Manifest.PROFILE)) return error.WideBundleProfile;
-    // The wide route is v2-only; reject v3 declarations before shared preflight.
+    if (metadata.schema != 1 or metadata.core_schema != @import("../../../word16_execution/protocol.zig").SCHEMA or metadata.field_degree != 8) return error.WideBundleProfile;
+    if (std.mem.eql(u8, metadata.profile, Manifest.PROFILE)) {
+        // Preserve the legacy admission contract; profile is never upgraded
+        // implicitly from producer-declared extra fields.
+        for (metadata.cpus) |cpu| {
+            try @import("v2_scope.zig").declaration(cpu.declaration);
+            try @import("v2_scope.zig").calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge, cpu.request.ls_dword);
+        }
+    } else if (!std.mem.eql(u8, metadata.profile, Manifest.BULK_PROFILE) or !hasBulk(metadata.cpus)) return error.WideBundleProfile;
+    // Reject unsupported families/layouts before shared declaration preflight.
     for (metadata.cpus) |cpu| {
         try Scope.declaration(cpu.declaration);
         try Scope.calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge, cpu.request.ls_dword);
@@ -139,7 +154,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     }
     const tt = try scratch.alloc(Truth, truths.len);
     for (truths, bundle.truths, tt) |truth, proof, *out| out.* = .{ .declaration = TruthDeclaration.from(truth), .claims = try toWire(scratch, proof.claims), .proof = fileInfo(proof.bytes) };
-    var metadata = Metadata{ .cpus = cpus, .truths = tt, .stage_one = fileInfo(bundle.stage_one_bytes), .memory_words = @intCast(initial.len), .cells_sha256 = @splat(0) };
+    var metadata = Metadata{ .profile = if (hasBulk(cpus)) Manifest.BULK_PROFILE else Manifest.PROFILE, .cpus = cpus, .truths = tt, .stage_one = fileInfo(bundle.stage_one_bytes), .memory_words = @intCast(initial.len), .cells_sha256 = @splat(0) };
     try validate(metadata, .{});
     try Cells.write(dir, initial, terminal);
     metadata.cells_sha256 = try hashCells(dir, metadata.memory_words);
