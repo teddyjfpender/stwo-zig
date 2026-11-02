@@ -49,7 +49,7 @@ pub fn collectAdvice(a: std.mem.Allocator, prepared: []const *Native, image: @im
     for (prepared, events, 0..) |native, *out, index| {
         const cpu = native.cpu orelse return error.PreparedExecutionConsumed;
         if (cpu.epoch != index + 1) return error.InvalidGlobalExecutionEpoch;
-        out.* = try ledger.shard(cpu.memory.items, cpu.epoch);
+        out.* = try ledger.shard(cpu.memory.items, cpu.epoch, A.word16_execution.layout.ramStride(cpu.log_size));
         done += 1;
     }
     const boundaries = try ledger.boundaries();

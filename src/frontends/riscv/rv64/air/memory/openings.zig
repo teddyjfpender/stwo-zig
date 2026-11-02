@@ -19,7 +19,7 @@ pub const Owned = struct {
         if (cells.len == 0 or cells.len > 65536 * 512) return error.InvalidPrivateRamCapture;
         var count: usize = 0;
         for (cells, 0..) |cell, i| {
-            if (cell.address & 7 != 0 or cell.terminal_clock == 0 or cell.terminal_clock >= 1 << 24 or cell.rights == 0 or (i > 0 and cells[i - 1].address >= cell.address)) return error.InvalidPrivateRamCapture;
+            if (cell.address & 7 != 0 or cell.terminal_clock == 0 or cell.terminal_clock >= 1 << 26 or cell.rights == 0 or (i > 0 and cells[i - 1].address >= cell.address)) return error.InvalidPrivateRamCapture;
             if (i == 0 or cells[i - 1].address >> geometry.logBytes() != cell.address >> geometry.logBytes()) count += 1;
         }
         if (count > batch.MAX_OPENINGS) return error.PrivateRamBatchResourceLimit;

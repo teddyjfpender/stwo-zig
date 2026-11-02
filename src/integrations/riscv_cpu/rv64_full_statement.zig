@@ -26,7 +26,9 @@ pub const Statement = struct {
     }
     pub fn validateWithProfile(self: Statement, profile: execution_profile.Profile) !void {
         try self.program.validate();
-        if (self.steps == 0 or self.steps >= 1 << 22 or self.initial_pc & 3 != 0 or self.final_pc & 3 != 0 or
+        // Packet statement: up to one 2^23-1 step segment. Legacy full-AIR
+        // provers keep their own 2^22 admission (rv64_trace_main_admission).
+        if (self.steps == 0 or self.steps >= 1 << 23 or self.initial_pc & 3 != 0 or self.final_pc & 3 != 0 or
             self.initial_registers[0] != 0 or self.final_registers[0] != 0 or self.register_clocks[0] != 0 or
             self.cells.len != self.memory_clocks.len or self.cells.len > 1 << 24) return error.InvalidRv64FullStatement;
         var any = false;

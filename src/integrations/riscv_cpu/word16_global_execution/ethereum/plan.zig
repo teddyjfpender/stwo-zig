@@ -67,6 +67,13 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.cpu_fused_tail = layout.fused_tail;
         g.cpu_u8_pairs = layout.u8_pairs;
         g.cpu_compact_decode = layout.compact_decode;
+        // A log-23 CPU segment (batch_steps >= 2^22) has only the wide-clock
+        // encoding, which is defined on the fused tail without byte pairs.
+        if (g.wideClock()) {
+            g.cpu_fused_tail = true;
+            g.cpu_u8_pairs = false;
+            g.cpu_compact_decode = false;
+        }
         d.* = .{ .geometry = g, .bridges = .{} };
         // The same two-instance ladder as LS32 (one inactive row per instance).
         if (dword != 0) {

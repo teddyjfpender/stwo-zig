@@ -97,7 +97,9 @@ fn before(state: State, call: Call) !void {
 /// Native admission of one call against its RAM predecessors (the executor's
 /// ABI rules); every bridge row is built only from admitted calls.
 pub fn validateCall(call: Call, words: []const State) !void {
-    if (call.epoch == 0 or call.tick == 0 or call.tick & 3 != 0) return error.InvalidKeccakSpongeClock;
+    // The tick stride (4, or 1 under the wide-clock CPU) is the producing CPU's
+    // encoding; collectors check it against the CPU log (word16_execution.layout.ramStride).
+    if (call.epoch == 0 or call.tick == 0) return error.InvalidKeccakSpongeClock;
     const p = call.p();
     Native.validatePacket(call.pointer, p) catch return error.InvalidKeccakSpongePacket;
     if (words.len != p.words()) return error.InvalidKeccakSpongeWords;

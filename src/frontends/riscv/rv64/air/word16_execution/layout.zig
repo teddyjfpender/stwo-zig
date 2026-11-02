@@ -110,7 +110,24 @@ pub fn interCountFor(is_fused: bool, is_pairs: bool) usize {
     return if (is_pairs) pairs.COUNT else interCount(is_fused);
 }
 pub const MIN_LOG = 5;
-pub const MAX_LOG = 22;
+/// Structural cap. Logs above CLOCK24_MAX_LOG select the wide-clock encoding.
+pub const MAX_LOG = 23;
+/// Largest CPU log whose register clock `4*row+slot+1` and OWNER/RAM tick
+/// `4*row+4` stay below 2^24 (gap16 + 65536*gap8 with gap8 a U8).
+pub const CLOCK24_MAX_LOG = 22;
+/// Wide-clock CPU encoding (log 23 only; fused tail, no byte pairs):
+/// - REG gaps reach 2^25, so each gap8 limb (< 2^9) is range-checked by the
+///   U16 query `WIDE_GAP_SCALE*gap8` instead of the U8 query `gap8`;
+/// - the OWNER/RAM tick is `row+1` (stride 1) instead of `4*row+4`, so every
+///   RAM-side tick stays a 24-bit value and no RAM/service AIR changes.
+pub fn wideClock(log_size: u32) bool {
+    return log_size > CLOCK24_MAX_LOG;
+}
+pub const WIDE_GAP_SCALE = 128;
+/// OWNER/RAM tick of CPU row `index`: `stride*(index+1)`.
+pub fn ramStride(log_size: u32) u32 {
+    return if (wideClock(log_size)) 1 else 4;
+}
 pub const physical = Old.physical;
 pub fn previousMain(c: usize) bool {
     return (c >= main.next_pc and c < main.next_pc + 4) or c == main.active;

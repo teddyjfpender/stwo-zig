@@ -10,7 +10,7 @@ pub const MAGIC = "RV64WP01";
 pub const Identity = struct { request: Digest, program: Digest, input: Digest, terminal: Digest, policy: Digest, immutable_program_key: Digest };
 pub const Metadata = struct { identity: Identity, index: u32, first_step: u64, before: rv.memory.values.Digest, after: rv.memory.values.Digest, geometry: rv.memory.values.Geometry = .chunk512 };
 pub const Expected = struct { identity: Identity, authority: *const Full.ProgramAuthority, policy: *const rv.memory.policy.Policy, state_policy: rv.state_policy.Policy };
-pub const Limits = struct { bytes: usize = 512 * 1024 * 1024, allocation_bytes: usize = 512 * 1024 * 1024, cells: u32 = 1 << 24, chunks: u32 = 1 << 19, steps: u32 = (1 << 22) - 1 };
+pub const Limits = struct { bytes: usize = 1024 * 1024 * 1024, allocation_bytes: usize = 1024 * 1024 * 1024, cells: u32 = 1 << 24, chunks: u32 = 1 << 19, steps: u32 = (1 << 23) - 1 };
 pub const Header = struct {
     metadata: Metadata,
     cells: u32,
@@ -37,7 +37,7 @@ pub const Header = struct {
     /// graph section. `validate` adds graph presence and root rules; the
     /// in-process handoff (no graph is ever built) applies exactly this part.
     pub fn validateResources(self: Header, limits: Limits) !void {
-        if (limits.bytes > 512 * 1024 * 1024 or limits.allocation_bytes > 512 * 1024 * 1024 or self.metadata.geometry != .chunk512 or self.cells > limits.cells or self.chunks > limits.chunks or self.cells > @as(u64, self.chunks) * 64 or (self.cells == 0) != (self.chunks == 0) or self.tape_bytes < 48 or try self.totalBytes() > limits.bytes) return error.WorkPacketResourceLimit;
+        if (limits.bytes > 1024 * 1024 * 1024 or limits.allocation_bytes > 1024 * 1024 * 1024 or self.metadata.geometry != .chunk512 or self.cells > limits.cells or self.chunks > limits.chunks or self.cells > @as(u64, self.chunks) * 64 or (self.cells == 0) != (self.chunks == 0) or self.tape_bytes < 48 or try self.totalBytes() > limits.bytes) return error.WorkPacketResourceLimit;
     }
 };
 pub fn encode(h: Header) ![BYTES]u8 {

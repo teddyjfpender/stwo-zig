@@ -157,7 +157,7 @@ test "compact rows: honest REG, FUNCTION, OWNER tuples equal the legacy ones and
         } else try std.testing.expectEqualSlices(M, &lf, &cf);
         // OWNER weight is active-function: only LS/ECALL rows carry the tuple
         // (FUNCTION rows have weight zero; legacy put their IMM there too).
-        if (!entry.function) try std.testing.expectEqualSlices(M, &U.owner(M, &fixed, legacy, M.one()), &U.compact.owner(M, &fixed, compact[0..K.COUNT], M.one()));
+        if (!entry.function) try std.testing.expectEqualSlices(M, &U.owner(M, &fixed, legacy, M.one(), false), &U.compact.owner(M, &fixed, compact[0..K.COUNT], M.one()));
         const prior = previousWithNext(c.pc);
         const taken = entry.branch and c.values.c != 0;
         try std.testing.expectEqualSlices(M, &entry.romTupleCompact(taken), &U.compact.rom(M, &fixed, compact[0..K.COUNT], prior[0..K.COUNT], M.zero()));

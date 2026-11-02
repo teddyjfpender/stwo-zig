@@ -49,7 +49,12 @@ pub fn rom(comptime F: type, row: []const F) [30]F {
     out[L.rom.taken] = row[m.branch].mul(row[m.c]);
     return out;
 }
-pub fn owner(comptime F: type, fixed: []const F, row: []const F, epoch: F) [19]F {
+/// OWNER/RAM tick: `4*row+4`, or `row+1` under the wide-clock encoding
+/// (`layout.ramStride`). Both are affine in the fixed index column.
+pub fn ownerTick(comptime F: type, index: F, wide_clock: bool) F {
+    return if (wide_clock) index.add(F.one()) else tick(F, index, 3);
+}
+pub fn owner(comptime F: type, fixed: []const F, row: []const F, epoch: F, wide_clock: bool) [19]F {
     var out: [19]F = undefined;
     out[0] = row[m.operation];
     @memcpy(out[1..5], row[m.a..][0..4]);
@@ -57,7 +62,7 @@ pub fn owner(comptime F: type, fixed: []const F, row: []const F, epoch: F) [19]F
     @memcpy(out[9..13], row[m.b..][0..4]);
     @memcpy(out[13..17], row[m.c..][0..4]);
     out[17] = epoch;
-    out[18] = tick(F, fixed[0], 3);
+    out[18] = ownerTick(F, fixed[0], wide_clock);
     return out;
 }
 

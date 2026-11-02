@@ -49,7 +49,7 @@ pub const Owner = struct {
     pub fn captureOne(a: std.mem.Allocator, program: *const Program, p: *const Packet.Packet, index: usize) !*Native {
         const value = try a.create(Native);
         errdefer a.destroy(value);
-        value.* = try Native.captureForCombinedServices(a, program, C.boundary(p), @intCast(index + 1), try Coverage.minimalPrefixLog(@intCast(p.tape.len)), &p.tape, .{ .deduplicate_shift = true });
+        value.* = try Native.captureForCombinedServices(a, program, C.boundary(p), @intCast(index + 1), try Coverage.minimalCpuLog(@intCast(p.tape.len)), &p.tape, .{ .deduplicate_shift = true });
         return value;
     }
     /// Opt-in producer scheduling only. The caller allocator must support

@@ -15,7 +15,9 @@ pub fn describe(opcode: Decode.Opcode) !Description {
 pub fn validate(event: Event) !void {
     const d = try describe(event.opcode);
     const ea = event.a +% event.immediate;
-    if (event.tick == 0 or event.tick & 3 != 0 or ea & (d.width - 1) != 0 or event.before.rights != event.after.rights or event.after.epoch != event.epoch or event.after.tick != event.tick) return error.InvalidLoadStoreEvent;
+    // The tick stride (4, or 1 under the wide-clock CPU) is the producing CPU's
+    // encoding; collectors check it against the CPU log (word16_execution.layout.ramStride).
+    if (event.tick == 0 or ea & (d.width - 1) != 0 or event.before.rights != event.after.rights or event.after.epoch != event.epoch or event.after.tick != event.tick) return error.InvalidLoadStoreEvent;
     if (event.before.epoch > event.epoch or (event.before.epoch == event.epoch and event.before.tick >= event.tick)) return error.InvalidLoadStoreEventTime;
     const bits: usize = 8 * @as(usize, d.width);
     const mask: u64 = if (d.width == 8) std.math.maxInt(u64) else (@as(u64, 1) << @as(u6, @intCast(bits))) - 1;

@@ -41,10 +41,12 @@ pub fn denominatorsFor(comptime F: type, fixed: []const F, row: []const F, publi
     }
     out.function = ch.function.denominatorFor(F, U.function(F, row));
     out.rom = ch.rom.denominatorFor(F, U.rom(F, row));
-    out.affine[0] = ch.owner.denominatorFor(F, U.owner(F, fixed, row, E.scalarFor(F, public.epoch)));
+    out.affine[0] = ch.owner.denominatorFor(F, U.owner(F, fixed, row, E.scalarFor(F, public.epoch), public.wide_clock));
     for (0..3) |slot| {
         out.affine[1 + slot] = ch.range16.denominatorFor(F, row[m.gap16 + slot]);
-        out.affine[4 + slot] = ch.range8.denominatorFor(F, row[m.gap8 + slot]);
+        // Wide clock: U16 query 128*gap8, so 65536*gap8 = 512*(128*gap8) and
+        // the gap gap16 + 512*u (u, gap16 < 2^16) is an integer below 2^26.
+        out.affine[4 + slot] = if (public.wide_clock) ch.range16.denominatorFor(F, row[m.gap8 + slot].mul(T.literal(F, L.WIDE_GAP_SCALE))) else ch.range8.denominatorFor(F, row[m.gap8 + slot]);
     }
     return out;
 }
@@ -212,10 +214,10 @@ pub fn nativeDenominators(fixed: []const M, row: []const M, public: T.Inputs, ch
     }
     out.function = dot(ch.function, U.function(M, row));
     out.rom = dot(ch.rom, U.rom(M, row));
-    out.affine[0] = dot(ch.owner, U.owner(M, fixed, row, M.fromCanonical(public.epoch)));
+    out.affine[0] = dot(ch.owner, U.owner(M, fixed, row, M.fromCanonical(public.epoch), public.wide_clock));
     for (0..3) |slot| {
         out.affine[1 + slot] = ch.range16.offset.sub(ch.range16.coefficient.mulM31(row[m.gap16 + slot]));
-        out.affine[4 + slot] = ch.range8.offset.sub(ch.range8.coefficient.mulM31(row[m.gap8 + slot]));
+        out.affine[4 + slot] = if (public.wide_clock) ch.range16.offset.sub(ch.range16.coefficient.mulM31(row[m.gap8 + slot].mul(M.fromCanonical(L.WIDE_GAP_SCALE)))) else ch.range8.offset.sub(ch.range8.coefficient.mulM31(row[m.gap8 + slot]));
     }
     return out;
 }

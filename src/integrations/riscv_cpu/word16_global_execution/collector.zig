@@ -19,13 +19,14 @@ pub const Ledger = struct {
         self.initial.deinit(self.allocator);
     }
     /// On failure discard the ledger; no partially updated cursor may be retried.
-    pub fn shard(self: *Ledger, records: []const CPU.MemoryRecord, epoch: u16) ![]X.native.Event {
+    /// `stride` is the producing CPU's OWNER tick stride (layout.ramStride).
+    pub fn shard(self: *Ledger, records: []const CPU.MemoryRecord, epoch: u16, stride: u32) ![]X.native.Event {
         if (epoch != self.next_epoch) return error.InvalidGlobalMemoryEpoch;
         const out = try self.allocator.alloc(X.native.Event, records.len);
         errdefer self.allocator.free(out);
         var previous: u24 = 0;
         for (records, out) |record, *event| {
-            if (record.epoch != epoch or record.tick <= previous or record.tick & 3 != 0) return error.InvalidMemoryRecordTime;
+            if (record.epoch != epoch or record.tick <= previous or record.tick % stride != 0) return error.InvalidMemoryRecordTime;
             previous = record.tick;
             const d = try X.native.describe(record.opcode);
             const ea = record.a +% record.immediate;

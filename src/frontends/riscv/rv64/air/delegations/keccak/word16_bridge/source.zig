@@ -25,7 +25,9 @@ pub fn fixed(a: std.mem.Allocator, log: u32) ![]M {
     return out;
 }
 pub fn validate(call: T.Call) !void {
-    if (call.epoch == 0 or call.tick == 0 or call.tick & 3 != 0 or call.pointer & 7 != 0 or call.pointer > std.math.maxInt(u64) - 199) return error.InvalidWord16KeccakCall;
+    // The tick stride (4, or 1 under the wide-clock CPU) is the producing CPU's
+    // encoding; collectors check it against the CPU log (word16_execution.layout.ramStride).
+    if (call.epoch == 0 or call.tick == 0 or call.pointer & 7 != 0 or call.pointer > std.math.maxInt(u64) - 199) return error.InvalidWord16KeccakCall;
     for (call.predecessors, call.before) |pred, value| {
         if (pred.value != value or pred.rights != 3 or pred.epoch > call.epoch or (pred.epoch == call.epoch and pred.tick >= call.tick)) return error.InvalidWord16KeccakPredecessor;
     }

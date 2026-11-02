@@ -43,7 +43,7 @@ test "LS32 unit OWNER RAM coupling and CPU tick coordinates remain shared and Bo
         cpu[X.layout.main.active] = Q.one();
         cpu[X.layout.main.a] = q(0x1000);
         const fixed = [_]Q{ q(@intCast(index)), Q.zero(), Q.zero() };
-        const owner = X.tuples.owner(Q, &fixed, &cpu, Q.one());
+        const owner = X.tuples.owner(Q, &fixed, &cpu, Q.one(), false);
         try std.testing.expectEqualDeep(owner, LS.equations.ownerTupleForLogical(Q, &logical));
         try std.testing.expect(owner[18].eql(q(tick)));
         try std.testing.expect(X.equations.weightsFor(Q, &cpu).owner.eql(logical[0]));
@@ -234,7 +234,7 @@ test "LS-D64 writer case: unit OWNER/RAM coupling, CPU tick, LD after = before a
         cpu[X.layout.main.active] = Q.one();
         cpu[X.layout.main.a] = q(0x1000);
         const fixed = [_]Q{ q(@intCast(index)), Q.zero(), Q.zero() };
-        const owner = X.tuples.owner(Q, &fixed, &cpu, Q.one());
+        const owner = X.tuples.owner(Q, &fixed, &cpu, Q.one(), false);
         const dword_owner = D.equations.ownerTuple(M, &physical);
         try std.testing.expect(owner[0].eql(Q.fromBase(dword_owner[0])));
         try std.testing.expect(owner[18].eql(q(tick)) and dword_owner[18].v == tick);
