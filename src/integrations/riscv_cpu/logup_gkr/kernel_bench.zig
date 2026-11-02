@@ -202,6 +202,18 @@ fn benchGkr(a: std.mem.Allocator, log: u32, kind_text: []const u8, impl: []const
 // ------------------------------------------------------- GKR generic (OM31)
 
 fn benchOm31(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize, reps: usize) !void {
+    // `reference` is the production `gkr_prover.proveBatch` (PR #309 packed
+    // numerical kernels); with threads > 1 it runs on a scoped work pool of
+    // that many workers, which is how its row kernels parallelise.
+    if (!std.mem.eql(u8, impl, "fast") and threads > 1) return withPool(threads, om31PoolBody, .{ a, log, impl, threads, reps });
+    return benchOm31Run(a, log, impl, threads, reps);
+}
+
+fn om31PoolBody(_: *work.WorkPool, a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize, reps: usize) !void {
+    return benchOm31Run(a, log, impl, threads, reps);
+}
+
+fn benchOm31Run(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize, reps: usize) !void {
     const fast = std.mem.eql(u8, impl, "fast");
     if (!fast and !std.mem.eql(u8, impl, "reference")) return error.InvalidGkrImpl;
     const Fast = lookups.gkr_prover_fast.ForField(OM31);
