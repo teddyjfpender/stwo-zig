@@ -23,13 +23,14 @@ pub const Kind = Frame.Role;
 pub const Shape = struct {
     kind: Kind,
     log_size: u32,
+    keccak_policy: K.equations.BatchPolicy = .triple_v2,
     byte_policy: S.layout.BytePolicy = .local,
     pub fn instance(self: *const @This()) Frame.Instance {
         return .{ .role = self.kind, .row_log = self.log_size, .queries = @intCast(switch (self.kind) {
-            .keccak => K.layout.LOOKUPS,
+            .keccak => self.keccak_policy.lookups(),
             .product, .linear => S.layout.byteCountFor(self.secpKind(), self.byte_policy),
             else => 1,
-        }), .byte_policy = self.byte_policy };
+        }), .keccak_policy = self.keccak_policy, .byte_policy = self.byte_policy };
     }
     pub fn localWidth(self: *const @This()) usize {
         return Local.columns(self.instance());
@@ -44,7 +45,7 @@ pub const Shape = struct {
     }
     pub fn widths(self: *const @This()) [3]usize {
         return switch (self.kind) {
-            .keccak => .{ K.layout.FIXED, K.layout.MAIN, self.localWidth() + 208 },
+            .keccak => .{ K.layout.FIXED, K.layout.MAIN, self.localWidth() + 8 * (self.keccak_policy.ioLookups() + 1) },
             .chi, .xor5 => .{ 7, 1, self.localWidth() },
             .product, .linear => .{ S.layout.FIXED, S.layout.main(self.secpKind()), self.localWidth() + 32 },
             .bytes => .{ 3, 1, self.localWidth() },
@@ -55,7 +56,7 @@ pub const Shape = struct {
     }
     pub fn nConstraints(self: *const @This()) usize {
         return Local.residualCount(self.instance()) + switch (self.kind) {
-            .keccak => K.layout.DIRECT + 27,
+            .keccak => K.layout.DIRECT + self.keccak_policy.ioLookups() + 2,
             .product, .linear => S.layout.direct(self.secpKind()) + 5,
             else => 0,
         };
@@ -96,6 +97,7 @@ pub const Component = struct {
     calls: u32 = 0,
     first_id: u32 = 1,
     program: ?*const S.program.Program = null,
+    keccak_policy: K.equations.BatchPolicy = .triple_v2,
     byte_policy: S.layout.BytePolicy = .local,
     local: TF.ChallengesFor(O),
     shared: @import("manifest.zig").Shared,
@@ -103,7 +105,7 @@ pub const Component = struct {
     global_claim: O = O.zero(),
     split: u32 = 1,
     pub fn shape(self: *const @This()) Shape {
-        return .{ .kind = self.kind, .log_size = self.log_size, .byte_policy = self.byte_policy };
+        return .{ .kind = self.kind, .log_size = self.log_size, .byte_policy = self.byte_policy, .keccak_policy = self.keccak_policy };
     }
     pub fn instance(self: *const @This()) Frame.Instance {
         const descriptor = self.shape();
@@ -128,10 +130,10 @@ pub const Component = struct {
     pub fn validate(self: *const @This()) !void {
         switch (self.kind) {
             .keccak => {
-                try K.layout.validateGeometry(self.calls, self.first_id, self.log_size);
+                try K.layout.validateGeometryFor(self.keccak_policy.geometry(), self.calls, self.first_id, self.log_size);
             },
-            .chi => if (self.log_size != 13) return error.InvalidWideTruthGeometry,
-            .xor5 => if (self.log_size != 10) return error.InvalidWideTruthGeometry,
+            .chi => if (self.log_size != self.keccak_policy.tableLog(.chi)) return error.InvalidWideTruthGeometry,
+            .xor5 => if (self.log_size != self.keccak_policy.tableLog(.xor5)) return error.InvalidWideTruthGeometry,
             .product, .linear => {
                 try S.layout.validate(self.secpKind(), self.program orelse return error.MissingWideTruthProgram, self.calls, self.first_id, self.log_size);
             },
@@ -247,10 +249,10 @@ pub const Component = struct {
                 const header = &workspace.header;
                 for (header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
                 const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
-                K.equations.emitDirectFor(F, row, .{ .calls = self.calls, .first_id = self.first_id }, sink, true);
-                TF.keccakFor(F, row, &local);
+                if (self.keccak_policy.geometry() == .pair27) K.equations.emitDirectR27For(F, row, .{ .calls = self.calls, .first_id = self.first_id }, sink) else K.equations.emitDirectFor(F, row, .{ .calls = self.calls, .first_id = self.first_id }, sink, true);
+                TF.keccakForPolicy(F, self.keccak_policy, row, &local);
                 try local.finish(self.instance(), previous[0..self.localWidth()], first, last, self.claim);
-                try Globals.keccakFor(F, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, self.global_claim, self.shared.kio, sink);
+                try Globals.keccakForPolicy(F, self.keccak_policy, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, self.global_claim, self.shared.kio, sink);
             },
             .product, .linear => {
                 const row = S.equations.RowFor(F){ .fixed = fixed[0..S.layout.FIXED], .main = main[0..width[1]], .previous_active = try samples.get(1, 0, -1), .previous_id = try samples.get(1, S.layout.base(self.secpKind()), -1) };

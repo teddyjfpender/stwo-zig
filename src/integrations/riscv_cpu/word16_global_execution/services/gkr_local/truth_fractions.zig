@@ -55,7 +55,14 @@ pub fn ChallengesFor(comptime C: type) type {
 /// Negative round-active coefficient exactly matches the existing permutation
 /// emitter. Zero-weight real queries still exist; only UNUSED fact lanes pad0/1.
 pub fn keccakFor(comptime F: type, row: K.equations.RowFor(F), sink: anytype) void {
+    return keccakForPolicy(F, .triple_v2, row, sink);
+}
+pub fn keccakForPolicy(comptime F: type, policy: K.equations.BatchPolicy, row: K.equations.RowFor(F), sink: anytype) void {
     const weight = K.equations.roundActiveFor(F, row).neg();
+    if (policy.throughputTables()) {
+        for (0..policy.lookups()) |event| sink.emit(if (event < policy.chiLookups()) .chi else .xor5, K.equations.throughputTupleFor(F, row.main[0..K.layout.STATE], row.main[K.layout.STATE..K.layout.ACTIVE_A], row.state_plus_one, row.fixed[2..26], event), weight);
+        return;
+    }
     for (0..K.layout.STATE) |event| sink.emit(.chi, K.equations.lookupTupleFor(F, row, event), weight);
     for (0..K.layout.PARITY) |event| sink.emit(.xor5, K.equations.lookupTupleFor(F, row, K.layout.STATE + event), weight);
 }

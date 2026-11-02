@@ -39,7 +39,10 @@ pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) ![
     W.digest(&ch, execution);
     W.digest(&ch, truth.key().root);
     switch (truth) {
-        .keccak => |t| ch.mixU32s(&.{t.setup.log}),
+        .keccak => |t| {
+            ch.mixU32s(&.{t.setup.log});
+            if (t.setup.policy != .triple_v2) t.setup.policy.mix(&ch);
+        },
         .secp => |t| ch.mixU32s(&.{ @intFromEnum(t.setup.kind), t.setup.logs[0], t.setup.logs[1], @intFromEnum(@TypeOf(t.setup.*).byte_policy) }),
         else => return error.GkrV3ServiceUnsupported,
     }
@@ -188,10 +191,10 @@ fn admit(frames: [3]Frame.Instance, budget: usize) !void {
     var scratch: usize = 0;
     for (frames, 0..) |frame, i| {
         const rows = try frame.rows();
-        const global: usize = if (i == 0) (if (frame.role == .keccak) 208 else 32) else if (i == 1 and frame.role == .linear) 32 else 0;
+        const global: usize = if (i == 0) (if (frame.role == .keccak) 8 * (frame.keccak_policy.ioLookups() + 1) else 32) else if (i == 1 and frame.role == .linear) 32 else 0;
         output = try std.math.add(usize, output, try std.math.mul(usize, rows, 4 * (Local.columns(frame) + global)));
         scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, Local.inverseCount(frame)));
-        scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, GW.inverseCount(frame.role)));
+        scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, GW.inverseCountFor(frame)));
     }
     if (frames[0].role != .keccak) scratch = try std.math.add(usize, scratch, try GM.secpSourceDescriptorBytes());
     if (try std.math.add(usize, output, scratch) > budget) return error.WideTruthBudgetExceeded;

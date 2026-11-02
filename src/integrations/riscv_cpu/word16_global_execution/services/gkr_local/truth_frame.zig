@@ -9,6 +9,7 @@ pub const Instance = struct {
     role: Role,
     row_log: u32,
     queries: u32,
+    keccak_policy: A.crypto.keccak.equations.BatchPolicy = .triple_v2,
     byte_policy: A.crypto.secp256k1.layout.BytePolicy = .local,
     pub fn laneLog(self: @This()) !u32 {
         if (self.queries == 0 or self.queries > 2048) return error.InvalidTruthGkrQueries;
@@ -31,7 +32,7 @@ pub const Instance = struct {
 };
 pub fn forSource(source: *const R.TruthSource) ![3]Instance {
     return switch (source.*) {
-        .keccak => |s| .{ .{ .role = .keccak, .row_log = s.permutation.log_size, .queries = A.crypto.keccak.layout.LOOKUPS }, .{ .role = .chi, .row_log = 13, .queries = 1 }, .{ .role = .xor5, .row_log = 10, .queries = 1 } },
+        .keccak => |s| .{ .{ .role = .keccak, .row_log = s.permutation.log_size, .queries = @intCast(s.permutation.policy.lookups()), .keccak_policy = s.permutation.policy }, .{ .role = .chi, .row_log = s.chi.log_size, .queries = 1, .keccak_policy = s.permutation.policy }, .{ .role = .xor5, .row_log = s.xor5.log_size, .queries = 1, .keccak_policy = s.permutation.policy } },
         .secp => |s| .{ .{ .role = .product, .row_log = s.batch.product.log_size, .queries = @intCast(A.crypto.secp256k1.layout.byteCountFor(.product, s.batch.product.byte_policy)), .byte_policy = s.batch.product.byte_policy }, .{ .role = .linear, .row_log = s.batch.linear.log_size, .queries = @intCast(A.crypto.secp256k1.layout.byteCountFor(.linear, s.batch.linear.byte_policy)), .byte_policy = s.batch.linear.byte_policy }, .{ .role = .bytes, .row_log = 8, .queries = 1 } },
         else => return error.GkrV3ServiceUnsupported,
     };

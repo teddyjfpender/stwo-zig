@@ -12,11 +12,11 @@ const Manifest = @import("manifest.zig");
 /// Programs/table policies are receiver-owned; no claim or challenge is needed.
 pub fn shapesForDeclaration(d: @import("../wire.zig").TruthDeclaration) ![3]Role.Shape {
     // Compact 2^13/2^10 Keccak tables only; the throughput profile is v3-only.
-    try @import("v2_scope.zig").truthDeclaration(d);
+    try @import("truth_profile.zig").validateDeclaration(d);
     return switch (d.family) {
         .keccak => blk: {
-            try A.crypto.keccak.layout.validateGeometry(d.calls, d.first_id, d.logs[0]);
-            break :blk .{ .{ .kind = .keccak, .log_size = d.logs[0] }, .{ .kind = .chi, .log_size = 13 }, .{ .kind = .xor5, .log_size = 10 } };
+            const policy = try @import("truth_profile.zig").fromDeclaration(d);
+            break :blk .{ .{ .kind = .keccak, .log_size = d.logs[0], .keccak_policy = policy }, .{ .kind = .chi, .log_size = policy.tableLog(.chi), .keccak_policy = policy }, .{ .kind = .xor5, .log_size = policy.tableLog(.xor5), .keccak_policy = policy } };
         },
         .add, .double => blk: {
             const kind: A.crypto.secp256k1.program.Kind = if (d.family == .add) .add else .double;
@@ -38,12 +38,12 @@ pub const Components = struct {
         };
         if (!claims[0].add(claims[1]).add(claims[2]).isZero()) return error.UnclosedWideTruthLocalClaims;
         var out: Components = undefined;
-        try @import("v2_scope.zig").truth(truth);
+        try @import("truth_profile.zig").validate(truth);
         const descriptor = try shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
         if (truth == .keccak and !claims[4].isZero()) return error.NonzeroAbsentWideTruthClaim;
         for (descriptor, &out.items, 0..) |shape, *item, i| {
             const crypto_role = shape.kind == .keccak or shape.kind == .product or shape.kind == .linear;
-            item.* = .{ .kind = shape.kind, .log_size = shape.log_size, .calls = if (crypto_role) truth.count() else 0, .first_id = if (crypto_role) truth.first() else 1, .program = if (shape.kind == .product or shape.kind == .linear) A.crypto.secp256k1.program.get(truth.secp.setup.kind) else null, .byte_policy = shape.byte_policy, .local = local, .shared = shared, .claim = claims[i], .global_claim = if (i == 0) claims[3] else if (i == 1 and truth == .secp) claims[4] else O.zero() };
+            item.* = .{ .kind = shape.kind, .log_size = shape.log_size, .calls = if (crypto_role) truth.count() else 0, .first_id = if (crypto_role) truth.first() else 1, .program = if (shape.kind == .product or shape.kind == .linear) A.crypto.secp256k1.program.get(truth.secp.setup.kind) else null, .byte_policy = shape.byte_policy, .keccak_policy = shape.keccak_policy, .local = local, .shared = shared, .claim = claims[i], .global_claim = if (i == 0) claims[3] else if (i == 1 and truth == .secp) claims[4] else O.zero() };
         }
         var offsets: [3]usize = .{ 0, 0, 0 };
         for (&out.items) |*c| {

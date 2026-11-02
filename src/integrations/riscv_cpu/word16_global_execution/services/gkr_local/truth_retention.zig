@@ -38,7 +38,7 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, globa
         const n = try rows(role.log_size);
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(role.widths()[2], n), 4));
         out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, Local.inverseCount(role.instance())));
-        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, @import("truth_global_witness.zig").inverseCount(role.kind)));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, @import("truth_global_witness.zig").inverseCountFor(role.instance())));
         for (role.widths()) |width| all_columns = try add(all_columns, width);
     }
     // Global metadata descriptors coexist with every retained local/global
