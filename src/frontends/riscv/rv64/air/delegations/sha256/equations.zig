@@ -100,9 +100,11 @@ pub fn tuple(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F)),
     return t;
 }
 fn secure(comptime F: type, v: anytype, start: usize, previous: bool) E.SecureFor(F) {
-    var c: [4]F = undefined;
-    for (&c, 0..) |*x, i| x.* = if (previous) v.previousInteraction(start + i) else v.interaction(start + i);
-    return E.secureFromCoordinatesFor(F, c);
+    const degree = comptime E.extensionDegree(E.ConstFor(F));
+    const offset = start / 4 * degree;
+    var c: [degree]F = undefined;
+    for (&c, 0..) |*x, i| x.* = if (previous) v.previousInteraction(offset + i) else v.interaction(offset + i);
+    return E.secureFromCoordinatesForField(E.ConstFor(F), F, c);
 }
 
 /// MAIN-only authority: Booleanity, message schedule, 64 rounds, feed-forward
@@ -147,6 +149,10 @@ pub fn emitMain(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F
 
 pub fn emit(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F)), claim: E.ConstFor(F), wire: WireFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
     emitMain(F, v, public, sink);
+    emitInteraction(F, v, public, claim, wire, sink);
+}
+
+pub fn emitInteraction(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F)), claim: E.ConstFor(F), wire: WireFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
     const active = v.main(L.ACTIVE);
     var d: [4]E.SecureFor(F) = undefined;
     for (&d, [4]u32{ L.STATE_WIRE, L.MESSAGE_WIRES[0], L.MESSAGE_WIRES[1], L.OUTPUT_WIRE }) |*x, id| x.* = E.denominatorFor(F, wire.offset, &wire.coefficients, &tuple(F, v, public, id), true);

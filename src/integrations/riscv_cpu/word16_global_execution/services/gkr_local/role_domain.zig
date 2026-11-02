@@ -66,6 +66,9 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     const shape = self.mainShape();
     if (shape.fixed > Component.MAX_FIXED or shape.main > Component.MAX_MAIN) return error.InvalidLocalGkrTrace;
     const log = Geo.logSize(self);
+    const split = self.compositionLogSplit();
+    if (split != 1 and split != 2) return error.InvalidLocalGkrTrace;
+    const eval_log = log + split;
     const inter_width = Geo.interWidth(self);
     if (inter_width > max_inter) return error.InvalidLocalGkrTrace;
     const offsets = self.columnOffsets();
@@ -91,7 +94,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     var previous: [Component.MAX_FIXED + Component.MAX_MAIN + max_inter + aux_count]bool = @splat(false);
     for (0..shape.main) |c| previous[main_at + c] = self.previousMain(c);
     for (0..inter_width) |c| previous[inter_at + c] = Geo.previousInter(self, c);
-    var evaluation = try Partition.initDegreeThree(a, columns[0..total], log, previous[0..total]);
+    var evaluation = if (split == 1) try Partition.initDegreeThree(a, columns[0..total], log, previous[0..total]) else try Partition.init(a, columns[0..total], log, previous[0..total]);
     defer evaluation.deinit();
     var scratch_owner = try ScratchOwner(Component).init(a, rows, if (active_pool) |bound| bound.workerCount() else 1);
     defer scratch_owner.deinit();
@@ -101,7 +104,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     var prepared: ?PreparedProjection = null;
     defer if (prepared) |*owned| owned.deinit();
     if (comptime local_binding) prepared = try PreparedProjection.initComponent(a, self);
-    const outputs = try acc.columns(a, &.{.{ .log_size = log + 1, .n_cols = self.nConstraints() }});
+    const outputs = try acc.columns(a, &.{.{ .log_size = eval_log, .n_cols = self.nConstraints() }});
     defer a.free(outputs);
     var output = outputs[0];
     const Work = struct {
@@ -197,7 +200,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     };
     const prep_ns = if (timer) |*clock| clock.lap() else 0;
     var actual_jobs: usize = 1;
-    for (0..2) |part| {
+    for (0..(@as(usize, 1) << @intCast(split))) |part| {
         if (timer) |*clock| clock.reset();
         try evaluation.evaluatePartWithPool(part, active_pool);
         const inverse = F.fromBase(try evaluation.denominatorInverse(part));
