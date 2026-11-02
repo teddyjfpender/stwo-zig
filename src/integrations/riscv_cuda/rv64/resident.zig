@@ -1,5 +1,5 @@
 //! Typed enqueue-only commands over the existing CUDA context's generation-
-//! checked device slices. No host array or allocator enters this interface.
+//! checked device slices. Host metadata is bounded; numerical arrays stay resident.
 const std = @import("std");
 const runtime = @import("stwo_cuda_backend").runtime;
 const abi = @import("abi.zig");
@@ -36,6 +36,21 @@ pub const Fraction = struct {
         try self.d.shape(self.count, 8);
     }
 };
+/// An initialized single-oracle continuation. All device owners remain borrowed
+/// through joined completion; output planes must be disjoint from input planes.
+pub const TailJob = struct {
+    input: Fraction,
+    output: Fraction,
+    eq: Plane,
+    point: Slice,
+    lambda: Slice,
+    state: Slice,
+    /// Starts at the first remaining record, not at round zero.
+    records: Slice,
+    mask: Slice,
+    variables: u32,
+    first: u32,
+};
 pub const NativeCommands = Commands(runtime.NativeContext, abi);
 
 /// Borrow the context, assigned lane and all buffer owners until joined.
@@ -50,6 +65,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         split_secure_sum: bool = false,
         fused_eq: bool = false,
         fused_fold_sum: bool = false,
+        /// Zero disables; otherwise a power of two in4..256. Profile on device.
+        tail_count: u32 = 0,
         launches: u64 = 0,
         const Self = @This();
 
@@ -175,7 +192,57 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             var waves: u64 = 1;
             while (groups > 1) : (groups = (groups + 127) / 128) waves += 1;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_fold_sum_on(owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), input.count, try self.context.deviceSlicePointer(u32, challenge, 8), try folded.n.bind(self.context), try folded.d.bind(self.context), try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), try scratch_a.bind(self.context), try scratch_b.bind(self.context), try output.bind(self.context)), waves);
+            try self.result(Api.stwo_rv64_gkr_fold_sum_on(
+                owner,
+                self.lane_index,
+                try input.n.bind(self.context),
+                try input.d.bind(self.context),
+                input.count,
+                try self.context.deviceSlicePointer(u32, challenge, 8),
+                try folded.n.bind(self.context),
+                try folded.d.bind(self.context),
+                try eq_values.bind(self.context),
+                try self.context.deviceSlicePointer(u32, lambda, 8),
+                try scratch_a.bind(self.context),
+                try scratch_b.bind(self.context),
+                try output.bind(self.context),
+            ), waves);
+        }
+
+        pub fn tail(self: *Self, job: TailJob) !void {
+            try self.tailBatch(&.{job});
+        }
+        /// Metadata is copied synchronously by the native launch. Every device
+        /// owner remains borrowed until joined; this is independent-job batching.
+        pub fn tailBatch(self: *Self, jobs: []const TailJob) !void {
+            if (jobs.len == 0 or jobs.len > 8) return error.InvalidGeometry;
+            const owner = try self.handle();
+            var packet: [8]abi.TailJob = undefined;
+            for (jobs, 0..) |j, i| {
+                try j.input.validate();
+                try j.output.validate();
+                if (j.input.count < 4 or j.input.count > 256 or j.output.count != 2 or
+                    j.variables == 0 or j.variables > 27 or j.first >= j.variables or
+                    j.input.count != @as(u32, 2) << @as(u5, @intCast(j.variables - j.first))) return error.InvalidGeometry;
+                try j.output.n.shape(2, 8);
+                try j.eq.shape(j.input.count / 4, 8);
+                packet[i] = .{
+                    .n = try j.input.n.bind(self.context),
+                    .d = try j.input.d.bind(self.context),
+                    .out_n = try j.output.n.bind(self.context),
+                    .out_d = try j.output.d.bind(self.context),
+                    .eq = try j.eq.bind(self.context),
+                    .point = try self.context.deviceSlicePointer(u32, j.point, 8 * @as(usize, j.variables)),
+                    .lambda = try self.context.deviceSlicePointer(u32, j.lambda, 8),
+                    .state = try self.context.deviceSlicePointer(u32, j.state, abi.round_state_words),
+                    .records = try self.context.deviceSlicePointer(u32, j.records, abi.round_record_words * @as(usize, j.variables - j.first)),
+                    .mask = try self.context.deviceSlicePointer(u32, j.mask, 32),
+                    .count = j.input.count,
+                    .variables = j.variables,
+                    .first = j.first,
+                };
+            }
+            try self.result(Api.stwo_rv64_sumcheck_tail_on(owner, self.lane_index, &packet, @intCast(jobs.len)), 1);
         }
 
         pub fn initSumcheck(self: *Self, state: Slice, seed: Slice, claim: Slice, variables: u32) !void {

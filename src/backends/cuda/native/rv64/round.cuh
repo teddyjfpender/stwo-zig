@@ -112,5 +112,24 @@ __device__ __forceinline__ bool advance_round(RoundState* s, uint32_t expected_r
     ++s->next_round;
     return true;
 }
+// Clear first, including when an earlier queued round already poisoned state.
+__device__ __forceinline__ bool prepare_record(RoundState* owner, uint32_t variables,
+                                               RoundRecord* record) {
+    auto* words = reinterpret_cast<uint32_t*>(record);
+    for (uint32_t i = 0; i < round_record_words; ++i) words[i] = 0;
+    record->ordinal = UINT32_MAX;
+    if (owner->status != round_ok) return false;
+    if (owner->variables != variables) {
+        owner->status = round_order;
+        return false;
+    }
+    return true;
+}
+__device__ __forceinline__ void advance_record(RoundState* owner, uint32_t variables,
+                                               uint32_t expected, Pair raw, OM31 y,
+                                               RoundRecord* record) {
+    if (prepare_record(owner, variables, record))
+        advance_round(owner, expected, raw, y, record);
+}
 }  // namespace stwo::cuda::rv64
 #endif

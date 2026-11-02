@@ -1,0 +1,46 @@
+[
+  {
+    "name": "oracle-build",
+    "exit": 0
+  },
+  {
+    "name": "fat-rv64-gkr.cu",
+    "exit": 0
+  },
+  {
+    "name": "fat-rv64-round.cu",
+    "exit": 0
+  },
+  {
+    "name": "fat-rv64-tail.cu",
+    "exit": 0
+  },
+  {
+    "name": "fat-runtime-context.cu",
+    "exit": 0
+  },
+  {
+    "name": "driver-sumcheck_smoke.cu",
+    "exit": 0
+  },
+  {
+    "name": "run-sumcheck_smoke.cu",
+    "exit": 77
+  },
+  {
+    "name": "driver-tail_smoke.cu",
+    "exit": 0
+  },
+  {
+    "name": "run-tail_smoke.cu",
+    "exit": 77
+  },
+  {
+    "name": "native-preflight-build",
+    "exit": 0
+  },
+  {
+    "name": "native-preflight-run",
+    "exit": 0
+  }
+]

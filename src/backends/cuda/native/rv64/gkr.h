@@ -65,6 +65,24 @@ int stwo_rv64_gkr_fold_sum_on(void*, uint32_t, StwoRv64Plane, StwoRv64Plane, uin
 int stwo_rv64_gkr_pack_mask_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64Plane d,
                                uint32_t* output);
 int stwo_rv64_gkr_eq_fused_on(void*, uint32_t, const uint32_t*, uint32_t, StwoRv64Plane);
+// Bounded independent tail jobs. Metadata is HOST memory, consumed before
+// return and copied into launch arguments. All embedded pointers are DEVICE
+// allocations in the same context. count is 4..256 (power of two), variables
+// is 1..27, and first + log2(count)-1 == variables. records points at the first
+// remaining record, not record zero. No mutable range may overlap any other
+// job's ranges. Read-only sharing is allowed. No initialization is performed.
+typedef struct StwoRv64TailJob {
+    StwoRv64Plane n, d, out_n, out_d, eq;
+    const uint32_t *point, *lambda;
+    uint32_t *state, *records, *mask;
+    uint32_t count, variables, first, reserved;
+} StwoRv64TailJob;
+#ifdef __cplusplus
+static_assert(sizeof(StwoRv64TailJob) == 176 && offsetof(StwoRv64TailJob, count) == 160,
+              "RV64 tail job ABI");
+#endif
+int stwo_rv64_sumcheck_tail_on(void* context, uint32_t lane, const StwoRv64TailJob* host_jobs,
+                               uint32_t jobs);
 // Single-oracle sumcheck feedback state: 40 words; seed is native digest[8]
 // plus draw count, claim is one OM31. Records are 44 words per round (4 AoS
 // coefficients, challenge, trimmed length, ordinal and two reserved zeros).

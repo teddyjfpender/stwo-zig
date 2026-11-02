@@ -1,0 +1,6 @@
+ptxas info    : 0 bytes gmem, 256 bytes cmem[3]
+ptxas info    : Compiling entry function '_ZN4stwo4cuda8decommit50_GLOBAL__N__a5a81c03_17_sparse_parents_cu_b053851020sparse_parent_kernelEPKjPKNS0_7blake2s4HashES4_jPjPS6_jS9_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda8decommit50_GLOBAL__N__a5a81c03_17_sparse_parents_cu_b053851020sparse_parent_kernelEPKjPKNS0_7blake2s4HashES4_jPjPS6_jS9_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 8 bytes smem, 416 bytes cmem[0]
+ptxas info    : Compile time = 26.894 ms

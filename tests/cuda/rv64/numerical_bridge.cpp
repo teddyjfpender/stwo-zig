@@ -38,15 +38,16 @@ extern "C" void rv64_test_sum(const uint32_t* n, const uint32_t* d, const uint32
 
 #include "rv64/round.cuh"
 #include "rv64/fold_sum.cuh"
+#include "rv64/tail_math.cuh"
 #include <vector>
 #include <cstring>
 extern "C" void rv64_test_inverse(const uint32_t* a, uint32_t* out) {
     put(out, inverse_nonzero(from_words(a)));
 }
-static void sumcheck_impl(bool fused, const uint32_t* n, const uint32_t* d, uint32_t count,
-                          uint32_t base_n, const uint32_t* point, const uint32_t* lambda,
-                          const uint32_t* claim, const uint32_t* seed, uint32_t* records,
-                          uint32_t* state, uint32_t* terminal) {
+static void sumcheck_impl(bool fused, uint32_t tail_count, const uint32_t* n, const uint32_t* d,
+                          uint32_t count, uint32_t base_n, const uint32_t* point,
+                          const uint32_t* lambda, const uint32_t* claim, const uint32_t* seed,
+                          uint32_t* records, uint32_t* state, uint32_t* terminal) {
     uint32_t variables = 0;
     for (uint32_t m = count / 2; m > 1; m >>= 1) ++variables;
     auto* s = reinterpret_cast<RoundState*>(state);
@@ -65,6 +66,38 @@ static void sumcheck_impl(bool fused, const uint32_t* n, const uint32_t* d, uint
     }
     Pair next_raw{zero(), zero()};
     for (uint32_t round = 0; round < variables; ++round) {
+        if (tail_count && values.size() <= tail_count) {
+            // Sequential host replay of shared-table arithmetic helpers only.
+            // This deliberately does NOT emulate CUDA barriers or reductions.
+            const uint32_t stride = values.size() + 3;
+            std::vector<uint32_t> table(16 * stride, 0xdeadbeef), ew(8 * eq.size());
+            StwoRv64Plane sn{table.data(), stride, 8, 0},
+                sd{table.data() + 8 * stride, stride, 8, 0}, se{ew.data(), eq.size(), 8, 0};
+            for (uint32_t i = 0; i < values.size(); ++i) {
+                store(sn.words, stride, tail_index(i), values[i].n);
+                store(sd.words, stride, tail_index(i), values[i].d);
+            }
+            for (uint32_t i = 0; i < eq.size(); ++i) store(se.words, se.stride, i, eq[i]);
+            uint32_t size = values.size();
+            for (uint32_t r = round; r < variables; ++r) {
+                Pair raw{zero(), zero()};
+                for (uint32_t i = 0; i < size / 4; ++i) {
+                    const auto t = tail_term(sn, sd, size, i, se, from_words(lambda));
+                    raw.at0 = add(raw.at0, t.at0);
+                    raw.at2 = add(raw.at2, t.at2);
+                }
+                auto* record = reinterpret_cast<RoundRecord*>(records + r * round_record_words);
+                advance_record(s, variables, r, raw, from_words(point + 8 * r), record);
+                for (uint32_t i = 0; i < size / 2; ++i)
+                    tail_fold_row(sn, sd, size / 2, i, record->challenge);
+                size /= 2;
+            }
+            for (uint32_t i = 0; i < 2; ++i) {
+                put(terminal + 8 * i, load(sn.words, stride, i));
+                put(terminal + 16 + 8 * i, load(sd.words, stride, i));
+            }
+            return;
+        }
         Pair raw = fused && round ? next_raw : Pair{zero(), zero()};
         const uint32_t terms = values.size() / 4;
         for (uint32_t i = 0; !(fused && round) && i < terms; ++i) {
@@ -119,7 +152,7 @@ extern "C" void rv64_test_sumcheck(const uint32_t* n, const uint32_t* d, uint32_
                                    const uint32_t* lambda, const uint32_t* claim,
                                    const uint32_t* seed, uint32_t* records, uint32_t* state,
                                    uint32_t* terminal) {
-    sumcheck_impl(false, n, d, count, base_n, point, lambda, claim, seed, records, state,
+    sumcheck_impl(false, 0, n, d, count, base_n, point, lambda, claim, seed, records, state,
                   terminal);
 }
 extern "C" void rv64_test_sumcheck_fused(const uint32_t* n, const uint32_t* d, uint32_t count,
@@ -127,8 +160,17 @@ extern "C" void rv64_test_sumcheck_fused(const uint32_t* n, const uint32_t* d, u
                                          const uint32_t* lambda, const uint32_t* claim,
                                          const uint32_t* seed, uint32_t* records,
                                          uint32_t* state, uint32_t* terminal) {
-    sumcheck_impl(true, n, d, count, base_n, point, lambda, claim, seed, records, state,
+    sumcheck_impl(true, 0, n, d, count, base_n, point, lambda, claim, seed, records, state,
                   terminal);
+}
+extern "C" void rv64_test_sumcheck_tail(const uint32_t* n, const uint32_t* d, uint32_t count,
+                                        uint32_t base_n, const uint32_t* point,
+                                        const uint32_t* lambda, const uint32_t* claim,
+                                        const uint32_t* seed, uint32_t* records,
+                                        uint32_t* state, uint32_t* terminal,
+                                        uint32_t threshold) {
+    sumcheck_impl(false, threshold, n, d, count, base_n, point, lambda, claim, seed, records,
+                  state, terminal);
 }
 extern "C" uint32_t rv64_test_round_failure(uint32_t kind) {
     uint32_t seed[9]{};
@@ -188,4 +230,32 @@ extern "C" void rv64_test_eq_fused(const uint32_t* point, uint32_t variables,
         half <<= levels;
         remaining -= levels;
     }
+}
+extern "C" void rv64_test_hash_words(const uint32_t* digest, const uint32_t* suffix,
+                                     uint32_t length, uint32_t* output) {
+    const auto h = stwo::cuda::transcript::hash_digest_and_words(digest, suffix, length);
+    for (uint32_t i = 0; i < 8; ++i) output[i] = h.words[i];
+}
+
+extern "C" void rv64_test_tail_indices(uint32_t* output) {
+    for (uint32_t i = 0; i < 256; ++i) output[i] = tail_index(i);
+}
+
+extern "C" uint32_t rv64_test_owned_failure(uint32_t kind, uint32_t* output) {
+    RoundState state{};
+    uint32_t seed[9]{};
+    initialize_round(&state, seed, one(), 2);
+    uint32_t* words = output;
+    for (uint32_t i = 0; i < round_record_words; ++i) words[i] = 0xdeadbeef;
+    uint32_t variables = 2, expected = 0;
+    Pair raw{one(), one()};
+    OM31 point = base(3);
+    if (kind == 0) state.status = round_pole;
+    if (kind == 1) variables = 3;
+    if (kind == 2) expected = 1;
+    if (kind == 3) point = one();
+    if (kind == 4) raw.at0.c0.a.a = q::kPrime;
+    advance_record(&state, variables, expected, raw, point,
+                   reinterpret_cast<RoundRecord*>(output));
+    return state.status;
 }

@@ -98,3 +98,47 @@ test "RV64 CUDA sumcheck arithmetic agrees with the native GKR polynomial for ba
         }
     }
 }
+
+extern "c" fn rv64_test_hash_words(*const [8]u32, [*]const u32, u32, *[8]u32) void;
+test "RV64 CUDA shared Blake2s schedule preserves standard framing across block boundaries" {
+    var suffix: [128]u32 = undefined;
+    for (&suffix, 0..) |*v, i| v.* = @as(u32, @intCast(i)) *% 0x9e3779b9;
+    const digest: [8]u32 = .{ 0, 1, 0xffffffff, 0x7fffffff, 42, 99, 0xabcd, 17 };
+    for (0..129) |length| {
+        var bytes: [(128 + 8) * 4]u8 = undefined;
+        for (digest, 0..) |v, i| std.mem.writeInt(u32, bytes[4 * i ..][0..4], v, .little);
+        for (suffix[0..length], 0..) |v, i| std.mem.writeInt(u32, bytes[32 + 4 * i ..][0..4], v, .little);
+        var expected: [32]u8 = undefined;
+        std.crypto.hash.blake2.Blake2s256.hash(bytes[0 .. 32 + 4 * length], &expected, .{});
+        var actual: [8]u32 = undefined;
+        rv64_test_hash_words(&digest, &suffix, @intCast(length), &actual);
+        for (actual, 0..) |v, i| try std.testing.expectEqual(std.mem.readInt(u32, expected[4 * i ..][0..4], .little), v);
+    }
+}
+
+extern "c" fn rv64_test_tail_indices(*[256]u32) void;
+test "RV64 CUDA tail swizzle preserves prefixes and gives conflict-free adjacent-pair banks" {
+    var indices: [256]u32 = undefined;
+    rv64_test_tail_indices(&indices);
+    var count: usize = 4;
+    while (count <= 256) : (count *= 2) {
+        var seen: [256]bool = @splat(false);
+        for (indices[0..count]) |index| {
+            try std.testing.expect(index < count);
+            try std.testing.expect(!seen[index]);
+            seen[index] = true;
+        }
+        const terms = count / 4;
+        var first: usize = 0;
+        while (first < terms) : (first += 32) {
+            for ([_]usize{ 0, 1, 2 * terms, 2 * terms + 1 }) |offset| {
+                var banks: [32]bool = @splat(false);
+                for (first..@min(first + 32, terms)) |i| {
+                    const bank = indices[2 * i + offset] % 32;
+                    try std.testing.expect(!banks[bank]);
+                    banks[bank] = true;
+                }
+            }
+        }
+    }
+}

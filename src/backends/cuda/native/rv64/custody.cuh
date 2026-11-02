@@ -13,16 +13,17 @@ inline bool power2(uint32_t n) {
 }
 // All source/output allocation and overlap checks happen before any enqueue.
 // The registry check also rejects host, cross-context and retired pointers.
-struct Custody {
+template <uint32_t Capacity>
+struct RangeCustody {
     void* context;
     cudaStream_t stream = nullptr;
     struct Range {
         uintptr_t begin, end;
         bool write;
-    } ranges[12]{};
+    } ranges[Capacity]{};
     uint32_t used = 0;
     int status = 0;
-    Custody(void* ctx, uint32_t lane) : context(ctx) {
+    RangeCustody(void* ctx, uint32_t lane) : context(ctx) {
         void* raw = nullptr;
         status = stwo_exec_context_lane_stream(context, lane, &raw);
         if (!status && !raw) status = int(cudaErrorInvalidResourceHandle);
@@ -31,7 +32,7 @@ struct Custody {
     bool range(const uint32_t* p, uint64_t words, bool write) {
         if (status) return false;
         const uintptr_t b = reinterpret_cast<uintptr_t>(p);
-        if (!p || !words || b % alignof(uint32_t) || used == 12 ||
+        if (!p || !words || b % alignof(uint32_t) || used == Capacity ||
             words > SIZE_MAX / sizeof(uint32_t) ||
             words > (UINTPTR_MAX - b) / sizeof(uint32_t)) {
             status = int(cudaErrorInvalidValue);
@@ -67,5 +68,6 @@ struct Custody {
         return plane(p, count, p.coordinates, false);
     }
 };
+using Custody = RangeCustody<12>;
 }  // namespace stwo::cuda::rv64
 #endif

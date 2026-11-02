@@ -1,0 +1,41 @@
+ptxas info    : 0 bytes gmem, 256 bytes cmem[3]
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s17upper_tail_kernelILb0EEEvPKNS1_4HashEjPS3_j' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s17upper_tail_kernelILb0EEEvPKNS1_4HashEjPS3_j
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 1 barriers, 380 bytes cmem[0]
+ptxas info    : Compile time = 39.612 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s17upper_tail_kernelILb1EEEvPKNS1_4HashEjPS3_j' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s17upper_tail_kernelILb1EEEvPKNS1_4HashEjPS3_j
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 1 barriers, 380 bytes cmem[0]
+ptxas info    : Compile time = 39.246 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s16interior4_kernelILb0EEEvPKNS1_4HashEjPS3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s16interior4_kernelILb0EEEvPKNS1_4HashEjPS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 14336 bytes smem, 376 bytes cmem[0]
+ptxas info    : Compile time = 93.670 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s16interior4_kernelILb1EEEvPKNS1_4HashEjPS3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s16interior4_kernelILb1EEEvPKNS1_4HashEjPS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 14336 bytes smem, 376 bytes cmem[0]
+ptxas info    : Compile time = 134.051 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s15fri_leaf_kernelILb0EEEvjPKjmjPNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s15fri_leaf_kernelILb0EEEvjPKjmjPNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 392 bytes cmem[0]
+ptxas info    : Compile time = 39.089 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s15fri_leaf_kernelILb1EEEvjPKjmjPNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s15fri_leaf_kernelILb1EEEvjPKjmjPNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 392 bytes cmem[0]
+ptxas info    : Compile time = 36.851 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s18child_layer_kernelILb0EEEvPKNS1_4HashEjPS3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s18child_layer_kernelILb0EEEvPKNS1_4HashEjPS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 376 bytes cmem[0]
+ptxas info    : Compile time = 18.743 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s18child_layer_kernelILb1EEEvPKNS1_4HashEjPS3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s18child_layer_kernelILb1EEEvPKNS1_4HashEjPS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 376 bytes cmem[0]
+ptxas info    : Compile time = 18.644 ms

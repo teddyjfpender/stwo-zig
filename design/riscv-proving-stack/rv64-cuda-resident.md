@@ -1,6 +1,6 @@
 # RV64 resident CUDA numerical engine — first implementation
 
-Base: PR310 `a7f484e34c266bf1a7d220d96502701794fa6d7c`.
+Base: PR310 `a 7f484e34c266bf1a7d220d96502701794fa6d7c`.
 
 The first delivery is the eight-coordinate OM31 lookup/GKR numerical engine,
 with device-only input/output, context-owned allocations and stream ordering.
@@ -168,13 +168,13 @@ Cubic correction clears the rational root `b=(1-y)/(1-2y)` before Newton
 interpolation: `b(b-1)(b-2)=(1-y)y(3y-1)/(1-2y)^3`. Batch inversion of the
 zero-prefix and the resulting cubic denominator needs one OM31 norm descent,
 versus three direct inversions. All native pole gates (including `1-2y=0`)
-remain explicit. Native proof comparisons and1024 random full-field cubic
+remain explicit. Native proof comparisons and 1024 random full-field cubic
 cases check coefficient identity; no wall-time multiplier is claimed.
 
 The secure reduction also has an opt-in split-grid implementation: independent
 at0/at2 block grids reduce live values and double initial block count. On sm120
-its first stage uses80 registers versus128 for combined, and128 bytes of shared
-memory versus256, with no spills. Some first-half inputs are reread. Default
+its first stage uses 80 registers versus 128 for combined, and 128 bytes of shared
+memory versus 256, with no spills. Some first-half inputs are reread. Default
 selection stays combined until hardware evidence resolves that tradeoff.
 
 The compact assembly adapter checks exact framing/canonicality, invokes the
@@ -187,7 +187,7 @@ neutral values; sticky status prevents their publication.
 
 Final mask assembly is also resident: an eight-lane gather emits only32 AoS
 words from the two live numerator/denominator rows. Neither entire fold bank
-needs readback. The arena includes this output and all40 state/44-per-round
+needs readback. The arena includes this output and all 40 state/44-per-round
 record words. Parameter accounting explicitly includes the ninth seed word
 (the draw counter), avoiding a one-word short reservation at every geometry.
 
@@ -218,3 +218,8 @@ spills and no stack frame. Keep the policy opt-in until six-way full-round
 shape sweeps on actual2/4x4090/5090 hardware establish the crossover. This
 optimization does not add mixed-instance GKR, authenticated witness ingress,
 PCS or a multi-device worker pool.
+
+
+The next slice adds [shared tails and packet ownership](rv64-cuda-tail.md) and
+a [revision-pinned ZisK CUDA review](rv64-cuda-zisk-review.md). These documents
+record the scope, cost model, compiler resource results and pending device gates.

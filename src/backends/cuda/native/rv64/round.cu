@@ -8,19 +8,14 @@ __global__ void round_init_kernel(uint32_t* state, const uint32_t* seed, const u
 __global__ void round_advance_kernel(uint32_t* state, uint32_t expected, StwoRv64Plane raw,
                                      const uint32_t* point, uint32_t variables,
                                      uint32_t* record) {
-    // Subsequent already-enqueued folds must never read an uninitialized
-    // challenge when a device-side pole/order error aborts this round.
-    for (uint32_t i = 0; i < round_record_words; ++i) record[i] = 0;
-    record[41] = UINT32_MAX;
     auto* owner = reinterpret_cast<RoundState*>(state);
-    if (owner->status != round_ok) return;
-    if (owner->variables != variables) {
-        owner->status = round_order;
-        return;
-    }
+    auto* output = reinterpret_cast<RoundRecord*>(record);
+    // Preserve lazy failure handling: an already poisoned job must not read
+    // numerical inputs merely to clear its next record.
+    if (!prepare_record(owner, variables, output)) return;
     advance_round(owner, expected,
                   {load(raw.words, raw.stride, 0), load(raw.words, raw.stride, 1)},
-                  from_words(point + 8 * expected), reinterpret_cast<RoundRecord*>(record));
+                  from_words(point + 8 * expected), output);
 }
 }  // namespace stwo::cuda::rv64
 using namespace stwo::cuda::rv64;

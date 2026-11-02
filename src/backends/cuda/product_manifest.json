@@ -157,6 +157,7 @@
       "stwo_rv64_gkr_sum_split_on",
       "stwo_rv64_sumcheck_init_on",
       "stwo_rv64_sumcheck_round_on",
+      "stwo_rv64_sumcheck_tail_on",
       "stwo_witness_casm_input_scatter_on",
       "stwo_witness_edge_gather_contiguous_on",
       "stwo_witness_feed_counts_active_on",

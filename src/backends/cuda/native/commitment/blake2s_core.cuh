@@ -32,7 +32,13 @@ static __device__ __constant__ uint32_t kIv[8] = {
     0x510E527Fu, 0x9B05688Cu, 0x1F83D9ABu, 0x5BE0CD19u,
 };
 
+// The unrolled compressor requires compile-time message indices to scalarize
+// its message array. Mutable constant storage otherwise forces local loads.
+#if defined(STWO_CUMETAL)
 static __device__ __constant__ uint8_t kSigma[10][16] = {
+#else
+static __device__ __constant__ constexpr uint8_t kSigma[10][16] = {
+#endif
     { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
     { 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 },
     { 11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4 },

@@ -110,6 +110,7 @@ g++ -O3 -std=c++17 -Itests/cuda/rv64/host_include \
   -Isrc/backends/cuda/native -I"$NVTX_INCLUDE" \
   src/backends/cuda/native/rv64/gkr.cu \
   src/backends/cuda/native/rv64/round.cu \
+  src/backends/cuda/native/rv64/tail.cu \
   src/backends/cuda/native/runtime/context.cu \
   tests/cuda/rv64/sumcheck_smoke.cu /tmp/rv64-round-oracle.o \
   -Xcompiler=-pthread -ldl -o /tmp/rv64-sumcheck-smoke
@@ -137,7 +138,7 @@ qualify the alternative. Each route uses three warmups and eleven full-round
 runs with zero intermediate host transfers. No complete-block timing is implied.
 
 The sumcheck harness packs the terminal mask on-device and reads only32 mask
-words,40 state words and44 words per round. It never downloads a fold bank.
+words,40 state words and 44 words per round. It never downloads a fold bank.
 Run sanitizer initcheck as well: after a device-side pole, every already
 queued round must emit a defined neutral challenge and an invalid record
 ordinal, while the sticky failure prevents admission.
@@ -145,14 +146,14 @@ ordinal, while the sticky failure prevents admission.
 ## Eq-table launch/traffic fusion
 
 Set `NativeCommands.fused_eq=true` to use up to four expansion levels per
-launch. The baseline remains the default. A21-variable Eq table takes6
+launch. The baseline remains the default. A 21-variable Eq table takes6
 launches instead of21. Each tile performs the same30 OM31 multiplications
 as four separate binary expansions, but keeps intermediate levels in registers.
-Eq-buffer traffic per old prefix drops from1440 to544 bytes (point loads and
+Eq-buffer traffic per old prefix drops from 1440 to 544 bytes (point loads and
 cache effects excluded). This is a structural count, not a bandwidth timing.
 
-The hardware harness now checks/times six strategies: four combinations of baseline/fused
-Eq and combined/split secure reductions, plus fold/sum fusion with baseline/fused Eq, comparing complete round records and
+The hardware harness now checks/times eight strategies: four combinations of baseline/fused
+Eq and combined/split secure reductions, plus fold/sum fusion with baseline/fused Eq and 64/256-row shared tails, comparing complete round records and
 terminal masks. Fusion increases registers (four levels use128 on sm120) and
 reduces thread count, so fewer launches alone do not establish higher GPU
 utilization or lower latency. Use the full-round timings and Nsight to select.
@@ -177,9 +178,9 @@ checked against all inputs/outputs before the first dispatch.
 For an initial power-of-two count `n>=4`, this eliminates `log2(n)-2` launches
 and `64*(n-4)` bytes of logical fraction-table reads across the job, excluding
 cache effects, Eq/parameter reads and scratch reduction traffic. At `n=2^22`,
-that is20 launches and268,435,200 bytes (256 MiB minus256 bytes). Secure-input
-fold + next-sum fraction traffic per eight-row tile falls from1024 to768 bytes.
-The fused first stage uses128 registers/thread and256 shared bytes on sm89 and
+that is20 launches and 268,435,200 bytes (256 MiB minus256 bytes). Secure-input
+fold + next-sum fraction traffic per eight-row tile falls from 1024 to 768 bytes.
+The fused first stage uses 128 registers/thread and 256 shared bytes on sm89 and
 sm120, with no compiler-reported spills or stack frame. Fewer threads and
 higher work per thread may offset traffic savings; these are structural counts,
 not measured bandwidth or speedups.
@@ -194,7 +195,7 @@ Run shapes through `log_count=20`, including small tails, on each target GPU
 count; use Compute Sanitizer/Nsight before enabling a policy.
 
 
-A separate host replay checks22 size/base combinations under ASan/UBSan:
+A separate host replay checks 22 size/base combinations under ASan/UBSan:
 
 ```sh
 g++ -O1 -g -std=c++17 -fsanitize=address,undefined -fno-omit-frame-pointer \
@@ -207,3 +208,83 @@ ASAN_OPTIONS=detect_leaks=0 /tmp/rv64-host-replay-sanitize
 Leak scanning is disabled because this runner cannot inspect `/proc` thread
 state; address and undefined-behavior instrumentation remain enabled. This
 checks host memory safety only. GPU memcheck/racecheck/synccheck are pending.
+
+
+## Shared tails and independent-job batches
+
+Set `NativeCommands.tail_count` to a power of two in 4..256 to complete the
+small end of sumcheck in one block; zero (default) disables the policy. The
+controller checks this policy before any mutation and avoids forming unused
+next sums before a tail handoff. It chooses a terminal bank disjoint from the
+input, so its terminal pointer may differ from the baseline's parity choice.
+Every proof value stays on device. `tailBatch` accepts1..8 independent ready
+jobs with heterogeneous counts/cursors; all must use the same context/lane,
+with disjoint mutable ranges. This batches independent transcripts, not a
+mixed-instance GKR claim or a multi-device runtime pool.
+
+The block owns256 shared numerator/denominator slots, one state and one
+record. A prefix-preserving XOR row permutation avoids adjacent-pair bank
+conflicts in the32-bank/u32 model. All64 threads enter each reduction/barrier;
+thread zero updates the native transcript, then parallel in-place folds own
+unique rows. Compact records are emitted each round and state once at exit.
+No intermediate global fold table is emitted. From 256 rows,22 baseline
+launches (or16 with fold/sum fusion) become one, excluding prior init/Eq work.
+Runtime crossover, occupancy and speedup still require hardware measurements.
+
+The shared Blake2s schedule is now compile-time immutable under native CUDA;
+CuMetal retains its existing declaration. Standard hash comparisons cover129
+suffix lengths across block boundaries. The kernel resource report distinguishes
+actual round/tail counts from the isolated hash's48-register result.
+
+Build the additional harness with the same CUDA architecture/include flags as
+`sumcheck-smoke`, including `src/backends/cuda/native/rv64/tail.cu` in both commands
+and replacing the harness source with `tests/cuda/rv64/tail_smoke.cu` for the
+batch driver. Both use the separately compiled `numerical_bridge.cpp` object.
+
+```sh
+/tmp/rv64-tail-smoke 2
+/tmp/rv64-tail-smoke 4
+compute-sanitizer --tool memcheck /tmp/rv64-tail-smoke 2
+compute-sanitizer --tool racecheck /tmp/rv64-tail-smoke 2
+compute-sanitizer --tool synccheck /tmp/rv64-tail-smoke 2
+compute-sanitizer --tool initcheck /tmp/rv64-tail-smoke 2
+```
+
+The batch driver sweeps 1/2/4/8 independent tails of varied shapes, compares
+all records/state/masks, checks padded planes and guard words, rejects a
+cross-job alias before mutation and poisons one job while its peers complete.
+It times sequential tail launches against one batched launch; reset is outside
+the CUDA-event interval. Setup arrays remain owned through synchronization.
+The full-round driver adds `tail64_ms`/`tail256_ms` and tests interior handoff.
+Both return77 when no NVIDIA device/driver is available.
+
+The actual native packet preflight also runs without a device. Its registry
+and lane are mocked and every call is rejected before launch, including the
+80th range alias and out-of-allocation address:
+
+```sh
+nvcc -O2 -std=c++17 -Isrc/backends/cuda/native \
+  src/backends/cuda/native/rv64/tail.cu tests/cuda/rv64/tail_preflight_test.cu \
+  -o /tmp/rv64-tail-preflight
+/tmp/rv64-tail-preflight
+```
+
+ASan/UBSan host replay now also compares five tail thresholds for every size;
+this validates shared-table arithmetic helpers, not GPU barriers or races.
+See the [design](../../../design/riscv-proving-stack/rv64-cuda-tail.md) and
+[pinned ZisK review](../../../design/riscv-proving-stack/rv64-cuda-zisk-review.md).
+
+
+The harness `Owner` copies setup ingress into owned staging retained until
+join, including exception paths. It is noncopyable/nonmovable; an unrecoverable
+teardown join failure terminates the test before borrowed host memory can be
+freed. This setup-only CPU copy is outside timing intervals. Its deferred-read
+mock verifies temporary upload arguments and exception teardown under ASan/UBSan:
+
+```sh
+nvcc -O1 -g -std=c++17 -Isrc/backends/cuda/native \
+  -Xcompiler=-fsanitize=address -Xcompiler=-fsanitize=undefined \
+  -Xcompiler=-fno-omit-frame-pointer tests/cuda/rv64/context_owner_test.cpp \
+  -o /tmp/rv64-owner-sanitize
+ASAN_OPTIONS=detect_leaks=0 /tmp/rv64-owner-sanitize
+```

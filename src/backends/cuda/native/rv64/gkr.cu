@@ -2,6 +2,7 @@
 #include "eq_tile.cuh"
 #include "fold_sum.cuh"
 #include "custody.cuh"
+#include "reduce.cuh"
 
 namespace stwo::cuda::rv64 {
 __device__ __forceinline__ OM31 read(StwoRv64Plane p, uint32_t i) {
@@ -95,37 +96,11 @@ __global__ void eq_tile_kernel(const uint32_t* point, uint32_t first, uint32_t h
 }
 // Eight coalesced coordinate reductions; no extension-field atomics, no
 // global single-block bottleneck for the large input stage.
-__device__ __forceinline__ OM31 warp_sum(OM31 v) {
-    uint32_t words[8];
-    for (uint32_t c = 0; c < 8; ++c) words[c] = coordinate(v, c);
-    for (uint32_t delta = 16; delta; delta >>= 1) {
-        for (uint32_t c = 0; c < 8; ++c)
-            words[c] = q::add(words[c], __shfl_down_sync(0xffffffffu, words[c], delta));
-    }
-    return from_words(words);
-}
 __device__ __forceinline__ void block_sum(Pair v, StwoRv64Plane output) {
-    __shared__ uint32_t partial[2][8][threads / 32];
-    v.at0 = warp_sum(v.at0);
-    v.at2 = warp_sum(v.at2);
-    const uint32_t lane = threadIdx.x & 31, warp = threadIdx.x >> 5;
-    if (!lane)
-        for (uint32_t c = 0; c < 8; ++c) {
-            partial[0][c][warp] = coordinate(v.at0, c);
-            partial[1][c][warp] = coordinate(v.at2, c);
-        }
-    __syncthreads();
-    if (warp) return;
-    uint32_t a[8]{}, b[8]{};
-    if (lane < threads / 32)
-        for (uint32_t c = 0; c < 8; ++c) {
-            a[c] = partial[0][c][lane];
-            b[c] = partial[1][c][lane];
-        }
-    const auto sum0 = warp_sum(from_words(a)), sum2 = warp_sum(from_words(b));
-    if (!lane) {
-        store(output.words, output.stride, 2 * blockIdx.x, sum0);
-        store(output.words, output.stride, 2 * blockIdx.x + 1, sum2);
+    const auto result = block_pair_sum<threads>(v);
+    if (!threadIdx.x) {
+        store(output.words, output.stride, 2 * blockIdx.x, result.at0);
+        store(output.words, output.stride, 2 * blockIdx.x + 1, result.at2);
     }
 }
 template <bool BaseNumerator>

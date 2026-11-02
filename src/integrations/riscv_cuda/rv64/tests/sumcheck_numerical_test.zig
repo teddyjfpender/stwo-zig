@@ -12,6 +12,7 @@ const a = std.testing.allocator;
 extern "c" fn rv64_test_inverse(*const [8]u32, *[8]u32) void;
 extern "c" fn rv64_test_sumcheck([*]const [8]u32, [*]const [8]u32, u32, u32, [*]const [8]u32, *const [8]u32, *const [8]u32, *const [9]u32, [*]u32, *[40]u32, *[32]u32) void;
 extern "c" fn rv64_test_sumcheck_fused([*]const [8]u32, [*]const [8]u32, u32, u32, [*]const [8]u32, *const [8]u32, *const [8]u32, *const [9]u32, [*]u32, *[40]u32, *[32]u32) void;
+extern "c" fn rv64_test_sumcheck_tail([*]const [8]u32, [*]const [8]u32, u32, u32, [*]const [8]u32, *const [8]u32, *const [8]u32, *const [9]u32, [*]u32, *[40]u32, *[32]u32, u32) void;
 extern "c" fn rv64_test_round_failure(u32) u32;
 fn words(v: O) [8]u32 {
     var out: [8]u32 = undefined;
@@ -93,6 +94,12 @@ fn exercise(comptime count: usize, comptime base_mode: bool, comptime zero_mode:
     try std.testing.expectEqualSlices(u32, &records, &fused_records);
     try std.testing.expectEqualSlices(u32, &state, &fused_state);
     try std.testing.expectEqualSlices(u32, &terminal, &fused_terminal);
+    for ([_]u32{ 4, 8, 16, 64, 256 }) |threshold| {
+        rv64_test_sumcheck_tail(&nn, &dd, count, @intFromBool(base_mode), &yw, &words(lambda), &words(claim), &seed, &fused_records, &fused_state, &fused_terminal, threshold);
+        try std.testing.expectEqualSlices(u32, &records, &fused_records);
+        try std.testing.expectEqualSlices(u32, &state, &fused_state);
+        try std.testing.expectEqualSlices(u32, &terminal, &fused_terminal);
+    }
     try std.testing.expectEqual(@as(u32, 0), state[10]);
     try std.testing.expectEqual(@as(u32, variables), state[9]);
     for (expected.proof.round_polys, expected.assignment, 0..) |poly, x, i| {
@@ -223,5 +230,14 @@ test "RV64 CUDA fused Eq tiles match native ordering including remainder levels"
             for (&actual, 0..) |*v, c| v.* = out[c * count + i];
             try std.testing.expect(expected.at(i).eql(field(&actual)));
         }
+    }
+}
+
+extern "c" fn rv64_test_owned_failure(u32, *[44]u32) u32;
+test "RV64 CUDA every failed owned round clears stale records and challenges" {
+    for ([_]u32{ 3, 1, 1, 3, 2 }, 0..) |status, kind| {
+        var record: [44]u32 = @splat(0xdeadbeef);
+        try std.testing.expectEqual(status, rv64_test_owned_failure(@intCast(kind), &record));
+        for (record, 0..) |word, i| try std.testing.expectEqual(@as(u32, if (i == 41) 0xffffffff else 0), word);
     }
 }

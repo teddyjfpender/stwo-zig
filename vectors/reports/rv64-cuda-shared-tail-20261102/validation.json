@@ -1,0 +1,262 @@
+{
+  "schema": "rv64-cuda-shared-tail-v1",
+  "base_commit": "771334a9333763a2a1d7ec15cf39e5b38510e742",
+  "integration_tests_per_mode": 29,
+  "backend_host_tests_per_mode": 168,
+  "native_proof_cases": 14,
+  "rounds_per_route": 62,
+  "tail_thresholds": [
+    4,
+    8,
+    16,
+    64,
+    256
+  ],
+  "host_sanitized_cases": 22,
+  "host_sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "host_owner_exception_sanitizers_pass": true,
+  "leak_sanitizer_enabled": false,
+  "leak_sanitizer_reason": "runner proc thread inspection unavailable",
+  "standard_blake2s_suffix_lengths": 129,
+  "source_check_unit_tests": 31,
+  "aot_identity_tests": 6,
+  "official_build_plan_with_generated_canonical_witness": true,
+  "full_native_archive_built": false,
+  "native_preflight_executed_with_mock_registry": true,
+  "gpu_execution_verified": false,
+  "gpu_sanitizers_executed": false,
+  "measured_speedup": false,
+  "full_block_verified": false,
+  "production_enabled": false,
+  "tail_threads": 64,
+  "tail_max_rows": 256,
+  "tail_max_jobs": 8,
+  "tail_shared_bytes": 16848,
+  "baseline_256_tail_dispatches": 22,
+  "fold_sum_fused_256_tail_dispatches": 16,
+  "shared_256_tail_dispatches": 1,
+  "tail_policy_default": 0,
+  "resources": {
+    "sm_89": {
+      "round_before": {
+        "registers": 233,
+        "stack_bytes": 192,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "round_after": {
+        "registers": 192,
+        "stack_bytes": 192,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "tail": {
+        "registers": 168,
+        "stack_bytes": 192,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "hash_before": {
+        "registers": 168,
+        "stack_bytes": 64,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "hash_after": {
+        "registers": 48,
+        "stack_bytes": 0,
+        "spill_stores": 0,
+        "spill_loads": 0
+      }
+    },
+    "sm_120": {
+      "round_before": {
+        "registers": 255,
+        "stack_bytes": 64,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "round_after": {
+        "registers": 168,
+        "stack_bytes": 0,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "tail": {
+        "registers": 168,
+        "stack_bytes": 0,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "hash_before": {
+        "registers": 168,
+        "stack_bytes": 64,
+        "spill_stores": 0,
+        "spill_loads": 0
+      },
+      "hash_after": {
+        "registers": 48,
+        "stack_bytes": 0,
+        "spill_stores": 0,
+        "spill_loads": 0
+      }
+    }
+  },
+  "standard_kernel_compile_units": 16,
+  "full_round_driver_variants": 8,
+  "batch_driver_jobs": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "driver_exit_codes": [
+    77,
+    77
+  ],
+  "whole_source_exit": 1,
+  "whole_source_touched_findings": [],
+  "aot_cache_refresh": {
+    "old_cache_key": "4017955dc3fadedd",
+    "new_cache_key": "7c0bbbdc6f33e060",
+    "program_identity": "694c48506a79035d6f795e1bcd125cbfad6e6947816f306ba4ea6ccfd957564c",
+    "kernel_source_body_unchanged": true
+  },
+  "source_files": [
+    {
+      "path": "design/riscv-proving-stack/rv64-cuda-resident.md",
+      "sha256": "0a2273a23e9671b440930587842a685d18ad6b6d5cb1e292b35d49949c461c52"
+    },
+    {
+      "path": "design/riscv-proving-stack/rv64-cuda-tail.md",
+      "sha256": "2834ac153a87eb0dc4bfdaa1a6d06aafd8af1a98be306518f27b34eafb2a9dbd"
+    },
+    {
+      "path": "design/riscv-proving-stack/rv64-cuda-zisk-review.md",
+      "sha256": "ff9d2653dd1c3122666323bde5a8f8b14d5f2193bcf93e2fd89262801d533baf"
+    },
+    {
+      "path": "src/backends/cuda/aot/native/aot_manifest.json",
+      "sha256": "d80cfac42473be04bad2ec4da55565aae584e4d60cdd3ec4715e7152b662ccf2"
+    },
+    {
+      "path": "src/backends/cuda/aot/native/constraint_state_machine_statement_7c0bbbdc6f33e060.cu",
+      "sha256": "0b32a649ad1f0d27bb1859ca95c1b80aef00bf173c1b9b9b3ecd9d1afe2aaa94"
+    },
+    {
+      "path": "src/backends/cuda/native/commitment/blake2s_core.cuh",
+      "sha256": "1f35b2fe47b2f3b9b85499e5b9515f42dbdb8a83397f58919e6feffe32f75447"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/custody.cuh",
+      "sha256": "0db77222de7dd7cabcf90de0eb349144d1ad1ca1a6d542ac03b1ac63cb5a3d5b"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.cu",
+      "sha256": "724da9dcdc155f519bf64a663681799476fd62cf9bcff7c063678128478504b1"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.h",
+      "sha256": "1047ecb9a178be05c2528922b01169d40b0a0e9c30d563fc3309ebf1dab535c0"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/reduce.cuh",
+      "sha256": "bdc522d7867ba8b0cc70d6175a47cc5094b18e8d58ff039a4dbdd7fd7efc8aae"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/round.cu",
+      "sha256": "03144d34ecf31da2e86f38088fecc2bb6dccbc969f8aa940c93fb3702e68cec4"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/round.cuh",
+      "sha256": "5f0459777e7ce29c26b845add95cf71349c706aab027aebface1626f242d1ae1"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/tail.cu",
+      "sha256": "db870cf745f4372a6c2f10cb2061edb7897f1c7db2f6a82f7b8f5da5d06be862"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/tail_math.cuh",
+      "sha256": "f9a3fdea99a7917770cfe71cf9bc43c326caf2d7126c421a55b0a6703e60db69"
+    },
+    {
+      "path": "src/backends/cuda/product_manifest.json",
+      "sha256": "cf063f5fb8ce429cd622ac09dfa301c79473ad40884a76af6f2ef8192dc4fd06"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/abi.zig",
+      "sha256": "aaf5112784b88de29b13e86b35f33a5a297627f7ab613598a128003a460cb275"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident.zig",
+      "sha256": "1c417da0f0b9ae56b86b8b3fb7d8261fd654bc874de1e545bc3535baee53fc11"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/sumcheck.zig",
+      "sha256": "47feb0dff8b232cefc368225ceba16532d815f4f7f581fda377817259107bd65"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/numerical_test.zig",
+      "sha256": "34937a20a8718821746050af683d67086a2723259a0e5d1f2b05b98bb2209a6b"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/resident_test.zig",
+      "sha256": "f4f3a8a51e6d1eb91e4f2082382f388c79318023b146c6bdf3d52ceda9790ab7"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/sumcheck_numerical_test.zig",
+      "sha256": "512fe92e6ffd33c9e2a1fc0c7022fc0af956733bf69e380b61c163d6a14335d3"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/sumcheck_test.zig",
+      "sha256": "e345508b75b3bb016410cde156cd2fb2cb493322b15d70a27799de35e9ababde"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64_binding_check_root.zig",
+      "sha256": "3312db3153db9fa16d4063baecf37057375a8a7ef0f8557c2977749c04bd9eb8"
+    },
+    {
+      "path": "tests/cuda/rv64/README.md",
+      "sha256": "b57cc9ecce4442d662bb5c52d76d4d72ecd412292d5ec27fd8f88428034cdd96"
+    },
+    {
+      "path": "tests/cuda/rv64/context_owner.cuh",
+      "sha256": "b3829b81f714b6c1b912c295d753b81c736d5f08cf831c2e56aebdb6d065af2d"
+    },
+    {
+      "path": "tests/cuda/rv64/context_owner_test.cpp",
+      "sha256": "195106b143a9c8c3d3c5727a22edd1cd977d3dd29e044c64d5ed01cac67609be"
+    },
+    {
+      "path": "tests/cuda/rv64/hash_resource_probe.cu",
+      "sha256": "dcd6ca8268b6a972f97e31e6ad24a7c6e2375e6c807c7a648d9994edc1d1c884"
+    },
+    {
+      "path": "tests/cuda/rv64/host_replay_test.cpp",
+      "sha256": "b18c6d13a01ae41afa29982962fce98a9870bb76a15e4387a645a787d364536a"
+    },
+    {
+      "path": "tests/cuda/rv64/numerical_bridge.cpp",
+      "sha256": "73fc2dad2999b1fb5db516018ad852514f908c0065d9c6df9c031e06dbb294b9"
+    },
+    {
+      "path": "tests/cuda/rv64/oracle_data.cuh",
+      "sha256": "7e06565fdd2416ea5a4162321579bcadbd17e8a9535560c7ae8c2b337e2b46b6"
+    },
+    {
+      "path": "tests/cuda/rv64/sumcheck_smoke.cu",
+      "sha256": "1560050b035ad3c65f3587d3617961e5b8d03a0042f3e6eb41fa35a52d7948aa"
+    },
+    {
+      "path": "tests/cuda/rv64/tail_preflight_test.cu",
+      "sha256": "9c69c13bca8b3c73ec0e6171fc584a3067dd251245be9b0fd4a2e1e22442aacb"
+    },
+    {
+      "path": "tests/cuda/rv64/tail_smoke.cu",
+      "sha256": "9255113250752b4e76330b0f63f12beed1f68a75aef0a0967588c5bd0b1c8e13"
+    }
+  ]
+}

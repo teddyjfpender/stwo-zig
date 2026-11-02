@@ -27,3 +27,25 @@ pub extern "c" fn stwo_rv64_gkr_pack_mask_on(*anyopaque, u32, Plane, Plane, [*]u
 pub extern "c" fn stwo_rv64_gkr_eq_fused_on(*anyopaque, u32, [*]const u32, u32, Plane) c_int;
 
 pub extern "c" fn stwo_rv64_gkr_fold_sum_on(*anyopaque, u32, Plane, Plane, u32, [*]const u32, Plane, Plane, Plane, [*]const u32, Plane, Plane, Plane) c_int;
+
+pub const TailJob = extern struct {
+    n: Plane,
+    d: Plane,
+    out_n: Plane,
+    out_d: Plane,
+    eq: Plane,
+    point: [*]const u32,
+    lambda: [*]const u32,
+    state: [*]u32,
+    records: [*]u32,
+    mask: [*]u32,
+    count: u32,
+    variables: u32,
+    first: u32,
+    reserved: u32 = 0,
+};
+comptime {
+    if (@sizeOf(TailJob) != 176 or @offsetOf(TailJob, "count") != 160)
+        @compileError("RV64 tail job ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_sumcheck_tail_on(*anyopaque, u32, [*]const TailJob, u32) c_int;

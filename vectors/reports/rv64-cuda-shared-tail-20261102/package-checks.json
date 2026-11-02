@@ -1,0 +1,10 @@
+{
+  "src/integrations/riscv_cuda": [],
+  "src/backends/cuda": [
+    "stwo_cuda_backend: undeclared named import 'stwo_core' in runtime/secure_polynomial_v1.zig",
+    "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in runtime/secure_polynomial_v1.zig",
+    "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in secure_polynomial_codegen_v1.zig",
+    "stwo_cuda_backend: undeclared named import 'stwo_prover_engine' in secure_polynomial_codegen_v1.zig",
+    "stwo_cuda_backend: public API differs: missing=[], added=['secure_polynomial_codegen_v1', 'secure_polynomial_resident_codegen_v1']"
+  ]
+}

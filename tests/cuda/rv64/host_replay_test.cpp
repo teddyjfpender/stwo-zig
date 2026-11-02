@@ -9,6 +9,10 @@ extern "C" void rv64_test_sumcheck(const uint32_t*, const uint32_t*, uint32_t, u
 extern "C" void rv64_test_sumcheck_fused(const uint32_t*, const uint32_t*, uint32_t, uint32_t,
                                          const uint32_t*, const uint32_t*, const uint32_t*,
                                          const uint32_t*, uint32_t*, uint32_t*, uint32_t*);
+extern "C" void rv64_test_sumcheck_tail(const uint32_t*, const uint32_t*, uint32_t, uint32_t,
+                                        const uint32_t*, const uint32_t*, const uint32_t*,
+                                        const uint32_t*, uint32_t*, uint32_t*, uint32_t*,
+                                        uint32_t);
 int main() {
     uint32_t random = 731;
     const auto word = [&]() {
@@ -38,6 +42,12 @@ int main() {
                                      sb.data(), tb.data());
             assert(sa[10] == 0 && sa[9] == variables);
             assert(a == b && sa == sb && ta == tb);
+            for (uint32_t threshold : {4u, 8u, 16u, 64u, 256u}) {
+                rv64_test_sumcheck_tail(n.data(), d.data(), count, base, point.data(),
+                                        lambda.data(), claim.data(), seed.data(), b.data(),
+                                        sb.data(), tb.data(), threshold);
+                assert(a == b && sa == sb && ta == tb);
+            }
             assert(n == original_n && d == original_d && point == original_point);
         }
     }

@@ -43,6 +43,12 @@ const Fake = struct {
         calls += 1;
         return if (failure) 1 else 0;
     }
+    pub fn stwo_rv64_sumcheck_tail_on(_: *anyopaque, lane: u32, jobs: [*]const Abi.TailJob, count: u32) c_int {
+        std.debug.assert(lane == 1 and count > 0 and count <= 8);
+        for (jobs[0..count]) |j| std.debug.assert(j.count >= 4 and j.out_n.coordinates == 8 and j.reserved == 0);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_eq_fused_on = stwo_rv64_gkr_eq_on;
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
@@ -121,4 +127,30 @@ test "RV64 CUDA fused fold sum validates shape generation and enqueue failure" {
     Fake.failure = true;
     try std.testing.expectError(error.CudaEnqueueFailed, commands.foldSum(fraction(16), slice(), fraction(8), plane(8), slice(), plane(8), plane(8), plane(8)));
     try std.testing.expectError(error.JobPoisoned, commands.foldSum(fraction(16), slice(), fraction(8), plane(8), slice(), plane(8), plane(8), plane(8)));
+}
+
+fn tailJob() R.TailJob {
+    return .{ .input = leaf(16), .output = fraction(2), .eq = plane(8), .point = slice(), .lambda = slice(), .state = slice(), .records = slice(), .mask = slice(), .variables = 3, .first = 0 };
+}
+test "RV64 CUDA tail batch binds all jobs before dispatch and poisons native failure" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    try commands.tailBatch(&.{ tailJob(), tailJob() });
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    try std.testing.expectEqual(@as(u64, 1), commands.launches);
+    var jobs: [8]R.TailJob = @splat(tailJob());
+    jobs[7].state.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.tailBatch(&jobs));
+    jobs[7] = tailJob();
+    jobs[7].first = 1;
+    try std.testing.expectError(error.InvalidGeometry, commands.tailBatch(&jobs));
+    try std.testing.expectError(error.InvalidGeometry, commands.tailBatch(&.{}));
+    const too_many: [9]R.TailJob = @splat(tailJob());
+    try std.testing.expectError(error.InvalidGeometry, commands.tailBatch(&too_many));
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.tail(tailJob()));
+    try std.testing.expectError(error.JobPoisoned, commands.tail(tailJob()));
 }

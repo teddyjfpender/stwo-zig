@@ -28,6 +28,8 @@ const Commands = struct {
     context: *Context,
     poisoned: bool = false,
     fused_fold_sum: bool = false,
+    tail_count: u32 = 0,
+    tails: usize = 0,
     calls: usize = 0,
     folds: usize = 0,
     rounds: usize = 0,
@@ -45,6 +47,14 @@ const Commands = struct {
     pub fn foldSum(self: *@This(), f: R.Fraction, challenge: Slice, out: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, _: R.Plane) !void {
         try std.testing.expect(f.count >= 8);
         try self.fold(f, challenge, out);
+    }
+    pub fn tail(self: *@This(), job: R.TailJob) !void {
+        try std.testing.expectEqual(@as(u32, @intCast(self.rounds)), job.first);
+        try std.testing.expectEqual(@as(u32, 2), job.output.count);
+        try std.testing.expect(job.input.n.data.address != job.output.n.data.address);
+        try std.testing.expectEqual(slice(15).address + self.rounds * abi.round_record_words * 4, job.records.address);
+        self.tails += 1;
+        self.calls += 1;
     }
     pub fn round(self: *@This(), _: Slice, _: u32, expected: u32, _: R.Plane, _: Slice, record: Slice) !void {
         try std.testing.expectEqual(@as(u32, @intCast(self.rounds)), expected);
@@ -101,4 +111,21 @@ test "RV64 CUDA fused pipeline primes sums once and keeps terminal fold separate
     try std.testing.expectEqual(@as(usize, 10), commands.calls);
     try std.testing.expectEqual(@as(usize, 3), commands.folds);
     try std.testing.expectEqual(@as(u32, 2), result.terminal.count);
+}
+
+test "RV64 CUDA tail handoff skips unused sums and selects a disjoint terminal bank" {
+    for ([_]u32{ 4, 8, 16, 256 }) |threshold| {
+        var context = Context{};
+        var commands = Commands{ .context = &context, .tail_count = threshold, .fused_fold_sum = true };
+        const result = try S.enqueue(&commands, input(), workspace());
+        const first: usize = if (threshold == 4) 2 else if (threshold == 8) 1 else 0;
+        try std.testing.expectEqual(@as(usize, 1), commands.tails);
+        try std.testing.expectEqual(first, commands.rounds);
+        try std.testing.expectEqual(@as(usize, if (first == 0) 3 else 4 + 2 * first), commands.calls);
+        try std.testing.expectEqual(slice(6 + 2 * (first % 2)).address, result.terminal.n.data.address);
+    }
+    var context = Context{};
+    var invalid = Commands{ .context = &context, .tail_count = 6 };
+    try std.testing.expectError(error.InvalidGeometry, S.enqueue(&invalid, input(), workspace()));
+    try std.testing.expectEqual(@as(usize, 0), invalid.calls);
 }

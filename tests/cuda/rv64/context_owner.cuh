@@ -6,6 +6,8 @@
 #include <string>
 #include <stdexcept>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 extern "C" int stwo_exec_context_create_options(const StwoCudaContextOptions*, void**);
 extern "C" int stwo_exec_context_destroy(void*);
 extern "C" int stwo_exec_context_sync(void*);
@@ -28,7 +30,12 @@ struct Owner {
     void* ctx = nullptr;
     std::vector<uint32_t*> allocations;
     std::vector<cudaEvent_t> events;
+    std::vector<std::vector<uint32_t>> ingress;
     uint64_t allocated_bytes = 0;
+    Owner(const Owner&) = delete;
+    Owner& operator=(const Owner&) = delete;
+    Owner(Owner&&) = delete;
+    Owner& operator=(Owner&&) = delete;
     explicit Owner(int device) {
         StwoCudaContextOptions options{1, uint32_t(device), 2, 8};
         const int status = stwo_exec_context_create_options(&options, &ctx);
@@ -55,7 +62,11 @@ struct Owner {
         return e;
     }
     void upload(StwoRv64Plane p, const std::vector<uint32_t>& v) {
-        CHECK(stwo_exec_context_memcpy_h2d_async(ctx, p.words, v.data(), v.size() * 4));
+        // Keep ingress alive even if a caller's constructor/validation throws.
+        // This setup-only copy is outside every benchmark interval.
+        ingress.push_back(v);
+        CHECK(stwo_exec_context_memcpy_h2d_async(ctx, p.words, ingress.back().data(),
+                                                 v.size() * 4));
     }
     std::vector<uint32_t> read(StwoRv64Plane p) {
         std::vector<uint32_t> out(size_t(p.stride) * p.coordinates);
@@ -65,6 +76,7 @@ struct Owner {
     }
     void close() {
         CHECK(stwo_exec_context_sync(ctx));
+        ingress.clear();
         for (auto p : allocations) CHECK(stwo_exec_context_free_u32(ctx, p));
         allocations.clear();
         for (auto e : events) CHECK(cudaEventDestroy(e));
@@ -76,7 +88,12 @@ struct Owner {
         if (!ctx) return;
         // An earlier failure already makes the run fail. Join before teardown;
         // never publish data from this destructor's best-effort cleanup.
-        if (stwo_exec_context_sync(ctx)) return;
+        if (stwo_exec_context_sync(ctx)) {
+            // A failed join cannot establish that borrowed ingress is idle.
+            // Fail the test process before its host buffers can be destroyed.
+            std::fprintf(stderr, "FATAL: CUDA join failed during owner teardown\n");
+            std::abort();
+        }
         for (auto p : allocations)
             if (stwo_exec_context_free_u32(ctx, p)) return;
         for (auto e : events)

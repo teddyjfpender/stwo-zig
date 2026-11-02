@@ -38,6 +38,8 @@ pub const Enqueued = struct {
 /// before publishing. Every owner remains borrowed through completion/abort.
 pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     if (commands.poisoned) return error.JobPoisoned;
+    const tail_count = commands.tail_count;
+    if (tail_count != 0 and (tail_count < 4 or tail_count > 256 or !std.math.isPowerOfTwo(tail_count))) return error.InvalidGeometry;
     const n = input.fractions.count;
     if (n < 4 or n > 1 << 28 or !std.math.isPowerOfTwo(n)) return error.InvalidGeometry;
     const variables: u32 = std.math.log2_int(u32, n) - 1;
@@ -61,19 +63,41 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     try commands.initSumcheck(work.state, input.seed, input.claim, variables);
     try commands.eq(input.point, variables, work.eq);
     var current = input.fractions;
+    var tail_used = false;
     for (0..variables) |at| {
+        if (tail_count != 0 and current.count <= tail_count) {
+            // The next bank is disjoint from current, irrespective of how many
+            // rounds the tail completes. Final parity need not match baseline.
+            var terminal = work.banks[at % 2];
+            terminal.count = 2;
+            try commands.tail(.{
+                .input = current,
+                .output = terminal,
+                .eq = work.eq,
+                .point = input.point,
+                .lambda = input.lambda,
+                .state = work.state,
+                .records = try work.records.sub(at * abi.round_record_words, (variables - at) * abi.round_record_words),
+                .mask = work.terminal_mask,
+                .variables = variables,
+                .first = @intCast(at),
+            });
+            current = terminal;
+            tail_used = true;
+            break;
+        }
         if (at == 0 or !commands.fused_fold_sum) try commands.sum(current, work.eq, input.lambda, work.scratch_a, work.scratch_b, work.sums);
         const record = try work.records.sub(at * abi.round_record_words, abi.round_record_words);
         try commands.round(work.state, variables, @intCast(at), work.sums, input.point, record);
         const challenge = try record.sub(32, 8);
         var output = work.banks[at % 2];
         output.count = current.count / 2;
-        if (commands.fused_fold_sum and at + 1 < variables) {
+        if (commands.fused_fold_sum and at + 1 < variables and (tail_count == 0 or output.count > tail_count)) {
             try commands.foldSum(current, challenge, output, work.eq, input.lambda, work.scratch_a, work.scratch_b, work.sums);
         } else try commands.fold(current, challenge, output);
         current = output;
     }
-    try commands.packMask(current, work.terminal_mask);
+    if (!tail_used) try commands.packMask(current, work.terminal_mask);
     return .{ .terminal_mask = work.terminal_mask, .terminal = current, .rounds = variables, .state = work.state, .records = work.records };
 }
 
