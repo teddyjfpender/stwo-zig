@@ -8,10 +8,10 @@ The control remains the existing CPU-local-GKR / truth-classic-OM31 profile.
 
 The complete 25-CPU / five-truth roster has 17,461,658,112 committed MAIN+INTER
 M31 cells (per-proof FIXED excluded). Its global classic arguments occupy
-821,538,816 cells. A separate GKR instance and authenticated Eq/prefix binding
-per role and namespace would require 710,975,488 binding cells, saving
-110,563,328: **0.633% of MAIN+INTER**, before any new GKR work. The corresponding
-unpaired input catalog has 102,089,216 power-of-two-padded facts.
+832,155,648 cells. A separate GKR instance and authenticated Eq/prefix binding
+per role and namespace would require 716,283,904 binding cells, saving
+115,871,744: **0.664% of MAIN+INTER**, before any new GKR work. The corresponding
+unpaired input catalog has 103,416,320 power-of-two-padded facts.
 
 | Physical group | Current OM8 INTER columns | Separate GKR binding columns | Difference |
 | --- | ---: | ---: | ---: |
@@ -20,7 +20,7 @@ unpaired input catalog has 102,089,216 power-of-two-padded facts.
 | Keccak bridge RAM + KIO | 32 | 32 | 0 |
 | secp bridge RAM + Wire | 56 | 32 | 24 |
 | Keccak truth KIO (25 queries) | 208 | 16 | 192 |
-| secp truth Wire (three queries) | 32 | 16 | 16 |
+| secp truth Wire, each product / linear (three queries) | 32 | 16 | 16 |
 
 This uses the current 8-coordinate Eq plus 8-coordinate running binding. It
 keeps each namespace's terminal claim independently authenticated. It assumes
@@ -115,7 +115,7 @@ marginals could authenticate them through one Eq/prefix per role. This requires:
   rebuilding full N/D planes; checked mixed-height resource and lifetime bounds.
 
 Even eliminating every current global INTER column with zero additional binding
-would remove only4.70% of this roster's MAIN+INTER cells. Substantial additional
+would remove only4.77% of this roster's MAIN+INTER cells. Substantial additional
 headroom is in truth-local lookup columns, repeated Eq/binding representation,
 opening/hash cost and actual numerical/PCS kernels. No global-only design should
 be sold as the complete GKR payoff.
