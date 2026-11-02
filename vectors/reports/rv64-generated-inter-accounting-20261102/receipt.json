@@ -1,0 +1,58 @@
+{
+  "scope": "pure own-height native INTER cost accounting; no proving or acceptance authority",
+  "base": "a03d5de4a",
+  "default_prior_fields_exact": true,
+  "runs": {
+    "default-k18": {
+      "input_sha256": "2e80e1376de0be13e00f70a1f00d25ef470faed6c95763f43efbd9d8707c438d",
+      "total_steps": 104253913,
+      "breakdown": {
+        "cpu_local_binding_cells": 3271442944,
+        "cpu_global_cells": 699838464,
+        "truth_classic_local_cells": 3127439360,
+        "truth_global_cells": 132317184
+      },
+      "sum": 7231037952,
+      "existing_physical_interaction_cells": 7231037952,
+      "tree_policy": {
+        "checkpointed": false,
+        "tight_admission": false,
+        "stream_bottom": false
+      }
+    },
+    "stream-k18": {
+      "input_sha256": "2e80e1376de0be13e00f70a1f00d25ef470faed6c95763f43efbd9d8707c438d",
+      "total_steps": 104253913,
+      "breakdown": {
+        "cpu_local_binding_cells": 3271442944,
+        "cpu_global_cells": 699838464,
+        "truth_classic_local_cells": 3127439360,
+        "truth_global_cells": 132317184
+      },
+      "sum": 7231037952,
+      "existing_physical_interaction_cells": 7231037952,
+      "tree_policy": {
+        "checkpointed": false,
+        "tight_admission": true,
+        "stream_bottom": true
+      }
+    },
+    "candidate-k16": {
+      "input_sha256": "36edb3a252677835926e69b63f7e2a87424873ed6b1cc6300acfe7d858d7e191",
+      "total_steps": 104253913,
+      "breakdown": {
+        "cpu_local_binding_cells": 3271442944,
+        "cpu_global_cells": 699838464,
+        "truth_classic_local_cells": 2960289792,
+        "truth_global_cells": 125501440
+      },
+      "sum": 7057072640,
+      "existing_physical_interaction_cells": 7057072640,
+      "tree_policy": {
+        "checkpointed": false,
+        "tight_admission": true,
+        "stream_bottom": true
+      }
+    }
+  }
+}
