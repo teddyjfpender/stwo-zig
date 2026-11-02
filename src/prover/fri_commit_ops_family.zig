@@ -774,10 +774,16 @@ pub fn ForField(comptime Secure: type) type {
                         };
                     }
 
+                    var packing_phase = @import("pcs/wide_phase_profile.zig").Scope.begin(Secure, "fri_pack", column.len());
+                    defer packing_phase.end();
                     var packed_columns = try PackedSecureColumns.init(allocator, column);
+                    packing_phase.end();
                     errdefer packed_columns.deinit(allocator);
                     const refs = packed_columns.refs();
+                    var merkle_phase = @import("pcs/wide_phase_profile.zig").Scope.begin(Secure, "fri_merkle", column.len());
+                    defer merkle_phase.end();
                     const merkle_tree = try B.commitMerkle(H, allocator, &refs);
+                    merkle_phase.end();
                     if (comptime retain_packed_opening_columns) {
                         return .{
                             .merkle_tree = merkle_tree,
