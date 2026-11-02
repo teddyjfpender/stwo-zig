@@ -181,6 +181,15 @@ pub const Witness = struct {
     /// Scratch coefficients are explicitly charged to the numerical allocator;
     /// output planes remain parent-owned and externally reserved by Child.
     pub fn initFromProvider(a: std.mem.Allocator, scratch: std.mem.Allocator, instances: []const Frame.Instance, challenges: *const @import("challenges.zig").For(O), provider: anytype, artifact: *const V.GkrArtifact, eta: O) !Witness {
+        return initFromProviderImpl(false, a, scratch, instances, challenges, provider, artifact, eta);
+    }
+    /// Retain only the unweighted terminal projection P=N+etaD in eight
+    /// physical base-coordinate planes. No provider pointer escapes this call.
+    /// Eq multiplication, target subtraction and prefix run at finalization.
+    pub fn initProjectionFromProvider(a: std.mem.Allocator, scratch: std.mem.Allocator, instances: []const Frame.Instance, challenges: *const @import("challenges.zig").For(O), provider: anytype, artifact: *const V.GkrArtifact, eta: O) !Witness {
+        return initFromProviderImpl(true, a, scratch, instances, challenges, provider, artifact, eta);
+    }
+    fn initFromProviderImpl(comptime projection_only: bool, a: std.mem.Allocator, scratch: std.mem.Allocator, instances: []const Frame.Instance, challenges: *const @import("challenges.zig").For(O), provider: anytype, artifact: *const V.GkrArtifact, eta: O) !Witness {
         if (instances.len != artifact.claims_to_verify_by_instance.len or instances.len != artifact.n_variables_by_instance.len) return error.LocalGkrProjectionShape;
         const out = try a.alloc([]M, instances.len);
         var done: usize = 0;
@@ -194,9 +203,9 @@ pub const Witness = struct {
             const rows = try instance.rows();
             const lanes: usize = @as(usize, 1) << @intCast(try instance.laneLog());
             if (lanes > 128) return error.LocalGkrProjectionShape;
-            const data = try a.alloc(M, try std.math.mul(usize, rows, 16));
+            const data = try a.alloc(M, try std.math.mul(usize, rows, if (projection_only) @as(usize, 8) else 16));
             errdefer a.free(data);
-            try eqInto(data, rows, point.rows);
+            if (!projection_only) try eqInto(data, rows, point.rows);
             var lane_planes: [8 * 128]M = undefined;
             try eqInto(lane_planes[0 .. 8 * lanes], lanes, point.lanes);
             var lane_weights: [128]O = undefined;
@@ -238,15 +247,58 @@ pub const Witness = struct {
                             self.errors[ordinal] = err;
                             return;
                         };
-                        set(self.data, self.rows, 8, p, get(self.data, self.rows, 0, p).mul(projection.combine(self.eta)).sub(self.uniform));
+                        const projected = projection.combine(self.eta);
+                        if (projection_only) set(self.data, self.rows, 0, p, projected) else set(self.data, self.rows, 8, p, get(self.data, self.rows, 0, p).mul(projected).sub(self.uniform));
                     }
                 }
             };
             var context = Context{ .data = data, .rows = rows, .instance = instance, .challenges = challenges, .provider = provider, .prepared = &prepared, .eta = eta, .uniform = uniform };
             const shards = Work.forEachRange(rows, &context, .{});
             for (context.errors[0..shards]) |err| if (err) |e| return e;
-            try projectAndPrefix(true, data, rows, instance.row_log, 0, &.{}, &.{}, &.{}, eta, uniform, .{});
+            if (!projection_only) try projectAndPrefix(true, data, rows, instance.row_log, 0, &.{}, &.{}, &.{}, eta, uniform, .{});
             out[index] = data;
+            done += 1;
+        }
+        return .{ .allocator = a, .columns = out };
+    }
+
+    /// Expand immutable projected planes into the original authenticated
+    /// Eq/prefix witness. The source remains owned and retryable on every OOM
+    /// or validation failure. Caller accounts old32+new64 bytes per row.
+    pub fn finalizeProjection(self: *const Witness, a: std.mem.Allocator, instances: []const Frame.Instance, artifact: *const V.GkrArtifact, eta: O) !Witness {
+        if (self.columns.len != instances.len or instances.len != artifact.claims_to_verify_by_instance.len or instances.len != artifact.n_variables_by_instance.len) return error.LocalGkrProjectionShape;
+        // Validate the whole source before any finalization work or allocation.
+        for (instances, self.columns, artifact.claims_to_verify_by_instance, 0..) |instance, values, claims, i| {
+            const rows = try instance.rows();
+            if (claims.len != 2 or values.len != try std.math.mul(usize, rows, 8)) return error.LocalGkrProjectionShape;
+            _ = try Frame.splitPoint(instance, artifact.ood_point, artifact.n_variables_by_instance[i]);
+        }
+        const out = try a.alloc([]M, instances.len);
+        var done: usize = 0;
+        errdefer {
+            for (out[0..done]) |values| a.free(values);
+            a.free(out);
+        }
+        for (instances, self.columns, artifact.claims_to_verify_by_instance, 0..) |instance, projected, claims, i| {
+            const rows = try instance.rows();
+            const point = try Frame.splitPoint(instance, artifact.ood_point, artifact.n_variables_by_instance[i]);
+            const data = try a.alloc(M, try std.math.mul(usize, rows, 16));
+            errdefer a.free(data);
+            try eqInto(data, rows, point.rows);
+            const uniform = claims[0].add(eta.mul(claims[1])).mulM31(try M.fromCanonical(@intCast(rows)).inv());
+            const Context = struct {
+                data: []M,
+                projected: []const M,
+                rows: usize,
+                uniform: O,
+                pub fn runRange(ctx: *@This(), _: usize, first: usize, end: usize) void {
+                    for (first..end) |p| set(ctx.data, ctx.rows, 8, p, get(ctx.data, ctx.rows, 0, p).mul(get(ctx.projected, ctx.rows, 0, p)).sub(ctx.uniform));
+                }
+            };
+            var context = Context{ .data = data, .projected = projected, .rows = rows, .uniform = uniform };
+            _ = Work.forEachRange(rows, &context, .{});
+            try projectAndPrefix(true, data, rows, instance.row_log, 0, &.{}, &.{}, &.{}, eta, uniform, .{});
+            out[i] = data;
             done += 1;
         }
         return .{ .allocator = a, .columns = out };
@@ -369,4 +421,72 @@ test "packed local binding projection matches independent scalar lanes including
         try std.testing.expectEqual(n, actual.n);
         try std.testing.expectEqual(d, actual.d);
     }
+}
+
+const DeferredTestProvider = struct {
+    fail: bool = false,
+    pub fn emit(self: @This(), instance: Frame.Instance, logical: usize, sink: anytype) !void {
+        if (self.fail and logical == 5) return error.DeferredTestProviderFailure;
+        for (0..instance.terms) |term| sink.emitBase(.range16, [1]M{M.fromCanonical(@intCast(17 * logical + 3 * term))}, M.fromCanonical(@intCast(1 + term)));
+    }
+};
+fn deferredProjectionCase(allocator: std.mem.Allocator, finalizer: bool) !void {
+    const a = std.testing.allocator;
+    const instances = [_]Frame.Instance{
+        .{ .origin = .{ .core = .alu }, .row_log = 5, .terms = 3, .fixed_offset = 0, .main_offset = 0 },
+        .{ .origin = .{ .core = .range16 }, .row_log = 6, .terms = 1, .fixed_offset = 0, .main_offset = 0 },
+    };
+    var ch = core.channel.raw_mod_m31.Om31Channel.init();
+    const challenges = @import("challenges.zig").For(O).draw(&ch);
+    const eta = ch.drawSecureFelt();
+    var point: [7]O = undefined;
+    for (&point, 0..) |*v, i| v.* = denseTestValue(31 + i);
+    var inputs = try Input.init(a, &instances, &challenges, DeferredTestProvider{});
+    defer inputs.deinit();
+    var claims: [2][2]O = undefined;
+    var claim_slices: [2][]O = undefined;
+    var variables: [2]usize = undefined;
+    for (instances, inputs.layers, 0..) |instance, layer, i| {
+        variables[i] = try instance.variables();
+        const local = point[point.len - variables[i] ..];
+        const vectors = layer.LogUpMultiplicities;
+        claims[i] = .{ try vectors.numerators.evalAtPoint(a, local), try vectors.denominators.evalAtPoint(a, local) };
+        claim_slices[i] = &claims[i];
+    }
+    const artifact = V.GkrArtifact{ .ood_point = &point, .claims_to_verify_by_instance = &claim_slices, .n_variables_by_instance = &variables };
+    var expected = try Witness.initFromProvider(a, a, &instances, &challenges, DeferredTestProvider{}, &artifact, eta);
+    defer expected.deinit();
+    var projected = try Witness.initProjectionFromProvider(if (finalizer) a else allocator, if (finalizer) a else allocator, &instances, &challenges, DeferredTestProvider{}, &artifact, eta);
+    defer projected.deinit();
+    var snapshots: [2][]M = undefined;
+    var done: usize = 0;
+    defer for (snapshots[0..done]) |values| a.free(values);
+    for (projected.columns, 0..) |values, i| {
+        try std.testing.expectEqual(@as(usize, 8) * try instances[i].rows(), values.len);
+        snapshots[i] = try a.dupe(M, values);
+        done += 1;
+    }
+    defer for (snapshots, projected.columns) |before, after| std.testing.expectEqualSlices(M, before, after) catch @panic("deferred source mutated");
+    var actual = try projected.finalizeProjection(if (finalizer) allocator else a, &instances, &artifact, eta);
+    defer actual.deinit();
+    for (expected.columns, actual.columns) |x, y| try std.testing.expectEqualSlices(M, x, y);
+    try std.testing.expectError(error.DeferredTestProviderFailure, Witness.initProjectionFromProvider(a, a, &instances, &challenges, DeferredTestProvider{ .fail = true }, &artifact, eta));
+    var bad = instances;
+    bad[0].row_log += 1;
+    try std.testing.expectError(error.LocalGkrProjectionShape, projected.finalizeProjection(a, &bad, &artifact, eta));
+    try std.testing.expectError(error.UnboundLocalGkrInput, projected.finalizeProjection(a, &instances, &artifact, eta.add(O.one())));
+}
+test "deferred eight-plane projection finalizes to exact mixed-height Eq prefix and stays immutable" {
+    try deferredProjectionCase(std.testing.allocator, true);
+    const Pools = engine.work_pool;
+    var pool: Pools.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3 });
+    defer pool.deinit();
+    var binding = try Pools.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try deferredProjectionCase(std.testing.allocator, false);
+}
+test "deferred projection construction and finalization are failure atomic at every allocation" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, deferredProjectionCase, .{true});
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, deferredProjectionCase, .{false});
 }
