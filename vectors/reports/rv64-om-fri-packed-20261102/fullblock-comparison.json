@@ -1,0 +1,23 @@
+{
+  "scope": "Two frozen unchanged-control observations and one packed implementation observation, same complete stronger-candidate block and resource settings; all33 artifacts identical and all fresh accepted",
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "control_prove_seconds": [
+    305.846238292,
+    314.144109584
+  ],
+  "packed_prove_seconds": 286.007689,
+  "reduction_vs_prior_percent": 6.48644541217458,
+  "reduction_vs_repeated_control_percent": 8.956532917729742,
+  "control_rss_bytes": [
+    39964901376,
+    39957118976
+  ],
+  "packed_rss_bytes": 39993835520,
+  "limitations": [
+    "One optimized full run, not a repeated optimized median",
+    "Controls demonstrate measurable host/run variation",
+    "Stage observations corroborate targeted FRI reductions; concurrent nested stage durations are not additive",
+    "No protocol/security change or whole128 certificate"
+  ]
+}

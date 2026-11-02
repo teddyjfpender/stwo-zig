@@ -87,3 +87,12 @@ query count, proof bytes, statement, geometry and receiver are unchanged.
 Receipt: `vectors/reports/rv64-om-fri-packed-20261102/fullblock-packed-candidate-k18-v1/`.
 The stronger parameter profile remains an engineering candidate: this speedup
 does not itself create a composed128-bit certificate or qualify a recursive root.
+
+The unchanged frozen complete-block control was then repeated:314.144s proving,
+353.42s process wall,39.957GB RSS. It freshly accepts and reproduces all33
+authoritative artifacts. Together with the earlier305.846s control, this places
+the single286.008s optimized run6.49–8.96% lower in proving time. Controls show
+run/host variation; this is not a repeated optimized median. The targeted FRI
+stage reductions and exact artifacts support the implementation change without
+changing proof parameters or equating the result with GKR-versus-LogUp gains.
+See `vectors/reports/rv64-om-fri-packed-20261102/fullblock-comparison.json`.
