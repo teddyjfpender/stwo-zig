@@ -4,6 +4,7 @@ const R = @import("../closed_ram/mod.zig");
 const V1 = @import("../load_store_v1/mod.zig");
 const L = @import("layout.zig");
 const T = @import("types.zig");
+const Tables = @import("../../providers/tables.zig");
 pub fn ownerTuple(comptime F: type, physical: []const F) [19]F {
     const m = L.projection.expandFor(F, physical);
     return ownerTupleForLogical(F, &m);
@@ -18,6 +19,47 @@ pub fn ownerTupleForLogical(comptime F: type, m: []const F) [19]F {
 }
 pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
     emitWithPublicFor(F, kind, f, m, pm, i, pi, E.qFor(F, rows), E.qFor(F, @intFromBool(rows != 0)), claims, ch, out);
+}
+/// Fused-pair layout (L.fused, Geometry.ls_fused_pairs). `pairs` are the AND
+/// relation challenges serving the tagged byte pairs (x, y, 0, 1).
+pub fn emitFusedWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), pairs: Tables.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    if (kind == .ls) {
+        const logical = L.projection.expandFor(F, m);
+        var previous: [L.projection.LOGICAL_MAIN]F = @splat(F.zero());
+        previous[0] = pm[0];
+        V1.equations.emitLocalWithPublicFor(F, f, &logical, &previous, row_count, nonempty, out);
+        fusedRamFor(F, logical[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
+        @import("local_lookup.zig").emitPairsFor(F, f, &logical, i, pi, claims, ch, pairs, out);
+        out.emit(logical[3].sub(logical[12]).sub(logical[13].mul(E.qFor(F, 65536))));
+    } else if (kind == .initial or kind == .terminal) {
+        emitBoundaryMainFor(F, f, m, pm, row_count, nonempty, out);
+        const active = m[0];
+        const d = ch.ram.denominatorFor(F, R.equations.ramTuple(F, if (kind == .initial) .initial else .terminal, m, false));
+        fusedSingle(F, d, if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, pi, 0), f[1], f[2], claims.ram, out);
+        out.emit(E.splatFor(F, claims.range16));
+        out.emit(E.splatFor(F, claims.range8));
+    } else emitWithPublicFor(F, kind, f, m, pm, i, pi, row_count, nonempty, claims, ch, out);
+}
+/// Fused single fraction: (S - S' + claim*first)*d - w = 0 (degree 2) and
+/// last*S = 0. If d != 0 this is the inverse/prefix recurrence; d = 0 reads
+/// -w = 0, unsatisfiable on an active row. An inactive row's tuple is all
+/// zero (emitBoundaryMainFor), so its d is the RAM challenge offset itself.
+pub fn fusedSingle(comptime F: type, d: E.SecureFor(F), weight: F, current: E.SecureFor(F), previous: E.SecureFor(F), first: F, last: F, claim: E.ConstFor(F), out: *E.SinkFor(F)) void {
+    out.emit(current.sub(previous).add(E.mulBaseFor(F, E.splatFor(F, claim), first)).mul(d).sub(E.liftFor(F, weight)));
+    out.emit(E.mulBaseFor(F, current, last));
+}
+/// Fused RAM transition: (S - S' + claim*first)*b*a - active*(a - b) = 0
+/// (degree 3) and last*S = 0. If a*b != 0 it forces the legacy increment
+/// active*(1/b - 1/a). A one-sided pole with active = 1 is unsatisfiable;
+/// both tuples are committed before the RAM challenges, so a pole occurs
+/// with probability at most 2/|QM31| per row (standard LogUp fraction form).
+pub fn fusedRamFor(comptime F: type, m: []const F, i: []const F, pi: []const F, first: F, last: F, claim: E.ConstFor(F), ch: R.types.RamChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    const before = ch.denominatorFor(F, R.equations.ramTuple(F, .transition, m, false));
+    const after = ch.denominatorFor(F, R.equations.ramTuple(F, .transition, m, true));
+    const current = E.secureFor(F, i, L.fused.RAM_PREFIX);
+    const step = current.sub(E.secureFor(F, pi, L.fused.RAM_PREFIX)).add(E.mulBaseFor(F, E.splatFor(F, claim), first));
+    out.emit(step.mul(before).mul(after).sub(E.mulBaseFor(F, after.sub(before), m[0])));
+    out.emit(E.mulBaseFor(F, current, last));
 }
 pub fn emitWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     if (kind == .ls) {

@@ -43,6 +43,12 @@ pub const Geometry = struct {
     /// inverse column, and the FUNCTION fraction is fused into the prefix.
     /// MUL interaction 200 -> 100 columns (multiplication.pairs_layout).
     mul_u8_pairs: bool = false,
+    /// Opt-in fused-tail + byte-pair LS32 layout (requires cpu_u8_pairs): LS
+    /// interaction 32 -> 20 columns (RAM fraction fused into its prefix; the
+    /// four U8 queries become two tagged AND-relation byte pairs fused into
+    /// the local prefix; other local slots are degree-one fractions) and
+    /// INIT/TEARDOWN 8 -> 4 (fused single). load_store_v2.layout.fused.
+    ls_fused_pairs: bool = false,
     /// Omits the opt-in layout flags when false so legacy bundle.json bytes are unchanged.
     pub fn jsonStringify(self: Geometry, jws: anytype) !void {
         try jws.beginObject();
@@ -63,7 +69,7 @@ pub const Geometry = struct {
     }
     /// Opt-in layout flags: Boolean, default false, omitted from JSON when false.
     pub fn isLayoutFlag(comptime name: []const u8) bool {
-        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs");
+        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs") or std.mem.eql(u8, name, "ls_fused_pairs");
     }
     pub fn initialLog(self: Geometry) u32 {
         return self.initial_log orelse self.boundary_log;
@@ -77,6 +83,7 @@ pub const Geometry = struct {
         if (self.cpu_u8_pairs and !self.cpu_fused_tail) return error.InvalidCpuPairGeometry;
         // MUL pairs are served by the pair column that only the CPU pair layout provides.
         if (self.mul_u8_pairs and !self.cpu_u8_pairs) return error.InvalidMulPairGeometry;
+        if (self.ls_fused_pairs and !self.cpu_u8_pairs) return error.InvalidLsPairGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
@@ -122,6 +129,7 @@ pub const Geometry = struct {
         var total = 8 * familyRows(self.binary_log, self.binary_tail_log);
         if (self.cpu_u8_pairs) total = try std.math.add(u64, total, 2 * rows(self.cpu_log));
         if (self.mul_u8_pairs) total = try std.math.add(u64, total, A.multiplication.pairs_layout.PAIR_QUERIES * rows(self.multiplication_log));
+        if (self.ls_fused_pairs) total = try std.math.add(u64, total, LS.fused.PAIR_QUERIES * self.lsRows());
         return total;
     }
     pub fn range8Mass(self: Geometry) !u64 {
@@ -130,7 +138,7 @@ pub const Geometry = struct {
         const cpu: u64 = if (self.cpu_u8_pairs) 0 else 3 * rows(self.cpu_log);
         const mul: u64 = if (self.mul_u8_pairs) 0 else A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log);
         var total = try std.math.add(u64, cpu, mul);
-        total = try std.math.add(u64, total, LS.U8_QUERIES * self.lsRows());
+        if (!self.ls_fused_pairs) total = try std.math.add(u64, total, LS.U8_QUERIES * self.lsRows());
         return total;
     }
 };
@@ -180,10 +188,10 @@ pub fn shapesForProgramLog(program_log: u32, geometry: Geometry) [ROLE_COUNT]Sha
             .shift_table => .{ 18, 16, 36 },
             .and_table => .{ 5, if (geometry.cpu_u8_pairs) 2 else 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
-            .ls => LS.widths(.ls),
-            .ls_tail => if (geometry.ls_tail_log != null) LS.widths(.ls) else .{ 0, 0, 0 },
-            .initial => LS.widths(.initial),
-            .terminal => LS.widths(.terminal),
+            .ls => LS.widthsFor(.ls, geometry.ls_fused_pairs),
+            .ls_tail => if (geometry.ls_tail_log != null) LS.widthsFor(.ls, geometry.ls_fused_pairs) else .{ 0, 0, 0 },
+            .initial => LS.widthsFor(.initial, geometry.ls_fused_pairs),
+            .terminal => LS.widthsFor(.terminal, geometry.ls_fused_pairs),
             .selection => .{ 6, 2, 8 },
         };
         const log = switch (role) {

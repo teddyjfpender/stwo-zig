@@ -106,7 +106,7 @@ pub const Components = struct {
                         .terminal => claims.terminal,
                         .selection => .{ .ram = Q.zero(), .owner = Q.zero(), .range16 = Q.zero(), .range8 = Q.zero(), .selection = claims.selectiontable },
                         else => unreachable,
-                    }, .challenges = ch.memory };
+                    }, .challenges = ch.memory, .pairs = if (materials.geometry.ls_fused_pairs and shape.role != .selection) ch.and_ else null };
                     switch (shape.role) {
                         .ls => result.ls = component,
                         .ls_tail => result.ls_tail = component,

@@ -129,6 +129,11 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
         channel.mixU32s(&.{ 0x4d554c50, PL.INTERACTION, PL.CONSTRAINTS, PL.PAIR_QUERIES });
         digest(channel, PL.identity());
     }
+    if (materials.geometry.ls_fused_pairs) {
+        const LF = A.memory.load_store_v2.layout.fused;
+        channel.mixU32s(&.{ 0x4c534650, LF.INTERACTION, LF.LS_CONSTRAINTS, LF.BOUND_INTERACTION, LF.BOUND_CONSTRAINTS });
+        digest(channel, A.memory.load_store_v2.layout.fusedPairsIdentity());
+    }
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);
     B.shift_word_packed_experiment.lookup.encoding.mix(channel);

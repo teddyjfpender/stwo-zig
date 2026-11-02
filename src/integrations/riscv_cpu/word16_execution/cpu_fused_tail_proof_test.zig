@@ -233,7 +233,7 @@ test "fused-tail CPU: legacy and fused receivers reject each other's proofs; leg
     // the exact bundle.json formatting.
     const Historical = comptime blk: {
         const fields = std.meta.fields(Mat.Geometry);
-        var out: [fields.len - 3]std.builtin.Type.StructField = undefined;
+        var out: [fields.len - 4]std.builtin.Type.StructField = undefined;
         var i: usize = 0;
         for (fields) |field| if (!Mat.Geometry.isLayoutFlag(field.name)) {
             out[i] = field;

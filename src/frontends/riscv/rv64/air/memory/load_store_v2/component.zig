@@ -33,6 +33,10 @@ pub fn ComponentFor(comptime C: type) type {
         offsets: [3]usize,
         claims: T.ClaimsFor(C),
         challenges: T.ChallengesFor(C),
+        /// Opt-in fused-pair layout (Geometry.ls_fused_pairs, L.fused): the AND
+        /// relation challenges of the tagged byte pairs. Null keeps the
+        /// historical layout, constraints and transcript byte-for-byte.
+        pairs: ?@import("../../providers/tables.zig").ChallengesFor(C) = null,
         const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn asProverComponent(self: *const Self) cp.ComponentProver {
             var result = Adapter.asProverComponent(self);
@@ -50,10 +54,13 @@ pub fn ComponentFor(comptime C: type) type {
             return Adapter.asVerifierComponent(self);
         }
         pub fn widths(self: *const Self) [3]usize {
-            return L.widths(self.kind);
+            return L.widthsFor(self.kind, self.pairs != null);
         }
         pub fn nConstraints(self: *const Self) usize {
-            return L.constraints(self.kind);
+            return L.constraintsFor(self.kind, self.pairs != null);
+        }
+        pub fn previousInter(self: *const Self, c: usize) bool {
+            return L.previousInterForLayout(self.kind, self.pairs != null, c);
         }
         pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
             return self.log_size + 1;
@@ -67,7 +74,11 @@ pub fn ComponentFor(comptime C: type) type {
         }
         pub fn emitFor(self: *const Self, comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, sink: *E.SinkFor(F)) void {
             comptime if (E.ConstFor(F) != C) @compileError("load/store component lane mismatch");
-            if (comptime C == Q) {
+            if (self.pairs) |pairs| {
+                const nonempty = if (comptime C == Q) E.qFor(F, @intFromBool(self.rows != 0)) else self.rows_nonzero orelse @panic("missing admitted load/store count flag");
+                const rows = if (comptime C == Q) E.qFor(F, self.rows) else self.rows;
+                Eq.emitFusedWithPublicFor(F, self.kind, f, m, pm, i, pi, rows, nonempty, self.claims, self.challenges, pairs, sink);
+            } else if (comptime C == Q) {
                 Eq.emitFor(F, self.kind, f, m, pm, i, pi, self.rows, self.claims, self.challenges, sink);
             } else {
                 const nonempty = self.rows_nonzero orelse @panic("missing admitted load/store count flag");
@@ -99,7 +110,7 @@ pub fn ComponentFor(comptime C: type) type {
                 n += 1;
             }
             for (1..3) |tree| for (masks[tree], 0..) |*data, c| {
-                if (if (tree == 1) L.previousMainFor(self.kind, c) else L.previousInterFor(self.kind, c)) {
+                if (if (tree == 1) L.previousMainFor(self.kind, c) else self.previousInter(c)) {
                     const replacement = try a.dupe(Point, &.{ point, geometry.previousPoint(point, global_log) });
                     a.free(data.*);
                     data.* = replacement;
@@ -127,7 +138,7 @@ pub fn ComponentFor(comptime C: type) type {
                 if (prior) pm[c] = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 1, 2);
             }
             for (inter[0..widths_[2]], 0..) |*v, c| {
-                const prior = L.previousInterFor(self.kind, c);
+                const prior = self.previousInter(c);
                 v.* = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 0, if (prior) 2 else 1);
                 if (prior) pi[c] = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 1, 2);
             }

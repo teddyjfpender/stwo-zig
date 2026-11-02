@@ -171,7 +171,12 @@ pub const Source = struct {
         try addCounts(c16, memory.counts16);
         if (!g.omit_empty_division) try addCounts(c16, division.counts16);
         if (!g.mul_u8_pairs) try addCounts(c8, &multiplication.byte_counts);
-        try addCounts(c8, memory.counts8);
+        if (g.ls_fused_pairs) {
+            // LS fused-pair mode: the four U8 queries per row become two AND-relation pairs.
+            const out = pair_counts orelse return error.InvalidLsPairGeometry;
+            try memory.ls.addBytePairCounts(out);
+            if (memory.ls_tail) |*tail| try tail.addBytePairCounts(out);
+        } else try addCounts(c8, memory.counts8);
         count_stage.end();
         var range16 = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_range16", "U16 multiplicities");
@@ -335,6 +340,7 @@ pub const Source = struct {
         const memory = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_memory", "LS INIT TEARDOWN and selection interactions");
             defer stage.end();
+            if (self.materials.geometry.ls_fused_pairs) break :block try self.memory.generatePairsProfiled(ch.memory, self.range16.dictionary, self.and_table.pair_dictionary, recorder);
             break :block try self.memory.generateProfiled(ch.memory, self.range16.dictionary, self.range8.dictionary, recorder);
         };
         const tails = try self.tails.generate(ch, self.range16.dictionary, self.shift_table.dictionary, recorder);

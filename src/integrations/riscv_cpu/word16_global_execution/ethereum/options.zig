@@ -28,7 +28,7 @@ pub const Options = struct {
     /// the declared Geometry and transcript; admitProfile refuses them off v3.
     layout: Layout = .{},
     layout_set: bool = false,
-    pub const Layout = struct { mul_u8_pairs: bool = false };
+    pub const Layout = struct { mul_u8_pairs: bool = false, ls_fused_pairs: bool = false };
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
