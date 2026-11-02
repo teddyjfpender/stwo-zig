@@ -63,11 +63,10 @@ test "streamed metadata child is byte equal with physical terminal binding and c
     try std.testing.checkAllAllocationFailures(a, streamedLifecycle, .{});
 }
 test "streamed metadata selection defaults off rejects malformed policy and independently selects dense or checkpoint upper storage" {
-    try std.testing.expect(!try Child.parseStreamBottom(null, true));
-    try std.testing.expect(!try Child.parseStreamBottom("0", false));
-    try std.testing.expect(try Child.parseStreamBottom("1", true));
-    try std.testing.expect(try Child.parseStreamBottom("1", false));
-    try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("2", true));
-    try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("yes", true));
+    try std.testing.expect(!try Child.parseStreamBottom(null));
+    try std.testing.expect(!try Child.parseStreamBottom("0"));
+    try std.testing.expect(try Child.parseStreamBottom("1"));
+    try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("2"));
+    try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("yes"));
     try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.Unbound.proveTimedWithPolicy(a, 0, scope, &instances, Metadata{}, .{ .stream_bottom = true }, null));
 }

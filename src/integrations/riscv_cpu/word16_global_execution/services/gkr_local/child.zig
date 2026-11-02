@@ -95,7 +95,7 @@ pub fn parseTightAdmission(value: ?[]const u8) !bool {
     if (std.mem.eql(u8, text, "1")) return true;
     return error.InvalidGkrTightAdmissionPolicy;
 }
-pub fn parseStreamBottom(value: ?[]const u8, _: bool) !bool {
+pub fn parseStreamBottom(value: ?[]const u8) !bool {
     const text = value orelse return false;
     if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
     if (!std.mem.eql(u8, text, "1")) return error.InvalidGkrStreamBottomPolicy;
@@ -114,7 +114,7 @@ pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
         else => return err,
     };
     defer if (stream) |v| a.free(v);
-    const streaming = try parseStreamBottom(stream, cp);
+    const streaming = try parseStreamBottom(stream);
     return .{ .checkpointed = cp, .tight_admission = cp or tight or streaming, .stream_bottom = streaming };
 }
 
