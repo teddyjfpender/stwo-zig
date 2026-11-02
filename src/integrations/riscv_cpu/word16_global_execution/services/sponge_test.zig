@@ -81,3 +81,55 @@ test "v3 Keccak sponge adversarial: wrong permutation input fails IO11, forged a
         try std.testing.expectError(case.err, E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle));
     }
 }
+
+test "v3 Keccak sponge with the throughput Keccak-f truth: fresh keys and wire verify; compact receiver and forged IO reject" {
+    var c = try F.Case.initPolicy(a, .none, false, .throughput_v1);
+    defer c.deinit();
+    const keys = c.keys();
+    var buffer: [2]R.Truth = undefined;
+    try E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle);
+    // The wire names the profile in the truth's second log word (21).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try W.write(a, tmp.dir, &keys, c.truths(&buffer), &c.bundle);
+    var loaded = try W.read(a, tmp.dir, .{ .max_cpus = 2, .max_truths = 1, .max_total_steps = F.STEPS });
+    defer loaded.deinit(a);
+    try std.testing.expectEqual(@as(u32, 21), loaded.truth_declarations[0].logs[1]);
+    try std.testing.expectEqual(KR.TruthSetup.Policy.throughput_v1, try W.keccakPolicy(loaded.truth_declarations[0].logs[1]));
+    var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[0].geometry, F.BRIDGES[0]);
+    defer s0.deinit();
+    var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[1].geometry, F.BRIDGES[1]);
+    defer s1.deinit();
+    var kt = try KR.TruthSetup.initPolicy(a, F.KECCAK_LOG, @import("../keccak/shared/key.zig").Key.Suite.production(), .throughput_v1);
+    defer kt.deinit();
+    const fresh = [_]R.Truth{.{ .keccak = .{ .setup = &kt, .first_id = 1, .calls = F.KECCAK_IDS } }};
+    try E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle);
+    // A compact-profile receiver (different fixed tables, transcript identity
+    // and interaction width) refuses the throughput truth proof.
+    var compact = try KR.TruthSetup.init(a, F.KECCAK_LOG);
+    defer compact.deinit();
+    try std.testing.expect(!std.mem.eql(u8, &compact.key.root, &kt.key.root));
+    const wrong = [_]R.Truth{.{ .keccak = .{ .setup = &compact, .first_id = 1, .calls = F.KECCAK_IDS } }};
+    try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &wrong, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    // A tampered truth claim no longer balances IO11.
+    loaded.bundle.truths[0].claims[1] = loaded.bundle.truths[0].claims[1].add(G.Q.one());
+    try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    // Exact committed cells of the truth proof (cost.json computation:
+    // MAIN + INTERACTION column logs), throughput vs compact at this log.
+    var cells: [2]u64 = @splat(0);
+    for ([_]*const KR.TruthSetup{ &compact, &kt }, &cells) |setup, *out| for (1..3) |tree| {
+        const logs = try setup.logs(a, tree);
+        defer a.free(logs);
+        for (logs) |l| out.* += @as(u64, 1) << @intCast(l);
+    };
+    try std.testing.expectEqual(@as(u64, (1923 + 2596) * 128 + 5 * (8192 + 1024)), cells[0]);
+    try std.testing.expectEqual(@as(u64, (1923 + 608) * 128 + 5 * ((1 << 21) + (1 << 16))), cells[1]);
+}
+
+test "v3 Keccak sponge throughput adversarial: wrong permutation input fails IO11" {
+    var c = try F.Case.initPolicy(a, .wrong_truth_input, false, .throughput_v1);
+    defer c.deinit();
+    const keys = c.keys();
+    var buffer: [2]R.Truth = undefined;
+    try std.testing.expectError(error.UnclosedCombinedKeccakIo, E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle));
+}

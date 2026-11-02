@@ -141,6 +141,7 @@ pub fn addProduct(context: Context) void {
         .{ "keccak", "src/integrations/riscv_cpu/delegations/keccak/test_root.zig", 54 },
         .{ "keccak-pair2n", "src/integrations/riscv_cpu/delegations/keccak/pair2n_test_root.zig", 12 },
         .{ "keccak-quartet", "src/integrations/riscv_cpu/delegations/keccak/quartet_test_root.zig", 6 },
+        .{ "keccak-throughput", "src/integrations/riscv_cpu/rv64_keccak_throughput_test_root.zig", 9 },
         .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },

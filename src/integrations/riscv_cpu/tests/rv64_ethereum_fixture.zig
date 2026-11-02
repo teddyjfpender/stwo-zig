@@ -96,6 +96,8 @@ pub const Fixture = struct {
                         si += 1;
                         for (0..call.wordCount()) |lane| mem_clocks[@intCast((call.pointer - pointer) / 8 + lane)] = @intCast(4 * call.clock);
                     },
+                    // This fixture runs a v2 program: v3 service events never occur.
+                    else => return error.UnexpectedV3ServiceEvent,
                 }
                 break :blk event.retirement();
             };

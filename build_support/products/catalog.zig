@@ -167,6 +167,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-keccak", .description = "Prove concrete RV64 Keccak permutation providers", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-keccak-pair2n", .description = "Explicit strict-pair degree-three Keccak prototype", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-keccak-quartet", .description = "Qualify experimental degree-five quartet Keccak", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-keccak-throughput", .description = "Qualify throughput-v1 Keccak (2^21/2^16 RV32 tables) and its forgeries", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-poseidon-simd", .description = "Qualify shared Poseidon SIMD domain equations", .scope = .riscv_cpu },
     .{ .name = "rv64-closed-ram-fixture", .description = "Build durable experimental closed RAM finite-image proof", .scope = .riscv_cpu },
     .{ .name = "rv64-om-retention-plan", .description = "Shape-only OM GKR retained admission accounting", .scope = .riscv_cpu },

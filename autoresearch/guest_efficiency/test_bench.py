@@ -352,5 +352,21 @@ class Elf(unittest.TestCase):
         self.assertEqual(res["buckets"]["unattributed"]["instructions"], 3)
 
 
+class KeccakProfileCoefficientTest(unittest.TestCase):
+    def test_v3_uses_throughput_coefficient_v2_keeps_frozen(self):
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 0.0, "keccak_cells_per_call": 100.0,
+                                "keccak_cells_per_call_v3": 60.0, "secp_cells_per_call": 0.0, "composition_fraction": 0.0}}
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0), 200.0)
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0, profile="ethereum_services_v2"), 200.0)
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0, profile="ethereum_services_v3"), 120.0)
+        del cal["coefficients"]["keccak_cells_per_call_v3"]
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0, profile="ethereum_services_v3"), 200.0)
+
+    def test_frozen_calibration_keeps_v2_coefficient(self):
+        c = CAL["coefficients"]
+        self.assertAlmostEqual(c["keccak_cells_per_call"], 72159.27004720572)
+        self.assertLess(c["keccak_cells_per_call_v3"], c["keccak_cells_per_call"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

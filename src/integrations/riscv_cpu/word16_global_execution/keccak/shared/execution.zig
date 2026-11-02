@@ -131,7 +131,9 @@ fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridge: *co
     return out;
 }
 pub fn truthComponents(setup: *const R.TruthSetup, first_id: u32, calls: u32, ch: K.equations.Challenges, claims: [3]Q) [3]K.component.Component {
-    return .{ .{ .kind = .permutation, .log_size = setup.log, .calls = calls, .first_call_id = first_id, .challenges = ch, .claim = claims[0] }, .{ .kind = .chi, .log_size = 13, .offsets = .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .interaction = K.layout.INTERACTION }, .challenges = ch, .claim = claims[1] }, .{ .kind = .xor5, .log_size = 10, .offsets = .{ .fixed = K.layout.FIXED + 7, .main = K.layout.MAIN + 1, .interaction = K.layout.INTERACTION + 4 }, .challenges = ch, .claim = claims[2] } };
+    const p = setup.policy;
+    const inter = p.interactionCount();
+    return .{ .{ .kind = .permutation, .log_size = setup.log, .calls = calls, .first_call_id = first_id, .challenges = ch, .claim = claims[0], .policy = p }, .{ .kind = .chi, .log_size = p.tableLog(.chi), .offsets = .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .interaction = inter }, .challenges = ch, .claim = claims[1], .policy = p }, .{ .kind = .xor5, .log_size = p.tableLog(.xor5), .offsets = .{ .fixed = K.layout.FIXED + 7, .main = K.layout.MAIN + 1, .interaction = inter + 4 }, .challenges = ch, .claim = claims[2], .policy = p } };
 }
 /// Bounded qualification harness: coordinator retains several PCS owners here.
 /// No claim of fitting arbitrary execution fanout in one process is made.
@@ -214,6 +216,9 @@ fn produceInternal(a: std.mem.Allocator, setups: []const *const R.CpuSetup, trut
     defer for (truth_workers[0..truth_done]) |*w| w.deinit(a);
     for (truths, truth_workers, 0..) |t, *w, index| {
         const begin: usize = t.first_id - 1;
+        // This protocol's transcript binds the compact 13/10 table geometry;
+        // the throughput profile is admitted only by the services lane.
+        if (t.setup.policy != .triple_v2) return error.UnsupportedSharedTruthPolicy;
         var ts = try R.TruthSource.initSpan(a, inputs[begin..][0..t.calls], t.first_id, t.setup.log);
         errdefer ts.deinit();
         var scheme = try G.T.Scheme.init(a, G.T.P.config());
@@ -382,6 +387,7 @@ fn verifyInternal(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth
         var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
         var owns = true;
         defer if (owns) proof.deinit(a);
+        if (t.setup.policy != .triple_v2) return error.UnsupportedSharedTruthPolicy;
         try checkRoots(proof, t.setup.key.root, &bundle.manifest, setups.len + index);
         var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, G.T.P.config());
         defer verifier.deinit(a);
