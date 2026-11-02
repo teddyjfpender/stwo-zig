@@ -53,3 +53,9 @@ The first block attempt found an obsolete V2-only guard in truth retention
 planning. The correction validates the selected Keccak policy and uses its
 actual table sizes and pair-row geometry. `initial-retention-guard-rejected.log`
 retains that failure; `producer.log` records the successful run.
+
+Final integration check: PR308 through `57c541894` is merged. The runtime at
+`167e1b887` freshly accepts both complete V3 and unchanged V2 bundles and derives
+the same V3 source bounds. The V3 ReleaseSafe suite passes after that merge.
+The separately registered admission mutation test rejects all five unqualified
+classic layout flags, including compact decode. See `latest-*.json/log`.
