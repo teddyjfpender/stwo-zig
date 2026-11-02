@@ -39,8 +39,9 @@ operand slot, AUIPC/JAL folded to static constants, LS offset as (low16,
 sign)). Measured on the same freshly verified 4-packet prefix: CPU native cells
 2,401,629,856 -> 2,233,857,696 (-167,772,160 = 4 x 10 x 2^22, -10.000
 cells/instruction); basket 3.283 instr/gas, 40,336 -> 38,209 bits/gas before
-the secp row-truth merge, 37,073 -> 34,946 with it (re-proved and freshly
-verified on the merged tree).
+the secp row-truth merge, 37,073 -> 34,946 with it, and 34,171 with the
+throughput_r27_v1 Keccak truth merged as well (the prefix was re-proved and
+freshly verified on each merged tree: CPU cells 2,233,857,696 every time).
 
 Open items:
 - Complete-block proof of the final client (calibration uses a 4-packet prefix; curve and sha256 costs are fixture/older values).
