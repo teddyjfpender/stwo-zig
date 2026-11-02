@@ -1,0 +1,26 @@
+{
+  "schema": "rv64-classic-packed-inline-v1",
+  "base": "85add4adf",
+  "scope": "Four nativeOM-only packed full-product callsites useexistingconcreteinlineauthority; Q/general/scalar/tail pathsunchanged",
+  "known_packed_implementations_already_ancestor": {
+    "6d795d827": true,
+    "6308b0802": true,
+    "9302378eb": false
+  },
+  "tests": {
+    "classic_witness_ReleaseSafe": 8,
+    "classic_witness_ReleaseFast": 8,
+    "coverage": "allcells/claims vsuntouchedserial, 1/3/7/16workers,640inversecatalog, strictpoles includingzeroweights, allOOM, mixedbase/secure andscalar tails"
+  },
+  "compiled_caller_audit": {
+    "old_generic_packed_mul_calls": 4,
+    "old_callers": {
+      "classic_witness_numeric.batchInverse": 3,
+      "classic_witness_numeric.contributions": 1
+    },
+    "new_generic_packed_mul_calls": 0
+  },
+  "actual_service_AB_pending": true,
+  "whole_block_speedup_claim": false,
+  "whole_protocol_128": false
+}
