@@ -13,6 +13,8 @@ classic local argument by the current16-column authenticated GKR Eq/prefix
 binding would retain20,328,448 cells and save3,107,110,912 cells, **17.7939% of
 all17,461,658,112 MAIN+INTER cells**. Global arguments and MAIN are unchanged.
 This would reduce total cells by about1.216x, not a several-fold full-prover gain.
+The intrinsic1.196billion fact reductions add numerical GKR work; no cell-count
+projection establishes a wall-time multiplier without matched full proof runs.
 
 | Role | Local queries / physical row | Classic OM8 columns | GKR binding columns | Padded lanes |
 | --- | ---: | ---: | ---: | ---: |
@@ -66,7 +68,13 @@ current truth adapter does not implement the CPU streamed path or its qualified
 exact-cap lifecycle. CPU `source_inputs.Reader` has an explicit128-lane row sink;
 truth1920 cannot be routed through it by weakening validation. Truth needs its
 own bounded original-authority range source, query framing and checked plan,
-with no all-tuple planes or silent dense fallback. The existing raw truth
+with no all-tuple planes or silent dense fallback. Critically, the current CPU
+source reader emits an entire <=128-query row for each64-fact requested span.
+Merely enlarging that row to1920 would repeat the complete Keccak query emission
+about32 times per padded2048-lane row. Truth needs `emitRange` / event-index tuple
+projection, reading each requested CHI/XOR5 tuple directly from retained packed
+state/parity getters. It must not re-emit the whole row or reconstruct expanded
+MAIN to answer a64-fact span. The existing raw truth
 `Inputs.init` is a dense allocation path and its old admission must be replaced
 only alongside a newly qualified resource contract.
 
