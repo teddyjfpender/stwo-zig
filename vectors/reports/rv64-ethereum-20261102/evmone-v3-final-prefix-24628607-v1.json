@@ -1,0 +1,1354 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-exact-prefix-receipt.v1",
+ "date": "2026-11-02",
+ "what": "Exact committed cells (cost.json/roster.json) of a produced and freshly verified Word16 4-packet prefix proof of block 24,628,607 with the PR #308 head evmone v3 client (sha, arith, mem, umem, keccak sponge, jumpdest, bn, bls; throughput Keccak-f truth), compared with the calibration.json proxy coefficients; plus the basket bits/gas bench.py would report with the measured coefficients. calibration.json is NOT edited here.",
+ "code": {
+  "worktree_head": "2f80736fe75fdcc139b604691fd3f704aa9bea0b",
+  "branch": "codex/rv64-ge-curves at 2f80736fe (the PR head when the run was dispatched)",
+  "binaries": {
+   "rv64-ethereum-proof": "cabcf8f4c3430fcd6ea5045ebf322ff06c7e1c8f0a348a5f18af35b32cfc3091",
+   "rv64-word16-ethereum": "2f4662f7d15b2311c4001928ddbb578614bc7ea4f20c9cd5a92ef67163deed52"
+  },
+  "build": "zig build rv64-ethereum-proof rv64-word16-ethereum -Doptimize=ReleaseFast (Zig 0.15.2)"
+ },
+ "client": {
+  "elf": "ge-cache/verify-curves/evm/client-evmone-v3.elf",
+  "elf_sha256": "6f2f88424cddb8226c1ec781fedae558f61898b2ad119d817bbac4b071a16bc1",
+  "note": "build.py --profile v3 default set (defines ADMITTED_V3 SHA ARITH MEM UMEM KECCAK JUMPDEST BN BLS); build manifest identical to the bench ELF 15f2ff6b... except artifact path/sha (path-dependent bytes)",
+  "terminal_pc": 525288,
+  "terminal_pc_derivation": "address of the 'j .' (0x0000006f) spin after stwo_heap_used in stwo_guest_main (llvm-objdump), as rv64_ethereum_request.zig requires",
+  "heap_start": 46298448
+ },
+ "input": {
+  "canonical": "ge-cache/blocks/24628607/canonical-input.ssz",
+  "adapter": "client_evmone/adapter.py --host-binary verify-curves client-evmone-host",
+  "adapted_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114"
+ },
+ "request": {
+  "elf": "/Users/theodorepender/Coding/ge-cache/verify-curves/evm/client-evmone-v3.elf",
+  "elf_sha256": "6f2f88424cddb8226c1ec781fedae558f61898b2ad119d817bbac4b071a16bc1",
+  "input": "/Users/theodorepender/Coding/ge-cache/measure/adapted-input.bin",
+  "input_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "symbols": {
+   "input_start": 8388608,
+   "input_end": 25165824,
+   "output_data": 25165832,
+   "output_len": 25165828,
+   "halt_flag": 25165824,
+   "heap_start": 46298448,
+   "heap_end": 268435456,
+   "stack_top": 46137344,
+   "stack_bottom": 29360128,
+   "output_end": 29360128
+  },
+  "execution_profile": "ethereum_services_v3",
+  "max_steps": 100000000,
+  "output_directory": "/Users/theodorepender/Coding/ge-cache/measure/native",
+  "terminal_pc": 525288,
+  "batch_steps": 4194303,
+  "workers": 0
+ },
+ "native_prepare": {
+  "collected_batches": 7,
+  "instructions": 26894777,
+  "completed": true,
+  "batch_steps": 4194303,
+  "bench_row_instructions": 26894760
+ },
+ "prefix": {
+  "packets": 4,
+  "of": 7,
+  "retired_instructions": 16777212,
+  "fraction_of_block": 0.6238092994784824,
+  "cpu_proofs": 4,
+  "truth_proofs": 6,
+  "cells_sha256": [
+   213,
+   106,
+   18,
+   0,
+   181,
+   128,
+   56,
+   165,
+   104,
+   205,
+   92,
+   16,
+   6,
+   241,
+   201,
+   136,
+   232,
+   10,
+   105,
+   175,
+   128,
+   145,
+   9,
+   85,
+   142,
+   130,
+   63,
+   207,
+   27,
+   249,
+   15,
+   102
+  ],
+  "truth_declarations": [
+   {
+    "family": "keccak",
+    "first_id": 1,
+    "calls": 18078,
+    "logs": [
+     18,
+     21
+    ]
+   },
+   {
+    "family": "keccak",
+    "first_id": 18079,
+    "calls": 4307,
+    "logs": [
+     16,
+     21
+    ]
+   },
+   {
+    "family": "add",
+    "first_id": 1,
+    "calls": 1080,
+    "logs": [
+     15,
+     15
+    ]
+   },
+   {
+    "family": "double",
+    "first_id": 1,
+    "calls": 1001,
+    "logs": [
+     14,
+     13
+    ]
+   },
+   {
+    "family": "sha256",
+    "first_id": 1,
+    "calls": 1,
+    "logs": [
+     5,
+     0
+    ]
+   },
+   {
+    "family": "arith256_mod",
+    "first_id": 1,
+    "calls": 232,
+    "logs": [
+     8,
+     0
+    ]
+   }
+  ]
+ },
+ "commands": [
+  "memguard run --gb 4 --label measure-nprep -- rv64-ethereum-proof nativeprepare request.json",
+  "memguard run --gb 15 --label measure-prefix -- rv64-word16-ethereum produce request.json native/jobs prefix4 4   (18 GB was never admittable: memguard requires avail >= N+3 and the host showed ~18 GB available)",
+  "memguard run --gb 4 --label measure-verify -- rv64-word16-ethereum verify-prefix request.json prefix4"
+ ],
+ "verification": {
+  "fresh_verify_prefix_accepted": true,
+  "cpu_proofs": 4,
+  "truth_proofs": 6,
+  "completed_ethereum_block": false
+ },
+ "timing": {
+  "power": "ON BATTERY (pmset: 'Battery Power', 53-56%, discharging) -- AC was not available; timings are indicative only",
+  "machine_load": "load average 1.6-2.9 from other agents; no other memguard job held a reservation while produce ran (memguard used 0/20)",
+  "produce_wall_s": 55.02,
+  "produce_user_s": 240.28,
+  "produce_peak_rss_bytes": 15751577600,
+  "capture_ns": 1791086541,
+  "setup_ns": 1803592542,
+  "prove_ns": 49514487250,
+  "same_process_verify_ns": 269447500,
+  "total_before_report_ns": 53449483416,
+  "verify_prefix_wall_s": 3.13,
+  "verify_prefix_peak_rss_bytes": 2031861760,
+  "verify_ns": 243655167,
+  "verify_load_and_setup_ns": 1916483708,
+  "nativeprepare_wall_s": 6.18
+ },
+ "cell_convention": "MAIN + INTERACTION native cells (column x 2^log), fixed (preprocessed) columns reported separately and excluded from coefficients, as in calibration.json",
+ "totals": {
+  "instructions": 16777212,
+  "cpu_proofs": 4,
+  "truth_proofs": 6,
+  "cpu_fixed": 129801856,
+  "cpu_main": 1538790816,
+  "cpu_interaction": 1139555968,
+  "truth_fixed": 42117728,
+  "truth_main": 658665760,
+  "truth_interaction": 235174144,
+  "v3_service_component_cells": 143515552,
+  "keccak_calls": 1370,
+  "sponge_calls": 3717,
+  "sponge_perms": 21015,
+  "bulk": {
+   "calls": 8810,
+   "copy_words": 194820,
+   "set_words": 250060,
+   "ucopy_rows": 167293,
+   "cmp_calls": 220,
+   "cmp_words": 374,
+   "jump_calls": 82,
+   "jump_rows": 15845
+  },
+  "secp_add_calls": 1080,
+  "secp_double_calls": 1001,
+  "sha256_calls": 1,
+  "arith256_mod_calls": 232,
+  "curve_calls": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "memory_words": 911806
+ },
+ "truths": [
+  {
+   "family": "keccak",
+   "calls": 18078,
+   "logs": [
+    18,
+    21
+   ],
+   "columns": [
+    46,
+    1925,
+    616
+   ],
+   "fixed": 23527424,
+   "main": 506265600,
+   "interaction": 168034304,
+   "max_log": [
+    21,
+    21,
+    21
+   ]
+  },
+  {
+   "family": "keccak",
+   "calls": 4307,
+   "logs": [
+    16,
+    21
+   ],
+   "columns": [
+    46,
+    1925,
+    616
+   ],
+   "fixed": 17235968,
+   "main": 128188416,
+   "interaction": 48496640,
+   "max_log": [
+    21,
+    21,
+    21
+   ]
+  },
+  {
+   "family": "add",
+   "calls": 1080,
+   "logs": [
+    15,
+    15
+   ],
+   "columns": [
+    33,
+    520,
+    400
+   ],
+   "fixed": 983808,
+   "main": 17006848,
+   "interaction": 12847104,
+   "max_log": [
+    15,
+    15,
+    15
+   ]
+  },
+  {
+   "family": "double",
+   "calls": 1001,
+   "logs": [
+    14,
+    13
+   ],
+   "columns": [
+    33,
+    520,
+    400
+   ],
+   "fixed": 369408,
+   "main": 6865152,
+   "interaction": 5670912,
+   "max_log": [
+    14,
+    14,
+    14
+   ]
+  },
+  {
+   "family": "sha256",
+   "calls": 1,
+   "logs": [
+    5,
+    0
+   ],
+   "columns": [
+    3,
+    7409,
+    8
+   ],
+   "fixed": 96,
+   "main": 237088,
+   "interaction": 256,
+   "max_log": [
+    5,
+    5,
+    5
+   ]
+  },
+  {
+   "family": "arith256_mod",
+   "calls": 232,
+   "logs": [
+    8,
+    0
+   ],
+   "columns": [
+    4,
+    401,
+    488
+   ],
+   "fixed": 1024,
+   "main": 102656,
+   "interaction": 124928,
+   "max_log": [
+    8,
+    8,
+    8
+   ]
+  }
+ ],
+ "roles": {
+  "cpu": {
+   "fixed": 50331648,
+   "main": 788529152,
+   "interaction": 671088640,
+   "native_rows": 16777216,
+   "active_rows": 16777212,
+   "logs": [
+    22,
+    22,
+    22,
+    22
+   ],
+   "columns": [
+    3,
+    47,
+    40
+   ]
+  },
+  "rom": {
+   "fixed": 33554432,
+   "main": 1048576,
+   "interaction": 8388608,
+   "native_rows": 1048576,
+   "active_rows": 0,
+   "logs": [
+    18,
+    18,
+    18,
+    18
+   ],
+   "columns": [
+    32,
+    1,
+    8
+   ]
+  },
+  "boundary": {
+   "fixed": 4352,
+   "main": 0,
+   "interaction": 1024,
+   "native_rows": 128,
+   "active_rows": 0,
+   "logs": [
+    5,
+    5,
+    5,
+    5
+   ],
+   "columns": [
+    34,
+    0,
+    8
+   ]
+  },
+  "alu": {
+   "fixed": 2097152,
+   "main": 49283072,
+   "interaction": 33554432,
+   "native_rows": 1048576,
+   "active_rows": 1048576,
+   "logs": [
+    18,
+    18,
+    18,
+    18
+   ],
+   "columns": [
+    2,
+    47,
+    32
+   ]
+  },
+  "binary": {
+   "fixed": 655360,
+   "main": 9502720,
+   "interaction": 7864320,
+   "native_rows": 327680,
+   "active_rows": 286989,
+   "logs": [
+    17,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    2,
+    29,
+    24
+   ]
+  },
+  "shift": {
+   "fixed": 458752,
+   "main": 11927552,
+   "interaction": 6422528,
+   "native_rows": 229376,
+   "active_rows": 207512,
+   "logs": [
+    16,
+    16,
+    16,
+    15
+   ],
+   "columns": [
+    2,
+    52,
+    28
+   ]
+  },
+  "jalr": {
+   "fixed": 524288,
+   "main": 4456448,
+   "interaction": 3145728,
+   "native_rows": 262144,
+   "active_rows": 160022,
+   "logs": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    2,
+    17,
+    12
+   ]
+  },
+  "division": {
+   "fixed": 15360,
+   "main": 399360,
+   "interaction": 307200,
+   "native_rows": 5120,
+   "active_rows": 3833,
+   "logs": [
+    11,
+    10,
+    10,
+    10
+   ],
+   "columns": [
+    3,
+    78,
+    60
+   ]
+  },
+  "multiplication": {
+   "fixed": 786432,
+   "main": 22806528,
+   "interaction": 52428800,
+   "native_rows": 262144,
+   "active_rows": 221740,
+   "logs": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    3,
+    87,
+    200
+   ]
+  },
+  "shift_table": {
+   "fixed": 4718592,
+   "main": 4194304,
+   "interaction": 9437184,
+   "native_rows": 262144,
+   "active_rows": 0,
+   "logs": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    18,
+    16,
+    36
+   ]
+  },
+  "and_table": {
+   "fixed": 1310720,
+   "main": 262144,
+   "interaction": 2097152,
+   "native_rows": 262144,
+   "active_rows": 0,
+   "logs": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    5,
+    1,
+    8
+   ]
+  },
+  "range16": {
+   "fixed": 786432,
+   "main": 262144,
+   "interaction": 2097152,
+   "native_rows": 262144,
+   "active_rows": 0,
+   "logs": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    3,
+    1,
+    8
+   ]
+  },
+  "range8": {
+   "fixed": 3072,
+   "main": 1024,
+   "interaction": 8192,
+   "native_rows": 1024,
+   "active_rows": 0,
+   "logs": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "columns": [
+    3,
+    1,
+    8
+   ]
+  },
+  "ls": {
+   "fixed": 18874368,
+   "main": 440401920,
+   "interaction": 201326592,
+   "native_rows": 6291456,
+   "active_rows": 5257167,
+   "logs": [
+    20,
+    20,
+    21,
+    21
+   ],
+   "columns": [
+    3,
+    70,
+    32
+   ]
+  },
+  "initial": {
+   "fixed": 3146016,
+   "main": 14681408,
+   "interaction": 8389376,
+   "native_rows": 1048672,
+   "active_rows": 911806,
+   "logs": [
+    20,
+    5,
+    5,
+    5
+   ],
+   "columns": [
+    3,
+    14,
+    8
+   ]
+  },
+  "terminal": {
+   "fixed": 3146016,
+   "main": 14681408,
+   "interaction": 8389376,
+   "native_rows": 1048672,
+   "active_rows": 911806,
+   "logs": [
+    5,
+    5,
+    5,
+    20
+   ],
+   "columns": [
+    3,
+    14,
+    8
+   ]
+  },
+  "selection": {
+   "fixed": 1572864,
+   "main": 524288,
+   "interaction": 2097152,
+   "native_rows": 262144,
+   "active_rows": 0,
+   "logs": [
+    16,
+    16,
+    16,
+    16
+   ],
+   "columns": [
+    6,
+    2,
+    8
+   ]
+  },
+  "ls_tail": {
+   "fixed": 3145728,
+   "main": 73400320,
+   "interaction": 33554432,
+   "native_rows": 1048576,
+   "active_rows": 984094,
+   "logs": [
+    19,
+    19,
+    null,
+    null
+   ],
+   "columns": [
+    3,
+    70,
+    32
+   ]
+  },
+  "alu_tail": {
+   "fixed": 786432,
+   "main": 18481152,
+   "interaction": 12582912,
+   "native_rows": 393216,
+   "active_rows": 256682,
+   "logs": [
+    17,
+    16,
+    17,
+    16
+   ],
+   "columns": [
+    2,
+    47,
+    32
+   ]
+  },
+  "binary_tail": {
+   "fixed": 40960,
+   "main": 593920,
+   "interaction": 491520,
+   "native_rows": 20480,
+   "active_rows": 13026,
+   "logs": [
+    null,
+    12,
+    14,
+    null
+   ],
+   "columns": [
+    2,
+    29,
+    24
+   ]
+  },
+  "shift_tail": {
+   "fixed": 49152,
+   "main": 1277952,
+   "interaction": 688128,
+   "native_rows": 24576,
+   "active_rows": 14687,
+   "logs": [
+    13,
+    null,
+    null,
+    14
+   ],
+   "columns": [
+    2,
+    52,
+    28
+   ]
+  },
+  "keccak_bridge": {
+   "fixed": 319488,
+   "main": 3514368,
+   "interaction": 6176768,
+   "native_rows": 53248,
+   "active_rows": 34250,
+   "logs": [
+    15,
+    13,
+    13,
+    12
+   ],
+   "columns": [
+    6,
+    66,
+    116
+   ]
+  },
+  "add_bridge": {
+   "fixed": 57344,
+   "main": 960512,
+   "interaction": 1748992,
+   "native_rows": 7168,
+   "active_rows": 6480,
+   "logs": [
+    11,
+    null,
+    10,
+    12
+   ],
+   "columns": [
+    8,
+    134,
+    244
+   ]
+  },
+  "double_bridge": {
+   "fixed": 28672,
+   "main": 480256,
+   "interaction": 874496,
+   "native_rows": 3584,
+   "active_rows": 3003,
+   "logs": [
+    10,
+    null,
+    9,
+    11
+   ],
+   "columns": [
+    8,
+    134,
+    244
+   ]
+  },
+  "sha256_bridge": {
+   "fixed": 256,
+   "main": 4288,
+   "interaction": 7808,
+   "native_rows": 32,
+   "active_rows": 3,
+   "logs": [
+    5,
+    null,
+    null,
+    null
+   ],
+   "columns": [
+    8,
+    134,
+    244
+   ]
+  },
+  "arith256_mod_bridge": {
+   "fixed": 13312,
+   "main": 222976,
+   "interaction": 406016,
+   "native_rows": 1664,
+   "active_rows": 1160,
+   "logs": [
+    9,
+    9,
+    9,
+    7
+   ],
+   "columns": [
+    8,
+    134,
+    244
+   ]
+  },
+  "bn254_g1_add_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "bn254_g1_double_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "bn254_fp2_mul_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "bls12_381_fp2_mul_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "arith384_mont_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "bls12_381_g1_add_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "bls12_381_g1_double_bridge": {
+   "fixed": 0,
+   "main": 0,
+   "interaction": 0,
+   "native_rows": 0,
+   "active_rows": 0,
+   "logs": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "columns": null
+  },
+  "bulk_desc": {
+   "fixed": 36864,
+   "main": 589824,
+   "interaction": 786432,
+   "native_rows": 12288,
+   "active_rows": 8810,
+   "logs": [
+    12,
+    12,
+    11,
+    11
+   ],
+   "columns": [
+    3,
+    48,
+    64
+   ]
+  },
+  "bulk_copy": {
+   "fixed": 688128,
+   "main": 9404416,
+   "interaction": 8257536,
+   "native_rows": 229376,
+   "active_rows": 194820,
+   "logs": [
+    16,
+    16,
+    16,
+    15
+   ],
+   "columns": [
+    3,
+    41,
+    36
+   ]
+  },
+  "bulk_set": {
+   "fixed": 1179648,
+   "main": 9437184,
+   "interaction": 9437184,
+   "native_rows": 393216,
+   "active_rows": 250060,
+   "logs": [
+    18,
+    16,
+    15,
+    15
+   ],
+   "columns": [
+    3,
+    24,
+    24
+   ]
+  },
+  "bulk_ucopy": {
+   "fixed": 823296,
+   "main": 15368192,
+   "interaction": 16465920,
+   "native_rows": 274432,
+   "active_rows": 167293,
+   "logs": [
+    18,
+    12,
+    12,
+    12
+   ],
+   "columns": [
+    3,
+    56,
+    60
+   ]
+  },
+  "bulk_cdesc": {
+   "fixed": 1152,
+   "main": 23424,
+   "interaction": 26112,
+   "native_rows": 384,
+   "active_rows": 220,
+   "logs": [
+    8,
+    5,
+    5,
+    6
+   ],
+   "columns": [
+    3,
+    61,
+    68
+   ]
+  },
+  "bulk_cmp": {
+   "fixed": 1440,
+   "main": 28320,
+   "interaction": 24960,
+   "native_rows": 480,
+   "active_rows": 374,
+   "logs": [
+    8,
+    6,
+    5,
+    7
+   ],
+   "columns": [
+    3,
+    59,
+    52
+   ]
+  },
+  "bulk_jdesc": {
+   "fixed": 384,
+   "main": 5760,
+   "interaction": 7680,
+   "native_rows": 128,
+   "active_rows": 82,
+   "logs": [
+    5,
+    5,
+    5,
+    5
+   ],
+   "columns": [
+    3,
+    45,
+    60
+   ]
+  },
+  "bulk_jscan": {
+   "fixed": 73728,
+   "main": 7053312,
+   "interaction": 5701632,
+   "native_rows": 24576,
+   "active_rows": 15845,
+   "logs": [
+    12,
+    13,
+    13,
+    12
+   ],
+   "columns": [
+    3,
+    287,
+    232
+   ]
+  },
+  "bulk_jtab": {
+   "fixed": 458752,
+   "main": 65536,
+   "interaction": 1048576,
+   "native_rows": 65536,
+   "active_rows": 33792,
+   "logs": [
+    14,
+    14,
+    14,
+    14
+   ],
+   "columns": [
+    7,
+    1,
+    16
+   ]
+  },
+  "sponge_call": {
+   "fixed": 12576,
+   "main": 2909248,
+   "interaction": 1592960,
+   "native_rows": 4192,
+   "active_rows": 3717,
+   "logs": [
+    12,
+    5,
+    5,
+    5
+   ],
+   "columns": [
+    3,
+    694,
+    380
+   ]
+  },
+  "sponge_perm": {
+   "fixed": 98688,
+   "main": 32007808,
+   "interaction": 22632448,
+   "native_rows": 32896,
+   "active_rows": 21015,
+   "logs": [
+    15,
+    5,
+    5,
+    6
+   ],
+   "columns": [
+    3,
+    973,
+    688
+   ]
+  }
+ },
+ "measured": {
+  "cpu_cells_per_instruction": {
+   "value": 151.08775117105273,
+   "frozen": 154.81355455694023,
+   "derivation": "(CPU proofs MAIN 1538790816 + INTER 1139555968 = 2678346784) - v3 service components 143515552 = 2534831232 cells / 16777212 retired = 151.088; includes keccak/secp bridges (as the frozen coefficient does); all-in incl. v3 components 159.642",
+   "ratio_to_frozen": 0.9759336099700678
+  },
+  "keccak_cells_per_call_v3": {
+   "value": 38015.85704712977,
+   "frozen": 41072.02095325111,
+   "derivation": "Keccak-f throughput truth: log18 18078 IDs MAIN 506265600 + INTER 168034304 + log16 4307 IDs MAIN 128188416 + INTER 48496640 = 850984960 / 22385 IDs (1370 direct + 21015 sponge perms) = 38015.9",
+   "ratio_to_frozen": 0.9255901259497331
+  },
+  "secp_cells_per_call": {
+   "value": 20370.02210475733,
+   "frozen": 18934.597441685477,
+   "derivation": "add truth 29853952 / 1080 = 27642.5; double truth 12536064 / 1001 = 12523.5",
+   "ratio_to_frozen": 1.0758096213818462
+  },
+  "keccak_sponge.cells_per_call": {
+   "value": 1211.2477804681193,
+   "frozen": 1409.2986683576412,
+   "derivation": "sponge_call logs [12, 5, 5, 5] 4502208 cells / 3717 calls",
+   "ratio_to_frozen": 0.8594684772388772
+  },
+  "keccak_sponge.perm_row_cells": {
+   "value": 2600.0597668332143,
+   "frozen": 2100.3,
+   "derivation": "sponge_perm logs [15, 5, 5, 6] 54640256 cells / 21015 perms",
+   "ratio_to_frozen": 1.237946848942158
+  },
+  "keccak_sponge.cells_per_permutation": {
+   "value": 40615.916813962984,
+   "frozen": 43172.342801732855,
+   "derivation": "perm row + measured Keccak-f truth per ID",
+   "ratio_to_frozen": 0.9407855626573209
+  },
+  "sha256_compress.cells_per_call": {
+   "value": 249440.0,
+   "frozen": 12615.434677697345,
+   "derivation": "NOT REPRESENTATIVE: 1 call in prefix (log5 minimum truth 237344 + bridge 12096); keep complete-block value",
+   "ratio_to_frozen": 19.772604462134115
+  },
+  "arith256_mod.cells_per_call": {
+   "value": 3692.137931034483,
+   "frozen": 4460.33855799373,
+   "derivation": "truth log8 227584 + bridge 628992 (1160 rows) / 232 calls",
+   "ratio_to_frozen": 0.8277707808564232
+  },
+  "bulk_desc.cells_per_call": {
+   "value": 156.21520998864926,
+   "frozen": 154.28325441239775,
+   "derivation": "bulk_desc 1376256 / 8810 calls (memcpy+memset+unaligned share desc)",
+   "ratio_to_frozen": 1.012522133938706
+  },
+  "memcpy.cells_per_byte": {
+   "value": 11.33222461759573,
+   "frozen": 15.152186289181573,
+   "derivation": "bulk_copy 17661952 / (194820 words x 8)",
+   "ratio_to_frozen": 0.747893696745714
+  },
+  "memset.cells_per_byte": {
+   "value": 9.434919619291371,
+   "frozen": 8.45650054481849,
+   "derivation": "bulk_set 18874368 / (250060 words x 8)",
+   "ratio_to_frozen": 1.1157002319443334
+  },
+  "memcpy_unaligned.cells_per_call": {
+   "value": 346.50477380781683,
+   "frozen": 321.6358791555175,
+   "derivation": "desc 156.2 + one ucopy row 190.3 (layout-tier convention)",
+   "ratio_to_frozen": 1.077320026352765
+  },
+  "memcpy_unaligned.cells_per_byte": {
+   "value": 23.786195477395946,
+   "frozen": 20.91907809288997,
+   "derivation": "bulk_ucopy 31834112 / 167293 rows = 190.29 per row / 8 bytes (same convention as the layout tier; the prefix's unaligned byte count is not in cost.json, so the lead-row share is folded into the per-row average)",
+   "ratio_to_frozen": 1.1370575400968774
+  },
+  "memcmp.cells_per_call": {
+   "value": 225.16363636363636,
+   "frozen": 186.10766027467628,
+   "derivation": "bulk_cdesc 49536 / 220 calls",
+   "ratio_to_frozen": 1.209856896977359
+  },
+  "memcmp.cells_per_byte": {
+   "value": 17.807486631016044,
+   "frozen": 20.017393692334366,
+   "derivation": "bulk_cmp 53280 / (374 examined words x 8)",
+   "ratio_to_frozen": 0.8896006595421759
+  },
+  "jumpdest_bitmap.cells_per_call": {
+   "value": 13750.634146341463,
+   "frozen": 29950.0,
+   "derivation": "(jdesc 13440 + jtab 1114112 [4 CPU proofs x 2^14 x 17]) / 82 calls",
+   "ratio_to_frozen": 0.4591196709963761
+  },
+  "jumpdest_bitmap.jdesc_cells_per_call": {
+   "value": 163.90243902439025,
+   "frozen": 151.5,
+   "derivation": "jdesc 13440 / 82 calls",
+   "ratio_to_frozen": 1.0818642839893746
+  },
+  "jumpdest_bitmap.jtab_cells_per_cpu_proof": {
+   "value": 278528.0,
+   "frozen": 278528.0,
+   "derivation": "jtab 1114112 / 4 CPU proofs (all issued calls); exact match to layout tier",
+   "ratio_to_frozen": 1.0
+  },
+  "jumpdest_bitmap.cells_per_byte": {
+   "value": 12.57784790154623,
+   "frozen": 11.7,
+   "derivation": "bulk_jscan 12754944 / (15845 rows x 64 code bytes)",
+   "ratio_to_frozen": 1.0750297351748914
+  }
+ },
+ "proposed_calibration_patch": {
+  "coefficients": {
+   "cpu_cells_per_instruction": 151.08775117105273,
+   "keccak_cells_per_call_v3": 38015.85704712977
+  },
+  "admitted_services": {
+   "keccak_sponge": {
+    "cells_per_call": 1211.2477804681193,
+    "cells_per_byte": 0.0,
+    "cells_per_permutation": 40615.916813962984
+   },
+   "arith256_mod": {
+    "cells_per_call": 3692.137931034483,
+    "cells_per_byte": 0.0
+   },
+   "memcpy": {
+    "cells_per_call": 156.21520998864926,
+    "cells_per_byte": 11.33222461759573
+   },
+   "memset": {
+    "cells_per_call": 156.21520998864926,
+    "cells_per_byte": 9.434919619291371
+   },
+   "memcpy_unaligned": {
+    "cells_per_call": 346.50477380781683,
+    "cells_per_byte": 23.786195477395946
+   },
+   "memcmp": {
+    "cells_per_call": 225.16363636363636,
+    "cells_per_byte": 17.807486631016044
+   },
+   "jumpdest_bitmap": {
+    "cells_per_call": 29963.90243902439,
+    "cells_per_byte": 12.57784790154623
+   }
+  },
+  "unchanged": {
+   "sha256_compress": "complete-block MEASURED kept (1 call in prefix)",
+   "jumpdest_bitmap.jtab": "jtab per CPU proof measured exactly 278,528 (= layout tier); the per-call basket amortization 29,800 (467 proofs / 4,365 calls) is a basket model and is kept; this block alone amortizes to 13,587/call at 20.5 calls per proof",
+   "curves": "no BN/BLS call in block 24,628,607 (0 curve_calls in the whole block's execution report); fixture-geometry entries stay",
+   "secp_cells_per_call": "frozen v2-era coefficient, not part of this patch (measured value reported)"
+  }
+ },
+ "basket_recomputation": {
+  "result_json": "/Users/theodorepender/Coding/ge-cache/curves/runs/v3curves/result.json",
+  "elf_sha256": "15f2ff6bf6521522b00e4a04dfb92badc3f1038535fbb0feef78de327a6d06df",
+  "frozen": {
+   "scored": 46463.027702836756,
+   "holdout": 40058.703234012835,
+   "all": 45198.7516297546
+  },
+  "measured_patch": {
+   "scored": 45167.63535593448,
+   "holdout": 38955.2520433089,
+   "all": 43941.2503379359
+  },
+  "measured_services_only_frozen_cpu": {
+   "scored": 45960.2126362227,
+   "holdout": 39644.15805314364,
+   "all": 44713.36189895296
+  },
+  "measured_cpu_only_frozen_services": {
+   "scored": 45670.450422548536,
+   "holdout": 39369.7972241781,
+   "all": 44426.64006873754
+  },
+  "scored_bits_per_gas_by_term_frozen": {
+   "cpu": 32932.95252434878,
+   "keccak_sponge": 7689.5679855599,
+   "secp": 3875.915886537769,
+   "keccak_f": 643.8028085912684,
+   "sha256_compress": 372.81524001721544,
+   "memcpy_unaligned": 308.40968210087607,
+   "memcpy": 203.30411243306014,
+   "memset": 139.5957658559056,
+   "jumpdest_bitmap": 96.79953637519893,
+   "bn254_fp2_mul": 78.27778240453638,
+   "arith256_mod": 41.157549776015,
+   "bls12_381_fp2_mul": 28.456718211682073,
+   "arith384_mont": 21.898771511629732,
+   "bn254_g1_double": 20.215176885781926,
+   "bn254_g1_add": 9.09158946166583,
+   "memcmp": 0.7665727654725116
+  },
+  "scored_bits_per_gas_by_term_measured": {
+   "cpu": 32140.37524406056,
+   "keccak_sponge": 7229.544383297952,
+   "secp": 3875.915886537769,
+   "keccak_f": 595.897522690784,
+   "sha256_compress": 372.81524001721544,
+   "memcpy_unaligned": 349.18133296662,
+   "memset": 155.12675201474508,
+   "memcpy": 153.42380862620956,
+   "jumpdest_bitmap": 102.56092221412109,
+   "bn254_fp2_mul": 78.27778240453638,
+   "arith256_mod": 34.069017116229055,
+   "bls12_381_fp2_mul": 28.456718211682073,
+   "arith384_mont": 21.898771511629732,
+   "bn254_g1_double": 20.215176885781926,
+   "bn254_g1_add": 9.09158946166583,
+   "memcmp": 0.7852079169747477
+  }
+ },
+ "caveats": [
+  "Prefix, not complete block: 4 of 7 packets (62.4% of instructions). Truth padding (Keccak log18+log16, secp, arith) and per-shard bridge padding follow the prefix's call counts, so per-call figures for truth-backed services are prefix geometry; the complete block would pad differently.",
+  "sha256: only 1 call in the prefix (minimum log5 truth), 249,440 cells/call is padding, not a cost; the complete-block MEASURED 12,615.4 is kept.",
+  "Curves (BN254/BLS12-381): block 24,628,607 issues no curve call (curve_calls all zero here and in its whole-block execution report), so no curve coefficient can be measured from this block; the FIXTURE GEOMETRY entries stay. A basket block with BN/BLS precompile calls is needed.",
+  "memcpy_unaligned per byte uses ucopy cells / (8 x ucopy rows) (layout-tier convention), because cost.json reports ucopy rows not unaligned bytes; the lead-row share is folded into the per-row average.",
+  "jumpdest: jtab is exactly 278,528 cells per CPU proof (layout tier confirmed); its per-call share is a basket amortization model (kept at 29,800); jdesc/jscan measured.",
+  "cpu_cells_per_instruction: CPU-proof cells minus the v3 service components (sha/arith bridges, bulk desc/copy/set/ucopy/cdesc/cmp/jdesc/jscan/jtab, sponge call/perm, curve bridges); keccak and secp bridges stay inside, as in the frozen coefficient. Instruction mix of the first 62% of this block only.",
+  "Measured client ELF sha 6f2f8842 vs bench ELF 15f2ff6b (same manifest, path-dependent bytes); instruction counts agree to 17 steps (26,894,777 nativeprepare vs 26,894,760 bench)."
+ ],
+ "newer_pr_head_attempt": {
+  "head": "807d0b531 (origin/codex/rv64-guest-efficiency moved during the run: +fused-tail CPU interaction, U8 byte-pair lookups and LS-D64 default on the v3 route, PR #309 merge)",
+  "binaries": "same build command into a separate prefix; nativeprepare re-run: 7 batches, 26,894,777 instructions, completed",
+  "result": "FAILED: `rv64-word16-ethereum produce request.json native/jobs prefix4 4` exits 1 after 5.2 s with `error: InvalidCombinedRangePhase` (services/roster.zig mergeAnd/merge precondition: CPU AND/range tables must be the classic 2^16/2^8 shapes before service multiplicities merge). Same failure with `--no-ls-dword`, so it is the fused-tail/byte-pair layout, not LS-D64, meeting the services lane (sponge byte-AND merge or range merge) on a real block. No exact cells exist for the new default v3 layout until this is fixed.",
+  "consequence": "The CPU figures below are for the pre-fused-tail layout (cpu interaction 40 columns). The new v3 default would commit fewer CPU interaction cells (40 -> 32 columns on the cpu component) once it can prove a real block."
+ }
+}
