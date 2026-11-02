@@ -41,8 +41,13 @@ pub const Layout = struct {
         return (ram != 0 and column >= ram - 8 and column < ram) or (self.otherWidth() != 0 and column >= self.width() - 8);
     }
 };
+pub fn isKio(origin: Frame.Origin) bool {
+    return origin == .sponge or (origin == .bridge and origin.bridge == .keccak);
+}
 pub fn layout(origin: Frame.Origin) Layout {
     return switch (origin) {
+        .dword => .{ .ram_queries = 2 },
+        .sponge => |kind| .{ .ram_queries = @import("sponge_projection.zig").ramTerms(kind), .other_queries = @import("sponge_projection.zig").kioTerms(kind) },
         .bulk => |kind| .{ .ram_queries = @import("bulk_projection.zig").ramTerms(kind) },
         .core => |role| switch (role) {
             .ls, .ls_tail => .{ .ram_queries = 2 },
@@ -56,6 +61,8 @@ pub fn layout(origin: Frame.Origin) Layout {
 /// native metadata generation and authenticated MAIN-mask constraints use it.
 pub fn queriesFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: []const F, sink: anytype) !void {
     switch (origin) {
+        .dword => @import("dword_projection.zig").emitGlobalFor(F, main, sink),
+        .sponge => return error.MissingSpongeFirstId,
         .bulk => |kind| switch (kind) {
             inline else => |k| @import("bulk_projection.zig").emitGlobalFor(F, k, fixed, main, sink),
         },
@@ -93,11 +100,11 @@ pub fn queriesFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main
 pub fn QuerySinkFor(comptime F: type, comptime Shared: type) type {
     return struct {
         shared: *const Shared,
-        ram: [18]E.SecureFor(F) = undefined,
-        ram_weights: [18]F = undefined,
+        ram: [58]E.SecureFor(F) = undefined,
+        ram_weights: [58]F = undefined,
         ram_count: usize = 0,
-        other: [2]E.SecureFor(F) = undefined,
-        other_weights: [2]F = undefined,
+        other: [50]E.SecureFor(F) = undefined,
+        other_weights: [50]F = undefined,
         other_count: usize = 0,
         pub fn emit(self: *@This(), relation: Relation, tuple: anytype, weight: F) void {
             switch (relation) {
@@ -129,8 +136,8 @@ pub fn emitFor(comptime F: type, origin: Frame.Origin, shared: anytype, claims: 
     const ram = l.ramWidth();
     if (l.ram_queries != 0) try G.linearPairsFor(F, queries.ram[0..queries.ram_count], queries.ram_weights[0..queries.ram_count], current[0..ram], previous[0..ram], fixed[1], fixed[2], claims.ram, out);
     if (l.other_queries != 0) {
-        const claim = if (origin.bridge == .keccak) claims.kio else claims.wire;
-        if (l.cleared_other) try G.clearedPairFor(F, queries.other, queries.other_weights, current[ram..], previous[ram..], fixed[1], fixed[2], claim, out) else try G.linearPairsFor(F, &queries.other, &queries.other_weights, current[ram..], previous[ram..], fixed[1], fixed[2], claim, out);
+        const claim = if (isKio(origin)) claims.kio else claims.wire;
+        if (l.cleared_other) try G.clearedPairFor(F, queries.other[0..2].*, queries.other_weights[0..2].*, current[ram..], previous[ram..], fixed[1], fixed[2], claim, out) else try G.linearPairsFor(F, queries.other[0..queries.other_count], queries.other_weights[0..queries.other_count], current[ram..], previous[ram..], fixed[1], fixed[2], claim, out);
     }
 }
 /// Receiver-owned slot roster: absent fields are never free cancellation debt.
@@ -148,14 +155,14 @@ pub fn claimsFromVector(comptime C: type, origin: Frame.Origin, values: []const 
         at += 1;
     }
     if (l.other_queries != 0) {
-        if (origin.bridge == .keccak) out.kio = values[at] else out.wire = values[at];
+        if (isKio(origin)) out.kio = values[at] else out.wire = values[at];
     }
     return out;
 }
 pub fn validateClaims(origin: Frame.Origin, claims: ClaimsFor(@import("stwo_core").fields.om31.OM31)) !void {
     const l = layout(origin);
     if (l.ram_queries == 0 and !claims.ram.isZero()) return error.NonzeroAbsentWideGlobalClaim;
-    const has_k = l.other_queries != 0 and origin == .bridge and origin.bridge == .keccak;
-    const has_wire = l.other_queries != 0 and origin == .bridge and origin.bridge != .keccak;
+    const has_k = l.other_queries != 0 and isKio(origin);
+    const has_wire = l.other_queries != 0 and !isKio(origin);
     if ((!has_k and !claims.kio.isZero()) or (!has_wire and !claims.wire.isZero())) return error.NonzeroAbsentWideGlobalClaim;
 }
