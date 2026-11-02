@@ -38,7 +38,9 @@ Compact decode CPU MAIN (`codex/rv64-ge-decode`, default on v3): CPU MAIN
 operand slot, AUIPC/JAL folded to static constants, LS offset as (low16,
 sign)). Measured on the same freshly verified 4-packet prefix: CPU native cells
 2,401,629,856 -> 2,233,857,696 (-167,772,160 = 4 x 10 x 2^22, -10.000
-cells/instruction); basket 3.283 instr/gas, 40,336 -> 38,209 bits/gas.
+cells/instruction); basket 3.283 instr/gas, 40,336 -> 38,209 bits/gas before
+the secp row-truth merge, 37,073 -> 34,946 with it (re-proved and freshly
+verified on the merged tree).
 
 Open items:
 - Complete-block proof of the final client (calibration uses a 4-packet prefix; curve and sha256 costs are fixture/older values).
