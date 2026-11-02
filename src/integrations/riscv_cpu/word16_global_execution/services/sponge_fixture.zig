@@ -254,6 +254,13 @@ pub const Case = struct {
     }
     /// `policy` selects the Keccak-f truth's lookup profile (v3 throughput or compact).
     pub fn initPolicy(a: std.mem.Allocator, mutation: Mutation, split: bool, policy: KR.TruthSetup.Policy) !Case {
+        return initLayout(a, mutation, split, policy, .{});
+    }
+    /// CPU AIR layout of both shards (the v3 Ethereum route's fused tail and
+    /// byte pairs): the sponge's byte-AND service multiplicities then merge
+    /// into the pair-capable AND table (services/roster.zig mergeAnd).
+    pub const Layout = struct { cpu_fused_tail: bool = false, cpu_u8_pairs: bool = false };
+    pub fn initLayout(a: std.mem.Allocator, mutation: Mutation, split: bool, policy: KR.TruthSetup.Policy, layout: Layout) !Case {
         var captured = try Captured.init(a);
         defer captured.deinit();
         const advice = &captured.advice;
@@ -280,6 +287,8 @@ pub const Case = struct {
             var geometry = try native.geometry();
             geometry.initial_log = BOUNDARY_LOG;
             geometry.terminal_log = BOUNDARY_LOG;
+            geometry.cpu_fused_tail = layout.cpu_fused_tail;
+            geometry.cpu_u8_pairs = layout.cpu_u8_pairs;
             s.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, bridges);
             out.* = s;
             made += 1;

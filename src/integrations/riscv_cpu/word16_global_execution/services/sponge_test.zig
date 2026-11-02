@@ -133,3 +133,106 @@ test "v3 Keccak sponge throughput adversarial: wrong permutation input fails IO1
     var buffer: [2]R.Truth = undefined;
     try std.testing.expectError(error.UnclosedCombinedKeccakIo, E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle));
 }
+
+// Regression (real-block InvalidCombinedRangePhase): the v3 Ethereum route's
+// fused-tail + byte-pair CPU layout puts a second (byte-pair) multiplicity
+// column on the log-16 AND table, and the sponge permutation bridge's byte-AND
+// service multiplicities must still merge into that table.
+test "v3 Keccak sponge with fused-tail and byte-pair CPU layouts: service AND/range multiplicities merge; fresh keys and wire verify" {
+    const layouts = [_]F.Case.Layout{ .{ .cpu_fused_tail = true }, .{ .cpu_fused_tail = true, .cpu_u8_pairs = true } };
+    for (layouts) |layout| {
+        var c = try F.Case.initLayout(a, .none, false, .triple_v2, layout);
+        defer c.deinit();
+        const keys = c.keys();
+        var buffer: [2]R.Truth = undefined;
+        try E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle);
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        try W.write(a, tmp.dir, &keys, c.truths(&buffer), &c.bundle);
+        var loaded = try W.read(a, tmp.dir, .{ .max_cpus = 2, .max_truths = 1, .max_total_steps = F.STEPS });
+        defer loaded.deinit(a);
+        for (loaded.cpu_declarations) |d| try std.testing.expect(d.geometry.cpu_fused_tail == layout.cpu_fused_tail and d.geometry.cpu_u8_pairs == layout.cpu_u8_pairs);
+        var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[0].geometry, F.BRIDGES[0]);
+        defer s0.deinit();
+        var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[1].geometry, F.BRIDGES[1]);
+        defer s1.deinit();
+        var kt = try KR.TruthSetup.init(a, F.KECCAK_LOG);
+        defer kt.deinit();
+        const fresh = [_]R.Truth{.{ .keccak = .{ .setup = &kt, .first_id = 1, .calls = F.KECCAK_IDS } }};
+        const expected = F.expectedFor(s0.materials.program.identity, c.loaded);
+        try E.verify(a, &.{ &s0, &s1 }, &fresh, expected, &loaded.bundle);
+        // The layout is transcript-bound: a receiver with the other layout on
+        // a shard refuses the proofs.
+        var g = loaded.cpu_declarations[1].geometry;
+        if (layout.cpu_u8_pairs) g.cpu_u8_pairs = false else g.cpu_fused_tail = false;
+        var other = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, g, F.BRIDGES[1]);
+        defer other.deinit();
+        try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &other }, &fresh, expected, &loaded.bundle)));
+        // A tampered absent claim still fails.
+        loaded.bundle.cpus[1].claims.extras[0].ram = G.Q.one();
+        try std.testing.expectError(error.NonzeroAbsentServiceClaim, E.verify(a, &.{ &s0, &s1 }, &fresh, expected, &loaded.bundle));
+    }
+}
+
+test "v3 Keccak sponge byte-pair adversarial: wrong permutation input fails IO11, forged and stale messages fail RAM" {
+    const cases = [_]struct { m: F.Case.Mutation, err: anyerror }{
+        .{ .m = .wrong_truth_input, .err = error.UnclosedCombinedKeccakIo },
+        .{ .m = .forged_message, .err = error.UnclosedCombinedRam },
+        .{ .m = .stale_message, .err = error.UnclosedCombinedRam },
+    };
+    for (cases) |case| {
+        var c = try F.Case.initLayout(a, case.m, false, .triple_v2, .{ .cpu_fused_tail = true, .cpu_u8_pairs = true });
+        defer c.deinit();
+        const keys = c.keys();
+        var buffer: [2]R.Truth = undefined;
+        try std.testing.expectError(case.err, E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle));
+    }
+}
+
+test "service AND merge into the pair AND table: AND column grows, pair column kept, joint mass and phase checked" {
+    const Tables = @import("stwo_riscv_frontend").rv64_air.providers.tables;
+    const physical = @import("stwo_riscv_frontend").rv64_air.witness.physical;
+    var setup = try Tables.Setup.init(a, .byte_and);
+    defer setup.deinit();
+    const counts = try a.alloc(u64, 65536);
+    defer a.free(counts);
+    const pairs = try a.alloc(u64, 65536);
+    defer a.free(pairs);
+    const extra = try a.alloc(u64, 65536);
+    defer a.free(extra);
+    for (counts, pairs, extra, 0..) |*c, *p, *x, i| {
+        c.* = i % 3;
+        p.* = (i * 7) % 5;
+        x.* = (i * 11) % 4;
+    }
+    var table = try Tables.Request.initWithPairs(a, &setup, counts, pairs);
+    defer table.deinit();
+    // Layout mismatch (classic merge into a pair table) is refused.
+    try std.testing.expectError(error.InvalidCombinedRangePhase, R.mergeAndTable(&table, false, extra));
+    try R.mergeAndTable(&table, true, extra);
+    for (0..65536) |i| {
+        const row = physical(i, 16);
+        try std.testing.expectEqual(@as(u32, @intCast(counts[i] + extra[i])), table.main[row].v);
+        try std.testing.expectEqual(@as(u32, @intCast(pairs[i])), table.main[65536 + row].v);
+    }
+    // Joint AND + pair mass must stay below p: pair mass alone near p leaves
+    // no room for the service counts.
+    const heavy_pairs = try a.dupe(u64, pairs);
+    defer a.free(heavy_pairs);
+    @memset(counts, 0);
+    @memset(heavy_pairs, 0);
+    heavy_pairs[0] = (1 << 31) - 2;
+    var heavy = try Tables.Request.initWithPairs(a, &setup, counts, heavy_pairs);
+    defer heavy.deinit();
+    try std.testing.expectError(error.CombinedRangeMassExceeded, R.mergeAndTable(&heavy, true, extra));
+    // Classic table: the pair layout is refused, the classic one merges.
+    var classic = try Tables.Request.init(a, &setup, counts);
+    defer classic.deinit();
+    try std.testing.expectError(error.InvalidCombinedRangePhase, R.mergeAndTable(&classic, true, extra));
+    try R.mergeAndTable(&classic, false, extra);
+    try std.testing.expectEqual(@as(u32, @intCast(extra[5])), classic.main[physical(5, 16)].v);
+    // After interaction generation the table is no longer mergeable.
+    var channel = @import("stwo_core").channel.blake2s.Blake2sChannel{};
+    _ = try table.generateInteraction(Tables.Challenges.draw(&channel));
+    try std.testing.expectError(error.InvalidCombinedRangePhase, R.mergeAndTable(&table, true, extra));
+}

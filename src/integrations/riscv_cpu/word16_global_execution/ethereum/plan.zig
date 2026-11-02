@@ -33,11 +33,7 @@ pub const CpuLayout = struct {
     /// LS-D64; every older route keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        // The fused-tail / U8-pair CPU layouts prove on services fixtures but a
-        // real block fails with InvalidCombinedRangePhase (services roster
-        // merges into the classic AND/range tables), so they stay opt-in on
-        // the Ethereum route until that is fixed.
-        return .{ .fused_tail = false, .u8_pairs = false, .ls_dword = v3 };
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {

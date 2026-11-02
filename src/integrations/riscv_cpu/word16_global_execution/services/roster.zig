@@ -515,11 +515,23 @@ fn overlap(data: []const M, other_end: usize, other: []const M, end: usize) bool
     return data.len != 0 and other.len != 0 and @intFromPtr(data.ptr) < other_end and @intFromPtr(other.ptr) < end;
 }
 /// Keccak-sponge byte-AND lookups join the CPU proof's canonical AND table:
-/// the table's multiplicities grow by the sponge counts (mass kept below p).
+/// the table's AND multiplicities grow by the sponge counts. Under the U8-pair
+/// CPU layout (Geometry.cpu_u8_pairs) the table carries a second column, the
+/// CPU byte-pair multiplicity, in the SAME LogUp relation: service AND
+/// queries still land only in the first (AND) column, the pair column is kept
+/// untouched, and the joint AND + pair mass stays below p (the bound
+/// Request.initWithPairs admits). The table must be in its main phase.
 fn mergeAnd(base: *Core.Source, extra: []const u64) !void {
-    const table = &base.and_table;
-    if (table.interaction.len != 0 or table.main.len != 65536 or extra.len != 65536) return error.InvalidCombinedRangePhase;
+    try mergeAndTable(&base.and_table, base.materials.geometry.cpu_u8_pairs, extra);
+}
+pub fn mergeAndTable(table: *A.providers.tables.Request, pairs: bool, extra: []const u64) !void {
+    const size: usize = 65536;
+    if (table.kind != .byte_and or table.interaction.len != 0 or table.pair_dictionary.len != 0 or extra.len != size) return error.InvalidCombinedRangePhase;
+    if (table.pairs != pairs or table.main.len != (if (pairs) 2 * size else size)) return error.InvalidCombinedRangePhase;
     var mass: u64 = 0;
+    if (pairs) for (table.main[size..]) |m| {
+        mass = try std.math.add(u64, mass, m.v);
+    };
     for (extra, 0..) |x, row| {
         const p = A.witness.physical(row, 16);
         const total = try std.math.add(u64, table.main[p].v, x);
