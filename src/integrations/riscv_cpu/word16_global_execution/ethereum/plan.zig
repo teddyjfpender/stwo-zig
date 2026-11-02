@@ -50,7 +50,7 @@ pub const CpuLayout = struct {
     /// representation explicit instead of inheriting new classic defaults.
     pub fn forGkrProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = false };
     }
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
