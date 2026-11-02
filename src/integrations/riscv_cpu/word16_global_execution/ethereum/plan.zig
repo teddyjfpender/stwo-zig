@@ -78,6 +78,11 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
         if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
         if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+        if (bulk.jump_calls != 0) {
+            d.bridges.bulk.jdesc = try Coverage.minimalPrefixLog(bulk.jump_calls);
+            d.bridges.bulk.jscan = try Coverage.minimalPrefixLog(bulk.jump_rows);
+            d.bridges.bulk.jtab = @import("stwo_riscv_frontend").rv64_air.crypto.bulk_memory.types.TABLE_LOG;
+        }
         // Extension: unaligned copy rows, memcmp descriptors and compared words.
         if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
         if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);

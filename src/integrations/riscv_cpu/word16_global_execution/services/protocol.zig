@@ -50,6 +50,11 @@ pub fn bulkCounts(b: T.BulkCounts) !void {
     const leads: u64 = if (b.ucopy_rows != 0) b.calls else 0;
     if (@as(u64, b.copy_words) + b.set_words + b.ucopy_rows > @as(u64, b.calls) * BM.types.MAX_WORDS + leads) return error.InvalidCombinedServiceCount;
     if (b.cmp_words > @as(u64, b.cmp_calls) * BM.types.MAX_WORDS) return error.InvalidCombinedServiceCount;
+    // JUMPDEST: jdesc and jscan present together (the table with them), at
+    // most MAX_WORDS / 8 scan rows per call. OWNER19 per proof: per call ECALL
+    // + token, per row token + 64 lookups matched by the table: < 2^31.
+    if ((b.jump_calls == 0) != (b.jump_rows == 0)) return error.InvalidCombinedBridgePresence;
+    if (@as(u64, b.jump_rows) > @as(u64, b.jump_calls) * (BM.types.MAX_WORDS / 8)) return error.InvalidCombinedServiceCount;
 }
 
 const KS = A.crypto.keccak_sponge;
@@ -248,7 +253,7 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         // present, so aligned-only transcripts are unchanged.
         if (s.bridges.bulk.anyExtension() or r.bulk.anyExtension()) {
             ch.mixU32s(&.{ 0x424d4532, 1, 0x30001, 0x30003, BM.types.TOKEN_CMP, BM.types.TOKEN_CMP_RESULT, @intCast(BM.types.MAX_BYTES) });
-            for (T.bulk_kinds[T.BULK_BASE..], T.BULK_BASE..) |kind, k| mixBulkKind(ch, s, r, kind, k);
+            for (T.bulk_kinds[T.BULK_BASE..T.BULK_EXT], T.BULK_BASE..) |kind, k| mixBulkKind(ch, s, r, kind, k);
         }
     }
     // Keccak-sponge extension: mixed only when present (v2/SHA/arith/bulk
@@ -260,6 +265,13 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
             ch.mixU32s(&.{ @intCast(k), r.sponge.rows(kind), @intFromBool(s.bridges.sponge.at(kind) != null), s.bridges.sponge.at(kind) orelse 0, @intCast(KS.layout.constraints(kind)) });
             if (s.bridges.sponge.at(kind) != null) for (T.spongeWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
+    }
+    // JUMPDEST extension: mixed only when present (every earlier transcript
+    // unchanged). Binds tag, tokens, length cap, the table size and every
+    // kind's rows, presence, log, constraint count and widths.
+    if (s.bridges.bulk.jump() or r.bulk.jump()) {
+        ch.mixU32s(&.{ 0x4a554d50, 1, @intCast(BM.types.JUMPDEST_TAG), BM.types.TOKEN_JD, BM.types.TOKEN_JD_TABLE, @intCast(BM.types.MAX_BYTES), @intCast(BM.types.TABLE_ENTRIES) });
+        for (T.bulk_kinds[T.BULK_EXT..], T.BULK_EXT..) |kind, k| mixBulkKind(ch, s, r, kind, k);
     }
 }
 fn mixBulkKind(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, kind: T.BulkKind, k: usize) void {

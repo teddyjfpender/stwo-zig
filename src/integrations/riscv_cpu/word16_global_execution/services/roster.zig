@@ -72,7 +72,7 @@ pub const CpuSetup = struct {
         for (T.bulk_kinds, 0..) |kind, k| {
             if (bridges.bulk.at(kind)) |log| {
                 _ = try BM.types.validateGeometry(kind, 0, log);
-                self.bulk_fixed[k] = try BM.source.fixed(a, log);
+                self.bulk_fixed[k] = try BM.source.fixedFor(a, kind, log);
             }
             bulk_done += 1;
         }
@@ -372,7 +372,7 @@ pub const Sources = struct {
                 if (overlap(data, try spanEnd(prior), prior, end)) return error.AliasedCombinedMain;
             }
         }
-        for (0..3) |k| {
+        for (0..T.bulk_kinds.len) |k| {
             const data = (self.bulkMatrix(k, tree) orelse continue).*;
             const end = try spanEnd(data);
             for (headers[0..setup.total(tree)]) |c| {

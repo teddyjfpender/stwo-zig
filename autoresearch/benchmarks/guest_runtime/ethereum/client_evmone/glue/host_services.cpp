@@ -247,6 +247,19 @@ void host_service(uint64_t tag, void* packet) noexcept {
             st(w + 16, r);
             return;
         }
+        case kJumpdestBitmap: {
+            const auto* code = reinterpret_cast<const uint8_t*>(w[0]);
+            auto* out = reinterpret_cast<uint64_t*>(w[2]);
+            const uint64_t n = w[1];
+            std::memset(out, 0, (n + 63) / 64 * 8);
+            for (uint64_t i = 0; i < n;) {
+                const uint8_t op = code[i];
+                if (op >= 0x60 && op <= 0x7f) { i += op - 0x5e; continue; }
+                if (op == 0x5b) out[i / 64] |= uint64_t{1} << (i % 64);
+                ++i;
+            }
+            return;
+        }
         default:
             if ((tag & 0xffffff00) == 0x00030100) return emu_candidate_curve(tag, w);
             stwo_guest_abort("unknown service tag");
