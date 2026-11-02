@@ -80,6 +80,7 @@ pub fn shape(truth: R.Truth) !Shape {
     return ctx.value;
 }
 pub fn validate(truth: R.Truth) !void {
+    if (truth.count() == 0) return error.EmptyV3Truth;
     const log = try logSize(truth);
     var ctx = struct {
         truth: R.Truth,
@@ -126,6 +127,7 @@ pub fn metadataByteUpperBound(truth: R.Truth) !usize {
 }
 pub fn descriptorForDeclaration(d: @import("../wire.zig").TruthDeclaration) !Descriptor {
     if (d.logs[1] != 0) return error.NotV3Truth;
+    if (d.calls == 0) return error.EmptyV3Truth;
     const max_log: u32 = switch (d.family) {
         .sha256 => @import("../../sha256/roster.zig").MAX_LOG,
         .arith256_mod => @import("../../arith256/roster.zig").MAX_LOG,
