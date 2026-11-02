@@ -1,0 +1,21 @@
+{
+  "gkr_bytes": 34359738368,
+  "global_bytes": 8589934592,
+  "retained_frontend_bytes": 21474836480,
+  "disk_bytes": 137438953472,
+  "park_main": true,
+  "schedule": {
+    "lanes": 2,
+    "workers_per_lane": 8,
+    "memory_cap_bytes": 38654705664
+  },
+  "capture_options": {
+    "max_inflight_packets": 2,
+    "packet_heap_bytes": 1073741824,
+    "max_inflight_packet_heap_bytes": 2147483648,
+    "max_inflight_wire_bytes": 1073741824
+  },
+  "recycler_cache_bytes": 1073741824,
+  "keccak_max_log": 18,
+  "defer_local_binding": true
+}
