@@ -26,6 +26,12 @@
      "base_multiplications": 59, "base_by_secure_multiplications": 133, "secure_multiplications": 15, "m31_mul_equiv_per_row_qm31": 1020, "m31_mul_equiv_per_row_om31": 2278,
      "columns_read": {"fixed": 3, "main": 47, "interaction": 32}, "columns_declared": {"fixed": 3, "main": 47, "interaction": 32}, "mask_inputs": 91, "shifted_mask_inputs": 9, "mask_offset_min": -1, "mask_offset_max": 0,
      "parameters": 84, "literal_constants": 8, "identity": "4e0b634f473f58a76338427598ec3080113dfce911cf93ae171467762e872682"},
+    {"name": "cpu.compact_decode", "group": "cpu", "proof": "cpu_proof_core", "sample_log_size": 6, "eval_log_size": 7, "eval_rows_per_trace_row": 2, "parity": "random_trace_bit_exact",
+     "constraints": 32, "max_degree": 3, "declared_degree_bound": 3, "degree_histogram": [0,0,22,10,0,0,0,0], "secure_residuals": 11,
+     "distinct_subexpressions": 526, "requested_lane_ops": 463, "base_additions": 34, "secure_additions": 144, "negations": 2,
+     "base_multiplications": 44, "base_by_secure_multiplications": 121, "secure_multiplications": 16, "m31_mul_equiv_per_row_qm31": 859, "m31_mul_equiv_per_row_om31": 1917,
+     "columns_read": {"fixed": 3, "main": 37, "interaction": 32}, "columns_declared": {"fixed": 3, "main": 37, "interaction": 32}, "mask_inputs": 79, "shifted_mask_inputs": 7, "mask_offset_min": -1, "mask_offset_max": 0,
+     "parameters": 78, "literal_constants": 8, "identity": "babc7588797ce4a8065a28f313ee8a39fa734e20b1eb7817ba6f5d872b8ab5c7"},
     {"name": "rom", "group": "rom", "proof": "cpu_proof_core", "sample_log_size": 6, "eval_log_size": 7, "eval_rows_per_trace_row": 2, "parity": "random_trace_bit_exact",
      "constraints": 4, "max_degree": 2, "declared_degree_bound": 2, "degree_histogram": [0,0,4,0,0,0,0,0], "secure_residuals": 3,
      "distinct_subexpressions": 169, "requested_lane_ops": 88, "base_additions": 1, "secure_additions": 43, "negations": 0,
@@ -459,5 +465,5 @@
      "columns_read": {"fixed": 3, "main": 47, "interaction": 36}, "columns_declared": {"fixed": 3, "main": 47, "interaction": 36}, "mask_inputs": 95, "shifted_mask_inputs": 9, "mask_offset_min": -1, "mask_offset_max": 0,
      "parameters": 80, "literal_constants": 9, "identity": "1c7fe9cf02e9efbc1b485e234a7c766140d59b1fc60da44fc5a6dcb29fff13b4"}
   ],
-  "totals": {"components": 75, "constraints": 48843, "distinct_subexpressions": 744138}
+  "totals": {"components": 76, "constraints": 48875, "distinct_subexpressions": 744664}
 }

@@ -59,6 +59,15 @@ specialised to that row count. Moving them to `scalarFor` would make them parame
   It recognises each handle's type by its static vtable, records that exact instance, and
   checks the IR against the native evaluator on the component's real columns
   (`honest.zig`, `test_honest.zig`).
+- **Honest coverage (measured).** `test-riscv64-composition-ir-honest` runs 11 tests over 17
+  real fixture proofs: v3 services in the classic, fused-tail, byte-pair and compact-decode
+  layouts; LS-D64 plain and all-fused; JUMPDEST; unaligned copy and compare; all 7 curve ops
+  on the fused-pair + LS-D64 layout; and the Keccak sponge with triple_v2 and throughput
+  Keccak-f truths. Every observed handle was recognised (0 unrecognised), and all 66
+  distinct component kinds were bit-exact on their real committed columns.
+  Covered by random traces only: secp truths (product, linear, bytes), secp row truths,
+  secp_bridge.add/double, and the Keccak quartet/r27 permutations. The log-23 wide-clock CPU
+  is recorded for statistics only.
 - **Generated C**. `emit_c.zig` emits one statement per IR node, so subexpressions are
   shared. It uses M31 scalar code for base nodes and QM31 code only after a parameter enters,
   and fuses the random-power fold with the vanishing-inverse scale. `test_emit_c.zig`
