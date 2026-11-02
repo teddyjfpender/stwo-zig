@@ -5,8 +5,9 @@ const K = A.crypto.keccak_sponge;
 const E = A.evaluation;
 const Counts = struct { local: u32 = 0, ram: u32 = 0, kio: u32 = 0 };
 pub fn emitLocalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: u32, sink: anytype) void {
+    const Target = @TypeOf(sink);
     const Route = struct {
-        target: @TypeOf(sink),
+        target: Target,
         pub fn emit(self: *@This(), comptime relation: u3, tuple: anytype, weight: F) void {
             switch (relation) {
                 K.equations.RAM, K.equations.IO => {},
@@ -22,8 +23,9 @@ pub fn emitLocalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []con
     K.equations.emitRawFor(F, kind, fixed, main, first_id, &route);
 }
 pub fn emitGlobalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: u32, sink: anytype) void {
+    const Target = @TypeOf(sink);
     const Route = struct {
-        target: @TypeOf(sink),
+        target: Target,
         pub fn emit(self: *@This(), comptime relation: u3, tuple: anytype, weight: F) void {
             switch (relation) {
                 K.equations.RAM => self.target.emit(.ram, tuple, weight),
@@ -55,9 +57,15 @@ pub const COUNTS = blk: {
     @setEvalBranchQuota(1000000);
     break :blk [2]Counts{ counts(.call), counts(.perm) };
 };
-pub fn localTerms(kind: K.layout.Kind) u32 { return COUNTS[@intFromEnum(kind)].local; }
-pub fn ramTerms(kind: K.layout.Kind) u32 { return COUNTS[@intFromEnum(kind)].ram; }
-pub fn kioTerms(kind: K.layout.Kind) u32 { return COUNTS[@intFromEnum(kind)].kio; }
+pub fn localTerms(kind: K.layout.Kind) u32 {
+    return COUNTS[@intFromEnum(kind)].local;
+}
+pub fn ramTerms(kind: K.layout.Kind) u32 {
+    return COUNTS[@intFromEnum(kind)].ram;
+}
+pub fn kioTerms(kind: K.layout.Kind) u32 {
+    return COUNTS[@intFromEnum(kind)].kio;
+}
 pub fn globalWidth(kind: K.layout.Kind) usize {
     return 8 * ((ramTerms(kind) + 1) / 2 + 1 + (kioTerms(kind) + 1) / 2 + 1);
 }
@@ -74,16 +82,19 @@ pub fn emitGlobalConstraintsFor(comptime F: type, comptime kind: K.layout.Kind, 
         ram_w: [ramTerms(kind)]F = undefined,
         kio_d: [kioTerms(kind)]Sec = undefined,
         kio_w: [kioTerms(kind)]F = undefined,
-        r: usize = 0, k: usize = 0,
+        r: usize = 0,
+        k: usize = 0,
         pub fn emit(self: *@This(), comptime relation: u3, tuple: anytype, weight: F) void {
             switch (relation) {
                 K.equations.RAM => {
                     self.ram_d[self.r] = E.denominatorFor(F, self.shared.ram.offset, &self.shared.ram.coefficients, &tuple, true);
-                    self.ram_w[self.r] = weight; self.r += 1;
+                    self.ram_w[self.r] = weight;
+                    self.r += 1;
                 },
                 K.equations.IO => {
                     self.kio_d[self.k] = E.denominatorFor(F, self.shared.kio.offset, &self.shared.kio.coefficients, &tuple, true);
-                    self.kio_w[self.k] = weight; self.k += 1;
+                    self.kio_w[self.k] = weight;
+                    self.k += 1;
                 },
                 else => {},
             }
