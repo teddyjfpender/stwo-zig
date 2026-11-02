@@ -14,6 +14,9 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     const budget: usize = if (truth == .keccak and truth.keccak.setup.policy.throughputTables()) 2 << 30 else 64 << 20;
     const Fixed = @import("fixed_authority.zig");
     const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
+    // Worker admission and retained-memory accounting must accept exactly the
+    // same receiver-owned policy, including the R27 throughput tables.
+    _ = try @import("truth_retention.zig").forTruth(a, truth, config, budget);
     var cache: ?Fixed.Fixed.Cache = if (beta2) try Fixed.Fixed.Cache.init(a, 1 << 30) else null;
     defer if (cache) |*owner| owner.deinit();
     var fixed: ?Fixed.Binding = if (cache) |*owner| try Fixed.Binding.acquire(owner, truth.key(), config) else null;

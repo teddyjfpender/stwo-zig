@@ -23,7 +23,7 @@ fn rows(log: u32) !usize {
 }
 pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, global_limit: usize) !Plan {
     if (@import("execution.zig").extendedTruth(truth)) return @import("truth_v3_retention.zig").forTruth(a, truth, config, global_limit);
-    try @import("v2_scope.zig").truth(truth);
+    try @import("truth_profile.zig").validate(truth);
     _ = try Worker.truthMass(truth);
     const roles = try @import("truth_components.zig").shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
     const logs = try truth.logs(a, 1);
@@ -49,10 +49,11 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, globa
     switch (truth) {
         .keccak => |t| {
             const n = try rows(t.setup.log);
-            const active_rows = try mul(try std.math.divCeil(usize, t.calls, 2), K.layout.ROWS_PER_PAIR);
+            const policy = t.setup.policy;
+            const active_rows = try mul(try std.math.divCeil(usize, t.calls, 2), policy.geometry().rowsPerPair());
             out.global_metadata_bytes = try mul(active_rows, @sizeOf(K.trace.PackedRow));
             out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, 4 * K.layout.FIXED));
-            out.global_metadata_bytes = try add(out.global_metadata_bytes, (8192 + 1024) * (7 * 4 + 4));
+            out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(try add(try rows(policy.tableLog(.chi)), try rows(policy.tableLog(.xor5))), 7 * 4 + 4));
         },
         .secp => |t| {
             const program = S.program.get(t.setup.kind);
