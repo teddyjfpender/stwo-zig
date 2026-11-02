@@ -186,3 +186,34 @@ python3 client_evmone/build.py --out OUT --cache ~/Coding/ge-cache/evmsrc --prof
 Not made the build.py default: `--isa zbb_binary` needs the audit tool path,
 and the complete-block proof of the zbb client (coordinator-scheduled) has not
 been run; the 4-packet prefix is the evidence so far.
+
+## On the merged PR head (origin/codex/rv64-guest-efficiency 67cffcaad, merge 186db35d4)
+
+v3_zbb now takes every v3 default of the PR head: fused2 layouts (MUL pairs,
+LS32/INIT/TEARDOWN fused pairs, ALU fused tail, LS-D64 fused pairs) via
+`CpuLayout.forProfile` (isV3), throughput_r27_v1 Keccak truth and secp row
+truth (truth options key on isV3), < 2^23 batch steps, and the in-process
+packet handoff (`checkTape`) with the same Zbb authority checks as the wire
+reader. The Zbb chip's byte-AND mass joins the single joint AND bound
+(`andMass` + sponge + LS-D64 pairs + Zbb < p).
+
+Basket (`--set all`, this head's executor c0785284, host 9e137ef4, 15/15
+exact, G1-G6 PASS, both promotable):
+
+| client | scored instr/gas | all | scored bits/gas |
+|---|---:|---:|---:|
+| v3 RV64IM (e713bc52) | 3.130 | 3.048 | 33,695 |
+| v3 zbb_binary (f84d95c2, 744 rev8, audit clean) | **2.934 (-6.3%)** | 2.856 | **32,187 (-4.5%)** |
+
+Per block -4.3% .. -7.3% instructions (24,628,607: 25,837,408 -> 24,134,280).
+
+Real 4-packet prefix of 24,628,607 (receipt
+`vectors/reports/rv64-ethereum-20261102/zbb-prefix-24628607-v2.json`):
+produce (memguard --gb 16) prove 34.3 s, max RSS 17.1 GB; fresh
+`verify-prefix` accepted; a v3 request rejects the bundle
+(`UnadmittedZbbBinaryComponent`). CPU native cells 2,335,470,688 vs
+2,282,308,512 for the plain v3 prefix (final2, client 6f2f8842): +53.2 M,
+because the same 16.78 M steps cover more (and LD/SD/MUL-heavier) work of the
+block on the zbb client, not because Zbb costs more. Zbb component
+1,146,880 MAIN+INTERACTION cells (logs 12/13/12/12) = 0.0684
+cells/instruction (calibration updated from 0.0547).
