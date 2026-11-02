@@ -87,7 +87,7 @@ pub const Component = struct {
         for (self.claims.ram.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalGlobalGkrCoordinate;
     }
     pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
-        try Projection.emitMainFor(F, fixed, main, previous, self.rows, self.rows != 0, sink);
+        try Projection.emitMainFor(F, fixed, main, previous, self.rows, {}, sink);
     }
     pub fn emitLocalFor(_: *const @This(), comptime F: type, fixed: []const F, main: []const F, projection: anytype) void {
         _ = fixed;

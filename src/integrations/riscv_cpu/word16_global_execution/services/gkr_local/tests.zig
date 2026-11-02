@@ -445,3 +445,9 @@ test {
 test {
     _ = @import("bulk_candidate_test.zig");
 }
+test {
+    _ = @import("dword_projection_test.zig");
+}
+test {
+    _ = @import("dword_role_test.zig");
+}
