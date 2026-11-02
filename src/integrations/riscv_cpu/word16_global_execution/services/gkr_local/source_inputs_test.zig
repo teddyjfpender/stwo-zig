@@ -70,3 +70,47 @@ test "streamed metadata selection defaults off rejects malformed policy and inde
     try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("yes"));
     try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.Unbound.proveTimedWithPolicy(a, 0, scope, &instances, Metadata{}, .{ .stream_bottom = true }, null));
 }
+
+fn projectedLifecycle(allocator: std.mem.Allocator) !void {
+    const child = try Child.Unbound.proveTimedWithBindingStorage(allocator, 4 << 20, scope, &instances, Metadata{}, .{ .stream_bottom = true, .tight_admission = true }, true, null);
+    defer child.deinit();
+    try std.testing.expect(child.projection_pending);
+    try child.completeBinding(&instances);
+    try std.testing.expect(!child.projection_pending);
+    var pending = try Child.verifyPending(allocator, scope, &instances, &child.result.proof, child.digest);
+    defer pending.deinit(allocator);
+}
+test "deferred projection preserves binding bytes retries finalize OOM and cleans every lifecycle failure" {
+    const reference = try Child.Unbound.proveTimedWithPolicy(a, 4 << 20, scope, &instances, Metadata{}, .{ .stream_bottom = true, .tight_admission = true }, null);
+    defer reference.deinit();
+    var failing = std.testing.FailingAllocator.init(a, .{});
+    const child = try Child.Unbound.proveTimedWithBindingStorage(failing.allocator(), 4 << 20, scope, &instances, Metadata{}, .{ .stream_bottom = true, .tight_admission = true }, true, null);
+    defer child.deinit();
+    try std.testing.expect(child.projection_pending);
+    try std.testing.expectEqualDeep(reference.result.proof, child.result.proof);
+    try std.testing.expectEqualDeep(reference.digest, child.digest);
+    const before = try a.dupe(M, child.binding.columns[0]);
+    defer a.free(before);
+    const reservation = child.budget.external_live_bytes;
+    try std.testing.expectError(error.LocalGkrBindingUnavailable, child.takeBindingBackings());
+    try std.testing.expect(child.projection_pending);
+    try std.testing.expectEqual(reservation, child.budget.external_live_bytes);
+    try std.testing.expectEqualDeep(before, child.binding.columns[0]);
+    failing.fail_index = failing.alloc_index;
+    try std.testing.expectError(error.OutOfMemory, child.completeBinding(&instances));
+    try std.testing.expect(child.projection_pending);
+    try std.testing.expectEqual(reservation, child.budget.external_live_bytes);
+    try std.testing.expectEqualDeep(before, child.binding.columns[0]);
+    failing.fail_index = std.math.maxInt(usize);
+    // Bad projection shape is rejected before any old owner can be released.
+    const original = child.binding.columns[0];
+    child.binding.columns[0] = original[0 .. original.len - 1];
+    try std.testing.expectError(error.LocalGkrProjectionShape, child.completeBinding(&instances));
+    child.binding.columns[0] = original;
+    try std.testing.expect(child.projection_pending);
+    try child.completeBinding(&instances);
+    try child.completeBinding(&instances);
+    try std.testing.expectEqualDeep(reference.binding.columns, child.binding.columns);
+    try std.testing.expect(child.peak_gkr_owned_bytes <= child.plan.peak_bytes);
+    try std.testing.checkAllAllocationFailures(a, projectedLifecycle, .{});
+}

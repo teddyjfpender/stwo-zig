@@ -14,6 +14,8 @@ const Classic = @import("classic_witness.zig");
 pub const RetentionPlan = struct {
     coefficient_bytes: usize = 0,
     binding_bytes: usize = 0,
+    binding_descriptor_bytes: usize = 0,
+    projected_binding_bytes: usize = 0,
     global_metadata_bytes: usize = 0,
     global_output_bytes: usize = 0,
     gkr_peak_bytes: usize = 0,
@@ -77,7 +79,7 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     defer plan.deinit();
     const logs = try setup.logs(a, 1);
     defer a.free(logs);
-    var out = RetentionPlan{ .binding_bytes = numerical.binding_bytes, .gkr_peak_bytes = numerical.peak_bytes, .local_proof_reserve_bytes = numerical.metadata_bytes };
+    var out = RetentionPlan{ .binding_descriptor_bytes = try mul(instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)), .binding_bytes = numerical.binding_bytes, .gkr_peak_bytes = numerical.peak_bytes, .local_proof_reserve_bytes = numerical.metadata_bytes };
     var max_log: u32 = 0;
     for (logs) |log| {
         out.coefficient_bytes = try add(out.coefficient_bytes, try mul(try rows(log), 4));
@@ -121,5 +123,20 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     // construction, shared immutable setup and PCS proving scratch are separate.
     out.stage1_task_bytes = try add(out.resident_retained_bytes, out.gkr_peak_bytes);
     out.stage2_task_bytes = try add(out.resident_retained_bytes, try add(out.global_output_bytes, out.global_scratch_bytes));
+    return out;
+}
+
+/// Optional delayed Eq/prefix lifecycle. Physical INTER binding width stays64
+/// bytes/row; only barrier retention becomes32, and stage2 admits32+64 overlap.
+pub fn withDeferredBinding(input: RetentionPlan, gkr_limit: usize) !RetentionPlan {
+    var out = input;
+    out.projected_binding_bytes = input.binding_bytes / 2;
+    const extra = try add(out.projected_binding_bytes, input.binding_descriptor_bytes);
+    out.gkr_peak_bytes = try add(input.gkr_peak_bytes, extra);
+    if (out.gkr_peak_bytes > gkr_limit) return error.LocalGkrBudgetExceeded;
+    out.parked_retained_bytes = try add(try std.math.sub(usize, input.parked_retained_bytes, input.binding_bytes), out.projected_binding_bytes);
+    out.resident_retained_bytes = try add(out.parked_retained_bytes, out.coefficient_bytes);
+    out.stage1_task_bytes = try add(out.resident_retained_bytes, out.gkr_peak_bytes);
+    out.stage2_task_bytes = try add(out.resident_retained_bytes, try add(input.binding_bytes, try add(out.global_output_bytes, out.global_scratch_bytes)));
     return out;
 }

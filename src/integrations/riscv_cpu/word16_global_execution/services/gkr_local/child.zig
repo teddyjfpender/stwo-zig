@@ -136,6 +136,8 @@ pub const Unbound = struct {
     peak_gkr_owned_bytes: usize,
     binding: @import("witness.zig").Witness,
     binding_reserved_bytes: usize,
+    projection_pending: bool = false,
+    projection_eta: O = O.zero(),
     pub fn prove(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype) !*Unbound {
         return proveTimed(a, limit, scope, instances, provider, null);
     }
@@ -146,10 +148,14 @@ pub const Unbound = struct {
         return proveTimedWithPolicy(a, limit, scope, instances, provider, .{ .checkpointed = checkpointed, .tight_admission = checkpointed }, timing);
     }
     pub fn proveTimedWithPolicy(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, timing: ?*PhaseTiming) !*Unbound {
+        return proveTimedWithBindingStorage(a, limit, scope, instances, provider, policy, false, timing);
+    }
+    pub fn proveTimedWithBindingStorage(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, deferred: bool, timing: ?*PhaseTiming) !*Unbound {
         const checkpointed = policy.checkpointed;
         if (policy.stream_bottom and !policy.tight_admission) return error.InvalidGkrStreamBottomPolicy;
         const metrics = try treeMetrics(a);
-        const plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithSourceStorage(instances, limit, checkpointed) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
+        const original_plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithSourceStorage(instances, limit, checkpointed) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
+        const plan = if (deferred) try original_plan.withDeferredBinding(instances.len, limit) else original_plan;
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
@@ -171,14 +177,16 @@ pub const Unbound = struct {
         self.digest = try Receipt.digest(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
         const eta = ch.drawSecureFelt();
         if (clock) |*timer| timing.?.numerical_ns = timer.lap();
-        const binding_bytes = try std.math.add(usize, plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
+        const binding_bytes = try std.math.add(usize, if (deferred) plan.binding_bytes / 2 else plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
         try Resource.reserveExternal(&self.budget, binding_bytes);
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
-        self.binding = if (checkpointed or policy.stream_bottom) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        self.binding = if (deferred) try @import("witness.zig").Witness.initProjectionFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else if (checkpointed or policy.stream_bottom) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
         if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
+        self.projection_pending = deferred;
+        self.projection_eta = eta;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
         if (timing) |value| {
@@ -190,7 +198,23 @@ pub const Unbound = struct {
         if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d} streamed_bottom={any} planned_input_reserve_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, @as(usize, if (policy.stream_bottom) 0 else plan.input_bytes), policy.tight_admission, plan.peak_bytes, self.budget.limit, policy.stream_bottom, plan.input_bytes });
         return self;
     }
+    /// All new allocations/validation precede the old-projection release. A
+    /// failed completion leaves the projected owner intact and retryable.
+    pub fn completeBinding(self: *Unbound, instances: []const Frame.Instance) !void {
+        if (!self.projection_pending) return;
+        const final_bytes = try std.math.add(usize, self.plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]core.fields.m31.M31)));
+        try Resource.reserveExternal(&self.budget, final_bytes);
+        errdefer Resource.releaseExternal(&self.budget, final_bytes);
+        const completed = try self.binding.finalizeProjection(self.parent_allocator, instances, &self.result.artifact, self.projection_eta);
+        self.binding.deinit();
+        Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
+        self.binding = completed;
+        self.binding_reserved_bytes = final_bytes;
+        self.projection_pending = false;
+        self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+    }
     pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
+        if (self.projection_pending) return error.LocalGkrBindingUnavailable;
         const commit = try self.binding.takeCommit(instances);
         Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
         self.binding_reserved_bytes = 0;
@@ -200,7 +224,8 @@ pub const Unbound = struct {
     }
     /// Caller allocates and validates its combined INTER descriptors first.
     /// This no-allocation transfer is the final ownership transition.
-    pub fn takeBindingBackings(self: *Unbound) [][]core.fields.m31.M31 {
+    pub fn takeBindingBackings(self: *Unbound) ![][]core.fields.m31.M31 {
+        if (self.projection_pending) return error.LocalGkrBindingUnavailable;
         const out = self.binding.columns;
         self.binding.columns = &.{};
         Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);

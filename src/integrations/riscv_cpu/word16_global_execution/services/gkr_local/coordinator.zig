@@ -22,6 +22,12 @@ const Retention = @import("retention_plan.zig");
 const TruthRetention = @import("truth_retention.zig");
 pub const Store = @import("../../retained_main_store.zig").Store;
 pub const WorkerTiming = struct {
+    retained_local_binding_bytes: usize = 0,
+    retained_local_projection_bytes: usize = 0,
+    final_local_binding_bytes: usize = 0,
+    deferred_binding_overlap_bytes: usize = 0,
+    gkr_peak_including_final_binding_bytes: usize = 0,
+    local_binding_completed: bool = false,
     resolved_tree_policy: ?@import("child.zig").TreePolicy = null,
     source_ns: u64 = 0,
     seal_native_and_gkr_ns: u64 = 0,
@@ -53,6 +59,7 @@ pub const Options = struct {
     max_workers: usize = 8,
     /// Strict source80 planned-peak threshold; zero disables hybrid selection.
     checkpoint_above_gkr_bytes: usize = 0,
+    defer_local_binding: bool = false,
     /// Destructive opt-in for an exclusively owned Advice inventory. Successful
     /// CPU stage one has joined MAIN/local proofs and copied global LS caches;
     /// its original ordinary-memory events can then be retired. A later error
@@ -190,6 +197,7 @@ const Run = struct {
             owned = false;
             self.workers[index] = .{ .cpu = worker };
             self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];
+            self.workers[index].?.cpu.defer_local_binding = self.options.defer_local_binding;
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
@@ -199,6 +207,11 @@ const Run = struct {
                 timing.?.seal_native_and_gkr_ns = clock.lap();
                 timing.?.main_commit_ns = cpu_timing.main_commit_ns;
                 timing.?.gkr_ns = cpu_timing.gkr_ns;
+                timing.?.retained_local_binding_bytes = self.workers[index].?.cpu.child.?.binding_reserved_bytes;
+                const child = self.workers[index].?.cpu.child.?;
+                timing.?.retained_local_projection_bytes = if (child.projection_pending) child.binding_reserved_bytes else 0;
+                timing.?.final_local_binding_bytes = try std.math.add(usize, child.plan.binding_bytes, try std.math.mul(usize, self.workers[index].?.cpu.instances.len, @sizeOf([]core.fields.m31.M31)));
+                timing.?.deferred_binding_overlap_bytes = if (child.projection_pending) try std.math.add(usize, child.binding_reserved_bytes, timing.?.final_local_binding_bytes) else 0;
                 timing.?.inputs_ns = cpu_timing.inputs_ns;
                 timing.?.numerical_ns = cpu_timing.numerical_ns;
                 timing.?.binding_ns = cpu_timing.binding_ns;
@@ -257,7 +270,14 @@ const Run = struct {
         };
         if (timer) |*clock| timing.?.restore_ns = clock.lap();
         self.results[index] = switch (worker.*) {
-            .cpu => |*v| .{ .cpu = try v.complete(self.a, pending, index, self.options.global_budget) },
+            .cpu => |*v| blk: {
+                const encoded = try v.complete(self.a, pending, index, self.options.global_budget);
+                if (timing) |value| {
+                    value.gkr_peak_including_final_binding_bytes = v.child.?.peak_gkr_owned_bytes;
+                    value.local_binding_completed = !v.child.?.projection_pending;
+                }
+                break :blk Result{ .cpu = encoded };
+            },
             .truth => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
         };
         if (timer) |*clock| timing.?.native_complete_ns = clock.lap();
@@ -363,7 +383,7 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
     var disk: usize = 0;
     for (result.stage1, result.stage2, 0..) |*stage1, *stage2, i| {
         const plan = if (i < setups.len) blk: {
-            const selected = try @import("tree_selection.zig").forCpu(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy, options.checkpoint_above_gkr_bytes);
+            const selected = try @import("tree_selection.zig").forCpuWithDeferredBinding(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy, options.checkpoint_above_gkr_bytes, options.defer_local_binding);
             result.cpu_policies[i] = selected.policy;
             break :blk selected.plan;
         } else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
