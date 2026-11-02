@@ -1,0 +1,142 @@
+{
+  "scope": "Complete block24628607, admitted evmone v2 guest through current OM31/GKR beta2/q256/P0/fold4 native route; recursion excluded",
+  "source_commit": "06f1c3ee6",
+  "guest_profile": "ethereum_services_v2",
+  "security_classification": "128-bit security target under documented assumptions",
+  "security_qualified": false,
+  "steps": 44755877,
+  "cpu_proofs": 11,
+  "truth_proofs": 4,
+  "prove_seconds": 143.850823292,
+  "wall_seconds": 158.44,
+  "user_seconds": 1768.99,
+  "system_seconds": 90.56,
+  "maximum_rss_bytes": 37786353664,
+  "previous_guest_prove_seconds": 292.261257875,
+  "observed_speedup": 2.0316968035820313,
+  "host_native_and_proved_output_match": true,
+  "fresh_complete_receiver": true,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "park_main": true,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8,
+        8
+      ],
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 2,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 2147483648,
+      "max_inflight_wire_bytes": 1073741824
+    },
+    "recycler_cache_bytes": 1073741824,
+    "defer_local_binding": true
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 63743,
+      "sha256": "b8f1c57262ebbe989ace215ba2590c2a478002de90cfc8b32cf43b1f4a1b6972"
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 47487656,
+      "sha256": "39e0cf504c55db5cc7ae5d946b4410f80bac55ac87c1a3402d8024afc11b57f4"
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 2238584,
+      "sha256": "95b0e8ca868246f2a79e48b21f44ef20ce1a8d9455bc4a37566b1eabfbd1efab"
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 2850624,
+      "sha256": "cb58c4236b66a6a4471a9ec003cbf126be3ee744f37a81e2b2c23ff77a5fb5a8"
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 2181296,
+      "sha256": "8930747b9ac382e46116a625bf58e009bff3116888d5a603fd6558db15e404d9"
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 2339528,
+      "sha256": "09b14f22ac8d4500aa8f11a58ec45c787650193fef98c1e759aa4b6c5d0e44a1"
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 2913320,
+      "sha256": "1e09a62da00e286de814927338e69af8912c196426386df7a86f14521d21ea99"
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 2477248,
+      "sha256": "448f59d01729e1c17a431ca47737b469153b2144754d8cbebb545a58e4a3d24c"
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 2937888,
+      "sha256": "e295dbf17c9d3ae0155f3adfb3630dd971e3d40c6dc3f9ce28c76834baf617f4"
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 2839200,
+      "sha256": "d1b8d2ebf9fa53b4dc879b9625384baeaa14b34ce3660adbe37699f4b91cf716"
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 2490272,
+      "sha256": "92edf72a210e3590e35c6241d5885d5c5defedb1a0e09897ecfabdfba312ed10"
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 2875824,
+      "sha256": "988fd9b58a3a9624ccbab916424205cb2eb7d6bc204badf2685a4a17eb16a6a4"
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 2292624,
+      "sha256": "625c55d8c63188697bf70db440e8e24da97d103f1e85baea494b8bdb1f1613d9"
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 984516,
+      "sha256": "1c5e206f8edab0471c026be8a47968f89792d3f848b326568aabe6aa23bce4cc"
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 8816848,
+      "sha256": "e172bb7ec5d18f4e56ce397ba84b9eea88118e40e78cb7aad1783781ea7e1f58"
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 8814224,
+      "sha256": "e779a9f79f8ca8453081946152965450acae07394ce2690a8d46b086f132bfc4"
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 2689120,
+      "sha256": "5ae87d78118d860cb940e43c2fb20d6fb9947046d0474ff71e7d39dc6e326983"
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 2595328,
+      "sha256": "4af10951cc8b10971c461bf44d606ab68fdac7b31c64d0595a4ef022d1b37631"
+    }
+  ],
+  "limits": [
+    "One new-guest full observation, not a repeated median",
+    "Different guest/image/input/geometry; no cross-guest byte parity expected",
+    "v3 service adapters not implemented",
+    "No GPU or recursive root measurement",
+    "Final-client EEST not rerun here"
+  ]
+}

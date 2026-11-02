@@ -1,0 +1,13 @@
+REJECT proof_count
+REJECT columns
+REJECT constraints
+REJECT lookup_support
+REJECT negative_support
+REJECT v3_truth
+REJECT throughput_keccak
+REJECT fused_tail
+REJECT u8_pairs
+REJECT bulk_bridge
+REJECT not_completed
+REJECT wrong_profile
+PASS original model equality and12 unauthorized scope mutations

@@ -44,6 +44,8 @@ The [full composed analysis](rv64-composed-security-analysis-20261102.md) contai
 
 ## Handoff and enforcement
 
+Integration checkpoint: the admitted evmone v2 guest now has a separate complete-block receiver/model receipt in `vectors/reports/rv64-pr308-evmone-v2-gkr-20261102/`. It uses15native proofs (11CPU+4truth). The optional `model.py --reviewed-v2-envelope` path permits only a monotone subset of this review's30-proof v2 envelope, including explicit shape/support/product-row bounds and exclusion of v3 families, throughput Keccak and paired/fused CPU layouts. The default pinned-roster model is unchanged. This is an execution-budget recalculation under the same assumptions, not a v3 security promotion.
+
 The CLI reports the128-bit target and assumption identity separately from certification. Existing receiver parameter, geometry, mass, manifest and physical-binding validation remains unchanged. The certificate registry stays closed; this decision does not make caller-supplied review booleans authoritative.
 
 Guest or geometry changes must regenerate the receiver-derived roster/mass and exact model before carrying forward the numerical bound. The executable model deliberately rejects unreviewed rosters. GPU implementations must preserve the same authority, field, sampler and transcript and pass proof/fresh-receiver parity; no GPU qualification is claimed here.

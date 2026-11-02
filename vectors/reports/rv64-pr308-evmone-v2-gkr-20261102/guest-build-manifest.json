@@ -1,0 +1,85 @@
+{
+ "schema": "stwo.rv64.client-evmone-build.v1",
+ "variant": "admitted",
+ "artifact": "/private/tmp/stwo-rv64-pr308-guest-artifacts/v2/client-evmone-admitted.elf",
+ "sha256": "cf568aae59438bb5b5132ecb678fe90c929362c50f54f81c9d6af02a809040a7",
+ "zig_version": "0.15.2",
+ "optimization": "-O2",
+ "secp": "stwo",
+ "isa": "im",
+ "defines": [
+  "-DZEG_STWO",
+  "-DZEG_PUBLIC_OUTPUT_BLOCK_HASH",
+  "-DPROJECT_VERSION=\"0.24.0\"",
+  "-DZEG_ANALYSIS_CACHE_SLOTS=1152",
+  "-DZEG_FUSE_TEST"
+ ],
+ "pinned_sources": {
+  "ziskethone": {
+   "url": "https://github.com/0xPolygonHermez/ziskethone.git",
+   "commit": "1c3e8d1737c0269a50af24a6fdb26091a6eaee27",
+   "license": "Apache-2.0 OR MIT"
+  },
+  "evmone": {
+   "url": "https://github.com/ethereum/evmone.git",
+   "commit": "2a4decd05b7e088b2da0e1f1924f8968e14e3586",
+   "license": "Apache-2.0"
+  },
+  "blst": {
+   "url": "https://github.com/supranational/blst.git",
+   "commit": "54e6e55674722fc2797ebb4bbb71b26d881eb4b8",
+   "license": "Apache-2.0"
+  },
+  "intx": {
+   "url": "https://github.com/chfast/intx.git",
+   "commit": "0306b495820a5259563e5055f0a8b726b9ae4e0b",
+   "license": "Apache-2.0"
+  }
+ },
+ "staging": {
+  "applied_patches": [
+   "ziskethone/cpp-guest/patches/02-evmone-delegation-eoa-fastpath.patch",
+   "ziskethone/cpp-guest/patches/03-evmone-zisk-u256-abi.patch",
+   "ziskethone/cpp-guest/patches/04-evmone-zisk-jumpdest-pointer-walk.patch",
+   "ziskethone/cpp-guest/patches/05-evmone-zisk-jumpdest-precompile.patch",
+   "ziskethone/cpp-guest/patches/06-evmone-zisk-fused-dispatch.patch",
+   "ziskethone/cpp-guest/patches/07-evmone-precompile-reused-output.patch",
+   "ziskethone/cpp-guest/patches/09-evmone-zisk-analyze-into-buffer.patch",
+   "ziskethone/cpp-guest/patches/10-evmone-selfbalance-cache.patch",
+   "ziskethone/cpp-guest/patches/11-evmone-zisk-coinbase-aligned-load.patch",
+   "ziskethone/cpp-guest/patches/12-evmone-zisk-address-aligned-load.patch",
+   "ziskethone/cpp-guest/patches/13-evmone-zisk-txctx-bytes32-aligned-load.patch",
+   "ziskethone/cpp-guest/patches/14-evmone-zisk-tx-arena-call-output.patch",
+   "ziskethone/cpp-guest/patches/15-evmone-depth-limit-all-forks.patch",
+   "ziskethone/cpp-guest/patches/16-evmone-zisk-memory-views.patch",
+   "client_evmone/patches/0001-ziskethone-stwo-ssz-witness-state.patch",
+   "client_evmone/patches/0002-blst-rv64-64bit-limbs.patch",
+   "client_evmone/patches/0003-intx-rv64-bytewise-big-endian.patch",
+   "client_evmone/patches/0004-evmone-candidate-arith256-mod.patch",
+   "client_evmone/patches/0005-evmone-evmc-stwo-words.patch",
+   "client_evmone/patches/0005-intx-rv64-aligned-swap-big-endian.patch",
+   "client_evmone/patches/0005-ziskethone-7702-delegation-code.patch",
+   "client_evmone/patches/0006-evmone-rv64-be-word-transfers.patch",
+   "client_evmone/patches/0007-evmone-rv64-dispatch-gas-check.patch",
+   "client_evmone/patches/0008-evmone-rv64-jumpdest-sentinel-scan.patch",
+   "client_evmone/patches/0009-intx-rv64-mul256-columns.patch",
+   "client_evmone/patches/0010-evmone-rv64-div-mod-word-path.patch",
+   "client_evmone/patches/0011-evmone-rv64-dispatch-halt-gas.patch",
+   "client_evmone/patches/0012-evmone-rv64-inline-mload-mstore.patch",
+   "client_evmone/patches/0013-evmone-host-self-address-in-place.patch",
+   "client_evmone/patches/0014-evmone-rv64-jumpdest-scan-unroll4.patch",
+   "client_evmone/patches/0015-evmone-rv64-context-word-loads.patch",
+   "client_evmone/patches/0016-ziskethone-fused-dispatch-pointer-bounds.patch",
+   "client_evmone/patches/0017-ziskethone-fuse-compare-jumpi.patch",
+   "client_evmone/patches/0020-evmone-candidate-curves.patch",
+   "client_evmone/patches/0021-blst-candidate-curves.patch",
+   "client_evmone/patches/0023-evmone-v3-modexp-arith256-mod.patch",
+   "client_evmone/patches/0025-ziskethone-stwo-contract-hash-in-record.patch",
+   "client_evmone/patches/0026-blst-rv64-fixed-limb-mont.patch",
+   "client_evmone/patches/0027-ziskethone-stwo-word-copies.patch",
+   "client_evmone/patches/0028-evmone-jumpdest-service.patch",
+   "client_evmone/patches/0029-ziskethone-jumpdest-slot-align.patch"
+  ]
+ },
+ "linker_script": "autoresearch/benchmarks/guest_runtime/ethereum/client_evmone/linker-wide-cxx.ld"
+}
