@@ -196,3 +196,30 @@ opaque cloning/materialization is excluded from this production path.
 This bounds requested and original live payload capacities, not free recycler
 cache, allocator rounding, stacks, MAIN/PCS/setup/capture owners or RSS. The same
 frozen policy selects the scheduler retention estimate and hard child limit.
+
+The source-dense implementation is qualified in `0825ec08b`: QM31/OM31 mixed
+and tiny source proofs, artifacts and next draws match materialized dense;
+fresh terminal verification, pole behavior, callback errors, all allocation
+failures, joined workers and immutable held-lease fallback pass Safe/Fast.
+Production Child lifecycles and real CPU service proofs pass both modes. Exact
+caps cover mixed12 and synchronized16 instances with retaining/no-resize allocators.
+AIR independent code/resource review found no blocker.
+
+Same-binary prefix measurements are in
+`vectors/reports/rv64-gkr-stream-dense-upper-20261102/matched-prefix-receipt.json`.
+CPU0 ABCCBA and two-CPU ABBA produced44 identical authoritative artifact hashes
+and10 accepted fresh receivers. CPU0 numerical requested peak fell12.616GB to
+8.074GB (1.56x), while RSS fell16.388GB to11.849GB (1.38x); source-checkpoint68
+reached2.691GB numerical and8.543GB RSS. Two-CPU source-dense RSS fell30.657GB
+to21.833GB (1.40x) at the same two8-worker lanes. Mean proving times were9.655s
+vs9.768s for CPU0, and15.775s vs15.931s for two CPUs: these approximately1%
+differences are below the visible host variation, not evidence of a speedup.
+CPU0 checkpoint68 averaged10.030s. Numerical reductions still cost more under
+streaming; dense uppers remove checkpoint recomputation, not metadata replay.
+
+No host-wide quiet was established. A2-second own planner compilation overlapped
+the first source-dense CPU0 sample and is flagged; other agent compilation was
+active during parts of the sweep. Default controls remain unchanged. A complete
+matched block remains required before operational-policy promotion. The pure
+full-roster source80 plan places the heaviest adjacent CPU tasks at34.733GiB,
+below the36GiB payload admission cap, while preserving the physical-memory caveats.
