@@ -33,6 +33,12 @@ pub fn PointFor(comptime F: type) type {
 /// coordinate doubled `local_log - 1` times. QM31 keeps the native path.
 pub fn denominatorInverseFor(comptime F: type, point: PointFor(F), global_log: u32, local_log: u32) !F {
     if (F == Q) return denominatorInverse(point, global_log, local_log);
+    // Recording lanes export per-row residuals; the quotient division is the
+    // consumer's (domain inverses), so the point scale is a unit placeholder.
+    if (comptime @import("symbolic_lane.zig").isSymbolic(F)) {
+        if (local_log == 0 or global_log < local_log or global_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidRv64MaskGeometry;
+        return F.one();
+    }
     if (F == core.fields.om31.OM31) {
         if (local_log == 0 or global_log < local_log or global_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidRv64MaskGeometry;
         const local = point.repeatedDouble(global_log - local_log);
