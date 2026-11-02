@@ -114,6 +114,10 @@ pub fn validate(metadata: Metadata, limits: Limits) !void {
             try @import("v2_scope.zig").declaration(cpu.declaration);
             try @import("v2_scope.zig").calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge, cpu.request.ls_dword);
         }
+        // Truths too: write() labels any throughput/r27 Keccak, secp row or
+        // other extended truth V3_PROFILE, so a legacy-profile bundle carrying
+        // one is never producer output and must not borrow V3 truth admission.
+        for (metadata.truths) |truth| try @import("v2_scope.zig").truthDeclaration(truth.declaration);
     } else if (std.mem.eql(u8, metadata.profile, Manifest.BULK_PROFILE)) {
         if (!hasBulk(metadata.cpus) or hasV3(metadata.cpus, metadata.truths)) return error.WideBundleProfile;
     } else if (!std.mem.eql(u8, metadata.profile, Manifest.V3_PROFILE) or !hasV3(metadata.cpus, metadata.truths)) return error.WideBundleProfile;

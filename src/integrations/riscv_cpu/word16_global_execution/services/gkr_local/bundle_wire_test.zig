@@ -160,7 +160,13 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     var truth_claims = [_][8]u32{@splat(0)} ** 5;
     const truths = [_]Truth{.{ .declaration = .{ .family = .sha256, .first_id = 1, .calls = 1, .logs = .{ 5, 0 } }, .claims = &truth_claims, .proof = .{ .bytes = 1, .sha256 = @splat(0) } }};
     metadata.truths = &truths;
+    // The legacy v2 profile keeps v2 truth admission (#310 admits SHA-256 only
+    // under V3_PROFILE); the V3 profile admits the declaration and the orphan
+    // span (no CPU SHA-256 calls) is rejected by span closure instead.
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    metadata.profile = @import("manifest.zig").V3_PROFILE;
+    try std.testing.expectError(error.InvalidCombinedTruthSpan, Wire.validate(metadata, .{}));
+    metadata.profile = @import("manifest.zig").PROFILE;
 
     // Throughput Keccak-f truth (wire logs[1] == 21) is v3-only: the GKR
     // roles, masses and statements describe the compact 2^13/2^10 tables.

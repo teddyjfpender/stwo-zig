@@ -82,6 +82,11 @@ test "Zbb profile and component fail closed on the GKR route" {
     try bridges(.{ .keccak = 18 });
     try std.testing.expectError(error.UnsupportedGkrLocalZbbComponent, bridges(.{ .keccak = 18, .zbb = 5 }));
     try std.testing.expectError(error.UnsupportedGkrLocalZbbComponent, @import("v2_scope.zig").bridges(.{ .zbb = 5 }));
+    // Wide-clock 2^23 CPU segments (valid classic geometry) have no GKR projection.
+    const G = @import("../../../word16_execution/geometry.zig").Geometry;
+    try (G{ .cpu_log = 23, .cpu_fused_tail = true }).validate();
+    try std.testing.expectError(error.InvalidLocalGkrGeometry, geometry(.{ .cpu_log = 23, .cpu_fused_tail = true }));
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, @import("v2_scope.zig").geometry(.{ .cpu_log = 23, .cpu_fused_tail = true }));
 }
 
 test "v3 GKR CPU statement bridge projection excludes only the appended Zbb log" {
