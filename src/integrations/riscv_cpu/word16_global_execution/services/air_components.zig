@@ -9,6 +9,9 @@ const K = A.crypto.keccak;
 const KB = K.word16_bridge;
 const BM = A.crypto.bulk_memory;
 const KS = A.crypto.keccak_sponge;
+pub fn zbbChallenges(ch: G.Old.Draw) A.word16_v1.binary_lookup.Challenges {
+    return .{ .function = .{ .offset = ch.cpu.function.offset, .coefficients = ch.cpu.function.coefficients }, .and_ = ch.and_ };
+}
 pub fn spongeChallenges(ch: G.Old.Draw, common: P.Shared) KS.types.Challenges {
     return .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .and_ = ch.and_, .range16 = ch.memory.range16, .range8 = ch.memory.range8 };
 }
@@ -27,6 +30,15 @@ pub const Bridges = struct {
     curves: [T.CURVES]?B.component.Component = @splat(null),
     bulk: [T.bulk_kinds.len]?BM.component.Component = @splat(null),
     sponge: [2]?KS.component.Component = @splat(null),
+    zbb: ?A.word16_v1.binary_component.Component = null,
+    /// The Zbb BINARY component uses the CPU proof's FUNCTION and AND
+    /// challenges, exactly like the core BINARY chip it extends.
+    pub fn withZbb(self: Bridges, setup: *const R.CpuSetup, ch: G.Old.Draw, claims: T.ZbbClaims) Bridges {
+        var out = self;
+        const log = setup.bridges.zbb orelse return out;
+        out.zbb = .{ .kind = .binary_zbb, .log_size = log, .offsets = .{ setup.zbbOffset(0), setup.zbbOffset(1), setup.zbbOffset(2) }, .challenges = zbbChallenges(ch), .claims = claims };
+        return out;
+    }
     /// Keccak-sponge components share the CPU proof's RAM14, OWNER19, AND and
     /// range challenges and the bundle's Keccak IO11 challenge.
     pub fn withSponge(self: Bridges, setup: *const R.CpuSetup, counts: T.SpongeCounts, ch: G.Old.Draw, common: P.Shared, claims: [2]T.SpongeClaims) Bridges {
@@ -73,6 +85,7 @@ pub const Bridges = struct {
         for (self.curves) |c| n += @intFromBool(c != null);
         for (self.bulk) |b| n += @intFromBool(b != null);
         for (self.sponge) |b| n += @intFromBool(b != null);
+        n += @intFromBool(self.zbb != null);
         return n;
     }
 };
@@ -98,6 +111,10 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
         out[at] = c.asProverComponent();
         at += 1;
     };
+    if (bridges.zbb) |*c| {
+        out[at] = c.asProverComponent();
+        at += 1;
+    }
     return out;
 }
 pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]core.air.components.Component {
@@ -122,6 +139,10 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
         out[at] = c.asVerifierComponent();
         at += 1;
     };
+    if (bridges.zbb) |*c| {
+        out[at] = c.asVerifierComponent();
+        at += 1;
+    }
     return out;
 }
 pub const TruthComponents = union(enum) {

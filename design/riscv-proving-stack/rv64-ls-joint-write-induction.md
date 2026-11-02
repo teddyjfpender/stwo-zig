@@ -435,7 +435,12 @@ section 4 goes through unchanged.
 | `sponge[perm]` | sponge permutation rows | reads only (b): message windows `after = before` | first row consumes the call token carrying the call clock; continuations copy | R = 1, W column shared; weight `read[j]` Boolean and only on active rows |
 
 `core` is the CPU + LS + boundary source (sections 1-10). `sponge_plan` is the
-owned plan of the two sponge sources, not a component.
+owned plan of the two sponge sources, not a component. `zbb` (profile
+ethereum_services_v3_zbb, `air/word16_v1/binary_zbb.zig`) is NOT a RAM
+writer: it is a pure FUNCTION truth provider (ids 19..24) with only byte-AND
+and FUNCTION interactions, no RAM14, OWNER19 or range terms, so it adds no case
+here; a Zbb instruction's register write is the ordinary CPU REG write
+(sections 1-10) of a FUNCTION-row result.
 
 ### 11.3 Notes and premises made explicit
 

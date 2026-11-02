@@ -86,6 +86,21 @@ pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, ran
     return .{ .ram = 58 * @as(u64, r.sponge.calls) + 36 * @as(u64, r.sponge.perms), .range16 = range16, .range8 = range8, .io = 50 * (@as(u64, r.sponge.calls) + r.sponge.perms) };
 }
 
+/// Admitted Zbb BINARY component of one CPU proof (profile
+/// ethereum_services_v3_zbb). It is a pure truth provider: no public count,
+/// FUNCTION ids 19..24 close against the CPU and its 8 byte-AND requests per
+/// physical row join the core AND table. Present only for a Zbb-profile ROM;
+/// the total AND mass (BINARY + sponge + Zbb) stays below p.
+pub fn admitZbb(setup: *const R.CpuSetup) !void {
+    const log = setup.bridges.zbb orelse return;
+    if (!A.word16_execution.features.zbbProfile(setup.materials.program.profile)) return error.UnexpectedZbbComponent;
+    if (log < 5 or log > 22) return error.InvalidCombinedBridgeGeometry;
+    const g = setup.materials.geometry;
+    const binary_rows = (@as(u64, 1) << @intCast(g.binary_log)) + (if (g.binary_tail_log) |t| @as(u64, 1) << @intCast(t) else 0);
+    var mass = 8 * binary_rows + 8 * (@as(u64, 1) << @intCast(log));
+    if (setup.bridges.sponge.perm) |l| mass += @as(u64, KS.layout.andCount(.perm)) << @intCast(l);
+    if (mass >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+}
 pub fn firstIds(requests: []const Request, index: usize) ![T.FAMILIES]u32 {
     if (index > requests.len) return error.InvalidCombinedOrdinal;
     var first: [T.FAMILIES]u64 = @splat(1);
@@ -123,6 +138,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
+        try admitZbb(setup);
         sponge_io = try std.math.add(u64, sponge_io, sponge.io);
         sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
         var mass16 = try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16);
@@ -253,6 +269,15 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
             ch.mixU32s(&.{ @intCast(k), r.sponge.rows(kind), @intFromBool(s.bridges.sponge.at(kind) != null), s.bridges.sponge.at(kind) orelse 0, @intCast(KS.layout.constraints(kind)) });
             if (s.bridges.sponge.at(kind) != null) for (T.spongeWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
+    }
+    // Zbb BINARY component: mixed only when present (every other transcript
+    // unchanged). Binds the chip (ids, constraints, widths), its log and the
+    // Zbb opcode map; the ROM program identity already binds the profile.
+    if (s.bridges.zbb) |log| {
+        const Z = A.word16_v1.binary_zbb;
+        ch.mixU32s(&.{ 0x5a424231, 1, Z.FIRST_ID, Z.OPS, @intCast(A.word16_v1.binary_lookup.zbb.CONSTRAINTS), Z.AND_REQUESTS, log });
+        for (T.zbbWidths()) |width| ch.mixU32s(&.{@intCast(width)});
+        G.Old.digest(ch, A.word16_execution.features.zbbIdentity());
     }
 }
 fn mixBulkKind(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, kind: T.BulkKind, k: usize) void {

@@ -175,7 +175,7 @@ pub const Trace = struct {
             const entry = decoded[rom_index];
             const record = try records.record(i, entry.raw, entry.instruction);
             if (record.clock != i + 1 or record.pc.toInt() != pc) return error.InvalidRv64FullRetirement;
-            if (entry.raw != record.instruction or record.opcode != entry.instruction.opcode or !plan.allowed_opcodes[@intFromEnum(record.opcode)]) return error.InvalidRv64FullRetirement;
+            if (entry.raw != record.instruction or record.opcode != entry.instruction.opcode or !plan.allows(record.opcode)) return error.InvalidRv64FullRetirement;
             const instruction = entry.instruction;
             const effects = execution.execution_profile.effects(plan.execution_profile, instruction.opcode);
             var previous: [4]u32 = @splat(0);

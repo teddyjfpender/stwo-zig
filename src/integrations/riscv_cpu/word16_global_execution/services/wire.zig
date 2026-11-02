@@ -90,16 +90,18 @@ pub const WireClaims = struct {
     bulk_ext: ?[3]T.BulkClaims = null,
     /// Keccak-sponge claims (call, perm); present iff the roster has a sponge.
     sponge: ?[2]T.SpongeClaims = null,
+    /// Zbb BINARY claims (AND, FUNCTION); present iff the roster has Zbb.
+    zbb: ?T.ZbbClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
         var curves: [T.CURVES]?T.ExtraClaims = @splat(null);
         for (&curves, T.FIRST_CURVE..) |*out, k| out.* = if (bridges.at(@enumFromInt(k)) != null) c.extras[k] else null;
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .zbb = if (bridges.zbb != null) c.zbb else null };
     }
     fn expand(self: @This()) E.CpuClaims {
         var extras: [T.FAMILIES]T.ExtraClaims = undefined;
         extras[0..5].* = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() };
         for (extras[T.FIRST_CURVE..], self.curves) |*out, c| out.* = c orelse T.ExtraClaims.zero();
-        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
+        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()), .zbb = self.zbb orelse T.zbbZero() };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curves) |c| if (c != null) return true;
@@ -133,6 +135,10 @@ pub const WireClaims = struct {
         }
         if (self.sponge) |b| {
             try jws.objectField("sponge");
+            try jws.write(b);
+        }
+        if (self.zbb) |b| {
+            try jws.objectField("zbb");
             try jws.write(b);
         }
         try jws.endObject();
@@ -232,6 +238,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         if ((cpu.claims.bulk != null) != cpu.declaration.bridges.bulk.any()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk_ext != null) != cpu.declaration.bridges.bulk.anyExtension()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.zbb != null) != (cpu.declaration.bridges.zbb != null)) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;
         if (cpu.request.division_requests > (@as(u32, 1) << @intCast(g.division_log)) or cpu.request.multiplication_requests > (@as(u32, 1) << @intCast(g.multiplication_log))) return error.InvalidServicesWireRequest;
         _ = try g.lsCounts(cpu.request.ls_count);
@@ -276,6 +283,11 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             mass8 = try std.math.add(u64, mass8, @as(u64, A.crypto.keccak_sponge.layout.range8Count(kind)) << @intCast(l));
         } else if (cpu.request.sponge.rows(kind) != 0) return error.InvalidServicesWireRequest;
         sponge_perms = try std.math.add(u64, sponge_perms, cpu.request.sponge.perms);
+        // Zbb geometry: the same admission the receiver repeats in P.admitZbb.
+        if (cpu.declaration.bridges.zbb) |l| {
+            if (l < 5 or l > 22) return error.InvalidServicesWireRequest;
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(l));
+        }
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
         ram = try std.math.add(u64, ram, 58 * @as(u64, cpu.request.sponge.calls) + 36 * @as(u64, cpu.request.sponge.perms));
         ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
@@ -293,6 +305,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         for (T.sponge_kinds, claims.sponge) |kind, c| if (cpu.declaration.bridges.sponge.at(kind) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
+        if (cpu.declaration.bridges.zbb == null) for (claims.zbbValues()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         if (cpu.proof.bytes == 0 or cpu.proof.bytes > limits.max_proof_bytes) return error.ServicesProofLimit;
         proof_bytes = try std.math.add(u64, proof_bytes, cpu.proof.bytes);
     }

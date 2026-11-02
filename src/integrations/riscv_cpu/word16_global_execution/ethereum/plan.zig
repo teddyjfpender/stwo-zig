@@ -68,6 +68,9 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         const sponge = captured.advice.sponge[i].counts();
         if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
         if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
+        // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure
+        // truth provider, every row may be active), only when the shard has one.
+        if (n.zbb.facts.len != 0) d.bridges.zbb = try Coverage.minimalLog(@intCast(n.zbb.facts.len));
         try g.validate();
     }
     return out;

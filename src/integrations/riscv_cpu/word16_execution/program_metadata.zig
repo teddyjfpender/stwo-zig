@@ -15,7 +15,7 @@ pub const Data = struct {
     row_to_entry: []const u32,
     row_taken: []const bool,
     log_size: u32,
-    opcodes: [65]bool,
+    opcodes: [@import("program.zig").OPCODE_COUNT]bool,
     contiguous: bool,
     fn payloadBytes(self: Data) !usize {
         var size = try std.math.mul(usize, self.entries.len, @sizeOf(Entry));
@@ -35,17 +35,18 @@ pub const Data = struct {
         hash.update("stwo-rv64/full-word16/program-rom/v1\x00");
         const features = X.features.identity();
         hash.update(&features);
+        if (X.features.zbbProfile(input.profile)) hash.update(&X.features.zbbIdentity());
         var framed: [12]u8 = undefined;
         std.mem.writeInt(u32, framed[0..4], @intFromEnum(input.profile), .little);
         std.mem.writeInt(u64, framed[4..12], input.words.len, .little);
         hash.update(&framed);
         var count: usize = 0;
-        var opcodes: [65]bool = @splat(false);
+        var opcodes: [@import("program.zig").OPCODE_COUNT]bool = @splat(false);
         for (self.entries, self.word_rows, input.words, input.addresses, 0..) |entry, first, raw, pc, i| {
             if (entry.raw != raw or entry.pc != pc or first != count) return error.InvalidProgramMetadataIdentity;
             var canonical: Entry = .{ .raw = raw, .pc = pc, .instruction = .{ .opcode = .FENCE, .rd = 0, .rs1 = 0, .rs2 = 0 } };
             if (front.rv64.execution_profile.decode(input.profile, raw)) |instruction| {
-                if (front.rv64.execution_profile.admitted(input.profile, instruction.opcode)) canonical = Entry.fromInstruction(raw, pc, instruction);
+                if (front.rv64.execution_profile.admitted(input.profile, instruction.opcode)) canonical = Entry.fromInstructionFor(input.profile, raw, pc, instruction);
             } else |_| {}
             if (!std.meta.eql(entry, canonical)) return error.InvalidProgramMetadataIdentity;
             std.mem.writeInt(u64, framed[0..8], pc, .little);

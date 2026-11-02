@@ -47,6 +47,10 @@ pub const Logs = struct {
     /// Admitted Keccak-256 sponge bridges (v3), a separate block after bulk.
     /// The sponge uses the Keccak IO11 bus, so it takes no Family ordinal.
     sponge: Sponge = .{},
+    /// Zbb BINARY truth provider (profile ethereum_services_v3_zbb), the last
+    /// CPU-local block. It answers the CPU FUNCTION ids 19..24 against the
+    /// core byte-AND table; it takes no Family ordinal and has no public count.
+    zbb: ?u32 = null,
     pub fn at(self: @This(), family: Family) ?u32 {
         return switch (family) {
             .keccak => self.keccak,
@@ -88,6 +92,10 @@ pub const Logs = struct {
         if (self.sponge.any()) {
             try jws.objectField("sponge");
             try jws.write(self.sponge);
+        }
+        if (self.zbb) |log| {
+            try jws.objectField("zbb");
+            try jws.write(log);
         }
         try jws.endObject();
     }
@@ -277,4 +285,13 @@ pub const SpongeCounts = struct {
 pub const SpongeClaims = A.crypto.keccak_sponge.types.Claims;
 pub fn spongeWidths(kind: SpongeKind) [3]usize {
     return A.crypto.keccak_sponge.layout.widths(kind);
+}
+
+/// Zbb BINARY component widths (fixed first/last, MAIN, interaction).
+pub const ZbbClaims = A.word16_v1.binary_lookup.Claims;
+pub fn zbbWidths() [3]usize {
+    return .{ 2, A.word16_v1.binary_lookup.zbb.MAIN, A.word16_v1.binary_lookup.zbb.INTERACTION };
+}
+pub fn zbbZero() ZbbClaims {
+    return .{ .and_ = Q.zero(), .function = Q.zero() };
 }

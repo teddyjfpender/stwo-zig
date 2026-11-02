@@ -67,7 +67,23 @@ const Stage1 = struct {
             a.free(self.advice.events[cpu.ordinal]);
             self.advice.events[cpu.ordinal] = &.{};
         }
-        var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &cpu.setup.materials, self.native[cpu.ordinal], memory, recorder);
+        // Zbb BINARY provider: exactly the shard's FUNCTION 19..24 facts; a
+        // Zbb fact without a Zbb component (or the reverse) fails closed.
+        const native = self.native[cpu.ordinal];
+        var zbb: ?A.word16_v1.binary_source.Source = null;
+        errdefer if (zbb) |*s| s.deinit();
+        if (cpu.setup.bridges.zbb) |log| {
+            zbb = A.word16_v1.binary_zbb_source.initWeighted(a, native.zbb.facts, native.zbb.weights, log) catch |err| {
+                var m = memory; // consumed on every path, as by fromPreparedWithOwnedMemory
+                m.deinit();
+                return err;
+            };
+        } else if (native.zbb.facts.len != 0) {
+            var m = memory;
+            m.deinit();
+            return error.MissingZbbComponent;
+        }
+        var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &cpu.setup.materials, native, memory, recorder);
         errdefer base.deinit();
         var k: ?A.crypto.keccak.word16_bridge.source.Source = null;
         errdefer if (k) |*s| s.deinit();
@@ -114,7 +130,7 @@ const Stage1 = struct {
                 out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
             };
         }
-        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
+        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .zbb = zbb };
         // Locals own all fields until this final fallible operation succeeds.
         try source.mergeRanges();
         return source;

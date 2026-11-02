@@ -24,6 +24,9 @@ pub fn terms(role: Geometry.Role) u32 {
     };
 }
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
+    // The GKR-local lane has no Zbb BINARY role: such a CPU proof is not
+    // admitted here (fail closed) rather than silently omitting its fractions.
+    if (setup.bridges.zbb != null) return error.UnsupportedGkrLocalZbbComponent;
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {

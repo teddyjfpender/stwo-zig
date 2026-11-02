@@ -9,7 +9,7 @@ const T = @import("../services/types.zig");
 /// Core roles, one row per service family bridge, then the six v3
 /// bulk-memory components (desc, copy, set, ucopy, cdesc, cmp) and the two v3 Keccak-sponge
 /// components (call, perm).
-pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len + T.sponge_kinds.len;
+pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len + T.sponge_kinds.len + 1;
 pub const Row = struct {
     role: []const u8,
     present: bool,
@@ -80,6 +80,8 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
             .perm => "sponge_perm",
         }, log orelse 5, if (log != null) T.spongeWidths(kind) else .{ 0, 0, 0 }, sponge.rows(kind));
     }
+    // Zbb BINARY component (v3_zbb): active rows = distinct Zbb facts.
+    result[COUNT - 1] = try row("zbb_binary", setup.bridges.zbb orelse 5, if (setup.bridges.zbb != null) T.zbbWidths() else .{ 0, 0, 0 }, if (setup.bridges.zbb != null) prepared.zbb.facts.len else 0);
     for (0..3) |tree| {
         var width: usize = 0;
         for (result) |value| width = try std.math.add(usize, width, value.columns[tree]);

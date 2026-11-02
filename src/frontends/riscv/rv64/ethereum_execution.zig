@@ -48,6 +48,10 @@ const Config = struct {
     pc_profile: ?PcRange = null,
     execution_profile: Profile = .software,
     census_batch_steps: ?u32 = null,
+    /// v3_zbb diagnostic: distinct Zbb BINARY chip facts (op, rs1, rs2 value)
+    /// per consecutive window of this many retirements (= one CPU shard), i.e.
+    /// the rows the shard's deduplicated Zbb component needs.
+    zbb_shard_steps: ?u32 = null,
     compact_capture_batch_steps: ?u32 = null,
     capture_ram_boundaries: bool = false,
     frequent_operation_limit: ?usize = null,
@@ -172,7 +176,22 @@ const Report = struct {
     candidate_service_calls: ?candidate.Counts = null,
     candidate_isa_counts: ?cisa.Counts = null,
     zbb_binary_counts: ?ZbbBinaryCounts = null,
+    zbb_shard_distinct_facts: ?[]const u64 = null,
     ls_histogram: ?LsHistogram = null,
+    /// Same fields in declaration order; `zbb_binary_counts` is emitted only
+    /// for the Zbb profile, so every other profile's report keeps its exact
+    /// pre-Zbb JSON shape (no new null key).
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(@This())) |field| {
+            const omit = comptime std.mem.eql(u8, field.name, "zbb_binary_counts") or std.mem.eql(u8, field.name, "zbb_shard_distinct_facts");
+            if (!omit or @field(self, field.name) != null) {
+                try jws.objectField(field.name);
+                try jws.write(@field(self, field.name));
+            }
+        }
+        try jws.endObject();
+    }
 };
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(A);
@@ -272,6 +291,12 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     if (is_candidate) report.candidate_service_calls = .{};
     if (is_isa) report.candidate_isa_counts = .{};
     if (c.execution_profile == .ethereum_services_v3_zbb) report.zbb_binary_counts = .{};
+    const ZbbKey = struct { op: rv.decode.Opcode, a: u64, b: u64 };
+    var zbb_window: std.AutoHashMapUnmanaged(ZbbKey, void) = .empty;
+    defer zbb_window.deinit(A);
+    var zbb_shards: std.ArrayList(u64) = .empty;
+    defer zbb_shards.deinit(A);
+    if (c.zbb_shard_steps != null and (c.execution_profile != .ethereum_services_v3_zbb or c.zbb_shard_steps.? == 0)) return error.InvalidZbbShardSteps;
     if (tape != null) report.compact_capture = .{};
     if (boundaries != null) report.ram_boundary_capture = .{};
     if (c.pc_profile) |range| {
@@ -428,6 +453,17 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         if (tape) |*value| try value.append(row);
         if (boundaries) |*value| try value.append(row, memory);
         if (rv.decode.isBase(row.opcode)) report.opcode_counts[@intFromEnum(row.opcode)] += 1 else bumpZbb(&report.zbb_binary_counts.?, row.opcode);
+        if (c.zbb_shard_steps) |window| {
+            // Window of this retirement (service ECALLs never reach here, so
+            // close every window passed since the last counted row).
+            const shard = (session.cpu.retired - 1) / window;
+            while (zbb_shards.items.len < shard) {
+                try zbb_shards.append(A, zbb_window.count());
+                zbb_window.clearRetainingCapacity();
+            }
+            // zext.h is the core BINARY AND, not a Zbb chip fact.
+            if (!rv.decode.isBase(row.opcode) and row.opcode != .ZEXT_H) try zbb_window.put(A, .{ .op = row.opcode, .a = row.lhs.toInt(), .b = row.rhs.toInt() }, {});
+        }
         if (frequent_census) |*value| try value.retire(row);
         if (report.pc_profile) |*profile| {
             const pc = row.pc.toInt();
@@ -462,6 +498,10 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                 break;
             }
         } else if (census) |*value| try value.retireOpcode(@intFromEnum(row.opcode));
+    }
+    if (c.zbb_shard_steps != null) {
+        try zbb_shards.append(A, zbb_window.count());
+        report.zbb_shard_distinct_facts = try A.dupe(u64, zbb_shards.items);
     }
     report.execution_ns = timer.read();
     report.instructions = session.cpu.retired;

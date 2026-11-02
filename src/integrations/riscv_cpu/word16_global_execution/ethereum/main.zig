@@ -121,7 +121,10 @@ pub fn main() !void {
 /// exist only in the admitted v3 roster. A v2 request can never accept a
 /// proof that relies on them.
 pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration) !void {
-    if (config.execution_profile == .ethereum_services_v3) return;
+    // The Zbb BINARY component exists only under ethereum_services_v3_zbb
+    // (its ROM decodes the Zbb subset); every other request rejects it.
+    if (config.execution_profile != .ethereum_services_v3_zbb) for (cpus) |d| if (d.bridges.zbb != null) return error.UnadmittedZbbBinaryComponent;
+    if (@import("stwo_riscv_frontend").rv64.execution_profile.isV3(config.execution_profile)) return;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
     for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
     for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
