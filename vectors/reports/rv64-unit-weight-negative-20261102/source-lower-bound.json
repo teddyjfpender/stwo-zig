@@ -1,0 +1,137 @@
+{
+  "scope": "Read-only source-derived conservative lowerbound on first raw multiplicity reduction; real accepted CPU0 bundle geometry; M5 nativepack4. Weighted providers treated entirelynonunit, no empiricalweightedvaluecensus claimed.",
+  "total_facts": 126157120,
+  "native_pack_width": 4,
+  "all_vector_crosses": 31539280,
+  "guaranteed_unit_vector_crosses": 28786704,
+  "guaranteed_unit_cross_fraction": 0.9127254648806187,
+  "rows": [
+    {
+      "role": "cpu",
+      "row_log": 22,
+      "lanes": 16,
+      "facts": 67108864,
+      "guaranteed_unit_cross_fraction": 1
+    },
+    {
+      "role": "rom",
+      "row_log": 20,
+      "lanes": 1,
+      "facts": 1048576,
+      "guaranteed_unit_cross_fraction": 0
+    },
+    {
+      "role": "boundary",
+      "row_log": 5,
+      "lanes": 2,
+      "facts": 64,
+      "guaranteed_unit_cross_fraction": 1
+    },
+    {
+      "role": "alu",
+      "row_log": 19,
+      "lanes": 16,
+      "facts": 8388608,
+      "guaranteed_unit_cross_fraction": 0.75
+    },
+    {
+      "role": "alu_tail",
+      "row_log": 16,
+      "lanes": 16,
+      "facts": 1048576,
+      "guaranteed_unit_cross_fraction": 0.75
+    },
+    {
+      "role": "binary",
+      "row_log": 19,
+      "lanes": 16,
+      "facts": 8388608,
+      "guaranteed_unit_cross_fraction": 0.75
+    },
+    {
+      "role": "binary_tail",
+      "row_log": 18,
+      "lanes": 16,
+      "facts": 4194304,
+      "guaranteed_unit_cross_fraction": 0.75
+    },
+    {
+      "role": "shift",
+      "row_log": 19,
+      "lanes": 16,
+      "facts": 8388608,
+      "guaranteed_unit_cross_fraction": 0.75
+    },
+    {
+      "role": "shift_tail",
+      "row_log": 18,
+      "lanes": 16,
+      "facts": 4194304,
+      "guaranteed_unit_cross_fraction": 0.75
+    },
+    {
+      "role": "jalr",
+      "row_log": 14,
+      "lanes": 4,
+      "facts": 65536,
+      "guaranteed_unit_cross_fraction": 1
+    },
+    {
+      "role": "multiplication",
+      "row_log": 13,
+      "lanes": 128,
+      "facts": 1048576,
+      "guaranteed_unit_cross_fraction": 1
+    },
+    {
+      "role": "ls",
+      "row_log": 20,
+      "lanes": 16,
+      "facts": 16777216,
+      "guaranteed_unit_cross_fraction": 1
+    },
+    {
+      "role": "ls_tail",
+      "row_log": 18,
+      "lanes": 16,
+      "facts": 4194304,
+      "guaranteed_unit_cross_fraction": 1
+    },
+    {
+      "role": "range16",
+      "row_log": 16,
+      "lanes": 1,
+      "facts": 65536,
+      "guaranteed_unit_cross_fraction": 0
+    },
+    {
+      "role": "range8",
+      "row_log": 8,
+      "lanes": 1,
+      "facts": 256,
+      "guaranteed_unit_cross_fraction": 0
+    },
+    {
+      "role": "and_table",
+      "row_log": 16,
+      "lanes": 1,
+      "facts": 65536,
+      "guaranteed_unit_cross_fraction": 0
+    },
+    {
+      "role": "shift_table",
+      "row_log": 16,
+      "lanes": 16,
+      "facts": 1048576,
+      "guaranteed_unit_cross_fraction": 0
+    },
+    {
+      "role": "selection",
+      "row_log": 16,
+      "lanes": 2,
+      "facts": 131072,
+      "guaranteed_unit_cross_fraction": 0
+    }
+  ],
+  "note": "ALU/BINARY/SHIFT eachonearbitraryweightedfunctionlane in16facts contaminatesoneof4crossvectors; other3guaranteed0/1/-1. CPU/LS/JALR/MUL/boundaryweightsareBoolean/unit; table/ROMcountsunknownconservatively0fastpath."
+}

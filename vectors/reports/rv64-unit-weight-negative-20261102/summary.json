@@ -1,0 +1,90 @@
+{
+  "status": "rejected; noproductionwiring",
+  "scope": "sharedhost kernelmicro, notproof benchmark; scalarallcoordinate validation beforetiming; sample0excluded/retainedraw",
+  "medians": [
+    {
+      "field_bytes": 16,
+      "pattern": "allone",
+      "old_us": 203.9165,
+      "checked_us": 121.6665,
+      "ratio": 1.6760283233264703
+    },
+    {
+      "field_bytes": 16,
+      "pattern": "mixedunit",
+      "old_us": 200.3335,
+      "checked_us": 284.7915,
+      "ratio": 0.7034391827003263
+    },
+    {
+      "field_bytes": 16,
+      "pattern": "weighted",
+      "old_us": 200.3545,
+      "checked_us": 316.4375,
+      "ratio": 0.6331566265060241
+    },
+    {
+      "field_bytes": 16,
+      "pattern": "90pctunit",
+      "old_us": 177.354,
+      "checked_us": 257.958,
+      "ratio": 0.6875305282255251
+    },
+    {
+      "field_bytes": 16,
+      "pattern": "allzero",
+      "old_us": 173.2085,
+      "checked_us": 119.7705,
+      "ratio": 1.446169966728034
+    },
+    {
+      "field_bytes": 16,
+      "pattern": "allnegativeone",
+      "old_us": 167.2705,
+      "checked_us": 146.0625,
+      "ratio": 1.1451981172443304
+    },
+    {
+      "field_bytes": 32,
+      "pattern": "allone",
+      "old_us": 307.8955,
+      "checked_us": 218.521,
+      "ratio": 1.40899730460688
+    },
+    {
+      "field_bytes": 32,
+      "pattern": "mixedunit",
+      "old_us": 277.292,
+      "checked_us": 313.1875,
+      "ratio": 0.8853865495909
+    },
+    {
+      "field_bytes": 32,
+      "pattern": "weighted",
+      "old_us": 275.437,
+      "checked_us": 356.354,
+      "ratio": 0.7729308496607307
+    },
+    {
+      "field_bytes": 32,
+      "pattern": "90pctunit",
+      "old_us": 250.896,
+      "checked_us": 285.458,
+      "ratio": 0.8789243951824787
+    },
+    {
+      "field_bytes": 32,
+      "pattern": "allzero",
+      "old_us": 249.4375,
+      "checked_us": 175.729,
+      "ratio": 1.4194441441082577
+    },
+    {
+      "field_bytes": 32,
+      "pattern": "allnegativeone",
+      "old_us": 241.6665,
+      "checked_us": 171.5,
+      "ratio": 1.409134110787172
+    }
+  ]
+}

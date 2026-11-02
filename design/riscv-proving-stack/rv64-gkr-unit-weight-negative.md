@@ -1,0 +1,7 @@
+# Rejected unit-multiplicity scaling experiment
+
+Read-only analysis of accepted CPU0 geometry and the original fraction authority guarantees at least 91.27% of native four-lane first-reduction cross vectors contain only zero or signed unit weights. This is a source-derived lower bound, not an empirical census of arbitrary weighted values. It does not establish that masking is cheaper than the existing packed multiplication.
+
+An isolated checked kernel tried homogeneous one/zero/negative-one shortcuts followed by mixed-unit coordinate selection and canonical negation, with the original multiplication for every arbitrary weighted vector. The benchmark validates every lane and coordinate against scalar multiplication before timing. It covers Q and OM, all unit patterns and genuine weighted counts. No out-of-line coordinate conversion or multiplication helpers appear in its binary.
+
+The mixed-unit and weighted cases were slower in the microbenchmark; the initial OM observations were approximately 0.58× and 0.56× the original speed, respectively. Packed base multiplication is already efficient enough that checks, masking and negation can lose despite eliminating multiplications. The experiment is rejected. Only the standalone reproducer and honest evidence are retained; production arithmetic, proofs, transcripts and defaults are unchanged. No real-proof speedup is claimed, and no CPU0 A/B was warranted after this negative gate.
