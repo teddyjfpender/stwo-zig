@@ -51,7 +51,9 @@ pub const CpuLayout = struct {
     /// representation explicit instead of inheriting new classic defaults.
     pub fn forGkrProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = false };
+        // Compact decode has GKR-local CPU/ROM projections (gkr_local/fractions.zig
+        // cpuCompactFor, main_only `.cpu_compact`): 37 instead of 47 CPU MAIN columns.
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = v3 };
     }
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = @import("stwo_riscv_frontend").rv64.execution_profile.isV3(profile);

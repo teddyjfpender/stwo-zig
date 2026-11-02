@@ -214,6 +214,9 @@ pub fn main() !void {
     const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
     var jobs = try std.fs.cwd().openDir(args[3], .{});
     defer jobs.close();
+    const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
+    // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
+    if (cpu_layout.compact_decode) try program.makeCompact();
     const import_start = timer.read();
     var captured = try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, (if (resources) |r| r.capture_options else CaptureOptions{}).forPool(&pool));
     defer captured.deinit();
@@ -223,7 +226,7 @@ pub fn main() !void {
     const capture_cache_released = recycler.releaseCached();
     // Explicit authenticated service scope; classic-only encodings stay closed.
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
-    const cpu = try Plan.cpus(a, &captured, Plan.CpuLayout.forGkrProfile(request.value.execution_profile));
+    const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
     const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3 }, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);

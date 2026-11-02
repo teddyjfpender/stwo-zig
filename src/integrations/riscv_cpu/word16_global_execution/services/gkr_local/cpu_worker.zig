@@ -91,6 +91,12 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype
         hashValue(&h, request.ls_dword);
         hashValue(&h, ids);
     }
+    // Compact decode changes CPU MAIN, the ROM fixed tuple and AUIPC/JAL
+    // FUNCTION facts. Absent (false) it leaves every older statement byte-identical.
+    if (setup.materials.geometry.cpu_compact_decode) {
+        h.update("RV64-CPU-COMPACT-DECODE-GKR-STATEMENT-1");
+        hashValue(&h, @import("stwo_riscv_frontend").rv64_air.word16_execution.features.compactIdentity());
+    }
     if (setup.bridges.bulk.any() or request.bulk.any()) {
         h.update("RV64-BULK-GKR-V3-STATEMENT-1");
         hashValue(&h, setup.bridges.bulk);
@@ -258,6 +264,9 @@ pub const CpuWorker = struct {
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
         var phase_timing = Child.PhaseTiming{};
         const policy = if (self.tree_policy) |value| value else try Child.readTreePolicy(a);
+        // Observation only (lane rusage); never proof authority.
+        var gkr_scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr_prove", "Local GKR inputs, layers and sumchecks");
+        defer gkr_scope.end();
         self.child = try Child.Unbound.proveTimedWithBindingStorage(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, self.defer_local_binding, if (self.seal_timing != null) &phase_timing else null);
         if (self.seal_timing) |timing| {
             timing.inputs_ns = phase_timing.inputs_ns;

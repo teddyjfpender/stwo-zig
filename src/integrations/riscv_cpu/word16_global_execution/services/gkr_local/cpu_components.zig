@@ -130,6 +130,7 @@ pub const Set = struct {
             }
             var data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?);
             data.cpu_u8_pairs = setup.materials.geometry.cpu_u8_pairs;
+            data.cpu_compact_decode = setup.materials.geometry.cpu_compact_decode;
             switch (role) {
                 .rom, .boundary, .range16, .range8, .and_table, .shift_table, .selection => {
                     const kind = try Table.kindForRole(role);
@@ -140,7 +141,8 @@ pub const Set = struct {
                     const public: Main.PublicFor(O) = switch (role) {
                         .cpu => blk: {
                             const old = try A.word16_execution.types.inputs(request.base.cpu, request.base.epoch, slot.log);
-                            break :blk .{ .cpu = .{ .steps = old.steps, .initial_pc = old.initial_pc, .final_pc = old.final_pc, .epoch = old.epoch } };
+                            const inputs: A.word16_execution.types.InputsFor(O) = .{ .steps = old.steps, .initial_pc = old.initial_pc, .final_pc = old.final_pc, .epoch = old.epoch };
+                            break :blk if (setup.materials.geometry.cpu_compact_decode) .{ .cpu_compact = inputs } else .{ .cpu = inputs };
                         },
                         .alu, .alu_tail => .{ .alu = {} },
                         .binary, .binary_tail => .{ .binary = {} },

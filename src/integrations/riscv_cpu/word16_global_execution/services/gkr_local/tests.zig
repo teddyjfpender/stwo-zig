@@ -236,8 +236,9 @@ test "all eight actual role terminal bindings have degree at most three" {
             .jalr => .jalr,
             .mul => .multiplication,
             .div => .division,
+            .cpu_compact => .cpu,
         };
-        const terms = @import("roster.zig").terms(core_role);
+        const terms = if (role == .cpu_compact) @import("fractions.zig").cpuTerms(true) else @import("roster.zig").terms(core_role);
         const lanes: usize = @as(usize, 1) << @intCast(std.math.log2_int_ceil(u32, terms));
         var values: [5]O = undefined;
         for (&values, 0..) |*out, t| {
@@ -256,6 +257,51 @@ test "all eight actual role terminal bindings have degree at most three" {
         };
         try std.testing.expect(values[1].sub(values[0]).isZero());
     }
+}
+test "compact CPU terminal binding with a live previous row has degree at most three" {
+    // Same finite-difference degree probe as above, but the previous MAIN row,
+    // the first/last selectors and the public initial PC all vary linearly.
+    var channel = core.channel.raw_mod_m31.Om31Channel.init();
+    const challenges = @import("challenges.zig").For(O).draw(&channel);
+    var weights: [16]O = undefined;
+    for (&weights, 0..) |*v, i| v.* = omValue(i + 431);
+    const n = A.word16_execution.layout.compact.COUNT;
+    var values: [5]O = undefined;
+    for (&values, 0..) |*out, t| {
+        const x = O.fromBase(core.fields.m31.M31.fromCanonical(@intCast(t)));
+        var main: [n]O = undefined;
+        var previous: [n]O = undefined;
+        var fixed: [3]O = undefined;
+        for (&main, &previous, 0..) |*v, *p, i| {
+            v.* = omValue(i + 17).add(omValue(i + 217).mul(x));
+            p.* = omValue(i + 517).add(omValue(i + 617).mul(x));
+        }
+        for (&fixed, 0..) |*v, i| v.* = omValue(i + 37).add(omValue(i + 337).mul(x));
+        var projection = @import("binding.zig").ProjectionFor(O){ .challenges = &challenges, .lane_weights = &weights, .terms = 14 };
+        @import("fractions.zig").cpuCompactFor(O, &fixed, &main, &previous, omValue(7), omValue(9).add(omValue(19).mul(x)), &projection);
+        try projection.finish();
+        out.* = projection.combine(omValue(771)).mul(omValue(991).add(omValue(191).mul(x)));
+    }
+    for (0..3) |order| for (0..4 - order) |t| {
+        values[t] = values[t + 1].sub(values[t]);
+    };
+    try std.testing.expect(values[1].sub(values[0]).isZero());
+    // The compact roster is the paired roster: same relations in the same order.
+    const Counter = struct {
+        relations: [16]@import("fractions.zig").Relation = undefined,
+        n: usize = 0,
+        pub fn emit(self: *@This(), relation: @import("fractions.zig").Relation, tuple: anytype, _: anytype) void {
+            std.debug.assert(tuple.len == relation.arity());
+            self.relations[self.n] = relation;
+            self.n += 1;
+        }
+    };
+    var compact = Counter{};
+    var paired = Counter{};
+    const zeros = [_]O{O.zero()} ** 64;
+    @import("fractions.zig").cpuCompactFor(O, zeros[0..3], zeros[0..n], zeros[0..n], O.zero(), O.zero(), &compact);
+    @import("fractions.zig").cpuModeFor(O, zeros[0..3], zeros[0..A.word16_execution.layout.main.COUNT], O.zero(), true, &paired);
+    try std.testing.expectEqualSlices(@import("fractions.zig").Relation, paired.relations[0..paired.n], compact.relations[0..compact.n]);
 }
 fn wireAllocationCase(a: std.mem.Allocator, instances: []const Frame.Instance, proof: *const @import("stwo_prover_engine").lookups.gkr_verifier.ForField(O).GkrBatchProof) !void {
     const W = @import("wire.zig");
@@ -459,6 +505,7 @@ test {
 }
 test {
     _ = @import("v3_execution_test.zig");
+    _ = @import("cpu_compact_role_test.zig");
 }
 
 test {

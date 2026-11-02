@@ -5,9 +5,11 @@ const T = @import("../types.zig");
 const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !void {
-    // These classic encodings change MAIN or provider-query authority. GKR keeps its
+    // These classic encodings change provider-query authority. GKR keeps its
     // separately qualified query authority until both projections are adapted.
-    if (g.cpu_compact_decode or g.mul_u8_pairs or g.ls_fused_pairs or g.alu_fused_tail or g.ls_dword_fused_pairs) return error.UnsupportedClassicEncodingInLocalGkr;
+    // Compact decode has GKR-local CPU/ROM projections (fractions.cpuCompactFor,
+    // main_only `.cpu_compact`) and is admitted on top of byte pairs only.
+    if (g.mul_u8_pairs or g.ls_fused_pairs or g.alu_fused_tail or g.ls_dword_fused_pairs) return error.UnsupportedClassicEncodingInLocalGkr;
     try g.validate();
     if (g.cpu_log > 22) return error.InvalidLocalGkrGeometry;
 }
@@ -60,8 +62,14 @@ test "new classic defaults cannot silently enter authenticated GKR query shapes"
     const base = G{ .cpu_log = 5, .cpu_fused_tail = true, .cpu_u8_pairs = true };
     try geometry(base);
     const layout = @import("../../ethereum/plan.zig").CpuLayout.forGkrProfile(.ethereum_services_v3);
-    try std.testing.expect(!layout.compact_decode);
-    inline for (.{ "mul_u8_pairs", "ls_fused_pairs", "alu_fused_tail", "ls_dword_fused_pairs", "cpu_compact_decode" }) |field| {
+    try std.testing.expect(layout.compact_decode and layout.u8_pairs and !layout.mul_u8_pairs and !layout.ls_fused_pairs and !layout.alu_fused_tail and !layout.ls_dword_fused_pairs);
+    var compact = base;
+    compact.cpu_compact_decode = true;
+    try geometry(compact);
+    compact.cpu_u8_pairs = false;
+    compact.cpu_fused_tail = false;
+    try std.testing.expectError(error.InvalidCpuCompactGeometry, geometry(compact));
+    inline for (.{ "mul_u8_pairs", "ls_fused_pairs", "alu_fused_tail", "ls_dword_fused_pairs" }) |field| {
         var changed = base;
         @field(changed, field) = true;
         try std.testing.expectError(error.UnsupportedClassicEncodingInLocalGkr, geometry(changed));

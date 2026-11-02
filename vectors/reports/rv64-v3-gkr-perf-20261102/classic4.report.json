@@ -1,0 +1,80 @@
+{
+  "core_schema": 7,
+  "completed_ethereum_block": false,
+  "total_steps": 16777212,
+  "cpu_proofs": 4,
+  "truth_proofs": 8,
+  "memory_words": 911806,
+  "output": null,
+  "capture_ns": 2233599375,
+  "capture_mode": "packets",
+  "capture_schedule": {
+    "max_inflight_packets": 1,
+    "max_worker_shards": 1,
+    "decoded_packet_heap_limit_bytes": null,
+    "max_reserved_decoded_packet_heap_bytes": 0,
+    "max_single_packet_decoded_heap_bytes": 0
+  },
+  "direct_capture": {
+    "batches": 0,
+    "max_inflight": 0,
+    "execution_ns": 0,
+    "join_wait_ns": 0
+  },
+  "capture_cache_trim_ns": 25849333,
+  "capture_cache_released_bytes": 1522532352,
+  "cpu_fixed_witness_retired": true,
+  "coordinator_schedule": {
+    "lanes": 2,
+    "workers_per_lane": 7,
+    "lane_workers": [
+      7,
+      7
+    ],
+    "memory_cap_bytes": 0
+  },
+  "commit_batch_columns": 64,
+  "setup_ns": 2201130709,
+  "prove_ns": 29458426750,
+  "same_process_verify_ns": 297748708,
+  "publish_before_report_ns": 40349750,
+  "total_before_report_ns": 34263599208,
+  "retained_main": {
+    "live_bytes": 0,
+    "peak_reserved_bytes": 6963838976,
+    "total_bytes": 6963838976,
+    "limit_bytes": 137438953472,
+    "live_mapped_bytes": 0,
+    "peak_mapped_bytes": 6963838976,
+    "parking_enabled": false,
+    "merkle_parking_enabled": false,
+    "parked_merkle_bytes": 0,
+    "prefetch_calls": 0,
+    "prefetch_requested_bytes": 0,
+    "prefetch_advised_bytes": 0,
+    "prefetch_failed_calls": 0,
+    "prefetch_unsupported_calls": 0
+  },
+  "fixed_native_cache": {
+    "limit_bytes": 268435456,
+    "retained_bytes": 103817856,
+    "native_backing_bytes": 103795072,
+    "groups": 177,
+    "hits": 640,
+    "duplicate_native_bytes_released": 406282368,
+    "observed_individual_owners": 817,
+    "observed_backing_owners": 0,
+    "observed_spans": 817,
+    "owner_leases": 5
+  },
+  "program_metadata_cache": {
+    "limit_bytes": 67108864,
+    "retained_bytes": 11678720,
+    "payload_bytes": 11678368,
+    "programs": 1,
+    "hits": 4,
+    "metadata_bytes_not_rebuilt": 46713472,
+    "duplicate_metadata_bytes_released": 0,
+    "owner_leases": 6
+  }
+}

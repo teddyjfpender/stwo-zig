@@ -17,17 +17,21 @@ const MUL = @import("../delegations/multiplication/provider.zig");
 const ML = @import("../delegations/multiplication/degree3_layout.zig");
 const DIV = @import("../delegations/division/word16_product/equations.zig");
 const DL = @import("../delegations/division/word16_product/layout.zig");
-pub const Role = enum { cpu, alu, binary, shift, ls, jalr, mul, div };
+/// `cpu_compact` is the opt-in compact decode CPU MAIN (Geometry.cpu_compact_decode,
+/// 37 columns): the row PC is not committed and is read by the local ROM
+/// fraction from the previous row (see word16_execution/README.md).
+pub const Role = enum { cpu, alu, binary, shift, ls, jalr, mul, div, cpu_compact };
 pub fn CountFor(comptime C: type) type {
     return struct { count: E.CountFor(C), nonempty: E.FlagFor(C) = E.flagDefault(C) };
 }
 pub fn PublicFor(comptime C: type) type {
-    return union(Role) { cpu: CT.InputsFor(C), alu: void, binary: void, shift: void, ls: CountFor(C), jalr: void, mul: CountFor(C), div: CountFor(C) };
+    return union(Role) { cpu: CT.InputsFor(C), alu: void, binary: void, shift: void, ls: CountFor(C), jalr: void, mul: CountFor(C), div: CountFor(C), cpu_compact: CT.InputsFor(C) };
 }
 pub const Shape = struct { fixed: usize, main: usize, constraints: usize, max_degree: u8 = 3 };
 pub fn shape(role: Role) Shape {
     return switch (role) {
         .cpu => .{ .fixed = 3, .main = CL.main.COUNT, .constraints = CPU.MAIN_CONSTRAINTS },
+        .cpu_compact => .{ .fixed = 3, .main = CL.compact.COUNT, .constraints = CPU.COMPACT_MAIN_CONSTRAINTS },
         .alu => .{ .fixed = 0, .main = AL.MAIN, .constraints = A.PROJECTED_CONSTRAINTS + 1 },
         .binary => .{ .fixed = 0, .main = BL.MAIN, .constraints = B.PROJECTED_CONSTRAINTS + 1, .max_degree = 2 },
         .shift => .{ .fixed = 0, .main = S.LOCAL_MAIN + 1, .constraints = S.PROJECTED_CONSTRAINTS + 1 },
@@ -41,6 +45,7 @@ pub fn shape(role: Role) Shape {
 pub fn previousMain(role: Role, column: usize) bool {
     return switch (role) {
         .cpu => column == CL.main.active or (column >= CL.main.next_pc and column < CL.main.next_pc + 4),
+        .cpu_compact => CL.previousMainFor(true, column),
         .ls => column == 0,
         .mul => column == ML.COUNT,
         .div => column == DL.COUNT,
@@ -53,6 +58,7 @@ pub fn emitFor(comptime F: type, public: PublicFor(E.ConstFor(F)), fixed: []cons
     if (fixed.len != s.fixed or main.len != s.main or previous.len != s.main) return error.InvalidMainOnlyShape;
     switch (public) {
         .cpu => |p| CPU.emitMainFor(F, fixed, main, previous, p, sink),
+        .cpu_compact => |p| CPU.emitCompactMainFor(F, fixed, main, previous, p, sink),
         .alu => {
             const row = AL.rowFromColumnsFor(F, main);
             A.emitProjectedFor(F, &row, sink);
