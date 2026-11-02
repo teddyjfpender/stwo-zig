@@ -59,3 +59,5 @@ Final integration check: PR308 through `57c541894` is merged. The runtime at
 the same V3 source bounds. The V3 ReleaseSafe suite passes after that merge.
 The separately registered admission mutation test rejects all five unqualified
 classic layout flags, including compact decode. See `latest-*.json/log`.
+
+The [roster-specific bounded security review](../../../design/riscv-proving-stack/rv64-v3-bounded-security-review.md) and exact-rational V3 model are now committed. They include the actual 18-proof roster, ten paired namespaces, new truth equations, Keccak policy words and conservative pole allowances. The older V2 model modes still reject this V3 roster.

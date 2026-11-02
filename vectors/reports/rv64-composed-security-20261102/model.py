@@ -103,6 +103,8 @@ def run_v3(bundle_path,receiver_path,source_path):
     steps=sum(c['request']['cpu']['steps'] for c in bundle['cpus'])
     assert steps==26894777 and receiver['cpu_proofs']==7 and receiver['truth_proofs']==11
     assert all(c['declaration']['geometry']['cpu_fused_tail'] and c['declaration']['geometry']['cpu_u8_pairs'] for c in bundle['cpus'])
+    for cpu in bundle['cpus']:
+        assert not any(cpu['declaration']['geometry'].get(k,False) for k in ('mul_u8_pairs','ls_fused_pairs','alu_fused_tail','ls_dword_fused_pairs','cpu_compact_decode'))
     assert len(source_report['cpu_scopes'])==7
     p=(1<<31)-1
     for scope in source_report['cpu_scopes']:
@@ -134,7 +136,7 @@ def run_v3(bundle_path,receiver_path,source_path):
     assert sum(x['family']=='add' for x in providers)==3 and sum(x['family']=='double' for x in providers)==2
     assert source['rational_identity']==1482915616 and source['poles']==1482915616
     rho=F(1,4);rho_plus=F(17,64);alpha=F(41,64);theta=1-alpha
-    assert theta<(1-rho_plus)/2 and 2*alpha-1>rho_plus
+    assert theta<(1-rho_plus)/2 and rho_plus<alpha*alpha and 2*alpha-1>rho_plus
     for log in range(5,23):
         ni=1<<log;assert F(ni+2,4*ni)<=rho_plus and 5*(F(ni,2)+1)<3*ni
     for c in range(1,16385):assert c+8<=32*c

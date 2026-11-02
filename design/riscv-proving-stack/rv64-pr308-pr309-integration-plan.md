@@ -1,5 +1,36 @@
 # Integrating PR308 guest/services into PR309 GKR
 
+## Delivery update: authenticated V3 complete
+
+The integration branch now includes PR308 through `57c541894`. Full V3 CPU
+roles, all additional OM31 truth families, sponge, LS-D64, byte-pair CPU and
+throughput/R27 Keccak are connected to the shared two-phase execution manifest.
+RAM, KIO and Wire claims close only after every physical proof verifies.
+The [complete block receipt](../../vectors/reports/rv64-v3-gkr-full-block-20261102/README.md)
+records 26,894,777 instructions, seven CPU plus eleven truth proofs, 81.775 s
+proving and 93.33 s process wall. Fresh final-head receivers accept that bundle
+and the unchanged V2 candidate bundle. V3 ReleaseSafe, the combined ReleaseFast
+suite and explicit unqualified-layout rejection tests pass.
+
+The [V3 bounded security review](rv64-v3-bounded-security-review.md) independently
+instantiates the actual eighteen-proof roster under documented native128-target
+assumptions. It does not relabel the old thirty-proof result or certify the
+whole protocol. The tenth local namespace, weighted JUMPDEST partition,
+new truth authorities and selected Keccak table policies are included.
+
+The additional classic fused layouts and compact decode are merged as source,
+but explicitly disabled/rejected in GKR pending their separate query adapters.
+They are optimization follow-ups, not prerequisites for this full V3 execution.
+The timed guest ELF is pinned and predates the last guest patches; those merged
+patches have no invented timing here. Further optimization, recursion and GPU
+qualification are deferred as requested.
+
+## Historical snapshot and implementation plan
+
+The sections below preserve the original review and intermediate checkpoints;
+references there to V3 admission being closed describe those earlier snapshots.
+
+
 Snapshot review,2026-11-02. PR308 is still developing; this document freezes a review point, not its final guest or a production merge.
 
 ## Checked merge and compatibility
