@@ -298,7 +298,10 @@ pub fn ForField(comptime Secure: type) type {
                         for (&refs, first_layer.column.columns) |*ref, coordinate| ref.* = coordinate;
                         break :refs_block refs;
                     };
-                    if (comptime @hasDecl(B, "foldCircleResidentIntoLine")) {
+                    if (comptime @hasDecl(B, "foldCircleFreshIntoLine")) {
+                        try B.foldCircleFreshIntoLine(allocator, @constCast(layer_evaluation.values), first_layer_columns, first_layer.domain, folding_alpha, &fold_circle_workspace);
+                        if (work_audit) |audit| audit.complete = false; // fresh overwrite omits the accumulation multiply; no legacy work receipt.
+                    } else if (comptime @hasDecl(B, "foldCircleResidentIntoLine")) {
                         try B.foldCircleResidentIntoLine(allocator, first_layer.column, &layer_evaluation, first_layer.domain, folding_alpha, if (work_audit) |audit| &audit.fold_executions else null);
                     } else if (work_audit) |audit| {
                         if (comptime @hasDecl(B, "foldCircleIntoLineWithReceipt")) {

@@ -827,6 +827,7 @@ pub fn ForField(comptime Secure: type) type {
         pub const FoldLineResult = folding.FoldLineResult;
         pub const FoldLineWorkspace = folding.FoldLineWorkspace;
         pub const FoldCircleWorkspace = folding.FoldCircleWorkspace;
+        pub const fillBitReversedCosetCoordinate = folding.fillBitReversedCosetCoordinate;
         pub const foldLine = folding.foldLine;
         pub const foldLineSingleStep = folding.foldLineSingleStep;
         pub const foldLineNWithWorkspace = folding.foldLineNWithWorkspace;

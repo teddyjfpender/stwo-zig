@@ -1,0 +1,24 @@
+OM_FRI_LINE rows=8388608 folds=3 scratch_bytes=134217728 cap_bytes=134217728 packed=true
+OM_FRI_LINE rows=1048576 folds=4 scratch_bytes=16777216 cap_bytes=134217728 packed=true
+OM_FRI_LINE rows=65536 folds=4 scratch_bytes=1048576 cap_bytes=134217728 packed=true
+OM_FRI_LINE rows=4096 folds=4 scratch_bytes=65536 cap_bytes=134217728 packed=true
+OM_FRI_LINE rows=256 folds=4 scratch_bytes=4096 cap_bytes=134217728 packed=true
+OM_FRI_LINE rows=16 folds=2 scratch_bytes=256 cap_bytes=134217728 packed=true
+       19.39 real       101.09 user         5.78 sys
+         12104531968  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3406016  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                6630  voluntary context switches
+               39644  involuntary context switches
+       1450200053186  instructions retired
+        444912276728  cycles elapsed
+         12108899904  peak memory footprint
