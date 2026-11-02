@@ -141,3 +141,18 @@ words,40 state words and44 words per round. It never downloads a fold bank.
 Run sanitizer initcheck as well: after a device-side pole, every already
 queued round must emit a defined neutral challenge and an invalid record
 ordinal, while the sticky failure prevents admission.
+
+## Eq-table launch/traffic fusion
+
+Set `NativeCommands.fused_eq=true` to use up to four expansion levels per
+launch. The baseline remains the default. A21-variable Eq table takes6
+launches instead of21. Each tile performs the same30 OM31 multiplications
+as four separate binary expansions, but keeps intermediate levels in registers.
+Eq-buffer traffic per old prefix drops from1440 to544 bytes (point loads and
+cache effects excluded). This is a structural count, not a bandwidth timing.
+
+The hardware harness now checks/times all four combinations of baseline/fused
+Eq and combined/split secure reductions, comparing complete round records and
+terminal masks. Fusion increases registers (four levels use128 on sm120) and
+reduces thread count, so fewer launches alone do not establish higher GPU
+utilization or lower latency. Use the full-round timings and Nsight to select.

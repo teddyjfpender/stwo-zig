@@ -192,3 +192,28 @@ test "RV64 CUDA one-inverse cubic correction matches native interpolation on ran
         }
     }
 }
+
+extern "c" fn rv64_test_eq_fused([*]const [8]u32, u32, [*]u32) void;
+test "RV64 CUDA fused Eq tiles match native ordering including remainder levels" {
+    for (1..15) |variables| {
+        const y = try a.alloc(O, variables);
+        defer a.free(y);
+        const yw = try a.alloc([8]u32, variables);
+        defer a.free(yw);
+        for (y, yw, 0..) |*v, *w, i| {
+            v.* = value(@intCast(300 + i));
+            w.* = words(v.*);
+        }
+        var expected = try G.EqEvals.generate(a, y);
+        defer expected.deinit(a);
+        const count = @as(usize, 1) << @as(u6, @intCast(variables - 1));
+        const out = try a.alloc(u32, 8 * count);
+        defer a.free(out);
+        rv64_test_eq_fused(yw.ptr, @intCast(variables), out.ptr);
+        for (0..count) |i| {
+            var actual: [8]u32 = undefined;
+            for (&actual, 0..) |*v, c| v.* = out[c * count + i];
+            try std.testing.expect(expected.at(i).eql(field(&actual)));
+        }
+    }
+}

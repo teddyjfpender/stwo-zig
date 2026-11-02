@@ -116,3 +116,32 @@ extern "C" uint32_t rv64_test_round_polynomial(const uint32_t* r0, const uint32_
     }
     return state.status;
 }
+#include "rv64/eq_tile.cuh"
+extern "C" void rv64_test_eq_fused(const uint32_t* point, uint32_t variables,
+                                   uint32_t* output) {
+    const uint32_t count = variables ? 1u << (variables - 1) : 1;
+    store(output, count, 0, variables ? sub(one(), from_words(point)) : one());
+    uint32_t remaining = variables ? variables - 1 : 0, half = 1;
+    while (remaining) {
+        const uint32_t levels = remaining >= 4 ? 4 : remaining, first = remaining + 1 - levels;
+        for (uint32_t i = 0; i < half; ++i) {
+            const auto v = load(output, count, i);
+            switch (levels) {
+                case 4:
+                    expand_eq_tile<4>(v, point, first, output, count, i, half);
+                    break;
+                case 3:
+                    expand_eq_tile<3>(v, point, first, output, count, i, half);
+                    break;
+                case 2:
+                    expand_eq_tile<2>(v, point, first, output, count, i, half);
+                    break;
+                default:
+                    expand_eq_tile<1>(v, point, first, output, count, i, half);
+                    break;
+            }
+        }
+        half <<= levels;
+        remaining -= levels;
+    }
+}

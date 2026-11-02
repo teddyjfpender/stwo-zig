@@ -58,6 +58,7 @@ int stwo_rv64_gkr_sum_split_on(void* context, uint32_t lane, StwoRv64Plane n, St
 // assembly; no complete fold bank needs to cross the device boundary.
 int stwo_rv64_gkr_pack_mask_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64Plane d,
                                uint32_t* output);
+int stwo_rv64_gkr_eq_fused_on(void*, uint32_t, const uint32_t*, uint32_t, StwoRv64Plane);
 // Single-oracle sumcheck feedback state: 40 words; seed is native digest[8]
 // plus draw count, claim is one OM31. Records are 44 words per round (4 AoS
 // coefficients, challenge, trimmed length, ordinal and two reserved zeros).

@@ -38,6 +38,7 @@ const Fake = struct {
         calls += 1;
         return 0;
     }
+    pub const stwo_rv64_gkr_eq_fused_on = stwo_rv64_gkr_eq_on;
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
 fn slice() Slice {
@@ -85,4 +86,13 @@ test "RV64 CUDA malformed plane and job geometry never enqueue" {
     try std.testing.expectError(error.InvalidPlane, commands.eq(slice(), 28, plane(8)));
     try std.testing.expectError(error.InvalidGeometry, commands.sum(fraction(2), plane(8), slice(), plane(8), plane(8), plane(8)));
     try std.testing.expectEqual(@as(usize, 0), Fake.calls);
+}
+
+test "RV64 CUDA fused Eq command records grouped dispatch count" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1, .fused_eq = true };
+    try commands.eq(slice(), 5, plane(8));
+    try std.testing.expectEqual(@as(u64, 2), commands.launches);
 }

@@ -48,6 +48,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         poisoned: bool = false,
         /// Explicit tuning choice; preserve the established route by default.
         split_secure_sum: bool = false,
+        fused_eq: bool = false,
         launches: u64 = 0,
         const Self = @This();
 
@@ -125,13 +126,14 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             if (variables == 0 or variables > 28) return error.InvalidGeometry;
             try output.shape(@as(u32, 1) << @as(u5, @intCast(variables - 1)), 8);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_eq_on(
+            const eq_function: *const @TypeOf(Api.stwo_rv64_gkr_eq_on) = if (self.fused_eq) &Api.stwo_rv64_gkr_eq_fused_on else &Api.stwo_rv64_gkr_eq_on;
+            try self.result(eq_function(
                 owner,
                 self.lane_index,
                 try self.context.deviceSlicePointer(u32, point, 8 * @as(usize, variables)),
                 variables,
                 try output.bind(self.context),
-            ), variables);
+            ), if (self.fused_eq) 1 + (@as(u64, variables) - 1 + 3) / 4 else variables);
         }
         pub fn sum(self: *Self, input: Fraction, eq_values: Plane, lambda: Slice, scratch_a: Plane, scratch_b: Plane, output: Plane) !void {
             try input.validate();

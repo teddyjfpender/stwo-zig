@@ -1,4 +1,5 @@
 #include "om31.cuh"
+#include "eq_tile.cuh"
 #include "custody.cuh"
 
 namespace stwo::cuda::rv64 {
@@ -82,6 +83,14 @@ __global__ void eq_expand(const uint32_t* y, uint32_t coordinate_index, uint32_t
     // Each thread owns i and i+half; every input lies in the old prefix.
     store(output.words, output.stride, i, mul(v, sub(one(), x)));
     store(output.words, output.stride, i + half, mul(v, x));
+}
+template <uint32_t Levels>
+__global__ void eq_tile_kernel(const uint32_t* point, uint32_t first, uint32_t half,
+                               StwoRv64Plane output) {
+    const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= half) return;
+    expand_eq_tile<Levels>(load(output.words, output.stride, i), point, first, output.words,
+                           output.stride, i, half);
 }
 // Eight coalesced coordinate reductions; no extension-field atomics, no
 // global single-block bottleneck for the large input stage.
@@ -256,6 +265,44 @@ extern "C" int stwo_rv64_gkr_eq_on(void* context, uint32_t lane, const uint32_t*
         --at;
         eq_expand<<<blocks(half), threads, 0, c.stream>>>(y, at, half, output);
         status = launch_status();
+    }
+    return status;
+}
+extern "C" int stwo_rv64_gkr_eq_fused_on(void* context, uint32_t lane, const uint32_t* point,
+                                         uint32_t variables, StwoRv64Plane output) {
+    if (variables > 28) return int(cudaErrorInvalidValue);
+    const uint32_t count = variables ? 1u << (variables - 1) : 1;
+    Custody c(context, lane);
+    if ((variables && !c.range(point, 8ull * variables, false)) ||
+        !c.plane(output, count, 8, true))
+        return c.status;
+    eq_seed<<<1, 1, 0, c.stream>>>(point, variables, output);
+    int status = launch_status();
+    uint32_t remaining = variables ? variables - 1 : 0, half = 1;
+    while (!status && remaining) {
+        const uint32_t levels = remaining >= 4 ? 4 : remaining;
+        const uint32_t first = remaining + 1 - levels;
+        switch (levels) {
+            case 4:
+                eq_tile_kernel<4>
+                    <<<blocks(half), threads, 0, c.stream>>>(point, first, half, output);
+                break;
+            case 3:
+                eq_tile_kernel<3>
+                    <<<blocks(half), threads, 0, c.stream>>>(point, first, half, output);
+                break;
+            case 2:
+                eq_tile_kernel<2>
+                    <<<blocks(half), threads, 0, c.stream>>>(point, first, half, output);
+                break;
+            default:
+                eq_tile_kernel<1>
+                    <<<blocks(half), threads, 0, c.stream>>>(point, first, half, output);
+                break;
+        }
+        status = launch_status();
+        remaining -= levels;
+        half <<= levels;
     }
     return status;
 }
