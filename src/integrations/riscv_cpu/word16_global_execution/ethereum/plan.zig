@@ -132,8 +132,10 @@ pub const KeccakTruthOptions = struct {
     /// of block 24,628,607; `false` keeps `throughput_v1`.
     quartet: bool = true,
     /// Quartet batching on the 27-row slot (`throughput_r27_v1`, 480
-    /// interaction columns, 27 rows per pair). Requires `quartet`.
-    r27: bool = false,
+    /// interaction columns, 27 rows per pair). Requires `quartet`. v3
+    /// default since it proved and fresh-verified the real 4-packet prefix
+    /// of block 24,628,607 (Keccak-f truth cells 801,177,600 -> 760,799,232).
+    r27: bool = true,
     pub fn throughput(self: KeccakTruthOptions) KeccakPolicy {
         if (self.quartet and self.r27) return .throughput_r27_v1;
         return if (self.quartet) .throughput_quartet_v1 else .throughput_v1;
@@ -336,9 +338,10 @@ test "v3 keccak truth takes the throughput tables exactly where they commit fewe
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(true, 12));
     try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false }, 13));
     try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false }, 18));
-    // v3 default: the quartet batching of the same tables.
-    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicy(true, 13));
-    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicy(true, 18));
+    // v3 default: the quartet batching of the same tables on the 27-row slot.
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, keccakTruthPolicy(true, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, keccakTruthPolicy(true, 18));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .r27 = false }, 18));
     // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
     try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
     try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
@@ -388,7 +391,7 @@ test "r27 keccak truth plan cuts shards in 27-row slots and keeps the compact tr
     // The pair29 quartet plan of this prefix is unchanged by the split search
     // (one log16 remainder is cheapest there: 801,177,600 cells).
     out.clearRetainingCapacity();
-    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, .{ .v3 = true });
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, .{ .v3 = true, .r27 = false });
     try std.testing.expectEqual(@as(usize, 2), out.items.len);
     try std.testing.expectEqual(@as(u32, 18_078), out.items[0].calls);
     try std.testing.expectEqualDeep([2]u32{ 18, W.KECCAK_THROUGHPUT_QUARTET_WORD }, out.items[0].logs);
@@ -400,7 +403,7 @@ test "r27 keccak truth plan cuts shards in 27-row slots and keeps the compact tr
     try std.testing.expectEqualDeep([2]u32{ 18, 0 }, out.items[0].logs);
     try std.testing.expectEqualDeep([2]u32{ 16, 0 }, out.items[1].logs);
     // Exhaustive small rosters: spans are contiguous, admitted and cover all IDs.
-    for ([_]KeccakTruthOptions{ .{ .v3 = true }, r27 }) |options| {
+    for ([_]KeccakTruthOptions{ .{ .v3 = true, .r27 = false }, r27, .{ .v3 = true, .quartet = false } }) |options| {
         var calls: u32 = 1;
         while (calls < 60_000) : (calls += 997) {
             out.clearRetainingCapacity();
@@ -420,9 +423,9 @@ test "r27 keccak truth plan cuts shards in 27-row slots and keeps the compact tr
 test "quartet keccak truth option keeps the throughput tables and cuts 152 interaction columns per row" {
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .quartet = true }, 18));
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
-    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 12));
-    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 13));
-    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true, .r27 = false }, 12));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true, .r27 = false }, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true, .r27 = false }, 18));
     // log18: 2^18 x (1923 + 456) + 5 x (2^21 + 2^16).
     try std.testing.expectEqual(@as(u64, 634_454_016), keccakTruthCells(.throughput_quartet_v1, 18));
     try std.testing.expectEqual(@as(u64, 152) << 18, keccakTruthCells(.throughput_v1, 18) - keccakTruthCells(.throughput_quartet_v1, 18));

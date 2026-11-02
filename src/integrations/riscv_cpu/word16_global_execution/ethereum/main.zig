@@ -85,7 +85,7 @@ pub fn main() !void {
     if (operational.no_ls_dword) cpu_layout.ls_dword = false;
     const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
-    const truth_declarations = try Plan.truthsForKeccakOptions(a, &captured, .{ .v3 = config.value.execution_profile == .ethereum_services_v3, .quartet = !operational.keccak_throughput_v1, .r27 = operational.keccak_r27 });
+    const truth_declarations = try Plan.truthsForKeccakOptions(a, &captured, .{ .v3 = config.value.execution_profile == .ethereum_services_v3, .quartet = !operational.keccak_throughput_v1, .r27 = !operational.keccak_pair29 });
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     try admitProfile(config.value, cpu_declarations, truth_declarations);
