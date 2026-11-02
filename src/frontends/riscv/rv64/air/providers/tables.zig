@@ -153,6 +153,8 @@ pub const Request = struct {
     /// is filled by `generateInteraction` for the CPU consumer.
     pairs: bool = false,
     pair_dictionary: []Q = &.{},
+    /// Canonical logical-row multiplicities survive MAIN transfer for GKR.
+    pair_counts: []u32 = &.{},
     pub fn initWithPairs(a: std.mem.Allocator, setup: *const Setup, counts: []const u64, pair_counts: []const u64) !Request {
         if (setup.kind != .byte_and or counts.len != setup.kind.size() or pair_counts.len != setup.kind.size()) return error.InvalidLookupMultiplicity;
         // One relation: the AND and pair masses are admitted together below M31.
@@ -163,12 +165,16 @@ pub const Request = struct {
         };
         const size = setup.kind.size();
         const main = try a.alloc(M, 2 * size);
+        errdefer a.free(main);
+        const retained_pairs = try a.alloc(u32, size);
+        errdefer a.free(retained_pairs);
         for (counts, pair_counts, 0..) |count, pair, i| {
             const row = physical(i, setup.kind.logSize());
             main[row] = M.fromCanonical(@intCast(count));
             main[size + row] = M.fromCanonical(@intCast(pair));
+            retained_pairs[i] = @intCast(pair);
         }
-        return .{ .allocator = a, .kind = setup.kind, .main = main, .pairs = true };
+        return .{ .allocator = a, .kind = setup.kind, .main = main, .pairs = true, .pair_counts = retained_pairs };
     }
     pub fn init(a: std.mem.Allocator, setup: *const Setup, counts: []const u64) !Request {
         if (counts.len != setup.kind.size()) return error.InvalidLookupMultiplicity;
@@ -185,6 +191,7 @@ pub const Request = struct {
         self.allocator.free(self.main);
         self.allocator.free(self.interaction);
         self.allocator.free(self.pair_dictionary);
+        self.allocator.free(self.pair_counts);
         self.* = undefined;
     }
     pub fn mainColumns(self: *const Request, a: std.mem.Allocator) ![]Column {

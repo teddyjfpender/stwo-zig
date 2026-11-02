@@ -31,6 +31,11 @@ pub fn mainShapeFor(kind: Kind) Main.Shape {
         .selection => .{ .fixed = 6, .main = 2, .constraints = 0 },
     };
 }
+pub fn mainShapeForMode(kind: Kind, pairs: bool) Main.Shape {
+    var shape = mainShapeFor(kind);
+    if (kind == .and_table and pairs) shape.main = 2;
+    return shape;
+}
 pub fn constraintCount(kind: Kind) usize {
     return mainShapeFor(kind).constraints + B.CONSTRAINTS;
 }
@@ -64,7 +69,9 @@ pub const Component = struct {
     inter_offset: usize,
     boundary: ?Boundary = null,
     pub fn mainShape(self: *const @This()) Main.Shape {
-        return mainShapeFor(self.kind);
+        var shape = mainShapeFor(self.kind);
+        if (self.kind == .and_table and self.data.cpu_u8_pairs) shape.main = 2;
+        return shape;
     }
     pub fn columnOffsets(self: *const @This()) [2]usize {
         return .{ self.data.instance.fixed_offset, self.data.instance.main_offset };
@@ -73,9 +80,14 @@ pub const Component = struct {
         return false;
     }
     pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
+        if (self.kind == .and_table and self.data.cpu_u8_pairs) {
+            if (fixed.len != 5 or main.len != 2 or previous.len != 2) return error.InvalidLocalGkrTableShape;
+            return;
+        }
         return @import("table_role.zig").emitMainFor(self.kind, F, fixed, main, previous, sink);
     }
     pub fn emitLocalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, sink: anytype) void {
+        if (self.kind == .and_table) return Fns.andTableModeFor(F, fixed, main, self.data.cpu_u8_pairs, sink);
         @import("table_role.zig").emitLocalFor(self.kind, self.boundary, F, fixed, main, sink);
     }
     pub fn nConstraints(self: *const @This()) usize {
@@ -95,7 +107,7 @@ pub const Component = struct {
         const instance = self.data.instance;
         if (instance.origin != .core) return error.LocalGkrRoleMismatch;
         const expected = try kindForRole(instance.origin.core);
-        if (expected != self.kind or instance.terms != @import("roster.zig").terms(instance.origin.core) or self.data.point.n != instance.row_log or self.data.lane_count != @as(usize, 1) << @intCast(try instance.laneLog())) return error.LocalGkrRoleMismatch;
+        if (expected != self.kind or instance.terms != (if (self.kind == .and_table and self.data.cpu_u8_pairs) @as(u32, 2) else @import("roster.zig").terms(instance.origin.core)) or self.data.point.n != instance.row_log or self.data.lane_count != @as(usize, 1) << @intCast(try instance.laneLog())) return error.LocalGkrRoleMismatch;
         if ((self.kind == .boundary) != (self.boundary != null)) return error.InvalidLocalGkrPublicBoundary;
         if (self.boundary) |p| try p.value.validate(p.cpu_log);
         switch (self.kind) {
