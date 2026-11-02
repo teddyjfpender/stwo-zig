@@ -14,6 +14,98 @@ PR state at writing:
 
 ---
 
+## Decisions (2026-11-02, from the project owner)
+
+1. **Security target: 128-bit conjectured** (ethSTARK-style accounting is acceptable). Go to 128
+   bits from the start; do not build product features on a 96-bit QM31 pipeline. The existing QM31
+   CUDA kernels are used only for a few days of 1-GPU calibration (a real ns/cell number).
+   - QM31 (|F| ~ 2^124) cannot reach 128 bits even conjectured, because the algebraic
+     (Schwartz-Zippel / LogUp pole / OODS) terms are bounded by the extension-field size. 128 bits
+     therefore means the **OM31 extension (degree 8, ~2^248)**: the #310/#311 route.
+   - FRI: about 102 queries at blowup 2 plus 26-bit PoW, or ~51 queries at blowup 4. Blowup 4 costs
+     ~2x LDE/commit work on the base proofs but halves query decommitment and recursion-verifier
+     work; evaluate it against recursion latency (track C4/G8).
+   - OM31 makes every committed extension column 8 base cells instead of 4, so interaction columns
+     must leave the commitment: LogUp-GKR (#310) is main line, not optional (track G10 becomes
+     core). Consequence for #308: v3 services, layouts and truths must be admitted on the OM31/GKR
+     route instead of failing closed (`gkr_local/v2_scope.zig`).
+2. **Hardware target: 4x RTX 5090** for an average basket block (29.7 M gas, ~97 M instructions,
+   ~27 G CPU-segment-equivalent cells) in < 2 s. 16x is the conservative sizing at 200 ps/cell;
+   block 24,628,607 (7.4 M gas) is about a quarter of the average and fits on 2-4 GPUs much more
+   easily.
+
+## Per-GPU efficiency ladder: what moves a GPU from ~1 ns to 200, 100 and 60-80 ps per cell
+
+Cost is per CPU-segment-equivalent committed cell, end to end on one GPU (witness, interaction,
+LDE, commit, composition, OODS/DEEP/FRI, PoW), at the 128-bit OM31 route. The plan's per-GPU
+roofline is ~40 ps/cell (HBM traffic plus M31 multiply throughput on an RTX 5090). On the 14-core
+M4 Max CPU today the figure is 60-70 core-ns per cell, so even the first rung is ~300x a CPU core.
+
+GPU count needed for a mean block in < 2 s (base proving plus recursion, ~0.5 s of serial work):
+
+| ps per cell | % of roofline | 16x 5090 | 8x 5090 | 4x 5090 | 2x 5090 |
+|---|---:|---|---|---|---|
+| ~1,000 (naive port) | 4% | no | no | no | no |
+| **200** | 20% | yes (~1.0-1.2 s) | with -30% cells | no | no |
+| **100-120** | 33-40% | yes | yes | **yes with -30% cells** | no |
+| **60-80** | 50-65% | yes | yes | yes | **stretch, needs -50% cells and cheap recursion** |
+
+The table covers mean-block latency. Pipelining across blocks helps throughput, not latency.
+
+**Rung 0 -> 200 ps/cell (~20% of roofline): make it resident and stop paying fixed costs.**
+- Reuse the resident PCS kernels (circle LDE, Blake2s lifted Merkle, DEEP/FRI fold, PoW grind)
+  and keep every proof's data on the device from witness to proof bytes. No host round trips
+  between phases; only compact records in, proof bytes out.
+- A generic RV64 composition kernel driven by an exported constraint IR (track C5) instead of
+  per-component host evaluation. Composition is **36% of prove time**
+  (`gpu-2s/cost-per-cell.md`), the largest single phase.
+- Lifted-Merkle native-height absorb (G1): avoids ~45x hash amplification on small components.
+- CUDA graphs per proof shape plus programmatic dependent launch, so the hundreds of small
+  component kernels do not each pay launch and sync latency.
+- Persistent per-GPU sessions across blocks: setup, fixed/preprocessed columns and tables
+  (e.g. the Keccak 2^21 tables) built once and reused.
+
+**200 -> 100-120 ps/cell (33-40%): cut HBM traffic and specialize the hot phases.**
+- **Generated composition code per component** (constant-folded constraints, shared
+  subexpressions, lazy M31 reduction, M31xOM31 products kept in registers, fused quotient /
+  vanishing division) inside a **persistent stream-K composition kernel**. This is the biggest
+  single GPU-side lever because composition is the largest phase.
+- GPU witness expansion from compact per-step records (C2/G4): removes ~12 GB of MAIN upload per
+  mean block and makes witness generation a few ms per segment.
+- Fused LDE -> leaf hash -> shared-memory/thread-block-cluster Merkle (G9): about -50% of
+  commitment HBM traffic.
+- LogUp interaction out of the commitment via GKR on the device (#311's resident sumcheck with
+  device-side Fiat-Shamir feedback): interaction was 33% of committed cells.
+- Dedicated Keccak and secp truth kernels (G5): truths are ~45% of block time on the CPU.
+
+**100 -> 60-80 ps/cell (50-65%): one persistent megakernel per GPU, no bubbles.**
+- **Megakernel patterns** (Flapping Airplanes has published no technical details; the public
+  patterns come from Hazy Research's low-latency/throughput megakernels, CMU's Mirage Persistent
+  Kernel and ParallelKittens; see `gpu-2s/megakernel-gpu-research.md`):
+  - an **on-GPU interpreter over a per-SM schedule precomputed on the CPU**, executing coarse
+    instructions (LDE tile, hash tile, composition tile, FRI fold, sumcheck round);
+  - **global-counter dependencies between stages** instead of kernel boundaries, so the next
+    stage starts on finished tiles while the previous one drains;
+  - shared-memory page recycling across instructions;
+  - **peer-to-peer stores across GPUs from inside the kernel** for recursion inputs and
+    cross-GPU reductions.
+  These fit our workload: many small per-proof stages (dozens of components per segment, OODS,
+  DEEP, FRI tail, PoW) and the recursion tree, where idle time between launches, not arithmetic,
+  dominates.
+- Co-schedule several proofs per GPU (32 GB fits 2-3 segments) so no SM idles during a proof's
+  narrow tail (FRI/OODS) or a recursion node.
+- Tile-level kernels in the ThunderKittens style (register/SMEM-resident tiles, warp
+  specialization with async copies) for LDE butterflies and Merkle layers.
+- Arithmetic: packed M31 with lazy reduction, IMAD-friendly reduction, OM31 multiply via
+  Karatsuba on M31 limbs kept in registers.
+
+**What pushes the number up:** OM31 doubles the cost of every extension-field element against
+QM31; 128-bit queries add decommitment and recursion work; per-proof fixed costs dominate for small
+components unless they are batched (merge small truths into one PCS, track C3).
+
+**Cells per block (score levers) multiply with ps/cell.** -30% cells (Keccak degree 3, fused
+LS+CPU row, compact decode, state hints, Zbb, client work) is what lets 4 GPUs work at 100-120 ps.
+
 ## 0. Headline
 
 - **Correction to the earlier notes: block 24,628,607 is a *small* block.** It is 7.37 M gas. The
