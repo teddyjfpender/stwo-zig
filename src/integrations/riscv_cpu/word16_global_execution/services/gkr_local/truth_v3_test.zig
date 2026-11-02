@@ -35,20 +35,29 @@ test "V3 secure readers instantiate all eight coordinates and original equations
 }
 
 fn runV3(truth: R.Truth, source: R.TruthSource) !void {
+    return runV3Profile(truth, source, false);
+}
+fn runV3Profile(truth: R.Truth, source: R.TruthSource, candidate: bool) !void {
     const W = @import("truth_v3_worker.zig");
     const P = @import("worker_protocol.zig");
     const Manifest = @import("manifest.zig");
     const a = std.testing.allocator;
     const O = P.O;
-    const cfg = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 4) };
+    const cfg = if (candidate) @import("../../../word16_execution/om31_security_candidate.zig").config() else P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 4) };
+    const Fixed = @import("fixed_authority.zig");
+    var cache: ?Fixed.Fixed.Cache = if (candidate) try Fixed.Fixed.Cache.init(a, 1 << 30) else null;
+    defer if (cache) |*c| c.deinit();
+    var fixed: ?Fixed.Binding = if (cache) |*c| try Fixed.Binding.acquire(c, truth.key(), cfg) else null;
+    defer if (fixed) |*f| f.deinit();
+    const fixed_ptr: ?*const Fixed.Binding = if (fixed) |*f| f else null;
     const declaration = @import("../wire.zig").TruthDeclaration.from(truth);
     const descriptor = try C.descriptorForDeclaration(declaration);
     const counts = try C.lookupCountsForDeclaration(declaration);
     try std.testing.expectEqual((try C.shape(truth)).main, descriptor.shape.main);
     try std.testing.expect(counts.wire_denominator_slots >= (try W.truthMass(truth)).wire);
     _ = try @import("truth_v3_retention.zig").forTruth(a, truth, cfg, 256 << 20);
-    const expected = Manifest.ExpectedWorker{ .kind = .delegation, .global_relations = .{ .ram = false, .kio = false, .wire = true }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatement(truth, cfg, @splat(17)), .fixed = truth.key().root, .local_instances = null };
-    var worker = W.TruthWorker.init(a, truth, source, expected, cfg, 256 << 20) catch |err| {
+    const expected = Manifest.ExpectedWorker{ .kind = .delegation, .global_relations = .{ .ram = false, .kio = false, .wire = true }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatementWithAuthority(truth, cfg, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |f| f.root() else truth.key().root, .local_instances = null };
+    var worker = W.TruthWorker.initWithAuthority(a, truth, source, expected, cfg, 256 << 20, fixed_ptr) catch |err| {
         var owned = source;
         owned.deinit();
         return err;
@@ -65,11 +74,20 @@ fn runV3(truth: R.Truth, source: R.TruthSource) !void {
     const pending = Manifest.PendingManifest{ .entries = &entries, .digest = @splat(29), .shared = shared };
     var encoded = try worker.complete(a, &pending, 0, 256 << 20);
     defer encoded.deinit(a);
-    const claims = try W.verifyTruth(a, truth, expected, &pending, 0, cfg, &encoded);
+    var receiver_cache: ?Fixed.Fixed.Cache = if (candidate) try Fixed.Fixed.Cache.init(a, 1 << 30) else null;
+    defer if (receiver_cache) |*c| c.deinit();
+    var receiver_fixed: ?Fixed.Binding = if (receiver_cache) |*c| try Fixed.Binding.acquire(c, truth.key(), cfg) else null;
+    defer if (receiver_fixed) |*f| f.deinit();
+    const receiver_ptr: ?*const Fixed.Binding = if (receiver_fixed) |*f| f else null;
+    var receiver_expected = expected;
+    receiver_expected.fixed = if (receiver_ptr) |f| f.root() else truth.key().root;
+    receiver_expected.statement = try W.truthStatementWithAuthority(truth, cfg, @splat(17), receiver_ptr);
+    try std.testing.expectEqualDeep(expected, receiver_expected);
+    const claims = try W.verifyTruthWithAuthority(a, truth, receiver_expected, &pending, 0, cfg, &encoded, receiver_ptr);
     try std.testing.expect(claims.ram.isZero() and claims.kio.isZero());
     try std.testing.expect(claims.wire.eql(encoded.claims[0]));
     encoded.claims[0] = encoded.claims[0].add(O.one());
-    if (W.verifyTruth(a, truth, expected, &pending, 0, cfg, &encoded)) |_| return error.ExpectedV3TamperRejection else |_| {}
+    if (W.verifyTruthWithAuthority(a, truth, receiver_expected, &pending, 0, cfg, &encoded, receiver_ptr)) |_| return error.ExpectedV3TamperRejection else |_| {}
 }
 test "V3 SHA physical OM proof fresh receiver and claim mutation" {
     const a = std.testing.allocator;
@@ -170,4 +188,30 @@ test "V3 declaration preflight rejects legacy profiles and impossible empty span
     try std.testing.expectError(error.NotV3Truth, C.descriptorForDeclaration(D{ .family = .add, .first_id = 1, .calls = 1, .logs = .{ 8, 8 } }));
     try std.testing.expectError(error.EmptyV3Truth, C.descriptorForDeclaration(D{ .family = .sha256, .first_id = 1, .calls = 0, .logs = .{ 5, 0 } }));
     try std.testing.expectError(error.V3TruthShapeExceeded, C.descriptorForDeclaration(D{ .family = .sha256, .first_id = 1, .calls = 1, .logs = .{ 14, 0 } }));
+}
+
+test "V3 candidate beta2 q256 fold4 SHA and secp row independently acquired fixed authority" {
+    const a = std.testing.allocator;
+    const HR = @import("../../sha256/roster.zig");
+    var setup = try HR.TruthSetup.init(a, 5);
+    defer setup.deinit();
+    var source = try A.crypto.sha256.trace.Source.init(a, &.{A.crypto.sha256.native.PADDING}, 1, 5);
+    a.free(source.fixed);
+    source.fixed = setup.fixed;
+    source.owns_fixed = false;
+    try runV3Profile(.{ .sha256 = .{ .setup = &setup, .first_id = 1, .calls = 1 } }, .{ .sha256 = .{ .source = source } }, true);
+    const SR = @import("../../secp/row_roster.zig");
+    inline for (.{ A.crypto.curves.spec.SecpKind.add, A.crypto.curves.spec.SecpKind.double }) |op| {
+        var st = try SR.TruthSetup.init(a, op, 8);
+        defer st.deinit();
+        const N = A.crypto.curves.Native(op);
+        const values = [6]u256{ 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8, 1, 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8, 1 };
+        var packet: N.Packet = undefined;
+        for (&packet, 0..) |*b, i| b.* = @truncate(values[i / 32] >> @intCast(8 * (i % 32)));
+        var src = try A.crypto.curves.Trace(op).Source.init(a, &.{packet}, 1, 8);
+        a.free(src.fixed);
+        src.fixed = st.fixed;
+        src.owns_fixed = false;
+        try runV3Profile(.{ .secp_row = .{ .setup = &st, .first_id = 1, .calls = 1 } }, .{ .secp_row = @unionInit(SR.TruthSource, @tagName(op), src) }, true);
+    }
 }
