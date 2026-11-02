@@ -21,8 +21,8 @@ pub fn Batch(comptime Provider: type) type {
             fn read(ctx: *const anyopaque, first: usize, n: []M, d: []O) error{ OutOfMemory, ShapeMismatch, InvalidLayerStructure }!void {
                 const self: *const @This() = @ptrCast(@alignCast(ctx));
                 if (n.len != d.len or n.len > 64) return error.ShapeMismatch;
-                var ns: [128]M = undefined;
-                var ds: [128]O = undefined;
+                var ns: [Frame.MAX_LOCAL_TERMS]M = undefined;
+                var ds: [Frame.MAX_LOCAL_TERMS]O = undefined;
                 var at: usize = 0;
                 while (at < n.len) {
                     const fact = first + at;

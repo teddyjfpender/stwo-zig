@@ -3,18 +3,21 @@
 const std = @import("std");
 const Geometry = @import("../../../word16_execution/geometry.zig");
 const Types = @import("../types.zig");
-pub const Origin = union(enum) { core: Geometry.Role, bridge: Types.Family, bulk: Types.BulkKind };
+pub const Origin = union(enum) { core: Geometry.Role, bridge: Types.Family, bulk: Types.BulkKind, dword: u1, sponge: Types.SpongeKind };
+pub const MAX_LOCAL_TERMS: usize = 256;
 /// Stable binary tags. v2's original tags/ordering never depend on enum growth.
 pub fn originWords(origin: Origin) [2]u32 {
     return switch (origin) {
         .core => |v| .{ 0, @intFromEnum(v) },
         .bridge => |v| .{ 1, @intFromEnum(v) },
         .bulk => |v| .{ 2, @intFromEnum(v) },
+        .dword => |v| .{ 3, v },
+        .sponge => |v| .{ 4, @intFromEnum(v) },
     };
 }
 pub fn v3Instances(instances: []const Instance) bool {
     for (instances) |instance| switch (instance.origin) {
-        .bulk => return true,
+        .bulk, .dword, .sponge => return true,
         .bridge => |family| if (@intFromEnum(family) >= Types.V2_FAMILIES) {
             return true;
         },
@@ -29,7 +32,8 @@ pub const Instance = struct {
     fixed_offset: usize,
     main_offset: usize,
     pub fn laneLog(self: Instance) !u32 {
-        if (self.terms == 0 or self.terms > 128) return error.InvalidLocalGkrTerms;
+        const limit: u32 = if (self.origin == .sponge) MAX_LOCAL_TERMS else 128;
+        if (self.terms == 0 or self.terms > limit) return error.InvalidLocalGkrTerms;
         return @intCast(std.math.log2_int_ceil(u32, self.terms));
     }
     pub fn variables(self: Instance) !u32 {

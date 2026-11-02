@@ -39,7 +39,7 @@ pub fn constraintCount(role: Main.Role, origin: Frame.Origin) usize {
 pub const Data = struct {
     instance: Frame.Instance,
     point: MP.MleEvalPointFor(O),
-    lane_weights: [128]O,
+    lane_weights: [Frame.MAX_LOCAL_TERMS]O,
     lane_count: usize,
     challenges: Ch,
     eta: O,
@@ -50,9 +50,9 @@ pub const Data = struct {
         if (claims.len != 2) return error.LocalGkrProjectionShape;
         const split = try Frame.splitPoint(instance, pending.artifact.ood_point, pending.artifact.n_variables_by_instance[index]);
         const lanes: usize = @as(usize, 1) << @intCast(try instance.laneLog());
-        var planes: [8 * 128]M = undefined;
+        var planes: [8 * Frame.MAX_LOCAL_TERMS]M = undefined;
         try @import("witness.zig").eqInto(planes[0 .. 8 * lanes], lanes, split.lanes);
-        var weights: [128]O = undefined;
+        var weights: [Frame.MAX_LOCAL_TERMS]O = undefined;
         for (weights[0..lanes], 0..) |*v, i| {
             var c: [8]M = undefined;
             for (&c, 0..) |*x, k| x.* = planes[k * lanes + i];
