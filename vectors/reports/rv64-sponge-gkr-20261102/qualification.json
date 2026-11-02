@@ -1,8 +1,46 @@
 {
   "scope": "Sponge CPU authenticated GKR fragments and policy-bound wide Keccak r27 truth worker; not whole execution qualification",
   "source_base": "f66f6b518 plus pending snapshot e6d2ffeac and shared V3 adapter checkpoints",
-  "sponge": { "message": "a", "first_id": 7, "row_log": 5, "call_local_queries": 69, "perm_local_queries": 245, "call_global_columns": 448, "perm_global_columns": 360, "binding_columns": 16, "shared_native_global_adapters": true, "main_and_local_metadata_retired_before_global_generation": true, "both_ram_and_kio_claims_nonzero": true, "fresh_receivers_accept": true, "invalid_main_eq_prefix_target_physical_proofs_rejected": "OodsNotMatching", "mutated_kio_claim_rejected": true },
-  "truth": { "policy": "throughput_r27_v1", "calls": 2, "permutation_log": 5, "chi_table_log": 21, "xor_table_log": 16, "local_clearing": "Existing OM strict triples (degree <=5), not the native QM quartet column encoding", "global_kio_queries": 50, "global_columns": 408, "explicit_output_budget_bytes": 2147483648, "whole_truth_local_claims_close": true, "independent_fresh_receiver_accepts": true, "existing_config_revision_high_coordinate_and_global_claim_mutation_guards": true },
-  "checks": ["original sponge frontend Safe/Fast", "new physical sponge call/perm Safe/Fast", "actual r27 TruthWorker and fresh receiver Safe/Fast"],
-  "limitations": ["Whole cross-shard V3 coordinator acceptance is a separate integration gate.", "No 128-bit certification or performance claim.", "Compact profile keeps its prior statement transcript and default geometry.", "Final added lane-limit and constructor-bound assertions require the parent combined gate."]
+  "sponge": {
+    "message": "a",
+    "first_id": 7,
+    "row_log": 5,
+    "call_local_queries": 69,
+    "perm_local_queries": 245,
+    "call_global_columns": 448,
+    "perm_global_columns": 360,
+    "binding_columns": 16,
+    "shared_native_global_adapters": true,
+    "main_and_local_metadata_retired_before_global_generation": true,
+    "both_ram_and_kio_claims_nonzero": true,
+    "fresh_receivers_accept": true,
+    "invalid_main_eq_prefix_target_physical_proofs_rejected": "OodsNotMatching",
+    "mutated_kio_claim_rejected": true
+  },
+  "truth": {
+    "policy": "throughput_r27_v1",
+    "calls": 2,
+    "permutation_log": 5,
+    "chi_table_log": 21,
+    "xor_table_log": 16,
+    "local_clearing": "Existing OM strict triples (degree <=5), not the native QM quartet column encoding",
+    "global_kio_queries": 50,
+    "global_columns": 408,
+    "explicit_output_budget_bytes": 2147483648,
+    "whole_truth_local_claims_close": true,
+    "independent_fresh_receiver_accepts": true,
+    "existing_config_revision_high_coordinate_and_global_claim_mutation_guards": true
+  },
+  "checks": [
+    "original sponge frontend Safe/Fast",
+    "new physical sponge call/perm Safe/Fast",
+    "actual r27 TruthWorker and fresh receiver Safe/Fast",
+    "final trusted-origin256-lane cap assertions Safe/Fast"
+  ],
+  "limitations": [
+    "Whole cross-shard V3 coordinator acceptance is a separate integration gate.",
+    "No 128-bit certification or performance claim.",
+    "Compact profile keeps its prior statement transcript and default geometry.",
+    "Constructor-bound arithmetic assertion inside the physical fixture is additionally covered by the parent combined gate."
+  ]
 }

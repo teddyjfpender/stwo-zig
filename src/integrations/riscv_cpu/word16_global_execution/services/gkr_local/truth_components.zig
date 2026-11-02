@@ -11,7 +11,8 @@ const Manifest = @import("manifest.zig");
 /// Pure declaration geometry, also used before any fixed key is constructed.
 /// Programs/table policies are receiver-owned; no claim or challenge is needed.
 pub fn shapesForDeclaration(d: @import("../wire.zig").TruthDeclaration) ![3]Role.Shape {
-    // Compact 2^13/2^10 Keccak tables only; the throughput profile is v3-only.
+    // Receiver-owned policy selects table geometry. Compact defaults keep their
+    // old shape; throughput admission belongs to the enclosing V3 receiver.
     try @import("truth_profile.zig").validateDeclaration(d);
     return switch (d.family) {
         .keccak => blk: {

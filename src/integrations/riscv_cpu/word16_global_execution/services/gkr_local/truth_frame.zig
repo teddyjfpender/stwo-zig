@@ -1,4 +1,4 @@
-//! Explicit truth geometry, separate from CPU's <=128-query frame. The current
+//! Explicit truth geometry, separate from the bounded CPU-role frame. The current
 //! GKR engine materializes row×query facts; admission MUST precede allocation.
 const std = @import("std");
 const core = @import("stwo_core");

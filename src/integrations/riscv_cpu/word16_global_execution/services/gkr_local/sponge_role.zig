@@ -1,5 +1,6 @@
 //! Sponge MAIN, authenticated local terminal binding and global RAM share one
-//! physical role. Production v3 admission remains closed until CPU integration.
+//! physical role. Complete execution acceptance additionally closes every local
+//! and global debt through the enclosing manifest and receiver.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");

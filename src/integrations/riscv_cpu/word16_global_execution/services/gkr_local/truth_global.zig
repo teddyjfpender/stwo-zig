@@ -1,5 +1,5 @@
 //! Concrete OM8 truth-global pieces, composed under the SAME MAIN commitment
-//! as direct arithmetic and authenticated truth-local GKR. No challenge draws.
+//! as direct arithmetic and separately closed classic local claims. No challenge draws.
 const A = @import("stwo_riscv_frontend").rv64_air;
 const E = A.evaluation;
 const K = A.crypto.keccak;
