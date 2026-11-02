@@ -16,8 +16,6 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     if (steps == 0 or steps > limits.steps or steps >= 1 << 22) return error.WorkPacketResourceLimit;
     const graph_start = try std.math.add(usize, H.BYTES, try h.bodyBytes());
     const tape_start = try std.math.add(usize, graph_start, h.graph_bytes);
-    var base = try std.math.mul(usize, h.cells, @sizeOf(rv.boundary_capture.Cell) + @sizeOf(@import("rv64_full_statement.zig").Cell) + 4);
-    base = try std.math.add(usize, base, try std.math.mul(usize, h.chunks, @sizeOf(R.batch.Opening) + 64 * 21));
     var graph_bytes: usize = 0;
     var graph_temporary: usize = 0;
     if (h.graph_bytes != 0) {
@@ -73,12 +71,36 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     }
     const encoded_tape = if (extended) try std.math.add(usize, base_tape, EXTENSION_BYTES + try sumWidths(&.{ arith, curves }, &.{ ARITH256_RECORD, CURVE_RECORD })) else base_tape;
     if (encoded_tape != h.tape_bytes) return error.InvalidWorkPacketSection;
+    try allocationPeak(h, .{ .steps = steps, .memory = memory, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith = arith, .curves = curves }, graph_bytes, graph_temporary, limits);
+}
+const TapeCounts = struct { steps: usize, memory: usize, keccak: usize, secp: usize, sha256: usize, arith: usize, curves: usize };
+/// Decoded-allocation peak bound shared by the file preflight and the
+/// in-process handoff. `graph_bytes`/`graph_temporary` are the legacy frontier
+/// graph's decoded size and validation scratch (zero when no graph exists).
+fn allocationPeak(h: H.Header, t: TapeCounts, graph_bytes: usize, graph_temporary: usize, limits: H.Limits) !void {
+    var base = try std.math.mul(usize, h.cells, @sizeOf(rv.boundary_capture.Cell) + @sizeOf(@import("rv64_full_statement.zig").Cell) + 4);
+    base = try std.math.add(usize, base, try std.math.mul(usize, h.chunks, @sizeOf(R.batch.Opening) + 64 * 21));
     // Tape's sparse ordinary-memory ArrayList uses geometric growth; service
     // arrays use precise capacity. No unused native execution capacity is read.
-    const memory_capacity: usize = if (memory == 0) 0 else @max(8, try std.math.mul(usize, memory, 2));
-    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp, sha256, arith, curves }, &.{ 48, 8, 432, 424, 224, @sizeOf(rv.ethereum_services.Arith256ModCall), @sizeOf(rv.ethereum_services.CurveCall) });
+    const memory_capacity: usize = if (t.memory == 0) 0 else @max(8, try std.math.mul(usize, t.memory, 2));
+    const tape_bytes = try sumWidths(&.{ t.steps, memory_capacity, t.keccak, t.secp, t.sha256, t.arith, t.curves }, &.{ 48, 8, 432, 424, 224, @sizeOf(rv.ethereum_services.Arith256ModCall), @sizeOf(rv.ethereum_services.CurveCall) });
     const peak = try std.math.add(usize, try std.math.add(usize, base, graph_bytes), @max(graph_temporary, tape_bytes));
     if (try std.math.add(usize, peak, 512 * 1024) > limits.allocation_bytes) return error.WorkPacketResourceLimit;
+}
+/// In-process twin of `check` for a batch that never became a packet file:
+/// the same header resource limits (`H.Header.validateResources`), step bound
+/// and decoded-allocation peak, with the tape section size and record counts
+/// taken from the tape itself (as `compact_tape_wire.write` would encode them).
+/// No legacy frontier graph exists on this route, so the graph-only limits
+/// (frontier records <= 2^24, permutations <= MAX_IO, the graph's share of
+/// the packet bytes and of the decoded peak) are not applicable: they bound
+/// a graph allocation this route never makes.
+pub fn checkNative(metadata: H.Metadata, cells: u32, chunks: u32, tape: *const rv.compact_tape.Tape, limits: H.Limits) !void {
+    const steps = tape.len;
+    if (steps == 0 or steps > limits.steps or steps >= 1 << 22) return error.WorkPacketResourceLimit;
+    const h = H.Header{ .metadata = metadata, .cells = cells, .chunks = chunks, .graph_bytes = 0, .tape_bytes = try TapeWire.encodedBytes(tape) };
+    try h.validateResources(limits);
+    try allocationPeak(h, .{ .steps = steps, .memory = tape.memory_before.items.len, .keccak = tape.service_calls.items.len, .secp = tape.secp_calls.items.len, .sha256 = tape.sha256_calls.items.len, .arith = tape.arith256_mod_calls.items.len, .curves = tape.curve_calls.items.len }, 0, 0, limits);
 }
 fn sumWidths(counts: []const usize, widths: []const usize) !usize {
     var total: usize = 0;

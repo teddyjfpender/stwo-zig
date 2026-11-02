@@ -68,7 +68,11 @@ fn same(expected: *const Capture.Owner, actual: *const Capture.Owner) !void {
     try std.testing.expectEqual(expected.final_pc, actual.final_pc);
     try std.testing.expectEqualDeep(expected.final_registers, actual.final_registers);
     try std.testing.expectEqual(expected.native.items.len, actual.native.items.len);
-    for (expected.native.items, actual.native.items) |left, right| {
+    for (expected.native.items, actual.native.items) |left, right| try sameNative(left, right);
+    try std.testing.expectEqualDeep(expected.advice, actual.advice);
+}
+fn sameNative(left: anytype, right: anytype) !void {
+    {
         try std.testing.expectEqualDeep(left.raw_counts, right.raw_counts);
         try std.testing.expectEqualDeep(left.alu, right.alu);
         try std.testing.expectEqualDeep(left.binary, right.binary);
@@ -80,7 +84,6 @@ fn same(expected: *const Capture.Owner, actual: *const Capture.Owner) !void {
         try std.testing.expectEqualDeep(left.cpu.?.public, right.cpu.?.public);
         try std.testing.expectEqualDeep(left.jalr, right.jalr);
     }
-    try std.testing.expectEqualDeep(expected.advice, actual.advice);
 }
 test "two packet capture equals serial, held lease and budget fallback" {
     var fixture = try Fixture.init();
@@ -226,4 +229,309 @@ test "valid duplicate packet rejects ordered adjacency after speculative capture
     defer pool.deinit();
     try std.testing.expectError(error.NonAdjacentEthereumPacket, Capture.Owner.init(a, &image_owner, &program, config, jobs, 0));
     try std.testing.expectError(error.NonAdjacentEthereumPacket, Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = 2 }));
+}
+
+const Direct = @import("direct.zig");
+const PacketCodec = @import("../../word16_execution/packet.zig");
+const Header = @import("../../rv64_work_packet_header.zig");
+const Walk = Collect.Walk;
+fn digestOf(image_owner: *const Image.Owner, owner: *const Capture.Owner) [32]u8 {
+    return @import("capture_digest.zig").digest(image_owner.identity, owner);
+}
+test "windowed capture of up to MAX_INFLIGHT packets equals serial" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.batch_steps = 1;
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    var pool: engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var serial = try Capture.Owner.init(a, &image_owner, &program, config, jobs, 0);
+    defer serial.deinit();
+    try std.testing.expectEqual(@as(usize, 5), serial.native.items.len);
+    for ([_]u8{ 2, 3, 4, 16 }) |window| {
+        var parallel = try Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = window, .max_inflight_packet_heap_bytes = @as(usize, window) * (512 << 20), .max_inflight_wire_bytes = @as(u64, window) << 30 });
+        defer parallel.deinit();
+        try same(&serial, &parallel);
+        try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &parallel));
+        try std.testing.expectEqual(@min(window, 5), parallel.capture_schedule.max_inflight_packets);
+    }
+    // A prefix stops at its count even with a wider window.
+    var prefix = try Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 2, .{ .pool = &pool, .max_inflight_packets = 4, .max_inflight_packet_heap_bytes = 4 * (512 << 20), .max_inflight_wire_bytes = 4 << 30 });
+    defer prefix.deinit();
+    try std.testing.expectEqual(@as(usize, 2), prefix.native.items.len);
+    var serial_prefix = try Capture.Owner.init(a, &image_owner, &program, config, jobs, 2);
+    defer serial_prefix.deinit();
+    try same(&serial_prefix, &prefix);
+    // A corrupt packet inside the window is still rejected.
+    try jobs.writeFile(.{ .sub_path = "job-000002.work", .data = "bad" });
+    const serial_err = if (Capture.Owner.init(a, &image_owner, &program, config, jobs, 0)) |owner| blk: {
+        var value = owner;
+        value.deinit();
+        break :blk error.ExpectedFailure;
+    } else |e| e;
+    try std.testing.expect(serial_err != error.ExpectedFailure);
+    try std.testing.expectError(serial_err, Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = 4, .max_inflight_packet_heap_bytes = 4 * (512 << 20), .max_inflight_wire_bytes = 4 << 30 }));
+}
+test "in-process handoff capture equals the on-disk packet capture" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    for ([_]u32{ 3, 1, 2 }) |batch_steps| {
+        var config = fixture.config();
+        config.batch_steps = batch_steps;
+        fixture.temp.dir.deleteTree("artifacts") catch {};
+        _ = try Collect.run(a, config);
+        var image_owner = try Image.Owner.init(a, config);
+        defer image_owner.deinit();
+        var program = try Program.initWithAuthority(a, &image_owner.authority);
+        defer program.deinit();
+        var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+        defer jobs.close();
+        var serial = try Capture.Owner.init(a, &image_owner, &program, config, jobs, 0);
+        defer serial.deinit();
+        for ([_]u8{ 1, 2, 3, 16 }) |inflight| {
+            var stats: Direct.Stats = .{};
+            var direct = try Direct.capture(a, &image_owner, &program, config, 0, inflight, &stats);
+            defer direct.deinit();
+            try same(&serial, &direct);
+            try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
+            try std.testing.expectEqual(@as(u32, @intCast(serial.native.items.len)), stats.batches);
+        }
+        var serial_prefix = try Capture.Owner.init(a, &image_owner, &program, config, jobs, 1);
+        defer serial_prefix.deinit();
+        var stats: Direct.Stats = .{};
+        var direct_prefix = try Direct.capture(a, &image_owner, &program, config, 1, 2, &stats);
+        defer direct_prefix.deinit();
+        try same(&serial_prefix, &direct_prefix);
+        try std.testing.expectEqual(@as(u32, 1), stats.batches);
+    }
+}
+const FirstBatch = struct {
+    tape: @import("stwo_riscv_frontend").rv64.compact_tape.Tape,
+    finished: @import("../../rv64_ethereum_batch.zig").Finished,
+    metadata: Header.Metadata,
+    fn chunks(self: *const FirstBatch) usize {
+        return if (self.finished.openings) |o| o.chunks.len else 0;
+    }
+};
+fn firstBatch(walk: *Walk) !FirstBatch {
+    var step = (try walk.next()).?;
+    errdefer step.finished.deinit();
+    const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = walk.tape.initial_clock, .before = PacketCodec.ABSENT_ROOT, .after = PacketCodec.ABSENT_ROOT };
+    const tape = try walk.advanceTakingTape(&step.batch);
+    return .{ .tape = tape, .finished = step.finished, .metadata = metadata };
+}
+test "in-process handoff rejects forged tapes, statements and identities" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    const Case = enum { none, next_pc, memory_index, steps, division, final_pc, identity, first_step, initial_pc, cells, chunks, cells_over_chunks, before_root, after_root };
+    inline for (@typeInfo(Case).@"enum".fields) |field| {
+        const case: Case = @enumFromInt(field.value);
+        var walk = try Walk.create(a, config);
+        defer walk.destroy();
+        var batch = try firstBatch(walk);
+        defer batch.finished.deinit();
+        var cells = batch.finished.cells.len;
+        var chunks = batch.chunks();
+        switch (case) {
+            .none => {},
+            .next_pc => batch.tape.storage[0].next_pc += 4,
+            .memory_index => batch.tape.storage[0].memory_index = 0,
+            .steps => batch.tape.len -= 1,
+            .division => batch.finished.public.division_requests += 1,
+            .final_pc => batch.finished.public.statement.final_pc += 4,
+            .identity => batch.metadata.identity.request[0] ^= 1,
+            .first_step => batch.metadata.first_step += 1,
+            .initial_pc => batch.tape.initial_pc += 4,
+            .cells => cells = 1 << 25,
+            .chunks => chunks = 1 << 20,
+            .cells_over_chunks => cells = 64 * chunks + 1,
+            // Roots are absent on this route; a placeholder root is refused.
+            .before_root => batch.metadata.before = walk.request.initial_cache.root(),
+            .after_root => batch.metadata.after[0] = 1,
+        }
+        if (case == .none) {
+            var p = try PacketCodec.fromNative(batch.tape, batch.finished.public, batch.metadata, cells, chunks, &image_owner, config);
+            p.deinit();
+        } else {
+            if (PacketCodec.fromNative(batch.tape, batch.finished.public, batch.metadata, cells, chunks, &image_owner, config)) |value| {
+                var p = value;
+                p.deinit();
+                std.debug.print("forged case {s} accepted\n", .{field.name});
+                return error.ForgedBatchAccepted;
+            } else |_| {}
+        }
+    }
+}
+fn readPacket(jobs: std.fs.Dir, image_owner: *const Image.Owner, config: Request.Config, limits: Header.Limits) !void {
+    const file = try jobs.openFile("job-000000.work", .{});
+    defer file.close();
+    var p = try PacketCodec.readWithLimits(a, file, image_owner, config, limits);
+    p.deinit();
+}
+fn handOff(image_owner: *const Image.Owner, config: Request.Config, limits: Header.Limits) !void {
+    var walk = try Walk.create(a, config);
+    defer walk.destroy();
+    var batch = try firstBatch(walk);
+    defer batch.finished.deinit();
+    var p = try PacketCodec.fromNativeWithLimits(batch.tape, batch.finished.public, batch.metadata, batch.finished.cells.len, batch.chunks(), image_owner, config, limits);
+    p.deinit();
+}
+test "in-process handoff applies the packet reader's resource limits" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    var raw: [Header.BYTES]u8 = undefined;
+    {
+        const file = try jobs.openFile("job-000000.work", .{});
+        defer file.close();
+        try std.testing.expectEqual(raw.len, try file.preadAll(&raw, 0));
+    }
+    const total: usize = @intCast(std.mem.readInt(u64, raw[16..24], .little));
+    const cells = std.mem.readInt(u32, raw[24..28], .little);
+    const chunks = std.mem.readInt(u32, raw[28..32], .little);
+    const graph: usize = @intCast(std.mem.readInt(u64, raw[32..40], .little));
+    // The fixture's first batch touches RAM, so the disk packet has a graph.
+    try std.testing.expect(cells > 0 and chunks > 0 and graph > 0);
+    const base = PacketCodec.limitsFor(config);
+    const Case = struct { limits: Header.Limits, disk: bool, direct: bool };
+    const cases = [_]Case{
+        .{ .limits = base, .disk = true, .direct = true },
+        .{ .limits = blk: {
+            var l = base;
+            l.cells = cells - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.chunks = chunks - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.steps = config.batch_steps - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.bytes = total;
+            break :blk l;
+        }, .disk = true, .direct = true },
+        // The one documented divergence: bytes that only the legacy frontier
+        // graph (never built in process) would occupy.
+        .{ .limits = blk: {
+            var l = base;
+            l.bytes = total - graph;
+            break :blk l;
+        }, .disk = false, .direct = true },
+        .{ .limits = blk: {
+            var l = base;
+            l.bytes = total - graph - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.allocation_bytes = 512 * 1024;
+            break :blk l;
+        }, .disk = false, .direct = false },
+    };
+    for (cases, 0..) |case, i| {
+        errdefer std.debug.print("limits case {d}\n", .{i});
+        if (case.disk) try readPacket(jobs, &image_owner, config, case.limits) else try std.testing.expectError(error.WorkPacketResourceLimit, readPacket(jobs, &image_owner, config, case.limits));
+        if (case.direct) try handOff(&image_owner, config, case.limits) else try std.testing.expectError(error.WorkPacketResourceLimit, handOff(&image_owner, config, case.limits));
+    }
+}
+test "packet roots and transport digest do not reach captured values" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.batch_steps = 1;
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    // Disk packets chain real sparse-cache roots: the stores change them.
+    var roots_differ = false;
+    for (0..5) |i| {
+        var name_buf: [32]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "job-{d:0>6}.work", .{i});
+        const file = try jobs.openFile(name, .{});
+        defer file.close();
+        var p = try PacketCodec.read(a, file, &image_owner, config);
+        defer p.deinit();
+        if (!std.mem.eql(u32, &p.metadata.before, &p.metadata.after)) roots_differ = true;
+        try std.testing.expect(!std.mem.allEqual(u8, &p.content_digest, 0));
+        // Same packet with roots/digest replaced by the absent markers.
+        var native = try Capture.Owner.captureOne(a, &program, &p, i);
+        defer {
+            native.deinit();
+            a.destroy(native);
+        }
+        var blank = p;
+        blank.metadata.before = PacketCodec.ABSENT_ROOT;
+        blank.metadata.after = PacketCodec.ABSENT_ROOT;
+        blank.content_digest = @splat(0);
+        var other = try Capture.Owner.captureOne(a, &program, &blank, i);
+        defer {
+            other.deinit();
+            a.destroy(other);
+        }
+        try sameNative(native, other);
+    }
+    try std.testing.expect(roots_differ);
+    // Whole-capture digest: disk (chained roots) == direct (absent roots).
+    var serial = try Capture.Owner.init(a, &image_owner, &program, config, jobs, 0);
+    defer serial.deinit();
+    var stats: Direct.Stats = .{};
+    var direct = try Direct.capture(a, &image_owner, &program, config, 0, 2, &stats);
+    defer direct.deinit();
+    try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
+}
+test "pipelined native collection writes byte-identical packets and descriptors" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.batch_steps = 1;
+    const root = try fixture.temp.dir.realpathAlloc(a, ".");
+    defer a.free(root);
+    const serial_dir = try std.fs.path.join(a, &.{ root, "serial" });
+    defer a.free(serial_dir);
+    const piped_dir = try std.fs.path.join(a, &.{ root, "piped" });
+    defer a.free(piped_dir);
+    config.output_directory = serial_dir;
+    const serial = try Collect.runWithOptions(a, config, .{ .pipeline = false });
+    config.output_directory = piped_dir;
+    const piped = try Collect.runWithOptions(a, config, .{ .pipeline = true });
+    try std.testing.expectEqualDeep(serial, piped);
+    try std.testing.expectEqual(@as(u32, 5), piped.collected_batches);
+    var names: [6][]const u8 = .{ "jobs.jsonl", "terminal.proof", "jobs/job-000000.work", "jobs/job-000001.work", "jobs/job-000004.work", "collection.json" };
+    for (&names) |name| {
+        const left = try std.fs.path.join(a, &.{ serial_dir, name });
+        defer a.free(left);
+        const right = try std.fs.path.join(a, &.{ piped_dir, name });
+        defer a.free(right);
+        const l = try std.fs.cwd().readFileAlloc(a, left, 1 << 24);
+        defer a.free(l);
+        const r = try std.fs.cwd().readFileAlloc(a, right, 1 << 24);
+        defer a.free(r);
+        try std.testing.expectEqualSlices(u8, l, r);
+    }
 }

@@ -31,12 +31,14 @@ pub fn main() !void {
     const suite = if (fold4) Suite.experimentalFold4() else Suite.production();
     const verify = std.mem.eql(u8, args[1], "verify") or std.mem.eql(u8, args[1], "verify-fold4");
     const prefix = std.mem.eql(u8, args[1], "verify-prefix") or std.mem.eql(u8, args[1], "verify-prefix-fold4");
-    const produce = std.mem.eql(u8, args[1], "produce") or std.mem.eql(u8, args[1], "produce-fold4");
-    const plan = std.mem.eql(u8, args[1], "plan");
+    // `-direct`: in-process handoff (execute + capture, no job packet files).
+    const direct = std.mem.eql(u8, args[1], "produce-direct") or std.mem.eql(u8, args[1], "plan-direct");
+    const produce = std.mem.eql(u8, args[1], "produce") or std.mem.eql(u8, args[1], "produce-fold4") or std.mem.eql(u8, args[1], "produce-direct");
+    const plan = std.mem.eql(u8, args[1], "plan") or std.mem.eql(u8, args[1], "plan-direct");
     if (!verify and !prefix and !produce and !plan) return error.InvalidWord16EthereumMode;
     if ((verify or prefix) and args.len != 4) return error.VerifierNeedsNoExecutionPackets;
     if ((verify or prefix) and operational.producerOnly()) return error.ProvingOptionInReceiver;
-    if ((produce or plan) and args.len != 6) return error.ExpectedModeConfigJobsOutputPrefixCount;
+    if ((produce or plan) and args.len != @as(usize, if (direct) 5 else 6)) return error.ExpectedModeConfigJobsOutputPrefixCount;
     const raw = try std.fs.cwd().readFileAlloc(a, args[2], 16384);
     defer a.free(raw);
     const config = try std.json.parseFromSlice(Request.Config, a, raw, .{});
@@ -69,9 +71,8 @@ pub fn main() !void {
         const output = try Receiver.verify(a, &image, &keys, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
         return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
     }
-    const count = try std.fmt.parseUnsigned(u32, args[5], 10);
-    var jobs = try std.fs.cwd().openDir(args[3], .{});
-    defer jobs.close();
+    const out_path = args[if (direct) 3 else 4];
+    const count = try std.fmt.parseUnsigned(u32, args[if (direct) 4 else 5], 10);
     var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
     defer program.deinit();
     var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
@@ -80,7 +81,15 @@ pub fn main() !void {
     if (operational.no_compact_decode) cpu_layout.compact_decode = false;
     // The capture's FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
-    var captured = try Capture.init(a, &image, &program, config.value, jobs, count);
+    // Range-checked by Options.parse; the windowed reader re-validates. (The
+    // GKR driver's capture schema stays limited to its own 1-2 packets.)
+    const capture_options = operational.captureOptions();
+    var direct_stats: @import("direct.zig").Stats = .{};
+    var captured = if (direct) try @import("direct.zig").capture(a, &image, &program, config.value, count, operational.capture_inflight, &direct_stats) else jobs: {
+        var jobs = try std.fs.cwd().openDir(args[3], .{});
+        defer jobs.close();
+        break :jobs try Capture.initWithOptions(a, &image, &program, config.value, jobs, count, capture_options.forPool(&pool));
+    };
     defer captured.deinit();
     const capture_ns = timer.read();
     const trim_start = timer.read();
@@ -93,7 +102,7 @@ pub fn main() !void {
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     try admitProfile(config.value, cpu_declarations, truth_declarations);
-    if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
+    if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns, .capture_schedule = captured.capture_schedule, .direct = direct_stats, .captured_values_sha256 = std.fmt.bytesToHex(@import("capture_digest.zig").digest(image.identity, &captured), .lower) });
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu_declarations, truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache });
     defer keys.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = config.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
@@ -101,12 +110,12 @@ pub fn main() !void {
     // publish a block-completed report merely because their proofs verify.
     const completed = count == 0;
     if (completed and expected.final_pc != image.terminal_pc) return error.MissingEthereumTerminalPacket;
-    try std.fs.cwd().makeDir(args[4]);
-    var dir = try std.fs.cwd().openDir(args[4], .{});
+    try std.fs.cwd().makeDir(out_path);
+    var dir = try std.fs.cwd().openDir(out_path, .{});
     defer dir.close();
     const setup_ns = timer.read() - capture_ns - trim_ns;
     try @import("telemetry.zig").write(a, dir, &keys, &captured);
-    var store = if (operational.park_retained_main) try @import("../retained_main_store.zig").Store.initParked(args[4], 128 << 30) else try @import("../retained_main_store.zig").Store.init(args[4], 128 << 30);
+    var store = if (operational.park_retained_main) try @import("../retained_main_store.zig").Store.initParked(out_path, 128 << 30) else try @import("../retained_main_store.zig").Store.init(out_path, 128 << 30);
     defer store.deinit();
     var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
     defer observations.deinit();
@@ -120,7 +129,7 @@ pub fn main() !void {
     const verify_ns = timer.read() - verify_start;
     const publish_start = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
+    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_mode = @as([]const u8, if (direct) "in-process" else "packets"), .capture_schedule = captured.capture_schedule, .direct_capture = direct_stats, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
     try std.posix.fsync(dir.fd);
 }
 /// Receiver policy: SHA-256, arith256_mod, curve/field and bulk-memory bridges/truths

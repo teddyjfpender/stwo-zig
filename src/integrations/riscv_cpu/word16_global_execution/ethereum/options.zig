@@ -28,6 +28,10 @@ pub const Options = struct {
     /// shape).
     compact_decode: bool = false,
     no_compact_decode: bool = false,
+    /// Producer capture scheduling only: decode and capture up to this many
+    /// job packets concurrently (consumed in index order). 1 = serial reader.
+    capture_inflight: u8 = 1,
+    capture_inflight_set: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -79,6 +83,11 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--keep-capture-cache")) {
                 if (out.keep_capture_cache) return error.DuplicateOperationalOption;
                 out.keep_capture_cache = true;
+            } else if (std.mem.startsWith(u8, arg, "--capture-inflight=")) {
+                if (out.capture_inflight_set) return error.DuplicateOperationalOption;
+                out.capture_inflight_set = true;
+                out.capture_inflight = try std.fmt.parseUnsigned(u8, arg["--capture-inflight=".len..], 10);
+                if (out.capture_inflight == 0 or out.capture_inflight > @import("capture_prefetch.zig").MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
             } else if (std.mem.eql(u8, arg, "--no-ls-dword")) {
                 if (out.no_ls_dword) return error.DuplicateOperationalOption;
                 out.no_ls_dword = true;
@@ -114,8 +123,15 @@ pub const Options = struct {
         try policy.validate();
         return policy;
     }
+    /// Capture options for `capture_inflight` packets: each slot keeps the
+    /// default per-packet decoded heap cap and wire cap.
+    pub fn captureOptions(self: Options) @import("capture_options.zig").Options {
+        const D = @import("capture_options.zig").Options{};
+        const n: usize = self.capture_inflight;
+        return .{ .max_inflight_packets = self.capture_inflight, .packet_heap_bytes = D.packet_heap_bytes, .max_inflight_packet_heap_bytes = n * D.packet_heap_bytes, .max_inflight_wire_bytes = n * D.max_inflight_wire_bytes };
+    }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.compact_decode or self.no_compact_decode;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.compact_decode or self.no_compact_decode or self.capture_inflight_set;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {
