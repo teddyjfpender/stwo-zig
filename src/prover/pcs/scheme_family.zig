@@ -98,6 +98,8 @@ pub fn ForField(comptime Secure: type) type {
             comptime backend_merkle.assertMerkleOps(B, H);
             const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
             const FriBackend = if (Secure == @import("stwo_core").fields.qm31.QM31) B else struct {
+                pub const foldCircleFreshIntoLine = @import("../fri_om_cpu.zig").foldCircleFreshIntoLine;
+                pub const foldLineN = @import("../fri_om_cpu.zig").foldLineN;
                 pub const MerkleTree = B.MerkleTree;
                 pub const commitMerkle = B.commitMerkle;
                 pub const reuses_constant_merkle_parents = if (@hasDecl(B, "reuses_constant_merkle_parents")) B.reuses_constant_merkle_parents else false;

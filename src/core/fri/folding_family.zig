@@ -328,7 +328,7 @@ pub fn ForField(comptime Secure: type) type {
             }
         };
 
-        const CosetCoordinate = enum { x, y };
+        pub const CosetCoordinate = enum { x, y };
 
         /// Fills one coordinate of the first `out.len` coset points in bit-reversed
         /// order. FRI consumes even natural-domain indices in bit-reversed order, and
@@ -339,7 +339,7 @@ pub fn ForField(comptime Secure: type) type {
         /// point independently from the set bits of its index. Bit reversal is an
         /// involution, so scattering natural point `j` to `bitReverse(j)` produces the
         /// same output order as gathering point `bitReverse(i)` for each output `i`.
-        fn fillBitReversedCosetCoordinate(
+        pub fn fillBitReversedCosetCoordinate(
             out: []M31,
             coset: circle.Coset,
             comptime coordinate: CosetCoordinate,

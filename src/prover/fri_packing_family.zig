@@ -38,15 +38,19 @@ pub fn ForField(comptime Secure: type) type {
                     result.columns[initialized] = try allocator.alloc(M31, packed_len);
                 }
 
-                for (0..packed_len) |leaf| {
-                    inline for (0..PACKED_LEAF_SIZE) |offset| {
-                        inline for (0..DEGREE) |coordinate| {
-                            result.columns[
-                                offset * DEGREE + coordinate
-                            ][leaf] = column.columns[coordinate][leaf * PACKED_LEAF_SIZE + offset];
-                        }
+                const Context = struct {
+                    source: SecureColumnByCoords,
+                    target: *PackedSecureColumns,
+                    pub fn runRange(self: *@This(), _: usize, start: usize, end: usize) void {
+                        for (start..end) |leaf| inline for (0..PACKED_LEAF_SIZE) |offset| inline for (0..DEGREE) |coordinate| {
+                            self.target.columns[offset * DEGREE + coordinate][leaf] = self.source.columns[coordinate][leaf * PACKED_LEAF_SIZE + offset];
+                        };
                     }
-                }
+                };
+                var context = Context{ .source = column, .target = &result };
+                if (comptime Secure == @import("stwo_core").fields.om31.OM31) {
+                    _ = @import("lookups/row_work.zig").forEachRange(packed_len, &context, .{});
+                } else context.runRange(0, 0, packed_len);
                 return result;
             }
 
