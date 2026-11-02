@@ -113,7 +113,10 @@ test "V3 secp ADD DOUBLE physical OM 4n proofs and fresh receivers" {
         var setup = try HR.TruthSetup.init(a, op, 8);
         defer setup.deinit();
         const N = A.crypto.curves.Native(op);
-        var source = try A.crypto.curves.Trace(op).Source.init(a, &.{@as(N.Packet, @splat(0))}, 1, 8);
+        const values = [6]u256{ 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8, 1, 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8, 1 };
+        var packet: N.Packet = undefined;
+        for (&packet, 0..) |*b, i| b.* = @truncate(values[i / 32] >> @intCast(8 * (i % 32)));
+        var source = try A.crypto.curves.Trace(op).Source.init(a, &.{packet}, 1, 8);
         a.free(source.fixed);
         source.fixed = setup.fixed;
         source.owns_fixed = false;
@@ -146,7 +149,7 @@ test "V3 all curve families physical OM proofs with admissible native operands" 
     const a = std.testing.allocator;
     const HR = @import("../../curves/roster.zig");
     const F = @import("../curves_fixture.zig");
-    inline for (std.enums.values(A.crypto.curves.Op)) |op| {
+    inline for (comptime std.enums.values(A.crypto.curves.Op)) |op| {
         if (op == .bn254_fp2_mul) continue;
         var setup = try HR.TruthSetup.init(a, op, 8);
         defer setup.deinit();
@@ -160,4 +163,11 @@ test "V3 all curve families physical OM proofs with admissible native operands" 
         source.owns_fixed = false;
         try runV3(.{ .curve = .{ .setup = &setup, .first_id = 1, .calls = 1 } }, .{ .curve = @unionInit(HR.TruthSource, @tagName(op), source) });
     }
+}
+
+test "V3 declaration preflight rejects legacy profiles and impossible empty spans" {
+    const D = @import("../wire.zig").TruthDeclaration;
+    try std.testing.expectError(error.NotV3Truth, C.descriptorForDeclaration(D{ .family = .add, .first_id = 1, .calls = 1, .logs = .{ 8, 8 } }));
+    try std.testing.expectError(error.EmptyV3Truth, C.descriptorForDeclaration(D{ .family = .sha256, .first_id = 1, .calls = 0, .logs = .{ 5, 0 } }));
+    try std.testing.expectError(error.V3TruthShapeExceeded, C.descriptorForDeclaration(D{ .family = .sha256, .first_id = 1, .calls = 1, .logs = .{ 14, 0 } }));
 }
