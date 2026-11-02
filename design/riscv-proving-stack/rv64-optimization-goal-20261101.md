@@ -1,6 +1,13 @@
 # RV64 optimization objective and qualification ledger
 
-The active user objective is the six-workstream table in attachment
+The November 2 00:59 UTC priority is a four-hour review of the proposed global
+GKR payoff and allegedly missing packed-prover wiring, followed by streamed GKR.
+The source audit is recorded in `rv64-current-relation-ownership-audit.md` and
+`rv64-global-gkr-architecture-audit.md`: REG/OWNER are already local GKR; known
+packed routes are live. Direct separate global GKR saves about 0.664% of current
+MAIN+INTER cells after binding, rather than the proposed large multiplier.
+
+The broader workstreams remain tracked from the six-workstream attachment
 `f3d2e92e-bb71-443c-9fff-16e0a93ad9c0/pasted-text-1.txt`. Recovery of the
 previous agent wave is complete; this objective requires further engineering.
 Completion must be established from the current code and actual qualification

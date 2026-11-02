@@ -1,0 +1,21 @@
+{
+  "scope": "Coherent streamed68 + shifted truth rows + observed admission source; before the separately-qualified four classic numeric inline-call substitutions.",
+  "source_base": "48832ce0d",
+  "additional_source": "Observation-only Ethereum gkr_main producer policy report committed f41db7285",
+  "optimize": "ReleaseSafe",
+  "passed_targets": [
+    "test-native-cpu-gkr-rows",
+    "test-stwo-prover-gkr-resource",
+    "test-stwo-prover-coefficient-storage",
+    "test-riscv64-selective-openings",
+    "test-riscv64-services-gkr-local",
+    "test-riscv64-truth-parallel",
+    "test-riscv64-security-policy",
+    "test-riscv64-om-classic-control",
+    "test-riscv64-capture-prefetch",
+    "test-riscv64-ethereum-chain"
+  ],
+  "build_steps_succeeded": 20,
+  "security_qualified": false,
+  "remaining": "Final Fast CLI/build and complete-block source qualification after concrete inline classic numeric calls."
+}
