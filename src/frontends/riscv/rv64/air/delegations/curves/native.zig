@@ -82,7 +82,43 @@ fn affineDouble(comptime F: type, comptime T: type, x: T, y: T) [3]T {
     return .{ x3, F.sub(F.mul(l, F.sub(x, x3)), y), l };
 }
 
-pub fn Native(comptime op: spec.Op) type {
+/// secp256k1 RCB witnesses and canonical outputs (see `spec.secpDef`); raw
+/// coordinates enter by their residue, as the program's `reduce_once`.
+fn secpWitness(comptime kind: spec.SecpKind, in: []const Big) struct { out: [3]Big, wit: [spec.secpDef(kind).witnesses]Big } {
+    const F = Secp;
+    var r: [6]u256 = undefined;
+    for (in, 0..) |x, i| r[i] = @intCast(x % spec.SECP256K1_P);
+    if (kind == .add) {
+        const xx = F.mul(r[0], r[3]);
+        const yy = F.mul(r[1], r[4]);
+        const zz = F.mul(r[2], r[5]);
+        const xy = F.add(F.mul(r[0], r[4]), F.mul(r[1], r[3]));
+        const yz = F.add(F.mul(r[1], r[5]), F.mul(r[2], r[4]));
+        const xz = F.add(F.mul(r[0], r[5]), F.mul(r[2], r[3]));
+        const bzz3 = F.mul(zz, 21);
+        const ym = F.sub(yy, bzz3);
+        const yp = F.add(yy, bzz3);
+        const x3 = F.sub(F.mul(xy, ym), F.mul(F.mul(yz, 21), xz));
+        const y3 = F.add(F.mul(yp, ym), F.mul(F.mul(xx, 63), xz));
+        const z3 = F.add(F.mul(yz, yp), F.mul(F.mul(xx, 3), xy));
+        return .{ .out = .{ x3, y3, z3 }, .wit = .{ xx, yy, zz, xy, yz, xz } };
+    } else {
+        const yy = F.mul(r[1], r[1]);
+        const zz = F.mul(r[2], r[2]);
+        const xy = F.mul(r[0], r[1]);
+        const yz = F.mul(r[1], r[2]);
+        const ym = F.sub(yy, F.mul(zz, 63));
+        const yp = F.add(yy, F.mul(zz, 21));
+        const x3 = F.mul(F.mul(xy, 2), ym);
+        const y3 = F.add(F.mul(ym, yp), F.mul(F.mul(yy, zz), 168));
+        const z3 = F.mul(F.mul(yy, yz), 8);
+        return .{ .out = .{ x3, y3, z3 }, .wit = .{ yy, zz, xy, yz, ym } };
+    }
+}
+pub const Secp = Field(u256, spec.SECP256K1_P);
+
+pub fn Native(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Native(@as(spec.Op, op));
     return struct {
         pub const L = LayoutOf(op);
         const d = L.DEF;
@@ -108,7 +144,11 @@ pub fn Native(comptime op: spec.Op) type {
             for (&in, 0..) |*x, i| x.* = operand(packet, i);
             for (d.canonical_inputs) |i| if (in[i] >= modulusOf(packet)) return error.CurveDomain;
             var w: Witness = undefined;
-            switch (op) {
+            if (comptime @TypeOf(op) == spec.SecpKind) {
+                const sw = secpWitness(op, &in);
+                w.out = sw.out;
+                w.wit = sw.wit;
+            } else switch (op) {
                 .bn254_g1_add => {
                     if (in[0] == in[2]) return error.CurveDomain;
                     const r = affineAdd(Bn, u256, @intCast(in[0]), @intCast(in[1]), @intCast(in[2]), @intCast(in[3]));

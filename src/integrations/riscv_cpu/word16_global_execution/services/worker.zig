@@ -275,5 +275,9 @@ fn truthClaims(source: *R.TruthSource, draw: P.TruthDraw) ![3]Q {
             .curve => |ch| .{ try s.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
             else => error.InvalidCombinedTruthChallenge,
         },
+        .secp_row => |*s| switch (draw) {
+            .secp_row => |ch| .{ try s.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
+            else => error.InvalidCombinedTruthChallenge,
+        },
     };
 }

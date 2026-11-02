@@ -133,6 +133,8 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.cpu_compact_decode) return error.UnadmittedFusedTailCpuLayout;
     // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
     for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
+    // The secp row truth (wire logs[1] = 0) is v3-only.
+    for (truths) |d| if (W.isSecpRow(d)) return error.UnadmittedSecpRowProfile;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
     for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
     for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
