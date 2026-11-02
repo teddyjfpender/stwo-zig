@@ -18,9 +18,10 @@ assumptions. It does not relabel the old thirty-proof result or certify the
 whole protocol. The tenth local namespace, weighted JUMPDEST partition,
 new truth authorities and selected Keccak table policies are included.
 
-The additional classic fused layouts and compact decode are merged as source,
-but explicitly disabled/rejected in GKR pending their separate query adapters.
-They are optimization follow-ups, not prerequisites for this full V3 execution.
+Compact decode is now admitted and qualified in GKR, including fresh-receiver
+layout and initial-PC mutation tests. The other four classic fused layout flags
+remain rejected pending their separate query adapters. They are optimization
+follow-ups, not prerequisites for this full V3 execution.
 The timed guest ELF is pinned and predates the last guest patches; those merged
 patches have no invented timing here. Further optimization, recursion and GPU
 qualification are deferred as requested.
@@ -37,6 +38,21 @@ The original seven-CPU/eleven-truth block freshly accepts under the explicit
 The bounded security model reproduces exactly and rejects profile/layout
 mismatches. [Receipts](../../vectors/reports/rv64-v3-closure-20261103/qualification.json)
 record these checks; no new proving-time or optimisation claim is made.
+
+## Requested V3 delivery gates
+
+| Gate | Evidence |
+|---|---|
+| SHA256, arith256, curve/field and secp truth providers | Physical OM31 proofs, fresh verifier and claim-mutation tests in `truth_v3_test.zig`; absent curve families are tested separately from the Ethereum roster |
+| Sponge and LS-D64 head/tail | Two-shard complete-execution fixtures with physical binding and global closure |
+| U8-pair CPU and compact decode | Authenticated layouts, fresh complete-execution receiver and wrong-layout/initial-PC rejection |
+| Throughput Keccak | R27 physical truth proof, receiver-owned policy and complete-block truth spans |
+| Cross-shard RAM/KIO/Wire | Verify every physical proof before closure; reject balanced claim mutations, reordered CPU shards and missing truth inventory |
+| Complete Ethereum block | Fresh acceptance of 26,894,777 steps, 7 CPU and 11 truth proofs, with exact pinned output |
+
+These gates establish native V3 execution acceptance. They do not assert that
+all truth-internal lookup arguments use GKR, or qualify a recursive root or GPU
+execution. No optimization round is required for this delivery.
 
 ## Historical snapshot and implementation plan
 
