@@ -1,6 +1,7 @@
 //! Explicit-rate immutable M31 fixed keys. No request/witness state or default
 //! suite selection. CPU and truth setup keys use the same coefficient seam.
 const std = @import("std");
+const builtin = @import("builtin");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const Cpu = @import("stwo_cpu_backend").CpuBackend;
@@ -8,6 +9,9 @@ const H = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
 const MC = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleChannel;
 const QChannel = core.channel.blake2s.Blake2sChannel;
 const M = core.fields.m31.M31;
+comptime {
+    if (@sizeOf(M) != 4 or @offsetOf(M, "v") != 0 or @typeInfo(M).@"struct".fields.len != 1 or @FieldType(M, "v") != u32) @compileError("fixed canonical bulk encoding requires one unpadded u32 M31");
+}
 const Coefficient = engine.poly.circle.CircleCoefficients;
 const Scheme = engine.pcs.CommitmentSchemeProver(Cpu, H, MC);
 pub const Tree = Scheme.CommittedTree;
@@ -42,10 +46,12 @@ fn coefficientIdentity(coefficients: []const Coefficient, descriptor: Commitment
         if (c.log_size > 28 or c.coeffs.len != @as(usize, 1) << @intCast(c.log_size)) return error.InvalidFixedSetupCoefficientShape;
         std.mem.writeInt(u64, &word, c.log_size, .little);
         h.update(&word);
-        for (c.coeffs) |value| {
-            // Canonical LE encoding; never hash backing padding or host endian.
-            h.update(&value.toBytesLe());
-        }
+        // M31 is one u32 with no padding. On a little-endian host this is
+        // exactly the previous concatenation of toBytesLe(), without one hash
+        // API call per cell. Other hosts retain explicit canonical encoding.
+        if (comptime builtin.cpu.arch.endian() == .little and @sizeOf(M) == 4 and @offsetOf(M, "v") == 0) {
+            h.update(std.mem.sliceAsBytes(c.coeffs));
+        } else for (c.coeffs) |value| h.update(&value.toBytesLe());
     }
     return h.finalResult();
 }
@@ -89,6 +95,14 @@ pub const WideFixedKey = struct {
         try descriptor.validate();
         if (!std.meta.eql(descriptor, self.descriptor) or !std.mem.eql(u8, &id, &self.identity)) return error.FixedSetupIdentityMismatch;
         if (!std.mem.eql(u8, &root, &self.root)) return error.FixedSetupRootMismatch;
+    }
+    /// Independently establish authority from the trusted original setup. A
+    /// producer's root/identity alone cannot select another program/table key.
+    pub fn requireSource(self: *const WideFixedKey, source: anytype) !void {
+        const coefficients = try sourceCoefficients(source);
+        const expected = try coefficientIdentity(coefficients, self.descriptor);
+        try self.require(self.descriptor, expected, self.root);
+        if (!coefficientsEqual(coefficients, self.tree.coefficients orelse return error.MissingFixedSetupCoefficients)) return error.FixedSetupDigestCollision;
     }
     /// Append one shared field-neutral tree to Q or OM PCS. The returned tree
     /// lease retains its own allocator lifetime even after cache/key release.
@@ -192,11 +206,47 @@ pub const Cache = struct {
     /// Truth: cache.acquireFromKey(truth.key(), descriptor).
     /// The source key remains live until this synchronous call returns.
     pub fn acquireFromKey(self: *const Cache, source: anytype, descriptor: CommitmentDescriptor) !Lease {
-        try source.suite.validate();
-        const coefficients = source.tree.coefficients orelse return error.MissingFixedSetupCoefficients;
-        if (coefficients.len != source.tree.columns.len) return error.InvalidFixedSetupCoefficientShape;
-        const source_blowup = source.suite.config().fri_config.log_blowup_factor;
-        for (coefficients, source.tree.columns) |c, column| if (c.log_size > 28 or c.log_size + source_blowup != column.log_size) return error.InvalidFixedSetupCoefficientShape;
+        const coefficients = try sourceCoefficients(source);
         return self.acquireCoefficients(coefficients, descriptor);
     }
 };
+
+fn sourceCoefficients(source: anytype) ![]const Coefficient {
+    try source.suite.validate();
+    const coefficients = source.tree.coefficients orelse return error.MissingFixedSetupCoefficients;
+    if (coefficients.len != source.tree.columns.len) return error.InvalidFixedSetupCoefficientShape;
+    const source_blowup = source.suite.config().fri_config.log_blowup_factor;
+    for (coefficients, source.tree.columns) |c, column| if (c.log_size > 28 or c.log_size + source_blowup != column.log_size) return error.InvalidFixedSetupCoefficientShape;
+    return coefficients;
+}
+
+test "fixed identity bulk encoding matches exact historical scalar LE framing" {
+    const a = std.testing.allocator;
+    try std.testing.expectError(error.EmptyFixedSetup, coefficientIdentity(&.{}, .{ .log_blowup = 2 }));
+    const empty_column = Coefficient{ .coeffs = &.{}, .log_size = 0, .owns_coeffs = false };
+    try std.testing.expectError(error.InvalidFixedSetupCoefficientShape, coefficientIdentity(&.{empty_column}, .{ .log_blowup = 2 }));
+    const first = try a.alloc(M, 32);
+    defer a.free(first);
+    const second = try a.alloc(M, 64);
+    defer a.free(second);
+    for (first, 0..) |*value, i| value.* = M.fromCanonical(if (i % 3 == 0) 0 else if (i % 3 == 1) core.fields.m31.Modulus - 1 else @intCast(i * 7919));
+    for (second, 0..) |*value, i| value.* = M.fromCanonical(@intCast(i * i + 0x01020304));
+    const coefficients = [_]Coefficient{ try Coefficient.initBorrowed(first), try Coefficient.initBorrowed(second) };
+    for ([_]u32{ 1, 2 }) |blowup| {
+        var h = std.crypto.hash.sha2.Sha256.init(.{});
+        h.update("rv64-immutable-M31-prefixed-Blake-fixed-setup/v1\x00");
+        var word: [8]u8 = undefined;
+        std.mem.writeInt(u64, &word, blowup, .little);
+        h.update(&word);
+        std.mem.writeInt(u64, &word, coefficients.len, .little);
+        h.update(&word);
+        for (coefficients) |c| {
+            std.mem.writeInt(u64, &word, c.log_size, .little);
+            h.update(&word);
+            for (c.coeffs) |value| h.update(&value.toBytesLe());
+        }
+        try std.testing.expectEqualDeep(h.finalResult(), try coefficientIdentity(&coefficients, .{ .log_blowup = blowup }));
+        const reversed = [_]Coefficient{ coefficients[1], coefficients[0] };
+        try std.testing.expect(!std.mem.eql(u8, &(try coefficientIdentity(&coefficients, .{ .log_blowup = blowup })), &(try coefficientIdentity(&reversed, .{ .log_blowup = blowup }))));
+    }
+}

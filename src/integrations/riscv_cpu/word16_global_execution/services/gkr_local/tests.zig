@@ -349,3 +349,13 @@ test {
     _ = @import("witness.zig");
     _ = @import("worker_protocol_test.zig");
 }
+test {
+    _ = @import("query_metadata.zig");
+}
+test {
+    _ = @import("source_bounds_test.zig");
+}
+
+test {
+    _ = @import("../../ethereum/receiver_budget.zig");
+}

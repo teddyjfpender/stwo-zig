@@ -21,6 +21,14 @@ pub const Numerator = union(enum) {
         };
     }
 };
+/// Shared task-admission and runtime scratch ceiling. Parallel workers divide
+/// this same former serial allowance; increasing concurrency cannot borrow
+/// unadmitted memory from the rest of the frontend task.
+pub fn scratchByteUpperBound(log: u32, terms: usize) !usize {
+    if (log < 5 or log > 22 or terms > 640) return error.InvalidClassicWitnessShape;
+    const rows = @as(usize, 1) << @intCast(log);
+    return std.math.mul(usize, try std.math.mul(usize, @min(rows, ROW_CHUNK), terms), 2 * @sizeOf(O) + @sizeOf(Numerator));
+}
 pub const Witness = struct {
     allocator: std.mem.Allocator,
     log_size: u32,
@@ -57,7 +65,14 @@ pub const Witness = struct {
         const cells = try std.math.mul(usize, width_, rows);
         const scratch_terms = try std.math.mul(usize, @min(rows, ROW_CHUNK), terms);
         const output_bytes = try std.math.mul(usize, cells, @sizeOf(M));
-        const scratch_bytes = try std.math.mul(usize, scratch_terms, 2 * @sizeOf(O) + @sizeOf(Numerator));
+        const ProviderType = if (@typeInfo(@TypeOf(provider)) == .pointer) @typeInfo(@TypeOf(provider)).pointer.child else @TypeOf(provider);
+        if (comptime @hasDecl(ProviderType, "PARALLEL_SAFE") and ProviderType.PARALLEL_SAFE) {
+            const generated = try @import("classic_witness_parallel.zig").generate(allocator, log, groups, provider, budget);
+            var stored: [MAX_GROUPS]Group = @splat(.{ .inverses = 0 });
+            @memcpy(stored[0..groups.len], groups);
+            return .{ .allocator = allocator, .log_size = log, .groups = stored, .group_count = groups.len, .data = generated.data, .claims = generated.claims };
+        }
+        const scratch_bytes = try scratchByteUpperBound(log, terms);
         if (try std.math.add(usize, output_bytes, scratch_bytes) > budget) return error.ClassicWitnessBudgetExceeded;
         const data = try allocator.alloc(M, cells);
         errdefer allocator.free(data);

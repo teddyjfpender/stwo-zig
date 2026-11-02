@@ -93,6 +93,8 @@ pub fn groups(origin: Frame.Origin) ![]const Classic.Group {
     return if (l.other_queries == 0) &.{.{ .inverses = 1 }} else if (l.ram_queries == 2) &.{ .{ .inverses = 1 }, .{ .inverses = 1 } } else &.{ .{ .inverses = 4 }, .{ .inverses = 1 } };
 }
 pub const Provider = struct {
+    /// Validated metadata and challenge inputs are immutable; fill allocates nothing.
+    pub const PARALLEL_SAFE = true;
     source: *const R.Sources,
     origin: Frame.Origin,
     log_size: u32,

@@ -9,6 +9,7 @@ const Pool = @import("stwo_prover_engine").work_pool;
 const Usage = @import("stwo_prover_api").stage_profile.process_usage;
 pub const MAX_LANES = 4;
 pub const MAX_TOTAL_WORKERS = 32;
+pub const MAX_ORDERED_TASKS = 4096;
 pub const Policy = struct {
     lanes: u8 = 1,
     workers_per_lane: u8 = 8,
@@ -18,6 +19,24 @@ pub const Policy = struct {
     /// Zero disables admission. One index is always admitted when nothing
     /// else is in flight, so an oversized estimate degrades to serial order.
     memory_cap_bytes: u64 = 0,
+    /// Accept both fixed override arrays and the resolved active-lane arrays
+    /// emitted by jsonStringify. Parsing copies into the owned fixed array;
+    /// no parsed-slice lifetime escapes the configuration object.
+    pub fn jsonParse(a: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Policy {
+        const defaults = Policy{};
+        const Input = struct {
+            lanes: u8 = defaults.lanes,
+            workers_per_lane: u8 = defaults.workers_per_lane,
+            lane_workers: []const u8 = &.{},
+            memory_cap_bytes: u64 = defaults.memory_cap_bytes,
+        };
+        const input = try std.json.innerParse(Input, a, source, options);
+        if (input.lane_workers.len > MAX_LANES) return error.LengthMismatch;
+        var result = Policy{ .lanes = input.lanes, .workers_per_lane = input.workers_per_lane, .memory_cap_bytes = input.memory_cap_bytes };
+        @memcpy(result.lane_workers[0..input.lane_workers.len], input.lane_workers);
+        // Semantic admission stays at Policy.validate, as for fixed-array input.
+        return result;
+    }
     pub fn workers(self: Policy, lane: usize) u8 {
         return if (lane < MAX_LANES and self.lane_workers[lane] != 0) self.lane_workers[lane] else self.workers_per_lane;
     }
@@ -66,9 +85,28 @@ pub const Trace = struct {
 pub const RunOptions = struct {
     /// Empty, or one estimate per index (required when the cap is enabled).
     estimates: []const u64 = &.{},
+    /// Empty means natural order. Otherwise a borrowed complete permutation;
+    /// results, errors, estimates and traces remain indexed by original ordinal.
+    order: []const usize = &.{},
     /// Empty, or one slot per index.
     trace: []Trace = &.{},
 };
+/// No allocation or execution is permitted before the optional permutation
+/// is proven bijective. A bounded stack bitmap gives linear validation.
+pub fn validateOrder(order: []const usize, count: usize) !void {
+    if (order.len == 0) return;
+    if (order.len != count or count > MAX_ORDERED_TASKS) return error.InvalidServiceOrder;
+    var seen: [MAX_ORDERED_TASKS / 64]u64 = @splat(0);
+    for (order) |index| {
+        if (index >= count) return error.InvalidServiceOrder;
+        const bit = @as(u64, 1) << @intCast(index % 64);
+        if (seen[index / 64] & bit != 0) return error.InvalidServiceOrder;
+        seen[index / 64] |= bit;
+    }
+}
+fn originalIndex(order: []const usize, position: usize) usize {
+    return if (order.len == 0) position else order[position];
+}
 /// The context's indexed slots must be disjoint and allocator thread-safe.
 /// A single lane reuses the caller pool only when its worker budget matches.
 /// Otherwise a lane-local pool enforces the requested budget and is joined.
@@ -90,13 +128,14 @@ fn laneThreads(pool: ?*Pool.WorkPool, storage: []std.Thread.Handle) Usage.LaneTh
 }
 pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Context, count: usize, policy: Policy, options: RunOptions, comptime execute: fn (*Context, usize) anyerror!void) !void {
     try policy.validate();
+    try validateOrder(options.order, count);
     if (options.estimates.len != 0 and options.estimates.len != count) return error.InvalidServiceSchedule;
     if (options.trace.len != 0 and options.trace.len != count) return error.InvalidServiceSchedule;
     if (policy.memory_cap_bytes != 0 and options.estimates.len != count) return error.MissingServiceMemoryEstimates;
     if (count == 0) return;
     // Share only an immutable origin: Timer.read mutates its previous sample
     // and must not be called concurrently by independent lanes.
-    const origin = try std.time.Instant.now();
+    const origin: ?std.time.Instant = if (options.trace.len != 0) try std.time.Instant.now() else null;
     const current_pool = Pool.currentScopedPool();
     const reuse_pool = if (current_pool) |pool| pool.workerCount() == policy.workers(0) else false;
     if ((policy.lanes == 1 or count == 1) and reuse_pool) {
@@ -104,11 +143,13 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         const lane = laneThreads(Pool.currentScopedPool(), &storage);
         const previous = Usage.bindLane(&lane);
         defer _ = Usage.bindLane(previous);
-        for (0..count) |index| {
+        for (0..count) |position| {
+            const index = originalIndex(options.order, position);
             const start = elapsed(origin);
             const estimate = if (options.estimates.len != 0) options.estimates[index] else 0;
-            try execute(context, index);
+            const result = execute(context, index);
             if (options.trace.len != 0) options.trace[index] = .{ .lane = 0, .workers = @intCast(if (Pool.currentScopedPool()) |p| p.workerCount() else 1), .estimate_bytes = estimate, .claimed_ns = start, .started_ns = start, .finished_ns = elapsed(origin), .in_flight_bytes_at_start = estimate };
+            try result;
         }
         return;
     }
@@ -118,7 +159,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         policy: Policy,
         options: RunOptions,
         allocator: std.mem.Allocator,
-        origin: std.time.Instant,
+        origin: ?std.time.Instant,
         next: std.atomic.Value(usize) = .init(0),
         stop: std.atomic.Value(bool) = .init(false),
         errors: []?anyerror,
@@ -170,8 +211,9 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             const previous = Usage.bindLane(&threads);
             defer _ = Usage.bindLane(previous);
             while (!self.stop.load(.acquire)) {
-                const index = self.next.fetchAdd(1, .monotonic);
-                if (index >= self.count) return;
+                const position = self.next.fetchAdd(1, .monotonic);
+                if (position >= self.count) return;
+                const index = originalIndex(self.options.order, position);
                 const claimed = elapsed(self.origin);
                 const estimate = if (self.options.estimates.len != 0) self.options.estimates[index] else 0;
                 const in_flight = self.admit(estimate) orelse return;
@@ -209,7 +251,8 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
 }
 
 /// Every reader owns its sample; the shared origin is immutable.
-fn elapsed(origin: std.time.Instant) u64 {
+fn elapsed(origin: ?std.time.Instant) u64 {
+    const start = origin orelse return 0;
     const current = std.time.Instant.now() catch unreachable;
-    return current.since(origin);
+    return current.since(start);
 }

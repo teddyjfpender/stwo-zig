@@ -1,0 +1,46 @@
+# Receiver-owned beta2 fixed authority for OM services
+
+This adds an explicitly selected engineering route. The existing beta1 benchmark, wire codecs and default producer/receiver entrypoints remain unchanged. It does not issue a whole-protocol128 certificate.
+
+`fixed_authority.Binding.acquire(cache, trustedSourceKey, config)` derives a beta2 immutable cache lease from the trusted source key's retained, ordered M31 coefficients. `Binding.acquire` independently checks the trusted suite/shape and fingerprints actual source coefficients through the immutable cache. A producer root or coefficient identity cannot choose a different ROM/table key. `WideFixedKey.requireSource` and `Binding.revalidateSource` remain explicit full-body revalidation gates. The binding checks beta2 supported configuration, retains its own allocator/key owner, and authenticates the descriptor, coefficient identity and committed root before append.
+
+CPU/truth workers expose additive `initWithAuthority` and `verify...WithAuthority` functions. Default functions pass no authority and keep beta1 admission. An authority-bearing worker owns a retained lease until deinit; the PCS tree independently retains shared backing. Its statement and transcript bind a distinct beta2-engineering tag, fixed identity and root. The old immutable source setup remains the authority for program, fixed column order, component geometry and masks. The source setup is not replaced by producer metadata.
+
+`fixed_authority_set.Set.init` constructs the complete receiver-ordered set from trusted CPU and truth setup, under the caller's bounded cache. It validates each distinct sealed source root/suite/column-count once and retains the validated lease for equivalent independently reconstructed keys; it does not use pointer identity. `source_validations` and `source_coefficient_cells` report distinct source identities and logical coefficient cells requiring initial validation, not every cache equality pass or memory read. It binds the exact configuration, CPU count, total count, ordinals, coefficient identities and roots. `Inventory.initWithAuthority`, `coordinator.produceWithAuthority`, `Bundle.verifyWithAuthority` and `execution.verifyWithAuthority` thread this same context through statement construction, stage-one child/manifest admission, physical append and fresh verification. The receiver builds its own set from independently reconstructed setup. The operational resource JSON cannot select this protocol or supply its roots.
+
+The set and original native setup remain live across a synchronous producer/receiver call. Workers retain individual leases; releasing the cache handle after set construction is safe. Temporary partial sets release every acquired lease on failure. Requested cache bytes include immutable key owners and sealing scratch; host capture, legacy source setup, native proof scratch and allocator/OS residency remain separate owners.
+
+## One-time validation and frozen source contract
+
+Worker init, fixed append and fresh verification use constant-size exact configuration/descriptor and sealed source root/suite/column-count checks against the validated context. They do not re-hash every fixed coefficient body. Cache keys own independent immutable copies of the candidate coefficients. Original setup is receiver-owned and frozen/live for the context lifetime; producer files never provide it.
+
+These fast checks deliberately do not detect an in-place source coefficient mutation with an unchanged sealed root. The coefficient slices are const-qualified; a fault-injection test explicitly uses `@constCast` to violate that contract. It confirms the fast check's limitation, confirms explicit full `revalidateSource` rejects the changed body, and confirms the independently owned candidate key remains unchanged. A physical candidate execution produced during that fault is still accepted only against the unchanged original candidate authority by a fresh independently rebuilt receiver. The test restores the source body before ordinary use/deinit. This is not permission to mutate live trusted setup.
+
+A differently reconstructed source key with a changed sealed root, suite or column count fails the fast authority check. The fresh receiver always creates its own context by full validation of independently reconstructed trusted setup, rather than trusting a producer's root or a recycled process pointer.
+
+## Qualification
+
+The physical worker slice passes Safe/Fast gates for actual fully parked CPU Keccak and ADD/DOUBLE shards, and K/ADD truth proofs, under beta2 engineering q12/P0/fold1. All default beta1 tests remain active. Wrong source coefficient identity, stale root/descriptor/configuration and cache lifetime failures are rejected; immutable cache allocation-failure sweeps remain active.
+
+The complete fixture uses the exact numeric `om31_security_candidate.config()` point: beta2, q256, P0, fold4. Two CPU shards plus K/ADD/DOUBLE truths prove a seven-instruction execution, with full MAIN coefficient/node parking, local GKR binding, explicit classic-truth locals and separate RAM/KIO/Wire closure. A fresh receiver independently reconstructs all setup and immutable leases. The default receiver refuses candidate promotion. Changed query configuration, swapped trusted bindings, swapped physical proofs and altered pure-global debt are rejected. A populated-cache caller-allocation sweep and a later uncached-key OOM case cover set teardown/retry. This is a functional qualification, not a block benchmark or controlled performance comparison.
+
+## Remaining production gates
+
+The engineering route admits an explicit supported beta2 configuration; it does not yet derive and bind all of `Candidate.Facts` from the complete source constraint/lookup roster, instantiate the applicable security reductions or install a reviewed certificate. `requireWholeProtocolPromotion` continues to reject even when every review flag is true. The explicit engineering tag is deliberately distinct from the final candidate security identity.
+
+The Ethereum CLI keeps its unchanged beta1 control commands. Explicit engineering commands now select pinned beta2/q256/P0/fold4:
+
+```
+rv64-word16-ethereum-gkr describe-candidate
+rv64-word16-ethereum-gkr produce-candidate CONFIG JOBS NEW_OUT PREFIX_COUNT RESOURCES.json
+rv64-word16-ethereum-gkr verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES
+rv64-word16-ethereum-gkr verify-candidate CONFIG OUT FIXED_SETUP_BYTES
+```
+
+Candidate producer resources add a mandatory positive `fixed_setup_bytes` to the flat operational JSON. The control resource schema and report projection stay unchanged. The fresh candidate receiver takes its own positive immutable-setup budget and reconstructs trusted ELF/image/setup, cache and ordered set; it needs no execution packets. Neither resource JSON nor a bundle can select a security profile. Candidate reports use a distinct engineering label and `security_qualified=false`; `candidate-fixed-setup.json` records the cache budget/peak, unique source validations and logical coefficient cells. That file is a report, never receiver authority.
+
+Actual terminal fixtures exercise both control and candidate paths, including the authenticated43-byte output, early prefixes, incorrect halt/length/output/terminalPC, genesis and corrupted physical proof. Real candidate Ethereum prefix/full-block qualification and source-derived full candidate scope/mass admission before expensive setup remain open. The setup budget bounds the new beta2 cache and sealing scratch, not original trusted setup construction or complete process RSS.
+
+Initial source setup still constructs and retains its legacy beta1 key before the beta2 cache derives a new tree from retained coefficients. Fixed rows are not reconstructed and immutable beta2 sealing is cached, but this is not a claim that setup memory or startup work is optimal. A future coefficient-only source/setup authority should avoid constructing an unused beta1 tree, while retaining independent receiver reconstruction and layout validation.
+
+New-profile recursion remains separate. The numerical OM GKR circuit adapter and native physical proofs do not automatically produce a recursive Ethereum proof. GPU residency, an equally secure baseline and whole-protocol128 remain separate qualified deliverables.

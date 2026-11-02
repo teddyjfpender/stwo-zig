@@ -28,6 +28,12 @@ pub fn calls(all: [T.FAMILIES]u32, bulk: T.BulkCounts, sponge: T.SpongeCounts) !
 pub fn request(r: P.Request) !void {
     return calls(r.calls, r.bulk, r.sponge);
 }
+/// Whole captured advice: every shard must be v2-only (used before any
+/// v2-only diagnostic such as the capture digest or shape planning).
+pub fn advice(a: *const @import("../collector.zig").Advice) !void {
+    if (a.sha256.len != a.keccak.len or a.arith256_mod.len != a.keccak.len or a.curves.len != a.keccak.len or a.bulk.len != a.keccak.len or a.sponge.len != a.keccak.len) return error.InvalidCombinedInventory;
+    for (0..a.keccak.len) |i| try calls(@import("../pipeline.zig").adviceCalls(a, i), a.bulk[i].counts(), a.sponge[i].counts());
+}
 pub fn truth(t: R.Truth) !void {
     return switch (t) {
         .keccak, .secp => {},

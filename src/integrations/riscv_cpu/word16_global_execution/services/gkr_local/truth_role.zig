@@ -18,19 +18,12 @@ const Local = @import("truth_classic.zig");
 const TF = @import("truth_fractions.zig");
 const Globals = @import("truth_global.zig");
 pub const Kind = Frame.Role;
-pub const Component = struct {
+/// Claim-free physical metadata, shared by actual component methods and
+/// receiver/device preflight. No zero claims or uninitialized challenges.
+pub const Shape = struct {
     kind: Kind,
     log_size: u32,
-    offsets: [3]usize = .{ 0, 0, 0 },
-    calls: u32 = 0,
-    first_id: u32 = 1,
-    program: ?*const S.program.Program = null,
     byte_policy: S.layout.BytePolicy = .local,
-    local: TF.ChallengesFor(O),
-    shared: @import("manifest.zig").Shared,
-    claim: O,
-    global_claim: O = O.zero(),
-    split: u32 = 1,
     pub fn instance(self: *const @This()) Frame.Instance {
         return .{ .role = self.kind, .row_log = self.log_size, .queries = @intCast(switch (self.kind) {
             .keccak => K.layout.LOOKUPS,
@@ -60,6 +53,78 @@ pub const Component = struct {
     pub fn secpKind(self: *const @This()) S.layout.Kind {
         return if (self.kind == .product) .product else .linear;
     }
+    pub fn nConstraints(self: *const @This()) usize {
+        return Local.residualCount(self.instance()) + switch (self.kind) {
+            .keccak => K.layout.DIRECT + 27,
+            .product, .linear => S.layout.direct(self.secpKind()) + 5,
+            else => 0,
+        };
+    }
+    pub fn shifts(self: *const @This(), tree: usize, col: usize) []const i32 {
+        if (tree == 1) switch (self.kind) {
+            .keccak => {
+                if (col < K.layout.STATE) return &.{ 0, -2, -1, 1, 2 };
+                if (col >= K.layout.ACTIVE_A) return &.{ 0, -1 };
+            },
+            .product, .linear => if (col == 0 or col == S.layout.base(self.secpKind())) return &.{ 0, -1 },
+            else => {},
+        };
+        if (tree == 2 and ((col >= self.localWidth() - 8 and col < self.localWidth()) or col >= self.widths()[2] - 8)) return &.{ 0, -1 };
+        return &.{0};
+    }
+    pub fn globalQueries(self: *const @This()) usize {
+        return switch (self.kind) {
+            .keccak, .product, .linear => (self.widths()[2] - self.localWidth()) / E.extensionDegree(O) - 1,
+            else => 0,
+        };
+    }
+    pub fn maxSamples(self: *const @This()) usize {
+        var maximum: usize = 0;
+        for (self.widths(), 0..) |width, tree| for (0..width) |column| {
+            maximum = @max(maximum, self.shifts(tree, column).len);
+        };
+        return maximum;
+    }
+    pub fn maxDegree(self: *const @This()) u8 {
+        return if (self.kind == .keccak) 5 else 3;
+    }
+};
+pub const Component = struct {
+    kind: Kind,
+    log_size: u32,
+    offsets: [3]usize = .{ 0, 0, 0 },
+    calls: u32 = 0,
+    first_id: u32 = 1,
+    program: ?*const S.program.Program = null,
+    byte_policy: S.layout.BytePolicy = .local,
+    local: TF.ChallengesFor(O),
+    shared: @import("manifest.zig").Shared,
+    claim: O,
+    global_claim: O = O.zero(),
+    split: u32 = 1,
+    pub fn shape(self: *const @This()) Shape {
+        return .{ .kind = self.kind, .log_size = self.log_size, .byte_policy = self.byte_policy };
+    }
+    pub fn instance(self: *const @This()) Frame.Instance {
+        const descriptor = self.shape();
+        return descriptor.instance();
+    }
+    pub fn localWidth(self: *const @This()) usize {
+        const descriptor = self.shape();
+        return descriptor.localWidth();
+    }
+    pub fn firstColumn(self: *const @This()) usize {
+        const descriptor = self.shape();
+        return descriptor.firstColumn();
+    }
+    pub fn widths(self: *const @This()) [3]usize {
+        const descriptor = self.shape();
+        return descriptor.widths();
+    }
+    pub fn secpKind(self: *const @This()) S.layout.Kind {
+        const descriptor = self.shape();
+        return descriptor.secpKind();
+    }
     pub fn validate(self: *const @This()) !void {
         switch (self.kind) {
             .keccak => {
@@ -74,11 +139,8 @@ pub const Component = struct {
         }
     }
     pub fn nConstraints(self: *const @This()) usize {
-        return Local.residualCount(self.instance()) + switch (self.kind) {
-            .keccak => K.layout.DIRECT + 27,
-            .product, .linear => S.layout.direct(self.secpKind()) + 5,
-            else => 0,
-        };
+        const descriptor = self.shape();
+        return descriptor.nConstraints();
     }
     pub fn compositionLogSplit(self: *const @This()) u32 {
         return self.split;
@@ -88,19 +150,11 @@ pub const Component = struct {
     }
     pub fn constraintDegreeBound(self: *const @This(), i: usize) !u8 {
         if (i >= self.nConstraints()) return error.InvalidConstraintIndex;
-        return if (self.kind == .keccak) 5 else 3;
+        return self.shape().maxDegree();
     }
     pub fn shifts(self: *const @This(), tree: usize, col: usize) []const i32 {
-        if (tree == 1) switch (self.kind) {
-            .keccak => {
-                if (col < K.layout.STATE) return &.{ 0, -2, -1, 1, 2 };
-                if (col >= K.layout.ACTIVE_A) return &.{ 0, -1 };
-            },
-            .product, .linear => if (col == 0 or col == S.layout.base(self.secpKind())) return &.{ 0, -1 },
-            else => {},
-        };
-        if (tree == 2 and ((col >= self.localWidth() - 8 and col < self.localWidth()) or col >= self.widths()[2] - 8)) return &.{ 0, -1 };
-        return &.{0};
+        const descriptor = self.shape();
+        return descriptor.shifts(tree, col);
     }
     pub fn traceLogDegreeBounds(self: *const @This(), a: std.mem.Allocator) !Air.TraceLogDegreeBounds {
         try self.validate();

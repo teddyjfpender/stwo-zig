@@ -37,6 +37,8 @@ const Sink = struct {
     }
 };
 const Provider = struct {
+    /// Validated metadata and challenge inputs are immutable; fill allocates nothing.
+    pub const PARALLEL_SAFE = true;
     metadata: *const Metadata.Provider,
     challenges: *const Challenges,
     role: Frame.Role,
@@ -46,16 +48,20 @@ const Provider = struct {
         if (sink.invalid or sink.count != d.len) return error.TruthGlobalQueryCountMismatch;
     }
 };
-pub fn generate(allocator: @import("std").mem.Allocator, metadata: *const Metadata.Provider, role: Frame.Role, challenges: *const Challenges, budget: usize) !Witness {
-    const count: u8 = switch (role) {
+pub fn inverseCount(role: Frame.Role) usize {
+    return switch (role) {
         .keccak => 25,
         .product, .linear => 3,
-        else => return error.InvalidTruthGlobalRole,
+        else => 0,
     };
+}
+pub fn generate(allocator: @import("std").mem.Allocator, metadata: *const Metadata.Provider, role: Frame.Role, challenges: *const Challenges, budget: usize) !Witness {
+    const count = inverseCount(role);
+    if (count == 0) return error.InvalidTruthGlobalRole;
     const log = switch (metadata.source.*) {
         .keccak => |s| if (role == .keccak) s.permutation.log_size else return error.InvalidTruthGlobalRole,
         .secp => |s| if (role == .product) s.batch.product.log_size else if (role == .linear) s.batch.linear.log_size else return error.InvalidTruthGlobalRole,
         else => return error.GkrV3ServiceUnsupported,
     };
-    return Witness.init(allocator, log, &.{.{ .inverses = count }}, Provider{ .metadata = metadata, .challenges = challenges, .role = role }, budget);
+    return Witness.init(allocator, log, &.{.{ .inverses = @intCast(count) }}, Provider{ .metadata = metadata, .challenges = challenges, .role = role }, budget);
 }

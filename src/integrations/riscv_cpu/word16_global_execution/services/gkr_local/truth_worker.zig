@@ -7,6 +7,7 @@ const A = @import("stwo_riscv_frontend").rv64_air;
 const R = @import("../roster.zig");
 const Manifest = @import("manifest.zig");
 const W = @import("worker_protocol.zig");
+const Fixed = @import("fixed_authority.zig");
 const TF = @import("truth_fractions.zig");
 const Frame = @import("truth_frame.zig");
 const Metadata = @import("truth_metadata.zig");
@@ -28,16 +29,9 @@ pub const TruthEncoded = struct {
     }
 };
 pub fn truthMass(truth: R.Truth) !Manifest.Mass {
-    return switch (truth) {
-        .keccak => |t| .{ .ram = 0, .kio = (try A.crypto.keccak.layout.admitRoster(&.{t.calls}, &.{})).io, .wire = 0 },
-        .secp => |t| blk: {
-            const p = A.crypto.secp256k1.program.get(t.setup.kind);
-            const mass = try A.crypto.secp256k1.layout.admitRoster(&.{ .{ .kind = .product, .program = p, .calls = t.calls, .first_id = t.first_id, .log = t.setup.logs[0] }, .{ .kind = .linear, .program = p, .calls = t.calls, .first_id = t.first_id, .log = t.setup.logs[1] } }, &.{});
-            break :blk .{ .ram = 0, .kio = 0, .wire = mass.wires };
-        },
-        else => return error.GkrV3ServiceUnsupported,
-    };
+    return (try @import("mass_authority.zig").truth(@import("../wire.zig").TruthDeclaration.from(truth))).absolute();
 }
+
 pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) ![32]u8 {
     var ch = W.Channel.init();
     config.mixInto(&ch);
@@ -51,13 +45,18 @@ pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) ![
     }
     return ch.digestBytes();
 }
-fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker) !void {
+pub fn truthStatementWithAuthority(truth: R.Truth, config: W.PcsConfig, execution: [32]u8, fixed: ?*const Fixed.Binding) ![32]u8 {
+    const base = try truthStatement(truth, config, execution);
+    return if (fixed) |binding| binding.statement(base) else base;
+}
+fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
     const kind: Manifest.Kind = switch (truth) {
         .keccak => .keccak,
         .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
         else => return error.GkrV3ServiceUnsupported,
     };
-    if (expected.kind != kind or expected.local_instances != null or !std.mem.eql(u8, &expected.fixed, &truth.key().root) or !std.meta.eql(expected.mass, try truthMass(truth))) return error.WideTruthExpectedMismatch;
+    const root = if (fixed) |binding| binding.root() else truth.key().root;
+    if (expected.kind != kind or expected.local_instances != null or !std.mem.eql(u8, &expected.fixed, &root) or !std.meta.eql(expected.mass, try truthMass(truth))) return error.WideTruthExpectedMismatch;
     const relations = Manifest.Relations{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak };
     if (!std.meta.eql(relations, expected.global_relations)) return error.WideTruthExpectedMismatch;
 }
@@ -90,19 +89,24 @@ pub const TruthWorker = struct {
     sealed: bool = false,
     started: bool = false,
     failed: bool = false,
+    fixed_authority: ?Fixed.Binding = null,
     pub fn init(a: std.mem.Allocator, truth: R.Truth, source: R.TruthSource, expected: Manifest.ExpectedWorker, config: W.PcsConfig, global_budget: usize) !TruthWorker {
-        try W.validateConfig(config);
-        try validateExpected(truth, expected);
+        return initWithAuthority(a, truth, source, expected, config, global_budget, null);
+    }
+    pub fn initWithAuthority(a: std.mem.Allocator, truth: R.Truth, source: R.TruthSource, expected: Manifest.ExpectedWorker, config: W.PcsConfig, global_budget: usize, fixed: ?*const Fixed.Binding) !TruthWorker {
+        if (fixed) |binding| try binding.require(truth.key(), config) else try W.validateConfig(config);
+        try validateExpected(truth, expected, fixed);
         const frames = try expectedFrames(truth);
         _ = try Metadata.Provider.initClassic(&source, frames);
         try admit(frames, global_budget);
         var scheme = try W.Scheme.init(a, config);
         scheme.setCompactPolynomialStorage(5);
-        return .{ .allocator = a, .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = W.begin(config, expected) };
+        return .{ .allocator = a, .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null };
     }
     pub fn deinit(self: *TruthWorker, a: std.mem.Allocator) void {
         if (self.owns_scheme) self.scheme.deinit(a);
         if (self.owns_source) self.source.deinit();
+        if (self.fixed_authority) |*binding| binding.deinit();
         self.* = undefined;
     }
     /// Host custody only. Store lifetime must cover this worker and its proof.
@@ -117,7 +121,7 @@ pub const TruthWorker = struct {
     pub fn seal(self: *TruthWorker, a: std.mem.Allocator) !Manifest.StageOne {
         if (self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
         errdefer self.failed = true;
-        try W.appendFixed(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel);
+        if (self.fixed_authority) |*binding| try binding.append(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel) else try W.appendFixed(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel);
         const main = try self.source.takeMain();
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         var roots = try self.scheme.roots(a);
@@ -137,6 +141,8 @@ pub const TruthWorker = struct {
         try admit(frames, global_budget);
         self.started = true;
         errdefer self.failed = true;
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Truth local and global classic interactions");
+        defer generation.end();
         const local = TF.ChallengesFor(O).draw(&self.channel);
         const metadata = try Metadata.Provider.initClassic(&self.source, frames);
         var gm = try GM.Provider.init(a, &self.source, global_budget);
@@ -158,6 +164,7 @@ pub const TruthWorker = struct {
             globals[1] = try GW.generate(a, &gm, frames[1].role, &gch, global_budget);
             gd = 2;
         }
+        generation.end();
         const claims = try a.alloc(O, 5);
         errdefer a.free(claims);
         for (locals, 0..) |v, i| claims[i] = v.claims[0];
@@ -183,9 +190,10 @@ fn admit(frames: [3]Frame.Instance, budget: usize) !void {
         const rows = try frame.rows();
         const global: usize = if (i == 0) (if (frame.role == .keccak) 208 else 32) else if (i == 1 and frame.role == .linear) 32 else 0;
         output = try std.math.add(usize, output, try std.math.mul(usize, rows, 4 * (Local.columns(frame) + global)));
-        const bytes = try std.math.mul(usize, @min(rows, Classic.ROW_CHUNK) * Local.inverseCount(frame), 2 * @sizeOf(O) + @sizeOf(Classic.Numerator));
-        scratch = @max(scratch, bytes);
+        scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, Local.inverseCount(frame)));
+        scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, GW.inverseCount(frame.role)));
     }
+    if (frames[0].role != .keccak) scratch = try std.math.add(usize, scratch, try GM.secpSourceDescriptorBytes());
     if (try std.math.add(usize, output, scratch) > budget) return error.WideTruthBudgetExceeded;
 }
 fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Witness) !Commit {
@@ -221,17 +229,27 @@ fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Wi
     for (globals) |*v| v.data = &.{};
     return .{ .columns = columns, .backings = backings };
 }
+/// Receiver configuration is authority; embedded wire metadata must agree.
+/// The current wide codec cannot carry revisions, and this rejects them if a
+/// structured/future transport ever supplies one.
+pub fn validateProofConfig(proof: *const W.Proof, config: W.PcsConfig) !void {
+    if (!std.meta.eql(proof.commitment_scheme_proof.config, config) or proof.commitment_scheme_proof.revision_config != null) return error.WideTruthProofConfig;
+}
 pub fn verifyTruth(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const TruthEncoded) !Manifest.Claims {
-    try W.validateConfig(config);
-    try validateExpected(truth, expected);
+    return verifyTruthWithAuthority(a, truth, expected, pending, index, config, encoded, null);
+}
+pub fn verifyTruthWithAuthority(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const TruthEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
+    if (fixed) |binding| try binding.require(truth.key(), config) else try W.validateConfig(config);
+    try validateExpected(truth, expected, fixed);
     try validatePending(expected, pending, index);
     var proof = try W.decodePhysical(a, encoded.bytes);
     var owns_proof = true;
     defer if (owns_proof) proof.deinit(a);
+    try validateProofConfig(&proof, config);
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4) return error.WideTruthRoots;
     try pending.checkPhysicalRoots(index, roots[0], roots[1]);
-    var ch = W.begin(config, expected);
+    var ch = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected);
     var receiver = try core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(W.H, W.MC).init(a, config);
     defer receiver.deinit(a);
     const shape = try templates(truth);

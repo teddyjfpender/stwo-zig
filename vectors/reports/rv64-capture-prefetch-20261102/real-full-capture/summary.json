@@ -1,0 +1,195 @@
+{
+  "schema": "rv64-capture-real-ab-v1",
+  "source_commit": "7b45fbbacd46c99680549189829bab80794e351e",
+  "binary_sha256": "887ae37f744147b225712d389482120b0906ab380f9485783fff77b26c885783",
+  "configuration": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+  "jobs": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+  "host": "M5 Max shared host; cooperative heavy lock, no claim of quiet host",
+  "order": [
+    "serial",
+    "two",
+    "serial",
+    "two",
+    "serial",
+    "two"
+  ],
+  "runs": [
+    {
+      "ordinal": 0,
+      "mode": "serial",
+      "process_wall_s": 33.66749095800333,
+      "packet_import_s": 8.543146458,
+      "digest_s": 24.021448083,
+      "capture_selection": {
+        "max_inflight_packets": 1,
+        "max_worker_shards": 1,
+        "decoded_packet_heap_limit_bytes": null,
+        "max_reserved_decoded_packet_heap_bytes": 0,
+        "max_single_packet_decoded_heap_bytes": 0
+      },
+      "maximum_resident_set_size_bytes": 12262752256,
+      "peak_memory_footprint_bytes": 12267906336
+    },
+    {
+      "ordinal": 1,
+      "mode": "two",
+      "process_wall_s": 29.940464165993035,
+      "packet_import_s": 5.263184666,
+      "digest_s": 24.143859292,
+      "capture_selection": {
+        "max_inflight_packets": 2,
+        "max_worker_shards": 2,
+        "decoded_packet_heap_limit_bytes": 1073741824,
+        "max_reserved_decoded_packet_heap_bytes": 2147483648,
+        "max_single_packet_decoded_heap_bytes": 220336832
+      },
+      "maximum_resident_set_size_bytes": 13475708928,
+      "peak_memory_footprint_bytes": 13481420928
+    },
+    {
+      "ordinal": 2,
+      "mode": "serial",
+      "process_wall_s": 33.13157108402811,
+      "packet_import_s": 8.75910575,
+      "digest_s": 23.860749125,
+      "capture_selection": {
+        "max_inflight_packets": 1,
+        "max_worker_shards": 1,
+        "decoded_packet_heap_limit_bytes": null,
+        "max_reserved_decoded_packet_heap_bytes": 0,
+        "max_single_packet_decoded_heap_bytes": 0
+      },
+      "maximum_resident_set_size_bytes": 12262752256,
+      "peak_memory_footprint_bytes": 12267873520
+    },
+    {
+      "ordinal": 3,
+      "mode": "two",
+      "process_wall_s": 29.613903749966994,
+      "packet_import_s": 5.2486855,
+      "digest_s": 23.837215,
+      "capture_selection": {
+        "max_inflight_packets": 2,
+        "max_worker_shards": 2,
+        "decoded_packet_heap_limit_bytes": 1073741824,
+        "max_reserved_decoded_packet_heap_bytes": 2147483648,
+        "max_single_packet_decoded_heap_bytes": 220336832
+      },
+      "maximum_resident_set_size_bytes": 13484900352,
+      "peak_memory_footprint_bytes": 13490645168
+    },
+    {
+      "ordinal": 4,
+      "mode": "serial",
+      "process_wall_s": 32.77983541600406,
+      "packet_import_s": 8.496929333,
+      "digest_s": 23.779656166,
+      "capture_selection": {
+        "max_inflight_packets": 1,
+        "max_worker_shards": 1,
+        "decoded_packet_heap_limit_bytes": null,
+        "max_reserved_decoded_packet_heap_bytes": 0,
+        "max_single_packet_decoded_heap_bytes": 0
+      },
+      "maximum_resident_set_size_bytes": 12262752256,
+      "peak_memory_footprint_bytes": 12267873520
+    },
+    {
+      "ordinal": 5,
+      "mode": "two",
+      "process_wall_s": 29.62357683299342,
+      "packet_import_s": 5.158904917,
+      "digest_s": 23.948289459,
+      "capture_selection": {
+        "max_inflight_packets": 2,
+        "max_worker_shards": 2,
+        "decoded_packet_heap_limit_bytes": 1073741824,
+        "max_reserved_decoded_packet_heap_bytes": 2147483648,
+        "max_single_packet_decoded_heap_bytes": 220336832
+      },
+      "maximum_resident_set_size_bytes": 13485867008,
+      "peak_memory_footprint_bytes": 13491611824
+    }
+  ],
+  "total_steps": 104253913,
+  "cpu_packets": 25,
+  "truth_instances": 5,
+  "captured_values_sha256": "5787e5eea84faecd37f234f2210f435cbddb634d58bc511162bcb77ef4d0ead9",
+  "semantic_parity": "all6 equal canonical captured values and geometry",
+  "proof_artifact_parity": "NOT RUN: no proof/acceptance diagnostic",
+  "default": "serial unchanged",
+  "serial_median_import_s": 8.543146458,
+  "two_median_import_s": 5.2486855,
+  "median_import_ratio": 1.6276735304487193,
+  "qualification": {
+    "ReleaseSafe": "7 named tests plus root PASS",
+    "ReleaseFast": "7 named tests plus root PASS",
+    "ReleaseFast_cli": "PASS",
+    "review": "recover_air_wave2 independent read-only core capture + CLI/options/digest source review PASS; no concrete blocker. Review is source/lifetime/encoding scope, not additional proof qualification."
+  },
+  "coverage_qualified": {
+    "instructions": 104253913,
+    "cpu_packets": 25,
+    "truths": [
+      {
+        "family": "keccak",
+        "first_id": 1,
+        "calls": 18078,
+        "logs": [
+          18,
+          0
+        ]
+      },
+      {
+        "family": "keccak",
+        "first_id": 18079,
+        "calls": 14757,
+        "logs": [
+          18,
+          0
+        ]
+      },
+      {
+        "family": "add",
+        "first_id": 1,
+        "calls": 11397,
+        "logs": [
+          18,
+          18
+        ]
+      },
+      {
+        "family": "add",
+        "first_id": 11398,
+        "calls": 99,
+        "logs": [
+          11,
+          12
+        ]
+      },
+      {
+        "family": "double",
+        "first_id": 1,
+        "calls": 9768,
+        "logs": [
+          17,
+          16
+        ]
+      }
+    ]
+  },
+  "bounds": {
+    "inflight_slots": 2,
+    "parent_pool_workers": 16,
+    "decoded_packet_heap_limit_bytes": 1073741824,
+    "aggregate_potential_decoded_heap_limit_bytes": 2147483648,
+    "inflight_wire_limit_bytes": 1073741824,
+    "largest_observed_single_packet_decoded_heap_bytes": 220336832,
+    "native_heap_bound": "not provided by packet cap; uses caller allocator and at most two admitted batch_steps captures",
+    "process_rss_bound": false
+  },
+  "serial_median_maximum_rss_bytes": 12262752256,
+  "two_median_maximum_rss_bytes": 13484900352,
+  "diagnostic_hash_cost": "about24s per run, separate from import; diagnostic only, not called by produce-control/candidate",
+  "promotion_gate": "Full physical proof/bundle/cell artifact byte parity plus fresh independently pinned receiver is not run; serial remains default."
+}

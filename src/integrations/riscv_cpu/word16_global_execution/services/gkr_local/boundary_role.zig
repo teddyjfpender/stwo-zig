@@ -16,6 +16,9 @@ const Geo = @import("role_geometry.zig");
 const Global = @import("global_cpu.zig");
 const Manifest = @import("manifest.zig");
 const Frame = @import("frame.zig");
+pub const MAIN_SHAPE: A.main_only.authority.Shape = .{ .fixed = 3, .main = 14, .constraints = 20 };
+pub const CONSTRAINTS = MAIN_SHAPE.constraints + Global.layout(.{ .core = .initial }).constraints();
+pub const MAX_DEGREE: u8 = 3;
 pub const Component = struct {
     pub const LOCAL_GKR = false;
     pub const MAX_FIXED = 3;
@@ -35,7 +38,7 @@ pub const Component = struct {
         return 16;
     }
     pub fn mainShape(_: *const @This()) A.main_only.authority.Shape {
-        return .{ .fixed = 3, .main = 14, .constraints = 20 };
+        return MAIN_SHAPE;
     }
     pub fn columnOffsets(self: *const @This()) [2]usize {
         return self.offsets;
@@ -47,7 +50,7 @@ pub const Component = struct {
         return c >= 8 and c < 16;
     }
     pub fn nConstraints(_: *const @This()) usize {
-        return 23;
+        return CONSTRAINTS;
     }
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
         return self.log + 1;
@@ -56,8 +59,8 @@ pub const Component = struct {
         return 1;
     }
     pub fn constraintDegreeBound(_: *const @This(), index: usize) !u8 {
-        if (index >= 23) return error.InvalidConstraintIndex;
-        return 3;
+        if (index >= CONSTRAINTS) return error.InvalidConstraintIndex;
+        return MAX_DEGREE;
     }
     pub fn validate(self: *const @This()) !void {
         if (self.origin != .core or (self.origin.core != .initial and self.origin.core != .terminal) or self.log < 5 or self.log > 22 or self.count >= @as(u32, 1) << @intCast(self.log)) return error.InvalidWideBoundaryGeometry;

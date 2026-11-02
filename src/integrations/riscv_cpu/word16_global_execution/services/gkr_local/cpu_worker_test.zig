@@ -9,6 +9,9 @@ const Manifest = @import("manifest.zig");
 pub const Mode = enum { normal, unretired, early_seal, parked_abort, later_worker_oom };
 pub const Storage = enum { resident, coefficients, fully_parked };
 pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: Storage) ![32]u8 {
+    return exerciseProfile(shard, mode, storage, false);
+}
+pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime storage: Storage, comptime beta2: bool) ![32]u8 {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
     const a = failing.allocator();
     var captured = try F.Captured.init(a);
@@ -29,10 +32,16 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
     }
     try source.mergeRanges();
     const O = core.fields.om31.OM31;
-    const config = core.pcs.ForField(O).PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
+    const Fixed = @import("fixed_authority.zig");
+    const config = core.pcs.ForField(O).PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
+    var cache: ?Fixed.Fixed.Cache = if (beta2) try Fixed.Fixed.Cache.init(a, 1 << 30) else null;
+    defer if (cache) |*owner| owner.deinit();
+    var fixed: ?Fixed.Binding = if (cache) |*owner| try Fixed.Binding.acquire(owner, &setup.key, config) else null;
+    defer if (fixed) |*binding| binding.deinit();
+    const fixed_ptr: ?*const Fixed.Binding = if (fixed) |*binding| binding else null;
     const instances = try @import("roster.zig").fromSetup(a, &setup);
     defer a.free(instances);
-    const expected = Manifest.ExpectedWorker{ .kind = .cpu, .ordinal = 0, .statement = Worker.cpuStatement(&setup, request, .{ 1, 1, 1 }, config), .fixed = setup.key.root, .local_instances = instances, .mass = try Worker.cpuMass(request), .global_relations = .{ .ram = true, .kio = shard == 0, .wire = shard == 1 } };
+    const expected = Manifest.ExpectedWorker{ .kind = .cpu, .ordinal = 0, .statement = Worker.cpuStatementWithAuthority(&setup, request, .{ 1, 1, 1 }, config, fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else setup.key.root, .local_instances = instances, .mass = try Worker.cpuMass(request), .global_relations = .{ .ram = true, .kio = shard == 0, .wire = shard == 1 } };
     var tmp = std.testing.tmpDir(.{ .iterate = true });
     defer tmp.cleanup();
     const spill_path = try tmp.dir.realpathAlloc(a, ".");
@@ -53,10 +62,37 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
         try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.CpuWorker.init(a, &setup, request, source, expected, bad, .{ 1, 1, 1 }, 2 << 30));
         try std.testing.expectEqual(allocations_before, failing.alloc_index);
     }
-    var worker = try Worker.CpuWorker.init(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30);
+    {
+        const Authority = @import("mass_authority.zig");
+        const Globals = @import("global_cpu.zig");
+        var counts = @import("mass_authority_test_support.zig").Counter{};
+        var plan = try @import("cpu_components.zig").Plan.init(a, &setup);
+        defer plan.deinit();
+        const fixed_columns = try setup.fixedColumns(a);
+        defer a.free(fixed_columns);
+        const main_columns = try source.columns(a, &setup, 1);
+        defer a.free(main_columns);
+        for (plan.slots) |slot| {
+            if (Globals.layout(slot.origin).width() == 0) continue;
+            const descriptor = try @import("shape_metadata.zig").forOrigin(slot.origin);
+            var fixed_row: [34]@import("stwo_core").fields.m31.M31 = undefined;
+            var main_row: [134]@import("stwo_core").fields.m31.M31 = undefined;
+            const rows = @as(usize, 1) << @intCast(slot.log);
+            for (0..rows) |row| {
+                for (fixed_row[0..descriptor.widths[0]], fixed_columns[slot.fixed_offset..][0..descriptor.widths[0]]) |*v, column| v.* = column.values[row];
+                for (main_row[0..descriptor.widths[1]], main_columns[slot.main_offset..][0..descriptor.widths[1]]) |*v, column| v.* = column.values[row];
+                try Globals.queriesFor(@import("stwo_core").fields.m31.M31, slot.origin, fixed_row[0..descriptor.widths[0]], main_row[0..descriptor.widths[1]], &counts);
+            }
+        }
+        try std.testing.expectEqualDeep(try Authority.cpu(request), counts.totals);
+    }
+    var worker = try Worker.CpuWorker.initWithAuthority(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30, fixed_ptr);
     owns = false;
     var owns_worker = true;
     defer if (owns_worker) worker.deinit(a);
+    var native_profile = @import("stwo_prover_api").stage_profile.Recorder.init(a, "rv64", "CPU-worker-stage-scope");
+    defer native_profile.deinit();
+    if (mode == .normal) worker.native_recorder = &native_profile;
     if (mode == .early_seal) {
         failing.fail_index = failing.alloc_index;
         try std.testing.expectError(error.OutOfMemory, worker.seal(a));
@@ -138,15 +174,51 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
     // An early stage-two allocation failure retains the phase and every owner.
     var encoded = try worker.complete(a, &pending, 0, 1 << 26);
     defer encoded.deinit(a);
+    if (mode == .normal) {
+        var profile = try native_profile.snapshot(a);
+        defer profile.deinit(a);
+        var found: usize = 0;
+        for (profile.stages) |stage_node| if (std.mem.eql(u8, stage_node.id, "interaction_generation")) {
+            found += 1;
+            try std.testing.expect(stage_node.children == null);
+        };
+        try std.testing.expectEqual(@as(usize, 1), found);
+        try std.testing.expectEqual(@as(usize, 0), native_profile.stack.items.len);
+    }
     try std.testing.expectError(error.WideCpuPhase, worker.complete(a, &pending, 0, 1 << 26));
     if (shard == 0 and mode == .normal) {
         var bad = config;
         bad.pow_bits = 33;
         const allocations_before = failing.alloc_index;
-        try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, bad, &encoded));
+        try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, bad, &encoded, fixed_ptr));
         try std.testing.expectEqual(allocations_before, failing.alloc_index);
     }
-    const accepted = try Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded);
+    {
+        const Components = @import("cpu_components.zig");
+        const Metadata = @import("shape_metadata.zig");
+        var physical = try Components.Set.init(a, &setup, request, .{ 1, 1, 1 }, &worker.plan, &pending.entries[0].local.?, pending.shared, encoded.claims);
+        defer physical.deinit();
+        var global_log: u32 = 0;
+        for (worker.plan.slots) |slot| global_log = @max(global_log, slot.log);
+        var channel = core.channel.raw_mod_m31.Om31Channel.init();
+        const point = try core.circle.randomSecureFieldPointFor(O, &channel);
+        for (physical.items, worker.plan.slots) |*item, slot| {
+            const descriptor = try Metadata.forOrigin(slot.origin);
+            switch (item.*) {
+                inline else => |*component| {
+                    try std.testing.expectEqual(descriptor.constraints, component.nConstraints());
+                    var bounds = try component.traceLogDegreeBounds(a);
+                    defer bounds.deinitDeep(a);
+                    for (bounds.items, descriptor.widths) |tree, width| try std.testing.expectEqual(width, tree.len);
+                    var masks = try component.maskPoints(a, point, global_log);
+                    defer masks.deinitDeep(a);
+                    for (masks.items) |tree| for (tree) |column| try std.testing.expect(column.len <= descriptor.max_samples);
+                    for (0..component.nConstraints()) |i| try std.testing.expect(try component.constraintDegreeBound(i) <= descriptor.degree);
+                },
+            }
+        }
+    }
+    const accepted = try Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded, fixed_ptr);
     try std.testing.expect(!accepted.ram.isZero());
     var initial_claim: usize = undefined;
     for (worker.plan.slots) |slot| if (slot.origin == .core and slot.origin.core == (if (shard == 0) .initial else .terminal)) {
@@ -156,21 +228,21 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
     var coordinates = saved.toM31Array();
     coordinates[7] = coordinates[7].add(core.fields.m31.M31.one());
     encoded.claims[initial_claim] = O.fromM31Array(coordinates);
-    try std.testing.expectError(error.WideCpuPublicRamMismatch, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
+    try std.testing.expectError(error.WideCpuPublicRamMismatch, Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded, fixed_ptr));
     encoded.claims[initial_claim] = saved;
     var wrong = expected;
     wrong.statement[0] ^= 1;
-    try std.testing.expectError(error.WideCpuStatementMismatch, Worker.verifyCpu(a, &setup, request, wrong, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
+    try std.testing.expectError(error.WideCpuStatementMismatch, Worker.verifyCpuWithAuthority(a, &setup, request, wrong, .{ 1, 1, 1 }, &pending, 0, config, &encoded, fixed_ptr));
     const saved_mass = pending.entries[0].mass;
     pending.entries[0].mass.ram += 1;
-    try std.testing.expectError(error.WideCpuManifestMismatch, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
+    try std.testing.expectError(error.WideCpuManifestMismatch, Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded, fixed_ptr));
     pending.entries[0].mass = saved_mass;
     const save_main = pending.entries[0].scope.main;
     pending.entries[0].scope.main[0] ^= 1;
-    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
+    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded, fixed_ptr));
     pending.entries[0].scope.main = save_main;
     const short = Worker.CpuEncoded{ .bytes = encoded.bytes, .claims = encoded.claims[0..0] };
-    try std.testing.expectError(error.InvalidWideCpuClaims, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &short));
+    try std.testing.expectError(error.InvalidWideCpuClaims, Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &short, fixed_ptr));
     // This is a shard proof; the absent truth/other shard debts remain explicit.
     try std.testing.expectError(error.UnclosedGlobalGkrRam, pending.checkGlobalClosure(&.{accepted}));
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
@@ -208,4 +280,9 @@ test "later CPU stage-one OOM unwinds prior parked worker without stale owners" 
 }
 fn v2Calls(calls: [3]u32) [@import("../types.zig").FAMILIES]u32 {
     return calls ++ @as([@import("../types.zig").FAMILIES - 3]u32, @splat(0));
+}
+
+test "beta2 CPU K and ADD DOUBLE physical proofs authenticate independent fixed authority" {
+    _ = try exerciseProfile(0, .normal, .fully_parked, true);
+    _ = try exerciseProfile(1, .normal, .fully_parked, true);
 }

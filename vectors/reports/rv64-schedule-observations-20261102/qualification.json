@@ -1,0 +1,51 @@
+{
+  "scope": "Opt-in operational timeline and claim-free layout metadata; no protocol/proof change.",
+  "timeline": {
+    "api": "C.Options.stage1_trace/stage2_trace: []Schedule.Trace; emptydefault, count-validated before ownership consumption",
+    "owner": "ethereum.Observations owns failure-atomic arrays only when profile_stages=true; disabledprofileallocates no observer/traces payload",
+    "output": "schedule.json contains existingTrace arrays indexed by ORIGINAL workerordinal; stage1/stage2 clock origins separate and explicitly labeled",
+    "overhead": "Schedule.Instant andelapsed calls disabled when traces empty. Existing phaseWorkerTiming instrumentation unchanged.",
+    "failure": "Serial fastpath now records failedcallback before propagatingerror, matching joinedparallelpath; unstartedtrace slots stay zeroed."
+  },
+  "metadata": {
+    "cpu": "Source shape_metadata.forOrigin widths/maxsamples replaces duplicatedfixed/bridge geometry in residentcoset budget",
+    "truth": "Source Truth.shapesForDeclaration+Shape.shifts replaces dummy Components/zeroLocalclaims; TruthRetention.forTruth uses samepure descriptors",
+    "equivalence": "All30worker treecoeff/LDE/node counts atbeta1 andbeta2 identical topreviouscontract. KeccakexactauthorityOODSmaskcount13806 (8M31coordinateseach); CPUuses2-masksourceupperbound.",
+    "security": "Costmodelonly; incomingdeclarationsarenotverificationauthority, noGPUbuildor128certificate."
+  },
+  "gates": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS1m MaxRSS2G onfinalcombinedsource"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS59s MaxRSS2G onfinalcombinedsource"
+    },
+    {
+      "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -Driscv-test-filter='task permutation' -j2 --summary all",
+      "result": "PASS4s"
+    },
+    {
+      "command": "samefocusedReleaseFast",
+      "result": "PASS3s"
+    },
+    {
+      "command": "zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS28s beforepuretruth-retention metadata-onlyfollowup; finalroot testscompile/usecurrenthelper"
+    },
+    {
+      "command": "rv64-om-retention-plan full30worker roster beta1/beta2",
+      "result": "PASS; originalphysicalcolumn/coef/LDE/nodefields identical; tightened/exactmaskfields andpuregeometry documented"
+    }
+  ],
+  "coverage": [
+    "Complete5physicalproof twoCPU+K/ADD/DOUBLE withoriginalordinal reorderedstage2 traces preservesallbytes/claims/manifest andfreshindependentreceiver",
+    "Every enabledtracehaspositiveadmissionchargeandorderedclaimed/started/finished times",
+    "Invalidtracecountrejectsbeforeworkerconsumption",
+    "Scheduleobserverallocatorfailsateverypoint withoutleak orpartialpublication",
+    "Directpermutationfailurestracefailedoriginalordinal andjoinothercallbacks, unchangedbudgetassociation",
+    "Defaultno-trace path skips clocks andkeepsoldproofconstruction"
+  ],
+  "remaining": "Root actualfullblock interleave schedule.json andmemory/wall measurements, no speedclaim derivedfromunitproofs."
+}

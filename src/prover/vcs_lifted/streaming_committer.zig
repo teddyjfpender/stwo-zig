@@ -7,6 +7,7 @@ const leaves_mod = @import("leaves.zig");
 const expand_mod = @import("expand.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
+const compact_blake_state = @import("compact_blake_state.zig");
 const blake2_stream4 = @import("blake2_stream4.zig");
 
 pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
@@ -24,11 +25,14 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
 
     return struct {
         const Committer = @This();
+        const NativeStates = if (compact_blake_state.supports(H)) compact_blake_state.Array(H) else void;
 
         allocator: std.mem.Allocator,
         /// Leaf hasher state — one hasher per leaf position.
         /// Grows (via expansion) as larger log_size columns are encountered.
         leaf_hashers: []H,
+        native_states: ?NativeStates = null,
+        use_native_states: bool = false,
         /// Current log_size of the leaf hasher array (number of positions = 1 << leaf_log_size).
         leaf_log_size: u32,
         /// Whether any columns have been added yet.
@@ -43,7 +47,17 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             };
         }
 
+        /// Dedicated incremental PCS path. Complete-set bounded-prefix methods
+        /// keep the established init() representation and byte-budget contract.
+        pub fn initCompactBlake(allocator: std.mem.Allocator) Committer {
+            var result = init(allocator);
+            result.use_native_states = compact_blake_state.supports(H);
+            return result;
+        }
         pub fn deinit(self: *Committer) void {
+            if (comptime compact_blake_state.supports(H)) {
+                if (self.native_states) |*states| states.deinit();
+            }
             if (self.leaf_hashers.len > 0) {
                 self.allocator.free(self.leaf_hashers);
             }
@@ -71,6 +85,9 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                 }
             }
 
+            if (comptime compact_blake_state.supports(H)) {
+                if (self.use_native_states) return self.addCompactColumns(columns);
+            }
             // Initialize seed hasher on first call.
             if (!self.initialized) {
                 const seed_hasher = H.defaultWithInitialState();
@@ -123,6 +140,35 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             }
         }
 
+        fn addCompactColumns(self: *Committer, columns: []const ColumnRef) !void {
+            if (self.native_states == null) {
+                const log = columns[0].log_size;
+                if (log >= @bitSizeOf(usize) or columns[0].values.len != @as(usize, 1) << @intCast(log)) return error.InvalidColumnSize;
+                self.native_states = try NativeStates.init(self.allocator, columns[0].values.len, H.defaultWithInitialState());
+                self.leaf_log_size = log;
+                self.initialized = true;
+            }
+            var begin: usize = 0;
+            while (begin < columns.len) {
+                const log = columns[begin].log_size;
+                if (log < self.leaf_log_size or log >= @bitSizeOf(usize)) return error.InvalidColumnOrder;
+                var end = begin + 1;
+                while (end < columns.len and columns[end].log_size == log) end += 1;
+                if (log > self.leaf_log_size) {
+                    try self.native_states.?.expand(@as(usize, 1) << @intCast(log), @intCast(log - self.leaf_log_size + 1));
+                    self.leaf_log_size = log;
+                }
+                try self.native_states.?.update(columns[begin..end]);
+                begin = end;
+            }
+        }
+        fn selectLegacyCompleteSet(self: *Committer) !void {
+            // Never widen 96B states beside a live full136B array. The dedicated
+            // constructor is incremental-only; legacy complete-set APIs choose
+            // their original representation before any allocation takes place.
+            if (self.use_native_states and self.initialized) return error.InvalidCompactStreamMode;
+            self.use_native_states = false;
+        }
         /// Commits a complete sorted column set while retaining lifted
         /// hasher-state reuse. When the final higher-domain columns fit in
         /// the already-open terminal BLAKE2s block, their intermediate
@@ -131,6 +177,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             self: *Committer,
             columns: []const ColumnRef,
         ) !Self {
+            try self.selectLegacyCompleteSet();
             for (columns, 0..) |column, index| {
                 if (!std.math.isPowerOfTwo(column.values.len) or column.values.len < 2) {
                     return error.InvalidColumnSize;
@@ -202,6 +249,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             stats: ?*BoundedPrefixStats,
             comptime reuse_tail: bool,
         ) !Self {
+            try self.selectLegacyCompleteSet();
             if (columns.len == 0) {
                 if (stats) |out| out.* = .{
                     .final_log_size = 0,
@@ -610,6 +658,19 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             std.debug.assert(final_log_size > self.leaf_log_size);
             const leaf_count = @as(usize, 1) << @intCast(final_log_size);
             const leaves = try layer_alloc.alloc(H.Hash, leaf_count);
+            if (comptime compact_blake_state.supports(H)) {
+                if (self.use_native_states) {
+                    self.native_states.?.finalizeTailInto(tail_columns, final_log_size, leaves) catch |err| {
+                        layer_alloc.free(leaves);
+                        return err;
+                    };
+                    self.native_states.?.deinit();
+                    self.native_states = null;
+                    const tree = try finishLeaves(allocator, layer_alloc, leaves);
+                    self.* = undefined;
+                    return tree;
+                }
+            }
             LeafOps.finalizeLiftedTail(
                 self.leaf_hashers,
                 self.leaf_log_size,
@@ -693,6 +754,20 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                 return tree;
             }
 
+            if (comptime compact_blake_state.supports(H)) {
+                if (self.use_native_states) {
+                    const leaves = try layer_alloc.alloc(H.Hash, self.native_states.?.states.len);
+                    self.native_states.?.finalizeInto(leaves) catch |err| {
+                        layer_alloc.free(leaves);
+                        return err;
+                    };
+                    self.native_states.?.deinit();
+                    self.native_states = null;
+                    const tree = try finishLeaves(allocator, layer_alloc, leaves);
+                    self.* = undefined;
+                    return tree;
+                }
+            }
             // Finalize leaf hashers into leaf hashes.
             const leaf_count = self.leaf_hashers.len;
             const leaves = try layer_alloc.alloc(H.Hash, leaf_count);

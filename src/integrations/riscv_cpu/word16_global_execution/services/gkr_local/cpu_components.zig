@@ -93,16 +93,7 @@ pub const Set = struct {
             const data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?);
             switch (role) {
                 .rom, .boundary, .range16, .range8, .and_table, .shift_table, .selection => {
-                    const kind: Table.Kind = switch (role) {
-                        .rom => .rom,
-                        .boundary => .boundary,
-                        .range16 => .range16,
-                        .range8 => .range8,
-                        .and_table => .and_table,
-                        .shift_table => .shift_table,
-                        .selection => .selection,
-                        else => unreachable,
-                    };
+                    const kind = try Table.kindForRole(role);
                     item.* = .{ .table = .{ .kind = kind, .data = data, .inter_offset = slot.inter_offset, .boundary = if (role == .boundary) .{ .value = request.base.cpu, .cpu_log = setup.materials.geometry.cpu_log } else null } };
                     try item.table.validate();
                 },

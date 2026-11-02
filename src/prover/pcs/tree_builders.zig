@@ -258,7 +258,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 .retain_coefficients = scheme.coefficient_retention_policy == .always,
                 .compact_committer = if (compact_supported and
                     (B.MerkleTree(H) == MerkleProver or native_compact) and scheme.compact_polynomial_storage)
-                    CompactCommitter.init(allocator)
+                    if (comptime !native_compact and @hasDecl(CompactCommitter, "initCompactBlake")) CompactCommitter.initCompactBlake(allocator) else CompactCommitter.init(allocator)
                 else
                     null,
             };

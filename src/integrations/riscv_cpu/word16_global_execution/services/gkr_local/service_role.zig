@@ -18,6 +18,13 @@ const Geo = @import("role_geometry.zig");
 const Global = @import("global_cpu.zig");
 const Manifest = @import("manifest.zig");
 const Fractions = @import("fractions.zig");
+pub fn mainShapeFor(family: @import("../types.zig").Family) A.main_only.authority.Shape {
+    return if (family == .keccak) .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .constraints = 133 } else .{ .fixed = S.layout.FIXED, .main = S.layout.MAIN, .constraints = 373 };
+}
+pub fn constraintCount(family: @import("../types.zig").Family) usize {
+    return mainShapeFor(family).constraints + @import("binding.zig").CONSTRAINTS + Global.layout(.{ .bridge = family }).constraints();
+}
+pub const MAX_DEGREE: u8 = 3;
 pub const Component = struct {
     pub const MAX_FIXED = 8;
     pub const MAX_MAIN = 134;
@@ -29,7 +36,7 @@ pub const Component = struct {
     shared: Manifest.Shared,
     claims: Global.ClaimsFor(O),
     pub fn mainShape(self: *const @This()) A.main_only.authority.Shape {
-        return if (self.data.instance.origin.bridge == .keccak) .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .constraints = 133 } else .{ .fixed = S.layout.FIXED, .main = S.layout.MAIN, .constraints = 373 };
+        return mainShapeFor(self.data.instance.origin.bridge);
     }
     pub fn columnOffsets(self: *const @This()) [2]usize {
         return self.offsets;
@@ -44,7 +51,7 @@ pub const Component = struct {
         return c >= 16 and Global.layout(self.data.instance.origin).previous(c - 16);
     }
     pub fn nConstraints(self: *const @This()) usize {
-        return self.mainShape().constraints + 3 + Global.layout(self.data.instance.origin).constraints();
+        return constraintCount(self.data.instance.origin.bridge);
     }
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
         return self.data.instance.row_log + 1;
@@ -54,14 +61,14 @@ pub const Component = struct {
     }
     pub fn constraintDegreeBound(self: *const @This(), index: usize) !u8 {
         if (index >= self.nConstraints()) return error.InvalidConstraintIndex;
-        return 3;
+        return MAX_DEGREE;
     }
     pub fn validate(self: *const @This()) !void {
         if (self.data.instance.origin != .bridge or self.data.point.n != self.data.instance.row_log or self.offsets[0] != self.data.instance.fixed_offset or self.offsets[1] != self.data.instance.main_offset) return error.LocalGkrRoleMismatch;
         const family = self.data.instance.origin.bridge;
         try @import("v2_scope.zig").family(family);
         const log = self.data.instance.row_log;
-        const terms: usize = if (family == .keccak) 1 + K.layout.U16.len + K.layout.U8.len else 1 + S.layout.U16.len + S.layout.U8.len;
+        const terms: usize = @import("roster.zig").bridgeTerms(family);
         if (self.data.instance.terms != terms or self.data.lane_count != @as(usize, 1) << @intCast(try self.data.instance.laneLog())) return error.LocalGkrRoleMismatch;
         if (family == .keccak) _ = try K.types.validateGeometry(self.span.calls, self.span.first_id, log) else _ = try S.types.validateGeometry(if (family == .add) .add else .double, self.span.calls, self.span.first_id, log);
         try Global.validateClaims(self.data.instance.origin, self.claims);

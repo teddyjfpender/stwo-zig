@@ -3,6 +3,7 @@
 //! Those partial bounds exclude setup/capture/PCS scratch; they are not total RSS.
 //! Schedule policy is operational; the manifest barrier is not.
 const std = @import("std");
+const FixedSet = @import("fixed_authority_set.zig").Set;
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const P = @import("../protocol.zig");
@@ -48,12 +49,18 @@ pub const Options = struct {
     retained_store: ?*Store = null,
     worker_timings: ?[]WorkerTiming = null,
     native_profiles: []const ?*@import("stwo_prover_api").stage_profile.Recorder = &.{},
+    /// Operational execution order only; manifests and result slots keep original ordinals.
+    stage2_order: []const usize = &.{},
+    stage1_trace: []Schedule.Trace = &.{},
+    stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
         if (self.native_profiles.len != 0 and self.native_profiles.len != count) return error.InvalidWideNativeProfiles;
         try self.schedule.validate();
+        try Schedule.validateOrder(self.stage2_order, count);
+        if ((self.stage1_trace.len != 0 and self.stage1_trace.len != count) or (self.stage2_trace.len != 0 and self.stage2_trace.len != count)) return error.InvalidWideScheduleTrace;
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
         } else if (self.max_workers > 8) return error.BoundedWideCoordinatorLimit;
@@ -76,6 +83,9 @@ pub const Bundle = struct {
     pub fn verify(self: *const Bundle, a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, expected: P.Expected, config: W.PcsConfig) !Execution.Verified {
         return Execution.verify(a, setups, truths, self.requests, expected, config, self.stage_one_bytes, self.cpus, self.truths);
     }
+    pub fn verifyWithAuthority(self: *const Bundle, a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, expected: P.Expected, config: W.PcsConfig, fixed: *const FixedSet) !Execution.Verified {
+        return Execution.verifyWithAuthority(a, setups, truths, self.requests, expected, config, self.stage_one_bytes, self.cpus, self.truths, fixed);
+    }
 };
 fn freeRequests(a: std.mem.Allocator, requests: []P.Request) void {
     for (requests) |r| {
@@ -83,6 +93,14 @@ fn freeRequests(a: std.mem.Allocator, requests: []P.Request) void {
         a.free(r.base.memory.terminal);
     }
     a.free(requests);
+}
+/// Borrowed request metadata for pre-key admission. Public cell arrays remain
+/// owned by advice; callers must not pass these views to freeRequests.
+pub fn requestView(native: []const *Native, advice: *const Advice, i: usize) !P.Request {
+    if (i >= native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len or native.len != advice.sha256.len or native.len != advice.arith256_mod.len or native.len != advice.curves.len or native.len != advice.bulk.len or native.len != advice.sponge.len) return error.InvalidCombinedInventory;
+    const n = native[i];
+    const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
+    return .{ .calls = Pipeline.adviceCalls(advice, i), .bulk = advice.bulk[i].counts(), .sponge = advice.sponge[i].counts(), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == native.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
 }
 fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Advice) ![]P.Request {
     const requests = try a.alloc(P.Request, native.len);
@@ -92,18 +110,23 @@ fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Ad
         a.free(r.base.memory.initial);
         a.free(r.base.memory.terminal);
     };
-    for (native, requests, 0..) |n, *r, i| {
-        const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
-        const initial = try a.dupe(A.memory.closed_ram.types.Cell, if (i == 0) advice.initial else &.{});
+    for (requests, 0..) |*r, i| {
+        var request = try requestView(native, advice, i);
+        const initial = try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.initial);
         errdefer a.free(initial);
-        const terminal = try a.dupe(A.memory.closed_ram.types.Cell, if (i + 1 == native.len) advice.terminal else &.{});
-        r.* = .{ .calls = Pipeline.adviceCalls(advice, i), .bulk = advice.bulk[i].counts(), .sponge = advice.sponge[i].counts(), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = initial, .terminal = terminal, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        const terminal = try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.terminal);
+        request.base.memory.initial = initial;
+        request.base.memory.terminal = terminal;
+        r.* = request;
         done += 1;
+        // Faithful counts first (requestView), then fail closed on any v3 advice.
+        try @import("v2_scope.zig").request(r.*);
         // Faithful counts first, then fail closed on any v3 advice.
         try @import("v2_scope.zig").request(r.*);
     }
     return requests;
 }
+
 const Worker = union(enum) {
     cpu: CPU.CpuWorker,
     truth: Truth.TruthWorker,
@@ -130,6 +153,7 @@ const Run = struct {
     advice: *const Advice,
     requests: []const P.Request,
     inventory: *const Execution.Inventory,
+    fixed: ?*const FixedSet,
     config: W.PcsConfig,
     options: Options,
     workers: []?Worker,
@@ -148,7 +172,7 @@ const Run = struct {
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
-            const worker = try CPU.CpuWorker.init(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget);
+            const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
@@ -174,7 +198,7 @@ const Run = struct {
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
-            const worker = try Truth.TruthWorker.init(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget);
+            const worker = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .truth = worker };
             self.workers[index].?.truth.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
@@ -227,16 +251,23 @@ fn mainNodes(scheme: *const W.Scheme) !usize {
 /// Consume prepared CPU traces only through successful original source building;
 /// advice and setup remain borrowed. Returned request cell lists are independent.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options) !Bundle {
+    return produceWithAuthority(a, setups, truths, native, advice, expected, config, options, null);
+}
+/// The authority is independently derived from trusted setup, never parsed from
+/// operational resource JSON or a producer bundle. It stays live through return.
+pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
     if (options.worker_timings) |timings| @memset(timings, .{});
+    @memset(options.stage1_trace, .{});
+    @memset(options.stage2_trace, .{});
     if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len or native.len != advice.sha256.len or native.len != advice.arith256_mod.len or native.len != advice.curves.len or native.len != advice.bulk.len or native.len != advice.sponge.len) return error.InvalidCombinedInventory;
     const requests = try requestsFrom(a, native, advice);
     errdefer freeRequests(a, requests);
-    var inventory = try Execution.Inventory.init(a, setups, truths, requests, expected, config);
+    var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options);
-    defer a.free(estimates);
+    defer estimates.deinit(a);
     const workers = try a.alloc(?Worker, count);
     defer a.free(workers);
     @memset(workers, null);
@@ -247,16 +278,17 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     defer a.free(results);
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
-    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
-    const run_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates else &.{} };
-    try Schedule.runWithOptions(Run, a, &run, count, options.schedule, run_options, Run.stageOne);
+    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
+    const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
+    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
+    try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
     // The complete ordered set of sealed MAINs and local children is joined once.
     var pending = try Manifest.verifyAndSeal(a, inventory.execution_identity, inventory.workers, stages);
     defer pending.deinit(a);
     const stage_bytes = try ManifestWire.encode(a, inventory.execution_identity, inventory.workers, stages);
     errdefer a.free(stage_bytes);
     run.pending = &pending;
-    try Schedule.runWithOptions(Run, a, &run, count, options.schedule, run_options, Run.stageTwo);
+    try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage2_options, Run.stageTwo);
     const cpus = try a.alloc(CPU.CpuEncoded, setups.len);
     errdefer a.free(cpus);
     const encoded_truths = try a.alloc(Truth.TruthEncoded, truths.len);
@@ -267,21 +299,34 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     @memset(results, null);
     return .{ .requests = requests, .stage_one_bytes = stage_bytes, .cpus = cpus, .truths = encoded_truths };
 }
-fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options) ![]u64 {
-    const estimates = try a.alloc(u64, inventory.workers.len);
-    errdefer a.free(estimates);
+const Admission = struct {
+    stage1: []u64,
+    stage2: []u64,
+    fn deinit(self: Admission, a: std.mem.Allocator) void {
+        a.free(self.stage1);
+        a.free(self.stage2);
+    }
+};
+fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options) !Admission {
+    const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{} };
+    errdefer a.free(estimates.stage1);
+    var result = estimates;
+    result.stage2 = try a.alloc(u64, inventory.workers.len);
+    errdefer a.free(result.stage2);
     // Requests are coordinator-owned copies, separate from worker source lists.
     var retained: usize = ManifestWire.MAX_BYTES;
     retained = try std.math.add(usize, retained, try std.math.mul(usize, requests.len, @sizeOf(P.Request)));
     for (requests) |request| retained = try std.math.add(usize, retained, try std.math.mul(usize, request.base.memory.initial.len + request.base.memory.terminal.len, @sizeOf(A.memory.closed_ram.types.Cell)));
     const full_nodes = if (options.retained_store) |store| store.stats().merkle_parking_enabled else false;
     var disk: usize = 0;
-    for (estimates, 0..) |*estimate, i| {
+    for (result.stage1, result.stage2, 0..) |*stage1, *stage2, i| {
         const plan = if (i < setups.len) try Retention.forCpu(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
-        // Preserve the previous conservative task admission, which also reserves
-        // the explicit witness cap; partial counters must never tighten it.
-        const legacy = try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), @max(plan.gkr_peak_bytes, options.global_budget));
-        estimate.* = @intCast(@max(legacy, @max(plan.stage1_task_bytes, plan.stage2_task_bytes)));
+        const tasks = try Retention.taskEstimates(plan, options.global_budget);
+        stage1.* = tasks.stage1;
+        stage2.* = tasks.stage2;
+        // The full pending inventory remains charged once below, independently
+        // of each task lease. Stage two has no numerical GKR working planes;
+        // its child proof, binding and global advice remain in retained bytes.
         retained = try std.math.add(usize, retained, if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes)));
         disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
     }
@@ -290,5 +335,5 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
         const stats = store.stats();
         if (disk > stats.limit_bytes - stats.live_bytes) return error.RetainedMainBudgetExceeded;
     }
-    return estimates;
+    return result;
 }

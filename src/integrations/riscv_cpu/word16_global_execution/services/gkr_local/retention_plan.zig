@@ -28,6 +28,22 @@ pub const RetentionPlan = struct {
     stage1_task_bytes: usize = 0,
     stage2_task_bytes: usize = 0,
 };
+/// Phase-local task charges, separate from the whole retained-inventory lease.
+/// The PCS/witness floor keeps two MAIN payloads plus the larger of the global
+/// witness capacity or two complete INTER payloads (raw and native coefficients/
+/// one expanded view), and bounded global scratch. GKR working planes only seal.
+/// These remain represented-payload estimates, not complete PCS/RSS bounds.
+pub const TaskEstimates = struct { stage1: u64, stage2: u64 };
+pub fn taskEstimates(plan: RetentionPlan, global_limit: usize) !TaskEstimates {
+    if (global_limit == 0) return error.MissingWideGlobalBudget;
+    const twice_main = try mul(plan.coefficient_bytes, 2);
+    const twice_inter = try mul(try add(plan.binding_bytes, plan.global_output_bytes), 2);
+    const stage2_floor = try add(try add(twice_main, @max(global_limit, twice_inter)), plan.global_scratch_bytes);
+    return .{
+        .stage1 = @intCast(@max(try add(twice_main, @max(plan.gkr_peak_bytes, global_limit)), @max(plan.stage1_task_bytes, plan.stage2_task_bytes))),
+        .stage2 = @intCast(@max(stage2_floor, plan.stage2_task_bytes)),
+    };
+}
 fn add(x: usize, y: usize) !usize {
     return std.math.add(usize, x, y);
 }
@@ -81,7 +97,7 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
         const layout = Global.layout(slot.origin);
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(layout.width(), n), 4));
         const terms = (layout.ram_queries + 1) / 2 + (layout.other_queries + 1) / 2;
-        out.global_scratch_bytes = @max(out.global_scratch_bytes, try mul(try mul(@min(n, 256), terms), 2 * @sizeOf(W.O) + @sizeOf(Classic.Numerator)));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(slot.log, terms));
     }
     out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(try add(request.base.memory.initial.len, request.base.memory.terminal.len), @sizeOf(A.memory.closed_ram.types.Cell)));
     if (try add(out.global_output_bytes, out.global_scratch_bytes) > global_limit) return error.ClassicWitnessBudgetExceeded;

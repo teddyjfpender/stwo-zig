@@ -188,3 +188,22 @@ test "wide fixed immutable key reused across q PoW and fold while receiver confi
     try std.testing.expect(!std.mem.eql(u8, &ch_one.digestBytes(), &ch_two.digestBytes()));
     try std.testing.expectEqual(@as(u64, 1), cache.snapshot().seals);
 }
+
+test "wide fixed lease independently matches trusted source coefficient authority" {
+    const a = std.testing.allocator;
+    var f = Fixture.init();
+    var source = try Key.seal(a, &f.columns());
+    defer source.deinit();
+    var cache = try Fixed.Cache.init(a, 1 << 20);
+    defer cache.deinit();
+    var binding = try cache.acquireFromKey(&source, descriptor(2));
+    defer binding.deinit();
+    try binding.key.requireSource(&source);
+    var independent = try Key.seal(a, &f.columns());
+    defer independent.deinit();
+    try binding.key.requireSource(&independent);
+    f.first[7] = f.first[7].add(M.one());
+    var changed = try Key.seal(a, &f.columns());
+    defer changed.deinit();
+    try std.testing.expectError(error.FixedSetupIdentityMismatch, binding.key.requireSource(&changed));
+}

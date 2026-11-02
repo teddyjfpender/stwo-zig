@@ -8,7 +8,6 @@ const S = A.crypto.secp256k1;
 const R = @import("../roster.zig");
 const W = @import("worker_protocol.zig");
 const Worker = @import("truth_worker.zig");
-const C = @import("truth_components.zig").Components;
 const Local = @import("truth_classic.zig");
 const Classic = @import("classic_witness.zig");
 const Plan = @import("retention_plan.zig").RetentionPlan;
@@ -25,7 +24,7 @@ fn rows(log: u32) !usize {
 pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, global_limit: usize) !Plan {
     try @import("v2_scope.zig").truth(truth);
     _ = try Worker.truthMass(truth);
-    const roles = try C.init(truth, undefined, undefined, &@as([5]W.O, @splat(W.O.zero())));
+    const roles = try @import("truth_components.zig").shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
     const logs = try truth.logs(a, 1);
     defer a.free(logs);
     var out = Plan{};
@@ -35,12 +34,16 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, globa
         out.coefficient_bytes = try add(out.coefficient_bytes, try mul(try rows(log), 4));
         max_log = @max(max_log, log);
     }
-    for (roles.items) |role| {
+    for (roles) |role| {
         const n = try rows(role.log_size);
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(role.widths()[2], n), 4));
-        out.global_scratch_bytes = @max(out.global_scratch_bytes, try mul(try mul(@min(n, Classic.ROW_CHUNK), Local.inverseCount(role.instance())), 2 * @sizeOf(W.O) + @sizeOf(Classic.Numerator)));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, Local.inverseCount(role.instance())));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, @import("truth_global_witness.zig").inverseCount(role.kind)));
         for (role.widths()) |width| all_columns = try add(all_columns, width);
     }
+    // Global metadata descriptors coexist with every retained local/global
+    // output and the largest one-at-a-time generation scratch tile set.
+    if (truth == .secp) out.global_scratch_bytes = try add(out.global_scratch_bytes, try @import("truth_global_metadata.zig").secpSourceDescriptorBytes());
     if (try add(out.global_output_bytes, out.global_scratch_bytes) > global_limit) return error.WideTruthBudgetExceeded;
     switch (truth) {
         .keccak => |t| {

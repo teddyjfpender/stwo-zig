@@ -1,0 +1,31 @@
+{
+  "base": "6d405da16b48cc3c50a6cca108ed8631cb3595b2",
+  "scope": "receiver-derived candidate pre-key source shape, unit-consumer and valid-support bounds; legacy control unchanged",
+  "commands": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "result": "pass",
+      "log": "local-safe.log"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "result": "pass",
+      "log": "local-fast.log"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "result": "pass",
+      "log": "whole-truth-fast.log",
+      "qualification": "physical whole fixture, before subsequent pure conditional-ledger enforcement; local Safe/Fast covers final enforcement"
+    },
+    {
+      "command": "zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast --summary all",
+      "result": "pass",
+      "log": "cli-fast.log"
+    }
+  ],
+  "security_qualified": false,
+  "whole_protocol_128_certificate": false,
+  "performance_claim": false,
+  "hooks": "authorized exception for unrelated repository-wide pre-existing conformance failures"
+}

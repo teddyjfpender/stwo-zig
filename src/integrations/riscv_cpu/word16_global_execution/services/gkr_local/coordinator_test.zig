@@ -38,7 +38,9 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     var store = try C.Store.initFullyParked(path, 128 << 20);
     defer store.deinit();
     var timings: [5]C.WorkerTiming = undefined;
-    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings });
+    var first_trace: [5]@import("../schedule.zig").Trace = undefined;
+    var second_trace: [5]@import("../schedule.zig").Trace = undefined;
+    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
     defer parked.deinit();
     for (timings, 0..) |t, i| {
         try std.testing.expect(t.stage1_completed and t.stage2_completed);
@@ -50,6 +52,13 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
             try std.testing.expect(t.seal_native_and_gkr_ns >= t.main_commit_ns + t.gkr_ns);
         } else try std.testing.expectEqual(@as(u64, 0), t.gkr_ns);
     }
+    for (first_trace, second_trace) |x, y| {
+        for ([_]@import("../schedule.zig").Trace{ x, y }) |trace| {
+            try std.testing.expect(trace.estimate_bytes > 0);
+            try std.testing.expect(trace.finished_ns >= trace.started_ns and trace.started_ns >= trace.claimed_ns);
+        }
+    }
+    try std.testing.expectError(error.InvalidWideScheduleTrace, (C.Options{ .stage1_trace = first_trace[0..4] }).validate(5));
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
     try std.testing.expect(store.stats().total_bytes > 0);
@@ -74,6 +83,8 @@ test "bounded coordinator refuses large inventory before consuming native traces
     defer keys.deinit();
     const expected = Original.expectedFor(captured.program.identity);
     try std.testing.expectError(error.BoundedWideCoordinatorLimit, C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try F.config(), .{ .max_workers = 4 }));
+    try std.testing.expect(captured.native[0].cpu != null);
+    try std.testing.expectError(error.InvalidServiceOrder, C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try F.config(), .{ .stage2_order = &.{ 0, 1, 2, 3, 3 } }));
     try std.testing.expect(captured.native[0].cpu != null);
     try std.testing.expectError(error.BoundedWideCoordinatorRetainedLimit, C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try F.config(), .{ .max_retained_frontend_bytes = 1, .gkr_budget = 2 << 30 }));
     try std.testing.expect(captured.native[0].cpu != null);
@@ -102,4 +113,20 @@ test "parking admission is explicit and later worker failure releases every earl
     try std.testing.expect(store.stats().total_bytes > 0);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+}
+
+test "phase task admission retires only numerical GKR scratch and preserves PCS global and retained payloads" {
+    const R = @import("retention_plan.zig");
+    const plan = R.RetentionPlan{ .coefficient_bytes = 2 << 30, .gkr_peak_bytes = 24 << 30, .stage1_task_bytes = 27 << 30, .stage2_task_bytes = 7 << 30, .parked_retained_bytes = 1 << 30 };
+    const tasks = try R.taskEstimates(plan, 8 << 30);
+    try std.testing.expectEqual(@as(u64, 28 << 30), tasks.stage1);
+    try std.testing.expectEqual(@as(u64, 12 << 30), tasks.stage2);
+    try std.testing.expect(tasks.stage2 >= plan.stage2_task_bytes);
+    try std.testing.expectEqual(@as(usize, 1 << 30), plan.parked_retained_bytes);
+    try std.testing.expectError(error.MissingWideGlobalBudget, R.taskEstimates(plan, 0));
+    try std.testing.expectError(error.Overflow, R.taskEstimates(.{ .coefficient_bytes = std.math.maxInt(usize) }, 1));
+    const wide_inter = try R.taskEstimates(.{ .coefficient_bytes = 2 << 30, .binding_bytes = 1 << 30, .global_output_bytes = 5 << 30, .global_scratch_bytes = 4096 }, 8 << 30);
+    try std.testing.expectEqual(@as(u64, (16 << 30) + 4096), wide_inter.stage2);
+    const needs_more = try R.taskEstimates(.{ .coefficient_bytes = 1, .stage2_task_bytes = 100 }, 1);
+    try std.testing.expectEqual(@as(u64, 100), needs_more.stage2);
 }

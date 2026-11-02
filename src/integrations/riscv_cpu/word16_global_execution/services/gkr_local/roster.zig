@@ -23,6 +23,12 @@ pub fn terms(role: Geometry.Role) u32 {
         .initial, .terminal => 0,
     };
 }
+pub fn bridgeTerms(family: @import("../types.zig").Family) u32 {
+    return if (family == .keccak)
+        1 + A.crypto.keccak.word16_bridge.layout.U16.len + A.crypto.keccak.word16_bridge.layout.U8.len
+    else
+        1 + A.crypto.secp256k1.word16_bridge.layout.U16.len + A.crypto.secp256k1.word16_bridge.layout.U8.len;
+}
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
     try @import("v2_scope.zig").setup(setup);
     var out = std.ArrayList(Instance).empty;
@@ -33,10 +39,7 @@ pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
         try out.append(a, .{ .origin = .{ .core = shape.role }, .row_log = shape.log, .terms = count, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1] });
     }
     for (std.enums.values(@import("../types.zig").Family)) |family| if (setup.bridges.at(family)) |log| {
-        const count: u32 = if (family == .keccak)
-            1 + A.crypto.keccak.word16_bridge.layout.U16.len + A.crypto.keccak.word16_bridge.layout.U8.len
-        else
-            1 + A.crypto.secp256k1.word16_bridge.layout.U16.len + A.crypto.secp256k1.word16_bridge.layout.U8.len;
+        const count = bridgeTerms(family);
         try out.append(a, .{ .origin = .{ .bridge = family }, .row_log = log, .terms = count, .fixed_offset = setup.offset(family, 0), .main_offset = setup.offset(family, 1) });
     };
     return out.toOwnedSlice(a);

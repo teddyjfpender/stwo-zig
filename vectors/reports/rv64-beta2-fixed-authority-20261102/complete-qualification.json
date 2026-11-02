@@ -1,0 +1,56 @@
+{
+  "base_commit": "5c5c63333bbacf9e43ce5b5de12b3cb95aae79bc",
+  "scope": "explicit beta2 engineering whole services route, not full Ethereum block/security certificate",
+  "parameters": {
+    "blowup_log": 2,
+    "queries": 256,
+    "pow": 0,
+    "fold": 4
+  },
+  "execution": {
+    "steps": 7,
+    "cpu_proofs": 2,
+    "truth_proofs": 3,
+    "truth_families": [
+      "keccak",
+      "secp_add",
+      "secp_double"
+    ],
+    "fully_parked_main": true,
+    "fresh_independent_setup_and_cache": true,
+    "separate_global_closure": [
+      "RAM",
+      "KIO",
+      "Wire"
+    ]
+  },
+  "checks": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "5c8982e03ca078e1a503ed08bbed8b9f266f56d050e562d57c9ee7dc88c1d3c2"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "07523d5722332bb690e94782f032618ebeeb6042183705a5a509bc12dd54e30a"
+    }
+  ],
+  "remaining": [
+    "source-derived full Candidate.Facts and formal reduction/certificate admission",
+    "real Ethereum CLI/prefix/fullblock selection and setup-memory qualification",
+    "new-profile recursion and independent outer security",
+    "resident GPU pipeline"
+  ],
+  "adversarial_and_lifetime": [
+    "control receiver refuses candidate",
+    "changed q/config refused",
+    "swapped trusted fixed bindings refused",
+    "swapped physical CPU proofs refused",
+    "changed pure-global debt refused",
+    "cache handle release before producer is safe",
+    "caller allocator all-failures on populated cache",
+    "later uncached-key cap failure after at least one successful seal unwinds leases and permits retry",
+    "all review flags true still cannot issue whole128 certificate"
+  ]
+}
