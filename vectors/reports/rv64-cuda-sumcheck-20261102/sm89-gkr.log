@@ -1,0 +1,61 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv649sum_firstILb0EEEv13StwoRv64PlaneS3_jS3_PKjS3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv649sum_firstILb0EEEv13StwoRv64PlaneS3_jS3_PKjS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 96 registers, used 1 barriers, 256 bytes smem, 464 bytes cmem[0]
+ptxas info    : Compile time = 368.411 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv649sum_firstILb1EEEv13StwoRv64PlaneS3_jS3_PKjS3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv649sum_firstILb1EEEv13StwoRv64PlaneS3_jS3_PKjS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 1 barriers, 256 bytes smem, 464 bytes cmem[0]
+ptxas info    : Compile time = 232.079 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb0ELj2EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb0ELj2EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 96 registers, used 0 barriers, 456 bytes cmem[0]
+ptxas info    : Compile time = 234.486 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb0ELj1EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb0ELj1EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 71 registers, used 0 barriers, 456 bytes cmem[0]
+ptxas info    : Compile time = 55.496 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb1ELj2EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb1ELj2EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 71 registers, used 0 barriers, 456 bytes cmem[0]
+ptxas info    : Compile time = 171.243 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb1ELj1EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb1ELj1EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 456 bytes cmem[0]
+ptxas info    : Compile time = 19.649 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410sum_reduceE13StwoRv64PlanejS2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410sum_reduceE13StwoRv64PlanejS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, used 1 barriers, 256 bytes smem, 408 bytes cmem[0]
+ptxas info    : Compile time = 43.614 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6416sum_secure_splitE13StwoRv64PlaneS2_jS2_PKjS2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6416sum_secure_splitE13StwoRv64PlaneS2_jS2_PKjS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 1 barriers, 128 bytes smem, 464 bytes cmem[0]
+ptxas info    : Compile time = 267.309 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv649eq_expandEPKjjj13StwoRv64Plane' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv649eq_expandEPKjjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers, 392 bytes cmem[0]
+ptxas info    : Compile time = 33.704 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv647eq_seedEPKjj13StwoRv64Plane' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv647eq_seedEPKjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 28 registers, used 0 barriers, 392 bytes cmem[0]
+ptxas info    : Compile time = 2.853 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410fold_layerE13StwoRv64PlaneS2_jPKjS2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410fold_layerE13StwoRv64PlaneS2_jPKjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers, 464 bytes cmem[0]
+ptxas info    : Compile time = 38.342 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv647projectE13StwoRv64PlaneS2_S2_jjPKjS2_S2_Pj' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv647projectE13StwoRv64PlaneS2_S2_jjPKjS2_S2_Pj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 496 bytes cmem[0]
+ptxas info    : Compile time = 11.128 ms

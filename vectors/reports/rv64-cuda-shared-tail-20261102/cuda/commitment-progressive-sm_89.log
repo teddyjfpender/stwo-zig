@@ -1,0 +1,61 @@
+ptxas info    : 0 bytes gmem, 256 bytes cmem[3]
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s17mixed_leaf_kernelILb0EEEvjjNS1_11MixedInputsEjjPKNS1_16ProgressiveStateEPS4_PNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s17mixed_leaf_kernelILb0EEEvjjNS1_11MixedInputsEjjPKNS1_16ProgressiveStateEPS4_PNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 63 registers, used 0 barriers, 3464 bytes cmem[0], 80 bytes cmem[2]
+ptxas info    : Compile time = 146.318 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s17mixed_leaf_kernelILb1EEEvjjNS1_11MixedInputsEjjPKNS1_16ProgressiveStateEPS4_PNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s17mixed_leaf_kernelILb1EEEvjjNS1_11MixedInputsEjjPKNS1_16ProgressiveStateEPS4_PNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 63 registers, used 0 barriers, 3464 bytes cmem[0], 88 bytes cmem[2]
+ptxas info    : Compile time = 117.468 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s22contiguous_leaf_kernelILb0EEEvjjPKjmPNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s22contiguous_leaf_kernelILb0EEEvjjPKjmPNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 55 registers, used 0 barriers, 384 bytes cmem[0]
+ptxas info    : Compile time = 55.311 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s22contiguous_leaf_kernelILb1EEEvjjPKjmPNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s22contiguous_leaf_kernelILb1EEEvjjPKjmPNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 55 registers, used 0 barriers, 384 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 52.138 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s27progressive_finalize_kernelILb0EEEvjjPKNS1_16ProgressiveStateEPNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s27progressive_finalize_kernelILb0EEEvjjPKNS1_16ProgressiveStateEPNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers, 376 bytes cmem[0]
+ptxas info    : Compile time = 22.161 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s27progressive_finalize_kernelILb1EEEvjjPKNS1_16ProgressiveStateEPNS1_4HashE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s27progressive_finalize_kernelILb1EEEvjjPKNS1_16ProgressiveStateEPNS1_4HashE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers, 376 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 24.570 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s32progressive_absorb_lifted_kernelILb0EEEvjjjjPKjmPNS1_16ProgressiveStateE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s32progressive_absorb_lifted_kernelILb0EEEvjjjjPKjmPNS1_16ProgressiveStateE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers, 392 bytes cmem[0]
+ptxas info    : Compile time = 29.724 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s32progressive_absorb_lifted_kernelILb1EEEvjjjjPKjmPNS1_16ProgressiveStateE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s32progressive_absorb_lifted_kernelILb1EEEvjjjjPKjmPNS1_16ProgressiveStateE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers, 392 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 28.233 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s25progressive_absorb_kernelILb0EEEvjjjPKjmPNS1_16ProgressiveStateE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s25progressive_absorb_kernelILb0EEEvjjjPKjmPNS1_16ProgressiveStateE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers, 392 bytes cmem[0]
+ptxas info    : Compile time = 30.078 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s25progressive_absorb_kernelILb1EEEvjjjPKjmPNS1_16ProgressiveStateE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s25progressive_absorb_kernelILb1EEEvjjjPKjmPNS1_16ProgressiveStateE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers, 392 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 44.778 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s23progressive_init_kernelILb0EEEvjPNS1_16ProgressiveStateE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s23progressive_init_kernelILb0EEEvjPNS1_16ProgressiveStateE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 0 barriers, 368 bytes cmem[0]
+ptxas info    : Compile time = 2.497 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda7blake2s23progressive_init_kernelILb1EEEvjPNS1_16ProgressiveStateE' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda7blake2s23progressive_init_kernelILb1EEEvjPNS1_16ProgressiveStateE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 0 barriers, 368 bytes cmem[0]
+ptxas info    : Compile time = 2.069 ms

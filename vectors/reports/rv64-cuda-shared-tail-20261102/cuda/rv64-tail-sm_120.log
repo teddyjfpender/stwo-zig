@@ -1,0 +1,6 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6411tail_kernelENS1_10TailPacketE' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6411tail_kernelENS1_10TailPacketE
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 168 registers, used 1 barriers, 16848 bytes smem
+ptxas info    : Compile time = 1719.151 ms

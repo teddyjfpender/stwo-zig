@@ -1,0 +1,78 @@
+{
+  "schema": "rv64-eq-fusion-v1",
+  "base_commit": "bccab60777146c489c6f87bcdb47f8688b1ee9d7",
+  "focused_tests_per_mode": 22,
+  "native_eq_dimensions_tested": [
+    1,
+    14
+  ],
+  "native_context_ffi_compiled": true,
+  "architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "eq21_launches": {
+    "baseline": 21,
+    "fused": 6
+  },
+  "four_level_eq_buffer_bytes_per_prefix": {
+    "baseline": 1440,
+    "fused": 544
+  },
+  "multiplications_per_four_level_prefix": 30,
+  "sm120_four_level_registers": 128,
+  "reported_spills": false,
+  "default_fused_eq": false,
+  "gpu_execution_verified": false,
+  "speedup_measured": false,
+  "source_files": [
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.cu",
+      "sha256": "6adbdf135bf02011806e79a6c958b62c78f5d08e466450a17db2eb2fb288eb33"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.h",
+      "sha256": "665fa1e6039142640686cad38fabadca3e8aa77ec4fe9864c1a949ffa2ba1971"
+    },
+    {
+      "path": "src/backends/cuda/product_manifest.json",
+      "sha256": "b744db51854583dca8ba730765935f79073b6a5634804e8123056621610f9707"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/abi.zig",
+      "sha256": "fe81a003df17bb4b7de84877ae94726103dfbd3f928d83f9d84f3827531e4fd4"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident.zig",
+      "sha256": "54795e8a27696184ed69495f7b9558ac7c109c4f83fe8eb390338a4aa5b0d9f0"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/resident_test.zig",
+      "sha256": "ef4ea5c37074ec86df995e12eb943cb5069f1b5c8e4f55be5508e47c69c356ed"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/sumcheck_numerical_test.zig",
+      "sha256": "d22b34a4f69d7a29a5d8b7ec06b8104216971735400e07f99f3fda075a5f5c96"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64_binding_check_root.zig",
+      "sha256": "45207aaf2e54b8be6c644f61901a9d38d9453e65f2425e48d258ed277380ed17"
+    },
+    {
+      "path": "tests/cuda/rv64/README.md",
+      "sha256": "54ce6035a8ce67bdd7ae9d650792cbd9d2dcd9b8ddc07fac714ff047f9fcf1fc"
+    },
+    {
+      "path": "tests/cuda/rv64/numerical_bridge.cpp",
+      "sha256": "c80d99d4f6f752658ad1d35f5fe475da7e436bf7584943a12036a3c97b0632c9"
+    },
+    {
+      "path": "tests/cuda/rv64/sumcheck_smoke.cu",
+      "sha256": "1d12494c8ca3945696a9e270d60fb0bf590f98386c0baa63dd609f9b6dda2d5a"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/eq_tile.cuh",
+      "sha256": "413349486661285044e498a4e4e99de81588e1735ee1eb103a91b9db4342e8f7"
+    }
+  ]
+}

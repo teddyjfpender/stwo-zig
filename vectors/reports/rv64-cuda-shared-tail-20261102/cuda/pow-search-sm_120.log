@@ -1,0 +1,16 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda3pow13search_kernelEPKjS3_jyPyPjS5_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda3pow13search_kernelEPKjS3_jyPyPjS5_
+    40 bytes stack frame, 36 bytes spill stores, 36 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 40 bytes cumulative stack size, 32 bytes smem
+ptxas info    : Compile time = 32.506 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda3pow13prefix_kernelEPKjjPj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda3pow13prefix_kernelEPKjjPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 34 registers, used 0 barriers
+ptxas info    : Compile time = 46.445 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda3pow17initialize_kernelEPyPjS3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda3pow17initialize_kernelEPyPjS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 14 registers, used 0 barriers
+ptxas info    : Compile time = 1.457 ms
