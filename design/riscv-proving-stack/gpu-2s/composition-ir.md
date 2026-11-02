@@ -44,11 +44,11 @@ specialised to that row count. Moving them to `scalarFor` would make them parame
 
 | File | Contents |
 |---|---|
-| `catalog.zig` | CPU-proof core: CPU classic / fused tail / U8 pairs, ROM, JALR, register boundary, range16/8 tables, ALU classic/fused, BINARY, AND and AND-pair tables, SHIFT, SHIFT table, DIV, MUL classic/pairs, LS32 / INIT / TEARDOWN classic and fused pairs, LS selection |
+| `catalog.zig` | CPU-proof core: CPU classic / fused tail / U8 pairs / compact decode (plus the log-23 wide-clock fused CPU, statistics only), ROM, JALR, register boundary, range16/8 tables, ALU classic/fused, BINARY, AND and AND-pair tables, SHIFT, SHIFT table, DIV, MUL classic/pairs, LS32 / INIT / TEARDOWN classic and fused pairs, LS selection |
 | `catalog_services.zig` | Service bridges: Keccak bridge; secp bridge for add, double, sha256, arith256_mod and 7 curve families; bulk desc/copy/set/ucopy/cdesc/cmp/jdesc/jscan/jtab (JUMPDEST); sponge call/perm; LS-D64 plain/fused pairs |
 | `catalog_truths.zig` | Truths: Keccak permutation for triple_v2, throughput, quartet and r27, plus chi/xor5 tables; secp add/double product/linear and bytes; SHA-256; arith256_mod; 7 curve ops; secp row add/double |
 
-- **Random-trace parity**, all 76 cases. Random trace polynomials are evaluated on the
+- **Random-trace parity**, all 75 cases. Random trace polynomials are evaluated on the
   evaluation domain. The component's real prover domain evaluator (packed, native or coset
   kernels, with the vanishing division) must equal the IR reference interpreter
   (`record.zig: evaluateDomain`) on every row. The test also requires a non-vacuous result

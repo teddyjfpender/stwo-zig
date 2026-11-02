@@ -40,7 +40,7 @@ fn draw(comptime T: type, rng: std.Random) T {
 // ---- builders from any instance --------------------------------------------
 
 pub fn fromCpu(a: std.mem.Allocator, c: Cpu) !Case {
-    const name = if (c.pairs != null) "cpu.u8_pairs" else if (c.fused) (if (c.public.wide_clock) "cpu.fused_tail.wide_clock" else "cpu.fused_tail") else "cpu.classic";
+    const name = if (c.compact) "cpu.compact_decode" else if (c.pairs != null) "cpu.u8_pairs" else if (c.fused) (if (c.public.wide_clock) "cpu.fused_tail.wide_clock" else "cpu.fused_tail") else "cpu.classic";
     return standardCase(a, Cpu, name, "cpu", c);
 }
 pub fn fromRom(a: std.mem.Allocator, c: Rom) !Case {
@@ -173,7 +173,10 @@ fn cpuPublic(log: u32) X.types.Inputs {
     return .{ .steps = 7, .epoch = 3, .initial_pc = .{ 0x1000, 0, 0, 0 }, .final_pc = .{ 0x1044, 0, 0, 0 }, .wide_clock = X.layout.wideClock(log) };
 }
 pub fn cpu(a: std.mem.Allocator, rng: std.Random, log: u32, fused: bool, pairs: bool) !Case {
-    var c = Cpu{ .log_size = log, .offsets = .{ 0, 0, 0 }, .public = cpuPublic(log), .claim = R.randomQ(rng), .challenges = draw(X.types.Challenges, rng), .fused = fused };
+    return cpuWith(a, rng, log, fused, pairs, false);
+}
+pub fn cpuWith(a: std.mem.Allocator, rng: std.Random, log: u32, fused: bool, pairs: bool, compact: bool) !Case {
+    var c = Cpu{ .log_size = log, .offsets = .{ 0, 0, 0 }, .public = cpuPublic(log), .claim = R.randomQ(rng), .challenges = draw(X.types.Challenges, rng), .fused = fused, .compact = compact };
     if (pairs) c.pairs = draw(X.equations.PairChallengesFor(Q), rng);
     return fromCpu(a, c);
 }
@@ -199,6 +202,7 @@ fn word16Cpu(rng: std.Random, kind: W.component.Kind) Word16Cpu {
 /// Every CPU-proof core component kind and layout of the Word16 v3 roster.
 pub fn all(a: std.mem.Allocator, rng: std.Random, out: *std.ArrayList(Case)) !void {
     for ([_][2]bool{ .{ false, false }, .{ true, false }, .{ true, true } }) |mode| try out.append(a, try cpu(a, rng, 6, mode[0], mode[1]));
+    try out.append(a, try cpuWith(a, rng, 6, true, true, true));
     try out.append(a, try fromRom(a, .{ .log_size = 6, .offsets = .{ 0, 0, 0 }, .claim = R.randomQ(rng), .challenges = draw(X.types.RomChallengesFor(Q), rng) }));
     try out.append(a, try fromJalr(a, .{ .log_size = 6, .offsets = .{ 0, 0, 0 }, .claim = R.randomQ(rng), .challenges = draw(X.types.FunctionChallengesFor(Q), rng) }));
     for ([_]W.component.Kind{ .boundary, .range16, .range8 }) |kind| try out.append(a, try fromWord16Cpu(a, word16Cpu(rng, kind)));
