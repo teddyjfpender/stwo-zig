@@ -1,0 +1,28 @@
+{
+  "retrieved_UTC": "2026-11-02",
+  "primary_sources": [
+    {
+      "title": "S-two Whitepaper",
+      "record": "https://eprint.iacr.org/2026/532",
+      "full_text_used": "https://www.researchgate.net/publication/407022099_S-two_Whitepaper",
+      "full_text_author_upload": "Ulrich Habock, June13 2026",
+      "anchors": [
+        "Theorem3 and Remark6",
+        "Section4.4 equations82-84",
+        "Section4.5 implementation divergence",
+        "Theorem6 equation89",
+        "Remark12 and Remark9 unique decoding"
+      ]
+    },
+    {
+      "title": "Improving logarithmic derivative lookups using GKR",
+      "record": "https://eprint.iacr.org/2023/1284",
+      "full_text_used": "https://www.researchgate.net/publication/373444175_Improving_logarithmic_derivative_lookups_using_GKR",
+      "full_text_revision_used": "September18 2023 author upload; IACR lists a later February2025 typo revision whose PDF was not available through these tools",
+      "anchors": [
+        "Section3.2 cubic sumcheck/GKR degree accounting"
+      ]
+    }
+  ],
+  "access_notes": "Primary IACR metadata and author-uploaded full text consulted. Direct IACR PDF requests returned403; no claim to have verified inaccessible latest PDF byte hashes. Arithmetic formulas independently instantiated from pinned source."
+}

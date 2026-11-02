@@ -15,6 +15,8 @@ def run(bundle_path, receiver_path):
     C=s['max_columns']; S=s['max_samples_per_column']; N=1<<s['max_trace_log']; d=s['max_air_degree']
     assert (P,cpus,I,V,C,S,N,d)==(30,25,22,26,7371,5,1<<22,5)
     assert min(x['declaration']['geometry']['boundary_log'] for x in bundle['cpus'])==5
+    assert all(v is None or v>=5 for x in bundle['cpus'] for k,v in x['declaration']['geometry'].items() if k.endswith('_log'))
+    assert all(v==0 or v>=5 for x in bundle['truths'] for v in x['declaration']['logs'])
     rho=F(1,4); rho_plus=rho*F(34,32); alpha=F(41,64); theta=1-alpha
     assert theta < (1-rho_plus)/2 and rho_plus < alpha*alpha
     mu=F(3**8,2**256)
