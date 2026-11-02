@@ -97,3 +97,18 @@ Proving is14.479s with23.763GB peak RSS. The original dense136 plan serializes
 stage1 under the same cap, taking18.048s. This is one non-quiet pair, not a qualified
 speed multiplier. It demonstrates admission/concurrency, not physical inability
 of dense proofs to fit; the explicit tighter dense104 control is measured next.
+
+The subsequent same-binary prefix2 triplet uses211fe2272 plus the qualified lazy
+oracle, the same2x8/cap36GiB/cache1GiB/parked configuration and independently fresh
+receivers. All fifteen authoritative artifact hashes match across all modes.
+
+| Prefix2 measure | Original dense136 | Explicit dense104 | Lazy checkpoint104 |
+|---|---:|---:|---:|
+| Source+prove |20.134s |16.229s |16.714s |
+
+Tight dense admission enables two stage1 jobs without recomputing tree levels.
+These are single runs on a shared host, not full-block throughput qualification
+or a reason to change the default. The committed receipt includes actual stage
+intervals, live-admission traces, numerical caps, processRSS and every artifact
+hash. A lower per-job memory requirement may intentionally increase whole-host
+RSS when it permits more jobs to run together.
