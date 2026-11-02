@@ -42,6 +42,12 @@ pub const CpuLayout = struct {
     /// fused pairs, ALU fused tail, LS-D64 fused pairs: proved and freshly
     /// verified on a real 4-packet prefix of block 24,628,607); every older
     /// route keeps its historical layout and bundle bytes.
+    /// GKR replaces classic interaction encodings. Keep its qualified query
+    /// representation explicit instead of inheriting new classic defaults.
+    pub fn forGkrProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
+        const v3 = profile == .ethereum_services_v3;
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
+    }
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
         return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3 };

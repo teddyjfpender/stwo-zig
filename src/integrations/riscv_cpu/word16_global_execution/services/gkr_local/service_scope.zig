@@ -5,6 +5,9 @@ const T = @import("../types.zig");
 const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !void {
+    // These classic encodings change provider query supply. GKR keeps its
+    // separately qualified query authority until both projections are adapted.
+    if (g.mul_u8_pairs or g.ls_fused_pairs or g.alu_fused_tail or g.ls_dword_fused_pairs) return error.UnsupportedClassicEncodingInLocalGkr;
     try g.validate();
     if (g.cpu_log > 22) return error.InvalidLocalGkrGeometry;
 }
@@ -47,4 +50,16 @@ pub fn truthDeclaration(d: @import("../wire.zig").TruthDeclaration) !void {
 
 pub fn advice(a: *const @import("../collector.zig").Advice) !void {
     if (a.events.len != a.keccak.len or a.secp.len != a.keccak.len or a.sha256.len != a.keccak.len or a.arith256_mod.len != a.keccak.len or a.curves.len != a.keccak.len or a.bulk.len != a.keccak.len or a.sponge.len != a.keccak.len) return error.InvalidCombinedInventory;
+}
+
+test "new classic defaults cannot silently enter authenticated GKR query shapes" {
+    const std = @import("std");
+    const G = @import("../../../word16_execution/geometry.zig").Geometry;
+    const base = G{ .cpu_log = 5, .cpu_fused_tail = true, .cpu_u8_pairs = true };
+    try geometry(base);
+    inline for (.{ "mul_u8_pairs", "ls_fused_pairs", "alu_fused_tail", "ls_dword_fused_pairs" }) |field| {
+        var changed = base;
+        @field(changed, field) = true;
+        try std.testing.expectError(error.UnsupportedClassicEncodingInLocalGkr, geometry(changed));
+    }
 }
