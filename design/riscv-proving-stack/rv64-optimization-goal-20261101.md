@@ -29,42 +29,53 @@ receipts, not from projected multipliers or the recovered agents' intent.
 | --- | --- | --- |
 | LS32 | Current-layout implementation; complete register-writer citations including LUI/AUIPC; real invalid-witness physical proofs with balanced CPU/REG/OWNER relations and false RAM ancestry; cross-shard services case; separately closed RAM with invalid local REG; invariant guards; fresh prefix/full-ISA/full-block qualification and measured cost. | Schema7 qualified and integrated: balanced invalid-witness proofs, complete block, all 52 writer citations, 17 CSP cases and 1,032,240-step/all63-opcode Sail agreement. Native cells fall by 588,775,424 (2.814%) from schema6. |
 | Production GKR | Recursion cost gate; services integration replacing actual local interaction work; authenticated terminal claims against committed MAIN on the global lifted domain; explicit bounded allocator/pool ownership; transcript/shape/claim rejection tests; fresh execution and recursive receiver qualification; production security budget. An isolated range mini-AIR alone does not satisfy this row. | Experimental OM31 services lane now proves the complete pinned block (25 CPU + five truth proofs), with fresh receivers for both q70 control and beta2/q256 engineering candidate. Local GKR claims are bound to committed MAIN; RAM/KIO/Wire remain classic global debts. Packed, pooled numerical GKR and binding are implemented. Whole-protocol security qualification and accepting current-profile recursion remain open; the lane is explicitly experimental. |
-| Repeated expansion | Measure composition FFT versus row evaluation and memory traffic. Preserve native-coefficient DEEP folding. Adopt reuse only if bounded end-to-end measurements establish a benefit; otherwise document rejection and pursue structural work reduction. | Earlier losing designs retained as evidence; new unqualified cache experiment stopped pending the measurement gate. |
-| Scheduling/ownership | Controlled current baseline; stage/cell/CPU/fault/memory accounting; lane and admission sweep using existing controls; complete-block truths-first A/B; explicit ownership/lifetime bounds and byte/fresh-verification parity for adopted changes. | Phase-specific memory admission, parallel stage-two lanes, bounded parked MAIN, pooled sampling and classic OM31 interaction generation are qualified with full-block exact artifact parity. Capture prefetch has six matched capture-only measurements (1.63x median), with complete proof parity still pending before promotion. Fixed coefficient interning cuts actual candidate receiver requested peak 11.67 to 6.54 GB and RSS 12.82 to 7.37 GB; this is not a whole-prover footprint claim. |
+| Repeated expansion | Measure composition FFT versus row evaluation and memory traffic. Preserve native-coefficient DEEP folding. Adopt reuse only if bounded end-to-end measurements establish a benefit; otherwise document rejection and pursue structural work reduction. | Retained expansion caches were rejected on measurements. Compact-coefficient DEEP is preserved; coefficient-sized pruned opening windows now qualify on beta2 (1.891 → 0.722 s median decommit, exact artifacts and six fresh receivers). No retained LDE cache is introduced. |
+| Scheduling/ownership | Controlled current baseline; stage/cell/CPU/fault/memory accounting; lane and admission sweep using existing controls; complete-block truths-first A/B; explicit ownership/lifetime bounds and byte/fresh-verification parity for adopted changes. | Phase-specific memory admission, parallel stage-two lanes, bounded parked MAIN, pooled sampling and classic OM31 interaction generation are qualified with full-block exact artifact parity. Capture prefetch has six matched capture-only measurements (1.63x median) and complete-block exact artifact/fresh-receiver parity. Owning CLI source retirement releases all 7.026 GB captured native payload and 2.409 GB ordinary RAM advice; completed worker owners retire after detached results. Fixed coefficient interning cuts actual candidate receiver requested peak 11.67 to 6.54 GB and RSS 12.82 to 7.37 GB; this is not a whole-prover footprint claim. |
 | Service providers | Measure actual standalone Keccak/secp costs and lifted openings; qualify narrower or lower-degree alternatives on real calls with retained relation metadata and all bridge/truth obligations. Preserve legacy acceptance rules. | Metadata/query separation and trusted Word16-only canonical-input variant integrated; legacy input checks retained. Physical noncanonical ghosts verify locally but closed Wire rejects them. Model saves 61,071,360 native cells on the pinned block; no measured speedup or recursion admission claim. |
 | GPU readiness | Current protocol/hasher authority, portable base/secure field separation, independently sized providers, measured allocation lifetimes and honest device admission model. Actual GPU execution and end-to-end device qualification remain a later phase by explicit user request. | Source-derived compact lifetime/placement model and CPU ownership contracts committed. Hash-state planning now uses the actual 96-byte type. OM31 device GKR/DEEP/FRI and authenticated device custody remain unsupported. No GPU speed or residency claim. |
 
 ## November 2 delivery checkpoint
 
-The experimental GKR route is now an actual complete-block implementation, not
-the earlier isolated prototype described in the historical notes below. The
-current measured prefix uses 4,194,303 retirements, one CPU proof, no truth
-proofs, and the unchanged q70/P26/fold4 benchmark control. Packed arithmetic,
-parallel domain evaluation, pooled sampling, bounded inverse work, compact
-Merkle state and pooled public auxiliary construction bring its proving time
-from 143.34 seconds in the original scalar implementation to 9.35 seconds in
-the latest combined observation. All four durable artifacts match exactly and
-a new receiver accepts. The matched classic QM31 control is still faster at
-5.25 seconds. Neither profile establishes whole-protocol 128-bit security;
-OM31 is a wider arithmetic field, not a security certificate. The two-second
-stretch target remains unmet.
+The authenticated OM31 services lane proves the complete pinned block with 25
+CPU and five truth proofs, and independent receivers accept the expected43-byte
+output. The current source-pinned q70/P26/fold4 observation is242.44s proving,
+262.68s wall and42.49GB peak RSS, with capture2,2x8 lanes,1GiB recycler and
+explicit tight dense admission. All33 durable artifacts match the prior312.38s
+complete observation. Several kernels, ownership and operational settings changed;
+this is a combined result, not an isolated GKR-algorithm speedup.
 
-Complete q70 GKR blocks pass at 335.77 seconds with parallel classic interaction
-generation, or 322.84 seconds with opt-in stage-two interleaving. The latter
-increases peak RSS and remains opt-in. All 33 durable artifacts match the older
-complete control and fresh receivers accept the expected 43-byte output. A
-separate beta2/q256/P0/fold4 engineering run proves all 104,253,913 instructions
-in 462.64 seconds and passes an independently reconstructed receiver. These
-single observations precede the latest compact-state/public-auxiliary changes;
-they are not final-source, quiet repeated speedup claims.
+A matched same-binary full-block control with the original136B/fact admission
+costs250.84s proving versus242.44s with104B/fact. Stage1 falls111.27→103.45s;
+stage2 stays about139s. The smaller reserve enables some CPU shards to overlap,
+but adjacent heavy shards still serialize under36GiB payload admission. Source
+bounds remain separate from process RSS and original capture/setup ownership.
+The default remains conservative; all lower-memory modes are explicit opt-ins.
 
-The remaining critical gates are measured net GKR performance against an
-appropriate control, complete-block parity for the capture opt-in, final-source
-benchmarks, a reviewed composed security construction, and an accepting current
-OM31/GKR recursion receiver. GPU qualification remains deferred by the user.
-Receipts live under `vectors/reports/rv64-compact-aux-20261102/`,
-`rv64-om-ethereum-20261102/`, `rv64-full-candidate-20261102/`, and
-`rv64-fixed-coefficient-intern-20261102/`.
+The current real4.19M-retirement prefix proves in8.44s median after packed/pooled
+numerical work and active AIR accumulation changes. The same-field classic OM31
+control costs7.95s source+proving versus8.46s GKR in ABBA observations. GKR removes
+39.7% of native MAIN+INTER cells, but numerical and terminal-binding work offset
+the native saving. **No net CPU GKR win is demonstrated.** Historical QM31 classic
+5.25s is a different-field control. The two-second stretch target remains unmet.
+
+The stride-two lazy checkpoint path has exact proof/fresh-receiver parity. In a
+matched two-shard parallel triplet, whole-process RSS falls30.73→20.35GB (1.51x),
+while proving changes16.23→16.71s. That is one shared-host prefix triplet, not a
+whole-block memory claim. A further immutable raw-source replay experiment is
+being qualified separately before a lower resource bound or default is adopted.
+
+The beta2/q256/P0/fold4 engineering profile has already completed the same block
+in462.64s on an earlier source, with independent fresh acceptance. Final combined
+source qualification and its current memory/performance tradeoffs are in progress.
+Both profiles deliberately report security_qualified=false. Whole-protocol128
+composition/security review and an accepting current OM31/GKR recursive root
+remain open. GPU execution remains deferred by the user; CPU ownership, portable
+constraint authority and resident memory preparation continue.
+
+Receipts: `rv64-om-ethereum-20261102/fullblock-tight-dense-owned-v1/`,
+`rv64-om-classic-control-20261102/`, `rv64-coefficient-window-20261102/`,
+`rv64-gkr-tree-checkpoints-20261102/prefix2-triplet-receipt.json`, and
+`rv64-full-candidate-20261102/`, under `vectors/reports/`.
 
 ## Evidence and controls
 
