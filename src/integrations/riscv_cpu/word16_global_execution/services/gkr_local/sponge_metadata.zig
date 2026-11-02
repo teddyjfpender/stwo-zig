@@ -21,3 +21,28 @@ pub fn retainedPlanBytes(plan: *const K.source.Plan) !usize {
     }
     return result;
 }
+
+/// Every message window has18 word slots per permutation. This bounds all
+/// retained Plan copies from admitted call/permutation counts before building.
+pub fn requestUpperBound(counts: @import("../types.zig").SpongeCounts) !usize {
+    const words = try std.math.mul(usize, counts.perms, K.types.SLOTS);
+    const calls = try std.math.mul(usize, counts.calls, @sizeOf(K.types.Call));
+    const word_bytes = try std.math.mul(usize, words, @sizeOf(K.types.State));
+    const permutations = try std.math.mul(usize, counts.perms, @sizeOf([2][25]u64) + @sizeOf(u32));
+    return std.math.add(usize, @sizeOf(K.source.Plan), try std.math.add(usize, calls, try std.math.add(usize, word_bytes, permutations)));
+}
+/// Plan.init also constructs one call's u64 word vector and permutation output
+/// at a time. Conservatively bound that call by the entire admitted inventory.
+/// Source MAIN/fixed/histogram buffers are separate caller-owned task floors.
+pub fn sourceAllocationUpperBound(counts: @import("../types.zig").SpongeCounts) !usize {
+    const words = try std.math.mul(usize, counts.perms, K.types.SLOTS);
+    const helper = try std.math.add(usize, try std.math.mul(usize, words, @sizeOf(u64)), try std.math.mul(usize, counts.perms, @sizeOf([2][25]u64)));
+    return std.math.add(usize, try requestUpperBound(counts), helper);
+}
+
+pub fn localUpperBound(kind: K.layout.Kind, log: u32) !usize {
+    if (log < 5 or log > 22) return error.InvalidSpongeGkrMetadata;
+    const rows = @as(usize, 1) << @intCast(log);
+    const fixed = try std.math.mul(usize, rows, K.layout.FIXED * 4);
+    return std.math.add(usize, fixed, (65536 + 256 + @as(usize, if (kind == .perm) 65536 else 0)) * @sizeOf(u64));
+}
