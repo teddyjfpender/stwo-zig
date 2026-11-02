@@ -40,7 +40,7 @@ pub fn planForStatementWithProfiles(public: Statement, policy: rv.arithmetic.div
     return planForStatementWithControl(public, policy, profile, .bytes_v1);
 }
 pub fn planForStatementWithControl(public: Statement, policy: rv.arithmetic.division.policy.Policy, profile: ExecutionProfile, control: rv.control_policy.Policy) !rv.encoding.Plan {
-    try public.validateWithProfile(profile);
+    try validateLegacyStatement(public, profile);
     var opcodes: [65]rv.evaluation.O = undefined;
     var count: usize = 0;
     for (public.opcodes, 0..) |enabled, opcode| if (enabled) {
@@ -134,7 +134,7 @@ pub const PreparedMaterials = struct {
         self.* = undefined;
     }
     fn validate(self: *const PreparedMaterials, public: Statement) !void {
-        try public.validateWithProfile(self.plan.execution_profile);
+        try validateLegacyStatement(public, self.plan.execution_profile);
         if (public.logSize() != self.log_size or !std.mem.eql(bool, &public.opcodes, &self.plan.allowed_opcodes) or public.program.words.len != self.program.rows.len) return error.Rv64FullSetupMismatch;
         for (public.program.words, 0..) |word, i| {
             if (public.program.pc(i) != self.program.addresses[i]) return error.Rv64FullSetupMismatch;
@@ -578,4 +578,12 @@ pub fn validateAuthorityProgram(authority: *const ProgramAuthority, public: Rom.
     if (public.words.ptr == expected.words.ptr and public.addresses.len == expected.addresses.len and (public.addresses.len == 0 or public.addresses.ptr == expected.addresses.ptr)) return;
     if (!std.mem.eql(u32, public.words, expected.words)) return error.Rv64FullSetupMismatch;
     for (0..public.words.len) |i| if (public.pc(i) != expected.pc(i)) return error.Rv64FullSetupMismatch;
+}
+
+/// The packet statement admits one segment of up to 2^23-1 steps (wide-clock
+/// Word16 CPUs). The legacy full-AIR proof keeps its historical limit of fewer
+/// than 2^22 steps on both prover and verifier.
+fn validateLegacyStatement(public: Statement, profile: anytype) !void {
+    try public.validateWithProfile(profile);
+    if (public.steps >= 1 << 22) return error.InvalidRv64FullStatement;
 }
