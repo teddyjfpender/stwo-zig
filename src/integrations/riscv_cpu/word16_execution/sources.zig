@@ -162,13 +162,15 @@ pub const Source = struct {
         if (g.cpu_u8_pairs) @memset(c8, 0);
         const pair_counts = if (g.cpu_u8_pairs) try cpuPairCounts(a, &cpu) else null;
         defer if (pair_counts) |data| a.free(data);
+        // MUL pair mode: the 96 BYTE queries per row become 48 AND-relation pairs.
+        if (g.mul_u8_pairs) try multiplication.addBytePairCounts(pair_counts orelse return error.InvalidMulPairGeometry);
         try addCounts(c16, alu.range16_counts);
         try addCounts(c16, shift.range16_counts);
         if (tails.alu) |tail| try addCounts(c16, tail.range16_counts);
         if (tails.shift) |tail| try addCounts(c16, tail.range16_counts);
         try addCounts(c16, memory.counts16);
         if (!g.omit_empty_division) try addCounts(c16, division.counts16);
-        try addCounts(c8, &multiplication.byte_counts);
+        if (!g.mul_u8_pairs) try addCounts(c8, &multiplication.byte_counts);
         try addCounts(c8, memory.counts8);
         count_stage.end();
         var range16 = blk: {
@@ -327,6 +329,7 @@ pub const Source = struct {
         const multiplication = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_multiplication", "MUL interactions");
             defer stage.end();
+            if (self.materials.geometry.mul_u8_pairs) break :block try A.arithmetic.multiplication.degree3_source.generatePairs(&self.multiplication, AB.multiplication(ch.cpu.function), self.and_table.pair_dictionary);
             break :block try A.arithmetic.multiplication.degree3_source.generateLegacy(&self.multiplication, AB.multiplication(ch.cpu.function), ch.cpu.range8.offset);
         };
         const memory = block: {

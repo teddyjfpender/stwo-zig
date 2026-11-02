@@ -37,12 +37,18 @@ pub const Geometry = struct {
     /// the tagged tuple (x, y, 0, 1) in the AND relation, served by a second
     /// multiplicity column of the AND table. CPU interaction 36 -> 32 columns.
     cpu_u8_pairs: bool = false,
+    /// Opt-in MUL byte-pair lookups (requires cpu_u8_pairs, whose AND table
+    /// carries the pair multiplicity column): the 96 MUL BYTE queries become
+    /// 48 tagged pair queries (x, y, 0, 1) of the AND relation, two per strict
+    /// inverse column, and the FUNCTION fraction is fused into the prefix.
+    /// MUL interaction 200 -> 100 columns (multiplication.pairs_layout).
+    mul_u8_pairs: bool = false,
     /// Omits the opt-in layout flags when false so legacy bundle.json bytes are unchanged.
     pub fn jsonStringify(self: Geometry, jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(Geometry)) |field| {
             const value = @field(self, field.name);
-            const omitted = if (comptime std.mem.eql(u8, field.name, "cpu_fused_tail") or std.mem.eql(u8, field.name, "cpu_u8_pairs"))
+            const omitted = if (comptime isLayoutFlag(field.name))
                 !value
             else if (comptime @typeInfo(field.type) == .optional)
                 value == null and !jws.options.emit_null_optional_fields
@@ -55,6 +61,10 @@ pub const Geometry = struct {
         }
         try jws.endObject();
     }
+    /// Opt-in layout flags: Boolean, default false, omitted from JSON when false.
+    pub fn isLayoutFlag(comptime name: []const u8) bool {
+        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs");
+    }
     pub fn initialLog(self: Geometry) u32 {
         return self.initial_log orelse self.boundary_log;
     }
@@ -65,6 +75,8 @@ pub const Geometry = struct {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         // The pair encoding is defined only on top of the fused tail.
         if (self.cpu_u8_pairs and !self.cpu_fused_tail) return error.InvalidCpuPairGeometry;
+        // MUL pairs are served by the pair column that only the CPU pair layout provides.
+        if (self.mul_u8_pairs and !self.cpu_u8_pairs) return error.InvalidMulPairGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
@@ -75,7 +87,7 @@ pub const Geometry = struct {
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{rows(self.cpu_log) + 2 * rows(self.jalr_log) + (if (self.omit_empty_division) @as(u64, 0) else 2 * rows(self.division_log))});
         // AND relation: BINARY AND queries plus, in pair mode, two tagged CPU pair queries per row.
-        _ = try B.function_bus.admitPositiveMass(&.{8 * familyRows(self.binary_log, self.binary_tail_log) + (if (self.cpu_u8_pairs) 2 * rows(self.cpu_log) else @as(u64, 0))});
+        _ = try B.function_bus.admitPositiveMass(&.{try self.andMass()});
         _ = try B.function_bus.admitPositiveMass(&.{B.shift_word_packed_experiment.equations.TABLE_QUERIES * familyRows(self.shift_log, self.shift_tail_log)});
     }
     pub const LsCounts = struct { head: u32, tail: u32 };
@@ -104,10 +116,20 @@ pub const Geometry = struct {
         if (!self.omit_empty_division) total = try std.math.add(u64, total, A.division.word16_product.layout.RANGE_QUERIES * rows(self.division_log));
         return total;
     }
+    /// AND relation: BINARY AND queries plus, in pair mode, the tagged byte
+    /// pair queries (two per CPU row, 48 per MUL row), padding included.
+    pub fn andMass(self: Geometry) !u64 {
+        var total = 8 * familyRows(self.binary_log, self.binary_tail_log);
+        if (self.cpu_u8_pairs) total = try std.math.add(u64, total, 2 * rows(self.cpu_log));
+        if (self.mul_u8_pairs) total = try std.math.add(u64, total, A.multiplication.pairs_layout.PAIR_QUERIES * rows(self.multiplication_log));
+        return total;
+    }
     pub fn range8Mass(self: Geometry) !u64 {
-        // Pair mode moves the CPU's three gap8 queries to the AND relation.
+        // Pair mode moves the CPU's three gap8 queries (and, with mul_u8_pairs,
+        // the 96 MUL BYTE queries) to the AND relation.
         const cpu: u64 = if (self.cpu_u8_pairs) 0 else 3 * rows(self.cpu_log);
-        var total = try std.math.add(u64, cpu, A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
+        const mul: u64 = if (self.mul_u8_pairs) 0 else A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log);
+        var total = try std.math.add(u64, cpu, mul);
         total = try std.math.add(u64, total, LS.U8_QUERIES * self.lsRows());
         return total;
     }
@@ -154,7 +176,7 @@ pub fn shapesForProgramLog(program_log: u32, geometry: Geometry) [ROLE_COUNT]Sha
             .shift_tail => if (geometry.shift_tail_log != null) .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION } else .{ 0, 0, 0 },
             .jalr => .{ front.rv64_air.word16_execution.jalr_equations.FIXED, front.rv64_air.word16_execution.jalr_equations.MAIN, front.rv64_air.word16_execution.jalr_equations.INTERACTION },
             .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.word16_product.layout.FIXED, A.division.word16_product.layout.MAIN, A.division.word16_product.layout.INTERACTION },
-            .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.degree3_layout.INTERACTION },
+            .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, if (geometry.mul_u8_pairs) A.multiplication.pairs_layout.INTERACTION else A.multiplication.degree3_layout.INTERACTION },
             .shift_table => .{ 18, 16, 36 },
             .and_table => .{ 5, if (geometry.cpu_u8_pairs) 2 else 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },

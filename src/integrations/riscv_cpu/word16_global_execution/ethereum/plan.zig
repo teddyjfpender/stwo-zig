@@ -28,6 +28,8 @@ pub const CpuLayout = struct {
     /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
     /// instances are sized on the remainder.
     ls_dword: bool = false,
+    /// MUL byte pairs served by the AND pair column (requires u8_pairs).
+    mul_u8_pairs: bool = false,
     /// Default layout for a profile route. Only the admitted
     /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
     /// LS-D64; every older route keeps its historical layout and bundle bytes.
@@ -61,6 +63,7 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
         g.cpu_fused_tail = layout.fused_tail;
         g.cpu_u8_pairs = layout.u8_pairs;
+        g.mul_u8_pairs = layout.mul_u8_pairs;
         d.* = .{ .geometry = g, .bridges = .{} };
         // The same two-instance ladder as LS32 (one inactive row per instance).
         if (dword != 0) {

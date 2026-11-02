@@ -23,6 +23,12 @@ pub const Options = struct {
     /// Producer planning only: keep every LD/SD in the LS32 instances instead
     /// of the v3 LS-D64 component (the receiver admits either declared shape).
     no_ls_dword: bool = false,
+    /// Producer planning only: opt-in component layout flags on top of the
+    /// profile default (`--layout=mul_u8_pairs,...`). Every flag is part of
+    /// the declared Geometry and transcript; admitProfile refuses them off v3.
+    layout: Layout = .{},
+    layout_set: bool = false,
+    pub const Layout = struct { mul_u8_pairs: bool = false };
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -77,6 +83,19 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--no-ls-dword")) {
                 if (out.no_ls_dword) return error.DuplicateOperationalOption;
                 out.no_ls_dword = true;
+            } else if (std.mem.startsWith(u8, arg, "--layout=")) {
+                if (out.layout_set) return error.DuplicateOperationalOption;
+                out.layout_set = true;
+                var parts = std.mem.splitScalar(u8, arg["--layout=".len..], ',');
+                while (parts.next()) |part| {
+                    var known = false;
+                    inline for (std.meta.fields(Layout)) |field| if (std.mem.eql(u8, part, field.name)) {
+                        if (@field(out.layout, field.name)) return error.DuplicateOperationalOption;
+                        @field(out.layout, field.name) = true;
+                        known = true;
+                    };
+                    if (!known) return error.UnknownLayoutFlag;
+                }
             } else if (std.mem.eql(u8, arg, "--keep-fixed-witness")) {
                 if (out.keep_fixed_witness) return error.DuplicateOperationalOption;
                 out.keep_fixed_witness = true;
@@ -104,7 +123,7 @@ pub const Options = struct {
         return policy;
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.layout_set;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {
