@@ -70,7 +70,21 @@ pub fn ForCoordinates(comptime coordinate_count: usize, comptime View: type) typ
                     for (self.class_views[class.view_start..][0..class.view_len]) |view_index| {
                         inline for (0..DEGREE) |coord| @memset(self.views[view_index].coordinates[coord][start..end], M31.zero());
                     }
-                    for (self.class_members[class.member_start..][0..class.member_len]) |member| {
+                    const members = self.class_members[class.member_start..][0..class.member_len];
+                    var at: usize = 0;
+                    while (at < members.len) {
+                        const member = members[at];
+                        if (members.len - at >= 4) {
+                            const four = members[at..][0..4];
+                            var compatible = true;
+                            for (four) |candidate| compatible = compatible and candidate.view_index == member.view_index and candidate.source.len >= end;
+                            if (compatible) {
+                                accumulateFourMembers(&self.views[member.view_index].coordinates, start, end, four);
+                                at += 4;
+                                continue;
+                            }
+                        }
+                        at += 1;
                         if (member.source.len <= start) continue;
                         const stop = @min(end, member.source.len);
                         accumulate4(&self.views[member.view_index].coordinates, start, stop, member.source, member.coefficients);
@@ -101,6 +115,33 @@ pub fn ForCoordinates(comptime coordinate_count: usize, comptime View: type) typ
             while (index < stop) : (index += 1) {
                 inline for (0..DEGREE) |coord| {
                     coordinates[coord][index] = coordinates[coord][index].add(source[index].mul(coefficients[coord]));
+                }
+            }
+        }
+
+        /// Four canonical products fit exactly in u64. Reuse that existing dot
+        /// authority to reduce once and touch each destination plane once.
+        fn accumulateFourMembers(coordinates: *const [DEGREE][]M31, start: usize, stop: usize, members: *const [4]Member) void {
+            var coefficients: [DEGREE][4]m31.PackedM31 = undefined;
+            inline for (0..DEGREE) |coord| inline for (0..4) |term| {
+                coefficients[coord][term] = @splat(members[term].coefficients[coord].v);
+            };
+            var index = start;
+            while (index + m31.PACK_WIDTH <= stop) : (index += m31.PACK_WIDTH) {
+                var values: [4]m31.PackedM31 = undefined;
+                inline for (0..4) |term| values[term] = m31.loadPacked(members[term].source.ptr + index);
+                inline for (0..DEGREE) |coord| {
+                    const destination = coordinates[coord].ptr + index;
+                    m31.storePacked(destination, m31.addPacked(m31.loadPacked(destination), m31.dot4Packed(values, coefficients[coord])));
+                }
+            }
+            while (index < stop) : (index += 1) {
+                var values: [4]M31 = undefined;
+                inline for (0..4) |term| values[term] = members[term].source[index];
+                inline for (0..DEGREE) |coord| {
+                    var cs: [4]M31 = undefined;
+                    inline for (0..4) |term| cs[term] = members[term].coefficients[coord];
+                    coordinates[coord][index] = coordinates[coord][index].add(m31.dot4(values, cs));
                 }
             }
         }
@@ -166,8 +207,8 @@ pub fn ForCoordinates(comptime coordinate_count: usize, comptime View: type) typ
                     class_views[view_at] = index;
                     view_at += 1;
                 }
-                // Members keep their column-outer order, so a column's members are
-                // adjacent and its chunk is reused from L1 across sample batches.
+                // Preserve caller order. Consecutive same-view members can use
+                // the dot4 reducer; mixed views retain the original path.
                 for (members) |member| {
                     if (classKey(views[member.view_index]) != size) continue;
                     class_members[member_at] = member;
