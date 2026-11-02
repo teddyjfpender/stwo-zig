@@ -114,7 +114,7 @@ pub fn main() !void {
                 if (tree == 0) totals.legacy_fixed_bytes += amount else totals.legacy_interaction_bytes += amount;
             }
         }
-        plans[i] = if (policy.stream_bottom) try RP.forCpuWithStreamedBottom(a, &setup, request, config, std.math.maxInt(usize), global_bytes) else try RP.forCpuWithTightAdmission(a, &setup, request, config, std.math.maxInt(usize), global_bytes, policy.checkpointed, policy.tight_admission);
+        plans[i] = if (policy.stream_bottom) try RP.forCpuWithSourceStorage(a, &setup, request, config, std.math.maxInt(usize), global_bytes, policy.checkpointed) else try RP.forCpuWithTightAdmission(a, &setup, request, config, std.math.maxInt(usize), global_bytes, policy.checkpointed, policy.tight_admission);
         task_estimates[i] = try RP.taskEstimates(plans[i], global_bytes);
         try totals.record(plans[i]);
         resident[i] = try Resident.forCpuWithRetention(a, &setup, config, plans[i]);

@@ -40,29 +40,33 @@ const instances = [_]Frame.Instance{
 };
 const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
 fn streamedLifecycle(allocator: std.mem.Allocator) !void {
-    const child = try Child.Unbound.proveTimedWithPolicy(allocator, 4 << 20, scope, &instances, Metadata{}, .{ .checkpointed = true, .tight_admission = true, .stream_bottom = true }, null);
-    defer child.deinit();
-    var pending = try Child.verifyPending(allocator, scope, &instances, &child.result.proof, child.digest);
-    defer pending.deinit(allocator);
+    inline for ([_]bool{ false, true }) |cp| {
+        const child = try Child.Unbound.proveTimedWithPolicy(allocator, 4 << 20, scope, &instances, Metadata{}, .{ .checkpointed = cp, .tight_admission = true, .stream_bottom = true }, null);
+        defer child.deinit();
+        var pending = try Child.verifyPending(allocator, scope, &instances, &child.result.proof, child.digest);
+        defer pending.deinit(allocator);
+    }
 }
 test "streamed metadata child is byte equal with physical terminal binding and cleans every OOM" {
     const before = try Child.Unbound.proveTimedWithPolicy(a, 4 << 20, scope, &instances, Metadata{}, .{ .checkpointed = true, .tight_admission = true }, null);
     defer before.deinit();
-    const after = try Child.Unbound.proveTimedWithPolicy(a, 4 << 20, scope, &instances, Metadata{}, .{ .checkpointed = true, .tight_admission = true, .stream_bottom = true }, null);
-    defer after.deinit();
-    try std.testing.expectEqualDeep(before.result.proof, after.result.proof);
-    try std.testing.expectEqualDeep(before.result.artifact, after.result.artifact);
-    try std.testing.expectEqualDeep(before.binding.columns, after.binding.columns);
-    try std.testing.expectEqualDeep(before.digest, after.digest);
-    var pending = try Child.verifyPending(a, scope, &instances, &after.result.proof, after.digest);
-    defer pending.deinit(a);
+    inline for ([_]bool{ false, true }) |cp| {
+        const after = try Child.Unbound.proveTimedWithPolicy(a, 4 << 20, scope, &instances, Metadata{}, .{ .checkpointed = cp, .tight_admission = true, .stream_bottom = true }, null);
+        defer after.deinit();
+        try std.testing.expectEqualDeep(before.result.proof, after.result.proof);
+        try std.testing.expectEqualDeep(before.result.artifact, after.result.artifact);
+        try std.testing.expectEqualDeep(before.binding.columns, after.binding.columns);
+        try std.testing.expectEqualDeep(before.digest, after.digest);
+        var pending = try Child.verifyPending(a, scope, &instances, &after.result.proof, after.digest);
+        defer pending.deinit(a);
+    }
     try std.testing.checkAllAllocationFailures(a, streamedLifecycle, .{});
 }
-test "streamed metadata selection defaults off rejects malformed policy and requires checkpoint2" {
+test "streamed metadata selection defaults off rejects malformed policy and independently selects dense or checkpoint upper storage" {
     try std.testing.expect(!try Child.parseStreamBottom(null, true));
     try std.testing.expect(!try Child.parseStreamBottom("0", false));
     try std.testing.expect(try Child.parseStreamBottom("1", true));
-    try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("1", false));
+    try std.testing.expect(try Child.parseStreamBottom("1", false));
     try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("2", true));
     try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.parseStreamBottom("yes", true));
     try std.testing.expectError(error.InvalidGkrStreamBottomPolicy, Child.Unbound.proveTimedWithPolicy(a, 0, scope, &instances, Metadata{}, .{ .stream_bottom = true }, null));

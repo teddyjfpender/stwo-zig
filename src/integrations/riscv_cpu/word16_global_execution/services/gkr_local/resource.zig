@@ -26,6 +26,9 @@ pub const Plan = struct {
     pub fn forInstancesWithStreamedBottom(instances: []const Instance, limit: usize) !Plan {
         return forInstancesPolicy(instances, limit, true, true, true);
     }
+    pub fn forInstancesWithSourceStorage(instances: []const Instance, limit: usize, checkpointed: bool) !Plan {
+        return forInstancesPolicy(instances, limit, checkpointed, true, true);
+    }
     fn forInstancesPolicy(instances: []const Instance, limit: usize, checkpointed: bool, tight: bool, streamed: bool) !Plan {
         if (limit == 0) return error.MissingLocalGkrBudget;
         var numerical = Numerical.Plan{};
@@ -34,7 +37,7 @@ pub const Plan = struct {
         var projection_scratch: usize = 0;
         for (instances) |instance| {
             facts = try std.math.add(usize, facts, try instance.facts());
-            if (checkpointed) projection_scratch = @max(projection_scratch, try @import("prepared_projection.zig").For(@import("stwo_core").fields.om31.OM31).maxBytesForTerms(instance.terms));
+            if (checkpointed or streamed) projection_scratch = @max(projection_scratch, try @import("prepared_projection.zig").For(@import("stwo_core").fields.om31.OM31).maxBytesForTerms(instance.terms));
             try numerical.add(.{ .kind = .multiplicities, .variables = try instance.variables() });
             p.binding_bytes = try std.math.add(usize, p.binding_bytes, try std.math.mul(usize, try instance.rows(), 64));
         }
@@ -42,10 +45,10 @@ pub const Plan = struct {
         p.input_bytes = if (streamed) 0 else numerical.input_bytes;
         // Retained field name for receipt compatibility; this is the complete
         // working-plane reserve, not an assertion that input is still cloned.
-        p.owned_layer_bytes = if (tight) try std.math.mul(usize, facts, 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
+        p.owned_layer_bytes = if (tight) try std.math.mul(usize, facts, if (streamed and !checkpointed) @as(usize, 80) else 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
         p.metadata_bytes = numerical.metadata_bytes;
         const binding_headers = try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31));
-        const binding_phase = try std.math.add(usize, try std.math.add(usize, if (checkpointed) projection_scratch else p.input_bytes, p.binding_bytes), try std.math.add(usize, binding_headers, p.metadata_bytes));
+        const binding_phase = try std.math.add(usize, try std.math.add(usize, if (checkpointed or streamed) projection_scratch else p.input_bytes, p.binding_bytes), try std.math.add(usize, binding_headers, p.metadata_bytes));
         const numerical_peak = try std.math.add(usize, try std.math.add(usize, p.input_bytes, p.owned_layer_bytes), p.metadata_bytes);
         // Metadata includes retained proof/artifact and adapter owner headers.
         // The parent-owned binding planes remain externally charged under the
