@@ -33,6 +33,17 @@ pub const Provider = struct {
         if (logical >= try instance.rows()) return error.LocalGkrMetadataShape;
         var base_sink = BaseSink{ .target = sink };
         switch (instance.origin) {
+            .bulk => |kind| switch (kind) {
+                inline else => |k| {
+                    const src = &(self.source.bulk[@intFromEnum(k)] orelse return error.MissingLocalGkrBridge);
+                    if (src.kind != k or src.log_size != instance.row_log or instance.terms != @import("bulk_projection.zig").localTerms(k)) return error.LocalGkrMetadataShape;
+                    if (src.fixed.len != src.size() * A.crypto.bulk_memory.layout.fixedWidth(k)) return error.LocalGkrMetadataRetired;
+                    var fixed: [A.crypto.bulk_memory.layout.fixedWidth(k)]M = undefined;
+                    const physical = A.crypto.bulk_memory.source.physical(logical, src.log_size);
+                    for (&fixed, 0..) |*v, c| v.* = src.fixed[c * src.size() + physical];
+                    @import("bulk_projection.zig").emitLocalFor(M, k, &fixed, &src.row(k, logical), &base_sink);
+                },
+            },
             .core => |role| try self.emitCore(role, logical, sink),
             .bridge => |family| switch (family) {
                 .keccak => {

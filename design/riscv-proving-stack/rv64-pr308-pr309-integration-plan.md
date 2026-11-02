@@ -59,3 +59,14 @@ PR308 reports3.283instructions/gas and40,336committed bits/gas over its scored b
 The alternate `gkr_prover_fast` is documented as on par with production, materializes layers and lacks bounded streamed/checkpoint paths. Replacing the production engine would discard qualified memory behavior without a measured win. Any useful fused-kernel idea should be ported into the existing pooled engine after a controlled comparison.
 
 No GPU execution is part of this review. The user can continue finishing PR308 on its branch; only a final head/build-manifest freeze is needed before the production merge and end-to-end qualification. The isolated trial remains available for implementation meanwhile.
+
+## Authenticated bulk foundation checkpoint
+
+The next slice shares one ordered raw tuple emitter between classic fractions,
+local GKR and global RAM for all nine bulk/JUMPDEST kinds. It adds the physical
+OM31 bulk component, durable RAM metadata retirement and receiver-derived v3
+child domains/codec framing. Complete classic v3 re-proving preserves all15
+artifact hashes; fresh legacy v2 GKR reception still succeeds. See
+[the component design and remaining gates](rv64-v3-authenticated-bulk-gkr.md).
+This is not a complete v3 worker/receiver integration: production admission
+remains closed, including retention and the reviewed source-support model.

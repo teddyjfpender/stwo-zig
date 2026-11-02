@@ -191,6 +191,7 @@ pub const CpuWorker = struct {
         if (self.source.keccak) |*bridge| releaseBridgeLocals(bridge);
         if (self.source.add) |*bridge| releaseBridgeLocals(bridge);
         if (self.source.double) |*bridge| releaseBridgeLocals(bridge);
+        for (&self.source.bulk) |*bulk| if (bulk.*) |*src| @import("bulk_metadata.zig").retireLocal(src);
         self.local_metadata_retired = true;
     }
     /// Stage-one barrier ownership seam. The field-neutral retained store owns
@@ -324,6 +325,7 @@ pub const CpuWorker = struct {
             if (self.source.keccak) |*source| source.deinit();
             if (self.source.add) |*source| source.deinit();
             if (self.source.double) |*source| source.deinit();
+            for (&self.source.bulk) |*bulk| if (bulk.*) |*src| src.deinit();
         } else self.source.deinit();
         if (self.owns_scheme) self.scheme.deinit(a);
         self.plan.deinit();

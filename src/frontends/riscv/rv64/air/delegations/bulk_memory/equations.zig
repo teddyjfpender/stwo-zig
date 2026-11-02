@@ -191,32 +191,29 @@ pub fn cdescAddress(comptime F: type, m: []const F, k: usize) [4]F {
     for (0..k) |j| p = advance(F, p, m[carries[j]..][0..3], 8);
     return p;
 }
-/// Lookup-cheap byte split of a canonical limb `lo + 256 hi`: `lo < 256` as
-/// two U16 facts and `hi < 2^16` as one; with the limb < 2^16 this forces
-/// `hi < 256` (lo + 256 hi < 2^24 < p is an integer equation).
-fn limbBytes(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), lo: F, hi: F) [3]Fraction(F) {
-    const b = byteRanges(F, ch, lo);
-    return .{ b[0], b[1], range(F, ch, hi) };
+fn queryRange(comptime F: type, value: F, sink: anytype) void {
+    sink.emit(RANGE16, [1]F{value}, F.one());
 }
-fn ramPair(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), address: [4]F, k: []const F, after: [3]F, before_value: [4]F, after_value: [4]F, readable: F, writable: F, active: F) [2]Fraction(F) {
-    const b = ch.ram.denominatorFor(F, ramTuple(F, address, k[L.clock.epoch], k[L.clock.low], k[L.clock.high], before_value, readable, writable));
-    const a = ch.ram.denominatorFor(F, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable));
-    return .{ .{ .d = b, .w = active, .relation = RAM }, .{ .d = a, .w = active.neg(), .relation = RAM } };
+fn queryBytes(comptime F: type, value: F, sink: anytype) void {
+    queryRange(F, value, sink);
+    queryRange(F, value.mul(E.qFor(F, 256)), sink);
 }
-fn range(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), value: F) Fraction(F) {
-    return .{ .d = ch.range16.denominatorFor(F, value), .w = F.one(), .relation = RANGE16 };
+fn queryLimbBytes(comptime F: type, lo: F, hi: F, sink: anytype) void {
+    queryBytes(F, lo, sink);
+    queryRange(F, hi, sink);
 }
-/// U8 facts as two U16 facts: x < 2^16 and 256x < 2^16 imply x < 256.
-fn byteRanges(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), value: F) [2]Fraction(F) {
-    return .{ range(F, ch, value), range(F, ch, value.mul(E.qFor(F, 256))) };
+fn queryClock(comptime F: type, clock: []const F, sink: anytype) void {
+    queryRange(F, clock[L.clock.gap16], sink);
+    queryBytes(F, clock[L.clock.gap8], sink);
 }
-fn clockRanges(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), k: []const F) [3]Fraction(F) {
-    const b = byteRanges(F, ch, k[L.clock.gap8]);
-    return .{ range(F, ch, k[L.clock.gap16]), b[0], b[1] };
+fn queryRam(comptime F: type, address: [4]F, clock: []const F, after: [3]F, before_value: [4]F, after_value: [4]F, readable: F, writable: F, active: F, sink: anytype) void {
+    sink.emit(RAM, ramTuple(F, address, clock[L.clock.epoch], clock[L.clock.low], clock[L.clock.high], before_value, readable, writable), active);
+    sink.emit(RAM, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable), active.neg());
 }
-pub fn fractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, ch: T.ChallengesFor(E.ConstFor(F))) [L.fractionCount(kind)]Fraction(F) {
-    var out: [L.fractionCount(kind)]Fraction(F) = undefined;
-    var at: usize = 0;
+/// Single ordered polynomial tuple authority for classic LogUp and authenticated
+/// local GKR/global RAM projections. No challenge, inverse or heap allocation.
+/// Zero-weight queries and padded rows remain present in the exact legacy order.
+pub fn emitQueries(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, sink: anytype) void {
     const one = F.one();
     const after = afterClock(F, m, kind);
     switch (kind) {
@@ -225,173 +222,130 @@ pub fn fractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []con
             const set = m[L.desc.set];
             for (0..3) |k| {
                 const value = descPacket(F, m, k);
-                const pair = ramPair(F, ch, descAddress(F, m, k), m[L.desc.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[L.desc.writable + k], a);
-                out[at] = pair[0];
-                out[at + 1] = pair[1];
-                at += 2;
+                queryRam(F, descAddress(F, m, k), m[L.desc.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[L.desc.writable + k], a, sink);
             }
             const dst = limbs(F, m, L.desc.dst);
             const words = descWords(F, m);
-            out[at] = .{ .d = ch.owner.denominatorFor(F, ecallTuple(F, limbs(F, m, L.desc.pointer), F.one().add(set), after[0], after[1], after[2])), .w = a.neg(), .relation = OWNER };
-            out[at + 1] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_COPY, after[0], after[1], after[2], dst, limbs(F, m, L.desc.word1), words)), .w = a.sub(set), .relation = OWNER };
-            out[at + 2] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_SET, after[0], after[1], after[2], dst, .{ m[L.desc.fill_low], F.zero(), F.zero(), F.zero() }, words)), .w = set, .relation = OWNER };
-            at += 3;
-            out[at] = range(F, ch, m[L.desc.tick_low]);
-            at += 1;
-            inline for (.{ m[L.desc.tick_high], m[L.desc.fill_low], m[L.desc.fill_high] }) |v| {
-                const b = byteRanges(F, ch, v);
-                out[at] = b[0];
-                out[at + 1] = b[1];
-                at += 2;
-            }
-            out[at] = range(F, ch, m[L.desc.len_q0]);
-            at += 1;
-            for (0..3) |k| {
-                const r = clockRanges(F, ch, m[L.desc.clocks + L.CLOCK * k ..][0..L.CLOCK]);
-                @memcpy(out[at..][0..3], &r);
-                at += 3;
-            }
+            sink.emit(OWNER, ecallTuple(F, limbs(F, m, L.desc.pointer), one.add(set), after[0], after[1], after[2]), a.neg());
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_COPY, after[0], after[1], after[2], dst, limbs(F, m, L.desc.word1), words), a.sub(set));
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_SET, after[0], after[1], after[2], dst, .{ m[L.desc.fill_low], F.zero(), F.zero(), F.zero() }, words), set);
+            queryRange(F, m[L.desc.tick_low], sink);
+            inline for (.{ m[L.desc.tick_high], m[L.desc.fill_low], m[L.desc.fill_high] }) |v| queryBytes(F, v, sink);
+            queryRange(F, m[L.desc.len_q0], sink);
+            for (0..3) |k| queryClock(F, m[L.desc.clocks + L.CLOCK * k ..][0..L.CLOCK], sink);
         },
         .copy => {
             const a = m[L.copy.active];
             const value = limbs(F, m, L.copy.value);
-            const d = ramPair(F, ch, limbs(F, m, L.copy.dst), m[L.copy.dst_clock..][0..L.CLOCK], after, limbs(F, m, L.copy.dst_before), value, one, one, a);
-            const s = ramPair(F, ch, limbs(F, m, L.copy.src), m[L.copy.src_clock..][0..L.CLOCK], after, value, value, one, m[L.copy.src_writable], a);
-            out[0..4].* = .{ d[0], d[1], s[0], s[1] };
-            out[4] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_COPY, after[0], after[1], after[2], limbs(F, m, L.copy.dst), limbs(F, m, L.copy.src), m[L.copy.remaining])), .w = m[L.copy.start].neg(), .relation = OWNER };
-            const rd = clockRanges(F, ch, m[L.copy.dst_clock..][0..L.CLOCK]);
-            const rs = clockRanges(F, ch, m[L.copy.src_clock..][0..L.CLOCK]);
-            out[5..8].* = rd;
-            out[8..11].* = rs;
-            at = 11;
+            queryRam(F, limbs(F, m, L.copy.dst), m[L.copy.dst_clock..][0..L.CLOCK], after, limbs(F, m, L.copy.dst_before), value, one, one, a, sink);
+            queryRam(F, limbs(F, m, L.copy.src), m[L.copy.src_clock..][0..L.CLOCK], after, value, value, one, m[L.copy.src_writable], a, sink);
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_COPY, after[0], after[1], after[2], limbs(F, m, L.copy.dst), limbs(F, m, L.copy.src), m[L.copy.remaining]), m[L.copy.start].neg());
+            queryClock(F, m[L.copy.dst_clock..][0..L.CLOCK], sink);
+            queryClock(F, m[L.copy.src_clock..][0..L.CLOCK], sink);
         },
         .set => {
             const a = m[L.set.active];
             const fill = m[L.set.fill].mul(E.qFor(F, 257));
-            const d = ramPair(F, ch, limbs(F, m, L.set.dst), m[L.set.dst_clock..][0..L.CLOCK], after, limbs(F, m, L.set.dst_before), .{ fill, fill, fill, fill }, one, one, a);
-            out[0..2].* = d;
-            out[2] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_SET, after[0], after[1], after[2], limbs(F, m, L.set.dst), .{ m[L.set.fill], F.zero(), F.zero(), F.zero() }, m[L.set.remaining])), .w = m[L.set.start].neg(), .relation = OWNER };
-            out[3..6].* = clockRanges(F, ch, m[L.set.dst_clock..][0..L.CLOCK]);
-            at = 6;
+            queryRam(F, limbs(F, m, L.set.dst), m[L.set.dst_clock..][0..L.CLOCK], after, limbs(F, m, L.set.dst_before), .{ fill, fill, fill, fill }, one, one, a, sink);
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_SET, after[0], after[1], after[2], limbs(F, m, L.set.dst), .{ m[L.set.fill], F.zero(), F.zero(), F.zero() }, m[L.set.remaining]), m[L.set.start].neg());
+            queryClock(F, m[L.set.dst_clock..][0..L.CLOCK], sink);
         },
         .ucopy => {
             const U = L.ucopy;
             const a = m[U.active];
-            const c = a.sub(m[U.start]);
             const value = byteLimbs(F, m[U.bytes..][0..8]);
-            const d = ramPair(F, ch, limbs(F, m, U.dst), m[U.dst_clock..][0..L.CLOCK], after, limbs(F, m, U.dst_before), limbs(F, m, U.out), one, one, c);
-            const s = ramPair(F, ch, limbs(F, m, U.src), m[U.src_clock..][0..L.CLOCK], after, value, value, one, m[U.src_writable], a);
-            out[0..4].* = .{ d[0], d[1], s[0], s[1] };
-            out[4] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_COPY, after[0], after[1], after[2], limbs(F, m, U.dst), ucopySource(F, m), m[U.remaining].sub(one))), .w = m[U.start].neg(), .relation = OWNER };
-            out[5..8].* = clockRanges(F, ch, m[U.dst_clock..][0..L.CLOCK]);
-            out[8..11].* = clockRanges(F, ch, m[U.src_clock..][0..L.CLOCK]);
-            at = 11;
-            for (0..4) |i| {
-                out[at..][0..3].* = limbBytes(F, ch, m[U.bytes + 2 * i], m[U.bytes + 2 * i + 1]);
-                at += 3;
-            }
+            queryRam(F, limbs(F, m, U.dst), m[U.dst_clock..][0..L.CLOCK], after, limbs(F, m, U.dst_before), limbs(F, m, U.out), one, one, a.sub(m[U.start]), sink);
+            queryRam(F, limbs(F, m, U.src), m[U.src_clock..][0..L.CLOCK], after, value, value, one, m[U.src_writable], a, sink);
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_COPY, after[0], after[1], after[2], limbs(F, m, U.dst), ucopySource(F, m), m[U.remaining].sub(one)), m[U.start].neg());
+            queryClock(F, m[U.dst_clock..][0..L.CLOCK], sink);
+            queryClock(F, m[U.src_clock..][0..L.CLOCK], sink);
+            for (0..4) |i| queryLimbBytes(F, m[U.bytes + 2 * i], m[U.bytes + 2 * i + 1], sink);
         },
         .cdesc => {
             const D = L.cdesc;
             const a = m[D.active];
             for (0..3) |k| {
                 const value = cdescPacket(F, m, k);
-                const pair = ramPair(F, ch, cdescAddress(F, m, k), m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[D.writable + k], a);
-                out[at] = pair[0];
-                out[at + 1] = pair[1];
-                at += 2;
+                queryRam(F, cdescAddress(F, m, k), m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[D.writable + k], a, sink);
             }
-            const result = ramPair(F, ch, cdescAddress(F, m, 3), m[D.clocks + 3 * L.CLOCK ..][0..L.CLOCK], after, limbs(F, m, D.result_before), resultLimbs(F, m[D.neg], m[D.pos]), one, one, a);
-            out[at] = result[0];
-            out[at + 1] = result[1];
-            at += 2;
-            out[at] = .{ .d = ch.owner.denominatorFor(F, ecallTuple(F, limbs(F, m, D.pointer), E.qFor(F, 3), after[0], after[1], after[2])), .w = a.neg(), .relation = OWNER };
-            out[at + 1] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_CMP, after[0], after[1], after[2], limbs(F, m, D.a), limbs(F, m, D.b), m[D.len_q0].add(m[D.len_l1].mul(E.qFor(F, 8192))))), .w = a, .relation = OWNER };
-            out[at + 2] = .{ .d = ch.owner.denominatorFor(F, resultTuple(F, after, m[D.neg], m[D.pos])), .w = a.neg(), .relation = OWNER };
-            at += 3;
-            out[at] = range(F, ch, m[D.tick_low]);
-            const th = byteRanges(F, ch, m[D.tick_high]);
-            out[at + 1] = th[0];
-            out[at + 2] = th[1];
-            out[at + 3] = range(F, ch, m[D.len_q0]);
-            at += 4;
-            for (0..4) |k| {
-                out[at..][0..3].* = clockRanges(F, ch, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK]);
-                at += 3;
-            }
+            queryRam(F, cdescAddress(F, m, 3), m[D.clocks + 3 * L.CLOCK ..][0..L.CLOCK], after, limbs(F, m, D.result_before), resultLimbs(F, m[D.neg], m[D.pos]), one, one, a, sink);
+            sink.emit(OWNER, ecallTuple(F, limbs(F, m, D.pointer), E.qFor(F, 3), after[0], after[1], after[2]), a.neg());
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_CMP, after[0], after[1], after[2], limbs(F, m, D.a), limbs(F, m, D.b), m[D.len_q0].add(m[D.len_l1].mul(E.qFor(F, 8192)))), a);
+            sink.emit(OWNER, resultTuple(F, after, m[D.neg], m[D.pos]), a.neg());
+            queryRange(F, m[D.tick_low], sink);
+            queryBytes(F, m[D.tick_high], sink);
+            queryRange(F, m[D.len_q0], sink);
+            for (0..4) |k| queryClock(F, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], sink);
         },
         .cmp => {
             const C = L.cmp;
             const a = m[C.active];
-            const pa = ramPair(F, ch, limbs(F, m, C.a), m[C.a_clock..][0..L.CLOCK], after, limbs(F, m, C.va), limbs(F, m, C.va), one, m[C.a_writable], a);
-            const pb = ramPair(F, ch, limbs(F, m, C.b), m[C.b_clock..][0..L.CLOCK], after, limbs(F, m, C.vb), limbs(F, m, C.vb), one, m[C.b_writable], a);
-            out[0..4].* = .{ pa[0], pa[1], pb[0], pb[1] };
-            out[4] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_CMP, after[0], after[1], after[2], limbs(F, m, C.a), limbs(F, m, C.b), m[C.remaining])), .w = m[C.start].neg(), .relation = OWNER };
-            out[5] = .{ .d = ch.owner.denominatorFor(F, resultTuple(F, after, m[C.lt], m[C.diff].sub(m[C.lt]))), .w = m[C.last], .relation = OWNER };
-            out[6..9].* = clockRanges(F, ch, m[C.a_clock..][0..L.CLOCK]);
-            out[9..12].* = clockRanges(F, ch, m[C.b_clock..][0..L.CLOCK]);
-            out[12..15].* = limbBytes(F, ch, m[C.alo], m[C.ahi]);
-            out[15..18].* = limbBytes(F, ch, m[C.blo], m[C.bhi]);
-            out[18] = range(F, ch, m[C.gap]);
-            at = 19;
+            queryRam(F, limbs(F, m, C.a), m[C.a_clock..][0..L.CLOCK], after, limbs(F, m, C.va), limbs(F, m, C.va), one, m[C.a_writable], a, sink);
+            queryRam(F, limbs(F, m, C.b), m[C.b_clock..][0..L.CLOCK], after, limbs(F, m, C.vb), limbs(F, m, C.vb), one, m[C.b_writable], a, sink);
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_CMP, after[0], after[1], after[2], limbs(F, m, C.a), limbs(F, m, C.b), m[C.remaining]), m[C.start].neg());
+            sink.emit(OWNER, resultTuple(F, after, m[C.lt], m[C.diff].sub(m[C.lt])), m[C.last]);
+            queryClock(F, m[C.a_clock..][0..L.CLOCK], sink);
+            queryClock(F, m[C.b_clock..][0..L.CLOCK], sink);
+            queryLimbBytes(F, m[C.alo], m[C.ahi], sink);
+            queryLimbBytes(F, m[C.blo], m[C.bhi], sink);
+            queryRange(F, m[C.gap], sink);
         },
         .jdesc => {
             const D = L.jdesc;
             const a = m[D.active];
             for (0..3) |k| {
                 const value = jdescPacket(F, m, k);
-                out[at..][0..2].* = ramPair(F, ch, jdescAddress(F, m, k), m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[D.writable + k], a);
-                at += 2;
+                queryRam(F, jdescAddress(F, m, k), m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[D.writable + k], a, sink);
             }
             const words = m[D.len_q0].add(m[D.len_l1].mul(E.qFor(F, 8192)));
-            out[at] = .{ .d = ch.owner.denominatorFor(F, ecallTuple(F, limbs(F, m, D.pointer), E.qFor(F, @as(u16, @truncate(T.JUMPDEST_TAG))), after[0], after[1], after[2])), .w = a.neg(), .relation = OWNER };
-            out[at + 1] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], jdescPacket(F, m, 0), limbs(F, m, D.bitmap), words)), .w = a, .relation = OWNER };
-            at += 2;
-            out[at] = range(F, ch, m[D.tick_low]);
-            out[at + 1 ..][0..2].* = byteRanges(F, ch, m[D.tick_high]);
-            out[at + 3] = range(F, ch, m[D.len_q0]);
-            // code limb 0 = 64 q with q < 2^16 and 64 q < 2^16: q < 1024.
-            out[at + 4] = range(F, ch, m[D.code_q]);
-            out[at + 5] = range(F, ch, m[D.code_q].mul(E.qFor(F, 64)));
-            at += 6;
-            for (0..3) |k| {
-                out[at..][0..3].* = clockRanges(F, ch, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK]);
-                at += 3;
-            }
+            sink.emit(OWNER, ecallTuple(F, limbs(F, m, D.pointer), E.qFor(F, @as(u16, @truncate(T.JUMPDEST_TAG))), after[0], after[1], after[2]), a.neg());
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], jdescPacket(F, m, 0), limbs(F, m, D.bitmap), words), a);
+            queryRange(F, m[D.tick_low], sink);
+            queryBytes(F, m[D.tick_high], sink);
+            queryRange(F, m[D.len_q0], sink);
+            queryRange(F, m[D.code_q], sink);
+            queryRange(F, m[D.code_q].mul(E.qFor(F, 64)), sink);
+            for (0..3) |k| queryClock(F, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], sink);
         },
         .jscan => {
             const J = L.jscan;
             const a = m[J.active];
             for (0..8) |w| {
                 const value = byteLimbs(F, m[J.bytes + 8 * w ..][0..8]);
-                out[at..][0..2].* = ramPair(F, ch, jscanWordAddress(F, m, w), m[J.clocks + L.CLOCK * w ..][0..L.CLOCK], after, value, value, one, m[J.writable + w], jscanValid(F, m, w));
-                at += 2;
+                queryRam(F, jscanWordAddress(F, m, w), m[J.clocks + L.CLOCK * w ..][0..L.CLOCK], after, value, value, one, m[J.writable + w], jscanValid(F, m, w), sink);
             }
-            out[at..][0..2].* = ramPair(F, ch, limbs(F, m, J.bitmap), m[J.wclock..][0..L.CLOCK], after, limbs(F, m, J.before), jscanBitmapLimbs(F, m), one, one, a);
-            at += 2;
-            out[at] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], limbs(F, m, J.code), limbs(F, m, J.bitmap), m[J.remaining])), .w = m[J.start].neg(), .relation = OWNER };
-            at += 1;
-            for (0..64) |k| {
-                const t = tableTuple(F, m[J.pending + k], m[J.bytes + k], m[J.pending + k + 1], m[J.jd + k]);
-                out[at] = .{ .d = ch.owner.denominatorFor(F, t), .w = jscanValid(F, m, k / 8).neg(), .relation = OWNER };
-                at += 1;
-            }
-            for (0..8) |w| {
-                out[at..][0..3].* = clockRanges(F, ch, m[J.clocks + L.CLOCK * w ..][0..L.CLOCK]);
-                at += 3;
-            }
-            out[at..][0..3].* = clockRanges(F, ch, m[J.wclock..][0..L.CLOCK]);
-            at += 3;
+            queryRam(F, limbs(F, m, J.bitmap), m[J.wclock..][0..L.CLOCK], after, limbs(F, m, J.before), jscanBitmapLimbs(F, m), one, one, a, sink);
+            sink.emit(OWNER, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], limbs(F, m, J.code), limbs(F, m, J.bitmap), m[J.remaining]), m[J.start].neg());
+            for (0..64) |k| sink.emit(OWNER, tableTuple(F, m[J.pending + k], m[J.bytes + k], m[J.pending + k + 1], m[J.jd + k]), jscanValid(F, m, k / 8).neg());
+            for (0..8) |w| queryClock(F, m[J.clocks + L.CLOCK * w ..][0..L.CLOCK], sink);
+            queryClock(F, m[J.wclock..][0..L.CLOCK], sink);
         },
-        .jtab => {
-            const t = tableTuple(F, f[L.jtab.pending], f[L.jtab.byte], f[L.jtab.next], f[L.jtab.jumpdest]);
-            out[0] = .{ .d = ch.owner.denominatorFor(F, t), .w = m[L.jtab.multiplicity], .relation = OWNER };
-            at = 1;
-        },
+        .jtab => sink.emit(OWNER, tableTuple(F, f[L.jtab.pending], f[L.jtab.byte], f[L.jtab.next], f[L.jtab.jumpdest]), m[L.jtab.multiplicity]),
     }
     if (kind != .jtab) std.debug.assert(f.len == 0 or f.len >= L.FIXED);
-    std.debug.assert(at == out.len);
-    return out;
+}
+/// Classic compression is a consumer of the same raw ordered tuples. GKR's
+/// local/global split consumes emitQueries directly, without tuple buffers.
+pub fn fractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, ch: T.ChallengesFor(E.ConstFor(F))) [L.fractionCount(kind)]Fraction(F) {
+    const Collector = struct {
+        challenges: T.ChallengesFor(E.ConstFor(F)),
+        values: [L.fractionCount(kind)]Fraction(F) = undefined,
+        count: usize = 0,
+        pub fn emit(self: *@This(), comptime relation: u2, tuple: anytype, weight: F) void {
+            const d = switch (relation) {
+                RAM => self.challenges.ram.denominatorFor(F, tuple),
+                OWNER => self.challenges.owner.denominatorFor(F, tuple),
+                RANGE16 => self.challenges.range16.denominatorFor(F, tuple[0]),
+                else => unreachable,
+            };
+            self.values[self.count] = .{ .d = d, .w = weight, .relation = relation };
+            self.count += 1;
+        }
+    };
+    var collector = Collector{ .challenges = ch };
+    emitQueries(F, kind, f, m, &collector);
+    std.debug.assert(collector.count == collector.values.len);
+    return collector.values;
 }
 /// Strict lexicographic RAM predecessor `(be, bt) < (E, T)` as an integer fact.
 /// Same epoch: bl + 2^16 bh + g16 + 2^16 g8 + 1 = TL + 2^16 TH (< 2^25 < p).
@@ -583,9 +537,14 @@ fn jscanConstraints(comptime F: type, m: []const F, pm: []const F, out: *E.SinkF
     for (1..8) |w| for (0..8) |b| out.emit(m[J.jd + 8 * w + b].mul(one.sub(m[J.valid + w - 1])));
 }
 pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: T.RowsFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    emitMainFor(F, kind, f, m, pm, rows, out);
+    emitFractions(F, kind, f, m, i, pi, claims, ch, out);
+}
+/// Shared MAIN authority; local binding and global RAM are separate consumers.
+pub fn emitMainFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     // The transition table has no activity: every row is a (valid) entry
     // whose multiplicity is free; only its fraction and prefix are checked.
-    if (kind == .jtab) return emitFractions(F, kind, f, m, i, pi, claims, ch, out);
+    if (kind == .jtab) return;
     const one = F.one();
     const a = m[0];
     const width = L.main(kind);
@@ -650,7 +609,6 @@ pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const
         },
         .jtab => unreachable,
     }
-    emitFractions(F, kind, f, m, i, pi, claims, ch, out);
 }
 pub fn emitFractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, i: []const F, pi: []const F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const Sec = E.SecureFor(F);

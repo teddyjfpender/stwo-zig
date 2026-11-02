@@ -1,0 +1,140 @@
+{
+  "scope": "Authenticated bulk component foundation and framing; production v3 GKR admission CLOSED",
+  "base_commit": "b0b223f659df6c81c318134a5ba1954ffd250982",
+  "pr308_snapshot": "2490495dd16a35a2961cd113870a0a490ff36018",
+  "checks": {
+    "classic_v3_complete_block_reprove_and_fresh_verify": true,
+    "classic_v3_all_15_artifacts_byte_identical": true,
+    "legacy_v2_complete_OM_GKR_fresh_verify": true,
+    "v3_GKR_production_admission_rejects": true,
+    "focused_services_gkr_and_bulk_ReleaseFast": true,
+    "focused_services_gkr_and_bulk_ReleaseSafe": true,
+    "both_Ethereum_drivers_build_ReleaseFast": true,
+    "four_invalid_physical_bindings_rejected_by_fresh_receivers": "OodsNotMatching for MAIN, terminal target, Eq and prefix",
+    "changed_global_RAM_claim_rejected": true,
+    "child_framing_mutations_and_cross_profile_replay_rejected": true
+  },
+  "classic_control": {
+    "field": "QM31",
+    "queries": 70,
+    "pow_bits": 26,
+    "fold_step": 1,
+    "steps": 26894777,
+    "cpu_proofs": 7,
+    "truth_proofs": 6
+  },
+  "classic_artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 376003,
+      "sha256": "a1518db32e5193d39bd1916d8cf30d6d4536d7aaee0b753dfb685b311aba8f3f"
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 2665312,
+      "sha256": "6965aaf9f88fb254e3d710bbdf18d31dcf32e4b7401a93f35cb203ad8a2ba52c"
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 2254624,
+      "sha256": "a0ff3b09de8d27c2e6c868a1ae86a1d058a7a75bc3e895c8d293adac3ad48397"
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 2535312,
+      "sha256": "df4268fa1c51c75798b5e344707b8b01e37a17c70d548aa121c41359a0542fae"
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 2536560,
+      "sha256": "62f50276c3996885c034cd6c872689167e1092fd6b10d4cee36f4929cc1c7870"
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 2501824,
+      "sha256": "e6e57cfdbee46310533dfdb8604bdbeef23836157a76cd1e6819c01c0cbd2674"
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 2388976,
+      "sha256": "a01df20286a29af84600c45c2116e5a209f65db79a1d826b4a893a2874ac0068"
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 1248664,
+      "sha256": "0898ef47ac46e08eb0d4b16cbe324740495ff15f40a554509aad538a69083c35"
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 1280744,
+      "sha256": "40dc646bc71095c8452750d3e6d4691c71869bd02ce1f95d46cf2d5d2004a93a"
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 1286616,
+      "sha256": "06673332aa5010a58ff8c899ce871b19f02d2ede0152060c4b1d15e573316241"
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 562800,
+      "sha256": "1b2fa575db456fc6cafa2cefa7feeb9df09fbc52486e4879b9f52dc03bfa63c6"
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 531752,
+      "sha256": "8d68acebea1184ae71f2431e36af55250e46a6140ba996345fd0e8dd777dffcd"
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 2352960,
+      "sha256": "741b88663cc1a10d3ab945439613c27483bc9a40119fe412c7305f98d89821e7"
+    },
+    {
+      "name": "truth-5.bin",
+      "bytes": 297780,
+      "sha256": "349fb15497b3b23af30b827bfc04ec9602604598562b80c0f0d04272f2d88083"
+    }
+  ],
+  "binaries": {
+    "rv64-word16-ethereum": "780b88a91388fa81a3f07d3c94c7c51851b6758069716d464f2cca10ebb54a0e",
+    "rv64-word16-ethereum-gkr": "3e87e767291d1098ecd1bbb47c0ecd4ed7ec8ddf29c6db0846af40388a2df69e"
+  },
+  "limits": [
+    "No accepted v3 GKR execution",
+    "No new speedup measurement",
+    "No new 128-bit or recursion qualification",
+    "Bulk worker-plan, cross-shard closure and weighted OWNER support gates remain closed"
+  ],
+  "modified_Zig_source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/bulk_memory/equations.zig": "7770babdda3aeeea5129e3041374b4957094ea00327499a680e5c3e9f68bac4b",
+    "src/frontends/riscv/rv64/air/delegations/bulk_memory/tests.zig": "bfa7c5f407bf769561a65f3cff0e5a375f6b14dcdccec33f8269f380a31f8204",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_metadata.zig": "14c3b159e82f1527b3527a48d03b5d21bb1e44e59662214b701c8b329d7b825e",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_projection.zig": "1407dbee66b3b51d76b4913cf9f77bbf91cb89ebc4ae5ca99613267935e3b848",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_projection_test.zig": "4def12e92a823bf3ac1adac6ed34d85bfd993ceec215967559ec860dd1e67895",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_role.zig": "1ca14c73e469db5d2615f749fb83a93ffc4a59e11dd832848a4806712c4dbae0",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/bulk_role_test.zig": "06ad7cee58003137d2e8721ad6b73323cdf08779e23f04d095528a81e3af4776",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig": "f7b1f8ac8dc0ba9555a84d23d3194917fedb20c528aba522993777aad713b6cf",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/cpu_worker.zig": "99595b2f4847c0b30378d18b47ba129351855d9383cedf23da1f6e49a4cc2ccc",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/dispatch.zig": "74a5d6fe736ce43b3d0b542ee35e524f0648c5b7d81e9e79013eba868b40b99d",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/frame.zig": "97a21f5274bb8a108f3941211d36c3fd04a590cd0a50c0353338b3cbbcb72994",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/global_cpu.zig": "9ff2b9b64281abeb46799ff8ab1a43a809b8e046d30720f966872d602bb6d971",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/global_metadata.zig": "3b85c67d6712a0a00c7404df183f3c11e22ac3f6df8b620f93fd7d7875883d11",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/native_provider.zig": "45ecf0bb2a3135084449516992795b8084908696a6923ac3edb9c30370a98984",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/query_metadata.zig": "3dc3ddd62be4ed18d400e8f925d499271a576a777375fb0d09d1b06c74d6c7d0",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/receipt.zig": "5d04d4e5041c5c696a660654c9f3ff32bbc643f35add900f681dfc40169e3031",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/retention_plan.zig": "e42273f696b37d64597689762307c36488ed167d252e062b51fb51a64cf57356",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/shape_metadata.zig": "c4199dfe9d6e34190e28ae526f803ab210f76639fc5d2e98ff7c49018573f6a1",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/source_bounds.zig": "9c885f253215324d31a47399474c675a854927e76d173bfdf058a24a8e9f8547",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/tests.zig": "f18299120d36bc1d7d7a5a75faa4903dcfd1b24a6cb3a0005386969ee2540b9a",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/wire.zig": "14a0e42a564861a3fe5f49d8268b0a72f11b705701415cf5d860be46f212f3b6"
+  },
+  "checks_commands": [
+    "zig build test-riscv64-services-gkr-local test-riscv64-word16-bulk-memory rv64-word16-ethereum rv64-word16-ethereum-gkr -Doptimize=ReleaseFast --summary all",
+    "zig build test-riscv64-services-gkr-local test-riscv64-word16-bulk-memory -Doptimize=ReleaseSafe --summary all"
+  ]
+}

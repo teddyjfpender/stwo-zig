@@ -75,3 +75,16 @@ test "static actual-fraction cardinalities match every admitted core and bridge 
     for (std.enums.values(Geometry.Role), CORE) |kind, counts| try std.testing.expectEqual(Roster.terms(kind), sum(counts));
     for (std.enums.values(Types.Family), BRIDGES) |kind, counts| try std.testing.expectEqual(Roster.bridgeTerms(kind), sum(counts));
 }
+
+fn bulkCounts(comptime kind: Types.BulkKind) Counts {
+    const B = A.crypto.bulk_memory;
+    var sink = Counter{};
+    @import("bulk_projection.zig").emitLocalFor(M, kind, &([_]M{M.zero()} ** B.layout.fixedWidth(kind)), &([_]M{M.zero()} ** B.layout.main(kind)), &sink);
+    return sink.counts;
+}
+pub const BULK: [Types.bulk_kinds.len]Counts = blk: {
+    @setEvalBranchQuota(1000000);
+    var out: [Types.bulk_kinds.len]Counts = undefined;
+    for (Types.bulk_kinds, &out) |kind, *counts_value| counts_value.* = bulkCounts(kind);
+    break :blk out;
+};

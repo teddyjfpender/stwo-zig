@@ -48,7 +48,7 @@ fn vector(writer: anytype, values: anytype) !void {
 /// emitted through writer.field, which must constrain canonical encodings.
 pub fn emitCanonical(scope: anytype, instances: []const Instance, proof: anytype, marginals: anytype, writer: anytype) !void {
     if (instances.len == 0 or instances.len > MAX_INSTANCES or marginals.len != instances.len or proof.output_claims_by_instance.len != instances.len or proof.layer_masks_by_instance.len != instances.len or proof.sumcheck_proofs.len > 30) return error.LocalGkrReceiptShape;
-    writer.bytes("RV64-SERVICES-LOCAL-GKR-OM31-V1");
+    writer.bytes(if (@import("frame.zig").v3Instances(instances)) "RV64-SERVICES-LOCAL-GKR-OM31-V3" else "RV64-SERVICES-LOCAL-GKR-OM31-V1");
     writer.bytes(&scope.statement);
     writer.bytes(&scope.fixed);
     writer.bytes(&scope.main);
@@ -56,16 +56,7 @@ pub fn emitCanonical(scope: anytype, instances: []const Instance, proof: anytype
     writer.integer(8); // Explicit field coordinate authority.
     writer.integer(instances.len);
     for (instances) |instance| {
-        switch (instance.origin) {
-            .core => |role| {
-                writer.integer(0);
-                writer.integer(@intFromEnum(role));
-            },
-            .bridge => |family| {
-                writer.integer(1);
-                writer.integer(@intFromEnum(family));
-            },
-        }
+        for (@import("frame.zig").originWords(instance.origin)) |word| writer.integer(word);
         writer.integer(instance.row_log);
         writer.integer(instance.terms);
         writer.integer(try instance.variables());

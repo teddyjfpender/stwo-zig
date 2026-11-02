@@ -11,6 +11,10 @@ const S = L.sumcheck.ForField(O);
 const Instance = @import("frame.zig").Instance;
 const MAX = @import("receipt.zig").MAX_INSTANCES;
 pub const MAGIC = "RV64LGKO";
+pub const V3_MAGIC = "RV64LGK3";
+fn magic(instances: []const Instance) []const u8 {
+    return if (@import("frame.zig").v3Instances(instances)) V3_MAGIC else MAGIC;
+}
 pub const MAX_BYTES = 16 << 20;
 fn u32_(out: *std.ArrayList(u8), a: std.mem.Allocator, value: usize) !void {
     var bytes: [4]u8 = undefined;
@@ -27,7 +31,7 @@ pub fn encode(a: std.mem.Allocator, instances: []const Instance, proof: *const V
     if (instances.len == 0 or instances.len > MAX or proof.output_claims_by_instance.len != instances.len or proof.layer_masks_by_instance.len != instances.len or proof.sumcheck_proofs.len > 30) return error.LocalGkrReceiptShape;
     var out = std.ArrayList(u8).empty;
     errdefer out.deinit(a);
-    try out.appendSlice(a, MAGIC);
+    try out.appendSlice(a, magic(instances));
     try u32_(&out, a, 8);
     try u32_(&out, a, instances.len);
     for (instances, proof.layer_masks_by_instance, proof.output_claims_by_instance) |instance, masks, outputs| {
@@ -89,7 +93,7 @@ pub const Owned = struct {
 };
 pub fn decode(a: std.mem.Allocator, instances: []const Instance, bytes: []const u8) !Owned {
     if (bytes.len > MAX_BYTES or instances.len == 0 or instances.len > MAX) return error.LocalGkrProofLimit;
-    if (bytes.len < MAGIC.len or !std.mem.eql(u8, bytes[0..MAGIC.len], MAGIC)) return error.LocalGkrWireProfile;
+    if (bytes.len < MAGIC.len or !std.mem.eql(u8, bytes[0..MAGIC.len], magic(instances))) return error.LocalGkrWireProfile;
     var r = Reader{ .bytes = bytes, .at = MAGIC.len };
     if (try r.u32_() != 8) return error.LocalGkrWireProfile;
     const count = try r.bounded(MAX);

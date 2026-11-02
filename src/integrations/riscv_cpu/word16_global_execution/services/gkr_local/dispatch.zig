@@ -5,6 +5,9 @@ const Frame = @import("frame.zig");
 const Fns = @import("fractions.zig");
 pub fn emitFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: []const F, epoch: F, boundary: A.word16_cpu.boundary.PublicFor(E.ConstFor(F)), sink: anytype) !void {
     switch (origin) {
+        .bulk => |kind| switch (kind) {
+            inline else => |k| @import("bulk_projection.zig").emitLocalFor(F, k, fixed, main, sink),
+        },
         .bridge => |family| switch (family) {
             .keccak => Fns.keccakBridgeFor(F, fixed, main, sink),
             .add => Fns.secpBridgeFor(F, .add, fixed, main, sink),

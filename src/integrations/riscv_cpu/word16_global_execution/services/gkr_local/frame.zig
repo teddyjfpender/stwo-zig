@@ -3,7 +3,25 @@
 const std = @import("std");
 const Geometry = @import("../../../word16_execution/geometry.zig");
 const Types = @import("../types.zig");
-pub const Origin = union(enum) { core: Geometry.Role, bridge: Types.Family };
+pub const Origin = union(enum) { core: Geometry.Role, bridge: Types.Family, bulk: Types.BulkKind };
+/// Stable binary tags. v2's original tags/ordering never depend on enum growth.
+pub fn originWords(origin: Origin) [2]u32 {
+    return switch (origin) {
+        .core => |v| .{ 0, @intFromEnum(v) },
+        .bridge => |v| .{ 1, @intFromEnum(v) },
+        .bulk => |v| .{ 2, @intFromEnum(v) },
+    };
+}
+pub fn v3Instances(instances: []const Instance) bool {
+    for (instances) |instance| switch (instance.origin) {
+        .bulk => return true,
+        .bridge => |family| if (@intFromEnum(family) >= Types.V2_FAMILIES) {
+            return true;
+        },
+        .core => {},
+    };
+    return false;
+}
 pub const Instance = struct {
     origin: Origin,
     row_log: u32,

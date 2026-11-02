@@ -122,6 +122,7 @@ fn emptyCpu() CpuScope {
 fn addCpuRole(scope: *CpuScope, origin: Frame.Origin, log: u32) !void {
     const count = try rows(log);
     const fractions = switch (origin) {
+        .bulk => |kind| Q.BULK[@intFromEnum(kind)],
         .core => |kind| Q.CORE[@intFromEnum(kind)],
         .bridge => |kind| Q.BRIDGES[@intFromEnum(kind)],
     };

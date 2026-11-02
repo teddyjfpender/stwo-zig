@@ -43,6 +43,7 @@ pub const Layout = struct {
 };
 pub fn layout(origin: Frame.Origin) Layout {
     return switch (origin) {
+        .bulk => |kind| .{ .ram_queries = @import("bulk_projection.zig").ramTerms(kind) },
         .core => |role| switch (role) {
             .ls, .ls_tail => .{ .ram_queries = 2 },
             .initial, .terminal => .{ .ram_queries = 1 },
@@ -55,6 +56,9 @@ pub fn layout(origin: Frame.Origin) Layout {
 /// native metadata generation and authenticated MAIN-mask constraints use it.
 pub fn queriesFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: []const F, sink: anytype) !void {
     switch (origin) {
+        .bulk => |kind| switch (kind) {
+            inline else => |k| @import("bulk_projection.zig").emitGlobalFor(F, k, fixed, main, sink),
+        },
         .core => |role| switch (role) {
             .ls, .ls_tail => {
                 const logical = A.memory.load_store_v2.layout.projection.expandFor(F, main);
@@ -89,8 +93,8 @@ pub fn queriesFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main
 pub fn QuerySinkFor(comptime F: type, comptime Shared: type) type {
     return struct {
         shared: *const Shared,
-        ram: [8]E.SecureFor(F) = undefined,
-        ram_weights: [8]F = undefined,
+        ram: [18]E.SecureFor(F) = undefined,
+        ram_weights: [18]F = undefined,
         ram_count: usize = 0,
         other: [2]E.SecureFor(F) = undefined,
         other_weights: [2]F = undefined,

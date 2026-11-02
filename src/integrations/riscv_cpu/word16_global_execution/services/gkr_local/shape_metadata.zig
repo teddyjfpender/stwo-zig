@@ -20,6 +20,11 @@ pub fn forOrigin(origin: Frame.Origin) !Descriptor {
     const global = Global.layout(origin);
     const max_samples = @import("role_geometry.zig").MAX_SAMPLES_PER_COLUMN;
     switch (origin) {
+        .bulk => |kind| {
+            const Bulk = @import("bulk_role.zig");
+            const shape = Bulk.mainShapeFor(kind);
+            return .{ .widths = .{ shape.fixed, shape.main, binding_columns + global.width() }, .constraints = Bulk.constraintCount(kind), .degree = Bulk.MAX_DEGREE, .max_samples = max_samples, .local_terms = @import("bulk_projection.zig").localTerms(kind) };
+        },
         .bridge => |family| {
             const shape = Service.mainShapeFor(family);
             return .{ .widths = .{ shape.fixed, shape.main, binding_columns + global.width() }, .constraints = Service.constraintCount(family), .degree = Service.MAX_DEGREE, .max_samples = max_samples, .local_terms = Roster.bridgeTerms(family) };

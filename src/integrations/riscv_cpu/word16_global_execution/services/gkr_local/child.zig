@@ -17,7 +17,7 @@ const Closure = @import("closure.zig");
 const Budget = engine.host_budget_allocator.HostBudgetAllocator;
 pub fn begin(scope: Receipt.Scope, instances: []const Frame.Instance) Channel {
     var ch = Channel.init();
-    ch.mixU32s(&.{ 0x53474b31, 8, scope.ordinal });
+    ch.mixU32s(&.{ if (Frame.v3Instances(instances)) @as(u32, 0x53474b33) else 0x53474b31, 8, scope.ordinal });
     for ([_][32]u8{ scope.statement, scope.fixed, scope.main }) |bytes| {
         var words: [8]u32 = undefined;
         for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
@@ -25,10 +25,7 @@ pub fn begin(scope: Receipt.Scope, instances: []const Frame.Instance) Channel {
     }
     ch.mixU32s(&.{@intCast(instances.len)});
     for (instances) |instance| {
-        switch (instance.origin) {
-            .core => |role| ch.mixU32s(&.{ 0, @intFromEnum(role) }),
-            .bridge => |family| ch.mixU32s(&.{ 1, @intFromEnum(family) }),
-        }
+        ch.mixU32s(&Frame.originWords(instance.origin));
         ch.mixU32s(&.{ instance.row_log, instance.terms });
         ch.mixU64(instance.fixed_offset);
         ch.mixU64(instance.main_offset);

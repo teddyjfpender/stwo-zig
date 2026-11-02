@@ -432,3 +432,10 @@ test {
 test {
     _ = @import("tree_selection.zig");
 }
+
+test {
+    _ = @import("bulk_projection_test.zig");
+}
+test {
+    _ = @import("bulk_role_test.zig");
+}

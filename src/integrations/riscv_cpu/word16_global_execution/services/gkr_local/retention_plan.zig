@@ -101,6 +101,7 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     for (plan.slots) |slot| {
         const n = try rows(slot.log);
         switch (slot.origin) {
+            .bulk => return error.GkrV3ServiceUnsupported,
             .core => |role| switch (role) {
                 .ls, .ls_tail => out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_v2.source.Metadata))),
                 .initial, .terminal => out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_v2.boundary_source.Metadata))),

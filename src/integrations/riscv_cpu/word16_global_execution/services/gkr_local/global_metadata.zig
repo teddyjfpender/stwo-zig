@@ -16,8 +16,8 @@ fn lift(values: anytype) [values.len]O {
 }
 const Sink = struct {
     shared: *const Manifest.Shared,
-    ram: [8]O = undefined,
-    ram_weights: [8]M = undefined,
+    ram: [18]O = undefined,
+    ram_weights: [18]M = undefined,
     ram_count: usize = 0,
     other: [2]O = undefined,
     other_weights: [2]M = undefined,
@@ -41,7 +41,7 @@ const Sink = struct {
         }
         switch (relation) {
             .ram => {
-                if (self.ram_count >= 8) {
+                if (self.ram_count >= 18) {
                     self.invalid = true;
                     return;
                 }
@@ -90,7 +90,9 @@ const Sink = struct {
 pub fn groups(origin: Frame.Origin) ![]const Classic.Group {
     const l = G.layout(origin);
     if (l.ram_queries == 0) return error.MissingWideGlobalRole;
-    return if (l.other_queries == 0) &.{.{ .inverses = 1 }} else if (l.ram_queries == 2) &.{ .{ .inverses = 1 }, .{ .inverses = 1 } } else &.{ .{ .inverses = 4 }, .{ .inverses = 1 } };
+    return if (origin == .bulk) switch (origin.bulk) {
+        inline else => |kind| if (@import("bulk_projection.zig").ramTerms(kind) == 0) error.MissingWideGlobalRole else &.{.{ .inverses = comptime @as(u16, @intCast((@import("bulk_projection.zig").ramTerms(kind) + 1) / 2)) }},
+    } else if (l.other_queries == 0) &.{.{ .inverses = 1 }} else if (l.ram_queries == 2) &.{ .{ .inverses = 1 }, .{ .inverses = 1 } } else &.{ .{ .inverses = 4 }, .{ .inverses = 1 } };
 }
 pub const Provider = struct {
     /// Validated metadata and challenge inputs are immutable; fill allocates nothing.
@@ -106,6 +108,16 @@ pub const Provider = struct {
         if (self.log_size < 5 or self.log_size > 22 or logical >= n or denominators.len != (l.ram_queries + 1) / 2 + (l.other_queries + 1) / 2 or numerators.len != denominators.len) return error.InvalidWideGlobalMetadata;
         var sink = Sink{ .shared = &self.shared };
         switch (self.origin) {
+            .bulk => |kind| switch (kind) {
+                inline else => |k| {
+                    const src = &(self.source.bulk[@intFromEnum(k)] orelse return error.MissingLocalGkrBridge);
+                    if (src.kind != k or src.log_size != self.log_size) return error.InvalidWideGlobalMetadata;
+                    // RAM tuples depend only on durable call/word metadata.
+                    // Fixed columns may already have retired with the local child.
+                    const fixed = [_]O{O.zero()} ** A.crypto.bulk_memory.layout.fixedWidth(k);
+                    try G.queriesFor(O, self.origin, &fixed, &lift(src.row(k, logical)), &sink);
+                },
+            },
             .core => |role| switch (role) {
                 .ls, .ls_tail => {
                     const src = if (role == .ls) &self.source.core.memory.ls else &(self.source.core.memory.ls_tail orelse return error.MissingLocalGkrTail);
