@@ -20,7 +20,46 @@
     },
     "new_generic_packed_mul_calls": 0
   },
-  "actual_service_AB_pending": true,
+  "actual_service_AB_pending": false,
   "whole_block_speedup_claim": false,
-  "whole_protocol_128": false
+  "whole_protocol_128": false,
+  "source": "49eb1e679",
+  "independent_source_review": "AIR read-only PASS: sameconcretequadraticauthority, operands/loadstore/tails/poles/OOM/pool/protocolunchanged",
+  "service_ABBA": {
+    "runs": 4,
+    "CPU_shards": 4,
+    "truths": [
+      "Keccak336",
+      "ADD817",
+      "DOUBLE680"
+    ],
+    "all40authoritative_hashes_identical": true,
+    "all4_fresh_accepted": true,
+    "medians": {
+      "baseline": {
+        "prove_seconds": 36.3968233335,
+        "numerical_seconds": 7.223129209,
+        "gkr_seconds": 9.284898312,
+        "inputs_seconds": 0.7094935824999999,
+        "binding_seconds": 1.257855667,
+        "native_complete_seconds": 20.257498062499998,
+        "truth_native_complete_seconds": 1.758077313,
+        "all_interaction_seconds": 0.37365899999999996,
+        "truth_interaction_seconds": 0.233929
+      },
+      "classic_inline": {
+        "prove_seconds": 36.861021354,
+        "numerical_seconds": 7.308866063,
+        "gkr_seconds": 9.392699374500001,
+        "inputs_seconds": 0.728553833,
+        "binding_seconds": 1.2600402075,
+        "native_complete_seconds": 20.5416440835,
+        "truth_native_complete_seconds": 1.6715989379999998,
+        "all_interaction_seconds": 0.352773,
+        "truth_interaction_seconds": 0.2169605
+      }
+    },
+    "scope": "q70/P26/fold4,16workers, explicitdefaultdense136/streamOFF; sharedhostprefixonly",
+    "interpretation": "Interactionstagessmaller; overallprefixdoesnotestablishspeedup, unrelatedGKRdriftsimilarly."
+  }
 }

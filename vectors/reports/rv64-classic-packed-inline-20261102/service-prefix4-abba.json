@@ -1,0 +1,1181 @@
+{
+  "source_commit": "49eb1e679",
+  "runs": [
+    {
+      "index": 0,
+      "variant": "baseline",
+      "binary_sha256": "a79e42e2cdb41e38e0cd749939293cb6df5338052f888d7ec97c4015f840757b",
+      "prove_seconds": 35.005801292,
+      "numerical_seconds": 6.911900834,
+      "gkr_seconds": 8.89734475,
+      "inputs_seconds": 0.699096832,
+      "binding_seconds": 1.196308251,
+      "native_complete_seconds": 19.535053125,
+      "truth_native_complete_seconds": 1.752531542,
+      "truth_inventory": [
+        {
+          "family": "keccak",
+          "first_id": 1,
+          "calls": 336,
+          "logs": [
+            13,
+            0
+          ]
+        },
+        {
+          "family": "add",
+          "first_id": 1,
+          "calls": 817,
+          "logs": [
+            14,
+            15
+          ]
+        },
+        {
+          "family": "double",
+          "first_id": 1,
+          "calls": 680,
+          "logs": [
+            14,
+            12
+          ]
+        }
+      ],
+      "source_seconds": 0.994089959,
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 2146015917,
+        "packet_import_ns": 1663563833,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1607991296,
+        "capture_before_proving": {
+          "native_payload": 1317696032,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 223284672,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "capture_after_proving": {
+          "native_payload": 0,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 0,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "setup_ns": 1870784000,
+        "prove_ns": 35005801292,
+        "same_process_verify_ns": 476213041,
+        "workers": [
+          {
+            "source_ns": 271912583,
+            "seal_native_and_gkr_ns": 3102996458,
+            "main_commit_ns": 847563166,
+            "gkr_ns": 2221597959,
+            "inputs_ns": 188114708,
+            "numerical_ns": 1711685125,
+            "binding_ns": 296662292,
+            "metadata_retire_ns": 2662125,
+            "spill_ns": 42,
+            "restore_ns": 0,
+            "native_complete_ns": 4873968125,
+            "stage1_ns": 3378147250,
+            "stage2_ns": 4874825875,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 86546448,
+            "memory_event_retire_ns": 576000,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 196021084,
+            "seal_native_and_gkr_ns": 2906097458,
+            "main_commit_ns": 802086791,
+            "gkr_ns": 2104001042,
+            "inputs_ns": 171288541,
+            "numerical_ns": 1622238375,
+            "binding_ns": 290721834,
+            "metadata_retire_ns": 2301250,
+            "spill_ns": 83,
+            "restore_ns": 42,
+            "native_complete_ns": 4804119750,
+            "stage1_ns": 3104617792,
+            "stage2_ns": 4804448209,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 41228352,
+            "memory_event_retire_ns": 197917,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 196741625,
+            "seal_native_and_gkr_ns": 2909609417,
+            "main_commit_ns": 819270875,
+            "gkr_ns": 2090328458,
+            "inputs_ns": 164549625,
+            "numerical_ns": 1617966584,
+            "binding_ns": 286542750,
+            "metadata_retire_ns": 2163208,
+            "spill_ns": 83,
+            "restore_ns": 42,
+            "native_complete_ns": 4643252208,
+            "stage1_ns": 3108731458,
+            "stage2_ns": 4643620292,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 39532176,
+            "memory_event_retire_ns": 217125,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 329414667,
+            "seal_native_and_gkr_ns": 3369569291,
+            "main_commit_ns": 854521417,
+            "gkr_ns": 2481417291,
+            "inputs_ns": 175143958,
+            "numerical_ns": 1960010750,
+            "binding_ns": 322381375,
+            "metadata_retire_ns": 2407542,
+            "spill_ns": 42,
+            "restore_ns": 0,
+            "native_complete_ns": 5213713042,
+            "stage1_ns": 3701758500,
+            "stage2_ns": 5214485125,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 55977696,
+            "memory_event_retire_ns": 366916,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 113232500,
+            "seal_native_and_gkr_ns": 33467084,
+            "main_commit_ns": 33467084,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 83,
+            "restore_ns": 0,
+            "native_complete_ns": 891345958,
+            "stage1_ns": 146699792,
+            "stage2_ns": 891346416,
+            "actual_main_merkle_bytes": 1048544,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 121923875,
+            "seal_native_and_gkr_ns": 16887167,
+            "main_commit_ns": 16887167,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 166,
+            "restore_ns": 0,
+            "native_complete_ns": 275761292,
+            "stage1_ns": 138811250,
+            "stage2_ns": 275761792,
+            "actual_main_merkle_bytes": 4194272,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 36836250,
+            "seal_native_and_gkr_ns": 11273375,
+            "main_commit_ns": 11273375,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 42,
+            "restore_ns": 0,
+            "native_complete_ns": 585424292,
+            "stage1_ns": 48109792,
+            "stage2_ns": 585424708,
+            "actual_main_merkle_bytes": 2097120,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          }
+        ],
+        "total_before_report_ns": 39531554292,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.809641,
+        "fri_quotient_build_and_commit": 1.254636,
+        "trace_decommit": 0.321207
+      },
+      "artifact_sha256": {
+        "bundle.json": "8be60e0e1c33063f355f1bd71d898457ba0f37b913c16e4f2d54aab8a9ed938b",
+        "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "cpu-0.bin": "0150cb9b2940913575c1132cf9bfb287fbd60d2e761a75aa446ecf4f69d5e90d",
+        "cpu-1.bin": "c2a0f9ac887f57bc8f39458be67548acc238f1ecb0e25e966ce28c809ecadf99",
+        "cpu-2.bin": "37617bae76fd05f574149a840ad12e289e81d634be07c7a3d188b52421b33435",
+        "cpu-3.bin": "9e8b5d0e6014cdca03126088485a8223a23c5677d25e927097fa761056c7344b",
+        "stage-one.bin": "c4e5049c895079288541f3a8283dae41a1d6272a7636f16b23b7915297026f18",
+        "truth-0.bin": "83f67ce925fbfce6a78eed899dd621e5ebba99b6be8b2ea731cd67f8e629d182",
+        "truth-1.bin": "f61a11dce478b55806a05224324c158f878c2220dc8c7a4619abdf560e345389",
+        "truth-2.bin": "292e3f5e66b8b691243a7d9db7a360b01a9f4eb9eccc5d6fcc86fec2f5a63b53"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "load_and_setup_ns": 2452882625,
+        "verify_ns": 486381667
+      },
+      "interaction_seconds_by_proof": [
+        0.047208,
+        0.018582,
+        0.012591,
+        0.053119,
+        0.150691,
+        0.047792,
+        0.033801
+      ]
+    },
+    {
+      "index": 1,
+      "variant": "classic_inline",
+      "binary_sha256": "5230dd1270970deae49aa50caafbc8118fc7b0f5bb4dd0dc6b10b8283ec00010",
+      "prove_seconds": 36.51990675,
+      "numerical_seconds": 7.227456251,
+      "gkr_seconds": 9.315968373,
+      "inputs_seconds": 0.729610416,
+      "binding_seconds": 1.263597832,
+      "native_complete_seconds": 20.315837958,
+      "truth_native_complete_seconds": 1.665038251,
+      "truth_inventory": [
+        {
+          "family": "keccak",
+          "first_id": 1,
+          "calls": 336,
+          "logs": [
+            13,
+            0
+          ]
+        },
+        {
+          "family": "add",
+          "first_id": 1,
+          "calls": 817,
+          "logs": [
+            14,
+            15
+          ]
+        },
+        {
+          "family": "double",
+          "first_id": 1,
+          "calls": 680,
+          "logs": [
+            14,
+            12
+          ]
+        }
+      ],
+      "source_seconds": 1.074248041,
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 2189799458,
+        "packet_import_ns": 1681168583,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1607991296,
+        "capture_before_proving": {
+          "native_payload": 1317696032,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 223284672,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "capture_after_proving": {
+          "native_payload": 0,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 0,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "setup_ns": 1964475042,
+        "prove_ns": 36519906750,
+        "same_process_verify_ns": 472142208,
+        "workers": [
+          {
+            "source_ns": 299607791,
+            "seal_native_and_gkr_ns": 3259742125,
+            "main_commit_ns": 914716500,
+            "gkr_ns": 2311307000,
+            "inputs_ns": 193955791,
+            "numerical_ns": 1783079292,
+            "binding_ns": 308779333,
+            "metadata_retire_ns": 3794542,
+            "spill_ns": 42,
+            "restore_ns": 41,
+            "native_complete_ns": 5126280375,
+            "stage1_ns": 3563640125,
+            "stage2_ns": 5127164666,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 86546448,
+            "memory_event_retire_ns": 495583,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 208408500,
+            "seal_native_and_gkr_ns": 3100936458,
+            "main_commit_ns": 860807417,
+            "gkr_ns": 2240118791,
+            "inputs_ns": 174537250,
+            "numerical_ns": 1730387542,
+            "binding_ns": 313443708,
+            "metadata_retire_ns": 2427000,
+            "spill_ns": 167,
+            "restore_ns": 125,
+            "native_complete_ns": 4990244542,
+            "stage1_ns": 3312033583,
+            "stage2_ns": 4990540500,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 41228352,
+            "memory_event_retire_ns": 261417,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 209843375,
+            "seal_native_and_gkr_ns": 3101723333,
+            "main_commit_ns": 914756917,
+            "gkr_ns": 2186955541,
+            "inputs_ns": 177065834,
+            "numerical_ns": 1688234458,
+            "binding_ns": 299634708,
+            "metadata_retire_ns": 2722209,
+            "spill_ns": 41,
+            "restore_ns": 42,
+            "native_complete_ns": 4993844083,
+            "stage1_ns": 3314505417,
+            "stage2_ns": 4994272459,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 39532176,
+            "memory_event_retire_ns": 216459,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 356388375,
+            "seal_native_and_gkr_ns": 3530732666,
+            "main_commit_ns": 916875667,
+            "gkr_ns": 2577587041,
+            "inputs_ns": 184051541,
+            "numerical_ns": 2025754959,
+            "binding_ns": 341740083,
+            "metadata_retire_ns": 2580125,
+            "spill_ns": 42,
+            "restore_ns": 42,
+            "native_complete_ns": 5205468958,
+            "stage1_ns": 3890321208,
+            "stage2_ns": 5206338208,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 55977696,
+            "memory_event_retire_ns": 619958,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 127014875,
+            "seal_native_and_gkr_ns": 35910375,
+            "main_commit_ns": 35910375,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 41,
+            "restore_ns": 42,
+            "native_complete_ns": 875979792,
+            "stage1_ns": 162925458,
+            "stage2_ns": 875980250,
+            "actual_main_merkle_bytes": 1048544,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 130742667,
+            "seal_native_and_gkr_ns": 17665625,
+            "main_commit_ns": 17665625,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 83,
+            "restore_ns": 42,
+            "native_complete_ns": 229784125,
+            "stage1_ns": 148408417,
+            "stage2_ns": 229784667,
+            "actual_main_merkle_bytes": 4194272,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 41059292,
+            "seal_native_and_gkr_ns": 12399583,
+            "main_commit_ns": 12399583,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 83,
+            "restore_ns": 41,
+            "native_complete_ns": 559274334,
+            "stage1_ns": 53459000,
+            "stage2_ns": 559274791,
+            "actual_main_merkle_bytes": 2097120,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          }
+        ],
+        "total_before_report_ns": 41182463208,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.904682,
+        "fri_quotient_build_and_commit": 1.315458,
+        "trace_decommit": 0.339736
+      },
+      "artifact_sha256": {
+        "bundle.json": "8be60e0e1c33063f355f1bd71d898457ba0f37b913c16e4f2d54aab8a9ed938b",
+        "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "cpu-0.bin": "0150cb9b2940913575c1132cf9bfb287fbd60d2e761a75aa446ecf4f69d5e90d",
+        "cpu-1.bin": "c2a0f9ac887f57bc8f39458be67548acc238f1ecb0e25e966ce28c809ecadf99",
+        "cpu-2.bin": "37617bae76fd05f574149a840ad12e289e81d634be07c7a3d188b52421b33435",
+        "cpu-3.bin": "9e8b5d0e6014cdca03126088485a8223a23c5677d25e927097fa761056c7344b",
+        "stage-one.bin": "c4e5049c895079288541f3a8283dae41a1d6272a7636f16b23b7915297026f18",
+        "truth-0.bin": "83f67ce925fbfce6a78eed899dd621e5ebba99b6be8b2ea731cd67f8e629d182",
+        "truth-1.bin": "f61a11dce478b55806a05224324c158f878c2220dc8c7a4619abdf560e345389",
+        "truth-2.bin": "292e3f5e66b8b691243a7d9db7a360b01a9f4eb9eccc5d6fcc86fec2f5a63b53"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "load_and_setup_ns": 2514858209,
+        "verify_ns": 484688541
+      },
+      "interaction_seconds_by_proof": [
+        0.048377,
+        0.022247,
+        0.020545,
+        0.040789,
+        0.15452,
+        0.034965,
+        0.027339
+      ]
+    },
+    {
+      "index": 2,
+      "variant": "classic_inline",
+      "binary_sha256": "5230dd1270970deae49aa50caafbc8118fc7b0f5bb4dd0dc6b10b8283ec00010",
+      "prove_seconds": 37.202135958,
+      "numerical_seconds": 7.390275875,
+      "gkr_seconds": 9.469430376,
+      "inputs_seconds": 0.72749725,
+      "binding_seconds": 1.256482583,
+      "native_complete_seconds": 20.767450209,
+      "truth_native_complete_seconds": 1.678159625,
+      "truth_inventory": [
+        {
+          "family": "keccak",
+          "first_id": 1,
+          "calls": 336,
+          "logs": [
+            13,
+            0
+          ]
+        },
+        {
+          "family": "add",
+          "first_id": 1,
+          "calls": 817,
+          "logs": [
+            14,
+            15
+          ]
+        },
+        {
+          "family": "double",
+          "first_id": 1,
+          "calls": 680,
+          "logs": [
+            14,
+            12
+          ]
+        }
+      ],
+      "source_seconds": 1.057230917,
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 2164698959,
+        "packet_import_ns": 1682598584,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1607991296,
+        "capture_before_proving": {
+          "native_payload": 1317696032,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 223284672,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "capture_after_proving": {
+          "native_payload": 0,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 0,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "setup_ns": 2012257208,
+        "prove_ns": 37202135958,
+        "same_process_verify_ns": 478718333,
+        "workers": [
+          {
+            "source_ns": 283904542,
+            "seal_native_and_gkr_ns": 3322579750,
+            "main_commit_ns": 937615583,
+            "gkr_ns": 2351496917,
+            "inputs_ns": 196441583,
+            "numerical_ns": 1817079167,
+            "binding_ns": 311985708,
+            "metadata_retire_ns": 4048667,
+            "spill_ns": 125,
+            "restore_ns": 166,
+            "native_complete_ns": 5172152834,
+            "stage1_ns": 3611108834,
+            "stage2_ns": 5172971708,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 86546448,
+            "memory_event_retire_ns": 575708,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 206379292,
+            "seal_native_and_gkr_ns": 3148387583,
+            "main_commit_ns": 890896750,
+            "gkr_ns": 2257480167,
+            "inputs_ns": 172845000,
+            "numerical_ns": 1758991083,
+            "binding_ns": 302851875,
+            "metadata_retire_ns": 2523417,
+            "spill_ns": 83,
+            "restore_ns": 42,
+            "native_complete_ns": 5061705000,
+            "stage1_ns": 3357566375,
+            "stage2_ns": 5062016709,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 41228352,
+            "memory_event_retire_ns": 275959,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 205337000,
+            "seal_native_and_gkr_ns": 3146597917,
+            "main_commit_ns": 905718625,
+            "gkr_ns": 2240869542,
+            "inputs_ns": 174425000,
+            "numerical_ns": 1743987334,
+            "binding_ns": 301632166,
+            "metadata_retire_ns": 2541791,
+            "spill_ns": 84,
+            "restore_ns": 42,
+            "native_complete_ns": 5087002500,
+            "stage1_ns": 3354701875,
+            "stage2_ns": 5087467709,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 39532176,
+            "memory_event_retire_ns": 225041,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 361610083,
+            "seal_native_and_gkr_ns": 3603295375,
+            "main_commit_ns": 947620833,
+            "gkr_ns": 2619583750,
+            "inputs_ns": 183785667,
+            "numerical_ns": 2070218291,
+            "binding_ns": 340012834,
+            "metadata_retire_ns": 2613417,
+            "spill_ns": 42,
+            "restore_ns": 41,
+            "native_complete_ns": 5446589875,
+            "stage1_ns": 3968094500,
+            "stage2_ns": 5447513458,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 55977696,
+            "memory_event_retire_ns": 575500,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 128647417,
+            "seal_native_and_gkr_ns": 35679625,
+            "main_commit_ns": 35679625,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 83,
+            "restore_ns": 42,
+            "native_complete_ns": 866305667,
+            "stage1_ns": 164327125,
+            "stage2_ns": 866306459,
+            "actual_main_merkle_bytes": 1048544,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 132838250,
+            "seal_native_and_gkr_ns": 17839750,
+            "main_commit_ns": 17839750,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 0,
+            "restore_ns": 0,
+            "native_complete_ns": 233364333,
+            "stage1_ns": 150678125,
+            "stage2_ns": 233364833,
+            "actual_main_merkle_bytes": 4194272,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 41033375,
+            "seal_native_and_gkr_ns": 12266584,
+            "main_commit_ns": 12266584,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 125,
+            "restore_ns": 42,
+            "native_complete_ns": 578489625,
+            "stage1_ns": 53300250,
+            "stage2_ns": 578490208,
+            "actual_main_merkle_bytes": 2097120,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          }
+        ],
+        "total_before_report_ns": 41882759917,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.889848,
+        "fri_quotient_build_and_commit": 1.343015,
+        "trace_decommit": 0.351584
+      },
+      "artifact_sha256": {
+        "bundle.json": "8be60e0e1c33063f355f1bd71d898457ba0f37b913c16e4f2d54aab8a9ed938b",
+        "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "cpu-0.bin": "0150cb9b2940913575c1132cf9bfb287fbd60d2e761a75aa446ecf4f69d5e90d",
+        "cpu-1.bin": "c2a0f9ac887f57bc8f39458be67548acc238f1ecb0e25e966ce28c809ecadf99",
+        "cpu-2.bin": "37617bae76fd05f574149a840ad12e289e81d634be07c7a3d188b52421b33435",
+        "cpu-3.bin": "9e8b5d0e6014cdca03126088485a8223a23c5677d25e927097fa761056c7344b",
+        "stage-one.bin": "c4e5049c895079288541f3a8283dae41a1d6272a7636f16b23b7915297026f18",
+        "truth-0.bin": "83f67ce925fbfce6a78eed899dd621e5ebba99b6be8b2ea731cd67f8e629d182",
+        "truth-1.bin": "f61a11dce478b55806a05224324c158f878c2220dc8c7a4619abdf560e345389",
+        "truth-2.bin": "292e3f5e66b8b691243a7d9db7a360b01a9f4eb9eccc5d6fcc86fec2f5a63b53"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "load_and_setup_ns": 2558860459,
+        "verify_ns": 504953083
+      },
+      "interaction_seconds_by_proof": [
+        0.0479,
+        0.019235,
+        0.018819,
+        0.053713,
+        0.155634,
+        0.034286,
+        0.027177
+      ]
+    },
+    {
+      "index": 3,
+      "variant": "baseline",
+      "binary_sha256": "a79e42e2cdb41e38e0cd749939293cb6df5338052f888d7ec97c4015f840757b",
+      "prove_seconds": 37.787845375,
+      "numerical_seconds": 7.534357584,
+      "gkr_seconds": 9.672451874,
+      "inputs_seconds": 0.719890333,
+      "binding_seconds": 1.319403083,
+      "native_complete_seconds": 20.979943,
+      "truth_native_complete_seconds": 1.763623084,
+      "truth_inventory": [
+        {
+          "family": "keccak",
+          "first_id": 1,
+          "calls": 336,
+          "logs": [
+            13,
+            0
+          ]
+        },
+        {
+          "family": "add",
+          "first_id": 1,
+          "calls": 817,
+          "logs": [
+            14,
+            15
+          ]
+        },
+        {
+          "family": "double",
+          "first_id": 1,
+          "calls": 680,
+          "logs": [
+            14,
+            12
+          ]
+        }
+      ],
+      "source_seconds": 1.066483041,
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 2162436125,
+        "packet_import_ns": 1690648333,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1607991296,
+        "capture_before_proving": {
+          "native_payload": 1317696032,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 223284672,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "capture_after_proving": {
+          "native_payload": 0,
+          "native_headers": 5088,
+          "advice": {
+            "ordinary_events": 0,
+            "service_calls": 1447824,
+            "public_cells": 36025008,
+            "outer_slice_headers": 256
+          }
+        },
+        "setup_ns": 2046114500,
+        "prove_ns": 37787845375,
+        "same_process_verify_ns": 474673209,
+        "workers": [
+          {
+            "source_ns": 285749916,
+            "seal_native_and_gkr_ns": 3380957875,
+            "main_commit_ns": 955456500,
+            "gkr_ns": 2391295792,
+            "inputs_ns": 195226958,
+            "numerical_ns": 1848761375,
+            "binding_ns": 320163208,
+            "metadata_retire_ns": 3985709,
+            "spill_ns": 0,
+            "restore_ns": 0,
+            "native_complete_ns": 5242524875,
+            "stage1_ns": 3671193208,
+            "stage2_ns": 5243424250,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 86546448,
+            "memory_event_retire_ns": 499666,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 209442542,
+            "seal_native_and_gkr_ns": 3181933583,
+            "main_commit_ns": 904526500,
+            "gkr_ns": 2277396416,
+            "inputs_ns": 171423959,
+            "numerical_ns": 1770796625,
+            "binding_ns": 312837625,
+            "metadata_retire_ns": 2733292,
+            "spill_ns": 41,
+            "restore_ns": 42,
+            "native_complete_ns": 5100262000,
+            "stage1_ns": 3394330625,
+            "stage2_ns": 5100585292,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 41228352,
+            "memory_event_retire_ns": 221125,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 208322833,
+            "seal_native_and_gkr_ns": 3234944583,
+            "main_commit_ns": 915980000,
+            "gkr_ns": 2318952916,
+            "inputs_ns": 168513166,
+            "numerical_ns": 1789894834,
+            "binding_ns": 338356875,
+            "metadata_retire_ns": 2873875,
+            "spill_ns": 42,
+            "restore_ns": 42,
+            "native_complete_ns": 5085978500,
+            "stage1_ns": 3446408916,
+            "stage2_ns": 5086411833,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 39532176,
+            "memory_event_retire_ns": 267542,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 362967750,
+            "seal_native_and_gkr_ns": 3694436791,
+            "main_commit_ns": 972113291,
+            "gkr_ns": 2684806750,
+            "inputs_ns": 184726250,
+            "numerical_ns": 2124904750,
+            "binding_ns": 348045375,
+            "metadata_retire_ns": 2652459,
+            "spill_ns": 125,
+            "restore_ns": 41,
+            "native_complete_ns": 5551177625,
+            "stage1_ns": 4060686541,
+            "stage2_ns": 5552036166,
+            "actual_main_merkle_bytes": 33554400,
+            "retired_memory_event_bytes": 55977696,
+            "memory_event_retire_ns": 629375,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 130311666,
+            "seal_native_and_gkr_ns": 35898750,
+            "main_commit_ns": 35898750,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 84,
+            "restore_ns": 84,
+            "native_complete_ns": 895060250,
+            "stage1_ns": 166210541,
+            "stage2_ns": 895060875,
+            "actual_main_merkle_bytes": 1048544,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 133791125,
+            "seal_native_and_gkr_ns": 18734417,
+            "main_commit_ns": 18734417,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 125,
+            "restore_ns": 42,
+            "native_complete_ns": 270199000,
+            "stage1_ns": 152525834,
+            "stage2_ns": 270199375,
+            "actual_main_merkle_bytes": 4194272,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          },
+          {
+            "source_ns": 41007042,
+            "seal_native_and_gkr_ns": 11895291,
+            "main_commit_ns": 11895291,
+            "gkr_ns": 0,
+            "inputs_ns": 0,
+            "numerical_ns": 0,
+            "binding_ns": 0,
+            "metadata_retire_ns": 0,
+            "spill_ns": 167,
+            "restore_ns": 83,
+            "native_complete_ns": 598363834,
+            "stage1_ns": 52902667,
+            "stage2_ns": 598364458,
+            "actual_main_merkle_bytes": 2097120,
+            "retired_memory_event_bytes": 0,
+            "memory_event_retire_ns": 0,
+            "stage1_completed": true,
+            "stage2_completed": true,
+            "completed_worker_retired": true
+          }
+        ],
+        "total_before_report_ns": 42496011792,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.941376,
+        "fri_quotient_build_and_commit": 1.367205,
+        "trace_decommit": 0.349231
+      },
+      "artifact_sha256": {
+        "bundle.json": "8be60e0e1c33063f355f1bd71d898457ba0f37b913c16e4f2d54aab8a9ed938b",
+        "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "cpu-0.bin": "0150cb9b2940913575c1132cf9bfb287fbd60d2e761a75aa446ecf4f69d5e90d",
+        "cpu-1.bin": "c2a0f9ac887f57bc8f39458be67548acc238f1ecb0e25e966ce28c809ecadf99",
+        "cpu-2.bin": "37617bae76fd05f574149a840ad12e289e81d634be07c7a3d188b52421b33435",
+        "cpu-3.bin": "9e8b5d0e6014cdca03126088485a8223a23c5677d25e927097fa761056c7344b",
+        "stage-one.bin": "c4e5049c895079288541f3a8283dae41a1d6272a7636f16b23b7915297026f18",
+        "truth-0.bin": "83f67ce925fbfce6a78eed899dd621e5ebba99b6be8b2ea731cd67f8e629d182",
+        "truth-1.bin": "f61a11dce478b55806a05224324c158f878c2220dc8c7a4619abdf560e345389",
+        "truth-2.bin": "292e3f5e66b8b691243a7d9db7a360b01a9f4eb9eccc5d6fcc86fec2f5a63b53"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "load_and_setup_ns": 2567995167,
+        "verify_ns": 489720041
+      },
+      "interaction_seconds_by_proof": [
+        0.04887,
+        0.015676,
+        0.021148,
+        0.062266,
+        0.157451,
+        0.043543,
+        0.03458
+      ]
+    }
+  ],
+  "medians": {
+    "baseline": {
+      "prove_seconds": 36.3968233335,
+      "numerical_seconds": 7.223129209,
+      "gkr_seconds": 9.284898312,
+      "inputs_seconds": 0.7094935824999999,
+      "binding_seconds": 1.257855667,
+      "native_complete_seconds": 20.257498062499998,
+      "truth_native_complete_seconds": 1.758077313,
+      "all_interaction_seconds": 0.37365899999999996,
+      "truth_interaction_seconds": 0.233929
+    },
+    "classic_inline": {
+      "prove_seconds": 36.861021354,
+      "numerical_seconds": 7.308866063,
+      "gkr_seconds": 9.392699374500001,
+      "inputs_seconds": 0.728553833,
+      "binding_seconds": 1.2600402075,
+      "native_complete_seconds": 20.5416440835,
+      "truth_native_complete_seconds": 1.6715989379999998,
+      "all_interaction_seconds": 0.352773,
+      "truth_interaction_seconds": 0.2169605
+    }
+  },
+  "all_artifacts_identical": true,
+  "all_fresh_accepted": true,
+  "security_qualified": false,
+  "scope": "Same real four-CPU service prefix, q70/P26/fold4/16workers. Matched85addbaseline/candidate; candidate changesonlyfourliveclassicpackedmulABIcallsites toexistingconcreteinlineauthority. BothkeepGKR/domainpackedimplementationsalreadyactive. Shared-host observations, not isolated hardware. Prefix completion is not full Ethereum acceptance."
+}
