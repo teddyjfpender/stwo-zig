@@ -95,6 +95,12 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_calls = 1 }, .{}));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_words = 1 }, .{}));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .calls = 1 }, .{}));
+    // JUMPDEST analysis kinds (jdesc/jscan/jtab) are v3 bulk too.
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .jdesc = 5 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .jscan = 5 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .jtab = 5 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .jump_calls = 1 }, .{}));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .jump_rows = 1 }, .{}));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{}, .{ .perms = 1 }));
 
     // Transport preflight: an otherwise admissible v2 metadata turned v3.
@@ -112,6 +118,12 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     cpus[0].request.bulk.calls = 1;
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
     cpus[0].request.bulk.calls = 0;
+    cpus[0].request.bulk.jump_calls = 1;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    cpus[0].request.bulk.jump_calls = 0;
+    cpus[0].declaration.bridges.bulk.jscan = 5;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    cpus[0].declaration.bridges.bulk.jscan = null;
     try Wire.validate(metadata, .{});
     const Truth = @typeInfo(@FieldType(Wire.Metadata, "truths")).pointer.child;
     var truth_claims = [_][8]u32{@splat(0)} ** 5;
