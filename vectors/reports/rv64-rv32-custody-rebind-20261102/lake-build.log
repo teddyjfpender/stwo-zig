@@ -1,0 +1,471 @@
+✔ [2/124] Built RiscvRefinement.Field.M31 (968ms)
+✔ [3/124] Built RiscvRefinement.Recursion.CompactPoseidon (224ms)
+✔ [4/124] Built RiscvRefinement.Recursion.FrameworkBoundary (262ms)
+✔ [5/124] Built RiscvRefinement.Field (199ms)
+✔ [6/124] Built RiscvRefinement.Common (1.4s)
+✔ [7/124] Built RiscvRefinement.Air.Family.LoadStoreAddressRange (350ms)
+✔ [8/124] Built RiscvRefinement.Tables.Fixed (507ms)
+✔ [9/124] Built RiscvRefinement.Sail.Reviewed.Multiply (314ms)
+✔ [10/124] Built RiscvRefinement.Sail.Reviewed.Shifts (300ms)
+ℹ [11/124] Built RiscvRefinement.Recursion.AxiomAudit (1.3s)
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.lowered_eq_fifthPower
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.lowered_eq_fifthPower propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.claim_boundary
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.claim_boundary propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.claim_boundary Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.row_boundary
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.row_boundary propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.row_boundary Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.accepted_output
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.accepted_output propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.accepted_output Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.honest_witness
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.honest_witness propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.honest_witness Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.secure_claim_boundary
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.secure_claim_boundary propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.secure_claim_boundary Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.rows_boundary
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.rows_boundary propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.rows_boundary Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.sum_constant
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.sum_constant propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.unchanged_context
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.unchanged_context Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.unchanged_context propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.telescope
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.telescope propext
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.telescope Quot.sound
+info: RiscvRefinement/Recursion/AxiomAudit.lean:31:0: RECURSIVE_AIR_CHECKED 10
+✔ [12/124] Built RiscvRefinement.Sail.Generated.Pilot (297ms)
+✔ [13/124] Built RiscvRefinement.Air.Bridge.MulProgram (833ms)
+✔ [14/124] Built RiscvRefinement.Air.Family.Multiply (1.9s)
+✔ [15/124] Built RiscvRefinement.Air.Generated.Pilot (464ms)
+✔ [16/124] Built RiscvRefinement.Publication.TeamB.Common (3.5s)
+✔ [17/124] Built RiscvRefinement.Bridge.Decode (287ms)
+⚠ [18/124] Built RiscvRefinement.Air.Family.Shifts (1.8s)
+warning: RiscvRefinement/Air/Family/Shifts.lean:71:5: unused variable `sllBit`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:72:5: unused variable `srlBit`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:73:5: unused variable `sraBit`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:85:5: unused variable `bit0`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:86:5: unused variable `bit1`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:87:5: unused variable `bit2`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:88:5: unused variable `bit3`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:89:5: unused variable `bit4`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:90:5: unused variable `bit5`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:91:5: unused variable `bit6`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:92:5: unused variable `bit7`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:137:5: unused variable `bit0`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:138:5: unused variable `bit1`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:139:5: unused variable `bit2`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Family/Shifts.lean:140:5: unused variable `bit3`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+✔ [19/124] Built RiscvRefinement.Arith.Division (468ms)
+✔ [20/124] Built RiscvRefinement.Mutation (324ms)
+✔ [21/124] Built RiscvRefinement.Memory (417ms)
+✔ [22/124] Built RiscvRefinement.Tables (216ms)
+✔ [23/124] Built RiscvRefinement.Publication.TeamA.Common (4.3s)
+✔ [24/124] Built RiscvRefinement.Air.IR (925ms)
+✔ [25/124] Built RiscvRefinement.Opcodes.Multiply (583ms)
+✔ [26/124] Built RiscvRefinement.Sail.Reviewed.Div (316ms)
+✔ [27/124] Built RiscvRefinement.Bridge.DecodeTeamB (467ms)
+✔ [28/124] Built RiscvRefinement.Air.Bridge.MulBridge (1.3s)
+✔ [29/124] Built RiscvRefinement.Air.Bridge.MulhProgram (1.3s)
+✔ [30/124] Built RiscvRefinement.Sail.Reviewed.LoadStore (387ms)
+✔ [31/124] Built RiscvRefinement.Air.Family.LoadStore (732ms)
+✔ [32/124] Built RiscvRefinement.Air.Eval (510ms)
+⚠ [33/124] Built RiscvRefinement.Opcodes.MultiplyMutation (335ms)
+warning: RiscvRefinement/Opcodes/MultiplyMutation.lean:183:6: This simp argument is unused:
+  MulComputesProduct
+
+Hint: Omit it from the simp argument list.
+  simp only [̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵M̵u̵l̵C̵o̵m̵p̵u̵t̵e̵s̵P̵r̵o̵d̵u̵c̵t̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵m̵u̵l̵R̵e̵t̵i̵r̵e̵m̵e̵n̵t̵,̵[̲m̲u̲l̲R̲e̲t̲i̲r̲e̲m̲e̲n̲t̲,̲ executeMul, freeLowLimbRow, a̵r̵c̵h̵i̵t̵e̵c̵t̵u̵r̵a̵l̵W̵r̵i̵t̵e̵,̵
+  ̵ ̵ ̵ ̵ ̵]̵a̲r̲c̲h̲i̲t̲e̲c̲t̲u̲r̲a̲l̲W̲r̲i̲t̲e̲]̲ at this
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+✔ [34/124] Built RiscvRefinement.Opcodes.MultiplyMutationExtra (632ms)
+✔ [35/124] Built RiscvRefinement.Bridge.DecodeTeamA (357ms)
+✔ [36/124] Built RiscvRefinement.Opcodes.Shifts (584ms)
+✔ [37/124] Built RiscvRefinement.Air.Family.Div (2.1s)
+✔ [38/124] Built RiscvRefinement.Bridge.DecodeLt (342ms)
+✔ [39/124] Built RiscvRefinement.Bridge.DecodeBranches (382ms)
+✔ [40/124] Built RiscvRefinement.Bridge.DecodeBaseAlu (401ms)
+✔ [41/124] Built RiscvRefinement.Air.Bridge.EvaluatorSpec (849ms)
+✔ [42/124] Built RiscvRefinement.Air.Bridge.LoadStoreProgram (1.5s)
+✔ [43/124] Built RiscvRefinement.Air.Bridge.DivProgram (2.6s)
+✔ [44/124] Built RiscvRefinement.Air.Decode (740ms)
+⚠ [45/124] Built RiscvRefinement.Opcodes.LoadStore (1.9s)
+warning: RiscvRefinement/Opcodes/LoadStore.lean:588:35: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [LoadStoreEnvironment.memoryWord, LoadStoreEnvironment.busAddress,
+      row_busAddress row env holds, ← env.memoryBinds,
+  ̵  ̵ ̵ ̵memoryBefore_load row isStore,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:993:30: This simp argument is unused:
+  holds.baseReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, h̵o̵l̵d̵s̵.̵b̵a̵s̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵env.baseBinds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1000:14: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [loadStoreRelations, memoryPreviousClock_load row isStore,
+       ̵ ̵memoryBefore_load row isStore, ← bus, LoadStoreEnvironment.busAddress_eq,
+  ̵  ̵ ̵ ̵ ̵ ̵memory,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1147:30: This simp argument is unused:
+  holds.baseReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, h̵o̵l̵d̵s̵.̵b̵a̵s̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵env.baseBinds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1154:14: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [loadStoreRelations, memoryPreviousClock_load row isStore,
+       ̵ ̵memoryBefore_load row isStore, ← bus, LoadStoreEnvironment.busAddress_eq,
+  ̵  ̵ ̵ ̵ ̵ ̵memory,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1438:5: unused variable `holds`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1442:37: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [LoadStoreEnvironment.operandValue, ← env.operandBinds, operandBefore_store row i̵s̵S̵t̵o̵r̵e̵,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]̵i̲s̲S̲t̲o̲r̲e̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1713:30: This simp argument is unused:
+  holds.baseReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, h̵o̵l̵d̵s̵.̵b̵a̵s̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵env.baseBinds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1717:6: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, operandAfter_store row isStore, h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵operand]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+✔ [46/124] Built RiscvRefinement.Opcodes.ShiftsRegMutation (419ms)
+✔ [47/124] Built RiscvRefinement.Opcodes.ShiftsMutation (468ms)
+✔ [48/124] Built RiscvRefinement.Opcodes.Div (521ms)
+✔ [49/124] Built RiscvRefinement.Publication.Coverage (8.2s)
+✔ [50/124] Built RiscvRefinement.Air.Bridge.MulhBridge (5.5s)
+✔ [51/124] Built RiscvRefinement.Air.LocalEval (565ms)
+✔ [52/124] Built RiscvRefinement.Opcodes.LoadStoreMutation (417ms)
+✔ [53/124] Built RiscvRefinement.Opcodes.LoadMutationWord (486ms)
+✔ [54/124] Built RiscvRefinement.Opcodes.LoadStoreMutationExtra (733ms)
+✔ [55/124] Built RiscvRefinement.Opcodes.StoreMutation (641ms)
+✔ [56/124] Built RiscvRefinement.Opcodes.DivMutation (826ms)
+✔ [57/124] Built RiscvRefinement.Opcodes.SelectorNonVacuity (375ms)
+✔ [58/124] Built RiscvRefinement.Air (190ms)
+✔ [59/124] Built RiscvRefinement.Coverage (242ms)
+✔ [60/124] Built RiscvRefinement.Publication.Acceptance (259ms)
+✔ [61/124] Built RiscvRefinement.Opcodes.LoadMutationByte (515ms)
+✔ [62/124] Built RiscvRefinement.Air.Generated.LuiProgram (258ms)
+✔ [63/124] Built RiscvRefinement.Opcodes.DivMutationExtra (606ms)
+✔ [64/124] Built RiscvRefinement.Air.Tests (538ms)
+✖ [65/124] Building RiscvRefinement.Air.Bridge.LoadStoreBridge (6.1s)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Air/Bridge/LoadStoreBridge.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/LoadStoreBridge.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/LoadStoreBridge.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/LoadStoreBridge.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/LoadStoreBridge.setup.json --json
+error: RiscvRefinement/Air/Bridge/LoadStoreBridge.lean:81:0: Expression
+  loadStoreProgramIrDigest == "dc7a7abc306d0bd0473b115f4cf674efb660caf9dc90c3e900f64e5542b14876"
+did not evaluate to `true`
+warning: RiscvRefinement/Air/Bridge/LoadStoreBridge.lean:764:50: unused variable `holds`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Bridge/LoadStoreBridge.lean:904:5: unused variable `fits`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+error: Lean exited with code 1
+✔ [66/124] Built RiscvRefinement.Air.Bridge.DivBridge (14s)
+✔ [67/124] Built RiscvRefinement.Air.Generated.Programs (9.0s)
+✖ [68/124] Building RiscvRefinement.Publication.Universal (694ms)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Publication/Universal.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Publication/Universal.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Publication/Universal.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Publication/Universal.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Publication/Universal.setup.json --json
+error: RiscvRefinement/Publication/Universal.lean:150:2: Tactic `rfl` failed: The left-hand side
+  actualProgramIdentities
+is not definitionally equal to the right-hand side
+  expectedProgramIdentities
+
+⊢ actualProgramIdentities = expectedProgramIdentities
+error: Lean exited with code 1
+✔ [69/124] Built RiscvRefinement.Air.Bridge.Lui (1.3s)
+✔ [70/124] Built RiscvRefinement.Opcodes.Lui (398ms)
+✔ [71/124] Built RiscvRefinement.Air.Bridge.TeamACommon (522ms)
+✔ [86/124] Built RiscvRefinement.Air.Bridge.Fence (754ms)
+✔ [87/124] Built RiscvRefinement.Air.Bridge.Jal (2.2s)
+✔ [88/124] Built RiscvRefinement.Air.Bridge.Addi (8.6s)
+✔ [89/124] Built RiscvRefinement.Opcodes.Fence (253ms)
+✔ [90/124] Built RiscvRefinement.Opcodes.Jal (301ms)
+✔ [91/124] Built RiscvRefinement.Opcodes.Addi (414ms)
+✖ [92/124] Building RiscvRefinement.Air.Bridge.Jalr (10s)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Air/Bridge/Jalr.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/Jalr.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/Jalr.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/Jalr.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/Jalr.setup.json --json
+error: RiscvRefinement/Air/Bridge/Jalr.lean:559:9: Application type mismatch: The argument
+  rfl
+has type
+  ?m.50 = ?m.50
+but is expected to have type
+  Programs.jalr.source.contentDigest = "2a025498db6e47ab9626d2e5a2e7de85d95ee1c9128e2cc47b6a3e3f77b1a190"
+in the application
+  And.intro rfl
+error: Lean exited with code 1
+✔ [93/124] Built RiscvRefinement.Air.Bridge.BaseAluImm (32s)
+✖ [94/124] Building RiscvRefinement.Air.Bridge.Auipc (5.6s)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Air/Bridge/Auipc.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/Auipc.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/Auipc.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/Auipc.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/Auipc.setup.json --json
+error: RiscvRefinement/Air/Bridge/Auipc.lean:445:9: Application type mismatch: The argument
+  rfl
+has type
+  ?m.44 = ?m.44
+but is expected to have type
+  Programs.auipc.source.contentDigest = "29f14971c85ac2834d11baa3514b662fac07a1ed3b7d92e545e5622a872c5c86"
+in the application
+  And.intro rfl
+error: Lean exited with code 1
+✔ [95/124] Built RiscvRefinement.Opcodes.FenceMutation (324ms)
+✔ [97/124] Built RiscvRefinement.Opcodes.JalMutation (350ms)
+✔ [99/124] Built RiscvRefinement.Air.Bridge.Mutations (518ms)
+✖ [100/124] Building RiscvRefinement.Publication.TeamA.Pilots (268ms)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Publication/TeamA/Pilots.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Publication/TeamA/Pilots.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Publication/TeamA/Pilots.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Publication/TeamA/Pilots.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Publication/TeamA/Pilots.setup.json --json
+error: RiscvRefinement/Publication/TeamA/Pilots.lean:89:39: Application type mismatch: The argument
+  rfl
+has type
+  ?m.70 = ?m.70
+but is expected to have type
+  Programs.lui.source.contentDigest = "0ef6b1d13ec86a69b7c9b91a85ff053dcb1b7b40712ad2cbc245af783e46b898"
+in the application
+  ⟨rfl, rfl⟩
+error: RiscvRefinement/Publication/TeamA/Pilots.lean:185:39: Application type mismatch: The argument
+  rfl
+has type
+  ?m.70 = ?m.70
+but is expected to have type
+  Programs.addi.source.contentDigest = "d682e62f49588e6a583b2b0ab5a204d2f36fa028552bd1e49f14c8a6f15482f9"
+in the application
+  ⟨rfl, rfl⟩
+error: Lean exited with code 1
+✔ [102/124] Built RiscvRefinement.NonVacuity (322ms)
+✔ [104/124] Built RiscvRefinement.Opcodes.BaseAluImm (362ms)
+✔ [106/124] Built RiscvRefinement.Air.Bridge.LtComparator (60s)
+✔ [107/124] Built RiscvRefinement.Air.Bridge.BaseAluReg (60s)
+✔ [108/124] Built RiscvRefinement.Opcodes.BaseAluReg (333ms)
+✔ [109/124] Built RiscvRefinement.Publication.TeamA.BaseAlu (396ms)
+✔ [110/124] Built RiscvRefinement.Opcodes.BaseAluMutation (563ms)
+✖ [111/124] Building RiscvRefinement.Air.Bridge.LtReg (89s)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Air/Bridge/LtReg.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/LtReg.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/LtReg.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/LtReg.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/LtReg.setup.json --json
+error: RiscvRefinement/Air/Bridge/LtReg.lean:45:17: Tactic `decide` proved that the proposition
+  (program Kind.signed).source.contentDigest = contentDigest Kind.signed
+is false
+error: RiscvRefinement/Air/Bridge/LtReg.lean:45:17: Tactic `decide` proved that the proposition
+  (program Kind.unsigned).source.contentDigest = contentDigest Kind.unsigned
+is false
+warning: RiscvRefinement/Air/Bridge/LtReg.lean:710:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/LtReg.lean:712:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+error: Lean exited with code 1
+✖ [116/124] Building RiscvRefinement.Air.Bridge.Branches (28s)
+trace: .> LEAN_PATH=/private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean /Users/theodorepender/.elan/toolchains/leanprover--lean4---v4.29.0/bin/lean /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/RiscvRefinement/Air/Bridge/Branches.lean -o /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/Branches.olean -i /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/lib/lean/RiscvRefinement/Air/Bridge/Branches.ilean -c /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/Branches.c --setup /private/tmp/stwo-rv64-rv32-custody-rebind/formal/riscv-refinement/.lake/build/ir/RiscvRefinement/Air/Bridge/Branches.setup.json --json
+error: RiscvRefinement/Air/Bridge/Branches.lean:451:24: Application type mismatch: The argument
+  rfl
+has type
+  ?m.42 = ?m.42
+but is expected to have type
+  Kind.beq.program.source.contentDigest = Kind.beq.contentDigest
+in the application
+  And.intro rfl
+error: RiscvRefinement/Air/Bridge/Branches.lean:451:24: Application type mismatch: The argument
+  rfl
+has type
+  ?m.42 = ?m.42
+but is expected to have type
+  Kind.bne.program.source.contentDigest = Kind.bne.contentDigest
+in the application
+  And.intro rfl
+warning: RiscvRefinement/Air/Bridge/Branches.lean:845:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:847:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:880:40: This simp argument is unused:
+  takenCase
+
+Hint: Omit it from the simp argument list.
+  simp only [rawEvaluation, kindCase, t̵a̵k̵e̵n̵C̵a̵s̵e̵,̵ ̵Kind.program]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:892:40: This simp argument is unused:
+  takenCase
+
+Hint: Omit it from the simp argument list.
+  simp only [rawEvaluation, kindCase, t̵a̵k̵e̵n̵C̵a̵s̵e̵,̵ ̵Kind.program]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:904:40: This simp argument is unused:
+  takenCase
+
+Hint: Omit it from the simp argument list.
+  simp only [rawEvaluation, kindCase, t̵a̵k̵e̵n̵C̵a̵s̵e̵,̵ ̵Kind.program]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:916:40: This simp argument is unused:
+  takenCase
+
+Hint: Omit it from the simp argument list.
+  simp only [rawEvaluation, kindCase, t̵a̵k̵e̵n̵C̵a̵s̵e̵,̵ ̵Kind.program]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:1048:12: This simp argument is unused:
+  rawEqualityAccumulator
+
+Hint: Omit it from the simp argument list.
+  simp_all [̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵e̵q̵u̵a̵l̵i̵t̵y̵F̵l̵a̵g̵,̵[̲e̲q̲u̲a̲l̲i̲t̲y̲F̲l̲a̲g̲,̲ rawSelectorSum, r̵a̵w̵E̵q̵u̵a̵l̵i̵t̵y̵A̵c̵c̵u̵m̵u̵l̵a̵t̵o̵r̵,̵boolM31, TeamACommon.boolM31, L̵u̵i̵.̵b̵o̵o̵l̵M̵3̵1̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵]̵L̲u̲i̲.̲b̲o̲o̲l̲M̲3̲1̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:1053:12: This simp argument is unused:
+  flagCase
+
+Hint: Omit it from the simp argument list.
+  simp [f̵l̵a̵g̵C̵a̵s̵e̵,̵ ̵notEqual]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:1081:12: This simp argument is unused:
+  flagCase
+
+Hint: Omit it from the simp argument list.
+  simp [f̵l̵a̵g̵C̵a̵s̵e̵,̵ ̵wordEquality]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+error: RiscvRefinement/Air/Bridge/Branches.lean:1658:24: Application type mismatch: The argument
+  rfl
+has type
+  ?m.62 = ?m.62
+but is expected to have type
+  Kind.blt.program.source.contentDigest = Kind.blt.contentDigest
+in the application
+  And.intro rfl
+error: RiscvRefinement/Air/Bridge/Branches.lean:1658:24: Application type mismatch: The argument
+  rfl
+has type
+  ?m.62 = ?m.62
+but is expected to have type
+  Kind.bge.program.source.contentDigest = Kind.bge.contentDigest
+in the application
+  And.intro rfl
+error: RiscvRefinement/Air/Bridge/Branches.lean:1658:24: Application type mismatch: The argument
+  rfl
+has type
+  ?m.62 = ?m.62
+but is expected to have type
+  Kind.bltu.program.source.contentDigest = Kind.bltu.contentDigest
+in the application
+  And.intro rfl
+error: RiscvRefinement/Air/Bridge/Branches.lean:1658:24: Application type mismatch: The argument
+  rfl
+has type
+  ?m.62 = ?m.62
+but is expected to have type
+  Kind.bgeu.program.source.contentDigest = Kind.bgeu.contentDigest
+in the application
+  And.intro rfl
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2283:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2285:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2287:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2289:4: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2550:6: This simp argument is unused:
+  kindCase
+
+Hint: Omit it from the simp argument list.
+  simp [̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵k̵i̵n̵d̵C̵a̵s̵e̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵r̵a̵w̵M̵a̵r̵k̵e̵r̵S̵u̵m̵,̵[̲r̲a̲w̲M̲a̲r̲k̲e̲r̲S̲u̲m̲,̲ rawComparisonSign, LtComparator.boolM31, boolM31, TeamACommon.boolM31,
+        L̵u̵i̵.̵b̵o̵o̵l̵M̵3̵1̵,̵
+  ̵ ̵ ̵ ̵ ̵]̵L̲u̲i̲.̲b̲o̲o̲l̲M̲3̲1̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2551:6: This simp argument is unused:
+  rawMarkerSum
+
+Hint: Omit it from the simp argument list.
+  simp [̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵k̵i̵n̵d̵C̵a̵s̵e̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵r̵a̵w̵M̵a̵r̵k̵e̵r̵S̵u̵m̵,̵[̲k̲i̲n̲d̲C̲a̲s̲e̲,̲ rawComparisonSign, LtComparator.boolM31, boolM31, TeamACommon.boolM31,
+        L̵u̵i̵.̵b̵o̵o̵l̵M̵3̵1̵,̵
+  ̵ ̵ ̵ ̵ ̵]̵L̲u̲i̲.̲b̲o̲o̲l̲M̲3̲1̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Air/Bridge/Branches.lean:2553:6: This simp argument is unused:
+  LtComparator.boolM31
+
+Hint: Omit it from the simp argument list.
+  simp [̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵k̵i̵n̵d̵C̵a̵s̵e̵,̵[̲k̲i̲n̲d̲C̲a̲s̲e̲,̲ rawMarkerSum, rawComparisonSign, L̵t̵C̵o̵m̵p̵a̵r̵a̵t̵o̵r̵.̵b̵o̵o̵l̵M̵3̵1̵,̵boolM31, TeamACommon.boolM31, L̵u̵i̵.̵b̵o̵o̵l̵M̵3̵1̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵]̵L̲u̲i̲.̲b̲o̲o̲l̲M̲3̲1̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+error: Lean exited with code 1
+Some required targets logged failures:
+- RiscvRefinement.Air.Bridge.LoadStoreBridge
+- RiscvRefinement.Publication.Universal
+- RiscvRefinement.Air.Bridge.Jalr
+- RiscvRefinement.Air.Bridge.Auipc
+- RiscvRefinement.Publication.TeamA.Pilots
+- RiscvRefinement.Air.Bridge.LtReg
+- RiscvRefinement.Air.Bridge.Branches
+error: build failed

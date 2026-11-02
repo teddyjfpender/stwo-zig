@@ -36,9 +36,9 @@ def program : Kind → LocalProgram
 
 def contentDigest : Kind → String
   | .signed =>
-      "6995fbd04b6ea51057bd16e454bf9a5485e6a92751957428d7e2dfa2c679e589"
+      "234461efb48727cdb845ac3c002ba55f944764b5e1bb419f101b59e3b857e280"
   | .unsigned =>
-      "3554b1d4d1347d0995b9a6074fe93607a65d4e15aa5f27b13ff81f504cba3d77"
+      "54aab4f496221b93588858d2eee08b8b15dc8752b6c689ac32daf1f5bf58b83a"
 
 theorem programContentDigest (kind : Kind) :
     (program kind).source.contentDigest = contentDigest kind := by

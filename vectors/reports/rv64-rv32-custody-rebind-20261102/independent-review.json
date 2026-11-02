@@ -1,0 +1,535 @@
+{
+  "read_only_review": true,
+  "programs": [
+    {
+      "mnemonic": "add",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "sub",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "sll",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "slt",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "sltu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "xor",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "srl",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "sra",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "or",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "and",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "addi",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "slti",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "sltiu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "xori",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "ori",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "andi",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "slli",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "srli",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "srai",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "lb",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "lh",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "lw",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "lbu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "lhu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "sb",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "sh",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "sw",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "beq",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "bne",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "blt",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "bge",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "bltu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "bgeu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "jal",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "jalr",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "lui",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 20
+    },
+    {
+      "mnemonic": "auipc",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": true,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "mul",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "mulh",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "mulhsu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "mulhu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "div",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "divu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "rem",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "remu",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    },
+    {
+      "mnemonic": "fence",
+      "semantic_equal": true,
+      "raw_equal_without_reindex": false,
+      "current_source_files": 21
+    }
+  ],
+  "all46_semantic_equal": true,
+  "raw_unchanged_programs": 12,
+  "mutation_rejections": {
+    "field_modulus": "add normalized unsigned AIR differs from reviewed bytes",
+    "column_role": "add normalized unsigned AIR differs from reviewed bytes",
+    "constraint_root": "add normalized unsigned AIR differs from reviewed bytes",
+    "lookup_numerator": "add normalized unsigned AIR differs from reviewed bytes",
+    "next_pc": "add normalized unsigned AIR differs from reviewed bytes",
+    "fixed_table_identity": "add normalized unsigned AIR differs from reviewed bytes",
+    "arithmetic_constant": "add.nodes are not structurally hash-consed or a digest collided"
+  },
+  "normalization_excluded_fields": [
+    "top-level source_identity",
+    "top-level content_digest"
+  ],
+  "normalization_authority": "existing structural node DAG reindexing + exact unsigned canonical SHA256; no algebra simplification",
+  "whole_source_rebind_qualified": true,
+  "pending": [],
+  "fresh_CI_source_closure": {
+    "CI_merge": "e22f3242c6e0503a0a40ba03cd205acb288b86df",
+    "local_base": "fbfea51e5",
+    "compared": 65,
+    "mismatch": []
+  },
+  "generated_Lean_line_change_classification": {
+    "Air/Generated/Programs.lean": {
+      "embedded_json_metadata_only": 46,
+      "sourceIdentity": 46,
+      "contentDigest": 46
+    },
+    "Air/Generated/LuiProgram.lean": {
+      "embedded_json_metadata_only": 1
+    },
+    "Air/Generated/Pilot.lean": {
+      "named_digest_only": 2
+    },
+    "Air/Bridge/LoadStoreProgram.lean": {
+      "named_digest_only": 1
+    }
+  },
+  "dependent_Lean_pin_updates": [
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Auipc.lean",
+      "exact_literal_replacements": 2,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Branches.lean",
+      "exact_literal_replacements": 6,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Air/Bridge/Jalr.lean",
+      "exact_literal_replacements": 2,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Air/Bridge/LoadStoreBridge.lean",
+      "exact_literal_replacements": 1,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Air/Bridge/LtImm.lean",
+      "exact_literal_replacements": 2,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Air/Bridge/LtReg.lean",
+      "exact_literal_replacements": 2,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/TeamA/Pilots.lean",
+      "exact_literal_replacements": 2,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/TeamB/LoadStore.lean",
+      "exact_literal_replacements": 8,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/TeamB/MulhDiv/Division/Semantics.lean",
+      "exact_literal_replacements": 12,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/TeamB/MulhDiv/HighMultiply.lean",
+      "exact_literal_replacements": 9,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/TeamB/Multiply.lean",
+      "exact_literal_replacements": 2,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/TeamB/Shifts.lean",
+      "exact_literal_replacements": 6,
+      "other_changes": false
+    },
+    {
+      "path": "formal/riscv-refinement/RiscvRefinement/Publication/Universal.lean",
+      "exact_literal_replacements": 46,
+      "other_changes": false
+    }
+  ],
+  "actual_Lean_audit": {
+    "theorems": 4642,
+    "axioms": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "uses_existing_full_inventory_validator": true
+  },
+  "final_generated_manifest": {
+    "proof_source_hashes_current": 178,
+    "Sail_provenance_unchanged": true,
+    "nonformal_changes": []
+  },
+  "certificate_index_changes": [
+    {
+      "path": "formal/riscv-refinement/opcode-coverage.json",
+      "changed_paths": [
+        "/canonical_digest",
+        "/source_indexes/team_a",
+        "/certificates/0/proof_time_ms",
+        "/certificates/0/air_digest",
+        "/certificates/1/proof_time_ms",
+        "/certificates/1/air_digest",
+        "/certificates/2/air_digest",
+        "/certificates/3/proof_time_ms",
+        "/certificates/3/air_digest",
+        "/certificates/4/proof_time_ms",
+        "/certificates/4/air_digest",
+        "/certificates/5/proof_time_ms",
+        "/certificates/5/air_digest",
+        "/certificates/6/air_digest",
+        "/certificates/7/air_digest",
+        "/certificates/8/proof_time_ms",
+        "/certificates/8/air_digest",
+        "/certificates/9/proof_time_ms",
+        "/certificates/9/air_digest",
+        "/certificates/10/proof_time_ms",
+        "/certificates/10/air_digest",
+        "/certificates/11/proof_time_ms",
+        "/certificates/11/air_digest",
+        "/certificates/12/proof_time_ms",
+        "/certificates/12/air_digest",
+        "/certificates/13/proof_time_ms",
+        "/certificates/13/air_digest",
+        "/certificates/14/proof_time_ms",
+        "/certificates/14/air_digest",
+        "/certificates/15/proof_time_ms",
+        "/certificates/15/air_digest",
+        "/certificates/16/air_digest",
+        "/certificates/17/air_digest",
+        "/certificates/18/air_digest",
+        "/certificates/19/air_digest",
+        "/certificates/20/air_digest",
+        "/certificates/21/air_digest",
+        "/certificates/22/air_digest",
+        "/certificates/23/air_digest",
+        "/certificates/24/air_digest",
+        "/certificates/25/air_digest",
+        "/certificates/26/air_digest",
+        "/certificates/27/proof_time_ms",
+        "/certificates/27/air_digest",
+        "/certificates/28/proof_time_ms",
+        "/certificates/28/air_digest",
+        "/certificates/29/proof_time_ms",
+        "/certificates/29/air_digest",
+        "/certificates/30/proof_time_ms",
+        "/certificates/30/air_digest",
+        "/certificates/31/proof_time_ms",
+        "/certificates/31/air_digest",
+        "/certificates/32/proof_time_ms",
+        "/certificates/32/air_digest",
+        "/certificates/33/proof_time_ms",
+        "/certificates/33/air_digest",
+        "/certificates/34/proof_time_ms",
+        "/certificates/34/air_digest",
+        "/certificates/35/proof_time_ms",
+        "/certificates/35/air_digest",
+        "/certificates/36/proof_time_ms",
+        "/certificates/36/air_digest",
+        "/certificates/37/air_digest",
+        "/certificates/38/air_digest",
+        "/certificates/39/air_digest",
+        "/certificates/40/air_digest",
+        "/certificates/41/air_digest",
+        "/certificates/42/air_digest",
+        "/certificates/43/air_digest",
+        "/certificates/44/air_digest",
+        "/certificates/45/proof_time_ms",
+        "/certificates/45/air_digest"
+      ]
+    },
+    {
+      "path": "formal/riscv-refinement/team-a-coverage.json",
+      "changed_paths": [
+        "/canonical_digest",
+        "/certificates/0/proof_time_ms",
+        "/certificates/0/air_digest",
+        "/certificates/1/proof_time_ms",
+        "/certificates/1/air_digest",
+        "/certificates/2/proof_time_ms",
+        "/certificates/2/air_digest",
+        "/certificates/3/proof_time_ms",
+        "/certificates/3/air_digest",
+        "/certificates/4/proof_time_ms",
+        "/certificates/4/air_digest",
+        "/certificates/5/proof_time_ms",
+        "/certificates/5/air_digest",
+        "/certificates/6/proof_time_ms",
+        "/certificates/6/air_digest",
+        "/certificates/7/proof_time_ms",
+        "/certificates/7/air_digest",
+        "/certificates/8/proof_time_ms",
+        "/certificates/8/air_digest",
+        "/certificates/9/proof_time_ms",
+        "/certificates/9/air_digest",
+        "/certificates/10/proof_time_ms",
+        "/certificates/10/air_digest",
+        "/certificates/11/proof_time_ms",
+        "/certificates/11/air_digest",
+        "/certificates/12/proof_time_ms",
+        "/certificates/12/air_digest",
+        "/certificates/13/proof_time_ms",
+        "/certificates/13/air_digest",
+        "/certificates/14/proof_time_ms",
+        "/certificates/14/air_digest",
+        "/certificates/15/proof_time_ms",
+        "/certificates/15/air_digest",
+        "/certificates/16/proof_time_ms",
+        "/certificates/16/air_digest",
+        "/certificates/17/proof_time_ms",
+        "/certificates/17/air_digest",
+        "/certificates/18/proof_time_ms",
+        "/certificates/18/air_digest",
+        "/certificates/19/proof_time_ms",
+        "/certificates/19/air_digest",
+        "/certificates/20/proof_time_ms",
+        "/certificates/20/air_digest",
+        "/certificates/21/proof_time_ms",
+        "/certificates/21/air_digest",
+        "/certificates/22/proof_time_ms",
+        "/certificates/22/air_digest",
+        "/certificates/23/proof_time_ms",
+        "/certificates/23/air_digest"
+      ]
+    }
+  ]
+}
