@@ -372,7 +372,7 @@ this change. The structural gain is the 4.1% interaction-cell cut.
 Sections 1-10 cover LS, the Keccak permutation bridge and the secp bridge. The
 services roster (`int/word16_global_execution/services/roster.zig::Sources`)
 now also carries SHA-256, arith256_mod, seven curve/field kinds, six bulk-memory
-kinds and the two Keccak-sponge components, all of which produce RAM14 tokens
+kinds, the three JUMPDEST kinds (in the bulk array) and the two Keccak-sponge components, all of which produce RAM14 tokens
 inside the CPU proof. This section re-establishes the lemma of section 4 for
 every one of them. It is written per writer so that a new writer appends one
 case; the regression guard
@@ -431,10 +431,15 @@ section 4 goes through unchanged.
 | `bulk[ucopy]` | unaligned copy body | (c) dst limb `i` = `b0 + 256 b1` where `b0, b1` are bytes of the src before tokens of this row and the previous row of the same run; even bytes U8 (two U16 facts), odd bytes `< 2^16` by U16 and `< 256` because `lo + 256 hi` is the canonical before limb (I of a token with strictly smaller tau). Src read `after = before` (b). (bulk B10) | as copy | dst weight `active - start` (Boolean: start => active), R = W = 1 constants; src weight `active` |
 | `bulk[cdesc]` | memcmp descriptor | packet reads (b); result word (a): limbs `(pos + 65535 neg, 65535 neg, 65535 neg, 65535 neg)` with `neg, pos` Boolean and `neg * pos = 0`, so each limb is in {0, 1, 65535} | ECALL OWNER tuple (as desc) | result write R = W = 1 constants; weight `active` |
 | `bulk[cmp]` | memcmp body | (b) reads only: `after = before` for both operands | token clock, continuation equality | R = 1, W column shared; weight `active` |
+| `bulk[jdesc]` | JUMPDEST descriptor (`bm/` jdesc, tag 0x30040) | (b) packet reads only: `after = before` (same columns; code limb 0 = `64 q`) | ECALL OWNER tuple, `TL` U16, `TH` U8 (as desc) | R = 1, W column shared; weight `active` |
+| `bulk[jscan]` | JUMPDEST scan row (8 code reads + 1 bitmap write per 64 code bytes) | bitmap write (a): limb `l` = `sum_{i<16} j_{16l+i} 2^i`, each `j` a jtab table output in {0, 1} (OWNER19 lookup, per-proof closure) or forced 0 on invalid words, so `0 <= limb <= 65535` with no earlier token; code reads (b) `after = before`, value limbs `b + 256 b'` with table-ranged bytes | token clock, continuation equality (jumpdest doc J1/J2) | write R = W = 1 constants, weight `active`; read W column shared, weight `valid_w` (Boolean prefix bits, `valid_0 = active`) |
+| `bulk[jtab]` | JUMPDEST transition table | no RAM tokens (OWNER19 table side only) | - | - |
 | `sponge_plan`, `sponge[call]` | `air/delegations/keccak_sponge` call row | state lanes: `after = limbsOfBytes(new)`, `new` bytes consumed as IO11 direction-1 tuples whose only producer is the Keccak truth (bytes are sums of Boolean bits), so canonical after global IO11 closure (a, cross-component anchor; sponge doc S6/S7); packet reads (b) | ECALL OWNER tuple, `tick_low` U16, `tick_high` U8 | state R = W = 1 constants; packet W column shared; weight `a` |
 | `sponge[perm]` | sponge permutation rows | reads only (b): message windows `after = before` | first row consumes the call token carrying the call clock; continuations copy | R = 1, W column shared; weight `read[j]` Boolean and only on active rows |
 
-`core` is the CPU + LS + boundary source (sections 1-10). `sponge_plan` is the
+`core` is the CPU + LS + boundary source (sections 1-10). The JUMPDEST case
+is argued in `rv64-jumpdest-service.md` J3-J6; its writer is case (a) like
+memset, so no new dependency edge. `sponge_plan` is the
 owned plan of the two sponge sources, not a component.
 
 ### 11.3 Notes and premises made explicit

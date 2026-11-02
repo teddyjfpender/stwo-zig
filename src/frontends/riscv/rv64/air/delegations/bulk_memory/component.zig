@@ -105,9 +105,9 @@ pub const Component = struct {
     /// values; only the kind, log size and column offsets come from `self`.
     pub fn evaluatePointFor(self: *const Component, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, rows: T.RowsFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), challenges: T.ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) !void {
         const widths_ = self.widths();
-        var data: [192]Q = undefined;
-        var pm: [96]Q = @splat(Q.zero());
-        var pi: [96]Q = @splat(Q.zero());
+        var data: [L.MAX_TOTAL]Q = undefined;
+        var pm: [L.MAX_ROW]Q = @splat(Q.zero());
+        var pi: [L.MAX_ROW]Q = @splat(Q.zero());
         var at: usize = 0;
         for (widths_, 0..) |width, tree| for (0..width) |c| {
             const prev = if (tree == 1) L.previousMainFor(self.kind, c) else tree == 2 and L.previousInterFor(self.kind, c);
@@ -137,7 +137,7 @@ pub const Component = struct {
         const a = acc.allocator;
         const widths_ = self.widths();
         const total = widths_[0] + widths_[1] + widths_[2];
-        var polys_buffer: [192]cp.Poly = undefined;
+        var polys_buffer: [L.MAX_TOTAL]cp.Poly = undefined;
         const polys = polys_buffer[0..total];
         var at: usize = 0;
         for (widths_, 0..) |width, tree| {
@@ -155,7 +155,7 @@ pub const Component = struct {
             for (owned[0..initialized]) |column| a.free(column);
             a.free(owned);
         }
-        var eval_buffer: [192][]const M = undefined;
+        var eval_buffer: [L.MAX_TOTAL][]const M = undefined;
         const evals = eval_buffer[0..total];
         for (polys, evals) |poly, *data| data.* = try support.evaluationValues(a, poly, log, n, owned, &initialized);
         if (owned_count != 0) {

@@ -60,7 +60,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 | Output | 43 bytes at `__output_data` (request root, 1, chain id LE, schema id LE), `__output_len = 43`, `__halt_flag = 1`, then spin |
 | Failure | illegal instruction (`.word 0`), no output (the Rust guest panics the same way) |
 | Linker | `linker-wide-cxx.ld` = `rv64/linker-wide.ld` plus `.init_array` inside `.data`; memory map and symbols unchanged |
-| Patches | 0001 ziskethone (SSZ witness state, lazy rows, RV64 word paths), 0002 blst 64-bit limbs, 0003 intx byte-wise big-endian, 0004 candidate arith256_mod, 0005 evmc word compares and copy-free host trampolines; 0006-0017 interpreter; 0020/0021 candidate curves; 0023 v3 modexp; 0025 code digest in the ZEG0 contract record; 0026 blst constant-limb Montgomery product; 0027 ziskethone word copies; `wip/0024` translated segments (parked, not applied: measured slower) |
+| Patches | 0001 ziskethone (SSZ witness state, lazy rows, RV64 word paths), 0002 blst 64-bit limbs, 0003 intx byte-wise big-endian, 0004 candidate arith256_mod, 0005 evmc word compares and copy-free host trampolines; 0006-0017 interpreter; 0020/0021 candidate curves; 0023 v3 modexp; 0025 code digest in the ZEG0 contract record; 0026 blst constant-limb Montgomery product; 0027 ziskethone word copies; 0028/0029 JUMPDEST analysis on the jumpdest_bitmap service (admitted v3 default `jumpdest` group; `--candidate-jumpdest` for the execution-only candidate); `wip/0024` translated segments (parked, not applied: measured slower) |
 | Keccak-f | `0x0001_0001` in `glue/keccak_stwo.cpp` (replaces evmone's `keccak.c`) |
 | secp256k1 | `0x0002_0011/0012` word packets, complete RCB formulas, in `glue/secp256k1_stwo.cpp` |
 | Candidate | `0x0003_0001-0003` bulk memory (runtime), `0x0003_0010` SHA-256 compress, `0x0003_0021` arith256_mod (MULMOD, ADDMOD, 256-bit `ModArith` in plain form), optional `0x0003_0020` arith256 for MUL |
@@ -130,6 +130,15 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   point copies, the SHA-256 block copy and the Keccak first-block absorb are
   forced inline instead of memcpy calls. Measurements:
   `autoresearch/guest_efficiency/notes/client-pass2-20261102.md`.
+- **JUMPDEST service (patches 0028, 0029).** With `ADMITTED_JUMPDEST` (default
+  in `--profile v3`; `--v3-set sha,arith,mem` builds the previous v3 client)
+  or `CANDIDATE_JUMPDEST` evmone's analysis is one `jumpdest_bitmap` ECALL
+  (0x0003_0040) on the zero-padded copy: code length rounded up to 8,
+  the copy 64-byte aligned inside its analysis-cache slot (0029 adds 56 bytes
+  per slot), sentinel scan as the fallback for a misaligned copy. Without the
+  defines both patches are inert (v3 per-block instruction counts identical).
+  Proposal and measurements:
+  `autoresearch/guest_efficiency/proposals/jumpdest-bitmap.md`.
 
 ## Tests
 

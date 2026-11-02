@@ -64,9 +64,11 @@ pub const CpuClaims = struct {
         const bulk = self.bulkValues();
         if (setup.bridges.bulk.any()) channel.mixFelts(bulk[0 .. 3 * T.BULK_BASE]);
         // Bulk extension (unaligned memcpy, memcmp) after it, only when present.
-        if (setup.bridges.bulk.anyExtension()) channel.mixFelts(bulk[3 * T.BULK_BASE ..]);
+        if (setup.bridges.bulk.anyExtension()) channel.mixFelts(bulk[3 * T.BULK_BASE .. 3 * T.BULK_EXT]);
         // Sponge block after bulk, only when present.
         if (setup.bridges.sponge.any()) channel.mixFelts(&self.spongeValues());
+        // JUMPDEST block after the sponge, only when present.
+        if (setup.bridges.bulk.jump()) channel.mixFelts(bulk[3 * T.BULK_EXT ..]);
     }
     pub fn canonical(self: @This()) !void {
         try Source.validateCanonicalClaims(self.base);

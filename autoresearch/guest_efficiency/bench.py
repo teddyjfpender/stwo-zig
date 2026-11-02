@@ -89,6 +89,7 @@ ADMITTED_REPORT_FIELDS = {
     # memcmp: bytes = 8 x examined word pairs (the proof's cmp rows), not len.
     "memcmp": ("bulk_memcmp_calls", "bulk_memcmp_bytes"),
     "keccak_sponge": ("keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations"),
+    "jumpdest_bitmap": ("jumpdest_calls", "jumpdest_bytes"),
 }
 # Admitted v3 curve/field services: the execution report's `curve_calls` is one
 # call count per op in curves.Op order (Wire35 kinds 5..11).
@@ -465,7 +466,8 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
         keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "arith256_mod_calls",
                 "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes",
                 "bulk_memcpy_unaligned_calls", "bulk_memcpy_unaligned_bytes", "bulk_memcmp_calls", "bulk_memcmp_bytes",
-                "keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations", "curve_calls", "verified_output")
+                "keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations",
+                "jumpdest_calls", "jumpdest_bytes", "curve_calls", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     return row
