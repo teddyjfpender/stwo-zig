@@ -142,6 +142,90 @@ pub fn def(comptime op: Op) Def {
     };
 }
 
+/// secp256k1 homogeneous RCB ADD/DOUBLE (Wire35 program kinds 1/2) as a
+/// one-call-per-row truth: the selectable `row_v1` replacement of the RCB
+/// product/linear providers (`secp256k1/layout.zig`). It is not an execution
+/// op: the packet ABI, tags and Wire35 IDs are the secp service's own
+/// (`ethereum_services/secp256k1.zig`, `word16_bridge/types.zig`), and every
+/// output equals that program's canonical result.
+pub const secp = @import("../../../ethereum_services/secp256k1.zig");
+pub const SecpKind = secp.Kind;
+pub const SECP256K1_P: u256 = secp.MODULUS;
+
+/// RCB complete homogeneous formulas (k256 0.13.4, b3 = 21) written as exact
+/// integer relations over byte limbs. Raw packet coordinates are any 256-bit
+/// words: every relation is taken mod p, so they enter by their residue,
+/// exactly as the program's `reduce_once` (raw < 2^256 < 2p). Witnesses are
+/// arbitrary byte vectors bound by their own relation mod p; only the three
+/// outputs are proven canonical.
+///   ADD [X1 Y1 Z1 X2 Y2 Z2] -> [X3 Y3 Z3 X2 Y2 Z2]
+///     xx = X1 X2, yy = Y1 Y2, zz = Z1 Z2,
+///     xy = X1 Y2 + Y1 X2, yz = Y1 Z2 + Z1 Y2, xz = X1 Z2 + Z1 X2,
+///     X3 = xy (yy - 21 zz) - 21 yz xz,
+///     Y3 = (yy + 21 zz)(yy - 21 zz) + 63 xx xz = yy^2 - 441 zz^2 + 63 xx xz,
+///     Z3 = yz (yy + 21 zz) + 3 xx xy.
+///   DOUBLE [X Y Z] -> [X3 Y3 Z3]
+///     yy = Y^2, zz = Z^2, xy = X Y, yz = Y Z, ym = yy - 63 zz,
+///     X3 = 2 xy ym,
+///     Y3 = ym (yy + 21 zz) + 168 yy zz,
+///     Z3 = 8 yy yz.
+pub fn secpDef(comptime kind: SecpKind) Def {
+    const p: Big = SECP256K1_P;
+    return switch (kind) {
+        .add => .{ .limbs = 32, .coords = 6, .written = 3, .inputs = 6, .outputs = 3, .witnesses = 6, .modulus = .{ .constant = p }, .relations = &.{
+            &.{ t(in(0), in(3), 1), s(wit(0), -1, 0) },
+            &.{ t(in(1), in(4), 1), s(wit(1), -1, 0) },
+            &.{ t(in(2), in(5), 1), s(wit(2), -1, 0) },
+            &.{ t(in(0), in(4), 1), t(in(1), in(3), 1), s(wit(3), -1, 0) },
+            &.{ t(in(1), in(5), 1), t(in(2), in(4), 1), s(wit(4), -1, 0) },
+            &.{ t(in(0), in(5), 1), t(in(2), in(3), 1), s(wit(5), -1, 0) },
+            &.{ t(wit(3), wit(1), 1), t(wit(3), wit(2), -21), t(wit(4), wit(5), -21), s(out(0), -1, 0) },
+            &.{ t(wit(1), wit(1), 1), t(wit(2), wit(2), -441), t(wit(0), wit(5), 63), s(out(1), -1, 0) },
+            &.{ t(wit(4), wit(1), 1), t(wit(4), wit(2), 21), t(wit(0), wit(3), 3), s(out(2), -1, 0) },
+        } },
+        .double => .{ .limbs = 32, .coords = 3, .written = 3, .inputs = 3, .outputs = 3, .witnesses = 5, .modulus = .{ .constant = p }, .relations = &.{
+            &.{ t(in(1), in(1), 1), s(wit(0), -1, 0) },
+            &.{ t(in(2), in(2), 1), s(wit(1), -1, 0) },
+            &.{ t(in(0), in(1), 1), s(wit(2), -1, 0) },
+            &.{ t(in(1), in(2), 1), s(wit(3), -1, 0) },
+            &.{ s(wit(0), 1, 0), s(wit(1), -63, 0), s(wit(4), -1, 0) },
+            &.{ t(wit(2), wit(4), 2), s(out(0), -1, 0) },
+            &.{ t(wit(4), wit(0), 1), t(wit(4), wit(1), 21), t(wit(0), wit(1), 168), s(out(1), -1, 0) },
+            &.{ t(wit(0), wit(3), 8), s(out(2), -1, 0) },
+        } },
+    };
+}
+
+/// Generic truth key: a curve/field `Op` or a secp `SecpKind`. Every
+/// layout/equation/trace/component authority below is keyed by it.
+pub fn checkKey(comptime K: type) void {
+    if (K != Op and K != SecpKind) @compileError("curve truth key must be curves.Op or secp256k1 Kind");
+}
+pub fn defOf(comptime key: anytype) Def {
+    checkKey(@TypeOf(key));
+    return if (@TypeOf(key) == Op) def(key) else secpDef(key);
+}
+/// Wire35 program kind (the Op ordinal 5..11, or the secp kind 1/2).
+pub fn kindOf(comptime key: anytype) u32 {
+    checkKey(@TypeOf(key));
+    return @intFromEnum(key);
+}
+pub fn tagOf(comptime key: anytype) u32 {
+    checkKey(@TypeOf(key));
+    return if (@TypeOf(key) == Op) tag(key) else switch (key) {
+        .add => 0x20011,
+        .double => 0x20012,
+    };
+}
+/// Wire35 ID of fraction `id`: input coordinates are `0..coords-1`; written
+/// coordinate c is `coords + c` for curve ops and the RCB program's output
+/// wire for secp (the IDs the Word16 bridge publishes, `outputWire`).
+pub fn wireLabel(comptime key: anytype, id: usize) u32 {
+    const d = comptime defOf(key);
+    if (@TypeOf(key) == Op or id < d.coords) return @intCast(id);
+    return secp.get(key).outputs[id - d.coords];
+}
+
 pub fn byteLen(x: Big) usize {
     if (x == 0) return 1;
     return (@bitSizeOf(Big) - @clz(x) + 7) / 8;

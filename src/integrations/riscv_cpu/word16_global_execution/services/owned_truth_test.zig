@@ -17,6 +17,7 @@ fn generate(src: *R.TruthSource, ch: P.TruthDraw) ![3]G.Q {
         .sha256 => |*s| .{ try s.source.generateInteraction(ch.sha256), G.Q.zero(), G.Q.zero() },
         .arith256_mod => |*s| .{ try s.source.generateInteraction(ch.arith256_mod), G.Q.zero(), G.Q.zero() },
         .curve => |*s| .{ try s.generateInteraction(ch.curve), G.Q.zero(), G.Q.zero() },
+        .secp_row => |*s| .{ try s.generateInteraction(ch.secp_row), G.Q.zero(), G.Q.zero() },
     };
 }
 fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
@@ -34,6 +35,9 @@ fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
         .sha256 => |*v| v.source.allocator = allocator,
         .arith256_mod => |*v| v.source.allocator = allocator,
         .curve => |*v| switch (v.*) {
+            inline else => |*part| part.allocator = allocator,
+        },
+        .secp_row => |*v| switch (v.*) {
             inline else => |*part| part.allocator = allocator,
         },
     }
@@ -172,12 +176,17 @@ test "Truth ownership transfer allocation failure borrowed phase and aliased buf
                 try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
                 s.source.owns_main = true;
             },
-            .curve => |*v| switch (v.*) {
-                inline else => |*part| {
-                    part.owns_main = false;
-                    try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
-                    part.owns_main = true;
-                },
+            .curve, .secp_row => {
+                switch (src) {
+                    inline .curve, .secp_row => |*v| switch (v.*) {
+                        inline else => |*part| {
+                            part.owns_main = false;
+                            try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
+                            part.owns_main = true;
+                        },
+                    },
+                    else => unreachable,
+                }
             },
         }
         const main = try src.takeMain();

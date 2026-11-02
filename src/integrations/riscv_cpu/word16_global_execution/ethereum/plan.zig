@@ -232,7 +232,7 @@ fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration
         try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicyFor(options, log)) } });
         next = try std.math.add(u32, next, calls);
     }
-    try appendSecp(a, out, total);
+    try appendSecp(a, out, total, options.v3);
 }
 /// v3 Keccak truths: full shards of the throughput profile's slot geometry,
 /// then the cheapest split of the remainder (`keccakBestSplit`).
@@ -256,13 +256,35 @@ fn appendKeccakV3(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration),
             next = try std.math.add(u32, next, piece.calls);
         }
     }
-    try appendSecp(a, out, total);
+    try appendSecp(a, out, total, options.v3);
 }
-fn appendSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32) !void {
+fn appendSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, v3: bool) !void {
     for (1..3) |family| {
         const kind: A.crypto.secp256k1.program.Kind = if (family == 1) .add else .double;
         const program = A.crypto.secp256k1.program.get(kind);
         var next: u32 = 1;
+        // v3: the row profile wherever it commits fewer cells than the RCB
+        // providers for the same span (always, beyond tiny call counts).
+        if (v3 and total[family] != 0) {
+            const row_capacity: u32 = (@as(u32, 1) << @intCast(SecpRow.MAX_LOG)) - 1;
+            var rows: std.ArrayList(W.TruthDeclaration) = .{};
+            defer rows.deinit(a);
+            var row_cells: u64 = 0;
+            var rcb_cells: u64 = 0;
+            var at: u32 = 1;
+            while (at <= total[family]) {
+                const calls = try secpRowSpan(kind, @min(row_capacity, total[family] - at + 1));
+                const log = try SecpRow.logSize(kind, calls);
+                try rows.append(a, .{ .family = @enumFromInt(family), .first_id = at, .calls = calls, .logs = .{ log, SecpRow.PROFILE_WORD } });
+                row_cells += SecpRow.cells(kind, log);
+                at = try std.math.add(u32, at, calls);
+            }
+            rcb_cells = try secpRcbCells(kind, total[family]);
+            if (row_cells < rcb_cells) {
+                try out.appendSlice(a, rows.items);
+                continue;
+            }
+        }
         while (next <= total[family]) {
             // Bound product and linear workers separately; real call counts
             // select shape without constraining CPU geometry to provider size.
@@ -274,6 +296,38 @@ fn appendSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), tot
             next = try std.math.add(u32, next, calls);
         }
     }
+}
+const SecpRow = @import("../secp/row_roster.zig");
+/// Calls of the next row span out of `remaining` (<= capacity): one padded
+/// power of two, unless splitting at the next smaller one (head of
+/// 2^(log-1) - 1 calls, its own padding row included) and covering the rest
+/// separately commits at least 1/8 fewer cells. Padding only: every call is
+/// still covered exactly once, in order.
+pub fn secpRowSpan(kind: A.crypto.secp256k1.program.Kind, remaining: u32) !u32 {
+    const log = try SecpRow.logSize(kind, remaining);
+    if (log <= A.crypto.curves.layout.MIN_LOG) return remaining;
+    const head: u32 = (@as(u32, 1) << @intCast(log - 1)) - 1;
+    if (head >= remaining) return remaining;
+    const split = SecpRow.cells(kind, log - 1) + SecpRow.cells(kind, try SecpRow.logSize(kind, remaining - head));
+    return if (8 * split <= 7 * SecpRow.cells(kind, log)) head else remaining;
+}
+/// Committed MAIN+INTERACTION cells of the RCB product/linear/BYTE truths
+/// covering `calls` (the spans the v2 planner emits).
+pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u64 {
+    const S = A.crypto.secp256k1;
+    const program = S.program.get(kind);
+    const policy = @import("../secp/roster.zig").TruthSetup.byte_policy;
+    const capacity = @min(((1 << 18) - 1) / program.rows(true), ((1 << 18) - 1) / program.rows(false));
+    var cells: u64 = 0;
+    var at: u64 = 0;
+    while (at < calls_total) {
+        const calls: usize = @intCast(@min(capacity, calls_total - at));
+        const lp = try S.layout.logSize(.product, program, calls);
+        const ll = try S.layout.logSize(.linear, program, calls);
+        cells += (@as(u64, S.layout.main(.product) + S.layout.interactionFor(.product, policy)) << @intCast(lp)) + (@as(u64, S.layout.main(.linear) + S.layout.interactionFor(.linear, policy)) << @intCast(ll)) + 9 * 256;
+        at += calls;
+    }
+    return cells;
 }
 fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
     var total: [3]u32 = @splat(0);
@@ -432,6 +486,24 @@ test "quartet keccak truth option keeps the throughput tables and cuts 152 inter
     try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, try W.keccakPolicy(W.keccakProfileWord(.throughput_quartet_v1)));
     try std.testing.expectError(error.InvalidServicesTruthGeometry, W.keccakPolicy(22));
     try std.testing.expectError(error.InvalidServicesTruthGeometry, W.keccakPolicy(4 << 8));
+}
+test "v3 secp row spans split only where padding wastes at least 1/8 of the cells" {
+    // 4-packet prefix of block 24,628,607: 1,080 ADD -> 1,023 (log 10) + 57 (log 8).
+    try std.testing.expectEqual(@as(u32, 1023), try secpRowSpan(.add, 1080));
+    try std.testing.expectEqual(@as(u32, 57), try secpRowSpan(.add, 57));
+    // 1,001 DOUBLE fits log 10 unsplit.
+    try std.testing.expectEqual(@as(u32, 1001), try secpRowSpan(.double, 1001));
+    // Complete block scale: 11,496 -> 8,191 (log 13) + 3,305 (log 12, unsplit).
+    try std.testing.expectEqual(@as(u32, 8191), try secpRowSpan(.add, 11496));
+    try std.testing.expectEqual(@as(u32, 3305), try secpRowSpan(.add, 3305));
+}
+test "v3 secp truths take the row profile wherever it commits fewer cells" {
+    // Real-prefix scale: fewer cells even with worst-case padding (1,200
+    // calls in 2^11 rows), under half at a full power of two (1,023 calls).
+    for ([_]A.crypto.secp256k1.program.Kind{ .add, .double }) |kind| {
+        try std.testing.expect(SecpRow.cells(kind, try SecpRow.logSize(kind, 1200)) < try secpRcbCells(kind, 1200));
+        try std.testing.expect(2 * SecpRow.cells(kind, try SecpRow.logSize(kind, 1023)) < try secpRcbCells(kind, 1023));
+    }
 }
 test "two-instance planner reduces physical rows only and respects reserved LS rows" {
     try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));

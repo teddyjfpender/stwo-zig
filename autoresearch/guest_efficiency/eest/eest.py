@@ -9,7 +9,7 @@
   python3 -I eest.py receipt  --cache C --work W --out RECEIPT.json
   python3 -I eest.py all      --cache C --work W --out RECEIPT.json
 
-Options: --jobs N (default 6, max 6), --filter SUBSTR (fixture paths), --guest-sample
+Options: --jobs N (default 6, max 12), --clients evmone,rust, --evmone-profile {v3,admitted}, --filter SUBSTR (fixture paths), --guest-sample
 {all,per-file} (tier 2 runs every input, or the first valid and first invalid
 input of each fixture file). See README.md for the route and the categories.
 Only the Python standard library is used; downloads go to --cache.
@@ -50,8 +50,15 @@ STATELESS = {"url": "https://github.com/paradigmxyz/stateless.git",
              "commit": "a134a621bad7229ff7f980e42dfca8e22d101491"}
 EVMONE = ROOT / "autoresearch/benchmarks/guest_runtime/ethereum/client_evmone"
 RUST_PROFILE = "ethereum-services-v2-lean"
-CLIENTS = ("evmone", "rust")
-MAX_JOBS = 6
+CLIENTS = ("evmone", "rust")  # narrowed by --clients
+MAX_JOBS = 12
+# evmone guest profile -> (build.py --profile, ELF name, executor execution_profile)
+EVMONE_PROFILES = {
+    "admitted": ("admitted", "client-evmone-admitted-eest.elf", "ethereum_services_v2"),
+    "v3": ("v3", "client-evmone-v3-eest.elf", "ethereum_services_v3"),
+}
+EVMONE_PROFILE = "v3"  # set from --evmone-profile
+RUST_EXEC_PROFILE = "ethereum_services_v2"
 
 
 def run(cmd, cwd=None, **kw):
@@ -77,7 +84,7 @@ def paths(cache: Path) -> dict:
         "rust_host": cache / "target-rust-host" / "release" / "stwo-eest-rust-host",
         "evmone_out": cache / "evmone",
         "evmone_host": cache / "evmone" / "client-evmone-host-eest",
-        "evmone_elf": cache / "evmone" / "client-evmone-admitted-eest.elf",
+        "evmone_elf": cache / "evmone" / EVMONE_PROFILES[EVMONE_PROFILE][1],
         "rust_elf": cache / "rust-elf" / f"ethereum-rv64-{RUST_PROFILE.replace('ethereum-', '')}.elf",
         "exec": cache / "exec" / "bin" / "rv64-ethereum-execution",
     }
@@ -134,16 +141,20 @@ def cmd_build(a):
     env = dict(os.environ, CARGO_TARGET_DIR=str(p["target"]))
     run(["cargo", "+stable", "build", "--release", "-p", "stwo-eest-witness-gen", "-j", jobs], st, env=env)
     # 2. Rust host tier: the guest's validation core with the guest's [patch] set.
-    env = dict(os.environ, CARGO_TARGET_DIR=str(p["rust_host"].parents[1]))
-    run(["cargo", "+" + "nightly-2026-08-08", "build", "--release", "--locked", "-j", jobs], HERE / "rust_host", env=env)
+    if "rust" in CLIENTS:
+        env = dict(os.environ, CARGO_TARGET_DIR=str(p["rust_host"].parents[1]))
+        run(["cargo", "+" + "nightly-2026-08-08", "build", "--release", "--locked", "-j", jobs], HERE / "rust_host",
+            env=env)
     # 3. evmone host and guest, EEST conformance variant (fork from schema id).
-    cache = a.evmone_cache or (p["evmone_out"] / "cache")
-    for extra in (["--host"], []):
-        run([sys.executable, "-I", EVMONE / "build.py", "--out", p["evmone_out"], "--cache", cache, "--eest",
-             "--jobs", jobs, *extra], ROOT)
+    if "evmone" in CLIENTS:
+        cache = a.evmone_cache or (p["evmone_out"] / "cache")
+        for extra in (["--host"], ["--profile", EVMONE_PROFILES[EVMONE_PROFILE][0]]):
+            run([sys.executable, "-I", EVMONE / "build.py", "--out", p["evmone_out"], "--cache", cache, "--eest",
+                 "--jobs", jobs, *extra], ROOT)
     # 4. Rust guest (unchanged production profile) and the execution tool.
-    run([sys.executable, "-I", EFF / "bench.py", "build-guest", "--out", p["rust_elf"].parent,
-         "--profile", RUST_PROFILE, "--jobs", "4"], ROOT)
+    if "rust" in CLIENTS:
+        run([sys.executable, "-I", EFF / "bench.py", "build-guest", "--out", p["rust_elf"].parent,
+             "--profile", RUST_PROFILE, "--jobs", "4"], ROOT)
     run([sys.executable, "-I", EFF / "bench.py", "build-exec", "--out", p["exec"].parents[1]], ROOT)
 
 
@@ -307,10 +318,14 @@ def cmd_host(a):
         if f.exists():
             return
         inps = [input_path(a.work, r) for r in rs]
-        rust = host_rust_batch(p["rust_host"], inps)
+        rust = host_rust_batch(p["rust_host"], inps) if "rust" in CLIENTS else {}
         res = {}
         for r, i in zip(rs, inps):
-            res[r["input"]] = {"evmone": host_evmone(p["evmone_host"], i), "rust": rust[str(i)]}
+            res[r["input"]] = {}
+            if "evmone" in CLIENTS:
+                res[r["input"]]["evmone"] = host_evmone(p["evmone_host"], i)
+            if "rust" in CLIENTS:
+                res[r["input"]]["rust"] = rust[str(i)]
         f.write_text(json.dumps(res, sort_keys=True))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(a.jobs, MAX_JOBS)) as pool:
@@ -320,14 +335,15 @@ def cmd_host(a):
 
 
 # ------------------------------------------------------------------ guest ---
-def guest_run(exe: Path, elf: Path, elf_sha: str, abi: dict, inp: Path, expected: str | None, tmp: Path) -> dict:
+def guest_run(exe: Path, elf: Path, elf_sha: str, abi: dict, profile: str, inp: Path, expected: str | None,
+              tmp: Path) -> dict:
     data = inp.read_bytes()
     cfg = {"elf": str(elf), "elf_sha256": elf_sha, "input": str(inp),
            "input_sha256": hashlib.sha256(data).hexdigest(),
            # Invalid blocks have no expected output: a completed run then fails
            # the comparison (EthereumOutputMismatch) and counts as acceptance.
            "expected_output": (expected or "0x" + "00" * 43)[2:], "symbols": abi,
-           "execution_profile": "ethereum_services_v2", "max_steps": 10_000_000_000}
+           "execution_profile": profile, "max_steps": 10_000_000_000}
     tmp.write_text(json.dumps(cfg))
     try:
         r = subprocess.run([exe, tmp], capture_output=True, text=True, timeout=a_timeout)
@@ -367,10 +383,13 @@ def cmd_guest(a):
                 pick.append(r)
         recs = pick
     elfs = {}
-    for c, key in (("evmone", "evmone_elf"), ("rust", "rust_elf")):
+    for c, key, prof in (("evmone", "evmone_elf", EVMONE_PROFILES[EVMONE_PROFILE][2]),
+                         ("rust", "rust_elf", RUST_EXEC_PROFILE)):
+        if c not in CLIENTS:
+            continue
         raw = p[key].read_bytes()
         abi, _ = bench.elf_symbols(raw)
-        elfs[c] = (p[key], hashlib.sha256(raw).hexdigest(), abi)
+        elfs[c] = (p[key], hashlib.sha256(raw).hexdigest(), abi, prof)
     out_dir = a.work / "guest"
     (out_dir / "cfg").mkdir(parents=True, exist_ok=True)
     t0 = time.time()
@@ -515,6 +534,9 @@ def cmd_receipt(a):
             for n in ("convert", "host", "guest")}
     receipt = {
         "schema": "stwo.rv64.eest-guests.v1",
+        "clients_run": list(CLIENTS),
+        "evmone_guest_profile": {"build": EVMONE_PROFILES[EVMONE_PROFILE][0],
+                                 "execution_profile": EVMONE_PROFILES[EVMONE_PROFILE][2]},
         "date": time.strftime("%Y-%m-%d"),
         "fixtures": {**FIXTURES, "in_scope_dirs": IN_SCOPE_DIRS,
                      "formats": ["blockchain_tests", "blockchain_tests_engine"],
@@ -524,7 +546,8 @@ def cmd_receipt(a):
                  "payload request from the engine fixture; invalid blocks get a full parent-state witness",
         "stateless_revision": STATELESS,
         "artifacts": meta,
-        "clients": {"evmone": "client_evmone, EEST variant (build.py --eest: fork/blob schedule from schema id)",
+        "clients": {"evmone": f"client_evmone, EEST variant (build.py --eest: fork/blob schedule from schema id); "
+                              f"guest build.py --profile {EVMONE_PROFILES[EVMONE_PROFILE][0]}",
                     "rust": f"stateless-validator-reth a134a621 with the {RUST_PROFILE} [patch] set "
                             "(host: no RV64 services; guest: production ELF, unchanged)"},
         "conversion": {"status": dict(gen), "out_of_scope": dict(oos), "not_applicable": dict(na),
@@ -564,8 +587,16 @@ def main(argv=None):
                     help="TMPDIR for the generator's throwaway reth databases (a RAM disk is much faster)")
     ap.add_argument("--timeout", type=int, default=1800, help="per guest execution, seconds")
     ap.add_argument("--evmone-cache", type=Path, default=None, help="pinned evmone/ziskethone source cache")
+    ap.add_argument("--clients", default="evmone,rust", help="comma list of clients to build/run (evmone, rust)")
+    ap.add_argument("--evmone-profile", choices=tuple(EVMONE_PROFILES), default="v3",
+                    help="evmone RV64 guest: v3 = ethereum_services_v3 (default service set), admitted = v2")
     ap.add_argument("--annotations", default=str(HERE / "failure-classification.json"))
     a = ap.parse_args(argv)
+    global CLIENTS, EVMONE_PROFILE
+    CLIENTS = tuple(c for c in ("evmone", "rust") if c in a.clients.split(","))
+    if not CLIENTS or set(a.clients.split(",")) - {"evmone", "rust"}:
+        ap.error("--clients takes evmone and/or rust")
+    EVMONE_PROFILE = a.evmone_profile
     a.cache = a.cache.resolve()
     if a.work:
         a.work = a.work.resolve()

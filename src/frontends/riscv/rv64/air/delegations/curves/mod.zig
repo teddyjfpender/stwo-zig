@@ -12,22 +12,23 @@ pub const equations = @import("equations.zig");
 pub const trace = @import("trace.zig");
 pub const component = @import("component.zig");
 pub const Op = spec.Op;
-pub fn Layout(comptime op: Op) type {
+pub fn Layout(comptime op: anytype) type {
     return layout.Layout(op);
 }
-pub fn Native(comptime op: Op) type {
+pub fn Native(comptime op: anytype) type {
     return native.Native(op);
 }
-pub fn Trace(comptime op: Op) type {
+pub fn Trace(comptime op: anytype) type {
     return trace.Trace(op);
 }
-pub fn Component(comptime op: Op) type {
+pub fn Component(comptime op: anytype) type {
     return component.Component(op);
 }
-pub fn Equations(comptime op: Op) type {
+pub fn Equations(comptime op: anytype) type {
     return equations.Equations(op);
 }
 
 test {
     _ = @import("tests.zig");
+    _ = @import("secp_tests.zig");
 }
