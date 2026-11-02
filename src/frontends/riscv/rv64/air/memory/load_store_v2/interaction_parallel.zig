@@ -19,7 +19,6 @@ const Prefix = @import("../../providers/prefix_waves.zig");
 comptime {
     std.debug.assert(CHUNK == @as(usize, 1) << LOG_CHUNK);
 }
-const PREFIX = [_]usize{ 4, L.LOCAL_PREFIX };
 pub fn generate(source: *S.Source, ch: T.Challenges, d16: []const Q, d8: []const Q, pool: ?*work.WorkPool) !T.Claims {
     return generateImpl(source, ch, d16, d8, pool, null, null);
 }
@@ -35,15 +34,15 @@ fn generateImpl(source: *S.Source, ch: T.Challenges, d16: []const Q, d8: []const
     const workers: usize = if (pool) |p| @min(p.workerCount(), units) else 1;
     if (workers <= 1) return I.generateSerial(source, ch, d16, d8);
     try I.validateDictionary(ch.range16, d16, 65536);
-    try I.validateDictionary(ch.range8, d8, 256);
+    if (!I.pairMode(source)) try I.validateDictionary(ch.range8, d8, 256);
     const a = source.allocator;
     const selection = try I.ParallelSupport.selectionDictionary(a, ch.selection);
     defer a.free(selection);
     var claims = T.Claims.zero();
     claims.range16 = try I.countDot(source.counts16, d16);
-    claims.range8 = try I.countDot(source.counts8, d8);
+    claims.range8 = try I.range8Share(source, d8);
     claims.selection = try I.countDot(source.selection_counts, selection);
-    const output = try a.alloc(M, L.INTERACTION * n);
+    const output = try a.alloc(M, I.interactionWidth(source) * n);
     errdefer a.free(output);
     @import("../../native_output_pages.zig").prepare(output);
     const scratch = try a.alloc(Q, workers * 5 * CHUNK);
@@ -106,7 +105,7 @@ const Job = struct {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.source.log_size), self.source.log_size);
                 const sums = self.summaries[logical >> @intCast(self.segment_log)];
                 const offsets = [2]Q{ sums[0], sums[1].add(sums[2]).add(sums[3]).add(sums[4]) };
-                for (PREFIX, offsets) |column, offset| for (offset.toM31Array(), 0..) |value, c| {
+                for (I.prefixColumns(self.source), offsets) |column, offset| for (offset.toM31Array(), 0..) |value, c| {
                     const at = (column + c) * n + physical;
                     self.output[at] = self.output[at].add(value);
                 };

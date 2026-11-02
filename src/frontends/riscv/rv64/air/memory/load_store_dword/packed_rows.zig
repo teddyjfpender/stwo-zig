@@ -30,7 +30,7 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, start
         for (indices[0..count], 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, component.log_size, component.log_size + 1);
         for (1..3) |tree| {
             const offset = if (tree == 1) widths[0] else inter_start;
-            for (0..widths[tree]) |c| if (if (tree == 1) L.previousMain(c) else L.previousInter(c)) {
+            for (0..widths[tree]) |c| if (if (tree == 1) L.previousMain(c) else component.previousInter(c)) {
                 var lanes: [LANES]M = @splat(M.zero());
                 for (indices[0..count], 0..) |index, lane| lanes[lane] = columns[offset + c][index];
                 if (tree == 1) pm[c] = F.fromLanes(lanes) else pi[c] = F.fromLanes(lanes);

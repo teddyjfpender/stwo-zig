@@ -241,16 +241,19 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
          "-o", tdir / "mem_fuzz"])
     run([tdir / "mem_fuzz"])
     flags = [a.opt, "-g", *COMMON_CXX, *DEFINES, "-DSTWO_HOST", *includes(src)]
-    units = [(glue / "secp256k1_stwo.cpp", ["-DSTWO_SECP_NO_EVMONE_API"]), (glue / "host_services.cpp", []),
-             (glue / "keccak_stwo.cpp", []), (src / "evmone" / "lib" / "evmone_precompiles" / "secp256k1.cpp", []),
-             (HERE / "tests" / "secp_differential.cpp", [])]
-    objs = []
-    for f, extra in units:
-        o = tdir / (f.name + ".o")
-        run(["zig", "c++", *flags, *extra, "-c", f, "-o", o])
-        objs.append(o)
-    run(["zig", "c++", a.opt, *objs, "-o", tdir / "secp_differential"])
-    run([tdir / "secp_differential", "3000"])
+    # Twice: the RV64IM field/scalar products, then the admitted v3 path (fe_mul/sc_mul on the
+    # arith256_mod service, emulated on the host by an independent intx reduction).
+    for tag, svc in (("", []), ("-v3arith", ["-DADMITTED_V3", "-DADMITTED_ARITH"])):
+        units = [(glue / "secp256k1_stwo.cpp", ["-DSTWO_SECP_NO_EVMONE_API", *svc]), (glue / "host_services.cpp", []),
+                 (glue / "keccak_stwo.cpp", []), (src / "evmone" / "lib" / "evmone_precompiles" / "secp256k1.cpp", []),
+                 (HERE / "tests" / "secp_differential.cpp", [])]
+        objs = []
+        for f, extra in units:
+            o = tdir / (f.name + tag + ".o")
+            run(["zig", "c++", *flags, *extra, "-c", f, "-o", o])
+            objs.append(o)
+        run(["zig", "c++", a.opt, *objs, "-o", tdir / f"secp_differential{tag}"])
+        run([tdir / f"secp_differential{tag}", "3000"])
     # Candidate curve/field/sponge glue vs independent references (all hooks live,
     # portable blst so the 384-bit Montgomery hook is exercised too).
     ev = src / "evmone" / "lib" / "evmone_precompiles"

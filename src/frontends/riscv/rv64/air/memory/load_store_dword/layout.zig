@@ -38,6 +38,28 @@ pub const SD_OPCODE: u32 = @intFromEnum(@import("../../../decode.zig").Opcode.SD
 pub fn widths() [3]usize {
     return .{ FIXED, MAIN, INTERACTION };
 }
+/// Opt-in fused-pair LS-D64 layout (Geometry.ls_dword_fused_pairs): RAM
+/// fraction fused into the RAM prefix (no inverse); the two U8 queries become
+/// one tagged AND-relation byte pair (b13, b26); K0=(OWNER,U16_0) and
+/// K1=(U16_1,U16_2) are degree-one fraction witnesses and (U16_3, pair) is
+/// fused into the local prefix. INTER 28 -> 16.
+pub const fused = struct {
+    pub const RAM_PREFIX = 0;
+    pub const WITNESS = 4;
+    pub const WITNESSES = 2;
+    pub const LOCAL_PREFIX = WITNESS + 4 * WITNESSES;
+    pub const INTERACTION = WITNESS + 4 * WITNESSES + 4;
+    /// RAM inverse, two local pair inverses and the single U8 inverse leave;
+    /// the fused tail adds one residual.
+    pub const CONSTRAINTS = 255 - 3;
+    pub const PAIR_QUERIES = 1;
+};
+pub fn widthsFor(fused_pairs: bool) [3]usize {
+    return if (fused_pairs) .{ FIXED, MAIN, fused.INTERACTION } else widths();
+}
+pub fn previousInterFor(fused_pairs: bool, c: usize) bool {
+    return if (fused_pairs) c < 4 or c >= fused.LOCAL_PREFIX else previousInter(c);
+}
 pub fn previousMain(c: usize) bool {
     return c == 0;
 }
@@ -106,6 +128,7 @@ fn cacheIndices(comptime queries: []const usize, comptime cached: []const usize)
 
 comptime {
     if (MAIN != 39 or LOCAL_FRACTIONS != 7 or LOCAL_PAIRS != 4 or INTERACTION != 28) @compileError("LS-D64 ledger mismatch");
+    if (fused.INTERACTION != 16 or LOGICAL_U8.len != 2 * fused.PAIR_QUERIES) @compileError("LS-D64 fused-pair ledger mismatch");
     if (Specs.load_specs[LD_FLAG].width != 8 or Specs.store_specs[SD_FLAG].width != 8) @compileError("LS-D64 requires the width-8 specs");
     for (STORED, 0..) |c, i| if (i > 0 and STORED[i - 1] >= c) @compileError("STORED must ascend");
     for (LOGICAL_U16 ++ LOGICAL_U8) |c| {

@@ -131,6 +131,23 @@ pub const Trace = struct {
         self.allocator.free(self.interaction);
         self.* = undefined;
     }
+    /// Byte-pair layout (Geometry.mul_u8_pairs): adds the multiplicities of
+    /// the 48 pair queries (byte[2k], byte[2k+1]) of EVERY physical row,
+    /// padding included (weight one, pair (0,0)), at index x*256+y. Requires
+    /// the request metadata, i.e. the phase before interaction generation.
+    pub fn addBytePairCounts(self: *const Trace, out: []u64) !void {
+        const pairs = L.BYTE_QUERIES / 2;
+        if (out.len != 65536 or self.request_metadata.len != self.count) return error.InvalidRv64MultiplicationPhase;
+        const n = self.domainSize();
+        out[0] = try std.math.add(u64, out[0], pairs * (n - self.count));
+        for (self.request_metadata) |request| {
+            const values = try byteValuesNative(&try row(request));
+            for (0..pairs) |k| {
+                const at = @as(usize, values[2 * k]) * 256 + values[2 * k + 1];
+                out[at] = try std.math.add(u64, out[at], 1);
+            }
+        }
+    }
     pub fn domainSize(self: *const Trace) usize {
         return @as(usize, 1) << @intCast(self.log_size);
     }

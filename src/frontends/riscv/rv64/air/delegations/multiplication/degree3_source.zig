@@ -37,6 +37,54 @@ pub const Source = struct {
 pub fn generateLegacy(b: *Old.Trace, ch: P.Challenges, alpha: Q) !Q {
     return @import("degree3_interaction.zig").generate(b, ch, alpha, @import("stwo_prover_engine").work_pool.currentScopedPool());
 }
+/// Byte-pair layout (Geometry.mul_u8_pairs); `dictionary[x*256+y] = 1/p(x,y)`
+/// is the AND pair table's dictionary for the same AND challenges.
+pub fn generatePairs(b: *Old.Trace, ch: P.Challenges, dictionary: []const Q) !Q {
+    return @import("degree3_interaction.zig").generatePairs(b, ch, dictionary, @import("stwo_prover_engine").work_pool.currentScopedPool());
+}
+/// Serial byte-pair oracle: 24 inverse columns and the fused prefix.
+pub fn generatePairsSerial(b: *Old.Trace, ch: P.Challenges, dictionary: []const Q) !Q {
+    const PL = @import("pairs_layout.zig");
+    if (dictionary.len != 65536) return error.InvalidRv64MultiplicationPairDictionary;
+    if (b.log_size < 5 or b.log_size > L.MAX_LOG) return error.InvalidRv64MultiplicationShape;
+    if (b.interaction.len != 0 or b.request_metadata.len != b.count) return error.InvalidRv64MultiplicationPhase;
+    const n = b.domainSize();
+    if (b.count > n) return error.InvalidRv64MultiplicationShape;
+    const data = try b.allocator.alloc(M, PL.INTERACTION * n);
+    errdefer b.allocator.free(data);
+    var denominators: [512]Q = undefined;
+    var inverses: [512]Q = undefined;
+    var sum = Q.zero();
+    var first: usize = 0;
+    while (first < n) : (first += @min(512, n - first)) {
+        const count: usize = @min(512, n - first);
+        const active = @min(count, @as(usize, b.count) -| first);
+        for (0..active) |j| denominators[j] = ch.denominator(&try Old.requestTuple(b.request_metadata[first + j]));
+        if (active != 0) try core.fields.batchInverseInPlace(Q, denominators[0..active], inverses[0..active]);
+        for (0..count) |j| {
+            const logical = first + j;
+            const row = physical(logical, b.log_size);
+            const main = if (j < active) try Old.row(b.request_metadata[logical]) else [_]M{M.zero()} ** L.MAIN;
+            const values = try Old.byteValuesNative(&main);
+            for (0..PL.PAIR_COLUMNS) |c| {
+                const x = dictionary[@as(usize, values[4 * c]) * 256 + values[4 * c + 1]];
+                const y = dictionary[@as(usize, values[4 * c + 2]) * 256 + values[4 * c + 3]];
+                store(data, n, row, 4 * c, x.mul(y));
+                sum = sum.add(x).add(y);
+            }
+            if (j < active) sum = sum.sub(inverses[j]);
+            store(data, n, row, PL.PREFIX, sum);
+        }
+    }
+    const correction = sum.toM31Array();
+    for (correction, 0..) |v, c| for (0..n) |r| {
+        data[(PL.PREFIX + c) * n + r] = data[(PL.PREFIX + c) * n + r].sub(v);
+    };
+    b.interaction = data;
+    b.allocator.free(b.request_metadata);
+    b.request_metadata = &.{};
+    return sum;
+}
 /// Original serial generator; the independent numerical and physical oracle.
 pub fn generateLegacySerial(b: *Old.Trace, ch: P.Challenges, alpha: Q) !Q {
     if (b.log_size < 5 or b.log_size > L.MAX_LOG) return error.InvalidRv64MultiplicationShape;

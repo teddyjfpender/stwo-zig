@@ -73,6 +73,9 @@ pub const Source = struct {
     counts16: []u64,
     counts8: []u64,
     selection_counts: []u64,
+    /// Fused-pair mode only (generatePairs): the AND pair table dictionary
+    /// `1/p(x,y)` at x*256+y, borrowed for the duration of generation.
+    pair_dictionary: []const T.Q = &.{},
     pub fn init(a: std.mem.Allocator, events: []const Event, log: u32) !Source {
         return initInternal(a, events, log, null, engine.work_pool.currentScopedPool(), null);
     }
@@ -151,6 +154,28 @@ pub const Source = struct {
     }
     pub fn generate(self: *Source, ch: T.Challenges, dict16: []const T.Q, dict8: []const T.Q) !T.Claims {
         return @import("interaction.zig").generate(self, ch, dict16, dict8);
+    }
+    /// Fused-pair layout (L.fused): `pairs[x*256+y] = 1/p(x,y)` of the AND
+    /// pair table. The LS `range8` claim share then carries the AND-relation
+    /// byte-pair share (only the share total is authenticated).
+    pub fn generatePairs(self: *Source, ch: T.Challenges, dict16: []const T.Q, pairs: []const T.Q) !T.Claims {
+        if (pairs.len != 65536) return error.InvalidLsDictionary;
+        self.pair_dictionary = pairs;
+        defer self.pair_dictionary = &.{};
+        return @import("interaction.zig").generate(self, ch, dict16, &.{});
+    }
+    /// Pair query values of a row: (b13, b26) and (b73, b74).
+    pub fn pairIndices(meta: Metadata) [2]usize {
+        const u8s = L.U8_CACHE;
+        return .{ @as(usize, meta.range8[u8s[0]]) * 256 + meta.range8[u8s[1]], @as(usize, meta.range8[u8s[2]]) * 256 + meta.range8[u8s[3]] };
+    }
+    /// Adds the fused-pair layout's AND-relation pair multiplicities of every
+    /// physical row (padding included, weight one). Requires metadata.
+    pub fn addBytePairCounts(self: *const Source, out: []u64) !void {
+        if (out.len != 65536 or self.metadata.len != self.size()) return error.InvalidLsPhase;
+        for (self.metadata) |meta| for (pairIndices(meta)) |at| {
+            out[at] = try std.math.add(u64, out[at], 1);
+        };
     }
     pub fn columns(self: *const Source, a: std.mem.Allocator, tree: u2) ![]engine.pcs.ColumnEvaluation {
         const values = switch (tree) {

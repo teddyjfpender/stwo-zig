@@ -8,3 +8,5 @@ pub const degree3_layout = @import("degree3_layout.zig");
 pub const degree3_provider = @import("degree3_provider.zig");
 pub const degree3_source = @import("degree3_source.zig");
 pub const degree3_component = @import("degree3_component.zig");
+pub const pairs_layout = @import("pairs_layout.zig");
+pub const pairs_provider = @import("pairs_provider.zig");

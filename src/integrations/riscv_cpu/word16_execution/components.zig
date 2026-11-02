@@ -73,8 +73,8 @@ pub const Components = struct {
                         else => unreachable,
                     }
                 },
-                .alu => result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu },
-                .alu_tail => result.alu_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu_tail },
+                .alu => result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu, .fused = materials.geometry.alu_fused_tail },
+                .alu_tail => result.alu_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu_tail, .fused = materials.geometry.alu_fused_tail },
                 .binary, .binary_tail, .and_table => {
                     const component = B.binary_component.Component{ .kind = if (shape.role != .and_table) .binary else if (materials.geometry.cpu_u8_pairs) .and_pair_table else .and_table, .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .and_ = ch.and_ }, .claims = if (shape.role == .binary_tail) claims.binary_tail else if (shape.role == .binary) claims.binary else .{ .and_ = claims.and_table, .function = Q.zero() } };
                     if (shape.role == .binary_tail) result.binary_tail = component else if (shape.role == .binary) result.binary = component else result.and_table = component;
@@ -83,7 +83,7 @@ pub const Components = struct {
                 .shift_tail => result.shift_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift_tail },
                 .jalr => result.jalr = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = ch.cpu.function, .claim = claims.jalr },
                 .division => result.division = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function, ch.cpu.range16), .claim = claims.division },
-                .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = ch.cpu.range8.offset },
+                .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = ch.cpu.range8.offset, .pairs = if (materials.geometry.mul_u8_pairs) ch.and_ else null },
                 .shift_table => result.shift_table = .{ .offsets = shape.offsets, .prepared = B.shift_word_packed_experiment.table.Prepared.init(ch.shift_), .claim = claims.shift_table },
                 .ls, .ls_tail, .initial, .terminal, .selection => {
                     const component = A.memory.load_store_v2.component.Component{ .kind = switch (shape.role) {
@@ -106,7 +106,7 @@ pub const Components = struct {
                         .terminal => claims.terminal,
                         .selection => .{ .ram = Q.zero(), .owner = Q.zero(), .range16 = Q.zero(), .range8 = Q.zero(), .selection = claims.selectiontable },
                         else => unreachable,
-                    }, .challenges = ch.memory };
+                    }, .challenges = ch.memory, .pairs = if (materials.geometry.ls_fused_pairs and shape.role != .selection) ch.and_ else null };
                     switch (shape.role) {
                         .ls => result.ls = component,
                         .ls_tail => result.ls_tail = component,

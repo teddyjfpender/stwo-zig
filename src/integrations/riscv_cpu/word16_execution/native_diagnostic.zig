@@ -65,7 +65,9 @@ pub fn inspect(a: std.mem.Allocator, components: *const C, source: *const S) !?F
                 },
                 .multiplication => {
                     const M = A.arithmetic.multiplication;
-                    M.degree3_provider.evaluateFor(Q, fs[0..3].*, ms[0..M.degree3_layout.MAIN], is[0..M.degree3_layout.INTERACTION], Q.fromPartialEvals(pis[M.degree3_layout.PREFIX..][0..4].*), pms[M.layout.COUNT], Eval.q(components.multiplication.count), components.multiplication.challenges, components.multiplication.byte_alpha, components.multiplication.claim, &sink);
+                    if (components.multiplication.pairs) |pairs| {
+                        M.pairs_provider.evaluateFor(Q, fs[0..3].*, ms[0..M.pairs_layout.MAIN], is[0..M.pairs_layout.INTERACTION], Q.fromPartialEvals(pis[M.pairs_layout.PREFIX..][0..4].*), pms[M.layout.COUNT], Eval.q(components.multiplication.count), components.multiplication.challenges, pairs, components.multiplication.claim, &sink);
+                    } else M.degree3_provider.evaluateFor(Q, fs[0..3].*, ms[0..M.degree3_layout.MAIN], is[0..M.degree3_layout.INTERACTION], Q.fromPartialEvals(pis[M.degree3_layout.PREFIX..][0..4].*), pms[M.layout.COUNT], Eval.q(components.multiplication.count), components.multiplication.challenges, components.multiplication.byte_alpha, components.multiplication.claim, &sink);
                 },
                 .ls => components.ls.emitFor(Q, fs, ms, pms, is, pis, &sink),
                 .ls_tail => components.ls_tail.emitFor(Q, fs, ms, pms, is, pis, &sink),

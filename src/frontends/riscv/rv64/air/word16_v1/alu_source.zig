@@ -101,6 +101,8 @@ pub const Source = struct {
     interaction: []M = &.{},
     range16_counts: []u64,
     metadata: []Metadata,
+    /// Opt-in fused-tail interaction layout (Geometry.alu_fused_tail).
+    fused: bool = false,
     pub fn init(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
         return initInternal(a, facts, null, log, null);
     }
@@ -226,7 +228,8 @@ pub const Source = struct {
         if (dictionary.len != 65536 or self.range16_counts.len != 65536 or self.fact_count > n) return error.InvalidAluDictionary;
         try validateMetadataInternal(self);
         try validateDictionaryInternal(ch, dictionary);
-        const output = try a.alloc(M, P.INTERACTION * n);
+        const L = layoutFor(self.fused);
+        const output = try a.alloc(M, L.width * n);
         errdefer a.free(output);
         const scratch = try a.alloc(Q, 2 * CHUNK);
         defer a.free(scratch);
@@ -249,19 +252,20 @@ pub const Source = struct {
                 for (0..A.RANGE_QUERIES / 2) |batch| {
                     const x = dictionary[meta.range_indices[2 * batch]];
                     const y = dictionary[meta.range_indices[2 * batch + 1]];
-                    storeInternal(output, n, p, 4 * batch, x.mul(y));
+                    if (!self.fused) storeInternal(output, n, p, 4 * batch, x.mul(y)) else if (batch < P.fused.PAIR_WITNESSES) storeInternal(output, n, p, 4 * batch, x.add(y));
                     prefix = prefix.add(x).add(y);
                 }
                 const inverse = scratch[CHUNK + i];
-                storeInternal(output, n, p, P.FUNCTION_INVERSE, inverse);
-                function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
-                storeInternal(output, n, p, P.PREFIX, prefix.add(function_sum));
+                const weighted = inverse.mulM31(M.fromCanonical(meta.multiplicity()));
+                storeInternal(output, n, p, L.function, if (self.fused) weighted else inverse);
+                function_sum = function_sum.sub(weighted);
+                storeInternal(output, n, p, L.prefix, prefix.add(function_sum));
             }
         }
         if (!prefix.isZero()) return error.InvalidAluMetadata;
         const correction = function_sum.toM31Array();
         for (correction, 0..) |v, c| for (0..n) |r| {
-            output[(P.PREFIX + c) * n + r] = output[(P.PREFIX + c) * n + r].sub(v);
+            output[(L.prefix + c) * n + r] = output[(L.prefix + c) * n + r].sub(v);
         };
         self.interaction = output;
         a.free(self.metadata);
@@ -269,6 +273,11 @@ pub const Source = struct {
         return .{ .range16 = range_claim, .function = function_sum };
     }
 };
+/// Interaction width and FUNCTION/prefix columns of the active layout.
+pub const Layout = struct { width: usize, function: usize, prefix: usize };
+pub fn layoutFor(fused: bool) Layout {
+    return if (fused) .{ .width = P.fused.INTERACTION, .function = P.fused.FUNCTION, .prefix = P.fused.PREFIX } else .{ .width = P.INTERACTION, .function = P.FUNCTION_INVERSE, .prefix = P.PREFIX };
+}
 fn storeInternal(data: []M, n: usize, row: usize, start: usize, value: Q) void {
     for (value.toM31Array(), 0..) |v, c| data[(start + c) * n + row] = v;
 }

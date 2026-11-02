@@ -8,6 +8,7 @@ const work = @import("stwo_prover_engine").work_pool;
 const E = @import("../../evaluation.zig");
 const Old = @import("trace.zig");
 const L = @import("degree3_layout.zig");
+const PL = @import("pairs_layout.zig");
 const P = @import("provider.zig");
 const Prefix = @import("../../providers/prefix_waves.zig");
 const Serial = @import("degree3_source.zig");
@@ -24,6 +25,16 @@ comptime {
 pub const MIN_STACK_BYTES = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
 
 pub fn generate(b: *Old.Trace, ch: P.Challenges, alpha: Q, pool: ?*work.WorkPool) !Q {
+    return generateFor(b, ch, .{ .alpha = alpha }, pool);
+}
+/// Byte-pair layout (pairs_layout): `dictionary[x*256+y] = 1/p(x,y)` is the
+/// AND pair table's dictionary; the serial oracle is `generatePairsSerial`.
+pub fn generatePairs(b: *Old.Trace, ch: P.Challenges, dictionary: []const Q, pool: ?*work.WorkPool) !Q {
+    if (dictionary.len != 65536) return error.InvalidRv64MultiplicationPairDictionary;
+    return generateFor(b, ch, .{ .pairs = dictionary }, pool);
+}
+pub const Bytes = union(enum) { alpha: Q, pairs: []const Q };
+fn generateFor(b: *Old.Trace, ch: P.Challenges, mode: Bytes, pool: ?*work.WorkPool) !Q {
     if (b.log_size < 5 or b.log_size > L.MAX_LOG) return error.InvalidRv64MultiplicationShape;
     const n = b.domainSize();
     const chunks = std.math.divCeil(usize, n, CHUNK) catch unreachable;
@@ -31,16 +42,23 @@ pub fn generate(b: *Old.Trace, ch: P.Challenges, alpha: Q, pool: ?*work.WorkPool
     const units = if (segment_log) |log| Prefix.lineGroupCount(b.log_size, log) else chunks;
     const segments = if (segment_log) |log| n >> @intCast(log) else chunks;
     const workers = if (pool) |p| @min(p.workerCount(), units) else 1;
-    if (workers <= 1) return Serial.generateLegacySerial(b, ch, alpha);
+    if (workers <= 1) return switch (mode) {
+        .alpha => |alpha| Serial.generateLegacySerial(b, ch, alpha),
+        .pairs => |dictionary| Serial.generatePairsSerial(b, ch, dictionary),
+    };
     if (pool.?.stackSize() < MIN_STACK_BYTES) return error.InvalidRv64MultiplicationStack;
     if (b.interaction.len != 0 or b.request_metadata.len != b.count) return error.InvalidRv64MultiplicationPhase;
     if (b.count > n) return error.InvalidRv64MultiplicationShape;
     const a = b.allocator;
-    const data = try a.alloc(M, L.INTERACTION * n);
+    const pairs: []const Q = if (mode == .pairs) mode.pairs else &.{};
+    const width: usize = if (mode == .pairs) PL.INTERACTION else L.INTERACTION;
+    const data = try a.alloc(M, width * n);
     errdefer a.free(data);
-    var bytes: [256]Q = undefined;
-    for (&bytes, 0..) |*v, i| v.* = try alpha.sub(E.q(@intCast(i))).inv();
-    const padding_inverse = if (b.count < n) try ch.offset.inv() else Q.zero();
+    var bytes: [256]Q = @splat(Q.zero());
+    if (mode == .alpha) for (&bytes, 0..) |*v, i| {
+        v.* = try mode.alpha.sub(E.q(@intCast(i))).inv();
+    };
+    const padding_inverse = if (b.count < n and mode == .alpha) try ch.offset.inv() else Q.zero();
     const padding_values = try Old.byteValuesNative(&([_]M{M.zero()} ** L.MAIN));
     const scratch = try a.alloc(Q, 2 * CHUNK * workers);
     defer a.free(scratch);
@@ -48,7 +66,7 @@ pub fn generate(b: *Old.Trace, ch: P.Challenges, alpha: Q, pool: ?*work.WorkPool
     defer a.free(summaries);
     @import("../../native_output_pages.zig").prepare(data);
     var jobs: [work.MAX_WORKERS]Job = undefined;
-    for (jobs[0..workers], 0..) |*job, i| job.* = .{ .metadata = b.request_metadata, .count = b.count, .n = n, .log = b.log_size, .ch = ch, .bytes = &bytes, .padding_inverse = padding_inverse, .padding_values = padding_values, .output = data, .scratch = scratch[2 * CHUNK * i ..][0 .. 2 * CHUNK], .summaries = summaries, .start = i, .end = units, .stride = workers, .segment_log = segment_log orelse LOG_CHUNK, .grouped = segment_log != null };
+    for (jobs[0..workers], 0..) |*job, i| job.* = .{ .metadata = b.request_metadata, .count = b.count, .n = n, .log = b.log_size, .ch = ch, .bytes = &bytes, .pairs = pairs, .prefix_column = if (mode == .pairs) PL.PREFIX else L.PREFIX, .padding_inverse = padding_inverse, .padding_values = padding_values, .output = data, .scratch = scratch[2 * CHUNK * i ..][0 .. 2 * CHUNK], .summaries = summaries, .start = i, .end = units, .stride = workers, .segment_log = segment_log orelse LOG_CHUNK, .grouped = segment_log != null };
     const totals = try Prefix.run(1, Job, jobs[0..workers], summaries, n, pool);
     b.interaction = data;
     b.allocator.free(b.request_metadata);
@@ -62,6 +80,9 @@ const Job = struct {
     log: u32,
     ch: P.Challenges,
     bytes: *const [256]Q,
+    /// Nonempty exactly in the byte-pair layout.
+    pairs: []const Q,
+    prefix_column: usize,
     padding_inverse: Q,
     padding_values: [L.BYTE_QUERIES]u8,
     output: []M,
@@ -86,7 +107,7 @@ const Job = struct {
             for (self.start..self.end) |position| {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, self.log), self.log);
                 for (self.summaries[logical >> @intCast(self.segment_log)][0].toM31Array(), 0..) |value, c| {
-                    const at = (L.PREFIX + c) * n + position;
+                    const at = (self.prefix_column + c) * n + position;
                     self.output[at] = self.output[at].add(value);
                 }
             }
@@ -127,6 +148,19 @@ const Job = struct {
         const p = physical(logical, self.log);
         const values = if (active) try Old.byteValuesNative(&try Old.row(self.metadata[logical])) else self.padding_values;
         var s = sum.*;
+        if (self.pairs.len != 0) {
+            // 24 strict inverses 1/(p*q); the FUNCTION fraction is fused.
+            for (0..PL.PAIR_COLUMNS) |j| {
+                const x = self.pairs[@as(usize, values[4 * j]) * 256 + values[4 * j + 1]];
+                const y = self.pairs[@as(usize, values[4 * j + 2]) * 256 + values[4 * j + 3]];
+                store(self.output, n, p, 4 * j, x.mul(y));
+                s = s.add(x).add(y);
+            }
+            if (active) s = s.sub(active_inverse);
+            store(self.output, n, p, PL.PREFIX, s);
+            sum.* = s;
+            return;
+        }
         for (0..L.BYTE_PAIRS) |pair| {
             const x = self.bytes[values[2 * pair]];
             const y = self.bytes[values[2 * pair + 1]];

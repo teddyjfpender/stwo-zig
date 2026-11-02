@@ -92,6 +92,10 @@ pub fn main() !void {
     const trim_ns = timer.read() - trim_start;
     var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
     if (operational.no_ls_dword) cpu_layout.ls_dword = false;
+    if (operational.layout.mul_u8_pairs) cpu_layout.mul_u8_pairs = true;
+    if (operational.layout.ls_fused_pairs) cpu_layout.ls_fused_pairs = true;
+    if (operational.layout.alu_fused_tail) cpu_layout.alu_fused_tail = true;
+    if (operational.layout.ls_dword_fused_pairs) cpu_layout.ls_dword_fused_pairs = true;
     const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
     const truth_declarations = try Plan.truthsForKeccakOptions(a, &captured, .{ .v3 = config.value.execution_profile == .ethereum_services_v3, .quartet = !operational.keccak_throughput_v1, .r27 = !operational.keccak_pair29 });
@@ -135,7 +139,7 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     if (config.execution_profile == .ethereum_services_v3) return;
     // The fused-tail CPU layout is admitted only on the v3 route. A v2
     // receiver keeps the historical CPU AIR and fails closed on any other.
-    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs) return error.UnadmittedFusedTailCpuLayout;
+    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.mul_u8_pairs or d.geometry.ls_fused_pairs or d.geometry.alu_fused_tail or d.geometry.ls_dword_fused_pairs) return error.UnadmittedFusedTailCpuLayout;
     // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
     for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
     // The secp row truth (wire logs[1] = 0) is v3-only.

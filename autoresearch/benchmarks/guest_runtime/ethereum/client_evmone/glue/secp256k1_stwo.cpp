@@ -8,9 +8,9 @@
 //
 // Point arithmetic: projective (X:Y:Z) add/double through ECALL 0x0002_0011 /
 // 0x0002_0012, which compute the complete Renes-Costello-Batina formulas of
-// k256 (identity (0:1:0) and P+P included). Field and scalar arithmetic that
-// has no service (square root, the two inversions, scalar products) runs as
-// RV64IM code: 4x64-bit limbs, MUL/MULHU products, special-form reduction.
+// k256 (identity (0:1:0) and P+P included). Square root, inversions and (without
+// the v3 arith256_mod service, see fe_mul/sc_mul) the field and scalar products run
+// as RV64IM code: 4x64-bit limbs, MUL/MULHU products, special-form reduction.
 //
 // Recovery (SEC 1, 4.1.6): R = (r, y) with y = sqrt(r^3 + 7) of the requested
 // parity, u1 = -z/r, u2 = s/r (mod n), Q = u1*G + u2*R by interleaved 4-bit
@@ -122,10 +122,38 @@ U256 fe_reduce_wide(const u64 t[8]) {
     if (geq(out, P)) sub_to(out, out, P);
     return out;
 }
+#if defined(ADMITTED_ARITH)
+// Admitted v3 arith256_mod service (0x0003_0021): one ECALL returns the canonical
+// r = (a*b + c) mod m for ANY 256-bit a, b, c and m != 0 (the truth AIR proves
+// a*b + c = q*m + r with q < 2^512 and r < m; design/riscv-proving-stack/rv64-arith256-service.md).
+// The software reductions below also return the canonical residue of a*b for any 256-bit
+// inputs, so both paths give identical results (tests/secp_differential.cpp runs the
+// recover differential with this path on the host service emulation).
+// One packet per modulus: c = 0 and m are written once here; the service writes only r,
+// so they stay intact across calls. 32-byte aligned as the admitted ABI requires.
+struct alignas(32) ModMulPacket {
+    u64 w[20];
+};
+ModMulPacket g_fe_mul_packet = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, P.v[0], P.v[1], P.v[2], P.v[3], 0, 0, 0, 0}};
+ModMulPacket g_sc_mul_packet = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, N.v[0], N.v[1], N.v[2], N.v[3], 0, 0, 0, 0}};
+inline U256 svc_mul_mod(ModMulPacket& pk, const U256& a, const U256& b) {
+    for (int i = 0; i < 4; ++i) {
+        pk.w[i] = a.v[i];
+        pk.w[4 + i] = b.v[i];
+    }
+    stwo::ecall(stwo::kV3Arith256Mod, pk.w);
+    return U256{{pk.w[16], pk.w[17], pk.w[18], pk.w[19]}};
+}
+#endif
+
 inline U256 fe_mul(const U256& a, const U256& b) {
+#if defined(ADMITTED_ARITH)
+    return svc_mul_mod(g_fe_mul_packet, a, b);
+#else
     u64 t[8];
     mul_wide(t, a, b);
     return fe_reduce_wide(t);
+#endif
 }
 inline U256 fe_sqr(const U256& a) { return fe_mul(a, a); }
 inline U256 fe_sqr_n(U256 a, int n) {
@@ -224,9 +252,13 @@ U256 sc_reduce_wide(const u64 t_in[8]) {
     return out;
 }
 inline U256 sc_mul(const U256& a, const U256& b) {
+#if defined(ADMITTED_ARITH)
+    return svc_mul_mod(g_sc_mul_packet, a, b);
+#else
     u64 t[8];
     mul_wide(t, a, b);
     return sc_reduce_wide(t);
+#endif
 }
 
 // ---- points via services ----

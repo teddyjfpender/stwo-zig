@@ -103,14 +103,14 @@ pub fn generateSerial(source: *S.Source, ch: T.Challenges, dict16: []const Q, di
     const n = try validateMetadata(source);
     const a = source.allocator;
     try validateDictionary(ch.range16, dict16, 65536);
-    try validateDictionary(ch.range8, dict8, 256);
+    if (!pairMode(source)) try validateDictionary(ch.range8, dict8, 256);
     const selection = try buildSelectionDictionary(a, ch.selection);
     defer a.free(selection);
     var claims = T.Claims.zero();
     claims.range16 = try countDot(source.counts16, dict16);
-    claims.range8 = try countDot(source.counts8, dict8);
+    claims.range8 = try range8Share(source, dict8);
     claims.selection = try countDot(source.selection_counts, selection);
-    const output = try a.alloc(M, L.INTERACTION * n);
+    const output = try a.alloc(M, interactionWidth(source) * n);
     errdefer a.free(output);
     const scratch = try a.alloc(Q, 5 * CHUNK);
     defer a.free(scratch);
@@ -120,14 +120,35 @@ pub fn generateSerial(source: *S.Source, ch: T.Challenges, dict16: []const Q, di
     claims.ram = prefix[0];
     claims.owner = prefix[1];
     if (!prefix[2].isZero() or !prefix[3].isZero() or !prefix[4].isZero()) return error.InvalidLsCounts;
-    R.trace.center(output, n, 4, claims.ram);
-    R.trace.center(output, n, L.LOCAL_PREFIX, claims.owner);
+    const columns = prefixColumns(source);
+    R.trace.center(output, n, columns[0], claims.ram);
+    R.trace.center(output, n, columns[1], claims.owner);
     source.interaction = output;
     a.free(source.metadata);
     source.metadata = &.{};
     return claims;
 }
 
+pub fn pairMode(source: *const S.Source) bool {
+    return source.pair_dictionary.len != 0;
+}
+pub fn interactionWidth(source: *const S.Source) usize {
+    return if (pairMode(source)) L.fused.INTERACTION else L.INTERACTION;
+}
+/// RAM and local prefix columns of the active layout.
+pub fn prefixColumns(source: *const S.Source) [2]usize {
+    return if (pairMode(source)) .{ L.fused.RAM_PREFIX, L.fused.LOCAL_PREFIX } else .{ 4, L.LOCAL_PREFIX };
+}
+/// The `range8` claim share: U8 counts (classic) or AND-relation byte pair
+/// counts recomputed from metadata (fused-pair layout).
+pub fn range8Share(source: *const S.Source, dict8: []const Q) !Q {
+    if (!pairMode(source)) return countDot(source.counts8, dict8);
+    const counts = try source.allocator.alloc(u64, 65536);
+    defer source.allocator.free(counts);
+    @memset(counts, 0);
+    try source.addBytePairCounts(counts);
+    return countDot(counts, source.pair_dictionary);
+}
 /// Native inverse and row-writing authority shared by serial and joined paths.
 pub const ParallelSupport = struct {
     pub const selectionDictionary = buildSelectionDictionary;
@@ -152,6 +173,7 @@ fn fillRowImpl(source: *const S.Source, dict16: []const Q, dict8: []const Q, sel
     const n = source.size();
     const pos = R.trace.physical(logical, source.log_size);
     const meta = source.metadata[logical];
+    if (pairMode(source)) return fillPairRow(source, dict16, selection, output, logical, inv, delta, invOwner, prefix);
     R.trace.store(output, n, pos, 0, inv);
     prefix[0] = prefix[0].add(delta.mul(inv).mulM31(meta.active()));
     R.trace.store(output, n, pos, 4, prefix[0]);
@@ -172,4 +194,25 @@ fn fillRowImpl(source: *const S.Source, dict16: []const Q, dict8: []const Q, sel
     prefix[4] = prefix[4].add(local[L.LOCAL_FRACTIONS - 1]);
     for (0..L.LOCAL_PAIRS) |pair| R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * pair, local[2 * pair].mul(local[2 * pair + 1]));
     R.trace.store(output, n, pos, L.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]).add(prefix[4]));
+}
+/// Fused-pair row (L.fused): RAM prefix, K0..K2 fraction witnesses, local prefix.
+fn fillPairRow(source: *const S.Source, dict16: []const Q, selection: []const Q, output: []M, logical: usize, inv: Q, delta: Q, invOwner: Q, prefix: *[5]Q) void {
+    const n = source.size();
+    const pos = R.trace.physical(logical, source.log_size);
+    const meta = source.metadata[logical];
+    prefix[0] = prefix[0].add(delta.mul(inv).mulM31(meta.active()));
+    R.trace.store(output, n, pos, L.fused.RAM_PREFIX, prefix[0]);
+    const owner = invOwner.mulM31(meta.active());
+    prefix[1] = prefix[1].add(owner);
+    var r16: [L.U16.len]Q = undefined;
+    for (L.U16_CACHE, &r16) |cache, *inverse| {
+        inverse.* = dict16[meta.range16[cache]];
+        prefix[2] = prefix[2].add(inverse.*);
+    }
+    const sel = selection[meta.selectionIndex()];
+    prefix[4] = prefix[4].add(sel);
+    const witnesses = [L.fused.WITNESSES]Q{ owner.add(r16[0]), r16[1].add(r16[2]), r16[3].add(sel) };
+    for (witnesses, 0..) |value, j| R.trace.store(output, n, pos, L.fused.WITNESS + 4 * j, value);
+    for (S.Source.pairIndices(meta)) |at| prefix[3] = prefix[3].add(source.pair_dictionary[at]);
+    R.trace.store(output, n, pos, L.fused.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]).add(prefix[4]));
 }

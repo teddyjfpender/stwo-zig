@@ -13,7 +13,7 @@ const LANES = E.LANES;
 pub fn evaluate(component: *const C.Component, columns: []const []const M, start: usize, end: usize, inverses: []const M, output: *Column) !void {
     if (component.log_size < 5 or component.log_size > 26) return error.InvalidAluGeometry;
     const n = @as(usize, 1) << @intCast(component.log_size + 1);
-    const widths = [_]usize{ 2, P.MAIN, P.INTERACTION };
+    const widths = component.widths();
     const total = widths[0] + widths[1] + widths[2];
     if (columns.len != total or start > end or end > n or inverses.len != 2 or output.random_coeff_powers.len != component.nConstraints()) return error.InvalidAluDomain;
     for (columns) |column| if (column.len != n) return error.InvalidAluDomain;
@@ -27,7 +27,7 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, start
         for (columns, 0..) |column, i| values[i] = load(column, begin, count);
         var indices: [LANES]usize = undefined;
         for (indices[0..count], 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, component.log_size, component.log_size + 1);
-        for (0..widths[2]) |i| if (C.Component.needsPrevious(i)) {
+        for (0..widths[2]) |i| if (component.needsPrevious(i)) {
             var lanes: [LANES]M = @splat(M.zero());
             for (indices[0..count], 0..) |index, lane| lanes[lane] = columns[inter_start + i][index];
             previous[i] = F.fromLanes(lanes);

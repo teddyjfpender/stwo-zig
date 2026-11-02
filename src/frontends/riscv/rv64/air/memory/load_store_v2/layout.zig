@@ -44,6 +44,61 @@ fn cacheIndices(comptime queries: []const usize, comptime cached: []const usize)
     }
     return result;
 }
+/// Opt-in fused-tail + byte-pair LS layout (Geometry.ls_fused_pairs).
+/// LS: the RAM fraction is fused into the RAM prefix (no RAM inverse); the
+/// eight local fractions (OWNER, U16 x4, two tagged AND-relation byte pairs
+/// (b13,b26),(b73,b74), SELECTION) are three degree-one fraction witnesses
+/// K0=(OWNER,U16_0) K1=(U16_1,U16_2) K2=(U16_3,SELECTION) and the byte-pair
+/// tail fused into the local prefix. INIT/TEARDOWN: the single RAM fraction
+/// is fused into its prefix (no inverse column).
+pub const fused = struct {
+    pub const RAM_PREFIX = 0;
+    pub const WITNESS = 4;
+    pub const WITNESSES = 3;
+    pub const LOCAL_PREFIX = WITNESS + 4 * WITNESSES;
+    pub const INTERACTION = WITNESS + 4 * WITNESSES + 4;
+    pub const BOUND_INTERACTION = 4;
+    /// LS: RAM inverse residual and two local pair inverses disappear.
+    pub const LS_CONSTRAINTS = 257 - 3;
+    /// INIT/TEARDOWN: the single's inverse residual disappears.
+    pub const BOUND_CONSTRAINTS = 25 - 1;
+    /// Two pair queries per LS row (padding included).
+    pub const PAIR_QUERIES = U8_QUERIES / 2;
+};
+pub fn widthsFor(kind: Kind, fused_pairs: bool) [3]usize {
+    if (!fused_pairs) return widths(kind);
+    return switch (kind) {
+        .ls => .{ 3, MAIN, fused.INTERACTION },
+        .initial, .terminal => .{ 3, BOUND_MAIN, fused.BOUND_INTERACTION },
+        else => widths(kind),
+    };
+}
+pub fn constraintsFor(kind: Kind, fused_pairs: bool) usize {
+    if (!fused_pairs) return constraints(kind);
+    return switch (kind) {
+        .ls => fused.LS_CONSTRAINTS,
+        .initial, .terminal => fused.BOUND_CONSTRAINTS,
+        else => constraints(kind),
+    };
+}
+pub fn previousInterForLayout(kind: Kind, fused_pairs: bool, c: usize) bool {
+    if (!fused_pairs) return previousInterFor(kind, c);
+    return switch (kind) {
+        .ls => c < 4 or c >= fused.LOCAL_PREFIX,
+        .initial, .terminal => c < 4,
+        else => previousInterFor(kind, c),
+    };
+}
+/// Separate transcript domain, mixed ONLY when Geometry.ls_fused_pairs is set.
+pub fn fusedPairsIdentity() [32]u8 {
+    const std = @import("std");
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.load-store-v2.fused-pairs.v1:LS inter20 (RAM fused (S-S'+claim*first)*b*a-active*(a-b); K0*a*b=b*active+a (OWNER,U16_0); K_j*a*b=a+b (U16_1,U16_2),(U16_3,SELECTION); AND-relation tagged pairs (b13,b26),(b73,b74) fused (S-S'+claim*first-K)*p0*p1-(p0+p1)); INIT/TEARDOWN inter4 fused single (S-S'+claim*first)*d-w");
+    return hash.finalResult();
+}
+comptime {
+    if (fused.INTERACTION != 20 or fused.PAIR_QUERIES != 2) @compileError("LS fused-pair ledger mismatch");
+}
 pub fn widths(kind: Kind) [3]usize {
     return switch (kind) {
         .ls => .{ 3, MAIN, INTERACTION },

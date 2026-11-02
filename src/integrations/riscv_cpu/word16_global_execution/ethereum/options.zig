@@ -36,6 +36,12 @@ pub const Options = struct {
     /// (`throughput_quartet_v1`) instead of the v3 default 27-row slot
     /// (`throughput_r27_v1`). Published and transcript-bound like the others.
     keccak_pair29: bool = false,
+    /// Producer planning only: opt-in component layout flags on top of the
+    /// profile default (`--layout=mul_u8_pairs,...`). Every flag is part of
+    /// the declared Geometry and transcript; admitProfile refuses them off v3.
+    layout: Layout = .{},
+    layout_set: bool = false,
+    pub const Layout = struct { mul_u8_pairs: bool = false, ls_fused_pairs: bool = false, alu_fused_tail: bool = false, ls_dword_fused_pairs: bool = false };
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -101,6 +107,19 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--keccak-pair29")) {
                 if (out.keccak_pair29) return error.DuplicateOperationalOption;
                 out.keccak_pair29 = true;
+            } else if (std.mem.startsWith(u8, arg, "--layout=")) {
+                if (out.layout_set) return error.DuplicateOperationalOption;
+                out.layout_set = true;
+                var parts = std.mem.splitScalar(u8, arg["--layout=".len..], ',');
+                while (parts.next()) |part| {
+                    var known = false;
+                    inline for (std.meta.fields(Layout)) |field| if (std.mem.eql(u8, part, field.name)) {
+                        if (@field(out.layout, field.name)) return error.DuplicateOperationalOption;
+                        @field(out.layout, field.name) = true;
+                        known = true;
+                    };
+                    if (!known) return error.UnknownLayoutFlag;
+                }
             } else if (std.mem.eql(u8, arg, "--keep-fixed-witness")) {
                 if (out.keep_fixed_witness) return error.DuplicateOperationalOption;
                 out.keep_fixed_witness = true;
@@ -135,7 +154,7 @@ pub const Options = struct {
         return .{ .max_inflight_packets = self.capture_inflight, .packet_heap_bytes = D.packet_heap_bytes, .max_inflight_packet_heap_bytes = n * D.packet_heap_bytes, .max_inflight_wire_bytes = n * D.max_inflight_wire_bytes };
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.capture_inflight_set or self.keccak_throughput_v1 or self.keccak_pair29;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.capture_inflight_set or self.keccak_throughput_v1 or self.keccak_pair29 or self.layout_set;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {

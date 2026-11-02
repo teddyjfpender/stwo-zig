@@ -19,6 +19,8 @@ pub const Component = struct {
     offsets: [3]usize,
     challenges: P.Challenges,
     claims: P.Claims,
+    /// Opt-in fused-tail layout (Geometry.alu_fused_tail, alu_lookup.fused).
+    fused: bool = false,
     const Adapter = core.air.derive.ComponentAdapter(Component, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
     pub fn asProverComponent(self: *const Component) cp.ComponentProver {
         var result = Adapter.asProverComponent(self);
@@ -35,8 +37,14 @@ pub const Component = struct {
     pub fn asVerifierComponent(self: *const Component) Air.Component {
         return Adapter.asVerifierComponent(self);
     }
-    pub fn nConstraints(_: *const Component) usize {
-        return P.CONSTRAINTS;
+    pub fn nConstraints(self: *const Component) usize {
+        return if (self.fused) P.fused.CONSTRAINTS else P.CONSTRAINTS;
+    }
+    pub fn interactionWidth(self: *const Component) usize {
+        return if (self.fused) P.fused.INTERACTION else P.INTERACTION;
+    }
+    pub fn widths(self: *const Component) [3]usize {
+        return .{ 2, P.MAIN, self.interactionWidth() };
     }
     pub fn maxConstraintLogDegreeBound(self: *const Component) u32 {
         return self.log_size + 1;
@@ -44,8 +52,8 @@ pub const Component = struct {
     pub fn compositionLogSplit(_: *const Component) u32 {
         return 1;
     }
-    pub fn constraintDegreeBound(_: *const Component, i: usize) !u8 {
-        if (i >= P.CONSTRAINTS) return error.InvalidConstraintIndex;
+    pub fn constraintDegreeBound(self: *const Component, i: usize) !u8 {
+        if (i >= self.nConstraints()) return error.InvalidConstraintIndex;
         return 3;
     }
     pub fn traceLogDegreeBounds(self: *const Component, a: std.mem.Allocator) !Air.TraceLogDegreeBounds {
@@ -53,7 +61,7 @@ pub const Component = struct {
         var logs: [3][]u32 = undefined;
         var initialized: usize = 0;
         errdefer for (logs[0..initialized]) |values| a.free(values);
-        for ([_]usize{ 2, P.MAIN, P.INTERACTION }, &logs) |width, *values| {
+        for (self.widths(), &logs) |width, *values| {
             values.* = try points.emptyOrFilledLogs(a, width, self.log_size);
             initialized += 1;
         }
@@ -65,19 +73,20 @@ pub const Component = struct {
         result[1] = self.offsets[0] + 1;
         return result;
     }
-    pub fn needsPrevious(column: usize) bool {
-        return column >= P.PREFIX;
+    pub fn needsPrevious(self: *const Component, column: usize) bool {
+        const prefix: usize = if (self.fused) P.fused.PREFIX else P.PREFIX;
+        return column >= prefix;
     }
     pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: Point, global_log: u32) !Air.MaskPoints {
         _ = try geometry.localPoint(point, global_log, self.log_size);
         var masks: [3][][]Point = undefined;
         var initialized: usize = 0;
         errdefer for (masks[0..initialized]) |columns| points.freePointColumns(a, columns);
-        for ([_]usize{ 2, P.MAIN, P.INTERACTION }, &masks) |width, *columns| {
+        for (self.widths(), &masks) |width, *columns| {
             columns.* = try points.currentPointColumns(a, width, point);
             initialized += 1;
         }
-        for (masks[2], 0..) |*column, i| if (needsPrevious(i)) {
+        for (masks[2], 0..) |*column, i| if (self.needsPrevious(i)) {
             const replacement = try a.dupe(Point, &.{ point, geometry.previousPoint(point, global_log) });
             a.free(column.*);
             column.* = replacement;
@@ -85,6 +94,7 @@ pub const Component = struct {
         return Air.MaskPoints.initOwned(try a.dupe([][]Point, &masks));
     }
     pub fn emitFor(self: *const Component, comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, sink: *E.SinkFor(F)) void {
+        if (self.fused) return P.emitFusedFor(F, main, current, previous, fixed[0], fixed[1], self.claims, self.challenges, sink);
         P.emitFor(F, main, current, previous, fixed[0], fixed[1], self.claims, self.challenges, sink);
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const Air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
@@ -92,10 +102,10 @@ pub const Component = struct {
         var values: [COLUMNS]Q = undefined;
         var previous: [P.INTERACTION]Q = @splat(Q.zero());
         var cursor: usize = 0;
-        for ([_]usize{ 2, P.MAIN, P.INTERACTION }, 0..) |width, tree| {
+        for (self.widths(), 0..) |width, tree| {
             if (mask.items[tree].len < self.offsets[tree] + width) return error.InvalidAluMask;
             for (mask.items[tree][self.offsets[tree]..][0..width], 0..) |samples, i| {
-                const prior = tree == 2 and needsPrevious(i);
+                const prior = tree == 2 and self.needsPrevious(i);
                 if (samples.len != @as(usize, if (prior) 2 else 1)) return error.InvalidAluMask;
                 values[cursor] = samples[0];
                 cursor += 1;
@@ -103,8 +113,8 @@ pub const Component = struct {
             }
         }
         var sink = E.Sink{ .values = null, .accumulator = accumulator, .scale = try geometry.denominatorInverse(point, global_log, self.log_size) };
-        self.emitFor(Q, values[0..2], values[2..][0..P.MAIN], values[2 + P.MAIN ..], &previous, &sink);
-        std.debug.assert(sink.count == P.CONSTRAINTS);
+        self.emitFor(Q, values[0..2], values[2..][0..P.MAIN], values[2 + P.MAIN .. cursor], previous[0..self.interactionWidth()], &sink);
+        std.debug.assert(sink.count == self.nConstraints());
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
         return self.evaluateDomain(trace, accumulator, null);
@@ -112,9 +122,10 @@ pub const Component = struct {
     fn evaluateDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
         const a = accumulator.allocator;
         if (trace.polys.items.len != 3) return error.InvalidAluTrace;
-        var polys: [COLUMNS]cp.Poly = undefined;
+        var polys_buffer: [COLUMNS]cp.Poly = undefined;
+        const polys = polys_buffer[0 .. 2 + P.MAIN + self.interactionWidth()];
         var cursor: usize = 0;
-        for ([_]usize{ 2, P.MAIN, P.INTERACTION }, 0..) |width, tree| {
+        for (self.widths(), 0..) |width, tree| {
             if (trace.polys.items[tree].len < self.offsets[tree] + width) return error.InvalidAluTrace;
             @memcpy(polys[cursor..][0..width], trace.polys.items[tree][self.offsets[tree]..][0..width]);
             cursor += width;
@@ -130,8 +141,9 @@ pub const Component = struct {
             for (owned[0..initialized]) |column| a.free(column);
             a.free(owned);
         }
-        var evaluations: [COLUMNS][]const M = undefined;
-        for (polys, &evaluations) |poly, *values| values.* = try support.evaluationValues(a, poly, eval_log, n, owned, &initialized);
+        var evaluations_buffer: [COLUMNS][]const M = undefined;
+        const evaluations = evaluations_buffer[0..polys.len];
+        for (polys, evaluations) |poly, *values| values.* = try support.evaluationValues(a, poly, eval_log, n, owned, &initialized);
         if (owned_count != 0) {
             var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
             defer engine.poly.twiddles.deinitM31(a, &twiddles);
@@ -139,10 +151,10 @@ pub const Component = struct {
         }
         const inverses = try geometry.denominatorInverses(a, self.log_size, eval_log);
         defer a.free(inverses);
-        const columns = try accumulator.columns(a, &.{.{ .log_size = eval_log, .n_cols = P.CONSTRAINTS }});
+        const columns = try accumulator.columns(a, &.{.{ .log_size = eval_log, .n_cols = self.nConstraints() }});
         defer a.free(columns);
         var output = columns[0];
-        const rows = Rows{ .component = self, .columns = &evaluations, .inverses = inverses };
+        const rows = Rows{ .component = self, .columns = evaluations, .inverses = inverses };
         try @import("../providers/parallel_rows.zig").evaluate(.{ .context = &rows, .run = Rows.run }, n, &output, pool);
     }
 };

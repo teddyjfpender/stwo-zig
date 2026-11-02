@@ -140,6 +140,50 @@ proof. Padding rows query `(0, 0)` twice, so their two pair denominators
 coincide; that is still one pole event. The 24-bit gap identity
 `gap = gap16 + 2^16*gap8` is unchanged, and range8 keeps serving MUL and LS.
 
+## Fused-tail / byte-pair layouts of the other components
+
+The same two constructions extend to the providers that kept the classic
+"strict inverse per pair + separate prefix" interaction. Each is a separate
+opt-in `Geometry` flag (omitted from JSON when false; when set, its layout
+identity and widths are mixed into the transcript), v3-only on the Ethereum
+route (`ethereum/main.zig admitProfile` refuses each flag elsewhere; the
+local GKR lane refuses each one). `CpuLayout.forProfile` sets all four on the
+`ethereum_services_v3` route only; together they proved and freshly verified
+a real 4-packet prefix of block 24,628,607 at 2,282,308,512 CPU native cells
+(-119,321,344 = -7.112 cells/instruction versus 2,401,629,856 without them,
+16,777,212 instructions). Every byte pair is the tagged AND-relation
+tuple `(x, y, 0, 1)` served by the pair column of the pair-capable AND table,
+so every pair flag requires `cpu_u8_pairs`. Pair multiplicities are added to
+that column (`sources.zig`, services `mergeAndPairTable`) and their mass is
+admitted with the AND relation (`Geometry.andMass`, services `admitDword`).
+
+| Flag | Component | Interaction | Residual form |
+|---|---|---|---|
+| `mul_u8_pairs` | MUL (`multiplication.pairs_layout`) | 200 -> 100 | 48 byte pairs, two per strict inverse; FUNCTION fused `(S-S'+claim*first-C)*d_fn+active` |
+| `ls_fused_pairs` | LS32 / LS32 tail | 32 -> 20 | RAM fused `(S-S'+c*first)*b*a-active*(a-b)`; K0..K2 fractions; pairs `(b13,b26),(b73,b74)` fused |
+| `ls_fused_pairs` | INIT / TEARDOWN | 8 -> 4 | fused single `(S-S'+c*first)*d-w` |
+| `alu_fused_tail` | ALU / ALU tail | 32 -> 28 | five U16 pair fractions, FUNCTION fraction `G*d_fn=m`, last U16 pair fused |
+| `ls_dword_fused_pairs` | LS-D64 (services) | 28 -> 16 | RAM fused; K0, K1 fractions; `(U16_3, (b13,b26))` fused |
+
+Soundness is the argument of the two sections above, component by
+component: every residual has degree <= 3 (checked by the cubic tests and by
+the honest physical proofs); a fraction witness `K*a*b = n` or a fused tail
+is exact whenever its poles are nonzero, a one-sided pole with nonzero
+numerator is unsatisfiable, and every denominator is `z - <alpha, tuple>`
+with the tuple committed before its challenges, so the non-strict poles
+(MUL: none besides the inactive-row FUNCTION offset; LS32: 10 per row;
+INIT/TEARDOWN: 1; ALU: 13; LS-D64: 8) are zero with probability at most
+`(poles * 2^22 * deg_z)/|QM31| < 2^-95` per proof. Range: a byte pair balances
+only against a canonical AND-table pair row, so both elements are `< 256`
+exactly as two U8 queries; the tag coordinate separates pair from AND tuples.
+LS32/LS-D64 claim shares: the `range8` share carries the AND-relation pair
+share; only the total is authenticated (unchanged). The physical STARK tests
+(`mul_u8_pairs_proof_test`, `ls_fused_pairs_proof_test`,
+`alu_fused_tail_proof_test`, `load_store_dword/tests.zig`,
+`services/ls_dword_test.zig`) forge every slot (active and padding rows) with
+the prefix repaired, move fractions between rows with every claim unchanged,
+perturb single prefixes, and cross-check receivers of the other layouts.
+
 ## Affine zero-register flags
 
 The three zero-register flags are `1-enabled`, not independent committed

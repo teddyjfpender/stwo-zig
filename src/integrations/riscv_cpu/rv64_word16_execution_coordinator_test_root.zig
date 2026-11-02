@@ -5,6 +5,9 @@ test {
     _ = @import("word16_execution/cpu_zero_induction_proof_test.zig");
     _ = @import("word16_execution/cpu_fused_tail_proof_test.zig");
     _ = @import("word16_execution/cpu_u8_pairs_proof_test.zig");
+    _ = @import("word16_execution/mul_u8_pairs_proof_test.zig");
+    _ = @import("word16_execution/ls_fused_pairs_proof_test.zig");
+    _ = @import("word16_execution/alu_fused_tail_proof_test.zig");
     _ = @import("word16_execution/shift_read_induction_proof_test.zig");
     _ = @import("word16_execution/alu_read_induction_proof_test.zig");
     _ = @import("word16_execution/cells_wire.zig");

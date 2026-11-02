@@ -201,6 +201,11 @@ pub const Case = struct {
         }
     }
     pub fn init(a: std.mem.Allocator, bridges: [2]T.Logs, mutation: Mutation) !Case {
+        return initLayout(a, bridges, mutation, false);
+    }
+    /// `all_fused`: every opt-in fused/byte-pair layout flag on (CPU, MUL,
+    /// LS32/INIT/TEARDOWN, ALU, LS-D64).
+    pub fn initLayout(a: std.mem.Allocator, bridges: [2]T.Logs, mutation: Mutation, all_fused: bool) !Case {
         var captured = try Captured.init(a);
         defer captured.deinit();
         try mutate(a, &captured.advice, mutation);
@@ -216,6 +221,7 @@ pub const Case = struct {
             var geometry = try native.geometry();
             geometry.initial_log = BOUNDARY_LOG;
             geometry.terminal_log = BOUNDARY_LOG;
+            if (all_fused) setAllFused(&geometry);
             s.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, b);
             out.* = s;
             made += 1;
@@ -263,4 +269,12 @@ fn mutate(a: std.mem.Allocator, advice: *C.Advice, mutation: Case.Mutation) !voi
             events[i].before.tick = 0;
         },
     }
+}
+pub fn setAllFused(g: anytype) void {
+    g.cpu_fused_tail = true;
+    g.cpu_u8_pairs = true;
+    g.mul_u8_pairs = true;
+    g.ls_fused_pairs = true;
+    g.alu_fused_tail = true;
+    g.ls_dword_fused_pairs = true;
 }

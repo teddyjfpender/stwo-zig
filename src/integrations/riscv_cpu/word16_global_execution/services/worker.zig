@@ -171,7 +171,10 @@ pub const Worker = struct {
                 };
                 var ls_dword: [T.DWORD_INSTANCES]T.DwordClaims = @splat(T.DwordClaims.zero());
                 for (&source.ls_dword, &ls_dword) |*b, *out| if (b.*) |*s| {
-                    out.* = try s.generate(ch.memory, source.core.range16.dictionary, source.core.range8.dictionary);
+                    out.* = if (source.core.materials.geometry.ls_dword_fused_pairs)
+                        try s.generatePairs(ch.memory, source.core.range16.dictionary, source.core.and_table.pair_dictionary)
+                    else
+                        try s.generate(ch.memory, source.core.range16.dictionary, source.core.range8.dictionary);
                 };
                 const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk, .sponge = sponge, .ls_dword = ls_dword };
                 try claims.presence(self.descriptor.cpu.setup);

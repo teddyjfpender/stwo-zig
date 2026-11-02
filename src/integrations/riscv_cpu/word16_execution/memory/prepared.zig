@@ -149,6 +149,25 @@ pub const Prepared = struct {
     pub fn generate(self: *Prepared, ch: X.types.Challenges, dict16: []const X.types.Q, dict8: []const X.types.Q) ![5]X.types.Claims {
         return self.generateProfiled(ch, dict16, dict8, null);
     }
+    /// Fused-pair layout (Geometry.ls_fused_pairs): LS/LS-tail byte pairs use
+    /// the AND pair dictionary; INIT/TEARDOWN drop their inverse column.
+    pub fn generatePairsProfiled(self: *Prepared, ch: X.types.Challenges, dict16: []const X.types.Q, pairs: []const X.types.Q, recorder: ?*Profile.Recorder) ![5]X.types.Claims {
+        const ls = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_ls", "Load store interactions");
+            defer stage.end();
+            break :block try self.ls.generatePairs(ch, dict16, pairs);
+        };
+        const ls_tail = if (self.ls_tail) |*tail| block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_ls_tail", "Tail load store interactions");
+            defer stage.end();
+            break :block try tail.generatePairs(ch, dict16, pairs);
+        } else X.types.Claims.zero();
+        const initial = try self.initial.generateFused(ch);
+        const terminal = try self.terminal.generateFused(ch);
+        const selection = try self.selection.generate(ch);
+        if (!initial.ram.eql(try X.boundary_source.expectedClaim(self.statement.initial, true, ch.ram)) or !terminal.ram.eql(try X.boundary_source.expectedClaim(self.statement.terminal, false, ch.ram))) return error.MemoryBoundaryClaimMismatch;
+        return .{ ls, initial, terminal, selection, ls_tail };
+    }
     pub fn generateProfiled(self: *Prepared, ch: X.types.Challenges, dict16: []const X.types.Q, dict8: []const X.types.Q, recorder: ?*Profile.Recorder) ![5]X.types.Claims {
         const ls = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_ls", "Load store interactions");
