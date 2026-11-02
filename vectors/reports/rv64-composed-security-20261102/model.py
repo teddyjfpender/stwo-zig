@@ -31,11 +31,14 @@ def run(bundle_path, receiver_path):
       # Coarse source-degree correspondence bounds; theorem mapping explicitly conditional.
       'oods_circle_correspondence':P*C*S*32*N,
       'deep_batching':P*C*S,
-      # Each binary fold contributes alpha^(2^j), four folds degree15.
-      # <=C insertions add <=30C; bound32(C+1). Unique CA bad-set <=degree*domain.
-      'fri_unique_curve_correspondence':P*8*32*(C+1)*(4*N),
+      # One first-layer polynomial, no per-height insertions in this implementation.
+      # Generic degree15 unique CA (whitepaper Remarks12/13), <=8 macro rounds.
+      'fri_unique_curve_correspondence':P*8*15*(4*N),
     }
-    round_formula=cpus*(2*V*V+(4*I+16)*V+128)+P*(2*C*S+512+16*V)+4096
+    cap_I,cap_V,cap_A,cap_P=128,30,128,256
+    child_round_cap=cap_V*(2*cap_I+3)+cap_V*(cap_V-1)+4*cap_I+1+9*(cap_A+2)+32
+    round_formula=cap_P*(child_round_cap+256)+256
+    assert child_round_cap==10355 and round_formula==2716672
     R=1<<22
     assert round_formula<R
     query=P*alpha**256
@@ -43,7 +46,8 @@ def run(bundle_path, receiver_path):
     E=algebra+query
     # Union per native proof plus shared-manifest challenge protocol, rather than
     # silently assuming a single global BCS collision event. One SHA identity term.
-    H=3*(P+1)+1
+    scope_count=P+cpus+1
+    H=3*scope_count+1
     work=[]
     for w in [0,64,120,121,122,124,128]:
         T=1<<w
@@ -53,7 +57,7 @@ def run(bundle_path, receiver_path):
     uniform_per_work=(1+R)*E+F(H*(maxT+1),2**256)
     assert uniform_per_work < F(1,1<<128)
     old=(source['tuple_collision']+source['rational_identity']+source['poles'])*mu
-    return {'source_revision':'8ce5fb0a7d104baadf812c55fa3985a2406274d2','input_sha256':{'bundle':hashlib.sha256(bundle_path.read_bytes()).hexdigest(),'fresh_receiver':hashlib.sha256(receiver_path.read_bytes()).hexdigest()},'shape':s,'cpu_proofs':cpus,'parameters':{'field_degree':8,'raw_mod_max_point_mass':'6561/2^256','rho':'1/4','rho_plus':'17/64','agreement':'41/64','theta':'23/64','queries':256,'PoW':0,'fold_step':4,'minimum_nonzero_trace_rows':32},'degree_weights':degree,'conditional_term_bits':{k:bits(mu*v) for k,v in degree.items()},'query_union_bits':bits(query),'conditional_algebraic_union_bits':bits(algebra),'old_lookup_pairwise_union_bits':bits(old),'joint_lookup_bits':bits(mu*source['rational_identity']),'round_source_formula_value':round_formula,'round_upper_bound':R,'collision_coefficient_conservative':H,'conditional_BCS_formula':'(T+2^22)*(sum(degree_weights)*6561/2^256 +30*(41/64)^256) +94*(T^2+1)/2^256','work_table':work,'bounded_work_1_through_2pow120_uniform_per_query_bits':bits(uniform_per_work),'native_theorem_correspondence_review_complete':False,'recursion_security_qualified':False,'whole_protocol_128_certified':False,'source_changes':False,'limitations':['coarse OODS/FRI source-degree and multi-scope BCS correspondence require independent proof review','source unit/support/canonicality and characteristic lemmas must hold','R is an analysis bound, not newly enforced receiver authority','existing recursion secure field/profile is separate and not upgraded by native OM31','256-bit hash theorem constants do not prove unrestricted literal128 per-work security']}
+    return {'source_revision':'8ce5fb0a7d104baadf812c55fa3985a2406274d2','input_sha256':{'bundle':hashlib.sha256(bundle_path.read_bytes()).hexdigest(),'fresh_receiver':hashlib.sha256(receiver_path.read_bytes()).hexdigest()},'shape':s,'cpu_proofs':cpus,'parameters':{'field_degree':8,'raw_mod_max_point_mass':'6561/2^256','rho':'1/4','rho_plus':'17/64','agreement':'41/64','theta':'23/64','queries':256,'PoW':0,'fold_step':4,'minimum_nonzero_trace_rows':32},'degree_weights':degree,'conditional_term_bits':{k:bits(mu*v) for k,v in degree.items()},'query_union_bits':bits(query),'conditional_algebraic_union_bits':bits(algebra),'old_lookup_pairwise_union_bits':bits(old),'joint_lookup_bits':bits(mu*source['rational_identity']),'all_candidate_caps_child_round_bound':child_round_cap,'all_candidate_caps_proof_cap':cap_P,'round_source_formula_value':round_formula,'round_upper_bound':R,'collision_coefficient_conservative':H,'conditional_BCS_formula':'(T+2^22)*(sum(degree_weights)*6561/2^256 +30*(41/64)^256) +169*(T^2+1)/2^256','work_table':work,'bounded_work_1_through_2pow120_uniform_per_query_bits':bits(uniform_per_work),'native_theorem_correspondence_review_complete':False,'recursion_security_qualified':False,'whole_protocol_128_certified':False,'source_changes':False,'limitations':['coarse OODS/FRI source-degree and multi-scope BCS correspondence require independent proof review','source unit/support/canonicality and characteristic lemmas must hold','R is derived from accepted source caps; multi-scope ROM correspondence still requires review','existing recursion secure field/profile is separate and not upgraded by native OM31','256-bit hash theorem constants do not prove unrestricted literal128 per-work security']}
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('bundle',type=pathlib.Path);p.add_argument('receiver',type=pathlib.Path);p.add_argument('output',type=pathlib.Path);a=p.parse_args();a.output.write_text(json.dumps(run(a.bundle,a.receiver),indent=2)+'\n')
