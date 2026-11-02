@@ -36,7 +36,7 @@ fn config() !core.pcs.ForField(O).PcsConfig {
     return .{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
 }
 const Bundle = struct { stark: Prover.ExtendedProof, gkr: GP.ProveBatchResult };
-const Fault = enum { none, target, main, eq, prefix };
+const Fault = enum { none, target, main, eq, prefix, projected_balanced };
 fn produce(fault: Fault) !Bundle {
     const cfg = try config();
     var ch = Ch.init();
@@ -73,6 +73,41 @@ fn produce(fault: Fault) !Bundle {
     const pending = @import("child.zig").Pending{ .artifact = gkr.artifact, .challenges = challenges, .eta = eta, .digest = @splat(0) };
     var witness = try @import("witness.zig").Witness.init(a, &.{instance}, &inputs, &gkr.artifact, eta);
     defer witness.deinit();
+    if (fault == .projected_balanced) {
+        // Keep MAIN, child proof, eta and both terminal marginals unchanged.
+        // Delta P0=Eq1 and delta P1=-Eq0 cancel in the final weighted sum,
+        // so numerical prefix closure alone cannot authenticate this cache.
+        var projected = try @import("witness.zig").Witness.initProjectionFromProvider(a, a, &.{instance}, &challenges, Provider{ .source = &source }, &gkr.artifact, eta);
+        defer projected.deinit();
+        const rows = 32;
+        const p0 = A.witness.physical(3, 5);
+        const p1 = A.witness.physical(9, 5);
+        var eq0_words: [8]M = undefined;
+        var eq1_words: [8]M = undefined;
+        for (0..8) |c| {
+            eq0_words[c] = witness.columns[0][c * rows + p0];
+            eq1_words[c] = witness.columns[0][c * rows + p1];
+        }
+        const eq0 = O.fromM31Array(eq0_words);
+        const eq1 = O.fromM31Array(eq1_words);
+        try std.testing.expect(!eq0.isZero() and !eq1.isZero());
+        try std.testing.expect(eq0.mul(eq1).add(eq1.mul(eq0.neg())).isZero());
+        for (eq1.toM31Array(), eq0.neg().toM31Array(), 0..) |d0, d1, c| {
+            projected.columns[0][c * rows + p0] = projected.columns[0][c * rows + p0].add(d0);
+            projected.columns[0][c * rows + p1] = projected.columns[0][c * rows + p1].add(d1);
+        }
+        // This must succeed despite the corruption: the attack deliberately
+        // preserves the terminal sum and all public numerical child claims.
+        var corrupted = try projected.finalizeProjection(a, &.{instance}, &gkr.artifact, eta);
+        var owns_corrupted = true;
+        defer if (owns_corrupted) corrupted.deinit();
+        try std.testing.expect(!std.mem.eql(M, witness.columns[0], corrupted.columns[0]));
+        const last = A.witness.physical(rows - 1, 5);
+        for (0..8) |c| try std.testing.expectEqual(witness.columns[0][(8 + c) * rows + last], corrupted.columns[0][(8 + c) * rows + last]);
+        witness.deinit();
+        witness = corrupted;
+        owns_corrupted = false;
+    }
     var data = try Role.Data.init(instance, &pending, 0);
     // Alter only the binding target; original ALU arithmetic stays valid.
     if (fault == .target) data.target_per_row = data.target_per_row.add(O.one());
@@ -113,8 +148,8 @@ test "original ALU and actual13 local GKR fractions prove through single MAIN sp
     defer bundle.stark.aux.deinit(a);
     try verify(&bundle);
 }
-test "physical GKR binding rejects changed arithmetic-valid MAIN target Eq and prefix" {
-    for ([_]Fault{ .target, .main, .eq, .prefix }) |fault| {
+test "physical GKR binding rejects changed arithmetic-valid MAIN target Eq prefix and balanced projected cache" {
+    for ([_]Fault{ .target, .main, .eq, .prefix, .projected_balanced }) |fault| {
         var bundle = produce(fault) catch |err| switch (err) {
             error.ConstraintsNotSatisfied, error.InvalidLastLayerDegree => continue,
             else => return err,
