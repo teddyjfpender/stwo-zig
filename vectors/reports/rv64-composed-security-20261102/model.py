@@ -27,9 +27,17 @@ def run(bundle_path, receiver_path, reviewed_v2_envelope=False):
         assert 0 <= source['rational_identity'] <= 3804538944
         assert all(t['declaration']['family'] in ('keccak', 'add', 'double') for t in bundle['truths'])
         assert all(t['declaration']['family'] != 'keccak' or t['declaration']['logs'][1] == 0 for t in bundle['truths'])
+        # secp ADD/DOUBLE row_v1 truth (PR308) declares logs[1] == 0; the v2
+        # envelope has only the RCB product/linear pair (logs[1] >= 5).
+        assert all(t['declaration']['family'] == 'keccak' or t['declaration']['logs'][1] != 0 for t in bundle['truths'])
         for cpu in bundle['cpus']:
             declaration = cpu['declaration']; g = declaration['geometry']
-            assert not g.get('cpu_fused_tail', False) and not g.get('cpu_u8_pairs', False)
+            # Every opt-in layout flag of Geometry.isLayoutFlag (omitted from
+            # JSON when false) is outside the reviewed v2 envelope, including
+            # PR308's MUL/LS32/ALU/LS-D64 fused/pair layouts and compact decode.
+            assert not any(g.get(flag, False) for flag in ('cpu_fused_tail', 'cpu_u8_pairs', 'mul_u8_pairs', 'ls_fused_pairs', 'alu_fused_tail', 'ls_dword_fused_pairs', 'cpu_compact_decode'))
+            # CPU log 23 (wide clock) is outside the reviewed 2^22 envelope.
+            assert g['cpu_log'] <= 22
             # Optional v3 fields must be absent, not merely uncounted.
             assert set(declaration['bridges']) <= {'keccak', 'add', 'double'}
 

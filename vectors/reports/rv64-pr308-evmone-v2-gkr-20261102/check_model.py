@@ -18,6 +18,14 @@ mutations = [
     ('throughput_keccak', lambda b, r: b['truths'][0]['declaration'].__setitem__('logs', [18, 21])),
     ('fused_tail', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('cpu_fused_tail', True)),
     ('u8_pairs', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('cpu_u8_pairs', True)),
+    ('mul_u8_pairs', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('mul_u8_pairs', True)),
+    ('ls_fused_pairs', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('ls_fused_pairs', True)),
+    ('alu_fused_tail', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('alu_fused_tail', True)),
+    ('ls_dword_fused_pairs', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('ls_dword_fused_pairs', True)),
+    ('cpu_compact_decode', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('cpu_compact_decode', True)),
+    ('wide_clock_log23', lambda b, r: b['cpus'][0]['declaration']['geometry'].__setitem__('cpu_log', 23)),
+    ('secp_row_truth', lambda b, r: next(t for t in b['truths'] if t['declaration']['family'] != 'keccak')['declaration']['logs'].__setitem__(1, 0)),
+    ('keccak_quartet', lambda b, r: next(t for t in b['truths'] if t['declaration']['family'] == 'keccak')['declaration']['logs'].__setitem__(1, 21 | 4 << 8)),
     ('bulk_bridge', lambda b, r: b['cpus'][0]['declaration']['bridges'].__setitem__('bulk', {})),
     ('not_completed', lambda b, r: r.__setitem__('completed_ethereum_block', False)),
     ('wrong_profile', lambda b, r: r.__setitem__('profile', 'experimental-om31-local-gkr-q70-p26-fold4')),
@@ -34,4 +42,4 @@ with tempfile.TemporaryDirectory() as td:
             print('REJECT', name)
         else:
             raise AssertionError('scope expansion accepted: ' + name)
-print('PASS original model equality and12 unauthorized scope mutations')
+print(f'PASS original model equality and {len(mutations)} unauthorized scope mutations')
