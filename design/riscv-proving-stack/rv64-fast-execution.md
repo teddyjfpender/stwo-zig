@@ -83,7 +83,7 @@ Proof soundness does not depend on this code: the proof checks execution.
 Equality with the reference is enforced by tests and receipts.
 
 - `zig build test-riscv64-execution -Doptimize=ReleaseSafe`:
-  - 1,500 random RV64IM programs, interleaving the engine with reference
+  - 1,500 random RV64IM programs (half under the Zbb BINARY ISA), interleaving the engine with reference
     steps at random budgets. Programs cover all opcodes, in-range and
     misaligned branch/JAL/JALR targets, RW/RO/partial-rights/absent pages,
     and ECALL/EBREAK/random words. Registers, pc, clock, trap, page set and
@@ -102,7 +102,8 @@ Equality with the reference is enforced by tests and receipts.
   - direct capture with segments equals on-disk packet capture (natives and
     capture digest).
 - Basket (`bench.py --engine fast`): every `execution.json` field except
-  timing is identical on all 15 blocks, and G1–G6 pass.
+  timing is identical on all 15 blocks, for both the v3 profile and the v3_zbb
+  profile (Zbb BINARY ISA). G1–G6 pass and bench rows are equal.
 - Real blocks: nativeprepare job trees are byte-identical serial vs 8
   segment workers, and plan-direct `captured_values_sha256` are equal (see
   receipt).
@@ -120,9 +121,17 @@ are in the receipt.
 | 24,628,607 | 34.1 M | 1.241 s, 27.5 MHz | 34.6 MHz | **0.121 s, 281.9 MHz** |
 | 26,235,159 (basket max) | 327.2 M | 11.48 s, 28.5 MHz | 35.9 MHz | **0.889 s, 368.2 MHz** |
 
-Over the whole basket (4 parallel jobs) the fast engine averages 267 MHz,
-range 218–342 MHz. 99.6% of retirements are fast. The rest are services,
-first touches of absent pages and halt-flag stores.
+Over the whole basket (bench.py, 4 parallel jobs, merged head with Zbb
+admitted), every report field except timing is identical on all 15 blocks:
+
+| Profile | Fast engine | Reference |
+| --- | --- | --- |
+| `ethereum_services_v3` | 243–378 MHz, aggregate 316 MHz | ~34 MHz |
+| `ethereum_services_v3_zbb` | 113–256 MHz, aggregate 181 MHz | ~31 MHz |
+
+99.6% of retirements are fast. The rest are services, first touches of absent
+pages and halt-flag stores. The lower MHz of the Zbb ELF is **not yet attributed**: its fast fraction is
+the same, and these are 4-job runs on a shared host.
 
 **Direct capture** (`plan-direct`, captured_values_sha256 equal in every row;
 ELF 6f2f8842…):
@@ -133,6 +142,12 @@ ELF 6f2f8842…):
 | | segments 8, inflight 8 | **1.74 s** | 0.57 s | 8.2 GB |
 | 24,628,608 (38.6 M steps, 10 batches) | serial, inflight 8 | 3.06 s | 2.24 s | 6.5 GB |
 | | segments 8, inflight 8 | **1.94 s** | 0.63 s | 11.2 GB |
+
+After merging the Zbb head, the capture digests changed in both modes but
+stayed equal serial vs segments:
+
+- 24,628,607: 2.13 → 1.78 s (digest 23536b77…);
+- 24,628,608: 2.83 → 2.05 s (digest b2b43568…).
 
 24,628,608 is the largest basket block that the Word16 expected image
 accepts today. Blocks with adapted inputs above 4 MiB fail `FileTooBig` in
@@ -151,7 +166,7 @@ Checkpoint pages copied: 4,699 (24,628,607) and 6,941 (24,628,608), i.e. 19
 and 28 MB in total.
 
 **nativeprepare**: all 15 basket blocks are byte-identical serial vs 8
-workers. Every output file has the same sha256: 8 completed collections, and
+workers, both before and after the merge. Every output file has the same sha256: 8 completed collections, and
 7 identical partial collections that stop on `StepLimit` (the template's
 max_steps 1e8). Wall is unchanged (±2%) because the publisher is serial.
 
