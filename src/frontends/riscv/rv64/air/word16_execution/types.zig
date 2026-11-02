@@ -24,11 +24,13 @@ pub fn validateInputs(public: Inputs, log: u32) !void {
     if (public.initial_pc[0] & 3 != 0 or public.final_pc[0] & 3 != 0) return error.InvalidExecutionInputs;
 }
 /// Compact decode endpoints: the AIR reads only felt = limb0 + 65536*limb1,
-/// so limbs 2..3 must be zero and the value below 2^31 (felt injective and
-/// equal to a ROM-range PC). Required by every compact receiver lane.
+/// so limbs 2..3 must be zero and the value in (0, 2^31) (felt injective and
+/// equal to a ROM-range PC; features.compactPcAdmitted). felt 0 is refused:
+/// it is also felt(0xFFFFFFFE), an even AND16-canonical JALR target.
+/// Required by every compact receiver lane.
 pub fn validateCompactInputs(public: Inputs, log: u32) !void {
     try validateInputs(public, log);
-    for ([_][4]u32{ public.initial_pc, public.final_pc }) |pc| if (pc[2] != 0 or pc[3] != 0 or pc[1] >= 0x8000) return error.InvalidExecutionInputs;
+    for ([_][4]u32{ public.initial_pc, public.final_pc }) |pc| if (pc[2] != 0 or pc[3] != 0 or pc[1] >= 0x8000 or (pc[0] == 0 and pc[1] == 0)) return error.InvalidExecutionInputs;
 }
 /// felt(pc) of a native public endpoint.
 pub fn nativePcFelt(pc: [4]u32) M {

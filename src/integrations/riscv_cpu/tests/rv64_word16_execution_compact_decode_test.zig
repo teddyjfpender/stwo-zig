@@ -381,3 +381,85 @@ test "JALR alias: a target T + p has the same felt but is odd, so no AND16(x, ~1
         try std.testing.expect(@as(u16, @truncate(t)) & 1 == 1);
     }
 }
+
+test "JALR alias 2p: T = 0xFFFFFFFE is even, canonical and has felt 0, so ROM pc 0 and felt-0 endpoints are refused" {
+    // v = 0 is the only 4-aligned v < 2^31 with v + 2p < 2^32.
+    const p: u64 = (1 << 31) - 1;
+    const t: u64 = 2 * p;
+    try std.testing.expectEqual(@as(u64, 0xFFFFFFFE), t);
+    try std.testing.expect(t & 1 == 0 and t < 1 << 32);
+    for ([_]u64{ 4, 8, 0x1000, 0x7ffffffc }) |v| try std.testing.expect(v + 2 * p >= 1 << 32);
+    const fixed = [_]M{ M.fromCanonical(4), M.zero(), M.zero() };
+    // A true JALR fact: rs1 = 0x00000000FFFFFFFE, imm 0 -> T = (rs1 + 0) & ~1.
+    const jalr = X.Entry.fromDecoded(0x00080867, 0x2000); // jalr x16,0(x16)
+    var row = try X.row.compact.active(jalr, 4, 0x3000, .{ .a = 0x3000, .b = 0, .c = 0x2004, .previous_rd = 9 }, .{ 1, 0, 3 });
+    X.features.put(row[K.a .. K.a + 4], 0, 0xFFFFFFFE);
+    row[K.next] = M.fromCanonical(0xFFFE);
+    row[K.next + 1] = M.fromCanonical(0xFFFF);
+    const fact = U.compact.function(M, row[0..K.COUNT]);
+    var want_c: [4]M = undefined;
+    X.features.put(&want_c, 0, (0xFFFFFFFE +% @as(u64, @bitCast(jalr.instruction.imm))) & ~@as(u64, 1));
+    try std.testing.expectEqualSlices(M, &want_c, fact[9..13]);
+    try std.testing.expect(row[K.next].add(M.fromCanonical(65536).mul(row[K.next + 1])).isZero());
+    // The successor row's ROM pc coordinate is therefore felt 0.
+    const addi = 0x00100093; // addi x1,x0,1
+    var succ = try X.row.compact.active(X.Entry.fromDecoded(addi, 4), 5, 8, .{ .a = 0, .b = 0, .c = 1, .previous_rd = 0 }, .{ 0, 0, 3 });
+    succ[K.next] = M.fromCanonical(4);
+    const got = U.compact.rom(M, &fixed, succ[0..K.COUNT], row[0..K.COUNT], M.zero());
+    try std.testing.expect(got[0].eql(M.one()) and got[L.rom.pc].isZero());
+    // Under the v1 rule a ROM word at pc 0 had exactly this fact (the hole).
+    var v1 = X.Entry.fromDecoded(addi, 4).romTupleCompact(false);
+    v1[L.rom.pc] = M.zero();
+    v1[L.rom.next_pc] = M.fromCanonical(4);
+    try std.testing.expect(same(&v1, &got));
+    // v2: pc 0 is not admitted, its ROM fact is the invalid zero tuple, and
+    // no active row (coordinate 0 = 1) can match it.
+    const at0 = X.Entry.fromDecoded(addi, 0);
+    try std.testing.expect(at0.valid and !at0.compactValid());
+    for (at0.romTupleCompact(false)) |v| try std.testing.expect(v.isZero());
+    try std.testing.expect(!same(&at0.romTupleCompact(false), &got));
+    try std.testing.expectError(error.InvalidExecutionRow, X.row.compact.active(at0, 5, 4, .{ .a = 0, .b = 0, .c = 1, .previous_rd = 0 }, .{ 0, 0, 3 }));
+    // Static successors of 0: JAL to 0 is invalid; a branch taken to 0 loses its taken edge.
+    const jal0 = X.Entry.fromDecoded(0xffdff06f, 4); // jal x0,-4
+    try std.testing.expect(jal0.valid and jal0.staticNext(false) == 0 and !jal0.compactValid());
+    for (jal0.romTupleCompact(false)) |v| try std.testing.expect(v.isZero());
+    const beq0 = X.Entry.fromDecoded(0xfe000ce3, 8); // beq x0,x0,-8
+    try std.testing.expect(beq0.compactValid() and beq0.hasTakenEdge() and beq0.staticNext(true) == 0 and !beq0.compactTakenEdge());
+    try std.testing.expect(beq0.romTupleCompact(true)[0].isZero());
+    // A producer refuses a dynamic successor of 0 and a padding final_pc of 0.
+    try std.testing.expectError(error.InvalidExecutionNextPc, X.row.compact.active(jalr, 4, 0, .{ .a = 0, .b = 0, .c = 0x2004, .previous_rd = 9 }, .{ 1, 0, 3 }));
+    try std.testing.expectError(error.InvalidExecutionNextPc, X.row.compact.padding(3, 0));
+    // Endpoints with felt 0 are refused; felt 65536 (limbs (0, 1)) is not 0.
+    var public = inputs();
+    public.final_pc = .{ 0, 0, 0, 0 };
+    try std.testing.expectError(error.InvalidExecutionInputs, X.types.validateCompactInputs(public, 5));
+    try X.types.validateInputs(public, 5);
+    public = inputs();
+    public.initial_pc = .{ 0, 0, 0, 0 };
+    try std.testing.expectError(error.InvalidExecutionInputs, X.types.validateCompactInputs(public, 5));
+    public.initial_pc = .{ 0, 1, 0, 0 };
+    try X.types.validateCompactInputs(public, 5);
+    // The smallest admitted PC is 4.
+    try std.testing.expect(!X.features.compactPcAdmitted(0) and X.features.compactPcAdmitted(4) and !X.features.compactPcAdmitted(1 << 31));
+}
+
+test "compact CPU component: validatePublic refuses felt-0 endpoints (verifier and domain path)" {
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    const ch = challenges(&channel);
+    const make = struct {
+        fn of(c: X.types.Challenges, public: X.types.Inputs) X.component.Component {
+            return .{ .log_size = 5, .offsets = .{ 0, 0, 0 }, .public = public, .claim = Q.zero(), .challenges = c, .fused = true, .compact = true, .pairs = .{ .offset = Q.one(), .coefficients = @splat(Q.one()) } };
+        }
+    }.of;
+    try make(ch, inputs()).validatePublic();
+    var public = inputs();
+    public.final_pc = .{ 0, 0, 0, 0 };
+    try std.testing.expectError(error.InvalidExecutionInputs, make(ch, public).validatePublic());
+    public = inputs();
+    public.initial_pc = .{ 0, 0, 0, 0 };
+    try std.testing.expectError(error.InvalidExecutionInputs, make(ch, public).validatePublic());
+    // The same endpoints are legal for the non-compact layouts (4 limbs bound).
+    var legacy = make(ch, public);
+    legacy.compact = false;
+    try legacy.validatePublic();
+}

@@ -198,11 +198,13 @@ are exact architectural results, and the capture emits exactly those facts
    - A is still guarded by `(1-enabled0)*A = 0`, so AUIPC/JAL/LUI have A = 0.
 2. PC continuity. The row PC is definitional: row 0 is `initial_pc` and row i
    is `felt(next_{i-1})`, so there is no PC equality to forge. The ROM is
-   built only from code whose PCs and static successors are below 2^31
-   (`compactValid` and `compactTakenEdge`; others become invalid zero facts),
-   and the receiver requires canonical endpoints below 2^31 with zero limbs
-   2..3 (`types.validateCompactInputs`). So felt is injective on every value
-   it is compared with.
+   built only from code whose PCs and static successors are in (0, 2^31)
+   (`features.compactPcAdmitted`, used by `compactValid` and
+   `compactTakenEdge`; others become invalid zero facts, whose coordinate 0 is
+   0 and so never matches an active row), and the receiver requires canonical,
+   4-aligned endpoints in (0, 2^31) with zero limbs 2..3
+   (`types.validateCompactInputs`). So felt is injective on every value it is
+   compared with, and no compared PC has felt 0.
    - Static rows. The ROM binds `felt(next)` to the decoded successor, so the
      limb split of `next` is irrelevant. A test accepts a non-canonical split
      of the same PC, and the claim does not change.
@@ -210,8 +212,16 @@ are exact architectural results, and the capture emits exactly those facts
      directly or through the JALR10 composite. So the limbs are canonical u16,
      the true target is `T = next0 + 65536*next1 < 2^32`, its upper limbs are
      zero, and T is even, because `~1` clears bit 0. The successor's pc felt
-     `v` is a ROM PC or `final_pc`, so `v < 2^31` and v is 4-aligned. Then
-     `T in {v, v+p}`, and `v+p` is odd since p is odd, so `T = v`.
+     `v` is a ROM PC or `final_pc`, so `4 <= v < 2^31` and v is 4-aligned.
+     Then `T = v + k*p` for an integer k >= 0 with `T < 2^32 = 2p + 2`, so
+     `k <= 2`. `k = 1` gives an odd T (p is odd). `k = 2` needs
+     `v + 2p < 2^32`, i.e. `v <= 1`, which is excluded. So `T = v`.
+     Excluding pc 0 is load-bearing: without it, `T = 2p = 0xFFFFFFFE` (even,
+     canonical, felt 0) would alias a ROM pc 0 or a claimed `final_pc` 0. The
+     pinned evmone v3 ELF has no executable code at 0 (its first PF_X
+     segment is at 0x400), so this hole was latent; `compact-decode.v2` in
+     `compactIdentity` marks the tightened rule, so proofs made under the
+     looser v1 rule are refused.
 3. Canonical immediate ranges. Every bound value is a canonical ROM
    coordinate. Immediates in B reach providers only as FUNCTION A/B
    coordinates, whose limbs the providers range-check exactly as before.

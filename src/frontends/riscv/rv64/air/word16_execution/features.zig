@@ -8,6 +8,14 @@ pub const PROFILE = execution.Profile.ethereum_services_v2;
 pub const JALR = 10;
 /// Compact decode code-address bound (see romTupleCompact / README).
 pub const COMPACT_PC_LIMIT: u64 = 1 << 31;
+/// Compact decode code-address admission: 0 < pc < 2^31. pc 0 is refused
+/// because felt(2p) = felt(0xFFFFFFFE) = 0: an even, AND16-canonical JALR
+/// target 0xFFFFFFFE would otherwise alias a ROM pc (or final_pc) of 0.
+/// With every compared PC 4-aligned in [4, 2^31), T = v + k*p < 2^32 forces
+/// k = 0 (k = 1 is odd, k = 2 needs v <= 1). See README (compact decode, 2).
+pub fn compactPcAdmitted(pc: u64) bool {
+    return pc != 0 and pc < COMPACT_PC_LIMIT;
+}
 /// ROM flag slots reused by compact decode for the LS offset limbs.
 pub const COMPACT_LS_LOW = 0;
 pub const COMPACT_LS_SIGN = 2;
@@ -148,17 +156,18 @@ pub const Entry = struct {
         if (limbs[1] != limbs[2] or limbs[1] != limbs[3] or (limbs[1] != 0 and limbs[1] != 0xFFFF)) return null;
         return .{ limbs[0], limbs[1] };
     }
-    /// Compact decode admission. Every ROM PC and static successor is below
-    /// 2^31 (so felt(pc) is injective and canonical), an immediate never
-    /// shares B with a read rs2, and the LS offset fits (low16, sign).
+    /// Compact decode admission. Every ROM PC and static successor is in
+    /// (0, 2^31) (compactPcAdmitted: felt(pc) is injective, canonical and
+    /// never 0), an immediate never shares B with a read rs2, and the LS
+    /// offset fits (low16, sign).
     pub fn compactValid(self: Entry) bool {
-        if (!self.valid or self.pc >= COMPACT_PC_LIMIT) return false;
-        if (!self.dynamic_next and self.staticNext(false) >= COMPACT_PC_LIMIT) return false;
+        if (!self.valid or !compactPcAdmitted(self.pc)) return false;
+        if (!self.dynamic_next and !compactPcAdmitted(self.staticNext(false))) return false;
         if (self.use_immediate and self.ids[1] != 0) return false;
         return self.compactLs() != null;
     }
     pub fn compactTakenEdge(self: Entry) bool {
-        return self.compactValid() and self.hasTakenEdge() and self.staticNext(true) < COMPACT_PC_LIMIT;
+        return self.compactValid() and self.hasTakenEdge() and compactPcAdmitted(self.staticNext(true));
     }
     /// ROM30 under compact decode. Same 30 coordinates and challenges as
     /// `romTuple`, with these meanings: pc and next are single field elements
@@ -246,7 +255,7 @@ pub fn fusedTailIdentity() [32]u8 {
 pub fn compactIdentity() [32]u8 {
     const std = @import("std");
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("rv64.word16-execution.full64.compact-decode.v1:main37/D3;pc=first*initial+(1-first)*(next0'+65536*next1');ROM.pc,next=felt(limb0),limbs1..3=0;pc,next<2^31;B=imm-slot(ROM.imm=(1-enabled1)*B),AUIPC=ADD(0,pc+imm),JAL=ADD(0,pc+4);ls_imm=(low16,sign)@ROM.flags0,2;OWNER.IMM=(l0,s,s,s);FUNCTION.C(dyn)=(next0,next1,0,0);padding=(1-active)*(felt(next)-felt(next'));last*(felt(next)-felt(final))");
+    hash.update("rv64.word16-execution.full64.compact-decode.v2:main37/D3;pc=first*initial+(1-first)*(next0'+65536*next1');ROM.pc,next=felt(limb0),limbs1..3=0;0<pc,next<2^31;endpoints:0<felt<2^31;B=imm-slot(ROM.imm=(1-enabled1)*B),AUIPC=ADD(0,pc+imm),JAL=ADD(0,pc+4);ls_imm=(low16,sign)@ROM.flags0,2;OWNER.IMM=(l0,s,s,s);FUNCTION.C(dyn)=(next0,next1,0,0);padding=(1-active)*(felt(next)-felt(next'));last*(felt(next)-felt(final))");
     for (std.enums.values(isa.Opcode)) |op| for ([_]i64{ 0, -16 }) |immediate| {
         const entry = Entry.fromInstruction(0, 0x1000, .{ .opcode = op, .rs1 = 1, .rs2 = 2, .rd = 3, .imm = immediate });
         const ls = entry.compactLs() orelse .{ 0xDEAD, 0xDEAD };
@@ -258,6 +267,15 @@ pub fn compactIdentity() [32]u8 {
         hash.update(&bytes);
         hash.update(&[_]u8{@intFromBool(entry.compactValid())});
     };
+    // PC-range admission edge cases: pc 0, a static successor of 0, the
+    // last admitted word and a successor at 2^31.
+    for ([_]struct { pc: u64, raw: u32 }{ .{ .pc = 0, .raw = 0x00000013 }, .{ .pc = 4, .raw = 0xffdff06f }, .{ .pc = 8, .raw = 0xfe000ce3 }, .{ .pc = COMPACT_PC_LIMIT - 8, .raw = 0x00000013 }, .{ .pc = COMPACT_PC_LIMIT - 4, .raw = 0x00000013 } }) |edge| {
+        const entry = Entry.fromDecoded(edge.raw, edge.pc);
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, edge.pc, .little);
+        hash.update(&bytes);
+        hash.update(&[_]u8{ @intFromBool(entry.compactValid()), @intFromBool(entry.compactTakenEdge()) });
+    }
     const base = pairIdentity();
     hash.update(&base);
     return hash.finalResult();

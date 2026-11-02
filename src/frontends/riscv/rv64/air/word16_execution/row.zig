@@ -55,7 +55,7 @@ pub const compact = struct {
     const k = L.compact;
     pub fn active(entry: Feature.Entry, index: u32, next_pc: u64, values: Values, clocks: [3]u32) !Main {
         if (!entry.compactValid() or index >= (1 << L.MAX_LOG) - 1) return error.InvalidExecutionRow;
-        if (next_pc & 3 != 0 or next_pc >= Feature.COMPACT_PC_LIMIT) return error.InvalidExecutionNextPc;
+        if (next_pc & 3 != 0 or !Feature.compactPcAdmitted(next_pc)) return error.InvalidExecutionNextPc;
         const taken = entry.branch and values.c != 0;
         if (!entry.dynamic_next and next_pc != entry.staticNext(taken)) return error.InvalidExecutionNextPc;
         if (taken and !entry.compactTakenEdge()) return error.InvalidExecutionNextPc;
@@ -87,7 +87,7 @@ pub const compact = struct {
     }
     pub fn padding(index: u32, final_pc: u64) !Main {
         if (index >= 1 << L.MAX_LOG) return error.InvalidExecutionRow;
-        if (final_pc & 3 != 0 or final_pc >= Feature.COMPACT_PC_LIMIT) return error.InvalidExecutionNextPc;
+        if (final_pc & 3 != 0 or !Feature.compactPcAdmitted(final_pc)) return error.InvalidExecutionNextPc;
         return compactBase(index, final_pc);
     }
     fn compactBase(index: u32, next_pc: u64) Main {

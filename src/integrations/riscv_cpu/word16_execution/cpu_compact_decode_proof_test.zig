@@ -52,6 +52,8 @@ pub const Forge = enum {
     jal_immediate,
     /// JALR: next limbs := limbs(T + p), felt(next) unchanged.
     jalr_alias,
+    /// JALR: next limbs := limbs(2p) = (0xFFFE, 0xFFFF): even, canonical, felt 0.
+    jalr_wrap,
     /// ADD (static): next limbs (n0 + 65536, n1 - 1), felt unchanged. Harmless.
     noncanonical_static,
 };
@@ -130,6 +132,12 @@ fn forgeMain(program: *const Program, main: []M, steps: usize, initial: u64, for
             setAt(main, row, K.next, forged[0]);
             setAt(main, row, K.next + 1, forged[1]);
             try std.testing.expectEqual(v, felt(rowAt(main, row)));
+        },
+        .jalr_wrap => {
+            const row = try rowOf(program, main, steps, initial, .JALR);
+            setAt(main, row, K.next, M.fromCanonical(0xFFFE));
+            setAt(main, row, K.next + 1, M.fromCanonical(0xFFFF));
+            try std.testing.expectEqual(@as(u64, 0), felt(rowAt(main, row)));
         },
         .noncanonical_static => {
             const row = try rowOf(program, main, steps, initial, .ADD);
@@ -281,7 +289,7 @@ test "compact decode CPU: a forged A on an AUIPC row (rs1 unused) is rejected by
 test "compact decode CPU: forged immediates, operand slots, LS offsets, PC jumps, static AUIPC/JAL constants and JALR aliases are rejected by closure" {
     // Every CPU interaction is rebuilt from the forged MAIN, so the STARK
     // itself holds; the forged ROM/FUNCTION/OWNER query has no supplier.
-    for ([_]Forge{ .immediate, .x0_operand, .wrong_slot, .store_offset, .pc_jump, .auipc_immediate, .jal_immediate, .jalr_alias }) |forge| {
+    for ([_]Forge{ .immediate, .x0_operand, .wrong_slot, .store_offset, .pc_jump, .auipc_immediate, .jal_immediate, .jalr_alias, .jalr_wrap }) |forge| {
         const outcome = try run(.{ .main = forge });
         std.testing.expect(outcome.physical and outcome.claim_changed and !outcome.full) catch |err| {
             std.debug.print("forge {s}: {any}\n", .{ @tagName(forge), outcome });
@@ -337,4 +345,47 @@ test "compact decode CPU: all four layouts reject each other's proofs; exact cel
     var parsed = try std.json.parseFromSlice(Mat.Geometry, a, compact_json, .{});
     defer parsed.deinit();
     try std.testing.expect(std.meta.eql(parsed.value, COMPACT));
+}
+
+test "compact decode CPU: a felt-0 endpoint (alias of JALR target 0xFFFFFFFE) is refused by a fresh compact receiver" {
+    // The full receiver already refuses at the memory boundary claim; the CPU
+    // component's own refusal (validatePublic -> validateCompactInputs) is
+    // tested in isolation in rv64_word16_execution_compact_decode_test.
+    var fixture = try @import("../tests/rv64_word16_execution_fixture.zig").Fixture.init(a);
+    defer fixture.deinit();
+    const admission = Driver.admission(&fixture.image);
+    var setup = try Mat.Setup.initWithAuthority(a, &fixture.image.authority, COMPACT);
+    defer setup.deinit();
+    var proof = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, null);
+    defer proof.deinit(a);
+    var fresh = try Mat.Setup.initWithAuthority(a, &fixture.image.authority, COMPACT);
+    defer fresh.deinit();
+    try Execution.verify(a, &fresh, admission, proof);
+    for ([_]bool{ false, true }) |initial| {
+        var forged = proof;
+        if (initial) forged.request.cpu.initial_pc = 0 else forged.request.cpu.final_pc = 0;
+        try std.testing.expect(std.meta.isError(Execution.verify(a, &fresh, admission, forged)));
+        try std.testing.expect(std.meta.isError(verifyPhysical(&fresh, admission, forged)));
+    }
+}
+test "compact decode ROM: a program with code at pc 0 commits no active fact for pc 0 or a successor of 0" {
+    const words = @import("../tests/rv64_word16_execution_fixture.zig").words;
+    var program = try Program.init(a, .{ .base = 0, .words = &words });
+    defer program.deinit();
+    try std.testing.expect(program.entries[0].valid and program.entries[0].pc == 0);
+    try program.makeCompact();
+    const size = program.size();
+    const R30 = X.layout.rom;
+    var active: usize = 0;
+    for (0..size) |logical| {
+        const pos = X.layout.physical(logical, program.log_size);
+        if (program.fixed[pos].isZero()) continue;
+        active += 1;
+        try std.testing.expect(!program.fixed[R30.pc * size + pos].isZero());
+        const dyn = program.fixed[(R30.flags + 3) * size + pos];
+        if (dyn.isZero()) try std.testing.expect(!program.fixed[R30.next_pc * size + pos].isZero());
+    }
+    // Every word except the one at pc 0 keeps its (not-taken) fact.
+    try std.testing.expect(active >= words.len - 1);
+    for (0..R30.COUNT) |column| try std.testing.expect(program.fixed[column * size + X.layout.physical(program.word_rows[0], program.log_size)].isZero());
 }

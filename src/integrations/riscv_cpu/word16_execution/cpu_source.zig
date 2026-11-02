@@ -99,7 +99,7 @@ pub const Source = struct {
             if ((!entry.branch and record.branch_taken != jump) or (entry.branch and record.result.toInt() != 0)) return error.InvalidExecutionAdvice;
             const next = record.next_pc.toInt();
             if (next & 3 != 0 or (!entry.dynamic_next and next != entry.staticNext(entry.branch and record.branch_taken))) return error.InvalidExecutionAdvice;
-            if (program.compact and next >= X.features.COMPACT_PC_LIMIT) return error.InvalidExecutionAdvice;
+            if (program.compact and !X.features.compactPcAdmitted(next)) return error.InvalidExecutionAdvice;
             const c = if (entry.branch) @intFromBool(record.branch_taken) else record.result.toInt();
             const rom_row = try program.factIndex(word, entry.branch and record.branch_taken);
             meta.* = .{ .values = .{ record.lhs.toInt(), record.rhs.toInt(), c, record.previous_rd.toInt(), next }, .clocks = undefined, .rom_row = @intCast(rom_row) };
