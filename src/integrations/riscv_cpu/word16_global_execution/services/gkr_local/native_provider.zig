@@ -170,7 +170,10 @@ pub const Provider = struct {
             .and_table => {
                 var n = s.binary.and_counts[i] + (if (s.tails.binary) |tail| tail.and_counts[i] else 0);
                 for (self.source.sponge) |maybe| if (maybe) |src| {
-                    n += src.counts_and[i];
+                    if (src.kind == .perm) {
+                        if (src.counts_and.len != 65536) return error.LocalGkrMetadataRetired;
+                        n += src.counts_and[i];
+                    }
                 };
                 try @import("pair_projection.zig").emitAndMetadata(i, n, s.and_table.pair_counts, s.cpu.u8_pairs, sink);
             },
