@@ -3,6 +3,22 @@
 const std = @import("std");
 const Instance = @import("frame.zig").Instance;
 const Numerical = @import("stwo_prover_engine").lookups.resource.ForField(@import("stwo_core").fields.om31.OM31);
+/// Source-checkpoint (streamed bottom + stride-two bank) working planes per
+/// padded fact, s = secure size. All instances sit at the same height h in each
+/// outer layer, and no raw N/D plane exists. Construction retains only even
+/// levels h>=2 (2s*N/4^k summed: 2s/3 per fact; nextLayerTwice writes no odd
+/// level). At height h the bank below h is <2s/3 and the oracle's first fold
+/// allocates s/2^h (h=0: foldSourceLayer, h=1: lazy reduced source fold, h=2
+/// with an empty bank: s/4). The bottom dominates: even unstaggered first folds
+/// of every instance total s per fact; a nonresizing allocator's half-copy adds
+/// at most s/4 per fact of the largest instance; the shared Eq table peaks at
+/// 3s/8 per fact of the largest instance (rv64-gkr-requested-memory-bound.md),
+/// conservatively assumed concurrent. Total s + s/4 + 3s/8 per fact: OM31 52 B
+/// (was 68, the materialized-input owned-checkpoint figure). Metadata is added.
+pub const SOURCE_CHECKPOINT_BYTES_PER_FACT: usize = @sizeOf(@import("stwo_core").fields.om31.OM31) * 13 / 8;
+comptime {
+    std.debug.assert(SOURCE_CHECKPOINT_BYTES_PER_FACT == 52);
+}
 pub const Plan = struct {
     input_bytes: usize = 0,
     owned_layer_bytes: usize = 0,
@@ -54,7 +70,7 @@ pub const Plan = struct {
         p.input_bytes = if (streamed) 0 else numerical.input_bytes;
         // Retained field name for receipt compatibility; this is the complete
         // working-plane reserve, not an assertion that input is still cloned.
-        p.owned_layer_bytes = if (tight) try std.math.mul(usize, facts, if (streamed and !checkpointed) @as(usize, 80) else 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
+        p.owned_layer_bytes = if (tight) try std.math.mul(usize, facts, if (streamed) (if (checkpointed) SOURCE_CHECKPOINT_BYTES_PER_FACT else @as(usize, 80)) else 2 * @sizeOf(@import("stwo_core").fields.om31.OM31) + @sizeOf(@import("stwo_core").fields.m31.M31)) else numerical.working_plane_bytes;
         p.metadata_bytes = numerical.metadata_bytes;
         const binding_headers = try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31));
         const binding_phase = try std.math.add(usize, try std.math.add(usize, if (checkpointed or streamed) projection_scratch else p.input_bytes, p.binding_bytes), try std.math.add(usize, binding_headers, p.metadata_bytes));

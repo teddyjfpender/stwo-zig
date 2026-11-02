@@ -30,13 +30,17 @@ Q3,986,672→2,934,527B (1.359×). Small numerical timing is effectively similar
 not a throughput qualification. Safe/Fast numerical parity/fresh/OOM gates pass.
 
 `STWO_ZIG_GKR_TREE_CHECKPOINTS=2` explicitly selects the alternative in the local
-child. Unset/empty keeps the original dense tree; any other nonempty value fails
-with `InvalidGkrTreeCheckpointPolicy` before allocating raw input matrices. This
+child and `1` the dense tree. Unset/empty takes the policy default: since
+2026-11-02 that is checkpoints on the (default) streamed bottom and the dense
+tree when `STWO_ZIG_GKR_STREAM_BOTTOM=0`; see `rv64-gkr-stream-bottom.md`. Any
+other nonempty value fails with `InvalidGkrTreeCheckpointPolicy` before
+allocating raw input matrices. This
 is an operational storage choice only; proof/config/profile bytes do not change.
 `STWO_ZIG_GKR_TREE_METRICS=1` additionally logs requested numerical and including-
 binding peaks for either path. Existing conservative admission stays unchanged.
 Actual services child/lifecycle Safe passes with stride2, Fast with default dense.
-Production default is not promoted by these fixtures.
+These fixtures did not promote the default; the 2026-11-02 measurement in
+`vectors/reports/rv64-gkr-memory-20261102/` did (streamed bottom + checkpoints).
 
 ## Real first-shard stride-two experiment
 
