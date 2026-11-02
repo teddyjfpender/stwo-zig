@@ -130,8 +130,8 @@ pub const TruthSetup = struct {
         try suite.validate();
         if (policy == .quartet_v3) return error.UnsupportedSharedTruthPolicy;
         if (log > 21) return error.SharedTruthGeometryBudget;
-        try K.layout.validateGeometry(0, 1, log);
-        const fixed = try K.trace.fixedColumnsForLog(a, log);
+        try K.layout.validateGeometryFor(policy.geometry(), 0, 1, log);
+        const fixed = try K.trace.fixedColumnsForLogGeometry(a, log, policy.geometry());
         errdefer a.free(fixed);
         const zeros = try a.alloc(u64, @as(usize, 1) << @intCast(policy.tableLog(.chi)));
         defer a.free(zeros);
@@ -183,9 +183,9 @@ pub const TruthSource = struct {
     }
     pub fn initSpanPolicy(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32, lookup: TruthSetup.Policy) !TruthSource {
         if (lookup == .quartet_v3) return error.UnsupportedSharedTruthPolicy;
-        var p = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
+        var p = try K.trace.Trace.initWithLogGeometry(a, inputs, first_id, log, lookup.geometry());
         errdefer p.deinit();
-        if (lookup == .throughput_v1) {
+        if (lookup.throughputTables()) {
             var counts = try K.throughput_counts.Counts.fromTrace(a, &p);
             defer counts.deinit();
             var c = try K.tables.Trace.initPolicy(a, .chi, lookup, counts.chi);

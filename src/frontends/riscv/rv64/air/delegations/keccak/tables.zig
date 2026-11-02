@@ -19,12 +19,12 @@ fn tableOf(kind: C.Kind) @import("batch_policy.zig").Table {
 /// Exact fixed tuple of table row `i` under `policy`.
 pub fn tupleAt(policy: Policy, kind: C.Kind, i: usize) ![6]M {
     if (kind == .permutation) return error.InvalidKeccakTable;
-    if (policy == .throughput_v1) return throughput.tupleAt(if (kind == .chi) .chi else .xor5, i);
+    if (policy.throughputTables()) return throughput.tupleAt(if (kind == .chi) .chi else .xor5, i);
     return schema.tupleAt(if (kind == .chi) .chi else .xor5, i);
 }
 /// Semantic (non-padding) rows; padded xor5 throughput rows must stay unused.
 pub fn semanticRows(policy: Policy, kind: C.Kind) usize {
-    if (policy == .throughput_v1) return throughput.semanticRows(if (kind == .chi) .chi else .xor5);
+    if (policy.throughputTables()) return throughput.semanticRows(if (kind == .chi) .chi else .xor5);
     return schema.size(if (kind == .chi) .chi else .xor5);
 }
 pub const Trace = struct {
@@ -122,7 +122,7 @@ pub const Trace = struct {
         const data = try self.allocator.alloc(M, 4 * n);
         errdefer self.allocator.free(data);
         const ch = if (self.kind == .chi) challenges.chi else challenges.xor5;
-        if (self.policy == .throughput_v1) {
+        if (self.policy.throughputTables()) {
             // 2^21 rows: one batched inversion; same prefix as the serial loop.
             const work = try self.allocator.alloc(Q, 2 * n);
             defer self.allocator.free(work);
