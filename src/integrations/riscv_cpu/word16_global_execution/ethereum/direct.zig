@@ -4,10 +4,15 @@
 //!
 //! Authority is unchanged from the on-disk route: every batch passes the same
 //! identity, statement-decode, ROM/PC admission and tape checks as a packet
-//! read (`Packet.fromNative`), then the same ordered adjacency/ledger owner
+//! read, and the same header resource limits and decoded-allocation bound
+//! (`Packet.fromNative`), then the same ordered adjacency/ledger owner
 //! (`Capture.Ordered`). Only packet framing, the SHA-256 transport digest and
 //! the legacy Poseidon RAM frontier (which the Word16 reader skips: it carries
-//! no INIT, terminal or global-memory authority there) are not produced.
+//! no INIT, terminal or global-memory authority there) are not produced, so the
+//! limits on that frontier graph do not apply here (see `Packet.fromNative`).
+//! Without the graph the sparse-cache root is never chained, so each batch's
+//! `metadata.before`/`after` are `Packet.ABSENT_ROOT` (and `content_digest` is
+//! zero) rather than a placeholder root; `fromNative` rejects any other value.
 //!
 //! Schedule: the calling thread runs only the execution walk. Each finished
 //! batch is admitted (`Packet.fromNative`) and captured on its own helper
@@ -42,6 +47,7 @@ const Job = struct {
     public: @import("../../rv64_keccak_cpu.zig").Public,
     metadata: Header.Metadata,
     cells: usize,
+    chunks: usize,
     // Outputs.
     packet: ?Packet.Packet = null,
     native: ?*Native = null,
@@ -50,7 +56,7 @@ const Job = struct {
     fn run(self: *Job) void {
         const tape = self.tape.?;
         self.tape = null;
-        self.packet = Packet.fromNative(tape, self.public, self.metadata, self.cells, self.image, self.config) catch |err| {
+        self.packet = Packet.fromNative(tape, self.public, self.metadata, self.cells, self.chunks, self.image, self.config) catch |err| {
             self.err = err;
             return;
         };
@@ -204,8 +210,7 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
         var step = maybe orelse break;
         var finished = step.finished;
         defer finished.deinit();
-        const root = walk.request.initial_cache.root();
-        const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = walk.tape.initial_clock, .before = root, .after = root };
+        const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = walk.tape.initial_clock, .before = Packet.ABSENT_ROOT, .after = Packet.ABSENT_ROOT };
         var tape = walk.advanceTakingTape(&step.batch) catch |err| {
             failure = err;
             break;
@@ -215,7 +220,7 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
             failure = err;
             break;
         };
-        job.* = .{ .allocator = a, .program = program, .image = image, .config = config, .index = step.index, .tape = tape, .public = finished.public, .metadata = metadata, .cells = finished.cells.len };
+        job.* = .{ .allocator = a, .program = program, .image = image, .config = config, .index = step.index, .tape = tape, .public = finished.public, .metadata = metadata, .cells = finished.cells.len, .chunks = if (finished.openings) |o| o.chunks.len else 0 };
         stats.batches += 1;
         if (!concurrent) {
             job.run();

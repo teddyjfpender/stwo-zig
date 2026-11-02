@@ -276,9 +276,15 @@ Implemented (no proof-byte change intended; see the commit messages for receipts
   shared with `nativeprepare`) in the driver process. Each batch goes through
   `Packet.fromNative`: the packet reader's identity, statement wire decode,
   ROM/PC admission (`Admission.checkTape`, the same walk as the file check) and
-  tape checks; only file framing, the SHA-256 transport digest and the legacy
-  Poseidon frontier are not produced. Captures run on helper threads while
-  execution continues.
+  tape checks, plus the packet header's resource limits and decoded-allocation
+  bound (`Budget.checkNative`). File framing, the SHA-256 transport digest and
+  the legacy Poseidon frontier are not produced, so the frontier-graph limits
+  (records, permutations <= MAX_IO, the graph's share of packet bytes and
+  decoded peak) do not apply: a batch whose graph alone breaks a limit fails
+  `nativeprepare`/`Packet.read` with `WorkPacketResourceLimit` but is admitted
+  in process. No chained sparse-cache root exists on this route, so batch
+  metadata roots are `Packet.ABSENT_ROOT` (zero) and `fromNative` rejects any
+  other value. Captures run on helper threads while execution continues.
 - **nativeprepare pipeline.** Execution of batch k+1 overlaps the ordered
   publication (frontier graph, packet write+fsync, cache advance, descriptor)
   of batch k. Output bytes are identical to the serial binary.

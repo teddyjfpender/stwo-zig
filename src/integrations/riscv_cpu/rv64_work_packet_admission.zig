@@ -68,6 +68,9 @@ pub fn checkTape(tape: *const rv.compact_tape.Tape, metadata: H.Metadata, cells:
     try canonical(public);
     if (tape.len != public.statement.steps or tape.len > tape.storage.len) return error.InvalidWorkPacketBoundary;
     const sha256: u32 = std.math.cast(u32, tape.sha256_calls.items.len) orelse return error.InvalidWorkPacketService;
+    // Bit 31 of the wire word is the v3 extension flag, so the wire can carry
+    // at most 2^31 - 1 SHA-256 records (`compact_tape_wire.write` refuses more).
+    if (sha256 >= 1 << 31) return error.InvalidWorkPacketService;
     const arith: u32 = std.math.cast(u32, tape.arith256_mod_calls.items.len) orelse return error.InvalidWorkPacketService;
     const curve: u32 = std.math.cast(u32, tape.curve_calls.items.len) orelse return error.InvalidWorkPacketService;
     const memory: u32 = std.math.cast(u32, tape.memory_before.items.len) orelse return error.InvalidWorkPacketBoundary;

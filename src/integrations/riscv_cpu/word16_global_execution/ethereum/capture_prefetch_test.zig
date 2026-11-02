@@ -68,7 +68,11 @@ fn same(expected: *const Capture.Owner, actual: *const Capture.Owner) !void {
     try std.testing.expectEqual(expected.final_pc, actual.final_pc);
     try std.testing.expectEqualDeep(expected.final_registers, actual.final_registers);
     try std.testing.expectEqual(expected.native.items.len, actual.native.items.len);
-    for (expected.native.items, actual.native.items) |left, right| {
+    for (expected.native.items, actual.native.items) |left, right| try sameNative(left, right);
+    try std.testing.expectEqualDeep(expected.advice, actual.advice);
+}
+fn sameNative(left: anytype, right: anytype) !void {
+    {
         try std.testing.expectEqualDeep(left.raw_counts, right.raw_counts);
         try std.testing.expectEqualDeep(left.alu, right.alu);
         try std.testing.expectEqualDeep(left.binary, right.binary);
@@ -80,7 +84,6 @@ fn same(expected: *const Capture.Owner, actual: *const Capture.Owner) !void {
         try std.testing.expectEqualDeep(left.cpu.?.public, right.cpu.?.public);
         try std.testing.expectEqualDeep(left.jalr, right.jalr);
     }
-    try std.testing.expectEqualDeep(expected.advice, actual.advice);
 }
 test "two packet capture equals serial, held lease and budget fallback" {
     var fixture = try Fixture.init();
@@ -310,11 +313,18 @@ test "in-process handoff capture equals the on-disk packet capture" {
         try std.testing.expectEqual(@as(u32, 1), stats.batches);
     }
 }
-fn firstBatch(walk: *Walk) !struct { tape: @import("stwo_riscv_frontend").rv64.compact_tape.Tape, finished: @import("../../rv64_ethereum_batch.zig").Finished, metadata: Header.Metadata } {
+const FirstBatch = struct {
+    tape: @import("stwo_riscv_frontend").rv64.compact_tape.Tape,
+    finished: @import("../../rv64_ethereum_batch.zig").Finished,
+    metadata: Header.Metadata,
+    fn chunks(self: *const FirstBatch) usize {
+        return if (self.finished.openings) |o| o.chunks.len else 0;
+    }
+};
+fn firstBatch(walk: *Walk) !FirstBatch {
     var step = (try walk.next()).?;
     errdefer step.finished.deinit();
-    const root = walk.request.initial_cache.root();
-    const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = walk.tape.initial_clock, .before = root, .after = root };
+    const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = walk.tape.initial_clock, .before = PacketCodec.ABSENT_ROOT, .after = PacketCodec.ABSENT_ROOT };
     const tape = try walk.advanceTakingTape(&step.batch);
     return .{ .tape = tape, .finished = step.finished, .metadata = metadata };
 }
@@ -324,7 +334,7 @@ test "in-process handoff rejects forged tapes, statements and identities" {
     const config = fixture.config();
     var image_owner = try Image.Owner.init(a, config);
     defer image_owner.deinit();
-    const Case = enum { none, next_pc, memory_index, steps, division, final_pc, identity, first_step, initial_pc, cells };
+    const Case = enum { none, next_pc, memory_index, steps, division, final_pc, identity, first_step, initial_pc, cells, chunks, cells_over_chunks, before_root, after_root };
     inline for (@typeInfo(Case).@"enum".fields) |field| {
         const case: Case = @enumFromInt(field.value);
         var walk = try Walk.create(a, config);
@@ -332,6 +342,7 @@ test "in-process handoff rejects forged tapes, statements and identities" {
         var batch = try firstBatch(walk);
         defer batch.finished.deinit();
         var cells = batch.finished.cells.len;
+        var chunks = batch.chunks();
         switch (case) {
             .none => {},
             .next_pc => batch.tape.storage[0].next_pc += 4,
@@ -343,12 +354,17 @@ test "in-process handoff rejects forged tapes, statements and identities" {
             .first_step => batch.metadata.first_step += 1,
             .initial_pc => batch.tape.initial_pc += 4,
             .cells => cells = 1 << 25,
+            .chunks => chunks = 1 << 20,
+            .cells_over_chunks => cells = 64 * chunks + 1,
+            // Roots are absent on this route; a placeholder root is refused.
+            .before_root => batch.metadata.before = walk.request.initial_cache.root(),
+            .after_root => batch.metadata.after[0] = 1,
         }
         if (case == .none) {
-            var p = try PacketCodec.fromNative(batch.tape, batch.finished.public, batch.metadata, cells, &image_owner, config);
+            var p = try PacketCodec.fromNative(batch.tape, batch.finished.public, batch.metadata, cells, chunks, &image_owner, config);
             p.deinit();
         } else {
-            if (PacketCodec.fromNative(batch.tape, batch.finished.public, batch.metadata, cells, &image_owner, config)) |value| {
+            if (PacketCodec.fromNative(batch.tape, batch.finished.public, batch.metadata, cells, chunks, &image_owner, config)) |value| {
                 var p = value;
                 p.deinit();
                 std.debug.print("forged case {s} accepted\n", .{field.name});
@@ -356,6 +372,138 @@ test "in-process handoff rejects forged tapes, statements and identities" {
             } else |_| {}
         }
     }
+}
+fn readPacket(jobs: std.fs.Dir, image_owner: *const Image.Owner, config: Request.Config, limits: Header.Limits) !void {
+    const file = try jobs.openFile("job-000000.work", .{});
+    defer file.close();
+    var p = try PacketCodec.readWithLimits(a, file, image_owner, config, limits);
+    p.deinit();
+}
+fn handOff(image_owner: *const Image.Owner, config: Request.Config, limits: Header.Limits) !void {
+    var walk = try Walk.create(a, config);
+    defer walk.destroy();
+    var batch = try firstBatch(walk);
+    defer batch.finished.deinit();
+    var p = try PacketCodec.fromNativeWithLimits(batch.tape, batch.finished.public, batch.metadata, batch.finished.cells.len, batch.chunks(), image_owner, config, limits);
+    p.deinit();
+}
+test "in-process handoff applies the packet reader's resource limits" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    var raw: [Header.BYTES]u8 = undefined;
+    {
+        const file = try jobs.openFile("job-000000.work", .{});
+        defer file.close();
+        try std.testing.expectEqual(raw.len, try file.preadAll(&raw, 0));
+    }
+    const total: usize = @intCast(std.mem.readInt(u64, raw[16..24], .little));
+    const cells = std.mem.readInt(u32, raw[24..28], .little);
+    const chunks = std.mem.readInt(u32, raw[28..32], .little);
+    const graph: usize = @intCast(std.mem.readInt(u64, raw[32..40], .little));
+    // The fixture's first batch touches RAM, so the disk packet has a graph.
+    try std.testing.expect(cells > 0 and chunks > 0 and graph > 0);
+    const base = PacketCodec.limitsFor(config);
+    const Case = struct { limits: Header.Limits, disk: bool, direct: bool };
+    const cases = [_]Case{
+        .{ .limits = base, .disk = true, .direct = true },
+        .{ .limits = blk: {
+            var l = base;
+            l.cells = cells - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.chunks = chunks - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.steps = config.batch_steps - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.bytes = total;
+            break :blk l;
+        }, .disk = true, .direct = true },
+        // The one documented divergence: bytes that only the legacy frontier
+        // graph (never built in process) would occupy.
+        .{ .limits = blk: {
+            var l = base;
+            l.bytes = total - graph;
+            break :blk l;
+        }, .disk = false, .direct = true },
+        .{ .limits = blk: {
+            var l = base;
+            l.bytes = total - graph - 1;
+            break :blk l;
+        }, .disk = false, .direct = false },
+        .{ .limits = blk: {
+            var l = base;
+            l.allocation_bytes = 512 * 1024;
+            break :blk l;
+        }, .disk = false, .direct = false },
+    };
+    for (cases, 0..) |case, i| {
+        errdefer std.debug.print("limits case {d}\n", .{i});
+        if (case.disk) try readPacket(jobs, &image_owner, config, case.limits) else try std.testing.expectError(error.WorkPacketResourceLimit, readPacket(jobs, &image_owner, config, case.limits));
+        if (case.direct) try handOff(&image_owner, config, case.limits) else try std.testing.expectError(error.WorkPacketResourceLimit, handOff(&image_owner, config, case.limits));
+    }
+}
+test "packet roots and transport digest do not reach captured values" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.batch_steps = 1;
+    _ = try Collect.run(a, config);
+    var image_owner = try Image.Owner.init(a, config);
+    defer image_owner.deinit();
+    var program = try Program.initWithAuthority(a, &image_owner.authority);
+    defer program.deinit();
+    var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+    defer jobs.close();
+    // Disk packets chain real sparse-cache roots: the stores change them.
+    var roots_differ = false;
+    for (0..5) |i| {
+        var name_buf: [32]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "job-{d:0>6}.work", .{i});
+        const file = try jobs.openFile(name, .{});
+        defer file.close();
+        var p = try PacketCodec.read(a, file, &image_owner, config);
+        defer p.deinit();
+        if (!std.mem.eql(u32, &p.metadata.before, &p.metadata.after)) roots_differ = true;
+        try std.testing.expect(!std.mem.allEqual(u8, &p.content_digest, 0));
+        // Same packet with roots/digest replaced by the absent markers.
+        var native = try Capture.Owner.captureOne(a, &program, &p, i);
+        defer {
+            native.deinit();
+            a.destroy(native);
+        }
+        var blank = p;
+        blank.metadata.before = PacketCodec.ABSENT_ROOT;
+        blank.metadata.after = PacketCodec.ABSENT_ROOT;
+        blank.content_digest = @splat(0);
+        var other = try Capture.Owner.captureOne(a, &program, &blank, i);
+        defer {
+            other.deinit();
+            a.destroy(other);
+        }
+        try sameNative(native, other);
+    }
+    try std.testing.expect(roots_differ);
+    // Whole-capture digest: disk (chained roots) == direct (absent roots).
+    var serial = try Capture.Owner.init(a, &image_owner, &program, config, jobs, 0);
+    defer serial.deinit();
+    var stats: Direct.Stats = .{};
+    var direct = try Direct.capture(a, &image_owner, &program, config, 0, 2, &stats);
+    defer direct.deinit();
+    try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
 }
 test "pipelined native collection writes byte-identical packets and descriptors" {
     var fixture = try Fixture.init();
