@@ -1,0 +1,126 @@
+{
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "accepted": true,
+  "completed_ethereum_block": true,
+  "output": [
+    230,
+    61,
+    39,
+    151,
+    202,
+    92,
+    111,
+    130,
+    106,
+    50,
+    210,
+    12,
+    65,
+    186,
+    85,
+    45,
+    37,
+    119,
+    117,
+    51,
+    171,
+    41,
+    95,
+    157,
+    35,
+    37,
+    96,
+    176,
+    20,
+    208,
+    144,
+    48,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    20
+  ],
+  "cpu_proofs": 25,
+  "truth_proofs": 7,
+  "load_and_setup_ns": 29852271041,
+  "verify_ns": 1530502542,
+  "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 2014919656,
+    "peak_bytes": 4240096296,
+    "keys": 29,
+    "hits": 0,
+    "seals": 29,
+    "refused": false,
+    "native_coefficients": {
+      "limit_bytes": 12884901888,
+      "retained_bytes": 264582272,
+      "native_backing_bytes": 264541568,
+      "groups": 317,
+      "hits": 3415,
+      "duplicate_native_bytes_released": 5383246720,
+      "observed_individual_owners": 3732,
+      "observed_backing_owners": 0,
+      "observed_spans": 3732,
+      "owner_leases": 30
+    }
+  },
+  "source_validations": 29,
+  "source_coefficient_cells": 1411947072,
+  "source_shape": {
+    "native_proofs": 32,
+    "max_trace_log": 22,
+    "max_columns": 7371,
+    "max_constraints": 6128,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 22,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 26
+  },
+  "source_lookup_only_conditional_degrees": {
+    "tuple_collision": 693458708743636800,
+    "rational_identity": 3804557376,
+    "local_rational_identity": 3705538112,
+    "global_rational_identity": 99019264,
+    "poles": 3804557376
+  },
+  "receiver_budget": {
+    "live_bytes": 4283257811,
+    "peak_live_bytes": 6508434651,
+    "host_live_bytes": 4283257811,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 6508434651,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "receiver_recycler_cache_cap_bytes": 4294967296,
+  "receiver_worker_stack_upper_bound_bytes": 16777216
+}
+       31.43 real       242.00 user         1.45 sys
+          7355170816  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              468331  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   6  voluntary context switches
+               83833  involuntary context switches
+       2595625628760  instructions retired
+       1042867253345  cycles elapsed
+          7356962552  peak memory footprint

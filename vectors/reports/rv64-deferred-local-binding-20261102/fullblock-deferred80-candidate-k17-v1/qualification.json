@@ -1,0 +1,332 @@
+{
+  "scope": "Stronger engineering candidate complete pinned block K17 geometry experiment; different manifest/proofs fromK18, no cross-geometry proof-byte parity claim",
+  "runtime_source_snapshot": "f35c350d3",
+  "binary_sha256": "02195aee6a1c9fea3deef751bf4088189dcb28b107c6c4d19d7af6c9df406c53",
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "park_main": true,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8,
+        8
+      ],
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 2,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 2147483648,
+      "max_inflight_wire_bytes": 1073741824
+    },
+    "recycler_cache_bytes": 1073741824,
+    "keccak_max_log": 17,
+    "defer_local_binding": true
+  },
+  "gkr_tree_policy": {
+    "checkpointed": false,
+    "tight_admission": true,
+    "stream_bottom": true
+  },
+  "prove_seconds": 305.464392833,
+  "wall_seconds": 344.42,
+  "process_user_seconds": 3381.52,
+  "process_system_seconds": 209.02,
+  "maximum_rss_bytes": 37654265856,
+  "peak_footprint_bytes": 37676748344,
+  "physical_proof_bytes": 106281388,
+  "stage1_seconds": 114.043930292,
+  "stage2_seconds": 191.224683375,
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 7,
+    "load_and_setup_ns": 29852271041,
+    "verify_ns": 1530502542,
+    "fixed_setup": {
+      "limit_bytes": 12884901888,
+      "live_bytes": 2014919656,
+      "peak_bytes": 4240096296,
+      "keys": 29,
+      "hits": 0,
+      "seals": 29,
+      "refused": false,
+      "native_coefficients": {
+        "limit_bytes": 12884901888,
+        "retained_bytes": 264582272,
+        "native_backing_bytes": 264541568,
+        "groups": 317,
+        "hits": 3415,
+        "duplicate_native_bytes_released": 5383246720,
+        "observed_individual_owners": 3732,
+        "observed_backing_owners": 0,
+        "observed_spans": 3732,
+        "owner_leases": 30
+      }
+    },
+    "source_validations": 29,
+    "source_coefficient_cells": 1411947072,
+    "source_shape": {
+      "native_proofs": 32,
+      "max_trace_log": 22,
+      "max_columns": 7371,
+      "max_constraints": 6128,
+      "max_samples_per_column": 5,
+      "max_air_degree": 5,
+      "max_local_instances": 22,
+      "max_tuple_arity": 35,
+      "max_gkr_variables": 26
+    },
+    "source_lookup_only_conditional_degrees": {
+      "tuple_collision": 693458708743636800,
+      "rational_identity": 3804557376,
+      "local_rational_identity": 3705538112,
+      "global_rational_identity": 99019264,
+      "poles": 3804557376
+    },
+    "receiver_budget": {
+      "live_bytes": 4283257811,
+      "peak_live_bytes": 6508434651,
+      "host_live_bytes": 4283257811,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 6508434651,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "receiver_recycler_cache_cap_bytes": 4294967296,
+    "receiver_worker_stack_upper_bound_bytes": 16777216
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 139142,
+      "sha256": "cee2defd3d9294f7b0768dc900b972712a4f991ccb5f02d0204f46bde779adcb"
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b"
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 2288048,
+      "sha256": "3be5bda443a1178a8744a569e1f76f8ba6c4e5e073d0fc68a1353d86accc2cd0"
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 2215904,
+      "sha256": "f51887eac5f53fda6b37b4b67bb6bff4cb6403b23dab425ceffcdc1166a15913"
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 2989336,
+      "sha256": "28a08548b6c76029f734dda04db841421bf36054f47d7587072f829bb371dbc1"
+    },
+    {
+      "name": "cpu-11.bin",
+      "bytes": 2519480,
+      "sha256": "da07c8c5bbb4dcd4605bd73654180b7c28133810df78200616ba2e81c1f142f5"
+    },
+    {
+      "name": "cpu-12.bin",
+      "bytes": 2523896,
+      "sha256": "ed673740e3351ddf053a78c1e8d5a153d8e8bcbfe0a0fd8d9a2a4ca53ab34fce"
+    },
+    {
+      "name": "cpu-13.bin",
+      "bytes": 2468848,
+      "sha256": "f812ae85db718e3f964296a766eaf546ba694e50811b950d638df576f8d9c38f"
+    },
+    {
+      "name": "cpu-14.bin",
+      "bytes": 2906696,
+      "sha256": "9f876415a27030ed6b5eff5cc05c9cdc188dca5b696a1d60bc1d190a502892a6"
+    },
+    {
+      "name": "cpu-15.bin",
+      "bytes": 2422672,
+      "sha256": "b9494c004801536b3647c474c3535c1ef9573477ab91642159776a32052b5167"
+    },
+    {
+      "name": "cpu-16.bin",
+      "bytes": 2339816,
+      "sha256": "1f7de4cb98c01fc28f374fdbd2d0f0af3272bf6e3c673ac3bec8b6dd68ede76d"
+    },
+    {
+      "name": "cpu-17.bin",
+      "bytes": 2279048,
+      "sha256": "0cd1e48260a9845d8731ea7653ae930ea75f272d39f3361a689b97d8024e93ce"
+    },
+    {
+      "name": "cpu-18.bin",
+      "bytes": 2907688,
+      "sha256": "aa0a9efe3f32c580259d68fdada43848e03eab2de84b93166e7ba0ff2ef7322f"
+    },
+    {
+      "name": "cpu-19.bin",
+      "bytes": 2912720,
+      "sha256": "867754e0ae26116bca9b43aa0458400fe6682aa16842967696f8cfa955a74022"
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 2157176,
+      "sha256": "041ac063813cb1483882e45ab052c9bb957754efad4c18ca80f764413cdd812a"
+    },
+    {
+      "name": "cpu-20.bin",
+      "bytes": 2861848,
+      "sha256": "48fd4589b1dcbd140b3d7061053e1ae8c859b63163b28531cf0ecf6cf0969e2b"
+    },
+    {
+      "name": "cpu-21.bin",
+      "bytes": 2529048,
+      "sha256": "5842b3ee8406211753175402d6f4dd8cd8abcdde9a1fca81234fed7a3bfb2638"
+    },
+    {
+      "name": "cpu-22.bin",
+      "bytes": 2275800,
+      "sha256": "4fc8dd580eca4ad0e2292994fa5a4e4685e7d8a02b750fe39eb69c34062c838c"
+    },
+    {
+      "name": "cpu-23.bin",
+      "bytes": 2419632,
+      "sha256": "7ac6a841b8fb4d2fea4970fcc815f0f13a41dbc37c0d176871ae7e3b27d6c61e"
+    },
+    {
+      "name": "cpu-24.bin",
+      "bytes": 2423984,
+      "sha256": "ab346ee97c2eca4f8293426aae2c9d952a28e65bdae1798576e4cc23885fd945"
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 2939168,
+      "sha256": "bc911ba91b670ee15a5e576b2a6b99fadef15affeced5dcab0508cdc5c4798e3"
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 2606800,
+      "sha256": "f0fb8ac16b49a87ac2573a16c2d2bb16fe6004314c652764f88c54a63172ef2f"
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 2617008,
+      "sha256": "dd2948f907c1c2d7ae8ec387ccaa0a61d97e49f1f5da7748af1c8286343c2c90"
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 2849856,
+      "sha256": "a2f9700503b9c9e72b7c23d9bd86fbd7a1b2c75a8ac08596a05f360211e148fa"
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 2424560,
+      "sha256": "95b17db79370af6f2e06525cc27c55b5771d1a62fdc0cf3a8c39f43dd57678f0"
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 2455856,
+      "sha256": "c47a7fc1574110c1f3077a9fcc0dc8e18c48e99da2e5bdbf166f5b45742e3946"
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 2477056,
+      "sha256": "643237346c7d5c8566c256ae7518edca7abce7eddad574305d2a375c53a4d2ac"
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 2240500,
+      "sha256": "6ef9c3c32310f0f78d7610880d28f67f70bfe518a3dabc371a33729301efbe04"
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 8736400,
+      "sha256": "59a441076afb53ce8269880223aaf3a0359e83fafd3ed350e04312e37f1914ee"
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 8746096,
+      "sha256": "a7918f441b69648f53aa9cf6c85f20d0e866227bc2fc55893ec428e5fe195a42"
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 8736528,
+      "sha256": "fdbc26a261c89f20322b310c31e315b07c8c384e52d7dbc2975bd25b07bc615f"
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 8740016,
+      "sha256": "6ab9ad8d021667129a753e57c5c311d38926233a0b6c238874cff3707c452d51"
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 2689216,
+      "sha256": "0e2d5685fcbd026d5dce2e567256342942af4697f41f7c95defbf4ec796be522"
+    },
+    {
+      "name": "truth-5.bin",
+      "bytes": 2218248,
+      "sha256": "f72b0427c115ef2a342bfdbedbe6d1f42a6d38a4e4f649a0b7480bafd39a03c1"
+    },
+    {
+      "name": "truth-6.bin",
+      "bytes": 2602940,
+      "sha256": "b425cdf769108f7d693d6bfe0da7d95c94412aa7bb3a790afb9d1495d7a86ced"
+    }
+  ],
+  "interpretation": "No candidate full-block speedup fromgeometry alone:305.46s versusK18305.85s;37.65GB versus39.96GB RSS. Stillno reviewed composed128certificate; no recursion/GPU qualification."
+}

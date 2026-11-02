@@ -58,3 +58,32 @@ The two core files exposing the existing coordinate walk, and the modified
 prover files, are absent from the current RV32 Lean manifest's declared production
 and proof source lists (rebind8ce5fb0a7). No RV32 AIR custody pin is changed by this
 slice. This is engineering evidence, not a whole128 or recursive security theorem.
+
+## Complete stronger-candidate block
+
+The final guarded frozen CLI SHA256
+`c4a5de848bde684c7914e48c9e5cab45f2785f606486de42825f457aff0848c6`
+proved all104,253,913 instructions of block24628607 using the SAME beta2/q256/P0/
+fold4 candidate, K18 geometry, streamed80/deferred ownership and2x8 resources.
+All33 authoritative artifact hashes match the prior candidate; an independent
+process using the OLD frozen receiver accepts the completed block and output.
+
+| Stage / metric | Previous candidate | Packed FRI candidate |
+| --- | ---: | ---: |
+| Complete proving wall |305.846s|286.008s|
+| Complete producer process wall |344.78s|325.62s|
+| Summed quotient/FRI build+commit |100.752s|73.881s|
+| Summed FRI openings |16.556s|2.650s|
+| Summed commit preparation |129.303s|129.956s|
+| Summed composition evaluation |115.259s|116.875s|
+| Peak RSS |39.965GB|39.994GB|
+
+The first full observation is6.49% faster in proving wall; the targeted stages
+fall26.7% and84.0%, respectively. Worker intervals overlap and are not additive
+with wall time. This is one new complete-block observation; an unchanged frozen
+control is being repeated to quantify host/run variation. The profile, challenges,
+query count, proof bytes, statement, geometry and receiver are unchanged.
+
+Receipt: `vectors/reports/rv64-om-fri-packed-20261102/fullblock-packed-candidate-k18-v1/`.
+The stronger parameter profile remains an engineering candidate: this speedup
+does not itself create a composed128-bit certificate or qualify a recursive root.
