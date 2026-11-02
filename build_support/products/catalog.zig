@@ -56,6 +56,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-v3-services", .description = "ethereum_services_v3 SHA-256 + arith256_mod + bulk memory in one bundle: fresh receiver and closure rejections", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-bulk-services", .description = "ethereum_services_v3 bulk-memory bridges: real CPU proofs, fresh wire receiver, closure rejections", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-jumpdest-services", .description = "ethereum_services_v3 JUMPDEST analysis bridges: real CPU proofs, fresh wire receiver, closure rejections", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-bulk-memory", .description = "Admitted aligned memcpy/memset bridge AIR: known-answer and adversarial tests", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-sha256-truth", .description = "SHA-256 compression truth AIR: FIPS vectors, random blocks and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-keccak-sponge", .description = "Keccak-256 sponge bridge AIR: Keccak-256 known answers, alignments and adversarial rows", .scope = .riscv_cpu },

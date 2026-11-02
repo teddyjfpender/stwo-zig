@@ -21,6 +21,8 @@ pub const ARITH256_MOD_TAG: u64 = 0x00030021;
 pub const MEMCPY_TAG: u64 = 0x00030001;
 pub const MEMSET_TAG: u64 = 0x00030002;
 pub const MEMCMP_TAG: u64 = 0x00030003;
+/// EVM JUMPDEST analysis (packet code, len, bitmap; proposals/jumpdest-bitmap.md).
+pub const JUMPDEST_TAG: u64 = 0x00030040;
 /// Admitted Keccak-256 sponge (ethereum_services_v3): packet state, in, len,
 /// flags; see ethereum_services/keccak_sponge.zig.
 pub const KECCAK_SPONGE_TAG: u64 = 0x00030130;
@@ -76,10 +78,11 @@ pub fn isPayloadFreeTag(tag: u64) bool {
     return isBulkTag(tag) or tag == KECCAK_SPONGE_TAG;
 }
 pub fn isBulkTag(tag: u64) bool {
-    return tag == MEMCPY_TAG or tag == MEMSET_TAG or tag == MEMCMP_TAG;
+    return tag == MEMCPY_TAG or tag == MEMSET_TAG or tag == MEMCMP_TAG or tag == JUMPDEST_TAG;
 }
 /// Most RAM words one admitted bulk call touches: three packet reads plus a
 /// read and a write per word of a 1 MiB copy (bulk_memory.MAX_BYTES), plus
 /// the extra source word of an unaligned copy (memcmp: four packet words and
-/// two reads per word, one fewer).
+/// two reads per word, one fewer; jumpdest: three packet words, 2^17 code
+/// words and 2^14 bitmap words).
 pub const BULK_MAX_TOUCHED_WORDS: u64 = 4 + 2 * ((1 << 20) / 8);

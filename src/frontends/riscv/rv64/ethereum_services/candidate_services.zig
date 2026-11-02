@@ -26,6 +26,8 @@ const memory = @import("../memory.zig");
 const profile = @import("../execution_profile.zig");
 /// Curve, field and Keccak-sponge candidates (tags 0x0003_01xx).
 const curves = @import("candidate_curves.zig");
+/// EVM JUMPDEST analysis candidate (tag 0x0003_0040).
+const jumpdest = @import("candidate_jumpdest.zig");
 
 pub const MEMCPY_TAG: u64 = 0x0003_0001;
 pub const MEMSET_TAG: u64 = 0x0003_0002;
@@ -33,10 +35,11 @@ pub const MEMCMP_TAG: u64 = 0x0003_0003;
 pub const SHA256_COMPRESS_TAG: u64 = 0x0003_0010;
 pub const ARITH256_TAG: u64 = 0x0003_0020;
 pub const ARITH256_MOD_TAG: u64 = 0x0003_0021;
+pub const JUMPDEST_BITMAP_TAG: u64 = jumpdest.TAG;
 /// One call may move at most this many bytes (the mapped-memory ceiling).
 pub const MAX_BULK_BYTES: u64 = 256 * 1024 * 1024;
 
-pub const Kind = enum { memcpy, memset, memcmp, sha256_compress, arith256, arith256_mod, bn254_g1_add, bn254_g1_double, bn254_fp2_mul, bls12_381_g1_add, bls12_381_g1_double, bls12_381_fp2_mul, arith384_mod, arith384_mont, keccak_sponge };
+pub const Kind = enum { memcpy, memset, memcmp, sha256_compress, arith256, arith256_mod, bn254_g1_add, bn254_g1_double, bn254_fp2_mul, bls12_381_g1_add, bls12_381_g1_double, bls12_381_fp2_mul, arith384_mod, arith384_mont, keccak_sponge, jumpdest_bitmap };
 pub const Use = struct { calls: u64 = 0, bytes: u64 = 0 };
 /// Serialized as `candidate_service_calls: {name: {calls, bytes}}`.
 pub const Counts = struct {
@@ -55,19 +58,20 @@ pub const Counts = struct {
     arith384_mod: Use = .{},
     arith384_mont: Use = .{},
     keccak_sponge: Use = .{},
+    jumpdest_bitmap: Use = .{},
     fn of(self: *Counts, kind: Kind) *Use {
         return switch (kind) {
             inline else => |k| &@field(self, @tagName(k)),
         };
     }
     /// The six original services are always reported; the curve candidates
-    /// only once called, so reports of guests that do not use them (and cost
-    /// files that do not price them) are unchanged.
+    /// and jumpdest_bitmap only once called, so reports of guests that do not
+    /// use them (and cost files that do not price them) are unchanged.
     pub fn jsonStringify(self: Counts, jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(Counts)) |field| {
             const use = @field(self, field.name);
-            if (comptime !@hasField(curves.Kind, field.name)) {
+            if (comptime !@hasField(curves.Kind, field.name) and !std.mem.eql(u8, field.name, "jumpdest_bitmap")) {
                 try jws.objectField(field.name);
                 try jws.write(use);
             } else if (use.calls != 0) {
@@ -78,7 +82,7 @@ pub const Counts = struct {
         try jws.endObject();
     }
 };
-pub const Error = memory.Error || curves.Error || error{ UnsupportedService, ServiceCounterOverflow, CandidateLengthLimit };
+pub const Error = memory.Error || curves.Error || jumpdest.Error || error{ UnsupportedService, ServiceCounterOverflow, CandidateLengthLimit };
 
 pub fn kindOf(tag: u64) ?Kind {
     return switch (tag) {
@@ -88,6 +92,7 @@ pub fn kindOf(tag: u64) ?Kind {
         SHA256_COMPRESS_TAG => .sha256_compress,
         ARITH256_TAG => .arith256,
         ARITH256_MOD_TAG => .arith256_mod,
+        JUMPDEST_BITMAP_TAG => .jumpdest_bitmap,
         else => if (curves.kindOf(tag)) |k| switch (k) {
             inline else => |c| @field(Kind, @tagName(c)),
         } else null,
@@ -198,6 +203,7 @@ pub fn execute(a: std.mem.Allocator, kind: Kind, pointer: u64, mem: *memory.Memo
             try mem.storeWords(pointer + 128, &out);
             return 0;
         },
+        .jumpdest_bitmap => return jumpdest.execute(a, pointer, mem, try readPacket(3, mem, pointer)),
         inline else => |k| return curves.execute(@field(curves.Kind, @tagName(k)), pointer, mem),
     }
 }
@@ -302,6 +308,7 @@ pub fn sha256Compress(state: *[8]u32, block: *const [64]u8) void {
 
 test {
     _ = curves;
+    _ = jumpdest;
 }
 
 test "candidate counts report curve services only once called" {
@@ -570,4 +577,58 @@ test "candidate arith256_mod reduces a*b+c, and m = 0 gives 0" {
         base = mulAddMod(base, base, 0, p);
     }
     try testing.expectEqual(@as(u256, 1), acc);
+}
+
+test "candidate jumpdest_bitmap writes the canonical bitmap and checks before writing" {
+    var mem = try testMemory();
+    defer mem.deinit();
+    const packet = BASE + 0x3000;
+    const code = BASE + 0x100;
+    const out = BASE + 0x800;
+    // 72 bytes: JUMPDEST, PUSH1 0x5b, JUMPDEST ... PUSH32 at 60 running past len.
+    var bytes: [80]u8 = @splat(0x01);
+    bytes[0] = 0x5b;
+    bytes[1] = 0x60;
+    bytes[2] = 0x5b;
+    bytes[3] = 0x5b;
+    bytes[60] = 0x7f;
+    bytes[65] = 0x5b;
+    bytes[70] = 0x5b; // PUSH32 data
+    bytes[71] = 0x60; // PUSH1 whose data is past len
+    bytes[72] = 0x5b; // past len: ignored
+    for (bytes, 0..) |b, i| try mem.store(code + i, 1, b);
+    try putWords(&mem, out, &.{ 0xffff, 0xffff, 0xabcd });
+    try putWords(&mem, packet, &.{ code, 72, out });
+    var counts = Counts{};
+    var cpu = machine.Cpu.init(0x100, 0);
+    cpu.regs[profile.TAG_REGISTER] = JUMPDEST_BITMAP_TAG;
+    cpu.regs[profile.POINTER_REGISTER] = packet;
+    try testing.expectEqual(Kind.jumpdest_bitmap, try step(testing.allocator, &cpu, &mem, &counts));
+    try testing.expectEqual(@as(u64, 0b1001), try mem.load(out, 8));
+    try testing.expectEqual(@as(u64, 0), try mem.load(out + 8, 8));
+    try testing.expectEqual(@as(u64, 0xabcd), try mem.load(out + 16, 8)); // ceil(72/64) = 2 words only
+    try testing.expectEqual(Use{ .calls = 1, .bytes = 72 }, counts.jumpdest_bitmap);
+    // Rejections leave memory untouched: zero or partial-word length, misaligned
+    // code (64) or bitmap (8), aliasing, write-protected bitmap, too long.
+    const bad = [_]struct { p: [3]u64, e: anyerror }{
+        .{ .p = .{ code, 0, out }, .e = error.CandidateLengthLimit },
+        .{ .p = .{ code, 70, out }, .e = error.CandidateLengthLimit },
+        .{ .p = .{ code + 8, 72, out }, .e = error.MisalignedAddress },
+        .{ .p = .{ code, 72, out + 4 }, .e = error.MisalignedAddress },
+        .{ .p = .{ code, 72, code + 64 }, .e = error.CandidateAliasing },
+        .{ .p = .{ code, 72, packet + 16 }, .e = error.CandidateAliasing },
+        .{ .p = .{ packet - 64, 72, out }, .e = error.CandidateAliasing },
+        .{ .p = .{ code, 72, BASE + SIZE }, .e = error.AccessDenied },
+        .{ .p = .{ code, jumpdest.MAX_CODE_BYTES + 8, out }, .e = error.CandidateLengthLimit },
+    };
+    try mem.store(out, 8, 0x77);
+    for (bad) |c| {
+        try putWords(&mem, packet, &c.p);
+        try testing.expectError(c.e, step(testing.allocator, &cpu, &mem, &counts));
+        try testing.expectEqual(@as(u64, 0x77), try mem.load(out, 8));
+    }
+    try testing.expectEqual(@as(u64, 1), counts.jumpdest_bitmap.calls);
+    const json = try std.json.Stringify.valueAlloc(testing.allocator, counts, .{});
+    defer testing.allocator.free(json);
+    try testing.expect(std.mem.endsWith(u8, json, "\"jumpdest_bitmap\":{\"calls\":1,\"bytes\":72}}"));
 }

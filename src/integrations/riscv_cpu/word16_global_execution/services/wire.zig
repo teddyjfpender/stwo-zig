@@ -90,16 +90,18 @@ pub const WireClaims = struct {
     bulk_ext: ?[3]T.BulkClaims = null,
     /// Keccak-sponge claims (call, perm); present iff the roster has a sponge.
     sponge: ?[2]T.SpongeClaims = null,
+    /// JUMPDEST claims (jdesc, jscan, jtab); present iff the roster has them.
+    jumpdest: ?[3]T.BulkClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
         var curves: [T.CURVES]?T.ExtraClaims = @splat(null);
         for (&curves, T.FIRST_CURVE..) |*out, k| out.* = if (bridges.at(@enumFromInt(k)) != null) c.extras[k] else null;
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..T.BULK_EXT].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .jumpdest = if (bridges.bulk.jump()) c.bulk[T.BULK_EXT..].* else null };
     }
     fn expand(self: @This()) E.CpuClaims {
         var extras: [T.FAMILIES]T.ExtraClaims = undefined;
         extras[0..5].* = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() };
         for (extras[T.FIRST_CURVE..], self.curves) |*out, c| out.* = c orelse T.ExtraClaims.zero();
-        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
+        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()) ++ (self.jumpdest orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curves) |c| if (c != null) return true;
@@ -133,6 +135,10 @@ pub const WireClaims = struct {
         }
         if (self.sponge) |b| {
             try jws.objectField("sponge");
+            try jws.write(b);
+        }
+        if (self.jumpdest) |b| {
+            try jws.objectField("jumpdest");
             try jws.write(b);
         }
         try jws.endObject();
@@ -232,6 +238,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.arith256_mod != null) != (cpu.declaration.bridges.arith256_mod != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk != null) != cpu.declaration.bridges.bulk.any()) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.jumpdest != null) != cpu.declaration.bridges.bulk.jump()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk_ext != null) != cpu.declaration.bridges.bulk.anyExtension()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;

@@ -210,8 +210,8 @@ test "services RAM writer inventory matches the joint write induction cases" {
     try expectNames(Roster.Sources, &.{ "core", "keccak", "add", "double", "sha256", "arith256_mod", "curves", "bulk", "sponge_plan", "sponge" });
     try expectNames(S.types.Kind, &.{ "add", "double", "sha256", "arith256_mod", "bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul", "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double" });
     const BM = A.crypto.bulk_memory;
-    try expectNames(BM.layout.Kind, &.{ "desc", "copy", "set", "ucopy", "cdesc", "cmp" });
-    try std.testing.expectEqual(BM.layout.kinds.len, @typeInfo(@FieldType(Roster.Sources, "bulk")).array.len);
+    try expectNames(BM.layout.Kind, &.{ "desc", "copy", "set", "ucopy", "cdesc", "cmp", "jdesc", "jscan", "jtab" });
+    try std.testing.expectEqual(BM.layout.kinds.len + BM.layout.jumpdest_kinds.len, @typeInfo(@FieldType(Roster.Sources, "bulk")).array.len);
     try expectNames(A.crypto.keccak_sponge.layout.Kind, &.{ "call", "perm" });
     try std.testing.expectEqual(@as(usize, 2), @typeInfo(@FieldType(Roster.Sources, "sponge")).array.len);
 }

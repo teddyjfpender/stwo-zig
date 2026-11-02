@@ -18,7 +18,8 @@ and memcmp of 8-aligned disjoint operands (`--v3-set` selects a subset of sha,
 arith, mem, umem for ablations: `mem` = aligned memcpy/memset, `umem` =
 unaligned-source memcpy and memcmp, default on; the aligned-only client is
 `--v3-set sha,arith,mem`, ELF suffix `-v3-sha-arith-mem`; add `keccak` for the
-admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`).
+admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`; `jumpdest` = the
+JUMPDEST analysis service, patches 0028/0029, default on).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
@@ -321,9 +322,12 @@ def main(argv=None):
     ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
                     help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
                          "(SHA-256, arith256_mod, bulk memory incl. unaligned memcpy and memcmp); candidate = execution-only")
-    ap.add_argument("--v3-set", default="sha,arith,mem,umem,keccak",
-                    help="admitted v3 service groups for --profile v3 (sha, arith, mem, keccak = Keccak-256 sponge, "
+    ap.add_argument("--v3-set", default="sha,arith,mem,umem,keccak,jumpdest",
+                    help="admitted v3 service groups for --profile v3 (sha, arith, mem, jumpdest = JUMPDEST analysis, keccak = Keccak-256 sponge, "
                          "umem = unaligned-source memcpy and memcmp, needs mem)")
+    ap.add_argument("--candidate-jumpdest", action="store_true",
+                    help="EXECUTION-ONLY: route JUMPDEST analysis to the candidate jumpdest_bitmap service "
+                         "(profile ethereum_services_v3_candidate); ELF suffix -cjd")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
                     help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
@@ -365,14 +369,16 @@ def main(argv=None):
 
     v3_groups = a.v3_set.split(",")
     for svc in v3_groups:
-        if svc not in ("sha", "arith", "mem", "keccak", "umem"):
+        if svc not in ("sha", "arith", "mem", "keccak", "umem", "jumpdest"):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")
-    v3_tag = "v3" if sorted(v3_groups) == ["arith", "keccak", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "jumpdest", "keccak", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
     variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
                else "candidate-" + a.candidate_set.replace(",", "-"))
     isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa
+    if a.candidate_jumpdest:
+        isa_suffix = "-cjd" + isa_suffix
     variant += isa_suffix
     mcpu = "-mcpu=generic_rv64+m" + ISA_FEATURES[a.isa]
     guest_target = [mcpu if f.startswith("-mcpu=") else f for f in GUEST_TARGET]
@@ -386,6 +392,8 @@ def main(argv=None):
         defines.append("-DADMITTED_V3")
         for svc in v3_groups:
             defines.append(f"-DADMITTED_{svc.upper()}")
+    if a.candidate_jumpdest:
+        defines.append("-DCANDIDATE_JUMPDEST")
     if a.eest:
         variant += "-eest"
         defines += ["-DZEG_FORK_FROM_INPUT", "-DSTWO_EEST_FORK_FROM_SCHEMA"]
