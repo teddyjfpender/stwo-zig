@@ -18,12 +18,15 @@ pub fn fill(a: std.mem.Allocator, log: u32, kernel: Kernel, counts16: []u64, cou
 fn fillImpl(a: std.mem.Allocator, log: u32, kernel: Kernel, counts16: []u64, counts8: []u64, pool: ?*work.WorkPool, fail_after: ?usize) !void {
     if (log < 5 or log > @import("layout.zig").MAX_LOG or counts16.len != U16 or counts8.len != U8) return error.InvalidNativeProjectionShape;
     const n: usize = @as(usize, 1) << @intCast(log);
+    // Log 23 is the full64 wide-clock CPU: its three gap8 queries are scaled
+    // U16 queries (word16_execution.layout.wideClock), so U16 6n and U8 0.
+    const masses: [2]usize = if (log > 22) .{ 6 * n, 0 } else .{ 3 * n, 3 * n };
     if (comptime @import("builtin").is_test) {
         if (fail_after) |after| {
-            return Shared.testing.failSubmission(Adapter, a, kernel, n, .{ counts16, counts8 }, .{ 3 * n, 3 * n }, pool.?, after) catch |err| return mapError(err);
+            return Shared.testing.failSubmission(Adapter, a, kernel, n, .{ counts16, counts8 }, masses, pool.?, after) catch |err| return mapError(err);
         }
     }
-    return Shared.fill(Adapter, a, kernel, n, .{ counts16, counts8 }, .{ 3 * n, 3 * n }, pool) catch |err| return mapError(err);
+    return Shared.fill(Adapter, a, kernel, n, .{ counts16, counts8 }, masses, pool) catch |err| return mapError(err);
 }
 const Adapter = struct {
     pub const Context = Kernel;
