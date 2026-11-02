@@ -1,12 +1,16 @@
 {
-  "status": "Safe/Fast focused qualification and matched-pool micro complete; awaiting actual CPU0 pair",
+  "status": "Qualified exact arithmetic/proof slice; whole-proof performance benefit not established",
   "scope": "four consecutive same-view full-chunk members use existing canonical M31 dot4; original fallback handles partial, mixed views and leftovers",
   "ReleaseSafe_focused_tests": 3,
   "covers": "Q/OM coordinate counts; variable lengths and tails; partial sources/mixed views/untouched views; exact scalar oracle; pooled disjoint chunks; every allocation failure",
-  "pending": [
-    "actual CPU0 exact artifacts and fresh verification"
-  ],
+  "pending": [],
   "reason_paused": "parent reprioritized packed LogUp wiring audit",
-  "performance_claim": "Kernel-only same-view groups about1.4\u20131.5x; no whole-proof gain established",
-  "ReleaseFast_focused_tests": 3
+  "performance_claim": "Synthetic full-group kernel1.4\u20131.5x; real CPU0 quotient1.251686\u21921.233252s, prove8.489411\u21928.536042s. No holistic speedup established.",
+  "ReleaseFast_focused_tests": 3,
+  "actual_CPU0": "One clean matched same-source pair; all8 authoritative artifacts identical, both fresh accepted",
+  "limitations": [
+    "Shared host single pair; not a statistical causal estimate",
+    "Production branch coverage not instrumented",
+    "A preliminary pair overlapped our own push-hook checks and is excluded from timing conclusions"
+  ]
 }
