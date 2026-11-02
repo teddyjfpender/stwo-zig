@@ -38,10 +38,12 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     var store = try C.Store.initFullyParked(path, 128 << 20);
     defer store.deinit();
     var timings: [5]C.WorkerTiming = undefined;
+    var observed_policy: @import("child.zig").TreePolicy = undefined;
     var first_trace: [5]@import("../schedule.zig").Trace = undefined;
     var second_trace: [5]@import("../schedule.zig").Trace = undefined;
-    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
+    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .observed_tree_policy = &observed_policy, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
     defer parked.deinit();
+    try std.testing.expectEqualDeep(try @import("child.zig").readTreePolicy(a), observed_policy);
     for (timings, 0..) |t, i| {
         try std.testing.expect(t.stage1_completed and t.stage2_completed);
         try std.testing.expect(t.stage1_ns >= t.source_ns + t.seal_native_and_gkr_ns + t.metadata_retire_ns + t.spill_ns);
@@ -49,6 +51,10 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
         try std.testing.expect(t.actual_main_merkle_bytes > 0);
         if (i < 2) {
             try std.testing.expect(t.gkr_ns > 0);
+            try std.testing.expect(t.numerical_requested_peak_bytes > 0);
+            try std.testing.expect(t.including_binding_requested_peak_bytes >= t.numerical_requested_peak_bytes);
+            try std.testing.expect(t.including_binding_requested_peak_bytes <= t.admitted_gkr_peak_bytes);
+            try std.testing.expect(t.admitted_gkr_peak_bytes <= t.gkr_allocator_limit_bytes);
             try std.testing.expect(t.seal_native_and_gkr_ns >= t.main_commit_ns + t.gkr_ns);
         } else try std.testing.expectEqual(@as(u64, 0), t.gkr_ns);
     }

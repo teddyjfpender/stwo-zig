@@ -102,7 +102,13 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
     var timing = Worker.SealTiming{};
     if (mode == .normal) worker.seal_timing = &timing;
     const stage = try worker.seal(a);
-    if (mode == .normal) try std.testing.expect(timing.main_commit_ns > 0 and timing.gkr_ns > 0);
+    if (mode == .normal) {
+        try std.testing.expect(timing.main_commit_ns > 0 and timing.gkr_ns > 0);
+        try std.testing.expect(timing.numerical_requested_peak_bytes > 0);
+        try std.testing.expect(timing.including_binding_requested_peak_bytes >= timing.numerical_requested_peak_bytes);
+        try std.testing.expect(timing.including_binding_requested_peak_bytes <= timing.admitted_gkr_peak_bytes);
+        try std.testing.expect(timing.admitted_gkr_peak_bytes <= timing.gkr_allocator_limit_bytes);
+    }
     try std.testing.expectError(error.WideCpuPhase, worker.seal(a));
     if (mode != .unretired) {
         try worker.retireLocalMetadata();
