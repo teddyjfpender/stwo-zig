@@ -87,7 +87,7 @@ pub fn validate(metadata: Metadata, limits: Limits) !void {
         try Scope.bridges(cpu.declaration.bridges);
         try Scope.calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge);
     }
-    for (metadata.truths) |truth| try Scope.family(truth.declaration.family);
+    for (metadata.truths) |truth| try Scope.truthDeclaration(truth.declaration);
     try Legacy.validateDeclarations(metadata.cpus, metadata.truths, metadata.memory_words, limits);
     var total: u64 = metadata.stage_one.bytes;
     if (total == 0 or total > StageWire.MAX_BYTES) return error.WideBundleStageLimit;

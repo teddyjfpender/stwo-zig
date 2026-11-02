@@ -245,7 +245,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         try global.add(try Mass.cpu(request));
     }
     for (truth, truths) |declaration, *scope| {
-        try Scope.family(declaration.family);
+        try Scope.truthDeclaration(declaration);
         if (declaration.calls == 0) return error.InvalidCombinedTruthSpan;
         const descriptors = try Truth.shapesForDeclaration(declaration);
         var columns: usize = 0;

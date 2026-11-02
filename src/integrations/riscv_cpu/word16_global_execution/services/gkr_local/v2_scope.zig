@@ -4,7 +4,7 @@
 //! exactly those three families. Every v3 extension of the classic services
 //! route (SHA-256, arith256_mod, curve/field families, bulk memory incl. the
 //! unaligned ucopy/cdesc/cmp kinds, Keccak
-//! sponge) is rejected here, at each admission boundary, instead of being
+//! sponge, and the throughput_v1 Keccak-f truth profile) is rejected here, at each admission boundary, instead of being
 //! silently dropped or mis-typed as a secp bridge. Lifting this requires
 //! porting each v3 family into the GKR roles and global authorities.
 const T = @import("../types.zig");
@@ -36,9 +36,18 @@ pub fn advice(a: *const @import("../collector.zig").Advice) !void {
 }
 pub fn truth(t: R.Truth) !void {
     return switch (t) {
-        .keccak, .secp => {},
+        // Only the compact triple_v2 Keccak-f lookup profile has GKR roles,
+        // masses and statements; the throughput profile is v3-only.
+        .keccak => |k| if (k.setup.policy != .triple_v2) error.GkrV3ServiceUnsupported,
+        .secp => {},
         else => error.GkrV3ServiceUnsupported,
     };
+}
+/// Wire truth declaration: v2 family, and for Keccak the compact profile
+/// word (logs[1] == 0); logs[1] == 21 names the throughput truth.
+pub fn truthDeclaration(d: @import("../wire.zig").TruthDeclaration) !void {
+    try family(d.family);
+    if (d.family == .keccak and d.logs[1] != 0) return error.GkrV3ServiceUnsupported;
 }
 /// Widen a v2 first-ID vector for shared v3-aware source construction. The
 /// v3 entries are unused because admitted setups have no v3 bridges.

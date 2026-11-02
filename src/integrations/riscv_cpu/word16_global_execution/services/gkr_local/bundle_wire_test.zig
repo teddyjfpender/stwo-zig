@@ -118,4 +118,21 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     const truths = [_]Truth{.{ .declaration = .{ .family = .sha256, .first_id = 1, .calls = 1, .logs = .{ 5, 0 } }, .claims = &truth_claims, .proof = .{ .bytes = 1, .sha256 = @splat(0) } }};
     metadata.truths = &truths;
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+
+    // Throughput Keccak-f truth (wire logs[1] == 21) is v3-only: the GKR
+    // roles, masses and statements describe the compact 2^13/2^10 tables.
+    try Scope.truthDeclaration(.{ .family = .keccak, .first_id = 1, .calls = 1, .logs = .{ 5, 0 } });
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.truthDeclaration(.{ .family = .keccak, .first_id = 1, .calls = 1, .logs = .{ 5, 21 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.truthDeclaration(.{ .family = .keccak, .first_id = 1, .calls = 1, .logs = .{ 5, 13 } }));
+    const KR = @import("../../keccak/shared/roster.zig");
+    var compact: KR.TruthSetup = undefined;
+    compact.log = 5;
+    compact.policy = .triple_v2;
+    try Scope.truth(.{ .keccak = .{ .setup = &compact, .first_id = 1, .calls = 1 } });
+    var throughput = compact;
+    throughput.policy = .throughput_v1;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.truth(.{ .keccak = .{ .setup = &throughput, .first_id = 1, .calls = 1 } }));
+    const keccak_truths = [_]Truth{.{ .declaration = .{ .family = .keccak, .first_id = 1, .calls = 1, .logs = .{ 5, 21 } }, .claims = &truth_claims, .proof = .{ .bytes = 1, .sha256 = @splat(0) } }};
+    metadata.truths = &keccak_truths;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
 }

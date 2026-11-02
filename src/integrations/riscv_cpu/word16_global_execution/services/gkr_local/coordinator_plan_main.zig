@@ -120,11 +120,12 @@ pub fn main() !void {
         fixed_source[data.cpus.len + i] = try FixedSource.truth(a, entry.declaration);
         fixed_done += 1;
         const t = entry.declaration;
-        try Scope.family(t.family);
+        try Scope.truthDeclaration(t);
         var k: KR.TruthSetup = undefined;
         var s: SR.TruthSetup = undefined;
         const truth: R.Truth = if (t.family == .keccak) blk: {
             k.log = t.logs[0];
+            k.policy = .triple_v2; // admitted by Scope.truthDeclaration above
             break :blk .{ .keccak = .{ .setup = &k, .first_id = t.first_id, .calls = t.calls } };
         } else blk: {
             s.kind = if (t.family == .add) .add else .double;
