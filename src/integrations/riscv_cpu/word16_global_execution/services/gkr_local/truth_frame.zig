@@ -30,9 +30,21 @@ pub const Instance = struct {
         return @as(usize, 1) << @intCast(try self.variables());
     }
 };
+/// Table traces preserve the selected full source policy; permutation geometry
+/// is independently checked, so policy is never inferred from table heights.
+pub fn keccakPolicy(source: *const R.TruthSource) !A.crypto.keccak.equations.BatchPolicy {
+    if (source.* != .keccak) return error.TruthGkrSourceGeometryMismatch;
+    const s = &source.keccak;
+    const policy = s.chi.policy;
+    if (policy == .quartet_v3 or s.xor5.policy != policy or s.permutation.geometry != policy.geometry()) return error.TruthGkrSourceGeometryMismatch;
+    return policy;
+}
 pub fn forSource(source: *const R.TruthSource) ![3]Instance {
     return switch (source.*) {
-        .keccak => |s| .{ .{ .role = .keccak, .row_log = s.permutation.log_size, .queries = @intCast(s.permutation.policy.lookups()), .keccak_policy = s.permutation.policy }, .{ .role = .chi, .row_log = s.chi.log_size, .queries = 1, .keccak_policy = s.permutation.policy }, .{ .role = .xor5, .row_log = s.xor5.log_size, .queries = 1, .keccak_policy = s.permutation.policy } },
+        .keccak => |s| blk: {
+            const policy = try keccakPolicy(source);
+            break :blk .{ .{ .role = .keccak, .row_log = s.permutation.log_size, .queries = @intCast(policy.lookups()), .keccak_policy = policy }, .{ .role = .chi, .row_log = s.chi.log_size, .queries = 1, .keccak_policy = policy }, .{ .role = .xor5, .row_log = s.xor5.log_size, .queries = 1, .keccak_policy = policy } };
+        },
         .secp => |s| .{ .{ .role = .product, .row_log = s.batch.product.log_size, .queries = @intCast(A.crypto.secp256k1.layout.byteCountFor(.product, s.batch.product.byte_policy)), .byte_policy = s.batch.product.byte_policy }, .{ .role = .linear, .row_log = s.batch.linear.log_size, .queries = @intCast(A.crypto.secp256k1.layout.byteCountFor(.linear, s.batch.linear.byte_policy)), .byte_policy = s.batch.linear.byte_policy }, .{ .role = .bytes, .row_log = 8, .queries = 1 } },
         else => return error.GkrV3ServiceUnsupported,
     };

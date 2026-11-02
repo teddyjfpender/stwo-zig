@@ -59,7 +59,7 @@ pub fn inverseCountFor(instance: Frame.Instance) usize {
     return if (instance.role == .keccak) instance.keccak_policy.ioLookups() else inverseCount(instance.role);
 }
 pub fn generate(allocator: @import("std").mem.Allocator, metadata: *const Metadata.Provider, role: Frame.Role, challenges: *const Challenges, budget: usize) !Witness {
-    const count = if (role == .keccak and metadata.source.* == .keccak) metadata.source.keccak.permutation.policy.ioLookups() else inverseCount(role);
+    const count = if (role == .keccak and metadata.source.* == .keccak) (try Frame.keccakPolicy(metadata.source)).ioLookups() else inverseCount(role);
     if (count == 0) return error.InvalidTruthGlobalRole;
     const log = switch (metadata.source.*) {
         .keccak => |s| if (role == .keccak) s.permutation.log_size else return error.InvalidTruthGlobalRole,
