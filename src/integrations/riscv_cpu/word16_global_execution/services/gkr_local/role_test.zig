@@ -101,7 +101,7 @@ fn produce(fault: Fault) !Bundle {
         var corrupted = try projected.finalizeProjection(a, &.{instance}, &gkr.artifact, eta);
         var owns_corrupted = true;
         defer if (owns_corrupted) corrupted.deinit();
-        try std.testing.expect(!std.mem.eql(M, witness.columns[0], corrupted.columns[0]));
+        try std.testing.expect(!std.mem.eql(u8, std.mem.sliceAsBytes(witness.columns[0]), std.mem.sliceAsBytes(corrupted.columns[0])));
         const last = A.witness.physical(rows - 1, 5);
         for (0..8) |c| try std.testing.expectEqual(witness.columns[0][(8 + c) * rows + last], corrupted.columns[0][(8 + c) * rows + last]);
         witness.deinit();
@@ -118,7 +118,16 @@ fn produce(fault: Fault) !Bundle {
     try scheme.commit(a, &inter, &ch);
     const component = Role.Component{ .main = .{ .log_size = 5, .public = .{ .alu = {} }, .offsets = .{ 0, 0 } }, .data = data, .inter_offset = 0, .epoch = 1 };
     owns = false;
-    const proof = try Prover.prove(a, &.{component.asProverComponent()}, &ch, scheme, .{});
+    const proof = if (fault == .projected_balanced) blk: {
+        // Retain the deliberately invalid physical proof at the producer's
+        // final OODS check so a separate fresh receiver must reject it too.
+        var diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null;
+        var failed: ?Prover.ExtendedProof = null;
+        break :blk Prover.proveDiagnosedRetainingFailure(a, &.{component.asProverComponent()}, &ch, scheme, .{}, &diagnostic, &failed) catch |err| switch (err) {
+            error.ConstraintsNotSatisfied => failed orelse return error.MissingInvalidPhysicalProof,
+            else => return err,
+        };
+    } else try Prover.prove(a, &.{component.asProverComponent()}, &ch, scheme, .{});
     return .{ .stark = proof, .gkr = gkr };
 }
 fn verify(bundle: *Bundle) !void {
@@ -151,13 +160,16 @@ test "original ALU and actual13 local GKR fractions prove through single MAIN sp
 test "physical GKR binding rejects changed arithmetic-valid MAIN target Eq prefix and balanced projected cache" {
     for ([_]Fault{ .target, .main, .eq, .prefix, .projected_balanced }) |fault| {
         var bundle = produce(fault) catch |err| switch (err) {
-            error.ConstraintsNotSatisfied, error.InvalidLastLayerDegree => continue,
+            error.ConstraintsNotSatisfied, error.InvalidLastLayerDegree => if (fault == .projected_balanced) return error.MissingBalancedPhysicalReceiverGate else continue,
             else => return err,
         };
         defer bundle.gkr.deinit(a);
         defer bundle.stark.aux.deinit(a);
         verify(&bundle) catch |err| switch (err) {
-            error.OodsNotMatching, error.LastLayerDegreeInvalid => continue,
+            error.OodsNotMatching, error.LastLayerDegreeInvalid => {
+                if (fault == .projected_balanced) std.debug.print("BALANCED_PROJECTED_CACHE fresh_physical_receiver_rejected={s} cyclic_sum_preserved=true same_main_and_child=true\n", .{@errorName(err)});
+                continue;
+            },
             else => return err,
         };
         return error.InvalidBindingAccepted;
