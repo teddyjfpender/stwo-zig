@@ -52,7 +52,7 @@ pub const Components = struct {
         for (materials.shapes()) |shape| {
             if (!shape.present()) continue;
             switch (shape.role) {
-                .cpu => result.cpu = .{ .log_size = shape.log, .offsets = shape.offsets, .public = try X.types.inputs(request.cpu, request.epoch, shape.log), .challenges = ch.cpu, .claim = claims.cpu, .fused = materials.geometry.cpu_fused_tail },
+                .cpu => result.cpu = .{ .log_size = shape.log, .offsets = shape.offsets, .public = try X.types.inputs(request.cpu, request.epoch, shape.log), .challenges = ch.cpu, .claim = claims.cpu, .fused = materials.geometry.cpu_fused_tail, .pairs = if (materials.geometry.cpu_u8_pairs) ch.and_ else null },
                 .rom => result.rom = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = ch.cpu.rom, .claim = claims.rom },
                 .boundary, .range16, .range8 => {
                     const component = W.component.Component{ .kind = switch (shape.role) {
@@ -76,7 +76,7 @@ pub const Components = struct {
                 .alu => result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu },
                 .alu_tail => result.alu_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu_tail },
                 .binary, .binary_tail, .and_table => {
-                    const component = B.binary_component.Component{ .kind = if (shape.role != .and_table) .binary else .and_table, .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .and_ = ch.and_ }, .claims = if (shape.role == .binary_tail) claims.binary_tail else if (shape.role == .binary) claims.binary else .{ .and_ = claims.and_table, .function = Q.zero() } };
+                    const component = B.binary_component.Component{ .kind = if (shape.role != .and_table) .binary else if (materials.geometry.cpu_u8_pairs) .and_pair_table else .and_table, .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .and_ = ch.and_ }, .claims = if (shape.role == .binary_tail) claims.binary_tail else if (shape.role == .binary) claims.binary else .{ .and_ = claims.and_table, .function = Q.zero() } };
                     if (shape.role == .binary_tail) result.binary_tail = component else if (shape.role == .binary) result.binary = component else result.and_table = component;
                 },
                 .shift => result.shift = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift },

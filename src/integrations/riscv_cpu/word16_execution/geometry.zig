@@ -32,13 +32,18 @@ pub const Geometry = struct {
     /// statement). False preserves the historical CPU AIR, transcript and
     /// bundle JSON byte-for-byte (the field is omitted from JSON when false).
     cpu_fused_tail: bool = false,
-    /// Omits `cpu_fused_tail` when false so legacy bundle.json bytes are unchanged.
+    /// Opt-in byte-pair CPU lookups (requires cpu_fused_tail): the three gap8
+    /// U8 queries become two pair queries (gap8_0, gap8_1) and (gap8_2, 0) of
+    /// the tagged tuple (x, y, 0, 1) in the AND relation, served by a second
+    /// multiplicity column of the AND table. CPU interaction 36 -> 32 columns.
+    cpu_u8_pairs: bool = false,
+    /// Omits the opt-in layout flags when false so legacy bundle.json bytes are unchanged.
     pub fn jsonStringify(self: Geometry, jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(Geometry)) |field| {
             const value = @field(self, field.name);
-            const omitted = if (comptime std.mem.eql(u8, field.name, "cpu_fused_tail"))
-                !self.cpu_fused_tail
+            const omitted = if (comptime std.mem.eql(u8, field.name, "cpu_fused_tail") or std.mem.eql(u8, field.name, "cpu_u8_pairs"))
+                !value
             else if (comptime @typeInfo(field.type) == .optional)
                 value == null and !jws.options.emit_null_optional_fields
             else
@@ -58,6 +63,8 @@ pub const Geometry = struct {
     }
     pub fn validate(self: Geometry) !void {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
+        // The pair encoding is defined only on top of the fused tail.
+        if (self.cpu_u8_pairs and !self.cpu_fused_tail) return error.InvalidCpuPairGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
@@ -67,7 +74,8 @@ pub const Geometry = struct {
         _ = try B.function_bus.admitPositiveMass(&.{3 * rows(self.cpu_log) + 32});
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{rows(self.cpu_log) + 2 * rows(self.jalr_log) + (if (self.omit_empty_division) @as(u64, 0) else 2 * rows(self.division_log))});
-        _ = try B.function_bus.admitPositiveMass(&.{8 * familyRows(self.binary_log, self.binary_tail_log)});
+        // AND relation: BINARY AND queries plus, in pair mode, two tagged CPU pair queries per row.
+        _ = try B.function_bus.admitPositiveMass(&.{8 * familyRows(self.binary_log, self.binary_tail_log) + (if (self.cpu_u8_pairs) 2 * rows(self.cpu_log) else @as(u64, 0))});
         _ = try B.function_bus.admitPositiveMass(&.{B.shift_word_packed_experiment.equations.TABLE_QUERIES * familyRows(self.shift_log, self.shift_tail_log)});
     }
     pub const LsCounts = struct { head: u32, tail: u32 };
@@ -97,7 +105,9 @@ pub const Geometry = struct {
         return total;
     }
     pub fn range8Mass(self: Geometry) !u64 {
-        var total = try std.math.add(u64, 3 * rows(self.cpu_log), A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
+        // Pair mode moves the CPU's three gap8 queries to the AND relation.
+        const cpu: u64 = if (self.cpu_u8_pairs) 0 else 3 * rows(self.cpu_log);
+        var total = try std.math.add(u64, cpu, A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
         total = try std.math.add(u64, total, LS.U8_QUERIES * self.lsRows());
         return total;
     }
@@ -128,7 +138,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
     var offsets: [3]usize = @splat(0);
     for (std.enums.values(Role), &result) |role, *shape| {
         const widths: [3]usize = switch (role) {
-            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.interCount(geometry.cpu_fused_tail) },
+            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.interCountFor(geometry.cpu_fused_tail, geometry.cpu_u8_pairs) },
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .alu => .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION },
@@ -141,7 +151,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.word16_product.layout.FIXED, A.division.word16_product.layout.MAIN, A.division.word16_product.layout.INTERACTION },
             .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.degree3_layout.INTERACTION },
             .shift_table => .{ 18, 16, 36 },
-            .and_table => .{ 5, 1, 8 },
+            .and_table => .{ 5, if (geometry.cpu_u8_pairs) 2 else 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
             .ls => LS.widths(.ls),
             .ls_tail => if (geometry.ls_tail_log != null) LS.widths(.ls) else .{ 0, 0, 0 },

@@ -59,8 +59,24 @@ pub const fused = struct {
     pub const sum = 32;
     pub const COUNT = 36;
 };
+/// Opt-in byte-pair encoding (Geometry.cpu_u8_pairs, on top of the fused
+/// tail). Every committed slot is a FRACTION witness of degree one: REG x3,
+/// FUNCTION, ROM, OWNER+U16, U16+U16. The two U8 pair lookups have no column:
+/// they are enforced through the running-sum residual.
+pub const pairs = struct {
+    pub const registers = 0;
+    pub const function = 12;
+    pub const rom = 16;
+    pub const affine = 20; // OWNER+U16, U16+U16; both byte pairs are fused.
+    pub const WITNESSES = 7;
+    pub const sum = 28;
+    pub const COUNT = 32;
+};
 pub fn interCount(is_fused: bool) usize {
     return if (is_fused) fused.COUNT else inter.COUNT;
+}
+pub fn interCountFor(is_fused: bool, is_pairs: bool) usize {
+    return if (is_pairs) pairs.COUNT else interCount(is_fused);
 }
 pub const MIN_LOG = 5;
 pub const MAX_LOG = 22;
@@ -73,4 +89,7 @@ pub fn previousInter(c: usize) bool {
 }
 pub fn previousInterFor(is_fused: bool, c: usize) bool {
     return if (is_fused) c >= fused.sum and c < fused.COUNT else previousInter(c);
+}
+pub fn previousInterMode(is_fused: bool, is_pairs: bool, c: usize) bool {
+    return if (is_pairs) c >= pairs.sum and c < pairs.COUNT else previousInterFor(is_fused, c);
 }

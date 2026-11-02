@@ -99,6 +99,47 @@ recursion lane wraps a Word16 CPU proof yet; the shape diagnostic
 follows the geometry. Any future CPU recursion leaf must implement
 `emitFusedFor` or refuse `cpu_fused_tail`.
 
+## Opt-in byte-pair lookups (32 columns, 50 residuals)
+
+`Geometry.cpu_u8_pairs` (requires `cpu_fused_tail`, default false) selects
+`emitPairsFor`. The three gap8 U8 range queries become two byte-pair queries
+`(gap8_0, gap8_1)` and `(gap8_2, 0)`. They use no new relation and no new
+challenge: a pair is the tagged tuple `(x, y, 0, 1)` of the AND relation,
+whose tuples are `(x, y, x&y, 0)`. The AND table (log 16, fixed `x = row>>8`,
+`y = row&255`) gains one multiplicity column for the pair tuples
+(`binary_component` kind `and_pair_table`), so the AND claim covers both
+families. False keeps the fused or legacy AND table and CPU bytes; true also
+mixes `features.pairIdentity()` and the shape widths (CPU 32, AND MAIN 2).
+
+CPU witnesses (all degree one, so the fused residual stays degree 3):
+- REG x3 and OWNER+U16: the fused fraction forms, unchanged.
+- FUNCTION `G*d_fn = function` and ROM `H*d_rom = active` (d quadratic).
+- U16+U16 `K*d2*d3 = d2 + d3`.
+- Both byte pairs are fused: `(S - S_prev + claim*first - C7)*p0*p1 - (p0 + p1) = 0`,
+  with `C7` the sum of the seven witnesses. If `p0*p1 != 0` this forces
+  `S - S_prev = C7 + 1/p0 + 1/p1 - claim*first`. A one-sided pole is
+  unsatisfiable (`-p1 = 0`); a double pole frees the step.
+
+AND pair table: `I*d*p = 1` (strict) and the prefix
+`S - S_prev*(1-first) + (m*p + m_pair*d)*I = 0`; `last*(S - claim) = 0`.
+The legacy separate first-row residual `first*(S + term)` is omitted: at
+`first = 1` the transition residual already reads `S + term = 0`, and keeping it
+would be degree 4.
+
+Soundness. Range: a pair query balances only against a table tuple, whose
+coordinates are canonical bytes, so `gap8_k < 256` exactly as with three U8
+queries; `(gap8_2, 0)` forces `gap8_2 < 256`. Tag separation: the fourth
+coordinate makes pair and AND tuples distinct linear forms, so a BINARY AND
+query cannot be served by a pair row or vice versa (Schwartz-Zippel over the
+AND challenges, drawn after MAIN). Mass: AND plus pair multiplicities are
+admitted together below M31 (`Geometry.validate`, `Request.initWithPairs`).
+Poles: the non-strict slots add the FUNCTION, ROM, U16 pair and byte-pair
+denominators to the fused set: 6 REG + 2 OWNER/U16 + 1 FUNCTION + 1 ROM +
+2 U16 + 2 byte-pair = 14 per row, so at most `14*2^22/|QM31| < 2^-98` per
+proof. Padding rows query `(0, 0)` twice, so their two pair denominators
+coincide; that is still one pole event. The 24-bit gap identity
+`gap = gap16 + 2^16*gap8` is unchanged, and range8 keeps serving MUL and LS.
+
 ## Affine zero-register flags
 
 The three zero-register flags are `1-enabled`, not independent committed

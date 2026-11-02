@@ -244,7 +244,7 @@ pub const Case = struct {
     }
     /// Producer layout options; every one is a Geometry field, so it is
     /// declared in the wire and mixed into each CPU transcript.
-    pub const Options = struct { cpu_fused_tail: bool = false };
+    pub const Options = struct { cpu_fused_tail: bool = false, cpu_u8_pairs: bool = false };
     pub fn init(a: std.mem.Allocator, mutation: Mutation) !Case {
         return initWith(a, mutation, .{});
     }
@@ -294,6 +294,7 @@ pub const Case = struct {
             geometry.initial_log = BOUNDARY_LOG;
             geometry.terminal_log = BOUNDARY_LOG;
             geometry.cpu_fused_tail = options.cpu_fused_tail;
+            geometry.cpu_u8_pairs = options.cpu_u8_pairs;
             s.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, bridges);
             out.* = s;
             made += 1;

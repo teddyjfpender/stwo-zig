@@ -26,6 +26,9 @@ pub fn ComponentFor(comptime C: type) type {
         /// Opt-in fused-tail interaction (36 columns, 51 residuals). Default
         /// false keeps the historical 40-column transcript byte-identical.
         fused: bool = false,
+        /// Opt-in byte-pair lookups (requires `fused`): the AND relation's
+        /// challenges. Null keeps the fused (or legacy) encoding.
+        pairs: ?Eq.PairChallengesFor(C) = null,
         const Self = @This();
         const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn asProverComponent(self: *const Self) cp.ComponentProver {
@@ -44,7 +47,7 @@ pub fn ComponentFor(comptime C: type) type {
             return Adapter.asVerifierComponent(self);
         }
         pub fn nConstraints(self: *const Self) usize {
-            return Eq.constraintCount(self.fused);
+            return Eq.constraintCountFor(self.fused, self.pairs != null);
         }
         pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
             return self.log_size + 1;
@@ -57,10 +60,10 @@ pub fn ComponentFor(comptime C: type) type {
             return 3;
         }
         pub fn widths(self: *const Self) [3]usize {
-            return .{ 3, L.main.COUNT, L.interCount(self.fused) };
+            return .{ 3, L.main.COUNT, L.interCountFor(self.fused, self.pairs != null) };
         }
         pub fn needsPrevious(self: *const Self, tree: usize, column: usize) bool {
-            return if (tree == 1) L.previousMain(column) else tree == 2 and L.previousInterFor(self.fused, column);
+            return if (tree == 1) L.previousMain(column) else tree == 2 and L.previousInterMode(self.fused, self.pairs != null, column);
         }
         pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
             if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG) return error.InvalidExecutionGeometry;
@@ -96,7 +99,9 @@ pub fn ComponentFor(comptime C: type) type {
             return core.air.components.MaskPoints.initOwned(try a.dupe([][]core.circle.CirclePointQM31, &masks));
         }
         pub fn emitFor(self: *const Self, comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, sink: *E.SinkFor(F)) void {
-            if (self.fused) {
+            if (self.pairs) |pair_ch| {
+                Eq.emitPairsFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, pair_ch, sink);
+            } else if (self.fused) {
                 Eq.emitFusedFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, sink);
             } else Eq.emitFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, sink);
         }
@@ -118,9 +123,9 @@ pub fn ComponentFor(comptime C: type) type {
                 v.* = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 0, if (prior) 2 else 1);
                 if (prior) pm[c] = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 1, 2);
             }
-            const inter_count = L.interCount(self.fused);
+            const inter_count = L.interCountFor(self.fused, self.pairs != null);
             for (inter[0..inter_count], 0..) |*v, c| {
-                const prior = L.previousInterFor(self.fused, c);
+                const prior = L.previousInterMode(self.fused, self.pairs != null, c);
                 v.* = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 0, if (prior) 2 else 1);
                 if (prior) pi[c] = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 1, 2);
             }

@@ -62,8 +62,9 @@ pub fn main() !void {
 /// ethereum_services_v3 fixtures: `produce-v3|verify-v3 sha256|all DIR [workers]`.
 /// `sha256` is the SHA-only two-shard fixture (services/sha256_fixture.zig);
 /// `all` uses SHA-256, arith256_mod and bulk memory together (v3_fixture.zig).
-/// `all-fused` is `all` with the fused-tail CPU interaction (the layout the
-/// ethereum_services_v3 route defaults to); `all` keeps the historical bytes.
+/// `all-fused` is `all` with the fused-tail CPU interaction and `all-pairs`
+/// adds the byte-pair lookups (the layout the ethereum_services_v3 route
+/// defaults to); `all` keeps the historical bytes.
 /// verify-v3 rebuilds every key from receiver-chosen declarations.
 fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
     const usage = error.ExpectedProduceV3OrVerifyV3VariantDirectoryWorkers;
@@ -76,7 +77,8 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const produce = std.mem.eql(u8, args[1], "produce-v3");
-    const fused = std.mem.eql(u8, args[2], "all-fused");
+    const pairs = std.mem.eql(u8, args[2], "all-pairs");
+    const fused = pairs or std.mem.eql(u8, args[2], "all-fused");
     const all = fused or std.mem.eql(u8, args[2], "all");
     if (!all and !std.mem.eql(u8, args[2], "sha256")) return usage;
     const SF = @import("sha256_fixture.zig");
@@ -88,7 +90,7 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
         var dir = try std.fs.cwd().openDir(args[3], .{});
         defer dir.close();
         if (all) {
-            var c = try VF.Case.initWith(a, .none, .{ .cpu_fused_tail = fused });
+            var c = try VF.Case.initWith(a, .none, .{ .cpu_fused_tail = fused, .cpu_u8_pairs = pairs });
             defer c.deinit();
             const keys = c.keys();
             const truths = c.truths();
@@ -118,7 +120,7 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
         if (loaded.cpu_declarations.len != 2 or loaded.truth_declarations.len != 2) return error.InvalidFixtureRoster;
         for (VF.BRIDGES, loaded.cpu_declarations) |x, y| if (!std.meta.eql(x, y.bridges)) return error.InvalidFixtureGeometry;
         // The receiver chooses the CPU layout from the variant, never the wire.
-        for (loaded.cpu_declarations) |d| if (d.geometry.cpu_fused_tail != fused) return error.InvalidFixtureGeometry;
+        for (loaded.cpu_declarations) |d| if (d.geometry.cpu_fused_tail != fused or d.geometry.cpu_u8_pairs != pairs) return error.InvalidFixtureGeometry;
         const expected_truth = [_]W.TruthDeclaration{ .{ .family = .sha256, .first_id = 1, .calls = 2, .logs = .{ VF.SHA_LOG, 0 } }, .{ .family = .arith256_mod, .first_id = 1, .calls = 2, .logs = .{ VF.ARITH_LOG, 0 } } };
         for (expected_truth, loaded.truth_declarations) |x, y| if (!std.meta.eql(x, y)) return error.InvalidFixtureGeometry;
         // The receiver re-executes the fixture natively for its public end state

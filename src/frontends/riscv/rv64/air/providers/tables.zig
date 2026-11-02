@@ -83,6 +83,26 @@ pub fn ChallengesFor(comptime C: type) type {
     };
 }
 pub const Challenges = ChallengesFor(Q);
+/// Byte-pair relation carried by the AND relation as the tagged 4-tuple
+/// (x, y, 0, 1). AND tuples are (x, y, x&y) = (x, y, x&y, 0, ...), so the
+/// fourth coordinate separates the two tuple families as polynomials.
+pub const PAIR_ARITY = 4;
+pub const N_PAIR_CONSTRAINTS = 3;
+pub fn pairDenominatorFor(comptime F: type, challenges: ChallengesFor(E.ConstFor(F)), x: F, y: F) E.SecureFor(F) {
+    return E.denominatorFor(F, challenges.offset, challenges.coefficients[0..PAIR_ARITY], &[PAIR_ARITY]F{ x, y, F.zero(), E.qFor(F, 1) }, true);
+}
+/// AND table that also serves byte pairs: one pair inverse I = 1/(d*p) and
+/// one prefix with the merged term (m*p + m_pair*d)*I (degree 3). The
+/// separate first-row residual of `evaluateFor` is dropped: at first = 1 the
+/// transition residual already reads sum + term = 0.
+pub fn evaluatePairFor(comptime F: type, tuple: []const F, first: F, last: F, multiplicity: F, pair_multiplicity: F, inverse: E.SecureFor(F), sum: E.SecureFor(F), previous: E.SecureFor(F), claim: E.ConstFor(F), challenges: ChallengesFor(E.ConstFor(F))) [N_PAIR_CONSTRAINTS]E.SecureFor(F) {
+    const S = E.SecureFor(F);
+    std.debug.assert(tuple.len == Kind.byte_and.arity());
+    const d = E.denominatorFor(F, challenges.offset, challenges.coefficients[0..tuple.len], tuple, true);
+    const p = pairDenominatorFor(F, challenges, tuple[0], tuple[1]);
+    const term = E.mulBaseFor(F, p, multiplicity).add(E.mulBaseFor(F, d, pair_multiplicity)).mul(inverse);
+    return .{ inverse.mul(d).mul(p).sub(S.one()), sum.sub(previous).add(E.mulBaseFor(F, previous, first)).add(term), E.mulBaseFor(F, sum.sub(E.splatFor(F, claim)), last) };
+}
 
 pub fn evaluate(tuple: []const Q, first: Q, last: Q, multiplicity: Q, inverse: Q, sum: Q, previous: Q, claim: Q, challenges: Challenges) [N_CONSTRAINTS]Q {
     return evaluateFor(Q, tuple, first, last, multiplicity, inverse, sum, previous, claim, challenges);
@@ -128,6 +148,28 @@ pub const Request = struct {
     main: []M,
     interaction: []M = &.{},
     claim: Q = Q.zero(),
+    /// Pair mode (AND table only): `main` holds two columns, AND multiplicity
+    /// then byte-pair multiplicity, and `pair_dictionary[x*256+y] = 1/p(x,y)`
+    /// is filled by `generateInteraction` for the CPU consumer.
+    pairs: bool = false,
+    pair_dictionary: []Q = &.{},
+    pub fn initWithPairs(a: std.mem.Allocator, setup: *const Setup, counts: []const u64, pair_counts: []const u64) !Request {
+        if (setup.kind != .byte_and or counts.len != setup.kind.size() or pair_counts.len != setup.kind.size()) return error.InvalidLookupMultiplicity;
+        // One relation: the AND and pair masses are admitted together below M31.
+        var total: u64 = 0;
+        for ([_][]const u64{ counts, pair_counts }) |values| for (values) |count| {
+            total = std.math.add(u64, total, count) catch return error.InvalidLookupMultiplicity;
+            if (total >= core.fields.m31.Modulus) return error.InvalidLookupMultiplicity;
+        };
+        const size = setup.kind.size();
+        const main = try a.alloc(M, 2 * size);
+        for (counts, pair_counts, 0..) |count, pair, i| {
+            const row = physical(i, setup.kind.logSize());
+            main[row] = M.fromCanonical(@intCast(count));
+            main[size + row] = M.fromCanonical(@intCast(pair));
+        }
+        return .{ .allocator = a, .kind = setup.kind, .main = main, .pairs = true };
+    }
     pub fn init(a: std.mem.Allocator, setup: *const Setup, counts: []const u64) !Request {
         if (counts.len != setup.kind.size()) return error.InvalidLookupMultiplicity;
         var total: u64 = 0;
@@ -142,6 +184,7 @@ pub const Request = struct {
     pub fn deinit(self: *Request) void {
         self.allocator.free(self.main);
         self.allocator.free(self.interaction);
+        self.allocator.free(self.pair_dictionary);
         self.* = undefined;
     }
     pub fn mainColumns(self: *const Request, a: std.mem.Allocator) ![]Column {
@@ -152,6 +195,7 @@ pub const Request = struct {
     }
     pub fn generateInteraction(self: *Request, challenges: Challenges) !Q {
         if (self.interaction.len != 0) return error.InvalidLookupProviderPhase;
+        if (self.pairs) return PairRequest.generate(self, challenges);
         const size = self.kind.size();
         const data = try self.allocator.alloc(M, N_INTERACTION * size);
         errdefer self.allocator.free(data);
@@ -167,6 +211,35 @@ pub const Request = struct {
             for (sum.toM31Array(), 0..) |coordinate, c| data[(4 + c) * size + row] = coordinate;
         }
         self.interaction = data;
+        self.claim = sum;
+        return sum;
+    }
+};
+const PairRequest = struct {
+    fn generate(self: *Request, challenges: Challenges) !Q {
+        const size = self.kind.size();
+        if (self.kind != .byte_and or self.main.len != 2 * size or self.pair_dictionary.len != 0) return error.InvalidLookupProviderPhase;
+        const data = try self.allocator.alloc(M, N_INTERACTION * size);
+        errdefer self.allocator.free(data);
+        const dictionary = try self.allocator.alloc(Q, size);
+        errdefer self.allocator.free(dictionary);
+        var sum = Q.zero();
+        for (0..size) |i| {
+            const row = physical(i, self.kind.logSize());
+            const tuple = self.kind.tupleAt(i);
+            var secure_tuple: [3]Q = undefined;
+            for (&secure_tuple, tuple[0..3]) |*dst, value| dst.* = Q.fromBase(M.fromCanonical(value));
+            const d = challenges.denominator(&secure_tuple);
+            const p = pairDenominatorFor(Q, challenges, secure_tuple[0], secure_tuple[1]);
+            const inverse = try d.mul(p).inv();
+            // Row i is the pair (x, y) = (i >> 8, i & 255): dictionary index i.
+            dictionary[i] = d.mul(inverse);
+            sum = sum.sub(p.mulM31(self.main[row]).add(d.mulM31(self.main[size + row])).mul(inverse));
+            for (inverse.toM31Array(), 0..) |coordinate, c| data[c * size + row] = coordinate;
+            for (sum.toM31Array(), 0..) |coordinate, c| data[(4 + c) * size + row] = coordinate;
+        }
+        self.interaction = data;
+        self.pair_dictionary = dictionary;
         self.claim = sum;
         return sum;
     }
