@@ -1,0 +1,14 @@
+# Packed LogUp producer wiring audit
+
+The retained source contradicts the claim that an entire packed LogUp producer is waiting to be wired into PR309. Both existing packed workstreams are already active. The exact quoted 2.3–3.4× per-thread / 15× at eight threads was not found in the retained receipts or recovered local agent traces. That does not disprove another measurement, but it cannot be added to current full-block timings as an unmerged gain.
+
+| Work | Retained evidence | Production route |
+|---|---|---|
+| Packed GKR numerical kernels | `6d795d827` (original `3798dac7d`); micro Q3.668×, OM3.892× | Child GKR → oracle/MLE helpers → `lookups/packed_rows.zig` |
+| Packed parallel classic OM interactions | `6308b0802` (original `24d1ebf5c`), receipt `9302378eb`; synthetic 640-inverse kernel2.965× at1worker,8.811× at4,4.721× at16 | CPU/truth workers → `Classic.Witness.init/initTruth` → immutable-provider `PARALLEL_SAFE` gate → `classic_witness_parallel.generate` → packed inverse/contribution kernels |
+
+CPU global metadata, truth-local adapters, and truth-global adapters all opt in as immutable parallel-safe providers. The shared generator still uses packed arithmetic when a lease is unavailable and generation runs on one worker. Stateful providers intentionally retain the old serial authority. Kernel receipts exclude substantial tuple projection and other proving stages; they are not whole-block multipliers.
+
+The relation classification is also broader than local ranges. CPU raw local GKR contains six REG terms, FUNCTION, ROM, OWNER19, three U16 and three U8 terms, padded to sixteen. Register boundary providers close initial/final local register obligations. LS local OWNER/range/selection debt and bridge OWNER/range debt also enter local GKR. The remaining shared classic namespaces are RAM14, Keccak IO and secp Wire. Truth-local lookup tables currently use classic LogUp as well. The sixteen CPU terminal-binding interaction planes still exist; replacing a relation does not make those planes disappear. Consequently neither “only local ranges moved” nor “REG/OWNER remain global INTER” describes this route, and a proposed158→100cell estimate needs fresh role accounting.
+
+There was a smaller, concrete missed call policy: the live classic packed inverse and mixed-secure contribution loops still invoked the generic 128-byte PackedOM31 quadratic product by value. Reusing the existing concrete inline helper changes four callsites without changing arithmetic. The compiled caller audit finds three inverse and one contribution call before the slice and zero afterward. This is not a new packed prover and does not change the public field multiplication authority, transcript or protocol. Focused Safe/Fast classic cell/claim, strict-pole, tail and allocation-failure gates pass. Real service-prefix parity and timings are recorded separately.
