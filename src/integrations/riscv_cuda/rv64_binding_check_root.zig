@@ -47,3 +47,23 @@ export fn rv64_test_parameter_map(context: *Context, lane: u32, reservoir: *cons
     commands.gatherParameters(reservoir.*, output.*, slots[0..count], 10, verdict.*) catch return 1;
     return 0;
 }
+
+export fn rv64_test_joined_parameter_map(context: *Context, lane: u32, sources: *const [5]@import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), addresses: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), output: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), count: u32, verdict: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.gatherJoinedParameters(sources.*, addresses.*, output.*, count, verdict.*) catch return 1;
+    return 0;
+}
+
+export fn rv64_test_binding_metadata(context: *Context, lane: u32, regions: *const [6]@import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.deriveBindingMetadata(regions[0], regions[1], regions[2], regions[3], regions[4], regions[5], 0, 5, 0, 1, 5, 1) catch return 1;
+    return 0;
+}
+
+export fn rv64_test_binding_witness(context: *Context, lane: u32, input: *const R.Fraction, eq: *const R.Plane, prefix: *const R.Plane, regions: *const [4]@import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.buildBindingEq(regions[0], 4, eq.*, regions[1]) catch return 1;
+    commands.projectBinding(input.*, eq.*, prefix.*, regions[0], regions[1], 4, 0) catch return 1;
+    commands.scanPrefix(prefix.*, regions[2], regions[3], regions[1], 4, false) catch return 1;
+    return 0;
+}

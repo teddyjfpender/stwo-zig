@@ -4,6 +4,7 @@
 const A = @import("stwo_riscv_frontend").rv64_air;
 const E = A.evaluation;
 pub const Source = @import("source_authority.zig");
+pub const MlePoint = @import("../../../logup_gkr/mle_point.zig");
 pub const Binding = @import("binding.zig");
 pub const Global = @import("global_cpu.zig");
 const Main = A.main_only.authority;

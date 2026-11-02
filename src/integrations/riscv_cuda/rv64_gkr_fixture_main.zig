@@ -22,6 +22,80 @@ fn checkpoint(w: anytype, channel: Channel) !void {
     for (0..8) |i| try IO.words(w, &.{std.mem.readInt(u32, channel.inner.digest[i * 4 ..][0..4], .little)});
     try IO.words(w, &.{channel.inner.n_draws});
 }
+fn bindingSupplement(dir: std.fs.Dir, variables: []const u32, layers: []const G.Layer, artifact: *const V.GkrArtifact, final_channel: Channel, id: u32) !void {
+    const MP = @import("stwo_riscv_cpu_integration").rv64_gkr_constraints.MlePoint;
+    var channel = final_channel;
+    const eta = channel.drawSecureFelt();
+    var bytes: std.ArrayList(u8) = .empty;
+    defer bytes.deinit(a);
+    const w = bytes.writer(a);
+    try IO.words(w, &.{ 0x5256424d, 2, id, @intCast(variables.len * 2), @intCast(artifact.ood_point.len), 0, 0, 0 });
+    for (variables, 0..) |v, instance| for (0..2) |mode| {
+        const lane_log = @min(v - 1, if (mode == 0) @as(u32, @intCast(instance % 9)) else 8);
+        const row_log = v - lane_log;
+        const suffix = artifact.ood_point[artifact.ood_point.len - v ..];
+        const point = try MP.MleEvalPointFor(O).init(suffix[0..row_log]);
+        var reservoir: [260]O = @splat(O.zero());
+        const lanes = @as(usize, 1) << @intCast(lane_log);
+        for (reservoir[0..lanes], 0..) |*weight, lane| {
+            weight.* = O.one();
+            for (suffix[row_log..], 0..) |coordinate, k| {
+                const bit = (lane >> @intCast(lane_log - 1 - k)) & 1;
+                weight.* = weight.mul(if (bit != 0) coordinate else O.one().sub(coordinate));
+            }
+        }
+        reservoir[256] = eta;
+        const claims = artifact.claims_to_verify_by_instance[instance];
+        reservoir[257] = claims[0].add(eta.mul(claims[1])).mulM31(try M.fromCanonical(@as(u32, 1) << @intCast(row_log)).inv());
+        reservoir[258] = point.eq0;
+        reservoir[259] = point.eq1;
+        try IO.words(w, &.{ @intCast(instance), row_log, lane_log, 0 });
+        try IO.felts(w, &reservoir);
+        try IO.felts(w, suffix[0..row_log]);
+        try IO.felts(w, point.hc0[0..row_log]);
+        try IO.felts(w, point.hc1[0..row_log]);
+        try checkpoint(w, channel);
+        const rows = @as(usize, 1) << @intCast(row_log);
+        const eq = try a.alloc(O, rows);
+        defer a.free(eq);
+        const prefix = try a.alloc(O, rows);
+        defer a.free(prefix);
+        for (eq, prefix, 0..) |*e, *contribution, physical| {
+            e.* = O.one();
+            for (suffix[0..row_log], 0..) |coordinate, k| e.* = e.mul(if ((physical >> @intCast(row_log - 1 - k)) & 1 != 0) coordinate else O.one().sub(coordinate));
+            var pn = O.zero();
+            var pd = O.zero();
+            for (0..lanes) |lane| {
+                const fact = physical * lanes + lane;
+                const n = switch (layers[instance]) {
+                    .LogUpMultiplicities => |v_| O.fromBase(v_.numerators.evals[fact]),
+                    .LogUpGeneric => |v_| v_.numerators.evals[fact],
+                    else => unreachable,
+                };
+                const d = switch (layers[instance]) {
+                    .LogUpMultiplicities => |v_| v_.denominators.evals[fact],
+                    .LogUpGeneric => |v_| v_.denominators.evals[fact],
+                    else => unreachable,
+                };
+                pn = pn.add(reservoir[lane].mul(n));
+                pd = pd.add(reservoir[lane].mul(d));
+            }
+            contribution.* = e.mul(pn.add(eta.mul(pd))).sub(reservoir[257]);
+        }
+        var sum = O.zero();
+        for (0..rows) |logical| {
+            const physical = core.utils.bitReverseIndex(core.utils.cosetIndexToCircleDomainIndex(logical, row_log), row_log);
+            sum = sum.add(prefix[physical]);
+            prefix[physical] = sum;
+        }
+        if (!sum.isZero()) return error.NativeBindingWitnessDebt;
+        try IO.soa(w, eq);
+        try IO.soa(w, prefix);
+    };
+    const filename = try std.fmt.allocPrint(a, "binding-{}.bin", .{id});
+    defer a.free(filename);
+    try dir.writeFile(.{ .sub_path = filename, .data = bytes.items });
+}
 fn fixture(dir: std.fs.Dir, variables: []const u32, id: u32) !void {
     var max_vars: u32 = 0;
     for (variables) |v| max_vars = @max(max_vars, v);
@@ -157,6 +231,7 @@ fn fixture(dir: std.fs.Dir, variables: []const u32, id: u32) !void {
     const file = try std.fmt.allocPrint(a, "case-{}.bin", .{id});
     defer a.free(file);
     try dir.writeFile(.{ .sub_path = file, .data = bytes.items });
+    try bindingSupplement(dir, variables, layers, &artifact, channel, id);
     std.debug.print("gkr={} instances={} layers={} fresh_verification=true input_mle_closure=true\n", .{ id, layers.len, max_vars });
 }
 pub fn main() !void {

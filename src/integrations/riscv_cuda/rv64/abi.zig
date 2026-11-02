@@ -104,3 +104,67 @@ pub extern "c" fn stwo_rv64_gkr_close_on(*anyopaque, u32, [*]u32, [*]const u32, 
 pub const relation_count = 10;
 pub const relation_slot_stride = 31;
 pub extern "c" fn stwo_rv64_parameter_gather_on(*anyopaque, u32, [*]const u32, [*]u32, [*]const u32, u32, u32, [*]u32) c_int;
+
+pub const joined_parameter_count = 942;
+pub const joined_namespace_counts = [5]u32{ 306, 310, 260, 63, 3 };
+pub const JoinedParameters = extern struct {
+    sources: [5][*]const u32,
+    addresses: [*]const u32,
+    output: [*]u32,
+    status: [*]u32,
+    count: u32,
+    reserved: u32 = 0,
+};
+comptime {
+    if (@sizeOf(JoinedParameters) != 72 or @offsetOf(JoinedParameters, "count") != 64) @compileError("joined parameter ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_joined_parameter_gather_on(*anyopaque, u32, *const JoinedParameters) c_int;
+
+pub const BindingMetadata = extern struct {
+    state: [*]const u32,
+    reservoir: [*]u32,
+    row_point: [*]u32,
+    carry: [*]u32,
+    seed: [*]u32,
+    status: [*]u32,
+    chain: u64,
+    instance: u32,
+    row_log: u32,
+    lane_log: u32,
+    count: u32,
+    layers: u32,
+    reserved: u32 = 0,
+};
+comptime {
+    if (@sizeOf(BindingMetadata) != 80 or @offsetOf(BindingMetadata, "chain") != 48) @compileError("binding metadata ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_gkr_binding_metadata_on(*anyopaque, u32, *const BindingMetadata) c_int;
+
+pub const BindingProjection = extern struct {
+    n: Plane,
+    d: Plane,
+    eq: Plane,
+    prefix: Plane,
+    metadata: [*]const u32,
+    status: [*]u32,
+    row_log: u32,
+    lane_log: u32,
+    reserved: [2]u32 = @splat(0),
+};
+pub const PrefixScan = extern struct {
+    data: Plane,
+    scratch: [*]u32,
+    scratch_words: u64,
+    claim: [*]u32,
+    status: [*]u32,
+    row_log: u32,
+    center: u32,
+    reserved: [2]u32 = @splat(0),
+};
+comptime {
+    if (@sizeOf(BindingProjection) != 128 or @sizeOf(PrefixScan) != 72) @compileError("binding witness ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_binding_project_on(*anyopaque, u32, *const BindingProjection) c_int;
+pub extern "c" fn stwo_rv64_prefix_scan_on(*anyopaque, u32, *const PrefixScan) c_int;
+
+pub extern "c" fn stwo_rv64_binding_eq_on(*anyopaque, u32, [*]const u32, u32, Plane, [*]u32) c_int;

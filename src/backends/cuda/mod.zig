@@ -17,6 +17,8 @@ pub const frontend_contract = @import("frontend_contract.zig");
 pub const runtime = @import("runtime/mod.zig");
 /// Cold AOT exporters authenticate the numerical headers they compile against.
 pub const rv64_numerical_sources = struct {
+    pub const parameters = @embedFile("native/rv64/parameters.cu");
+    pub const parameters_header = @embedFile("native/rv64/parameters.h");
     pub const oods = @embedFile("native/rv64/oods.cuh");
     pub const composition = @embedFile("native/rv64/composition.cuh");
     pub const projection = @embedFile("native/rv64/projection.cuh");

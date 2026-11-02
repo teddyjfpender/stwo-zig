@@ -295,6 +295,20 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const owner = try self.handle();
             try self.result(Api.stwo_rv64_parameter_gather_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, reservoir, total * 8), try self.context.deviceSlicePointer(u32, output, slots.len * 8), slots.ptr, @intCast(slots.len), namespaces, try self.context.deviceSlicePointer(u32, verdict, 1)), 1);
         }
+        /// Immutable address map is retained GPU setup. Numerical sources stay
+        /// resident in five independently owned protocol namespaces.
+        pub fn gatherJoinedParameters(self: *Self, sources: [5]Slice, addresses: Slice, output: Slice, count: u32, verdict: Slice) !void {
+            if (count == 0 or count > abi.joined_parameter_count) return error.InvalidGeometry;
+            const owner = try self.handle();
+            var job: abi.JoinedParameters = undefined;
+            for (&job.sources, sources, abi.joined_namespace_counts, 0..) |*pointer, source, n, ns| pointer.* = try self.context.deviceSlicePointer(u32, source, @as(usize, n) * (if (ns == 0) @as(usize, 1) else 8));
+            job.addresses = try self.context.deviceSlicePointer(u32, addresses, 2 * @as(usize, count));
+            job.output = try self.context.deviceSlicePointer(u32, output, 8 * @as(usize, count));
+            job.status = try self.context.deviceSlicePointer(u32, verdict, 1);
+            job.count = count;
+            job.reserved = 0;
+            try self.result(Api.stwo_rv64_joined_parameter_gather_on(owner, self.lane_index, &job), 1);
+        }
         pub fn packRoots(self: *Self, roots: []const Fraction, output: Slice) !void {
             if (roots.len == 0 or roots.len > abi.batch_max_oracles) return error.InvalidGeometry;
             var sources: [abi.batch_max_oracles]abi.GkrRoot = undefined;
@@ -316,6 +330,66 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             if (largest != layers) return error.InvalidGeometry;
             const owner = try self.handle();
             try self.result(Api.stwo_rv64_gkr_init_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, seed, 9), variables.ptr, @intCast(variables.len), layers, chain), 1);
+        }
+        pub fn buildBindingEq(self: *Self, point: Slice, row_log: u32, output: Plane, verdict: Slice) !void {
+            if (row_log == 0 or row_log > 22) return error.InvalidGeometry;
+            try output.shape(@as(u32, 1) << @intCast(row_log), 8);
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_binding_eq_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, point, row_log * 8), row_log, try output.bind(self.context), try self.context.deviceSlicePointer(u32, verdict, 1)), 1 + (row_log + 3) / 4);
+        }
+        pub fn projectBinding(self: *Self, input: Fraction, eq_column: Plane, prefix_column: Plane, metadata: Slice, verdict: Slice, row_log: u32, lane_log: u32) !void {
+            if (row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > 28) return error.InvalidGeometry;
+            const rows = @as(u32, 1) << @intCast(row_log);
+            if (input.count != rows << @intCast(lane_log)) return error.InvalidGeometry;
+            try input.validate();
+            try eq_column.shape(rows, 8);
+            try prefix_column.shape(rows, 8);
+            const owner = try self.handle();
+            const job = abi.BindingProjection{
+                .n = try input.n.bind(self.context),
+                .d = try input.d.bind(self.context),
+                .eq = try eq_column.bind(self.context),
+                .prefix = try prefix_column.bind(self.context),
+                .metadata = try self.context.deviceSlicePointer(u32, metadata, 260 * 8),
+                .status = try self.context.deviceSlicePointer(u32, verdict, 1),
+                .row_log = row_log,
+                .lane_log = lane_log,
+            };
+            try self.result(Api.stwo_rv64_binding_project_on(owner, self.lane_index, &job), 1);
+        }
+        pub fn scanPrefix(self: *Self, data: Plane, scratch: Slice, claim: Slice, verdict: Slice, row_log: u32, center: bool) !void {
+            const plan = try @import("prefix_plan.zig").Plan.init(row_log);
+            try data.shape(plan.rows, 8);
+            const owner = try self.handle();
+            const job = abi.PrefixScan{
+                .data = try data.bind(self.context),
+                .scratch = try self.context.deviceSlicePointer(u32, scratch, plan.scratch_words),
+                .scratch_words = plan.scratch_words,
+                .claim = try self.context.deviceSlicePointer(u32, claim, 8),
+                .status = try self.context.deviceSlicePointer(u32, verdict, 1),
+                .row_log = row_log,
+                .center = @intFromBool(center),
+            };
+            try self.result(Api.stwo_rv64_prefix_scan_on(owner, self.lane_index, &job), plan.dispatches(center));
+        }
+        pub fn deriveBindingMetadata(self: *Self, state: Slice, reservoir: Slice, row_point: Slice, carry: Slice, seed: Slice, verdict: Slice, instance: u32, row_log: u32, lane_log: u32, count: u32, layers: u32, chain: u64) !void {
+            if (count == 0 or count > abi.batch_max_oracles or instance >= count or layers == 0 or layers > 28 or row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > layers or state.address % 8 != 0) return error.InvalidGeometry;
+            const owner = try self.handle();
+            const job = abi.BindingMetadata{
+                .state = try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words),
+                .reservoir = try self.context.deviceSlicePointer(u32, reservoir, 260 * 8),
+                .row_point = try self.context.deviceSlicePointer(u32, row_point, row_log * 8),
+                .carry = try self.context.deviceSlicePointer(u32, carry, row_log * 16),
+                .seed = try self.context.deviceSlicePointer(u32, seed, 9),
+                .status = try self.context.deviceSlicePointer(u32, verdict, 1),
+                .chain = chain,
+                .instance = instance,
+                .row_log = row_log,
+                .lane_log = lane_log,
+                .count = count,
+                .layers = layers,
+            };
+            try self.result(Api.stwo_rv64_gkr_binding_metadata_on(owner, self.lane_index, &job), 1);
         }
         pub fn beginGkr(self: *Self, state: Slice, depth: u32, count: u32, active: u32, roots: Slice, claims: Slice) !void {
             if (count == 0 or count > abi.batch_max_oracles or active == 0 or active > count or depth >= 28 or state.address % 8 != 0) return error.InvalidGeometry;

@@ -1,0 +1,472 @@
+{
+  "schema": "rv64-cuda-joined-numerical/v1",
+  "full_block_verified": false,
+  "scope": "synthetic native joined polynomial parity, not authenticated execution acceptance",
+  "build_seconds": 1381.4739897350082,
+  "jobs": 4,
+  "arch": "120",
+  "compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0\n",
+  "header_digest": "bc01618e4128be20271bf2e96156f070fee8abef0ce9681d9c5b019b4bd9a680",
+  "context_object_sha256": "a083b05689c22b6c4e1e56e99f6f28cd5496044454037df8296d5fe327f63a9e",
+  "driver_sha256": "046c1c6dfb219e72b5bc3995b9dd72a046150c11dd5b3d411341edf871a7d3c7",
+  "objects": [
+    {
+      "source": "case-0-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-0-oods.o",
+      "cached": false,
+      "seconds": 9.759526345995255,
+      "source_sha256": "2298f0e0a7d8c206bb63f3540548866b15e134c1c8b7956b1c4dc37d1c6e8897",
+      "object_sha256": "885b6a21ed6c1f4e2820b479f62956dcb39d15c9099ea6b1c24ec0a63b9ee5e4"
+    },
+    {
+      "source": "case-1-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-1-oods.o",
+      "cached": false,
+      "seconds": 2.9980919319204986,
+      "source_sha256": "585b6d35ac8a166c4b9460511805b3a0959a08f3912ab4113d1b475593fab174",
+      "object_sha256": "769db470941b9be9fce3a7442bcdcbb61a5657b1c4103b4fb7ac3a04a7ccc8fa"
+    },
+    {
+      "source": "case-10-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-10-oods.o",
+      "cached": false,
+      "seconds": 1.937195501057431,
+      "source_sha256": "7c4914df539b3e5d1694ac891d231a17df84100458a815048977d80ec8a5e230",
+      "object_sha256": "371fc63e97d43bacdb2f5f7259635f38a0e79996c86baec4c604038ac1566c3b"
+    },
+    {
+      "source": "case-11-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-11-oods.o",
+      "cached": false,
+      "seconds": 1.8292447850108147,
+      "source_sha256": "e48da33c946c2ce1690fb2c89fe9073b080a6387bb5e17d733c68690b6fac9fa",
+      "object_sha256": "4eb39654f7c7d3acc9e4ddc57bd1ce91893e9d2e867073fbc4fe717eb7927d82"
+    },
+    {
+      "source": "case-12-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-12-oods.o",
+      "cached": false,
+      "seconds": 1.8416149839758873,
+      "source_sha256": "42abe19e5d279b12f0135600f717813033c0450fa25dc4f0d8904d3a72f02f2a",
+      "object_sha256": "6436e8984eaf76e3c3d61f1ea002d8118a9589fffb330dbd1320267aae665433"
+    },
+    {
+      "source": "case-13-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-13-oods.o",
+      "cached": false,
+      "seconds": 21.985145412036218,
+      "source_sha256": "63ff652a1480c3e2463b16b70e56d528557d2af140d46daaf45b0ada07f7b596",
+      "object_sha256": "ae5c479b6ba7bf440123e0dde8211fbcfe0bb48e9695acd7175d598d1b29c8d1"
+    },
+    {
+      "source": "case-14-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-14-oods.o",
+      "cached": false,
+      "seconds": 1.8379641330102459,
+      "source_sha256": "5205de44109b46a1fcf05d0de2b49e9d5f19c09006fb1e424be1327f8c516b75",
+      "object_sha256": "cded4496324770d74c1eb56049851c0dd5bcda4ee6bb2ed2bebcf1620d1e12ee"
+    },
+    {
+      "source": "case-15-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-15-oods.o",
+      "cached": false,
+      "seconds": 23.85720679804217,
+      "source_sha256": "409759ba5f78bd993c968fc36d50a28ac98592df3d4113181da13523d2b4b1da",
+      "object_sha256": "2c323f02188f8e3d05a0262f5d39f0edf6464227a7ff2364716c7dfc2219d0fb"
+    },
+    {
+      "source": "case-16-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-16-oods.o",
+      "cached": false,
+      "seconds": 6.11451720201876,
+      "source_sha256": "38692b39c6dda6c93976aa881fae66a3f27dd506ea3fba4110e544e790081294",
+      "object_sha256": "246e7f657ed92d3d5e27d92cc4ed51c9139d6fbe9c71b267ebf293cbdc93e170"
+    },
+    {
+      "source": "case-17-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-17-oods.o",
+      "cached": false,
+      "seconds": 5.545423240982927,
+      "source_sha256": "1a6ce03e36f720b7295e42d3a9c10e6b85e3f566e5774e97c794f58d619b9b0f",
+      "object_sha256": "215e12364f7c80d1b9e7bcbb49bfc059e0800800290fd53c7acc285c5dbcf911"
+    },
+    {
+      "source": "case-18-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-18-oods.o",
+      "cached": false,
+      "seconds": 6.546354312915355,
+      "source_sha256": "4efb6ed7b2373a3ea94be00d3a16b0cbefd1b15365b9ccdafa5e3900be88fccd",
+      "object_sha256": "41ab2283894ca76dd6821f4bf8706442e6b41f7e8764b4815a2775ac5c866120"
+    },
+    {
+      "source": "case-19-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-19-oods.o",
+      "cached": false,
+      "seconds": 9.285732400952838,
+      "source_sha256": "dfdfae3c27c911eec26ba6389d1783d3b3d8f34428ed05739bd30653069e24f6",
+      "object_sha256": "b206738fa1e3184d05e0401d30d035ab8e161533d7813279b3e16c2d5f9f505b"
+    },
+    {
+      "source": "case-2-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-2-oods.o",
+      "cached": false,
+      "seconds": 13.549900131998584,
+      "source_sha256": "5a8c4998f6a8cb93d7a1570cc7241699937d87d39520ae9a3d55dddf770b2700",
+      "object_sha256": "6df17f15fc0828495ca55f4edfec1186a40dd2f724837edb02147d02431c344f"
+    },
+    {
+      "source": "case-20-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-20-oods.o",
+      "cached": false,
+      "seconds": 7.186886238050647,
+      "source_sha256": "c0478a38b0c7f28b3cbe0fb3f604d51b429ff4925449040514889658eb2a6b09",
+      "object_sha256": "a5b974bae3473c9bdc064e2286c217482654ff57a4e72783a22e24955cfa32e7"
+    },
+    {
+      "source": "case-21-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-21-oods.o",
+      "cached": false,
+      "seconds": 2.082902181893587,
+      "source_sha256": "8a3e497cc59de5cfac76b31acc8c662a25add5fc1154d86c63b13c4bbef75473",
+      "object_sha256": "d9ae7e66529b4849e2c43f3c64d83b097233019dc42da860f5beb2180a8bcf3e"
+    },
+    {
+      "source": "case-22-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-22-oods.o",
+      "cached": false,
+      "seconds": 20.045376257039607,
+      "source_sha256": "4e86190cf2ad70980b56fd00533e70e7fed00f92ae0ae323f21ca884588b0710",
+      "object_sha256": "e12fc52d7a8cf2f4720fb5936e9778c4da04cbfda7dad9040ff121bfc8c3f15d"
+    },
+    {
+      "source": "case-23-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-23-oods.o",
+      "cached": false,
+      "seconds": 63.289863382000476,
+      "source_sha256": "142245ac4082376c0e75027c18a3fb19ca8197e61872e53d41f66eaa18e73511",
+      "object_sha256": "fd8e73b24327feb89f56061d5c313e55c1e254bf5da66084bfc96692c32f9a51"
+    },
+    {
+      "source": "case-24-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-24-oods.o",
+      "cached": false,
+      "seconds": 66.1567932170583,
+      "source_sha256": "6384d7ae683d61f93065483370ea9af3da7fdfa6a5cdb07bdfcc3aa531ce3bd0",
+      "object_sha256": "acc2348d33cfe57324878b406193e58f9db3d0c22d475b8e73bac649440cc09e"
+    },
+    {
+      "source": "case-25-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-25-oods.o",
+      "cached": false,
+      "seconds": 60.146215520915575,
+      "source_sha256": "7e89bb2ee86b8f78b6f802b4bcb05ae6c6b3a520785a089ac3858c7757aee877",
+      "object_sha256": "8ffd9cf8f0710c843937fe86c2c6b973be7ca476b231ecbb63cad08a69a286a4"
+    },
+    {
+      "source": "case-26-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-26-oods.o",
+      "cached": false,
+      "seconds": 61.537361719994806,
+      "source_sha256": "638c00d0e2097b6fb2633e105e4d56eb1aaee5d579d2ad4f604cda1a8c6b658f",
+      "object_sha256": "8b98d596d848efb339d70fa9423e43974bb136267aa9fb313376d1fec7c365d9"
+    },
+    {
+      "source": "case-27-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-27-oods.o",
+      "cached": false,
+      "seconds": 59.01446589897387,
+      "source_sha256": "b8e428e2911a0583917d2f21f09bca9b1614f8ae00539a36f04b152796c1e913",
+      "object_sha256": "c8acb4ccf57096be2c1182ff241f9f11294387134c319ae1faee213d863e0939"
+    },
+    {
+      "source": "case-28-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-28-oods.o",
+      "cached": false,
+      "seconds": 62.082802052027546,
+      "source_sha256": "cb461bfcf1597f481b1b0b98434d2c9d64a031aa25252f9ba43b7996aa58ba3c",
+      "object_sha256": "368bea7259d1673305781067d2f1b1dff2870697cf8d1a96c8d90fe054ff360a"
+    },
+    {
+      "source": "case-29-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-29-oods.o",
+      "cached": false,
+      "seconds": 59.486029339022934,
+      "source_sha256": "806f438b2ba8687f000fd79cd1778a8c679a4643c7ffa6819eaae7691ab60af3",
+      "object_sha256": "844da072520667c5e894d8cff9a6ca9dc9e1bfa8673049d205b27451e1d6882a"
+    },
+    {
+      "source": "case-3-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-3-oods.o",
+      "cached": false,
+      "seconds": 6.969732238911092,
+      "source_sha256": "f7c4e22ac1589a282c93fcd7b29abb8048ac7fda6d659335326190aefef414d9",
+      "object_sha256": "d7ebbac36d7d96281301a1598547200dbad1e82a59b6b3d9372f294e44643937"
+    },
+    {
+      "source": "case-30-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-30-oods.o",
+      "cached": false,
+      "seconds": 61.13726465695072,
+      "source_sha256": "7134a11c2ce7ec858f9df724916a64101388254c9d872b20af918cddead2d0bb",
+      "object_sha256": "fe4f2e5f73daa6a82163595f652489c286e34b78f052313869fabac5a7d2c620"
+    },
+    {
+      "source": "case-31-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-31-oods.o",
+      "cached": false,
+      "seconds": 61.10845011100173,
+      "source_sha256": "648c411b42c95355847eea133b0ddb778913eb8c5174616d256990cc8c9dcd02",
+      "object_sha256": "99e83b78868c46a1d0b6000c14bda3bd67fa992e8228f40881c3f9d0e7cdbae0"
+    },
+    {
+      "source": "case-32-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-32-oods.o",
+      "cached": false,
+      "seconds": 58.98759736598004,
+      "source_sha256": "7289ad3df90ee121ae7f54653e343ac4f53598b8ea86b3da4b6b1afcbef7eef8",
+      "object_sha256": "7e725ae6c92c38ec69e01c7d2972307e661fcb63fc67d43d095fab2d47895c71"
+    },
+    {
+      "source": "case-33-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-33-oods.o",
+      "cached": false,
+      "seconds": 62.84529220603872,
+      "source_sha256": "7cbbf6b97f2652fe43e23c2ce6ae6c55dd73f425d0572c6c01a3227aaafb4d97",
+      "object_sha256": "b1446b52d9da0caa979d39e8ea044c2fedddb1198db9bf39dbe29d92d48701ef"
+    },
+    {
+      "source": "case-34-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-34-oods.o",
+      "cached": false,
+      "seconds": 11.43028645904269,
+      "source_sha256": "7eb9b10f76b4278514a6b55b9957b3021efe1f5d94a62b476a942991c8348169",
+      "object_sha256": "8b89786c3480fc157ecd479413c1a39d208c8c7e69a129b0526d22d24ffd9d5e"
+    },
+    {
+      "source": "case-35-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-35-oods.o",
+      "cached": false,
+      "seconds": 9.397170759039,
+      "source_sha256": "18d719266fd98a4a63320e4f14e2556f1d966c948f4223f55d23e1e93bfae462",
+      "object_sha256": "e779620b474b447da03d1688162abceeaff90ac0d662a9686982d2308fd11f86"
+    },
+    {
+      "source": "case-36-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-36-oods.o",
+      "cached": false,
+      "seconds": 6.946270512067713,
+      "source_sha256": "73e8379bddf37f3bc0e14c062341cc53762aa8d05f7e5dc86de4387610b4d810",
+      "object_sha256": "e2e435fb83ded87bdb4479e980f676947fb3f9368aa6174e47d64ac391c4c1e0"
+    },
+    {
+      "source": "case-37-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-37-oods.o",
+      "cached": false,
+      "seconds": 14.876535451039672,
+      "source_sha256": "a4a03ee51e484c2a784cd5579739f86f55350a8174bca32020ec8eaf8d615412",
+      "object_sha256": "0476899ebe756bd27af773e7a8b5e66a191f9093291a4118aa491b6d665f807c"
+    },
+    {
+      "source": "case-38-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-38-oods.o",
+      "cached": false,
+      "seconds": 15.550830853986554,
+      "source_sha256": "06e2a4b7321a42fa9b4385e67706a4aff614769d2debea7d2b3a185ab821d0c6",
+      "object_sha256": "87197af5f020f1421cd434311521a8ade39e17810d7d83a44d36b2d29da8af7d"
+    },
+    {
+      "source": "case-39-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-39-oods.o",
+      "cached": false,
+      "seconds": 13.532626756001264,
+      "source_sha256": "fb41dae49c0abb40b2f78070313a82a1437a51f816e65b3b52cd5367c958dcaa",
+      "object_sha256": "94cf01f5c2ed128cf44128364fdc1c921bdf862c4d0e0d75b865c166c7bf1739"
+    },
+    {
+      "source": "case-4-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-4-oods.o",
+      "cached": false,
+      "seconds": 4.555404270067811,
+      "source_sha256": "1afdf990ae67e970e2c058607cfbb33351f5330618ecbe635f5403ad93d27eec",
+      "object_sha256": "91a1338c06b9dc499b02c28e33bad18c832a823059f9ec28f60e0682d918af51"
+    },
+    {
+      "source": "case-40-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-40-oods.o",
+      "cached": false,
+      "seconds": 11.38157844194211,
+      "source_sha256": "6e0ecd931ae80c80675f370baad4d9ca3fb0f6ae57d85376f2e10deb030543dc",
+      "object_sha256": "ad9a50180eae82f91f3bbf0feba6f3d6fc56e76908b7ae92a03ef21b40ef9582"
+    },
+    {
+      "source": "case-41-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-41-oods.o",
+      "cached": false,
+      "seconds": 124.78719855903182,
+      "source_sha256": "e8f454e5939e3bf4cd81507f3cdc6df72c096d9677ee1da325d698e03f30f2d4",
+      "object_sha256": "07b953fb878b412c02ebe364e8ffac3e1dc578e26887c1d28feac32af1fbb610"
+    },
+    {
+      "source": "case-42-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-42-oods.o",
+      "cached": false,
+      "seconds": 1.6385466359788552,
+      "source_sha256": "33e265f035d1b1fb73812048c62289fb40b54919e2f261fdeda89cbab4672565",
+      "object_sha256": "02e6ac7127e7f0666ec56b2ffaf52336e2b2f005efc6d624ac36f27ac4ceb035"
+    },
+    {
+      "source": "case-43-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-43-oods.o",
+      "cached": false,
+      "seconds": 261.53421659301966,
+      "source_sha256": "869ad2a49033c24dd042802c56752e01097a67cd53eeac372544f0f3920ffcfc",
+      "object_sha256": "9d1a4f66db3e16f4dc98628a65b7191efa86d7fde83dd7f424236d5c6499cb33"
+    },
+    {
+      "source": "case-44-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-44-oods.o",
+      "cached": false,
+      "seconds": 1150.734817155986,
+      "source_sha256": "f640003ce225a05dfe48041cc77b9eb9c72c8f9da2368a6f6c6fee9c7f069358",
+      "object_sha256": "6d7ff38e8bef3bb4032c47bd521edb43b3beaa7eece4cde47acd7033ecc0bd6d"
+    },
+    {
+      "source": "case-45-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-45-oods.o",
+      "cached": false,
+      "seconds": 12.794136545970105,
+      "source_sha256": "277ac19cd92ceaf8880938ff5635904fac127b12630b75ff91de09ff135f42c3",
+      "object_sha256": "4bc866a9d55494452a1fb24ba4efc44ffff1db5b47026d1fc1455a5faecc30bd"
+    },
+    {
+      "source": "case-46-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-46-oods.o",
+      "cached": false,
+      "seconds": 12.687814623001032,
+      "source_sha256": "de7d27106685b1b7b12a8753fa5ecb5394edf4b5345c922d40f64512cfca8506",
+      "object_sha256": "857534d171cd4808ba6088dbe51e8f6bf13495a792801c1964fa1e30786e849a"
+    },
+    {
+      "source": "case-47-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-47-oods.o",
+      "cached": false,
+      "seconds": 2.213849278050475,
+      "source_sha256": "ac8e72bc32fedd587f305810c8d2176b95bb907eede6202208d946ed6595836e",
+      "object_sha256": "ec03c020fe5bcf963800f6296eeae524a8128196f92b51fd6c91d65f1029c1cb"
+    },
+    {
+      "source": "case-48-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-48-oods.o",
+      "cached": false,
+      "seconds": 2.504882785025984,
+      "source_sha256": "f984af88fcf920d6cbcf53103304f7720bc8e340f1522e052d5eff1969d1b707",
+      "object_sha256": "8c925997ebbd3778ab4a073ce7657cb21be9b7d50bd45ea67eb35051e5561f65"
+    },
+    {
+      "source": "case-5-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-5-oods.o",
+      "cached": false,
+      "seconds": 6.632044887985103,
+      "source_sha256": "412bccb3b4da0bf40dcb4aef81081e027c7548a7f3c965a1a73d44610097f566",
+      "object_sha256": "db2b2a061597a920b81ee0e321148dc0f56a16a906fcea9797f08122cd69ad0f"
+    },
+    {
+      "source": "case-6-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-6-oods.o",
+      "cached": false,
+      "seconds": 2.6261689589591697,
+      "source_sha256": "6e922deb3c7cea41b4f2e352fa8302a3df1056f5a81444b8dea0978ee0eb8620",
+      "object_sha256": "b65188432f665ca8b9314e99ff37c3eb0c731d2fc10de06e246729ad9f010126"
+    },
+    {
+      "source": "case-7-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-7-oods.o",
+      "cached": false,
+      "seconds": 16.033603676012717,
+      "source_sha256": "32c50da01c93bd59b3ff118e123d199b0a61df7410f2e869725cf4f70ef3b6f5",
+      "object_sha256": "204d379d8845d6c48e892612d82089e833dd75bb962b1fbae5019177765ae5d0"
+    },
+    {
+      "source": "case-8-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-8-oods.o",
+      "cached": false,
+      "seconds": 26.565065714064986,
+      "source_sha256": "6e33e06ee8e600276c96e81b9bfd98acfdc643fa3a15d834cfcee00e7d34b5d6",
+      "object_sha256": "d320dff95316ac88f9f122476871722632e4f639ec075e9f3d1b7054a967342f"
+    },
+    {
+      "source": "case-9-oods.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/case-9-oods.o",
+      "cached": false,
+      "seconds": 4.051116163027473,
+      "source_sha256": "b166c2239f39b422845cccbb373d4abb8f1683741bd1d6e08e31454f5512e9c1",
+      "object_sha256": "f8c1cad13e5035cdd9529178a0c60ad413163a9d95893b39f739b686e253d964"
+    },
+    {
+      "source": "parameters.cu",
+      "object": "/workspace/rv64-gpu-session/build/joined/parameters.o",
+      "cached": false,
+      "seconds": 0.8997569900238886,
+      "source_sha256": "dd88e36da973ee96354cbe48be29e95716e1a8fbd0827a295b160671b9efd198",
+      "object_sha256": "ef6354e098c5f5a88b39f72462fabade0510818ba74665e37c35d81605fbb1b5"
+    }
+  ],
+  "fixtures": {
+    "case-0.bin": "32c23d875eef9f29b0e39e0eb4db4e6e00d9c6b91b2c4e5da1d0ede77e3ce3a1",
+    "case-1.bin": "0d6a7cb9faca9bd95301cc08089e38f7c931a14bc52171aaf3cc00ac71577695",
+    "case-10.bin": "609a3f42cd19abd31d359d87f3a4e88fa3c4d6a87a612af9a47339febfcc741a",
+    "case-11.bin": "ed5995ad57f9f03223b4761b9d6f22356764e776c3d3180c6877a4b077c7a22d",
+    "case-12.bin": "619a2d13942fb3de73309f0ebd8a1906171666b8de314d0cdf121487df6a3b50",
+    "case-13.bin": "69cf0f4ce259ffcb5d61fb2f8f48708e86a0e13bb0ae809a527595b0a445e202",
+    "case-14.bin": "57887248be620d840db8bdb7495fd9868559d3f6a5c1c236e9283d3a612cd921",
+    "case-15.bin": "c49b4e38dce1914a4742829be95436451afb04e132709c56e32e83755862bed5",
+    "case-16.bin": "e180b64237626a090e45bf899478aeb237168995abd61bc0d5e01b2fccda98e6",
+    "case-17.bin": "3ca006e9bb733f0f54deabc6ee1ded018fbc99ab2eaae8a1a7c260888563d2ad",
+    "case-18.bin": "0862a2522c83bc187ddecf57687d0bf443a1016001e007eb1c7655aef8f7faf5",
+    "case-19.bin": "3b3cf2fa22372ec7a48d92d2dc46da040af8c3aaa330a114d8bd25c030287c1c",
+    "case-2.bin": "2cfd8d67d0d857317db2d70b1cab1f869831b058e0555073ee9c4c986b4bf685",
+    "case-20.bin": "7c751306d0d84a248ff8124b666d0b6517fc710915a12e00689f6397141a1a50",
+    "case-21.bin": "d4197809c406fbda69c6dd254ddca70192015c83916511f423c7d4e116462b71",
+    "case-22.bin": "66f57482bb167b4022865fb8f4349620702f1a04a4d8459ba04796f41479ef2c",
+    "case-23.bin": "99239258ab0152b2fb92ce7204b6f42c0e299efa04879582177e0743ded7453f",
+    "case-24.bin": "40495f233ada5eecad8cc1ad14fd5dabe9ac9e0b2f95e8ade909c2ec21751d39",
+    "case-25.bin": "090d6ccd881066aff7c97d217e379cb73f8ee4fce298e78328cc24b94e24c531",
+    "case-26.bin": "6d8e7f01d3fbd81ee66bc65d2f88b610a08fa44c0e21fdc4cdc700977867e807",
+    "case-27.bin": "c9b7dbeef46ab66ff52f58940f910f5af9b09f3269908a0cac6724dcebda3627",
+    "case-28.bin": "9d29f5d4dc09cd4c4673912e078b7086c1c615ad8776a64dff1810fc598aa05f",
+    "case-29.bin": "9363f5c449c8730bcda826eb3c394b4fa0ea429bb8b39e66d855603cd923368b",
+    "case-3.bin": "ea17aca6ddb893d71004dd804bb7546bbb796580d81097e570fb970106ec1673",
+    "case-30.bin": "fd08661cedba6843c793ded9da41558815f75d3af1613fe3856dde420a1605c0",
+    "case-31.bin": "818da63d89b897dd46a5525569b2af295530de7ff456d1f1b034e9f097f28c18",
+    "case-32.bin": "b64ce89d0bca94132fc56368c4b63fa2de29c41213a47e2bff67a198c268d16e",
+    "case-33.bin": "32b752404a776930b044392f8c37150321517b673e548a9d27f596d16f4f4b37",
+    "case-34.bin": "cfbd4faa5058160fc150f41482eda42b2ecfd6b998c4072f4cb381f0e81ee624",
+    "case-35.bin": "4999855077928451f7ebd4f9f16fde7c12634c33581dc1f8978f60f5767ff3f3",
+    "case-36.bin": "91c5e60d1e71c751874f4c5d8ca79b7cae7eefdf1da4cbb2e87da0cf8d7ea816",
+    "case-37.bin": "4d674ef24667cb01b53386c510dbd41496aa3659aad0e27c783e9e4039a8a065",
+    "case-38.bin": "4cd6df62a63008d9850b3b2ffda26e7c8830dbec311bde5611ed6bed9fd085a0",
+    "case-39.bin": "4c297775ecf40f37246cb0442b768251901f27d65aa10231b0388ccfe81b009e",
+    "case-4.bin": "0d680ede12456552229ced152108ba0f1081008d39996176576e83d2bb81c3be",
+    "case-40.bin": "9903c802108baf3128431d6f7328c78b981a15a004dfeeee63683af05bb0d7b4",
+    "case-41.bin": "8948857e4649780265dbfded7ab22b71e5a40fb13044f4e97bfd8c3aecefda81",
+    "case-42.bin": "0d71e4e011ab5ef0cdcb2b32341bc16b5d9654452dcc8d9378f6f6a9616a6bcc",
+    "case-43.bin": "844430e70ae98f97d91b331a834ef24fe2511bbecd54bb5ede42c939cad3c618",
+    "case-44.bin": "fb5d5d548acb1d1716bc686d629e89e7cc8cad655f9caeb1e91861529b644013",
+    "case-45.bin": "b69edb4893cc4c075e5298bb7442bee0109e0a9fa596fd95efac638e2ea4a621",
+    "case-46.bin": "c7aaf6ca6394f4faf4e37e46505ca546f0085b3ea23248c290df42f2902ef503",
+    "case-47.bin": "7d8d74d197a23e8474c49ae9afd4419107b1ead90609d5f8ae61241067f64031",
+    "case-48.bin": "f24cc9cb29cf96ccb1e152fc14b5380d04b498b34db5e642121779bf220bd0e7",
+    "case-5.bin": "247f0c42957ae72da72d6bdd8c8eea28a5d6dc45cfd6e15070e9428dd324d0f4",
+    "case-6.bin": "3bfb51c0a7799c0d03cbb500b71154d28efd92b5438c6a9bff84de539851c3ea",
+    "case-7.bin": "12484d74768c3ec1d953cad70da9e2267bcfa37a2e8e6d336d7b4d7c68619dc4",
+    "case-8.bin": "3b4c26035dbb501522fcac307e8711e1728497712e93103c975dd71c81d5b789",
+    "case-9.bin": "635ab27cc94efb867ff8053f0d58faf01b8b434229a8c883ece7bba3df08e071"
+  },
+  "gates": {
+    "normal": "PASS",
+    "memcheck": "PASS",
+    "racecheck": "PASS",
+    "initcheck": "PASS",
+    "synccheck": "PASS"
+  }
+}

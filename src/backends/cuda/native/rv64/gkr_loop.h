@@ -23,4 +23,19 @@ extern "C" int stwo_rv64_gkr_close_on(void *, uint32_t, uint32_t *,
                                       const uint32_t *, const uint32_t *,
                                       const uint32_t *, uint32_t, uint32_t,
                                       uint32_t);
+// Derive one physical role's Eq-point metadata from a completed parent.
+// State remains immutable. Reservoir is 256 lane weights, eta, target, eq0,
+// eq1.
+struct StwoRv64BindingMetadata {
+  const uint32_t *state;
+  uint32_t *reservoir, *row_point, *carry, *seed, *status;
+  uint64_t chain;
+  uint32_t instance, row_log, lane_log, count, layers, reserved;
+};
+static_assert(sizeof(StwoRv64BindingMetadata) == 80 &&
+                  offsetof(StwoRv64BindingMetadata, chain) == 48,
+              "binding metadata ABI");
+extern "C" int
+stwo_rv64_gkr_binding_metadata_on(void *, uint32_t,
+                                  const StwoRv64BindingMetadata *);
 #endif

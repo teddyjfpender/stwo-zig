@@ -80,6 +80,7 @@ pub fn build(b: *std.Build) void {
     });
     gkr_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     gkr_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    gkr_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     const gkr_fixture = b.addExecutable(.{ .name = "rv64-gkr-fixtures", .root_module = gkr_root });
     const run_gkr = b.addRunArtifact(gkr_fixture);
     if (b.args) |args| run_gkr.addArgs(args);
@@ -94,6 +95,20 @@ pub fn build(b: *std.Build) void {
     const run_projection = b.addRunArtifact(projection_fixture);
     if (b.args) |args| run_projection.addArgs(args);
     b.step("rv64-projection-fixtures", "Export native source-column projection fixtures").dependOn(&run_projection.step);
+    const joined_root = b.createModule(.{
+        .root_source_file = b.path("rv64_joined_fixture_main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    joined_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    joined_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    joined_root.addImport("stwo_riscv_frontend", frontend);
+    joined_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    joined_root.addImport("stwo_cuda_backend", backend);
+    const joined_fixture = b.addExecutable(.{ .name = "rv64-joined-fixtures", .root_module = joined_root });
+    const run_joined = b.addRunArtifact(joined_fixture);
+    if (b.args) |args| run_joined.addArgs(args);
+    b.step("rv64-joined-fixtures", "Export complete joined native AIR fixtures and cold CUDA kernels").dependOn(&run_joined.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

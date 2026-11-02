@@ -59,6 +59,31 @@ const Fake = struct {
         calls += 1;
         return if (failure) 1 else 0;
     }
+    pub fn stwo_rv64_binding_eq_on(_: *anyopaque, lane: u32, _: [*]const u32, log: u32, _: Abi.Plane, _: [*]u32) c_int {
+        std.debug.assert(lane == 1 and log == 4);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
+    pub fn stwo_rv64_binding_project_on(_: *anyopaque, lane: u32, job: *const Abi.BindingProjection) c_int {
+        std.debug.assert(lane == 1 and job.row_log == 4);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
+    pub fn stwo_rv64_prefix_scan_on(_: *anyopaque, lane: u32, job: *const Abi.PrefixScan) c_int {
+        std.debug.assert(lane == 1 and job.row_log == 4 and job.scratch_words == 8);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
+    pub fn stwo_rv64_gkr_binding_metadata_on(_: *anyopaque, lane: u32, job: *const Abi.BindingMetadata) c_int {
+        std.debug.assert(lane == 1 and job.row_log == 5 and job.count == 1 and job.reserved == 0);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
+    pub fn stwo_rv64_joined_parameter_gather_on(_: *anyopaque, lane: u32, job: *const Abi.JoinedParameters) c_int {
+        std.debug.assert(lane == 1 and job.count == 3 and job.reserved == 0);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_eq_fused_on = stwo_rv64_gkr_eq_on;
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
@@ -181,4 +206,60 @@ test "RV64 CUDA external commands require active stage before native mutation an
     try std.testing.expectError(error.CudaEnqueueFailed, commands.project(plane(3), plane(1), plane(1), 3, slice(), leaf(16), slice()));
     try std.testing.expect(commands.poisoned);
     try std.testing.expectEqual(@as(u64, 3), context.recorded);
+}
+
+test "joined parameter gather checks all namespace owners before dispatch and propagates stage failure" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    var sources: [5]Slice = @splat(slice());
+    sources[4].generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.gatherJoinedParameters(sources, slice(), slice(), 3, slice()));
+    try std.testing.expectEqual(@as(usize, 0), Fake.calls);
+    sources[4] = slice();
+    try std.testing.expectError(error.InvalidGeometry, commands.gatherJoinedParameters(sources, slice(), slice(), 0, slice()));
+    try commands.gatherJoinedParameters(sources, slice(), slice(), 3, slice());
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.gatherJoinedParameters(sources, slice(), slice(), 3, slice()));
+    try std.testing.expectError(error.JobPoisoned, commands.gatherJoinedParameters(sources, slice(), slice(), 3, slice()));
+}
+
+test "binding metadata admission validates every region before native enqueue" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    var stale = slice();
+    stale.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.deriveBindingMetadata(slice(), slice(), slice(), stale, slice(), slice(), 0, 5, 0, 1, 5, 1));
+    try std.testing.expectError(error.InvalidGeometry, commands.deriveBindingMetadata(slice(), slice(), slice(), slice(), slice(), slice(), 1, 5, 0, 1, 5, 1));
+    try std.testing.expectEqual(@as(usize, 0), Fake.calls);
+    try commands.deriveBindingMetadata(slice(), slice(), slice(), slice(), slice(), slice(), 0, 5, 0, 1, 5, 1);
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.deriveBindingMetadata(slice(), slice(), slice(), slice(), slice(), slice(), 0, 5, 0, 1, 5, 1));
+    try std.testing.expectError(error.JobPoisoned, commands.deriveBindingMetadata(slice(), slice(), slice(), slice(), slice(), slice(), 0, 5, 0, 1, 5, 1));
+}
+
+test "prefix planning sizes the hierarchy independently and accounts each CUDA dispatch" {
+    const Plan = @import("../prefix_plan.zig").Plan;
+    for (1..23) |log| {
+        const plan = try Plan.init(@intCast(log));
+        try std.testing.expect(plan.scratch_words <= @as(usize, plan.rows) / 8 + 8);
+        try std.testing.expect(plan.levels >= 1 and plan.levels <= 4);
+    }
+    try std.testing.expectError(error.InvalidGeometry, Plan.init(0));
+    try std.testing.expectError(error.InvalidGeometry, Plan.init(23));
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    try commands.buildBindingEq(slice(), 4, plane(8), slice());
+    try commands.projectBinding(fraction(16), plane(8), plane(8), slice(), slice(), 4, 0);
+    try commands.scanPrefix(plane(8), slice(), slice(), slice(), 4, false);
+    try commands.scanPrefix(plane(8), slice(), slice(), slice(), 4, true);
+    try std.testing.expectEqual(@as(u64, 8), commands.launches);
+    try std.testing.expectEqual(@as(usize, 4), Fake.calls);
 }

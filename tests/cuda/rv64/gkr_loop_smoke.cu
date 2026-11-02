@@ -3,6 +3,7 @@
 #include "context_owner.cuh"
 #include "fixture_reader.h"
 #include "rv64/batch.h"
+#include "rv64/binding.h"
 #include "rv64/gkr_loop.h"
 #include "rv64/round.cuh"
 #include <algorithm>
@@ -25,8 +26,9 @@ struct Layer {
       expected_close;
 };
 __global__ void corrupt_word(uint32_t *out, uint32_t value) { *out = value; }
+__global__ void add_word(uint32_t *out) { *out = q::add(*out, 1u); }
 static void exercise(const std::string &directory, uint32_t id,
-                     uint32_t attack = 0) {
+                     uint32_t attack = 0, uint32_t binding_attack = 0) {
   Fixture f(directory + "/case-" + std::to_string(id) + ".bin");
   const auto h = f.take(8);
   const uint32_t count = h[2], layers = h[3];
@@ -100,6 +102,59 @@ static void exercise(const std::string &directory, uint32_t id,
              root_words = o.plane(16 * count, 1),
              projected = o.plane(8 * count, 1),
              eq = o.plane(layers > 1 ? 1u << (layers - 2) : 1, 8);
+  struct BindingCase {
+    StwoRv64BindingMetadata job{};
+    StwoRv64Plane reservoir, row, carry, seed, status, witness, scratch, claim;
+    std::vector<uint32_t> expected, expected_witness;
+    uint64_t scratch_words;
+  };
+  std::vector<BindingCase> bindings;
+  if (!attack) {
+    Fixture bf(directory + "/binding-" + std::to_string(id) + ".bin");
+    const auto bh = bf.take(8);
+    if (bh[0] != 0x5256424d || bh[1] != 2 || bh[2] != id ||
+        bh[3] != 2 * count || bh[4] != layers)
+      throw std::runtime_error("binding fixture header");
+    for (uint32_t i = 0; i < bh[3]; ++i) {
+      const auto m = bf.take(4);
+      if (m[0] >= count || !m[1] || m[1] > 22 || m[2] > 8 ||
+          m[1] + m[2] != variables[m[0]] || m[3])
+        throw std::runtime_error("binding fixture geometry");
+      BindingCase b;
+      b.reservoir = o.plane(260 * 8, 1);
+      b.row = o.plane(m[1] * 8, 1);
+      b.carry = o.plane(m[1] * 16, 1);
+      b.seed = o.plane(9, 1);
+      b.status = upload({0});
+      b.job = {state.words,
+               b.reservoir.words,
+               b.row.words,
+               b.carry.words,
+               b.seed.words,
+               b.status.words,
+               0x1632aabbccddull,
+               m[0],
+               m[1],
+               m[2],
+               count,
+               layers,
+               0};
+      b.expected = bf.take(260 * 8 + 24 * m[1] + 9);
+      const uint32_t rows = 1u << m[1];
+      b.witness = o.plane(rows, 16);
+      b.scratch_words = 0;
+      for (uint32_t n = rows; n > 1;) {
+        n = (n + 127) / 128;
+        b.scratch_words += uint64_t(n) * 8;
+      }
+      b.scratch = o.plane(b.scratch_words, 1);
+      b.claim = o.plane(8, 1);
+      b.expected_witness = bf.take(16 * rows);
+      bindings.push_back(std::move(b));
+    }
+    if (bf.cursor != bf.data.size())
+      throw std::runtime_error("binding trailing data");
+  }
   StwoCudaDependency ready{};
   CHECK(stwo_exec_context_dependency_record(o.ctx, 0, 0, &ready));
   CHECK(stwo_exec_context_dependency_wait(o.ctx, 1, &ready));
@@ -209,6 +264,67 @@ static void exercise(const std::string &directory, uint32_t id,
       capture(l.close_snapshot.words + 9 + 8 * (l.depth + 1) + 16 * j,
               state.words + STWO_RV64_GKR_CLAIMS_WORD + 16 * ids[j], 16);
   }
+  if (binding_attack == 1)
+    corrupt_word<<<1, 1, 0, stream>>>(state.words + 19, 1);
+  if (binding_attack == 2 || binding_attack == 7)
+    for (uint32_t c = 0; c < 8; ++c)
+      corrupt_word<<<1, 1, 0, stream>>>(state.words + STWO_RV64_GKR_POINT_WORD +
+                                            c,
+                                        binding_attack == 7 && c == 0 ? 1 : 0);
+  if (binding_attack == 3)
+    corrupt_word<<<1, 1, 0, stream>>>(state.words + STWO_RV64_GKR_POINT_WORD,
+                                      2147483647u);
+  if (binding_attack == 4)
+    corrupt_word<<<1, 1, 0, stream>>>(state.words + STWO_RV64_GKR_CLAIMS_WORD,
+                                      2147483647u);
+  for (auto &b : bindings) {
+    if (binding_attack == 5)
+      b.job.chain ^= 1;
+    if (binding_attack == 6)
+      corrupt_word<<<1, 1, 0, stream>>>(state.words + 20 + b.job.instance,
+                                        layers + 1);
+    auto bad = b.job;
+    bad.row_log = 0;
+    if (!stwo_rv64_gkr_binding_metadata_on(o.ctx, 1, &bad))
+      throw std::runtime_error("empty binding geometry accepted");
+    bad = b.job;
+    bad.row_point = state.words;
+    if (!stwo_rv64_gkr_binding_metadata_on(o.ctx, 1, &bad))
+      throw std::runtime_error("binding-state alias accepted");
+    CHECK(stwo_rv64_gkr_binding_metadata_on(o.ctx, 1, &b.job));
+    const uint32_t rows = 1u << b.job.row_log;
+    StwoRv64Plane eq_column{b.witness.words, rows, 8, 0};
+    StwoRv64Plane prefix_column{b.witness.words + 8 * rows, rows, 8, 0};
+    CHECK(stwo_rv64_binding_eq_on(o.ctx, 1, b.row.words, b.job.row_log,
+                                  eq_column, b.status.words));
+    if (binding_attack == 8)
+      add_word<<<1, 1, 0, stream>>>(b.reservoir.words + 8 * 257);
+    if (binding_attack == 9)
+      add_word<<<1, 1, 0, stream>>>(workers[b.job.instance].tree[0].n.words);
+    if (binding_attack == 10)
+      add_word<<<1, 1, 0, stream>>>(workers[b.job.instance].tree[0].d.words);
+    StwoRv64BindingProjection projection{workers[b.job.instance].tree[0].n,
+                                         workers[b.job.instance].tree[0].d,
+                                         eq_column,
+                                         prefix_column,
+                                         b.reservoir.words,
+                                         b.status.words,
+                                         b.job.row_log,
+                                         b.job.lane_log,
+                                         {0, 0}};
+    CHECK(stwo_rv64_binding_project_on(o.ctx, 1, &projection));
+    if (binding_attack == 11)
+      corrupt_word<<<1, 1, 0, stream>>>(prefix_column.words, 2147483647u);
+    StwoRv64PrefixScan scan{prefix_column,
+                            b.scratch.words,
+                            b.scratch_words,
+                            b.claim.words,
+                            b.status.words,
+                            b.job.row_log,
+                            0,
+                            {0, 0}};
+    CHECK(stwo_rv64_prefix_scan_on(o.ctx, 1, &scan));
+  }
   // Only now, after the complete parent loop, may validation data leave CUDA.
   const auto final = o.read(state);
   if (attack) {
@@ -217,6 +333,29 @@ static void exercise(const std::string &directory, uint32_t id,
     CHECK(stwo_exec_context_dependency_release(o.ctx, &ready));
     o.close();
     return;
+  }
+  if (binding_attack) {
+    if (o.read(bindings[0].status)[0] == 0 ||
+        (binding_attack <= 7 && o.read(bindings[0].seed)[8] <= (1u << 20)))
+      throw std::runtime_error("binding mutation " +
+                               std::to_string(binding_attack) +
+                               " accepted or valid continuation exposed");
+    CHECK(stwo_exec_context_dependency_release(o.ctx, &ready));
+    o.close();
+    return;
+  }
+  for (const auto &b : bindings) {
+    if (o.read(b.status)[0])
+      throw std::runtime_error("valid binding metadata rejected");
+    auto actual = o.read(b.reservoir);
+    for (auto region : {b.row, b.carry, b.seed}) {
+      const auto values = o.read(region);
+      actual.insert(actual.end(), values.begin(), values.end());
+    }
+    equal(actual, b.expected, "GKR-derived binding metadata", id);
+    equal(o.read(b.witness), b.expected_witness,
+          "GKR-derived Eq/prefix witness", id);
+    equal(o.read(b.claim), std::vector<uint32_t>(8, 0), "GKR binding debt", id);
   }
   if (final[10] || final[9] != 2 * layers || final[16] != layers ||
       final[17] != count || final[18] != layers || final[19] != 2)
@@ -246,11 +385,16 @@ int main(int argc, char **argv) {
       exercise(argv[1], id);
     for (uint32_t attack = 1; attack <= 9; ++attack)
       exercise(argv[1], 3, attack);
+    for (uint32_t attack = 1; attack <= 11; ++attack)
+      exercise(argv[1], 5, 0, attack);
     std::printf(
-        "{\"schema\":\"rv64-om31-full-gkr-v1\",\"cases\":8,\"poison_cases\":9,"
+        "{\"schema\":\"rv64-om31-full-gkr-binding-v2\",\"cases\":8,\"poison_"
+        "cases\":9,"
         "\"native_proof_and_"
         "artifact_parity\":true,\"hot_h2d_bytes\":0,\"hot_d2h_bytes\":0,"
-        "\"physical_binding_verified\":false,\"full_block_verified\":false}\n");
+        "\"binding_metadata_cases\":172,\"binding_witness_cases\":172,"
+        "\"binding_poison_cases\":11,\"physical_"
+        "binding_verified\":false,\"full_block_verified\":false}\n");
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "%s\n", e.what());

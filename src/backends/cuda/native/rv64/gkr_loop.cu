@@ -228,6 +228,86 @@ __global__ void close_layer(uint32_t *words, const uint32_t *batch_words,
   ++s->channel.cursor;
   s->phase = s->next_layer == s->layers ? 2 : 0;
 }
+__global__ void derive_binding(StwoRv64BindingMetadata job) {
+  auto *out = reinterpret_cast<OM31 *>(job.reservoir);
+  auto *row = reinterpret_cast<OM31 *>(job.row_point);
+  auto *carry = reinterpret_cast<OM31 *>(job.carry);
+  for (uint32_t i = 0; i < 260; ++i)
+    out[i] = zero();
+  for (uint32_t i = 0; i < job.row_log; ++i)
+    row[i] = zero();
+  for (uint32_t i = 0; i < 2 * job.row_log; ++i)
+    carry[i] = zero();
+  for (uint32_t i = 0; i < 9; ++i)
+    job.seed[i] = 0;
+  job.seed[8] = t::kMaximumSeedDraws + 1;
+  if (*job.status)
+    return;
+  const auto *s = reinterpret_cast<const GkrState *>(job.state);
+  if (s->channel.status != t::kOk || s->channel.reserved ||
+      s->channel.padding[0] || s->channel.padding[1] ||
+      s->channel.chain != job.chain || s->channel.cursor != 2 * job.layers ||
+      s->channel.draws != 1 || s->phase != 2 || s->next_layer != job.layers ||
+      s->layers != job.layers || s->count != job.count ||
+      s->variables[job.instance] != job.row_log + job.lane_log) {
+    atomicOr(job.status, 1u);
+    return;
+  }
+  const uint32_t start = job.layers - job.row_log - job.lane_log;
+  for (uint32_t i = start; i < job.layers; ++i) {
+    if (!canonical(s->point[i])) {
+      atomicOr(job.status, 2u);
+      return;
+    }
+    if (i < start + job.row_log &&
+        (is_zero(s->point[i]) || same(s->point[i], one()))) {
+      atomicOr(job.status, 4u);
+      return;
+    }
+  }
+  const OM31 numerator = s->claims[2 * job.instance];
+  const OM31 denominator = s->claims[2 * job.instance + 1];
+  if (!canonical(numerator) || !canonical(denominator)) {
+    atomicOr(job.status, 2u);
+    return;
+  }
+  auto channel = s->channel;
+  const OM31 eta = draw_raw_om(channel.digest, &channel.draws);
+  const uint32_t lanes = 1u << job.lane_log;
+  for (uint32_t lane = 0; lane < lanes; ++lane) {
+    OM31 value = one();
+    for (uint32_t k = 0; k < job.lane_log; ++k) {
+      const OM31 coordinate = s->point[start + job.row_log + k];
+      value = mul(value, ((lane >> (job.lane_log - 1 - k)) & 1u)
+                             ? coordinate
+                             : sub(one(), coordinate));
+    }
+    out[lane] = value;
+  }
+  OM31 ones = one(), zeros = one();
+  for (uint32_t i = 0; i < job.row_log; ++i) {
+    const OM31 v = s->point[start + i];
+    row[i] = v;
+    const OM31 numerator = mul(ones, sub(one(), v));
+    const OM31 denominator = mul(zeros, v);
+    carry[i] = mul(numerator, inverse_nonzero(denominator));
+    ones = mul(ones, v);
+    zeros = mul(zeros, sub(one(), v));
+  }
+  const OM31 last = row[job.row_log - 1];
+  carry[job.row_log - 1] =
+      mul(carry[job.row_log - 1], mul(last, inverse_nonzero(sub(one(), last))));
+  for (uint32_t i = 0; i < job.row_log; ++i)
+    carry[job.row_log + i] = inverse_nonzero(carry[i]);
+  out[256] = eta;
+  out[257] = scale(add(numerator, mul(eta, denominator)),
+                   q::inverse(1u << job.row_log));
+  out[258] = zeros;
+  out[259] = ones;
+  t::copy_words(job.seed, channel.digest, 8);
+  job.seed[8] = channel.draws;
+}
+
 } // namespace stwo::cuda::rv64
 using namespace stwo::cuda::rv64;
 extern "C" int stwo_rv64_gkr_pack_roots_on(void *ctx, uint32_t lane,
@@ -311,5 +391,27 @@ extern "C" int stwo_rv64_gkr_close_on(void *ctx, uint32_t lane, uint32_t *state,
     return c.status;
   close_layer<<<1, 1, 0, c.stream>>>(state, batch, records, masks, layer, count,
                                      active);
+  return int(cudaPeekAtLastError());
+}
+
+extern "C" int
+stwo_rv64_gkr_binding_metadata_on(void *ctx, uint32_t lane,
+                                  const StwoRv64BindingMetadata *input) {
+  if (!input || input->reserved || !input->count ||
+      input->count > max_oracles || input->instance >= input->count ||
+      !input->layers || input->layers > 28 || !input->row_log ||
+      input->row_log > 22 || input->lane_log > 8 ||
+      input->row_log + input->lane_log > input->layers ||
+      reinterpret_cast<uintptr_t>(input->state) % alignof(GkrState))
+    return int(cudaErrorInvalidValue);
+  const auto job = *input;
+  Custody c(ctx, lane);
+  if (!c.range(job.state, STWO_RV64_GKR_STATE_WORDS, false) ||
+      !c.range(job.reservoir, 260 * 8, true) ||
+      !c.range(job.row_point, job.row_log * 8, true) ||
+      !c.range(job.carry, job.row_log * 16, true) ||
+      !c.range(job.seed, 9, true) || !c.range(job.status, 1, true))
+    return c.status;
+  derive_binding<<<1, 1, 0, c.stream>>>(job);
   return int(cudaPeekAtLastError());
 }

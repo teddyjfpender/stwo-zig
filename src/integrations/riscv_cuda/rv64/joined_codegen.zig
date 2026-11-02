@@ -8,6 +8,7 @@ pub const Source = Authority.Source;
 const C = @import("composition_codegen.zig");
 const X = @import("symbolic_external.zig");
 const F = X.Lane;
+pub const Parameters = @import("joined_parameters.zig");
 fn authority(descriptor: Source.Descriptor) ![32]u8 {
     _ = try Authority.shape(descriptor);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
@@ -20,14 +21,9 @@ fn authority(descriptor: Source.Descriptor) ![32]u8 {
     hash.update(&.{ @intFromBool(descriptor.cpu_u8_pairs), @intFromBool(descriptor.cpu_compact_decode) });
     return hash.finalResult();
 }
-const Param = struct {
-    next: u32 = 0,
-    fn one(self: *@This()) F {
-        const result = F.parameter(self.next);
-        self.next += 1;
-        return result;
-    }
-};
+fn parameter(slot: u32) F {
+    return F.parameter(slot);
+}
 fn secureInput(column: usize, offset: i8) F {
     var coordinates: [8]F = undefined;
     for (&coordinates, 0..) |*v, i| v.* = F.input(2, column + i, offset);
@@ -56,6 +52,10 @@ pub const Artifact = struct {
         h.update(&(try C.identity(&self.program)));
         h.update(@embedFile("joined_codegen.zig"));
         h.update(@embedFile("symbolic_external.zig"));
+        h.update(@embedFile("joined_parameters.zig"));
+        const native = @import("stwo_cuda_backend").rv64_numerical_sources;
+        h.update(native.parameters);
+        h.update(native.parameters_header);
         var metadata: [12]u8 = undefined;
         std.mem.writeInt(u32, metadata[0..4], self.parameter_count, .little);
         std.mem.writeInt(u64, metadata[4..12], self.interaction_width, .little);
@@ -73,7 +73,7 @@ pub const Artifact = struct {
         const shape = try Authority.shape(self.descriptor);
         const local_width: usize = if (Authority.hasLocal(self.descriptor)) 16 else 0;
         const width = local_width + Authority.Global.layout(self.descriptor.origin).width();
-        if (self.interaction_width != width or self.program.roots.len != shape.constraints + (if (Authority.hasLocal(self.descriptor)) @as(usize, 3) else 0) + Authority.Global.layout(self.descriptor.origin).constraints() or self.parameter_slots.len != self.program.parameters.len) return error.InvalidJoinedArtifact;
+        if (self.parameter_count != Parameters.count or self.interaction_width != width or self.program.roots.len != shape.constraints + (if (Authority.hasLocal(self.descriptor)) @as(usize, 3) else 0) + Authority.Global.layout(self.descriptor.origin).constraints() or self.parameter_slots.len != self.program.parameters.len) return error.InvalidJoinedArtifact;
         for (self.parameter_slots) |slot| if (slot >= self.parameter_count) return error.InvalidJoinedArtifact;
         for (self.program.inputs) |input| switch (input.tree) {
             0 => if (input.column >= shape.fixed or input.offset != 0) return error.InvalidJoinedArtifact,
@@ -100,18 +100,17 @@ pub fn record(a: std.mem.Allocator, descriptor: Source.Descriptor) !Artifact {
     defer recording.deinit();
     recording.begin();
     defer recording.end();
-    var params = Param{};
     var public: Authority.PublicFor(F) = undefined;
-    public.cpu.steps = params.one();
-    for (&public.cpu.initial_pc) |*v| v.* = params.one();
-    for (&public.cpu.final_pc) |*v| v.* = params.one();
-    public.cpu.epoch = params.one();
+    public.cpu.steps = parameter(Parameters.cpu_steps);
+    for (&public.cpu.initial_pc, 0..) |*v, i| v.* = parameter(Parameters.initial_pc + @as(u32, @intCast(i)));
+    for (&public.cpu.final_pc, 0..) |*v, i| v.* = parameter(Parameters.final_pc + @as(u32, @intCast(i)));
+    public.cpu.epoch = parameter(Parameters.epoch);
     public.cpu.wide_clock = false;
-    public.rows = params.one();
-    public.nonempty = params.one();
-    public.span = .{ .calls = params.one(), .first_id = params.one(), .nonempty = params.one() };
+    public.rows = parameter(Parameters.rows);
+    public.nonempty = parameter(Parameters.nonempty);
+    public.span = .{ .calls = parameter(Parameters.calls), .first_id = parameter(Parameters.first_id), .nonempty = parameter(Parameters.calls_nonempty) };
     var source_public: [Source.Public.count]F = undefined;
-    for (&source_public) |*v| v.* = params.one();
+    for (&source_public, 0..) |*v, i| v.* = parameter(Parameters.source_public + @as(u32, @intCast(i)));
     source_public[Source.Public.epoch] = public.cpu.epoch;
     source_public[Source.Public.initial_pc] = public.cpu.initial_pc[0].add(public.cpu.initial_pc[1].mul(F.fromU32(65536)));
     const fixed = try a.alloc(F, shape.fixed);
@@ -128,26 +127,28 @@ pub fn record(a: std.mem.Allocator, descriptor: Source.Descriptor) !Artifact {
     var challenges: Source.Challenges.For(F) = .{ .offsets = @splat(F.zero()), .coefficients = @splat(@splat(F.zero())) };
     for (std.enums.values(Source.Fractions.Relation)) |relation| {
         const index = @intFromEnum(relation);
-        challenges.offsets[index] = params.one();
-        for (0..relation.arity()) |i| challenges.coefficients[index][i] = if (relation == .range8) F.one() else params.one();
+        const slot: u32 = Parameters.local + @as(u32, @intCast(index)) * Parameters.local_stride;
+        challenges.offsets[index] = parameter(slot);
+        for (0..relation.arity()) |i| challenges.coefficients[index][i] = if (relation == .range8) F.one() else parameter(slot + 1 + @as(u32, @intCast(i)));
     }
     const lane_weights = try a.alloc(F, lanes);
     defer a.free(lane_weights);
-    for (lane_weights) |*v| v.* = params.one();
+    for (lane_weights, 0..) |*v, i| v.* = parameter(Parameters.weights + @as(u32, @intCast(i)));
     var projection = Authority.Binding.ProjectionFor(F){ .challenges = &challenges, .lane_weights = lane_weights, .terms = terms };
     if (local) {
         try descriptor.emit(F, fixed, main, previous, &source_public, &projection);
         try projection.finish();
     }
-    const eta = params.one();
-    const target = params.one();
-    const aux = Authority.Binding.AuxFor(F){ .eq0 = params.one(), .eq1 = params.one(), .first = F.input(2, width, 0), .second = F.input(2, width + 1, 0), .carry = secureInput(width + 2, 0) };
+    const eta = parameter(Parameters.eta);
+    const target = parameter(Parameters.target);
+    const aux = Authority.Binding.AuxFor(F){ .eq0 = parameter(Parameters.eq0), .eq1 = parameter(Parameters.eq1), .first = F.input(2, width, 0), .second = F.input(2, width + 1, 0), .carry = secureInput(width + 2, 0) };
     var shared: Authority.SharedFor(F) = undefined;
     inline for (.{ "ram", "kio", "wire" }) |name| {
-        @field(shared, name).offset = params.one();
-        for (&@field(shared, name).coefficients) |*v| v.* = params.one();
+        const slot = @field(Parameters, name);
+        @field(shared, name).offset = parameter(slot);
+        for (&@field(shared, name).coefficients, 0..) |*v, i| v.* = parameter(slot + 1 + @as(u32, @intCast(i)));
     }
-    const claims = Authority.Global.ClaimsFor(F){ .ram = params.one(), .kio = params.one(), .wire = params.one() };
+    const claims = Authority.Global.ClaimsFor(F){ .ram = parameter(Parameters.claims), .kio = parameter(Parameters.claims + 1), .wire = parameter(Parameters.claims + 2) };
     const current = try a.alloc(F, global.width());
     defer a.free(current);
     const prior = try a.alloc(F, global.width());
@@ -174,10 +175,10 @@ pub fn record(a: std.mem.Allocator, descriptor: Source.Descriptor) !Artifact {
     for (program.parameters, slots) |value, *slot| {
         const coordinates = value.toM31Array();
         for (coordinates[1..]) |v| if (!v.isZero()) return error.UnmappedJoinedParameter;
-        if (coordinates[0].v == 0 or coordinates[0].v > params.next) return error.UnmappedJoinedParameter;
+        if (coordinates[0].v == 0 or coordinates[0].v > Parameters.count) return error.UnmappedJoinedParameter;
         slot.* = coordinates[0].v - 1;
     }
-    const artifact = Artifact{ .a = a, .descriptor = descriptor, .program = program, .parameter_slots = slots, .parameter_count = params.next, .interaction_width = width };
+    const artifact = Artifact{ .a = a, .descriptor = descriptor, .program = program, .parameter_slots = slots, .parameter_count = Parameters.count, .interaction_width = width };
     try artifact.validate();
     return artifact;
 }

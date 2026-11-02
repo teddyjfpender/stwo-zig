@@ -50,3 +50,52 @@ stwo_rv64_parameter_gather_on(void *ctx, uint32_t lane, const uint32_t *source,
                                                         status);
   return int(cudaPeekAtLastError());
 }
+
+namespace stwo::cuda::rv64 {
+__global__ void gather_joined(StwoRv64JoinedParameters job) {
+  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= job.count * 8)
+    return;
+  constexpr uint32_t counts[5] = {STWO_RV64_JOINED_NAMESPACE_COUNTS[0],
+                                  STWO_RV64_JOINED_NAMESPACE_COUNTS[1],
+                                  STWO_RV64_JOINED_NAMESPACE_COUNTS[2],
+                                  STWO_RV64_JOINED_NAMESPACE_COUNTS[3],
+                                  STWO_RV64_JOINED_NAMESPACE_COUNTS[4]};
+  const uint32_t ns = job.addresses[2 * (i / 8)];
+  const uint32_t index = job.addresses[2 * (i / 8) + 1];
+  if (ns >= 5 || index >= counts[ns]) {
+    atomicOr(job.status, 2u);
+    job.output[i] = 0;
+    return;
+  }
+  const uint32_t coordinate = i % 8;
+  const uint32_t value =
+      job.sources[ns][ns == 0 ? index : index * 8 + coordinate];
+  if (value >= q::kPrime) {
+    atomicOr(job.status, 1u);
+    job.output[i] = 0;
+  } else
+    job.output[i] = (ns == 0 && coordinate != 0) ? 0 : value;
+}
+} // namespace stwo::cuda::rv64
+extern "C" int
+stwo_rv64_joined_parameter_gather_on(void *ctx, uint32_t lane,
+                                     const StwoRv64JoinedParameters *input) {
+  if (!input || input->reserved || !input->count ||
+      input->count > STWO_RV64_JOINED_PARAMETER_COUNT)
+    return int(cudaErrorInvalidValue);
+  const auto job = *input;
+  Custody c(ctx, lane);
+  for (uint32_t i = 0; i < 5; ++i)
+    if (!c.range(job.sources[i],
+                 uint64_t(STWO_RV64_JOINED_NAMESPACE_COUNTS[i]) *
+                     (i == 0 ? 1 : 8),
+                 false))
+      return c.status;
+  if (!c.range(job.addresses, uint64_t(job.count) * 2, false) ||
+      !c.range(job.output, uint64_t(job.count) * 8, true) ||
+      !c.range(job.status, 1, true))
+    return c.status;
+  gather_joined<<<(job.count * 8 + 127) / 128, 128, 0, c.stream>>>(job);
+  return int(cudaPeekAtLastError());
+}
