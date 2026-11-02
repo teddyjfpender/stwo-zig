@@ -16,11 +16,11 @@ pub fn For(comptime F: type) type {
         coefficients: []S,
         padded: S,
         pub fn maxBytesForTerms(terms: usize) !usize {
-            if (terms == 0 or terms > 128) return error.LocalGkrProjectionShape;
+            if (terms == 0 or terms > @import("frame.zig").MAX_LOCAL_TERMS) return error.LocalGkrProjectionShape;
             return std.math.add(usize, try std.math.mul(usize, terms, @sizeOf(Entry)), try std.math.mul(usize, try std.math.mul(usize, terms, R.MAX_ARITY), @sizeOf(S)));
         }
         pub fn init(a: std.mem.Allocator, relations: []const R.Relation, ch: *const Ch, weights: []const O) !@This() {
-            if (relations.len == 0 or relations.len > 128 or relations.len > weights.len or weights.len > 128 or !std.math.isPowerOfTwo(weights.len)) return error.LocalGkrProjectionShape;
+            if (relations.len == 0 or relations.len > @import("frame.zig").MAX_LOCAL_TERMS or relations.len > weights.len or weights.len > @import("frame.zig").MAX_LOCAL_TERMS or !std.math.isPowerOfTwo(weights.len)) return error.LocalGkrProjectionShape;
             var count: usize = 0;
             for (relations) |relation| count = try std.math.add(usize, count, relation.arity());
             const allocation_bytes = try std.math.add(usize, try std.math.mul(usize, relations.len, @sizeOf(Entry)), try std.math.mul(usize, count, @sizeOf(S)));
@@ -45,12 +45,12 @@ pub fn For(comptime F: type) type {
         pub fn initComponent(a: std.mem.Allocator, component: anytype) !@This() {
             const C = @typeInfo(@TypeOf(component)).pointer.child;
             const Collector = struct {
-                relations: [128]R.Relation = undefined,
+                relations: [@import("frame.zig").MAX_LOCAL_TERMS]R.Relation = undefined,
                 count: usize = 0,
                 invalid: bool = false,
                 pub fn emit(self: *@This(), relation: R.Relation, tuple: anytype, weight: anytype) void {
                     _ = weight;
-                    if (self.count >= 128 or tuple.len != relation.arity()) {
+                    if (self.count >= @import("frame.zig").MAX_LOCAL_TERMS or tuple.len != relation.arity()) {
                         self.invalid = true;
                         return;
                     }
