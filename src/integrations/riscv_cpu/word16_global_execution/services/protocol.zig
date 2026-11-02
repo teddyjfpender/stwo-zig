@@ -9,6 +9,7 @@ const H = A.crypto.sha256;
 const Ar = A.crypto.arith256;
 const Cv = A.crypto.curves;
 const CurveRoster = @import("../curves/roster.zig");
+const SecpRow = @import("../secp/row_roster.zig");
 const G = @import("../protocol.zig");
 const R = @import("roster.zig");
 const T = @import("types.zig");
@@ -26,12 +27,15 @@ const LSD = A.memory.load_store_dword;
 /// Admitted LS-D64 geometry and masses of one CPU proof: present iff it has
 /// rows, one inactive terminal row, RAM14 gains 2 per row, U16 4 and U8 2 per
 /// physical row (padding included), OWNER19 at most 1 per row.
-pub fn admitDword(setup: *const R.CpuSetup, r: Request) !struct { range16: u64, range8: u64 } {
+/// Fused-pair layout (Geometry.ls_dword_fused_pairs): the two U8 queries are
+/// one AND-relation byte pair per physical row instead (`and_pairs`).
+pub fn admitDword(setup: *const R.CpuSetup, r: Request) !struct { range16: u64, range8: u64, and_pairs: u64 } {
     _ = try T.dwordCounts(setup.bridges, r.ls_dword);
-    var out: @TypeOf(admitDword(setup, r) catch unreachable) = .{ .range16 = 0, .range8 = 0 };
+    var out: @TypeOf(admitDword(setup, r) catch unreachable) = .{ .range16 = 0, .range8 = 0, .and_pairs = 0 };
+    const pairs = setup.materials.geometry.ls_dword_fused_pairs;
     for (0..T.DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |l| {
         out.range16 += @as(u64, LSD.layout.LOGICAL_U16.len) << @intCast(l);
-        out.range8 += @as(u64, LSD.layout.LOGICAL_U8.len) << @intCast(l);
+        if (pairs) out.and_pairs += @as(u64, LSD.layout.fused.PAIR_QUERIES) << @intCast(l) else out.range8 += @as(u64, LSD.layout.LOGICAL_U8.len) << @intCast(l);
     };
     return out;
 }
@@ -111,18 +115,14 @@ pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, ran
 /// FUNCTION ids 19..24 close against the CPU and its 8 byte-AND requests per
 /// physical row join the core AND table. Present only for a Zbb-profile ROM;
 /// the total AND mass (BINARY + CPU pairs + sponge + Zbb) stays below p.
-pub fn admitZbb(setup: *const R.CpuSetup) !void {
-    const log = setup.bridges.zbb orelse return;
+/// Admitted Zbb geometry of one CPU proof; returns the Zbb chip's byte-AND
+/// lookup mass (8 per physical row, padding included), which joins the core
+/// AND table and so the joint AND-mass bound in `admit`.
+pub fn admitZbb(setup: *const R.CpuSetup) !u64 {
+    const log = setup.bridges.zbb orelse return 0;
     if (!A.word16_execution.features.zbbProfile(setup.materials.program.profile)) return error.UnexpectedZbbComponent;
     if (log < 5 or log > 22) return error.InvalidCombinedBridgeGeometry;
-    const g = setup.materials.geometry;
-    const binary_rows = (@as(u64, 1) << @intCast(g.binary_log)) + (if (g.binary_tail_log) |t| @as(u64, 1) << @intCast(t) else 0);
-    var mass = 8 * binary_rows + 8 * (@as(u64, 1) << @intCast(log));
-    // Pair mode (Geometry.cpu_u8_pairs): two tagged CPU pair queries per CPU
-    // row also land on this AND table (second multiplicity column).
-    if (g.cpu_u8_pairs) mass += 2 * (@as(u64, 1) << @intCast(g.cpu_log));
-    if (setup.bridges.sponge.perm) |l| mass += @as(u64, KS.layout.andCount(.perm)) << @intCast(l);
-    if (mass >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+    return 8 * (@as(u64, 1) << @intCast(log));
 }
 pub fn firstIds(requests: []const Request, index: usize) ![T.FAMILIES]u32 {
     if (index > requests.len) return error.InvalidCombinedOrdinal;
@@ -162,7 +162,18 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
         const dword = try admitDword(setup, req);
-        try admitZbb(setup);
+        const zbb_and = try admitZbb(setup);
+        // The AND relation of this CPU proof (BINARY, every byte-pair consumer
+        // of the pair-capable table, Zbb byte-AND, sponge byte-AND) keeps its
+        // joint mass below p. Checked whenever any byte-pair layout is declared
+        // (each pair flag requires cpu_u8_pairs) or a Zbb chip is present.
+        if (setup.materials.geometry.cpu_u8_pairs or setup.materials.geometry.ls_dword_fused_pairs or setup.bridges.zbb != null) {
+            const sponge_and: u64 = if (setup.bridges.sponge.perm) |l| @as(u64, KS.layout.andCount(.perm)) << @intCast(l) else 0;
+            var and_mass = try std.math.add(u64, try setup.materials.geometry.andMass(), sponge_and);
+            and_mass = try std.math.add(u64, and_mass, dword.and_pairs);
+            and_mass = try std.math.add(u64, and_mass, zbb_and);
+            if (and_mass >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+        }
         sponge_io = try std.math.add(u64, sponge_io, sponge.io);
         sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
         var mass16 = try std.math.add(u64, try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16), dword.range16);
@@ -215,10 +226,10 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         previous = family;
         switch (truth) {
             .keccak => |t| {
-                try K.layout.validateGeometry(t.calls, t.first_id, t.setup.log);
+                try K.layout.validateGeometryFor(t.setup.policy.geometry(), t.calls, t.first_id, t.setup.log);
                 switch (t.setup.policy) {
                     .triple_v2 => {},
-                    .throughput_v1 => _ = try K.layout.admitThroughputRoster(&.{t.calls}),
+                    .throughput_v1, .throughput_quartet_v1, .throughput_r27_v1 => _ = try K.layout.admitThroughputRoster(&.{t.calls}),
                     .quartet_v3 => return error.InvalidServicesTruthGeometry,
                 }
             },
@@ -238,6 +249,12 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
             .curve => |t| {
                 try CurveRoster.validateGeometry(t.setup.op, t.calls, t.first_id, t.setup.log);
                 wire = try std.math.add(u64, wire, CurveRoster.wireFractions(t.setup.op) * @as(u64, t.calls));
+            },
+            // Row truth: one consume per packet coordinate and one produce per
+            // written coordinate per call (no internal wires).
+            .secp_row => |t| {
+                try SecpRow.validateGeometry(t.setup.kind, t.calls, t.first_id, t.setup.log);
+                wire = try std.math.add(u64, wire, SecpRow.wireFractions(t.setup.kind) * @as(u64, t.calls));
             },
         }
         next[family] = try std.math.add(u64, next[family], truth.count());
@@ -314,8 +331,9 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
     if (s.bridges.ls_dword != null or s.bridges.ls_dword_tail != null or r.ls_dword != 0) {
         ch.mixU32s(&.{ 0x4c534436, 1, r.base.memory.ls_count, r.ls_dword });
         for (0..T.DWORD_INSTANCES) |k| ch.mixU32s(&.{ @intCast(k), @intFromBool(s.bridges.dwordLog(k) != null), s.bridges.dwordLog(k) orelse 0 });
-        for (T.dwordWidths()) |width| ch.mixU32s(&.{@intCast(width)});
+        for (T.dwordWidthsFor(s.materials.geometry)) |width| ch.mixU32s(&.{@intCast(width)});
         LSD.encoding.mix(ch);
+        if (s.materials.geometry.ls_dword_fused_pairs) LSD.encoding.mixFused(ch);
     }
     // Zbb BINARY component: mixed only when present (every other transcript
     // unchanged). Binds the chip (ids, constraints, widths), its log and the
@@ -346,7 +364,7 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
         // Compact words are unchanged (existing bundles); the throughput
         // profile mixes its own identity and geometry instead, before roots.
         .keccak => |t| switch (t.setup.policy) {
-            .throughput_v1 => {
+            .throughput_v1, .throughput_quartet_v1, .throughput_r27_v1 => {
                 ch.mixU32s(&.{ 0x4b545055, 1, t.setup.log, t.setup.policy.tableLog(.chi), t.setup.policy.tableLog(.xor5), K.layout.FIXED, K.layout.MAIN, @intCast(t.setup.policy.interactionCount()), 11 });
                 t.setup.policy.mix(ch);
             },
@@ -362,6 +380,11 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
         .curve => |t| {
             ch.mixU32s(&.{ 0x43525631, t.setup.log, 35 });
             ch.mixU32s(&CurveRoster.geometryWords(t.setup.op));
+        },
+        // Distinct identity: an RCB secp spec can never equal a row spec.
+        .secp_row => |t| {
+            ch.mixU32s(&.{ SecpRow.IDENTITY, 1, t.setup.log, 35 });
+            ch.mixU32s(&SecpRow.geometryWords(t.setup.kind));
         },
     }
 }
@@ -386,7 +409,7 @@ pub fn drawCpu(ch: *G.T.P.Channel, manifest: *const Manifest, index: usize) !G.O
     G.Old.digest(ch, manifest.digest);
     return G.Old.drawWithSharedRam(ch, common.ram);
 }
-pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges, curve: Cv.equations.Challenges };
+pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges, curve: Cv.equations.Challenges, secp_row: Cv.equations.Challenges };
 pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, ordinal: usize) !TruthDraw {
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x57534332, 1, 1, @intCast(ordinal), @intFromEnum(truth.family()) });
@@ -410,6 +433,10 @@ pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, 
         .curve => block: {
             ch.mixU32s(&.{ 0x43524231, 8 });
             break :block .{ .curve = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
+        },
+        .secp_row => block: {
+            ch.mixU32s(&.{ 0x53524231, 8 });
+            break :block .{ .secp_row = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
         },
     };
 }

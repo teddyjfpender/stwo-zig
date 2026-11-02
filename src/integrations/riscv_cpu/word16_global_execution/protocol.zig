@@ -103,7 +103,7 @@ pub fn validateMaterials(materials: []const *const Materials, requests: []const 
 fn validateInventory(inventory: Inventory, requests: []const Old.Request, expected: Expected) !void {
     if (inventory.len() == 0 or inventory.len() > 65535 or inventory.len() != requests.len or expected.total_steps == 0) return error.InvalidGlobalExecutionRoster;
     if (expected.max_total_steps == 0 or expected.total_steps > expected.max_total_steps) return error.GlobalExecutionBudgetExceeded;
-    if (expected.admission.max_prefix_steps == 0 or expected.admission.max_prefix_steps >= 1 << 22) return error.InvalidExecutionBudget;
+    if (expected.admission.max_prefix_steps == 0 or expected.admission.max_prefix_steps >= 1 << 23) return error.InvalidExecutionBudget;
     var first: u64 = 0;
     var mass: u64 = 0;
     for (requests, 0..) |r, index| {

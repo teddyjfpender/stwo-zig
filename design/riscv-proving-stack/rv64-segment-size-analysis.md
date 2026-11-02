@@ -445,3 +445,62 @@ per-proof FRI proximity terms over QM31 change negligibly with domain size.
 This needs verification against the security-policy receipt. Every timing and
 memory projection in sections 2-4 is a model calibrated on one baseline, not a
 measurement.
+
+## 7. Implementation and measurement (2026-11-02, branch `codex/rv64-ge-seg23`)
+
+Implemented as a selectable segment size: `batch_steps` up to 2^23-1 (the
+request field, already bound through the request identity and
+`max_prefix_steps`) produces log-23 CPU proofs. Logs <= 22 are unchanged: a
+2^22 4-packet prefix produced with the new binary has a `bundle.json` and
+`cost.json` byte-identical to the pre-change reference
+(`ge-cache/fusedfix/prefix4`). 2^22 stays the default.
+
+Log 23 selects a separate **wide-clock** CPU encoding (transcript domain
+`wideClockIdentity`, mixed only when `cpu_log > 22`), a variant of option A
+that touches only the CPU AIR:
+
+* REG gaps (up to 2^25) keep `gap = gap16 + 65536*gap8`, but each `gap8` is
+  range-checked by the U16 query `128*gap8` instead of a U8 query. If the U16
+  lookup accepts y = 128*gap8 (mod p) with y < 2^16, then
+  65536*gap8 = 512*y (mod p), so the committed gap is the integer
+  gap16 + 512*y < 2^16 + 2^25 < 2^26. A backward or self-cycle predecessor
+  needs a gap >= p - 2^25, so it has no witness. This is checked exhaustively
+  over all 2^16 table values in `rv64_word16_execution_wide_clock_test.zig`.
+* The OWNER/RAM tick is `row+1` (stride 1) instead of `4*row+4`. This is an
+  order-preserving injective relabelling of the CPU's single RAM tick per row.
+  Every RAM-side component (LS, LS-D64, closed RAM, all bridges, sponge,
+  bulk) is unchanged and stays epoch16/tick24 (ticks <= 2^23).
+* It is defined only on the fused tail without byte pairs: a 9-bit limb
+  cannot be covered by an affine byte-pair query. This costs 4 interaction
+  cells per CPU row compared with the pairs default.
+
+Measured on the real prefix of block 24,628,607. Both arms used the same
+binary, the same host session and 2 lanes x 7 workers. The 2^22 arm ran
+twice, the 2^23 arm twice. Both were freshly verified with `verify-prefix`
+(accepted).
+
+| | 4 x 2^22 (default) | 2 x 2^23 (wide clock) | delta |
+|---|---:|---:|---:|
+| steps | 16,777,212 | 16,777,214 | |
+| CPU committed cells (main+inter) | 2,274,110,496 | 2,326,722,496 | +52.6M (+2.3%) |
+| CPU committed cells / instruction | 135.55 | 138.68 | +3.14 |
+| CPU fixed cells | 127,519,360 | 106,563,200 | -16.4% |
+| truth committed cells | 893,839,904 | 893,839,904 | 0 |
+| CPU proof bytes | 9,999,200 | 5,282,320 | **-47.2%** |
+| all proof bytes (CPU + truth) | 15,120,604 | 10,503,872 | -30.5% |
+| prove (report `prove_ns`) | 30.27 / 29.70 s | 38.74 / 38.65 s | **+29%** |
+| produce wall (`time`) | 34.57 / 34.04 s | 43.41 / 43.44 s | +27% |
+| peak private footprint | 13.53 / 13.78 GB | 20.40 / 23.00 GB | +7 to +9 GB |
+| max RSS | 21.41 / 19.68 GB | 17.84 / 19.52 GB | about equal (retained MAIN is file-backed) |
+| fresh verify (`verify_ns`) | 0.271 s | 0.231 s | -15% |
+
+**Decision: keep 2^22 as the default.** 2^23 roughly halves CPU proof bytes,
+and so CPU leaves for recursion. But on this host it is about 27% slower end
+to end and needs about 7-9 GB more private memory. The modelled lane-tail and
+FFT growth dominates the fixed-cost savings at 2 CPU proofs per 2 lanes.
+2^23 remains available per request (`batch_steps` 8,388,607, v3 route only;
+v2 rejects fused-tail CPUs) for proof-size or recursion-bound runs.
+
+Not done: the recursion in-circuit verifier for log-23 CPUs; a complete-block
+arm (4 CPU proofs at 2^23 against 7 at 2^22, which balances lanes
+differently); and GKR local frames, which stay capped at 22.

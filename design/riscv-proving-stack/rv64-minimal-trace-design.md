@@ -262,3 +262,40 @@ Qualification:
 
 Security note: the packet SHA-256 protects transport integrity, not
 soundness. Dropping it is safe only for in-process handoff.
+
+## 7. Status (2026-11-02, branch codex/rv64-ge-capture)
+
+Implemented (no proof-byte change intended; see the commit messages for receipts):
+
+- **Stage 1a (packets).** `rv64-word16-ethereum produce|plan ... --capture-inflight=N`
+  reads and captures up to N packets concurrently; every schedule feeds one
+  ordered owner (`capture.Ordered`: `admit` then `accept`), which alone advances
+  adjacency, step budget, completion and the global ledger.
+- **Stage 1b (in-process handoff).** `produce-direct|plan-direct <config> <out>
+  <count> [--capture-inflight=N]` runs the execution walk (`native_prepare.Walk`,
+  shared with `nativeprepare`) in the driver process. Each batch goes through
+  `Packet.fromNative`: the packet reader's identity, statement wire decode,
+  ROM/PC admission (`Admission.checkTape`, the same walk as the file check) and
+  tape checks, plus the packet header's resource limits and decoded-allocation
+  bound (`Budget.checkNative`). File framing, the SHA-256 transport digest and
+  the legacy Poseidon frontier are not produced, so the frontier-graph limits
+  (records, permutations <= MAX_IO, the graph's share of packet bytes and
+  decoded peak) do not apply: a batch whose graph alone breaks a limit fails
+  `nativeprepare`/`Packet.read` with `WorkPacketResourceLimit` but is admitted
+  in process. No chained sparse-cache root exists on this route, so batch
+  metadata roots are `Packet.ABSENT_ROOT` (zero) and `fromNative` rejects any
+  other value. Captures run on helper threads while execution continues.
+- **nativeprepare pipeline.** Execution of batch k+1 overlaps the ordered
+  publication (frontier graph, packet write+fsync, cache advance, descriptor)
+  of batch k. Output bytes are identical to the serial binary.
+
+Measured on block 24,628,607 (26.89 M instructions, 7 batches): nativeprepare
+4.6-5.3 s -> 3.5-3.7 s; packet capture 3.0 s -> 1.27 s (N=7); in-process
+execute+capture 2.2 s (N=4) against about 8.2 s for nativeprepare plus packet
+capture. Execution itself (1.6 s of the 2.2 s) is now the floor.
+
+Not implemented: checkpointed parallel re-execution (stage 1c / per-segment
+start states). With the handoff overlapping capture, only execution remains
+serial; a checkpoint first pass already costs about 0.67 s at the measured
+40 MHz pure rate plus per-segment memory snapshots, so the projected saving on
+this block is at most about 0.4 s for roughly +2 GB RSS.

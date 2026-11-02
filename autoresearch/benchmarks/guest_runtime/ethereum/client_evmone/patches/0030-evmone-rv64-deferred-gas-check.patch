@@ -1,0 +1,155 @@
+--- a/lib/evmone/baseline_execution.cpp
++++ b/lib/evmone/baseline_execution.cpp
+@@ -8,6 +8,7 @@
+ #include "instructions.hpp"
+ #include "vm.hpp"
+ #include <memory>
++#include <type_traits>
+ 
+ #ifdef NDEBUG
+ #define release_inline gnu::always_inline, msvc::forceinline
+@@ -25,6 +26,40 @@
+ {
+ namespace
+ {
++/// stwo RV64: deferred gas checks in dispatch_cgoto (patch 0030).
++///
++/// A "pure" opcode only reads and writes the EVM stack (and, for PUSHn, reads the code):
++/// no memory, storage, host, gas or control-flow effect. dispatch_cgoto charges such an
++/// opcode's (constant) base cost without testing the result; every other opcode tests
++/// `gas < 0` after charging its own cost, including zero-cost ones (STOP, RETURN, ...).
++/// Gas never increases inside a run of pure opcodes, so if a pure opcode drove gas
++/// negative, the next non-pure opcode reports EVMC_OUT_OF_GAS before it has any effect,
++/// and every failure on the way (stack underflow/overflow, undefined opcode) is reported
++/// as EVMC_OUT_OF_GAS when gas was already negative on entry: exactly the status the
++/// per-opcode check would have produced at the opcode that ran out. The run is finite:
++/// pure opcodes only move forward and the code ends in STOP padding; JUMP/JUMPI and
++/// JUMPDEST are not pure. An exceptional halt zeroes gas_left in make_execution_result,
++/// so the observable result (status, gas_left = 0, no output) is unchanged.
++template <Opcode Op>
++constexpr bool stwo_pure_op() noexcept
++{
++    using Fn = decltype(instr::core::impl<Op>);
++    if constexpr (Op == OP_JUMPDEST)
++        return false;
++    else if constexpr (Op >= OP_PUSH1 && Op <= OP_PUSH32)
++        return true;
++    else
++        return std::is_same_v<std::remove_cv_t<Fn>, void (*)(StackTop) noexcept>;
++}
++static_assert(stwo_pure_op<OP_ADD>() && stwo_pure_op<OP_POP>() && stwo_pure_op<OP_PUSH0>() &&
++              stwo_pure_op<OP_PUSH1>() && stwo_pure_op<OP_PUSH32>() && stwo_pure_op<OP_DUP1>() &&
++              stwo_pure_op<OP_SWAP16>() && stwo_pure_op<OP_ISZERO>() && stwo_pure_op<OP_MULMOD>());
++static_assert(!stwo_pure_op<OP_JUMP>() && !stwo_pure_op<OP_JUMPI>() && !stwo_pure_op<OP_JUMPDEST>() &&
++              !stwo_pure_op<OP_GAS>() && !stwo_pure_op<OP_PC>() && !stwo_pure_op<OP_STOP>() &&
++              !stwo_pure_op<OP_MLOAD>() && !stwo_pure_op<OP_MSTORE>() && !stwo_pure_op<OP_SLOAD>() &&
++              !stwo_pure_op<OP_CALLER>() && !stwo_pure_op<OP_EXP>() && !stwo_pure_op<OP_RETURN>() &&
++              !stwo_pure_op<OP_INVALID>() && !stwo_pure_op<OP_CALL>() && !stwo_pure_op<OP_KECCAK256>());
++
+ /// Checks instruction requirements before execution.
+ ///
+ /// This checks:
+@@ -40,7 +75,7 @@
+ ///                               The stack height is stack_top - stack_bottom.
+ /// @return  Status code with information which check has failed
+ ///          or EVMC_SUCCESS if everything is fine.
+-template <Opcode Op>
++template <Opcode Op, bool Defer = false>
+ inline evmc_status_code check_requirements(const CostTable& cost_table, int64_t& gas_left,
+     const uint256* stack_top, const uint256* stack_bottom) noexcept
+ {
+@@ -80,8 +115,16 @@
+             return EVMC_STACK_UNDERFLOW;
+     }
+ 
+-    if constexpr (!instr::has_const_gas_cost(Op) || instr::gas_costs[EVMC_FRONTIER][Op] > 0)
++    if constexpr (Defer && stwo_pure_op<Op>())
+     {
++        gas_left -= gas_cost;  // tested by the next non-pure opcode
++#if defined(__riscv)
++        asm("" : "+r"(gas_left));
++#endif
++    }
++    else if constexpr (Defer || !instr::has_const_gas_cost(Op) ||
++                       instr::gas_costs[EVMC_FRONTIER][Op] > 0)
++    {
+         gas_left -= gas_cost;
+ #if defined(__riscv)
+         // stwo RV64IM: test the decremented value. Otherwise LLVM rewrites the test
+@@ -152,14 +195,18 @@
+ }
+ 
+ /// A helper to invoke the instruction implementation of the given opcode Op.
+-template <Opcode Op>
++template <Opcode Op, bool Defer = false>
+ [[release_inline]] inline Position invoke(const CostTable& cost_table, const uint256* stack_bottom,
+     Position pos, int64_t& gas, ExecutionState& state) noexcept
+ {
+-    if (const auto status = check_requirements<Op>(cost_table, gas, pos.stack_end, stack_bottom);
++    if (const auto status =
++            check_requirements<Op, Defer>(cost_table, gas, pos.stack_end, stack_bottom);
+         status != EVMC_SUCCESS)
+     {
+-        state.status = status;
++        // With Defer, gas may already be negative on entry (a preceding pure opcode ran
++        // out): any failure is then the out-of-gas the per-opcode check reports first.
++        // The stack and undefined-opcode checks run before this opcode's own charge.
++        state.status = (Defer && gas < 0) ? EVMC_OUT_OF_GAS : status;
+ #if defined(__riscv)
+         // An exceptional halt consumes all gas (make_execution_result zeroes it), so the
+         // value returned here is never used. Returning a constant keeps the register
+@@ -238,6 +285,15 @@
+ #endif
+ 
+ 
++#if defined(ZEG_STWO)
++// stwo builds (guest and host): dispatch_cgoto defers the gas test of pure opcodes; the
++// switch dispatch keeps evmone's per-opcode checks and is the reference the host
++// differential fuzzer (tests/xlat_difffuzz.cpp) compares against.
++inline constexpr bool kStwoDeferGas = true;
++#else
++inline constexpr bool kStwoDeferGas = false;
++#endif
++
+ int64_t dispatch_cgoto(
+     const CostTable& cost_table, ExecutionState& state, int64_t gas, const uint8_t* code) noexcept
+ {
+@@ -264,7 +320,8 @@
+ #define ON_OPCODE(OPCODE)                                                                 \
+     TARGET_##OPCODE : ASM_COMMENT(OPCODE);                                                \
+     ZEG_TRY_FUSE(OPCODE)                                                                  \
+-    if (const auto next = invoke<OPCODE>(cost_table, stack_bottom, position, gas, state); \
++    if (const auto next =                                                                 \
++            invoke<OPCODE, kStwoDeferGas>(cost_table, stack_bottom, position, gas, state);  \
+         next.code_it == nullptr)                                                          \
+     {                                                                                     \
+         return gas;                                                                       \
+@@ -281,7 +338,7 @@
+ #undef ON_OPCODE
+ 
+ TARGET_OP_UNDEFINED:
+-    state.status = EVMC_UNDEFINED_INSTRUCTION;
++    state.status = (kStwoDeferGas && gas < 0) ? EVMC_OUT_OF_GAS : EVMC_UNDEFINED_INSTRUCTION;
+     return gas;
+ }
+ #endif
+--- a/lib/evmone/instructions.hpp
++++ b/lib/evmone/instructions.hpp
+@@ -1203,6 +1203,17 @@
+     static constexpr auto NUM_FULL_WORDS = Len / sizeof(word_type);
+     static constexpr auto NUM_PARTIAL_BYTES = Len % sizeof(word_type);
+ 
++#if defined(ZEG_STWO)
++    // stwo RV64 (patch 0030): PUSH1..PUSH7 load the immediate before writing the stack
++    // slot. Code may alias the stack as far as the compiler knows, so zeroing the slot
++    // first forced a second store of limb 0 on every such PUSH.
++    if constexpr (NUM_FULL_WORDS == 0)
++    {
++        const uint64_t v = load_partial_push_data<NUM_PARTIAL_BYTES>(pos + 1);
++        stack.push(uint256{v});
++        return pos + 1 + Len;
++    }
++#endif
+     stack.push({});
+     auto& r = stack.top();
+     pos += 1;  // Skip the opcode.

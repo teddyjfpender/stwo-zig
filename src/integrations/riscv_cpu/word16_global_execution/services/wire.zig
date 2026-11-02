@@ -173,15 +173,33 @@ fn serviceCalls(r: CompactRequest) u64 {
     return n;
 }
 pub const CpuDeclaration = struct { geometry: Geo, bridges: T.Logs };
+/// Keccak truth declaration `logs[1]`: 0 compact (unchanged bytes), 21
+/// throughput-v1 (the chi table log), and 21 | 4 << 8 throughput-quartet-v1
+/// (same tables, batch width four). Every other word is rejected.
+pub const KECCAK_THROUGHPUT_QUARTET_WORD: u32 = 21 | (4 << 8);
+/// throughput-r27-v1: the quartet word plus the 27-row slot (27 << 16).
+pub const KECCAK_THROUGHPUT_R27_WORD: u32 = KECCAK_THROUGHPUT_QUARTET_WORD | (27 << 16);
 pub fn keccakProfileWord(policy: A.crypto.keccak.equations.BatchPolicy) u32 {
-    return if (policy == .throughput_v1) policy.tableLog(.chi) else 0;
+    return switch (policy) {
+        .throughput_v1 => policy.tableLog(.chi),
+        .throughput_quartet_v1 => KECCAK_THROUGHPUT_QUARTET_WORD,
+        .throughput_r27_v1 => KECCAK_THROUGHPUT_R27_WORD,
+        else => 0,
+    };
 }
 pub fn keccakPolicy(word: u32) !A.crypto.keccak.equations.BatchPolicy {
     return switch (word) {
         0 => .triple_v2,
         21 => .throughput_v1,
+        KECCAK_THROUGHPUT_QUARTET_WORD => .throughput_quartet_v1,
+        KECCAK_THROUGHPUT_R27_WORD => .throughput_r27_v1,
         else => error.InvalidServicesTruthGeometry,
     };
+}
+/// A secp ADD/DOUBLE declaration of the `row_v1` profile (v3 only; the
+/// receiver policy `ethereum.main.admitProfile` rejects it under v2).
+pub fn isSecpRow(t: TruthDeclaration) bool {
+    return (t.family == .add or t.family == .double) and t.logs[1] == @import("../secp/row_roster.zig").PROFILE_WORD;
 }
 pub const TruthDeclaration = struct {
     family: T.Family,
@@ -197,6 +215,8 @@ pub const TruthDeclaration = struct {
             .sha256 => |h| .{ h.setup.log, 0 },
             .arith256_mod => |h| .{ h.setup.log, 0 },
             .curve => |h| .{ h.setup.log, 0 },
+            // logs[1] = 0 names the secp row profile (never a valid RCB linear log).
+            .secp_row => |h| .{ h.setup.log, @import("../secp/row_roster.zig").PROFILE_WORD },
         } };
     }
 };
@@ -285,7 +305,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         // Single-component v3 truths (SHA-256, arith256_mod, curves) carry
         // only the first claim; the other two must be zero.
         const f = truth.declaration.family;
-        if ((f == .sha256 or f == .arith256_mod or T.curveOp(f) != null) and (!truth.claims[1].isZero() or !truth.claims[2].isZero())) return error.NonzeroAbsentServiceClaim;
+        if ((f == .sha256 or f == .arith256_mod or T.curveOp(f) != null or isSecpRow(truth.declaration)) and (!truth.claims[1].isZero() or !truth.claims[2].isZero())) return error.NonzeroAbsentServiceClaim;
         for (truth.claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalServicesClaim;
     }
 }
@@ -357,7 +377,7 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
         for (0..T.DWORD_INSTANCES) |k| if (cpu.declaration.bridges.dwordLog(k)) |l| {
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(l));
             mass16 = try std.math.add(u64, mass16, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U16.len) << @intCast(l));
-            mass8 = try std.math.add(u64, mass8, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U8.len) << @intCast(l));
+            if (!g.ls_dword_fused_pairs) mass8 = try std.math.add(u64, mass8, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U8.len) << @intCast(l));
         };
         // Zbb geometry: the same admission the receiver repeats in P.admitZbb.
         if (cpu.declaration.bridges.zbb) |l| {
@@ -387,8 +407,8 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
         if (t.family == .keccak) {
             const policy = try keccakPolicy(t.logs[1]);
             if (t.logs[0] > 21) return error.InvalidServicesTruthGeometry;
-            try A.crypto.keccak.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
-            if (policy == .throughput_v1) _ = try A.crypto.keccak.layout.admitThroughputRoster(&.{t.calls});
+            try A.crypto.keccak.layout.validateGeometryFor(policy.geometry(), t.calls, t.first_id, t.logs[0]);
+            if (policy.throughputTables()) _ = try A.crypto.keccak.layout.admitThroughputRoster(&.{t.calls});
             native_rows = try std.math.add(u64, native_rows, (@as(u64, 1) << @intCast(t.logs[0])) + (@as(u64, 1) << @intCast(policy.tableLog(.chi))) + (@as(u64, 1) << @intCast(policy.tableLog(.xor5))));
         } else if (t.family == .sha256) {
             if (t.logs[0] > @import("../sha256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
@@ -406,6 +426,12 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
             try A.crypto.arith256.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
             wire = try std.math.add(u64, wire, A.crypto.arith256.layout.WIRE_FRACTIONS * @as(u64, t.calls));
+        } else if (isSecpRow(t)) {
+            const Row = @import("../secp/row_roster.zig");
+            const kind: Row.Kind = @enumFromInt(k);
+            try Row.validateGeometry(kind, t.calls, t.first_id, t.logs[0]);
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
+            wire = try std.math.add(u64, wire, Row.wireFractions(kind) * @as(u64, t.calls));
         } else {
             const S = A.crypto.secp256k1;
             const program = S.program.get(@enumFromInt(k));

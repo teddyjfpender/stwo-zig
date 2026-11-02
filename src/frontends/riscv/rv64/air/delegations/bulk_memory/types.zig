@@ -207,7 +207,9 @@ pub fn validateGeometry(kind: @import("layout.zig").Kind, rows: u64, log: u32) !
 
 pub fn validateCall(call: Call, words: []const Word) !void {
     const max = std.math.maxInt(u64);
-    if (call.epoch == 0 or call.tick == 0 or call.tick & 3 != 0) return error.InvalidBulkMemoryClock;
+    // The tick stride (4, or 1 under the wide-clock CPU) is the producing CPU's
+    // encoding; collectors check it against the CPU log (word16_execution.layout.ramStride).
+    if (call.epoch == 0 or call.tick == 0) return error.InvalidBulkMemoryClock;
     const packet_bytes: u64 = 8 * call.packetWords();
     if (call.pointer & 7 != 0 or call.pointer > max - (packet_bytes - 1)) return error.InvalidBulkMemoryPacket;
     if (call.len == 0 or call.len % 8 != 0 or call.len > MAX_BYTES) return error.InvalidBulkMemoryLength;

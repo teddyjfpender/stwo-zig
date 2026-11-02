@@ -20,14 +20,14 @@ comptime {
 /// its challenges; both present exactly in pair mode (Source.u8_pairs).
 pub const Dictionaries = struct { rom: []const Q, range16: []const Q, range8: []const Q, pair: []const Q = &.{}, pair_challenges: ?Tables.Challenges = null };
 const Tables = @import("stwo_riscv_frontend").rv64_air.providers.tables;
-const Hint = struct { delta: [3]Q, enabled: [3]M, function: M, active: M, gap16: [3]u16, gap8: [3]u8, rom_physical: u32 };
+const Hint = struct { delta: [3]Q, enabled: [3]M, function: M, active: M, gap16: [3]u16, gap8: [3]u16, rom_physical: u32 };
 const Ds = struct { before: [3]Q, after: [3]Q, function: Q, owner: Q };
 fn dot(ch: anytype, tuple: anytype) Q {
     var result = ch.offset;
     for (ch.coefficients, tuple) |coefficient, value| result = result.sub(coefficient.mulM31(value));
     return result;
 }
-fn denominators(ch: X.types.Challenges, row: []const M, index: usize, epoch: u16) Ds {
+fn denominators(ch: X.types.Challenges, row: []const M, index: usize, epoch: u16, wide_clock: bool) Ds {
     const fixed = [_]M{ M.fromCanonical(@intCast(index)), M.zero(), M.zero() };
     var result: Ds = undefined;
     for (0..3) |slot| {
@@ -35,7 +35,7 @@ fn denominators(ch: X.types.Challenges, row: []const M, index: usize, epoch: u16
         result.after[slot] = dot(ch.register, X.tuples.register(M, &fixed, row, slot, true));
     }
     result.function = dot(ch.function, X.tuples.function(M, row));
-    result.owner = dot(ch.owner, X.tuples.owner(M, &fixed, row, M.fromCanonical(epoch)));
+    result.owner = dot(ch.owner, X.tuples.owner(M, &fixed, row, M.fromCanonical(epoch), wide_clock));
     return result;
 }
 fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries, pool: ?*work.WorkPool) !Q {
@@ -50,6 +50,7 @@ fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries, p
         if (!d.mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
     }
     if (source.u8_pairs != (dict.pair_challenges != null) or (source.u8_pairs and !source.fused_tail)) return error.InvalidExecutionDictionary;
+    if (X.layout.wideClock(source.log_size) and (!source.fused_tail or source.u8_pairs)) return error.InvalidExecutionDictionary;
     if (dict.pair_challenges) |pc| {
         if (dict.pair.len != 65536) return error.InvalidExecutionDictionary;
         for (dict.pair, 0..) |inverse, i| {
@@ -203,7 +204,7 @@ const Job = struct {
     }
     fn prepareRow(self: *Job, i: usize, logical: usize) !void {
         const row = try self.source.row(logical);
-        const ds = denominators(self.ch, &row, logical, self.source.epoch);
+        const ds = denominators(self.ch, &row, logical, self.source.epoch, X.layout.wideClock(self.source.log_size));
         for (0..3) |slot| self.scratch[5 * i + slot] = ds.before[slot].mul(ds.after[slot]);
         self.scratch[5 * i + 3] = ds.function;
         self.scratch[5 * i + 4] = ds.owner;
@@ -221,7 +222,11 @@ const Job = struct {
         @memcpy(inverses[0..4], source_inv[0..4]);
         inverses[4] = if (hint.rom_physical != std.math.maxInt(u32)) self.dict.rom[hint.rom_physical] else self.padding_rom;
         const r16 = [3]Q{ self.dict.range16[hint.gap16[0]], self.dict.range16[hint.gap16[1]], self.dict.range16[hint.gap16[2]] };
-        const r8 = [3]Q{ self.dict.range8[hint.gap8[0]], self.dict.range8[hint.gap8[1]], self.dict.range8[hint.gap8[2]] };
+        // Wide clock: the gap8 queries are U16 queries of 128*gap8.
+        const r8 = if (X.layout.wideClock(self.source.log_size))
+            [3]Q{ self.dict.range16[X.layout.WIDE_GAP_SCALE * @as(usize, hint.gap8[0])], self.dict.range16[X.layout.WIDE_GAP_SCALE * @as(usize, hint.gap8[1])], self.dict.range16[X.layout.WIDE_GAP_SCALE * @as(usize, hint.gap8[2])] }
+        else
+            [3]Q{ self.dict.range8[hint.gap8[0]], self.dict.range8[hint.gap8[1]], self.dict.range8[hint.gap8[2]] };
         inverses[5] = source_inv[4].mul(r16[0]);
         inverses[6] = r16[1].mul(r16[2]);
         inverses[7] = r8[0].mul(r8[1]);

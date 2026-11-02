@@ -1,4 +1,5 @@
-//! Curve/field truth component in its own three-tree PCS: degree 3, native 2n.
+//! Curve/field truth component in its own three-tree PCS: degree 3, native 2n
+//! (secp row truths: degree 4, native 4n; `Layout.BATCH`).
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -17,7 +18,8 @@ const accumulation = engine.air.accumulation;
 const F = E.PackedBase;
 const LANES = E.LANES;
 
-pub fn Component(comptime op: spec.Op) type {
+pub fn Component(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Component(@as(spec.Op, op));
     return struct {
         const Self = @This();
         pub const Eq = EqOf.Equations(op);
@@ -53,14 +55,14 @@ pub fn Component(comptime op: spec.Op) type {
             return L.CONSTRAINTS;
         }
         pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
-            return self.log_size + 1;
+            return self.log_size + L.LOG_EXTENSION;
         }
         pub fn compositionLogSplit(_: *const Self) u32 {
-            return 1;
+            return L.LOG_EXTENSION;
         }
         pub fn constraintDegreeBound(self: *const Self, index: usize) !u8 {
             if (index >= self.nConstraints()) return error.InvalidConstraintIndex;
-            return 3;
+            return L.DEGREE;
         }
         pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
             try self.validate();
@@ -148,7 +150,7 @@ pub fn Component(comptime op: spec.Op) type {
                 @memcpy(polys[at..][0..width], trace.polys.items[tree][self.offsets[tree]..][0..width]);
                 at += width;
             }
-            const log = self.log_size + 1;
+            const log = self.log_size + L.LOG_EXTENSION;
             const domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
             const n = domain.size();
             var owned_count: usize = 0;
@@ -208,14 +210,14 @@ pub fn Component(comptime op: spec.Op) type {
         };
         pub fn evaluateRows(component: *const Self, columns: []const []const M, start: usize, end: usize, inverses: []const M, output: *accumulation.ColumnAccumulator) !void {
             const log = component.log_size;
-            const n = @as(usize, 1) << @intCast(log + 1);
-            if (columns.len != Base.FIXED + L.MAIN + L.INTERACTION or start > end or end > n or start % LANES != 0 or end % LANES != 0 or inverses.len != 2 or output.random_coeff_powers.len != component.nConstraints()) return error.InvalidCurveDomain;
+            const n = @as(usize, 1) << @intCast(log + L.LOG_EXTENSION);
+            if (columns.len != Base.FIXED + L.MAIN + L.INTERACTION or start > end or end > n or start % LANES != 0 or end % LANES != 0 or inverses.len != (@as(usize, 1) << @intCast(L.LOG_EXTENSION)) or output.random_coeff_powers.len != component.nConstraints()) return error.InvalidCurveDomain;
             for (columns) |column| if (column.len != n) return error.InvalidCurveDomain;
             for (output.col.columns) |column| if (column.len < n) return error.InvalidCurveDomain;
             var begin = start;
             while (begin < end) : (begin += LANES) {
                 var indices: [LANES]usize = undefined;
-                for (&indices, 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, log, log + 1);
+                for (&indices, 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, log, log + L.LOG_EXTENSION);
                 var view = PackedView{ .columns = columns, .begin = begin, .previous_active = undefined, .previous_inter = undefined };
                 view.previous_active = gather(columns[Base.FIXED + L.ACTIVE], &indices);
                 for (&view.previous_inter, 0..) |*v, slot| v.* = gather(columns[Base.FIXED + L.MAIN + previousColumn(slot)], &indices);

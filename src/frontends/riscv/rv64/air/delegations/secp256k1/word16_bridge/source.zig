@@ -29,7 +29,9 @@ pub fn fixed(a: std.mem.Allocator, kind: T.Kind, log: u32) ![]M {
 }
 pub fn validate(kind: T.Kind, c: T.Call) !void {
     const words = 4 * T.coordinates(kind);
-    if (c.epoch == 0 or c.tick == 0 or c.tick & 3 != 0 or c.pointer & 31 != 0 or c.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidWord16SecpCall;
+    // The tick stride (4, or 1 under the wide-clock CPU) is the producing CPU's
+    // encoding; collectors check it against the CPU log (word16_execution.layout.ramStride).
+    if (c.epoch == 0 or c.tick == 0 or c.pointer & 31 != 0 or c.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidWord16SecpCall;
     for (c.predecessors[0..words], c.before[0..words], c.after[0..words], 0..) |pred, before, after, lane| {
         if (pred.value != before or pred.rights & 1 == 0 or (T.isWritten(kind, lane / 4) and pred.rights & 2 == 0) or (!T.isWritten(kind, lane / 4) and after != before) or pred.epoch > c.epoch or (pred.epoch == c.epoch and pred.tick >= c.tick)) return error.InvalidWord16SecpPredecessor;
     }

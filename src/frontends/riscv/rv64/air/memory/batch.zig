@@ -42,7 +42,8 @@ fn validateMode(geometry: values.Geometry, openings: []const Opening, allow_unto
         if (opening.index >= @as(u64, 1) << geometry.depth() or (i > 0 and openings[i - 1].index >= opening.index) or opening.before.len != geometry.cells() or opening.after.len != geometry.cells() or opening.terminal_clocks.len != geometry.cells() or opening.rights.len != geometry.cells()) return error.InvalidPrivateRamBatch;
         var touched = false;
         for (opening.before, opening.after, opening.terminal_clocks, opening.rights) |before, after, clock, rights| {
-            if (clock >= 1 << 24 or (clock == 0 and before != after) or (clock != 0 and rights == 0)) return error.InvalidPrivateRamBatch;
+            // Native packet clocks reach 4*2^23 for a 2^23-step segment.
+            if (clock >= 1 << 26 or (clock == 0 and before != after) or (clock != 0 and rights == 0)) return error.InvalidPrivateRamBatch;
             touched = touched or clock != 0;
         }
         if (!touched and !allow_untouched) return error.UntouchedPrivateRamOpening;

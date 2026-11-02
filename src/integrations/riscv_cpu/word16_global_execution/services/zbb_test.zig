@@ -17,7 +17,7 @@ test "v3_zbb: every Zbb BINARY instruction plus the v3 services verify in-proces
     try roundTrip(.historical, F.BRIDGES);
 }
 
-test "v3_zbb on the v3 default layout (fused tail + U8 pairs + LS-D64): verify in-process and with fresh keys over the wire" {
+test "v3_zbb on the v3 default layout (fused tail + U8 pairs + LS-D64 + fused2 pairs): verify in-process and with fresh keys over the wire" {
     try roundTrip(.v3_default, F.V3_BRIDGES);
 }
 
@@ -27,6 +27,7 @@ fn roundTrip(layout: F.Layout, bridges: [2]T.Logs) !void {
     for (c.setups) |s| {
         try std.testing.expectEqual(layout == .v3_default, s.materials.geometry.cpu_fused_tail);
         try std.testing.expectEqual(layout == .v3_default, s.materials.geometry.cpu_u8_pairs);
+        try std.testing.expectEqual(layout == .v3_default, s.materials.geometry.mul_u8_pairs and s.materials.geometry.ls_fused_pairs and s.materials.geometry.alu_fused_tail and s.materials.geometry.ls_dword_fused_pairs);
     }
     for (c.bundle.cpus, F.DWORD_ROWS) |cpu, d| try std.testing.expectEqual(if (layout == .v3_default) d else 0, cpu.request.ls_dword);
     const keys = c.keys();

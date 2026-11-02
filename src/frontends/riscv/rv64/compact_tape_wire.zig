@@ -9,7 +9,7 @@ const K = @import("service_session.zig");
 const S = @import("ethereum_services/session.zig");
 pub const MAGIC = "RV64TP01";
 pub const HEADER_BYTES = 48;
-pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 512 * 1024 * 1024 };
+pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 1024 * 1024 * 1024 };
 /// raw[28..32] was reserved-zero; v3 tapes store the SHA-256 record count
 /// in its low 31 bits, so every pre-v3 tape is byte-identical. Bit 31
 /// (`V3_EXTENSION_FLAG`, v3 only) announces a v3 extension that follows the
@@ -215,7 +215,9 @@ pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape
     for (tape.curve_calls.items) |call| tape.last_curve_ids[S.curves.index(call.op)] = call.call_id;
     return tape;
 }
-fn validate(tape: *const T.Tape) !void {
+/// Decoded-tape invariants `readTail` enforces; also applied to in-process
+/// tapes that never crossed the wire.
+pub fn validate(tape: *const T.Tape) !void {
     _ = try header(tape);
     if (tape.initial_pc & 3 != 0 or tape.initial_clock > std.math.maxInt(u64) - tape.len) return error.InvalidTapeWireGeometry;
     if ((!profile.hasServices(tape.execution_profile) and tape.service_calls.items.len != 0) or ((tape.execution_profile == .rv64im or tape.execution_profile == .keccak_service_v1) and tape.secp_calls.items.len != 0)) return error.InvalidTapeWireService;

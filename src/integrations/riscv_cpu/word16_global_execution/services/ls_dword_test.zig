@@ -107,3 +107,48 @@ test "v3 LS-D64 router keeps misaligned LD/SD in LS32 (natural 8-byte alignment 
     try std.testing.expectEqual(@as(u64, 0x1004), split.general[0].a);
     try std.testing.expect(split.general[1].opcode == .LW);
 }
+
+test "v3 LS-D64 with every fused/byte-pair layout on: proves, verifies with fresh keys from the wire, and refuses the other layout's keys" {
+    var c = try F.Case.initLayout(a, BOTH, .none, true);
+    defer c.deinit();
+    const keys = c.keys();
+    try E.verify(a, &keys, &.{}, c.expected(), &c.bundle);
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try W.write(a, tmp.dir, &keys, &.{}, &c.bundle);
+    var loaded = try W.read(a, tmp.dir, .{ .max_cpus = 2, .max_truths = 0, .max_total_steps = F.STEPS });
+    defer loaded.deinit(a);
+    for (loaded.cpu_declarations) |d| try std.testing.expect(d.geometry.ls_dword_fused_pairs and d.geometry.mul_u8_pairs and d.geometry.ls_fused_pairs and d.geometry.alu_fused_tail);
+    var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[0].geometry, loaded.cpu_declarations[0].bridges);
+    defer s0.deinit();
+    var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[1].geometry, loaded.cpu_declarations[1].bridges);
+    defer s1.deinit();
+    const expected = F.expectedFor(s0.materials.program.identity, c.final);
+    try E.verify(a, &.{ &s0, &s1 }, &.{}, expected, &loaded.bundle);
+    // Each single flag flipped off in the receiver keys refuses the bundle.
+    inline for (.{ "ls_dword_fused_pairs", "mul_u8_pairs", "ls_fused_pairs", "alu_fused_tail" }) |flag| {
+        var g = loaded.cpu_declarations[1].geometry;
+        @field(g, flag) = false;
+        var other = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, g, loaded.cpu_declarations[1].bridges);
+        defer other.deinit();
+        try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &other }, &.{}, expected, &loaded.bundle)));
+    }
+    // And the classic-layout bundle is refused by the fused keys.
+    var classic = try F.Case.init(a, BOTH, .none);
+    defer classic.deinit();
+    try std.testing.expect(std.meta.isError(E.verify(a, &keys, &.{}, c.expected(), &classic.bundle)));
+}
+test "v3 LS-D64 with every fused/byte-pair layout on: LB as LD, double consumption, shifted base and RAM predecessor are still rejected" {
+    const cases = [_]struct { m: F.Case.Mutation, err: anyerror }{
+        .{ .m = .lb_as_dword, .err = error.UnclosedCombinedCpuRelations },
+        .{ .m = .double_consume, .err = error.UnclosedCombinedCpuRelations },
+        .{ .m = .shifted_base, .err = error.UnclosedCombinedCpuRelations },
+        .{ .m = .ram_predecessor, .err = error.UnclosedCombinedRam },
+    };
+    for (cases) |case| {
+        var c = try F.Case.initLayout(a, BOTH, case.m, true);
+        defer c.deinit();
+        const keys = c.keys();
+        try std.testing.expectError(case.err, E.verify(a, &keys, &.{}, c.expected(), &c.bundle));
+    }
+}

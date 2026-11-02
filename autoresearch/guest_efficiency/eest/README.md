@@ -4,11 +4,15 @@
 against our two RV64 Ethereum clients:
 
 - **evmone**: `benchmarks/guest_runtime/ethereum/client_evmone` (ziskethone +
-  evmone v0.24), built in its EEST variant (below).
+  evmone v0.24), built in its EEST variant (below). The RV64 guest is the v3
+  client (`build.py --profile v3`, default v3 service set, `ethereum_services_v3`)
+  unless `--evmone-profile admitted` selects the v2 client of the v1 receipt.
 - **rust**: `stateless-validator-reth` at `a134a621` with the
   `ethereum-services-v2-lean` patch set (`benchmarks/guest_runtime/ethereum/rv64`).
 
-Receipt: `vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json`.
+Receipts: `vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json` (both clients,
+admitted v2 evmone), `vectors/reports/rv64-ethereum-20261102/eest-guests-v2.json`
+(evmone v3 client only).
 
 ## Route
 
@@ -60,9 +64,11 @@ unchanged. The EEST variant must never be deployed.
 - **T1 host.** `client-evmone-host-eest` (native build, emulated services) and
   `rust_host/` (the Rust guest's `run_stateless_guest` with the same `[patch]`
   set; the RV64-only Keccak/secp ECALL paths are not in a host build).
-- **T2 guest.** The RV64 ELFs (`client-evmone-admitted-eest.elf`, and the
-  unchanged production `ethereum-rv64-services-v2-lean.elf`) on
-  `rv64-ethereum-execution` (`ethereum_services_v2` profile), checking the exact
+- **T2 guest.** The RV64 ELFs (`client-evmone-v3-eest.elf` on the
+  `ethereum_services_v3` profile, or `client-evmone-admitted-eest.elf` on
+  `ethereum_services_v2`, and the unchanged production
+  `ethereum-rv64-services-v2-lean.elf` on `ethereum_services_v2`) on
+  `rv64-ethereum-execution`, checking the exact
   43-byte output. `--guest-sample per-file` runs only the first valid and first
   invalid block of each fixture file; the default runs everything.
 
@@ -99,7 +105,8 @@ python3 -I $E convert --cache $C --work $W --tmpdir /Volumes/stwo-eest-ram/tmp
 python3 -I $E host    --cache $C --work $W
 python3 -I $E guest   --cache $C --work $W [--guest-sample per-file]
 python3 -I $E receipt --cache $C --work $W [--out RECEIPT.json]
-# --filter SUBSTR restricts any step to matching fixture paths, --jobs N (<= 6)
+# --filter SUBSTR restricts any step to matching fixture paths, --jobs N (<= 12),
+# --clients evmone,rust (default both), --evmone-profile v3|admitted (default v3)
 ```
 
 Every step resumes: finished fixture files are skipped. The generator's reth
@@ -156,3 +163,25 @@ Rust's 8 valid-block failures are `withdrawals_credited_before_request_system_ca
 Two evmone witness-dependence bugs found here are fixed (EIP-7702 designator
 code, trie delete ordering: 1,111 blocks); the production admitted ELF still
 reproduces all 15 basket blocks exactly (8.500 scored instructions/gas).
+
+## Results v2 (evmone v3 client, 2026-11-02)
+
+Re-run of the evmone client only (Rust unchanged, not re-run) on
+`codex/rv64-guest-efficiency` @ `2490495dd` (patches 0001-0029), guest
+`--profile v3` with the default service set on `ethereum_services_v3`. The
+conversion reproduced v1 exactly (same counts and reference results).
+
+| | valid PASS | valid FAIL | invalid rejected | invalid accepted | error |
+|---|---:|---:|---:|---:|---:|
+| evmone host | 37,295 | 0 | 3,543 | 0 | 0 |
+| evmone RV64 v3 | 37,294 | 1 | 3,543 | 0 | 0 |
+
+Full-state-witness controls: host 37,287/37,287, guest 37,286/37,287. The one
+failure (and its control) is `stStaticCall/static_call1_mb1024_calldepth` block 1:
+~1024 frames x 1 MB of EVM memory (host peak RSS 600 MB) exceed the 212 MiB guest
+heap; the Rust guest fails it too. No regression against v1; the four BLS MSM
+blocks that hit the 10^10 step limit in v1 now finish in 2.0-3.0e9 instructions
+(16.9-51.5 instr/gas). The unmerged `codex/rv64-ge-client3` (patch 0030, secp on
+arith256_mod) gives identical verdicts and outputs on all 78,125 runs with 4.46%
+fewer instructions (`forward_check_client3` in the receipt). Conversion 4 min
+(RAM disk, 10 jobs), host 3 min, guest 13 min (12 jobs).

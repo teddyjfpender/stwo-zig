@@ -40,7 +40,7 @@ pub const Bridges = struct {
         var out = self;
         const rows = try T.dwordCounts(setup.bridges, total);
         for (0..T.DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |log| {
-            out.ls_dword[k] = .{ .log_size = log, .rows = rows[k], .offsets = .{ setup.dwordOffset(k, 0), setup.dwordOffset(k, 1), setup.dwordOffset(k, 2) }, .claims = claims[k], .challenges = ch.memory };
+            out.ls_dword[k] = .{ .log_size = log, .rows = rows[k], .offsets = .{ setup.dwordOffset(k, 0), setup.dwordOffset(k, 1), setup.dwordOffset(k, 2) }, .claims = claims[k], .challenges = ch.memory, .pairs = if (setup.materials.geometry.ls_dword_fused_pairs) ch.and_ else null };
         };
         return out;
     }
@@ -173,6 +173,7 @@ pub const TruthComponents = union(enum) {
     sha256: A.crypto.sha256.component.Component,
     arith256_mod: A.crypto.arith256.component.Component,
     curve: @import("../curves/roster.zig").Component,
+    secp_row: @import("../secp/row_roster.zig").Component,
     pub fn init(truth: R.Truth, ch: P.TruthDraw, claims: [3]Q) !TruthComponents {
         return switch (truth) {
             .keccak => |t| switch (ch) {
@@ -204,6 +205,13 @@ pub const TruthComponents = union(enum) {
                 },
                 else => error.InvalidCombinedTruthChallenge,
             },
+            .secp_row => |t| switch (ch) {
+                .secp_row => |cc| block: {
+                    if (!claims[1].isZero() or !claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+                    break :block .{ .secp_row = @import("../secp/row_roster.zig").Component.init(t.setup.kind, t.setup.log, t.calls, t.first_id, claims[0], cc) };
+                },
+                else => error.InvalidCombinedTruthChallenge,
+            },
         };
     }
     pub fn provers(self: *const TruthComponents, out: *[3]engine.air.component_prover.ComponentProver) []engine.air.component_prover.ComponentProver {
@@ -219,6 +227,10 @@ pub const TruthComponents = union(enum) {
                 return out[0..1];
             },
             .curve => |*c| {
+                out[0] = c.asProverComponent();
+                return out[0..1];
+            },
+            .secp_row => |*c| {
                 out[0] = c.asProverComponent();
                 return out[0..1];
             },
@@ -238,6 +250,10 @@ pub const TruthComponents = union(enum) {
                 return out[0..1];
             },
             .curve => |*c| {
+                out[0] = c.asVerifierComponent();
+                return out[0..1];
+            },
+            .secp_row => |*c| {
                 out[0] = c.asVerifierComponent();
                 return out[0..1];
             },

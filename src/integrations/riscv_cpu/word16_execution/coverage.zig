@@ -75,3 +75,10 @@ pub fn memoryWords(a: std.mem.Allocator, program: *const Program, tape: *const r
     }
     return @intCast(words.count());
 }
+/// CPU prefix log: up to the structural CPU cap (log 23 selects the
+/// wide-clock CPU encoding); every other prefix authority stays at 2^22.
+pub fn minimalCpuLog(count: u32) !u32 {
+    const max_log = @import("stwo_riscv_frontend").rv64_air.word16_execution.layout.MAX_LOG;
+    if (count >= @as(u32, 1) << max_log) return error.ExecutionCapacityExceeded;
+    return @intCast(@max(5, std.math.log2_int_ceil(u32, count + 1)));
+}

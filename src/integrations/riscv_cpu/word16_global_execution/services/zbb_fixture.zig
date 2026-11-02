@@ -102,7 +102,10 @@ pub const BRIDGES = [2]T.Logs{
     .{ .sha256 = 5, .arith256_mod = 5, .bulk = .{ .desc = 5, .copy = 5 }, .zbb = ZBB_LOG },
 };
 /// The default v3 route layout (Plan.CpuLayout.forProfile): fused-tail CPU
-/// interaction, U8 byte-pair CPU queries and LS-D64 for every LD/SD. Shard 0
+/// interaction, U8 byte-pair CPU queries, LS-D64 for every LD/SD and the
+/// fused2 layouts (MUL byte pairs, LS32/INIT/TEARDOWN fused pairs, ALU fused
+/// tail, LS-D64 fused pairs), so the Zbb byte-AND lookups share the AND table
+/// with every pair consumer of the v3 route. Shard 0
 /// has one LD, shard 1 an LD, an SD and an LD (all aligned doublewords).
 pub const DWORD_ROWS = [2]u32{ 1, 3 };
 pub const V3_BRIDGES = [2]T.Logs{ withDword(BRIDGES[0]), withDword(BRIDGES[1]) };
@@ -114,11 +117,16 @@ fn withDword(logs: T.Logs) T.Logs {
 pub const Layout = enum {
     /// Historical CPU AIR (40 interaction columns), every load/store on LS32.
     historical,
-    /// v3 default: fused tail + byte pairs (32 interaction columns) + LS-D64.
+    /// v3 default: fused tail + byte pairs + LS-D64 + every fused2 layout.
     v3_default,
     pub fn apply(self: Layout, g: *@import("../../word16_execution/setup.zig").Geometry) void {
-        g.cpu_fused_tail = self == .v3_default;
-        g.cpu_u8_pairs = self == .v3_default;
+        const v3 = self == .v3_default;
+        g.cpu_fused_tail = v3;
+        g.cpu_u8_pairs = v3;
+        g.mul_u8_pairs = v3;
+        g.ls_fused_pairs = v3;
+        g.alu_fused_tail = v3;
+        g.ls_dword_fused_pairs = v3;
     }
 };
 pub fn image() @import("../../word16_execution/memory/statement.zig").Image {

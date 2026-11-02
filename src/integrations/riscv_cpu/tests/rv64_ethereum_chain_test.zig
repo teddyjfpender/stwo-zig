@@ -31,7 +31,10 @@ test "serialized Ethereum receipt enforces schema empty program slot and strict 
     try std.testing.expect(automatic >= 1 and automatic <= 16);
     config.workers = 4;
     try std.testing.expectEqual(@as(usize, 4), try Request.effectiveWorkers(config));
-    config.batch_steps = 1 << 22;
+    // Segments of up to 2^23 - 1 steps are admitted (wide-clock CPUs); 2^23 is not.
+    config.batch_steps = (1 << 23) - 1;
+    try Request.validateBudget(config);
+    config.batch_steps = 1 << 23;
     try std.testing.expectError(error.InvalidEthereumProofBudget, Request.validateBudget(config));
     var policy = try A.R.policy.Policy.init(a, &.{.{ .first = pc, .last = pc + 7, .flags = 5 }});
     defer policy.deinit();

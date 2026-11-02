@@ -120,9 +120,28 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
         channel.mixU32s(&.{ 0x46555345, X.layout.fused.COUNT, X.equations.FUSED_CONSTRAINTS });
         digest(channel, X.features.fusedTailIdentity());
     }
+    if (materials.geometry.wideClock()) {
+        channel.mixU32s(&.{ 0x57494445, materials.geometry.cpu_log, X.layout.WIDE_GAP_SCALE, X.layout.ramStride(materials.geometry.cpu_log) });
+        digest(channel, X.features.wideClockIdentity());
+    }
     if (materials.geometry.cpu_u8_pairs) {
         channel.mixU32s(&.{ 0x50414952, X.layout.pairs.COUNT, X.equations.PAIR_CONSTRAINTS, A.providers.tables.N_PAIR_CONSTRAINTS });
         digest(channel, X.features.pairIdentity());
+    }
+    if (materials.geometry.mul_u8_pairs) {
+        const PL = A.arithmetic.multiplication.pairs_layout;
+        channel.mixU32s(&.{ 0x4d554c50, PL.INTERACTION, PL.CONSTRAINTS, PL.PAIR_QUERIES });
+        digest(channel, PL.identity());
+    }
+    if (materials.geometry.ls_fused_pairs) {
+        const LF = A.memory.load_store_v2.layout.fused;
+        channel.mixU32s(&.{ 0x4c534650, LF.INTERACTION, LF.LS_CONSTRAINTS, LF.BOUND_INTERACTION, LF.BOUND_CONSTRAINTS });
+        digest(channel, A.memory.load_store_v2.layout.fusedPairsIdentity());
+    }
+    if (materials.geometry.alu_fused_tail) {
+        const AF = B.alu_experiment.lookup.fused;
+        channel.mixU32s(&.{ 0x414c5546, AF.INTERACTION, AF.CONSTRAINTS });
+        digest(channel, B.alu_experiment.lookup.fusedIdentity());
     }
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);

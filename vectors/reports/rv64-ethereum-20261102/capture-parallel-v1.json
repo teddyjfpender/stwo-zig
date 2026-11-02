@@ -1,0 +1,34 @@
+{
+  "schema": "rv64-capture-parallel-v1",
+  "scope": "Wall-time receipts for windowed packet capture, in-process handoff (produce-direct/plan-direct) and pipelined nativeprepare. No AIR/statement/wire change. Host shared with other agents (timings noisy), on AC power.",
+  "source_commit": "ec14d2108",
+  "baseline_commit": "2490495dd",
+  "elf_sha256": "6f2f88424cddb8226c1ec781fedae558f61898b2ad119d817bbac4b071a16bc1",
+  "block_24628607": {
+    "instructions": 26894777, "batches": 7,
+    "nativeprepare_wall_s": { "serial_baseline": [4.63, 4.76, 5.18, 5.26], "pipelined": [3.53, 3.63, 3.72, 3.84] },
+    "nativeprepare_output_identity": "jobs/*.work, jobs.jsonl, terminal.proof, collection.json, request.json byte-identical (sha256) to the baseline binary",
+    "plan_capture_ns": { "packets_serial": [2975552375, 3052409083], "packets_capture_inflight_7": 1269134083, "direct_inflight_1": 3876567084, "direct_inflight_4": 2204067166 },
+    "direct_inflight_4_execution_ns": 1631310126,
+    "plan_max_rss_bytes": { "packets_serial": 4243423232, "packets_capture_inflight_7": 7806337024, "direct_inflight_4": 5110120448 },
+    "captured_values_sha256": { "packets_serial": "fc80b5a9d73c1a9b24d04e67e926f60a04ba225e60af021c0cae527221c26d87", "packets_capture_inflight_7": "fc80b5a9d73c1a9b24d04e67e926f60a04ba225e60af021c0cae527221c26d87", "direct_inflight_1": "fc80b5a9d73c1a9b24d04e67e926f60a04ba225e60af021c0cae527221c26d87", "direct_inflight_4": "fc80b5a9d73c1a9b24d04e67e926f60a04ba225e60af021c0cae527221c26d87" },
+    "prefix_1_proof": {
+      "baseline_produce_from_packets": { "wall_s": 35.44, "capture_ns": 923982375, "prove_ns": 32771302750, "note": "plus nativeprepare 4.6-5.3 s beforehand" },
+      "produce_direct_inflight_4": { "wall_s": 36.32, "capture_ns": 1455278708, "prove_ns": 33110948166, "note": "includes executing the batch; no nativeprepare" },
+      "proof_files_identical": "bundle.json, cells.bin, cost.json, roster.json, cpu-0.bin, truth-0..5.bin byte-identical; only stage/schedule timing telemetry differs",
+      "fresh_verify_prefix": "accepted (baseline binary, separate process)"
+    }
+  },
+  "basket_nativeprepare_identity": {
+    "method": "adapter.py on canonical-input.ssz; request = measure/request.json with input/expected_output/output_directory replaced; serial baseline vs pipelined binary; sha256 of every output file",
+    "all_15_identical": true,
+    "wall_s_baseline_vs_pipelined": {
+      "24626900": [13.03, 8.66], "24628607": [5.72, 4.12], "24628608": [8.39, 5.99], "24647140": [6.20, 4.60],
+      "24697070": [15.30, 9.87], "24697073": [16.49, 9.12], "25229957": [6.47, 4.67], "26235156": [3.83, 2.87],
+      "25229955": [17.27, 11.01], "26235168": [15.66, 10.06]
+    },
+    "both_fail_identically": { "StepLimit (max_steps 1e8 in template)": ["25229955", "26235168"], "WorkPacketResourceLimit at packet 0": ["24628590", "24628595", "24628611", "25229951", "26235159"] },
+    "direct_vs_packets_captured_values_sha256_equal": ["24628607", "26235156", "24647140"],
+    "preexisting_limit_note": "the Word16 expected image reads the input with a 4 MiB cap (expected_image.zig:24), so blocks with adapted inputs above 4 MiB (the 7 failing ones are 7.3-14.7 MB) fail with FileTooBig in plan/plan-direct too"
+  }
+}

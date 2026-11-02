@@ -20,6 +20,7 @@ const append = @import("../keccak/roster.zig").append;
 const Sha = @import("../sha256/roster.zig");
 const Arith = @import("../arith256/roster.zig");
 const Curve = @import("../curves/roster.zig");
+const SecpRow = @import("../secp/row_roster.zig");
 const M = core.fields.m31.M31;
 const Col = engine.pcs.ColumnEvaluation;
 pub const CpuSetup = struct {
@@ -206,7 +207,7 @@ pub const CpuSetup = struct {
     pub fn dwordOffset(self: *const CpuSetup, k: usize, tree: usize) usize {
         var n = self.spongeEnd(tree);
         for (0..k) |j| if (self.bridges.dwordLog(j) != null) {
-            n += T.dwordWidths()[tree];
+            n += T.dwordWidthsFor(self.materials.geometry)[tree];
         };
         return n;
     }
@@ -258,7 +259,7 @@ pub const CpuSetup = struct {
             at += width;
         };
         for (0..T.DWORD_INSTANCES) |k| if (self.bridges.dwordLog(k)) |log| {
-            const width = T.dwordWidths()[tree];
+            const width = T.dwordWidthsFor(self.materials.geometry)[tree];
             @memset(out[at..][0..width], log);
             at += width;
         };
@@ -365,7 +366,7 @@ pub const Sources = struct {
             if (setup.bridges.dwordLog(k)) |log| {
                 const s = self.ls_dword[k] orelse return error.MissingCombinedServiceSource;
                 const data = if (tree == 1) s.main else s.interaction;
-                if (s.log_size != log or data.len != T.dwordWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                if (s.log_size != log or data.len != T.dwordWidthsFor(setup.materials.geometry)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
                 append(out, &at, data, log);
             } else if (self.ls_dword[k] != null) return error.UnexpectedCombinedServiceSource;
         }
@@ -393,7 +394,19 @@ pub const Sources = struct {
             try merge(&self.core, s.counts16, s.counts8);
             if (s.counts_and.len != 0) try mergeAnd(&self.core, s.counts_and);
         };
-        for (&self.ls_dword) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
+        if (self.core.materials.geometry.ls_dword_fused_pairs) {
+            // Fused-pair LS-D64: the two U8 queries per row are one AND-relation
+            // byte pair, merged into the AND table's pair column.
+            const zero8: [256]u64 = @splat(0);
+            for (&self.ls_dword) |*b| if (b.*) |*s| {
+                try merge(&self.core, s.counts16, &zero8);
+                const pairs = try self.core.allocator.alloc(u64, 65536);
+                defer self.core.allocator.free(pairs);
+                @memset(pairs, 0);
+                try s.addBytePairCounts(pairs);
+                try mergeAndPairTable(&self.core.and_table, pairs);
+            };
+        } else for (&self.ls_dword) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
         // Zbb byte-AND lookups (8 per physical row, padding included) join the
         // core AND table exactly like the BINARY chip's own requests.
         if (self.zbb) |*s| try mergeAnd(&self.core, s.and_counts);
@@ -607,6 +620,22 @@ pub fn mergeAndTable(table: *A.providers.tables.Request, pairs: bool, extra: []c
         table.main[p] = M.fromCanonical(@intCast(total));
     }
 }
+/// Adds service byte-pair multiplicities to the pair column of the
+/// pair-capable AND table (main phase), keeping the joint AND + pair mass
+/// below p exactly as Request.initWithPairs admits.
+pub fn mergeAndPairTable(table: *A.providers.tables.Request, extra: []const u64) !void {
+    const size: usize = 65536;
+    if (table.kind != .byte_and or table.interaction.len != 0 or table.pair_dictionary.len != 0 or extra.len != size or !table.pairs or table.main.len != 2 * size) return error.InvalidCombinedRangePhase;
+    var mass: u64 = 0;
+    for (table.main[0..size]) |m| mass = try std.math.add(u64, mass, m.v);
+    for (extra, 0..) |x, row| {
+        const p = size + A.witness.physical(row, 16);
+        const total = try std.math.add(u64, table.main[p].v, x);
+        mass = try std.math.add(u64, mass, total);
+        if (mass >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
+        table.main[p] = M.fromCanonical(@intCast(total));
+    }
+}
 fn merge(base: *Core.Source, c16: []const u64, c8: []const u64) !void {
     if (base.range16.interaction.len != 0 or base.range8.interaction.len != 0 or base.range16.main.len != 65536 or base.range8.main.len != 256) return error.InvalidCombinedRangePhase;
     inline for (.{ base.counts16, base.counts8 }, .{ c16, c8 }, .{ base.range16.main, base.range8.main }, [_]u32{ 16, 8 }) |counts, extra, main, log| {
@@ -626,6 +655,8 @@ pub const Truth = union(enum) {
     sha256: struct { setup: *const Sha.TruthSetup, first_id: u32, calls: u32 },
     arith256_mod: struct { setup: *const Arith.TruthSetup, first_id: u32, calls: u32 },
     curve: struct { setup: *const Curve.TruthSetup, first_id: u32, calls: u32 },
+    /// v3 secp256k1 `row_v1` profile (one RCB call per row), families 1/2.
+    secp_row: struct { setup: *const SecpRow.TruthSetup, first_id: u32, calls: u32 },
     pub fn family(self: @This()) T.Family {
         return switch (self) {
             .keccak => .keccak,
@@ -633,6 +664,7 @@ pub const Truth = union(enum) {
             .sha256 => .sha256,
             .arith256_mod => .arith256_mod,
             .curve => |t| T.curveFamily(t.setup.op),
+            .secp_row => |t| if (t.setup.kind == .add) .add else .double,
         };
     }
     pub fn first(self: @This()) u32 {
@@ -657,6 +689,7 @@ pub const Truth = union(enum) {
             .sha256 => |t| t.setup.logs(a, tree),
             .arith256_mod => |t| t.setup.logs(a, tree),
             .curve => |t| t.setup.logs(a, tree),
+            .secp_row => |t| t.setup.logs(a, tree),
         };
     }
 };
@@ -666,6 +699,7 @@ pub const TruthSource = union(enum) {
     sha256: Sha.TruthSource,
     arith256_mod: Arith.TruthSource,
     curve: Curve.TruthSource,
+    secp_row: SecpRow.TruthSource,
     pub fn init(a: std.mem.Allocator, truth: Truth, advice: *const @import("collector.zig").Advice) !TruthSource {
         if (truth.first() == 0) return error.InvalidCombinedTruthSpan;
         const begin: usize = truth.first() - 1;
@@ -704,23 +738,14 @@ pub const TruthSource = union(enum) {
                 break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpanPolicy(a, inputs, t.first_id, t.setup.log, t.setup.policy) };
             },
             .secp => |t| block: {
-                const inputs = try a.alloc(S.types.Call, t.calls);
+                const inputs = try secpSpan(a, advice, @intFromEnum(t.setup.kind) - 1, begin, end, t.calls);
                 defer a.free(inputs);
-                const family = @intFromEnum(t.setup.kind) - 1;
-                var offset: usize = 0;
-                var written: usize = 0;
-                for (advice.secp) |cc| {
-                    const lo = @max(begin, offset);
-                    const hi = @min(end, offset + cc[family].len);
-                    if (lo < hi) {
-                        const selected = cc[family][lo - offset .. hi - offset];
-                        @memcpy(inputs[written..][0..selected.len], selected);
-                        written += selected.len;
-                    }
-                    offset += cc[family].len;
-                }
-                if (written != t.calls) return error.InvalidCombinedTruthSpan;
                 break :block .{ .secp = try @import("../secp/roster.zig").TruthSource.init(a, t.setup, inputs, t.first_id) };
+            },
+            .secp_row => |t| block: {
+                const inputs = try secpSpan(a, advice, @intFromEnum(t.setup.kind) - 1, begin, end, t.calls);
+                defer a.free(inputs);
+                break :block .{ .secp_row = try SecpRow.TruthSource.init(a, t.setup, inputs, t.first_id) };
             },
             .sha256 => |t| block: {
                 const inputs = try a.alloc(S.types.Call, t.calls);
@@ -794,10 +819,13 @@ pub const TruthSource = union(enum) {
         if (self.* == .curve) return switch (self.curve) {
             inline else => |*s| takeCurve(s, tree),
         };
+        if (self.* == .secp_row) return switch (self.secp_row) {
+            inline else => |*s| takeCurve(s, tree),
+        };
         const a = switch (self.*) {
             .keccak => |s| s.permutation.allocator,
             .secp => |s| s.batch.product.allocator,
-            .sha256, .arith256_mod, .curve => unreachable,
+            .sha256, .arith256_mod, .curve, .secp_row => unreachable,
         };
         var matrices: [3]*[]M = undefined;
         var expected: [3]usize = undefined;
@@ -836,7 +864,7 @@ pub const TruthSource = union(enum) {
                 matrices[2] = if (tree == 1) &s.bytes.main else &s.bytes.interaction;
                 expected[2] = (if (tree == 1) @as(usize, 1) else 8) * 256;
             },
-            .sha256, .arith256_mod, .curve => unreachable,
+            .sha256, .arith256_mod, .curve, .secp_row => unreachable,
         }
         for (matrices, expected, 0..) |matrix, size, i| {
             if (matrix.len != size) return error.InvalidTruthBufferPhase;
@@ -865,7 +893,7 @@ pub const TruthSource = union(enum) {
                 s.batch.linear.owns_main = false;
                 s.bytes.main = byte_counts.?;
             },
-            .sha256, .arith256_mod, .curve => unreachable,
+            .sha256, .arith256_mod, .curve, .secp_row => unreachable,
         };
         return .{ .columns = headers, .backings = backings };
     }
@@ -885,6 +913,26 @@ pub const TruthSource = union(enum) {
         };
     }
 };
+/// Bridge calls of secp family `family` (0 ADD, 1 DOUBLE) with global call
+/// IDs begin+1..end, in shard order (the same span rule as the RCB truth).
+fn secpSpan(a: std.mem.Allocator, advice: *const @import("collector.zig").Advice, family: usize, begin: usize, end: usize, calls: u32) ![]S.types.Call {
+    const inputs = try a.alloc(S.types.Call, calls);
+    errdefer a.free(inputs);
+    var offset: usize = 0;
+    var written: usize = 0;
+    for (advice.secp) |cc| {
+        const lo = @max(begin, offset);
+        const hi = @min(end, offset + cc[family].len);
+        if (lo < hi) {
+            const selected = cc[family][lo - offset .. hi - offset];
+            @memcpy(inputs[written..][0..selected.len], selected);
+            written += selected.len;
+        }
+        offset += cc[family].len;
+    }
+    if (written != calls) return error.InvalidCombinedTruthSpan;
+    return inputs;
+}
 /// One wide SHA-256 MAIN/INTER matrix moves to the PCS; fixed stays key-owned.
 fn takeSha(s: *A.crypto.sha256.trace.Source, tree: usize) !Commit {
     const a = s.allocator;
