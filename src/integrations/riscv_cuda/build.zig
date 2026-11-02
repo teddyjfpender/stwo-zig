@@ -48,6 +48,19 @@ pub fn build(b: *std.Build) void {
     const run_numerical = b.addRunArtifact(numerical);
     numerical_step.dependOn(&run_numerical.step);
     test_step.dependOn(&run_numerical.step);
+    const fixture_root = b.createModule(.{
+        .root_source_file = b.path("rv64_composition_fixture_main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fixture_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    fixture_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    fixture_root.addImport("stwo_riscv_frontend", frontend);
+    fixture_root.addImport("stwo_cuda_backend", backend);
+    const fixture = b.addExecutable(.{ .name = "rv64-composition-fixtures", .root_module = fixture_root });
+    const run_fixture = b.addRunArtifact(fixture);
+    if (b.args) |args| run_fixture.addArgs(args);
+    b.step("rv64-composition-fixtures", "Export OM31 CUDA equations and native numerical fixtures").dependOn(&run_fixture.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
