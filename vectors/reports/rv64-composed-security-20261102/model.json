@@ -1,0 +1,117 @@
+{
+  "source_revision": "8ce5fb0a7d104baadf812c55fa3985a2406274d2",
+  "input_sha256": {
+    "bundle": "548a59ef4a46cf90155ebc306ec88d736f4d909a31a85fdd8742206b88d3635d",
+    "fresh_receiver": "7898be0d935db4cb4e84828bf166207adb84ddf143deea8f72dc51eb9d86cc05"
+  },
+  "shape": {
+    "native_proofs": 30,
+    "max_trace_log": 22,
+    "max_columns": 7371,
+    "max_constraints": 6128,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 22,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 26
+  },
+  "cpu_proofs": 25,
+  "parameters": {
+    "field_degree": 8,
+    "raw_mod_max_point_mass": "6561/2^256",
+    "rho": "1/4",
+    "rho_plus": "17/64",
+    "agreement": "41/64",
+    "theta": "23/64",
+    "queries": 256,
+    "PoW": 0,
+    "fold_step": 4,
+    "minimum_nonzero_trace_rows": 32
+  },
+  "degree_weights": {
+    "joint_cleared_lookup_all_scopes": 3804538944,
+    "gkr_sumcheck": 536250,
+    "gkr_instance_mix": 15600,
+    "gkr_late_eta_binding": 550,
+    "secp_product_polynomial": 24506368,
+    "composition_mix": 183840,
+    "oods_circle_correspondence": 148397830963200,
+    "deep_batching": 1105650,
+    "fri_unique_curve_correspondence": 949874967183360
+  },
+  "conditional_term_bits": {
+    "joint_cleared_lookup_all_scopes": 211.49522551003926,
+    "gkr_sumcheck": 224.28775377718176,
+    "gkr_instance_mix": 229.39104158559377,
+    "gkr_late_eta_binding": 234.21701218581873,
+    "secp_product_polynomial": 218.7736466465758,
+    "composition_mix": 225.8322088166973,
+    "oods_circle_correspondence": 196.24383666065154,
+    "deep_batching": 223.24383666065154,
+    "fri_unique_curve_correspondence": 193.5655690429915
+  },
+  "query_union_bits": 159.55979622216205,
+  "conditional_algebraic_union_bits": 193.35613709119443,
+  "old_lookup_pairwise_union_bits": 183.21254012473685,
+  "joint_lookup_bits": 211.49522551003926,
+  "round_source_formula_value": 2347836,
+  "round_upper_bound": 4194304,
+  "collision_coefficient_conservative": 94,
+  "conditional_BCS_formula": "(T+2^22)*(sum(degree_weights)*6561/2^256 +30*(41/64)^256) +94*(T^2+1)/2^256",
+  "work_table": [
+    {
+      "log2_adversarial_RO_queries": 0,
+      "unclipped_error_bits": 137.55979587809998,
+      "unclipped_error": 3.893814367683526e-42,
+      "unclipped_success_per_query_bits": 137.55979587809998
+    },
+    {
+      "log2_adversarial_RO_queries": 64,
+      "unclipped_error_bits": 95.55979619879326,
+      "unclipped_error": 1.7125172887962902e-29,
+      "unclipped_success_per_query_bits": 159.55979619879326
+    },
+    {
+      "log2_adversarial_RO_queries": 120,
+      "unclipped_error_bits": 9.445411147081131,
+      "unclipped_error": 0.0014343261731089988,
+      "unclipped_success_per_query_bits": 129.44541114708113
+    },
+    {
+      "log2_adversarial_RO_queries": 121,
+      "unclipped_error_bits": 7.445411147701861,
+      "unclipped_error": 0.005737304689967997,
+      "unclipped_success_per_query_bits": 128.44541114770186
+    },
+    {
+      "log2_adversarial_RO_queries": 122,
+      "unclipped_error_bits": 5.445411148011999,
+      "unclipped_error": 0.022949218754935996,
+      "unclipped_success_per_query_bits": 127.445411148012
+    },
+    {
+      "log2_adversarial_RO_queries": 124,
+      "unclipped_error_bits": 1.4454111482448297,
+      "unclipped_error": 0.367187500019744,
+      "unclipped_success_per_query_bits": 125.44541114824483
+    },
+    {
+      "log2_adversarial_RO_queries": 128,
+      "unclipped_error_bits": -6.554588851682411,
+      "unclipped_error": 94.00000000031591,
+      "unclipped_success_per_query_bits": 121.44541114831759
+    }
+  ],
+  "bounded_work_1_through_2pow120_uniform_per_query_bits": 129.4402145525155,
+  "native_theorem_correspondence_review_complete": false,
+  "recursion_security_qualified": false,
+  "whole_protocol_128_certified": false,
+  "source_changes": false,
+  "limitations": [
+    "coarse OODS/FRI source-degree and multi-scope BCS correspondence require independent proof review",
+    "source unit/support/canonicality and characteristic lemmas must hold",
+    "R is an analysis bound, not newly enforced receiver authority",
+    "existing recursion secure field/profile is separate and not upgraded by native OM31",
+    "256-bit hash theorem constants do not prove unrestricted literal128 per-work security"
+  ]
+}

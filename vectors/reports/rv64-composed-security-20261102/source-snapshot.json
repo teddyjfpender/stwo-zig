@@ -1,0 +1,23 @@
+{
+  "revision": "8ce5fb0a7d104baadf812c55fa3985a2406274d2",
+  "files": {
+    "src/core/channel/raw_mod_m31.zig": "a45bc12b7580611d519523dd451cb2f0d7ee1d6e1d3842708c813ceb4cb754f7",
+    "src/core/channel/blake2s.zig": "6e436fb3cb2d864b72ad2c06c9cedf05f047b5543bf70f7a9e96e2cb0e26a4fb",
+    "src/core/circle.zig": "0f58e982e9c4fa8e9d8ef1d30a1375ce1e4885b38a6a3c74161948a37612f2b4",
+    "src/core/queries.zig": "68e13fbb48c0cd684b94198c5452e003984237a2fe2000dd332ac57234328bce",
+    "src/core/fri_family.zig": "34c872922b030546b1b0639f962328256c2a799d78e5bbe15d32169bbccb5669",
+    "src/core/fri/folding_family.zig": "52f2e67e73f052070c0922fb41a27241f0ebd5f4b36ed978d5ae1bb4decd6145",
+    "src/core/pcs/verifier_family.zig": "9124d002588d64be6fb9a58a263f7a92151917e96d847627480d7d01ed496cde",
+    "src/core/pcs/quotients/row_evaluation_family.zig": "6923bae3dbdb717e410686341f1782fe943e08f36279e732033593061e0b6528",
+    "src/core/vcs_lifted/channel_profile.zig": "93d77873303bdb149114d7222f60b84065b0fcb41bda556ce1b0c0a78dea0a0f",
+    "src/integrations/riscv_cpu/word16_execution/om31_security_candidate.zig": "ec156aa7aae5676f4c2484d1df7331b4c795fd51f8431e44559ba516083ccdc2",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/source_bounds.zig": "7ccffd5a92c35611eb37206ad614e708b13d7806c3739ab4f892a8fd15bcfa01",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/challenges.zig": "854d0908e6627836886029730d7b63626957135052d1e1ba8afc7a4cdb472d56",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig": "67e70da23e2d6e09cdb1f3589756d56e1300db07dc7270d9b461731ec3de9a6c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/binding.zig": "52de7ff2a821568bc94bb09e391ba1aea6490ca96e662879e8c08bd6e1d46eca",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_fractions.zig": "be6c635ae3a4ce17a4d84267217a9e61e158868bc8bb088199f4e3e53c9cd7b8",
+    "src/frontends/riscv/air/guest_precompile/secp256k1_mul_direct.zig": "4bca8639315928d86aa125a2e81ada281f673e5c627e6312f77fc560ff0a8e39",
+    "src/prover/lookups/gkr_prover_field.zig": "8c516b2137ad077d28900b317dd5fe8eba300fd213b7d0b605b62b1ccd1ef308",
+    "src/prover/lookups/verifier_kernel.zig": "4047f640e8293e508fe1c6239e5db3b66bcba65b6668190263290577450adb11"
+  }
+}
