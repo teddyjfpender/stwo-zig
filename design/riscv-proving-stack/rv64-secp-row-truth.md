@@ -1,7 +1,8 @@
 # RV64 secp256k1 row truth (`row_v1`, v3)
 
-Status: implemented; fixture-qualified (AIR + services lane, fresh wire
-receiver). Real-prefix numbers: see "Measured". v2 and every existing bundle
+Status: implemented; v3 default (planner cost rule). Fixture-qualified (AIR +
+services lane, fresh wire receiver) and proved on the real 4-packet prefix of
+block 24,628,607 with a fresh `verify-prefix` (see "Measured"). v2 and every existing bundle
 keep the RCB product/linear/BYTE truth byte-for-byte.
 
 ## What changes
@@ -77,6 +78,27 @@ Not changed / not claimed: whole-protocol security accounting
 iff their total cells are below the RCB truths' for the same calls; a span is
 split at the next smaller power of two when that saves at least 1/8 of its
 cells (padding only; `secpRowSpan`).
+
+## Measured (4-packet prefix of block 24,628,607, 16,777,212 instructions)
+
+`rv64-word16-ethereum produce request.json native/jobs prefix4 4
+--proof-jobs=1 --park-retained-main` (62.4 s wall, 37.9 s prove, 13.1 GB max
+RSS), then a separate-process `verify-prefix request.json prefix4`: accepted
+(4 CPU + 7 truth proofs). MAIN + INTERACTION native cells from `cost.json`,
+against the fused-tail reference `ge-cache/fusedfix/prefix4/cost.json`:
+
+| | RCB (reference) | row_v1 |
+|---|---:|---:|
+| ADD truths (1,080 calls) | 29,853,952 | 4,539,392 (1,023 @ 2^10) + 1,134,848 (57 @ 2^8) |
+| DOUBLE truths (1,001 calls) | 12,536,064 | 3,546,112 (1,001 @ 2^10) |
+| secp total | 42,390,016 | 9,220,352 |
+| **cells per call** | **20,370.0** | **4,430.7 (-78.2%)** |
+
+CPU proof cells are identical (2,274,110,496); Keccak and the other truths
+are unchanged. Total committed cells -33,169,664 on this prefix.
+
+Per-row layout (cells per call without padding): ADD 4,433 (MAIN 1,869,
+INTERACTION 2,564), DOUBLE 3,463 (1,447 + 2,016).
 
 ## Tests
 
