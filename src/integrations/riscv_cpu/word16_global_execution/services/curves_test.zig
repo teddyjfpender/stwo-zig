@@ -94,3 +94,57 @@ test "v3 curve adversarial: false output, forged input word and wrong pointer ar
         }
     }
 }
+
+test "v3 curve services compose with the v3 CPU layouts (fused tail, byte pairs, LS-D64); fresh receiver; OM GKR scope rejects them" {
+    const Scope = @import("gkr_local/v2_scope.zig");
+    for ([_]F.Op{ .bn254_g1_add, .bls12_381_fp2_mul, .bls12_381_g1_double }) |op| {
+        for ([_]F.Case.Layout{ .{ .cpu_fused_tail = true, .cpu_u8_pairs = true }, .{ .cpu_fused_tail = true, .cpu_u8_pairs = true, .ls_dword = true } }) |layout| {
+            var c = try F.Case.initWith(a, op, .none, false, layout);
+            defer c.deinit();
+            const keys = c.keys();
+            var buffer: [2]R.Truth = undefined;
+            try E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle);
+            for (c.bundle.cpus, keys) |cpu, setup| {
+                try std.testing.expect(setup.materials.geometry.cpu_fused_tail and setup.materials.geometry.cpu_u8_pairs);
+                try std.testing.expectEqual(layout.ls_dword, setup.bridges.ls_dword != null);
+                if (layout.ls_dword) try std.testing.expectEqual(@as(u32, 1), cpu.request.ls_dword);
+                try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Scope.setup(setup));
+                try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(setup.bridges));
+            }
+            // Durable wire, fresh receiver keys from the loaded declarations.
+            var temp = std.testing.tmpDir(.{});
+            defer temp.cleanup();
+            try W.write(a, temp.dir, &keys, c.truths(&buffer), &c.bundle);
+            var loaded = try W.read(a, temp.dir, .{ .max_cpus = 2, .max_truths = 1, .max_total_steps = 5 });
+            defer loaded.deinit(a);
+            var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = F.words(op) }, loaded.cpu_declarations[0].geometry, loaded.cpu_declarations[0].bridges);
+            defer s0.deinit();
+            var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = F.words(op) }, loaded.cpu_declarations[1].geometry, loaded.cpu_declarations[1].bridges);
+            defer s1.deinit();
+            var t = try CR.TruthSetup.init(a, op, F.LOG);
+            defer t.deinit();
+            const fresh = [_]R.Truth{.{ .curve = .{ .setup = &t, .first_id = 1, .calls = 3 } }};
+            const expected = F.expectedFor(op, s0.materials.program.identity);
+            try E.verify(a, &.{ &s0, &s1 }, &fresh, expected, &loaded.bundle);
+            // A receiver with the historical CPU layout (or without LS-D64) refuses.
+            var g = loaded.cpu_declarations[0].geometry;
+            g.cpu_fused_tail = false;
+            g.cpu_u8_pairs = false;
+            var legacy = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = F.words(op) }, g, loaded.cpu_declarations[0].bridges);
+            defer legacy.deinit();
+            try std.testing.expect(std.meta.isError(E.verify(a, &.{ &legacy, &s1 }, &fresh, expected, &loaded.bundle)));
+            if (layout.ls_dword) {
+                var no_dword = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = F.words(op) }, loaded.cpu_declarations[0].geometry, F.bridges(op));
+                defer no_dword.deinit();
+                try std.testing.expect(std.meta.isError(E.verify(a, &.{ &no_dword, &s1 }, &fresh, expected, &loaded.bundle)));
+            }
+        }
+    }
+    // Every curve bridge family is outside the OM GKR scope.
+    for (T.V3[2..]) |family| {
+        var logs = T.Logs{};
+        logs.set(family, 5);
+        try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(logs));
+        try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.family(family));
+    }
+}

@@ -148,6 +148,19 @@ pub const Captured = struct {
         self.allocator.destroy(self.program);
     }
 };
+pub fn layoutGeometry(captured: *const Captured, shard: usize, layout: Case.Layout) !@import("../../word16_execution/geometry.zig").Geometry {
+    var g = try captured.native[shard].geometry();
+    g.cpu_fused_tail = layout.cpu_fused_tail;
+    g.cpu_u8_pairs = layout.cpu_u8_pairs;
+    return g;
+}
+/// The curve bridge plus, with LS-D64 routing, one log-5 dword instance when
+/// the shard has an aligned LD/SD (every shard here has its SD).
+pub fn layoutBridges(captured: *const Captured, shard: usize, op: Op, layout: Case.Layout) T.Logs {
+    var logs = bridges(op);
+    if (layout.ls_dword and @import("pipeline.zig").dwordCount(captured.advice.events[shard]) != 0) logs.ls_dword = 5;
+    return logs;
+}
 pub fn bridges(op: Op) T.Logs {
     var logs = T.Logs{};
     logs.set(T.curveFamily(op), 5);
@@ -190,7 +203,13 @@ pub const Case = struct {
             if (offset < 8 * after.len) cell.state.value = after[offset / 8];
         }
     }
+    /// v3 producer CPU layout options (all declared and transcript-bound):
+    /// fused-tail CPU interaction, byte-pair lookups, LS-D64 routing.
+    pub const Layout = struct { cpu_fused_tail: bool = false, cpu_u8_pairs: bool = false, ls_dword: bool = false };
     pub fn init(a: std.mem.Allocator, op: Op, mutation: Mutation, split: bool) !Case {
+        return initWith(a, op, mutation, split, .{});
+    }
+    pub fn initWith(a: std.mem.Allocator, op: Op, mutation: Mutation, split: bool, layout: Layout) !Case {
         var captured = try Captured.init(a, op);
         defer captured.deinit();
         const k = Curves.index(op);
@@ -213,11 +232,11 @@ pub const Case = struct {
         }
         const s0 = try a.create(R.CpuSetup);
         errdefer a.destroy(s0);
-        s0.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = captured.words }, try captured.native[0].geometry(), bridges(op));
+        s0.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = captured.words }, try layoutGeometry(&captured, 0, layout), layoutBridges(&captured, 0, op, layout));
         errdefer s0.deinit();
         const s1 = try a.create(R.CpuSetup);
         errdefer a.destroy(s1);
-        s1.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = captured.words }, try captured.native[1].geometry(), bridges(op));
+        s1.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = captured.words }, try layoutGeometry(&captured, 1, layout), layoutBridges(&captured, 1, op, layout));
         errdefer s1.deinit();
         const t = try a.create(CR.TruthSetup);
         errdefer a.destroy(t);
