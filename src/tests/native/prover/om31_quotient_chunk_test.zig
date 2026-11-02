@@ -86,7 +86,7 @@ test "wide quotient parallel rows preserve scalar bytes and zero-weight pole rej
     defer expected.deinit(a);
     try scalar.computeAll(a, &expected);
     var pool: engine.work_pool.WorkPool = undefined;
-    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .backing_allocator = a });
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .backing_allocator = a });
     defer pool.deinit();
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
@@ -99,7 +99,7 @@ test "wide quotient parallel rows preserve scalar bytes and zero-weight pole rej
     try provider.computeAll(a, &actual);
     for (expected.columns, actual.columns) |left, right| try std.testing.expectEqualSlices(M, left, right);
     // A saturated lease must execute the exact scalar fallback, without deadlock.
-    var lease = try pool.acquire(try engine.work_pool.WorkerBudget.init(4));
+    var lease = try pool.acquire(try engine.work_pool.WorkerBudget.init(3));
     try provider.computeAll(a, &actual);
     lease.deinit();
     for (expected.columns, actual.columns) |left, right| try std.testing.expectEqualSlices(M, left, right);

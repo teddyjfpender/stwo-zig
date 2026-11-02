@@ -465,7 +465,7 @@ fn checkHybrid(a: std.mem.Allocator) !void {
 
 test "coefficient storage hybrid bounded quotients preserve raw columns and parallel output parity" {
     var pool: @import("../work_pool.zig").WorkPool = undefined;
-    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3 });
     defer pool.deinit();
     var binding = try @import("../work_pool.zig").ScopedPoolBinding.init(&pool);
     defer binding.deinit();

@@ -32,40 +32,66 @@ pub fn finalizeRows(constants: *const Authority.QuotientConstants, groups: []con
             for (group.coordinates) |plane| if (plane.len < upper) return error.ShapeMismatch;
         }
     }
+    // A bounded tile keeps the row accumulators in L1 while each batch's
+    // immutable packed linear coefficients and group span are prepared once.
+    // Each row still sums groups and batches in exactly the original order.
+    const TILE_PACKS = 16;
     var row: usize = 0;
-    while (row + m.PACK_WIDTH <= count) : (row += m.PACK_WIDTH) {
-        var ys: m.PackedM31 = undefined;
-        inline for (0..m.PACK_WIDTH) |lane| ys[lane] = points[row + lane].y.v;
-        var sum = po.splat(O.zero());
+    while (row + m.PACK_WIDTH <= count) {
+        const packs = @min(TILE_PACKS, (count - row) / m.PACK_WIDTH);
+        var sums: [TILE_PACKS]po.PackedOM31 = undefined;
+        var ys: [TILE_PACKS]m.PackedM31 = undefined;
+        for (0..packs) |pack| {
+            sums[pack] = po.splat(O.zero());
+            inline for (0..m.PACK_WIDTH) |lane| ys[pack][lane] = points[row + pack * m.PACK_WIDTH + lane].y.v;
+        }
         var group_index: usize = 0;
         for (constants.batch_linear_terms, 0..) |term, batch| {
-            var numerator = po.splat(O.zero());
-            while (group_index < groups.len and groups[group_index].batch_index == batch) : (group_index += 1) {
-                const group = groups[group_index];
-                var coordinates: [8]m.PackedM31 = undefined;
-                inline for (0..8) |coordinate| {
-                    if (group.is_direct) {
-                        coordinates[coordinate] = m.loadPacked(group.coordinates[coordinate][start + row ..].ptr);
-                    } else {
-                        inline for (0..m.PACK_WIDTH) |lane| {
-                            const position = start + row + lane;
-                            const index = ((position >> group.shift_amt) << 1) + (position & 1);
-                            coordinates[coordinate][lane] = group.coordinates[coordinate][index].v;
+            const first_group = group_index;
+            while (group_index < groups.len and groups[group_index].batch_index == batch) : (group_index += 1) {}
+            const linear_a = po.splat(term.sum_a);
+            const linear_b = po.splat(term.sum_b);
+            for (0..packs) |pack| {
+                const current = row + pack * m.PACK_WIDTH;
+                var numerator = po.splat(O.zero());
+                for (groups[first_group..group_index]) |group| {
+                    var coordinates: [8]m.PackedM31 = undefined;
+                    inline for (0..8) |coordinate| {
+                        const plane = group.coordinates[coordinate];
+                        if (group.is_direct) {
+                            coordinates[coordinate] = m.loadPacked(plane[start + current ..].ptr);
+                        } else if (m.PACK_WIDTH == 4 and group.shift_amt >= 2 and (start + current) % 4 == 0) {
+                            // Lifting repeats the same adjacent pair throughout
+                            // an aligned native pack. Arbitrary starts retain the
+                            // exact general gather below.
+                            const index = ((start + current) >> group.shift_amt) << 1;
+                            const left = plane[index].v;
+                            const right = plane[index + 1].v;
+                            coordinates[coordinate] = .{ left, right, left, right };
+                        } else {
+                            inline for (0..m.PACK_WIDTH) |lane| {
+                                const position = start + current + lane;
+                                const index = ((position >> group.shift_amt) << 1) + (position & 1);
+                                coordinates[coordinate][lane] = plane[index].v;
+                            }
                         }
                     }
+                    numerator = numerator.add(po.fromCoordinates(coordinates));
                 }
-                numerator = numerator.add(po.fromCoordinates(coordinates));
+                var inverse: [4]m.PackedM31 = undefined;
+                inline for (0..m.PACK_WIDTH) |lane| {
+                    const coordinates = inverses[batch * count + current + lane].toM31Array();
+                    inline for (0..4) |coordinate| inverse[coordinate][lane] = coordinates[coordinate].v;
+                }
+                const linear = linear_a.mulBase(ys[pack]).add(linear_b);
+                sums[pack] = sums[pack].add(numerator.sub(linear).mulInner(pq.PackedQM31.fromCoordinates(inverse)));
             }
-            var inverse: [4]m.PackedM31 = undefined;
-            inline for (0..m.PACK_WIDTH) |lane| {
-                const coordinates = inverses[batch * count + row + lane].toM31Array();
-                inline for (0..4) |coordinate| inverse[coordinate][lane] = coordinates[coordinate].v;
-            }
-            const linear = po.splat(term.sum_a).mulBase(ys).add(po.splat(term.sum_b));
-            sum = sum.add(numerator.sub(linear).mulInner(pq.PackedQM31.fromCoordinates(inverse)));
         }
-        const coordinates = po.coordinates(sum);
-        inline for (0..8) |coordinate| m.storePacked(output[coordinate][row..].ptr, coordinates[coordinate]);
+        for (0..packs) |pack| {
+            const coordinates = po.coordinates(sums[pack]);
+            inline for (0..8) |coordinate| m.storePacked(output[coordinate][row + pack * m.PACK_WIDTH ..].ptr, coordinates[coordinate]);
+        }
+        row += packs * m.PACK_WIDTH;
     }
     // Arbitrary chunk starts and lengths remain supported, including tails
     // shorter than a native vector. This is the scalar core formula verbatim.
@@ -144,7 +170,7 @@ test "coefficient storage row-packed wide DEEP preserves lifted geometry and eve
     var terms: [5]Term = undefined;
     for (&terms, 0..) |*term, i| term.* = .{ .sum_a = dense(i + 11), .sum_b = dense(i + 103) };
     const constants = Authority.QuotientConstants{ .line_coeffs = &.{}, .batch_linear_terms = &terms };
-    var backing: [4][8][32]m.M31 = undefined;
+    var backing: [4][8][128]m.M31 = undefined;
     var groups: [4]Group = undefined;
     for (&backing, &groups, 0..) |*planes, *group, i| {
         group.* = .{ .coordinates = undefined, .batch_index = if (i == 0) 0 else if (i == 2) 2 else i + 1, .shift_amt = @intCast(i + 1), .is_direct = i == 0 };
@@ -153,14 +179,14 @@ test "coefficient storage row-packed wide DEEP preserves lifted geometry and eve
             column.* = plane;
         }
     }
-    var points: [32]core.circle.CirclePointM31 = undefined;
-    const domain = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var points: [128]core.circle.CirclePointM31 = undefined;
+    const domain = core.poly.circle.canonic.CanonicCoset.new(7).circleDomain();
     for (&points, 0..) |*point, i| point.* = domain.at(i);
-    var inverses: [5 * 32]Q = undefined;
+    var inverses: [5 * 128]Q = undefined;
     for (&inverses, 0..) |*inverse, i| inverse.* = dense(131 + i).c0;
-    var output: [8][32]m.M31 = undefined;
-    for ([_]usize{ 0, 1, 3, 7, 13 }) |start| {
-        for ([_]usize{ 0, 1, 2, 3, 4, 5, 7, 8, 13, 17 }) |count| {
+    var output: [8][128]m.M31 = undefined;
+    for ([_]usize{ 0, 1, 3, 7, 13, 31, 63 }) |start| {
+        for ([_]usize{ 0, 1, 2, 3, 4, 5, 7, 8, 13, 17, 31, 63, 64, 65, 97, 127 }) |count| {
             if (start + count > points.len) continue;
             var planes: [8][]m.M31 = undefined;
             for (&planes, &output) |*plane, *storage| plane.* = storage[0..count];
@@ -184,7 +210,7 @@ test "coefficient storage row-packed wide DEEP preserves lifted geometry and eve
     wrong = groups;
     wrong[2].batch_index = 0;
     try std.testing.expectError(error.ShapeMismatch, finalizeRows(&constants, &wrong, 0, points[0..4], inverses[0..20], &planes));
-    try std.testing.expectError(error.ShapeMismatch, finalizeRows(&constants, &groups, 31, points[0..4], inverses[0..20], &planes));
+    try std.testing.expectError(error.ShapeMismatch, finalizeRows(&constants, &groups, 127, points[0..4], inverses[0..20], &planes));
     wrong = groups;
     wrong[0].is_direct = false;
     wrong[0].shift_amt = 0;
