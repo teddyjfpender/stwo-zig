@@ -1,7 +1,8 @@
 # Optional projected local binding retention
 
 Status: software/lifetime/physical-fixture and complete K18 control qualification.
-K16 checkpoint and candidate-profile full-block measurements remain pending. Resource option `defer_local_binding` defaults
+K16 checkpoint and candidate-profile complete-block runs also pass independent fresh
+verification and exact same-profile/geometry artifact comparisons. Resource option `defer_local_binding` defaults
 false and is omitted from default resource JSON. Candidate operational resources
 forward the same flag. It does not select a proof or security construction.
 
@@ -116,3 +117,27 @@ The balanced-cache adversarial physical proof separately reaches a fresh receive
 and fails `OodsNotMatching` under both Safe/Fast, even though its modified
 projection preserves the exact weighted sum and final prefix. Its numerical
 closure is deliberately valid; the original authenticated MAIN remains authority.
+
+## Complete K16 and candidate measurements
+
+| Profile / geometry | Immediate binding proving / RSS | Deferred projection proving / RSS | Exact artifacts / fresh acceptance |
+| --- | ---: | ---: | --- |
+| q70 checkpoint68 K16 |254.66s /30.17GB|238.91s /26.79GB|39 /yes|
+| beta2 source80 K18 |303.92s /39.95GB|305.85s /39.96GB|33 /yes|
+
+The K16 observation reduces RSS by3.38GB (11.2%) compared with its earlier
+checkpointed reference. Relative to the older tight-dense K18 control's42.49GB,
+the combined smaller-instance/stream/checkpoint/deferred policy uses1.59x less
+peak memory, with238.91s versus242.44s proving. That cumulative comparison changes
+geometry and storage together and adds six service proofs; it is not an isolated
+GKR or deferral speedup. K16 total proof bytes remain43.44MB versus27.07MB atK18.
+
+The candidate K18 pair shows no time or RSS improvement. The option therefore
+remains defaultfalse. Select the profile, service geometry and retention policy
+from complete latency/memory/proof/receiver measurements, rather than assuming
+that a smaller retained payload improves every workload's process peak.
+
+Full receipts under `vectors/reports/rv64-deferred-local-binding-20261102/` record
+actual96-byte overlap, all completed children under their admitted hard caps,
+profile, frozen binary, resources, process usage and every authoritative hash.
+Whole128 and accepting OM/GKR recursion remain independently unqualified.
