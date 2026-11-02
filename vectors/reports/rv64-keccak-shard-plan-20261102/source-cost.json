@@ -1,0 +1,57 @@
+{
+  "source_base": "65202e19400a97634eee32e41523c3649978437f",
+  "scope": "source-derived bounded producer geometry experiment",
+  "default_max_log": 18,
+  "qualified_fullblock_opt_in": false,
+  "gpu_execution_qualified": false,
+  "whole_protocol_128": false,
+  "calls": 32835,
+  "packed_row_bytes": 488,
+  "permutation_widths": {
+    "fixed": 32,
+    "main": 1923,
+    "interaction": 5336
+  },
+  "rosters": [
+    {
+      "max_log": 18,
+      "proofs": 2,
+      "permutation_rows": 524288,
+      "active_rows": 476122,
+      "fixed_cells": 16906240,
+      "main_cells": 1008224256,
+      "interaction_cells": 2797895680,
+      "opening_samples": 27548,
+      "max_main_coefficient_bytes": 2016448512,
+      "max_interaction_coefficient_bytes": 5595791360,
+      "narrow_metadata_bytes": 300046224
+    },
+    {
+      "max_log": 16,
+      "proofs": 8,
+      "permutation_rows": 491520,
+      "active_rows": 476122,
+      "fixed_cells": 16244736,
+      "main_cells": 945266688,
+      "interaction_cells": 2623930368,
+      "opening_samples": 110192,
+      "max_main_coefficient_bytes": 504139776,
+      "max_interaction_coefficient_bytes": 1399390208,
+      "narrow_metadata_bytes": 297621392
+    }
+  ],
+  "immutable_or_pcs_scratch_not_in_payload_bounds": true,
+  "metadata_model": "same active PackedRows plus permutation fixed views and local tables as truth_retention; not total RSS",
+  "producer_cli_not_changed": true,
+  "full_roster_workers": {
+    "default": 30,
+    "max_log16": 36
+  },
+  "native_statement_or_transcript_same_for_changed_roster": false,
+  "accepting_receiver_required_before_promotion": true,
+  "qualification": {
+    "safe": "PASS final source, 4s, MaxRSS439MiB",
+    "fast": "PASS final source, 3s, MaxRSS412MiB",
+    "physical_fullblock_log16": "pending; no CLI selection added"
+  }
+}
