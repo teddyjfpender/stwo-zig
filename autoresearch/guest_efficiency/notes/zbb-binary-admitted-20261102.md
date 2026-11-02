@@ -68,3 +68,49 @@ estimate; 65,229 is the proxy number.
   Until then `prepared.zig` rejects `ethereum_services_v3_zbb` tapes (fails closed).
 - `targets.json` needs `ethereum_services_v3_zbb` in `allowed_execution_profiles` once
   the CPU lane admits it.
+
+## CPU-lane integration (2026-11-02, branch head after d46c8e017)
+
+Provable in the Word16 v3 services lane under `ethereum_services_v3_zbb` with a
+fresh receiver (`zig build test-riscv64-word16-zbb-services`): two shards with
+all seven instructions plus SHA-256, arith256_mod, memset, memcpy, SD/LD of a
+rev8 result. ROM: andn/orn/xnor -> FUNCTION 19/20/21; rev8/sext.b/sext.h ->
+22/23/24 with the B operand pinned by the ROM immediate (0/0x80/0x8000);
+zext.h -> BINARY AND (16) with immediate 0xffff. One Zbb component (2 fixed,
+32 MAIN, 24 interaction columns, rows = distinct Zbb facts) per shard; its
+byte-AND requests join the core AND table. Absent component => no column,
+claim, transcript or wire byte (v2 golden and v3 sha256/all bundles
+byte-identical, verified after the final merges).
+
+Fail closed: GKR-local lane, v3 truth-leaf recursion tool, legacy full AIR
+(opcode policy / Plan.allows), non-Zbb ROMs (no Zbb component key), and the
+Ethereum block driver: its native batch is built on the legacy byte ROM
+authority, which has no Zbb rows, so a v3_zbb request stops with
+`UnsupportedRv64ServiceExecutionProfile` before capture. Driver support needs
+a Zbb-aware native batch/work packet authority (not done). Hence
+`ethereum_services_v3_zbb` is NOT added to targets.json G6.
+
+### Measured (merged head ff2381db6 + fused-tail 584ddea61, executor and both clients rebuilt from this tree)
+
+Basket `--set all`, 15/15 exact outputs, G1-G5 pass (G6 fails for zbb: profile not allowed):
+
+| client | scored instr/gas | holdout | all | scored bits/gas (proxy) |
+|---|---:|---:|---:|---:|
+| v3 RV64IM (this tree, default v3 set) | 4.060 | 3.440 | 3.937 | 54,544 |
+| v3 zbb_binary (744 rev8, audit clean) | **3.864 (-4.8%)** | 3.263 | 3.745 | **53,067 (-2.7%)** |
+
+The proxy charges 154.8 cells per retirement and does not see the Zbb
+component; its real cost is below.
+
+Block 24,628,607 (`zbb_shard_steps` = 4,194,303 executor diagnostic): 30,719,275
+-> 29,016,151 instructions (-1,703,124, -5.5%; 143,784 rev8, 11.85 saved per
+rev8); distinct Zbb facts per shard [2317, 3280, 3771, 3120, 3619, 2594, 7] ->
+component logs 12 x6 and 5 -> 1,378,048 committed (MAIN+INTERACTION) cells
+= 56 x (6 x 4096 + 32), i.e. +0.047 cells per instruction, +12.1 bits/gas on
+this block (64.80 bits per committed cell, gas 7,372,614).
+On the reference roster (9 CPU proofs at log 22, 36,659,069 instructions): at
+most 9 x 4096 x 56 = 2,064,384 cells = +0.056 cells/instruction, against
+-0.0554 instructions per instruction x 158.6 committed cells = -8.79
+cells/instruction (lower bound with the CPU row only, 89.6 cells: -4.96), net
+about -8.7 cells per original instruction (-5.5%); about -2,360 bits/gas on
+block 24,628,607 (-1,330 with the CPU-row-only bound).
