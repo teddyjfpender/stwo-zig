@@ -18,6 +18,12 @@
     "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_fractions.zig": "be6c635ae3a4ce17a4d84267217a9e61e158868bc8bb088199f4e3e53c9cd7b8",
     "src/frontends/riscv/air/guest_precompile/secp256k1_mul_direct.zig": "4bca8639315928d86aa125a2e81ada281f673e5c627e6312f77fc560ff0a8e39",
     "src/prover/lookups/gkr_prover_field.zig": "8c516b2137ad077d28900b317dd5fe8eba300fd213b7d0b605b62b1ccd1ef308",
-    "src/prover/lookups/verifier_kernel.zig": "4047f640e8293e508fe1c6239e5db3b66bcba65b6668190263290577450adb11"
+    "src/prover/lookups/verifier_kernel.zig": "4047f640e8293e508fe1c6239e5db3b66bcba65b6668190263290577450adb11",
+    "src/prover/fri_commit_ops_family.zig": "d8aa2c2dd8747390c898acf27461e5f08c1830fef71717956bc7e3d52200628d",
+    "src/prover/pcs/fri_lazy_commit_family.zig": "9b0656cd848702b5efd014f52c726703375b46354027a94616a29a83ddfcc3c5",
+    "src/prover/pcs/quotient_field.zig": "3975793b4ebe77e2f96506dceaafb7c9a32f9d4ee8ab93ee83c45f27e8efd7e8",
+    "src/prover/pcs/quotients/coefficient_groups.zig": "841db5a9e8f1d042c111ad74d7b0854de80027ba7c31581db07aa67ddab763ed",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig": "25efa90bb5e326f2df4fcc616f267975afc979a1ae9b50e917d64a50f4ccd118",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig": "4817fa6dc085c64781a2d59a8661a013601c67e9c4d81739308bb7884965e677"
   }
 }
