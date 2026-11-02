@@ -1,0 +1,103 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-exact-prefix-receipt.v1",
+ "date": "2026-11-02",
+ "what": "Word16 4-packet prefix proof of block 24,628,607 with the evmone v3 zbb_binary client under ethereum_services_v3_zbb (v3 default layout: fused tail + U8 pairs + LS-D64 + Zbb BINARY component), produced and freshly verified.",
+ "code": {
+  "branch": "codex/rv64-ge-zbb2",
+  "binaries_sha256": {
+   "rv64-ethereum-proof": "68e6b06ee0ac837a5d06ac9463f4477106edb8e8886dbde0feef2ad4cbfb6484",
+   "rv64-word16-ethereum": "dc6e7d1d8057d5f14cc14a9e66dc4591fd9b7bc52988de051c40dcd6a53307d4"
+  },
+  "note": "produce ran with the binary before the Batch.init instructionAt fix; nativeprepare re-run with the final binary gives byte-identical packets (same packet_sha256) and the final binary's fresh verify-prefix accepts the bundle."
+ },
+ "client": {
+  "build": "build.py --profile v3 --isa zbb_binary --isa-audit rv64-isa-audit (default v3 set)",
+  "elf_sha256": "f44278ad09e748b0f85670beba64afea504647b848a3a8e47940f4058801b5c8",
+  "rev8_sites": 744,
+  "terminal_pc": 489124
+ },
+ "request": {
+  "input_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "execution_profile": "ethereum_services_v3_zbb",
+  "batch_steps": 4194303,
+  "max_batches": 4,
+  "terminal_pc": 489124
+ },
+ "native_prepare": {
+  "collected_batches": 4,
+  "instructions": 16777212,
+  "packet_sha256": [
+   "292d14d3a5e7a82aab6ad0f4a9fb6f53e4bc4322cce1b73567621c06d979016b",
+   "85f7489b4ebcc216ae6d24df8e78d6d48df61f8f33022ca94cdd59cbf7bcd797",
+   "d58b8f8598afe397d6a596dbf1de6aea47446814eac4b71e3f1c7ba4e1386be9",
+   "1422ff69ddb557010de12c01698120f062ff6396f43ad4e89366aa7f552d58fd"
+  ]
+ },
+ "produce": {
+  "memguard_gb": 15,
+  "wall_s": 36.85,
+  "prove_ns": 31885425375,
+  "max_rss_bytes": 20440383488,
+  "peak_footprint_bytes": 13818463752,
+  "cpu_proofs": 4,
+  "truth_proofs": 6,
+  "same_process_verify_ns": 272726042
+ },
+ "verify_prefix": {
+  "fresh_accepted": true
+ },
+ "adversarial_real_bundle": {
+  "v3_request": "UnadmittedZbbBinaryComponent",
+  "zbb_function_claim_plus_one": "OodsNotMatching",
+  "zbb_component_removed": "GlobalExecutionInventoryMismatch"
+ },
+ "cells": {
+  "convention": "MAIN + INTERACTION native cells",
+  "cpu_proofs_total": 2347412768,
+  "truth_proofs_total": 894067488,
+  "zbb_component": {
+   "per_proof": [
+    {
+     "log": 12,
+     "active_rows": 2637,
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    },
+    {
+     "log": 12,
+     "active_rows": 3934,
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    },
+    {
+     "log": 12,
+     "active_rows": 3740,
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    },
+    {
+     "log": 12,
+     "active_rows": 3401,
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    }
+   ],
+   "total": 917504,
+   "per_instruction": 0.05468751303851915
+  }
+ },
+ "power": "AC power (pmset after the run); machine shared with other agents, timings indicative"
+}

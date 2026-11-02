@@ -5,7 +5,17 @@ const isa = @import("decode.zig");
 /// to v2; a tag is admitted only by a matching proof bridge (OWNER19 closure).
 /// Extension point: further v3 tags (e.g. bulk memory 0x0003_0001/2) add a
 /// constant here, a session dispatch arm, a tape section and a services family.
-pub const Profile = enum { rv64im, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3 };
+/// `ethereum_services_v3_zbb` = v3 services, plus the admitted Zbb BINARY
+/// instructions (`decode.Isa.rv64im_zbb_binary`). Appended: existing values unchanged.
+pub const Profile = enum { rv64im, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3, ethereum_services_v3_zbb };
+/// The instruction set a profile decodes. Every pre-Zbb profile is RV64IM.
+pub fn isaOf(profile: Profile) isa.Isa {
+    return if (profile == .ethereum_services_v3_zbb) .rv64im_zbb_binary else .rv64im;
+}
+/// v3 service roster (identical for v3 and v3_zbb; only the ISA differs).
+pub fn isV3(profile: Profile) bool {
+    return profile == .ethereum_services_v3 or profile == .ethereum_services_v3_zbb;
+}
 pub const KECCAK_TAG: u64 = 0x00010001;
 pub const SECP_ADD_TAG: u64 = 0x00020001;
 pub const SECP_DOUBLE_TAG: u64 = 0x00020002;
@@ -36,11 +46,11 @@ pub const TAG_REGISTER: u5 = 17;
 pub fn hasServices(profile: Profile) bool {
     return switch (profile) {
         .rv64im => false,
-        .keccak_service_v1, .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3 => true,
+        .keccak_service_v1, .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3, .ethereum_services_v3_zbb => true,
     };
 }
 pub fn decode(profile: Profile, raw: u32) isa.Error!isa.Instruction {
-    var result = try isa.Instruction.decode(raw);
+    var result = try isa.decodeFor(isaOf(profile), raw);
     if (hasServices(profile) and result.opcode == .ECALL) {
         result.rs1 = POINTER_REGISTER;
         result.rs2 = TAG_REGISTER;
@@ -56,17 +66,18 @@ pub fn admitted(profile: Profile, op: isa.Opcode) bool {
     return switch (op) {
         .EBREAK => false,
         .ECALL => hasServices(profile),
+        .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H => isaOf(profile) == .rv64im_zbb_binary,
         else => true,
     };
 }
 /// Profiles whose secp packets use the LE-word v2 format.
 pub fn secpWords(profile: Profile) bool {
-    return profile == .ethereum_services_v2 or profile == .ethereum_services_v3;
+    return profile == .ethereum_services_v2 or isV3(profile);
 }
 /// Admitted v3-only service tags (the ROM-independent service roster):
 /// SHA-256 compression, arith256_mod and bulk memcpy/memset/memcmp.
 pub fn admitsV3(profile: Profile, tag: u64) bool {
-    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isPayloadFreeTag(tag) or isCurveTag(tag));
+    return isV3(profile) and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isPayloadFreeTag(tag) or isCurveTag(tag));
 }
 pub fn isCurveTag(tag: u64) bool {
     for (CURVE_TAGS) |t| if (t == tag) return true;

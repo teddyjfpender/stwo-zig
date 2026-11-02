@@ -95,7 +95,9 @@ pub const Setup = struct {
             decoded_row.* = headerRow(address.*, word);
             entry.* = .{ .raw = word };
             const instruction = execution.decode(profile, word) catch null;
-            if (instruction) |inst| if (execution.admitted(profile, inst.opcode)) {
+            // This (legacy byte) program AIR has no Zbb authority: Zbb opcodes stay
+            // unadmitted header rows here under every profile (fail closed).
+            if (instruction) |inst| if (execution.admitted(profile, inst.opcode) and isa.isBase(inst.opcode)) {
                 decoded_row.* = deriveAdmitted(address.*, word, inst, execution.effects(profile, inst.opcode));
                 entry.instruction = inst;
                 for (&entry.enabled, 0..) |*enabled, slot| enabled.* = !decoded_row[field.slots + slot].isZero();
@@ -116,6 +118,7 @@ pub const Setup = struct {
             // Word16 routes keep the v2 ROM authority for v3 (identical decode);
             // a direct v3 setup is a distinct identity, never silently shared.
             .ethereum_services_v3 => "stwo-zig/rv64/ethereum-services-rom/v3\x00",
+            .ethereum_services_v3_zbb => "stwo-zig/rv64/ethereum-services-rom/v3-zbb\x00",
         };
         if (service_domain) |domain| {
             var service_hash = Blake2s.init(.{});
@@ -135,10 +138,18 @@ pub const Setup = struct {
         return @as(usize, 1) << @intCast(self.log_size);
     }
     pub fn lookup(self: *const Setup, pc: u64) !usize {
+        const index = try self.indexOf(pc);
+        if (self.rows[index][field.valid].isZero()) return error.InvalidRv64RomExecution;
+        return index;
+    }
+    /// ROM row of `pc` whether or not this (legacy byte) ROM admits its word.
+    /// Only for callers that decode the raw word under another, explicitly
+    /// admitted ROM (the Zbb rows of a Word16 v3_zbb ROM); never proof input.
+    pub fn indexOf(self: *const Setup, pc: u64) !usize {
         if (self.contiguous) {
             if (pc < self.addresses[0] or pc & 3 != 0) return error.InvalidRv64RomExecution;
             const index = (pc - self.addresses[0]) / 4;
-            if (index >= self.rows.len or self.rows[@intCast(index)][field.valid].isZero()) return error.InvalidRv64RomExecution;
+            if (index >= self.rows.len) return error.InvalidRv64RomExecution;
             return @intCast(index);
         }
         var low: usize = 0;
@@ -147,7 +158,7 @@ pub const Setup = struct {
             const mid = low + (high - low) / 2;
             if (self.addresses[mid] < pc) low = mid + 1 else high = mid;
         }
-        if (low == self.addresses.len or self.addresses[low] != pc or self.rows[low][field.valid].isZero()) return error.InvalidRv64RomExecution;
+        if (low == self.addresses.len or self.addresses[low] != pc) return error.InvalidRv64RomExecution;
         return low;
     }
     pub fn row(self: *const Setup, index: usize) Row {

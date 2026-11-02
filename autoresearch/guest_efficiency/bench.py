@@ -131,6 +131,12 @@ def admitted_cells(calibration: dict, admitted_calls: dict | None) -> float:
 
 
 V3_PROFILE = "ethereum_services_v3"
+# The Zbb route proves the same admitted v3 roster on the same v3 default CPU
+# layout (fused tail, U8 pairs, LS-D64) with the Zbb BINARY ROM, so it takes
+# every measured v3 coefficient plus the measured Zbb BINARY component cost
+# (calibration zbb_binary_cells_per_instruction; required for its rows).
+V3_ZBB_PROFILE = "ethereum_services_v3_zbb"
+V3_PROFILES = (V3_PROFILE, V3_ZBB_PROFILE)
 
 
 def keccak_coefficient(calibration: dict, profile: str | None) -> float:
@@ -138,7 +144,7 @@ def keccak_coefficient(calibration: dict, profile: str | None) -> float:
     throughput-table truth (keccak_cells_per_call_v3); every other profile
     (v2, baseline) keeps the frozen compact coefficient."""
     c = calibration["coefficients"]
-    if profile == V3_PROFILE and "keccak_cells_per_call_v3" in c:
+    if profile in V3_PROFILES and "keccak_cells_per_call_v3" in c:
         return c["keccak_cells_per_call_v3"]
     return c["keccak_cells_per_call"]
 
@@ -148,7 +154,7 @@ def profile_coefficient(calibration: dict, name: str, profile: str | None) -> fl
     The v3 entries are measured on a Word16 proof of the provable v3 client
     (see calibration.json); v2 and baseline rows keep the frozen values."""
     c = calibration["coefficients"]
-    if profile == V3_PROFILE and name + "_v3" in c:
+    if profile in V3_PROFILES and name + "_v3" in c:
         return c[name + "_v3"]
     return c[name]
 
@@ -167,6 +173,8 @@ def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: 
              + profile_coefficient(calibration, "secp_cells_per_call", profile) * (secp_add + secp_double)
              + candidate_cells(calibration, candidate_calls)
              + admitted_cells(calibration, admitted_calls))
+    if profile == V3_ZBB_PROFILE:
+        cells += c["zbb_binary_cells_per_instruction"] * instructions
     return c["bits_per_cell_at_lde"] * cells * (1.0 + c["composition_fraction"])
 
 

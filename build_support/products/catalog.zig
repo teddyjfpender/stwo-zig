@@ -64,6 +64,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-keccak-sponge", .description = "Keccak-256 sponge bridge AIR: Keccak-256 known answers, alignments and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-ls-dword-services", .description = "LS-D64 in the v3 services lane: real STARKs, fresh receiver, mixed presence, closure rejections", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-sponge-services", .description = "Keccak sponge in the v3 services lane: real STARKs, fresh receiver, adversarial closure", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-zbb-services", .description = "Zbb BINARY in the v3 services lane: Zbb ROM, real STARKs, fresh receiver, adversarial closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-curves-services", .description = "v3 BN254/BLS12-381 curve and field services-lane proofs with fresh receivers and adversarial closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-arith256-services", .description = "v3 arith256_mod services-lane proofs with fresh receivers and adversarial closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-arith256-bridge", .description = "arith256_mod Word16 bridge closes Wire35 with the arith256 truth", .scope = .riscv_cpu },
