@@ -5,7 +5,7 @@ const rv = front.rv64;
 const E = @import("../word16_execution/execution.zig");
 const Memory = @import("../word16_execution/memory/statement.zig");
 const Request = @import("../rv64_ethereum_request.zig");
-pub const Config = struct { elf: []const u8, elf_sha256: []const u8, oracle: []const u8, oracle_sha256: []const u8, rvfi: []const u8, workers: usize = 8, ls_ladder: bool = false };
+pub const Config = struct { elf: []const u8, elf_sha256: []const u8, oracle: []const u8, oracle_sha256: []const u8, rvfi: []const u8, workers: usize = 8, ls_ladder: bool = false, defer_local_binding: bool = false };
 pub const Oracle = struct {
     schema: u32,
     steps: u32,
