@@ -21,10 +21,32 @@ pub const IO_ARITY = 3 + 8; // call ID, direction, lane, eight bytes.
 pub const DIRECT = 2 * STATE + PARITY + ACTIVE_A + HEADER;
 pub const CONSTRAINTS = DIRECT + BATCHES;
 pub const MASK_OFFSETS = [_]i32{ 0, -2, -1, 1, 2 };
+/// Slot geometry of the paired permutation.
+/// `pair29`: input planes A, B; states v0..v24; output planes A, B (29 rows).
+/// `pair27` (throughput-r27-v1): one complemented A input plane; v0..v24;
+/// one complemented A output plane (27 rows). Call B's IO bits are the linear
+/// image (v + s[-1] - 1) / 8 of the packed state and the neighbouring plane.
+pub const Geometry = enum {
+    pair29,
+    pair27,
+    pub fn rowsPerPair(self: Geometry) usize {
+        return if (self == .pair27) 27 else ROWS_PER_PAIR;
+    }
+    /// Fixed one-hot column of slot phase `phase`. pair27 keeps the pair29
+    /// column meaning (0 input plane, 2 + r round r, 26 final state, 27
+    /// output plane); columns 1 and 28 are identically zero there.
+    pub fn phaseColumn(self: Geometry, phase: usize) usize {
+        if (self == .pair29) return phase;
+        return if (phase == 0) 0 else if (phase <= 25) phase + 1 else 27;
+    }
+};
 pub fn logSize(calls: usize) !u32 {
+    return logSizeFor(.pair29, calls);
+}
+pub fn logSizeFor(geometry: Geometry, calls: usize) !u32 {
     _ = try admitRoster(&.{calls}, &.{});
     const pairs = try std.math.divCeil(usize, calls, 2);
-    const rows = try std.math.mul(usize, pairs, ROWS_PER_PAIR);
+    const rows = try std.math.mul(usize, pairs, geometry.rowsPerPair());
     const log: u32 = @intCast(std.math.log2_int_ceil(usize, @max(32, rows)));
     // Degree-four quotient evaluation requires two extra circle bits.
     if (log > 26) return error.KeccakDomainTooLarge;
@@ -85,7 +107,10 @@ pub fn admitThroughputRoster(component_calls: []const usize) !LookupMass {
     return total;
 }
 pub fn validateGeometry(calls: usize, first_id: u32, log: u32) !void {
-    _ = try logSize(calls);
+    return validateGeometryFor(.pair29, calls, first_id, log);
+}
+pub fn validateGeometryFor(geometry: Geometry, calls: usize, first_id: u32, log: u32) !void {
+    _ = try logSizeFor(geometry, calls);
     if (first_id == 0 or first_id >= @import("stwo_core").fields.m31.Modulus or @as(u64, first_id) + calls > @import("stwo_core").fields.m31.Modulus) return error.InvalidKeccakCallId;
-    if (log < 5 or log > 26 or log < try logSize(calls)) return error.InvalidKeccakComponentGeometry;
+    if (log < 5 or log > 26 or log < try logSizeFor(geometry, calls)) return error.InvalidKeccakComponentGeometry;
 }
