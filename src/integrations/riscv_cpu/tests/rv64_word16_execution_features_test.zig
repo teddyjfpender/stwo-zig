@@ -62,7 +62,7 @@ test "full CPU projection preserves store B separate from signed immediate and b
     const entry = X.Entry.fromInstruction(0, 0x1000, .{ .opcode = .SD, .rs1 = 1, .rs2 = 2, .rd = 0, .imm = -8 });
     const row = try X.row.active(entry, 0, 0x1004, .{ .a = 0x100000020, .b = 0xfedcba9876543210, .c = 0, .previous_rd = 0 }, .{ 0, 0, 0 });
     const fixed = [_]M{ M.zero(), M.one(), M.zero() };
-    const owner = X.tuples.owner(M, &fixed, &row, M.fromCanonical(2));
+    const owner = X.tuples.owner(M, &fixed, &row, M.fromCanonical(2), false);
     try std.testing.expectEqual(@as(u64, 0xfedcba9876543210), word(owner[9..13]));
     try std.testing.expectEqual(@as(u64, @bitCast(@as(i64, -8))), word(owner[5..9]));
     try std.testing.expectEqual(@as(u32, 2), owner[17].v);

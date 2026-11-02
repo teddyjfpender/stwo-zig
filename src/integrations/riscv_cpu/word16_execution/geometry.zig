@@ -55,6 +55,10 @@ pub const Geometry = struct {
         }
         try jws.endObject();
     }
+    /// CPU log 23 selects the wide-clock CPU encoding (see layout.wideClock).
+    pub fn wideClock(self: Geometry) bool {
+        return front.rv64_air.word16_execution.layout.wideClock(self.cpu_log);
+    }
     pub fn initialLog(self: Geometry) u32 {
         return self.initial_log orelse self.boundary_log;
     }
@@ -65,7 +69,10 @@ pub const Geometry = struct {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         // The pair encoding is defined only on top of the fused tail.
         if (self.cpu_u8_pairs and !self.cpu_fused_tail) return error.InvalidCpuPairGeometry;
-        for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        // CPU log 23 is admitted only with the wide-clock encoding, which is
+        // defined on the fused tail without byte pairs (layout.wideClock).
+        if (self.cpu_log > 22 and (self.cpu_log > front.rv64_air.word16_execution.layout.MAX_LOG or !self.cpu_fused_tail or self.cpu_u8_pairs)) return error.InvalidExecutionGeometry;
+        for ([_]u32{ @min(self.cpu_log, 22), self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
             if (optional) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
@@ -97,7 +104,9 @@ pub const Geometry = struct {
     /// Counts include padding for every always-present physical provider.
     /// Future service rosters must extend this admission BEFORE allocation.
     pub fn range16Mass(self: Geometry) !u64 {
-        var total = try std.math.add(u64, 3 * rows(self.cpu_log), B.alu_experiment.equations.RANGE_QUERIES * familyRows(self.alu_log, self.alu_tail_log));
+        // Wide clock: the three gap8 queries are scaled U16 queries too.
+        const cpu_queries: u64 = if (self.wideClock()) 6 else 3;
+        var total = try std.math.add(u64, cpu_queries * rows(self.cpu_log), B.alu_experiment.equations.RANGE_QUERIES * familyRows(self.alu_log, self.alu_tail_log));
         total = try std.math.add(u64, total, B.shift_word_packed_experiment.equations.RANGE_QUERIES * familyRows(self.shift_log, self.shift_tail_log));
         total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
         // Public INIT/TEARDOWN chips own no range16 queries (receiver-anchored).
@@ -106,7 +115,8 @@ pub const Geometry = struct {
     }
     pub fn range8Mass(self: Geometry) !u64 {
         // Pair mode moves the CPU's three gap8 queries to the AND relation.
-        const cpu: u64 = if (self.cpu_u8_pairs) 0 else 3 * rows(self.cpu_log);
+        // Wide clock moves them to range16 (scaled by WIDE_GAP_SCALE).
+        const cpu: u64 = if (self.cpu_u8_pairs or self.wideClock()) 0 else 3 * rows(self.cpu_log);
         var total = try std.math.add(u64, cpu, A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
         total = try std.math.add(u64, total, LS.U8_QUERIES * self.lsRows());
         return total;

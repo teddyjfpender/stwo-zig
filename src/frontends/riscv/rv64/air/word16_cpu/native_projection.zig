@@ -16,7 +16,7 @@ pub fn fill(a: std.mem.Allocator, log: u32, kernel: Kernel, counts16: []u64, cou
     return fillImpl(a, log, kernel, counts16, counts8, pool, null);
 }
 fn fillImpl(a: std.mem.Allocator, log: u32, kernel: Kernel, counts16: []u64, counts8: []u64, pool: ?*work.WorkPool, fail_after: ?usize) !void {
-    if (log < 5 or log > 22 or counts16.len != U16 or counts8.len != U8) return error.InvalidNativeProjectionShape;
+    if (log < 5 or log > @import("layout.zig").MAX_LOG or counts16.len != U16 or counts8.len != U8) return error.InvalidNativeProjectionShape;
     const n: usize = @as(usize, 1) << @intCast(log);
     if (comptime @import("builtin").is_test) {
         if (fail_after) |after| {

@@ -42,7 +42,8 @@ pub fn cpuFor(comptime F: type, fixed: []const F, row: []const F, epoch: F, sink
     }
     sink.emit(.function, X.tuples.function(F, row), row[m.function]);
     sink.emit(.rom, X.tuples.rom(F, row), row[m.active]);
-    sink.emit(.owner, X.tuples.owner(F, fixed, row, epoch), row[m.active].sub(row[m.function]));
+    // Local GKR frames cap row_log at 22 (frame.zig), so never wide-clock.
+    sink.emit(.owner, X.tuples.owner(F, fixed, row, epoch, false), row[m.active].sub(row[m.function]));
     for (0..3) |slot| sink.emit(.range16, [1]F{row[m.gap16 + slot]}, F.one());
     for (0..3) |slot| sink.emit(.range8, [1]F{row[m.gap8 + slot]}, F.one());
 }

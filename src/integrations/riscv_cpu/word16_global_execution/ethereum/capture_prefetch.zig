@@ -80,7 +80,7 @@ const Window = struct {
             slot.capture_error = err;
             return;
         };
-        n.* = Native.captureForCombinedServicesLEv2(self.allocator, self.program, C.boundary(p), @intCast(index + 1), Coverage.minimalPrefixLog(@intCast(p.tape.len)) catch |err| {
+        n.* = Native.captureForCombinedServicesLEv2(self.allocator, self.program, C.boundary(p), @intCast(index + 1), Coverage.minimalCpuLog(@intCast(p.tape.len)) catch |err| {
             self.allocator.destroy(n);
             slot.capture_error = err;
             return;

@@ -126,7 +126,7 @@ pub const Program = struct {
 };
 
 pub fn validateBudget(config: Config) !void {
-    if (config.batch_steps == 0 or config.batch_steps >= 1 << 22 or config.max_steps == 0 or config.max_steps > 10000000000 or config.workers > 32 or !frontend.rv64_air.state_policy.isCyclic(config.state_policy)) return error.InvalidEthereumProofBudget;
+    if (config.batch_steps == 0 or config.batch_steps >= 1 << 23 or config.max_steps == 0 or config.max_steps > 10000000000 or config.workers > 32 or !frontend.rv64_air.state_policy.isCyclic(config.state_policy)) return error.InvalidEthereumProofBudget;
     if (config.execution_profile != .ethereum_services_v2 and config.execution_profile != .ethereum_services_v3) return error.UnsupportedEthereumExecutionProfile;
 }
 

@@ -9,7 +9,7 @@ const K = @import("service_session.zig");
 const S = @import("ethereum_services/session.zig");
 pub const MAGIC = "RV64TP01";
 pub const HEADER_BYTES = 48;
-pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 512 * 1024 * 1024 };
+pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 1024 * 1024 * 1024 };
 /// raw[28..32] was reserved-zero; v3 tapes store the SHA-256 record count
 /// in its low 31 bits, so every pre-v3 tape is byte-identical. Bit 31
 /// (`V3_EXTENSION_FLAG`, v3 only) announces a v3 extension that follows the

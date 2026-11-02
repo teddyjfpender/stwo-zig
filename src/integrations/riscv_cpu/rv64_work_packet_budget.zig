@@ -13,7 +13,7 @@ const EXTENSION_BYTES = 8;
 const ARITH256_RECORD = 32 + 160 + 160;
 const CURVE_RECORD = 8 + 32 + 192 + 192;
 pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void {
-    if (steps == 0 or steps > limits.steps or steps >= 1 << 22) return error.WorkPacketResourceLimit;
+    if (steps == 0 or steps > limits.steps or steps >= 1 << 23) return error.WorkPacketResourceLimit;
     const graph_start = try std.math.add(usize, H.BYTES, try h.bodyBytes());
     const tape_start = try std.math.add(usize, graph_start, h.graph_bytes);
     var base = try std.math.mul(usize, h.cells, @sizeOf(rv.boundary_capture.Cell) + @sizeOf(@import("rv64_full_statement.zig").Cell) + 4);

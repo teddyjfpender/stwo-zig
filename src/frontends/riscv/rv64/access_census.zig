@@ -3,7 +3,7 @@
 //! closes exactly one architectural instruction, including an atomic service.
 const std = @import("std");
 pub const CHUNK_BYTES = [_]u32{ 64, 128, 256, 512, 1024, 2048, 4096 };
-pub const MAX_BATCH_STEPS = 1 << 22;
+pub const MAX_BATCH_STEPS = 1 << 23;
 pub const OPCODE_COUNT = 65;
 pub const Service = enum { keccak, secp_add, secp_double, sha256, arith256_mod };
 // Default native 256MiB mapping budget, with room for 256 partial-region edges.

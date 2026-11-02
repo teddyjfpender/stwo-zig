@@ -43,7 +43,10 @@ pub const ROM = 16; // valid1 + PC4 + NEXT4 + opcode1 + regIDs3 + zeroFlags3.
 pub const REGISTER = 6; // register ID, value4, clock. No RAM/Byte20 duplicate.
 pub const CONSTRAINTS = 61;
 pub const MIN_LOG = 5;
-pub const MAX_LOG = 22;
+/// Structural cap shared with the full64 CPU (whose log-23 wide-clock
+/// encoding is gated by its geometry); the legacy word16 CPU component keeps
+/// its own hard `log_size <= 22` check.
+pub const MAX_LOG = 23;
 pub fn physical(row: usize, log_size: u32) usize {
     return core.utils.bitReverseIndex(core.utils.cosetIndexToCircleDomainIndex(row, log_size), log_size);
 }
