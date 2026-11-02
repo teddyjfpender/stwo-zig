@@ -35,7 +35,7 @@ pub fn main() !void {
     var binding = try work.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     if (std.mem.eql(u8, args[1], "verify") or std.mem.eql(u8, args[1], "verify-prefix")) return emit(a, try @import("rv64_ethereum_verify_chain.zig").verify(a, config, std.mem.eql(u8, args[1], "verify")));
-    if (std.mem.eql(u8, args[1], "nativeprepare")) return emit(a, try @import("rv64_ethereum_native_prepare.zig").run(a, config));
+    if (std.mem.eql(u8, args[1], "nativeprepare")) return emit(a, try @import("rv64_ethereum_native_prepare.zig").runWithOptions(a, config, .{ .pipeline = !config.diagnose_allocations }));
     if (inspect_mode) return emit(a, try @import("rv64_ethereum_packet_inspect.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
     if (worker_mode) return emit(a, try @import("rv64_ethereum_packet_worker.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
     if (std.mem.eql(u8, args[1], "finalize")) return emit(a, try @import("rv64_ethereum_finalize.zig").run(a, config));

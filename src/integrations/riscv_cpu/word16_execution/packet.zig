@@ -45,7 +45,14 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, image: *const Image.Owner, 
     try file.seekTo(tape_start);
     var tape = try rv.compact_tape_wire.readTail(a, file, .{ .bytes = header.tape_bytes, .steps = @min(limits.steps, public.statement.steps) });
     errdefer tape.deinit();
-    if (try rv.compact_tape_wire.encodedBytes(&tape) != header.tape_bytes or tape.execution_profile != Request.tapeProfile(config) or !@import("../rv64_ethereum_batch.zig").tapeMatches(tape.execution_profile, public.execution_profile) or tape.len == 0 or tape.len != public.statement.steps or tape.initial_clock != header.metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
+    if (try rv.compact_tape_wire.encodedBytes(&tape) != header.tape_bytes) return error.InvalidWorkPacketBoundary;
+    try decoded(public, &tape, header.metadata, config);
+    return .{ .metadata = header.metadata, .public = public, .tape = tape, .opcode_counts = counts, .content_digest = header.content_digest };
+}
+/// Statement/tape agreement and service-ID checks shared by the file reader
+/// and the in-process handoff (both run after their own tape decoding).
+fn decoded(public: CPU.Public, tape: *const rv.compact_tape.Tape, metadata: H.Metadata, config: Request.Config) !void {
+    if (tape.execution_profile != Request.tapeProfile(config) or !@import("../rv64_ethereum_batch.zig").tapeMatches(tape.execution_profile, public.execution_profile) or tape.len == 0 or tape.len != public.statement.steps or tape.initial_clock != metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
     for (tape.service_calls.items, 0..) |call, i| if (call.call_id != @as(u64, public.first_call_id) + i) return error.InvalidWorkPacketService;
     var secp_counts: [2]u32 = @splat(0);
     for (tape.secp_calls.items) |call| {
@@ -65,5 +72,27 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, image: *const Image.Owner, 
         if (curve_next[c]) |next_id| if (call.call_id != next_id) return error.InvalidWorkPacketService;
         curve_next[c] = call.call_id + 1;
     }
-    return .{ .metadata = header.metadata, .public = public, .tape = tape, .opcode_counts = counts, .content_digest = header.content_digest };
+}
+/// In-process handoff (no packet file): the producer's own batch, admitted by
+/// the same identity, statement-decode, ROM/PC admission and tape checks as
+/// `read`. Only transport framing and the SHA-256 content digest, which guard
+/// a file in transit and carry no proof authority, are absent. Takes `tape`.
+pub fn fromNative(tape_value: rv.compact_tape.Tape, native_public: CPU.Public, metadata: H.Metadata, cells: usize, image: *const Image.Owner, config: Request.Config) !Packet {
+    var tape = tape_value;
+    errdefer tape.deinit();
+    try Request.validateBudget(config);
+    try image.policy.validateImmutableExecution();
+    const identity = try H.identityFor(config, &image.authority, &image.policy);
+    if (!std.meta.eql(identity, metadata.identity) or !std.mem.eql(u8, &identity.policy, &image.policy.identity)) return error.WorkPacketIdentityMismatch;
+    if (metadata.geometry != .chunk512 or cells > (H.Limits{}).cells) return error.WorkPacketResourceLimit;
+    // Round-trip the statement through its wire codec against the receiver's
+    // independently loaded authority, exactly as a packet reader sees it.
+    const public = try Public.decode(&(try Public.encode(native_public)), &image.authority);
+    if (public.execution_profile != .ethereum_services_v2 or public.arithmetic_policy != .division_multiplication_services_v3 or public.state_policy != config.state_policy) return error.WorkPacketAuthorityMismatch;
+    const steps = public.statement.steps;
+    if (steps == 0 or steps > config.batch_steps or steps >= 1 << 22) return error.WorkPacketResourceLimit;
+    const counts = try Admission.checkTape(&tape, metadata, std.math.cast(u32, cells) orelse return error.WorkPacketResourceLimit, public, &image.authority);
+    try rv.compact_tape_wire.validate(&tape);
+    try decoded(public, &tape, metadata, config);
+    return .{ .metadata = metadata, .public = public, .tape = tape, .opcode_counts = counts, .content_digest = @splat(0) };
 }
