@@ -21,4 +21,6 @@ One clean real CPU0 pair uses matched `664f8adc3` code except this reducer, iden
 
 Two exploratory data sets are explicitly excluded. The first micro bound only the candidate module's pool; the old-source module has independent TLS and lazily selected a different worker count. The first CPU0 pair overlapped this agent's own pre-push tests. The hook process tree was stopped, the pair rerun, and only the clean rerun supports the table above. These mistakes do not invalidate the exact-output tests but must not be used as performance evidence.
 
+An independent read-only source review found no arithmetic, shape, allocation or disjoint-row ownership blocker. That review does not establish runtime performance and does not change the decision to defer production branching.
+
 This evidence does not qualify GPU execution, complete Ethereum acceptance, recursion or a128-bit security construction.
