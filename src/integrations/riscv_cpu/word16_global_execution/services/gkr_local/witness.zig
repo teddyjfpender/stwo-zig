@@ -164,9 +164,9 @@ pub const Witness = struct {
             const data = try a.alloc(M, try std.math.mul(usize, rows, 16));
             errdefer a.free(data);
             try eqIntoWithOptions(data, rows, point.rows, options);
-            var lane_planes: [8 * 128]M = undefined;
+            var lane_planes: [8 * Frame.MAX_LOCAL_TERMS]M = undefined;
             try eqInto(lane_planes[0 .. 8 * lanes], lanes, point.lanes);
-            var lane_weights: [128]O = undefined;
+            var lane_weights: [Frame.MAX_LOCAL_TERMS]O = undefined;
             for (lane_weights[0..lanes], 0..) |*v, i| v.* = get(&lane_planes, lanes, 0, i);
             const target = claims[0].add(eta.mul(claims[1]));
             const uniform = target.mulM31(try M.fromCanonical(@intCast(rows)).inv());
@@ -199,21 +199,21 @@ pub const Witness = struct {
             a.free(out);
         }
         for (instances, artifact.claims_to_verify_by_instance, 0..) |instance, claims, index| {
-            if (claims.len != 2 or instance.terms > 128) return error.LocalGkrProjectionShape;
+            if (claims.len != 2 or instance.terms > Frame.MAX_LOCAL_TERMS) return error.LocalGkrProjectionShape;
             const point = try Frame.splitPoint(instance, artifact.ood_point, artifact.n_variables_by_instance[index]);
             const rows = try instance.rows();
             const lanes: usize = @as(usize, 1) << @intCast(try instance.laneLog());
-            if (lanes > 128) return error.LocalGkrProjectionShape;
+            if (lanes > Frame.MAX_LOCAL_TERMS) return error.LocalGkrProjectionShape;
             const data = try a.alloc(M, try std.math.mul(usize, rows, if (projection_only) @as(usize, 8) else 16));
             errdefer a.free(data);
             if (!projection_only) try eqInto(data, rows, point.rows);
-            var lane_planes: [8 * 128]M = undefined;
+            var lane_planes: [8 * Frame.MAX_LOCAL_TERMS]M = undefined;
             try eqInto(lane_planes[0 .. 8 * lanes], lanes, point.lanes);
-            var lane_weights: [128]O = undefined;
+            var lane_weights: [Frame.MAX_LOCAL_TERMS]O = undefined;
             for (lane_weights[0..lanes], 0..) |*v, j| v.* = get(&lane_planes, lanes, 0, j);
-            var relations: [128]@import("fractions.zig").Relation = undefined;
-            var n: [128]M = undefined;
-            var d: [128]O = undefined;
+            var relations: [Frame.MAX_LOCAL_TERMS]@import("fractions.zig").Relation = undefined;
+            var n: [Frame.MAX_LOCAL_TERMS]M = undefined;
+            var d: [Frame.MAX_LOCAL_TERMS]O = undefined;
             var catalog = @import("inputs.zig").RowSink{ .challenges = challenges, .numerator = n[0..instance.terms], .denominator = d[0..instance.terms], .catalog = relations[0..instance.terms] };
             try provider.emit(instance, 0, &catalog);
             if (catalog.invalid or catalog.count != instance.terms) return error.LocalGkrProjectionShape;
