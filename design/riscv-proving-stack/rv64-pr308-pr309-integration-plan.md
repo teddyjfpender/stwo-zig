@@ -25,6 +25,19 @@ The timed guest ELF is pinned and predates the last guest patches; those merged
 patches have no invented timing here. Further optimization, recursion and GPU
 qualification are deferred as requested.
 
+## Closure requalification on current main (2026-11-03)
+
+The complete services-GKR ReleaseSafe suite and ReleaseFast Ethereum driver
+build pass after rebasing onto main `5efe4e1e4` (including compact decode and
+streamed/checkpointed GKR). Four full-execution fixtures now also reject
+balanced cross-shard claim changes and swapped CPU proofs; truth-bearing
+fixtures reject an omitted truth, and each restored valid bundle verifies.
+The original seven-CPU/eleven-truth block freshly accepts under the explicit
+`proven_beta2_q256_p0_fold4` profile with identical source bounds and output.
+The bounded security model reproduces exactly and rejects profile/layout
+mismatches. [Receipts](../../vectors/reports/rv64-v3-closure-20261103/qualification.json)
+record these checks; no new proving-time or optimisation claim is made.
+
 ## Historical snapshot and implementation plan
 
 The sections below preserve the original review and intermediate checkpoints;
