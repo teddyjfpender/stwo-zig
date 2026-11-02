@@ -1,0 +1,18 @@
+{
+  "schema": "rv64-gkr-stream-bottom-v1",
+  "status": "isolatedoptinprototype; realCPU0pending",
+  "base": "347517d0c plusqualified756963ee8/211fe2272admissiondependencies",
+  "selection": "STWO_ZIG_GKR_STREAM_BOTTOM=1 requiresSTWO_ZIG_GKR_TREE_CHECKPOINTS=2; defaultOFF",
+  "tests": {
+    "core_ReleaseSafe": 30,
+    "external_pinned_source_ReleaseFast": 31,
+    "metadata_adapter_child_allOOM_ReleaseSafe": true,
+    "metadata_adapter_child_allOOM_ReleaseFast": true,
+    "physical_twoCPU_K_ADD_DOUBLE_fresh_allglobals_ReleaseSafe": true,
+    "physical_twoCPU_K_ADD_DOUBLE_fresh_allglobals_ReleaseFast": true
+  },
+  "whole_protocol_128": false,
+  "production_default": false,
+  "raw_plane_metric": "actualfullrawN/Dplanes0; boundedtilesonhelperstacksremain; plannedinputreservationseparate",
+  "old104_admission_bound_unchanged": true
+}

@@ -22,6 +22,7 @@ pub fn ForField(comptime Secure: type) type {
         pub const GkrProverError = gkr_circuit_module.GkrProverError;
         pub const EqEvals = gkr_circuit_field.EqEvals;
         pub const Layer = gkr_circuit_field.Layer;
+        pub const MultiplicitiesSource = gkr_circuit_field.MultiplicitiesSource;
         pub const GkrMultivariatePolyOracle = gkr_circuit_field.GkrMultivariatePolyOracle;
         pub const correctSumAsPolyInFirstVariable = gkr_circuit_field.correctSumAsPolyInFirstVariable;
 
@@ -42,21 +43,33 @@ pub fn ForField(comptime Secure: type) type {
             channel: anytype,
             input_layer_by_instance: []const Layer,
         ) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(false, false, allocator, channel, input_layer_by_instance);
+            return proveBatchImpl(false, false, false, allocator, channel, input_layer_by_instance, &.{});
         }
 
         /// Operational stride-two tree storage. Identical transcript and proof;
         /// missing levels are regenerated once from the retained lower level.
         /// Caller inputs remain immutable, with the original borrowed lifetime.
         pub fn proveBatchCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(true, false, allocator, channel, input_layer_by_instance);
+            return proveBatchImpl(false, true, false, allocator, channel, input_layer_by_instance, &.{});
         }
         /// Consumes heap descriptors and all owned input MLEs on success AND
         /// failure. Used when terminal binding can replay narrow metadata.
         pub fn proveBatchOwnedCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(true, true, allocator, channel, input_layer_by_instance);
+            return proveBatchImpl(false, true, true, allocator, channel, input_layer_by_instance, &.{});
         }
-        fn proveBatchImpl(comptime checkpointed: bool, comptime owned_input: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+        /// Borrowed opaque sources must remain immutable until all joined work
+        /// returns. No source pointer is retained in the proof or artifact.
+        pub fn proveBatchSourceCheckpointed(allocator: std.mem.Allocator, channel: anytype, sources: []const MultiplicitiesSource) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+            if (sources.len == 0) return error.EmptyBatch;
+            const headers = try allocator.alloc(Layer, sources.len);
+            defer allocator.free(headers);
+            for (sources, headers) |source, *header| {
+                try source.validate();
+                header.* = .{ .LogUpMultiplicities = .{ .numerators = .{ .evals = &.{}, .owns_evals = false }, .denominators = .{ .evals = &.{}, .owns_evals = false } } };
+            }
+            return proveBatchImpl(true, true, false, allocator, channel, headers, sources);
+        }
+        fn proveBatchImpl(comptime source_input: bool, comptime checkpointed: bool, comptime owned_input: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer, sources: []const MultiplicitiesSource) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
             var input_transferred: usize = 0;
             defer if (owned_input) {
                 for (input_layer_by_instance[input_transferred..]) |layer_value| {
@@ -74,7 +87,7 @@ pub fn ForField(comptime Secure: type) type {
 
             var n_layers: usize = 0;
             for (input_layer_by_instance, 0..) |layer, i| {
-                n_layers_by_instance[i] = layer.nVariables();
+                n_layers_by_instance[i] = if (source_input) sources[i].variables else layer.nVariables();
                 n_layers = @max(n_layers, n_layers_by_instance[i]);
             }
 
@@ -103,7 +116,7 @@ pub fn ForField(comptime Secure: type) type {
             for (input_layer_by_instance, 0..) |input_layer, i| {
                 if (checkpointed) {
                     if (owned_input) input_transferred += 1;
-                    const stored = try buildCheckpointed(owned_input, allocator, input_layer);
+                    const stored = if (source_input) try buildSourceCheckpointed(allocator, sources[i]) else try buildCheckpointed(owned_input, allocator, input_layer);
                     layers_by_instance[i] = stored.layers;
                     present_by_instance[i] = stored.present;
                 } else layers_by_instance[i] = try gkr_circuit_field.buildLayersBorrowedInput(allocator, input_layer);
@@ -203,7 +216,7 @@ pub fn ForField(comptime Secure: type) type {
                 instance = 0;
                 while (instance < n_instances) : (instance += 1) {
                     if (claims_to_verify_by_instance[instance]) |claims| {
-                        var oracle = try popStoredOracle(checkpointed, allocator, if (checkpointed) present_by_instance[instance] else &.{}, layers_by_instance[instance], &next_layer_idx[instance], instance_lambda, &eq_evals);
+                        var oracle = try popStoredOracle(checkpointed, allocator, if (checkpointed) present_by_instance[instance] else &.{}, layers_by_instance[instance], &next_layer_idx[instance], instance_lambda, &eq_evals, if (source_input) sources[instance] else null);
                         sumcheck_oracles.append(allocator, oracle) catch |err| {
                             oracle.deinit(allocator);
                             return err;
@@ -334,6 +347,29 @@ pub fn ForField(comptime Secure: type) type {
             return .{ .proof = proof, .artifact = artifact };
         }
 
+        fn buildSourceCheckpointed(a: std.mem.Allocator, source: MultiplicitiesSource) !struct { layers: []Layer, present: []bool } {
+            const count: usize = source.variables + 1;
+            const layers = try a.alloc(Layer, count);
+            errdefer a.free(layers);
+            const present = try a.alloc(bool, count);
+            errdefer a.free(present);
+            @memset(present, false);
+            errdefer for (layers, present) |*layer, owns| {
+                if (owns) layer.deinit(a);
+            };
+            var height: usize = @min(@as(usize, 2), source.variables);
+            layers[height] = try gkr_circuit_field.firstSourceCheckpoint(a, source, height);
+            present[height] = true;
+            while (height + 1 < count) {
+                const jump: usize = if (height + 2 < count) 2 else 1;
+                const current = layers[height];
+                const next = if (jump == 2) try current.nextLayerTwice(a) else (try current.nextLayer(a)) orelse return error.InvalidLayerStructure;
+                height += jump;
+                layers[height] = next;
+                present[height] = true;
+            }
+            return .{ .layers = layers, .present = present };
+        }
         fn buildCheckpointed(comptime owned_input: bool, a: std.mem.Allocator, input: Layer) !struct { layers: []Layer, present: []bool } {
             var input_pending = owned_input;
             errdefer if (input_pending) {
@@ -364,7 +400,17 @@ pub fn ForField(comptime Secure: type) type {
             }
             return .{ .layers = layers, .present = present };
         }
-        fn popStoredOracle(comptime checkpointed: bool, a: std.mem.Allocator, present: []const bool, layers: []Layer, next: *usize, lambda: Secure, eq: *const EqEvals) !GkrMultivariatePolyOracle {
+        fn popStoredOracle(comptime checkpointed: bool, a: std.mem.Allocator, present: []const bool, layers: []Layer, next: *usize, lambda: Secure, eq: *const EqEvals, source: ?MultiplicitiesSource) !GkrMultivariatePolyOracle {
+            if (source) |input| {
+                if (next.* == 1) {
+                    next.* = 0;
+                    return gkr_circuit_field.sourceOracle(input, false, lambda, eq);
+                }
+                if (next.* == 2 and !present[1]) {
+                    next.* = 1;
+                    return gkr_circuit_field.sourceOracle(input, true, lambda, eq);
+                }
+            }
             if (checkpointed and next.* != 0 and !present[next.* - 1]) {
                 next.* -= 1;
                 const height = next.*;
