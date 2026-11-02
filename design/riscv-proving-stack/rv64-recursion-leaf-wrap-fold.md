@@ -218,7 +218,7 @@ ways:
   unchanged.
 - `zig build circuit-starkware-pin` (first rung of `circuit-parity-local`)
   checks one SHA-256 over the whole pinned surface against
-  `vectors/circuit/official/starkware_surface_pin.txt`. A StarkWare-side
+  `conformance/circuit/starkware_surface_pin.txt`. A StarkWare-side
   change re-runs the parity ladder and updates the pin in the same commit;
   an accidental edit from another lane fails loudly.
 
@@ -241,3 +241,8 @@ ways:
 4. Device wraps: route `leaf_wrap` through `circuit_metal.provers` and the
    CUDA resident source as the Cairo lane does; nothing in the leaf is
    CPU-specific.
+
+The surface digest is conformance authority, not an upstream oracle-generated
+fixture. Its bytes are retained unchanged under `conformance/circuit/`; keeping
+it out of `vectors/circuit/official/` preserves that directory's exact generated
+artifact inventory. The same pin test and circuit surface remain authoritative.

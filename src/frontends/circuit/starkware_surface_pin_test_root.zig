@@ -4,13 +4,13 @@
 //! shared component facts, the registries and the recorded circuit AIR).
 //! Work on other circuit lanes (the native-protocol verifier, RV64 leaves)
 //! must not move these bytes; when a StarkWare-side change is intended, the
-//! parity ladder is run and the pin in `vectors/circuit/official/
-//! starkware_surface_pin.txt` is updated in the same commit.
+//! parity ladder is run and the pin in
+//! `conformance/circuit/starkware_surface_pin.txt` is updated in the same commit.
 //!
 //! Runs from the repository root (`zig build circuit-starkware-pin`).
 const std = @import("std");
 
-const pin_path = "vectors/circuit/official/starkware_surface_pin.txt";
+const pin_path = "conformance/circuit/starkware_surface_pin.txt";
 
 /// Directories (every regular file under them, recursively) and files.
 const directories = [_][]const u8{
