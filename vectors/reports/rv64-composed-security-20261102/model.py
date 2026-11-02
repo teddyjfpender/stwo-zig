@@ -95,8 +95,21 @@ def run(bundle_path, receiver_path, reviewed_v2_envelope=False):
     return {'source_revision':'8ce5fb0a7d104baadf812c55fa3985a2406274d2','input_sha256':{'bundle':hashlib.sha256(bundle_path.read_bytes()).hexdigest(),'fresh_receiver':hashlib.sha256(receiver_path.read_bytes()).hexdigest()},'shape':s,'cpu_proofs':cpus,'parameters':{'field_degree':8,'raw_mod_max_point_mass':'6561/2^256','rho':'1/4','rho_plus':'17/64','agreement':'41/64','theta':'23/64','queries':256,'PoW':0,'fold_step':4,'minimum_nonzero_trace_rows':32},'degree_weights':degree,'conditional_term_bits':{k:bits(mu*v) for k,v in degree.items()},'query_union_bits':bits(query),'conditional_algebraic_union_bits':bits(algebra),'old_lookup_pairwise_union_bits':bits(old),'joint_lookup_bits':bits(mu*source['rational_identity']),'all_candidate_caps_child_round_bound':child_round_cap,'all_candidate_caps_proof_cap':cap_P,'round_source_formula_value':round_formula,'round_upper_bound':R,'collision_coefficient_conservative':H,'conditional_BCS_formula':f'(T+2^22)*(sum(degree_weights)*6561/2^256 +{P}*(41/64)^256) +{H}*(T^2+1)/2^256','work_table':work,'bounded_work_1_through_2pow120_uniform_per_query_bits':bits(uniform_per_work),'native_theorem_correspondence_review_complete':False,'recursion_security_qualified':False,'whole_protocol_128_certified':False,'source_changes':False,'limitations':['coarse OODS/FRI source-degree and multi-scope BCS correspondence require independent proof review','source unit/support/canonicality and characteristic lemmas must hold','R is derived from accepted source caps; multi-scope ROM correspondence still requires review','existing recursion secure field/profile is separate and not upgraded by native OM31','256-bit hash theorem constants do not prove unrestricted literal128 per-work security']}
 
 
-def run_v3(bundle_path,receiver_path,source_path):
-    """Explicit pinned V3 roster; never weakens or substitutes v2 assertions."""
+# Named PCS/security profiles of the OM31 local-GKR v3 route (Zig:
+# om31_security_candidate.Profile). The receiver label is the receiver's own
+# selection, never read from proof bytes.
+PROFILES={
+  'proven_beta2_q256_p0_fold4':{'receiver_profile':'experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering','blowup_log':2,'queries':256,'PoW':0,'fold_step':4,'conjectured':False},
+  'conjectured128_b2_q108_p20_fold4':{'receiver_profile':'experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering','blowup_log':1,'queries':108,'PoW':20,'fold_step':4,'conjectured':True},
+}
+# Reviewed V3 envelope (block 24,628,607 roster, 2026-11-02 bundle).
+V3_REVIEWED=dict(P=18,cpus=7,truths=11,I=36,V=26,C=7444,S=5,N=1<<22,d=5,constraints=7751)
+
+def run_v3(bundle_path,receiver_path,source_path,profile='proven_beta2_q256_p0_fold4'):
+    """Explicit pinned V3 roster; never weakens or substitutes v2 assertions.
+    profile='conjectured128_b2_q108_p20_fold4' adds the CONJECTURED (ethSTARK)
+    accounting; it is not a proven bound and never sets security_qualified."""
+    if profile!='proven_beta2_q256_p0_fold4': return run_v3_conjectured(bundle_path,receiver_path,source_path,profile)
     bundle=json.loads(bundle_path.read_text())
     receiver=json.JSONDecoder().raw_decode(receiver_path.read_text().lstrip())[0]
     source_report=json.loads(source_path.read_text())
@@ -110,10 +123,7 @@ def run_v3(bundle_path,receiver_path,source_path):
     assert (P,cpus,len(bundle['truths']),I,V,C,S,N,d)==(18,7,11,36,26,7444,5,1<<22,5)
     steps=sum(c['request']['cpu']['steps'] for c in bundle['cpus'])
     assert steps==26894777 and receiver['cpu_proofs']==7 and receiver['truth_proofs']==11
-    assert all(c['declaration']['geometry']['cpu_fused_tail'] and c['declaration']['geometry']['cpu_u8_pairs'] for c in bundle['cpus'])
-    for cpu in bundle['cpus']:
-        assert not any(cpu['declaration']['geometry'].get(k,False) for k in ('mul_u8_pairs','ls_fused_pairs','alu_fused_tail','ls_dword_fused_pairs','cpu_compact_decode'))
-        assert 'zbb' not in cpu['declaration']['bridges'] # Zbb BINARY (v3_zbb) has no GKR role
+    check_v3_layouts(bundle)
     assert len(source_report['cpu_scopes'])==7
     p=(1<<31)-1
     for scope in source_report['cpu_scopes']:
@@ -182,5 +192,101 @@ def run_v3(bundle_path,receiver_path,source_path):
     assert uniform<F(1,1<<128)
     return {'mode':'explicit-reviewed-v3-roster-under-stated-assumptions','source_revision':'6423bc59e','accounting_profile':'rv64-source-derived-services-v3-lookup/v1','assumption_set':'rv64-native-v3-om31-beta2-q256-p0-fold4-bounded-20261102-v1','inputs_sha256':{k:hashlib.sha256(v.read_bytes()).hexdigest() for k,v in [('bundle',bundle_path),('fresh_receiver',receiver_path),('source_bounds',source_path)]},'completed_steps':steps,'shape':s,'cpu_proofs':7,'truth_proofs':11,'namespace_counts':[10]*7,'keccak_policies':policies,'new_truth_authorities':providers,'parameters':{'extension_degree':8,'raw_mod_max_point_mass':'6561/2^256','blowup_log':2,'queries':256,'PoW':0,'fold_step':4,'fri_first_word_rate':'1/4','original_extraction_rho_plus':'17/64','agreement':'41/64','theta':'23/64'},'degree_weights':degree,'conditional_term_bits':{k:bits(mu*v) for k,v in degree.items()},'conditional_algebraic_union_bits':bits(algebra),'query_union_bits':bits(query),'gkr_count_envelope':{'max_instances_per_cpu':I,'max_variables':V,'sumcheck_rounds_per_instance_upper_bound':V*(V-1)//2,'cubic_sumcheck_degree_total':degree['gkr_cubic_sumchecks'],'instance_layer_mix_degree_total':degree['gkr_instance_and_layer_mix'],'late_eta_binding_degree_total':degree['gkr_late_eta_bindings']},'actual_roster_transcript_operation_envelope':actual_round_envelope,'all_caps_ten_namespace_transcript_operation_envelope':cap_rounds,'transcript_round_upper_bound':R,'hash_scopes':scopes,'hash_collision_coefficient':H,'conditional_BCS_formula':'(T+2^22)*(sum(degree_weights)*6561/2^256 +18*(41/64)^256) +79*(T^2+1)/2^256','bounded_work_range':'1 <= TOTAL adversarial RO queries T <= 2^120','uniform_success_per_query_bits':bits(uniform),'work_table':work,'bounded_engineering_arithmetic_review_complete':True,'independent_security_audit_complete':False,'whole_protocol_128_certified':False,'security_qualified':False,'recursion_included':False,'limitations':['conditional nonzero rational lookup/source weighting/canonicality and characteristic lemmas','unique decoding FRI/DEEP/OODS implementation correspondence from prior proof outline must apply to degree<=5 V3 roles','source AIR integer semantics and range-inheritance premises remain assumptions, not proved by proof acceptance','adaptive multiscope BCS/ROM correspondence and raw Blake/SHA ideal-hash assumptions','exact hash constants do not imply unrestricted literal128 per-work security near2^128 queries','numerical result only for pinned18-proof V3 roster, not arbitrary256-proof inventory','outer recursion field/profile and composed security excluded']}
 
+def check_v3_layouts(bundle):
+    """GKR v3 layout envelope: fused tail + byte pairs required; compact decode
+    (cpu_compact_decode, qualified on GKR by 254105feb: fractions.cpuCompactFor,
+    main_only .cpu_compact) is admitted only together with them. Every other
+    classic opt-in layout, the Zbb BINARY bridge and wide clock stay rejected."""
+    assert all(c['declaration']['geometry']['cpu_fused_tail'] and c['declaration']['geometry']['cpu_u8_pairs'] for c in bundle['cpus'])
+    for cpu in bundle['cpus']:
+        g=cpu['declaration']['geometry']
+        assert not any(g.get(k,False) for k in ('mul_u8_pairs','ls_fused_pairs','alu_fused_tail','ls_dword_fused_pairs'))
+        assert g['cpu_log']<=22
+        assert 'zbb' not in cpu['declaration']['bridges'] # Zbb BINARY (v3_zbb) has no GKR role
+
+def conjectured_terms(profile, P, cpus, I, V, C, S, N, constraints, source):
+    """Exact-rational CONJECTURED accounting for one named profile.
+    FRI/query: ethSTARK Conjecture (list-decoding to capacity): one query
+    succeeds w.p. <= rho = 2^-blowup_log; PoW credited only because the
+    verifier checks the nonce BEFORE query derivation and mixes it
+    (core/pcs/verifier_family.zig). Algebraic terms are the #310 weights with
+    the DEEP/FRI domain at the profile's blowup."""
+    prof=PROFILES[profile]; b=prof['blowup_log']; q=prof['queries']; pow_=prof['PoW']
+    mu=F(3**8,2**256)
+    L=1<<b
+    degree={
+      'joint_cleared_lookup_all_actual_scopes':source['rational_identity'],
+      'conservative_all_physical_poles':source['poles'],
+      'gkr_cubic_sumchecks':cpus*I*3*V*(V-1)//2,
+      'gkr_instance_and_layer_mix':cpus*(I+2)*V,
+      'gkr_late_eta_bindings':cpus*I,
+      'legacy_secp_product_random_compression':0,
+      'composition_mix':P*constraints,
+      'oods_circle_correspondence':P*C*S*32*N,
+      'deep_batching_common_domain_CA':P*C*S*(L*N),
+      'fri_degree15_curve':P*8*15*(L*N),
+    }
+    algebra=sum(degree.values())*mu
+    per_attempt_query=F(1,2**(b*q))     # one proof, one grinding attempt
+    per_hash_query=F(1,2**(b*q+pow_))   # an attempt costs >= 2^PoW RO queries
+    R=1<<22; scopes=P+cpus+1; H=3*scopes+1
+    work=[]
+    for w in [20,64,100,120,128]:
+        T=1<<w
+        # Attempts <= T/2^PoW; each targets one proof transcript.
+        e=F(T,2**pow_)*per_attempt_query+(T+R)*algebra+F(H*(T*T+1),2**256)
+        work.append({'log2_total_adversarial_RO_queries':w,'error_bits':bits(e),'success_per_query_bits':bits(e/T)})
+    uniform=per_hash_query+(1+R)*algebra+F(H*((1<<120)+1),2**256)
+    return {'degree':degree,'algebra':algebra,'conjectured_fri_bits':b*q+pow_,'per_attempt_query_bits':b*q,
+            'naive_single_attempt_union_over_proofs_bits':bits(P*per_attempt_query),
+            'work':work,'uniform_success_per_query_bits_T_le_2^120':bits(uniform),'H':H,'mu':mu}
+
+def run_v3_conjectured(bundle_path,receiver_path,source_path,profile):
+    prof=PROFILES[profile]; assert prof['conjectured']
+    if bundle_path is None:
+        # Parameter-only mode: the reviewed V3 envelope and #310's actual
+        # lookup degrees, without a bundle produced under this profile.
+        source=json.loads(source_path.read_text())['lookup_only_conditional_degrees']
+        r=V3_REVIEWED; P,cpus,I,V,C,S,N,cons=r['P'],r['cpus'],r['I'],r['V'],r['C'],r['S'],r['N'],r['constraints']
+        inputs={'source_bounds':hashlib.sha256(source_path.read_bytes()).hexdigest()}; shape=None; steps=None
+    else:
+        bundle=json.loads(bundle_path.read_text())
+        receiver=json.JSONDecoder().raw_decode(receiver_path.read_text().lstrip())[0]
+        source_report=json.loads(source_path.read_text())
+        s=receiver['source_shape']; source=receiver['source_lookup_only_conditional_degrees']
+        assert receiver['accepted'] and receiver['completed_ethereum_block']
+        assert receiver['profile']==prof['receiver_profile'] and receiver.get('security_profile')==profile
+        assert receiver['security_qualified'] is False
+        assert bundle['field_degree']==8 and bundle['profile']=='RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V3'
+        assert s==source_report['shape'] and source==source_report['lookup_only_conditional_degrees']
+        P=s['native_proofs']; cpus=len(bundle['cpus']); I=s['max_local_instances']; V=s['max_gkr_variables']
+        C=s['max_columns']; S=s['max_samples_per_column']; N=1<<s['max_trace_log']; cons=s['max_constraints']
+        r=V3_REVIEWED
+        # Monotone subset of the reviewed V3 envelope (compact decode only shrinks columns/constraints).
+        assert (P,cpus,len(bundle['truths']))==(r['P'],r['cpus'],r['truths'])
+        assert I<=r['I'] and V<=r['V'] and C<=r['C'] and S<=r['S'] and N<=r['N'] and s['max_air_degree']<=r['d'] and cons<=r['constraints']
+        steps=sum(c['request']['cpu']['steps'] for c in bundle['cpus'])
+        assert steps==26894777
+        check_v3_layouts(bundle); shape=s
+        inputs={k:hashlib.sha256(v.read_bytes()).hexdigest() for k,v in [('bundle',bundle_path),('fresh_receiver',receiver_path),('source_bounds',source_path)]}
+    t=conjectured_terms(profile,P,cpus,I,V,C,S,N,cons,source)
+    assert t['conjectured_fri_bits']==128
+    assert t['algebra']<F(1,1<<160)
+    mu=t['mu']
+    return {'mode':'conjectured-v3-roster','profile':profile,'receiver_profile':prof['receiver_profile'],
+      'assumption_set':'rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v1','security_model':'CONJECTURED (ethSTARK-style FRI accounting; owner-accepted)',
+      'inputs_sha256':inputs,'completed_steps':steps,'shape':shape,
+      'parameters':{'extension_degree':8,'raw_mod_max_point_mass':'6561/2^256','blowup_log':prof['blowup_log'],'rate':'1/2','queries':prof['queries'],'PoW':prof['PoW'],'fold_step':prof['fold_step']},
+      'conjectured_fri_bits':t['conjectured_fri_bits'],'per_attempt_query_bits':t['per_attempt_query_bits'],
+      'naive_single_attempt_union_over_proofs_bits':t['naive_single_attempt_union_over_proofs_bits'],
+      'degree_weights':t['degree'],'conditional_term_bits':{k:bits(mu*v) for k,v in t['degree'].items()},
+      'algebraic_union_bits':bits(t['algebra']),'hash_collision_coefficient':t['H'],
+      'conjectured_BCS_formula':'(T/2^20)*2^-108 + (T+2^22)*sum(degree_weights)*6561/2^256 + H*(T^2+1)/2^256',
+      'work_table':t['work'],'uniform_success_per_query_bits_1_le_T_le_2^120':t['uniform_success_per_query_bits_T_le_2^120'],
+      'proven_bound':False,'security_qualified':False,'independent_security_audit_complete':False,'whole_protocol_128_certified':False,'recursion_included':False,
+      'limitations':['ethSTARK list-decoding-to-capacity conjecture for circle FRI at rate 1/2 (not proven)','PoW credited as 2^20 RO work per query-phase attempt (ideal Blake2s)','all #310 conditional algebraic/source/characteristic assumptions unchanged','conservative per-scope BCS hash term caps per-query success near 2^-127.6, below the 128 FRI-only figure','outer recursion/wrap layers excluded']}
+
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('bundle',type=pathlib.Path);p.add_argument('receiver',type=pathlib.Path);p.add_argument('output',type=pathlib.Path);p.add_argument('--reviewed-v2-envelope',action='store_true',help='Require a monotone subset of the reviewed native v2 roster; v3 is excluded');p.add_argument('--v3-source-bounds',type=pathlib.Path,help='Explicit pinned V3 roster mode; never weakens v2 assertions');a=p.parse_args();assert not(a.reviewed_v2_envelope and a.v3_source_bounds);result=run_v3(a.bundle,a.receiver,a.v3_source_bounds) if a.v3_source_bounds else run(a.bundle,a.receiver,a.reviewed_v2_envelope);a.output.write_text(json.dumps(result,indent=2)+'\n')
+    p=argparse.ArgumentParser();p.add_argument('bundle',type=pathlib.Path);p.add_argument('receiver',type=pathlib.Path);p.add_argument('output',type=pathlib.Path);p.add_argument('--reviewed-v2-envelope',action='store_true',help='Require a monotone subset of the reviewed native v2 roster; v3 is excluded');p.add_argument('--v3-source-bounds',type=pathlib.Path,help='Explicit pinned V3 roster mode; never weakens v2 assertions');p.add_argument('--security-profile',choices=sorted(PROFILES),default='proven_beta2_q256_p0_fold4',help='V3 only: the receiver-selected named PCS profile');p.add_argument('--parameters-only',action='store_true',help='conjectured V3 profile only: account the reviewed envelope from source bounds without a bundle (bundle/receiver args ignored)');a=p.parse_args();assert not(a.reviewed_v2_envelope and a.v3_source_bounds)
+    assert not a.parameters_only or (a.v3_source_bounds and PROFILES[a.security_profile]['conjectured'])
+    result=run_v3(None if a.parameters_only else a.bundle,a.receiver,a.v3_source_bounds,a.security_profile) if a.v3_source_bounds else run(a.bundle,a.receiver,a.reviewed_v2_envelope);a.output.write_text(json.dumps(result,indent=2)+'\n')
