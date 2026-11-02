@@ -1,1 +1,12 @@
-{"status":"isolated source checkpoint; not qualified for production adoption","scope":"four consecutive same-view full-chunk members use existing canonical M31 dot4; original fallback handles partial, mixed views and leftovers","ReleaseSafe_focused_tests":3,"covers":"Q/OM coordinate counts; variable lengths and tails; partial sources/mixed views/untouched views; exact scalar oracle; pooled disjoint chunks; every allocation failure","pending":["kernel micro","Fast gates","actual CPU0 exact artifacts and fresh verification"],"reason_paused":"parent reprioritized packed LogUp wiring audit","performance_claim":false}
+{
+  "status": "Safe/Fast focused qualification and matched-pool micro complete; awaiting actual CPU0 pair",
+  "scope": "four consecutive same-view full-chunk members use existing canonical M31 dot4; original fallback handles partial, mixed views and leftovers",
+  "ReleaseSafe_focused_tests": 3,
+  "covers": "Q/OM coordinate counts; variable lengths and tails; partial sources/mixed views/untouched views; exact scalar oracle; pooled disjoint chunks; every allocation failure",
+  "pending": [
+    "actual CPU0 exact artifacts and fresh verification"
+  ],
+  "reason_paused": "parent reprioritized packed LogUp wiring audit",
+  "performance_claim": "Kernel-only same-view groups about1.4\u20131.5x; no whole-proof gain established",
+  "ReleaseFast_focused_tests": 3
+}
