@@ -1,0 +1,29 @@
+# Fresh receivers (verify-prefix-candidate, 4-packet prefix of block 24,628,607)
+# NEW = this branch (16f9fc378, profile commit); BASE = bcdc06b7e (merge before the profile change)
+NEW  --security-profile conjectured128_b2_q108_p20_fold4 on cj4 (conjectured):  accepted=true (1)
+NEW  --security-profile proven_beta2_q256_p0_fold4 on pv4 (proven):     accepted=true (1)
+NEW  --security-profile proven_beta2_q256_p0_fold4 on cj4 (conjectured): REJECTED: error: GlobalGkrManifestExecution
+NEW  default (conjectured)                         on pv4 (proven):      REJECTED: error: GlobalGkrManifestExecution
+BASE (proven only)                                 on pv4 (NEW, proven): accepted=true (1)
+# Byte identity of the proven profile: BASE produce-candidate on the same jobs/resources
+# vs NEW --security-profile proven_beta2_q256_p0_fold4: all 14 proof/cell files and bundle.json identical.
+BASE d56a1200b58038a568cd5c1006f1c988e80a69af809109558e823fcf1bf90f66  cells.bin
+BASE 33ca6d9b1f75da8bcd3ecb74f943434b4c33dc1e33c8e291b183717f99e84a06  cpu-0.bin
+BASE 300beb91be95c7480cee32ea1d13233c41c150ab9b5a390c25d0de3aa273c102  cpu-1.bin
+BASE 56a98388137a14393b05f46f7007379104856e969b5018eeb921bf8c8ee903ae  cpu-2.bin
+BASE dfebfa3deffd308959e466875e40b7022d21acf9ddaaad84f8fc43401680a708  cpu-3.bin
+BASE 89f3b5fa0571bf02d7a473f54a981256952ceb0618bddeeaad08f9f9ba20cc91  stage-one.bin
+BASE 4e7e7125cb7df2a0d2c1de393255128e0d9abc587426bf5a8a157b7628176ad7  truth-0.bin
+BASE 96e413691b007cccc69767a96a4610ae9c215575874ef1fcb56745727ae3bddb  truth-1.bin
+BASE a727d72ae14e6dd76214932ed4a451604363774da1bf95effd78831bd61382a3  truth-2.bin
+BASE 01becaa98992a2ae550993cf717b4e81621e0b42ac4e8b37700db207fe326030  truth-3.bin
+BASE 9170226b0a8e3c6d7e163d5e3d0d891b31906f64c3ef4e63c29ae41f8f8ed797  truth-4.bin
+BASE f503135cf3b40cb8c64c039eecc254e8c220541a2941459bd5caeb3e53109603  truth-5.bin
+BASE 8985bcd1ffdf9826835b7c347128fdfda34ed1cef38636cbf69db8f28d5b9334  truth-6.bin
+BASE 7e4059f2c4365e35deaa98bb48d09f1d54a524157aaa766cc86026dfa34103c1  truth-7.bin
+# Pre-merge experiment bundle (codex/rv64-ge-gkr-v3perf cmp4, never on main):
+BASE on gkrperf/cmp4: REJECTED: error: InvalidSumcheck
+NEW  proven on gkrperf/cmp4: REJECTED: error: InvalidSumcheck
+v3perf binary (d6ca3122d) on pv4: REJECTED: error: InvalidSumcheck
+# => the merged compact-on-GKR transcript differs from the unmerged v3perf branch's (independent of the
+#    profile change: BASE behaves identically). No main-line bundle with compact-on-GKR predates this branch.

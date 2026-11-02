@@ -1,0 +1,77 @@
+{
+  "profile": "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering",
+  "security_qualified": false,
+  "security_target": {
+    "label": "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+    "target_bits": 128,
+    "profile": "conjectured128_b2_q108_p20_fold4",
+    "assumption_set": "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v1",
+    "conjectured_fri_bits": 128,
+    "scope": "native proof bundle; recursion excluded",
+    "proven_bound": false,
+    "independent_security_audit_complete": false,
+    "whole_protocol_128_certified": false
+  },
+  "security_profile": "conjectured128_b2_q108_p20_fold4",
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "output": null,
+  "cpu_proofs": 4,
+  "truth_proofs": 8,
+  "load_and_setup_ns": 4956241709,
+  "verify_ns": 664622208,
+  "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 384239368,
+    "peak_bytes": 1184455640,
+    "keys": 10,
+    "hits": 0,
+    "seals": 10,
+    "refused": false,
+    "native_coefficients": {
+      "limit_bytes": 12884901888,
+      "retained_bytes": 199452160,
+      "native_backing_bytes": 199416192,
+      "groups": 280,
+      "hits": 686,
+      "duplicate_native_bytes_released": 531145216,
+      "observed_individual_owners": 966,
+      "observed_backing_owners": 0,
+      "observed_spans": 966,
+      "owner_leases": 11
+    }
+  },
+  "source_validations": 10,
+  "source_coefficient_cells": 182640352,
+  "source_accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+  "source_shape": {
+    "native_proofs": 12,
+    "max_trace_log": 22,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 36,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 26
+  },
+  "source_lookup_only_conditional_degrees": {
+    "tuple_collision": 582027054459224992,
+    "rational_identity": 994414720,
+    "local_rational_identity": 957041664,
+    "global_rational_identity": 37373056,
+    "poles": 994414720
+  },
+  "receiver_budget": {
+    "live_bytes": 1488229895,
+    "peak_live_bytes": 2288446167,
+    "host_live_bytes": 1488229895,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 2288446167,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "receiver_recycler_cache_cap_bytes": 4294967296,
+  "receiver_worker_stack_upper_bound_bytes": 16777216
+}

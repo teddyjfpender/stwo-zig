@@ -218,8 +218,12 @@ unique-decoding bound; q chosen to keep the query term at <= 2^-160.30):
 | 2 (now) | 1/4 | 17/64 | 0.6328 | 41/64 | 0.643 | **256** | 243 |
 | 3 | 1/8 | 17/128 | 0.5664 | 73/128 | 0.810 | 204 | 193 |
 
-The ethSTARK-conjectured alternative (q ~ 128 at blowup 2) is outside the
-documented assumption set and is not considered.
+The ethSTARK-conjectured alternative was outside the proven assumption set
+when this was written. Update: the owner has since accepted 128-bit
+conjectured security. The GKR v3 default is now `conjectured128_b2_q108_p20_fold4`
+(blowup 2, q108, PoW 20), and this profile is selectable by name. See
+`rv64-gkr-conjectured128-profile.md`; measurements are in
+`vectors/reports/rv64-gkr-route-speedups-20261102/`.
 
 **Measured blowup 2 / q436** (experiment binary: `FriConfig.init(0, 1, 436)`,
 identity words updated, beta-rate checks in `worker_protocol` and
