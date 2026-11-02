@@ -58,6 +58,8 @@ pub fn firstVector(first: anytype) [@import("../types.zig").FAMILIES]u32 {
     inline for (0..first.len) |i| out[i] = first[i];
     return out;
 }
+/// T.Logs fields of the v3 GKR CPU statement, in their original order.
+pub const V3_STATEMENT_BRIDGES = .{ "keccak", "add", "double", "sha256", "arith256_mod", "bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul", "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double", "bulk", "sponge", "ls_dword", "ls_dword_tail" };
 pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype, config: W.PcsConfig) [32]u8 {
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
     h.update(Manifest.PROFILE);
@@ -80,7 +82,10 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype
         h.update("RV64-SERVICES-GKR-V3-STATEMENT-1");
         hashValue(&h, setup.materials.geometry.cpu_fused_tail);
         hashValue(&h, setup.materials.geometry.cpu_u8_pairs);
-        hashValue(&h, setup.bridges);
+        // Frozen pre-Zbb Logs projection: an appended optional bridge (Zbb,
+        // never admitted here; see service_scope.bridges) must not change v3
+        // statement bytes even when null.
+        inline for (V3_STATEMENT_BRIDGES) |name| hashValue(&h, @field(setup.bridges, name));
         hashValue(&h, request.calls);
         hashValue(&h, request.sponge);
         hashValue(&h, request.ls_dword);

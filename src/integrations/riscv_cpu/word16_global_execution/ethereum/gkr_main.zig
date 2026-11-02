@@ -156,6 +156,7 @@ pub fn main() !void {
     defer a.free(raw);
     const request = try std.json.parseFromSlice(Request.Config, a, raw, .{});
     defer request.deinit();
+    try @import("../services/gkr_local/service_scope.zig").profile(request.value.execution_profile);
     var pool: engine.work_pool.WorkPool = .{};
     try pool.initInPlaceWithOptions(.{ .worker_count = try Request.effectiveWorkers(request.value), .stack_size = ReceiverBudget.WORKER_STACK_BYTES, .backing_allocator = a });
     defer pool.deinit();

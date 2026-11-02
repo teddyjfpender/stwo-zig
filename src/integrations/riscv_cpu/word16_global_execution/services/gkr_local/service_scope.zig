@@ -12,6 +12,8 @@ pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !
     if (g.cpu_log > 22) return error.InvalidLocalGkrGeometry;
 }
 pub fn bridges(logs: T.Logs) !void {
+    // The Zbb BINARY component (ethereum_services_v3_zbb) has no GKR role.
+    if (logs.zbb != null) return error.UnsupportedGkrLocalZbbComponent;
     for (T.sponge_kinds) |kind| if (logs.sponge.at(kind)) |log| {
         if (log < 5 or log > 22) return error.InvalidLocalGkrGeometry;
     };
@@ -64,4 +66,29 @@ test "new classic defaults cannot silently enter authenticated GKR query shapes"
         @field(changed, field) = true;
         try std.testing.expectError(error.UnsupportedClassicEncodingInLocalGkr, geometry(changed));
     }
+}
+
+/// The Zbb execution profile (Zbb ROM rows, Zbb BINARY component) has no
+/// authenticated GKR projection; producer and receiver refuse it up front.
+pub fn profile(p: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) !void {
+    if (p == .ethereum_services_v3_zbb) return error.UnsupportedGkrZbbProfile;
+}
+
+test "Zbb profile and component fail closed on the GKR route" {
+    const std = @import("std");
+    try profile(.ethereum_services_v2);
+    try profile(.ethereum_services_v3);
+    try std.testing.expectError(error.UnsupportedGkrZbbProfile, profile(.ethereum_services_v3_zbb));
+    try bridges(.{ .keccak = 18 });
+    try std.testing.expectError(error.UnsupportedGkrLocalZbbComponent, bridges(.{ .keccak = 18, .zbb = 5 }));
+    try std.testing.expectError(error.UnsupportedGkrLocalZbbComponent, @import("v2_scope.zig").bridges(.{ .zbb = 5 }));
+}
+
+test "v3 GKR CPU statement bridge projection excludes only the appended Zbb log" {
+    const std = @import("std");
+    const names = @import("cpu_worker.zig").V3_STATEMENT_BRIDGES;
+    const fields = std.meta.fields(T.Logs);
+    try std.testing.expectEqual(fields.len, names.len + 1);
+    inline for (names, 0..) |name, i| try std.testing.expectEqualStrings(fields[i].name, name);
+    try std.testing.expectEqualStrings("zbb", fields[names.len].name);
 }
