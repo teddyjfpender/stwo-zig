@@ -19,6 +19,12 @@ def run(bundle_path, receiver_path):
     assert all(v==0 or v>=5 for x in bundle['truths'] for v in x['declaration']['logs'])
     rho=F(1,4); rho_plus=rho*F(34,32); alpha=F(41,64); theta=1-alpha
     assert theta < (1-rho_plus)/2 and rho_plus < alpha*alpha
+    assert 2*alpha-1 > rho_plus
+    for log in range(5,23):
+        ni=1<<log
+        assert F(ni+2,4*ni)<=rho_plus and 5*(F(ni,2)+1)<3*ni
+    for c in range(1,16385):
+        assert c+8<=32*c # S>=1; N cancels
     mu=F(3**8,2**256)
     product_rows=sum(1<<t['declaration']['logs'][0] for t in bundle['truths'] if t['declaration']['family']!='keccak')
     degree={
@@ -30,7 +36,7 @@ def run(bundle_path, receiver_path):
       'composition_mix':P*s['max_constraints'],
       # Coarse source-degree correspondence bounds; theorem mapping explicitly conditional.
       'oods_circle_correspondence':P*C*S*32*N,
-      'deep_batching':P*C*S,
+      'deep_batching':P*C*S*(4*N),
       # One first-layer polynomial, no per-height insertions in this implementation.
       # Generic degree15 unique CA (whitepaper Remarks12/13), <=8 macro rounds.
       'fri_unique_curve_correspondence':P*8*15*(4*N),

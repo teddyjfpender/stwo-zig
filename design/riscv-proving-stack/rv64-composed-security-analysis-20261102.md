@@ -27,10 +27,10 @@ The following weights are over the entire native roster; multiplying each bymu g
 | Secp modular-product compression |24,506,368|218.77|
 | Composition coefficient mixing |183,840|225.83|
 | Coarse OODS correspondence |148,397,830,963,200|196.24|
-| DEEP sample batching |1,105,650|223.24|
+| DEEP sample batching, common-domain CA |18,549,728,870,400|199.24|
 | Unique-curve FRI, source-specific single first layer |60,397,977,600|207.51|
 
-The PCS rows still need an independent OODS/DEEP correspondence review. OODS uses `32*P*C*S*N`, overcounting mask poles and a common-denominator residual; DEEP uses `P*C*S`. The corrected FRI bound is `P*8*15*(4N)`: this implementation has one first-layer polynomial, not per-height insertions during FRI. Appendix below instantiates the actual degree-15 unique-decoding theorem and the sibling reconstruction, rather than assuming that a linear-FRI theorem extends automatically.
+The PCS rows still need an independent OODS/DEEP correspondence review. OODS uses `32*P*C*S*N`, overcounting mask poles and a common-denominator residual; DEEP uses `P*C*S*4N`. The corrected FRI bound is `P*8*15*(4N)`: this implementation has one first-layer polynomial, not per-height insertions during FRI. Appendix below instantiates the actual degree-15 unique-decoding theorem and the sibling reconstruction, rather than assuming that a linear-FRI theorem extends automatically.
 
 Secp's source polynomial has degree 62: two 32-byte polynomials multiply, while the carry polynomial has 62 coefficients and is multiplied by a degree-one factor. The source consumes an independent OM31 challenge after sealed MAIN. The conservative row union uses 395,264 product rows, including padding. Its byte/carry bounds must justify that a false integer modular identity is not already zero coefficientwise moduloM31.
 
@@ -104,3 +104,46 @@ A fold-1 engineering alternative already exists in the source. It uses fresh ind
 All local children begin with the GKR tag, statement/fixed/MAIN roots, ordinal and ordered instances. Native workers have a different tag, kind/ordinal and statement; shared challenges have the manifest tag and digest. No challenge is drawn before these scope bindings. Raw draw inputs have length37 while transcript mix inputs have length divisible by4, and raw query counters cannot wrap under the round cap. Conditional on no state/hash collision, distinct post-scope challenge queries therefore belong to disjoint challenge streams. Repeated public configuration prefixes have no secret challenge at that point.
 
 This supports investigating `sum T_i<=T`, `sum T_i²<=T²`, and replacing per-scope quadratic terms by a single global collision event plus scope constants. However the commitment hashing, identity hashing, repeated fixed trees, and the BCS binding-oracle reduction must be audited together; domain tags alone are not a proof of a universal multiscope ROM theorem. The executable model deliberately retains coefficient169, rather than claiming the potentially much tighter coefficient4. Both versions still have a constant-factor distinction from unrestricted literal128 near T=2^128.
+
+
+## OM31 two-point DEEP and lifting correspondence
+
+Let `p=2^31−1`, `K=OM31=F_(p^8)`, `H=QM31=F_(p^4)`, and write K=H[v]/(v²−u). The involution σ(a+bv)=a−bv is Frobenius p^4, not the older QM31 p² involution. The field construction's nonsquare proof and native `OM31.quadraticConjugate` fix this authority. Since every physically committed coordinate polynomial has M31 coefficients, `f(σz)=σ(f(z))`. An OM-valued trace/composition is opened as eight separate M31 coordinate polynomials; the argument is applied coordinate-wise before reconstructing the secure value.
+
+For z=(x0+v*x1,y0+v*y1), claimed value w and an M31 domain point P, define the affine interpolation
+
+`R(P)=w+(σw−w)*(P.y−z.y)/(σz.y−z.y)`.
+
+Then R(z)=w and R(σz)=σw. Source `constraints.quadraticConjugateLineCoeffs` gives exactly the numerator coefficients of this expression, multiplied by the batching power. `quadraticLineDenominator` gives the H-valued line
+
+`D(P)=(x0−P.x)*y1−(y0−P.y)*x1`.
+
+The geometric pair vanishing polynomial is `−2v*D(P)`. Thus the production quotient is a nonzero scalar multiple of `(f(P)−R(P))/pairVanishing(z,σz;P)`, which is the two-point quotient discussed in whitepaper §4.5. The denominator is σ-fixed; no QM31 approximation/reinterpretation occurs. Rejecting `z.y=σz.y` makes interpolation well-defined; zero row denominators are rejected even at zero numerator. Degenerate sampling is an abort/completeness event, never silently resampled or converted to acceptance.
+
+The paper states the conjugate construction for F_(p^4)/F_(p^2), while its argument uses only a quadratic extension, fixed-field coefficients and two distinct conjugate points. Replacing that tower by K/H therefore preserves the algebraic proof: M31 remains inside H; any M31 polynomial commutes with σ. This is an explicit extension-field instantiation, not a claim that the paper directly names OM31.
+
+### Common-domain lifting and extraction
+
+For a column of native size Ni and largest trace size N, source sampling evaluates `f(π^(logN−logNi)(z))`. All mask points remain global. A base-field circle translation commutes with the doubling pullback, so previous/next/±2 masks evaluate the corresponding translated local polynomial. The physical queried index `((position >> (difference+1)) << 1)+(position & 1)` is precisely this pullback, including the conjugate branch. `geometry.zig` checks the same point/denominator relation over unequal domains. A column is not sampled as an unrelated full-height witness.
+
+DEEP's batching powers form a degree-(Kqueries−1) curve of the individual quotient words. Apply unique correlated agreement to that curve over the **single common domain**, with the quotient low-degree space as the constrained code. The bad-coefficient threshold is at most `Kqueries*|D|`, rather than Kqueries alone. The model therefore corrects `deep_batching` to `P*C*S*4N`. This is separate from the subsequent degree15 FRI fold argument.
+
+For a decoded quotient q, form `F=R+pairVanishing*q` (up to the fixed nonzero scalar). Multiplication by the affine circle line enlarges the circle degree by at most1, hence root-count dimension by at most2. The original committed coordinate word is M31-valued. F and every coefficientwise Frobenius image agree with that same word; strict unique decoding forces them equal. This descends F's coefficients to M31. Likewise the lifted word is invariant under every kernel translation of the pullback π^difference. F and its translate agree on an intersection of density at least `2*alpha−1`. Here `2*(41/64)−1=18/64 >17/64`, exceeding the enlarged polynomial's root-density bound. Consequently F is kernel-invariant. In the split-circle Laurent coordinate, invariance under the kernel forces exponents divisible by its order, so F descends to the native small-domain polynomial. This also explains why singleton-mask columns do not rely on the optional extra periodicity sample alone.
+
+The FRI **first-word** code still has rate1/4. The conservative `rho_plus=17/64` instead bounds the enlarged ORIGINAL-coordinate extraction space: `(Ni+2)/(4Ni)<=17/64` for every nonzero Ni>=32. It is not a claim that the committed FRI first word has rate17/64. Choosing alpha41/64 puts both spaces strictly inside the unique regime. No conditional list-size or non-squaring-compatible list-decoding layout conjecture is used here.
+
+### Explicit OODS degree envelope
+
+An independently reviewed correspondence must include the public anchor/carry computations in `logup_gkr/mle_point.zig`, not just the catalog's AIR degree. Their apparent divisions can be eliminated algebraically. For `y_a=y(π^a P)`, the circle law gives `y_(a+1)=2*x(π^a P)*y_a`. Therefore every `v0/vj` in `evalStepSelectorFor` is a polynomial product of doubled x coordinates. Its squared `v0/v1` term and every other term have circle degree at most Ni/2. For `evalIsFirstFor`, translating the first trace point to the unit turns the coset vanishing into a nonzero constant times `y(P)*product x(π^i P)`; the division by pointVanishing cancels y and leaves the degree-Ni/2 Lagrange polynomial. Off-domain poles in the implementation are rejected. The weighted sum forming carry and both anchors retain this degree. Their coefficients depend only on the earlier GKR challenges, fixed before the OODS draw.
+
+After pullback, every coordinate proximate or public anchor/carry has degree at most `N/2+1` (the +1 conservatively covers quotient-only extraction). Every translated mask preserves this bound. Actual CPU/global/Keccak/secp constraint products have degree at most5, so their numerator degree is at most `5*(N/2+1)<3N` for N>=32. A composition reconstructed from split1 or split2 coordinate pieces has degree at most2N; allowing4N is conservative. Each component's vanishing denominator has degree N/2 after pullback. There are at most C components because every admitted component contributes at least one counted column. Clearing their product gives a residual with circle degree at most `(C/2+4)*N`. Substituting the stereographic seed (rational coordinates with numerator/denominator degree2) produces a univariate numerator of degree at most `(C+8)*N`. For every C>=1,S>=1,
+
+`(C+8)*N <=32*C*S*N`.
+
+This gives the specific constant32 used by the executable OODS envelope; it is not an empirical safety multiplier. All source mask offsets, secure-coordinate counts, and both production composition splits are covered. The nonzero-residual premise follows the composition-randomness reduction plus identification of the selector expressions with the intended interpolants and the authenticated source AIR. Failure of an execution-semantic/source canonicality premise is not cured by this root count. Source OODS checks compare the independently reconstructed composition with the same constraint authority before PCS verification.
+
+### Scope of the numerical result
+
+The finite degree/query/collision sums in model.json concern the **actual30-proof block**, with its source-derived masses and roster. Only the transcript-round bound is proved using ALL accepted caps256proofs/128instances/30variables. A256-proof accepted-shape envelope would need its own lookup masses, degree sum and scope count; substituting the30-proof numbers is invalid. In particular the fully conservative per-scope hash coefficient at256CPU proofs would be1540, so the same bounded-work ceiling2^120 would no longer imply128bits/query. No registry admission or certificate is inferred for that larger domain.
+
+Remaining review gates are now explicit proof correspondences (unique curve/extraction/selector identities, source nonzero residual and characteristic premises), together with the ROM/multiscope reduction and recursive outer protocol. The arithmetic model is reproducible evidence for review, not a machine-checked proof or an independently approved certificate.

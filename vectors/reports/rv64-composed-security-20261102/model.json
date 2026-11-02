@@ -36,7 +36,7 @@
     "secp_product_polynomial": 24506368,
     "composition_mix": 183840,
     "oods_circle_correspondence": 148397830963200,
-    "deep_batching": 1105650,
+    "deep_batching": 18549728870400,
     "fri_unique_curve_correspondence": 60397977600
   },
   "conditional_term_bits": {
@@ -47,11 +47,11 @@
     "secp_product_polynomial": 218.7736466465758,
     "composition_mix": 225.8322088166973,
     "oods_circle_correspondence": 196.24383666065154,
-    "deep_batching": 223.24383666065154,
+    "deep_batching": 199.24383666065154,
     "fri_unique_curve_correspondence": 207.5065188030137
   },
   "query_union_bits": 159.55979622216205,
-  "conditional_algebraic_union_bits": 196.24321237512797,
+  "conditional_algebraic_union_bits": 196.0733567349559,
   "old_lookup_pairwise_union_bits": 183.21254012473685,
   "joint_lookup_bits": 211.49522551003926,
   "all_candidate_caps_child_round_bound": 10355,
@@ -63,15 +63,15 @@
   "work_table": [
     {
       "log2_adversarial_RO_queries": 0,
-      "unclipped_error_bits": 137.55979587818365,
-      "unclipped_error": 3.893814367457796e-42,
-      "unclipped_success_per_query_bits": 137.55979587818365
+      "unclipped_error_bits": 137.55979587818206,
+      "unclipped_error": 3.893814367462204e-42,
+      "unclipped_success_per_query_bits": 137.55979587818206
     },
     {
       "log2_adversarial_RO_queries": 64,
-      "unclipped_error_bits": 95.55979618030915,
-      "unclipped_error": 1.712517310737532e-29,
-      "unclipped_success_per_query_bits": 159.55979618030915
+      "unclipped_error_bits": 95.55979618030756,
+      "unclipped_error": 1.7125173107394712e-29,
+      "unclipped_success_per_query_bits": 159.55979618030756
     },
     {
       "log2_adversarial_RO_queries": 120,
