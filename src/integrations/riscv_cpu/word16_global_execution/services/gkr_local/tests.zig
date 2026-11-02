@@ -448,3 +448,4 @@ test {
 test {
     _ = @import("dword_role_test.zig");
 }
+test { _ = @import("sponge_role_test.zig"); }
