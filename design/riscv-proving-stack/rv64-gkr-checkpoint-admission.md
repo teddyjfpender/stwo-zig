@@ -112,3 +112,40 @@ or a reason to change the default. The committed receipt includes actual stage
 intervals, live-admission traces, numerical caps, processRSS and every artifact
 hash. A lower per-job memory requirement may intentionally increase whole-host
 RSS when it permits more jobs to run together.
+
+## Streamed-bottom reserve
+
+Only the frozen policy with `stream_bottom=true`, checkpoint storage and tight
+admission selects this lower bound. Dense136 and nonstreamed104 are unchanged.
+The opaque source supplies canonical raw facts through bounded64-fact callbacks;
+no full raw M31-numerator/OM31-denominator owners exist. Their admitted input-byte
+count is therefore0. All already-created secure checkpoint/fold owners are still
+charged at their original creation capacities until freed, regardless of logical
+resize. The public opaque-oracle clone API can materialize a complete raw matrix;
+that API is explicitly excluded from the production source path, which transfers
+oracles into `sumcheck.proveBatchOwned` and never clones them.
+
+The geometric even checkpoint bank has at most64*sum(N)/3 bytes. An odd terminal height can add one constant-size terminal pair (at most64 bytes per instance); the unchanged checked metadata reserve covers this separately. At common
+height h>=2, geometric lower checkpoints, a current folded-half owner, shared Eq
+and one resize/copy fallback stay below that bank plus another16*sum(N), which is
+below68*sum(N). At h=1 there is no lower secure checkpoint; bounded source reads
+produce only the already-folded secure half (16*sum(N)), plus the smaller Eq and
+fallback. At h=0 all secure checkpoint owners have been consumed and destroyed.
+The first raw-source fold creates two secure half owners,32*sum(N) bytes total.
+Retaining these original capacities through inner folds plus shared Eq
+construction (conservatively12*Nmax) and one copy-half fallback (16*Nmax) is at
+most60*sum(N). The implemented working reserve is68*sum(N), leaving8 bytes per
+fact beyond this larger phase. Mixed dimensions can only reduce the simultaneous
+plane sizes; replacing Nmax by sum(N) is conservative. The original metadata
+reserve is unchanged and covers bounded source/reader/header descriptors.
+
+The binding-phase maximum is still64 bytes per row plus output headers, retained
+proof metadata and the actual-layout prepared-projection scratch bound. There
+are no raw planes in that phase. The final plan takes the maximum of numeric and
+binding phases and enforces it with the child's exact requested-byte cap. Free
+recycler cache, allocator rounding/bookkeeping, stacks, capture/setup and PCS
+scratch remain separately admitted and must not be presented as a process-RSS
+limit. Tests exercise original-capacity retention, compulsory allocation/copy
+fallbacks, many mixed instance sizes and synchronized equal-size first folds,
+with independent pending verification. No default promotion or unchecked clone
+fallback is introduced.

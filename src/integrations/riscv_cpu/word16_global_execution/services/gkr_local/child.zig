@@ -138,9 +138,9 @@ pub const Unbound = struct {
     }
     pub fn proveTimedWithPolicy(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, timing: ?*PhaseTiming) !*Unbound {
         const checkpointed = policy.checkpointed;
-        if (policy.stream_bottom and !checkpointed) return error.InvalidGkrStreamBottomPolicy;
+        if (policy.stream_bottom and (!checkpointed or !policy.tight_admission)) return error.InvalidGkrStreamBottomPolicy;
         const metrics = try treeMetrics(a);
-        const plan = try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
+        const plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithStreamedBottom(instances, limit) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
