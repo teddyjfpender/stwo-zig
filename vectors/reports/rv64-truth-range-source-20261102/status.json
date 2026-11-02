@@ -13,7 +13,6 @@
   "performance_claim": false,
   "security_qualified": false,
   "complete_ethereum_block_qualified_by_this_receipt": false,
-  "pending": [
-    "independent source peer review"
-  ]
+  "pending": [],
+  "independent_read_only_review": "PASS: checked row/frame/range; overflow-safe bounds; CHI/XOR interval mapping/order/weights; secp stride/policy; padded unit queries preserve poles; no ownership/allocation/global relation changes. No independent runtime requalification claimed."
 }
