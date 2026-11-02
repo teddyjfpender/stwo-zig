@@ -166,9 +166,11 @@ pub fn Equations(comptime op: anytype) type {
             return out;
         }
         fn secure(comptime F: type, v: anytype, start: usize, previous: bool) E.SecureFor(F) {
-            var c: [4]F = undefined;
-            for (&c, 0..) |*x, i| x.* = if (previous) v.previousInteraction(start + i) else v.interaction(start + i);
-            return E.secureFromCoordinatesFor(F, c);
+            const degree = comptime E.extensionDegree(E.ConstFor(F));
+            const offset = start / 4 * degree;
+            var c: [degree]F = undefined;
+            for (&c, 0..) |*x, i| x.* = if (previous) v.previousInteraction(offset + i) else v.interaction(offset + i);
+            return E.secureFromCoordinatesForField(E.ConstFor(F), F, c);
         }
         fn byteFraction(comptime F: type, v: anytype, ch: ChallengesFor(E.ConstFor(F)), index: usize) struct { F, E.SecureFor(F) } {
             const gamma = E.splatFor(F, ch.bytes);
@@ -197,6 +199,10 @@ pub fn Equations(comptime op: anytype) type {
         }
         pub fn emit(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
             emitMain(F, v, public, sink);
+            emitInteraction(F, v, public, claim, ch, sink);
+        }
+
+        pub fn emitInteraction(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
             for (0..L.BYTE_BATCHES) |b| {
                 const current = secure(F, v, 4 * b, false);
                 const prior = if (b == 0) secure(F, v, L.BYTE_LAST, true) else secure(F, v, 4 * (b - 1), false);
