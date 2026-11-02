@@ -57,7 +57,7 @@ glue 0.43 -> 0.08 instr/gas.
 - [x] evmone Keccak > 64 bytes routed to the sponge (`--v3-set sha,arith,mem,keccak`); 15 blocks, all guards, exact: on merged head 73977eb2a scored 4.538 -> 4.215 instr/gas, 64,578 -> 61,773 bits/gas (pre-merge client 4.778 -> 4.426, 67,192 -> 64,114); glue 0.465 -> 0.108; `admitted_services.keccak_sponge` 1,409.3/call + (2,100.3 + 72,159.3)/permutation, confirmed by a produced roster.json.
 - [x] Ethereum driver: sponge through nativeprepare / packet admission / produce / verify-prefix (1-packet prefix of block 26,235,156 accepted; v2 request rejects). Block driver compiles again (role_cost/telemetry/plan).
 - [ ] TODO (coordinator) block 24,628,607 prefix4 and complete proofs with the sponge guest: commands in `handover/prover-keccak-sponge.md`.
-- [ ] TODO (next lever) throughput-table Keccak AIR from `rv64-keccak-and-memory-cost-reduction.md` (-43% cells per permutation).
+- [x] Throughput-table Keccak-f truth (branch `codex/rv64-ge-keccak-tput`, `design/riscv-proving-stack/rv64-keccak-throughput-truth.md`): `BatchPolicy.throughput_v1` reuses the compact MAIN and the RV32 2^21/2^16 tables; 152 batches / 608 interaction columns; distinct transcript identity, fixed root and wire word (truth `logs[1]` = 21). v3 planner selects it for truth log >= 13; v2/fixtures unchanged. 41,072.0 vs 72,159.3 cells/call on the frozen roster (`calibration.json keccak_cells_per_call_v3`; bench.py applies it to v3 rows only).
 
 ### BN254 and BLS12-381 services in the prover
 Branch `codex/rv64-guest-prover-curves` (head `f4e0d7a62`). Has:
