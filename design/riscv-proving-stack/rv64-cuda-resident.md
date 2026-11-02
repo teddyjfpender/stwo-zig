@@ -127,3 +127,66 @@ ProofMan revision `27b2fc20d52d8b8899291505c27e156c7cd8ef9c`:
 
 No external source was copied. These sources supply design lessons, not a
 same-security performance comparison or evidence of beating either prover.
+
+## Second slice: resident single-oracle sumcheck rounds
+
+The next contract closes the numerical-to-transcript feedback loop. Given one
+resident LogUp oracle, its native y point/lambda/claim and an already scoped
+ordinary-Blake/raw-mod-OM31 channel seed, enqueue the exact native sumcheck
+sequence: raw reduction, fixed-variable correction, cubic interpolation,
+coefficient trimming/absorption, one full eight-coordinate raw draw, claim and
+Eq correction update, then half-split fold. No field values return to the host
+between rounds. This is one oracle's sumcheck, not the complete mixed-instance
+GKR batch/physical proof pipeline. The existing native verifier remains the
+acceptance authority.
+
+The state owns digest/draw counter, expected round, sticky status, claim,
+Eq-fixed correction and zero-prefix product. Each proof record owns four OM31
+coefficient slots (AoS), their trimmed length, the round ordinal and challenge.
+Only trimmed coefficients enter Blake2s, including an empty mix for a zero
+polynomial. Draws reduce ALL eight raw u32 words modulo p without rejection,
+exactly as `core/channel/raw_mod_m31.zig`; the legacy QM31 rejection sampler
+must not be reused. Seeds come from the caller's authenticated transcript
+handoff, not arbitrary host randomness. Arithmetic/shape/order errors poison
+the state and do not advance the transcript.
+
+Before enqueue, the controller checks all generation-tagged input/workspace
+owners and rejects overlapping reservations. It then uses two resident fold
+banks and one immutable Eq table for all rounds. The host schedules geometry
+only; no readback, allocation, synchronization or seed/challenge upload occurs
+inside the loop. Each independent oracle may use its own stream/state; streams
+and GPUs never share mutable transcript or scratch owners.
+
+Oracle gate: compare every trimmed polynomial, challenge, final claim, digest,
+draw counter and terminal mask with the actual native GKR oracle plus native
+sumcheck prover/verifier, both base and secure numerators. Exercise pole,
+zero-polynomial, reordered-round and malformed-field rejection. Host execution
+of the same arithmetic header is numerical evidence only; real-device replay,
+sanitizers and receiver acceptance remain separate required gates.
+
+Cubic correction clears the rational root `b=(1-y)/(1-2y)` before Newton
+interpolation: `b(b-1)(b-2)=(1-y)y(3y-1)/(1-2y)^3`. Batch inversion of the
+zero-prefix and the resulting cubic denominator needs one OM31 norm descent,
+versus three direct inversions. All native pole gates (including `1-2y=0`)
+remain explicit. Native proof comparisons and1024 random full-field cubic
+cases check coefficient identity; no wall-time multiplier is claimed.
+
+The secure reduction also has an opt-in split-grid implementation: independent
+at0/at2 block grids reduce live values and double initial block count. On sm120
+its first stage uses80 registers versus128 for combined, and128 bytes of shared
+memory versus256, with no spills. Some first-half inputs are reread. Default
+selection stays combined until hardware evidence resolves that tradeoff.
+
+The compact assembly adapter checks exact framing/canonicality, invokes the
+existing native sumcheck verifier and LogUp gate, and checks every challenge,
+end channel, claim and terminal gate relation. An accepted numerical transcript
+still needs authenticated source evaluations and PCS binding. Allocation-failure
+coverage exercises cleanup of partially decoded proof owners. A failed device
+round clears its record/challenge so downstream queued folds use defined
+neutral values; sticky status prevents their publication.
+
+Final mask assembly is also resident: an eight-lane gather emits only32 AoS
+words from the two live numerator/denominator rows. Neither entire fold bank
+needs readback. The arena includes this output and all40 state/44-per-round
+record words. Parameter accounting explicitly includes the ninth seed word
+(the draw counter), avoiding a one-word short reservation at every geometry.

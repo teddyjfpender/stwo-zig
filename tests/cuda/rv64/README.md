@@ -81,3 +81,63 @@ g++ -std=c++17 -O2 -Wall -Wextra -Werror \
 This intentionally mocks only the registry/stream boundary to exercise byte
 units, bounds, overlap and error propagation. It does not authenticate real
 CUDA allocation ownership; the hardware test exercises the actual registry.
+
+## Resident sumcheck feedback and verifier adapter
+
+The second slice enqueues a complete **single LogUp oracle's sumcheck** using
+`rv64.sumcheck.enqueue`. Interpolation, coefficient trimming, ordinary-Blake
+absorption, raw-mod-OM31 draws, updated claims and all folds stay on the GPU.
+Only the compact round records, final state and terminal mask are read back
+for assembly. The caller supplies the already scoped native transcript seed;
+this helper does not authenticate a seed or replace full GKR/PCS binding.
+
+`rv64.assembly.verifyReadback` converts that compact format to the existing
+native sumcheck proof, invokes the native verifier and LogUp gate relation,
+and checks challenges, digest/draw counter, final claim, Eq correction and
+terminal mask. Numerical acceptance remains separate from physical binding.
+
+Compile the host oracle separately with the numerical shim, then link the real
+CUDA driver harness. Do not compile the oracle as a device translation unit:
+
+```sh
+g++ -O3 -std=c++17 -Itests/cuda/rv64/host_include \
+  -Isrc/backends/cuda/native -c tests/cuda/rv64/numerical_bridge.cpp \
+  -o /tmp/rv64-round-oracle.o
+
+"$CUDA_HOME/bin/nvcc" -O3 -std=c++17 \
+  -gencode arch=compute_89,code=sm_89 \
+  -gencode arch=compute_120,code=sm_120 \
+  -Isrc/backends/cuda/native -I"$NVTX_INCLUDE" \
+  src/backends/cuda/native/rv64/gkr.cu \
+  src/backends/cuda/native/rv64/round.cu \
+  src/backends/cuda/native/runtime/context.cu \
+  tests/cuda/rv64/sumcheck_smoke.cu /tmp/rv64-round-oracle.o \
+  -Xcompiler=-pthread -ldl -o /tmp/rv64-sumcheck-smoke
+
+/tmp/rv64-sumcheck-smoke 2 16
+/tmp/rv64-sumcheck-smoke 4 16
+compute-sanitizer --tool memcheck /tmp/rv64-sumcheck-smoke 2 10
+compute-sanitizer --tool initcheck /tmp/rv64-sumcheck-smoke 2 10
+compute-sanitizer --tool racecheck /tmp/rv64-sumcheck-smoke 2 10
+compute-sanitizer --tool synccheck /tmp/rv64-sumcheck-smoke 2 10
+```
+
+This compares every round record, challenge, final state and mask against the
+separate host oracle, for both base and secure numerators, and checks poisoned
+rounds clear challenges before downstream folds. The host oracle's result is
+independently matched to the existing native prover/verifier in Zig tests.
+The real-context Zig FFI controller is also compile-checked without CUDA via
+the `check-rv64-native-bindings` target, included in the default focused test.
+
+The harness reports combined and split secure-reduction timings separately.
+The split route doubles first-stage block parallelism and reduces register
+pressure, but rereads first-half values: measure before selecting it. Default
+commands retain the combined route; set `split_secure_sum=true` explicitly to
+qualify the alternative. Each route uses three warmups and eleven full-round
+runs with zero intermediate host transfers. No complete-block timing is implied.
+
+The sumcheck harness packs the terminal mask on-device and reads only32 mask
+words,40 state words and44 words per round. It never downloads a fold bank.
+Run sanitizer initcheck as well: after a device-side pole, every already
+queued round must emit a defined neutral challenge and an invalid record
+ordinal, while the sticky failure prevents admission.

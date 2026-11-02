@@ -49,6 +49,23 @@ int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64
                          uint32_t count, StwoRv64Plane eq, const uint32_t* lambda,
                          StwoRv64Plane scratch_a, StwoRv64Plane scratch_b,
                          StwoRv64Plane output);
+// Opt-in secure-numerator split-grid variant. Same result/geometry/scratch;
+// base numerators retain the existing specialized route. No timing claim.
+int stwo_rv64_gkr_sum_split_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64Plane d,
+                               uint32_t count, StwoRv64Plane eq, const uint32_t* lambda,
+                               StwoRv64Plane a, StwoRv64Plane b, StwoRv64Plane out);
+// Gather the two final N and D rows into32 compact AoS words for proof
+// assembly; no complete fold bank needs to cross the device boundary.
+int stwo_rv64_gkr_pack_mask_on(void* context, uint32_t lane, StwoRv64Plane n, StwoRv64Plane d,
+                               uint32_t* output);
+// Single-oracle sumcheck feedback state: 40 words; seed is native digest[8]
+// plus draw count, claim is one OM31. Records are 44 words per round (4 AoS
+// coefficients, challenge, trimmed length, ordinal and two reserved zeros).
+int stwo_rv64_sumcheck_init_on(void* context, uint32_t lane, uint32_t* state,
+                               const uint32_t* seed, const uint32_t* claim, uint32_t variables);
+int stwo_rv64_sumcheck_round_on(void* context, uint32_t lane, uint32_t* state,
+                                uint32_t variables, uint32_t expected, StwoRv64Plane raw,
+                                const uint32_t* point, uint32_t* record);
 #ifdef __cplusplus
 }
 #endif

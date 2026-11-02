@@ -138,6 +138,46 @@ __global__ void sum_first(StwoRv64Plane n, StwoRv64Plane d, uint32_t terms, Stwo
     // Tail threads also participate in every shuffle and barrier.
     block_sum(result, out);
 }
+// Independent at0/at2 grids trade repeated first-half loads for shorter
+// live ranges and more schedulable blocks. Keep the combined route available
+// until real-device shape sweeps decide which strategy wins.
+__device__ __forceinline__ Fraction extrapolated(StwoRv64Plane n, StwoRv64Plane d, uint32_t j,
+                                                 uint32_t k) {
+    const OM31 n0 = load(n.words, n.stride, j), n1 = load(n.words, n.stride, k);
+    const OM31 d0 = load(d.words, d.stride, j), d1 = load(d.words, d.stride, k);
+    return {sub(add(n1, n1), n0), sub(add(d1, d1), d0)};
+}
+__device__ __forceinline__ OM31 block_sum_one(OM31 value) {
+    __shared__ uint32_t partial[8][threads / 32];
+    value = warp_sum(value);
+    const uint32_t lane = threadIdx.x & 31, warp = threadIdx.x >> 5;
+    if (!lane)
+        for (uint32_t c = 0; c < 8; ++c) partial[c][warp] = coordinate(value, c);
+    __syncthreads();
+    if (warp) return zero();
+    uint32_t words[8]{};
+    if (lane < threads / 32)
+        for (uint32_t c = 0; c < 8; ++c) words[c] = partial[c][lane];
+    return warp_sum(from_words(words));
+}
+__global__ void sum_secure_split(StwoRv64Plane n, StwoRv64Plane d, uint32_t terms,
+                                 StwoRv64Plane eq, const uint32_t* lambda,
+                                 StwoRv64Plane output) {
+    const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    OM31 value = zero();
+    if (i < terms) {
+        const uint32_t j = 2 * i, k = 2 * (terms + i);
+        Fraction pair;
+        if (blockIdx.y == 0)
+            pair = combine(read_fraction(n, d, j), read_fraction(n, d, j + 1));
+        else
+            pair = combine(extrapolated(n, d, j, k), extrapolated(n, d, j + 1, k + 1));
+        value = mul(load(eq.words, eq.stride, i), add(pair.n, mul(from_words(lambda), pair.d)));
+    }
+    const OM31 result = block_sum_one(value);
+    if (threadIdx.x == 0)
+        store(output.words, output.stride, 2 * blockIdx.x + blockIdx.y, result);
+}
 __global__ void sum_reduce(StwoRv64Plane in, uint32_t pairs, StwoRv64Plane out) {
     const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
     Pair result{zero(), zero()};
@@ -219,10 +259,10 @@ extern "C" int stwo_rv64_gkr_eq_on(void* context, uint32_t lane, const uint32_t*
     }
     return status;
 }
-extern "C" int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane n,
-                                    StwoRv64Plane d, uint32_t count, StwoRv64Plane eq,
-                                    const uint32_t* lambda, StwoRv64Plane a, StwoRv64Plane b,
-                                    StwoRv64Plane out) {
+static int sum_on_impl(bool split_secure, void* context, uint32_t lane, StwoRv64Plane n,
+                       StwoRv64Plane d, uint32_t count, StwoRv64Plane eq,
+                       const uint32_t* lambda, StwoRv64Plane a, StwoRv64Plane b,
+                       StwoRv64Plane out) {
     if (!power2(count) || count < 4 || count > max_count) return int(cudaErrorInvalidValue);
     const uint32_t groups = blocks(count / 4);
     Custody c(context, lane);
@@ -234,6 +274,9 @@ extern "C" int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane 
     if (n.coordinates == 1)
         sum_first<true><<<groups, threads, 0, c.stream>>>(n, d, count / 4, eq, lambda,
                                                           groups == 1 ? out : a);
+    else if (split_secure)
+        sum_secure_split<<<dim3(groups, 2), threads, 0, c.stream>>>(n, d, count / 4, eq, lambda,
+                                                                    groups == 1 ? out : a);
     else
         sum_first<false><<<groups, threads, 0, c.stream>>>(n, d, count / 4, eq, lambda,
                                                            groups == 1 ? out : a);
@@ -249,4 +292,17 @@ extern "C" int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane 
         next = old;
     }
     return status;
+}
+
+extern "C" int stwo_rv64_gkr_sum_on(void* context, uint32_t lane, StwoRv64Plane n,
+                                    StwoRv64Plane d, uint32_t count, StwoRv64Plane eq,
+                                    const uint32_t* lambda, StwoRv64Plane a, StwoRv64Plane b,
+                                    StwoRv64Plane out) {
+    return sum_on_impl(false, context, lane, n, d, count, eq, lambda, a, b, out);
+}
+extern "C" int stwo_rv64_gkr_sum_split_on(void* context, uint32_t lane, StwoRv64Plane n,
+                                          StwoRv64Plane d, uint32_t count, StwoRv64Plane eq,
+                                          const uint32_t* lambda, StwoRv64Plane a,
+                                          StwoRv64Plane b, StwoRv64Plane out) {
+    return sum_on_impl(true, context, lane, n, d, count, eq, lambda, a, b, out);
 }

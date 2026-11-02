@@ -24,6 +24,8 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_backend_contracts", contracts);
     integration.addImport("stwo_cuda_backend", backend);
     integration.addImport("stwo_riscv_frontend", frontend);
+    integration.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    integration.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
     const test_step = b.step(
         "test",
@@ -46,4 +48,15 @@ pub fn build(b: *std.Build) void {
     const run_numerical = b.addRunArtifact(numerical);
     numerical_step.dependOn(&run_numerical.step);
     test_step.dependOn(&run_numerical.step);
+    const binding_root = b.createModule(.{
+        .root_source_file = b.path("rv64_binding_check_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    binding_root.addImport("stwo_cuda_backend", backend);
+    const binding_object = b.addObject(.{ .name = "rv64-cuda-binding-check", .root_module = binding_root });
+    binding_object.linkLibC();
+    const binding_step = b.step("check-rv64-native-bindings", "Compile real-context RV64 CUDA FFI without requiring a GPU");
+    binding_step.dependOn(&binding_object.step);
+    test_step.dependOn(&binding_object.step);
 }

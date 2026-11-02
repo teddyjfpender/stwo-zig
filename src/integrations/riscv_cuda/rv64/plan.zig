@@ -19,6 +19,9 @@ pub const Plan = struct {
     scratch_a: Region,
     scratch_b: Region,
     parameters: Region,
+    round_state: Region,
+    round_records: Region,
+    terminal_mask: Region,
     verdict: Region,
     total_bytes: u64,
 
@@ -44,10 +47,14 @@ pub const Plan = struct {
         const groups = (n / 4 + 127) / 128;
         const scratch_a = try append(&cursor, 16 * groups);
         const scratch_b = try append(&cursor, 16 * groups);
-        // y point, lambda, assignment and raw at0/2 results, no transcript copy.
-        const parameters = try append(&cursor, 8 * (@as(u64, log_count) + 4));
+        // y point, lambda, initial claim, 9-word native seed and raw at0/2.
+        // The seed counter is a ninth word, not a field coordinate.
+        const parameters = try append(&cursor, 8 * (@as(u64, log_count) - 1) + 8 + 8 + 9 + 16);
+        const round_state = try append(&cursor, 40);
+        const round_records = try append(&cursor, 44 * (@as(u64, log_count) - 1));
+        const terminal_mask = try append(&cursor, 32);
         const verdict = try append(&cursor, 1);
-        return .{ .count = @intCast(n), .arity = arity, .tuples = tuples, .weights = weights, .active = active, .challenges = challenges, .leaf_n = leaf_n, .leaf_d = leaf_d, .tree = tree, .fold_n = fold_n, .fold_d = fold_d, .fold_next_n = fold_next_n, .fold_next_d = fold_next_d, .eq = eq, .scratch_a = scratch_a, .scratch_b = scratch_b, .parameters = parameters, .verdict = verdict, .total_bytes = try std.math.mul(u64, cursor, 4) };
+        return .{ .count = @intCast(n), .arity = arity, .tuples = tuples, .weights = weights, .active = active, .challenges = challenges, .leaf_n = leaf_n, .leaf_d = leaf_d, .tree = tree, .fold_n = fold_n, .fold_d = fold_d, .fold_next_n = fold_next_n, .fold_next_d = fold_next_d, .eq = eq, .scratch_a = scratch_a, .scratch_b = scratch_b, .parameters = parameters, .round_state = round_state, .round_records = round_records, .terminal_mask = terminal_mask, .verdict = verdict, .total_bytes = try std.math.mul(u64, cursor, 4) };
     }
 };
 fn append(cursor: *u64, words: u64) !Region {

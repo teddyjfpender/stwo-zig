@@ -38,6 +38,13 @@ __host__ __device__ __forceinline__ OM31 mul(OM31 a, OM31 b) {
 __host__ __device__ __forceinline__ OM31 scale(OM31 a, uint32_t b) {
     return {q::mul(b, a.c0), q::mul(b, a.c1)};
 }
+// Caller rejects zero before inversion. Norm descent reuses the existing
+// quartic inverse, rather than exponentiating in the eight-coordinate field.
+__host__ __device__ __forceinline__ OM31 inverse_nonzero(OM31 a) {
+    const auto norm = q::sub(q::square(a.c0), mul_u(q::square(a.c1)));
+    const auto reciprocal = q::inverse(norm);
+    return {q::mul(a.c0, reciprocal), q::mul(q::sub(q::zero(), a.c1), reciprocal)};
+}
 __host__ __device__ __forceinline__ OM31 fold(OM31 a, OM31 b, OM31 x) {
     return add(a, mul(sub(b, a), x));
 }

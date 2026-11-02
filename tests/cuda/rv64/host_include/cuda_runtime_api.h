@@ -4,3 +4,6 @@
 #define __host__
 #define __device__
 #define __forceinline__ inline
+
+#define __constant__
+inline int __ffs(int x) { return __builtin_ffs(x); }

@@ -3,9 +3,12 @@
 pub const plan = @import("plan.zig");
 pub const scheduler = @import("scheduler.zig");
 pub const resident = @import("resident.zig");
+pub const assembly = @import("assembly.zig");
+pub const sumcheck = @import("sumcheck.zig");
 pub const production_ready = false;
 test {
     _ = @import("tests/plan_test.zig");
     _ = @import("tests/scheduler_test.zig");
     _ = @import("tests/resident_test.zig");
+    _ = @import("tests/sumcheck_test.zig");
 }

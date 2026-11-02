@@ -46,6 +46,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         context: *Context,
         lane_index: u32,
         poisoned: bool = false,
+        /// Explicit tuning choice; preserve the established route by default.
+        split_secure_sum: bool = false,
         launches: u64 = 0,
         const Self = @This();
 
@@ -142,7 +144,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             var waves: u64 = 1;
             while (groups > 1) : (groups = (groups + 127) / 128) waves += 1;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_sum_on(
+            const sum_function: *const @TypeOf(Api.stwo_rv64_gkr_sum_on) = if (self.split_secure_sum) &Api.stwo_rv64_gkr_sum_split_on else &Api.stwo_rv64_gkr_sum_on;
+            try self.result(sum_function(
                 owner,
                 self.lane_index,
                 try input.n.bind(self.context),
@@ -154,6 +157,48 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try scratch_b.bind(self.context),
                 try output.bind(self.context),
             ), waves);
+        }
+
+        pub fn initSumcheck(self: *Self, state: Slice, seed: Slice, claim: Slice, variables: u32) !void {
+            if (variables == 0 or variables > 27) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_sumcheck_init_on(
+                owner,
+                self.lane_index,
+                try self.context.deviceSlicePointer(u32, state, abi.round_state_words),
+                try self.context.deviceSlicePointer(u32, seed, 9),
+                try self.context.deviceSlicePointer(u32, claim, 8),
+                variables,
+            ), 1);
+        }
+        pub fn round(self: *Self, state: Slice, variables: u32, expected: u32, sums: Plane, point: Slice, record: Slice) !void {
+            if (variables == 0 or variables > 27 or expected >= variables) return error.InvalidGeometry;
+            try sums.shape(2, 8);
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_sumcheck_round_on(
+                owner,
+                self.lane_index,
+                try self.context.deviceSlicePointer(u32, state, abi.round_state_words),
+                variables,
+                expected,
+                try sums.bind(self.context),
+                try self.context.deviceSlicePointer(u32, point, 8 * @as(usize, variables)),
+                try self.context.deviceSlicePointer(u32, record, abi.round_record_words),
+            ), 1);
+        }
+
+        pub fn packMask(self: *Self, input: Fraction, output: Slice) !void {
+            if (input.count != 2) return error.InvalidGeometry;
+            try input.n.shape(2, 8);
+            try input.d.shape(2, 8);
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_gkr_pack_mask_on(
+                owner,
+                self.lane_index,
+                try input.n.bind(self.context),
+                try input.d.bind(self.context),
+                try self.context.deviceSlicePointer(u32, output, 32),
+            ), 1);
         }
     };
 }

@@ -14,3 +14,12 @@ comptime {
     if (@sizeOf(Plane) != 24 or @offsetOf(Plane, "stride") != 8 or @offsetOf(Plane, "coordinates") != 16)
         @compileError("RV64 CUDA plane ABI mismatch (64-bit host required)");
 }
+
+pub const round_state_words: usize = 40;
+pub const round_record_words: usize = 44;
+pub extern "c" fn stwo_rv64_sumcheck_init_on(*anyopaque, u32, [*]u32, [*]const u32, [*]const u32, u32) c_int;
+pub extern "c" fn stwo_rv64_sumcheck_round_on(*anyopaque, u32, [*]u32, u32, u32, Plane, [*]const u32, [*]u32) c_int;
+
+pub extern "c" fn stwo_rv64_gkr_sum_split_on(*anyopaque, u32, Plane, Plane, u32, Plane, [*]const u32, Plane, Plane, Plane) c_int;
+
+pub extern "c" fn stwo_rv64_gkr_pack_mask_on(*anyopaque, u32, Plane, Plane, [*]u32) c_int;

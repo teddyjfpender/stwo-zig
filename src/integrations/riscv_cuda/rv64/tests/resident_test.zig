@@ -38,6 +38,7 @@ const Fake = struct {
         calls += 1;
         return 0;
     }
+    pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
 fn slice() Slice {
     return .{ .address = 4096, .len = 4096, .owner = 1, .generation = 2 };

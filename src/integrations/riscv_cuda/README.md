@@ -68,8 +68,8 @@ defer prepared.deinit(allocator);
 
 ## Dependencies
 
-- `stwo_core` supplies the native OM31 numerical test authority.
-- `stwo_prover_engine` supplies the native GKR numerical test authority.
+- `stwo_core` supplies native OM31 arithmetic and transcript types.
+- `stwo_prover_engine` supplies the native sumcheck verifier and LogUp gate authority.
 - `stwo_backend_contracts` supplies the backend-neutral proof-program schema.
 - `stwo_cuda_backend` supplies provider-bound plans and admission receipts.
 - `stwo_riscv_frontend` owns RV32IM execution and AIR semantics.
@@ -121,7 +121,7 @@ The additive `rv64` export provides a device-only OM31/GKR numerical lane,
 exact arena planning and bounded scheduling for 2 or 4 independent devices.
 It does not enable full Ethereum CUDA proof dispatch. The existing RV32
 admission contract above is unchanged. Full v3 GKR, the RV64 witness providers,
-OM31 transcript/PCS/DEEP/FRI and recursive proof integration remain gates.
+full-block transcript wiring, OM31 PCS/DEEP/FRI and recursive proof integration remain gates.
 
 `rv64.resident.NativeCommands` uses the existing CUDA context and its selected
 lane. Device slices carry context ownership and allocation generations. Inputs,
@@ -149,3 +149,16 @@ Real-driver compile, multi-GPU parity, sanitizer and timing instructions live in
 harness is deliberately labelled separately from a verified complete block.
 Review [`rv64-cuda-resident.md`](../../../design/riscv-proving-stack/rv64-cuda-resident.md)
 for the ownership contract, cost hypothesis and remaining proof integration.
+
+The resident single-oracle sumcheck controller now connects reductions to cubic
+correction, trimmed polynomial absorption and raw eight-coordinate challenges
+without host feedback. Its two fold banks and transcript state are checked as
+a disjoint reservation before the first launch. `rv64.assembly.verifyReadback`
+invokes the existing native sumcheck verifier and LogUp gate on compact proof
+records after completion. This is numerical acceptance; physical source binding
+and the complete Ethereum proof/recursive root remain required separately.
+
+The optional split secure-sum kernel exposes more blocks with a smaller
+register footprint. The combined implementation remains the default until
+real-device timing selects a winner. These APIs do not assert optimal GPU
+utilization from compiler statistics alone.

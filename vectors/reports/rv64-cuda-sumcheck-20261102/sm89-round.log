@@ -1,0 +1,16 @@
+ptxas info    : 0 bytes gmem, 256 bytes cmem[3]
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6416pack_mask_kernelE13StwoRv64PlaneS2_Pj' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6416pack_mask_kernelE13StwoRv64PlaneS2_Pj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 18 registers, used 0 barriers, 408 bytes cmem[0]
+ptxas info    : Compile time = 2.353 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6420round_advance_kernelEPjj13StwoRv64PlanePKjjS2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6420round_advance_kernelEPjj13StwoRv64PlanePKjjS2_
+    192 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 233 registers, used 0 barriers, 192 bytes cumulative stack size, 416 bytes cmem[0]
+ptxas info    : Compile time = 1232.176 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6417round_init_kernelEPjPKjS4_j' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6417round_init_kernelEPjPKjS4_j
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, used 0 barriers, 380 bytes cmem[0]
+ptxas info    : Compile time = 2.822 ms
