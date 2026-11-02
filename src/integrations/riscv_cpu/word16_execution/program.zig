@@ -28,6 +28,12 @@ pub const Program = struct {
     profile: Execution.Profile,
     contiguous: bool,
     owns_raw: bool,
+    /// Compact decode ROM (Geometry.cpu_compact_decode): the fixed matrix and
+    /// every reconstructed tuple use Entry.romTupleCompact. The row layout
+    /// (one or two rows per word) and the program identity are unchanged;
+    /// the layout is bound by the geometry flag, its transcript identity and
+    /// the fixed root.
+    compact: bool = false,
     pub fn init(a: std.mem.Allocator, expected: Raw.Program) !Program {
         return initWithProfile(a, expected, X.features.PROFILE);
     }
@@ -54,7 +60,7 @@ pub const Program = struct {
             var lease = found;
             errdefer lease.deinit();
             const data = lease.view();
-            const fixed = try fixedFromEntries(a, data.entries, data.word_rows, data.log_size, null);
+            const fixed = try fixedFromEntries(a, data.entries, data.word_rows, data.log_size, null, false);
             return .{ .allocator = a, .words = expected.words, .addresses = expected.program.addresses, .entries = data.entries, .word_rows = data.word_rows, .row_to_entry = data.row_to_entry, .row_taken = data.row_taken, .metadata_lease = lease, .fixed = fixed, .log_size = data.log_size, .identity = lease.identity(), .opcodes = data.opcodes, .profile = expected.profile, .contiguous = data.contiguous, .owns_raw = false };
         }
         var program = try initWithAuthority(a, expected);
@@ -114,11 +120,23 @@ pub const Program = struct {
         const row_taken = try a.alloc(bool, count);
         errdefer a.free(row_taken);
         const log_size: u32 = @intCast(@max(X.layout.MIN_LOG, std.math.log2_int_ceil(usize, count)));
-        const fixed = try fixedFromEntries(a, entries, word_rows, log_size, .{ .row_to_entry = row_to_entry, .row_taken = row_taken });
+        const fixed = try fixedFromEntries(a, entries, word_rows, log_size, .{ .row_to_entry = row_to_entry, .row_taken = row_taken }, false);
         return .{ .allocator = a, .words = words, .addresses = addresses, .entries = entries, .word_rows = word_rows, .row_to_entry = row_to_entry, .row_taken = row_taken, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult(), .opcodes = opcodes, .profile = profile, .contiguous = front.rv64_air.word16_cpu.rom.contiguousAddresses(addresses), .owns_raw = owns_raw };
     }
     const MutableMaps = struct { row_to_entry: []u32, row_taken: []bool };
-    fn fixedFromEntries(a: std.mem.Allocator, entries: []const Entry, word_rows: []const u32, log_size: u32, maps: ?MutableMaps) ![]M {
+    /// Switches this owner to the compact decode ROM. Rebuilds the fixed
+    /// matrix unless it was already retired (tuples are then reconstructed
+    /// from the immutable entries). One-way and idempotent.
+    pub fn makeCompact(self: *Program) !void {
+        if (self.compact) return;
+        if (!self.fixed_retired) {
+            const fixed = try fixedFromEntries(self.allocator, self.entries, self.word_rows, self.log_size, null, true);
+            self.allocator.free(self.fixed);
+            self.fixed = fixed;
+        }
+        self.compact = true;
+    }
+    fn fixedFromEntries(a: std.mem.Allocator, entries: []const Entry, word_rows: []const u32, log_size: u32, maps: ?MutableMaps, compact: bool) ![]M {
         const n: usize = @as(usize, 1) << @intCast(log_size);
         const fixed = try a.alloc(M, X.layout.rom.FIXED * n);
         @memset(fixed, M.zero());
@@ -130,7 +148,7 @@ pub const Program = struct {
                     out.row_to_entry[logical] = @intCast(i);
                     out.row_taken[logical] = edge != 0;
                 }
-                const tuple = entry.romTuple(edge != 0);
+                const tuple = if (compact) entry.romTupleCompact(edge != 0) else entry.romTuple(edge != 0);
                 const position = X.layout.physical(logical, log_size);
                 for (tuple, 0..) |value, column| fixed[column * n + position] = value;
             }
@@ -176,7 +194,7 @@ pub const Program = struct {
         if (logical >= self.row_to_entry.len) return @splat(M.zero());
         const entry = self.row_to_entry[logical];
         if (entry >= self.entries.len or self.row_taken.len != self.row_to_entry.len) return error.InvalidExecutionRomShape;
-        return self.entries[entry].romTuple(self.row_taken[logical]);
+        return if (self.compact) self.entries[entry].romTupleCompact(self.row_taken[logical]) else self.entries[entry].romTuple(self.row_taken[logical]);
     }
     pub fn validateFixedWitness(self: *const Program) !void {
         if (self.fixed_retired) return error.ExecutionFixedWitnessRetired;
