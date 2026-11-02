@@ -10,7 +10,7 @@ scores down. All branches are pushed to `origin`. Read with
 ## Session 2 (2026-11-02): what landed, what is open
 
 Scores (provable v3 client, scored set, all 15 blocks exact, all guards):
-**3.283 instr/gas, 46,463 committed bits/gas** at PR head `2f80736fe`, from
+**3.283 instr/gas, 40,336 committed bits/gas** (measured cell costs) at PR head `dee3735b7`, from
 4.778 / 67,192 at the start of the session. Full table and the route to
 ~2 / ~20,000 in [PATH-TO-BIG-JUMP.md](PATH-TO-BIG-JUMP.md).
 
@@ -23,7 +23,7 @@ negative result, parked) plus three new tracks: throughput Keccak-f truth,
 JUMPDEST service, and PR #309 merged (OM GKR route v2-only, fails closed on
 every v3 kind).
 
-Delivered on branches, integration in progress (`codex/rv64-ge-final`):
+Delivered and merged (`codex/rv64-ge-final`, `codex/rv64-ge-fused-fix`; measured on a real prefix: LS-D64 -16.1 and fused+pairs -8.0 CPU cells/instruction):
 CPU fused-tail + byte-pair queries (`codex/rv64-ge-cells-fused-tail`) and
 LS-D64 (`codex/rv64-ge-ls64`), both default on v3, adversarially reviewed as
 sound; est. -8.2 and -11.0 cells/instruction. Zbb BINARY subset
@@ -34,8 +34,7 @@ LogUp/GKR CPU speed (`codex/rv64-ge-logup`): packed fused GKR prover,
 packed GKR kernels.
 
 Open items:
-- Exact complete-block costs for the new services and CPU layouts (proxy uses
-  fixture geometry); prefix-proof receipt in progress on `codex/rv64-ge-measure`.
+- Complete-block proof of the final client (calibration uses a 4-packet prefix; curve and sha256 costs are fixture/older values).
 - EEST re-run on the final client (needs ~10 GB of inputs; this host was disk-bound).
 - Recursion for all v3 services and layouts (`codex/rv64-guest-prover-recursion-v3`, paused).
 - GKR (OM route) support for v3 families; extend GKR to the global relations.

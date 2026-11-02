@@ -18,9 +18,9 @@ one above.
 | Keccak-256 sponge proven, `keccak` default | 4.060 | 60,527 | `codex/rv64-ge-sponge` |
 | Throughput-table Keccak-f truth (-43% cells/permutation) | 4.060 | 54,544 | `codex/rv64-ge-keccak-tput` |
 | JUMPDEST analysis service (jdesc/jscan/jtab) | 3.778 | 51,817 | `codex/rv64-ge-jumpdest` |
-| BN254 / BLS12-381 curve services (`bn,bls` default) | **3.283** | **46,463** | `codex/rv64-ge-curves` (PR head `2f80736fe`) |
-| CPU fused-tail + byte-pair queries (CPU INTER 40 -> 32), v3 default | 3.283 | est. -2,160 | `codex/rv64-ge-cells-fused-tail` |
-| LS-D64 aligned-doubleword load/store row (102 -> 67 cells/access), v3 default | 3.283 | est. -2,890 | `codex/rv64-ge-ls64` |
+| BN254 / BLS12-381 curve services (`bn,bls` default) | 3.283 | 46,463 | `codex/rv64-ge-curves` |
+| Measured cell costs (fresh 4-packet prefix of 24,628,607), incl. LS-D64 | 3.283 | 42,034 | `codex/rv64-ge-calib`, receipts in `vectors/reports/rv64-ethereum-20261102/` |
+| Fused-tail + U8-pair CPU layout fixed on real blocks, v3 default | **3.283** | **40,336** | `codex/rv64-ge-fused-fix`, PR head `dee3735b7` |
 | Zbb BINARY subset (rev8 via .insn), opt-in profile `ethereum_services_v3_zbb` | 3.864 vs 4.060 (-4.8%) | -2.7% | `codex/rv64-ge-zbb` (driver cannot prove blocks yet) |
 
 LogUp/GKR CPU: packed fused GKR prover 2.3-3.4x per thread (QM31 and OM31),
@@ -34,10 +34,9 @@ PR #309 merged into this program on `codex/rv64-ge-base-merge`; the OM GKR /
 wide route is v2-only and rejects every v3 family, bulk/sponge/JUMPDEST kind
 and the throughput Keccak truth with `GkrV3ServiceUnsupported`.
 
-Proxy caveat: the last four committed-bits steps use costs derived from proven
-fixture geometry and the block 24,628,607 roster, not a complete-block
-`cost.json` of the final client. Run a complete-block proof of the final client
-before quoting committed cells externally.
+Calibration: v3 coefficients are measured on a freshly verified 4-packet prefix (62% of block 24,628,607): CPU 126.99 cells/instruction (was 154.81 frozen), Keccak-f 38,016, secp 20,370 and the service entries. sha256 and the curve services keep fixture/complete-block values (not exercised by that block). A complete-block proof of the final client is still the reference to run before quoting externally.
+
+LogUp/GKR production route: PR #309's packed GKR kernels match the packed fused prover within ±5% (identical proofs), so no rerouting; see the production-route section of rv64-logup-cpu-performance.md.
 
 ## Route from here to ~2 instr/gas and ~20,000 bits/gas
 
