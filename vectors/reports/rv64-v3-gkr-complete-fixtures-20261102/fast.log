@@ -1,0 +1,6 @@
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+V3_GLOBAL_MUTANT rejected=OodsNotMatching
+V3_GLOBAL_MUTANT rejected=OodsNotMatching
+V3_GLOBAL_MUTANT rejected=OodsNotMatching
