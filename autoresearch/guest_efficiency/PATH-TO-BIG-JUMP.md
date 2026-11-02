@@ -1,8 +1,64 @@
-# Path to the big jump (status 2026-11-01, checklist updated 20:15)
+# Path to the big jump (status 2026-11-02 08:00; session-2 summary first)
 
 Where the program stands, what limits each metric, and the order of work that
 gets both metrics down far enough to start the GPU port. Numbers are on the
 12-block scored set unless stated; "est." marks estimates.
+
+## Status 2026-11-02 (session 2): tracks delivered
+
+Provable evmone v3 client (`ethereum_services_v3`), 12-block scored set, exact
+outputs on all 15 blocks, all guards G1-G6, promotable. Each row adds to the
+one above.
+
+| Step | instr/gas | committed bits/gas (proxy) | Branch / commit |
+|---|---:|---:|---|
+| Start of session (merged head, aligned memory only) | 4.778 | 67,192 | `4e4b38a62` |
+| Client pass 2 (memory functions, code hash in copy, blst constant limbs, word copies) | 4.538 | 64,578 | `codex/rv64-ge-interp` |
+| Unaligned memcpy + memcmp proven (ucopy/cdesc/cmp), `umem` default | 4.447 | 63,851 | `codex/rv64-ge-bulk` |
+| Keccak-256 sponge proven, `keccak` default | 4.060 | 60,527 | `codex/rv64-ge-sponge` |
+| Throughput-table Keccak-f truth (-43% cells/permutation) | 4.060 | 54,544 | `codex/rv64-ge-keccak-tput` |
+| JUMPDEST analysis service (jdesc/jscan/jtab) | 3.778 | 51,817 | `codex/rv64-ge-jumpdest` |
+| BN254 / BLS12-381 curve services (`bn,bls` default) | **3.283** | **46,463** | `codex/rv64-ge-curves` (PR head `2f80736fe`) |
+| CPU fused-tail + byte-pair queries (CPU INTER 40 -> 32), v3 default | 3.283 | est. -2,160 | `codex/rv64-ge-cells-fused-tail` |
+| LS-D64 aligned-doubleword load/store row (102 -> 67 cells/access), v3 default | 3.283 | est. -2,890 | `codex/rv64-ge-ls64` |
+| Zbb BINARY subset (rev8 via .insn), opt-in profile `ethereum_services_v3_zbb` | 3.864 vs 4.060 (-4.8%) | -2.7% | `codex/rv64-ge-zbb` (driver cannot prove blocks yet) |
+
+LogUp/GKR CPU: packed fused GKR prover 2.3-3.4x per thread (QM31 and OM31),
+15x at 8 threads on the services shape, byte-identical transcripts;
+`generateParallelColumns` 1.1-1.3x (`codex/rv64-ge-logup`,
+`design/riscv-proving-stack/rv64-logup-cpu-performance.md`). Not yet on a
+production path: the OM GKR route of PR #309 has its own packed kernels;
+reconcile and benchmark both.
+
+PR #309 merged into this program on `codex/rv64-ge-base-merge`; the OM GKR /
+wide route is v2-only and rejects every v3 family, bulk/sponge/JUMPDEST kind
+and the throughput Keccak truth with `GkrV3ServiceUnsupported`.
+
+Proxy caveat: the last four committed-bits steps use costs derived from proven
+fixture geometry and the block 24,628,607 roster, not a complete-block
+`cost.json` of the final client. Run a complete-block proof of the final client
+before quoting committed cells externally.
+
+## Route from here to ~2 instr/gas and ~20,000 bits/gas
+
+Where the cost sits now (all 15 blocks, v3 client): interpreter ~1.96 instr/gas
+(dispatch ~1.12), Keccak glue ~0.11, BLS/BN254 now on services,
+misaligned copies ~0.2; committed cells ~64% CPU at ~158 cells/instruction
+before the two CPU cuts (~139 after), Keccak ~12%, secp ~6%.
+
+| # | Track | Effect (est.) | Size | Notes |
+|---|---|---|---|---|
+| 1 | Zbb CPU lane in the Ethereum driver (Zbb-aware native batch / packet authority), then compatible with fused tail | -4.8% instr/gas | days | chip, ROM, services lane proven |
+| 2 | 256-bit EVM stack arithmetic/compare services or an AOT translation of hot contract code | -0.8 to -1.2 instr/gas | weeks | the main route from ~3.3 to ~2; threaded dispatch measured worse |
+| 3 | Fused LS+CPU row for aligned LD/SD (M2) | ~-24 cells/instr | ~30 h | high soundness risk (PC/tick continuity) |
+| 4 | Compact CPU decode (CPU MAIN 47 -> 37) | ~-10 cells/instr | ~26 h | re-derive pairing against the fused/pair layout |
+| 5 | GKR for the global RAM/register/owner relations (extend the OM GKR route to v3 first) | up to ~-40 cells/instr | weeks | today's v2 GKR route saves only -6.9% cells and is slower; the ceiling is the 44% interaction share |
+| 6 | Keccak: second 2x (fewer permutation rows or a cheaper sponge bridge) | ~-3,500 bits/gas | weeks | Keccak is ~12% of bits after the throughput truth |
+
+At ~2 instr/gas and ~91 cells/instruction the CPU is ~11,800 bits/gas; with
+Keccak and secp halved again the total lands near 20,000.
+
+The sections below are the 2026-11-01 state, kept for history.
 
 ## Where we are (measured, exact outputs on all 15 blocks)
 
