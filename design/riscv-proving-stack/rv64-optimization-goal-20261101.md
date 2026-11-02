@@ -37,37 +37,37 @@ receipts, not from projected multipliers or the recovered agents' intent.
 ## November 2 delivery checkpoint
 
 The authenticated OM31 services lane proves the complete pinned block with 25
-CPU and five truth proofs, and independent receivers accept the expected43-byte
-output. The current source-pinned q70/P26/fold4 observation is242.44s proving,
-262.68s wall and42.49GB peak RSS, with capture2,2x8 lanes,1GiB recycler and
-explicit tight dense admission. All33 durable artifacts match the prior312.38s
+CPU and five truth proofs, and independent receivers accept the expected 43-byte
+output. The current source-pinned q70/P26/fold4 observation is 242.44 s proving,
+262.68 s wall and 42.49 GB peak RSS, with capture2, 2×8 lanes, 1 GiB recycler and
+explicit tight dense admission. All 33 durable artifacts match the prior 312.38 s
 complete observation. Several kernels, ownership and operational settings changed;
 this is a combined result, not an isolated GKR-algorithm speedup.
 
-A matched same-binary full-block control with the original136B/fact admission
-costs250.84s proving versus242.44s with104B/fact. Stage1 falls111.27→103.45s;
-stage2 stays about139s. The smaller reserve enables some CPU shards to overlap,
-but adjacent heavy shards still serialize under36GiB payload admission. Source
+A matched same-binary full-block control with the original 136 B/fact admission
+costs 250.84 s proving versus 242.44 s with 104 B/fact. Stage one falls 111.27 → 103.45 s;
+stage two stays about 139 s. The smaller reserve enables some CPU shards to overlap,
+but adjacent heavy shards still serialize under 36 GiB payload admission. Source
 bounds remain separate from process RSS and original capture/setup ownership.
 The default remains conservative; all lower-memory modes are explicit opt-ins.
 
-The current real4.19M-retirement prefix proves in8.44s median after packed/pooled
+The current real 4.19M-retirement prefix proves in 8.44 s median after packed/pooled
 numerical work and active AIR accumulation changes. The same-field classic OM31
-control costs7.95s source+proving versus8.46s GKR in ABBA observations. GKR removes
+control costs 7.95 s source+proving versus 8.46 s GKR in ABBA observations. GKR removes
 39.7% of native MAIN+INTER cells, but numerical and terminal-binding work offset
 the native saving. **No net CPU GKR win is demonstrated.** Historical QM31 classic
-5.25s is a different-field control. The two-second stretch target remains unmet.
+5.25 s is a different-field control. The two-second stretch target remains unmet.
 
 The stride-two lazy checkpoint path has exact proof/fresh-receiver parity. In a
-matched two-shard parallel triplet, whole-process RSS falls30.73→20.35GB (1.51x),
-while proving changes16.23→16.71s. That is one shared-host prefix triplet, not a
+matched two-shard parallel triplet, whole-process RSS falls 30.73 → 20.35 GB (1.51×),
+while proving changes 16.23 → 16.71 s. That is one shared-host prefix triplet, not a
 whole-block memory claim. A further immutable raw-source replay experiment is
 being qualified separately before a lower resource bound or default is adopted.
 
 The beta2/q256/P0/fold4 engineering profile has already completed the same block
-in462.64s on an earlier source, with independent fresh acceptance. Final combined
+in 462.64 s on an earlier source, with independent fresh acceptance. Final combined
 source qualification and its current memory/performance tradeoffs are in progress.
-Both profiles deliberately report security_qualified=false. Whole-protocol128
+Both profiles deliberately report security_qualified=false. Whole-protocol 128-bit
 composition/security review and an accepting current OM31/GKR recursive root
 remain open. GPU execution remains deferred by the user; CPU ownership, portable
 constraint authority and resident memory preparation continue.
