@@ -29,6 +29,10 @@ pub const WorkerTiming = struct {
     inputs_ns: u64 = 0,
     numerical_ns: u64 = 0,
     binding_ns: u64 = 0,
+    numerical_requested_peak_bytes: usize = 0,
+    including_binding_requested_peak_bytes: usize = 0,
+    admitted_gkr_peak_bytes: usize = 0,
+    gkr_allocator_limit_bytes: usize = 0,
     metadata_retire_ns: u64 = 0,
     spill_ns: u64 = 0,
     restore_ns: u64 = 0,
@@ -43,6 +47,8 @@ pub const WorkerTiming = struct {
     completed_worker_retired: bool = false,
 };
 pub const Options = struct {
+    /// Caller-owned observation, set once from the same frozen admission policy.
+    observed_tree_policy: ?*@import("child.zig").TreePolicy = null,
     max_workers: usize = 8,
     /// Destructive opt-in for an exclusively owned Advice inventory. Successful
     /// CPU stage one has joined MAIN/local proofs and copied global LS caches;
@@ -193,6 +199,11 @@ const Run = struct {
                 timing.?.inputs_ns = cpu_timing.inputs_ns;
                 timing.?.numerical_ns = cpu_timing.numerical_ns;
                 timing.?.binding_ns = cpu_timing.binding_ns;
+                timing.?.numerical_requested_peak_bytes = cpu_timing.numerical_requested_peak_bytes;
+                timing.?.including_binding_requested_peak_bytes = cpu_timing.including_binding_requested_peak_bytes;
+                timing.?.admitted_gkr_peak_bytes = cpu_timing.admitted_gkr_peak_bytes;
+                timing.?.gkr_allocator_limit_bytes = cpu_timing.gkr_allocator_limit_bytes;
+
                 timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.cpu.scheme);
             }
             try self.workers[index].?.cpu.retireLocalMetadata();
@@ -272,6 +283,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 /// operational resource JSON or a producer bundle. It stays live through return.
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
     const policy = try @import("child.zig").readTreePolicy(a);
+    if (options.observed_tree_policy) |out| out.* = policy;
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
     if (options.worker_timings) |timings| @memset(timings, .{});

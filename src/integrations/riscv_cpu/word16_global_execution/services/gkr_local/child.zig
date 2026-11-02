@@ -117,7 +117,15 @@ pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
     return .{ .checkpointed = cp, .tight_admission = cp or tight, .stream_bottom = try parseStreamBottom(stream, cp) };
 }
 
-pub const PhaseTiming = struct { inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
+pub const PhaseTiming = struct {
+    inputs_ns: u64 = 0,
+    numerical_ns: u64 = 0,
+    binding_ns: u64 = 0,
+    numerical_requested_peak_bytes: usize = 0,
+    including_binding_requested_peak_bytes: usize = 0,
+    admitted_gkr_peak_bytes: usize = 0,
+    gkr_allocator_limit_bytes: usize = 0,
+};
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
     budget: Budget,
@@ -172,6 +180,12 @@ pub const Unbound = struct {
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+        if (timing) |value| {
+            value.numerical_requested_peak_bytes = numerical_peak_bytes;
+            value.including_binding_requested_peak_bytes = self.peak_gkr_owned_bytes;
+            value.admitted_gkr_peak_bytes = plan.peak_bytes;
+            value.gkr_allocator_limit_bytes = self.budget.limit;
+        }
         if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d} streamed_bottom={any} planned_input_reserve_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, @as(usize, if (policy.stream_bottom) 0 else plan.input_bytes), policy.tight_admission, plan.peak_bytes, self.budget.limit, policy.stream_bottom, plan.input_bytes });
         return self;
     }

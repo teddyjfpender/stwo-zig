@@ -149,3 +149,24 @@ limit. Tests exercise original-capacity retention, compulsory allocation/copy
 fallbacks, many mixed instance sizes and synchronized equal-size first folds,
 with independent pending verification. No default promotion or unchecked clone
 fallback is introduced.
+
+## Reproducible policy and requested-byte observations
+
+The coordinator optionally writes `observed_tree_policy` from the same single
+frozen environment read used for admission and each worker. CPU timing records
+also expose numerical and including-binding requested peaks, admitted GKR peak,
+and the actual hard allocator limit. These are allocator-request observations,
+not RSS or retained-backing measurements; they do not enter the proof transcript.
+
+`rv64-om-retention-plan BUNDLE ROM_LOG BLOWUP [GLOBAL_BYTES]` uses that same
+frozen policy and the production `taskEstimates` authority. GLOBAL_BYTES defaults
+to8GiB. With no memory policy selected every pre-existing report field matches
+the earlier default136 report exactly. The full30-worker roster at ROMlog20 and
+beta1 yields maximum adjacent CPU stage-one payload leases54.722GiB (default136),
+43.300GiB (dense104), and30.450GiB (stream68). This predicts admission, not runtime
+overlap or a host-memory guarantee; capture, setup, PCS, allocator and kernel
+owners remain outside those task leases.
+
+The initial source push ran the repository pre-push lanes. Cairo Metal failed
+because `STWO_METAL_CORE_AOT_BUNDLE` was unavailable. The already-authorized
+hook exception was used after the focused RV64 Safe/Fast gates passed.
