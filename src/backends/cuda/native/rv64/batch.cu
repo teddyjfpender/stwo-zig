@@ -1,18 +1,8 @@
 // Mixed-height native LogUp sumcheck: one polynomial and challenge per round.
-#include "batch.h"
+#include "batch_state.cuh"
 #include "custody.cuh"
 #include "round.cuh"
 namespace stwo::cuda::rv64 {
-constexpr uint32_t max_oracles = STWO_RV64_BATCH_MAX_ORACLES;
-struct BatchState {
-  RoundState round;
-  uint32_t count, reserved[3];
-  OM31 weights[max_oracles], corrections[max_oracles],
-      sleeping_claims[max_oracles];
-  uint32_t initial_variables[max_oracles];
-};
-static_assert(sizeof(BatchState) == STWO_RV64_BATCH_STATE_WORDS * 4,
-              "batch state ABI");
 struct BatchJobs {
   StwoRv64BatchOracle oracles[max_oracles];
   uint32_t count, variables;
@@ -26,8 +16,13 @@ __global__ void batch_init(uint32_t *words, const uint32_t *seed,
   bool valid = canonical(alpha);
   for (uint32_t i = 0; i < jobs.count; ++i)
     valid = valid && canonical(from_words(claims + 8 * i));
+  for (uint32_t i = 0; i < 9; ++i)
+    s->initial_seed[i] = seed[i];
+  s->initial_alpha = alpha;
   OM31 total = zero(), weight = one();
   for (uint32_t i = 0; i < max_oracles; ++i) {
+    s->initial_claims[i] =
+        valid && i < jobs.count ? from_words(claims + 8 * i) : zero();
     s->initial_variables[i] = i < jobs.count ? jobs.oracles[i].variables : 0;
     s->weights[i] = s->sleeping_claims[i] = zero();
     s->corrections[i] = one();

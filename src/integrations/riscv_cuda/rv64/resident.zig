@@ -283,6 +283,38 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const owner = try self.handle();
             try self.result(Api.stwo_rv64_batch_mask_on(owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32)), 1);
         }
+        pub fn packRoots(self: *Self, roots: []const Fraction, output: Slice) !void {
+            if (roots.len == 0 or roots.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            var sources: [abi.batch_max_oracles]abi.GkrRoot = undefined;
+            for (roots, 0..) |root, i| {
+                try root.validate();
+                if (root.count != 1 or root.n.coordinates != 8) return error.InvalidGeometry;
+                sources[i] = .{ .n = try root.n.bind(self.context), .d = try root.d.bind(self.context) };
+            }
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_gkr_pack_roots_on(owner, self.lane_index, &sources, @intCast(roots.len), try self.context.deviceSlicePointer(u32, output, roots.len * 16)), 1);
+        }
+        pub fn initGkr(self: *Self, state: Slice, seed: Slice, variables: []const u32, layers: u32, chain: u64) !void {
+            if (variables.len == 0 or variables.len > abi.batch_max_oracles or layers == 0 or layers > 28 or state.address % 8 != 0) return error.InvalidGeometry;
+            var largest: u32 = 0;
+            for (variables) |v| {
+                if (v == 0 or v > layers) return error.InvalidGeometry;
+                largest = @max(largest, v);
+            }
+            if (largest != layers) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_gkr_init_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, seed, 9), variables.ptr, @intCast(variables.len), layers, chain), 1);
+        }
+        pub fn beginGkr(self: *Self, state: Slice, depth: u32, count: u32, active: u32, roots: Slice, claims: Slice) !void {
+            if (count == 0 or count > abi.batch_max_oracles or active == 0 or active > count or depth >= 28 or state.address % 8 != 0) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_gkr_begin_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), depth, count, active, try self.context.deviceSlicePointer(u32, roots, 16 * count), try self.context.deviceSlicePointer(u32, claims, 8 * active)), 1);
+        }
+        pub fn closeGkr(self: *Self, state: Slice, batch: Slice, records: Slice, masks: Slice, depth: u32, count: u32, active: u32) !void {
+            if (count == 0 or count > abi.batch_max_oracles or active == 0 or active > count or depth >= 28 or state.address % 8 != 0) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_gkr_close_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, batch, abi.batch_state_words), if (depth == 0) null else try self.context.deviceSlicePointer(u32, records, depth * abi.round_record_words), try self.context.deviceSlicePointer(u32, masks, 32 * active), depth, count, active), 1);
+        }
         pub fn initSumcheck(self: *Self, state: Slice, seed: Slice, claim: Slice, variables: u32) !void {
             if (variables == 0 or variables > 27) return error.InvalidGeometry;
             const owner = try self.handle();

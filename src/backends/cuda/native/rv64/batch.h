@@ -3,7 +3,7 @@
 #include "gkr.h"
 #include <stddef.h>
 constexpr uint32_t STWO_RV64_BATCH_MAX_ORACLES = 64;
-constexpr uint32_t STWO_RV64_BATCH_STATE_WORDS = 1644;
+constexpr uint32_t STWO_RV64_BATCH_STATE_WORDS = 2173;
 // For a zero-variable oracle, raw is null and raw_stride is zero. Otherwise it
 // names a two-row, eight-coordinate scalar sum; no full matrix is uploaded
 // here.

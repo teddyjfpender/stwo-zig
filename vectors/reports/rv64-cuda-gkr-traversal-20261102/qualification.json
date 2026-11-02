@@ -1,0 +1,40 @@
+{
+  "schema": "rv64-cuda-native-gkr-traversal-qualification/v1",
+  "gpu": "RTX 5090 sm_120",
+  "pod": "sl2t4wi9k5sfx8",
+  "native_fixtures": 8,
+  "injected_failure_cases": 9,
+  "mixed_batch_regression": {
+    "fixtures": 15,
+    "injected_failure_cases": 5,
+    "extended_private_state_words": 2173
+  },
+  "sanitizers": {
+    "memcheck": "PASS",
+    "racecheck": "PASS",
+    "synccheck": "PASS",
+    "initcheck": "PASS"
+  },
+  "host_release_safe_tests": 45,
+  "host_release_fast_tests": 45,
+  "native_context_binding_object": "PASS both modes",
+  "native_reference": "Actual native OM31 proveBatch and fresh partiallyVerifyBatch; direct input MLE closure; every GPU proof record, mask, checkpoint and terminal marginal matches.",
+  "residency": "No numeric host upload/readback inside complete child; structural audit, not PCIe profiler measurement.",
+  "workspace": "Single generation-checked arena; exact requested workspace payload cap and complete-job alias/range preflight. Inputs/MAIN/PCS/RSS excluded from this partial bound.",
+  "security": "Unbound numerical GKR only. Physical MAIN/PCS binding remains mandatory; no execution acceptance or whole-protocol security claim.",
+  "full_gpu_ethereum_block": false,
+  "goal_complete": false,
+  "files_sha256": {
+    "batch-regression.json": "dd42756513cca2e404436ea1069dc9fa55077aad5dce16eab4bb1f53ba699222",
+    "build-batch.log": "bc15a3c2721f355c1c641fb3d8d5e5c2cf32f6ff96ecc838cea0b4cd6e3a4323",
+    "build-gkr_loop.log": "5cd1e2fb2c71671f722a7ed5c7a314e25a372d3b8812d3d527cb3875069096a8",
+    "build-harness.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "host-fast.log": "2e252040daff8ecd12ba17735c5ef4034dd269731097d1ea30e32ba4f102ac4c",
+    "host-safe.log": "c2445cc5d062794fa07d213031f5a1e9c91ebe62d3f809eb56c29f27f354a050",
+    "initcheck.log": "481686c2172f8e90b914c9a416b453e761a6226bd91ae1249feaac0e048ecbdc",
+    "memcheck.log": "481686c2172f8e90b914c9a416b453e761a6226bd91ae1249feaac0e048ecbdc",
+    "normal.json": "9db69f51ee7e9debc88c6a27357c68d07f6dce6eaa7639a8b98521e532ce0f02",
+    "racecheck.log": "e0ff54e34b5e066aab2cb0ea876eca69ab0df9a9acc37b5510106e5848064ec3",
+    "synccheck.log": "481686c2172f8e90b914c9a416b453e761a6226bd91ae1249feaac0e048ecbdc"
+  }
+}

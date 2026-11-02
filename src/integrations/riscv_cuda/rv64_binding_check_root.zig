@@ -35,3 +35,9 @@ export fn rv64_test_batch(context: *Context, lane: u32, input: *const @import("r
     _ = @import("rv64/batch.zig").enqueue(&commands, input.*, work.*) catch return 1;
     return 0;
 }
+
+export fn rv64_test_gkr(context: *Context, lane: u32, inputs: [*]const R.Fraction, count: usize, seed: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), arena: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), budget: usize) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    _ = @import("rv64/gkr.zig").enqueue(&commands, inputs[0..count], seed.*, arena.*, budget, 1) catch return 1;
+    return 0;
+}

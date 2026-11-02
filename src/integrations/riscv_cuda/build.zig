@@ -72,6 +72,17 @@ pub fn build(b: *std.Build) void {
     const run_batch = b.addRunArtifact(batch_fixture);
     if (b.args) |args| run_batch.addArgs(args);
     b.step("rv64-batch-fixtures", "Export native mixed-height OM31 sumcheck fixtures").dependOn(&run_batch.step);
+    const gkr_root = b.createModule(.{
+        .root_source_file = b.path("rv64_gkr_fixture_main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    gkr_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    gkr_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const gkr_fixture = b.addExecutable(.{ .name = "rv64-gkr-fixtures", .root_module = gkr_root });
+    const run_gkr = b.addRunArtifact(gkr_fixture);
+    if (b.args) |args| run_gkr.addArgs(args);
+    b.step("rv64-gkr-fixtures", "Export full native OM31 GKR proof fixtures").dependOn(&run_gkr.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
