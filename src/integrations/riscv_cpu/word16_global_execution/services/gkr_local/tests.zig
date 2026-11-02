@@ -420,3 +420,7 @@ test "owned checkpoint admission is checked source reserve and enforced exact al
 test {
     _ = @import("admission_test.zig");
 }
+
+test {
+    _ = @import("source_inputs_test.zig");
+}
