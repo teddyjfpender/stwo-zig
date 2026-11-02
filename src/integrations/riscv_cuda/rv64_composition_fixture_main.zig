@@ -91,6 +91,7 @@ fn fixture(dir: std.fs.Dir, source: anytype, role: ?Main.Role, index: u32, trace
     const name = try std.fmt.allocPrint(a, "rv64_composition_fixture_{}", .{index});
     defer a.free(name);
     try CG.emit(a, source, &program, name);
+    try oodsFixture(dir, source, &program, role, shape, index);
     const n = @as(usize, 1) << @intCast(eval_log);
     const widths = [3]usize{ shape.fixed, shape.main, if (role == null) 2 else 0 };
     var rng = std.Random.DefaultPrng.init(17 + index);
@@ -179,6 +180,60 @@ fn fixture(dir: std.fs.Dir, source: anytype, role: ?Main.Role, index: u32, trace
     try dir.writeFile(.{ .sub_path = filename, .data = bytes.items });
     std.debug.print("role={s} roots={} nodes={} inputs={} rows={} identity={s}\n", .{ if (role) |r| @tagName(r) else "mixed_secure_masks", program.roots.len, program.nodes.len, program.inputs.len, n, std.fmt.bytesToHex(try CG.identity(&program), .lower) });
 }
+fn oodsFixture(dir: std.fs.Dir, source: anytype, program: *const CG.Program, role: ?Main.Role, shape: Main.Shape, index: u32) !void {
+    const name = try std.fmt.allocPrint(a, "rv64_oods_fixture_{}", .{index});
+    defer a.free(name);
+    try CG.emitOods(a, source, program, name);
+    var rng = std.Random.DefaultPrng.init(0x87431 + index);
+    const fixed = try a.alloc(O, shape.fixed);
+    defer a.free(fixed);
+    const current = try a.alloc(O, shape.main);
+    defer a.free(current);
+    const previous = try a.alloc(O, shape.main);
+    defer a.free(previous);
+    for (fixed) |*v| v.* = random(rng.random());
+    for (current, previous) |*v, *p| {
+        v.* = random(rng.random());
+        p.* = random(rng.random());
+    }
+    const inputs = try a.alloc(O, program.inputs.len);
+    defer a.free(inputs);
+    for (inputs, program.inputs) |*v, mask| v.* = if (role == null) random(rng.random()) else if (mask.tree == 0) fixed[mask.column] else if (mask.offset == -1) previous[mask.column] else current[mask.column];
+    const residuals = try program.evaluate(a, inputs);
+    defer a.free(residuals);
+    if (role) |r| {
+        const native = try a.alloc(O, shape.constraints);
+        defer a.free(native);
+        var sink = A.evaluation.SinkFor(O){ .values = native };
+        try Main.emitFor(O, public(r), fixed, current, previous, &sink);
+        if (sink.count != residuals.len) return error.WrongNativeOodsConstraintCount;
+        for (native, residuals) |n, ir| if (!n.eql(ir)) return error.NativeOodsResidualMismatch;
+    }
+    const powers = try a.alloc(O, residuals.len);
+    defer a.free(powers);
+    var power = O.one();
+    const alpha = random(rng.random());
+    for (powers) |*v| {
+        v.* = power;
+        power = power.mul(alpha);
+    }
+    var result = O.zero();
+    for (residuals, 0..) |v, i| result = result.add(v.mul(powers[powers.len - 1 - i]));
+    const inverse = random(rng.random());
+    const initial = random(rng.random());
+    const expected = initial.add(result.mul(inverse));
+    var bytes: std.ArrayList(u8) = .empty;
+    defer bytes.deinit(a);
+    const w = bytes.writer(a);
+    try words(w, &.{ 0x52564f44, 1, index, @intCast(inputs.len), @intCast(program.parameters.len), @intCast(powers.len) });
+    try felts(w, inputs);
+    try felts(w, program.parameters);
+    try felts(w, powers);
+    try felts(w, &.{ inverse, initial, expected });
+    const filename = try std.fmt.allocPrint(a, "oods-{}.bin", .{index});
+    defer a.free(filename);
+    try dir.writeFile(.{ .sub_path = filename, .data = bytes.items });
+}
 fn writeMasks(dir: std.fs.Dir) !void {
     var data: std.ArrayList(u8) = .empty;
     defer data.deinit(a);
@@ -212,6 +267,10 @@ pub fn main() !void {
     for (0..count) |id| try declarations.writer(a).print("extern \"C\" __global__ void rv64_composition_fixture_{}(const uint32_t*,const uint32_t*,const uint32_t*,const uint64_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t,uint32_t,uint32_t,uint32_t);\n", .{id});
     try declarations.writer(a).print("constexpr uint32_t composition_case_count={};\nstatic const void *kernels[]={{{s}", .{ count, "" });
     for (0..count) |id| try declarations.writer(a).print("{s}(void*)rv64_composition_fixture_{}", .{ if (id == 0) "" else ",", id });
+    try declarations.writer(a).writeAll("};\n");
+    for (0..count) |id| try declarations.writer(a).print("extern \"C\" __global__ void rv64_oods_fixture_{}(const uint32_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*);\n", .{id});
+    try declarations.writer(a).writeAll("static const void *oods_kernels[]={");
+    for (0..count) |id| try declarations.writer(a).print("{s}(void*)rv64_oods_fixture_{}", .{ if (id == 0) "" else ",", id });
     try declarations.writer(a).writeAll("};\n");
     try dir.writeFile(.{ .sub_path = "composition_launches.h", .data = declarations.items });
     try writeMasks(dir);

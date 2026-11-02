@@ -26,6 +26,9 @@ pub fn emitLocalWithFirstFor(comptime F: type, comptime kind: K.layout.Kind, fix
     K.equations.emitRawWithFirstFor(F, kind, fixed, main, first_id, &route);
 }
 pub fn emitGlobalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: u32, sink: anytype) void {
+    emitGlobalWithFirstFor(F, kind, fixed, main, if (kind == .perm) E.qFor(F, first_id) else F.zero(), sink);
+}
+pub fn emitGlobalWithFirstFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: F, sink: anytype) void {
     const Target = @TypeOf(sink);
     const Route = struct {
         target: Target,
@@ -38,7 +41,7 @@ pub fn emitGlobalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []co
         }
     };
     var route = Route{ .target = sink };
-    K.equations.emitRawFor(F, kind, fixed, main, first_id, &route);
+    K.equations.emitRawWithFirstFor(F, kind, fixed, main, first_id, &route);
 }
 fn counts(comptime kind: K.layout.Kind) Counts {
     const M = @import("stwo_core").fields.m31.M31;
@@ -78,6 +81,9 @@ pub fn globalConstraints(kind: K.layout.Kind) usize {
 /// Exact pure RAM/KIO debts under independently derived shared challenges.
 /// Both denominator tuples and weights come from emitRawFor above.
 pub fn emitGlobalConstraintsFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: u32, shared: anytype, claims: anytype, current: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
+    try emitGlobalConstraintsWithFirstFor(F, kind, fixed, main, if (kind == .perm) E.qFor(F, first_id) else F.zero(), shared, claims, current, previous, sink);
+}
+pub fn emitGlobalConstraintsWithFirstFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: F, shared: anytype, claims: anytype, current: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
     const Sec = E.SecureFor(F);
     const Route = struct {
         shared: @TypeOf(shared),
@@ -104,7 +110,7 @@ pub fn emitGlobalConstraintsFor(comptime F: type, comptime kind: K.layout.Kind, 
         }
     };
     var route = Route{ .shared = shared };
-    K.equations.emitRawFor(F, kind, fixed, main, first_id, &route);
+    K.equations.emitRawWithFirstFor(F, kind, fixed, main, first_id, &route);
     const rw = 8 * ((ramTerms(kind) + 1) / 2 + 1);
     if (current.len != globalWidth(kind) or previous.len != current.len) return error.InvalidWideGlobalInteractionShape;
     try A.main_only.global_classic.linearPairsFor(F, &route.ram_d, &route.ram_w, current[0..rw], previous[0..rw], fixed[1], fixed[2], claims.ram, sink);

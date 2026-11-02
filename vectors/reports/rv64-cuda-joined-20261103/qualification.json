@@ -1,0 +1,19 @@
+{
+  "schema": "rv64-cuda-joined-constraints/v1",
+  "local_layouts_recorded": 47,
+  "boundary_layouts_recorded": 2,
+  "local_joined_max_degree": 3,
+  "integration_tests": 56,
+  "host_safe": "PASS",
+  "host_fast": "PASS",
+  "native_physical_sponge": "PASS",
+  "gpu_oods_qualification": "PENDING",
+  "full_joined_gpu_parity": "PENDING",
+  "complete_gpu_ethereum_proof": false,
+  "production_dispatch_open": false,
+  "security_profile_changed": false,
+  "artifacts_sha256": {
+    "host-safe.log": "a9d1a5bd1f0edfd499f3deb2a2fdfe7b46afedf4dc87c482e059ca8a3548896a",
+    "host-fast.log": "81242b08d8605a55304767cdf20eeccbbdd9f7622994a450f7e820865ae83fbf"
+  }
+}

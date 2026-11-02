@@ -49,3 +49,18 @@ test "OM31 CUDA exporter rejects invalid symbols before emitting source" {
     try std.testing.expectError(error.InvalidKernelName, G.emit(a, source.writer(a), &p, "bad;code"));
     try std.testing.expectEqual(@as(usize, 0), source.items.len);
 }
+
+test "OODS lowering loads full OM31 masks and never uses base domain mask arithmetic" {
+    var p = try program();
+    defer p.deinit();
+    var source: std.ArrayList(u8) = .empty;
+    defer source.deinit(a);
+    try G.emitOods(a, source.writer(a), &p, "check_oods");
+    try std.testing.expect(std.mem.indexOf(u8, source.items, "const OM31 v") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source.items, "from_words(inputs+8u)") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source.items, "composition_mask_row") == null);
+    try std.testing.expect(std.mem.indexOf(u8, source.items, "=q::mul(") == null);
+    try std.testing.expectEqual(p.roots.len, std.mem.count(u8, source.items, "folded=add(folded,"));
+    try std.testing.expect(std.mem.indexOf(u8, source.items, "mul(folded,from_words(inverse))") != null);
+    try std.testing.expectError(error.InvalidKernelName, G.emitOods(a, source.writer(a), &p, "bad;kernel"));
+}

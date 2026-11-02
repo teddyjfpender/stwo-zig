@@ -152,3 +152,47 @@ pub fn emitValue(w: anytype, program: *const Program, sorts: []const ir.Sort, i:
         .fraction, .range_fraction => unreachable,
     }
 }
+
+/// OODS masks are extension-field values. Recompute the DAG sorts with secure
+/// inputs rather than reusing the base-field domain lowering. Every input is
+/// the separately authenticated mask in Program.inputs order (AoS, eight words).
+/// The caller owns transcript ordering, mask authentication and pointer ranges.
+pub fn emitOods(a: std.mem.Allocator, w: anytype, program: *const Program, name: []const u8) !void {
+    try program.validate();
+    if (name.len == 0 or std.ascii.isDigit(name[0])) return error.InvalidKernelName;
+    for (name) |c| if (!std.ascii.isAlphanumeric(c) and c != '_') return error.InvalidKernelName;
+    const sorts = try program.sorts(a);
+    defer a.free(sorts);
+    for (program.nodes, sorts) |node, *sort| switch (node.op) {
+        .input => sort.* = .secure,
+        .add, .sub, .mul => sort.* = if (sorts[node.lhs] == .secure or sorts[node.rhs] == .secure) .secure else .base,
+        .neg => sort.* = sorts[node.lhs],
+        else => {},
+    };
+    const order = try schedule(a, program);
+    defer a.free(order);
+    // Streaming root accumulation keeps the same native reverse RLC ordering.
+    const heads = try a.alloc(u32, program.nodes.len);
+    defer a.free(heads);
+    @memset(heads, std.math.maxInt(u32));
+    const next = try a.alloc(u32, program.roots.len);
+    defer a.free(next);
+    for (program.roots, 0..) |root, j| {
+        next[j] = heads[root];
+        heads[root] = @intCast(j);
+    }
+    try w.writeAll("#include \"rv64/composition.cuh\"\nusing namespace stwo::cuda::rv64;\n");
+    try w.print("extern \"C\" __global__ void {s}(const uint32_t *inputs,const uint32_t *parameters,const uint32_t *powers,const uint32_t *inverse,uint32_t *output) {{\n if(blockIdx.x || threadIdx.x) return;\n OM31 folded=zero();\n", .{name});
+    for (order) |i| {
+        const node = program.nodes[i];
+        if (node.op == .input) {
+            try w.print(" const OM31 v{}=from_words(inputs+{}u);\n", .{ i, 8 * node.value });
+        } else try emitValue(w, program, sorts, i);
+        var root = heads[i];
+        while (root != std.math.maxInt(u32)) : (root = next[root]) {
+            const power = 8 * (program.roots.len - 1 - root);
+            if (sorts[i] == .base) try w.print(" folded=add(folded,scale(from_words(powers+{}u),v{}));\n", .{ power, i }) else try w.print(" folded=add(folded,mul(from_words(powers+{}u),v{}));\n", .{ power, i });
+        }
+    }
+    try w.writeAll(" store(output,1,0,add(load(output,1,0),mul(folded,from_words(inverse))));\n}\n");
+}
