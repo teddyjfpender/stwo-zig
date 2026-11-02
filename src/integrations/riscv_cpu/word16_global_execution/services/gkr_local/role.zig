@@ -37,6 +37,7 @@ pub fn constraintCount(role: Main.Role, origin: Frame.Origin) usize {
     return Main.shape(role).constraints + B.CONSTRAINTS + @import("global_cpu.zig").layout(origin).constraints();
 }
 pub const Data = struct {
+    cpu_u8_pairs: bool = false,
     instance: Frame.Instance,
     point: MP.MleEvalPointFor(O),
     lane_weights: [Frame.MAX_LOCAL_TERMS]O,
@@ -90,6 +91,7 @@ pub const Component = struct {
         return Main.emitFor(F, self.main.public, fixed, main, previous, sink);
     }
     pub fn emitLocalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, sink: anytype) void {
+        if (self.main.role() == .cpu) return Fns.cpuModeFor(F, fixed, main, E.scalarFor(F, self.epoch), self.data.cpu_u8_pairs, sink);
         @import("role.zig").emitLocalFor(F, self.main.role(), fixed, main, E.scalarFor(F, self.epoch), sink);
     }
     main: A.main_only.component.Component,
@@ -125,6 +127,7 @@ pub const Component = struct {
     }
     pub fn validate(self: *const @This()) !void {
         try self.main.validate();
+        if (self.main.role() == .cpu and self.main.log_size > 22) return error.UnqualifiedWideClockGkr;
         const globals = @import("global_cpu.zig");
         const global_width = globals.layout(self.data.instance.origin).width();
         if ((global_width != 0) != (self.global != null)) return error.MissingWideGlobalRole;
@@ -132,7 +135,7 @@ pub const Component = struct {
 
         if (self.data.instance.row_log != self.main.log_size or self.data.point.n != self.main.log_size or self.data.instance.origin != .core) return error.LocalGkrRoleMismatch;
         const expected = try mainRole(self.data.instance.origin.core);
-        if (expected != self.main.role() or self.data.instance.main_offset != self.main.offsets[1] or self.data.instance.fixed_offset != self.main.offsets[0] or self.data.instance.terms != @import("roster.zig").terms(self.data.instance.origin.core)) return error.LocalGkrRoleMismatch;
+        if (expected != self.main.role() or self.data.instance.main_offset != self.main.offsets[1] or self.data.instance.fixed_offset != self.main.offsets[0] or self.data.instance.terms != (if (self.main.role() == .cpu and self.data.cpu_u8_pairs) @as(u32, 14) else @import("roster.zig").terms(self.data.instance.origin.core))) return error.LocalGkrRoleMismatch;
         if (self.data.lane_count != @as(usize, 1) << @intCast(try self.data.instance.laneLog())) return error.LocalGkrRoleMismatch;
     }
     pub fn traceLogDegreeBounds(self: *const @This(), a: std.mem.Allocator) !Air.TraceLogDegreeBounds {

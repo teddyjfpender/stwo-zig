@@ -17,6 +17,7 @@ pub const Relation = enum {
     and_,
     shift,
     selection,
+    byte_pair,
     pub fn arity(self: Relation) usize {
         return switch (self) {
             .register => 6,
@@ -25,6 +26,7 @@ pub const Relation = enum {
             .owner => 19,
             .range16, .range8 => 1,
             .and_ => 3,
+            .byte_pair => 4,
             .shift => 6,
             .selection => 5,
         };
@@ -46,6 +48,26 @@ pub fn cpuFor(comptime F: type, fixed: []const F, row: []const F, epoch: F, sink
     sink.emit(.owner, X.tuples.owner(F, fixed, row, epoch, false), row[m.active].sub(row[m.function]));
     for (0..3) |slot| sink.emit(.range16, [1]F{row[m.gap16 + slot]}, F.one());
     for (0..3) |slot| sink.emit(.range8, [1]F{row[m.gap8 + slot]}, F.one());
+}
+/// Explicit V3 byte-pair mode; the legacy15-term emitter remains unchanged.
+pub fn cpuModeFor(comptime F: type, fixed: []const F, row: []const F, epoch: F, pairs: bool, sink: anytype) void {
+    if (!pairs) return cpuFor(F, fixed, row, epoch, sink);
+    const m = X.layout.main;
+    for (0..3) |slot| {
+        const w = row[m.enabled + slot];
+        sink.emit(.register, X.tuples.register(F, fixed, row, slot, false), w);
+        sink.emit(.register, X.tuples.register(F, fixed, row, slot, true), w.neg());
+    }
+    sink.emit(.function, X.tuples.function(F, row), row[m.function]);
+    sink.emit(.rom, X.tuples.rom(F, row), row[m.active]);
+    sink.emit(.owner, X.tuples.owner(F, fixed, row, epoch, false), row[m.active].sub(row[m.function]));
+    for (0..3) |slot| sink.emit(.range16, [1]F{row[m.gap16 + slot]}, F.one());
+    sink.emit(.byte_pair, [4]F{ row[m.gap8], row[m.gap8 + 1], F.zero(), F.one() }, F.one());
+    sink.emit(.byte_pair, [4]F{ row[m.gap8 + 2], F.zero(), F.zero(), F.one() }, F.one());
+}
+pub fn andTableModeFor(comptime F: type, fixed: []const F, main: []const F, pairs: bool, sink: anytype) void {
+    andTableFor(F, fixed, main, sink);
+    if (pairs) sink.emit(.byte_pair, [4]F{ fixed[0], fixed[1], F.zero(), F.one() }, main[1].neg());
 }
 pub fn aluFor(comptime F: type, main: []const F, sink: anytype) void {
     const Q = B.alu_experiment.lookup;
@@ -137,4 +159,11 @@ pub fn secpBridgeFor(comptime F: type, kind: A.crypto.secp256k1.word16_bridge.ty
     sink.emit(.owner, C.equations.ownerTuple(F, kind, main), main[0].mul(fixed[4]).neg());
     for (C.layout.U16) |c| sink.emit(.range16, [1]F{main[c]}, F.one());
     for (C.layout.U8) |c| sink.emit(.range8, [1]F{main[c]}, F.one());
+}
+
+pub fn cpuTerms(pairs: bool) u32 {
+    return if (pairs) 14 else 15;
+}
+pub fn andTableTerms(pairs: bool) u32 {
+    return if (pairs) 2 else 1;
 }

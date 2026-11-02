@@ -7,14 +7,27 @@ pub fn For(comptime C: type) type {
     return struct {
         offsets: [std.enums.values(R.Relation).len]C,
         coefficients: [std.enums.values(R.Relation).len][R.MAX_ARITY]C,
+        /// V2 draws exactly its original nine namespaces; the appended V3
+        /// namespace is initialized but draws no transcript bytes by default.
         pub fn draw(channel: anytype) @This() {
-            channel.mixU32s(&.{ 0x4c474b31, 8, @intCast(std.enums.values(R.Relation).len) });
-            var out: @This() = undefined;
-            for (std.enums.values(R.Relation)) |relation| {
+            return drawMode(channel, false);
+        }
+        pub fn drawV3(channel: anytype) @This() {
+            return drawMode(channel, true);
+        }
+        pub fn drawForInstances(channel: anytype, instances: []const @import("frame.zig").Instance) @This() {
+            for (instances) |instance| if (instance.origin == .core and instance.origin.core == .cpu and instance.terms == 14) return drawV3(channel);
+            return draw(channel);
+        }
+        pub fn drawMode(channel: anytype, v3: bool) @This() {
+            const relations = std.enums.values(R.Relation);
+            const count: usize = if (v3) relations.len else @intFromEnum(R.Relation.byte_pair);
+            channel.mixU32s(&.{ if (v3) @as(u32, 0x4c474b33) else 0x4c474b31, 8, @intCast(count) });
+            var out = @This(){ .offsets = @splat(C.zero()), .coefficients = @splat(@splat(C.zero())) };
+            for (relations[0..count]) |relation| {
                 const index = @intFromEnum(relation);
                 channel.mixU32s(&.{ @intCast(index), @intCast(relation.arity()) });
                 out.offsets[index] = channel.drawSecureFelt();
-                out.coefficients[index] = @splat(C.zero());
                 for (0..relation.arity()) |i| out.coefficients[index][i] = if (relation == .range8) C.one() else channel.drawSecureFelt();
             }
             return out;
