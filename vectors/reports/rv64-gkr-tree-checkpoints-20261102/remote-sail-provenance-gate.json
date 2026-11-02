@@ -1,0 +1,56 @@
+{
+  "scope": "Remote Sail differential fails at circuit pin validation before oracle execution; not an RV64 retirement disagreement",
+  "head": "b7e067b4f",
+  "base_branch": "codex/rv64im-frontend",
+  "job": "https://github.com/teddyjfpender/stwo-zig/actions/runs/41383203715/job/125078460091",
+  "errors": [
+    "Circuit provenance oracle source digest drift",
+    "Circuit provenance artifact set differs",
+    "Four official circuit files unlisted; three inherited from base, one surface pin added by earlier recursion isolation commit3bfc99540"
+  ],
+  "path_comparison": [
+    {
+      "path": "vectors/circuit/provenance.json",
+      "base_blob": "51506d7f4ed94871c820fce3cb4fd360dce79181",
+      "head_blob": "51506d7f4ed94871c820fce3cb4fd360dce79181",
+      "unchanged_from_base": true
+    },
+    {
+      "path": "vectors/circuit/official/circuit_air_composition_bounded.metallib",
+      "base_blob": "628290301fb0a1d1ddb28750ac3bc1f25c418c57",
+      "head_blob": "628290301fb0a1d1ddb28750ac3bc1f25c418c57",
+      "unchanged_from_base": true
+    },
+    {
+      "path": "vectors/circuit/official/circuit_air_composition_bounded.provenance.json",
+      "base_blob": "8759c4c7d75b7b36cf6d15f116e421d367ba8965",
+      "head_blob": "8759c4c7d75b7b36cf6d15f116e421d367ba8965",
+      "unchanged_from_base": true
+    },
+    {
+      "path": "vectors/circuit/official/registries/production.json",
+      "base_blob": "668121077bed5eaf0001414b1c213221de4f297f",
+      "head_blob": "668121077bed5eaf0001414b1c213221de4f297f",
+      "unchanged_from_base": true
+    },
+    {
+      "path": "vectors/circuit/official/starkware_surface_pin.txt",
+      "base_blob": null,
+      "head_blob": "94881ad618f68ca9e86d1c312aeba3681cc2d0f2",
+      "unchanged_from_base": false
+    },
+    {
+      "path": "scripts/generate_circuit_oracle_vectors.py",
+      "base_blob": "00e66ebf7ee92bef8bcfef39982fa1f4724b883b",
+      "head_blob": "00e66ebf7ee92bef8bcfef39982fa1f4724b883b",
+      "unchanged_from_base": true
+    },
+    {
+      "path": "scripts/riscv_sail_gate.py",
+      "base_blob": "8183fb2bc7e71656e8c8bf3aa91401f1d71566cf",
+      "head_blob": "8183fb2bc7e71656e8c8bf3aa91401f1d71566cf",
+      "unchanged_from_base": true
+    }
+  ],
+  "action": "No authentication guard relaxed. Local OM Sail evidence remains separate. Remote CI is not claimed green."
+}
