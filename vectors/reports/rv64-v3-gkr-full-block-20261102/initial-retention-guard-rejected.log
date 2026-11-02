@@ -1,0 +1,19 @@
+error: GkrV3ServiceUnsupported
+       11.83 real        81.81 user         2.30 sys
+          6158696448  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1244394  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  27  voluntary context switches
+               72738  involuntary context switches
+        874968016656  instructions retired
+        359113737741  cycles elapsed
+          6161094656  peak memory footprint
