@@ -110,6 +110,7 @@ pub fn fromBinary(a: std.mem.Allocator, c: Binary) !Case {
         .and_pair_table => "and_pair_table",
         .expected => "binary.expected",
         .expected_main => "binary.expected_main",
+        .binary_zbb => "binary_zbb",
     };
     return caseWith(a, Binary, name, name, c, c.widths(), InteractionPrevious(Binary).emit);
 }
