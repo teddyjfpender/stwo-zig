@@ -66,6 +66,19 @@ pub fn main() !void {
 /// adds the byte-pair lookups (the layout the ethereum_services_v3 route
 /// defaults to); `all` keeps the historical bytes.
 /// verify-v3 rebuilds every key from receiver-chosen declarations.
+/// Producer diagnostic (stderr only, bundle bytes unaffected): exact committed
+/// cells per CPU proof, per tree (fixed, MAIN, interaction), bridges included.
+fn reportCells(a: std.mem.Allocator, keys: []const *const R.CpuSetup) !void {
+    for (keys, 0..) |setup, i| {
+        var cells: [3]u64 = @splat(0);
+        for (&cells, 0..) |*out, tree| {
+            const logs = try setup.logs(a, tree);
+            defer a.free(logs);
+            for (logs) |l| out.* += @as(u64, 1) << @intCast(l);
+        }
+        std.debug.print("cpu_proof={d} committed_cells fixed={d} main={d} interaction={d} total={d}\n", .{ i, cells[0], cells[1], cells[2], cells[0] + cells[1] + cells[2] });
+    }
+}
 fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
     const usage = error.ExpectedProduceV3OrVerifyV3VariantDirectoryWorkers;
     if (args.len < 4 or args.len > 5) return usage;
@@ -96,6 +109,7 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
             const truths = c.truths();
             try E.verify(a, &keys, &truths, c.expected(), &c.bundle);
             try W.write(a, dir, &keys, &truths, &c.bundle);
+            try reportCells(a, &keys);
             // The receiver needs the loaded word for the public final registers.
             var file = try dir.createFile("loaded-x9.txt", .{ .exclusive = true });
             defer file.close();
