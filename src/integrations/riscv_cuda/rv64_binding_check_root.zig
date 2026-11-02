@@ -21,3 +21,11 @@ export fn rv64_test_pcs(context: *Context, lane: u32, input: *const @import("rv6
     commands.leaves(input.input, input.count, input.steps, true, input.output.data) catch return 1;
     return 0;
 }
+
+export fn rv64_test_channel(context: *Context, lane: u32, state: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), seed: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), output: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), boundary: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var channel = @import("rv64/channel.zig").NativeCommands{ .context = context, .lane_index = lane, .state = state.* };
+    channel.initialize(seed.*, 1) catch return 1;
+    channel.mix(null, false, 2, boundary.*) catch return 1;
+    channel.draw(1, output.*, 3, boundary.*) catch return 1;
+    return 0;
+}

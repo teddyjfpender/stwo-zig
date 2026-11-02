@@ -68,3 +68,8 @@ comptime {
 }
 pub extern "c" fn stwo_rv64_fri_fold_on(*anyopaque, u32, *const FriFold) c_int;
 pub extern "c" fn stwo_rv64_fri_leaves_on(*anyopaque, u32, Plane, u32, u32, u32, [*]u32, u64) c_int;
+
+pub const channel_state_words = 16;
+pub extern "c" fn stwo_rv64_channel_init_on(*anyopaque, u32, [*]u32, [*]const u32, u64) c_int;
+pub extern "c" fn stwo_rv64_channel_mix_on(*anyopaque, u32, [*]u32, u32, u64, u64, ?[*]const u32, u32, u32, [*]u32) c_int;
+pub extern "c" fn stwo_rv64_channel_draw_on(*anyopaque, u32, [*]u32, u32, u64, u64, u32, [*]u32, [*]u32) c_int;

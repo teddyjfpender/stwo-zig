@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-cuda-om31-channel-qualification-v1",
+  "gpu": "RTX 5090",
+  "cuda": "12.8.93",
+  "architecture": "sm_120",
+  "device_cases": 100,
+  "native_channel_cases": 60,
+  "integration_tests": {
+    "ReleaseSafe": 35,
+    "ReleaseFast": 35
+  },
+  "sanitizers": {
+    "memcheck": "PASS",
+    "initcheck": "PASS",
+    "racecheck": "PASS",
+    "synccheck": "PASS"
+  },
+  "raw_digest": true,
+  "challenge_reduction": "raw_u32_mod_M31",
+  "device_feedback": true,
+  "full_block_verified": false,
+  "production_ready": false
+}

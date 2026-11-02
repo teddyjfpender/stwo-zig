@@ -272,3 +272,17 @@ extern "C" void rv64_test_fri_pairs(const uint32_t* input,const uint32_t* invers
         for(uint32_t c=0;c<8;++c)output[8*i+c]=coordinate(value,c);
     }
 }
+
+#include "channel_reference.h"
+extern "C" void rv64_test_channel(const uint32_t *seed, const uint32_t *input,
+                                  uint32_t count, uint32_t draws,
+                                  uint32_t *output, uint32_t *checkpoint) {
+  rv64_channel_reference::Channel c(seed);
+  c.mix(input, count);
+  for (uint32_t i = 0; i < draws; ++i) {
+    const auto value = c.draw();
+    std::copy(value.begin(), value.end(), output + 8 * i);
+  }
+  std::copy(c.digest.begin(), c.digest.end(), checkpoint);
+  checkpoint[8] = c.draws;
+}
