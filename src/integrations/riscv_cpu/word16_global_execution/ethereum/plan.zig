@@ -33,11 +33,12 @@ pub const CpuLayout = struct {
     /// made compact (Program.makeCompact) before capture.
     compact_decode: bool = false,
     /// Default layout for a profile route. Only the admitted
-    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
-    /// LS-D64; every older route keeps its historical layout and bundle bytes.
+    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs,
+    /// compact decode and LS-D64; every older route keeps its historical
+    /// layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {

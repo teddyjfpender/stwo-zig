@@ -223,7 +223,9 @@ previous MAIN row. All 32 residuals have degree at most 3, which a test checks
 by the fourth finite difference over random dense rows.
 
 Scope. Only the `ethereum_services_v3` route admits the flag
-(`main.zig admitProfile`). The local GKR lane fails closed (`v2_scope`
+(`main.zig admitProfile`), where it is the default (`CpuLayout.forProfile`;
+`--no-compact-decode` opts a producer out). `ethereum/main.zig` makes the
+capture program compact before capture. The local GKR lane fails closed (`v2_scope`
 refuses the flag); the MAIN-only authority, reached only through that lane,
 keeps the legacy shape. A
 capture is bound to its layout. `Prepared.takeCpu` refuses to rebind a capture

@@ -24,7 +24,8 @@ pub const Options = struct {
     /// of the v3 LS-D64 component (the receiver admits either declared shape).
     no_ls_dword: bool = false,
     /// Producer planning only: opt in to / out of the compact decode CPU MAIN
-    /// on the v3 route (the receiver admits the declared shape).
+    /// on the v3 route (default on there; the receiver admits the declared
+    /// shape).
     compact_decode: bool = false,
     no_compact_decode: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
