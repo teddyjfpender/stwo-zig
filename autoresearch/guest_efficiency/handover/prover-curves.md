@@ -115,15 +115,17 @@ this commit.
 
 ## Resumed 2026-11-02 (branch codex/rv64-ge-curves)
 
-Merged origin/codex/rv64-guest-efficiency up to 451262b99 (sponge, throughput
-Keccak truth, unaligned bulk, admitted jumpdest_bitmap). The arith384_mont
+Merged origin/codex/rv64-guest-efficiency up to 74d5d5f04 (sponge, throughput
+Keccak truth, unaligned bulk, admitted jumpdest_bitmap, PR #309 base merge with
+gkr_local fail-closed); everything below re-run on merge a54c0ff8b. The arith384_mont
 even-modulus / non-canonical-q test was fixed in c6da0a754 (test forger bug,
 no AIR change) and passes on the merged head. Verified (ReleaseSafe,
 memguard): curves-truth, word16-curves-services, word16-v3-services,
 word16-combined-services, word16-memory (writer inventory guard pins the
 curve kinds; joint write induction section 11 table row + 11.3 note),
 word16-global-execution, ethereum-chain, word16-jumpdest-services,
-word16-sponge-services, word16-bulk-services, execution. Byte identity:
+word16-sponge-services, word16-bulk-services (on the previous merge),
+services-gkr-local, execution. Byte identity:
 `rv64-word16-combined-services-fixture produce` = golden v2 (7 files,
 bundle.json be49c88c); `produce-v3 sha256` (e97771c4) and `produce-v3 all`
 (4033a916) identical to the pre-curves references; this receiver verifies all
