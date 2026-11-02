@@ -13,18 +13,28 @@ pub const Policy = enum {
     triple_v2,
     quartet_v3,
     throughput_v1,
+    /// Throughput tables and tuples (identical MAIN, tables and multiplicities
+    /// to `throughput_v1`) cleared four per degree-five batch: 107 round
+    /// batches (the last holds three queries and one dummy) + 7 IO batches =
+    /// 114 batches, 456 interaction columns (throughput-v1: 152 / 608).
+    throughput_quartet_v1,
     pub fn width(self: Policy) usize {
-        return if (self == .quartet_v3) 4 else 3;
+        return if (self == .quartet_v3 or self == .throughput_quartet_v1) 4 else 3;
+    }
+    /// True for every profile that commits the RV32 throughput tables
+    /// (2^21 chi, 2^16 xor5) and the throughput query tuples.
+    pub fn throughputTables(self: Policy) bool {
+        return self == .throughput_v1 or self == .throughput_quartet_v1;
     }
     /// Round-row lookups (each chi/xor5 query owns one fraction).
     pub fn lookups(self: Policy) usize {
-        return if (self == .throughput_v1) THROUGHPUT_LOOKUPS else L.LOOKUPS;
+        return if (self.throughputTables()) THROUGHPUT_LOOKUPS else L.LOOKUPS;
     }
     pub fn chiLookups(self: Policy) usize {
-        return if (self == .throughput_v1) THROUGHPUT_CHI else L.STATE;
+        return if (self.throughputTables()) THROUGHPUT_CHI else L.STATE;
     }
     pub fn xor5Lookups(self: Policy) usize {
-        return if (self == .throughput_v1) THROUGHPUT_XOR5 else L.PARITY;
+        return if (self.throughputTables()) THROUGHPUT_XOR5 else L.PARITY;
     }
     /// A trailing partial batch holds dummy entries (denominator one, weight zero).
     pub fn roundBatches(self: Policy) usize {
@@ -47,7 +57,7 @@ pub const Policy = enum {
     }
     pub fn tableLog(self: Policy, table: Table) u32 {
         return switch (self) {
-            .throughput_v1 => if (table == .chi) 21 else 16,
+            .throughput_v1, .throughput_quartet_v1 => if (table == .chi) 21 else 16,
             else => if (table == .chi) 13 else 10,
         };
     }
@@ -56,11 +66,13 @@ pub const Policy = enum {
     pub fn mix(self: Policy, channel: anytype) void {
         channel.mixU32s(&.{ 0x4b424154, 1, @intFromEnum(self), @intCast(self.width()), @intCast(self.interactionCount()), self.degree() });
         // Throughput also binds its table universes and per-row query counts.
-        if (self == .throughput_v1) channel.mixU32s(&.{ 0x4b545055, 1, self.tableLog(.chi), self.tableLog(.xor5), @intCast(THROUGHPUT_CHI), @intCast(THROUGHPUT_XOR5), @intCast(self.batches()) });
+        if (self.throughputTables()) channel.mixU32s(&.{ 0x4b545055, 1, self.tableLog(.chi), self.tableLog(.xor5), @intCast(THROUGHPUT_CHI), @intCast(THROUGHPUT_XOR5), @intCast(self.batches()) });
     }
 };
 comptime {
     // Design receipt: 143 round + 9 IO batches, 608 interaction columns, degree 4.
     if (Policy.throughput_v1.roundBatches() != 143 or Policy.throughput_v1.batches() != 152 or Policy.throughput_v1.interactionCount() != 608 or Policy.throughput_v1.degree() != 4) @compileError("throughput Keccak batch geometry drifted");
+    // Throughput quartet: 107 round + 7 IO batches, 456 interaction columns, degree 5.
+    if (Policy.throughput_quartet_v1.roundBatches() != 107 or Policy.throughput_quartet_v1.ioBatches() != 7 or Policy.throughput_quartet_v1.batches() != 114 or Policy.throughput_quartet_v1.interactionCount() != 456 or Policy.throughput_quartet_v1.degree() != 5) @compileError("throughput quartet Keccak batch geometry drifted");
     if (Policy.triple_v2.batches() != L.BATCHES) @compileError("triple Keccak batch geometry drifted");
 }

@@ -118,28 +118,44 @@ pub fn keccakTruthCells(policy: KeccakPolicy, log: u32) u64 {
 /// fewer committed cells (log >= 13: 1,988 cells/row saved vs the 2^21+2^16
 /// tables). v2 never selects it (receiver policy rejects it there).
 pub fn keccakTruthPolicy(v3: bool, log: u32) KeccakPolicy {
-    if (!v3) return .triple_v2;
-    return if (keccakTruthCells(.throughput_v1, log) < keccakTruthCells(.triple_v2, log)) .throughput_v1 else .triple_v2;
+    return keccakTruthPolicyFor(.{ .v3 = v3 }, log);
+}
+/// Producer-only Keccak truth selection. The chosen profile is published in
+/// the declaration (`W.keccakProfileWord`) and mixed into the truth
+/// transcript; the receiver admits any v3 profile it can rebuild.
+pub const KeccakTruthOptions = struct {
+    v3: bool = false,
+    /// Throughput tables cleared four per degree-five batch
+    /// (`throughput_quartet_v1`, 456 instead of 608 interaction columns).
+    quartet: bool = false,
+};
+pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
+    if (!options.v3) return .triple_v2;
+    const throughput: KeccakPolicy = if (options.quartet) .throughput_quartet_v1 else .throughput_v1;
+    return if (keccakTruthCells(throughput, log) < keccakTruthCells(.triple_v2, log)) throughput else .triple_v2;
 }
 pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclaration {
     return truthsForProfile(a, captured, false);
 }
 pub fn truthsForProfile(a: std.mem.Allocator, captured: *const Capture, v3: bool) ![]W.TruthDeclaration {
-    return truthsWithOptions(a, captured, v3, 18);
+    return truthsWithOptions(a, captured, .{ .v3 = v3 }, 18);
+}
+pub fn truthsForKeccakOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions) ![]W.TruthDeclaration {
+    return truthsWithOptions(a, captured, options, 18);
 }
 /// Producer geometry experiment only; the receiver admits original call spans.
 /// The default entry point remains log18. Smaller shards multiply proof leaves.
 /// v2 profile (compact Keccak truth): the OM GKR route is v2-only.
 pub fn truthsWithKeccakMaxLog(a: std.mem.Allocator, captured: *const Capture, max_log: u32) ![]W.TruthDeclaration {
-    return truthsWithOptions(a, captured, false, max_log);
+    return truthsWithOptions(a, captured, .{}, max_log);
 }
 fn truthsForCounts(a: std.mem.Allocator, total: [3]u32, max_log: u32) ![]W.TruthDeclaration {
     var out: std.ArrayList(W.TruthDeclaration) = .{};
     errdefer out.deinit(a);
-    try appendKeccakSecp(a, &out, total, max_log, false);
+    try appendKeccakSecp(a, &out, total, max_log, .{});
     return out.toOwnedSlice(a);
 }
-fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, v3: bool) !void {
+fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
     if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
     // Keep full shard lengths even so partitioning preserves paired slots.
     const max_keccak: u32 = ((@as(u32, 1) << @intCast(max_log)) / A.crypto.keccak.layout.ROWS_PER_PAIR) * 2;
@@ -149,7 +165,7 @@ fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration
         // product below then wraps (latent: logs below 18 were under-sized).
         const calls: u32 = @min(max_keccak, total[0] - next + 1);
         const log: u32 = if (calls > max_keccak / 2) max_log else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
-        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicy(v3, log)) } });
+        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicyFor(options, log)) } });
         next = try std.math.add(u32, next, calls);
     }
     for (1..3) |family| {
@@ -168,7 +184,7 @@ fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration
         }
     }
 }
-fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, v3: bool, max_log: u32) ![]W.TruthDeclaration {
+fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
     var total: [3]u32 = @splat(0);
     for (captured.advice.keccak, captured.advice.secp) |k, s| {
         total[0] = try std.math.add(u32, total[0], @intCast(k.len));
@@ -179,7 +195,7 @@ fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, v3: bool, m
     for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
     var out: std.ArrayList(W.TruthDeclaration) = .{};
     errdefer out.deinit(a);
-    try appendKeccakSecp(a, &out, total, max_log, v3);
+    try appendKeccakSecp(a, &out, total, max_log, options);
     var next: u32 = 1;
     // SHA-256: one compression per row plus a padding row; bounded log13 spans.
     var sha256: u32 = 0;
@@ -234,6 +250,18 @@ test "v3 keccak truth takes the throughput tables exactly where they commit fewe
     // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
     try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
     try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
+}
+test "quartet keccak truth option keeps the throughput tables and cuts 152 interaction columns per row" {
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .quartet = true }, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 12));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 18));
+    // log18: 2^18 x (1923 + 456) + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 634_454_016), keccakTruthCells(.throughput_quartet_v1, 18));
+    try std.testing.expectEqual(@as(u64, 152) << 18, keccakTruthCells(.throughput_v1, 18) - keccakTruthCells(.throughput_quartet_v1, 18));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, try W.keccakPolicy(W.keccakProfileWord(.throughput_quartet_v1)));
+    try std.testing.expectError(error.InvalidServicesTruthGeometry, W.keccakPolicy(22));
+    try std.testing.expectError(error.InvalidServicesTruthGeometry, W.keccakPolicy(4 << 8));
 }
 test "two-instance planner reduces physical rows only and respects reserved LS rows" {
     try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));

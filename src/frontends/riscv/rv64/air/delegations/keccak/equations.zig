@@ -128,6 +128,7 @@ pub fn emitForPolicy(comptime F: type, policy: BatchPolicy, row: RowFor(F), inte
         .triple_v2 => emitForBatch(F, 3, row, interaction, previous_final, claim, ch, public, sink),
         .quartet_v3 => emitForBatch(F, 4, row, interaction, previous_final, claim, ch, public, sink),
         .throughput_v1 => emitThroughputFor(F, row, interaction, previous_final, claim, ch, public, sink),
+        .throughput_quartet_v1 => emitThroughputQuartetFor(F, row, interaction, previous_final, claim, ch, public, sink),
     }
 }
 /// Multiplication by a small canonical constant in lane F (M31 natively).
@@ -168,6 +169,30 @@ pub fn emitThroughputFor(comptime F: type, row: RowFor(F), interaction: []const 
         sink.emit(clearTripleFor(F, d, c, delta));
     }
     emitIoTriplesFor(F, row, interaction, policy.roundBatches(), ch, sink);
+}
+/// Throughput-quartet-v1: the throughput-v1 MAIN, direct equations, tuples
+/// and tables; the 427 round queries are cleared four per degree-five batch
+/// (106 full batches + one batch of three queries and one dummy entry with
+/// denominator one and weight zero), then the IO lanes four per batch.
+/// Degree: delta * d0 d1 d2 d3 is 1 + 4; c * (triple products) is 2 + 3.
+pub fn emitThroughputQuartetFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
+    const policy = BatchPolicy.throughput_quartet_v1;
+    emitDirectFor(F, row, public, sink, true);
+    const coefficient = roundActiveFor(F, row).neg();
+    for (0..policy.roundBatches()) |batch| {
+        var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var c: [4]F = @splat(F.zero());
+        var full = true;
+        for (0..4) |i| {
+            if (4 * batch + i < policy.lookups()) {
+                d[i] = throughputDenominatorFor(F, row, ch, 4 * batch + i);
+                c[i] = coefficient;
+            } else full = false;
+        }
+        const delta = interaction[batch].sub(if (batch == 0) previous_final else interaction[batch - 1]).add(if (batch == 0) V.mulBaseFor(F, V.splatFor(F, claim), row.fixed[L.FIRST]) else V.SecureFor(F).zero());
+        sink.emit(if (full) clearQuartetFor(F, true, d, c, delta) else clearQuartetFor(F, false, d, c, delta));
+    }
+    emitIoQuartetsFor(F, row, interaction, policy.roundBatches(), ch, sink);
 }
 /// One triple polynomial with per-entry weights (dummy entries: d = 1, c = 0).
 pub fn clearTripleFor(comptime F: type, d: [3]V.SecureFor(F), c: [3]F, delta: V.SecureFor(F)) V.SecureFor(F) {
@@ -210,16 +235,21 @@ pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), int
             const delta = interaction[batch].sub(if (batch == 0) previous_final else interaction[batch - 1]).add(if (batch == 0) V.mulBaseFor(F, V.splatFor(F, claim), row.fixed[L.FIRST]) else V.SecureFor(F).zero());
             sink.emit(clearQuartetFor(F, true, d, @splat(coefficient), delta));
         }
-        for (0..(L.IO_LANES + 3) / 4) |local| {
-            const batch = L.LOOKUPS / 4 + local;
-            var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
-            var c: [4]F = @splat(F.zero());
-            for (0..4) |i| if (4 * local + i < L.IO_LANES) {
-                d[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleFor(F, row, 4 * local + i), true);
-                c[i] = ioActiveFor(F, row);
-            };
-            sink.emit(clearQuartetFor(F, false, d, c, interaction[batch].sub(interaction[batch - 1])));
-        }
+        emitIoQuartetsFor(F, row, interaction, L.LOOKUPS / 4, ch, sink);
+    }
+}
+/// IO11 lanes four per degree-five batch after `first` round batches (shared
+/// by quartet-v3 and throughput-quartet-v1). Dummy entries: d = 1, c = 0.
+fn emitIoQuartetsFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), first: usize, ch: ChallengesFor(V.ConstFor(F)), sink: anytype) void {
+    for (0..(L.IO_LANES + 3) / 4) |local| {
+        const batch = first + local;
+        var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var c: [4]F = @splat(F.zero());
+        for (0..4) |i| if (4 * local + i < L.IO_LANES) {
+            d[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleFor(F, row, 4 * local + i), true);
+            c[i] = ioActiveFor(F, row);
+        };
+        sink.emit(clearQuartetFor(F, false, d, c, interaction[batch].sub(interaction[batch - 1])));
     }
 }
 

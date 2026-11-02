@@ -185,7 +185,7 @@ pub const TruthSource = struct {
         if (lookup == .quartet_v3) return error.UnsupportedSharedTruthPolicy;
         var p = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
         errdefer p.deinit();
-        if (lookup == .throughput_v1) {
+        if (lookup.throughputTables()) {
             var counts = try K.throughput_counts.Counts.fromTrace(a, &p);
             defer counts.deinit();
             var c = try K.tables.Trace.initPolicy(a, .chi, lookup, counts.chi);

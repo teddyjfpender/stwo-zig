@@ -37,12 +37,20 @@ pub fn ComponentFor(comptime Lane: type) type {
         policy: E.BatchPolicy = .triple_v2,
         const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn parameters(self: *const Self) Parameters {
-            const throughput = self.policy == .throughput_v1;
-            return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .policy = self.policy, .batches = self.policy.batches(), .lookup_degree = self.policy.degree(), .emit_q = if (throughput) emitThroughputQ else emitTripleQ };
+            const emit_q: ScalarEmitter = switch (self.policy) {
+                .throughput_v1 => emitThroughputQ,
+                .throughput_quartet_v1 => emitThroughputQuartetQ,
+                else => emitTripleQ,
+            };
+            return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .policy = self.policy, .batches = self.policy.batches(), .lookup_degree = self.policy.degree(), .emit_q = emit_q };
         }
         pub fn proverParameters(self: *const Self) Parameters {
             var result = self.parameters();
-            result.emit_packed = if (self.policy == .throughput_v1) emitThroughputPacked else emitTriplePacked;
+            result.emit_packed = switch (self.policy) {
+                .throughput_v1 => emitThroughputPacked,
+                .throughput_quartet_v1 => emitThroughputQuartetPacked,
+                else => emitTriplePacked,
+            };
             // The tiled gather oracle is sized for the triple-v2 interaction width.
             result.legacy_gather = self.policy == .triple_v2;
             return result;
@@ -163,6 +171,12 @@ fn emitThroughputQ(row: E.Row, interaction: []const Q, prior: Q, claim: Q, ch: E
 fn emitThroughputPacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
     E.emitThroughputFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
 }
+fn emitThroughputQuartetQ(row: E.Row, interaction: []const Q, prior: Q, claim: Q, ch: E.Challenges, public: E.Public, sink: *Sink) void {
+    E.emitThroughputQuartetFor(Q, row, interaction, prior, claim, ch, public, sink);
+}
+fn emitThroughputQuartetPacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
+    E.emitThroughputQuartetFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
+}
 fn emitTriplePacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
     E.emitFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
 }
@@ -189,7 +203,7 @@ pub const Parameters = struct {
         switch (self.kind) {
             .permutation => {
                 try L.validateGeometry(self.calls, self.first_call_id, self.log_size);
-                if (self.policy == .throughput_v1) _ = try L.admitThroughputRoster(&.{self.calls});
+                if (self.policy.throughputTables()) _ = try L.admitThroughputRoster(&.{self.calls});
             },
             .chi => if (self.log_size != self.policy.tableLog(.chi) or self.calls != 0) return error.InvalidKeccakComponentGeometry,
             .xor5 => if (self.log_size != self.policy.tableLog(.xor5) or self.calls != 0) return error.InvalidKeccakComponentGeometry,
