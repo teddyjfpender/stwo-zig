@@ -91,7 +91,7 @@ pub fn groups(origin: Frame.Origin) ![]const Classic.Group {
     const l = G.layout(origin);
     if (l.ram_queries == 0) return error.MissingWideGlobalRole;
     if (origin == .sponge) return switch (origin.sponge) {
-        inline else => |kind| &.{ .{ .inverses = @intCast((@import("sponge_projection.zig").ramTerms(kind) + 1) / 2) }, .{ .inverses = @intCast((@import("sponge_projection.zig").kioTerms(kind) + 1) / 2) } },
+        inline else => |kind| &.{ .{ .inverses = comptime @as(u16, @intCast((@import("sponge_projection.zig").ramTerms(kind) + 1) / 2)) }, .{ .inverses = comptime @as(u16, @intCast((@import("sponge_projection.zig").kioTerms(kind) + 1) / 2)) } },
     };
     return if (origin == .bulk) switch (origin.bulk) {
         inline else => |kind| if (@import("bulk_projection.zig").ramTerms(kind) == 0) error.MissingWideGlobalRole else &.{.{ .inverses = comptime @as(u16, @intCast((@import("bulk_projection.zig").ramTerms(kind) + 1) / 2)) }},
