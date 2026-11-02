@@ -131,7 +131,7 @@ pub fn main() !void {
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
     const source_start = timer.read();
-    const source = try @import("../../pipeline.zig").buildCpuSource(a, keys.cpus[0], r, captured.native.items[0], &captured.advice, 0, .{ 1, 1, 1 }, false, null);
+    const source = try @import("../../pipeline.zig").buildCpuSource(a, keys.cpus[0], r, captured.native.items[0], &captured.advice, 0, @splat(1), false, null);
     const source_ns = timer.read() - source_start;
     var observations = try @import("../../../ethereum/observations.zig").Owner.init(a, 1);
     defer observations.deinit();

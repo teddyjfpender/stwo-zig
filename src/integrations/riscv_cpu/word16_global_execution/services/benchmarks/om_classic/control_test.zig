@@ -79,7 +79,7 @@ test "benchmark wide classic full CPU RAM proof fresh-verifies and binds balance
     geometry.omit_empty_division = true;
     var setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, .{});
     defer setup.deinit();
-    const source = try @import("../../pipeline.zig").buildCpuSource(a, &setup, request, &f.native, &f.advice, 0, .{ 1, 1, 1 }, false, null);
+    const source = try @import("../../pipeline.zig").buildCpuSource(a, &setup, request, &f.native, &f.advice, 0, @splat(1), false, null);
     const config = @import("../../gkr_local/worker_protocol.zig").PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(core.fields.om31.OM31).FriConfig.init(0, 1, 12) };
     var encoded = try Control.prove(a, &setup, request, f.expected(), config, source, 2 << 30, null, null);
     defer encoded.deinit(a);
@@ -109,7 +109,7 @@ test "benchmark budget refusal consumes native source without leaking partial MA
     var setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, .{});
     defer setup.deinit();
     const request = f.request();
-    const source = try @import("../../pipeline.zig").buildCpuSource(a, &setup, request, &f.native, &f.advice, 0, .{ 1, 1, 1 }, false, null);
+    const source = try @import("../../pipeline.zig").buildCpuSource(a, &setup, request, &f.native, &f.advice, 0, @splat(1), false, null);
     const config = @import("../../gkr_local/worker_protocol.zig").PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(core.fields.om31.OM31).FriConfig.init(0, 1, 12) };
     try std.testing.expectError(error.ClassicWitnessBudgetExceeded, Control.prove(a, &setup, request, f.expected(), config, source, 1, null, null));
 }
