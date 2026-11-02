@@ -32,7 +32,7 @@ pub const Owner = struct {
         errdefer loaded.deinit();
         var program = try Request.Program.init(a, &loaded.memory);
         defer program.deinit(a);
-        var authority = try Full.ProgramAuthority.initWithControl(a, program.value(), Request.authorityProfile(config), config.control_policy);
+        var authority = try Full.ProgramAuthority.initWithRom(a, program.value(), Request.authorityProfile(config), Request.romProfile(config), config.control_policy);
         errdefer authority.deinit();
         if (config.terminal_pc & 3 != 0 or try loaded.memory.fetch(config.terminal_pc) != 0x0000006f) return error.InvalidEthereumTerminalPc;
         _ = try authority.program.lookup(config.terminal_pc);

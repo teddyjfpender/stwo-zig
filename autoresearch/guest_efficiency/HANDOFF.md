@@ -27,8 +27,13 @@ Delivered and merged (`codex/rv64-ge-final`, `codex/rv64-ge-fused-fix`; measured
 CPU fused-tail + byte-pair queries (`codex/rv64-ge-cells-fused-tail`) and
 LS-D64 (`codex/rv64-ge-ls64`), both default on v3, adversarially reviewed as
 sound; est. -8.2 and -11.0 cells/instruction. Zbb BINARY subset
-(`codex/rv64-ge-zbb`) is opt-in: the Ethereum driver cannot prove v3_zbb
-blocks yet (needs a Zbb-aware native batch/packet authority).
+(`codex/rv64-ge-zbb`, driver in `codex/rv64-ge-zbb2`): profile
+`ethereum_services_v3_zbb` composes with the v3 default layout, the Ethereum
+driver proves it (Zbb-aware native batch/packet authority), a real 4-packet
+prefix of block 24,628,607 was produced and fresh-verified, and the basket is
+promotable (G1-G6): 3.087 instr/gas (-6.0%), 38,736 bits/gas (-4.0%). Selected
+explicitly (`build.py --isa zbb_binary`, `--profile ethereum_services_v3_zbb`);
+see `notes/zbb-binary-admitted-20261102.md`.
 LogUp/GKR CPU speed (`codex/rv64-ge-logup`): packed fused GKR prover,
 2.3-3.4x per thread, byte-identical; not yet reconciled with PR #309's own
 packed GKR kernels.

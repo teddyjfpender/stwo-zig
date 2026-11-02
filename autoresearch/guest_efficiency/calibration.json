@@ -24,6 +24,8 @@
   "composition_fraction": 0.045135955755284445,
   "cpu_cells_per_instruction_v3": 126.9933850749457,
   "secp_cells_per_call_v3": 20370.02210475733,
+  "zbb_binary_cells_per_instruction": 0.05468751303851915,
+  "zbb_measured_note": "MEASURED on a produced and freshly verified 4-packet prefix of block 24,628,607 with the evmone v3 zbb_binary client (ethereum_services_v3_zbb, v3 default layout: fused tail + U8 pairs + LS-D64, codex/rv64-ge-zbb2): Zbb BINARY component MAIN+INTERACTION 917,504 cells (4 shards x 2^12 rows x 56 columns; distinct Zbb facts 2,637/3,934/3,740/3,401) / 16,777,212 instructions. Applied only to ethereum_services_v3_zbb rows, which otherwise take every _v3 coefficient; no other profile's score changes.",
   "v3_measured_note": "MEASURED MAIN+INTERACTION cells on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix). cpu_cells_per_instruction_v3 = 151.088 measured with the LS32 layout minus 16.110 (LS-D64 default, same prefix, MAIN+INTERACTION delta -270,280,704 cells). secp and keccak v3 values measured on the same prefix. Used only for ethereum_services_v3 rows; v2/baseline keep the frozen coefficients. Updated after the fused-tail + U8-pair CPU layouts became the v3 default again (codex/rv64-ge-fused-fix 9c5367210): same 4-packet prefix, CPU native cells -133,955,584 exactly (4 x (-8*2^22 + 2^16)), -7.984 cells/instruction; 134.978 -> 126.993."
  },
  "frozen": true,

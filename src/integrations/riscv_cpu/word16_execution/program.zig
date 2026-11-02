@@ -45,19 +45,19 @@ pub const Program = struct {
     /// The independently derived authority must outlive this borrowed view.
     /// Only the new feature cache/ROM is owned here; raw arrays are not copied.
     pub fn initWithAuthority(a: std.mem.Allocator, expected: *const Full.ProgramAuthority) !Program {
-        return build(a, expected.words, expected.program.addresses, false, expected.profile, expected);
+        return build(a, expected.words, expected.program.addresses, false, expected.rom_profile, expected);
     }
     /// Reuse only owned decoded metadata. Raw views ALWAYS come from this
     /// independently derived authority and retain the existing image lifetime.
     pub fn initWithAuthorityAndMetadataCache(a: std.mem.Allocator, expected: *const Full.ProgramAuthority, metadata_cache: *const Metadata.Cache) !Program {
         if (expected.words.len == 0 or expected.words.len != expected.program.addresses.len) return error.InvalidExecutionProgram;
-        const input = Metadata.Input{ .words = expected.words, .addresses = expected.program.addresses, .profile = expected.profile };
+        const input = Metadata.Input{ .words = expected.words, .addresses = expected.program.addresses, .profile = expected.rom_profile };
         if (try metadata_cache.lookup(input)) |found| {
             var lease = found;
             errdefer lease.deinit();
             const data = lease.view();
             const fixed = try fixedFromEntries(a, data.entries, data.word_rows, data.log_size, null);
-            return .{ .allocator = a, .words = expected.words, .addresses = expected.program.addresses, .entries = data.entries, .word_rows = data.word_rows, .row_to_entry = data.row_to_entry, .row_taken = data.row_taken, .metadata_lease = lease, .fixed = fixed, .log_size = data.log_size, .identity = lease.identity(), .opcodes = data.opcodes, .profile = expected.profile, .contiguous = data.contiguous, .owns_raw = false };
+            return .{ .allocator = a, .words = expected.words, .addresses = expected.program.addresses, .entries = data.entries, .word_rows = data.word_rows, .row_to_entry = data.row_to_entry, .row_taken = data.row_taken, .metadata_lease = lease, .fixed = fixed, .log_size = data.log_size, .identity = lease.identity(), .opcodes = data.opcodes, .profile = expected.rom_profile, .contiguous = data.contiguous, .owns_raw = false };
         }
         var program = try initWithAuthority(a, expected);
         errdefer program.deinit();

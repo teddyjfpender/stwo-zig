@@ -23,7 +23,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     const sha_word = std.mem.readInt(u32, raw[28..32], .little);
     const extended = sha_word & (1 << 31) != 0;
     const sha256_expected = sha_word & ~@as(u32, 1 << 31);
-    if (!@import("rv64_ethereum_batch.zig").tapeMatches(tape_profile, public.execution_profile) or std.mem.readInt(u64, raw[32..40], .little) != public.statement.initial_pc or std.mem.readInt(u64, raw[40..48], .little) != h.metadata.first_step) return error.InvalidWorkPacketBoundary;
+    if (public.execution_profile != authority.profile or !@import("rv64_ethereum_batch.zig").tapeAdmitted(tape_profile, authority) or std.mem.readInt(u64, raw[32..40], .little) != public.statement.initial_pc or std.mem.readInt(u64, raw[40..48], .little) != h.metadata.first_step) return error.InvalidWorkPacketBoundary;
     var reader = IO.Reader{ .file = file, .remaining = try std.math.mul(usize, public.statement.steps, 48) };
     var pc = public.statement.initial_pc;
     var division: u32 = 0;
@@ -38,9 +38,9 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     for (0..public.statement.steps) |_| {
         var step: [48]u8 = undefined;
         try reader.bytes(&step);
-        // lookup validates row.valid BEFORE accessing its decoded cache entry.
-        const index = try authority.program.lookup(pc);
-        const opcode = authority.program.decoded[index].instruction.opcode;
+        // instructionAt validates row.valid BEFORE accessing its decoded cache
+        // entry; an invalid row decodes only as a Zbb row of a Zbb ROM.
+        const opcode = (try authority.instructionAt(pc)).instruction.opcode;
         opcodes[@intFromEnum(opcode)] += 1;
         switch (opcode) {
             .DIV, .DIVU, .REM, .REMU, .DIVW, .DIVUW, .REMW, .REMUW => division += 1,
@@ -60,7 +60,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
             },
             else => {},
         }
-        const has_memory = rv.execution_profile.effects(public.execution_profile, opcode).memory_width != 0;
+        const has_memory = rv.execution_profile.effects(authority.rom_profile, opcode).memory_width != 0;
         const memory_index = std.mem.readInt(u32, step[40..44], .little);
         if (has_memory) {
             if (memory_index != memory) return error.InvalidWorkPacketBoundary;

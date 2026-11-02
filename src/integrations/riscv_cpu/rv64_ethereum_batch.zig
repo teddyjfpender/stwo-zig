@@ -57,8 +57,9 @@ pub const Batch = struct {
 
     pub fn init(authority: *const Full.ProgramAuthority, tape: *const rv.compact_tape.Tape, capture: *const rv.boundary_capture.Capture, initial_registers: [32]u64, first_ids: [3]u32) !Batch {
         if (authority.profile != .ethereum_services_v1 and authority.profile != .ethereum_services_v2) return error.InvalidEthereumBatchProfile;
-        if (!tapeMatches(tape.execution_profile, authority.profile) or tape.len != 0 or capture.steps != 0 or tape.initial_clock != capture.initial_clock or initial_registers[0] != 0) return error.InvalidEthereumBatchSeed;
-        _ = try authority.program.lookup(tape.initial_pc);
+        if (!tapeAdmitted(tape.execution_profile, authority) or tape.len != 0 or capture.steps != 0 or tape.initial_clock != capture.initial_clock or initial_registers[0] != 0) return error.InvalidEthereumBatchSeed;
+        // A batch may start at any retired row, including a Zbb row.
+        _ = try authority.instructionAt(tape.initial_pc);
         for (first_ids) |id| if (id == 0 or id >= Modulus) return error.InvalidEthereumBatchSeed;
         return .{ .authority = authority, .tape = tape, .capture = capture, .initial_registers = initial_registers, .initial_pc = tape.initial_pc, .initial_clock = tape.initial_clock, .first_ids = first_ids, .next_pc = tape.initial_pc };
     }
@@ -66,13 +67,13 @@ pub const Batch = struct {
     /// Fallible tape/capture appends stay with the caller; on any failure abort
     /// this native batch instead of advancing execution with partial advice.
     pub fn observe(self: *Batch, record: rv.machine.Retirement) !void {
-        if (!tapeMatches(self.tape.execution_profile, self.authority.profile) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (!tapeAdmitted(self.tape.execution_profile, self.authority) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
         if (self.steps >= rv.compact_tape.MAX_STEPS or record.clock != self.initial_clock + self.steps + 1 or record.pc.toInt() != self.next_pc) return error.InvalidEthereumBatchClock;
-        const row = try self.authority.program.lookup(record.pc.toInt());
-        const decoded = self.authority.program.decoded[row];
+        // Legacy byte-ROM row, or (Zbb execution ROM only) a Zbb BINARY row.
+        const decoded = try self.authority.instructionAt(record.pc.toInt());
         if (record.instruction != decoded.raw or record.opcode != decoded.instruction.opcode) return error.InvalidEthereumBatchInstruction;
         const inst = decoded.instruction;
-        const effects = rv.execution_profile.effects(self.authority.profile, inst.opcode);
+        const effects = rv.execution_profile.effects(self.authority.rom_profile, inst.opcode);
         var kind: ?usize = null;
         var sha256 = false;
         var arith = false;
@@ -124,7 +125,7 @@ pub const Batch = struct {
     /// Must run while final_memory still holds this batch's final image. Reads
     /// touched chunks once and reconstructs their before words from capture.
     pub fn finish(self: *const Batch, a: std.mem.Allocator, final_cpu: *const rv.machine.Cpu, final_memory: *const rv.memory.Memory, policy: *const R.policy.Policy, geometry: R.values.Geometry) !Finished {
-        if (!tapeMatches(self.tape.execution_profile, self.authority.profile) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (!tapeAdmitted(self.tape.execution_profile, self.authority) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
         if (self.tape.sha256_calls.items.len != self.sha256_calls) return error.InvalidEthereumBatchBoundary;
         for (self.tape.sha256_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.sha256_first) + i) return error.InvalidEthereumBatchService;
         if (self.tape.arith256_mod_calls.items.len != self.arith256_calls) return error.InvalidEthereumBatchBoundary;
@@ -173,7 +174,7 @@ pub const Batch = struct {
         public.secp = .{ .add = groups[0], .double = groups[1] };
         try public.validate();
         const openings: ?R.openings.Owned = if (captured.len == 0) null else try R.openings.Owned.init(a, geometry, policy, final_memory, captured);
-        return .{ .allocator = a, .public = public, .captured = captured, .cells = cells, .memory_clocks = clocks, .openings = openings };
+        return .{ .allocator = a, .public = public, .rom_profile = if (self.authority.rom_profile != self.authority.profile) self.authority.rom_profile else null, .captured = captured, .cells = cells, .memory_clocks = clocks, .openings = openings };
     }
 };
 /// A v3 tape runs under the v2-decoded ROM authority (identical ISA effects);
@@ -183,12 +184,27 @@ pub const Batch = struct {
 pub fn tapeMatches(tape: rv.execution_profile.Profile, authority: rv.execution_profile.Profile) bool {
     return tape == authority or (tape == .ethereum_services_v3 and authority == .ethereum_services_v2);
 }
+/// Legacy native statement + execution ROM admission of a tape (native batch,
+/// packet writer and Word16 packet reader). Without a separate execution ROM
+/// this is exactly `tapeMatches`. The Zbb route (v2-decoded statement, v3_zbb
+/// ROM) admits only v3_zbb tapes, and a v3_zbb tape is admitted only there.
+pub fn tapeAdmits(tape: rv.execution_profile.Profile, statement: rv.execution_profile.Profile, rom: rv.execution_profile.Profile) bool {
+    if (rom == statement) return tapeMatches(tape, statement);
+    return statement == .ethereum_services_v2 and rom == .ethereum_services_v3_zbb and tape == .ethereum_services_v3_zbb;
+}
+pub fn tapeAdmitted(tape: rv.execution_profile.Profile, authority: *const Full.ProgramAuthority) bool {
+    return tapeAdmits(tape, authority.profile, authority.rom_profile);
+}
 fn requestLog(count: u32) u32 {
     return @max(5, std.math.log2_int_ceil(u32, @max(1, count)));
 }
 pub const Finished = struct {
     allocator: std.mem.Allocator,
     public: CPU.Public,
+    /// Execution ROM profile of the producing authority when it differs from
+    /// the statement profile (Zbb route). Not serialized: a packet reader
+    /// re-derives it from its own authority (or rejects the tape).
+    rom_profile: ?rv.execution_profile.Profile = null,
     captured: []rv.boundary_capture.Cell,
     cells: []PublicCell,
     memory_clocks: []u32,

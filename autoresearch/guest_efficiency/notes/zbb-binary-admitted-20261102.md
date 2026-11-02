@@ -114,3 +114,75 @@ most 9 x 4096 x 56 = 2,064,384 cells = +0.056 cells/instruction, against
 cells/instruction (lower bound with the CPU row only, 89.6 cells: -4.96), net
 about -8.7 cells per original instruction (-5.5%); about -2,360 bits/gas on
 block 24,628,607 (-1,330 with the CPU-row-only bound).
+
+## Ethereum driver + real prefix proof (2026-11-02, branch `codex/rv64-ge-zbb2`)
+
+`codex/rv64-ge-zbb` merged onto PR head 2490495dd. The Zbb component is the last
+CPU-local block (after LS-D64) in columns, fixed, logs, sources, handles,
+claims transcript and wire; `admitZbb` also counts the CPU byte-pair AND mass.
+
+- **Layouts.** v3_zbb now takes the v3 default CPU layout (fused tail + U8
+  pairs + LS-D64, `Plan.CpuLayout.forProfile` via `isV3`), the v3 Keccak truth
+  policy, and `admitProfile` admits it like v3 (the Zbb component stays rejected
+  under every other profile). The zbb services fixture proves and fresh-verifies
+  on BOTH the historical and the v3 default layout, and the forged sext.b /
+  zext.h results are rejected on both (`test-riscv64-word16-zbb-services`, 4 tests).
+- **Native batch / packet authority.** The legacy native statement stays the
+  v2-decoded byte-ROM statement (as for v3 tapes); `ProgramAuthority` gains
+  `rom_profile` (= `profile` except on the Zbb route: v2 statement, v3_zbb
+  execution ROM, `Request.romProfile`). `Authority.instructionAt(pc)` returns the
+  legacy row when valid and, only under the Zbb ROM, the Zbb BINARY decode of a
+  row the legacy ROM keeps invalid (base opcodes on invalid rows, invalid words,
+  unmapped/misaligned PCs fail closed). Used by `Batch.init/observe` and the
+  packet admission walk. `tapeAdmits(tape, statement, rom)` is `tapeMatches`
+  without a separate ROM and admits exactly v3_zbb tapes on the Zbb route
+  (`tapeMatches` itself is unchanged, so a v3_zbb tape still never matches a
+  v2 Word16 ROM). The packet program key binds `rom_profile` on the Zbb route
+  only (all other keys byte-identical). The Word16 program is built from
+  `rom_profile`. The legacy packet reader / worker does not re-derive the
+  execution ROM and rejects Zbb packets (`InvalidWorkPacketBoundary`); the
+  legacy prover already rejects every non-v2 request. Tests:
+  `test-riscv64-work-packet` (+3: decode/pairing/key/tape truth table, batch with
+  Zbb rows + forged opcodes + v2 ROM, admission walk counts + legacy reader and
+  v2-ROM rejection).
+- **Real prefix proof (block 24,628,607, 4 packets, 16,777,212 instructions).**
+  Client `build.py --profile v3 --isa zbb_binary --isa-audit rv64-isa-audit`
+  (default v3 set; sha256 f44278ad..., 744 rev8, audit clean; terminal_pc
+  489124 = the `j .` in stwo_guest_main), adapted input e549944d.
+  `nativeprepare` (max_batches 4): 4 packets, 6 s. `produce ... prefix4 4`
+  (memguard --gb 15): accepted in-process, 36.9 s wall, prove 31.9 s, max RSS
+  20.4 GB (/usr/bin/time; footprint 13.8 GB). Every CPU proof: fused tail, U8
+  pairs, LS-D64 (logs 20/19), Zbb log 12 (distinct facts 2,637 / 3,934 / 3,740
+  / 3,401). Fresh `verify-prefix`: accepted (2.5 s). Adversarial on the real
+  bundle: a v3 request rejects it (`UnadmittedZbbBinaryComponent`), a +1 Zbb
+  FUNCTION claim fails (`OodsNotMatching`), dropping the Zbb component fails
+  (`GlobalExecutionInventoryMismatch`).
+  Exact cells: Zbb components 917,504 MAIN+INTERACTION over the prefix =
+  0.0547 cells/instruction (calibration `zbb_binary_cells_per_instruction`);
+  CPU proofs 2,347,412,768 MAIN+INTERACTION (139.9/instruction; the zbb prefix
+  covers 66.6% of the block's 25.19 M instructions, the v3 prefix 62.4% of
+  26.89 M, so per-instruction figures of the two prefixes are not comparable).
+- **Basket** (this tree's executor, host and both clients; `--set all`, 15/15
+  exact, G1-G6 PASS, promotable):
+
+| client | scored instr/gas | holdout | all | scored bits/gas |
+|---|---:|---:|---:|---:|
+| v3 RV64IM (4e7a2684) | 3.283 | 2.853 | 3.198 | 40,336 |
+| v3 zbb_binary (f44278ad) | **3.087 (-6.0%)** | 2.676 | 3.006 | **38,736 (-4.0%)** |
+
+  Per block -4.0% .. -7.0% instructions (24,628,607: 26,894,760 -> 25,191,636).
+  bench.py now scores v3_zbb rows with every `_v3` coefficient plus the measured
+  Zbb component (`V3_PROFILES`, required coefficient); no other row changes.
+
+### How to select it
+
+```sh
+python3 client_evmone/build.py --out OUT --cache ~/Coding/ge-cache/evmsrc --profile v3 \
+  --isa zbb_binary --isa-audit <rv64-isa-audit from src/frontends/riscv/rv64>
+# bench: --elf OUT/client-evmone-v3-zbb_binary.elf --profile ethereum_services_v3_zbb
+# prover request.json: "execution_profile": "ethereum_services_v3_zbb", terminal_pc of that ELF
+```
+
+Not made the build.py default: `--isa zbb_binary` needs the audit tool path,
+and the complete-block proof of the zbb client (coordinator-scheduled) has not
+been run; the 4-packet prefix is the evidence so far.

@@ -102,6 +102,8 @@ pub fn programKey(authority: *const Full.ProgramAuthority) Digest {
     hash.update(&authority.program.identity);
     hash64(&hash, @intFromEnum(authority.profile));
     hash64(&hash, @intFromEnum(authority.control_policy));
+    // Zbb route only (every other key unchanged): bind the execution ROM.
+    if (authority.rom_profile != authority.profile) hash64(&hash, @intFromEnum(authority.rom_profile));
     return hash.finalResult();
 }
 fn identityWords(id: Identity) [6]Digest {

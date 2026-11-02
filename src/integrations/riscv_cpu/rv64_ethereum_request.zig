@@ -34,7 +34,16 @@ pub const Config = struct {
 /// next to a v2-decoded CPU statement (decode/effects are identical).
 /// ROM authority profile: v2 decoding for v2/v3 (identical RV64IM ISA), the
 /// Zbb profile itself for ethereum_services_v3_zbb (its ROM decodes Zbb BINARY).
+/// Legacy native-statement profile: every Ethereum route (v2, v3, v3_zbb)
+/// runs under the v2-decoded byte-ROM statement (packets are advice for the
+/// Word16 route, whose ROM is `romProfile`).
 pub fn authorityProfile(config: Config) rv.execution_profile.Profile {
+    _ = config;
+    return .ethereum_services_v2;
+}
+/// Word16 execution ROM profile: the Zbb route needs the v3_zbb ROM (the only
+/// ROM that decodes Zbb BINARY rows); every other route keeps the v2 ROM.
+pub fn romProfile(config: Config) rv.execution_profile.Profile {
     return if (config.execution_profile == .ethereum_services_v3_zbb) .ethereum_services_v3_zbb else .ethereum_services_v2;
 }
 pub fn tapeProfile(config: Config) rv.execution_profile.Profile {
@@ -61,7 +70,7 @@ pub const Request = struct {
         errdefer loaded.deinit();
         var program = try Program.init(a, &loaded.memory);
         defer program.deinit(a);
-        var authority = try Full.ProgramAuthority.initWithControl(a, program.value(), authorityProfile(config), config.control_policy);
+        var authority = try Full.ProgramAuthority.initWithRom(a, program.value(), authorityProfile(config), romProfile(config), config.control_policy);
         errdefer authority.deinit();
         if (config.terminal_pc & 3 != 0 or try loaded.memory.fetch(config.terminal_pc) != 0x0000006f) return error.InvalidEthereumTerminalPc;
         _ = try authority.program.lookup(config.terminal_pc);
