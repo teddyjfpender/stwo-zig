@@ -1,0 +1,13 @@
+{
+  "observed_head": "85d93b080",
+  "run": 41395453785,
+  "whole_ci_green": false,
+  "linux_compile_fix": "file_backed_allocator.zig runtime PROT choice: cast each branch to expected u32",
+  "linux_cross_compile_pass": true,
+  "macos_safe_tests_pass": true,
+  "other_observed_failures": [
+    "component geometry guard discovers0 of2 expected tests",
+    "circuit provenance source digest/inventory"
+  ],
+  "limitation": "Not all failed CI jobs independently triaged; remote rerun required"
+}

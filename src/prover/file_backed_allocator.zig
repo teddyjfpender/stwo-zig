@@ -91,7 +91,10 @@ pub const ReservedFile = struct {
     }
     pub fn map(self: *const ReservedFile, read_only: bool) ![]align(std.heap.page_size_min) u8 {
         if (try self.file.getEndPos() != self.size) return error.ReservedFileLengthMismatch;
-        const protection: u32 = @intCast(if (read_only) std.posix.PROT.READ else std.posix.PROT.READ | std.posix.PROT.WRITE);
+        const protection: u32 = if (read_only)
+            @intCast(std.posix.PROT.READ)
+        else
+            @intCast(std.posix.PROT.READ | std.posix.PROT.WRITE);
         return std.posix.mmap(null, self.size, protection, .{ .TYPE = .SHARED }, self.file.handle, 0);
     }
     pub fn deinit(self: *ReservedFile) void {

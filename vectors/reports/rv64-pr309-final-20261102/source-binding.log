@@ -1,0 +1,4 @@
+team A coverage: 24/24 production-AIR proved of 46 admitted opcodes; Sail bindings generated-input=24, generated-retirement=24, reviewed=0, unbound=0
+team A AIR bindings: 24 exact selector programs match their certificates; all 24 match the exact fresh 46-program unsigned export
+team A certificates: 120 named theorem slots resolve to their Lean namespaces
+team A raw-column guard: 8 high-risk family models do not bake architectural outputs into production columns
