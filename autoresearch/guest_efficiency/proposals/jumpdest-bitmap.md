@@ -41,6 +41,24 @@ At zero service cost the bits would be 61,754 (scored); the estimate adds 97
 bits/gas. Even the pessimistic end of the range (25 cells/byte, 60,000 per
 call) adds ~200, so the bits saving holds (-4.0%).
 
+## Admitted result (merged head b83ca8577, 2026-11-02)
+
+`bench.py run --set all`, profile `ethereum_services_v3` (promotable), all
+guards G1-G6 pass, exact outputs on all 15 blocks. Reference = the v3 client
+without the service (`--v3-set sha,arith,mem,umem,keccak`), which reproduces the
+coordinator's baseline exactly; the new default `--profile v3` adds `jumpdest`.
+JUMPDEST priced with `calibration.json admitted_services.jumpdest_bitmap`
+(layout-exact from the verified fixture, table amortized; not yet a
+complete-block cost.json).
+
+| Set | instr/gas | committed bits/gas |
+|---|---|---|
+| scored | 4.060 -> **3.778** (-6.9%) | 54,544 -> **51,817** (-5.0%) |
+| holdout | 3.440 -> 3.236 (-5.9%) | 46,051 -> 44,072 (-4.3%) |
+| all | 3.937 -> 3.671 | 52,867 -> 50,289 |
+
+4,365 calls, 42.53 MB of code on the 15 blocks.
+
 ## ABI
 
 `a0` = 8-aligned packet of three LE u64 `code, len, bitmap`; `a7 = 0x0003_0040`;
