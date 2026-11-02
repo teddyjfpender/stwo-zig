@@ -194,7 +194,12 @@ const Run = struct {
             timing.?.stage1_ns = clock.read();
         };
         if (index < self.setups.len) {
-            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
+            var source = blk: {
+                // Observation only (lane rusage); never proof authority.
+                var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
+                defer scope.end();
+                break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
+            };
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
