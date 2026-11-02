@@ -112,3 +112,32 @@ this commit.
 - `native.blsRInv` is a comptime constant; trace generation calls `fill`
   three times per row (counts, MAIN, interaction) — fine for correctness, slow.
 - Truth width: BLS G1 rows are ~3.5k cells; MAX_LOG 16 per span.
+
+## Resumed 2026-11-02 (branch codex/rv64-ge-curves)
+
+Merged origin/codex/rv64-guest-efficiency up to 451262b99 (sponge, throughput
+Keccak truth, unaligned bulk, admitted jumpdest_bitmap). The arith384_mont
+even-modulus / non-canonical-q test was fixed in c6da0a754 (test forger bug,
+no AIR change) and passes on the merged head. Verified (ReleaseSafe,
+memguard): curves-truth, word16-curves-services, word16-v3-services,
+word16-combined-services, word16-memory (writer inventory guard pins the
+curve kinds; joint write induction section 11 table row + 11.3 note),
+word16-global-execution, ethereum-chain, word16-jumpdest-services,
+word16-sponge-services, word16-bulk-services, execution. Byte identity:
+`rv64-word16-combined-services-fixture produce` = golden v2 (7 files,
+bundle.json be49c88c); `produce-v3 sha256` (e97771c4) and `produce-v3 all`
+(4033a916) identical to the pre-curves references; this receiver verifies all
+three reference bundles.
+
+Client: `bn,bls` are now in the default v3 set. Default-set code/data is
+unchanged by the curve routing when bn,bls are off (all allocated ELF sections
+of `--v3-set sha,arith,mem,umem,keccak,jumpdest` equal those of the origin
+client build; only debug info/symtab paths differ). Basket (15 blocks,
+--profile ethereum_services_v3, executor from this tree, all guards G1-G6,
+exact outputs): scored 3.778 -> 3.283 instr/gas, 51,817 -> 46,463 bits/gas;
+8 blocks use the curve services (-3.0% .. -30.2% instructions).
+
+Costs in calibration.json are FIXTURE GEOMETRY (truth padded per basket block
+as plan.zig spans it, bridge x 1/ln 2), not complete-block measurements; a
+complete-block proof of a curve-heavy block (e.g. 26,235,168) should replace
+them (coordinator schedules). Recursion support for curves: not started.

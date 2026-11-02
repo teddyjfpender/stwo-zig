@@ -19,10 +19,12 @@ arith, mem, umem for ablations: `mem` = aligned memcpy/memset, `umem` =
 unaligned-source memcpy and memcmp, default on; the aligned-only client is
 `--v3-set sha,arith,mem`, ELF suffix `-v3-sha-arith-mem`; add `keccak` for the
 admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`; `jumpdest` = the
-JUMPDEST analysis service, patches 0028/0029, default on; add `bn` (needs
-`arith`) for the admitted BN254 G1 add/double and Fq2 services behind
-ecAdd/ecMul/ecPairing, and `bls` for the admitted BLS12-381 Fp2 and 384-bit
-Montgomery (arith384_mont) services behind blst: EIP-2537 and KZG).
+JUMPDEST analysis service, patches 0028/0029, default on; `bn` (needs
+`arith`) = the admitted BN254 G1 add/double and Fq2 services behind
+ecAdd/ecMul/ecPairing, and `bls` = the admitted BLS12-381 Fp2 and 384-bit
+Montgomery (arith384_mont) services behind blst (EIP-2537 and KZG), both
+default on; drop them for the pre-curves client, ELF suffix
+`-v3-sha-arith-mem-umem-keccak-jumpdest`).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
@@ -325,7 +327,7 @@ def main(argv=None):
     ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
                     help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
                          "(SHA-256, arith256_mod, bulk memory incl. unaligned memcpy and memcmp); candidate = execution-only")
-    ap.add_argument("--v3-set", default="sha,arith,mem,umem,keccak,jumpdest",
+    ap.add_argument("--v3-set", default="sha,arith,mem,umem,keccak,jumpdest,bn,bls",
                     help="admitted v3 service groups for --profile v3 (sha, arith, mem, jumpdest = JUMPDEST analysis, keccak = Keccak-256 sponge, "
                          "umem = unaligned-source memcpy and memcmp, needs mem, "
                          "bn = BN254 G1/Fq2 [needs arith], bls = BLS12-381 Fp2 + arith384_mont)")
@@ -379,7 +381,7 @@ def main(argv=None):
         raise SystemExit("v3 service group 'bn' needs 'arith' (plain-form Fq)")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")
-    v3_tag = "v3" if sorted(v3_groups) == ["arith", "jumpdest", "keccak", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "bls", "bn", "jumpdest", "keccak", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
     variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
                else "candidate-" + a.candidate_set.replace(",", "-"))
     isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa
