@@ -29,3 +29,9 @@ export fn rv64_test_channel(context: *Context, lane: u32, state: *const @import(
     channel.draw(1, output.*, 3, boundary.*) catch return 1;
     return 0;
 }
+
+export fn rv64_test_batch(context: *Context, lane: u32, input: *const @import("rv64/batch.zig").Input, work: *const @import("rv64/batch.zig").Workspace) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    _ = @import("rv64/batch.zig").enqueue(&commands, input.*, work.*) catch return 1;
+    return 0;
+}

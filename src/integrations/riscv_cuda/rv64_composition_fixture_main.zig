@@ -14,20 +14,8 @@ fn random(rng: std.Random) O {
     for (&coords) |*v| v.* = M.fromCanonical(rng.uintLessThan(u32, 2147483647));
     return O.fromM31Array(coords);
 }
-fn words(w: anytype, values: []const u32) !void {
-    for (values) |v| {
-        var bytes: [4]u8 = undefined;
-        std.mem.writeInt(u32, &bytes, v, .little);
-        try w.writeAll(&bytes);
-    }
-}
-fn felts(w: anytype, values: []const O) !void {
-    for (values) |v| {
-        var row: [8]u32 = undefined;
-        for (v.toM31Array(), &row) |c, *out| out.* = c.v;
-        try words(w, &row);
-    }
-}
+const words = @import("rv64/fixture_io.zig").words;
+const felts = @import("rv64/fixture_io.zig").felts;
 fn public(role: Main.Role) Main.PublicFor(O) {
     return switch (role) {
         .cpu => .{ .cpu = .{ .steps = 3, .initial_pc = .{ 4096, 0, 0, 0 }, .final_pc = .{ 4108, 0, 0, 0 }, .epoch = 1 } },

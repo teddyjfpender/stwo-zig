@@ -101,28 +101,32 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     return .{ .terminal_mask = work.terminal_mask, .terminal = current, .rounds = variables, .state = work.state, .records = work.records };
 }
 
-const Reservations = struct {
-    const Range = struct { begin: usize, end: usize, write: bool };
-    ranges: [20]Range = undefined,
-    used: usize = 0,
-    fn slice(self: *Reservations, context: anytype, s: Slice, words: usize, write: bool) !void {
-        _ = try context.deviceSlicePointer(u32, s, words);
-        const bytes = try std.math.mul(usize, words, 4);
-        const end = try std.math.add(usize, s.address, bytes);
-        for (self.ranges[0..self.used]) |r| {
-            if ((write or r.write) and s.address < r.end and r.begin < end) return error.OverlappingWorkspace;
+const Reservations = ReservationSet(20);
+pub fn ReservationSet(comptime capacity: usize) type {
+    return struct {
+        const Self = @This();
+        const Range = struct { begin: usize, end: usize, write: bool };
+        ranges: [capacity]Range = undefined,
+        used: usize = 0,
+        pub fn slice(self: *Self, context: anytype, s: Slice, words: usize, write: bool) !void {
+            _ = try context.deviceSlicePointer(u32, s, words);
+            const bytes = try std.math.mul(usize, words, 4);
+            const end = try std.math.add(usize, s.address, bytes);
+            for (self.ranges[0..self.used]) |r| {
+                if ((write or r.write) and s.address < r.end and r.begin < end) return error.OverlappingWorkspace;
+            }
+            if (self.used == self.ranges.len) return error.ReservationCapacity;
+            self.ranges[self.used] = .{ .begin = s.address, .end = end, .write = write };
+            self.used += 1;
         }
-        if (self.used == self.ranges.len) return error.ReservationCapacity;
-        self.ranges[self.used] = .{ .begin = s.address, .end = end, .write = write };
-        self.used += 1;
-    }
-    fn plane(self: *Reservations, context: anytype, p: R.Plane, n: u32, coordinates: u32, write: bool) !void {
-        if (p.stride < n or p.coordinates != coordinates) return error.InvalidPlane;
-        try self.slice(context, p.data, try std.math.mul(usize, p.stride, coordinates), write);
-    }
-    fn fraction(self: *Reservations, context: anytype, f: R.Fraction, n: u32, write: bool) !void {
-        if (f.count != n or (f.n.coordinates != 1 and f.n.coordinates != 8) or (write and f.n.coordinates != 8)) return error.InvalidGeometry;
-        try self.plane(context, f.n, n, f.n.coordinates, write);
-        try self.plane(context, f.d, n, 8, write);
-    }
-};
+        pub fn plane(self: *Self, context: anytype, p: R.Plane, n: u32, coordinates: u32, write: bool) !void {
+            if (p.stride < n or p.coordinates != coordinates) return error.InvalidPlane;
+            try self.slice(context, p.data, try std.math.mul(usize, p.stride, coordinates), write);
+        }
+        pub fn fraction(self: *Self, context: anytype, f: R.Fraction, n: u32, write: bool) !void {
+            if (f.count != n or (f.n.coordinates != 1 and f.n.coordinates != 8) or (write and f.n.coordinates != 8)) return error.InvalidGeometry;
+            try self.plane(context, f.n, n, f.n.coordinates, write);
+            try self.plane(context, f.d, n, 8, write);
+        }
+    };
+}

@@ -73,3 +73,18 @@ pub const channel_state_words = 16;
 pub extern "c" fn stwo_rv64_channel_init_on(*anyopaque, u32, [*]u32, [*]const u32, u64) c_int;
 pub extern "c" fn stwo_rv64_channel_mix_on(*anyopaque, u32, [*]u32, u32, u64, u64, ?[*]const u32, u32, u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_channel_draw_on(*anyopaque, u32, [*]u32, u32, u64, u64, u32, [*]u32, [*]u32) c_int;
+
+pub const batch_max_oracles = 64;
+pub const batch_state_words = 1644;
+pub const BatchOracle = extern struct {
+    raw: ?[*]const u32,
+    raw_stride: u64,
+    variables: u32,
+    reserved: u32 = 0,
+};
+comptime {
+    if (@sizeOf(BatchOracle) != 24 or @offsetOf(BatchOracle, "variables") != 16) @compileError("RV64 mixed oracle ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_batch_init_on(*anyopaque, u32, [*]u32, [*]const u32, [*]const u32, [*]const u32, [*]const BatchOracle, u32, u32) c_int;
+pub extern "c" fn stwo_rv64_batch_round_on(*anyopaque, u32, [*]u32, [*]const BatchOracle, u32, u32, u32, [*]const u32, [*]u32) c_int;
+pub extern "c" fn stwo_rv64_batch_mask_on(*anyopaque, u32, Plane, Plane, [*]u32) c_int;

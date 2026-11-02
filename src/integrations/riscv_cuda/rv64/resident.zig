@@ -51,6 +51,7 @@ pub const TailJob = struct {
     variables: u32,
     first: u32,
 };
+pub const BatchOracle = struct { raw: ?Plane = null, variables: u32 };
 pub const NativeCommands = Commands(runtime.NativeContext, abi);
 
 /// Borrow the context, assigned lane and all buffer owners until joined.
@@ -245,6 +246,43 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             try self.result(Api.stwo_rv64_sumcheck_tail_on(owner, self.lane_index, &packet, @intCast(jobs.len)), 1);
         }
 
+        fn batchDescriptors(self: *Self, oracles: []const BatchOracle, variables: u32) ![abi.batch_max_oracles]abi.BatchOracle {
+            if (oracles.len == 0 or oracles.len > abi.batch_max_oracles or variables > 27) return error.InvalidGeometry;
+            var out: [abi.batch_max_oracles]abi.BatchOracle = undefined;
+            var largest: u32 = 0;
+            for (oracles, 0..) |oracle, j| {
+                if (oracle.variables > variables) return error.InvalidGeometry;
+                largest = @max(largest, oracle.variables);
+                if (oracle.variables == 0) {
+                    if (oracle.raw != null) return error.InvalidPlane;
+                    out[j] = .{ .raw = null, .raw_stride = 0, .variables = 0 };
+                } else {
+                    const raw = oracle.raw orelse return error.InvalidPlane;
+                    try raw.shape(2, 8);
+                    const bound = try raw.bind(self.context);
+                    out[j] = .{ .raw = bound.words, .raw_stride = bound.stride, .variables = oracle.variables };
+                }
+            }
+            if (largest != variables) return error.InvalidGeometry;
+            return out;
+        }
+        pub fn initBatch(self: *Self, state: Slice, seed: Slice, claims: Slice, alpha: Slice, oracles: []const BatchOracle, variables: u32) !void {
+            const desc = try self.batchDescriptors(oracles, variables);
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_batch_init_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.batch_state_words), try self.context.deviceSlicePointer(u32, seed, 9), try self.context.deviceSlicePointer(u32, claims, 8 * oracles.len), try self.context.deviceSlicePointer(u32, alpha, 8), &desc, @intCast(oracles.len), variables), 1);
+        }
+        pub fn batchRound(self: *Self, state: Slice, oracles: []const BatchOracle, variables: u32, expected: u32, point: Slice, record: Slice) !void {
+            if (expected >= variables) return error.InvalidGeometry;
+            const desc = try self.batchDescriptors(oracles, variables);
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_batch_round_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.batch_state_words), &desc, @intCast(oracles.len), variables, expected, try self.context.deviceSlicePointer(u32, point, 8 * variables), try self.context.deviceSlicePointer(u32, record, abi.round_record_words)), 1);
+        }
+        pub fn packBatchMask(self: *Self, input: Fraction, output: Slice) !void {
+            try input.validate();
+            if (input.count != 2) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_batch_mask_on(owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32)), 1);
+        }
         pub fn initSumcheck(self: *Self, state: Slice, seed: Slice, claim: Slice, variables: u32) !void {
             if (variables == 0 or variables > 27) return error.InvalidGeometry;
             const owner = try self.handle();

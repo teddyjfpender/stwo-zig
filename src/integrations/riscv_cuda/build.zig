@@ -61,6 +61,17 @@ pub fn build(b: *std.Build) void {
     const run_fixture = b.addRunArtifact(fixture);
     if (b.args) |args| run_fixture.addArgs(args);
     b.step("rv64-composition-fixtures", "Export OM31 CUDA equations and native numerical fixtures").dependOn(&run_fixture.step);
+    const batch_root = b.createModule(.{
+        .root_source_file = b.path("rv64_batch_fixture_main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    batch_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    batch_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const batch_fixture = b.addExecutable(.{ .name = "rv64-batch-fixtures", .root_module = batch_root });
+    const run_batch = b.addRunArtifact(batch_fixture);
+    if (b.args) |args| run_batch.addArgs(args);
+    b.step("rv64-batch-fixtures", "Export native mixed-height OM31 sumcheck fixtures").dependOn(&run_batch.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
