@@ -164,20 +164,31 @@ pub fn ForField(comptime S: type) type {
                     return;
                 }
                 if (len == 0) return;
+                var row_phase = @import("wide_phase_profile.zig").Scope.begin(S, "row_parts", len);
+                var points_ns: u64 = 0;
+                var inverse_ns: u64 = 0;
+                var finalize_ns: u64 = 0;
+                defer row_phase.endRows(points_ns, inverse_ns, finalize_ns);
                 var walk = Walk.init(self.domain, self.lifting_log_size, start);
                 var offset: usize = 0;
                 while (offset < len) {
                     const count: usize = @min(self.scratch_plan.rows, len - offset);
                     const cells = count * self.batches.len; // checked capacity at init
+                    const points_start = row_phase.readNs();
                     for (self.scratch_points[0..count]) |*point| point.* = walk.next();
+                    const inverse_start = row_phase.readNs();
+                    points_ns += inverse_start - points_start;
                     // The original core quadratic denominator law, with ONE
                     // bounded cross-row batch inverse. Zero-weight poles are
                     // never omitted and no challenge is redrawn on failure.
                     try self.workspace.prepareDenominatorInversesForRowsBatchMajor(self.scratch_points[0..count], self.scratch_denominators[0..cells], self.scratch_inverses[0..cells]);
+                    const finalize_start = row_phase.readNs();
+                    inverse_ns += finalize_start - inverse_start;
                     if (S == core.fields.om31.OM31) {
                         var output: [DEGREE][]M = undefined;
                         for (&output, coordinates) |*target, plane| target.* = plane[offset..][0..count];
                         try @import("wide_row_finalize.zig").finalizeRows(&self.constants, self.groups.groups, start + offset, self.scratch_points[0..count], self.scratch_inverses[0..cells], &output);
+                        finalize_ns += row_phase.readNs() - finalize_start;
                         offset += count;
                         continue;
                     }
@@ -193,6 +204,7 @@ pub fn ForField(comptime S: type) type {
                             try Q.finalizeRowQuotients(&self.constants, point.y, self.workspace.batch_numerators, self.workspace.denominator_inverses);
                         for (value.toM31Array(), 0..) |v, i| coordinates[i][offset + r] = v;
                     }
+                    finalize_ns += row_phase.readNs() - finalize_start;
                     offset += count;
                 }
             }

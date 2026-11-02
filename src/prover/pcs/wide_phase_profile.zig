@@ -8,6 +8,15 @@ pub const Scope = struct {
     pub fn begin(comptime S: type, label: []const u8, count: usize) Scope {
         return .{ .label = label, .count = count, .timer = if (S == core.fields.om31.OM31 and std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_WIDE_QUOTIENT")) std.time.Timer.start() catch null else null };
     }
+    pub fn readNs(self: *Scope) u64 {
+        return if (self.timer) |*timer| timer.read() else 0;
+    }
+    pub fn endRows(self: *Scope, points_ns: u64, inverse_ns: u64, finalize_ns: u64) void {
+        if (self.timer != null) {
+            self.timer = null;
+            std.debug.print("OM_DEEP_ROWS rows={d} points_ns={d} inverse_ns={d} finalize_ns={d}\n", .{ self.count, points_ns, inverse_ns, finalize_ns });
+        }
+    }
     pub fn end(self: *Scope) void {
         if (self.timer) |*timer| {
             const elapsed = timer.read();
