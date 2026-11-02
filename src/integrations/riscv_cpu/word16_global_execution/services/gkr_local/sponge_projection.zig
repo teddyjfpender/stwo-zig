@@ -5,8 +5,9 @@ const K = A.crypto.keccak_sponge;
 const E = A.evaluation;
 const Counts = struct { local: u32 = 0, ram: u32 = 0, kio: u32 = 0 };
 pub fn emitLocalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: u32, sink: anytype) void {
+    const Target = @TypeOf(sink);
     const Route = struct {
-        target: @TypeOf(sink),
+        target: Target,
         pub fn emit(self: *@This(), comptime relation: u3, tuple: anytype, weight: F) void {
             switch (relation) {
                 K.equations.RAM, K.equations.IO => {},
@@ -22,8 +23,9 @@ pub fn emitLocalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []con
     K.equations.emitRawFor(F, kind, fixed, main, first_id, &route);
 }
 pub fn emitGlobalFor(comptime F: type, comptime kind: K.layout.Kind, fixed: []const F, main: []const F, first_id: u32, sink: anytype) void {
+    const Target = @TypeOf(sink);
     const Route = struct {
-        target: @TypeOf(sink),
+        target: Target,
         pub fn emit(self: *@This(), comptime relation: u3, tuple: anytype, weight: F) void {
             switch (relation) {
                 K.equations.RAM => self.target.emit(.ram, tuple, weight),
