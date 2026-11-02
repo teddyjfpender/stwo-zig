@@ -16,7 +16,9 @@ const Point = core.circle.CirclePointQM31;
 const air = core.air.components;
 const cp = engine.air.component_prover;
 const accumulation = engine.air.accumulation;
-pub const Kind = enum { binary, expected, and_table, expected_main };
+/// `and_pair_table`: the AND table that also serves the CPU's tagged byte
+/// pairs (Geometry.cpu_u8_pairs); one extra multiplicity column.
+pub const Kind = enum { binary, expected, and_table, expected_main, and_pair_table };
 pub const ExpectedRoster = Expected.Roster;
 pub const expectedRosterDigest = Expected.digest;
 pub const expectedMainFixed = Expected.fixed;
@@ -40,6 +42,7 @@ pub const Component = struct {
             .binary => .{ 2, P.MAIN, P.INTERACTION },
             .expected => .{ 16, 0, 8 },
             .and_table => .{ 5, 1, 8 },
+            .and_pair_table => .{ 5, 2, 8 },
             .expected_main => .{ Expected.FIXED, Expected.WIDTH, 8 },
         };
     }
@@ -48,6 +51,7 @@ pub const Component = struct {
             .binary => P.CONSTRAINTS,
             .expected => 3,
             .and_table => Tables.N_CONSTRAINTS,
+            .and_pair_table => Tables.N_PAIR_CONSTRAINTS,
             .expected_main => 18,
         };
     }
@@ -110,6 +114,10 @@ pub const Component = struct {
             },
             .and_table => {
                 const residuals = Tables.evaluateFor(F, fixed[0..3], fixed[3], fixed[4], main[0], E.secureFor(F, inter, 0), E.secureFor(F, inter, 4), E.secureFor(F, previous, 4), self.claims.and_, self.challenges.and_);
+                for (residuals) |value| sink.emit(value);
+            },
+            .and_pair_table => {
+                const residuals = Tables.evaluatePairFor(F, fixed[0..3], fixed[3], fixed[4], main[0], main[1], E.secureFor(F, inter, 0), E.secureFor(F, inter, 4), E.secureFor(F, previous, 4), self.claims.and_, self.challenges.and_);
                 for (residuals) |value| sink.emit(value);
             },
             .expected_main => {

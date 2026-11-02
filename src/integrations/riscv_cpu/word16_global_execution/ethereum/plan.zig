@@ -17,7 +17,23 @@ pub fn ladder(count: usize, reserve: u32) !Ladder {
     if ((@as(u64, 1) << @intCast(head)) + (@as(u64, 1) << @intCast(tail)) >= (@as(u64, 1) << @intCast(full))) return .{ .head = full };
     return .{ .head = head, .tail = tail };
 }
-pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration {
+/// CPU AIR layout options chosen by the producer route. Every option is part of
+/// `Geometry`, so it is mixed into each CPU transcript and published in the
+/// declaration; the receiver rebuilds keys from the declared geometry.
+pub const CpuLayout = struct {
+    /// Fused-tail CPU interaction (40 -> 36 columns, same LogUp statement).
+    fused_tail: bool = false,
+    /// Byte-pair CPU lookups on top of the fused tail (36 -> 32 columns).
+    u8_pairs: bool = false,
+    /// Default layout for a profile route. Only the admitted
+    /// `ethereum_services_v3` route defaults to the fused tail; every older
+    /// route keeps its historical layout and bundle bytes.
+    pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
+        const v3 = profile == .ethereum_services_v3;
+        return .{ .fused_tail = v3, .u8_pairs = v3 };
+    }
+};
+pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
     const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
     errdefer a.free(out);
     const boundary = try Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len));
@@ -38,6 +54,8 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         g.boundary_log = 5;
         g.initial_log = if (i == 0) boundary else 5;
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
+        g.cpu_fused_tail = layout.fused_tail;
+        g.cpu_u8_pairs = layout.u8_pairs;
         d.* = .{ .geometry = g, .bridges = .{} };
         const k = captured.advice.keccak[i].len;
         const add = captured.advice.secp[i][0].len;

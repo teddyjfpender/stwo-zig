@@ -210,7 +210,7 @@ pub fn main() !void {
     const capture_cache_released = recycler.releaseCached();
     // The OM GKR route and its capture diagnostics are v2-only; reject v3 advice here.
     try @import("../services/gkr_local/v2_scope.zig").advice(&captured.advice);
-    const cpu = try Plan.cpus(a, &captured);
+    const cpu = try Plan.cpus(a, &captured, .{});
     defer a.free(cpu);
     const truths = try Plan.truthsWithKeccakMaxLog(a, &captured, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);

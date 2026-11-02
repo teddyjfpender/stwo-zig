@@ -31,6 +31,10 @@ pub fn bridgeTerms(family: @import("../types.zig").Family) u32 {
 }
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
     try @import("v2_scope.zig").setup(setup);
+    // The local GKR lane replaces the CPU LogUp interaction with its own
+    // term layout (`terms(.cpu)`); it has no fused-tail variant. Fail closed
+    // rather than silently ignore a declared CPU interaction layout.
+    if (setup.materials.geometry.cpu_fused_tail) return error.UnsupportedFusedTailInLocalGkr;
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {

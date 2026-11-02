@@ -92,6 +92,8 @@ pub const Source = struct {
         }
         var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
         errdefer cpu.deinit();
+        cpu.fused_tail = g.cpu_fused_tail;
+        cpu.u8_pairs = g.cpu_u8_pairs;
         var jalr = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_jalr", "Adopt prepared JALR witness");
             defer stage.end();
@@ -154,8 +156,12 @@ pub const Source = struct {
         defer count_stage.end();
         const c16 = try a.dupe(u64, cpu.counts16);
         errdefer a.free(c16);
-        const c8 = try a.dupe(u64, cpu.counts8);
+        // Pair mode: the CPU's gap8 queries go to the AND relation instead.
+        const c8 = if (g.cpu_u8_pairs) try a.alloc(u64, 256) else try a.dupe(u64, cpu.counts8);
         errdefer a.free(c8);
+        if (g.cpu_u8_pairs) @memset(c8, 0);
+        const pair_counts = if (g.cpu_u8_pairs) try cpuPairCounts(a, &cpu) else null;
+        defer if (pair_counts) |data| a.free(data);
         try addCounts(c16, alu.range16_counts);
         try addCounts(c16, shift.range16_counts);
         if (tails.alu) |tail| try addCounts(c16, tail.range16_counts);
@@ -186,7 +192,8 @@ pub const Source = struct {
         var and_table = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_and_table", "AND multiplicities");
             defer stage.end();
-            break :blk try A.providers.tables.Request.init(a, &materials.and_table, and_counts orelse binary.and_counts);
+            const counts = and_counts orelse binary.and_counts;
+            break :blk if (pair_counts) |pairs| try A.providers.tables.Request.initWithPairs(a, &materials.and_table, counts, pairs) else try A.providers.tables.Request.init(a, &materials.and_table, counts);
         };
         errdefer and_table.deinit();
         var shift_table = blk: {
@@ -287,7 +294,7 @@ pub const Source = struct {
         const cpu = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_cpu", "CPU register function ROM and range interactions");
             defer stage.end();
-            break :block try self.cpu.generate(ch.cpu, .{ .rom = self.rom.dictionary, .range16 = self.range16.dictionary, .range8 = self.range8.dictionary });
+            break :block try self.cpu.generate(ch.cpu, .{ .rom = self.rom.dictionary, .range16 = self.range16.dictionary, .range8 = self.range8.dictionary, .pair = self.and_table.pair_dictionary, .pair_challenges = if (self.cpu.u8_pairs) ch.and_ else null });
         };
         const alu = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_alu", "ALU interactions");
@@ -423,6 +430,26 @@ fn addCounts(out: []u64, input: []const u64) !void {
 
 /// Canonical physical values only; this helper deliberately certifies no debt
 /// closure. Accepting receivers must additionally enforce their complete roster.
+/// Byte-pair multiplicities (x*256+y) of the CPU's (gap8_0, gap8_1) and
+/// (gap8_2, 0) queries over every physical row, padding included (weight one).
+fn cpuPairCounts(a: std.mem.Allocator, cpu: *const CPU.Source) ![]u64 {
+    const n = cpu.size();
+    const gap8 = A.word16_execution.layout.main.gap8;
+    if (cpu.main.len != A.word16_execution.layout.main.COUNT * n) return error.InvalidExecutionSourcePhase;
+    const counts = try a.alloc(u64, 65536);
+    errdefer a.free(counts);
+    @memset(counts, 0);
+    for (0..n) |p| {
+        var g: [3]u32 = undefined;
+        for (&g, 0..) |*value, slot| {
+            value.* = cpu.main[(gap8 + slot) * n + p].v;
+            if (value.* > 255) return error.InvalidExecutionRow;
+        }
+        counts[g[0] * 256 + g[1]] += 1;
+        counts[g[2] * 256] += 1;
+    }
+    return counts;
+}
 pub fn validateCanonicalClaims(claims: P.Claims) !void {
     if (!claims.initial.range16.isZero() or !claims.terminal.range16.isZero() or !claims.initial.range8.isZero() or !claims.terminal.range8.isZero()) return error.NonzeroOmittedBoundaryRangeClaim;
     const values = claims.values();

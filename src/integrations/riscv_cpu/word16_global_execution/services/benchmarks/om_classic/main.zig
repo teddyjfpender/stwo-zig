@@ -120,7 +120,7 @@ pub fn main() !void {
     defer jobs.close();
     var captured = try Capture.init(a, &image, &program, request.value, jobs, 1);
     defer captured.deinit();
-    const cpu = try Plan.cpus(a, &captured);
+    const cpu = try Plan.cpus(a, &captured, .{});
     defer a.free(cpu);
     const truths = try Plan.truths(a, &captured);
     defer a.free(truths);

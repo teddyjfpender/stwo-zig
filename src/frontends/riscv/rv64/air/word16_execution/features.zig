@@ -146,3 +146,25 @@ pub fn identity() [32]u8 {
     };
     return hash.finalResult();
 }
+
+/// Separate domain for the opt-in byte-pair CPU interaction. Mixed ONLY when
+/// Geometry.cpu_u8_pairs is set (always on top of the fused-tail identity).
+pub fn pairIdentity() [32]u8 {
+    const std = @import("std");
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.word16-execution.full64.u8-pairs.v1:inter32/D3/residuals50;REG3=fraction(R*b*a=w*(a-b));FUNCTION=fraction(G*d=function);ROM=fraction(H*d=active);OWNER+U16=fraction(F*d0*d1=d0+w*d1);U16x2=fraction(K*d2*d3=d2+d3);U8PAIRS=AND-relation tagged (x,y,0,1): (g0,g1),(g2,0) fused((S-S'+claim*first-C7)*p0*p1-(p0+p1));AND-table=pair-inverse(I*d*p=1),term=(m*p+m_pair*d)*I");
+    const base = fusedTailIdentity();
+    hash.update(&base);
+    return hash.finalResult();
+}
+
+/// Separate domain for the opt-in fused-tail CPU interaction. Mixed ONLY when
+/// Geometry.cpu_fused_tail is set, so the historical transcript is unchanged.
+pub fn fusedTailIdentity() [32]u8 {
+    const std = @import("std");
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.word16-execution.full64.fused-tail.v1:inter36/D3/residuals51;REG3=fraction(R*b*a=w*(a-b));OWNER+U16=fraction(F*d0*d1=d0+w*d1);FUNCTION,ROM,U16x2,U8x2=strict-inverse;U8-single=fused((S-S'+claim*first-C8)*d6-1)");
+    const base = identity();
+    hash.update(&base);
+    return hash.finalResult();
+}
