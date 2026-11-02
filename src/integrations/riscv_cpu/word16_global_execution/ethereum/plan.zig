@@ -23,11 +23,14 @@ pub fn ladder(count: usize, reserve: u32) !Ladder {
 pub const CpuLayout = struct {
     /// Fused-tail CPU interaction (40 -> 36 columns, same LogUp statement).
     fused_tail: bool = false,
+    /// Byte-pair CPU lookups on top of the fused tail (36 -> 32 columns).
+    u8_pairs: bool = false,
     /// Default layout for a profile route. Only the admitted
     /// `ethereum_services_v3` route defaults to the fused tail; every older
     /// route keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
-        return .{ .fused_tail = profile == .ethereum_services_v3 };
+        const v3 = profile == .ethereum_services_v3;
+        return .{ .fused_tail = v3, .u8_pairs = v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
@@ -52,6 +55,7 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.initial_log = if (i == 0) boundary else 5;
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
         g.cpu_fused_tail = layout.fused_tail;
+        g.cpu_u8_pairs = layout.u8_pairs;
         d.* = .{ .geometry = g, .bridges = .{} };
         const k = captured.advice.keccak[i].len;
         const add = captured.advice.secp[i][0].len;

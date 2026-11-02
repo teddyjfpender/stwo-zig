@@ -124,7 +124,7 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     if (config.execution_profile == .ethereum_services_v3) return;
     // The fused-tail CPU layout is admitted only on the v3 route. A v2
     // receiver keeps the historical CPU AIR and fails closed on any other.
-    for (cpus) |d| if (d.geometry.cpu_fused_tail) return error.UnadmittedFusedTailCpuLayout;
+    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs) return error.UnadmittedFusedTailCpuLayout;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
     for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
     for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
