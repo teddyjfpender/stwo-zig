@@ -27,6 +27,11 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
     if (dense.gkr_peak_bytes > gkr_limit) return error.LocalGkrBudgetExceeded;
     return .{ .policy = selected, .plan = dense };
 }
+pub fn forCpuWithDeferredBinding(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, base: Child.TreePolicy, threshold: usize, deferred: bool) !CpuPlan {
+    var result = try forCpu(a, setup, request, config, if (deferred) std.math.maxInt(usize) else gkr_limit, global_limit, base, threshold);
+    if (deferred) result.plan = try Retention.withDeferredBinding(result.plan, gkr_limit);
+    return result;
+}
 test "hybrid GKR selector is strict deterministic and rejects conflicting bases" {
     const source = Child.TreePolicy{ .stream_bottom = true, .tight_admission = true };
     try std.testing.expectEqualDeep(source, try resolve(source, 100, 99));

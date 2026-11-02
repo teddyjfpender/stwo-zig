@@ -12,6 +12,9 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
     return exerciseProfile(shard, mode, storage, false);
 }
 pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime storage: Storage, comptime beta2: bool) ![32]u8 {
+    return exerciseWithBinding(shard, mode, storage, beta2, false);
+}
+pub fn exerciseWithBinding(comptime shard: usize, comptime mode: Mode, comptime storage: Storage, comptime beta2: bool, comptime deferred: bool) ![32]u8 {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
     const a = failing.allocator();
     var captured = try F.Captured.init(a);
@@ -49,7 +52,8 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
     const Store = @import("../../retained_main_store.zig").Store;
     var store = if (storage == .fully_parked) try Store.initFullyParked(spill_path, 128 << 20) else try Store.initParked(spill_path, 128 << 20);
     defer store.deinit();
-    const retention = try @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1 << 26);
+    const original_retention = try @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1 << 26);
+    const retention = if (deferred) try @import("retention_plan.zig").withDeferredBinding(original_retention, 2 << 30) else original_retention;
     try std.testing.expectError(error.ClassicWitnessBudgetExceeded, @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1));
     if (shard == 0 and mode == .normal) {
         var bad = config;
@@ -88,6 +92,7 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
     }
     var worker = try Worker.CpuWorker.initWithAuthority(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30, fixed_ptr);
     owns = false;
+    worker.defer_local_binding = deferred;
     var owns_worker = true;
     defer if (owns_worker) worker.deinit(a);
     var native_profile = @import("stwo_prover_api").stage_profile.Recorder.init(a, "rv64", "CPU-worker-stage-scope");
@@ -134,7 +139,7 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
     try std.testing.expectEqual(retention.main_merkle_bytes, retention.main_merkle_node_bytes + retention.main_merkle_descriptor_bytes);
     var binding_bytes: usize = 0;
     for (worker.child.?.binding.columns) |column| binding_bytes += std.mem.sliceAsBytes(column).len;
-    try std.testing.expectEqual(retention.binding_bytes, binding_bytes);
+    try std.testing.expectEqual(if (deferred) retention.projected_binding_bytes else retention.binding_bytes, binding_bytes);
     try std.testing.expectEqual(retention.resident_retained_bytes, retention.parked_retained_bytes + retention.coefficient_bytes);
 
     if (storage != .resident) {
@@ -288,4 +293,14 @@ test "later CPU stage-one OOM unwinds prior parked worker without stale owners" 
 test "beta2 CPU K and ADD DOUBLE physical proofs authenticate independent fixed authority" {
     _ = try exerciseProfile(0, .normal, .fully_parked, true);
     _ = try exerciseProfile(1, .normal, .fully_parked, true);
+}
+
+test "deferred CPU projection completes after retirement and full parking with beta1 beta2 proof parity and abort cleanup" {
+    inline for ([_]bool{ false, true }) |beta2| {
+        const original = try exerciseWithBinding(0, .normal, .fully_parked, beta2, false);
+        const projected = try exerciseWithBinding(0, .normal, .fully_parked, beta2, true);
+        try std.testing.expectEqualSlices(u8, &original, &projected);
+    }
+    _ = try exerciseWithBinding(0, .parked_abort, .fully_parked, false, true);
+    _ = try exerciseWithBinding(0, .later_worker_oom, .fully_parked, false, true);
 }

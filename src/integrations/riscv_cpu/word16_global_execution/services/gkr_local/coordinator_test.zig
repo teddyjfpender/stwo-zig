@@ -41,7 +41,7 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     var observed_policy: @import("child.zig").TreePolicy = undefined;
     var first_trace: [5]@import("../schedule.zig").Trace = undefined;
     var second_trace: [5]@import("../schedule.zig").Trace = undefined;
-    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .observed_tree_policy = &observed_policy, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
+    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .defer_local_binding = true, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .observed_tree_policy = &observed_policy, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
     defer parked.deinit();
     try std.testing.expectEqualDeep(try @import("child.zig").readTreePolicy(a), observed_policy);
     for (timings, 0..) |t, i| {
@@ -51,6 +51,13 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
         try std.testing.expect(t.actual_main_merkle_bytes > 0);
         if (i < 2) {
             try std.testing.expect(t.gkr_ns > 0);
+            const selected = try @import("tree_selection.zig").forCpuWithDeferredBinding(a, parked.keys.cpus[i], parked.bundle.requests[i], try F.config(), 2 << 30, 1 << 30, observed_policy, 0, true);
+            try std.testing.expectEqual(selected.plan.projected_binding_bytes + selected.plan.binding_descriptor_bytes, t.retained_local_binding_bytes);
+            try std.testing.expectEqual(selected.plan.gkr_peak_bytes, t.admitted_gkr_peak_bytes);
+            try std.testing.expectEqual(t.retained_local_binding_bytes, t.retained_local_projection_bytes);
+            try std.testing.expectEqual(selected.plan.binding_bytes + selected.plan.binding_descriptor_bytes, t.final_local_binding_bytes);
+            try std.testing.expectEqual(t.retained_local_projection_bytes + t.final_local_binding_bytes, t.deferred_binding_overlap_bytes);
+            try std.testing.expect(t.local_binding_completed and t.gkr_peak_including_final_binding_bytes <= t.admitted_gkr_peak_bytes);
             try std.testing.expect(t.numerical_requested_peak_bytes > 0);
             try std.testing.expect(t.including_binding_requested_peak_bytes >= t.numerical_requested_peak_bytes);
             try std.testing.expect(t.including_binding_requested_peak_bytes <= t.admitted_gkr_peak_bytes);

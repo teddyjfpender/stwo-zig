@@ -9,6 +9,15 @@ pub const Plan = struct {
     metadata_bytes: usize = 0,
     binding_bytes: usize = 0,
     peak_bytes: usize = 0,
+    /// Projected8 and completed16 allocations coexist until a successful
+    /// stage-two ownership swap: base64 +extra32 bytes/row and second headers.
+    pub fn withDeferredBinding(self: Plan, instances: usize, limit: usize) !Plan {
+        var out = self;
+        const extra = try std.math.add(usize, self.binding_bytes / 2, try std.math.mul(usize, instances, @sizeOf([]@import("stwo_core").fields.m31.M31)));
+        out.peak_bytes = try std.math.add(usize, self.peak_bytes, extra);
+        if (out.peak_bytes > limit) return error.LocalGkrBudgetExceeded;
+        return out;
+    }
     pub fn forInstances(instances: []const Instance, limit: usize) !Plan {
         return forInstancesWithOwnedCheckpoints(instances, limit, false);
     }

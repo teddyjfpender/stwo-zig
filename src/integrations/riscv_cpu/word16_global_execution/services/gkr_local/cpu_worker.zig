@@ -133,6 +133,7 @@ pub const CpuWorker = struct {
     child: ?*Child.Unbound = null,
     gkr_budget: usize,
     tree_policy: ?Child.TreePolicy = null,
+    defer_local_binding: bool = false,
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
@@ -156,8 +157,9 @@ pub const CpuWorker = struct {
         own_expected.local_instances = instances;
         return .{ .allocator = a, .setup = setup, .request = request, .source = source, .expected = own_expected, .instances = instances, .first = first, .config = config, .plan = plan, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null, .gkr_budget = gkr_budget };
     }
-    /// Local fractions and their authenticated binding are durable now. Retain
-    /// only RAM/bridge metadata needed for the later global challenge. Retired
+    /// Local fractions and a durable full binding OR terminal projection exist.
+    /// Their MAIN authentication remains pending until physical verification.
+    /// Retain only RAM/bridge metadata for the later global challenge. Retired
     /// source fields are tombstones and are never read or destroyed again.
     pub fn retireLocalMetadata(self: *CpuWorker) !void {
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
@@ -209,7 +211,7 @@ pub const CpuWorker = struct {
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
         var phase_timing = Child.PhaseTiming{};
         const policy = if (self.tree_policy) |value| value else try Child.readTreePolicy(a);
-        self.child = try Child.Unbound.proveTimedWithPolicy(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, if (self.seal_timing != null) &phase_timing else null);
+        self.child = try Child.Unbound.proveTimedWithBindingStorage(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, self.defer_local_binding, if (self.seal_timing != null) &phase_timing else null);
         if (self.seal_timing) |timing| {
             timing.inputs_ns = phase_timing.inputs_ns;
             timing.numerical_ns = phase_timing.numerical_ns;
@@ -232,6 +234,11 @@ pub const CpuWorker = struct {
         try pending.checkPhysicalRoots(index, self.expected.fixed, root);
         if (index != self.expected.ordinal or !std.mem.eql(u8, &pending.entries[index].scope.statement, &self.expected.statement)) return error.WideCpuStatementMismatch;
         const local = &(pending.entries[index].local orelse return error.WideCpuLocalRequired);
+        {
+            var binding_scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "binding_finalize", "Deferred local Eq/prefix completion");
+            defer binding_scope.end();
+            try self.child.?.completeBinding(self.instances);
+        }
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "CPU global classic interactions");
         defer generation.end();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
@@ -289,7 +296,7 @@ pub const CpuWorker = struct {
         }
         // All allocations and validation completed. Transfer backing ownership once.
         self.consumed = true;
-        const detached = self.child.?.takeBindingBackings();
+        const detached = try self.child.?.takeBindingBackings();
         a.free(detached);
         for (witnesses) |*w| if (w.*) |*v| {
             v.data = &.{};
