@@ -13,14 +13,18 @@ pub const Binding = struct {
     fixed_identity: [32]u8,
     fixed_root: [32]u8,
     source_coefficient_cells: usize,
+    /// Receiver-selected named profile (exact config match at acquire).
+    /// null: legacy beta2 structural family (bytes as before named profiles).
+    profile: ?W.Candidate.Profile,
     pub fn acquire(cache: *const Fixed.Cache, source: anytype, config: W.PcsConfig) !Binding {
-        try W.validateBeta2Config(config);
+        try W.validateCandidateConfig(config);
+        const profile = W.candidateProfile(config);
         if (!std.mem.eql(u8, &source.root, &source.tree.root())) return error.FixedSetupIdentityMismatch;
-        var lease = try cache.acquireFromKey(source, .{ .log_blowup = 2 });
+        var lease = try cache.acquireFromKey(source, .{ .log_blowup = config.fri_config.log_blowup_factor });
         errdefer lease.deinit();
         var cells: usize = 0;
         for (lease.key.tree.coefficients orelse return error.MissingFixedSetupCoefficients) |column| cells = try std.math.add(usize, cells, column.coeffs.len);
-        return .{ .lease = lease, .source_root = source.root, .source_suite = source.suite, .source_columns = source.tree.columns.len, .fixed_identity = lease.key.identity, .fixed_root = lease.key.root, .source_coefficient_cells = cells };
+        return .{ .lease = lease, .source_root = source.root, .source_suite = source.suite, .source_columns = source.tree.columns.len, .fixed_identity = lease.key.identity, .fixed_root = lease.key.root, .source_coefficient_cells = cells, .profile = profile };
     }
     pub fn retain(self: *const Binding) Binding {
         var out = self.*;
@@ -43,10 +47,11 @@ pub const Binding = struct {
             std.mem.eql(u8, &self.source_root, &source.root) and std.mem.eql(u8, &self.source_root, &source.tree.root());
     }
     pub fn require(self: *const Binding, source: *const SourceKey, config: W.PcsConfig) !void {
-        try W.validateBeta2Config(config);
+        try W.validateCandidateConfig(config);
+        if (W.candidateProfile(config) != self.profile) return error.WideCandidateProfileMismatch;
         try source.suite.validate();
         if (!self.matchesSource(source)) return error.FixedSetupIdentityMismatch;
-        try self.lease.key.require(.{ .log_blowup = 2 }, self.fixed_identity, self.fixed_root);
+        try self.lease.key.require(.{ .log_blowup = config.fri_config.log_blowup_factor }, self.fixed_identity, self.fixed_root);
     }
     /// Explicit full coefficient revalidation for a reconstructed/modified
     /// source; not repeated by worker lifecycle operations.
@@ -60,6 +65,9 @@ pub const Binding = struct {
         h.update(&base);
         h.update(&self.fixed_identity);
         h.update(&self.fixed_root);
+        // Named non-legacy profiles bind their identity; the proven profile
+        // keeps its historical statement bytes (old bundles still verify).
+        if (self.profile) |p| if (p.conjectured()) h.update(&W.Candidate.profileIdentity(p));
         var out: [32]u8 = undefined;
         h.final(&out);
         return out;
@@ -71,10 +79,11 @@ pub const Binding = struct {
         W.digest(&ch, tag);
         W.digest(&ch, self.fixed_identity);
         W.digest(&ch, self.fixed_root);
+        if (self.profile) |p| if (p.conjectured()) W.digest(&ch, W.Candidate.profileIdentity(p));
         return ch;
     }
     pub fn append(self: *const Binding, a: std.mem.Allocator, source: anytype, expected: [32]u8, scheme: *W.Scheme, ch: *W.Channel) !void {
         try self.require(source, scheme.config);
-        try self.lease.key.append(a, scheme, ch, .{ .log_blowup = 2 }, self.fixed_identity, expected, scheme.config);
+        try self.lease.key.append(a, scheme, ch, .{ .log_blowup = scheme.config.fri_config.log_blowup_factor }, self.fixed_identity, expected, scheme.config);
     }
 };

@@ -1,6 +1,6 @@
 # Opaque streamed-bottom GKR storage
 
-The qualified opt-in source route removes dense bottom numerator/denominator planes from tree construction and the last two GKR stages. Set `STWO_ZIG_GKR_STREAM_BOTTOM=1`. With `STWO_ZIG_GKR_TREE_CHECKPOINTS` unset it retains dense upper layers; setting that variable to `2` retains only alternating checkpoints. These choices are independent. The conservative non-streamed default remains available. This changes operational storage and replay work, never proof fields, transcript, relation classification, receiver, or security profile.
+The source route removes dense bottom numerator/denominator planes from tree construction and the last two GKR stages. Since 2026-11-02 it is the **default** CPU storage, together with alternating checkpoints (the "source68" path): `STWO_ZIG_GKR_STREAM_BOTTOM` unset/empty/`1` streams, `0` restores the original materialized N/D input planes; `STWO_ZIG_GKR_TREE_CHECKPOINTS` unset/empty takes the default (checkpoints when streaming), `2` forces alternating checkpoints, `1` retains every upper layer (the "source80" dense-upper path). With a nonzero `checkpoint_above_gkr_bytes` hybrid selector the unset checkpoint default resolves to source80, its required base. These choices are independent. This changes operational storage and replay work, never proof fields, transcript, relation classification, receiver, or security profile. Measured default promotion: `vectors/reports/rv64-gkr-memory-20261102/`.
 
 The numerical core accepts an opaque immutable `MultiplicitiesSource` with a variable count and joined raw-range callback. The callback writes at most 64 requested M31 numerator and secure denominator values from the caller's durable source. The frontend adapter maps these physical fact spans to the original NativeProvider and RowSink authority, using one 128-lane row scratch area and exact 0/1 padding. It never reconstructs expanded MAIN columns or stores a full raw plane. Metadata and challenges remain immutable until all joined work returns; no source pointer escapes in the resulting proof or artifact.
 
@@ -11,8 +11,11 @@ All callback errors are collected per scheduler ordinal and inspected after the 
 ## Current resource contract
 
 The frozen source-specific plan charges zero full raw-input bytes and retains a
-conservative **80 bytes per padded fact** for dense-upper storage or **68 bytes
-per padded fact** for checkpoint storage. These are payload terms, not complete
+conservative **80 bytes per padded fact** for dense-upper storage or **52 bytes
+per padded fact** for checkpoint storage (68 before 2026-11-02; the derivation
+of s + s/4 + 3s/8 is next to `SOURCE_CHECKPOINT_BYTES_PER_FACT` in
+`gkr_local/resource.zig`: unstaggered bottom first folds, a nonresizing
+allocator's half-copy and the Eq peak; the checkpoint bank is below 2s/3). These are payload terms, not complete
 process-memory promises. Checked metadata, proof/artifact headers and the larger
 of numerical versus terminal-binding construction phases are added separately.
 Original backing capacity remains charged after logical shrink. Tight modes

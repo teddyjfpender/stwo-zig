@@ -168,7 +168,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
                 }
                 if (comptime local_binding) {
                     var projection = ctx.prepared.?.projection();
-                    component.emitLocalFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], &projection);
+                    if (comptime @hasDecl(Component, "emitLocalWithPreviousFor")) component.emitLocalWithPreviousFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], scratch.previous[0..column_shape.main], &projection) else component.emitLocalFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], &projection);
                     try projection.finish();
                     var next_coords: [8]F = undefined;
                     var prior_coords: [8]F = undefined;

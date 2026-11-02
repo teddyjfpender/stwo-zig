@@ -1,0 +1,24 @@
+42c42
+<     var fri = core.fri.FriConfig.init(0, 2, 256) catch unreachable;
+---
+>     var fri = core.fri.FriConfig.init(0, 1, 436) catch unreachable;
+61c61
+<     for ([_]u64{ 8, 256, 2, 4, 0, MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS, MAX_AUDITED_LOG_WORK }) |n| {
+---
+>     for ([_]u64{ 8, 436, 1, 4, 0, MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS, MAX_AUDITED_LOG_WORK }) |n| {
+30c30
+<     return validateAtRate(config, 2);
+---
+>     return validateAtRate(config, 1); // EXPERIMENT beta1-q436 only
+19c19
+<         var lease = try cache.acquireFromKey(source, .{ .log_blowup = 2 });
+---
+>         var lease = try cache.acquireFromKey(source, .{ .log_blowup = 1 });
+49c49
+<         try self.lease.key.require(.{ .log_blowup = 2 }, self.fixed_identity, self.fixed_root);
+---
+>         try self.lease.key.require(.{ .log_blowup = 1 }, self.fixed_identity, self.fixed_root);
+78c78
+<         try self.lease.key.append(a, scheme, ch, .{ .log_blowup = 2 }, self.fixed_identity, expected, scheme.config);
+---
+>         try self.lease.key.append(a, scheme, ch, .{ .log_blowup = 1 }, self.fixed_identity, expected, scheme.config);

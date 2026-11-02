@@ -62,15 +62,18 @@ pub fn verifyPending(a: std.mem.Allocator, scope: Receipt.Scope, instances: []co
     return .{ .artifact = artifact, .challenges = challenges, .eta = eta, .digest = digest };
 }
 /// Operational storage only: no transcript/profile/statement input changes.
-pub fn parseTreeCheckpoints(value: ?[]const u8) !bool {
-    const text = value orelse return false;
-    if (text.len == 0) return false;
+/// Unset/empty = policy default (null); "2" = stride-two checkpoints; "1" =
+/// every upper layer retained (the pre-default dense-upper storage).
+pub fn parseTreeCheckpoints(value: ?[]const u8) !?bool {
+    const text = value orelse return null;
+    if (text.len == 0) return null;
     if (std.mem.eql(u8, text, "2")) return true;
+    if (std.mem.eql(u8, text, "1")) return false;
     return error.InvalidGkrTreeCheckpointPolicy;
 }
-pub fn treeCheckpoints(a: std.mem.Allocator) !bool {
+pub fn treeCheckpoints(a: std.mem.Allocator) !?bool {
     const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_CHECKPOINTS") catch |err| switch (err) {
-        error.EnvironmentVariableNotFound => return false,
+        error.EnvironmentVariableNotFound => return null,
         else => return err,
     };
     defer a.free(value);
@@ -92,14 +95,25 @@ pub fn parseTightAdmission(value: ?[]const u8) !bool {
     if (std.mem.eql(u8, text, "1")) return true;
     return error.InvalidGkrTightAdmissionPolicy;
 }
+/// Streamed bottom is the default (unset/empty/"1"); "0" selects the original
+/// materialized N/D input planes. Storage only: proof bytes are identical.
 pub fn parseStreamBottom(value: ?[]const u8) !bool {
-    const text = value orelse return false;
-    if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
-    if (!std.mem.eql(u8, text, "1")) return error.InvalidGkrStreamBottomPolicy;
-    return true;
+    const text = value orelse return true;
+    if (text.len == 0 or std.mem.eql(u8, text, "1")) return true;
+    if (!std.mem.eql(u8, text, "0")) return error.InvalidGkrStreamBottomPolicy;
+    return false;
 }
+/// Default storage: streamed bottom + stride-two checkpoints (source68 path).
+/// Explicit opt-outs: STWO_ZIG_GKR_STREAM_BOTTOM=0 (materialized dense input)
+/// or STWO_ZIG_GKR_TREE_CHECKPOINTS=1 (streamed bottom, dense upper layers).
 pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
-    const cp = try treeCheckpoints(a);
+    return readTreePolicyFor(a, false);
+}
+/// `hybrid`: a nonzero checkpoint_above_gkr_bytes selector is configured. Its
+/// base is source80, so the checkpoint default resolves to dense upper there;
+/// an explicit "2" still conflicts and is rejected by tree_selection.validate.
+pub fn readTreePolicyFor(a: std.mem.Allocator, hybrid: bool) !TreePolicy {
+    const explicit_cp = try treeCheckpoints(a);
     const value: ?[]u8 = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TIGHT_ADMISSION") catch |err| switch (err) {
         error.EnvironmentVariableNotFound => null,
         else => return err,
@@ -112,6 +126,10 @@ pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
     };
     defer if (stream) |v| a.free(v);
     const streaming = try parseStreamBottom(stream);
+    return policyFrom(explicit_cp, tight, streaming, hybrid);
+}
+pub fn policyFrom(explicit_cp: ?bool, tight: bool, streaming: bool, hybrid: bool) TreePolicy {
+    const cp = explicit_cp orelse (streaming and !hybrid);
     return .{ .checkpointed = cp, .tight_admission = cp or tight or streaming, .stream_bottom = streaming };
 }
 
@@ -240,10 +258,21 @@ pub const Unbound = struct {
 };
 
 test "GKR operational tree policy fails closed without changing default protocol" {
-    try std.testing.expect(!try parseTreeCheckpoints(null));
-    try std.testing.expect(!try parseTreeCheckpoints(""));
-    try std.testing.expect(try parseTreeCheckpoints("2"));
-    for ([_][]const u8{ "1", "3", "false", "2 " }) |value| try std.testing.expectError(error.InvalidGkrTreeCheckpointPolicy, parseTreeCheckpoints(value));
+    try std.testing.expectEqual(@as(?bool, null), try parseTreeCheckpoints(null));
+    try std.testing.expectEqual(@as(?bool, null), try parseTreeCheckpoints(""));
+    try std.testing.expectEqual(@as(?bool, true), try parseTreeCheckpoints("2"));
+    try std.testing.expectEqual(@as(?bool, false), try parseTreeCheckpoints("1"));
+    for ([_][]const u8{ "0", "3", "false", "2 " }) |value| try std.testing.expectError(error.InvalidGkrTreeCheckpointPolicy, parseTreeCheckpoints(value));
+}
+
+test "default GKR storage is streamed checkpoint68; explicit opt-outs keep the older storage" {
+    try std.testing.expectEqualDeep(TreePolicy{ .checkpointed = true, .tight_admission = true, .stream_bottom = true }, policyFrom(null, false, true, false));
+    // A hybrid selector keeps its source80 base unless "2" is explicit.
+    try std.testing.expectEqualDeep(TreePolicy{ .checkpointed = false, .tight_admission = true, .stream_bottom = true }, policyFrom(null, false, true, true));
+    try std.testing.expectEqualDeep(TreePolicy{ .checkpointed = false, .tight_admission = true, .stream_bottom = true }, policyFrom(false, false, true, false));
+    // STREAM_BOTTOM=0 alone restores the original materialized dense default.
+    try std.testing.expectEqualDeep(TreePolicy{}, policyFrom(null, false, false, false));
+    try std.testing.expectEqualDeep(TreePolicy{ .checkpointed = true, .tight_admission = true }, policyFrom(true, false, false, false));
 }
 
 test "tight admission operational flag is explicit and does not select a protocol" {

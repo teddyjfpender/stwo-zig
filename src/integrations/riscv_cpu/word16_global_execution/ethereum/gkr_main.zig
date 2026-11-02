@@ -29,6 +29,23 @@ const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
 const SourceBounds = @import("../services/gkr_local/source_bounds.zig");
 const CANDIDATE_PROFILE = "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering";
+const CONJECTURED_PROFILE = "experimental-om31-local-gkr-conjectured128-b2-q108-p20-fold4-engineering";
+/// Report label of a receiver-selected candidate profile (historical label for proven).
+fn candidateLabel(profile: Candidate.Profile) []const u8 {
+    return switch (profile) {
+        .proven_beta2_q256_p0_fold4 => CANDIDATE_PROFILE,
+        .conjectured128_b2_q108_p20_fold4 => CONJECTURED_PROFILE,
+    };
+}
+/// The receiver's/producer's OWN policy: `--security-profile NAME` before the
+/// mode, candidate modes only; default Candidate.DEFAULT_PROFILE. Proof bytes
+/// and bundle metadata never select it.
+const ProfileSelection = struct { profile: Candidate.Profile, explicit: bool, args: []const [:0]u8 };
+fn selectProfile(all: []const [:0]u8) !ProfileSelection {
+    if (all.len >= 3 and std.mem.eql(u8, all[1], "--security-profile"))
+        return .{ .profile = try Candidate.Profile.parse(all[2]), .explicit = true, .args = all[2..] };
+    return .{ .profile = Candidate.DEFAULT_PROFILE, .explicit = false, .args = all };
+}
 const PROFILE = "experimental-om31-local-gkr-q70-p26-fold4";
 /// Operational admission only. These limits never enter statement authority.
 /// The coordinator's accounting is not a complete bound on process RSS.
@@ -124,10 +141,13 @@ pub fn main() !void {
     var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
     const base = recycler.allocator();
-    const args = try std.process.argsAlloc(base);
-    defer std.process.argsFree(base, args);
+    const all_args = try std.process.argsAlloc(base);
+    defer std.process.argsFree(base, all_args);
+    const selection = try selectProfile(all_args);
+    const security_profile = selection.profile;
+    const args = selection.args;
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = CANDIDATE_PROFILE, .security_qualified = false, .security_target = Candidate.ASSUMPTION_TARGET, .pcs = Candidate.config(), .scope = "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const candidate = std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
@@ -136,12 +156,14 @@ pub fn main() !void {
     const plan = std.mem.eql(u8, args[1], "plan");
     const capture_only = std.mem.eql(u8, args[1], "capture");
     if (!verify and !prefix and !produce and !plan and !capture_only) return error.InvalidWideEthereumMode;
+    if (selection.explicit and !candidate) return error.SecurityProfileRequiresCandidateMode;
     const receiver_bytes: ?usize = if (verify or prefix) try ReceiverBudget.limit(args, candidate) else null;
     if (produce and args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
     if (capture_only and args.len != 6) return error.ExpectedCaptureConfigJobsPrefixAndResources;
     if (plan and args.len != 5) return error.ExpectedModeConfigJobsAndPrefix;
-    const pcs = if (candidate) Candidate.config() else try config();
-    const selected_profile = if (candidate) CANDIDATE_PROFILE else PROFILE;
+    const pcs = if (candidate) Candidate.configFor(security_profile) else try config();
+    const selected_profile = if (candidate) candidateLabel(security_profile) else PROFILE;
+    const security_target = Candidate.assumptionTarget(security_profile);
     var fixed_setup_bytes: usize = 0;
     if (candidate and (verify or prefix)) {
         fixed_setup_bytes = try std.fmt.parseUnsigned(usize, args[4], 10);
@@ -188,7 +210,7 @@ pub fn main() !void {
         defer if (fixed_set) |*owner| owner.deinit();
         const setup_ns = timer.read();
         const output = try Receiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, if (fixed_set) |*authority| authority else null);
-        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = Candidate.ASSUMPTION_TARGET, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
+        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns });
     }
     var resources: ?Resources = null;
@@ -214,6 +236,9 @@ pub fn main() !void {
     const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
     var jobs = try std.fs.cwd().openDir(args[3], .{});
     defer jobs.close();
+    const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
+    // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
+    if (cpu_layout.compact_decode) try program.makeCompact();
     const import_start = timer.read();
     var captured = try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, (if (resources) |r| r.capture_options else CaptureOptions{}).forPool(&pool));
     defer captured.deinit();
@@ -223,7 +248,7 @@ pub fn main() !void {
     const capture_cache_released = recycler.releaseCached();
     // Explicit authenticated service scope; classic-only encodings stay closed.
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
-    const cpu = try Plan.cpus(a, &captured, Plan.CpuLayout.forGkrProfile(request.value.execution_profile));
+    const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
     const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3 }, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
@@ -286,7 +311,7 @@ pub fn main() !void {
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) Candidate.ASSUMPTION_TARGET else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);

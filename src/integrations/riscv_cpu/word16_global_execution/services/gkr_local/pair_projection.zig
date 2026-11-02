@@ -14,6 +14,25 @@ pub fn emitCpuMetadata(cpu: anytype, logical: usize, pairs: bool, sink: anytype)
     if (cpu.log_size > 22) return error.UnqualifiedWideClockGkr;
     if (cpu.u8_pairs != pairs) return error.LocalGkrMetadataShape;
     const main = try cpu.row(logical);
+    if (cpu.compact) {
+        // Compact decode: the ROM pc coordinate reads the cyclic previous row
+        // (row 0 uses the public initial PC through the `first` selector), the
+        // same projection the authenticated AIR binding evaluates from masks.
+        if (!pairs) return error.LocalGkrMetadataShape;
+        const n = cpu.size();
+        if (logical >= n) return error.LocalGkrMetadataShape;
+        const previous = try cpu.row(if (logical == 0) n - 1 else logical - 1);
+        const fixed = [_]M{ M.fromCanonical(@intCast(logical)), M.fromCanonical(@intFromBool(logical == 0)), M.fromCanonical(@intFromBool(logical == n - 1)) };
+        const Adapter = struct {
+            target: @TypeOf(sink),
+            pub fn emit(self: *@This(), relation: Fns.Relation, tuple: anytype, weight: M) void {
+                self.target.emitBase(relation, tuple, weight);
+            }
+        };
+        var adapter = Adapter{ .target = sink };
+        Fns.cpuCompactFor(M, &fixed, &main, &previous, M.fromCanonical(cpu.epoch), A.word16_execution.types.nativePcFelt((try A.word16_execution.types.inputs(cpu.public, cpu.epoch, cpu.log_size)).initial_pc), &adapter);
+        return;
+    }
     const fixed = [_]M{ M.fromCanonical(@intCast(logical)), M.zero(), M.zero() };
     const Adapter = struct {
         target: @TypeOf(sink),

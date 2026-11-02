@@ -12,7 +12,7 @@ pub const Set = struct {
     source_validations: usize,
     source_coefficient_cells: usize,
     pub fn init(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !Set {
-        try W.validateBeta2Config(config);
+        try W.validateCandidateConfig(config);
         const count = try std.math.add(usize, setups.len, truths.len);
         if (setups.len == 0 or count > 256) return error.WideBeta2FixedInventoryMismatch;
         const bindings = try a.alloc(F.Binding, count);
@@ -43,7 +43,7 @@ pub const Set = struct {
         self.* = undefined;
     }
     pub fn require(self: *const Set, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !void {
-        try W.validateBeta2Config(config);
+        try W.validateCandidateConfig(config);
         if (!std.meta.eql(self.config, config) or self.cpu_count != setups.len or self.bindings.len != try std.math.add(usize, setups.len, truths.len)) return error.WideBeta2FixedInventoryMismatch;
         for (setups, self.bindings[0..setups.len]) |setup, *binding| try binding.require(&setup.key, config);
         for (truths, self.bindings[setups.len..]) |truth, *binding| try binding.require(truth.key(), config);
@@ -58,6 +58,8 @@ pub const Set = struct {
         var tag: [32]u8 = undefined;
         std.crypto.hash.blake2.Blake2s256.hash(F.PROFILE, &tag, .{});
         W.digest(&ch, tag);
+        // Non-legacy named profiles bind their identity (proven keeps bytes).
+        if (W.candidateProfile(self.config)) |p| if (p.conjectured()) W.digest(&ch, W.Candidate.profileIdentity(p));
         ch.mixU64(self.cpu_count);
         ch.mixU64(self.bindings.len);
         for (self.bindings, 0..) |binding, ordinal| {

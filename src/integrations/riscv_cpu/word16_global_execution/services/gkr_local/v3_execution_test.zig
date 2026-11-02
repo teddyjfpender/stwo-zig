@@ -11,6 +11,9 @@ const CpuKeys = struct {
     producer: [2]R.CpuSetup,
     receiver: [2]R.CpuSetup,
     fn init(comptime F: type, captured: *const F.Captured, bridges: [2]T.Logs, paired: bool) !@This() {
+        return initWith(F, captured, bridges, paired, false);
+    }
+    fn initWith(comptime F: type, captured: *const F.Captured, bridges: [2]T.Logs, paired: bool, compact: bool) !@This() {
         var out: @This() = undefined;
         var done: usize = 0;
         errdefer for (out.producer[0..done], out.receiver[0..done]) |*p, *r| {
@@ -23,6 +26,7 @@ const CpuKeys = struct {
             g.terminal_log = F.BOUNDARY_LOG;
             g.cpu_u8_pairs = paired;
             g.cpu_fused_tail = paired;
+            g.cpu_compact_decode = compact;
             p.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, g, bridges[i]);
             r.* = R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, g, bridges[i]) catch |err| {
                 p.deinit();
@@ -118,4 +122,40 @@ test "V3 GKR complete sponge explicit permutation IDs freshly close cross shard 
     const accepted = try bundle.verify(a, &keys.receivers(), fresh_truths, expected, try Config());
     try std.testing.expect(accepted.completed and accepted.physical_proofs == 4);
     try rejectMutants(&bundle, &keys.receivers(), fresh_truths, expected);
+}
+test "V3 GKR compact decode CPU freshly closes all global debts and rejects layout and endpoint forgeries" {
+    const F = @import("../v3_fixture.zig");
+    const HR = @import("../../sha256/roster.zig");
+    const AR = @import("../../arith256/roster.zig");
+    var captured = try F.Captured.initWithLayout(a, true);
+    defer captured.deinit();
+    var keys = try CpuKeys.initWith(F, &captured, F.BRIDGES, true, true);
+    defer keys.deinit();
+    var sha = try HR.TruthSetup.init(a, F.SHA_LOG);
+    defer sha.deinit();
+    var arith = try AR.TruthSetup.init(a, F.ARITH_LOG);
+    defer arith.deinit();
+    var fresh_sha = try HR.TruthSetup.init(a, F.SHA_LOG);
+    defer fresh_sha.deinit();
+    var fresh_arith = try AR.TruthSetup.init(a, F.ARITH_LOG);
+    defer fresh_arith.deinit();
+    const truths = F.truthsFor(&sha, &arith);
+    const fresh_truths = F.truthsFor(&fresh_sha, &fresh_arith);
+    const expected = F.expectedFor(captured.program.identity, captured.loaded);
+    var bundle = try C.produce(a, &keys.producers(), &truths, &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try Config(), options());
+    defer bundle.deinit(a);
+    const accepted = try bundle.verify(a, &keys.receivers(), &fresh_truths, expected, try Config());
+    try std.testing.expect(accepted.completed and accepted.physical_proofs == 4);
+    try rejectMutants(&bundle, &keys.receivers(), &fresh_truths, expected);
+    // A receiver that derives the paired (non-compact) layout for the same
+    // program must reject: MAIN width, ROM fixed root and statement differ.
+    var paired_captured = try F.Captured.initWithLayout(a, false);
+    defer paired_captured.deinit();
+    var paired = try CpuKeys.initWith(F, &paired_captured, F.BRIDGES, true, false);
+    defer paired.deinit();
+    if (bundle.verify(a, &paired.receivers(), &fresh_truths, expected, try Config())) |_| return error.CompactBundleAcceptedByPairedReceiver else |err| std.debug.print("V3_COMPACT_LAYOUT_MUTANT rejected={s}\n", .{@errorName(err)});
+    // Wrong public initial PC: the ROM pc coordinate of row 0 is bound to it.
+    var wrong = expected;
+    wrong.admission.initial_pc +%= 4;
+    if (bundle.verify(a, &keys.receivers(), &fresh_truths, wrong, try Config())) |_| return error.CompactWrongInitialPcAccepted else |err| std.debug.print("V3_COMPACT_INITIAL_PC_MUTANT rejected={s}\n", .{@errorName(err)});
 }

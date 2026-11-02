@@ -38,13 +38,113 @@ pub const ASSUMPTION_TARGET = .{
 /// term alone exceeds the literal 2^-128-per-work inequality for raw256 bits.
 pub const MAX_AUDITED_LOG_WORK: u8 = 120;
 
-pub fn config() core.pcs.PcsConfig {
-    var fri = core.fri.FriConfig.init(0, 2, 256) catch unreachable;
+/// Named PCS/security profiles of the native OM31 local-GKR route. A
+/// receiver selects one from its OWN policy (CLI/request), never from proof
+/// bytes; the PCS config is mixed into every worker channel, the proof's
+/// config must equal the receiver's, and non-legacy profiles additionally bind
+/// `profileIdentity` into the fixed-authority statement and channel.
+pub const Profile = enum {
+    /// Documented proven (unique-decoding) bounded model: blowup 4, 256
+    /// queries, no PoW, fold-4. Historical bytes; selectable by name.
+    proven_beta2_q256_p0_fold4,
+    /// 128-bit CONJECTURED security (ethSTARK-style FRI accounting, owner
+    /// decision 2026-11-02): blowup 2, 108 queries, 20-bit PoW, fold-4.
+    /// Conjectured FRI bits = 1*108 + 20 = 128. Not a proven bound; see
+    /// design/riscv-proving-stack/rv64-gkr-conjectured128-profile.md.
+    conjectured128_b2_q108_p20_fold4,
+
+    pub fn name(self: Profile) []const u8 {
+        return @tagName(self);
+    }
+    pub fn parse(text: []const u8) !Profile {
+        inline for (@typeInfo(Profile).@"enum".fields) |field| {
+            if (std.mem.eql(u8, text, field.name)) return @enumFromInt(field.value);
+        }
+        return error.UnknownOm31CandidateProfile;
+    }
+    pub fn conjectured(self: Profile) bool {
+        return self == .conjectured128_b2_q108_p20_fold4;
+    }
+};
+/// Default profile of the v3 GKR candidate route.
+pub const DEFAULT_PROFILE: Profile = .conjectured128_b2_q108_p20_fold4;
+pub const PROFILES = [_]Profile{ .proven_beta2_q256_p0_fold4, .conjectured128_b2_q108_p20_fold4 };
+pub fn configFor(profile: Profile) core.pcs.PcsConfig {
+    const log_blowup: u32, const queries: usize, const pow: u32 = switch (profile) {
+        .proven_beta2_q256_p0_fold4 => .{ 2, 256, 0 },
+        .conjectured128_b2_q108_p20_fold4 => .{ 1, 108, 20 },
+    };
+    var fri = core.fri.FriConfig.init(0, log_blowup, queries) catch unreachable;
     fri.fold_step = 4;
-    return .{ .pow_bits = 0, .fri_config = fri };
+    return .{ .pow_bits = pow, .fri_config = fri };
+}
+/// Conjectured FRI security bits (ethSTARK-style: log_blowup * queries + PoW).
+/// Reporting only; for the proven profile the documented bound is the
+/// unique-decoding model, not this formula.
+pub fn conjecturedBits(profile: Profile) u32 {
+    const c = configFor(profile);
+    return c.fri_config.log_blowup_factor * @as(u32, @intCast(c.fri_config.n_queries)) + c.pow_bits;
+}
+/// Exact-match lookup. Any config that is not one registered profile fails.
+pub fn profileFor(actual: core.pcs.PcsConfig) !Profile {
+    for (PROFILES) |profile| if (std.meta.eql(actual, configFor(profile))) return profile;
+    return error.UnrecognizedOm31CandidateParameters;
+}
+/// The historical proven-model config (callers that predate named profiles).
+pub fn config() core.pcs.PcsConfig {
+    return configFor(.proven_beta2_q256_p0_fold4);
 }
 pub fn requireParameters(actual: core.pcs.PcsConfig) !void {
     if (!std.meta.eql(actual, config())) return error.UnrecognizedOm31CandidateParameters;
+}
+pub fn requireProfileParameters(profile: Profile, actual: core.pcs.PcsConfig) !void {
+    if (!std.meta.eql(actual, configFor(profile))) return error.UnrecognizedOm31CandidateParameters;
+}
+pub const CONJECTURED_ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-128-CONJECTURED-ethstark/v1\x00";
+/// Profile identity. The proven profile keeps `identity()`; the conjectured
+/// profile hashes a distinct domain, its label, every PCS parameter and the
+/// same receiver caps.
+pub fn profileIdentity(profile: Profile) [32]u8 {
+    if (profile == .proven_beta2_q256_p0_fold4) return identity();
+    const c = configFor(profile);
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update(CONJECTURED_ID_DOMAIN);
+    h.update(profile.name());
+    h.update(&Channel.profile.identity());
+    for ([_]u64{ 8, c.fri_config.n_queries, c.fri_config.log_blowup_factor, c.fri_config.fold_step, c.pow_bits, c.fri_config.log_last_layer_degree_bound, conjecturedBits(profile), MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS }) |n| {
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, n, .little);
+        h.update(&bytes);
+    }
+    return h.finalResult();
+}
+pub const ConjecturedTarget = struct {
+    label: []const u8 = "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
+    target_bits: u16 = TARGET_BITS,
+    profile: []const u8 = "conjectured128_b2_q108_p20_fold4",
+    assumption_set: []const u8 = "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v1",
+    conjectured_fri_bits: u32 = 128,
+    scope: []const u8 = "native proof bundle; recursion excluded",
+    proven_bound: bool = false,
+    independent_security_audit_complete: bool = false,
+    whole_protocol_128_certified: bool = false,
+};
+/// Reporting metadata for a selected profile (never proof authority).
+pub const Target = union(enum) {
+    proven: @TypeOf(ASSUMPTION_TARGET),
+    conjectured: ConjecturedTarget,
+    /// Payload only: the proven profile keeps its historical report schema.
+    pub fn jsonStringify(self: Target, writer: anytype) !void {
+        switch (self) {
+            inline else => |value| try writer.write(value),
+        }
+    }
+};
+pub fn assumptionTarget(profile: Profile) Target {
+    return switch (profile) {
+        .proven_beta2_q256_p0_fold4 => .{ .proven = ASSUMPTION_TARGET },
+        .conjectured128_b2_q108_p20_fold4 => .{ .conjectured = .{} },
+    };
 }
 /// Receiver hook for an explicitly selected candidate route. This admits only
 /// the pinned native construction; whole-protocol promotion remains separate.
