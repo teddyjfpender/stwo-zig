@@ -323,7 +323,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 /// The authority is independently derived from trusted setup, never parsed from
 /// operational resource JSON or a producer bundle. It stays live through return.
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
-    const policy = try @import("child.zig").readTreePolicy(a);
+    const policy = try @import("child.zig").readTreePolicyFor(a, options.checkpoint_above_gkr_bytes != 0);
     return produceFrozen(a, setups, truths, native, advice, expected, config, options, fixed, policy);
 }
 fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet, policy: @import("child.zig").TreePolicy) !Bundle {

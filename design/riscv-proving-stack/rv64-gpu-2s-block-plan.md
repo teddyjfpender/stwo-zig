@@ -724,12 +724,15 @@ the critical path (22.7 s wall).
    (62.1 → 35.6 core-s), so this is a defect to explain before porting.
 4. **VRAM per proof at blowup 2.** A 2^22 CPU segment commits ~0.45 G trace cells. Its extended
    trace is ~0.9 G cells, 3.6 GB at 4 B/cell (7.2 GB at blowup 4), plus ~0.3 GB for the 8-column
-   composition at 2n. The binding term is now the **local GKR working set**: the CPU prover requests
-   a 12.4 GB peak per segment (`numerical_requested_peak_bytes`) and admits up to 17.1 GB. GKR
+   composition at 2n. The binding term was the **local GKR working set**: the CPU prover requested
+   a 12.4 GB peak per segment (`numerical_requested_peak_bytes`) and admitted up to 17.1 GB. GKR
    (stage 1) and PCS (stage 2) are sequential within a proof, so their peaks do not add. "2-3
-   segment proofs per 32 GB GPU" holds for the PCS side now. It holds for GKR only after the
-   resident GKR (#311 shape) streams layers instead of materialising them: target ≤ 8 GB per
-   segment. Host RSS did not drop with blowup (23 GB in both prefix runs), for the same reason.
+   segment proofs per 32 GB GPU" holds for the PCS side now. **Update (same day, measured):** the
+   default CPU storage is now streamed bottom + stride-two checkpoints, byte-identical proofs.
+   Per segment the GKR requested peak is 2.69 GB (bottom first fold 2.15 GB + Eq 0.54 GB of the
+   largest 2^26-fact instance), admitted ≤ 6.7 GB (52 B/fact), prefix peak RSS 23.2 → 14.3 GB,
+   prove +2% (48.3 → 49.2 s). A resident GPU GKR (#311 shape) should copy this layout: no
+   materialised N/D planes, even-level bank only. See `vectors/reports/rv64-gkr-memory-20261102/`.
 5. **Recursion verifier at 108 queries.** Per base proof the verifier opens 108 query positions,
    against 256 on the proven profile (-58% Merkle-path hashing and opened values) and 70 on the
    classic route (+54%, and each opened extension value has twice the coordinates in OM31). Base
@@ -742,7 +745,8 @@ the critical path (22.7 s wall).
    composition alone is 66 core-s. A degree-3 Keccak or split Keccak shards (`keccak_max_log` 16/17)
    shortens the critical path.
 2. **Local GKR** (23%): resident GPU sumcheck (#311). Generate CPU role inputs on the device,
-   including the compact previous-row read. Cut the 12-17 GB working set.
+   including the compact previous-row read. The CPU working set is now 2.7 GB requested
+   (6.7 GB admitted) per segment with the default streamed/checkpointed storage.
 3. **Keccak DEEP/FRI regression at blowup 2** (~11-21 core-s, critical-path proof): find out why the
    lazy quotient provider regroups or recomputes at rate 1/2.
 4. **DEEP + FRI for the CPU proofs** (~36 core-s on the prefix): OM31 DEEP row kernel and fold-4 on
