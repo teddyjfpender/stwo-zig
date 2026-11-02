@@ -31,11 +31,42 @@ pub const WorkspacePlan = struct {
         return .{ .jobs = jobs, .bytes = bytes };
     }
 };
+/// Per-block address metadata shared by all shifted columns. It owns no trace
+/// values and is local to one joined row job, never shared between workers.
+pub const ShiftMap = struct {
+    pub const offsets = [_]i32{ -2, -1, 1, 2 };
+    rows: [offsets.len][E.LANES]usize,
+    previous: [offsets.len][E.LANES]bool,
+    pub fn slot(shift: i32) ?usize {
+        return switch (shift) {
+            -2 => 0,
+            -1 => 1,
+            1 => 2,
+            2 => 3,
+            else => null,
+        };
+    }
+    pub fn init(trace_log: u32, split: u32, part: usize, row: usize) !ShiftMap {
+        if (trace_log < 5 or trace_log > 26 or split < 1 or split > 2) return error.InvalidWideTruthTrace;
+        const size = @as(usize, 1) << @intCast(trace_log);
+        if (part >= (@as(usize, 1) << @intCast(split)) or row % E.LANES != 0 or row > size - E.LANES) return error.InvalidWideTruthTrace;
+        var result: ShiftMap = undefined;
+        for (offsets, 0..) |shift, index| for (0..E.LANES) |lane| {
+            const target = core.utils.offsetBitReversedCircleDomainIndex(part * size + row + lane, trace_log, trace_log + split, shift);
+            const target_part = target / size;
+            if (target_part != part and target_part != part ^ 1) return error.InvalidWideTruthShift;
+            result.rows[index][lane] = target % size;
+            result.previous[index][lane] = target_part != part;
+        };
+        return result;
+    }
+};
 const Samples = struct {
     owner: *const Component,
     evaluation: *const Evaluation,
     part: usize,
     row: usize,
+    shifts: *const ShiftMap,
     pub fn last(s: @This()) !F {
         return F.load(s.evaluation.current_values[s.evaluation.sources.len - 1].ptr + s.row);
     }
@@ -44,6 +75,14 @@ const Samples = struct {
         const index = column + (if (tree == 0) @as(usize, 0) else if (tree == 1) widths[0] else widths[0] + widths[1]);
         if (shift == 0) return F.load(s.evaluation.current_values[index].ptr + s.row);
         var values: [E.LANES]M = undefined;
+        if (ShiftMap.slot(shift)) |slot| {
+            for (&values, s.shifts.rows[slot], s.shifts.previous[slot]) |*v, row, previous| {
+                v.* = if (!previous) s.evaluation.current_values[index][row] else if (s.evaluation.previous_values[index].len != 0) s.evaluation.previous_values[index][row] else return error.InvalidWideTruthShift;
+            }
+            return F.fromLanes(values);
+        }
+        // Preserve the checked original authority if a future mask adds an
+        // offset outside the cache's explicitly supported four shifts.
         for (&values, 0..) |*v, lane| {
             const target = core.utils.offsetBitReversedCircleDomainIndex(s.evaluation.globalRow(s.part, s.row + lane), s.owner.log_size, s.owner.log_size + s.owner.compositionLogSplit(), shift);
             const part = target / s.evaluation.size;
@@ -55,6 +94,10 @@ const Samples = struct {
 };
 pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEvaluationAccumulator) !void {
     try self.validate();
+    const profile = std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_OM_DOMAIN");
+    var timer: ?std.time.Timer = if (profile) try std.time.Timer.start() else null;
+    var fft_ns: u64 = 0;
+    var rows_ns: u64 = 0;
     const a = acc.allocator;
     const widths = self.widths();
     const native_total = widths[0] + widths[1] + widths[2];
@@ -90,8 +133,10 @@ pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEva
     const outputs = try acc.columns(a, &.{.{ .log_size = self.log_size + self.compositionLogSplit(), .n_cols = self.nConstraints() }});
     defer a.free(outputs);
     var output = outputs[0];
+    const prep_ns = if (timer) |*clock| clock.lap() else 0;
     for (0..@as(usize, 1) << @intCast(self.compositionLogSplit())) |part| {
         try evaluation.evaluatePartWithPool(part, pool);
+        if (timer) |*clock| fft_ns += clock.lap();
         const inverse = F.fromBase(try evaluation.denominatorInverse(part));
         const first = evaluation.globalRow(part, 0);
         const fresh = if (output.next_fresh_index) |next| next == first else false;
@@ -105,7 +150,9 @@ pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEva
             return err;
         };
         output.next_fresh_index = if (fresh) first + evaluation.size else null;
+        if (timer) |*clock| rows_ns += clock.lap();
     }
+    if (profile) std.debug.print("OM_TRUTH_DOMAIN_STAGE kind={s} log={d} main={d} inter={d} constraints={d} jobs={d} prep_ns={d} fft_ns={d} rows_ns={d}\n", .{ @tagName(self.kind), self.log_size, widths[1], widths[2], self.nConstraints(), plan.jobs, prep_ns, fft_ns, rows_ns });
 }
 const Rows = struct {
     owner: *const Component,
@@ -125,9 +172,10 @@ const Rows = struct {
         const workspace = &self.workspaces[index];
         for (first..end) |block| {
             const row = block * E.LANES;
+            const shifts = try ShiftMap.init(self.owner.log_size, self.owner.compositionLogSplit(), self.part, row);
             var weighted = E.WeightedAccumulatorFor(F){ .powers = self.output.random_coeff_powers };
             var sink = E.SinkFor(F){ .weighted_accumulator = &weighted };
-            try self.owner.emitForWithWorkspace(F, Samples{ .owner = self.owner, .evaluation = self.evaluation, .part = self.part, .row = row }, &sink, workspace);
+            try self.owner.emitForWithWorkspace(F, Samples{ .owner = self.owner, .evaluation = self.evaluation, .part = self.part, .row = row, .shifts = &shifts }, &sink, workspace);
             if (sink.count != self.owner.nConstraints()) return error.WideTruthConstraintCount;
             const result = weighted.accumulation.mulBase(self.inverse).coordinates();
             const start = self.evaluation.globalRow(self.part, row);
