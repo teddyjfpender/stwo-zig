@@ -57,3 +57,34 @@ pages and free recycler capacity are outside the numerical bound. Consequently
 the scheduler cap is represented payload admission, not a hard process-RSS cap.
 Two-lane host measurements must report these distinctions and actual RSS/swap.
 No default promotion follows from a resource estimate or artifact-byte parity.
+
+## Explicit tighter dense admission
+
+`STWO_ZIG_GKR_TIGHT_ADMISSION=1` selects the same104B/fact reserve while keeping
+the original dense numerical prover and matrix-based terminal binding. This is
+orthogonal to the checkpoint option; unset or0 preserves the old dense136B plan.
+Other nonempty values fail closed. The coordinator snapshots both choices once;
+the child hard requested-byte cap and scheduling derive from that same policy.
+No proof/profile/configuration bytes contain these operational choices.
+
+For dense production multiplicity inputs, at a common active tree height h>=1,
+raw input capacity is36*sum(N). All retained lower/current secure planes cost at
+most64*sum(N)*(1-2^-h). Shared Eq construction overlap is at most12*Nmax/2^h and
+one-plane resize/copy fallback at most16*Nmax/2^h. Since Nmax<=sum(N), their sum is
+strictly below100*sum(N). At h=0 the borrowed raw inputs plus newly lifted secure
+fold planes cost68*sum(N); Eq and the next copy-half fallback contribute at most
+8*Nmax each, for at most84*sum(N). Matrix binding retains the original raw36N
+plus64 bytes per row, bounded by100N because every row has at least one fact.
+The104 reserve leaves4 bytes per fact beyond the larger dense phase. The existing
+metadata envelope, output headers and all checked arithmetic remain unchanged.
+This is a production multiplicity bound, not a claim about arbitrary external
+layer representations or arbitrary allocator backing over-allocation.
+
+Independent test allocators stress both refusal of every resize/remap and
+successful logical resize that retains original physical payload capacity until
+free. Exact-cap numerical children and independent pending receivers pass. In
+the larger test, requested peak13,111,104B and original-capacity peak13,112,672B
+are below the15,024,128B admitted cap; the one-fact-per-row binding case also
+passes. Tracking-map bytes, allocator pages/free cache and stacks are explicitly
+outside that payload measurement. Dense104 is opt-in until separate actual
+concurrency/throughput evidence and review justify changing the default.

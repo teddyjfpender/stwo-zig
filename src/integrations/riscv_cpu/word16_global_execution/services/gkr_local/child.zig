@@ -88,6 +88,24 @@ fn treeMetrics(a: std.mem.Allocator) !bool {
     return std.mem.eql(u8, value, "1");
 }
 
+pub const TreePolicy = struct { checkpointed: bool = false, tight_admission: bool = false };
+pub fn parseTightAdmission(value: ?[]const u8) !bool {
+    const text = value orelse return false;
+    if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
+    if (std.mem.eql(u8, text, "1")) return true;
+    return error.InvalidGkrTightAdmissionPolicy;
+}
+pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
+    const cp = try treeCheckpoints(a);
+    const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TIGHT_ADMISSION") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return .{ .checkpointed = cp, .tight_admission = cp },
+        else => return err,
+    };
+    defer a.free(value);
+    const tight = try parseTightAdmission(value);
+    return .{ .checkpointed = cp, .tight_admission = cp or tight };
+}
+
 pub const PhaseTiming = struct { inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
@@ -102,15 +120,19 @@ pub const Unbound = struct {
         return proveTimed(a, limit, scope, instances, provider, null);
     }
     pub fn proveTimed(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, timing: ?*PhaseTiming) !*Unbound {
-        return proveTimedWithCheckpoints(a, limit, scope, instances, provider, try treeCheckpoints(a), timing);
+        return proveTimedWithPolicy(a, limit, scope, instances, provider, try readTreePolicy(a), timing);
     }
     pub fn proveTimedWithCheckpoints(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, checkpointed: bool, timing: ?*PhaseTiming) !*Unbound {
+        return proveTimedWithPolicy(a, limit, scope, instances, provider, .{ .checkpointed = checkpointed, .tight_admission = checkpointed }, timing);
+    }
+    pub fn proveTimedWithPolicy(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, timing: ?*PhaseTiming) !*Unbound {
+        const checkpointed = policy.checkpointed;
         const metrics = try treeMetrics(a);
-        const plan = try Resource.Plan.forInstancesWithOwnedCheckpoints(instances, limit, checkpointed);
+        const plan = try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
-        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, if (checkpointed) plan.peak_bytes else limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
+        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, if (policy.tight_admission) plan.peak_bytes else limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
         const challenges = Challenges.draw(&ch);
@@ -136,7 +158,7 @@ pub const Unbound = struct {
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
-        if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, plan.input_bytes });
+        if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, plan.input_bytes, policy.tight_admission, plan.peak_bytes, self.budget.limit });
         return self;
     }
     pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
@@ -171,4 +193,12 @@ test "GKR operational tree policy fails closed without changing default protocol
     try std.testing.expect(!try parseTreeCheckpoints(""));
     try std.testing.expect(try parseTreeCheckpoints("2"));
     for ([_][]const u8{ "1", "3", "false", "2 " }) |value| try std.testing.expectError(error.InvalidGkrTreeCheckpointPolicy, parseTreeCheckpoints(value));
+}
+
+test "tight admission operational flag is explicit and does not select a protocol" {
+    try std.testing.expect(!try parseTightAdmission(null));
+    try std.testing.expect(!try parseTightAdmission(""));
+    try std.testing.expect(!try parseTightAdmission("0"));
+    try std.testing.expect(try parseTightAdmission("1"));
+    for ([_][]const u8{ "2", "true", "1 " }) |value| try std.testing.expectError(error.InvalidGkrTightAdmissionPolicy, parseTightAdmission(value));
 }
