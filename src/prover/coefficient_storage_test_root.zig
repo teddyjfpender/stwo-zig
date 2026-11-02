@@ -5,4 +5,5 @@ comptime {
 
 test {
     _ = @import("pcs/wide_row_finalize.zig");
+    _ = @import("pcs/quotients/combined_setup_family.zig");
 }
