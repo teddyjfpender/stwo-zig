@@ -37,11 +37,14 @@ pub const CpuLayout = struct {
     /// LS-D64 fused tail + byte pair (requires u8_pairs and ls_dword).
     ls_dword_fused_pairs: bool = false,
     /// Default layout for a profile route. Only the admitted
-    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
-    /// LS-D64; every older route keeps its historical layout and bundle bytes.
+    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs,
+    /// LS-D64 and the fused2 component layouts (MUL pairs, LS32/INIT/TEARDOWN
+    /// fused pairs, ALU fused tail, LS-D64 fused pairs: proved and freshly
+    /// verified on a real 4-packet prefix of block 24,628,607); every older
+    /// route keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {

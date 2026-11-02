@@ -147,7 +147,11 @@ The same two constructions extend to the providers that kept the classic
 opt-in `Geometry` flag (omitted from JSON when false; when set, its layout
 identity and widths are mixed into the transcript), v3-only on the Ethereum
 route (`ethereum/main.zig admitProfile` refuses each flag elsewhere; the
-local GKR lane refuses each one). Every byte pair is the tagged AND-relation
+local GKR lane refuses each one). `CpuLayout.forProfile` sets all four on the
+`ethereum_services_v3` route only; together they proved and freshly verified
+a real 4-packet prefix of block 24,628,607 at 2,282,308,512 CPU native cells
+(-119,321,344 = -7.112 cells/instruction versus 2,401,629,856 without them,
+16,777,212 instructions). Every byte pair is the tagged AND-relation
 tuple `(x, y, 0, 1)` served by the pair column of the pair-capable AND table,
 so every pair flag requires `cpu_u8_pairs`. Pair multiplicities are added to
 that column (`sources.zig`, services `mergeAndPairTable`) and their mass is
