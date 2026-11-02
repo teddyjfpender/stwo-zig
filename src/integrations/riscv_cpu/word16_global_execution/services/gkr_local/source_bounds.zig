@@ -254,7 +254,16 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             const origin = Frame.Origin{ .core = part.role };
             var descriptor = try Meta.forOrigin(origin);
             if (declaration.geometry.cpu_u8_pairs) switch (part.role) {
-                .cpu => descriptor.local_terms = 14,
+                .cpu => {
+                    descriptor.local_terms = 14;
+                    if (declaration.geometry.cpu_compact_decode) {
+                        // Compact decode MAIN (37 columns, compact residuals);
+                        // the same 14 local terms, relations and arities.
+                        const compact = A.main_only.authority.shape(.cpu_compact);
+                        descriptor.widths[1] = compact.main;
+                        descriptor.constraints = @import("role.zig").constraintCount(.cpu_compact, origin);
+                    }
+                },
                 .and_table => {
                     descriptor.local_terms = 2;
                     descriptor.widths[1] = 2;

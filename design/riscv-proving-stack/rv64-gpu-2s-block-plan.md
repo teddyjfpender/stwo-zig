@@ -675,3 +675,79 @@ body. Ordered by how much each one changes the plan.
   still the newest PR touching `backends/cuda` or `*_cuda/`, and #299 is the only other one. #306 is
   not a GPU PR, but it is directly relevant to K1, K4 and K6.1, and this plan should cite it.
 
+
+---
+
+## GKR route CPU profile and the chosen 128-bit profile (2026-11-02, measured)
+
+**Chosen profile.** The OM31/GKR v3 route now defaults to `conjectured128_b2_q108_p20_fold4`:
+OM31, blowup 2 (log 1), 108 FRI queries, 20-bit PoW, fold-4. This is 128 conjectured bits
+(1·108 + 20, ethSTARK-style, owner-accepted), with OM31 algebraic terms near 2^-197. The #310
+proven-model profile (blowup 4 / q256 / P0) stays selectable by name. Accounting and binding:
+`rv64-gkr-conjectured128-profile.md`. Receipts: `vectors/reports/rv64-gkr-route-speedups-20261102/`.
+This supersedes the "q102 + P26 at blowup 2" line in Decisions §1: PoW is 20 bits, because 108 queries
+cost little more on the GPU and a 20-bit grind is ~10^6 Blake2s calls per proof.
+
+**Measured, block 24,628,607, compact CPU decode, same host and jobs (14-core M4 Max, CPU only):**
+
+| | proven b4/q256/P0 (4-packet prefix) | conjectured b2/q108/P20 (prefix) | conjectured, complete block |
+|---|---:|---:|---:|
+| Prove wall | 59.30 s | 50.64 s (-14.6%) | 73.98 s (7 CPU + 11 truth) |
+| Recorded core-s | 462.1 | 389.8 (-15.6%) | 582.3 |
+| Committed trace cells | 2.97 G | 2.97 G | 4.56 G |
+| LDE cells | 11.9 G | 5.9 G | 9.1 G |
+| Proof bytes | 68.8 MB | 31.3 MB (-54%) | 51.5 MB |
+| Peak RSS | 23.0 GB | 23.0 GB | 24.4 GB |
+| Fresh verify | 0.93 s | 0.66 s | 0.87 s |
+
+Per-phase core-seconds, complete block, conjectured profile (582 core-s in total):
+composition evaluation 196.5 (34%), local GKR 133.2 (23%), DEEP + FRI commit 83.0 (14%), interaction
+gen/LDE/Merkle 57.5 (10%), MAIN LDE/Merkle 45.8 (8%), OODS 17.2, trace + FRI decommit 16.1,
+composition commit 10.9, binding 9.4, CPU witness 11.0, PoW ~0 (0.1 s wall). Per CPU segment of
+2^22 rows, about 54 core-s: GKR 19-23, composition 11-14, DEEP/FRI 8-9, MAIN Merkle ~2.7. The
+Keccak 2^18 truth is the largest single proof (114 core-s; composition 66, DEEP/FRI 17) and sets
+the critical path (22.7 s wall).
+
+**What this implies for the GPU port.**
+1. **An OM31 GPU PCS is required.** The resident CUDA PCS matches only the classic QM31 route.
+   Every remaining large phase in the table is OM31: LDE/Merkle over M31 base columns, OM31
+   composition accumulation, OM31 OODS, DEEP and FRI folding. The route decision (Decisions §1)
+   makes this track G10, and it is now the main line.
+2. **Composition and DEEP/FRI are compute-bound in OM31.** Together they are about 48% of
+   recorded CPU time at blowup 2. At blowup 2 the commitment side (LDE + Merkle, 103 core-s on the
+   block) is no longer the leading term. Kernel priorities: M31×OM31 multiply-accumulate with lazy
+   reduction for composition, then the DEEP row kernel (8-coordinate quotients) and FRI fold-4 in
+   OM31.
+3. **Keccak is the critical path.** Its composition (degree 5, 1,923 MAIN columns at 2^18) is the
+   single largest kernel. On this host its lazy DEEP quotient build cost 4x more at blowup 2 than at
+   blowup 4 (27.8 vs 6.6 core-s on the prefix, 16.8 on the block). The CPU proofs' DEEP/FRI halved
+   (62.1 → 35.6 core-s), so this is a defect to explain before porting.
+4. **VRAM per proof at blowup 2.** A 2^22 CPU segment commits ~0.45 G trace cells. Its extended
+   trace is ~0.9 G cells, 3.6 GB at 4 B/cell (7.2 GB at blowup 4), plus ~0.3 GB for the 8-column
+   composition at 2n. The binding term is now the **local GKR working set**: the CPU prover requests
+   a 12.4 GB peak per segment (`numerical_requested_peak_bytes`) and admits up to 17.1 GB. GKR
+   (stage 1) and PCS (stage 2) are sequential within a proof, so their peaks do not add. "2-3
+   segment proofs per 32 GB GPU" holds for the PCS side now. It holds for GKR only after the
+   resident GKR (#311 shape) streams layers instead of materialising them: target ≤ 8 GB per
+   segment. Host RSS did not drop with blowup (23 GB in both prefix runs), for the same reason.
+5. **Recursion verifier at 108 queries.** Per base proof the verifier opens 108 query positions,
+   against 256 on the proven profile (-58% Merkle-path hashing and opened values) and 70 on the
+   classic route (+54%, and each opened extension value has twice the coordinates in OM31). Base
+   proof bytes fall 54%. The recursion track may still pick a higher blowup with fewer queries for
+   wrap layers. That choice is independent of this base profile.
+6. **PoW is negligible.** It is 0.1-0.15 s of wall on CPU for 12-18 proofs, so milliseconds on GPU.
+
+**Remaining optimisations, ranked by measured CPU share and GPU relevance.**
+1. **OM31 composition** (34%): GPU kernel set (G2/G10). On CPU, the Keccak truth's degree-5
+   composition alone is 66 core-s. A degree-3 Keccak or split Keccak shards (`keccak_max_log` 16/17)
+   shortens the critical path.
+2. **Local GKR** (23%): resident GPU sumcheck (#311). Generate CPU role inputs on the device,
+   including the compact previous-row read. Cut the 12-17 GB working set.
+3. **Keccak DEEP/FRI regression at blowup 2** (~11-21 core-s, critical-path proof): find out why the
+   lazy quotient provider regroups or recomputes at rate 1/2.
+4. **DEEP + FRI for the CPU proofs** (~36 core-s on the prefix): OM31 DEEP row kernel and fold-4 on
+   the GPU.
+5. **Interaction side (global + truth LogUp in OM31, 57 core-s)**: move the remaining classic truth
+   interactions to GKR, so that fewer extension columns are committed.
+6. **Retained-MAIN spill/restore** (5-9 s wall, ~0 CPU): goes away with VRAM/RAM residency.
+7. **Small-truth batching** (< 1% CPU): a latency item on GPU only.

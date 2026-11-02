@@ -25,10 +25,26 @@ pub fn validateConfig(config: PcsConfig) !void {
     return validateAtRate(config, 1);
 }
 /// Engineering candidate only; callers also need independently reconstructed
-/// beta2 fixed authority. This is never selected by the control entrypoint.
-pub fn validateBeta2Config(config: PcsConfig) !void {
+/// fixed authority at the config's blowup. Never selected by control.
+/// Blowup 2 keeps the historical beta2 structural family (the proven
+/// beta2/q256/P0 profile plus fixture-sized query counts, unchanged bytes);
+/// blowup 2 at rate 1 is admitted ONLY as the exact named conjectured128
+/// b2/q108/P20/fold4 profile. Receivers (gkr_main) always use an exact
+/// `om31_security_candidate.configFor(profile)`.
+pub fn validateCandidateConfig(config: PcsConfig) !void {
+    if (config.fri_config.log_blowup_factor == 1) {
+        const profile = Candidate.profileFor(config) catch return error.UnsupportedWideServicesConfig;
+        if (!profile.conjectured()) return error.UnsupportedWideServicesConfig;
+        return validateAtRate(config, 1);
+    }
     return validateAtRate(config, 2);
 }
+/// Named profile of an admitted candidate config, or null for the legacy
+/// beta2 structural family (historical statement/channel bytes).
+pub fn candidateProfile(config: PcsConfig) ?Candidate.Profile {
+    return Candidate.profileFor(config) catch null;
+}
+pub const Candidate = @import("../../../word16_execution/om31_security_candidate.zig");
 fn validateAtRate(config: PcsConfig, rate: u32) !void {
     const max_pow = core.channel.blake2s.pow_order.MAX_POW_BITS;
     if (config.pow_bits > max_pow or config.fri_config.n_queries == 0 or config.fri_config.n_queries > 1024 or

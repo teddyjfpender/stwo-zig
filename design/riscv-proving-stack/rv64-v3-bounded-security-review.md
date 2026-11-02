@@ -39,3 +39,27 @@ Let E be the sum of the listed degree weights times mu, plus `18*(41/64)^256`. T
 The exact-rational model gives query-union error2^-160.2968 and algebraic-union error2^-196.7961. Bounding both ends of the work interval proves **success per total adversarial RO query below2^-129.6925 uniformly for1<=T<=2^120**, under the stated assumptions. This is not a2^-128 total failure-probability claim for a2^120-query attacker. It is not an unrestricted literal128-bit work-factor theorem near2^128 queries, where the256-bit hash reduction's exact constants are insufficient.
 
 The remaining assumptions are explicit: valid source integer/canonical/range-inheritance semantics and characteristic arguments; nonzero cleared rational identities including the weighted facts; applicability of the unique decoding FRI/DEEP/OODS correspondence to these actual source authorities; the adaptive multi-scope BCS/Fiat–Shamir reduction and ideal raw-Blake/SHA hash model. The new V3 roster is now numerically reviewed within those assumptions. Independent security audit and a formal whole-protocol certificate remain incomplete. Outer recursion is excluded and needs its own field/profile/error and statement-closure analysis. All production reports must continue to distinguish `security_qualified=false` from this bounded native128-target review.
+
+## Named profiles and compact decode (2026-11-02 update)
+
+The receiver now selects a named PCS profile from its own policy (`--security-profile`); see
+`rv64-gkr-conjectured128-profile.md`.
+
+- `proven_beta2_q256_p0_fold4`: the profile reviewed above. Its bytes, identity and this
+  model's output are unchanged. `check_v3_model.py` replays `V3security-model.json` byte-equal.
+- `conjectured128_b2_q108_p20_fold4` (new GKR v3 default): blowup 2, 108 queries, 20-bit PoW,
+  fold-4. It is **CONJECTURED**: ethSTARK-style FRI accounting gives 1·108 + 20 = 128 bits. It is
+  not covered by the unique-decoding argument above and it is not a proven bound.
+  `security_qualified` stays false. `model.py --v3-source-bounds ... --security-profile
+  conjectured128_b2_q108_p20_fold4` instantiates it on the actual complete compact-decode bundle
+  (`vectors/reports/rv64-gkr-route-speedups-20261102/conjectured128-model.json`): same 18-proof
+  roster, same shape maxima and lookup degrees, algebraic union 2^-196.9 (DEEP/FRI weights at 2N),
+  uniform per-RO-query success 2^-127.6 for T ≤ 2^120. The 0.4-bit shortfall against 128 comes
+  from the conservative 79-scope hash-collision term, not from the PCS.
+- **Compact CPU decode** (`cpu_compact_decode`, 37 MAIN columns) is admitted on the GKR v3
+  envelope (`model.py` `check_v3_layouts`, `service_scope.geometry`), only together with the fused
+  tail and byte pairs. The four other classic fused layouts, the Zbb BINARY bridge, the Zbb
+  profile and the 2^23 wide clock are still rejected (`check_v3_model.py`: 1 admitted, 9 rejected
+  mutations). Compact decode changes only MAIN width and residual counts. On the complete block
+  the source shape maxima and lookup degrees are identical: max columns 7,444 come from a truth
+  proof.

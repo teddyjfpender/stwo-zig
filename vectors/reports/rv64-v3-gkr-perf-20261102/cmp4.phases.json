@@ -1,0 +1,362 @@
+{
+ "dir": "cmp4",
+ "prove_s": 62.036594334,
+ "steps": 16777212,
+ "cpu_proofs": 4,
+ "truth_proofs": 8,
+ "stage_core_s": 469.67049399999996,
+ "phases": {
+  "witness": {
+   "wall_s": 6.192,
+   "core_s": 6.88
+  },
+  "gkr": {
+   "wall_s": 24.227,
+   "core_s": 81.41
+  },
+  "main_lde": {
+   "wall_s": 6.761,
+   "core_s": 22.9
+  },
+  "main_hash": {
+   "wall_s": 6.952,
+   "core_s": 35.07
+  },
+  "binding": {
+   "wall_s": 1.06,
+   "core_s": 5.29
+  },
+  "inter_gen": {
+   "wall_s": 2.775,
+   "core_s": 17.22
+  },
+  "inter_lde": {
+   "wall_s": 4.226,
+   "core_s": 15.66
+  },
+  "inter_hash": {
+   "wall_s": 6.031,
+   "core_s": 26.0
+  },
+  "comp_eval": {
+   "wall_s": 25.138,
+   "core_s": 131.28
+  },
+  "comp_interp": {
+   "wall_s": 1.599,
+   "core_s": 1.35
+  },
+  "comp_commit": {
+   "wall_s": 3.224,
+   "core_s": 15.13
+  },
+  "oods": {
+   "wall_s": 1.859,
+   "core_s": 11.26
+  },
+  "deep_fri_commit": {
+   "wall_s": 13.682,
+   "core_s": 78.75
+  },
+  "pow": {
+   "wall_s": 0.0,
+   "core_s": 0.0
+  },
+  "fri_decommit": {
+   "wall_s": 0.816,
+   "core_s": 4.12
+  },
+  "trace_decommit": {
+   "wall_s": 5.184,
+   "core_s": 17.33
+  },
+  "spill": {
+   "wall_s": 6.17,
+   "core_s": 0.0
+  },
+  "other": {
+   "wall_s": 0.022,
+   "core_s": 0.02
+  }
+ },
+ "per_proof": [
+  {
+   "file": "physical-0000.stages.json",
+   "wall_s": 23.64,
+   "core_s": 84.93,
+   "top": [
+    [
+     "gkr",
+     22.94
+    ],
+    [
+     "deep_fri_commit",
+     16.54
+    ],
+    [
+     "comp_eval",
+     13.77
+    ],
+    [
+     "main_hash",
+     7.29
+    ]
+   ]
+  },
+  {
+   "file": "physical-0001.stages.json",
+   "wall_s": 20.89,
+   "core_s": 72.07,
+   "top": [
+    [
+     "gkr",
+     19.43
+    ],
+    [
+     "deep_fri_commit",
+     15.33
+    ],
+    [
+     "comp_eval",
+     11.63
+    ],
+    [
+     "main_hash",
+     6.13
+    ]
+   ]
+  },
+  {
+   "file": "physical-0002.stages.json",
+   "wall_s": 18.16,
+   "core_s": 73.64,
+   "top": [
+    [
+     "gkr",
+     19.52
+    ],
+    [
+     "deep_fri_commit",
+     16.43
+    ],
+    [
+     "comp_eval",
+     12.04
+    ],
+    [
+     "main_hash",
+     6.09
+    ]
+   ]
+  },
+  {
+   "file": "physical-0003.stages.json",
+   "wall_s": 18.96,
+   "core_s": 76.8,
+   "top": [
+    [
+     "gkr",
+     19.52
+    ],
+    [
+     "deep_fri_commit",
+     16.32
+    ],
+    [
+     "comp_eval",
+     12.21
+    ],
+    [
+     "main_hash",
+     6.41
+    ]
+   ]
+  },
+  {
+   "file": "physical-0004.stages.json",
+   "wall_s": 22.52,
+   "core_s": 120.99,
+   "top": [
+    [
+     "comp_eval",
+     67.62
+    ],
+    [
+     "inter_gen",
+     11.29
+    ],
+    [
+     "main_hash",
+     6.97
+    ],
+    [
+     "deep_fri_commit",
+     6.89
+    ]
+   ]
+  },
+  {
+   "file": "physical-0005.stages.json",
+   "wall_s": 4.08,
+   "core_s": 14.86,
+   "top": [
+    [
+     "comp_eval",
+     3.74
+    ],
+    [
+     "deep_fri_commit",
+     3.19
+    ],
+    [
+     "comp_commit",
+     2.13
+    ],
+    [
+     "inter_hash",
+     1.39
+    ]
+   ]
+  },
+  {
+   "file": "physical-0006.stages.json",
+   "wall_s": 6.14,
+   "core_s": 24.85,
+   "top": [
+    [
+     "comp_eval",
+     9.59
+    ],
+    [
+     "deep_fri_commit",
+     4.03
+    ],
+    [
+     "comp_commit",
+     1.86
+    ],
+    [
+     "inter_hash",
+     1.8
+    ]
+   ]
+  },
+  {
+   "file": "physical-0007.stages.json",
+   "wall_s": 0.74,
+   "core_s": 0.75,
+   "top": [
+    [
+     "comp_eval",
+     0.34
+    ],
+    [
+     "inter_gen",
+     0.12
+    ],
+    [
+     "inter_lde",
+     0.07
+    ],
+    [
+     "inter_hash",
+     0.07
+    ]
+   ]
+  },
+  {
+   "file": "physical-0008.stages.json",
+   "wall_s": 0.14,
+   "core_s": 0.17,
+   "top": [
+    [
+     "comp_eval",
+     0.08
+    ],
+    [
+     "inter_lde",
+     0.02
+    ],
+    [
+     "inter_hash",
+     0.02
+    ],
+    [
+     "trace_decommit",
+     0.02
+    ]
+   ]
+  },
+  {
+   "file": "physical-0009.stages.json",
+   "wall_s": 0.56,
+   "core_s": 0.56,
+   "top": [
+    [
+     "comp_eval",
+     0.25
+    ],
+    [
+     "inter_gen",
+     0.09
+    ],
+    [
+     "inter_lde",
+     0.06
+    ],
+    [
+     "trace_decommit",
+     0.06
+    ]
+   ]
+  },
+  {
+   "file": "physical-0010.stages.json",
+   "wall_s": 0.06,
+   "core_s": 0.03,
+   "top": [
+    [
+     "main_lde",
+     0.01
+    ],
+    [
+     "trace_decommit",
+     0.01
+    ],
+    [
+     "main_hash",
+     0.0
+    ],
+    [
+     "inter_gen",
+     0.0
+    ]
+   ]
+  },
+  {
+   "file": "physical-0011.stages.json",
+   "wall_s": 0.02,
+   "core_s": 0.02,
+   "top": [
+    [
+     "main_lde",
+     0.0
+    ],
+    [
+     "main_hash",
+     0.0
+    ],
+    [
+     "inter_gen",
+     0.0
+    ],
+    [
+     "inter_lde",
+     0.0
+    ]
+   ]
+  }
+ ],
+ "committed_main_cells": 1740937664,
+ "committed_inter_cells": 1229413376
+}
