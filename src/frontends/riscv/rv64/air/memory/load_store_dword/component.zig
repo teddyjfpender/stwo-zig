@@ -24,6 +24,9 @@ pub const Component = struct {
     offsets: [3]usize,
     claims: T.Claims,
     challenges: T.Challenges,
+    /// Opt-in fused-pair layout (Geometry.ls_dword_fused_pairs, L.fused): the
+    /// AND relation challenges of the tagged byte pair. Null = historical.
+    pairs: ?@import("../../providers/tables.zig").Challenges = null,
     const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
     pub fn asProverComponent(self: *const Self) cp.ComponentProver {
         var result = Adapter.asProverComponent(self);
@@ -39,11 +42,14 @@ pub const Component = struct {
     pub fn asVerifierComponent(self: *const Self) core.air.components.Component {
         return Adapter.asVerifierComponent(self);
     }
-    pub fn widths(_: *const Self) [3]usize {
-        return L.widths();
+    pub fn widths(self: *const Self) [3]usize {
+        return L.widthsFor(self.pairs != null);
     }
-    pub fn nConstraints(_: *const Self) usize {
-        return CONSTRAINTS;
+    pub fn nConstraints(self: *const Self) usize {
+        return if (self.pairs != null) L.fused.CONSTRAINTS else CONSTRAINTS;
+    }
+    pub fn previousInter(self: *const Self, c: usize) bool {
+        return L.previousInterFor(self.pairs != null, c);
     }
     pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
         return self.log_size + 1;
@@ -56,6 +62,7 @@ pub const Component = struct {
         return 3;
     }
     pub fn emitFor(self: *const Self, comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, sink: *E.SinkFor(F)) void {
+        if (self.pairs) |pairs| return Eq.emitFusedWithPublicFor(F, f, m, pm, i, pi, E.qFor(F, self.rows), E.qFor(F, @intFromBool(self.rows != 0)), self.claims, self.challenges, pairs, sink);
         Eq.emitFor(F, f, m, pm, i, pi, self.rows, self.claims, self.challenges, sink);
     }
     pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
@@ -83,7 +90,7 @@ pub const Component = struct {
             n += 1;
         }
         for (1..3) |tree| for (masks[tree], 0..) |*data, c| {
-            if (if (tree == 1) L.previousMain(c) else L.previousInter(c)) {
+            if (if (tree == 1) L.previousMain(c) else self.previousInter(c)) {
                 const replacement = try a.dupe(Point, &.{ point, geometry.previousPoint(point, global_log) });
                 a.free(data.*);
                 data.* = replacement;
@@ -99,21 +106,23 @@ pub const Component = struct {
         var fixed: [L.FIXED]F = undefined;
         var main: [L.MAIN]F = undefined;
         var pm: [L.MAIN]F = @splat(F.zero());
-        var inter: [L.INTERACTION]F = undefined;
-        var pi: [L.INTERACTION]F = @splat(F.zero());
+        var inter_buffer: [L.INTERACTION]F = undefined;
+        var pi_buffer: [L.INTERACTION]F = @splat(F.zero());
+        const inter = inter_buffer[0..self.widths()[2]];
+        const pi = pi_buffer[0..inter.len];
         for (&fixed, 0..) |*v, c| v.* = try E.lane.sample(F, masks, 0, self.offsets[0] + c, 0, 1);
         for (&main, 0..) |*v, c| {
             const prior = L.previousMain(c);
             v.* = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 0, if (prior) 2 else 1);
             if (prior) pm[c] = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 1, 2);
         }
-        for (&inter, 0..) |*v, c| {
-            const prior = L.previousInter(c);
+        for (inter, 0..) |*v, c| {
+            const prior = self.previousInter(c);
             v.* = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 0, if (prior) 2 else 1);
             if (prior) pi[c] = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 1, 2);
         }
         sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
-        self.emitFor(F, &fixed, &main, &pm, &inter, &pi, sink);
+        self.emitFor(F, &fixed, &main, &pm, inter, pi, sink);
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator) !void {
         return self.evaluateDomain(trace, acc, null);

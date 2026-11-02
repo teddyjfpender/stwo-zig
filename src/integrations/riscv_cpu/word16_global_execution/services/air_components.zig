@@ -36,7 +36,7 @@ pub const Bridges = struct {
         var out = self;
         const rows = try T.dwordCounts(setup.bridges, total);
         for (0..T.DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |log| {
-            out.ls_dword[k] = .{ .log_size = log, .rows = rows[k], .offsets = .{ setup.dwordOffset(k, 0), setup.dwordOffset(k, 1), setup.dwordOffset(k, 2) }, .claims = claims[k], .challenges = ch.memory };
+            out.ls_dword[k] = .{ .log_size = log, .rows = rows[k], .offsets = .{ setup.dwordOffset(k, 0), setup.dwordOffset(k, 1), setup.dwordOffset(k, 2) }, .claims = claims[k], .challenges = ch.memory, .pairs = if (setup.materials.geometry.ls_dword_fused_pairs) ch.and_ else null };
         };
         return out;
     }

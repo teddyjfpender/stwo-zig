@@ -32,13 +32,23 @@ pub const CpuLayout = struct {
     /// Changes the AUIPC/JAL FUNCTION facts, so the capture program must be
     /// made compact (Program.makeCompact) before capture.
     compact_decode: bool = false,
+    /// MUL byte pairs served by the AND pair column (requires u8_pairs).
+    mul_u8_pairs: bool = false,
+    /// LS32 fused tail + byte pairs, INIT/TEARDOWN fused single (requires u8_pairs).
+    ls_fused_pairs: bool = false,
+    /// ALU fused tail (head and tail instances).
+    alu_fused_tail: bool = false,
+    /// LS-D64 fused tail + byte pair (requires u8_pairs and ls_dword).
+    ls_dword_fused_pairs: bool = false,
     /// Default layout for a profile route. Only the admitted
     /// `ethereum_services_v3` route defaults to the fused tail, byte pairs,
-    /// compact decode and LS-D64; every older route keeps its historical
-    /// layout and bundle bytes.
+    /// LS-D64 and the fused2 component layouts (MUL pairs, LS32/INIT/TEARDOWN
+    /// fused pairs, ALU fused tail, LS-D64 fused pairs) and compact decode (all proved and freshly
+    /// verified on a real 4-packet prefix of block 24,628,607); every older
+    /// route keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .compact_decode = v3 };
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3, .compact_decode = v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
@@ -67,12 +77,20 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.cpu_fused_tail = layout.fused_tail;
         g.cpu_u8_pairs = layout.u8_pairs;
         g.cpu_compact_decode = layout.compact_decode;
+        g.mul_u8_pairs = layout.mul_u8_pairs;
+        g.ls_fused_pairs = layout.ls_fused_pairs;
+        g.alu_fused_tail = layout.alu_fused_tail;
+        g.ls_dword_fused_pairs = layout.ls_dword_fused_pairs;
         // A log-23 CPU segment (batch_steps >= 2^22) has only the wide-clock
-        // encoding, which is defined on the fused tail without byte pairs.
+        // encoding, which is defined on the fused tail without byte pairs; the
+        // component pair layouts need the CPU pair column, so they go too.
         if (g.wideClock()) {
             g.cpu_fused_tail = true;
             g.cpu_u8_pairs = false;
             g.cpu_compact_decode = false;
+            g.mul_u8_pairs = false;
+            g.ls_fused_pairs = false;
+            g.ls_dword_fused_pairs = false;
         }
         d.* = .{ .geometry = g, .bridges = .{} };
         // The same two-instance ladder as LS32 (one inactive row per instance).
