@@ -44,6 +44,10 @@ pub const Source = struct {
     fused_tail: bool = false,
     /// Opt-in byte-pair lookups (Geometry.cpu_u8_pairs, implies fused_tail).
     u8_pairs: bool = false,
+    /// Compact decode MAIN (Geometry.cpu_compact_decode). Fixed at capture
+    /// from Program.compact: it changes the AUIPC/JAL FUNCTION facts, so a
+    /// capture can only be bound to a program owner of the same layout.
+    compact: bool = false,
     rom_counts: []u64,
     counts16: []u64,
     counts8: []u64,
@@ -86,7 +90,7 @@ pub const Source = struct {
         for (metadata, 0..) |*meta, index| {
             const word = try program.lookup(pc);
             const entry = program.entries[word];
-            if (!entry.valid) return error.UnadmittedExecutionInstruction;
+            if (!entry.valid or (program.compact and !entry.compactValid())) return error.UnadmittedExecutionInstruction;
             const record = try tape.restore(index, .{ .raw = entry.raw, .instruction = entry.instruction }, .local);
             const effects = front.rv64.execution_profile.effects(.ethereum_services_v2, entry.instruction.opcode);
             const jump = entry.instruction.opcode == .JAL or entry.dynamic_next;
@@ -94,6 +98,7 @@ pub const Source = struct {
             if ((!entry.branch and record.branch_taken != jump) or (entry.branch and record.result.toInt() != 0)) return error.InvalidExecutionAdvice;
             const next = record.next_pc.toInt();
             if (next & 3 != 0 or (!entry.dynamic_next and next != entry.staticNext(entry.branch and record.branch_taken))) return error.InvalidExecutionAdvice;
+            if (program.compact and next >= X.features.COMPACT_PC_LIMIT) return error.InvalidExecutionAdvice;
             const c = if (entry.branch) @intFromBool(record.branch_taken) else record.result.toInt();
             const rom_row = try program.factIndex(word, entry.branch and record.branch_taken);
             meta.* = .{ .values = .{ record.lhs.toInt(), record.rhs.toInt(), c, record.previous_rd.toInt(), next }, .clocks = undefined, .rom_row = @intCast(rom_row) };
@@ -104,7 +109,10 @@ pub const Source = struct {
             rom_counts[L.physical(rom_row, program.log_size)] += 1;
             if (entry.function) {
                 if (record.memory != null) return error.InvalidExecutionAdvice;
-                try functions.append(a, .{ .operation = entry.operation, .a = if (entry.use_pc) pc else meta.values[0], .b = if (entry.use_immediate) entry.immediate else meta.values[1], .c = if (entry.dynamic_next) next else c });
+                // Compact decode folds AUIPC/JAL to ADD(0, pc+imm) / ADD(0, pc+4).
+                const fact_a = if (entry.use_pc and !program.compact) pc else meta.values[0];
+                const fact_b = if (!entry.use_immediate) meta.values[1] else if (program.compact) entry.compactB() else entry.immediate;
+                try functions.append(a, .{ .operation = entry.operation, .a = fact_a, .b = fact_b, .c = if (entry.dynamic_next) next else c });
             } else if (entry.instruction.opcode == .ECALL) {
                 if (record.memory != null or c != 0) return error.InvalidExecutionAdvice;
                 try services.append(a, .{ .pointer = meta.values[0], .tag = meta.values[1], .epoch = epoch, .tick = @intCast(4 * (index + 1)) });
@@ -116,7 +124,8 @@ pub const Source = struct {
             pc = next;
         }
         if (pc != public.final_pc or !std.mem.eql(u64, &registers, &public.final_registers) or !std.mem.eql(u32, &clocks, &public.register_clocks)) return error.InvalidExecutionBoundary;
-        return .{ .allocator = a, .program = program, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
+        if (program.compact) try X.types.validateCompactInputs(try X.types.inputs(public, epoch, log_size), log_size);
+        return .{ .allocator = a, .program = program, .compact = program.compact, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
     }
     /// A failed allocation/projection leaves the capture reusable: MAIN stays
     /// empty, range histograms stay zero, metadata/facts/ROM counts stay owned.
@@ -125,13 +134,14 @@ pub const Source = struct {
         if (self.main_projection_closed or self.main.len != 0) return error.ExecutionMainProjectionClosed;
         _ = try X.types.inputs(self.public, self.epoch, self.log_size);
         if (self.metadata.len != self.public.steps) return error.InvalidExecutionSourcePhase;
+        if (self.compact != self.program.compact) return error.InvalidCpuCompactGeometry;
         @memset(self.counts16, 0);
         @memset(self.counts8, 0);
         errdefer {
             @memset(self.counts16, 0);
             @memset(self.counts8, 0);
         }
-        const main = try self.allocator.alloc(M, L.main.COUNT * self.size());
+        const main = try self.allocator.alloc(M, L.mainCount(self.compact) * self.size());
         errdefer self.allocator.free(main);
         var staged = self.*;
         staged.main = main;
@@ -147,19 +157,23 @@ pub const Source = struct {
         for (start..end) |physical| {
             const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.log_size), self.log_size);
             const values = self.row(logical) catch unreachable; // prevalidated framing.
-            for (values, 0..) |value, column| self.main[column * n + physical] = value;
+            for (values[0..L.mainCount(self.compact)], 0..) |value, column| self.main[column * n + physical] = value;
+            const gap16: usize = if (self.compact) L.compact.gap16 else L.main.gap16;
+            const gap8: usize = if (self.compact) L.compact.gap8 else L.main.gap8;
             for (0..3) |slot| {
-                counts16[values[L.main.gap16 + slot].v] += 1;
-                counts8[values[L.main.gap8 + slot].v] += 1;
+                counts16[values[gap16 + slot].v] += 1;
+                counts8[values[gap8 + slot].v] += 1;
             }
         }
     }
     pub fn row(self: *const Source, logical: usize) !X.row.Main {
         if (self.metadata.len != self.public.steps) return error.InvalidExecutionSourcePhase;
         if (logical >= self.size()) return error.InvalidExecutionRow;
-        if (logical >= self.metadata.len) return X.row.padding(@intCast(logical), self.public.final_pc);
+        if (self.compact != self.program.compact) return error.InvalidCpuCompactGeometry;
+        if (logical >= self.metadata.len) return if (self.compact) X.row.compact.padding(@intCast(logical), self.public.final_pc) else X.row.padding(@intCast(logical), self.public.final_pc);
         const meta = self.metadata[logical];
         const entry = self.program.entries[self.program.row_to_entry[meta.rom_row]];
+        if (self.compact) return X.row.compact.active(entry, @intCast(logical), meta.values[4], .{ .a = meta.values[0], .b = meta.values[1], .c = meta.values[2], .previous_rd = meta.values[3] }, meta.clocks);
         return X.row.active(entry, @intCast(logical), meta.values[4], .{ .a = meta.values[0], .b = meta.values[1], .c = meta.values[2], .previous_rd = meta.values[3] }, meta.clocks);
     }
     pub fn size(self: *const Source) usize {

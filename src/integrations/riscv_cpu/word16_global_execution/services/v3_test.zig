@@ -188,3 +188,60 @@ test "v3 all services byte-pair adversarial: global closure still rejects forged
         try std.testing.expectError(case.err, E.verify(a, &keys, &truths, c.expected(), &c.bundle));
     }
 }
+
+test "v3 all services compact decode: bundle round trip, fresh receiver, exact MAIN delta and cross-layout refusal" {
+    const Geo = @import("../../word16_execution/geometry.zig");
+    var pairs = try F.Case.initWith(a, .none, .{ .cpu_fused_tail = true, .cpu_u8_pairs = true });
+    defer pairs.deinit();
+    var c = try F.Case.initWith(a, .none, .{ .cpu_fused_tail = true, .cpu_u8_pairs = true, .cpu_compact_decode = true });
+    defer c.deinit();
+    const keys = c.keys();
+    const truths = c.truths();
+    try E.verify(a, &keys, &truths, c.expected(), &c.bundle);
+    // Exact committed-cell delta vs pairs: CPU MAIN -10 columns per CPU row.
+    for (keys, pairs.keys()) |compact_setup, pair_setup| {
+        const x = try Geo.cells(&compact_setup.materials.shapes());
+        const y = try Geo.cells(&pair_setup.materials.shapes());
+        try std.testing.expectEqual(y.fixed, x.fixed);
+        try std.testing.expectEqual(y.main - 10 * (@as(u64, 1) << @intCast(F.CPU_LOG)), x.main);
+        try std.testing.expectEqual(y.interaction, x.interaction);
+    }
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try W.write(a, tmp.dir, &keys, &truths, &c.bundle);
+    var loaded = try W.read(a, tmp.dir, .{ .max_cpus = 2, .max_truths = 2, .max_total_steps = F.STEPS });
+    defer loaded.deinit(a);
+    for (loaded.cpu_declarations) |d| try std.testing.expect(d.geometry.cpu_u8_pairs and d.geometry.cpu_compact_decode);
+    var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[0].geometry, F.BRIDGES[0]);
+    defer s0.deinit();
+    var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[1].geometry, F.BRIDGES[1]);
+    defer s1.deinit();
+    var ht = try HR.TruthSetup.init(a, F.SHA_LOG);
+    defer ht.deinit();
+    var at = try AR.TruthSetup.init(a, F.ARITH_LOG);
+    defer at.deinit();
+    const fresh = F.truthsFor(&ht, &at);
+    try E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle);
+    for (0..2) |shard| {
+        var g = loaded.cpu_declarations[shard].geometry;
+        g.cpu_compact_decode = false;
+        var wrong = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, g, F.BRIDGES[shard]);
+        defer wrong.deinit();
+        const pair: [2]*const R.CpuSetup = if (shard == 0) .{ &wrong, &s1 } else .{ &s0, &wrong };
+        if (E.verify(a, &pair, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)) |_| return error.AcceptedCompactProofWithPairKeys else |_| {}
+    }
+    if (E.verify(a, &.{ &s0, &s1 }, &fresh, pairs.expected(), &pairs.bundle)) |_| return error.AcceptedPairProofWithCompactKeys else |_| {}
+}
+
+test "v3 all services compact decode adversarial: global closure still rejects forged fills and outputs" {
+    for ([_]struct { m: F.Case.Mutation, err: anyerror }{
+        .{ .m = .wrong_fill, .err = error.UnclosedCombinedRam },
+        .{ .m = .wrong_arith_output, .err = error.UnclosedCombinedSecpWire },
+    }) |case| {
+        var c = try F.Case.initWith(a, case.m, .{ .cpu_fused_tail = true, .cpu_u8_pairs = true, .cpu_compact_decode = true });
+        defer c.deinit();
+        const keys = c.keys();
+        const truths = c.truths();
+        try std.testing.expectError(case.err, E.verify(a, &keys, &truths, c.expected(), &c.bundle));
+    }
+}

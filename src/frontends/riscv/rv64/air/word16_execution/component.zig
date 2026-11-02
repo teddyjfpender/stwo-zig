@@ -29,6 +29,9 @@ pub fn ComponentFor(comptime C: type) type {
         /// Opt-in byte-pair lookups (requires `fused`): the AND relation's
         /// challenges. Null keeps the fused (or legacy) encoding.
         pairs: ?Eq.PairChallengesFor(C) = null,
+        /// Opt-in compact decode MAIN (requires `pairs`): 37 MAIN columns,
+        /// PC read from the previous row, immediates in the unused operand slot.
+        compact: bool = false,
         const Self = @This();
         const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn asProverComponent(self: *const Self) cp.ComponentProver {
@@ -47,6 +50,7 @@ pub fn ComponentFor(comptime C: type) type {
             return Adapter.asVerifierComponent(self);
         }
         pub fn nConstraints(self: *const Self) usize {
+            if (self.compact) return Eq.COMPACT_CONSTRAINTS;
             return Eq.constraintCountFor(self.fused, self.pairs != null);
         }
         pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
@@ -60,14 +64,14 @@ pub fn ComponentFor(comptime C: type) type {
             return 3;
         }
         pub fn widths(self: *const Self) [3]usize {
-            return .{ 3, L.main.COUNT, L.interCountFor(self.fused, self.pairs != null) };
+            return .{ 3, L.mainCount(self.compact), L.interCountFor(self.fused, self.pairs != null) };
         }
         pub fn needsPrevious(self: *const Self, tree: usize, column: usize) bool {
-            return if (tree == 1) L.previousMain(column) else tree == 2 and L.previousInterMode(self.fused, self.pairs != null, column);
+            return if (tree == 1) L.previousMainFor(self.compact, column) else tree == 2 and L.previousInterMode(self.fused, self.pairs != null, column);
         }
         pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
             if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG) return error.InvalidExecutionGeometry;
-            if (comptime C == Q) try T.validateInputs(self.public, self.log_size);
+            if (comptime C == Q) try self.validatePublic();
             var logs: [3][]u32 = undefined;
             var done: usize = 0;
             errdefer for (logs[0..done]) |data| a.free(data);
@@ -98,8 +102,16 @@ pub fn ComponentFor(comptime C: type) type {
             }
             return core.air.components.MaskPoints.initOwned(try a.dupe([][]core.circle.CirclePointQM31, &masks));
         }
+        /// Compact decode is defined only on top of the byte-pair encoding and
+        /// requires canonical sub-2^31 endpoints (types.validateCompactInputs).
+        pub fn validatePublic(self: *const Self) !void {
+            if (self.compact and (self.pairs == null or !self.fused)) return error.InvalidExecutionGeometry;
+            return if (self.compact) T.validateCompactInputs(self.public, self.log_size) else T.validateInputs(self.public, self.log_size);
+        }
         pub fn emitFor(self: *const Self, comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, sink: *E.SinkFor(F)) void {
-            if (self.pairs) |pair_ch| {
+            if (self.compact) {
+                Eq.emitCompactFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, self.pairs.?, sink);
+            } else if (self.pairs) |pair_ch| {
                 Eq.emitPairsFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, pair_ch, sink);
             } else if (self.fused) {
                 Eq.emitFusedFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, sink);
@@ -111,15 +123,17 @@ pub fn ComponentFor(comptime C: type) type {
         }
         pub fn evaluateQuotientsAtPointFor(self: *const Self, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, sink: *E.SinkFor(F)) !void {
             comptime if (E.ConstFor(F) != C) @compileError("execution component lane mismatch");
-            if (comptime C == Q) try T.validateInputs(self.public, self.log_size);
+            if (comptime C == Q) try self.validatePublic();
+            if (self.compact and self.pairs == null) return error.InvalidExecutionGeometry;
             var fixed: [3]F = undefined;
             var main: [L.main.COUNT]F = undefined;
             var pm: [L.main.COUNT]F = @splat(F.zero());
             var inter: [L.inter.COUNT]F = undefined;
             var pi: [L.inter.COUNT]F = @splat(F.zero());
             for (&fixed, 0..) |*v, c| v.* = try E.lane.sample(F, masks, 0, self.offsets[0] + c, 0, 1);
-            for (&main, 0..) |*v, c| {
-                const prior = L.previousMain(c);
+            const main_count = L.mainCount(self.compact);
+            for (main[0..main_count], 0..) |*v, c| {
+                const prior = L.previousMainFor(self.compact, c);
                 v.* = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 0, if (prior) 2 else 1);
                 if (prior) pm[c] = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 1, 2);
             }
@@ -130,7 +144,7 @@ pub fn ComponentFor(comptime C: type) type {
                 if (prior) pi[c] = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 1, 2);
             }
             sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
-            self.emitFor(F, &fixed, &main, &pm, inter[0..inter_count], pi[0..inter_count], sink);
+            self.emitFor(F, &fixed, main[0..main_count], pm[0..main_count], inter[0..inter_count], pi[0..inter_count], sink);
         }
         pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator) !void {
             return self.evaluateDomain(trace, acc, null);
@@ -138,7 +152,7 @@ pub fn ComponentFor(comptime C: type) type {
         fn evaluateDomain(self: *const Self, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
             comptime if (C != Q) @compileError("external lane has no native domain evaluator");
             if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG or trace.polys.items.len != 3) return error.InvalidExecutionGeometry;
-            try T.validateInputs(self.public, self.log_size);
+            try self.validatePublic();
             const a = acc.allocator;
             var polys: [COLUMNS]cp.Poly = undefined;
             var at: usize = 0;

@@ -94,6 +94,7 @@ pub const Source = struct {
         errdefer cpu.deinit();
         cpu.fused_tail = g.cpu_fused_tail;
         cpu.u8_pairs = g.cpu_u8_pairs;
+        if (cpu.compact != g.cpu_compact_decode) return error.PreparedGeometryMismatch;
         var jalr = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_jalr", "Adopt prepared JALR witness");
             defer stage.end();
@@ -434,8 +435,9 @@ fn addCounts(out: []u64, input: []const u64) !void {
 /// (gap8_2, 0) queries over every physical row, padding included (weight one).
 fn cpuPairCounts(a: std.mem.Allocator, cpu: *const CPU.Source) ![]u64 {
     const n = cpu.size();
-    const gap8 = A.word16_execution.layout.main.gap8;
-    if (cpu.main.len != A.word16_execution.layout.main.COUNT * n) return error.InvalidExecutionSourcePhase;
+    const XL = A.word16_execution.layout;
+    const gap8: usize = if (cpu.compact) XL.compact.gap8 else XL.main.gap8;
+    if (cpu.main.len != XL.mainCount(cpu.compact) * n) return error.InvalidExecutionSourcePhase;
     const counts = try a.alloc(u64, 65536);
     errdefer a.free(counts);
     @memset(counts, 0);

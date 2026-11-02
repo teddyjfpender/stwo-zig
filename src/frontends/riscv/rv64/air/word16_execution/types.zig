@@ -15,6 +15,21 @@ pub fn validateInputs(public: Inputs, log: u32) !void {
     for (public.initial_pc ++ public.final_pc) |limb| if (limb > 65535) return error.InvalidExecutionInputs;
     if (public.initial_pc[0] & 3 != 0 or public.final_pc[0] & 3 != 0) return error.InvalidExecutionInputs;
 }
+/// Compact decode endpoints: the AIR reads only felt = limb0 + 65536*limb1,
+/// so limbs 2..3 must be zero and the value below 2^31 (felt injective and
+/// equal to a ROM-range PC). Required by every compact receiver lane.
+pub fn validateCompactInputs(public: Inputs, log: u32) !void {
+    try validateInputs(public, log);
+    for ([_][4]u32{ public.initial_pc, public.final_pc }) |pc| if (pc[2] != 0 or pc[3] != 0 or pc[1] >= 0x8000) return error.InvalidExecutionInputs;
+}
+/// felt(pc) of a native public endpoint.
+pub fn nativePcFelt(pc: [4]u32) M {
+    return M.fromCanonical(pc[0] % 65536).add(M.fromCanonical(65536).mul(M.fromCanonical(pc[1] % 65536)));
+}
+/// felt(pc) of a public endpoint, as a circuit-lane value.
+pub fn pcFelt(comptime F: type, pc: anytype) F {
+    return E.scalarFor(F, pc[0]).add(E.scalarFor(F, pc[1]).mul(literal(F, 65536)));
+}
 pub fn inputs(boundary: Boundary, epoch: u16, log: u32) !Inputs {
     try boundary.validate(log);
     if (epoch == 0) return error.InvalidExecutionEpoch;

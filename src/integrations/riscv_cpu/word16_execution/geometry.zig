@@ -37,12 +37,17 @@ pub const Geometry = struct {
     /// the tagged tuple (x, y, 0, 1) in the AND relation, served by a second
     /// multiplicity column of the AND table. CPU interaction 36 -> 32 columns.
     cpu_u8_pairs: bool = false,
+    /// Opt-in compact decode CPU MAIN (requires cpu_u8_pairs): the row PC is
+    /// read from the previous row's single-felt next PC, immediates live in
+    /// the operand slot the instruction does not use, AUIPC/JAL fold to static
+    /// constants. CPU MAIN 47 -> 37; ROM keeps its 30 coordinates.
+    cpu_compact_decode: bool = false,
     /// Omits the opt-in layout flags when false so legacy bundle.json bytes are unchanged.
     pub fn jsonStringify(self: Geometry, jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(Geometry)) |field| {
             const value = @field(self, field.name);
-            const omitted = if (comptime std.mem.eql(u8, field.name, "cpu_fused_tail") or std.mem.eql(u8, field.name, "cpu_u8_pairs"))
+            const omitted = if (comptime std.mem.eql(u8, field.name, "cpu_fused_tail") or std.mem.eql(u8, field.name, "cpu_u8_pairs") or std.mem.eql(u8, field.name, "cpu_compact_decode"))
                 !value
             else if (comptime @typeInfo(field.type) == .optional)
                 value == null and !jws.options.emit_null_optional_fields
@@ -65,6 +70,8 @@ pub const Geometry = struct {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         // The pair encoding is defined only on top of the fused tail.
         if (self.cpu_u8_pairs and !self.cpu_fused_tail) return error.InvalidCpuPairGeometry;
+        // Compact decode is defined only on top of the byte-pair encoding.
+        if (self.cpu_compact_decode and !self.cpu_u8_pairs) return error.InvalidCpuCompactGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
@@ -143,7 +150,7 @@ pub fn shapesForProgramLog(program_log: u32, geometry: Geometry) [ROLE_COUNT]Sha
     var offsets: [3]usize = @splat(0);
     for (std.enums.values(Role), &result) |role, *shape| {
         const widths: [3]usize = switch (role) {
-            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.interCountFor(geometry.cpu_fused_tail, geometry.cpu_u8_pairs) },
+            .cpu => .{ 3, front.rv64_air.word16_execution.layout.mainCount(geometry.cpu_compact_decode), front.rv64_air.word16_execution.layout.interCountFor(geometry.cpu_fused_tail, geometry.cpu_u8_pairs) },
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .alu => .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION },

@@ -179,6 +179,8 @@ pub const Prepared = struct {
         if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;
         const cpu = if (self.cpu) |*value| value else return error.PreparedExecutionConsumed;
         if (cpu.log_size != expected_cpu_log) return error.PreparedGeometryMismatch;
+        // Compact decode changes AUIPC/JAL facts; layouts cannot be rebound.
+        if (cpu.compact != program.compact) return error.PreparedGeometryMismatch;
         cpu.program = program;
         if (cpu.main_projection_closed) {
             if (cpu.main.len == 0) return error.ExecutionMainUnavailable;
@@ -188,6 +190,8 @@ pub const Prepared = struct {
         if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;
         var cpu = self.cpu orelse return error.PreparedExecutionConsumed;
         if (cpu.log_size != expected_cpu_log) return error.PreparedGeometryMismatch;
+        // Compact decode changes AUIPC/JAL facts; layouts cannot be rebound.
+        if (cpu.compact != program.compact) return error.PreparedGeometryMismatch;
         cpu.program = program;
         self.cpu = null;
         return cpu;

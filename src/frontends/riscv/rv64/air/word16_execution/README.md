@@ -140,6 +140,95 @@ proof. Padding rows query `(0, 0)` twice, so their two pair denominators
 coincide; that is still one pole event. The 24-bit gap identity
 `gap = gap16 + 2^16*gap8` is unchanged, and range8 keeps serving MUL and LS.
 
+## Opt-in compact decode MAIN (37 columns, 32 residuals)
+
+`Geometry.cpu_compact_decode` (requires `cpu_u8_pairs`, default false)
+selects `emitCompactFor` over the compact MAIN layout `layout.compact`. The
+interaction (32 columns, the seven pair-mode fractions and fused byte pairs)
+is unchanged; only the tuples feeding it change. False keeps every older CPU
+byte-identical; true also mixes `features.compactIdentity()` and the widths
+into the transcript, and the ROM fixed matrix is built by
+`Entry.romTupleCompact` (`Program.makeCompact`), so the fixed root differs.
+
+MAIN 47 -> 37: `pc[4]`, `next_pc[4]`, `immediate[4]`, `use_immediate` and
+`use_pc` (14 columns) become `next[2]` and `ls_imm[2]` (4 columns).
+
+- PC. The row PC is not committed. The ROM pc coordinate is
+  `first*felt(initial_pc) + (1-first)*felt(next')` (degree 2, previous-row
+  mask), with `felt(x) = x0 + 65536*x1`. The ROM static-next coordinate is
+  `(1-dyn)*felt(next)`; JALR's FUNCTION C is `(next0, next1, 0, 0)`.
+  Padding: `(1-active)*(felt(next)-felt(next'))` and
+  `last*(felt(next)-felt(final_pc))`.
+- B immediate. Every FUNCTION instruction with an immediate (I-type,
+  shift-imm, JALR, LUI) does not read rs2, so its immediate is committed in
+  B. AUIPC and JAL are folded at decode to the static constants `pc+imm` and
+  `pc+4`, requested as `ADD(0, const)` (rs1 is unused, so A = 0). FUNCTION is
+  `(op, A, B, C_eff)`: `use_pc` and the immediate selector disappear. The ROM
+  immediate coordinate is `(1-enabled1)*B`, and the local guard
+  `(1-enabled1)*B = 0` is removed.
+- LS offset. RISC-V LS offsets are 12-bit sign extensions, so the four
+  limbs are `(low16, s, s, s)` with `s` in `{0, 0xFFFF}`. `ls_imm` holds
+  `(low16, s)` and is bound in the ROM's former `use_immediate` and `use_pc`
+  flag slots. OWNER IMM is `(l0, s, s, s)` and B_store is B, so OWNER stays
+  affine and keeps the OWNER+U16 fraction at degree 3. Aliasing the LS offset
+  into P instead would make OWNER quadratic, the fraction degree 4, and cost
+  +4 interaction columns.
+
+The ROM keeps its 30 coordinates and challenges: pc and next sit in limb 0
+with limbs 1..3 zero.
+
+Soundness. Honest REG, OWNER and range tuples are value-identical to the
+pair layout on every row with nonzero weight. FUNCTION differs only for
+AUIPC and JAL, whose facts become `ADD(0, pc+imm)` and `ADD(0, pc+4)`. Both
+are exact architectural results, and the capture emits exactly those facts
+(`cpu_source`), so ALU dedup changes only the fact multiset.
+
+1. Decode binding. On active rows the ROM fraction authenticates the whole
+   compact tuple against `romTupleCompact` of an immutable decoded entry.
+   - Flags. `1-enabled1` is that entry's rs2 zero flag. An immediate entry
+     has `ids[1] = 0` (checked by `compactValid`), so `enabled1 = 0` and the
+     coordinate equals B. B is therefore pinned to the decoded immediate.
+   - x0 reads. For an x0 rs2 read, the entry's immediate is 0, so B = 0. This
+     is exactly the removed guard.
+   - Live rs2. For a live rs2, `enabled1 = 1` and the coordinate is 0 on
+     both sides, so B is the REG-bound register value. B's REG weight
+     `enabled1` is 0 whenever B holds an immediate, so an immediate never
+     reaches the register bus.
+   - `ls_imm` and the static constants are plain ROM coordinates.
+   - A is still guarded by `(1-enabled0)*A = 0`, so AUIPC/JAL/LUI have A = 0.
+2. PC continuity. The row PC is definitional: row 0 is `initial_pc` and row i
+   is `felt(next_{i-1})`, so there is no PC equality to forge. The ROM is
+   built only from code whose PCs and static successors are below 2^31
+   (`compactValid` and `compactTakenEdge`; others become invalid zero facts),
+   and the receiver requires canonical endpoints below 2^31 with zero limbs
+   2..3 (`types.validateCompactInputs`). So felt is injective on every value
+   it is compared with.
+   - Static rows. The ROM binds `felt(next)` to the decoded successor, so the
+     limb split of `next` is irrelevant. A test accepts a non-canonical split
+     of the same PC, and the claim does not change.
+   - JALR. `(next0, next1, 0, 0)` is a FUNCTION coordinate served by AND16,
+     directly or through the JALR10 composite. So the limbs are canonical u16,
+     the true target is `T = next0 + 65536*next1 < 2^32`, its upper limbs are
+     zero, and T is even, because `~1` clears bit 0. The successor's pc felt
+     `v` is a ROM PC or `final_pc`, so `v < 2^31` and v is 4-aligned. Then
+     `T in {v, v+p}`, and `v+p` is odd since p is odd, so `T = v`.
+3. Canonical immediate ranges. Every bound value is a canonical ROM
+   coordinate. Immediates in B reach providers only as FUNCTION A/B
+   coordinates, whose limbs the providers range-check exactly as before.
+   `ls_imm` reaches LS only through OWNER, as before.
+
+Poles and degree. The witness forms and the 14-poles-per-row bound are those
+of the pair encoding. The only new pattern is the ROM denominator reading the
+previous MAIN row. All 32 residuals have degree at most 3, which a test checks
+by the fourth finite difference over random dense rows.
+
+Scope. Only the `ethereum_services_v3` route admits the flag
+(`main.zig admitProfile`). The local GKR lane fails closed (`v2_scope`
+refuses the flag); the MAIN-only authority, reached only through that lane,
+keeps the legacy shape. A
+capture is bound to its layout. `Prepared.takeCpu` refuses to rebind a capture
+to a program owner of the other layout, because the AUIPC/JAL facts differ.
+
 ## Affine zero-register flags
 
 The three zero-register flags are `1-enabled`, not independent committed

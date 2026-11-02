@@ -125,10 +125,16 @@ pub const Captured = struct {
     /// The word LD x9 observed (S word 0 after the first compression).
     loaded: u64,
     pub fn init(a: std.mem.Allocator) !Captured {
+        return initWithLayout(a, false);
+    }
+    /// Compact decode changes the AUIPC/JAL FUNCTION facts, so the capture
+    /// program owner must already carry the layout.
+    pub fn initWithLayout(a: std.mem.Allocator, compact_decode: bool) !Captured {
         const program = try a.create(Program);
         errdefer a.destroy(program);
         program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
         errdefer program.deinit();
+        if (compact_decode) try program.makeCompact();
         var memory = rv.memory.Memory.init(a, .{});
         defer memory.deinit();
         try memory.map(.{ .start = 4096, .size = 4 * WORDS.len, .permissions = .{ .read = true, .execute = true } });
@@ -244,12 +250,12 @@ pub const Case = struct {
     }
     /// Producer layout options; every one is a Geometry field, so it is
     /// declared in the wire and mixed into each CPU transcript.
-    pub const Options = struct { cpu_fused_tail: bool = false, cpu_u8_pairs: bool = false };
+    pub const Options = struct { cpu_fused_tail: bool = false, cpu_u8_pairs: bool = false, cpu_compact_decode: bool = false };
     pub fn init(a: std.mem.Allocator, mutation: Mutation) !Case {
         return initWith(a, mutation, .{});
     }
     pub fn initWith(a: std.mem.Allocator, mutation: Mutation, options: Options) !Case {
-        var captured = try Captured.init(a);
+        var captured = try Captured.initWithLayout(a, options.cpu_compact_decode);
         defer captured.deinit();
         const advice = &captured.advice;
         switch (mutation) {
@@ -295,6 +301,7 @@ pub const Case = struct {
             geometry.terminal_log = BOUNDARY_LOG;
             geometry.cpu_fused_tail = options.cpu_fused_tail;
             geometry.cpu_u8_pairs = options.cpu_u8_pairs;
+            geometry.cpu_compact_decode = options.cpu_compact_decode;
             s.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, bridges);
             out.* = s;
             made += 1;

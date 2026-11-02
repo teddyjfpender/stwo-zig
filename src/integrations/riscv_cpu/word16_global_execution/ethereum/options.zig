@@ -23,6 +23,10 @@ pub const Options = struct {
     /// Producer planning only: keep every LD/SD in the LS32 instances instead
     /// of the v3 LS-D64 component (the receiver admits either declared shape).
     no_ls_dword: bool = false,
+    /// Producer planning only: opt in to / out of the compact decode CPU MAIN
+    /// on the v3 route (the receiver admits the declared shape).
+    compact_decode: bool = false,
+    no_compact_decode: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -77,6 +81,12 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--no-ls-dword")) {
                 if (out.no_ls_dword) return error.DuplicateOperationalOption;
                 out.no_ls_dword = true;
+            } else if (std.mem.eql(u8, arg, "--compact-decode")) {
+                if (out.compact_decode or out.no_compact_decode) return error.DuplicateOperationalOption;
+                out.compact_decode = true;
+            } else if (std.mem.eql(u8, arg, "--no-compact-decode")) {
+                if (out.compact_decode or out.no_compact_decode) return error.DuplicateOperationalOption;
+                out.no_compact_decode = true;
             } else if (std.mem.eql(u8, arg, "--keep-fixed-witness")) {
                 if (out.keep_fixed_witness) return error.DuplicateOperationalOption;
                 out.keep_fixed_witness = true;
@@ -104,7 +114,7 @@ pub const Options = struct {
         return policy;
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.compact_decode or self.no_compact_decode;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {

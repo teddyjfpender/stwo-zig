@@ -72,6 +72,37 @@ pub const pairs = struct {
     pub const sum = 28;
     pub const COUNT = 32;
 };
+/// Opt-in compact decode MAIN (Geometry.cpu_compact_decode, on top of the
+/// byte-pair interaction). The row PC is not committed: the ROM pc coordinate
+/// is `first*initial_pc + (1-first)*felt(previous next)`. `next` is one PC as
+/// two u16 limbs (next0 + 65536*next1). The immediate of every FUNCTION
+/// instruction that has one (I-type, shift-imm, JALR, LUI and the folded
+/// AUIPC/JAL constants) lives in B, whose rs2 slot is unused; the 12-bit
+/// sign-extended LS offset lives in `ls_imm` as (low16, sign limb).
+pub const compact = struct {
+    pub const next = 0;
+    pub const operation = 2;
+    pub const registers = 3;
+    pub const active = 6;
+    pub const enabled = 7;
+    pub const a = 10;
+    pub const b = 14;
+    pub const c = 18;
+    pub const previous_rd = 22;
+    pub const gap16 = 26;
+    pub const gap8 = 29;
+    pub const ls_imm = 32;
+    pub const branch = 34;
+    pub const dynamic_next = 35;
+    pub const function = 36;
+    pub const COUNT = 37;
+};
+pub fn mainCount(is_compact: bool) usize {
+    return if (is_compact) compact.COUNT else main.COUNT;
+}
+pub fn previousMainFor(is_compact: bool, c: usize) bool {
+    return if (is_compact) c == compact.next or c == compact.next + 1 or c == compact.active else previousMain(c);
+}
 pub fn interCount(is_fused: bool) usize {
     return if (is_fused) fused.COUNT else inter.COUNT;
 }

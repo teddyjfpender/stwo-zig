@@ -27,15 +27,16 @@ fn dot(ch: anytype, tuple: anytype) Q {
     for (ch.coefficients, tuple) |coefficient, value| result = result.sub(coefficient.mulM31(value));
     return result;
 }
-fn denominators(ch: X.types.Challenges, row: []const M, index: usize, epoch: u16) Ds {
+fn denominators(ch: X.types.Challenges, row: []const M, index: usize, epoch: u16, compact: bool) Ds {
     const fixed = [_]M{ M.fromCanonical(@intCast(index)), M.zero(), M.zero() };
     var result: Ds = undefined;
+    // ROM is served from the dictionary; none of these read the previous row.
     for (0..3) |slot| {
-        result.before[slot] = dot(ch.register, X.tuples.register(M, &fixed, row, slot, false));
-        result.after[slot] = dot(ch.register, X.tuples.register(M, &fixed, row, slot, true));
+        result.before[slot] = dot(ch.register, if (compact) X.tuples.compact.register(M, &fixed, row, slot, false) else X.tuples.register(M, &fixed, row, slot, false));
+        result.after[slot] = dot(ch.register, if (compact) X.tuples.compact.register(M, &fixed, row, slot, true) else X.tuples.register(M, &fixed, row, slot, true));
     }
-    result.function = dot(ch.function, X.tuples.function(M, row));
-    result.owner = dot(ch.owner, X.tuples.owner(M, &fixed, row, M.fromCanonical(epoch)));
+    result.function = dot(ch.function, if (compact) X.tuples.compact.function(M, row) else X.tuples.function(M, row));
+    result.owner = dot(ch.owner, if (compact) X.tuples.compact.owner(M, &fixed, row, M.fromCanonical(epoch)) else X.tuples.owner(M, &fixed, row, M.fromCanonical(epoch)));
     return result;
 }
 fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries, pool: ?*work.WorkPool) !Q {
@@ -50,6 +51,7 @@ fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries, p
         if (!d.mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
     }
     if (source.u8_pairs != (dict.pair_challenges != null) or (source.u8_pairs and !source.fused_tail)) return error.InvalidExecutionDictionary;
+    if (source.compact and (!source.u8_pairs or !source.program.compact)) return error.InvalidExecutionDictionary;
     if (dict.pair_challenges) |pc| {
         if (dict.pair.len != 65536) return error.InvalidExecutionDictionary;
         for (dict.pair, 0..) |inverse, i| {
@@ -67,8 +69,16 @@ fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries, p
             if (!dot(ch.rom, tuple).mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
         }
     }
-    const padding = try X.row.padding(0, source.public.final_pc);
-    const padding_denominator = dot(ch.rom, X.tuples.rom(M, &padding));
+    const padding_denominator = if (source.compact) compact: {
+        // Every padding row has index >= steps >= 1 (first = 0) and a
+        // predecessor whose next is the final PC, so one tuple serves all.
+        const padding = try X.row.compact.padding(0, source.public.final_pc);
+        const public = try X.types.inputs(source.public, source.epoch, source.log_size);
+        break :compact dot(ch.rom, X.tuples.compact.rom(M, &[_]M{ M.zero(), M.zero(), M.zero() }, &padding, &padding, X.types.nativePcFelt(public.initial_pc)));
+    } else legacy: {
+        const padding = try X.row.padding(0, source.public.final_pc);
+        break :legacy dot(ch.rom, X.tuples.rom(M, &padding));
+    };
     if (padding_denominator.isZero()) return error.DivisionByZero;
     return padding_denominator.inv();
 }
@@ -203,14 +213,20 @@ const Job = struct {
     }
     fn prepareRow(self: *Job, i: usize, logical: usize) !void {
         const row = try self.source.row(logical);
-        const ds = denominators(self.ch, &row, logical, self.source.epoch);
+        const compact = self.source.compact;
+        const ds = denominators(self.ch, &row, logical, self.source.epoch, compact);
+        const enabled_at: usize = if (compact) X.layout.compact.enabled else X.layout.main.enabled;
+        const function_at: usize = if (compact) X.layout.compact.function else X.layout.main.function;
+        const active_at: usize = if (compact) X.layout.compact.active else X.layout.main.active;
+        const gap16_at: usize = if (compact) X.layout.compact.gap16 else X.layout.main.gap16;
+        const gap8_at: usize = if (compact) X.layout.compact.gap8 else X.layout.main.gap8;
         for (0..3) |slot| self.scratch[5 * i + slot] = ds.before[slot].mul(ds.after[slot]);
         self.scratch[5 * i + 3] = ds.function;
         self.scratch[5 * i + 4] = ds.owner;
-        self.hints[i] = .{ .delta = .{ ds.after[0].sub(ds.before[0]), ds.after[1].sub(ds.before[1]), ds.after[2].sub(ds.before[2]) }, .enabled = row[X.layout.main.enabled..][0..3].*, .function = row[X.layout.main.function], .active = row[X.layout.main.active], .gap16 = undefined, .gap8 = undefined, .rom_physical = if (logical < self.source.metadata.len) @intCast(X.layout.physical(self.source.metadata[logical].rom_row, self.source.program.log_size)) else std.math.maxInt(u32) };
+        self.hints[i] = .{ .delta = .{ ds.after[0].sub(ds.before[0]), ds.after[1].sub(ds.before[1]), ds.after[2].sub(ds.before[2]) }, .enabled = row[enabled_at..][0..3].*, .function = row[function_at], .active = row[active_at], .gap16 = undefined, .gap8 = undefined, .rom_physical = if (logical < self.source.metadata.len) @intCast(X.layout.physical(self.source.metadata[logical].rom_row, self.source.program.log_size)) else std.math.maxInt(u32) };
         for (0..3) |slot| {
-            self.hints[i].gap16[slot] = @intCast(row[X.layout.main.gap16 + slot].v);
-            self.hints[i].gap8[slot] = @intCast(row[X.layout.main.gap8 + slot].v);
+            self.hints[i].gap16[slot] = @intCast(row[gap16_at + slot].v);
+            self.hints[i].gap8[slot] = @intCast(row[gap8_at + slot].v);
         }
     }
     fn emitRow(self: *Job, i: usize, logical: usize, sum: *Q) void {

@@ -74,6 +74,12 @@ pub fn main() !void {
     defer jobs.close();
     var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
     defer program.deinit();
+    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
+    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
+    if (operational.compact_decode and cpu_layout.u8_pairs) cpu_layout.compact_decode = true;
+    if (operational.no_compact_decode) cpu_layout.compact_decode = false;
+    // The capture's FUNCTION facts depend on the decode layout.
+    if (cpu_layout.compact_decode) try program.makeCompact();
     var captured = try Capture.init(a, &image, &program, config.value, jobs, count);
     defer captured.deinit();
     const capture_ns = timer.read();
@@ -81,8 +87,6 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
-    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
     const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
     const truth_declarations = try Plan.truthsForProfile(a, &captured, config.value.execution_profile == .ethereum_services_v3);
@@ -126,7 +130,7 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     if (config.execution_profile == .ethereum_services_v3) return;
     // The fused-tail CPU layout is admitted only on the v3 route. A v2
     // receiver keeps the historical CPU AIR and fails closed on any other.
-    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs) return error.UnadmittedFusedTailCpuLayout;
+    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.cpu_compact_decode) return error.UnadmittedFusedTailCpuLayout;
     // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
     for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;

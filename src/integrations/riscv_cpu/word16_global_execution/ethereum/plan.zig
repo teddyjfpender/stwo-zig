@@ -28,6 +28,10 @@ pub const CpuLayout = struct {
     /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
     /// instances are sized on the remainder.
     ls_dword: bool = false,
+    /// Compact decode CPU MAIN on top of the byte pairs (47 -> 37 columns).
+    /// Changes the AUIPC/JAL FUNCTION facts, so the capture program must be
+    /// made compact (Program.makeCompact) before capture.
+    compact_decode: bool = false,
     /// Default layout for a profile route. Only the admitted
     /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
     /// LS-D64; every older route keeps its historical layout and bundle bytes.
@@ -61,6 +65,7 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
         g.cpu_fused_tail = layout.fused_tail;
         g.cpu_u8_pairs = layout.u8_pairs;
+        g.cpu_compact_decode = layout.compact_decode;
         d.* = .{ .geometry = g, .bridges = .{} };
         // The same two-instance ladder as LS32 (one inactive row per instance).
         if (dword != 0) {

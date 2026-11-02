@@ -261,3 +261,123 @@ pub fn nativeFusedContribution(ds: DenominatorsFor(Q), row: []const M, witness: 
     const w = weightsFor(M, row);
     return fusedContributionFor(Q, ds, .{ .registers = .{ Q.fromBase(w.registers[0]), Q.fromBase(w.registers[1]), Q.fromBase(w.registers[2]) }, .function = Q.fromBase(w.function), .rom = Q.fromBase(w.rom), .owner = Q.fromBase(w.owner) }, witness).add(try ds.affine[6].inv());
 }
+
+/// Compact decode (Geometry.cpu_compact_decode, on top of the byte-pair
+/// interaction): MAIN 47 -> 37. MAIN-only residuals, then the same seven
+/// fraction witnesses and fused byte-pair prefix as `emitPairsFor`.
+pub const COMPACT_MAIN_CONSTRAINTS = 23;
+pub const COMPACT_CONSTRAINTS = COMPACT_MAIN_CONSTRAINTS + L.pairs.WITNESSES + 2;
+const k = L.compact;
+pub fn compactWeightsFor(comptime F: type, row: []const F) WeightsFor(F) {
+    return .{ .registers = row[k.enabled..][0..3].*, .function = row[k.function], .rom = row[k.active], .owner = row[k.active].sub(row[k.function]) };
+}
+/// MAIN-only residuals of the compact row.
+/// - Activity prefix: unchanged (5).
+/// - PC: none for the row PC (it is the ROM pc coordinate itself, read from
+///   the previous row); padding keeps felt(next) and the last row pins it to
+///   the public final PC (2).
+/// - Registers: (1-active)*enabled, (1-enabled)*value for A and previous RD,
+///   (1-enabled)*predecessor clock (14). B has no local zero guard: its
+///   value is the ROM coordinate (1-enabled1)*B on every active row, which
+///   forces B = 0 for an x0 rs2 and B = decoded immediate otherwise.
+/// - Boolean FUNCTION and OWNER weights (2).
+pub fn emitCompactMainFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, public: T.InputsFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    const active = row[k.active];
+    const one = F.one();
+    E.booleanFor(F, sink, active);
+    sink.emit(first.mul(active.sub(one)));
+    sink.emit(last.mul(active));
+    sink.emit(one.sub(first).mul(active).mul(one.sub(previous_main[k.active])));
+    sink.emit(one.sub(first).mul(active.sub(previous_main[k.active])).mul(fixed[0].sub(E.scalarFor(F, public.steps))));
+    const next = U.compact.nextFelt(F, row);
+    sink.emit(one.sub(active).mul(next.sub(U.compact.nextFelt(F, previous_main))));
+    sink.emit(last.mul(next.sub(T.pcFelt(F, public.final_pc))));
+    for (0..3) |slot| {
+        const enabled = row[k.enabled + slot];
+        sink.emit(one.sub(active).mul(enabled));
+        const start: ?usize = switch (slot) {
+            0 => k.a,
+            1 => null,
+            2 => k.previous_rd,
+            else => unreachable,
+        };
+        if (start) |at| for (0..4) |limb| sink.emit(one.sub(enabled).mul(row[at + limb]));
+        sink.emit(one.sub(enabled).mul(U.compact.compactPreviousClock(F, fixed[0], row, @intCast(slot))));
+    }
+    const weights = compactWeightsFor(F, row);
+    E.booleanFor(F, sink, weights.function);
+    E.booleanFor(F, sink, weights.owner);
+}
+pub fn compactDenominatorsFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, public: T.InputsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F))) DenominatorsFor(F) {
+    var out: DenominatorsFor(F) = undefined;
+    for (0..3) |slot| {
+        out.before[slot] = ch.register.denominatorFor(F, U.compact.register(F, fixed, row, slot, false));
+        out.after[slot] = ch.register.denominatorFor(F, U.compact.register(F, fixed, row, slot, true));
+    }
+    out.function = ch.function.denominatorFor(F, U.compact.function(F, row));
+    out.rom = ch.rom.denominatorFor(F, U.compact.rom(F, fixed, row, previous_main, T.pcFelt(F, public.initial_pc)));
+    out.affine[0] = ch.owner.denominatorFor(F, U.compact.owner(F, fixed, row, E.scalarFor(F, public.epoch)));
+    for (0..3) |slot| {
+        out.affine[1 + slot] = ch.range16.denominatorFor(F, row[k.gap16 + slot]);
+        out.affine[4 + slot] = ch.range8.denominatorFor(F, row[k.gap8 + slot]);
+    }
+    return out;
+}
+pub fn compactPairDenominatorsFor(comptime F: type, row: []const F, ch: PairChallengesFor(E.ConstFor(F))) [2]E.SecureFor(F) {
+    return .{ Tables.pairDenominatorFor(F, ch, row[k.gap8], row[k.gap8 + 1]), Tables.pairDenominatorFor(F, ch, row[k.gap8 + 2], F.zero()) };
+}
+/// Compact decode CPU interaction: identical witness forms to `emitPairsFor`
+/// (REG x3, FUNCTION, ROM, OWNER+U16, U16+U16 and fused byte pairs), over the
+/// compact tuples. The ROM denominator reads the previous MAIN row.
+pub fn emitCompactFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, current: []const F, previous: []const F, public: T.InputsFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: T.ChallengesFor(E.ConstFor(F)), pair_ch: PairChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+    emitCompactMainFor(F, fixed, row, previous_main, public, sink);
+    const S = E.SecureFor(F);
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    const w = compactWeightsFor(F, row);
+    const ds = compactDenominatorsFor(F, fixed, row, previous_main, public, ch);
+    const p = compactPairDenominatorsFor(F, row, pair_ch);
+    var witness: [L.pairs.WITNESSES]S = undefined;
+    for (&witness, 0..) |*value, i| value.* = E.secureFor(F, current, 4 * i);
+    for (0..3) |slot| sink.emit(witness[slot].mul(ds.before[slot]).mul(ds.after[slot]).sub(E.mulBaseFor(F, ds.after[slot].sub(ds.before[slot]), w.registers[slot])));
+    sink.emit(ds.function.mul(witness[3]).sub(E.mulBaseFor(F, S.one(), w.function)));
+    sink.emit(ds.rom.mul(witness[4]).sub(E.mulBaseFor(F, S.one(), w.rom)));
+    sink.emit(witness[5].mul(ds.affine[0]).mul(ds.affine[1]).sub(ds.affine[0].add(E.mulBaseFor(F, ds.affine[1], w.owner))));
+    sink.emit(witness[6].mul(ds.affine[2]).mul(ds.affine[3]).sub(ds.affine[2].add(ds.affine[3])));
+    const sum = E.secureFor(F, current, L.pairs.sum);
+    const step = sum.sub(E.secureFor(F, previous, L.pairs.sum)).add(E.mulBaseFor(F, E.splatFor(F, claim), first)).sub(pairContributionFor(F, witness));
+    sink.emit(step.mul(p[0]).mul(p[1]).sub(p[0].add(p[1])));
+    sink.emit(E.mulBaseFor(F, sum, last));
+}
+/// Native compact denominators (tests and witness generation share them).
+pub fn nativeCompactDenominators(fixed: []const M, row: []const M, previous_main: []const M, public: T.Inputs, ch: T.Challenges) DenominatorsFor(Q) {
+    var out: DenominatorsFor(Q) = undefined;
+    for (0..3) |slot| {
+        out.before[slot] = dot(ch.register, U.compact.register(M, fixed, row, slot, false));
+        out.after[slot] = dot(ch.register, U.compact.register(M, fixed, row, slot, true));
+    }
+    out.function = dot(ch.function, U.compact.function(M, row));
+    out.rom = dot(ch.rom, U.compact.rom(M, fixed, row, previous_main, T.nativePcFelt(public.initial_pc)));
+    out.affine[0] = dot(ch.owner, U.compact.owner(M, fixed, row, M.fromCanonical(public.epoch)));
+    for (0..3) |slot| {
+        out.affine[1 + slot] = ch.range16.offset.sub(ch.range16.coefficient.mulM31(row[k.gap16 + slot]));
+        out.affine[4 + slot] = ch.range8.offset.sub(ch.range8.coefficient.mulM31(row[k.gap8 + slot]));
+    }
+    return out;
+}
+/// Honest native compact witnesses (tests/repair only): same forms as pairs.
+pub fn nativeCompactWitnesses(ds: DenominatorsFor(Q), row: []const M) ![L.pairs.WITNESSES]Q {
+    const w = compactWeightsFor(M, row);
+    var out: [L.pairs.WITNESSES]Q = undefined;
+    for (0..3) |slot| out[slot] = ds.after[slot].sub(ds.before[slot]).mul(try ds.before[slot].mul(ds.after[slot]).inv()).mulM31(w.registers[slot]);
+    out[3] = (try ds.function.inv()).mulM31(w.function);
+    out[4] = (try ds.rom.inv()).mulM31(w.rom);
+    out[5] = ds.affine[0].add(ds.affine[1].mulM31(w.owner)).mul(try ds.affine[0].mul(ds.affine[1]).inv());
+    out[6] = ds.affine[2].add(ds.affine[3]).mul(try ds.affine[2].mul(ds.affine[3]).inv());
+    return out;
+}
+pub fn nativeCompactPairDenominators(row: []const M, ch: Tables.Challenges) [2]Q {
+    return .{ Tables.pairDenominatorFor(Q, ch, Q.fromBase(row[k.gap8]), Q.fromBase(row[k.gap8 + 1])), Tables.pairDenominatorFor(Q, ch, Q.fromBase(row[k.gap8 + 2]), Q.zero()) };
+}

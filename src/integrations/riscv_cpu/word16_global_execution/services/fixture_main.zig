@@ -90,7 +90,8 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const produce = std.mem.eql(u8, args[1], "produce-v3");
-    const pairs = std.mem.eql(u8, args[2], "all-pairs");
+    const compact = std.mem.eql(u8, args[2], "all-compact");
+    const pairs = compact or std.mem.eql(u8, args[2], "all-pairs");
     const fused = pairs or std.mem.eql(u8, args[2], "all-fused");
     const all = fused or std.mem.eql(u8, args[2], "all");
     if (!all and !std.mem.eql(u8, args[2], "sha256")) return usage;
@@ -103,7 +104,7 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
         var dir = try std.fs.cwd().openDir(args[3], .{});
         defer dir.close();
         if (all) {
-            var c = try VF.Case.initWith(a, .none, .{ .cpu_fused_tail = fused, .cpu_u8_pairs = pairs });
+            var c = try VF.Case.initWith(a, .none, .{ .cpu_fused_tail = fused, .cpu_u8_pairs = pairs, .cpu_compact_decode = compact });
             defer c.deinit();
             const keys = c.keys();
             const truths = c.truths();
@@ -134,7 +135,7 @@ fn mainV3(a: std.mem.Allocator, args: []const []const u8) !void {
         if (loaded.cpu_declarations.len != 2 or loaded.truth_declarations.len != 2) return error.InvalidFixtureRoster;
         for (VF.BRIDGES, loaded.cpu_declarations) |x, y| if (!std.meta.eql(x, y.bridges)) return error.InvalidFixtureGeometry;
         // The receiver chooses the CPU layout from the variant, never the wire.
-        for (loaded.cpu_declarations) |d| if (d.geometry.cpu_fused_tail != fused or d.geometry.cpu_u8_pairs != pairs) return error.InvalidFixtureGeometry;
+        for (loaded.cpu_declarations) |d| if (d.geometry.cpu_fused_tail != fused or d.geometry.cpu_u8_pairs != pairs or d.geometry.cpu_compact_decode != compact) return error.InvalidFixtureGeometry;
         const expected_truth = [_]W.TruthDeclaration{ .{ .family = .sha256, .first_id = 1, .calls = 2, .logs = .{ VF.SHA_LOG, 0 } }, .{ .family = .arith256_mod, .first_id = 1, .calls = 2, .logs = .{ VF.ARITH_LOG, 0 } } };
         for (expected_truth, loaded.truth_declarations) |x, y| if (!std.meta.eql(x, y)) return error.InvalidFixtureGeometry;
         // The receiver re-executes the fixture natively for its public end state
