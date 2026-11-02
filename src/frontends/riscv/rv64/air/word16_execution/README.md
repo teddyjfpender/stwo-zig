@@ -89,10 +89,10 @@ The main-only authority uses only `emitMainFor`, which both encodings share.
 Routes. Every prover source takes `cpu.fused_tail` from `Geometry` in
 `Source.fromPreparedInternal`, and every verifier component takes it from the
 same geometry (`components.zig`), so the core, global, Keccak, secp and
-services routes all follow the declared geometry. `ethereum/plan.zig` sets it
-by default ONLY for the `ethereum_services_v3` route
-(`CpuLayout.forProfile`); `ethereum/main.zig admitProfile` refuses it on any
-other profile. The local GKR lane (`services/gkr_local/roster.zig`) has no
+services routes all follow the declared geometry. `ethereum/plan.zig` sets it,
+together with `cpu_u8_pairs` (below), by default ONLY for the
+`ethereum_services_v3` route (`CpuLayout.forProfile`); `ethereum/main.zig
+admitProfile` refuses either flag on any other profile. The local GKR lane (`services/gkr_local/roster.zig`) has no
 fused variant and fails closed with `UnsupportedFusedTailInLocalGkr`. No
 recursion lane wraps a Word16 CPU proof yet; the shape diagnostic
 (`word16_recursion/main.zig`) reads widths through `Components.init` and so
