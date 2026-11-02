@@ -15,7 +15,37 @@
   },
   "independent_review": "pipeline read-only PASS: tile mapping, callback lifetime, borrowed checkpoint bank custody, constant masks, failure atomic output allocation",
   "resource": "16-term tiles, max144secureelements4608BOM stack; no full missingodd layer; only alreadyfolded outputs allocated",
-  "real_CPU0_pending": true,
+  "real_CPU0_pending": false,
   "whole_protocol_128": false,
-  "full_block_performance_qualified": false
+  "full_block_performance_qualified": false,
+  "real_CPU0": {
+    "scope": "4194303steps CPU0, q70/P26/fold4/16workers/checkpoint2/parkfalse; nofullblockclaim",
+    "alternating_ABBA_runs": 4,
+    "all16authoritative_artifact_hashes_identical": true,
+    "all4_fresh_receivers_accepted": true,
+    "requested_numerical_peak_bytes": {
+      "retained_odd": 8847246298,
+      "lazy_odd": 7233043514
+    },
+    "raw_inputs_bytes": 4541656320,
+    "medians": {
+      "retained_odd": {
+        "numerical_requested_peak": 8847246298.0,
+        "including_binding_requested_peak": 8847246298.0,
+        "prove_seconds": 9.040254145999999,
+        "numerical_seconds": 2.115850458,
+        "gkr_seconds": 2.6423123965,
+        "binding_seconds": 0.3407933545
+      },
+      "lazy_odd": {
+        "numerical_requested_peak": 7233043514.0,
+        "including_binding_requested_peak": 7233043514.0,
+        "prove_seconds": 9.1092776455,
+        "numerical_seconds": 2.181599292,
+        "gkr_seconds": 2.708929917,
+        "binding_seconds": 0.3334409995
+      }
+    },
+    "caveat": "Sharedhost timings; numericalcounter includesonlyitsadmittedowners, notRSS, fixedsetup ornativePCS."
+  }
 }
