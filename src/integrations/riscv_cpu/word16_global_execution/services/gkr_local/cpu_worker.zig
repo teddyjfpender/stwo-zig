@@ -56,7 +56,11 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32,
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
     h.update(Manifest.PROFILE);
     hashValue(&h, setup.materials.program.identity);
-    hashValue(&h, setup.materials.geometry);
+    // The v2 statement predates fused-tail/U8-pair flags. False fields omitted
+    // from JSON must also be absent from this binary transcript projection.
+    // Freeze the original field order rather than hashing an extensible struct.
+    inline for (.{ "cpu_log", "alu_log", "alu_tail_log", "binary_log", "binary_tail_log", "shift_log", "shift_tail_log", "jalr_log", "division_log", "omit_empty_division", "multiplication_log", "ls_log", "ls_tail_log", "boundary_log", "initial_log", "terminal_log" }) |name|
+        hashValue(&h, @field(setup.materials.geometry, name));
     // v2 projection only (the route admits nothing else, see v2_scope.zig):
     // the exact pre-v3 statement encoding, so v2 GKR statements stay byte-identical.
     hashValue(&h, struct { keccak: ?u32, add: ?u32, double: ?u32 }{ .keccak = setup.bridges.keccak, .add = setup.bridges.add, .double = setup.bridges.double });
