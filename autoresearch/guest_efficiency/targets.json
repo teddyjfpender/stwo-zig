@@ -1,0 +1,70 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-targets.v1",
+ "primary_metric": "instructions_per_gas on the scored set (gas-weighted: total instructions / total gas). Lower is better. Exact and deterministic.",
+ "co_metric": "committed_bits_per_gas on the scored set: frozen linear proxy (calibration.json) for committed witness bits at the LDE. Lower is better. It moves with instruction count and with Keccak/secp service-call mix.",
+ "baseline": {
+  "scored": {
+   "instructions_per_gas": 13.881027265864198,
+   "committed_bits_per_gas": 158723.48009622897
+  },
+  "all": {
+   "instructions_per_gas": 13.461627969504933,
+   "committed_bits_per_gas": 153941.71983968807
+  },
+  "elf_sha256": "37fbf8fdde6b58d8d82da267c890b7c9978575c5225671b1504d7b1efc9eeb91"
+ },
+ "references": {
+  "zisk_reth_guest_steps_per_gas_scored": 6.381099786028589,
+  "ziskethone_steps_per_gas_3_blocks": 2.01969483932162,
+  "zisk_committed_bits_per_gas_block_25701329": 95174,
+  "note": "ZisK steps are ZisK ops (with bit-manipulation and single-step DMA), not RV64IM instructions. ZisK committed bits/gas is derived from its published area metric for one 60 Mgas block (vectors/reports/rv64-ethereum-20261101/committed-work-comparison-v1.json)."
+ },
+ "levels": [
+  {
+   "name": "L1_part1_guest_hygiene",
+   "instructions_per_gas": 8.606,
+   "committed_bits_per_gas": 98409,
+   "meaning": "remove ~38% of instructions: SSZ SHA-256, bulk memory, secp setup (Part 1)"
+  },
+  {
+   "name": "L2b_zisk_committed_parity",
+   "instructions_per_gas": 8.323,
+   "committed_bits_per_gas": 95174,
+   "meaning": "commit no more bits per gas than ZisK's production (evmone) block"
+  },
+  {
+   "name": "L2_zisk_reth_parity",
+   "instructions_per_gas": 6.381,
+   "committed_bits_per_gas": 72965,
+   "meaning": "match ZisK's reth guest step count per gas (Part 2)"
+  },
+  {
+   "name": "L3_ziskethone_parity",
+   "instructions_per_gas": 2.02,
+   "committed_bits_per_gas": 23094,
+   "meaning": "match ziskethone/evmone steps per gas (Part 3)"
+  },
+  {
+   "name": "L4_supersede",
+   "instructions_per_gas": 1.5,
+   "committed_bits_per_gas": 17152,
+   "meaning": "beat ziskethone by >25% steps/gas and ZisK committed bits/gas by >4x"
+  }
+ ],
+ "guard_policy": {
+  "per_block_regression_limit": 0.02,
+  "holdout_share": 0.5,
+  "allowed_execution_profiles": [
+   "ethereum_services_v2",
+   "ethereum_services_v3"
+  ],
+  "holdout_noise_tolerance": 0.001,
+  "note": "holdout_noise_tolerance absorbs rebuild drift (<0.1%); real improvements are far larger.",
+  "candidate_execution_profiles": [
+   "ethereum_services_v3_candidate",
+   "ethereum_services_v3_candidate_isa"
+  ],
+  "candidate_note": "Candidate profiles add execution-only services (CONTEXT.md). They score with estimated costs and are never promotable until the prover admits the service.",
+  "v3_note": "ethereum_services_v3 = v2 + ADMITTED SHA-256 compression (tag 0x0003_0010), proven by the Word16 services lane (design/riscv-proving-stack/rv64-sha256-service.md). Costed by calibration coefficients.sha256_cells_per_call."
+ }
+}

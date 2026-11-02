@@ -30,6 +30,9 @@ pub fn bridgeTerms(family: @import("../types.zig").Family) u32 {
         1 + A.crypto.secp256k1.word16_bridge.layout.U16.len + A.crypto.secp256k1.word16_bridge.layout.U8.len;
 }
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
+    // v2 bridges and the historical CPU layout only (fused-tail / byte-pair
+    // CPU layouts fail closed with UnsupportedFusedTailInLocalGkr).
+    try @import("v2_scope.zig").setup(setup);
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {

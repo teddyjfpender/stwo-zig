@@ -15,6 +15,38 @@ const Core = @import("../../word16_execution/sources.zig");
 const Memory = @import("../../word16_execution/memory/prepared.zig").Prepared;
 const Advice = @import("collector.zig").Advice;
 const Cell = A.memory.closed_ram.types.Cell;
+const T = @import("types.zig");
+const LsEvent = A.memory.load_store_v2.native.Event;
+pub fn dwordCount(events: []const LsEvent) u32 {
+    var n: u32 = 0;
+    for (events) |e| n += @intFromBool(T.isDwordEvent(e));
+    return n;
+}
+/// Stable partition of one shard's LS events (owned copies; inputs untouched).
+pub const Split = struct {
+    general: []LsEvent,
+    dword: []LsEvent,
+    pub fn deinit(self: *Split, a: std.mem.Allocator) void {
+        a.free(self.general);
+        a.free(self.dword);
+    }
+};
+pub fn splitEvents(a: std.mem.Allocator, events: []const LsEvent, enabled: bool) !Split {
+    const d: usize = if (enabled) dwordCount(events) else 0;
+    const general = try a.alloc(LsEvent, events.len - d);
+    errdefer a.free(general);
+    const dword = try a.alloc(LsEvent, d);
+    var g: usize = 0;
+    var k: usize = 0;
+    for (events) |e| if (enabled and T.isDwordEvent(e)) {
+        dword[k] = e;
+        k += 1;
+    } else {
+        general[g] = e;
+        g += 1;
+    };
+    return .{ .general = general, .dword = dword };
+}
 const Stage1 = struct {
     allocator: std.mem.Allocator,
     setups: []const *const R.CpuSetup,
@@ -71,7 +103,7 @@ const Stage2 = struct {
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, options: Options) !Statement.Bundle {
     try options.validate(setups.len + truths.len);
     if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
-    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len) return error.InvalidCombinedInventory;
+    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len or setups.len != advice.arith256_mod.len or setups.len != advice.curves.len or setups.len != advice.bulk.len or setups.len != advice.sponge.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
     const first_steps = try a.alloc(u64, setups.len);
@@ -81,8 +113,16 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
         first.* = step;
         step = try std.math.add(u64, step, cpu.public.steps);
-        r.* = .{ .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        const dword: u32 = if (setups[i].bridges.ls_dword != null) dwordCount(advice.events[i]) else 0;
+        r.* = .{ .ls_dword = dword, .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = adviceCalls(advice, i), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len - dword) } } };
     }
+    // Sponge permutation IDs follow every Keccak-f call of the bundle.
+    var next_sponge: u64 = 1;
+    for (advice.keccak) |calls| next_sponge += calls.len;
+    for (requests) |*r| if (r.sponge.any()) {
+        r.sponge.first_id = std.math.cast(u32, next_sponge) orelse return error.CombinedLookupMassExceeded;
+        next_sponge += r.sponge.perms;
+    };
     _ = try P.admit(a, setups, truths, requests, expected);
     const count = setups.len + truths.len;
     const workers = try a.alloc(?W.Worker, count);
@@ -155,32 +195,106 @@ fn writeTrace(a: std.mem.Allocator, dir: std.fs.Dir, policy: Schedule.Policy, tr
     try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "schedule.json", bytes);
 }
 
+/// Per-family call counts of one shard's admitted advice, in Family order.
+pub fn adviceCalls(advice: *const Advice, i: usize) [T.FAMILIES]u32 {
+    var calls: [T.FAMILIES]u32 = undefined;
+    calls[0..5].* = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) };
+    for (calls[5..], advice.curves[i]) |*c, list| c.* = @intCast(list.len);
+    return calls;
+}
 /// Shared original source construction. Both native-Q and explicit OM routes
 /// use the same memory/bridge owner and range-merge authority.
-pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [3]u32, consume_events: bool, recorder: ?*Profile.Recorder) !R.Sources {
+pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [T.FAMILIES]u32, consume_events: bool, recorder: ?*Profile.Recorder) !R.Sources {
     const g = setup.materials.geometry;
     const initial = try a.dupe(Cell, request.base.memory.initial);
     const terminal = a.dupe(Cell, request.base.memory.terminal) catch |err| {
         a.free(initial);
         return err;
     };
-    const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, advice.events[ordinal], initial, terminal, request.base.epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
+    // LS-D64 routing: with the component present every aligned LD/SD event
+    // is its row and the core LS32 instances take the rest, in tape order.
+    var split = splitEvents(a, advice.events[ordinal], setup.bridges.ls_dword != null) catch |err| {
+        a.free(initial);
+        a.free(terminal);
+        return err;
+    };
+    defer split.deinit(a);
+    if (split.dword.len != request.ls_dword or split.general.len != request.base.memory.ls_count) {
+        a.free(initial);
+        a.free(terminal);
+        return error.InvalidCombinedServiceCount;
+    }
+    const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, split.general, initial, terminal, request.base.epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
     if (consume_events) {
         a.free(advice.events[ordinal]);
         advice.events[ordinal] = &.{};
     }
+    // The native LS census hint is the core LS32 share once LS-D64 takes
+    // the LD/SD rows (prover-side consistency only; OWNER is the authority).
+    if (native.raw_counts.memory != request.base.memory.ls_count + request.ls_dword) {
+        var owned = memory;
+        owned.deinit();
+        return error.InvalidCombinedServiceCount;
+    }
+    native.raw_counts.memory = request.base.memory.ls_count;
     var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &setup.materials, native, memory, recorder);
     errdefer base.deinit();
+    var ls_dword: [T.DWORD_INSTANCES]?A.memory.load_store_dword.source.Source = @splat(null);
+    errdefer for (&ls_dword) |*b| if (b.*) |*s| s.deinit();
+    {
+        const rows = try T.dwordCounts(setup.bridges, request.ls_dword);
+        var at: usize = 0;
+        for (&ls_dword, rows, 0..) |*out, n, k| if (setup.bridges.dwordLog(k)) |log| {
+            out.* = try A.memory.load_store_dword.source.Source.init(a, split.dword[at..][0..n], log);
+            at += n;
+        };
+    }
     var k: ?A.crypto.keccak.word16_bridge.source.Source = null;
     errdefer if (k) |*s| s.deinit();
     var add: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
     errdefer if (add) |*s| s.deinit();
     var double: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
     errdefer if (double) |*s| s.deinit();
+    var sha256: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+    errdefer if (sha256) |*s| s.deinit();
     if (setup.bridges.keccak) |log| k = try A.crypto.keccak.word16_bridge.source.Source.init(a, advice.keccak[ordinal], first_ids[0], log);
     if (setup.bridges.add) |log| add = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .add, advice.secp[ordinal][0], first_ids[1], log);
     if (setup.bridges.double) |log| double = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .double, advice.secp[ordinal][1], first_ids[2], log);
-    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double };
+    if (setup.bridges.sha256) |log| sha256 = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .sha256, advice.sha256[ordinal], first_ids[3], log);
+    var arith: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+    errdefer if (arith) |*s| s.deinit();
+    if (setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, advice.arith256_mod[ordinal], first_ids[4], log);
+    var curves: [T.CURVES]?A.crypto.secp256k1.word16_bridge.source.Source = @splat(null);
+    errdefer for (&curves) |*c| if (c.*) |*s| s.deinit();
+    for (&curves, T.FIRST_CURVE..) |*out, fam| if (setup.bridges.at(@enumFromInt(fam))) |log| {
+        out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, T.bridgeKind(@enumFromInt(fam)), advice.curves[ordinal][fam - T.FIRST_CURVE], first_ids[fam], log);
+    };
+    var bulk: [T.bulk_kinds.len]?A.crypto.bulk_memory.source.Source = @splat(null);
+    errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
+    for (T.bulk_kinds, &bulk) |kind, *out| if (setup.bridges.bulk.at(kind)) |log| {
+        const shard = advice.bulk[ordinal];
+        out.* = try A.crypto.bulk_memory.source.Source.init(a, kind, shard.calls, shard.words, log);
+    };
+    // Keccak sponge: one shared plan (calls, words, permutation states) and
+    // the call/perm sources built from it.
+    var plan: ?*A.crypto.keccak_sponge.source.Plan = null;
+    errdefer if (plan) |p| {
+        p.deinit(a);
+        a.destroy(p);
+    };
+    var sponge: [2]?A.crypto.keccak_sponge.source.Source = @splat(null);
+    errdefer for (&sponge) |*b| if (b.*) |*s| s.deinit();
+    if (setup.bridges.sponge.any()) {
+        const shard = advice.sponge[ordinal];
+        const p = try a.create(A.crypto.keccak_sponge.source.Plan);
+        errdefer a.destroy(p);
+        p.* = try A.crypto.keccak_sponge.source.Plan.init(a, shard.calls, shard.words);
+        plan = p;
+        for (T.sponge_kinds, &sponge) |kind, *out| if (setup.bridges.sponge.at(kind)) |log| {
+            out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
+        };
+    }
+    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge, .ls_dword = ls_dword };
     // Locals own all fields until this final fallible operation succeeds.
     try source.mergeRanges();
     return source;

@@ -104,10 +104,11 @@ fn reference(source: *const R.TruthSource, instance: Frame.Instance, logical: us
             .bytes => F.byteTableFor(O, O.fromBase(M.fromCanonical(@intCast(logical))), O.fromBase(s.bytes.main[A.witness.physical(logical, 8)]), sink),
             else => return error.UnexpectedTruthRole,
         },
+        else => unreachable, // v2 truth fixtures only
     }
 }
 fn compareMetadata(source: *R.TruthSource) !void {
-    const expected = Frame.forSource(source);
+    const expected = try Frame.forSource(source);
     const provider = try Metadata.Provider.init(source, expected, LIMIT);
     const x = try a.alloc(Entry, 1920);
     defer a.free(x);
@@ -174,7 +175,7 @@ test "truth durable secp local and inherited byte policies retain every padded q
     }
 }
 fn proveClosed(source: *R.TruthSource) !void {
-    const frames = Frame.forSource(source);
+    const frames = try Frame.forSource(source);
     const provider = try Metadata.Provider.init(source, frames, LIMIT);
     const transferred = try source.takeMain();
     transferred.deinit(a); // Real released MAIN; only durable metadata remains.
@@ -224,11 +225,11 @@ test "truth source geometry and large Keccak resource bound reject before alloca
     try std.testing.expectEqual(@as(usize, 73014444032), plan.peak_bytes);
     var source = try keccakSource();
     defer source.deinit();
-    var expected = Frame.forSource(&source);
+    var expected = try Frame.forSource(&source);
     expected[0].queries -= 1;
     try std.testing.expectError(error.TruthGkrSourceGeometryMismatch, Metadata.Provider.init(&source, expected, LIMIT));
     var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
-    const provider = try Metadata.Provider.init(&source, Frame.forSource(&source), LIMIT);
+    const provider = try Metadata.Provider.init(&source, try Frame.forSource(&source), LIMIT);
     var channel = core.channel.raw_mod_m31.Om31Channel.init();
     const ch = F.ChallengesFor(O).draw(&channel);
     try std.testing.expectError(error.TruthGkrBudgetExceeded, Inputs.init(fail.allocator(), &provider, &ch, 1));
@@ -297,6 +298,7 @@ fn checkGlobalRow(source: *const R.TruthSource, role: Frame.Role, logical: usize
             for (main[0..S.layout.main(trace.kind)], q[0..S.layout.main(trace.kind)]) |*v, value| v.* = O.fromInner(value);
             try Global.secpFor(O, trace.kind, trace.program, .{ .fixed = &fo, .main = main[0..S.layout.main(trace.kind)] }, current[0..width], previous[0..width], first, last, witness.claimSlice()[0], ch.wire, &sink);
         },
+        else => unreachable, // v2 truth fixtures only
     }
     for (values[0..sink.count]) |v| if (!v.isZero()) return false;
     return true;
@@ -308,7 +310,7 @@ fn globalWitnesses(source: *R.TruthSource) !void {
     defer commit.deinit(a);
     var channel = core.channel.raw_mod_m31.Om31Channel.init();
     const ch = GW.Challenges{ .io = K.equations.IoFor(O).draw(&channel), .wire = S.equations.WireFor(O).draw(&channel) };
-    for (Frame.forSource(source)) |instance| {
+    for (try Frame.forSource(source)) |instance| {
         if (instance.role != .keccak and instance.role != .product and instance.role != .linear) continue;
         var witness = try GW.generate(a, &provider, instance.role, &ch, LIMIT);
         defer witness.deinit();

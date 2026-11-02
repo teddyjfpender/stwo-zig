@@ -1,0 +1,1396 @@
+{
+ "schema": "stwo.rv64.ls-width-histogram.v1",
+ "elf": {
+  "path": "/Users/theodorepender/Coding/ge-cache/evm/client-evmone-v3.elf",
+  "sha256": "f625c0836a372543f96040d9ec805bff52f805e242dac592abc360b1ca0e34a8"
+ },
+ "executor_sha256": "7ba49fec2537a5766e48140ed6782afe3e1aa3fb3cc2d0d4903c2d5182ff2b30",
+ "execution_profile": [
+  "ethereum_services_v3"
+ ],
+ "client": "evmone",
+ "guards_ok": true,
+ "note": "All RV64 loads/stores in this machine are naturally aligned: memory.zig traps any address % width != 0 (misaligned counts are measured, not assumed). 'aligned 8-byte' = LD/SD; offset_in_dword[k] counts accesses at address & 7 == k. Bulk memcpy/memset/memcmp and other ECALL services are not LS rows and are excluded. rv64-keccak-and-memory-cost-reduction.md (M1/M2) assumed a 60% aligned-dword share.",
+ "all_blocks": {
+  "instructions": 1956268686,
+  "gas_used": 445399117,
+  "loads": 430498222,
+  "stores": 269094808,
+  "load_store": 699593030,
+  "ls_fraction_of_instructions": 0.357616,
+  "aligned_8byte_ls": 582261262,
+  "aligned_8byte_fraction_of_ls": 0.832286,
+  "aligned_8byte_loads_fraction_of_loads": 0.775713,
+  "aligned_8byte_stores_fraction_of_stores": 0.92279,
+  "subword_ls_fraction_of_ls": 0.167714,
+  "any_width_at_8byte_aligned_address_fraction_of_ls": 0.865625,
+  "misaligned_ls": 0,
+  "sp_based_fraction_of_ls": 0.294045,
+  "sp_based_fraction_of_dword_ls": 0.348193,
+  "by_width": {
+   "byte": {
+    "load": 90404879,
+    "store": 16283123,
+    "total": 106688002,
+    "fraction_of_ls": 0.1525
+   },
+   "half": {
+    "load": 2801207,
+    "store": 3014160,
+    "total": 5815367,
+    "fraction_of_ls": 0.008312
+   },
+   "word": {
+    "load": 3348950,
+    "store": 1479449,
+    "total": 4828399,
+    "fraction_of_ls": 0.006902
+   },
+   "doubleword": {
+    "load": 333943186,
+    "store": 248318076,
+    "total": 582261262,
+    "fraction_of_ls": 0.832286
+   }
+  },
+  "by_opcode": {
+   "LB": {
+    "count": 25344353,
+    "kind": "load",
+    "width_bytes": 1,
+    "signedness": "signed",
+    "fraction_of_ls": 0.036227,
+    "naturally_aligned": 25344353,
+    "misaligned": 0,
+    "aligned_8byte_address": 3196444,
+    "offset_in_dword": [
+     3196444,
+     3160387,
+     3176277,
+     3153371,
+     3154818,
+     3162168,
+     3156533,
+     3184355
+    ],
+    "sp_based": 23065,
+    "sp_based_fraction": 0.00091,
+    "rd_x0": 0
+   },
+   "LBU": {
+    "count": 65060526,
+    "kind": "load",
+    "width_bytes": 1,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.092998,
+    "naturally_aligned": 65060526,
+    "misaligned": 0,
+    "aligned_8byte_address": 11168193,
+    "offset_in_dword": [
+     11168193,
+     7877132,
+     8277379,
+     7783794,
+     7882875,
+     7444115,
+     7332244,
+     7294794
+    ],
+    "sp_based": 988925,
+    "sp_based_fraction": 0.0152,
+    "rd_x0": 0
+   },
+   "SB": {
+    "count": 16283123,
+    "kind": "store",
+    "width_bytes": 1,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.023275,
+    "naturally_aligned": 16283123,
+    "misaligned": 0,
+    "aligned_8byte_address": 2782087,
+    "offset_in_dword": [
+     2782087,
+     2334355,
+     2496359,
+     1922041,
+     1816427,
+     1681728,
+     1632042,
+     1618084
+    ],
+    "sp_based": 343844,
+    "sp_based_fraction": 0.021117
+   },
+   "LH": {
+    "count": 1150711,
+    "kind": "load",
+    "width_bytes": 2,
+    "signedness": "signed",
+    "fraction_of_ls": 0.001645,
+    "naturally_aligned": 1150711,
+    "misaligned": 0,
+    "aligned_8byte_address": 539591,
+    "offset_in_dword": [
+     539591,
+     0,
+     74331,
+     0,
+     29435,
+     0,
+     507354,
+     0
+    ],
+    "sp_based": 96,
+    "sp_based_fraction": 8.3e-05,
+    "rd_x0": 0
+   },
+   "LHU": {
+    "count": 1650496,
+    "kind": "load",
+    "width_bytes": 2,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.002359,
+    "naturally_aligned": 1650496,
+    "misaligned": 0,
+    "aligned_8byte_address": 642896,
+    "offset_in_dword": [
+     642896,
+     0,
+     225189,
+     0,
+     261673,
+     0,
+     520738,
+     0
+    ],
+    "sp_based": 15,
+    "sp_based_fraction": 9e-06,
+    "rd_x0": 0
+   },
+   "SH": {
+    "count": 3014160,
+    "kind": "store",
+    "width_bytes": 2,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.004308,
+    "naturally_aligned": 3014160,
+    "misaligned": 0,
+    "aligned_8byte_address": 1114308,
+    "offset_in_dword": [
+     1114308,
+     0,
+     554333,
+     0,
+     679746,
+     0,
+     665773,
+     0
+    ],
+    "sp_based": 1201,
+    "sp_based_fraction": 0.000398
+   },
+   "LW": {
+    "count": 2206043,
+    "kind": "load",
+    "width_bytes": 4,
+    "signedness": "signed",
+    "fraction_of_ls": 0.003153,
+    "naturally_aligned": 2206043,
+    "misaligned": 0,
+    "aligned_8byte_address": 1519073,
+    "offset_in_dword": [
+     1519073,
+     0,
+     0,
+     0,
+     686970,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 924491,
+    "sp_based_fraction": 0.419072,
+    "rd_x0": 0
+   },
+   "LWU": {
+    "count": 1142907,
+    "kind": "load",
+    "width_bytes": 4,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.001634,
+    "naturally_aligned": 1142907,
+    "misaligned": 0,
+    "aligned_8byte_address": 1040475,
+    "offset_in_dword": [
+     1040475,
+     0,
+     0,
+     0,
+     102432,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 21269,
+    "sp_based_fraction": 0.01861,
+    "rd_x0": 0
+   },
+   "SW": {
+    "count": 1479449,
+    "kind": "store",
+    "width_bytes": 4,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.002115,
+    "naturally_aligned": 1479449,
+    "misaligned": 0,
+    "aligned_8byte_address": 1320955,
+    "offset_in_dword": [
+     1320955,
+     0,
+     0,
+     0,
+     158494,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 670033,
+    "sp_based_fraction": 0.452894
+   },
+   "LD": {
+    "count": 333943186,
+    "kind": "load",
+    "width_bytes": 8,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.477339,
+    "naturally_aligned": 333943186,
+    "misaligned": 0,
+    "aligned_8byte_address": 333943186,
+    "offset_in_dword": [
+     333943186,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 91122372,
+    "sp_based_fraction": 0.272868,
+    "rd_x0": 0
+   },
+   "SD": {
+    "count": 248318076,
+    "kind": "store",
+    "width_bytes": 8,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.354946,
+    "naturally_aligned": 248318076,
+    "misaligned": 0,
+    "aligned_8byte_address": 248318076,
+    "offset_in_dword": [
+     248318076,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 111616864,
+    "sp_based_fraction": 0.449491
+   }
+  },
+  "class_mix": {
+   "alu_reg": {
+    "count": 337143461,
+    "fraction": 0.17234,
+    "per_gas": 0.756947
+   },
+   "alu_imm": {
+    "count": 364286724,
+    "fraction": 0.186215,
+    "per_gas": 0.817888
+   },
+   "shift": {
+    "count": 148503248,
+    "fraction": 0.075911,
+    "per_gas": 0.333416
+   },
+   "compare": {
+    "count": 64295259,
+    "fraction": 0.032866,
+    "per_gas": 0.144354
+   },
+   "upper_imm": {
+    "count": 30221695,
+    "fraction": 0.015449,
+    "per_gas": 0.067853
+   },
+   "branch": {
+    "count": 198036892,
+    "fraction": 0.101232,
+    "per_gas": 0.444628
+   },
+   "jump": {
+    "count": 68437877,
+    "fraction": 0.034984,
+    "per_gas": 0.153655
+   },
+   "mul": {
+    "count": 39213359,
+    "fraction": 0.020045,
+    "per_gas": 0.088041
+   },
+   "div_rem": {
+    "count": 221487,
+    "fraction": 0.000113,
+    "per_gas": 0.000497
+   },
+   "load": {
+    "count": 430498222,
+    "fraction": 0.220061,
+    "per_gas": 0.966545
+   },
+   "store": {
+    "count": 269094808,
+    "fraction": 0.137555,
+    "per_gas": 0.604166
+   },
+   "ecall_service": {
+    "count": 6315654,
+    "fraction": 0.003228,
+    "per_gas": 0.01418
+   },
+   "system_other": {
+    "count": 0,
+    "fraction": 0.0,
+    "per_gas": 0.0
+   }
+  },
+  "opcode_counts": {
+   "LD": 333943186,
+   "ADDI": 302791176,
+   "SD": 248318076,
+   "ADD": 155076194,
+   "OR": 86366268,
+   "SLLI": 77844681,
+   "LBU": 65060526,
+   "SLTU": 63135594,
+   "BNE": 57229950,
+   "ANDI": 47464716,
+   "JALR": 47233719,
+   "SRLI": 40151087,
+   "AND": 39772369,
+   "BEQ": 37887756,
+   "BLT": 34463880,
+   "SUB": 29830571,
+   "BGEU": 29479833,
+   "BLTU": 28409050,
+   "LB": 25344353,
+   "MUL": 24648221,
+   "JAL": 21204158,
+   "XOR": 21017460,
+   "SB": 16283123,
+   "LUI": 16269644,
+   "MULHU": 14565123,
+   "AUIPC": 13952051,
+   "SRL": 13882630,
+   "SLL": 12981130,
+   "BGE": 10566423,
+   "ADDIW": 9970823,
+   "ECALL": 6315654,
+   "SUBW": 4944172,
+   "XORI": 3901184,
+   "SH": 3014160,
+   "LW": 2206043,
+   "LHU": 1650496,
+   "SW": 1479449,
+   "SRAI": 1226509,
+   "LH": 1150711,
+   "LWU": 1142907,
+   "SLTIU": 1133858,
+   "SRLIW": 1131577,
+   "SLLIW": 818841,
+   "SLLW": 357185,
+   "ORI": 158825,
+   "REMU": 153251,
+   "ADDW": 136427,
+   "SRLW": 109608,
+   "DIVU": 63704,
+   "SLTI": 25807,
+   "DIV": 4532,
+   "MULW": 15
+  }
+ },
+ "scored": {
+  "instructions": 1617421876,
+  "gas_used": 357472990,
+  "loads": 356197168,
+  "stores": 223393571,
+  "load_store": 579590739,
+  "ls_fraction_of_instructions": 0.358342,
+  "aligned_8byte_ls": 482242564,
+  "aligned_8byte_fraction_of_ls": 0.83204,
+  "aligned_8byte_loads_fraction_of_loads": 0.775041,
+  "aligned_8byte_stores_fraction_of_stores": 0.922923,
+  "subword_ls_fraction_of_ls": 0.16796,
+  "any_width_at_8byte_aligned_address_fraction_of_ls": 0.865382,
+  "misaligned_ls": 0,
+  "sp_based_fraction_of_ls": 0.298098,
+  "sp_based_fraction_of_dword_ls": 0.35317,
+  "by_width": {
+   "byte": {
+    "load": 75088907,
+    "store": 13502968,
+    "total": 88591875,
+    "fraction_of_ls": 0.152852
+   },
+   "half": {
+    "load": 2281221,
+    "store": 2488024,
+    "total": 4769245,
+    "fraction_of_ls": 0.008229
+   },
+   "word": {
+    "load": 2759509,
+    "store": 1227546,
+    "total": 3987055,
+    "fraction_of_ls": 0.006879
+   },
+   "doubleword": {
+    "load": 276067531,
+    "store": 206175033,
+    "total": 482242564,
+    "fraction_of_ls": 0.83204
+   }
+  },
+  "by_opcode": {
+   "LB": {
+    "count": 21491962,
+    "kind": "load",
+    "width_bytes": 1,
+    "signedness": "signed",
+    "fraction_of_ls": 0.037081,
+    "naturally_aligned": 21491962,
+    "misaligned": 0,
+    "aligned_8byte_address": 2710486,
+    "offset_in_dword": [
+     2710486,
+     2679912,
+     2693302,
+     2674091,
+     2675424,
+     2681325,
+     2677447,
+     2699975
+    ],
+    "sp_based": 19037,
+    "sp_based_fraction": 0.000886,
+    "rd_x0": 0
+   },
+   "LBU": {
+    "count": 53596945,
+    "kind": "load",
+    "width_bytes": 1,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.092474,
+    "naturally_aligned": 53596945,
+    "misaligned": 0,
+    "aligned_8byte_address": 9207312,
+    "offset_in_dword": [
+     9207312,
+     6482314,
+     6821706,
+     6420054,
+     6495407,
+     6131682,
+     6033954,
+     6004516
+    ],
+    "sp_based": 820706,
+    "sp_based_fraction": 0.015313,
+    "rd_x0": 0
+   },
+   "SB": {
+    "count": 13502968,
+    "kind": "store",
+    "width_bytes": 1,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.023297,
+    "naturally_aligned": 13502968,
+    "misaligned": 0,
+    "aligned_8byte_address": 2306133,
+    "offset_in_dword": [
+     2306133,
+     1933618,
+     2068047,
+     1594000,
+     1508028,
+     1396215,
+     1354523,
+     1342404
+    ],
+    "sp_based": 280660,
+    "sp_based_fraction": 0.020785
+   },
+   "LH": {
+    "count": 917922,
+    "kind": "load",
+    "width_bytes": 2,
+    "signedness": "signed",
+    "fraction_of_ls": 0.001584,
+    "naturally_aligned": 917922,
+    "misaligned": 0,
+    "aligned_8byte_address": 444454,
+    "offset_in_dword": [
+     444454,
+     0,
+     61968,
+     0,
+     24601,
+     0,
+     386899,
+     0
+    ],
+    "sp_based": 88,
+    "sp_based_fraction": 9.6e-05,
+    "rd_x0": 0
+   },
+   "LHU": {
+    "count": 1363299,
+    "kind": "load",
+    "width_bytes": 2,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.002352,
+    "naturally_aligned": 1363299,
+    "misaligned": 0,
+    "aligned_8byte_address": 530543,
+    "offset_in_dword": [
+     530543,
+     0,
+     186680,
+     0,
+     216129,
+     0,
+     429947,
+     0
+    ],
+    "sp_based": 12,
+    "sp_based_fraction": 9e-06,
+    "rd_x0": 0
+   },
+   "SH": {
+    "count": 2488024,
+    "kind": "store",
+    "width_bytes": 2,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.004293,
+    "naturally_aligned": 2488024,
+    "misaligned": 0,
+    "aligned_8byte_address": 919944,
+    "offset_in_dword": [
+     919944,
+     0,
+     457463,
+     0,
+     561119,
+     0,
+     549498,
+     0
+    ],
+    "sp_based": 1052,
+    "sp_based_fraction": 0.000423
+   },
+   "LW": {
+    "count": 1816900,
+    "kind": "load",
+    "width_bytes": 4,
+    "signedness": "signed",
+    "fraction_of_ls": 0.003135,
+    "naturally_aligned": 1816900,
+    "misaligned": 0,
+    "aligned_8byte_address": 1253430,
+    "offset_in_dword": [
+     1253430,
+     0,
+     0,
+     0,
+     563470,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 760775,
+    "sp_based_fraction": 0.418721,
+    "rd_x0": 0
+   },
+   "LWU": {
+    "count": 942609,
+    "kind": "load",
+    "width_bytes": 4,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.001626,
+    "naturally_aligned": 942609,
+    "misaligned": 0,
+    "aligned_8byte_address": 857226,
+    "offset_in_dword": [
+     857226,
+     0,
+     0,
+     0,
+     85383,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 18747,
+    "sp_based_fraction": 0.019888,
+    "rd_x0": 0
+   },
+   "SW": {
+    "count": 1227546,
+    "kind": "store",
+    "width_bytes": 4,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.002118,
+    "naturally_aligned": 1227546,
+    "misaligned": 0,
+    "aligned_8byte_address": 1095284,
+    "offset_in_dword": [
+     1095284,
+     0,
+     0,
+     0,
+     132262,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 560164,
+    "sp_based_fraction": 0.456328
+   },
+   "LD": {
+    "count": 276067531,
+    "kind": "load",
+    "width_bytes": 8,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.476315,
+    "naturally_aligned": 276067531,
+    "misaligned": 0,
+    "aligned_8byte_address": 276067531,
+    "offset_in_dword": [
+     276067531,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 76168665,
+    "sp_based_fraction": 0.275906,
+    "rd_x0": 0
+   },
+   "SD": {
+    "count": 206175033,
+    "kind": "store",
+    "width_bytes": 8,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.355725,
+    "naturally_aligned": 206175033,
+    "misaligned": 0,
+    "aligned_8byte_address": 206175033,
+    "offset_in_dword": [
+     206175033,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 94144886,
+    "sp_based_fraction": 0.456626
+   }
+  },
+  "class_mix": {
+   "alu_reg": {
+    "count": 278117588,
+    "fraction": 0.171951,
+    "per_gas": 0.77801
+   },
+   "alu_imm": {
+    "count": 301083295,
+    "fraction": 0.18615,
+    "per_gas": 0.842255
+   },
+   "shift": {
+    "count": 122484035,
+    "fraction": 0.075728,
+    "per_gas": 0.342639
+   },
+   "compare": {
+    "count": 53274687,
+    "fraction": 0.032938,
+    "per_gas": 0.149031
+   },
+   "upper_imm": {
+    "count": 25158680,
+    "fraction": 0.015555,
+    "per_gas": 0.070379
+   },
+   "branch": {
+    "count": 163659313,
+    "fraction": 0.101185,
+    "per_gas": 0.457823
+   },
+   "jump": {
+    "count": 56678926,
+    "fraction": 0.035043,
+    "per_gas": 0.158554
+   },
+   "mul": {
+    "count": 31923615,
+    "fraction": 0.019737,
+    "per_gas": 0.089304
+   },
+   "div_rem": {
+    "count": 186435,
+    "fraction": 0.000115,
+    "per_gas": 0.000522
+   },
+   "load": {
+    "count": 356197168,
+    "fraction": 0.220225,
+    "per_gas": 0.996431
+   },
+   "store": {
+    "count": 223393571,
+    "fraction": 0.138117,
+    "per_gas": 0.624924
+   },
+   "ecall_service": {
+    "count": 5264563,
+    "fraction": 0.003255,
+    "per_gas": 0.014727
+   },
+   "system_other": {
+    "count": 0,
+    "fraction": 0.0,
+    "per_gas": 0.0
+   }
+  },
+  "opcode_counts": {
+   "LD": 276067531,
+   "ADDI": 249852175,
+   "SD": 206175033,
+   "ADD": 127157470,
+   "OR": 71790711,
+   "SLLI": 64115346,
+   "LBU": 53596945,
+   "SLTU": 52316339,
+   "BNE": 47040257,
+   "ANDI": 39523849,
+   "JALR": 38875093,
+   "SRLI": 33129425,
+   "AND": 32503156,
+   "BEQ": 31306493,
+   "BLT": 28859874,
+   "SUB": 25064134,
+   "BGEU": 24331919,
+   "BLTU": 23505522,
+   "LB": 21491962,
+   "MUL": 20126070,
+   "JAL": 17803833,
+   "XOR": 17419585,
+   "LUI": 13577917,
+   "SB": 13502968,
+   "MULHU": 11797533,
+   "AUIPC": 11580763,
+   "SRL": 11456470,
+   "SLL": 10781078,
+   "BGE": 8615248,
+   "ADDIW": 8298626,
+   "ECALL": 5264563,
+   "SUBW": 4068808,
+   "XORI": 3278371,
+   "SH": 2488024,
+   "LW": 1816900,
+   "LHU": 1363299,
+   "SW": 1227546,
+   "SRAI": 994678,
+   "LWU": 942609,
+   "SRLIW": 942465,
+   "SLTIU": 936564,
+   "LH": 917922,
+   "SLLIW": 678917,
+   "SLLW": 294793,
+   "ORI": 130274,
+   "REMU": 129389,
+   "ADDW": 113724,
+   "SRLW": 90863,
+   "DIVU": 53302,
+   "SLTI": 21784,
+   "DIV": 3744,
+   "MULW": 12
+  }
+ },
+ "holdout": {
+  "instructions": 338846810,
+  "gas_used": 87926127,
+  "loads": 74301054,
+  "stores": 45701237,
+  "load_store": 120002291,
+  "ls_fraction_of_instructions": 0.354149,
+  "aligned_8byte_ls": 100018698,
+  "aligned_8byte_fraction_of_ls": 0.833473,
+  "aligned_8byte_loads_fraction_of_loads": 0.778935,
+  "aligned_8byte_stores_fraction_of_stores": 0.922142,
+  "subword_ls_fraction_of_ls": 0.166527,
+  "any_width_at_8byte_aligned_address_fraction_of_ls": 0.866799,
+  "misaligned_ls": 0,
+  "sp_based_fraction_of_ls": 0.274473,
+  "sp_based_fraction_of_dword_ls": 0.324196,
+  "by_width": {
+   "byte": {
+    "load": 15315972,
+    "store": 2780155,
+    "total": 18096127,
+    "fraction_of_ls": 0.150798
+   },
+   "half": {
+    "load": 519986,
+    "store": 526136,
+    "total": 1046122,
+    "fraction_of_ls": 0.008718
+   },
+   "word": {
+    "load": 589441,
+    "store": 251903,
+    "total": 841344,
+    "fraction_of_ls": 0.007011
+   },
+   "doubleword": {
+    "load": 57875655,
+    "store": 42143043,
+    "total": 100018698,
+    "fraction_of_ls": 0.833473
+   }
+  },
+  "by_opcode": {
+   "LB": {
+    "count": 3852391,
+    "kind": "load",
+    "width_bytes": 1,
+    "signedness": "signed",
+    "fraction_of_ls": 0.032103,
+    "naturally_aligned": 3852391,
+    "misaligned": 0,
+    "aligned_8byte_address": 485958,
+    "offset_in_dword": [
+     485958,
+     480475,
+     482975,
+     479280,
+     479394,
+     480843,
+     479086,
+     484380
+    ],
+    "sp_based": 4028,
+    "sp_based_fraction": 0.001046,
+    "rd_x0": 0
+   },
+   "LBU": {
+    "count": 11463581,
+    "kind": "load",
+    "width_bytes": 1,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.095528,
+    "naturally_aligned": 11463581,
+    "misaligned": 0,
+    "aligned_8byte_address": 1960881,
+    "offset_in_dword": [
+     1960881,
+     1394818,
+     1455673,
+     1363740,
+     1387468,
+     1312433,
+     1298290,
+     1290278
+    ],
+    "sp_based": 168219,
+    "sp_based_fraction": 0.014674,
+    "rd_x0": 0
+   },
+   "SB": {
+    "count": 2780155,
+    "kind": "store",
+    "width_bytes": 1,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.023168,
+    "naturally_aligned": 2780155,
+    "misaligned": 0,
+    "aligned_8byte_address": 475954,
+    "offset_in_dword": [
+     475954,
+     400737,
+     428312,
+     328041,
+     308399,
+     285513,
+     277519,
+     275680
+    ],
+    "sp_based": 63184,
+    "sp_based_fraction": 0.022727
+   },
+   "LH": {
+    "count": 232789,
+    "kind": "load",
+    "width_bytes": 2,
+    "signedness": "signed",
+    "fraction_of_ls": 0.00194,
+    "naturally_aligned": 232789,
+    "misaligned": 0,
+    "aligned_8byte_address": 95137,
+    "offset_in_dword": [
+     95137,
+     0,
+     12363,
+     0,
+     4834,
+     0,
+     120455,
+     0
+    ],
+    "sp_based": 8,
+    "sp_based_fraction": 3.4e-05,
+    "rd_x0": 0
+   },
+   "LHU": {
+    "count": 287197,
+    "kind": "load",
+    "width_bytes": 2,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.002393,
+    "naturally_aligned": 287197,
+    "misaligned": 0,
+    "aligned_8byte_address": 112353,
+    "offset_in_dword": [
+     112353,
+     0,
+     38509,
+     0,
+     45544,
+     0,
+     90791,
+     0
+    ],
+    "sp_based": 3,
+    "sp_based_fraction": 1e-05,
+    "rd_x0": 0
+   },
+   "SH": {
+    "count": 526136,
+    "kind": "store",
+    "width_bytes": 2,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.004384,
+    "naturally_aligned": 526136,
+    "misaligned": 0,
+    "aligned_8byte_address": 194364,
+    "offset_in_dword": [
+     194364,
+     0,
+     96870,
+     0,
+     118627,
+     0,
+     116275,
+     0
+    ],
+    "sp_based": 149,
+    "sp_based_fraction": 0.000283
+   },
+   "LW": {
+    "count": 389143,
+    "kind": "load",
+    "width_bytes": 4,
+    "signedness": "signed",
+    "fraction_of_ls": 0.003243,
+    "naturally_aligned": 389143,
+    "misaligned": 0,
+    "aligned_8byte_address": 265643,
+    "offset_in_dword": [
+     265643,
+     0,
+     0,
+     0,
+     123500,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 163716,
+    "sp_based_fraction": 0.420709,
+    "rd_x0": 0
+   },
+   "LWU": {
+    "count": 200298,
+    "kind": "load",
+    "width_bytes": 4,
+    "signedness": "unsigned",
+    "fraction_of_ls": 0.001669,
+    "naturally_aligned": 200298,
+    "misaligned": 0,
+    "aligned_8byte_address": 183249,
+    "offset_in_dword": [
+     183249,
+     0,
+     0,
+     0,
+     17049,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 2522,
+    "sp_based_fraction": 0.012591,
+    "rd_x0": 0
+   },
+   "SW": {
+    "count": 251903,
+    "kind": "store",
+    "width_bytes": 4,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.002099,
+    "naturally_aligned": 251903,
+    "misaligned": 0,
+    "aligned_8byte_address": 225671,
+    "offset_in_dword": [
+     225671,
+     0,
+     0,
+     0,
+     26232,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 109869,
+    "sp_based_fraction": 0.436156
+   },
+   "LD": {
+    "count": 57875655,
+    "kind": "load",
+    "width_bytes": 8,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.482288,
+    "naturally_aligned": 57875655,
+    "misaligned": 0,
+    "aligned_8byte_address": 57875655,
+    "offset_in_dword": [
+     57875655,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 14953707,
+    "sp_based_fraction": 0.258376,
+    "rd_x0": 0
+   },
+   "SD": {
+    "count": 42143043,
+    "kind": "store",
+    "width_bytes": 8,
+    "signedness": "n/a",
+    "fraction_of_ls": 0.351185,
+    "naturally_aligned": 42143043,
+    "misaligned": 0,
+    "aligned_8byte_address": 42143043,
+    "offset_in_dword": [
+     42143043,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sp_based": 17471978,
+    "sp_based_fraction": 0.414587
+   }
+  },
+  "class_mix": {
+   "alu_reg": {
+    "count": 59025873,
+    "fraction": 0.174196,
+    "per_gas": 0.671312
+   },
+   "alu_imm": {
+    "count": 63203429,
+    "fraction": 0.186525,
+    "per_gas": 0.718824
+   },
+   "shift": {
+    "count": 26019213,
+    "fraction": 0.076788,
+    "per_gas": 0.295921
+   },
+   "compare": {
+    "count": 11020572,
+    "fraction": 0.032524,
+    "per_gas": 0.125339
+   },
+   "upper_imm": {
+    "count": 5063015,
+    "fraction": 0.014942,
+    "per_gas": 0.057583
+   },
+   "branch": {
+    "count": 34377579,
+    "fraction": 0.101455,
+    "per_gas": 0.390983
+   },
+   "jump": {
+    "count": 11758951,
+    "fraction": 0.034703,
+    "per_gas": 0.133737
+   },
+   "mul": {
+    "count": 7289744,
+    "fraction": 0.021513,
+    "per_gas": 0.082908
+   },
+   "div_rem": {
+    "count": 35052,
+    "fraction": 0.000103,
+    "per_gas": 0.000399
+   },
+   "load": {
+    "count": 74301054,
+    "fraction": 0.219276,
+    "per_gas": 0.84504
+   },
+   "store": {
+    "count": 45701237,
+    "fraction": 0.134873,
+    "per_gas": 0.519769
+   },
+   "ecall_service": {
+    "count": 1051091,
+    "fraction": 0.003102,
+    "per_gas": 0.011954
+   },
+   "system_other": {
+    "count": 0,
+    "fraction": 0.0,
+    "per_gas": 0.0
+   }
+  },
+  "opcode_counts": {
+   "LD": 57875655,
+   "ADDI": 52939001,
+   "SD": 42143043,
+   "ADD": 27918724,
+   "OR": 14575557,
+   "SLLI": 13729335,
+   "LBU": 11463581,
+   "SLTU": 10819255,
+   "BNE": 10189693,
+   "JALR": 8358626,
+   "ANDI": 7940867,
+   "AND": 7269213,
+   "SRLI": 7021662,
+   "BEQ": 6581263,
+   "BLT": 5604006,
+   "BGEU": 5147914,
+   "BLTU": 4903528,
+   "SUB": 4766437,
+   "MUL": 4522151,
+   "LB": 3852391,
+   "XOR": 3597875,
+   "JAL": 3400325,
+   "SB": 2780155,
+   "MULHU": 2767590,
+   "LUI": 2691727,
+   "SRL": 2426160,
+   "AUIPC": 2371288,
+   "SLL": 2200052,
+   "BGE": 1951175,
+   "ADDIW": 1672197,
+   "ECALL": 1051091,
+   "SUBW": 875364,
+   "XORI": 622813,
+   "SH": 526136,
+   "LW": 389143,
+   "LHU": 287197,
+   "SW": 251903,
+   "LH": 232789,
+   "SRAI": 231831,
+   "LWU": 200298,
+   "SLTIU": 197294,
+   "SRLIW": 189112,
+   "SLLIW": 139924,
+   "SLLW": 62392,
+   "ORI": 28551,
+   "REMU": 23862,
+   "ADDW": 22703,
+   "SRLW": 18745,
+   "DIVU": 10402,
+   "SLTI": 4023,
+   "DIV": 788,
+   "MULW": 3
+  }
+ },
+ "per_block": [
+  {
+   "block": 24626900,
+   "set": "scored",
+   "instructions": 60807259,
+   "load_store": 21717491,
+   "ls_fraction_of_instructions": 0.357153,
+   "aligned_8byte_fraction_of_ls": 0.790914,
+   "sp_based_fraction_of_ls": 0.291956
+  },
+  {
+   "block": 24628590,
+   "set": "scored",
+   "instructions": 188545242,
+   "load_store": 67957880,
+   "ls_fraction_of_instructions": 0.360433,
+   "aligned_8byte_fraction_of_ls": 0.799414,
+   "sp_based_fraction_of_ls": 0.268683
+  },
+  {
+   "block": 24628595,
+   "set": "scored",
+   "instructions": 213138784,
+   "load_store": 77671535,
+   "ls_fraction_of_instructions": 0.364418,
+   "aligned_8byte_fraction_of_ls": 0.809053,
+   "sp_based_fraction_of_ls": 0.301073
+  },
+  {
+   "block": 24628607,
+   "set": "scored",
+   "instructions": 34114195,
+   "load_store": 12140274,
+   "ls_fraction_of_instructions": 0.355872,
+   "aligned_8byte_fraction_of_ls": 0.778869,
+   "sp_based_fraction_of_ls": 0.263045
+  },
+  {
+   "block": 24628608,
+   "set": "scored",
+   "instructions": 47188455,
+   "load_store": 16859516,
+   "ls_fraction_of_instructions": 0.357281,
+   "aligned_8byte_fraction_of_ls": 0.791127,
+   "sp_based_fraction_of_ls": 0.275992
+  },
+  {
+   "block": 24628611,
+   "set": "scored",
+   "instructions": 257819706,
+   "load_store": 87676519,
+   "ls_fraction_of_instructions": 0.340069,
+   "aligned_8byte_fraction_of_ls": 0.819306,
+   "sp_based_fraction_of_ls": 0.254895
+  },
+  {
+   "block": 24647140,
+   "set": "holdout",
+   "instructions": 32200842,
+   "load_store": 11427074,
+   "ls_fraction_of_instructions": 0.354869,
+   "aligned_8byte_fraction_of_ls": 0.77621,
+   "sp_based_fraction_of_ls": 0.278399
+  },
+  {
+   "block": 24697070,
+   "set": "scored",
+   "instructions": 75974094,
+   "load_store": 28927239,
+   "ls_fraction_of_instructions": 0.380751,
+   "aligned_8byte_fraction_of_ls": 0.834415,
+   "sp_based_fraction_of_ls": 0.342723
+  },
+  {
+   "block": 24697073,
+   "set": "holdout",
+   "instructions": 103247800,
+   "load_store": 32275488,
+   "ls_fraction_of_instructions": 0.312602,
+   "aligned_8byte_fraction_of_ls": 0.863863,
+   "sp_based_fraction_of_ls": 0.258819
+  },
+  {
+   "block": 25229951,
+   "set": "holdout",
+   "instructions": 203398168,
+   "load_store": 76299729,
+   "ls_fraction_of_instructions": 0.375125,
+   "aligned_8byte_fraction_of_ls": 0.829194,
+   "sp_based_fraction_of_ls": 0.280507
+  },
+  {
+   "block": 25229955,
+   "set": "scored",
+   "instructions": 166730204,
+   "load_store": 64497931,
+   "ls_fraction_of_instructions": 0.38684,
+   "aligned_8byte_fraction_of_ls": 0.851872,
+   "sp_based_fraction_of_ls": 0.338016
+  },
+  {
+   "block": 25229957,
+   "set": "scored",
+   "instructions": 34755638,
+   "load_store": 12304964,
+   "ls_fraction_of_instructions": 0.354042,
+   "aligned_8byte_fraction_of_ls": 0.785381,
+   "sp_based_fraction_of_ls": 0.295792
+  },
+  {
+   "block": 26235156,
+   "set": "scored",
+   "instructions": 19707204,
+   "load_store": 7016709,
+   "ls_fraction_of_instructions": 0.356048,
+   "aligned_8byte_fraction_of_ls": 0.792334,
+   "sp_based_fraction_of_ls": 0.308585
+  },
+  {
+   "block": 26235159,
+   "set": "scored",
+   "instructions": 327152249,
+   "load_store": 111390031,
+   "ls_fraction_of_instructions": 0.340484,
+   "aligned_8byte_fraction_of_ls": 0.861813,
+   "sp_based_fraction_of_ls": 0.278341
+  },
+  {
+   "block": 26235168,
+   "set": "scored",
+   "instructions": 191488846,
+   "load_store": 71430650,
+   "ls_fraction_of_instructions": 0.373028,
+   "aligned_8byte_fraction_of_ls": 0.881541,
+   "sp_based_fraction_of_ls": 0.364981
+  }
+ ]
+}

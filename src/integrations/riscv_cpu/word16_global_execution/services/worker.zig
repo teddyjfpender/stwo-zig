@@ -15,7 +15,7 @@ const Adapters = @import("air_components.zig");
 const Components = @import("../../word16_execution/components.zig").Components;
 const Profiling = @import("profiling.zig");
 const Q = G.Q;
-pub const Cpu = struct { setup: *const R.CpuSetup, request: P.Request, ordinal: usize, first_step: u64, first_ids: [3]u32 };
+pub const Cpu = struct { setup: *const R.CpuSetup, request: P.Request, ordinal: usize, first_step: u64, first_ids: [T.FAMILIES]u32 };
 pub const Descriptor = union(enum) {
     cpu: Cpu,
     truth: struct { value: R.Truth, ordinal: usize },
@@ -69,14 +69,17 @@ const Air = union(enum) {
     truth: Adapters.TruthComponents,
     fn init(descriptor: Descriptor, draw: Draw, claims: Claims) !Air {
         return switch (descriptor) {
-            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras) } },
+            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = try Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk).withSponge(c.setup, c.request.sponge, draw.cpu.local, draw.cpu.shared, claims.cpu.sponge).withDword(c.setup, c.request.ls_dword, draw.cpu.local, claims.cpu.ls_dword) } },
             .truth => |t| .{ .truth = try Adapters.TruthComponents.init(t.value, draw.truth, claims.truth) },
         };
     }
     fn provers(self: *Air, a: std.mem.Allocator) ![]engine.air.component_prover.ComponentProver {
         return switch (self.*) {
             .cpu => |*c| Adapters.cpuHandles(a, &c.base, &c.bridges),
-            .truth => |*t| a.dupe(engine.air.component_prover.ComponentProver, &t.provers()),
+            .truth => |*t| blk: {
+                var buffer: [3]engine.air.component_prover.ComponentProver = undefined;
+                break :blk a.dupe(engine.air.component_prover.ComponentProver, t.provers(&buffer));
+            },
         };
     }
 };
@@ -150,12 +153,27 @@ pub const Worker = struct {
                 const ch = draw.cpu.local;
                 const common = draw.cpu.shared;
                 const base = (try source.core.generateForDelegationJoinProfiled(ch, recorder)).physical;
-                var extras: [3]T.ExtraClaims = @splat(T.ExtraClaims.zero());
+                var extras: [T.FAMILIES]T.ExtraClaims = @splat(T.ExtraClaims.zero());
                 if (source.keccak) |*b| extras[0] = T.ExtraClaims.fromK(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
-                inline for (.{ "add", "double" }, 1..) |name, k| if (@field(source, name)) |*b| {
+                inline for (.{ "add", "double", "sha256", "arith256_mod" }, 1..) |name, k| if (@field(source, name)) |*b| {
                     extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
                 };
-                const claims = S.CpuClaims{ .base = base, .extras = extras };
+                for (&source.curves, T.FIRST_CURVE..) |*c, k| if (c.*) |*b| {
+                    extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
+                };
+                var bulk: [T.bulk_kinds.len]T.BulkClaims = @splat(T.BulkClaims.zero());
+                for (&source.bulk, &bulk) |*b, *out| if (b.*) |*s| {
+                    out.* = try s.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 }, source.core.range16.dictionary);
+                };
+                var sponge: [2]T.SpongeClaims = @splat(T.SpongeClaims.zero());
+                for (&source.sponge, &sponge) |*b, *out| if (b.*) |*s| {
+                    out.* = try s.generate(Adapters.spongeChallenges(ch, common), source.core.range16.dictionary, source.core.range8.dictionary);
+                };
+                var ls_dword: [T.DWORD_INSTANCES]T.DwordClaims = @splat(T.DwordClaims.zero());
+                for (&source.ls_dword, &ls_dword) |*b, *out| if (b.*) |*s| {
+                    out.* = try s.generate(ch.memory, source.core.range16.dictionary, source.core.range8.dictionary);
+                };
+                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk, .sponge = sponge, .ls_dword = ls_dword };
                 try claims.presence(self.descriptor.cpu.setup);
                 break :block .{ .cpu = claims };
             },
@@ -187,7 +205,7 @@ pub const Worker = struct {
         const claims = try self.generate(draw, recorder);
         generation.end();
         switch (claims) {
-            .cpu => |c| self.channel.mixFelts(&c.values()),
+            .cpu => |c| c.mix(&self.channel, self.descriptor.cpu.setup),
             .truth => |t| self.channel.mixFelts(&t),
         }
         var inter_stage = try Profile.StageScope.begin(recorder, "interaction_commit", "Owned worker interaction streaming commitment");
@@ -236,11 +254,25 @@ pub const Worker = struct {
 fn truthClaims(source: *R.TruthSource, draw: P.TruthDraw) ![3]Q {
     return switch (source.*) {
         .keccak => |*s| switch (draw) {
-            .keccak => |ch| .{ try A.crypto.keccak.interaction.generate(&s.permutation, ch), try s.chi.generateInteraction(ch), try s.xor5.generateInteraction(ch) },
+            .keccak => |ch| .{ try A.crypto.keccak.interaction.generateForPolicy(&s.permutation, ch, s.policy(), .{ .pool = engine.work_pool.currentScopedPool() }), try s.chi.generateInteraction(ch), try s.xor5.generateInteraction(ch) },
             else => error.InvalidCombinedTruthChallenge,
         },
         .secp => |*s| switch (draw) {
             .secp => |ch| .{ try s.batch.product.generateInteraction(ch), try s.batch.linear.generateInteraction(ch), try s.bytes.generateInteraction(ch.bytes) },
+            else => error.InvalidCombinedTruthChallenge,
+        },
+        // One component; the unused claim slots are fixed zero (receiver-checked).
+        .sha256 => |*s| switch (draw) {
+            .sha256 => |wire_ch| .{ try s.source.generateInteraction(wire_ch), G.Q.zero(), G.Q.zero() },
+            else => error.InvalidCombinedTruthChallenge,
+        },
+        // BYTE chain closes to zero in-AIR; only the Wire35 claim is public.
+        .arith256_mod => |*s| switch (draw) {
+            .arith256_mod => |ch| .{ try s.source.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
+            else => error.InvalidCombinedTruthChallenge,
+        },
+        .curve => |*s| switch (draw) {
+            .curve => |ch| .{ try s.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
             else => error.InvalidCombinedTruthChallenge,
         },
     };

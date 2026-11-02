@@ -121,10 +121,10 @@ fn freeRequests(a: std.mem.Allocator, requests: []P.Request) void {
 /// Borrowed request metadata for pre-key admission. Public cell arrays remain
 /// owned by advice; callers must not pass these views to freeRequests.
 pub fn requestView(native: []const *Native, advice: *const Advice, i: usize) !P.Request {
-    if (i >= native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len) return error.InvalidCombinedInventory;
+    if (i >= native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len or native.len != advice.sha256.len or native.len != advice.arith256_mod.len or native.len != advice.curves.len or native.len != advice.bulk.len or native.len != advice.sponge.len) return error.InvalidCombinedInventory;
     const n = native[i];
     const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
-    return .{ .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == native.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+    return .{ .calls = Pipeline.adviceCalls(advice, i), .bulk = advice.bulk[i].counts(), .sponge = advice.sponge[i].counts(), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == native.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
 }
 fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Advice) ![]P.Request {
     const requests = try a.alloc(P.Request, native.len);
@@ -143,6 +143,10 @@ fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Ad
         request.base.memory.terminal = terminal;
         r.* = request;
         done += 1;
+        // Faithful counts first (requestView), then fail closed on any v3 advice.
+        try @import("v2_scope.zig").request(r.*);
+        // Faithful counts first, then fail closed on any v3 advice.
+        try @import("v2_scope.zig").request(r.*);
     }
     return requests;
 }
@@ -189,7 +193,7 @@ const Run = struct {
             timing.?.stage1_ns = clock.read();
         };
         if (index < self.setups.len) {
-            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
+            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, @import("v2_scope.zig").widenFirstIds(self.inventory.first_ids[index]), false, null);
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
@@ -316,7 +320,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     if (options.worker_timings) |timings| @memset(timings, .{});
     @memset(options.stage1_trace, .{});
     @memset(options.stage2_trace, .{});
-    if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len) return error.InvalidCombinedInventory;
+    if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len or native.len != advice.sha256.len or native.len != advice.arith256_mod.len or native.len != advice.curves.len or native.len != advice.bulk.len or native.len != advice.sponge.len) return error.InvalidCombinedInventory;
     const requests = try requestsFrom(a, native, advice);
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);

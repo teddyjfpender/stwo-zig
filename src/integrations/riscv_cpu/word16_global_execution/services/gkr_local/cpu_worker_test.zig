@@ -22,7 +22,7 @@ pub fn exerciseWithBinding(comptime shard: usize, comptime mode: Mode, comptime 
     var setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, try captured.native[shard].geometry(), if (shard == 0) .{ .keccak = 5 } else .{ .add = 5, .double = 5 });
     defer setup.deinit();
     const n = &captured.native[shard];
-    const request = P.Request{ .calls = if (shard == 0) .{ 1, 0, 0 } else .{ 0, 1, 1 }, .base = .{ .cpu = n.cpu.?.public, .epoch = @intCast(shard + 1), .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (shard == 0) captured.advice.initial else &.{}, .terminal = if (shard == 1) captured.advice.terminal else &.{}, .epoch = @intCast(shard + 1), .ls_count = @intCast(captured.advice.events[shard].len) } } };
+    const request = P.Request{ .calls = v2Calls(if (shard == 0) .{ 1, 0, 0 } else .{ 0, 1, 1 }), .base = .{ .cpu = n.cpu.?.public, .epoch = @intCast(shard + 1), .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (shard == 0) captured.advice.initial else &.{}, .terminal = if (shard == 1) captured.advice.terminal else &.{}, .epoch = @intCast(shard + 1), .ls_count = @intCast(captured.advice.events[shard].len) } } };
     const g = setup.materials.geometry;
     const Memory = @import("../../../word16_execution/memory/prepared.zig").Prepared;
     const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, captured.advice.events[shard], try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.initial), try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.terminal), @intCast(shard + 1), g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
@@ -151,8 +151,8 @@ pub fn exerciseWithBinding(comptime shard: usize, comptime mode: Mode, comptime 
             const next = &captured.native[1];
             var next_setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, try next.geometry(), .{ .add = 5, .double = 5 });
             defer next_setup.deinit();
-            const next_request = P.Request{ .calls = .{ 0, 1, 1 }, .base = .{ .cpu = next.cpu.?.public, .epoch = 2, .division_requests = @intCast(next.division.len), .multiplication_requests = @intCast(next.multiplication.len), .memory = .{ .initial = &.{}, .terminal = captured.advice.terminal, .epoch = 2, .ls_count = @intCast(captured.advice.events[1].len) } } };
-            var next_source = try @import("../pipeline.zig").buildCpuSource(a, &next_setup, next_request, next, &captured.advice, 1, .{ 1, 1, 1 }, false, null);
+            const next_request = P.Request{ .calls = v2Calls(.{ 0, 1, 1 }), .base = .{ .cpu = next.cpu.?.public, .epoch = 2, .division_requests = @intCast(next.division.len), .multiplication_requests = @intCast(next.multiplication.len), .memory = .{ .initial = &.{}, .terminal = captured.advice.terminal, .epoch = 2, .ls_count = @intCast(captured.advice.events[1].len) } } };
+            var next_source = try @import("../pipeline.zig").buildCpuSource(a, &next_setup, next_request, next, &captured.advice, 1, @import("v2_scope.zig").widenFirstIds(.{ 1, 1, 1 }), false, null);
             var owns_next_source = true;
             defer if (owns_next_source) next_source.deinit();
             const next_instances = try @import("roster.zig").fromSetup(a, &next_setup);
@@ -288,6 +288,9 @@ test "CPU parked worker abort tears down FD registry and store without restore" 
 }
 test "later CPU stage-one OOM unwinds prior parked worker without stale owners" {
     _ = try exercise(0, .later_worker_oom, .coefficients);
+}
+fn v2Calls(calls: [3]u32) [@import("../types.zig").FAMILIES]u32 {
+    return calls ++ @as([@import("../types.zig").FAMILIES - 3]u32, @splat(0));
 }
 
 test "beta2 CPU K and ADD DOUBLE physical proofs authenticate independent fixed authority" {

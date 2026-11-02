@@ -28,6 +28,7 @@ pub const Globals = struct {
     }
 };
 pub fn cpu(request: Request) !Globals {
+    try @import("v2_scope.zig").request(request);
     var out = Globals{};
     out.ram.positive = try std.math.add(u64, request.base.memory.ls_count, request.base.memory.terminal.len);
     out.ram.negative = try std.math.add(u64, request.base.memory.ls_count, request.base.memory.initial.len);
@@ -36,7 +37,7 @@ pub fn cpu(request: Request) !Globals {
     out.ram.positive = try std.math.add(u64, out.ram.positive, kw);
     out.ram.negative = try std.math.add(u64, out.ram.negative, kw);
     out.kio.negative = try std.math.mul(u64, request.calls[0], 2 * A.crypto.keccak.layout.IO_LANES);
-    for ([_]A.crypto.secp256k1.program.Kind{ .add, .double }, request.calls[1..]) |kind, calls| {
+    for ([_]A.crypto.secp256k1.program.Kind{ .add, .double }, request.calls[1..3]) |kind, calls| {
         const program = A.crypto.secp256k1.program.get(kind);
         const words = try std.math.mul(u64, program.inputs, @sizeOf(u256) / @sizeOf(u64));
         const ram = try std.math.mul(u64, calls, words);
@@ -65,6 +66,7 @@ pub fn truth(d: Declaration) !Globals {
             out.wire = .{ .positive = try std.math.mul(u64, positive, d.calls), .negative = try std.math.mul(u64, negative, d.calls) };
             if (try out.wire.absolute() != admitted.wires) return error.GlobalWireMassAuthorityMismatch;
         },
+        else => return error.GkrV3ServiceUnsupported,
     }
     return out;
 }

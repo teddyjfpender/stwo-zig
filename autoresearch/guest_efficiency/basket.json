@@ -1,0 +1,495 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-basket.v1",
+ "note": "Mainnet blocks whose ZisK reth-guest fixtures are published at the pinned zisk-eth-client commit. 'scored' blocks drive the metric; 'holdout' blocks are a no-regression and anti-overfitting guard. Baseline = ethereum-services-v2-lean guest at 16 MiB input window (ELF sha256 37fbf8fd..., built by bench.py build-guest at the branch base; the comparison receipt's per-block counts (comparison_receipt_instructions) differ by under 0.01%), executor src/frontends/riscv/rv64 rv64-ethereum-execution.",
+ "source": {
+  "repository": "https://github.com/0xPolygonHermez/zisk-eth-client",
+  "commit": "dfa27ff2e3544fb3c7467499415830d20de2218d"
+ },
+ "reference_source": {
+  "zisk_eth_client": {
+   "repository": "https://github.com/0xPolygonHermez/zisk-eth-client",
+   "commit": "dfa27ff2e3544fb3c7467499415830d20de2218d",
+   "reth_elf_sha256": "d9d470a9999b7e20402fb5c1dd836576c2f584d0753ba5173d256c67c390bca3",
+   "ziskethone_elf_sha256": "9a38b2e8ca65a0392b46a12bc3a6b4da71f344d665b3a75d6983bf551c9cd548"
+  },
+  "ziskemu": {
+   "repository": "https://github.com/0xPolygonHermez/zisk",
+   "tag": "v1.4.0-alpha",
+   "commit": "64a1f1664184e76053686745d50c6b9aaa51b034",
+   "mode": "ziskemu -e ELF -i INPUT -X (STEPS line)"
+  },
+  "ziskethone_perf_notes": {
+   "repository": "https://github.com/0xPolygonHermez/ziskethone",
+   "commit": "1c3e8d1737c0269a50af24a6fdb26091a6eaee27",
+   "file": "docs/perf-notes.md",
+   "eight_block_set": "data_20260808, first block 25701329; only 25701329 and 25708403 are named in the repo",
+   "evmone_total_steps": 1676971663,
+   "evmone_dma_total_steps": 1433274221,
+   "zevm_total_steps": 1889678694,
+   "zevm_dma_total_steps": 1579912702,
+   "block_25701329_self_step_histogram_total": 234838799,
+   "heaviest_mainnet_blocks": "cold-account BALANCE/EXTCODEHASH blocks ~490M steps (README, 200M-gas killer set), block numbers not published"
+  }
+ },
+ "execution": {
+  "execution_profile": "ethereum_services_v2",
+  "max_steps": 10000000000,
+  "pc_profile": {
+   "start": 1024,
+   "end": 8388608
+  }
+ },
+ "baseline_elf_sha256": "37fbf8fdde6b58d8d82da267c890b7c9978575c5225671b1504d7b1efc9eeb91",
+ "blocks": [
+  {
+   "block": 24626900,
+   "set": "scored",
+   "block_hash": "0x77e585829cdbb4734a92c2b367a66515f50d5117994b148a043156ee01639a41",
+   "transactions": 221,
+   "gas_used": 16338083,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24626900_221_16_zec_reth.bin",
+    "name": "mainnet_24626900_221_16_zec_reth.bin",
+    "sha256": "a2e203a93576ee156c14448988e023bbc673830cfcd74ab5ec822e5d526ad9f1"
+   },
+   "canonical_input": {
+    "bytes": 4670384,
+    "sha256": "d88875259189c21e0b3e6db6cdf0102d47c0ace4260cdd625f6c99e135e5594c"
+   },
+   "new_payload_request_root": "0x4b486741a31c73469538fbdf1bf63587f8776b22f72249afa639ce0b650754a6",
+   "baseline": {
+    "instructions": 217584230,
+    "keccak_f_calls": 61761,
+    "secp_add_calls": 35756,
+    "secp_double_calls": 30448,
+    "loads": 38846069,
+    "stores": 25999054
+   },
+   "reference": {
+    "zisk_reth_steps": 104851202,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 217574707
+  },
+  {
+   "block": 24628590,
+   "set": "scored",
+   "block_hash": "0x864d2552328e80541e550eaac9dff2b4c66852744d5ad50515e1d9e3680efc0c",
+   "transactions": 478,
+   "gas_used": 49134719,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628590_478_49_zec_reth.bin",
+    "name": "mainnet_24628590_478_49_zec_reth.bin",
+    "sha256": "3bc9273026f2ca56b14afd0827a4d6f860c22a8b3d1704e405aaec706025ccb4"
+   },
+   "canonical_input": {
+    "bytes": 12123601,
+    "sha256": "19200d19f5eb3ae0696e4c31144688b5115b4fe4b34b5f74794ae795e169e151"
+   },
+   "new_payload_request_root": "0xde8f8c365b68abd759b946db428e67df40b82c1c39aeb3c111cd5b42cb2f0568",
+   "baseline": {
+    "instructions": 629057892,
+    "keccak_f_calls": 164183,
+    "secp_add_calls": 89379,
+    "secp_double_calls": 75920,
+    "loads": 115617268,
+    "stores": 76286360
+   },
+   "reference": {
+    "zisk_reth_steps": 318012180,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 629126569
+  },
+  {
+   "block": 24628595,
+   "set": "scored",
+   "block_hash": "0x60caa3e811254e28248033ab5b3349b08a026551c6dff7438f87e8c4f7c3bae3",
+   "transactions": 641,
+   "gas_used": 54230474,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628595_641_54_zec_reth.bin",
+    "name": "mainnet_24628595_641_54_zec_reth.bin",
+    "sha256": "e9afdaa8e9ae485a01b3fa94abcf19b1a51ba0f4bc21bccb54c4e8fa02233416"
+   },
+   "canonical_input": {
+    "bytes": 13830191,
+    "sha256": "c67c66b786eb5808cabb330429be9c188d52d10755a732e5ac4b4497e4e79680"
+   },
+   "new_payload_request_root": "0x85f8f0212ae1228dfe1aebf870b99a9689e00b1520c4cc40fb4a4e3ea30e30a1",
+   "baseline": {
+    "instructions": 710529872,
+    "keccak_f_calls": 184066,
+    "secp_add_calls": 109862,
+    "secp_double_calls": 93316,
+    "loads": 129595288,
+    "stores": 86030836
+   },
+   "reference": {
+    "zisk_reth_steps": 346436700,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 710501452
+  },
+  {
+   "block": 24628607,
+   "set": "scored",
+   "block_hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+   "transactions": 66,
+   "gas_used": 7372614,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628607_66_7_zec_reth.bin",
+    "name": "mainnet_24628607_66_7_zec_reth.bin",
+    "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376"
+   },
+   "canonical_input": {
+    "bytes": 2700688,
+    "sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c"
+   },
+   "new_payload_request_root": "0xe63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030",
+   "baseline": {
+    "instructions": 104245051,
+    "keccak_f_calls": 32835,
+    "secp_add_calls": 11496,
+    "secp_double_calls": 9768,
+    "loads": 20423503,
+    "stores": 13033214
+   },
+   "reference": {
+    "zisk_reth_steps": 60289420,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 104253913
+  },
+  {
+   "block": 24628608,
+   "set": "scored",
+   "block_hash": "0x2fd7407d232b8b7fde2a8372b5e77fd65f815847b70d9cf25134b123f4a69e03",
+   "transactions": 146,
+   "gas_used": 12907474,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628608_146_12_zec_reth.bin",
+    "name": "mainnet_24628608_146_12_zec_reth.bin",
+    "sha256": "f0b91434c04e5ecdae229d735e07a8829c720f87a48906dffd6966761021671a"
+   },
+   "canonical_input": {
+    "bytes": 3301016,
+    "sha256": "6df28ca447652c26b92bd6d9792e6fe71b2c69807e0427f7be0443e1652ecf6e"
+   },
+   "new_payload_request_root": "0xc92cbc26f2f8a5976259a8053763dc65a58f1071c7ab65b498f470159f827be1",
+   "baseline": {
+    "instructions": 151146441,
+    "keccak_f_calls": 44203,
+    "secp_add_calls": 21774,
+    "secp_double_calls": 18524,
+    "loads": 28724273,
+    "stores": 18843313
+   },
+   "reference": {
+    "zisk_reth_steps": 81410395,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 151203451
+  },
+  {
+   "block": 24628611,
+   "set": "scored",
+   "block_hash": "0x7eefb29f956090fd9736cc4d601dce87d6bab3d0c91ef75419867c023ac65526",
+   "transactions": 627,
+   "gas_used": 58862996,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628611_627_58_zec_reth.bin",
+    "name": "mainnet_24628611_627_58_zec_reth.bin",
+    "sha256": "7b9f1027298c9dad2d004ea7edbd2ffdff95a909a88fd16ef6a5a473669f1811"
+   },
+   "canonical_input": {
+    "bytes": 14659255,
+    "sha256": "5fdf3cb86ebc2acc39d6b1ad20b03200137bf7304fdc4d2c8806217c8ef8616a"
+   },
+   "new_payload_request_root": "0x320c2fd183a93ba147d92e318d9b7773c767521cfbc4e08e473fbb1091244274",
+   "baseline": {
+    "instructions": 778275905,
+    "keccak_f_calls": 194844,
+    "secp_add_calls": 106493,
+    "secp_double_calls": 90460,
+    "loads": 140220616,
+    "stores": 91001114
+   },
+   "reference": {
+    "zisk_reth_steps": 370532834,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 778082522
+  },
+  {
+   "block": 24647140,
+   "set": "holdout",
+   "block_hash": "0xac1a460b21353733e4cad69c455e7cc7a3a595408f2f15684f9f646ebc42b9b4",
+   "transactions": 60,
+   "gas_used": 7704951,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24647140_60_7_zec_reth.bin",
+    "name": "mainnet_24647140_60_7_zec_reth.bin",
+    "sha256": "077391740e1ab3c5c340c4ca2a74812adf40f3e048100dd5544a087a207d3070"
+   },
+   "canonical_input": {
+    "bytes": 2906420,
+    "sha256": "42324122194de736036e9c840b4df2fca8df7e92440d48a31e78db6ac23f2b36"
+   },
+   "new_payload_request_root": "0xfe93a8702bccb85177f08c999987d3f6ed9a55c57fdcb10342a11669974858a3",
+   "baseline": {
+    "instructions": 109123058,
+    "keccak_f_calls": 34900,
+    "secp_add_calls": 14123,
+    "secp_double_calls": 12012,
+    "loads": 20325239,
+    "stores": 13070520
+   },
+   "reference": {
+    "zisk_reth_steps": 58141998,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 109139374
+  },
+  {
+   "block": 24697070,
+   "set": "scored",
+   "block_hash": "0x9b2ef61d4977467464e32ce7911307e9c20e26cba817d4e5d6711ca5e6606df4",
+   "transactions": 270,
+   "gas_used": 17435221,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24697070_270_17_zec_reth.bin",
+    "name": "mainnet_24697070_270_17_zec_reth.bin",
+    "sha256": "e55b161ca2478d2ab758ed36a85fa57eadf460b463c89369d3821eb158deaf3c"
+   },
+   "canonical_input": {
+    "bytes": 4844185,
+    "sha256": "b38f15ea46317dad78b9f223bb866e6b2a22174ba6d3ed8f017842eeaf5e7e14"
+   },
+   "new_payload_request_root": "0xcc73313f45a8b0a26aac3ea84ef57e624ac6edd0679c14abaece166c71bf5b17",
+   "baseline": {
+    "instructions": 260980443,
+    "keccak_f_calls": 63862,
+    "secp_add_calls": 41483,
+    "secp_double_calls": 35320,
+    "loads": 46486156,
+    "stores": 31150389
+   },
+   "reference": {
+    "zisk_reth_steps": 118573137,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 261016581
+  },
+  {
+   "block": 24697073,
+   "set": "holdout",
+   "block_hash": "0x672c096e20c0fce13ec986d8fed3e483c9613a28b5cfe0b7f2e3d91f62f2c033",
+   "transactions": 308,
+   "gas_used": 22277128,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24697073_308_22_zec_reth.bin",
+    "name": "mainnet_24697073_308_22_zec_reth.bin",
+    "sha256": "43249e7bfdaef31b0c07ad3b8d4e1d2505655d1e67e581d6d62a4588e69f9b9a"
+   },
+   "canonical_input": {
+    "bytes": 4403300,
+    "sha256": "70229a61e47533ec2f7f72ce256532c36c507e550a6aaf3889ffc31586fd3888"
+   },
+   "new_payload_request_root": "0x613501705955981054a902522c31c37d631ce098618a2f2bbb039f11cfd5da34",
+   "baseline": {
+    "instructions": 305607761,
+    "keccak_f_calls": 66871,
+    "secp_add_calls": 57280,
+    "secp_double_calls": 48732,
+    "loads": 49544759,
+    "stores": 33624511
+   },
+   "reference": {
+    "zisk_reth_steps": 110032109,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 305609769
+  },
+  {
+   "block": 25229951,
+   "set": "holdout",
+   "block_hash": "0x9940a80e9190e89192a457a4019f701fb52fc632626b0f8699d213273c4629bb",
+   "transactions": 420,
+   "gas_used": 57944048,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_25229951_420_57_zec_reth.bin",
+    "name": "mainnet_25229951_420_57_zec_reth.bin",
+    "sha256": "5a93e3d1b9f817abbfa0f0e3f8bcfcec86c3836b33e45654d30307a72a42c7ff"
+   },
+   "canonical_input": {
+    "bytes": 10120290,
+    "sha256": "c7235c8d7205a8d90785ae6eabe0c19f189b7abd877a6f38d47a89b09bdb516b"
+   },
+   "new_payload_request_root": "0x3035ba8294fde3a83e654e014d9c6fa752ed2124e2d265518092495459979f0d",
+   "baseline": {
+    "instructions": 618974071,
+    "keccak_f_calls": 141387,
+    "secp_add_calls": 69331,
+    "secp_double_calls": 58844,
+    "loads": 115628730,
+    "stores": 76373610
+   },
+   "reference": {
+    "zisk_reth_steps": 315700337,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 618896990
+  },
+  {
+   "block": 25229955,
+   "set": "scored",
+   "block_hash": "0xf12280078758f1d79b360acc2f7f05bed9b6cabcaf8a6a62f6f01264e32b5271",
+   "transactions": 305,
+   "gas_used": 39102791,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_25229955_305_39_zec_reth.bin",
+    "name": "mainnet_25229955_305_39_zec_reth.bin",
+    "sha256": "4b96946145bcf42f43154071e346e689ffc2ca2e819393f52383e764ac6c82d7"
+   },
+   "canonical_input": {
+    "bytes": 7846195,
+    "sha256": "d6f11615979cd27f2ac3616c59316ead10300b53e9f76318dcdc8131a3281ba7"
+   },
+   "new_payload_request_root": "0x288645eda2f97ce84e364b582563f45cec26700462a3284ef037bdebc94cf22f",
+   "baseline": {
+    "instructions": 517309852,
+    "keccak_f_calls": 106761,
+    "secp_add_calls": 51297,
+    "secp_double_calls": 43568,
+    "loads": 91599531,
+    "stores": 60181480
+   },
+   "reference": {
+    "zisk_reth_steps": 232207462,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 517378514
+  },
+  {
+   "block": 25229957,
+   "set": "scored",
+   "block_hash": "0x335f7029e8d55053c2041fe72a7d73e5c606278325d5b18ec692315d435b9317",
+   "transactions": 107,
+   "gas_used": 9768139,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_25229957_107_9_zec_reth.bin",
+    "name": "mainnet_25229957_107_9_zec_reth.bin",
+    "sha256": "11a0d913dfac7bba98459712968068f1eacf16c4050d3e523d704d9fb151570b"
+   },
+   "canonical_input": {
+    "bytes": 3041965,
+    "sha256": "7eb44aa15c82ade0a56cc616f5bf7bca6481cd8796f7ada838d8193dcd592c0b"
+   },
+   "new_payload_request_root": "0xf2b46b233a65ceb4ae27982171910748f89ed5271b9235eb94a4044504dda862",
+   "baseline": {
+    "instructions": 123476692,
+    "keccak_f_calls": 37692,
+    "secp_add_calls": 18815,
+    "secp_double_calls": 16028,
+    "loads": 22378145,
+    "stores": 14778405
+   },
+   "reference": {
+    "zisk_reth_steps": 61829664,
+    "ziskethone_steps": null
+   },
+   "comparison_receipt_instructions": 123511251
+  },
+  {
+   "block": 26235156,
+   "set": "scored",
+   "block_hash": "0xa9533744986888244d786721fc0506984585de242dc3d4e0db6d8337abe75bc4",
+   "transactions": 91,
+   "gas_used": 5443474,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_26235156_91_5_zec_reth.bin",
+    "name": "mainnet_26235156_91_5_zec_reth.bin",
+    "sha256": "164e87f73ce0cf4db975d8e5b148b6b40d828cdd412d7cf53aeca2c1e2a0123f"
+   },
+   "canonical_input": {
+    "bytes": 1732378,
+    "sha256": "63597c3284218af074924e5ff5f263bd9cc189bd94b886fcd2034b9eddeaffb1"
+   },
+   "new_payload_request_root": "0x9661a4e4cdf6b5f38de836fe3295d334fdc8bb6869b92e0addc027e573f99391",
+   "baseline": {
+    "instructions": 79572369,
+    "keccak_f_calls": 22419,
+    "secp_add_calls": 16541,
+    "secp_double_calls": 14028,
+    "loads": 13638550,
+    "stores": 9287980
+   },
+   "reference": {
+    "zisk_reth_steps": 35721945,
+    "ziskethone_steps": 10011348
+   },
+   "comparison_receipt_instructions": 79595147
+  },
+  {
+   "block": 26235159,
+   "set": "scored",
+   "block_hash": "0xef2d2364841157023002e46411735a80b93c21c68aaf3f5f45118d4aa6ce3ef3",
+   "transactions": 532,
+   "gas_used": 57734946,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_26235159_532_57_zec_reth.bin",
+    "name": "mainnet_26235159_532_57_zec_reth.bin",
+    "sha256": "8469643b31ccd59bb5d85583561344410dd92d1d79d7028b1de195c424679602"
+   },
+   "canonical_input": {
+    "bytes": 12224346,
+    "sha256": "7ab19063885304e8cf388e8503895be282f4227e9934070c7f3dcf2d5886d0e8"
+   },
+   "new_payload_request_root": "0xbf48e248f97c30d78d21bf6b1e77ec188c6e33a275d4292dd46f90778297e9ca",
+   "baseline": {
+    "instructions": 879606368,
+    "keccak_f_calls": 168866,
+    "secp_add_calls": 95779,
+    "secp_double_calls": 81392,
+    "loads": 151402276,
+    "stores": 98209455
+   },
+   "reference": {
+    "zisk_reth_steps": 361332170,
+    "ziskethone_steps": 117222289
+   },
+   "comparison_receipt_instructions": 879612412
+  },
+  {
+   "block": 26235168,
+   "set": "scored",
+   "block_hash": "0x07cddb3b33def263e86256977358a0313899e16a31aaae2e3444368e68da60c9",
+   "transactions": 260,
+   "gas_used": 29142059,
+   "fixture": {
+    "path": "bin/guests/stateless-validator-reth/inputs/mainnet_26235168_260_29_zec_reth.bin",
+    "name": "mainnet_26235168_260_29_zec_reth.bin",
+    "sha256": "540e91b0846b81d18d49268456f647c4853f2e5781c7a835c13c5af35b2946c2"
+   },
+   "canonical_input": {
+    "bytes": 7256469,
+    "sha256": "0bf59a183eabc8b8fdd177b69e389aff41705742d89987a0f4b47530460a09ff"
+   },
+   "new_payload_request_root": "0xf1be347f029bcedb84175815a0f9a0dba90228bd6f27b08b97c67fbd3aaf5444",
+   "baseline": {
+    "instructions": 510307206,
+    "keccak_f_calls": 93942,
+    "secp_add_calls": 46823,
+    "secp_double_calls": 39892,
+    "loads": 87544570,
+    "stores": 56099902
+   },
+   "reference": {
+    "zisk_reth_steps": 189873711,
+    "ziskethone_steps": 59225558
+   },
+   "comparison_receipt_instructions": 510264082
+  }
+ ]
+}

@@ -61,6 +61,7 @@ pub fn generate(allocator: @import("std").mem.Allocator, metadata: *const Metada
     const log = switch (metadata.source.*) {
         .keccak => |s| if (role == .keccak) s.permutation.log_size else return error.InvalidTruthGlobalRole,
         .secp => |s| if (role == .product) s.batch.product.log_size else if (role == .linear) s.batch.linear.log_size else return error.InvalidTruthGlobalRole,
+        else => return error.GkrV3ServiceUnsupported,
     };
     return Witness.init(allocator, log, &.{.{ .inverses = @intCast(count) }}, Provider{ .metadata = metadata, .challenges = challenges, .role = role }, budget);
 }

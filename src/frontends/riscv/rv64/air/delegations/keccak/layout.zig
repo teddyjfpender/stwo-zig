@@ -59,6 +59,31 @@ pub fn admitRoster(component_calls: []const usize, byte_request_counts: []const 
     return total;
 }
 
+/// Throughput-v1 masses: per active round row 320 five-output chi queries and
+/// 107 three-position xor5 queries (vs 1600/320 compact); IO is unchanged.
+/// Each table row's multiplicity is bounded by its bus mass, so mass < p
+/// rules out multiplicity wrap; the compact bound already implies this one.
+pub fn lookupMassThroughput(calls: usize) !LookupMass {
+    const slots: u64 = @intCast(try std.math.divCeil(usize, calls, 2));
+    const P = @import("batch_policy.zig");
+    return .{
+        .chi = std.math.mul(u64, slots, 24 * P.THROUGHPUT_CHI) catch return error.KeccakLookupMassExceeded,
+        .xor5 = std.math.mul(u64, slots, 24 * P.THROUGHPUT_XOR5) catch return error.KeccakLookupMassExceeded,
+        .io = std.math.mul(u64, @intCast(calls), 2 * 25) catch return error.KeccakLookupMassExceeded,
+    };
+}
+pub fn admitThroughputRoster(component_calls: []const usize) !LookupMass {
+    const modulus = @import("stwo_core").fields.m31.Modulus;
+    var total = LookupMass{};
+    for (component_calls) |calls| {
+        const mass = try lookupMassThroughput(calls);
+        total.chi = std.math.add(u64, total.chi, mass.chi) catch return error.KeccakLookupMassExceeded;
+        total.xor5 = std.math.add(u64, total.xor5, mass.xor5) catch return error.KeccakLookupMassExceeded;
+        total.io = std.math.add(u64, total.io, mass.io) catch return error.KeccakLookupMassExceeded;
+        if (total.chi >= modulus or total.xor5 >= modulus or total.io >= modulus) return error.KeccakLookupMassExceeded;
+    }
+    return total;
+}
 pub fn validateGeometry(calls: usize, first_id: u32, log: u32) !void {
     _ = try logSize(calls);
     if (first_id == 0 or first_id >= @import("stwo_core").fields.m31.Modulus or @as(u64, first_id) + calls > @import("stwo_core").fields.m31.Modulus) return error.InvalidKeccakCallId;

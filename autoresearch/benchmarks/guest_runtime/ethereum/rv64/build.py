@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--execution-report", type=Path)
     parser.add_argument("--oracle-report", type=Path)
+    parser.add_argument("--input-window-mib", type=int, choices=(4, 16), default=4,
+                        help="4 = legacy linker.ld (pinned round-five layout); 16 = linker-wide.ld")
     parser.add_argument("--guest-profile", choices=("software", "keccak-service-v1", "ethereum-services-v1", "ethereum-services-v2", "ethereum-services-v2-lean"), default="software")
     args = parser.parse_args()
     if not 1 <= args.jobs <= 8:
@@ -43,11 +45,12 @@ def main():
     if args.offline:
         common.append("--offline")
     workspace = HERE / "services" if args.guest_profile.startswith("ethereum-services-") else HERE
-    env = dict(os.environ, RUSTFLAGS="-C link-arg=-Tlinker.ld")
+    linker = "linker.ld" if args.input_window_mib == 4 else "linker-wide.ld"
+    env = dict(os.environ, RUSTFLAGS="-C link-arg=-T" + linker)
     service_features = ["--features", "keccak-service"] if args.guest_profile != "software" else []
     if args.guest_profile.startswith("ethereum-services-"):
         service_features = ["--features", {"ethereum-services-v1": "keccak-service,secp-service", "ethereum-services-v2": "keccak-service,secp-word-service", "ethereum-services-v2-lean": "keccak-service,secp-lean"}[args.guest_profile]]
-        for name in ("linker.ld", "riscv64i-stwo.json"):
+        for name in ("linker.ld", "linker-wide.ld", "riscv64i-stwo.json"):
             if (workspace / name).read_bytes() != (HERE / name).read_bytes():
                 raise ValueError("service workspace runtime contract differs: " + name)
     run(["cargo", "+" + TOOLCHAIN, "build", *common, *service_features, "--target", "riscv64i-stwo.json",
@@ -59,11 +62,11 @@ def main():
     guest = artifacts / guest_name
     guest.write_bytes(elf.read_bytes())
     report = {"schema": "stwo.rv64.ethereum-software-build.v1", "toolchain": TOOLCHAIN,
-              "isa": "RV64IM", "abi": "lp64", "execution_profile": args.guest_profile, "guest": identity(guest),
+              "isa": "RV64IM", "abi": "lp64", "execution_profile": args.guest_profile, "input_window_mib": args.input_window_mib, "guest": identity(guest),
               "guest_source": identity(HERE / "src/main.rs"),
               "build_script": identity(Path(__file__)),
               "runtime_sources": [identity(HERE / "src/single_thread_atomics.rs"),
-                                  identity(workspace / "Cargo.toml"), identity(workspace / "linker.ld"),
+                                  identity(workspace / "Cargo.toml"), identity(workspace / linker),
                                   identity(HERE / "build.rs")],
               "allocator_source": identity(HERE.parents[1] / "exact_layout_allocator_v2.rs"),
               "target": identity(workspace / "riscv64i-stwo.json"),

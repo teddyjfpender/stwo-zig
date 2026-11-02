@@ -11,6 +11,8 @@ const Manifest = @import("manifest.zig");
 /// Pure declaration geometry, also used before any fixed key is constructed.
 /// Programs/table policies are receiver-owned; no claim or challenge is needed.
 pub fn shapesForDeclaration(d: @import("../wire.zig").TruthDeclaration) ![3]Role.Shape {
+    // Compact 2^13/2^10 Keccak tables only; the throughput profile is v3-only.
+    try @import("v2_scope.zig").truthDeclaration(d);
     return switch (d.family) {
         .keccak => blk: {
             try A.crypto.keccak.layout.validateGeometry(d.calls, d.first_id, d.logs[0]);
@@ -24,6 +26,7 @@ pub fn shapesForDeclaration(d: @import("../wire.zig").TruthDeclaration) ![3]Role
             const policy = @import("../../secp/roster.zig").TruthSetup.byte_policy;
             break :blk .{ .{ .kind = .product, .log_size = d.logs[0], .byte_policy = policy }, .{ .kind = .linear, .log_size = d.logs[1], .byte_policy = policy }, .{ .kind = .bytes, .log_size = 8 } };
         },
+        else => error.GkrV3ServiceUnsupported,
     };
 }
 pub const Components = struct {
@@ -35,6 +38,7 @@ pub const Components = struct {
         };
         if (!claims[0].add(claims[1]).add(claims[2]).isZero()) return error.UnclosedWideTruthLocalClaims;
         var out: Components = undefined;
+        try @import("v2_scope.zig").truth(truth);
         const descriptor = try shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
         if (truth == .keccak and !claims[4].isZero()) return error.NonzeroAbsentWideTruthClaim;
         for (descriptor, &out.items, 0..) |shape, *item, i| {

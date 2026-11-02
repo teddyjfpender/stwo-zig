@@ -21,7 +21,8 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     const expected = Manifest.ExpectedWorker{ .kind = switch (truth) {
         .keccak => .keccak,
         .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
-    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root, .local_instances = null };
+        else => unreachable, // test helper: v2 truths only
+    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root, .local_instances = null };
     var worker = W.TruthWorker.initWithAuthority(a, truth, source, expected, config, 64 * 1024 * 1024, fixed_ptr) catch |err| {
         var s = source;
         s.deinit();
@@ -152,7 +153,7 @@ test "truth local characteristic admission and init budget precede ownership tra
     defer source.deinit();
     const truth = R.Truth{ .keccak = .{ .setup = &setup, .first_id = 3, .calls = 2 } };
     const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
-    const expected = Manifest.ExpectedWorker{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
+    const expected = Manifest.ExpectedWorker{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
     var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
     var bad = config;
     bad.pow_bits = 33;
@@ -180,7 +181,7 @@ test "parked truth spill OOM is retryable and sealed abort releases unmapped coe
     const allocator = fail.allocator();
     const truth = R.Truth{ .keccak = .{ .setup = &setup, .first_id = 3, .calls = 2 } };
     const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
-    const expected = Manifest.ExpectedWorker{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
+    const expected = Manifest.ExpectedWorker{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = try W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
     {
         const source = try @import("truth_test.zig").keccakSourceWithAllocator(allocator);
         var worker = W.TruthWorker.init(allocator, truth, source, expected, config, 64 << 20) catch |err| {

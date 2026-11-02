@@ -15,6 +15,7 @@ const Manifest = @import("manifest.zig");
 const StageWire = @import("manifest_wire.zig");
 const Cells = @import("../../../word16_execution/cells_wire.zig");
 const Receipt = @import("../../../rv64_ethereum_batch_receipt.zig");
+const Scope = @import("v2_scope.zig");
 pub const Limits = Legacy.Limits;
 pub const CpuDeclaration = Legacy.CpuDeclaration;
 pub const TruthDeclaration = Legacy.TruthDeclaration;
@@ -81,6 +82,12 @@ fn canonical(values: []const [8]u32) !void {
 }
 pub fn validate(metadata: Metadata, limits: Limits) !void {
     if (metadata.schema != 1 or metadata.core_schema != @import("../../../word16_execution/protocol.zig").SCHEMA or metadata.field_degree != 8 or !std.mem.eql(u8, metadata.profile, Manifest.PROFILE)) return error.WideBundleProfile;
+    // The wide route is v2-only; reject v3 declarations before shared preflight.
+    for (metadata.cpus) |cpu| {
+        try Scope.declaration(cpu.declaration);
+        try Scope.calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge, cpu.request.ls_dword);
+    }
+    for (metadata.truths) |truth| try Scope.truthDeclaration(truth.declaration);
     try Legacy.validateDeclarations(metadata.cpus, metadata.truths, metadata.memory_words, limits);
     var total: u64 = metadata.stage_one.bytes;
     if (total == 0 or total > StageWire.MAX_BYTES) return error.WideBundleStageLimit;

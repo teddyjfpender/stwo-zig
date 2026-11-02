@@ -22,6 +22,7 @@ fn rows(log: u32) !usize {
     return @as(usize, 1) << @intCast(log);
 }
 pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, global_limit: usize) !Plan {
+    try @import("v2_scope.zig").truth(truth);
     _ = try Worker.truthMass(truth);
     const roles = try @import("truth_components.zig").shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
     const logs = try truth.logs(a, 1);
@@ -63,6 +64,7 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, globa
             }
             out.global_metadata_bytes = try add(out.global_metadata_bytes, (3 + 1) * 256 * 4);
         },
+        else => return error.GkrV3ServiceUnsupported,
     }
     const merkle_log = try std.math.add(u32, max_log, config.fri_config.log_blowup_factor);
     if (merkle_log > 30) return error.InvalidRetentionGeometry;

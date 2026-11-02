@@ -9,6 +9,8 @@ pub const packed_om31 = @import("packed_om31.zig");
 pub const qm31 = @import("qm31.zig");
 pub const qm31_pointwise = @import("qm31_pointwise.zig");
 pub const packed_qm31 = @import("packed_qm31.zig");
+/// Four-row AoS-transposing CM31/QM31 kernels (shared with batch inversion).
+pub const packed_extensions = @import("packed_extensions.zig");
 
 /// The Stark (felt252) field prime, P = 2^251 + 17 * 2^192 + 1: the one
 /// definition the Cairo frontend's felt252 arithmetic and the circuit

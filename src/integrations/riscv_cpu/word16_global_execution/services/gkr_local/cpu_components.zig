@@ -24,6 +24,7 @@ pub const Plan = struct {
     claim_count: usize,
     binding_count: usize,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup) !Plan {
+        try @import("v2_scope.zig").setup(setup);
         var slots = std.ArrayList(Slot).empty;
         errdefer slots.deinit(a);
         var inter: usize = 0;

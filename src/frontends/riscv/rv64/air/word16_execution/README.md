@@ -51,6 +51,95 @@ obligations; local CPU residuals alone are not an independent canonicality
 proof. Register clocks reset per independently admitted batch, and PC/all
 register values must be linked between batches by the receiving protocol.
 
+## Opt-in fused-tail interaction (36 columns, 51 residuals)
+
+`Geometry.cpu_fused_tail` (default false) selects `emitFusedFor` instead of
+`emitFor`. False keeps the 40-column AIR, the transcript and bundle JSON
+byte-identical; true additionally mixes `features.fusedTailIdentity()` and
+the shape width 36. The LogUp statement and every honest per-row increment
+are unchanged; only the witness form changes:
+
+- REG slots 0..2 are FRACTION witnesses `R*before*after = enabled*(after-before)`
+  (degree 3), contributing `R` (degree 1). This replaces the strict inverse
+  product, so a REG pole is no longer rejected per row: if `before*after = 0`
+  the row's `R` is free. A one-sided pole with nonzero numerator is
+  unsatisfiable, and a disabled slot with no pole forces `R = 0`.
+- OWNER+U16 (slot 5) is a fraction witness `F*d0*d1 = d0 + (active-function)*d1`.
+  Its numerator is affine, so the inverse form would make the fused residual
+  degree 4. If `d0 = 0` and `active-function = 0` the row's `F` is free; if
+  `d1 = 0` the residual forces `d0 = 0`. So the slot adds two poles per row.
+- Pole bound. Every denominator is `z - <alpha, tuple>` with the tuple
+  committed before `(z, alpha)`, so each is zero with probability at most
+  `1/|QM31|` per row (Schwartz-Zippel in `z`). A row has 8 non-strict poles
+  (`before_s`, `after_s` for 3 slots, and `d0`, `d1`), so the encoding is
+  non-strict on some row with probability at most `8*2^22/|QM31| = 2^-99`
+  per proof (|QM31| ~ 2^124). This is the standard stwo `LogupAtRow`
+  fraction argument.
+- FUNCTION, ROM, U16+U16 and U8+U8 keep strict inverses `d*I = 1`.
+- The U8 single has no column. It is enforced through the prefix:
+  `(S - S_prev + claim*first - C8)*d6 - 1 = 0`, where every term of `C8` has
+  degree at most 2. This is strict: `d6 = 0` makes the residual `-1`.
+  Otherwise it forces `S - S_prev = C8 + 1/d6 - claim*first`, the same
+  recurrence as the old (inverse, sum) pair. `last*S = 0` is unchanged.
+
+Register closure and chronological induction rely only on the rational identity
+`sum(+-1/(z-t)) = 0`, never on per-row strictness, so they are unaffected.
+The main-only authority uses only `emitMainFor`, which both encodings share.
+
+Routes. Every prover source takes `cpu.fused_tail` from `Geometry` in
+`Source.fromPreparedInternal`, and every verifier component takes it from the
+same geometry (`components.zig`), so the core, global, Keccak, secp and
+services routes all follow the declared geometry. `ethereum/plan.zig` sets it,
+together with `cpu_u8_pairs` (below), by default ONLY for the
+`ethereum_services_v3` route (`CpuLayout.forProfile`); `ethereum/main.zig
+admitProfile` refuses either flag on any other profile. The local GKR lane (`services/gkr_local/roster.zig`) has no
+fused variant and fails closed with `UnsupportedFusedTailInLocalGkr`. No
+recursion lane wraps a Word16 CPU proof yet; the shape diagnostic
+(`word16_recursion/main.zig`) reads widths through `Components.init` and so
+follows the geometry. Any future CPU recursion leaf must implement
+`emitFusedFor` or refuse `cpu_fused_tail`.
+
+## Opt-in byte-pair lookups (32 columns, 50 residuals)
+
+`Geometry.cpu_u8_pairs` (requires `cpu_fused_tail`, default false) selects
+`emitPairsFor`. The three gap8 U8 range queries become two byte-pair queries
+`(gap8_0, gap8_1)` and `(gap8_2, 0)`. They use no new relation and no new
+challenge: a pair is the tagged tuple `(x, y, 0, 1)` of the AND relation,
+whose tuples are `(x, y, x&y, 0)`. The AND table (log 16, fixed `x = row>>8`,
+`y = row&255`) gains one multiplicity column for the pair tuples
+(`binary_component` kind `and_pair_table`), so the AND claim covers both
+families. False keeps the fused or legacy AND table and CPU bytes; true also
+mixes `features.pairIdentity()` and the shape widths (CPU 32, AND MAIN 2).
+
+CPU witnesses (all degree one, so the fused residual stays degree 3):
+- REG x3 and OWNER+U16: the fused fraction forms, unchanged.
+- FUNCTION `G*d_fn = function` and ROM `H*d_rom = active` (d quadratic).
+- U16+U16 `K*d2*d3 = d2 + d3`.
+- Both byte pairs are fused: `(S - S_prev + claim*first - C7)*p0*p1 - (p0 + p1) = 0`,
+  with `C7` the sum of the seven witnesses. If `p0*p1 != 0` this forces
+  `S - S_prev = C7 + 1/p0 + 1/p1 - claim*first`. A one-sided pole is
+  unsatisfiable (`-p1 = 0`); a double pole frees the step.
+
+AND pair table: `I*d*p = 1` (strict) and the prefix
+`S - S_prev*(1-first) + (m*p + m_pair*d)*I = 0`; `last*(S - claim) = 0`.
+The legacy separate first-row residual `first*(S + term)` is omitted: at
+`first = 1` the transition residual already reads `S + term = 0`, and keeping it
+would be degree 4.
+
+Soundness. Range: a pair query balances only against a table tuple, whose
+coordinates are canonical bytes, so `gap8_k < 256` exactly as with three U8
+queries; `(gap8_2, 0)` forces `gap8_2 < 256`. Tag separation: the fourth
+coordinate makes pair and AND tuples distinct linear forms, so a BINARY AND
+query cannot be served by a pair row or vice versa (Schwartz-Zippel over the
+AND challenges, drawn after MAIN). Mass: AND plus pair multiplicities are
+admitted together below M31 (`Geometry.validate`, `Request.initWithPairs`).
+Poles: the non-strict slots add the FUNCTION, ROM, U16 pair and byte-pair
+denominators to the fused set: 6 REG + 2 OWNER/U16 + 1 FUNCTION + 1 ROM +
+2 U16 + 2 byte-pair = 14 per row, so at most `14*2^22/|QM31| < 2^-98` per
+proof. Padding rows query `(0, 0)` twice, so their two pair denominators
+coincide; that is still one pole event. The 24-bit gap identity
+`gap = gap16 + 2^16*gap8` is unchanged, and range8 keeps serving MUL and LS.
+
 ## Affine zero-register flags
 
 The three zero-register flags are `1-enabled`, not independent committed

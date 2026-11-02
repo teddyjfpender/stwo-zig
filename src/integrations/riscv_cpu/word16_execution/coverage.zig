@@ -13,7 +13,7 @@ pub const Counts = struct {
     memory: u32 = 0,
     service: u32 = 0,
     pub fn fromTape(program: *const Program, tape: *const rv.compact_tape.Tape) !Counts {
-        if (tape.len == 0 or tape.len > tape.storage.len or tape.execution_profile != program.profile) return error.InvalidExecutionTape;
+        if (tape.len == 0 or tape.len > tape.storage.len or !@import("../rv64_ethereum_batch.zig").tapeMatches(tape.execution_profile, program.profile)) return error.InvalidExecutionTape;
         var result: Counts = .{};
         var pc = tape.initial_pc;
         for (tape.storage[0..tape.len]) |step| {
@@ -61,7 +61,7 @@ pub fn minimalPrefixLog(count: u32) !u32 {
 /// Planning only: exact unique aligned words from captured addresses, without
 /// restoring instructions, constructing state transitions or running the VM.
 pub fn memoryWords(a: std.mem.Allocator, program: *const Program, tape: *const rv.compact_tape.Tape) !u32 {
-    if (tape.len == 0 or tape.len > tape.storage.len or tape.execution_profile != program.profile) return error.InvalidExecutionTape;
+    if (tape.len == 0 or tape.len > tape.storage.len or !@import("../rv64_ethereum_batch.zig").tapeMatches(tape.execution_profile, program.profile)) return error.InvalidExecutionTape;
     var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
     defer words.deinit(a);
     var pc = tape.initial_pc;

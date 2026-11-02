@@ -127,6 +127,66 @@ pub fn emitForPolicy(comptime F: type, policy: BatchPolicy, row: RowFor(F), inte
     switch (policy) {
         .triple_v2 => emitForBatch(F, 3, row, interaction, previous_final, claim, ch, public, sink),
         .quartet_v3 => emitForBatch(F, 4, row, interaction, previous_final, claim, ch, public, sink),
+        .throughput_v1 => emitThroughputFor(F, row, interaction, previous_final, claim, ch, public, sink),
+    }
+}
+/// Multiplication by a small canonical constant in lane F (M31 natively).
+pub fn ScaleFor(comptime F: type) type {
+    return struct {
+        pub inline fn apply(value: F, constant: u32) F {
+            return value.mul(if (F == M) M.fromCanonical(constant) else V.qFor(F, constant));
+        }
+    };
+}
+const TP = @import("batch_policy.zig");
+/// Throughput tuple for round-row query `event`: chi rows (y,z) first, then
+/// xor5 triples. Both tuples are the RV32 authority's; only placement is RV64.
+pub fn throughputTupleFor(comptime F: type, state: []const F, parity: []const F, next: []const F, round_selectors: []const F, event: usize) [6]F {
+    if (event < TP.THROUGHPUT_CHI) return tuples.throughputChi(F, ScaleFor(F).apply, state, parity, next, round_selectors, event);
+    return tuples.throughputXor5(F, state, parity, event - TP.THROUGHPUT_CHI);
+}
+pub fn throughputDenominatorFor(comptime F: type, row: RowFor(F), ch: ChallengesFor(V.ConstFor(F)), event: usize) V.SecureFor(F) {
+    const lookup = if (event < TP.THROUGHPUT_CHI) ch.chi else ch.xor5;
+    return V.denominatorFor(F, lookup.offset, &lookup.coefficients, &throughputTupleFor(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], row.state_plus_one, row.fixed[2..26], event), true);
+}
+/// Throughput-v1: MAIN and direct equations are the compact ones; 427 round
+/// queries (320 five-output chi + 107 three-position xor5) are cleared three
+/// per degree-four batch. The trailing batch holds one query and two dummy
+/// entries (denominator one, weight zero); IO batches are unchanged.
+pub fn emitThroughputFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
+    const policy = BatchPolicy.throughput_v1;
+    emitDirectFor(F, row, public, sink, true);
+    const coefficient = roundActiveFor(F, row).neg();
+    for (0..policy.roundBatches()) |batch| {
+        var d: [3]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var c: [3]F = @splat(F.zero());
+        for (0..3) |i| if (3 * batch + i < policy.lookups()) {
+            d[i] = throughputDenominatorFor(F, row, ch, 3 * batch + i);
+            c[i] = coefficient;
+        };
+        const delta = interaction[batch].sub(if (batch == 0) previous_final else interaction[batch - 1]).add(if (batch == 0) V.mulBaseFor(F, V.splatFor(F, claim), row.fixed[L.FIRST]) else V.SecureFor(F).zero());
+        sink.emit(clearTripleFor(F, d, c, delta));
+    }
+    emitIoTriplesFor(F, row, interaction, policy.roundBatches(), ch, sink);
+}
+/// One triple polynomial with per-entry weights (dummy entries: d = 1, c = 0).
+pub fn clearTripleFor(comptime F: type, d: [3]V.SecureFor(F), c: [3]F, delta: V.SecureFor(F)) V.SecureFor(F) {
+    const numerator = V.mulBaseFor(F, d[1], c[0]).mul(d[2])
+        .add(V.mulBaseFor(F, d[0], c[1]).mul(d[2]))
+        .add(V.mulBaseFor(F, d[0], c[2]).mul(d[1]));
+    return delta.mul(d[0]).mul(d[1]).mul(d[2]).sub(numerator);
+}
+/// IO11 lanes three per batch after `first` round batches (shared by triple-v2 and throughput-v1).
+fn emitIoTriplesFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), first: usize, ch: ChallengesFor(V.ConstFor(F)), sink: anytype) void {
+    for (0..L.IO_BATCHES) |local| {
+        const batch = first + local;
+        var denominators: [3]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var coefficients: [3]F = @splat(F.zero());
+        for (0..3) |i| if (3 * local + i < L.IO_LANES) {
+            denominators[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleFor(F, row, 3 * local + i), true);
+            coefficients[i] = ioActiveFor(F, row);
+        };
+        sink.emit(clearTripleFor(F, denominators, coefficients, interaction[batch].sub(interaction[batch - 1])));
     }
 }
 pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
@@ -141,19 +201,7 @@ pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), int
             const numerator = V.mulBaseFor(F, d0.mul(d1).add(d0.mul(d2)).add(d1.mul(d2)), coefficient);
             sink.emit(delta.mul(d0).mul(d1).mul(d2).sub(numerator));
         }
-        for (0..L.IO_BATCHES) |local| {
-            const batch = L.LOOKUPS / 3 + local;
-            var denominators: [3]V.SecureFor(F) = @splat(V.SecureFor(F).one());
-            var coefficients: [3]F = @splat(F.zero());
-            for (0..3) |i| if (3 * local + i < L.IO_LANES) {
-                denominators[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleFor(F, row, 3 * local + i), true);
-                coefficients[i] = ioActiveFor(F, row);
-            };
-            const numerator = V.mulBaseFor(F, denominators[1], coefficients[0]).mul(denominators[2])
-                .add(V.mulBaseFor(F, denominators[0], coefficients[1]).mul(denominators[2]))
-                .add(V.mulBaseFor(F, denominators[0], coefficients[2]).mul(denominators[1]));
-            sink.emit(interaction[batch].sub(interaction[batch - 1]).mul(denominators[0]).mul(denominators[1]).mul(denominators[2]).sub(numerator));
-        }
+        emitIoTriplesFor(F, row, interaction, L.LOOKUPS / 3, ch, sink);
     } else {
         const coefficient = roundActiveFor(F, row).neg();
         for (0..L.LOOKUPS / 4) |batch| {

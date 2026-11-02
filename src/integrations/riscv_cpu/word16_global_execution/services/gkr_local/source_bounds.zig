@@ -1,6 +1,7 @@
 //! Receiver-derived native shape and source-support bounds. Weighted valid
 //! provider support is DISTINCT from ordinary negative integer mass. This
 //! engineering preflight is not a reviewed whole-protocol security certificate.
+const Scope = @import("v2_scope.zig");
 const std = @import("std");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
@@ -198,6 +199,9 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     var global_slots: [3]u64 = @splat(0);
     var degrees = ConditionalDegrees{};
     for (cpu, requests, cpus, 0..) |declaration, request, *scope, ordinal| {
+        // v2 roster only (see v2_scope.zig); v3 roles have no candidate shapes.
+        try Scope.declaration(declaration);
+        try Scope.request(request);
         try declaration.geometry.validate();
         _ = try A.word16_execution.types.inputs(request.base.cpu, request.base.epoch, declaration.geometry.cpu_log);
         _ = try declaration.geometry.lsCounts(request.base.memory.ls_count);
@@ -241,6 +245,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         try global.add(try Mass.cpu(request));
     }
     for (truth, truths) |declaration, *scope| {
+        try Scope.truthDeclaration(declaration);
         if (declaration.calls == 0) return error.InvalidCombinedTruthSpan;
         const descriptors = try Truth.shapesForDeclaration(declaration);
         var columns: usize = 0;

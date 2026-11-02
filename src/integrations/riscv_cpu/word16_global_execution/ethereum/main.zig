@@ -58,6 +58,7 @@ pub fn main() !void {
         defer dir.close();
         var loaded = try W.read(a, dir, .{ .max_total_steps = config.value.max_steps });
         defer loaded.deinit(a);
+        try admitProfile(config.value, loaded.cpu_declarations, loaded.truth_declarations);
         // Cheap schedule/genesis/completion admission precedes expensive keys.
         var trusted_program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
         defer trusted_program.deinit();
@@ -80,11 +81,14 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    const cpu_declarations = try Plan.cpus(a, &captured);
+    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
+    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
+    const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
-    const truth_declarations = try Plan.truths(a, &captured);
+    const truth_declarations = try Plan.truthsForProfile(a, &captured, config.value.execution_profile == .ethereum_services_v3);
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
+    try admitProfile(config.value, cpu_declarations, truth_declarations);
     if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu_declarations, truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache });
     defer keys.deinit();
@@ -114,6 +118,26 @@ pub fn main() !void {
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
     try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
     try std.posix.fsync(dir.fd);
+}
+/// Receiver policy: SHA-256, arith256_mod, curve/field and bulk-memory bridges/truths
+/// exist only in the admitted v3 roster. A v2 request can never accept a
+/// proof that relies on them.
+pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration) !void {
+    if (config.execution_profile == .ethereum_services_v3) return;
+    // The fused-tail CPU layout is admitted only on the v3 route. A v2
+    // receiver keeps the historical CPU AIR and fails closed on any other.
+    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs) return error.UnadmittedFusedTailCpuLayout;
+    // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
+    for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
+    for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
+    for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
+    for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
+    for (truths) |d| if (d.family == .arith256_mod) return error.UnadmittedArith256Service;
+    for (cpus) |d| for (@import("../services/types.zig").V3[2..]) |family| if (d.bridges.at(family) != null) return error.UnadmittedCurveService;
+    for (truths) |d| if (@import("../services/types.zig").curveOp(d.family) != null) return error.UnadmittedCurveService;
+    for (cpus) |d| if (d.bridges.bulk.any()) return error.UnadmittedBulkMemoryService;
+    for (cpus) |d| if (d.bridges.sponge.any()) return error.UnadmittedKeccakSpongeService;
+    for (cpus) |d| if (d.bridges.ls_dword != null or d.bridges.ls_dword_tail != null) return error.UnadmittedLsDwordComponent;
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });

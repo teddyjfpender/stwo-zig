@@ -56,11 +56,18 @@ pub const crypto = struct {
     pub const main_storage = delegations.main_storage;
     pub const secp256k1 = delegations.secp256k1;
     pub const keccak = delegations.keccak;
+    pub const bulk_memory = delegations.bulk_memory;
+    pub const sha256 = delegations.sha256;
+    pub const arith256 = delegations.arith256;
+    pub const keccak_sponge = delegations.keccak_sponge;
+    pub const curves = delegations.curves;
 };
 
 pub const memory = struct {
     pub const load_store_v1 = @import("memory/load_store_v1/mod.zig");
     pub const load_store_v2 = @import("memory/load_store_v2/mod.zig");
+    /// LS-D64: aligned LD/SD-only fast row sharing RAM14/OWNER19/U16/U8.
+    pub const load_store_dword = @import("memory/load_store_dword/mod.zig");
     pub const closed_ram = @import("memory/closed_ram/mod.zig");
     pub const terminal_air = @import("memory/terminal_air.zig");
     pub const terminal_component = @import("memory/terminal_component.zig");

@@ -39,6 +39,8 @@ pub fn main() !void {
     if (inspect_mode) return emit(a, try @import("rv64_ethereum_packet_inspect.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
     if (worker_mode) return emit(a, try @import("rv64_ethereum_packet_worker.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
     if (std.mem.eql(u8, args[1], "finalize")) return emit(a, try @import("rv64_ethereum_finalize.zig").run(a, config));
+    // The legacy wide batch route has no SHA-256 provider.
+    if (config.execution_profile != .ethereum_services_v2) return error.UnsupportedLegacyExecutionProfile;
     const is_resume = std.mem.eql(u8, args[1], "resume");
     if (!is_resume and !std.mem.eql(u8, args[1], "prove")) return error.InvalidEthereumProofMode;
     return prove(a, config, is_resume);

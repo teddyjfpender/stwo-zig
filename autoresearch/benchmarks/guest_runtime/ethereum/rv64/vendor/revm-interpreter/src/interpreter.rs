@@ -298,6 +298,17 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
         gas_table: &GasTable,
         host: &mut H,
     ) -> InstructionExecResult {
+        self.step_inner(instruction_table, gas_table, host, false)
+    }
+
+    #[inline(always)]
+    fn step_inner<H: Host + ?Sized>(
+        &mut self,
+        instruction_table: &InstructionTable<IW, H>,
+        gas_table: &GasTable,
+        host: &mut H,
+        fuse: bool,
+    ) -> InstructionExecResult {
         // Get current opcode.
         let opcode = self.bytecode.opcode();
 
@@ -314,10 +325,47 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
             return Err(InstructionResult::OutOfGas);
         }
 
+        // A constant destination followed by JUMP/JUMPI needs no temporary
+        // 256-bit stack word or second interpreter dispatch. Every guard is
+        // checked before changing gas/stack/PC, so all exceptional cases and
+        // customized instruction tables retain the ordinary step path.
+        if fuse && opcode == 0x61 && self.try_push2_jump(instruction_table, gas_table) {
+            return Ok(());
+        }
+
         instruction.execute(InstructionContext {
             interpreter: self,
             host,
         })
+    }
+
+    #[inline(always)]
+    fn try_push2_jump<H: Host + ?Sized>(&mut self, table: &InstructionTable<IW, H>, gas: &GasTable) -> bool {
+        use crate::instructions::{control, stack};
+        if !self.stack.can_elide_push_pop() || !table[0x61].is_function(stack::push::<2, IW, H>) {
+            return false;
+        }
+        // We are just after PUSH2. Analysis guarantees two immediate bytes
+        // and a terminating STOP even for a truncated PUSH at end of code.
+        let bytes = self.bytecode.read_slice(3);
+        let (target, next) = (usize::from(bytes[0]) * 256 + usize::from(bytes[1]), bytes[2]);
+        let taken = match next {
+            0x56 if table[0x56].is_function(control::jump::<IW, H>) => true,
+            0x57 if table[0x57].is_function(control::jumpi::<IW, H>) => {
+                let Some(cond) = self.stack.data().last() else { return false; };
+                !cond.is_zero()
+            }
+            _ => return false,
+        };
+        let cost = u64::from(gas[next as usize]);
+        if self.gas.remaining() < cost || (taken && !self.bytecode.is_valid_legacy_jump(target)) {
+            return false;
+        }
+        let failed = self.gas.record_cost_unsafe(cost);
+        debug_assert!(!failed);
+        if next == 0x57 { let _ = self.stack.popn::<1>(); }
+        if taken { self.bytecode.absolute_jump(target); } else { self.bytecode.relative_jump(3); }
+        true
     }
 
     /// Executes the interpreter until it returns or stops.
@@ -329,7 +377,7 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
         host: &mut H,
     ) -> InterpreterAction {
         let e = loop {
-            if let Err(e) = self.step(instruction_table, gas_table, host) {
+            if let Err(e) = self.step_inner(instruction_table, gas_table, host, true) {
                 cold_path();
                 break e;
             }
@@ -547,3 +595,6 @@ fn test_mstore_big_offset_memory_limit_oog() {
         Some(InstructionResult::MemoryLimitOOG)
     );
 }
+
+#[cfg(test)]
+mod fusion_tests;

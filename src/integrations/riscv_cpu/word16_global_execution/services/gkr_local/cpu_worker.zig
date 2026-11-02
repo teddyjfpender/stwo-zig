@@ -57,8 +57,10 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32,
     h.update(Manifest.PROFILE);
     hashValue(&h, setup.materials.program.identity);
     hashValue(&h, setup.materials.geometry);
-    hashValue(&h, setup.bridges);
-    hashValue(&h, request);
+    // v2 projection only (the route admits nothing else, see v2_scope.zig):
+    // the exact pre-v3 statement encoding, so v2 GKR statements stay byte-identical.
+    hashValue(&h, struct { keccak: ?u32, add: ?u32, double: ?u32 }{ .keccak = setup.bridges.keccak, .add = setup.bridges.add, .double = setup.bridges.double });
+    hashValue(&h, struct { base: @TypeOf(request.base), calls: [3]u32 }{ .base = request.base, .calls = request.calls[0..3].* });
     hashValue(&h, first);
     hashValue(&h, config);
     var out: [32]u8 = undefined;

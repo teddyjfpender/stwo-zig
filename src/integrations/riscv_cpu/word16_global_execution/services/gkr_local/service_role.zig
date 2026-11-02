@@ -66,6 +66,7 @@ pub const Component = struct {
     pub fn validate(self: *const @This()) !void {
         if (self.data.instance.origin != .bridge or self.data.point.n != self.data.instance.row_log or self.offsets[0] != self.data.instance.fixed_offset or self.offsets[1] != self.data.instance.main_offset) return error.LocalGkrRoleMismatch;
         const family = self.data.instance.origin.bridge;
+        try @import("v2_scope.zig").family(family);
         const log = self.data.instance.row_log;
         const terms: usize = @import("roster.zig").bridgeTerms(family);
         if (self.data.instance.terms != terms or self.data.lane_count != @as(usize, 1) << @intCast(try self.data.instance.laneLog())) return error.LocalGkrRoleMismatch;

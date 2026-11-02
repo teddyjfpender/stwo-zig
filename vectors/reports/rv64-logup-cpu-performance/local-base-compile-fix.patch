@@ -1,0 +1,76 @@
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/collector.zig b/src/integrations/riscv_cpu/word16_global_execution/services/collector.zig
+index 1b26a2fff..e8cd25da0 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/collector.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/collector.zig
+@@ -115,7 +115,7 @@ pub const Builder = struct {
+         const sponge = try a.alloc(SpongeShard, self.shards.items.len);
+         errdefer a.free(sponge);
+         const boundaries = try self.ledger.boundaries();
+-        for (self.shards.items, events, keccak, secp, sha256, arith, bulk, sponge) |shard, *e, *k, *s, *h, *r, *b, *z| {
++        for (self.shards.items, events, keccak, secp, sha256, arith, curves, bulk, sponge) |shard, *e, *k, *s, *h, *r, *c, *b, *z| {
+             z.* = shard.sponge;
+             r.* = shard.arith256_mod;
+             c.* = shard.curves;
+@@ -126,7 +126,7 @@ pub const Builder = struct {
+             b.* = shard.bulk;
+         }
+         self.finished = true;
+-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
++        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
+     }
+ };
+ pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
+@@ -201,7 +201,8 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const
+         cc_made += 1;
+     }
+     var curve_next: [TT.CURVES]usize = @splat(0);
+-    var ui: usize = 0;
++    _ = &curve_next;
++    const ui: usize = 0;
+     var next: [2]usize = @splat(0);
+     var mi: usize = 0;
+     var ci: usize = 0;
+@@ -296,7 +297,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const
+     const bulk = BulkShard{ .calls = try bulk_calls.toOwnedSlice(a), .words = owned_words };
+     errdefer bulk.deinit(a);
+     const sponge_shard = try sponge.finish(a);
+-    return .{ .sponge = sponge_shard,  .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .bulk = bulk };
++    return .{ .sponge = sponge_shard, .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .curves = cc, .bulk = bulk };
+ }
+ /// Replays one admitted bulk call on the ledger: the packet words are read,
+ /// then every data word is read (src) and written (dst) at the CPU step's tick.
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/pipeline.zig b/src/integrations/riscv_cpu/word16_global_execution/services/pipeline.zig
+index 97e20ed5a..3bc518535 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/pipeline.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/pipeline.zig
+@@ -86,8 +86,8 @@ const Stage1 = struct {
+         if (cpu.setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, self.advice.arith256_mod[cpu.ordinal], cpu.first_ids[4], log);
+         var curves: [@import("types.zig").CURVES]?A.crypto.secp256k1.word16_bridge.source.Source = @splat(null);
+         errdefer for (&curves) |*c| if (c.*) |*s| s.deinit();
+-        for (&curves, @import("types.zig").FIRST_CURVE..) |*out, k| if (cpu.setup.bridges.at(@enumFromInt(k))) |log| {
+-            out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(k)), self.advice.curves[cpu.ordinal][k - @import("types.zig").FIRST_CURVE], cpu.first_ids[k], log);
++        for (&curves, @import("types.zig").FIRST_CURVE..) |*out, kc| if (cpu.setup.bridges.at(@enumFromInt(kc))) |log| {
++            out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(kc)), self.advice.curves[cpu.ordinal][kc - @import("types.zig").FIRST_CURVE], cpu.first_ids[kc], log);
+         };
+         var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
+         errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
+diff --git a/src/integrations/riscv_cpu/word16_global_execution/services/types.zig b/src/integrations/riscv_cpu/word16_global_execution/services/types.zig
+index 05d0ae241..6ca4cf3b4 100644
+--- a/src/integrations/riscv_cpu/word16_global_execution/services/types.zig
++++ b/src/integrations/riscv_cpu/word16_global_execution/services/types.zig
+@@ -155,6 +155,7 @@ pub const Bulk = struct {
+             .desc => self.desc,
+             .copy => self.copy,
+             .set => self.set,
++            else => null,
+         };
+     }
+     pub fn any(self: @This()) bool {
+@@ -171,6 +172,7 @@ pub const BulkCounts = struct {
+             .desc => self.calls,
+             .copy => self.copy_words,
+             .set => self.set_words,
++            else => 0,
+         };
+     }
+     pub fn any(self: @This()) bool {

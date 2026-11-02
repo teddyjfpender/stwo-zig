@@ -77,7 +77,23 @@ pub const Prepared = struct {
         try result.ensureCpuMain(program, cpu_log);
         return result;
     }
-    const Service = enum { none, keccak, secp_words, combined_words };
+    /// Admitted v3 LE ABI: v2's three families plus SHA-256 compression. The
+    /// v2 route above keeps its exact whitelist; v3 tags need v3 tapes.
+    pub fn captureForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        if (tape.execution_profile != .ethereum_services_v3) return error.UnqualifiedWord16ServiceOwners;
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_words_v3);
+    }
+    /// Either admitted combined profile, selected by the tape's own profile.
+    pub fn captureForCombinedServices(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return if (tape.execution_profile == .ethereum_services_v3) captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options) else captureForCombinedServicesLEv2(a, program, public, epoch, cpu_log, tape, options);
+    }
+    pub fn initForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
+    const Service = enum { none, keccak, secp_words, combined_words, combined_words_v3 };
     fn captureInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, service: Service) !Prepared {
         var cpu = try CPU.Source.capture(a, program, public, epoch, cpu_log, tape);
         errdefer cpu.deinit();
@@ -87,6 +103,7 @@ pub const Prepared = struct {
                 .keccak => call.tag == 0x10001,
                 .secp_words => call.tag == 0x20011 or call.tag == 0x20012,
                 .combined_words => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012,
+                .combined_words_v3 => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30010 or call.tag == 0x30021 or call.tag == 0x30001 or call.tag == 0x30002 or call.tag == 0x30040 or call.tag == 0x30003 or call.tag == 0x30130 or @import("stwo_riscv_frontend").rv64.execution_profile.isCurveTag(call.tag),
             };
             if (!valid) return error.UnqualifiedWord16ServiceOwners;
         }

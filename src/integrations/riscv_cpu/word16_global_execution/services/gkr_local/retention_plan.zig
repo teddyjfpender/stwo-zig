@@ -72,6 +72,7 @@ pub fn forCpuWithSourceStorage(a: std.mem.Allocator, setup: *const R.CpuSetup, r
     return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true);
 }
 fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool, streamed: bool) !RetentionPlan {
+    try @import("v2_scope.zig").request(request);
     const instances = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
     const numerical = if (streamed) try @import("resource.zig").Plan.forInstancesWithSourceStorage(instances, gkr_limit, checkpointed) else try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);

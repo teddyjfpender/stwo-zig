@@ -13,7 +13,7 @@ const LANES = E.LANES;
 pub fn evaluate(component: *const C.Component, columns: []const []const M, start: usize, end: usize, inverses: []const M, output: *Column) !void {
     if (component.log_size < 5 or component.log_size > L.MAX_LOG) return error.InvalidExecutionGeometry;
     const n = @as(usize, 1) << @intCast(component.log_size + 1);
-    const widths = [_]usize{ 3, L.main.COUNT, L.inter.COUNT };
+    const widths = component.widths();
     const total = widths[0] + widths[1] + widths[2];
     if (columns.len != total or start > end or end > n or inverses.len != 2 or output.random_coeff_powers.len != component.nConstraints()) return error.InvalidExecutionDomain;
     for (columns) |column| if (column.len != n) return error.InvalidExecutionDomain;
@@ -30,7 +30,7 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, start
         for (indices[0..count], 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, component.log_size, component.log_size + 1);
         for (1..3) |tree| {
             const offset = if (tree == 1) widths[0] else inter_start;
-            for (0..widths[tree]) |c| if (if (tree == 1) L.previousMain(c) else L.previousInter(c)) {
+            for (0..widths[tree]) |c| if (component.needsPrevious(tree, c)) {
                 var lanes: [LANES]M = @splat(M.zero());
                 for (indices[0..count], 0..) |index, lane| lanes[lane] = columns[offset + c][index];
                 if (tree == 1) pm[c] = F.fromLanes(lanes) else pi[c] = F.fromLanes(lanes);

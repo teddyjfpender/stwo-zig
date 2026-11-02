@@ -37,7 +37,7 @@ pub const Provider = struct {
         return initChecked(source, expected, .{});
     }
     fn initChecked(source: *const R.TruthSource, expected: [3]Frame.Instance, plan: Frame.Plan) !Provider {
-        const actual = Frame.forSource(source);
+        const actual = try Frame.forSource(source);
         for (actual, expected) |x, y| if (!std.meta.eql(x, y)) return error.TruthGkrSourceGeometryMismatch;
         switch (source.*) {
             .keccak => |s| {
@@ -52,6 +52,7 @@ pub const Provider = struct {
                 try s.batch.linear.validateMetadata();
                 if (s.bytes.main.len != 256 or s.bytes.fixed.len != 3 * 256) return error.InvalidTruthByteMetadata;
             },
+            else => return error.GkrV3ServiceUnsupported,
         }
         return .{ .source = source, .frames = expected, .plan = plan };
     }
@@ -117,6 +118,7 @@ pub const Provider = struct {
                 .bytes => sink.emitBase(.byte, [1]M{M.fromCanonical(@intCast(logical))}, s.bytes.main[physical(logical, 8)].neg()),
                 else => return error.TruthGkrSourceGeometryMismatch,
             },
+            else => return error.GkrV3ServiceUnsupported,
         }
     }
 };

@@ -164,7 +164,8 @@ impl<M: Memoization> Node<M> {
         let mut root = match iterator.next() {
             None => return Ok(Self::default()),
             Some(rlp) => {
-                let mut node: Node<M> = alloy_rlp::decode_exact(rlp.as_ref())?;
+                let mut node = Node::<M>::default();
+                node.decode_exact_into(rlp.as_ref())?;
                 node.cache_set(RlpNode::from_rlp(rlp));
                 node
             }
@@ -210,7 +211,7 @@ impl<M: Memoization> Node<M> {
                     // place instead of through a temporary and a second move)
                     if !(bytes.len() == 33 && bytes[0] == 0xa0) {
                         let rlp_node = RlpNode::from_digest(digest);
-                        *self = alloy_rlp::decode_exact(bytes)?;
+                        self.decode_exact_into(bytes)?;
                         self.cache_set(rlp_node);
                         self.resolve_digests(rlp_by_digest)?;
                     }
@@ -232,8 +233,17 @@ impl<M: Memoization> Node<M> {
     }
 }
 
-impl<M: Memoization> Decodable for Node<M> {
-    fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
+impl<M: Memoization> Node<M> {
+    /// Decode directly into the node's final storage. Returning the large enum
+    /// through recursive Result values otherwise creates full-node copies.
+    fn decode_exact_into(&mut self, bytes: &[u8]) -> alloy_rlp::Result<()> {
+        let mut rest = bytes;
+        self.decode_into(&mut rest)?;
+        if !rest.is_empty() { return Err(alloy_rlp::Error::UnexpectedLength); }
+        Ok(())
+    }
+
+    fn decode_into(&mut self, buf: &mut &[u8]) -> alloy_rlp::Result<()> {
         // stwo: walk the list payload into a fixed 17-slot array instead of
         // collecting a heap `Vec<&[u8]>` per node (`Header::decode_raw`).
         let header = Header::decode(buf)?;
@@ -245,8 +255,8 @@ impl<M: Memoization> Decodable for Node<M> {
         if !header.list {
             // if the node is not a list, it must be empty or a digest
             return match payload.len() {
-                0 => Ok(Node::Null),
-                32 => Ok(Node::Digest(B256::from_slice(payload))),
+                0 => { *self = Node::Null; Ok(()) },
+                32 => { *self = Node::Digest(B256::from_slice(payload)); Ok(()) },
                 _ => Err(alloy_rlp::Error::UnexpectedLength),
             };
         }
@@ -257,9 +267,18 @@ impl<M: Memoization> Decodable for Node<M> {
             if count == 17 {
                 return Err(alloy_rlp::Error::Custom("unexpected list length"));
             }
-            let mut probe = cursor;
-            let item = Header::decode(&mut probe)?;
-            let total = cursor.len() - probe.len() + item.payload_length;
+            // The two dominant witness encodings have no variable-length
+            // header to parse: an absent child, or a canonical 32-byte digest.
+            // Bounds and list arity are still checked below for every item.
+            let total = match cursor[0] {
+                EMPTY_STRING_CODE => 1,
+                0xa0 => DIGEST_RLP_LENGTH,
+                _ => {
+                    let mut probe = cursor;
+                    let item = Header::decode(&mut probe)?;
+                    cursor.len() - probe.len() + item.payload_length
+                }
+            };
             if total > cursor.len() {
                 return Err(alloy_rlp::Error::InputTooShort);
             }
@@ -272,8 +291,8 @@ impl<M: Memoization> Decodable for Node<M> {
             17 => {
                 // Build the branch inside its final node so the 128-byte
                 // children table is not moved into the enum after decoding.
-                let mut node = Node::Branch(Children::default(), M::default());
-                let Node::Branch(children, _) = &mut node else { unreachable!() };
+                *self = Node::Branch(Children::default(), M::default());
+                let Node::Branch(children, _) = self else { unreachable!() };
                 for (i, child_rlp) in items.iter().enumerate() {
                     if child_rlp != &[EMPTY_STRING_CODE] {
                         if i == 16 {
@@ -285,7 +304,9 @@ impl<M: Memoization> Decodable for Node<M> {
                             // a 176-byte temporary and moving it twice.
                             children.insert(i as u8, boxed_digest(&child_rlp[1..]));
                         } else {
-                            children.insert(i as u8, Node::decode(&mut &child_rlp[..])?.into());
+                            let mut child = alloc::boxed::Box::new(Node::Null);
+                            child.decode_exact_into(child_rlp)?;
+                            children.insert(i as u8, child);
                         }
                     }
                 }
@@ -293,7 +314,7 @@ impl<M: Memoization> Decodable for Node<M> {
                     return Err(alloy_rlp::Error::Custom("branch node without two children"));
                 }
 
-                Ok(node)
+                Ok(())
             }
             // leaf or extension node: 2-item node [ encodedPath, v ]
             // they are distinguished by a flag in the first nibble of the encodedPath
@@ -301,19 +322,30 @@ impl<M: Memoization> Decodable for Node<M> {
                 let (mut encode_path, mut v) = (items[0], items[1]);
                 let (path, is_leaf) = decode_path(&mut encode_path)?;
                 if is_leaf {
-                    Ok(Node::Leaf(path, Bytes::decode(&mut v)?, M::default()))
+                    *self = Node::Leaf(path, Bytes::decode(&mut v)?, M::default());
+                    Ok(())
                 } else {
-                    let node = Node::decode(&mut v)?;
-                    if !matches!(node, Node::Branch(..) | Node::Digest(..)) {
+                    let mut node = alloc::boxed::Box::new(Node::Null);
+                    node.decode_into(&mut v)?;
+                    if !matches!(*node, Node::Branch(..) | Node::Digest(..)) {
                         return Err(alloy_rlp::Error::Custom(
                             "extension node with invalid child",
                         ));
                     }
-                    Ok(Node::Extension(path, node.into(), M::default()))
+                    *self = Node::Extension(path, node, M::default());
+                    Ok(())
                 }
             }
             _ => Err(alloy_rlp::Error::Custom("unexpected list length")),
         }
+    }
+}
+
+impl<M: Memoization> Decodable for Node<M> {
+    fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
+        let mut node = Node::default();
+        node.decode_into(buf)?;
+        Ok(node)
     }
 }
 
@@ -494,4 +526,54 @@ where
         value.borrow().encode(&mut out);
     }
     out
+}
+
+#[cfg(test)]
+mod decode_tests {
+    use super::*;
+    use crate::mpt::memoize::Cache;
+
+    fn list(payload: &[u8]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        Header { list: true, payload_length: payload.len() }.encode(&mut bytes);
+        bytes.extend_from_slice(payload);
+        bytes
+    }
+
+    #[test]
+    fn direct_decode_preserves_canonical_branch_encoding() {
+        let mut payload = vec![0xa0];
+        payload.extend_from_slice(&[1; 32]);
+        payload.push(0xa0);
+        payload.extend_from_slice(&[2; 32]);
+        payload.extend_from_slice(&[EMPTY_STRING_CODE; 15]);
+        let bytes = list(&payload);
+        let mut node = Node::<Cache>::Null;
+        node.decode_exact_into(&bytes).unwrap();
+        assert_eq!(node.rlp_encoded(), bytes);
+        assert_eq!(node.hash(), keccak256(&bytes));
+        let mut trailing = bytes.clone();
+        trailing.push(0x80);
+        assert!(node.decode_exact_into(&trailing).is_err());
+    }
+
+    #[test]
+    fn direct_decode_rejects_malformed_children_and_list_arities() {
+        let mut cases = vec![list(&[0xa0, 1, 2]), list(&[0x80; 17]), list(&[0x80; 18])];
+        // A valid branch shape except for its forbidden value slot.
+        let mut payload = vec![0xa0];
+        payload.extend_from_slice(&[1; 32]);
+        payload.push(0xa0);
+        payload.extend_from_slice(&[2; 32]);
+        payload.extend_from_slice(&[0x80; 14]);
+        payload.push(1);
+        cases.push(list(&payload));
+        // Invalid extension child, empty compact path, and a truncated string.
+        cases.extend([list(&[0, 0x80]), list(&[0x80, 0x80]), vec![0xa0, 1]]);
+        for bytes in cases {
+            let mut node = Node::<Cache>::Digest(B256::ZERO);
+            assert!(node.decode_exact_into(&bytes).is_err(), "{bytes:?}");
+            // Each partially decoded node must also remain safe to drop.
+        }
+    }
 }

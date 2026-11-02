@@ -14,6 +14,7 @@ const Frame = @import("frame.zig");
 const Roster = @import("roster.zig");
 const CPU = @import("cpu_worker.zig");
 const Truth = @import("truth_worker.zig");
+const Scope = @import("v2_scope.zig");
 const FixedSet = @import("fixed_authority_set.zig").Set;
 
 /// Entirely receiver-derived context. Instances and first IDs are constructed
@@ -40,6 +41,10 @@ pub const Inventory = struct {
         // RAM rights, epoch, call spans, program, register/PC adjacency and
         // exact total/final endpoint authority. It does not verify proofs.
         if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
+        // v2 roster only: reject every v3 bridge, call, bulk/sponge row and truth.
+        for (setups) |setup| try Scope.setup(setup);
+        for (requests) |request| try Scope.request(request);
+        for (truths) |truth| try Scope.truth(truth);
         _ = try P.admit(a, setups, truths, requests, expected);
         if (fixed != null) {
             const Wire = @import("../wire.zig");
@@ -76,7 +81,7 @@ pub const Inventory = struct {
                 .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null, .wire = setup.bridges.add != null or setup.bridges.double != null },
                 .mass = try CPU.cpuMass(request),
             };
-            for (&next, request.calls) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
+            for (&next, request.calls[0..3]) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
         }
         const base_identity = executionIdentity(config, expected);
         const identity = if (fixed) |authority| authority.executionIdentity(base_identity) else base_identity;
@@ -85,12 +90,13 @@ pub const Inventory = struct {
                 .keccak => .keccak,
                 .add => .secp_add,
                 .double => .secp_double,
+                else => return error.GkrV3ServiceUnsupported,
             };
             const binding = if (fixed) |authority| authority.at(setups.len + i) else null;
             workers[setups.len + i] = .{
                 .kind = kind,
                 .ordinal = @intCast(setups.len + i),
-                .statement = Truth.truthStatementWithAuthority(truth, config, identity, binding),
+                .statement = try Truth.truthStatementWithAuthority(truth, config, identity, binding),
                 .fixed = if (binding) |authority| authority.root() else truth.key().root,
                 .local_instances = null,
                 .global_relations = .{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak },

@@ -56,7 +56,7 @@ fn checkRows(s: *const K.source.Source, count: u32, ch: K.types.Challenges, clai
         }
         var residual: [K.layout.CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &residual };
-        K.equations.emitFor(Q, s.kind, &f, &m, &pm, &inter, &pi, count, s.first_id, claims, ch, &sink);
+        K.equations.emitFor(Q, s.kind, &f, &m, &pm, &inter, &pi, .{ .calls = count, .first_id = s.first_id }, claims, ch, &sink);
         try std.testing.expectEqual(K.layout.CONSTRAINTS, sink.count);
         for (residual, 0..) |v, index| if (!v.isZero()) {
             std.debug.print("secp bridge row{d} residual{d}\n", .{ row, index });
@@ -70,7 +70,7 @@ test "Secp coordinate bridge native RAM permissions owner tags and exact Wire35 
     defer a.free(d16);
     const d8 = try dict(a, 256, ch.range8);
     defer a.free(d8);
-    for ([_]Secp.program.Kind{ .add, .double }) |kind| {
+    for ([_]K.types.Kind{ .add, .double }) |kind| {
         var s = try K.source.Source.init(a, kind, &.{call()}, 7, 5);
         defer s.deinit();
         const claims = try s.generate(ch, d16, d8);
@@ -81,10 +81,10 @@ test "Secp coordinate bridge native RAM permissions owner tags and exact Wire35 
         const owner = K.equations.ownerTuple(Q, kind, &row);
         try std.testing.expect(owner[9].eql(Q.fromBase(M.fromCanonical(@as(u16, @truncate(K.types.tag(kind)))))));
         var f: [K.layout.FIXED]Q = @splat(Q.zero());
-        f[7] = Q.fromBase(M.fromCanonical(Secp.program.get(kind).outputs[0]));
+        f[7] = Q.fromBase(M.fromCanonical(Secp.program.get(@enumFromInt(@intFromEnum(kind))).outputs[0]));
         var bytes: [32]u8 = undefined;
         for (0..4) |i| std.mem.writeInt(u64, bytes[8 * i ..][0..8], call().before[i], .little);
-        try std.testing.expectEqualSlices(Q, &Secp.equations.externalTuple(Secp.program.get(kind), 7, 0, std.mem.readInt(u256, &bytes, .little)), &K.equations.wireTuple(Q, kind, &f, &row, false));
+        try std.testing.expectEqualSlices(Q, &Secp.equations.externalTuple(Secp.program.get(@enumFromInt(@intFromEnum(kind))), 7, 0, std.mem.readInt(u256, &bytes, .little)), &K.equations.wireTuple(Q, kind, &f, &row, false));
     }
 }
 test "Secp bridge borrowed MAIN release retains exact interactions for empty odd and padded calls" {
@@ -127,14 +127,14 @@ test "Secp coordinate bridge authority preserves every packed native residual an
     const is = ps + K.layout.INTERACTION;
     var packed_residuals: [K.layout.CONSTRAINTS]E.PackedSecure = undefined;
     var sink = E.PackedSink{ .values = &packed_residuals };
-    K.equations.emitFor(E.PackedBase, .add, base[0..fs], base[fs..ms], base[ms..ps], base[ps..is], base[is..], 2, 3, K.types.Claims.zero(), ch, &sink);
+    K.equations.emitFor(E.PackedBase, .add, base[0..fs], base[fs..ms], base[ms..ps], base[ps..is], base[is..], .{ .calls = 2, .first_id = 3 }, K.types.Claims.zero(), ch, &sink);
     try std.testing.expectEqual(K.layout.CONSTRAINTS, sink.count);
     for (0..16) |lane| {
         var q: [total]Q = undefined;
         for (base, &q) |v, *x| x.* = Q.fromBase(v.lane(lane));
         var residual: [K.layout.CONSTRAINTS]Q = undefined;
         var out = E.Sink{ .values = &residual };
-        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], 2, 3, K.types.Claims.zero(), ch, &out);
+        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], .{ .calls = 2, .first_id = 3 }, K.types.Claims.zero(), ch, &out);
         for (residual, packed_residuals) |x, y| try std.testing.expect(x.eql(y.lane(lane)));
     }
     var rows: [5][K.layout.CONSTRAINTS]Q = undefined;
@@ -146,7 +146,7 @@ test "Secp coordinate bridge authority preserves every packed native residual an
             x.* = intercept.add(slope.mulM31(M.fromCanonical(@intCast(step))));
         }
         var out = E.Sink{ .values = residual };
-        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], 2, 3, K.types.Claims.zero(), ch, &out);
+        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], .{ .calls = 2, .first_id = 3 }, K.types.Claims.zero(), ch, &out);
         try std.testing.expectEqual(K.layout.CONSTRAINTS, out.count);
     }
     var cubic = false;

@@ -304,3 +304,257 @@ test "logup-gkr: capture refuses retired physical columns instead of silently re
     try std.testing.expect(!Main.captureSupported(Missing));
     try std.testing.expect(!Main.captureSupported(Narrow));
 }
+
+test "logup-gkr: packed, fused and chunked fast GKR kernels match the reference over sizes and pools" {
+    const a = std.testing.allocator;
+    const F = @import("fast_gkr.zig");
+    const lookups = @import("stwo_prover_engine").lookups;
+    const MleSecure = lookups.mle.Mle(QM31);
+    var draw = P.Channel{};
+    draw.mixU32s(&.{0x50414b44});
+    // Unequal sizes stagger instance activation; odd thread counts and a low
+    // grain give unaligned chunk boundaries (scalar heads/tails around the
+    // four-lane packed bodies) in every build, fold and fused-sum pass.
+    const sizes = [_]usize{ 1 << 11, 1 << 4, 1 << 10, 1 << 2 };
+    var dens: [4][]QM31 = undefined;
+    for (&dens, sizes) |*d, n| d.* = try draw.drawSecureFelts(a, n);
+    defer for (dens) |d| a.free(d);
+    const num2 = try draw.drawSecureFelts(a, sizes[2]);
+    defer a.free(num2);
+    var reference_layers: [4]lookups.gkr_prover.Layer = .{
+        .{ .LogUpSingles = .{ .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[0])) } },
+        .{ .LogUpSingles = .{ .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[1])) } },
+        .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(try a.dupe(QM31, num2)), .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[2])) } },
+        .{ .LogUpSingles = .{ .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[3])) } },
+    };
+    defer for (&reference_layers) |*l| l.deinit(a);
+    var ch_ref = P.Channel{};
+    var reference = try lookups.gkr_prover.proveBatch(a, &ch_ref, &reference_layers);
+    defer reference.deinit(a);
+    const expected = try P.encodeGkr(a, &reference.proof);
+    defer a.free(expected);
+    for ([_][2]usize{ .{ 1, 1 << 13 }, .{ 2, 8 }, .{ 3, 17 }, .{ 5, 64 }, .{ 7, 4 } }) |config| {
+        var inputs = [_]F.Input{
+            .{ .num = null, .den = try a.dupe(QM31, dens[0]) },
+            .{ .num = null, .den = try a.dupe(QM31, dens[1]) },
+            .{ .num = try a.dupe(QM31, num2), .den = try a.dupe(QM31, dens[2]) },
+            .{ .num = null, .den = try a.dupe(QM31, dens[3]) },
+        };
+        var ch_fast = P.Channel{};
+        var fast = try F.proveBatch(a, &ch_fast, &inputs, .{ .threads = config[0], .min_parallel = config[1] }, null);
+        defer fast.deinit(a);
+        const got = try P.encodeGkr(a, &fast.proof);
+        defer a.free(got);
+        try std.testing.expectEqualSlices(u8, expected, got);
+        try std.testing.expectEqualSlices(u8, &ch_ref.digestBytes(), &ch_fast.digestBytes());
+        try std.testing.expectEqualSlices(QM31, reference.artifact.ood_point, fast.artifact.ood_point);
+        for (reference.artifact.claims_to_verify_by_instance, fast.artifact.claims_to_verify_by_instance) |r, f| try std.testing.expectEqualSlices(QM31, r, f);
+    }
+}
+
+test "logup-gkr: parallel packed eq table equals the serial eq evaluations" {
+    const a = std.testing.allocator;
+    const F = @import("fast_gkr.zig");
+    var draw = P.Channel{};
+    draw.mixU32s(&.{0x45515442});
+    const y = try draw.drawSecureFelts(a, 12);
+    defer a.free(y);
+    for (0..y.len + 1) |len| {
+        // Reference: eq over y[1..] (MSB first) scaled by 1 - y[0].
+        const expected = if (len == 0) try a.dupe(QM31, &.{QM31.one()}) else blk: {
+            const t = try MP.genEqEvals(a, y[1..len]);
+            for (t) |*v| v.* = v.mul(QM31.one().sub(y[0]));
+            break :blk t;
+        };
+        defer a.free(expected);
+        for ([_][2]usize{ .{ 1, 1 << 13 }, .{ 3, 4 }, .{ 6, 16 } }) |config| {
+            const got = try F.testing.eqTableWith(a, config[0], config[1], y[0..len]);
+            defer a.free(got);
+            try std.testing.expectEqualSlices(QM31, expected, got);
+        }
+    }
+}
+
+fn expectSameGkr(comptime S: type, a: std.mem.Allocator, x: anytype, y: anytype, cx: anytype, cy: anytype) !void {
+    _ = a;
+    try std.testing.expectEqualSlices(u8, &cx.digestBytes(), &cy.digestBytes());
+    try std.testing.expectEqualSlices(S, x.artifact.ood_point, y.artifact.ood_point);
+    try std.testing.expectEqualSlices(usize, x.artifact.n_variables_by_instance, y.artifact.n_variables_by_instance);
+    for (x.artifact.claims_to_verify_by_instance, y.artifact.claims_to_verify_by_instance) |p, q| try std.testing.expectEqualSlices(S, p, q);
+    for (x.proof.output_claims_by_instance, y.proof.output_claims_by_instance) |p, q| try std.testing.expectEqualSlices(S, p, q);
+    try std.testing.expectEqual(x.proof.sumcheck_proofs.len, y.proof.sumcheck_proofs.len);
+    for (x.proof.sumcheck_proofs, y.proof.sumcheck_proofs) |p, q| {
+        try std.testing.expectEqual(p.round_polys.len, q.round_polys.len);
+        for (p.round_polys, q.round_polys) |u, v| try std.testing.expectEqualSlices(S, u.coeffsSlice(), v.coeffsSlice());
+    }
+    for (x.proof.layer_masks_by_instance, y.proof.layer_masks_by_instance) |p, q| {
+        try std.testing.expectEqual(p.len, q.len);
+        for (p, q) |u, v| try std.testing.expectEqualSlices([2]S, u.columns, v.columns);
+    }
+}
+
+fn gkrFastParity(comptime S: type, comptime Channel: type, seed: u32) !void {
+    const a = std.testing.allocator;
+    const M31 = core.fields.m31.M31;
+    const lookups = @import("stwo_prover_engine").lookups;
+    const GP = lookups.gkr_prover.ForField(S);
+    const Fast = lookups.gkr_prover_fast.ForField(S);
+    const Mle = lookups.mle.MleFor;
+    var prng = std.Random.DefaultPrng.init(seed);
+    const r = prng.random();
+    const randS = struct {
+        fn q(rr: std.Random) QM31 {
+            const p = core.fields.m31.Modulus;
+            return QM31.fromU32Unchecked(rr.intRangeLessThan(u32, 0, p), rr.intRangeLessThan(u32, 0, p), rr.intRangeLessThan(u32, 0, p), rr.intRangeLessThan(u32, 0, p));
+        }
+        fn f(rr: std.Random) S {
+            if (S == QM31) return q(rr);
+            return .{ .c0 = q(rr), .c1 = q(rr) };
+        }
+    }.f;
+    // Multiplicities (two sizes), singles and generic: staggered activation,
+    // unaligned chunking, base numerators including zero and p - 1.
+    const sizes = [_]usize{ 1 << 10, 1 << 3, 1 << 9, 1 << 1, 1 << 7 };
+    const kinds = [_]u2{ 0, 0, 1, 2, 2 };
+    var dens: [5][]S = undefined;
+    var base: [5][]M31 = undefined;
+    var secure: [5][]S = undefined;
+    for (sizes, 0..) |n, i| {
+        dens[i] = try a.alloc(S, n);
+        base[i] = try a.alloc(M31, n);
+        secure[i] = try a.alloc(S, n);
+        for (dens[i]) |*d| d.* = randS(r);
+        for (base[i], 0..) |*b, j| b.* = if (j % 5 == 0) M31.fromCanonical(core.fields.m31.Modulus - 1) else if (j % 3 == 0) M31.zero() else M31.fromCanonical(r.intRangeLessThan(u32, 0, core.fields.m31.Modulus));
+        for (secure[i]) |*v| v.* = randS(r);
+    }
+    defer for (0..sizes.len) |i| {
+        a.free(dens[i]);
+        a.free(base[i]);
+        a.free(secure[i]);
+    };
+    var layers: [5]GP.Layer = undefined;
+    for (&layers, 0..) |*l, i| l.* = switch (kinds[i]) {
+        0 => .{ .LogUpMultiplicities = .{ .numerators = try Mle(S, M31).initOwned(try a.dupe(M31, base[i])), .denominators = try Mle(S, S).initOwned(try a.dupe(S, dens[i])) } },
+        1 => .{ .LogUpSingles = .{ .denominators = try Mle(S, S).initOwned(try a.dupe(S, dens[i])) } },
+        else => .{ .LogUpGeneric = .{ .numerators = try Mle(S, S).initOwned(try a.dupe(S, secure[i])), .denominators = try Mle(S, S).initOwned(try a.dupe(S, dens[i])) } },
+    };
+    defer for (&layers) |*l| l.deinit(a);
+    var ch_ref = Channel.init();
+    ch_ref.mixU32s(&.{seed});
+    var reference = try GP.proveBatch(a, &ch_ref, &layers);
+    defer reference.deinit(a);
+    for ([_][3]usize{ .{ 1, 1 << 13, 0 }, .{ 1, 1 << 13, 1 }, .{ 3, 8, 0 }, .{ 4, 16, 1 }, .{ 7, 4, 1 } }) |config| {
+        const owned = config[2] == 1;
+        var inputs: [5]Fast.Input = undefined;
+        for (&inputs, 0..) |*input, i| input.* = .{
+            .num = switch (kinds[i]) {
+                0 => .{ .base = if (owned) try a.dupe(M31, base[i]) else base[i] },
+                1 => .ones,
+                else => .{ .secure = if (owned) try a.dupe(S, secure[i]) else secure[i] },
+            },
+            .den = if (owned) try a.dupe(S, dens[i]) else dens[i],
+            .owned = owned,
+        };
+        var ch_fast = Channel.init();
+        ch_fast.mixU32s(&.{seed});
+        var fast = try Fast.proveBatch(a, &ch_fast, &inputs, .{ .threads = config[0], .min_parallel = config[1] }, null);
+        defer fast.deinit(a);
+        try expectSameGkr(S, a, &reference, &fast, &ch_ref, &ch_fast);
+        if (!owned) {
+            // Borrowed inputs are never written.
+            for (0..sizes.len) |i| {
+                const l = layers[i];
+                switch (l) {
+                    .LogUpMultiplicities => |m| try std.testing.expectEqualSlices(M31, m.numerators.evalsSlice(), base[i]),
+                    .LogUpGeneric => |g| try std.testing.expectEqualSlices(S, g.numerators.evalsSlice(), secure[i]),
+                    else => {},
+                }
+                try std.testing.expectEqualSlices(S, switch (l) {
+                    .LogUpMultiplicities => |v| v.denominators.evalsSlice(),
+                    .LogUpSingles => |v| v.denominators.evalsSlice(),
+                    .LogUpGeneric => |v| v.denominators.evalsSlice(),
+                    .GrandProduct => unreachable,
+                }, dens[i]);
+            }
+        }
+    }
+}
+
+test "logup-gkr: engine fast GKR is transcript-identical to the reference over QM31 and OM31 (all LogUp kinds)" {
+    try gkrFastParity(QM31, struct {
+        inner: P.Channel = .{},
+        fn init() @This() {
+            return .{};
+        }
+        pub fn mixU32s(self: *@This(), v: []const u32) void {
+            self.inner.mixU32s(v);
+        }
+        pub fn mixFelts(self: *@This(), v: []const QM31) void {
+            self.inner.mixFelts(v);
+        }
+        pub fn drawSecureFelt(self: *@This()) QM31 {
+            return self.inner.drawSecureFelt();
+        }
+        pub fn digestBytes(self: @This()) [32]u8 {
+            return self.inner.digestBytes();
+        }
+    }, 0x51);
+    try gkrFastParity(core.fields.om31.OM31, core.channel.raw_mod_m31.Om31Channel, 0x4f);
+}
+
+test "logup-gkr: engine fast GKR rejects malformed inputs and frees owned ones" {
+    const a = std.testing.allocator;
+    const Fast = @import("stwo_prover_engine").lookups.gkr_prover_fast.ForField(QM31);
+    var ch = P.Channel{};
+    const bad = [_]Fast.Input{.{ .num = .ones, .den = try a.alloc(QM31, 3), .owned = true }};
+    try std.testing.expectError(error.InvalidInputShape, Fast.proveBatch(a, &ch, &bad, .{}, null));
+    const mismatch = [_]Fast.Input{.{ .num = .{ .base = try a.alloc(core.fields.m31.M31, 2) }, .den = try a.alloc(QM31, 4), .owned = true }};
+    try std.testing.expectError(error.InvalidInputShape, Fast.proveBatch(a, &ch, &mismatch, .{}, null));
+    const threads = [_]Fast.Input{.{ .num = .ones, .den = try a.alloc(QM31, 4), .owned = true }};
+    try std.testing.expectError(error.InvalidGkrThreads, Fast.proveBatch(a, &ch, &threads, .{ .threads = 0 }, null));
+    try std.testing.expectError(error.InvalidBatch, Fast.proveBatch(a, &ch, &.{}, .{}, null));
+}
+
+test "logup-gkr: parallel LogUp columns equal the serial cumulative column in committed order" {
+    const a = std.testing.allocator;
+    const logup = @import("stwo_riscv_frontend").air.logup;
+    const M31 = core.fields.m31.M31;
+    const work = @import("stwo_prover_engine").work_pool;
+    var draw = P.Channel{};
+    draw.mixU32s(&.{0x4c4f4755});
+    // 2^13 rows: two 4096-row chunks plus several placement workers.
+    const log: u32 = 13;
+    const n = @as(usize, 1) << log;
+    const values = try draw.drawSecureFelts(a, 4 * n);
+    defer a.free(values);
+    const Ctx = struct {
+        v: []const QM31,
+        n: usize,
+        pub fn rowPairsAt(self: @This(), row: usize) [2]logup.RowPair {
+            return .{
+                .{ .n1 = self.v[row], .d1 = self.v[self.n + row], .n2 = QM31.one(), .d2 = self.v[2 * self.n + row] },
+                logup.RowPair.single(QM31.one().neg(), self.v[3 * self.n + row]),
+            };
+        }
+    };
+    const ctx = Ctx{ .v = values, .n = n };
+    var pool: work.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 5, .stack_size = 1024 * 1024 });
+    defer pool.deinit();
+    var out = try logup.generateParallelColumns(2, a, ctx, log, &pool);
+    defer out.deinit(a);
+    for (0..2) |s| {
+        const pairs = try a.alloc(logup.RowPair, n);
+        defer a.free(pairs);
+        for (pairs, 0..) |*p, row| p.* = ctx.rowPairsAt(row)[s];
+        var serial = try logup.cumulativeColumn(a, pairs);
+        defer serial.deinit(a);
+        try std.testing.expect(serial.claimed.eql(out.claims[s]));
+        for (serial.sums, 0..) |sum, row| {
+            const committed = core.utils.bitReverseIndex(core.utils.cosetIndexToCircleDomainIndex(row, log), log);
+            const limbs = sum.toM31Array();
+            for (0..4) |c| try std.testing.expect(out.columns[4 * s + c][committed].eql(limbs[c]));
+        }
+    }
+    _ = M31;
+}

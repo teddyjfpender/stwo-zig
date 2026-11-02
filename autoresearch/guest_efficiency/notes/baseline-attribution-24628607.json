@@ -1,0 +1,285 @@
+{
+ "instructions": 104245051,
+ "buckets": {
+  "evm_interpreter": {
+   "instructions": 36281581,
+   "fraction": 0.348
+  },
+  "mem_alloc": {
+   "instructions": 21421107,
+   "fraction": 0.2055
+  },
+  "mpt_rlp": {
+   "instructions": 17991933,
+   "fraction": 0.1726
+  },
+  "ssz_statement_sha256": {
+   "instructions": 11290684,
+   "fraction": 0.1083
+  },
+  "secp_ecdsa_glue": {
+   "instructions": 11242413,
+   "fraction": 0.1078
+  },
+  "keccak_glue": {
+   "instructions": 3536373,
+   "fraction": 0.0339
+  },
+  "other": {
+   "instructions": 1336910,
+   "fraction": 0.0128
+  },
+  "ssz_input": {
+   "instructions": 1144044,
+   "fraction": 0.011
+  },
+  "unattributed": {
+   "instructions": 6,
+   "fraction": 0.0
+  }
+ },
+ "top_functions": [
+  {
+   "function": "memcpy",
+   "self_instructions": 13849445
+  },
+  {
+   "function": "_RNvNtCsFqC16DLCLR_4sha26sha25611compress256",
+   "self_instructions": 11221056
+  },
+  {
+   "function": "_RNvYINtNtCslEkVK0KAleD_12revm_handler15mainnet_handler14MainnetHandlerINtNtCsbjt63vD91JZ_12revm_context3evm3EvmINtNtB1b_7context7ContextNtNtB1b_5block8BlockEnvNtNtB1b_2tx5TxEnvNtNtB1b_3cfg6CfgEnvQINt",
+   "self_instructions": 8653701
+  },
+  {
+   "function": "_RNvNtNtCs2LV7qwYRbkR_13revm_bytecode6legacy8analysis14analyze_legacy",
+   "self_instructions": 5883710
+  },
+  {
+   "function": "_RINvMNtNtCs4AeIsY7YGq2_8zeth_mpt3mpt3rlpINtNtB5_4node4NodeNtNtB5_7memoize5CacheE15resolve_digestsNtNtCs5c2TXZz0tGa_16alloy_primitives6bytes_5BytesECsjZ5g0qBZeUT_5tries",
+   "self_instructions": 5759498
+  },
+  {
+   "function": "_RNvMNtNtCsd9U77ePia5E_4k25610arithmetic5fieldNtB2_12FieldElement6square",
+   "self_instructions": 4499352
+  },
+  {
+   "function": "_RNvXs_NtNtCs4AeIsY7YGq2_8zeth_mpt3mpt3rlpINtNtB6_4node4NodeNtNtB6_7memoize5CacheENtNtCs5hAoIhlbReg_9alloy_rlp6decode9Decodable6decodeCsjZ5g0qBZeUT_5tries",
+   "self_instructions": 3577709
+  },
+  {
+   "function": "_RNvNtNtCsd9U77ePia5E_4k25610arithmetic12stwo_inverse15inv_mod_vartime",
+   "self_instructions": 3405717
+  },
+  {
+   "function": "native_keccak256",
+   "self_instructions": 3314241
+  },
+  {
+   "function": "memmove",
+   "self_instructions": 3049308
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions6memory5mloadNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1I_5block8BlockEnvNtNtB1I_2tx5TxEnvNtNtB1I",
+   "self_instructions": 2170130
+  },
+  {
+   "function": "memset",
+   "self_instructions": 1496942
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions6memory6mstoreNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 1437184
+  },
+  {
+   "function": "_RNvMs1_NtCseTDQgoHtwL9_8indexmap3mapINtB5_8IndexMapINtNtNtCs5c2TXZz0tGa_16alloy_primitives4bits5fixed10FixedBytesKj20_ENtNtBU_6bytes_5BytesINtNtNtBU_3map5fixed13FbBuildHasherKB1O_EE11insert_fullCsjZ5",
+   "self_instructions": 1379339
+  },
+  {
+   "function": "_RNvCslwEoflKP0YH_7___rustc12___rust_alloc",
+   "self_instructions": 1355738
+  },
+  {
+   "function": "memcmp",
+   "self_instructions": 1268186
+  },
+  {
+   "function": "_RNvMNtNtCs4AeIsY7YGq2_8zeth_mpt3mpt3rlpINtNtB4_4node4NodeNtNtB4_7memoize5CacheE11rlp_encodedCsjZ5g0qBZeUT_5tries",
+   "self_instructions": 1238920
+  },
+  {
+   "function": "_RNvXs4_NtNtCs4AeIsY7YGq2_8zeth_mpt3mpt3rlpNtB5_7NodeRefNtNtCs5hAoIhlbReg_9alloy_rlp6encode9Encodable6encode",
+   "self_instructions": 1154536
+  },
+  {
+   "function": "_RINvNtCsapiOon2qsya_4core3ptr9drop_glueINtNtCs8w7gae6AKeG_5alloc5boxed3BoxINtNtNtCs4AeIsY7YGq2_8zeth_mpt3mpt4node4NodeNtNtB1f_7memoize5CacheEEECs1rw0QiNGFq7_24stateless_validator_reth",
+   "self_instructions": 1151464
+  },
+  {
+   "function": "_RNvNtNtCs2p34EH5Fj4p_15alloy_consensus6crypto9secp256k124recover_signer_unchecked",
+   "self_instructions": 1125521
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4pushKj1_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 954674
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4pushKj2_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 916784
+  },
+  {
+   "function": "_RNvMNtNtCs4AeIsY7YGq2_8zeth_mpt3mpt3rlpINtNtB4_4node4NodeNtNtB4_7memoize5CacheE7memoizeCsjZ5g0qBZeUT_5tries",
+   "self_instructions": 745919
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions7control5jumpiNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 663782
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions10arithmetic3addNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 658119
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions6system12calldataloadNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1Q_5block8BlockEnvNtNtB1Q_2tx5TxEn",
+   "self_instructions": 647657
+  },
+  {
+   "function": "_RNvXsb_NtNtCsd9U77ePia5E_4k25610arithmetic6affineNtB5_11AffinePointINtNtCs4ihKDUQmMzz_14elliptic_curve5point15DecompressPointNtB9_9Secp256k1E10decompress",
+   "self_instructions": 637884
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4swapKj1_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 602764
+  },
+  {
+   "function": "_RNvMNtCslvtNyiweOU3_5ruint3divINtB4_4UintKj100_Kj4_E14div_rem_by_refCs5c2TXZz0tGa_16alloy_primitives",
+   "self_instructions": 522082
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions7control4jumpNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1I_5block8BlockEnvNtNtB1I_2tx5TxEnvNtNtB1I",
+   "self_instructions": 504273
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions7bitwise3shlNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1H_5block8BlockEnvNtNtB1H_2tx5TxEnvNtNtB1H_",
+   "self_instructions": 445222
+  },
+  {
+   "function": "_RNvMNtNtCsapjume4BYRe_22revm_context_interface15journaled_state7accountINtB2_16JournaledAccountQINtNtNtCsiVfMsbSU6Rv_13revm_database6states5state5StateINtNtCsdI6Yyd5zpl4_9stateless10witness_db15Witne",
+   "self_instructions": 417349
+  },
+  {
+   "function": "_RNvMs0_NtNtCs4AeIsY7YGq2_8zeth_mpt3mpt4nodeINtB5_4NodeNtNtB7_7memoize5CacheE3getCsjZ5g0qBZeUT_5tries",
+   "self_instructions": 408382
+  },
+  {
+   "function": "_RINvCsbneSd8sDZM5_13libssz_merkle9merkleizeNtB2_10Sha2HasherECs1rw0QiNGFq7_24stateless_validator_reth",
+   "self_instructions": 403520
+  },
+  {
+   "function": "_RNvNtNtCs4AeIsY7YGq2_8zeth_mpt3mpt3rlp18encode_list_header",
+   "self_instructions": 402798
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4pushKj14_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 376551
+  },
+  {
+   "function": "_RNvXs2_NtCsbjt63vD91JZ_12revm_context7contextINtB5_7ContextNtNtB7_5block8BlockEnvNtNtB7_2tx5TxEnvNtNtB7_3cfg6CfgEnvQINtNtNtCsiVfMsbSU6Rv_13revm_database6states5state5StateINtNtCsdI6Yyd5zpl4_9stateles",
+   "self_instructions": 374776
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4pushKj20_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 368385
+  },
+  {
+   "function": "_RNvXNtCslEkVK0KAleD_12revm_handler3evmINtNtCsbjt63vD91JZ_12revm_context3evm3EvmINtNtBF_7context7ContextNtNtBF_5block8BlockEnvNtNtBF_2tx5TxEnvNtNtBF_3cfg6CfgEnvQINtNtNtCsiVfMsbSU6Rv_13revm_database6st",
+   "self_instructions": 357473
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack3dupKj2_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 356100
+  },
+  {
+   "function": "_RNvMs_NtNtCsiVfMsbSU6Rv_13revm_database6states5stateINtB4_5StateINtNtCsdI6Yyd5zpl4_9stateless10witness_db15WitnessDatabaseNtNtCsjZ5g0qBZeUT_5tries4zeth11SparseStateEE7storageCs1rw0QiNGFq7_24stateless",
+   "self_instructions": 355330
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack3dupKj1_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 349820
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter11interpreter13shared_memory18resize_memory_coldNtB2_12SharedMemoryECs1rw0QiNGFq7_24stateless_validator_reth",
+   "self_instructions": 347118
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4swapKj2_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 333312
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions7bitwise3shrNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1H_5block8BlockEnvNtNtB1H_2tx5TxEnvNtNtB1H_",
+   "self_instructions": 324340
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions7bitwise6bitandNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 324135
+  },
+  {
+   "function": "_RNvXNtNtCsapiOon2qsya_4core4iter8adaptersINtB2_12GenericShuntINtNtB2_3map3MapINtNtNtB6_5slice4iter7WindowsjENCINvNtCsj0nMSqua9IR_6libssz6decode37decode_variable_length_items_with_maxINtNtCsfzK4sZLZWj",
+   "self_instructions": 304584
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack4pushKj4_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 290400
+  },
+  {
+   "function": "_RNvMs_NtNtCsiVfMsbSU6Rv_13revm_database6states5stateINtB4_5StateINtNtCsdI6Yyd5zpl4_9stateless10witness_db15WitnessDatabaseNtNtCsjZ5g0qBZeUT_5tries4zeth11SparseStateEE23load_cache_account_withCs1rw0Qi",
+   "self_instructions": 279629
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions10arithmetic3subNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 276057
+  },
+  {
+   "function": "_RNvMs0_NtNtCs4AeIsY7YGq2_8zeth_mpt3mpt4nodeINtB5_4NodeNtNtB7_7memoize5CacheE6insertCsjZ5g0qBZeUT_5tries",
+   "self_instructions": 274073
+  },
+  {
+   "function": "_RNvMNtNtCsd9U77ePia5E_4k25610arithmetic3mulNtB2_9WordTable14select_vartime",
+   "self_instructions": 273348
+  },
+  {
+   "function": "_RINvMs_NtNtCsbjt63vD91JZ_12revm_context7journal5innerINtB5_12JournalInnerNtNtNtCsapjume4BYRe_22revm_context_interface15journaled_state5entry12JournalEntryE25load_account_mut_optionalQINtNtNtCsiVfMsbS",
+   "self_instructions": 269045
+  },
+  {
+   "function": "_RINvXs6_NtCsfzK4sZLZWjY_12libssz_types16progressive_listINtB6_15ProgressiveListhENtCsbneSd8sDZM5_13libssz_merkle12HashTreeRoot14hash_tree_rootNtB1j_10Sha2HasherECs1rw0QiNGFq7_24stateless_validator_re",
+   "self_instructions": 261361
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions5stack3dupKj3_NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 250300
+  },
+  {
+   "function": "_RNvYINtNtCslEkVK0KAleD_12revm_handler15mainnet_handler14MainnetHandlerINtNtCsbjt63vD91JZ_12revm_context3evm3EvmINtNtB1b_7context7ContextNtNtB1b_5block8BlockEnvNtNtB1b_2tx5TxEnvNtNtB1b_3cfg6CfgEnvQINt",
+   "self_instructions": 243468
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions7bitwise2eqNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1G_5block8BlockEnvNtNtB1G_2tx5TxEnvNtNtB1G_3",
+   "self_instructions": 243102
+  },
+  {
+   "function": "_RNvMNtNtCsd9U77ePia5E_4k25610arithmetic3mulNtB2_9WordTable3new",
+   "self_instructions": 240864
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions4host5sloadNtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1G_5block8BlockEnvNtNtB1G_2tx5TxEnvNtNtB1G_3",
+   "self_instructions": 237351
+  },
+  {
+   "function": "_RINvNtNtCs4FS2LSSmdQR_16revm_interpreter12instructions6system9keccak256NtNtB6_11interpreter14EthInterpreterINtNtCsbjt63vD91JZ_12revm_context7context7ContextNtNtB1M_5block8BlockEnvNtNtB1M_2tx5TxEnvNtN",
+   "self_instructions": 222132
+  }
+ ],
+ "block": 24628607,
+ "elf_sha256": "37fbf8fdde6b58d8d82da267c890b7c9978575c5225671b1504d7b1efc9eeb91"
+}

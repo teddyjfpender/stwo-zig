@@ -6,7 +6,10 @@ const G = @import("../../word16_execution/geometry.zig");
 const Prepared = @import("../../word16_execution/prepared.zig").Prepared;
 const R = @import("../services/roster.zig");
 const T = @import("../services/types.zig");
-pub const COUNT = G.ROLE_COUNT + 3;
+/// Core roles, one row per service family bridge, then the six v3
+/// bulk-memory components (desc, copy, set, ucopy, cdesc, cmp) and the two v3 Keccak-sponge
+/// components (call, perm), then the v3 LS-D64 head and tail instances.
+pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len + T.sponge_kinds.len + T.DWORD_INSTANCES;
 pub const Row = struct {
     role: []const u8,
     present: bool,
@@ -26,7 +29,8 @@ pub fn row(name: []const u8, log: u32, widths: [3]usize, active: ?u64) !Row {
     for (widths, &cells) |width, *out| out.* = try std.math.mul(u64, width, rows);
     return .{ .role = name, .present = present, .log = log, .columns = widths, .native_rows = rows, .active_rows = active, .padding_rows = if (active) |n| rows - n else null, .native_cells = cells };
 }
-pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u32, initial: usize, terminal: usize, calls: [3]usize) ![COUNT]Row {
+/// `ram_events` are the core LS32 rows; `dword` the LS-D64 rows.
+pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u32, dword: u32, initial: usize, terminal: usize, calls: [T.FAMILIES]usize, bulk: T.BulkCounts, sponge: T.SpongeCounts) ![COUNT]Row {
     const g = setup.materials.geometry;
     const alu = try G.factCounts(prepared.alu.facts.len, g.alu_log, g.alu_tail_log);
     const binary = try G.factCounts(prepared.binary.facts.len, g.binary_log, g.binary_tail_log);
@@ -55,20 +59,32 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
         };
         out.* = try row(@tagName(shape.role), shape.log, shape.widths, active);
     }
-    for (0..3) |i| {
+    for (0..T.FAMILIES) |i| {
         const family: T.Family = @enumFromInt(i);
-        const words: u64 = switch (family) {
-            .keccak => 25,
-            .add => A.crypto.secp256k1.word16_bridge.types.coordinates(.add),
-            .double => A.crypto.secp256k1.word16_bridge.types.coordinates(.double),
-        };
+        // Active rows: 25 lanes per Keccak-f call, else the bridge's
+        // coordinate rows per call (as plan.zig sizes them).
+        const per_call: u64 = if (family == .keccak) 25 else A.crypto.secp256k1.word16_bridge.types.coordinates(T.bridgeKind(family));
         const log = setup.bridges.at(family);
-        const active = try std.math.mul(u64, calls[i], words);
-        result[G.ROLE_COUNT + i] = try row(switch (family) {
-            .keccak => "keccak_bridge",
-            .add => "add_bridge",
-            .double => "double_bridge",
-        }, log orelse 5, if (log != null) T.widths(family) else .{ 0, 0, 0 }, active);
+        const active = try std.math.mul(u64, calls[i], per_call);
+        result[G.ROLE_COUNT + i] = try row(bridgeName(family), log orelse 5, if (log != null) T.widths(family) else .{ 0, 0, 0 }, active);
+    }
+    for (T.bulk_kinds, 0..) |kind, k| {
+        const log = setup.bridges.bulk.at(kind);
+        result[G.ROLE_COUNT + T.FAMILIES + k] = try row(switch (kind) {
+            inline else => |b| "bulk_" ++ @tagName(b),
+        }, log orelse 5, if (log != null) T.bulkWidths(kind) else .{ 0, 0, 0 }, bulk.rows(kind));
+    }
+    for (T.sponge_kinds, 0..) |kind, k| {
+        const log = setup.bridges.sponge.at(kind);
+        result[G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len + k] = try row(switch (kind) {
+            .call => "sponge_call",
+            .perm => "sponge_perm",
+        }, log orelse 5, if (log != null) T.spongeWidths(kind) else .{ 0, 0, 0 }, sponge.rows(kind));
+    }
+    const dword_rows: [T.DWORD_INSTANCES]u32 = if (setup.bridges.ls_dword != null) try T.dwordCounts(setup.bridges, dword) else .{ 0, 0 };
+    for (0..T.DWORD_INSTANCES) |k| {
+        const log = setup.bridges.dwordLog(k);
+        result[COUNT - T.DWORD_INSTANCES + k] = try row(if (k == 0) "ls_dword" else "ls_dword_tail", log orelse 5, if (log != null) T.dwordWidths() else .{ 0, 0, 0 }, dword_rows[k]);
     }
     for (0..3) |tree| {
         var width: usize = 0;
@@ -76,6 +92,11 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
         if (width != setup.columnCount(tree)) return error.CostRosterMismatch;
     }
     return result;
+}
+fn bridgeName(family: T.Family) []const u8 {
+    return switch (family) {
+        inline else => |f| @tagName(f) ++ "_bridge",
+    };
 }
 test "native cost rows distinguish absent roles unknown dictionary occupancy and padding" {
     const a = try row("facts", 10, .{ 2, 52, 32 }, 574);

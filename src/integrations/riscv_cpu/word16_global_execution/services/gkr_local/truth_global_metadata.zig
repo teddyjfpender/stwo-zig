@@ -56,6 +56,7 @@ pub const Provider = struct {
                 errdefer allocator.free(out.product_columns);
                 out.linear_columns = try S.interaction.columnSources(allocator, .linear);
             },
+            else => return error.GkrV3ServiceUnsupported,
         }
         return out;
     }
@@ -93,6 +94,7 @@ pub const Provider = struct {
                 for (&fixed, 0..) |*v, c| v.* = trace.fixed[c * n + r];
                 for (0..3) |event| sink.emitWire(S.equations.wireTupleAccessors(M, trace.kind, trace.program, cells, &fixed, event), S.equations.wireCoefficientAccessors(M, cells, &fixed, event));
             },
+            else => return error.GkrV3ServiceUnsupported,
         }
     }
 };

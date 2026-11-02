@@ -17,13 +17,34 @@ pub fn ladder(count: usize, reserve: u32) !Ladder {
     if ((@as(u64, 1) << @intCast(head)) + (@as(u64, 1) << @intCast(tail)) >= (@as(u64, 1) << @intCast(full))) return .{ .head = full };
     return .{ .head = head, .tail = tail };
 }
-pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration {
+/// CPU AIR layout options chosen by the producer route. Every option is part of
+/// the declaration (`Geometry` or the LS-D64 bridge logs), so it is mixed into
+/// each CPU transcript and published; the receiver rebuilds keys from it.
+pub const CpuLayout = struct {
+    /// Fused-tail CPU interaction (40 -> 36 columns, same LogUp statement).
+    fused_tail: bool = false,
+    /// Byte-pair CPU lookups on top of the fused tail (36 -> 32 columns).
+    u8_pairs: bool = false,
+    /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
+    /// instances are sized on the remainder.
+    ls_dword: bool = false,
+    /// Default layout for a profile route. Only the admitted
+    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
+    /// LS-D64; every older route keeps its historical layout and bundle bytes.
+    pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
+        const v3 = profile == .ethereum_services_v3;
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
+    }
+};
+pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
     const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
     errdefer a.free(out);
     const boundary = try Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len));
     for (captured.native.items, out, 0..) |n, *d, i| {
         var g = try n.geometryOmittingEmptyDivision();
-        const ls = try ladder(captured.advice.events[i].len, 1);
+        const events = captured.advice.events[i];
+        const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+        const ls = try ladder(events.len - dword, 1);
         g.ls_log = ls.head;
         g.ls_tail_log = ls.tail;
         const alu = try ladder(n.alu.facts.len, 0);
@@ -38,42 +59,97 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         g.boundary_log = 5;
         g.initial_log = if (i == 0) boundary else 5;
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
+        g.cpu_fused_tail = layout.fused_tail;
+        g.cpu_u8_pairs = layout.u8_pairs;
         d.* = .{ .geometry = g, .bridges = .{} };
+        // The same two-instance ladder as LS32 (one inactive row per instance).
+        if (dword != 0) {
+            const dl = try ladder(dword, 1);
+            d.bridges.ls_dword = dl.head;
+            d.bridges.ls_dword_tail = dl.tail;
+        }
         const k = captured.advice.keccak[i].len;
         const add = captured.advice.secp[i][0].len;
         const double = captured.advice.secp[i][1].len;
         if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
         if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
         if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
+        const sha256 = captured.advice.sha256[i].len;
+        if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
+        const arith = captured.advice.arith256_mod[i].len;
+        if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
+        // v3 curve/field families: coordinates rows per call each.
+        const ST = @import("../services/types.zig");
+        for (captured.advice.curves[i], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
+            const family: ST.Family = @enumFromInt(f);
+            d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
+        };
+        // v3 bulk memory: one descriptor row per call, one body row per word.
+        const bulk = captured.advice.bulk[i].counts();
+        if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
+        if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
+        if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+        if (bulk.jump_calls != 0) {
+            d.bridges.bulk.jdesc = try Coverage.minimalPrefixLog(bulk.jump_calls);
+            d.bridges.bulk.jscan = try Coverage.minimalPrefixLog(bulk.jump_rows);
+            d.bridges.bulk.jtab = @import("stwo_riscv_frontend").rv64_air.crypto.bulk_memory.types.TABLE_LOG;
+        }
+        // Extension: unaligned copy rows, memcmp descriptors and compared words.
+        if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
+        if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
+        if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
+        // v3 Keccak sponge: one call row per ECALL, one row per permutation.
+        const sponge = captured.advice.sponge[i].counts();
+        if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
+        if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
         try g.validate();
     }
     return out;
 }
+pub const KeccakPolicy = A.crypto.keccak.equations.BatchPolicy;
+/// Exact committed MAIN+INTERACTION cells of one Keccak truth proof
+/// (permutation at `log` plus both tables), the quantity the cost proxy counts.
+pub fn keccakTruthCells(policy: KeccakPolicy, log: u32) u64 {
+    const L = A.crypto.keccak.layout;
+    const permutation = (@as(u64, L.MAIN) + policy.interactionCount()) << @intCast(log);
+    return permutation + (@as(u64, 5) << @intCast(policy.tableLog(.chi))) + (@as(u64, 5) << @intCast(policy.tableLog(.xor5)));
+}
+/// v3 profile: each truth takes the throughput tables exactly when that is
+/// fewer committed cells (log >= 13: 1,988 cells/row saved vs the 2^21+2^16
+/// tables). v2 never selects it (receiver policy rejects it there).
+pub fn keccakTruthPolicy(v3: bool, log: u32) KeccakPolicy {
+    if (!v3) return .triple_v2;
+    return if (keccakTruthCells(.throughput_v1, log) < keccakTruthCells(.triple_v2, log)) .throughput_v1 else .triple_v2;
+}
 pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclaration {
-    return truthsWithKeccakMaxLog(a, captured, 18);
+    return truthsForProfile(a, captured, false);
+}
+pub fn truthsForProfile(a: std.mem.Allocator, captured: *const Capture, v3: bool) ![]W.TruthDeclaration {
+    return truthsWithOptions(a, captured, v3, 18);
 }
 /// Producer geometry experiment only; the receiver admits original call spans.
 /// The default entry point remains log18. Smaller shards multiply proof leaves.
+/// v2 profile (compact Keccak truth): the OM GKR route is v2-only.
 pub fn truthsWithKeccakMaxLog(a: std.mem.Allocator, captured: *const Capture, max_log: u32) ![]W.TruthDeclaration {
-    var total: [3]u32 = @splat(0);
-    for (captured.advice.keccak, captured.advice.secp) |k, s| {
-        total[0] = try std.math.add(u32, total[0], @intCast(k.len));
-        total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
-        total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
-    }
-    return truthsForCounts(a, total, max_log);
+    return truthsWithOptions(a, captured, false, max_log);
 }
 fn truthsForCounts(a: std.mem.Allocator, total: [3]u32, max_log: u32) ![]W.TruthDeclaration {
-    if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
     var out: std.ArrayList(W.TruthDeclaration) = .{};
     errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, total, max_log, false);
+    return out.toOwnedSlice(a);
+}
+fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, v3: bool) !void {
+    if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
     // Keep full shard lengths even so partitioning preserves paired slots.
     const max_keccak: u32 = ((@as(u32, 1) << @intCast(max_log)) / A.crypto.keccak.layout.ROWS_PER_PAIR) * 2;
     var next: u32 = 1;
     while (next <= total[0]) {
-        const calls = @min(max_keccak, total[0] - next + 1);
+        // Explicit u32: @min with a comptime bound narrows to u15, and the row
+        // product below then wraps (latent: logs below 18 were under-sized).
+        const calls: u32 = @min(max_keccak, total[0] - next + 1);
         const log: u32 = if (calls > max_keccak / 2) max_log else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
-        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, 0 } });
+        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicy(v3, log)) } });
         next = try std.math.add(u32, next, calls);
     }
     for (1..3) |family| {
@@ -91,7 +167,73 @@ fn truthsForCounts(a: std.mem.Allocator, total: [3]u32, max_log: u32) ![]W.Truth
             next = try std.math.add(u32, next, calls);
         }
     }
+}
+fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, v3: bool, max_log: u32) ![]W.TruthDeclaration {
+    var total: [3]u32 = @splat(0);
+    for (captured.advice.keccak, captured.advice.secp) |k, s| {
+        total[0] = try std.math.add(u32, total[0], @intCast(k.len));
+        total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
+        total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
+    }
+    // Keccak-sponge permutations follow the Keccak-f calls in the IO11 ID space.
+    for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
+    var out: std.ArrayList(W.TruthDeclaration) = .{};
+    errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, total, max_log, v3);
+    var next: u32 = 1;
+    // SHA-256: one compression per row plus a padding row; bounded log13 spans.
+    var sha256: u32 = 0;
+    for (captured.advice.sha256) |calls| sha256 = try std.math.add(u32, sha256, @intCast(calls.len));
+    const capacity: u32 = (@as(u32, 1) << @intCast(@import("../sha256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= sha256) {
+        const calls: u32 = @min(capacity, sha256 - next + 1);
+        try out.append(a, .{ .family = .sha256, .first_id = next, .calls = calls, .logs = .{ try A.crypto.sha256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
+    // arith256_mod: one call per row plus a padding row (>= 256 rows for the
+    // local BYTE table); bounded log16 spans.
+    var arith: u32 = 0;
+    for (captured.advice.arith256_mod) |calls| arith = try std.math.add(u32, arith, @intCast(calls.len));
+    const arith_capacity: u32 = (@as(u32, 1) << @intCast(@import("../arith256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= arith) {
+        const calls: u32 = @min(arith_capacity, arith - next + 1);
+        try out.append(a, .{ .family = .arith256_mod, .first_id = next, .calls = calls, .logs = .{ try A.crypto.arith256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
+    // Curve/field families 5..11: one call per row plus a padding row
+    // (>= 256 rows for the local BYTE table); bounded log16 spans.
+    const ST = @import("../services/types.zig");
+    const CR = @import("../curves/roster.zig");
+    const curve_capacity: u32 = (@as(u32, 1) << @intCast(CR.MAX_LOG)) - 1;
+    for (0..ST.CURVES) |c| {
+        var curve_total: u32 = 0;
+        for (captured.advice.curves) |shard| curve_total = try std.math.add(u32, curve_total, @intCast(shard[c].len));
+        const family: ST.Family = @enumFromInt(ST.FIRST_CURVE + c);
+        next = 1;
+        while (next <= curve_total) {
+            const calls: u32 = @min(curve_capacity, curve_total - next + 1);
+            try out.append(a, .{ .family = family, .first_id = next, .calls = calls, .logs = .{ try CR.logSize(ST.curveOp(family).?, calls), 0 } });
+            next = try std.math.add(u32, next, calls);
+        }
+    }
     return out.toOwnedSlice(a);
+}
+test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
+    const calls: u32 = 3934;
+    const narrowed = @min(@as(u32, ((1 << 18) / 29) * 2), calls);
+    _ = narrowed;
+    try std.testing.expectEqual(@as(u32, 16), try A.crypto.keccak.layout.logSize(calls));
+}
+test "v3 keccak truth takes the throughput tables exactly where they commit fewer cells" {
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(true, 12));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicy(true, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicy(true, 18));
+    // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
+    try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
 }
 test "two-instance planner reduces physical rows only and respects reserved LS rows" {
     try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));

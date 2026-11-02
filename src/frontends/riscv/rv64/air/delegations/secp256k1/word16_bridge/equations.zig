@@ -32,7 +32,7 @@ pub fn ramRow(comptime F: type, m: []const F, lane: usize) [28]F {
     row[27] = m[L.BORROW + lane];
     return row;
 }
-pub fn ownerTuple(comptime F: type, kind: P.Kind, m: []const F) [19]F {
+pub fn ownerTuple(comptime F: type, kind: T.Kind, m: []const F) [19]F {
     var t: [19]F = @splat(F.zero());
     t[0] = E.qFor(F, @intFromEnum(Decode.Opcode.ECALL));
     @memcpy(t[1..5], m[L.POINTER..][0..4]);
@@ -42,7 +42,7 @@ pub fn ownerTuple(comptime F: type, kind: P.Kind, m: []const F) [19]F {
     t[18] = m[L.TICK];
     return t;
 }
-pub fn wireTuple(comptime F: type, kind: P.Kind, f: []const F, m: []const F, after: bool) [35]F {
+pub fn wireTuple(comptime F: type, kind: T.Kind, f: []const F, m: []const F, after: bool) [35]F {
     var t: [35]F = undefined;
     t[0] = E.qFor(F, @intFromEnum(kind));
     t[1] = m[L.CALL_ID];
@@ -52,7 +52,7 @@ pub fn wireTuple(comptime F: type, kind: P.Kind, f: []const F, m: []const F, aft
 }
 /// Per-lane direct transition separated from global RAM inverses, so the
 /// original legacy interleaving can remain byte-for-byte unchanged.
-pub fn emitLaneTransitionMainFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), lane_index: usize, out: *E.SinkFor(F)) void {
+pub fn emitLaneTransitionMainFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), lane_index: usize, out: *E.SinkFor(F)) void {
     const row = ramRow(F, m, lane_index);
     const prev = ramRow(F, pm, lane_index);
     if (comptime E.isExternalLane(F)) {
@@ -87,20 +87,22 @@ pub fn emitTailMainFor(comptime F: type, f: []const F, m: []const F, pm: []const
 }
 /// MAIN-only bridge authority. Local OWNER/range GKR and genuine wide RAM/
 /// Wire arguments must close separately under the same authenticated MAIN.
-pub fn emitMainFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+pub fn emitMainFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     for (0..4) |lane_index| {
         emitLaneTransitionMainFor(F, kind, f, m, pm, span, lane_index, out);
         emitReadableMainFor(F, m, lane_index, out);
     }
     emitTailMainFor(F, f, m, pm, span, out);
 }
-pub fn emitFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+/// The complete bridge authority over any lane: claims, challenges and the
+/// call span are constant-lane values (QM31 natively, wires in a circuit).
+pub fn emitFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, span: E.CallSpanFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const active = m[L.ACTIVE];
     const Sec = E.SecureFor(F);
     var ram_term = Sec.zero();
     for (0..4) |lane| {
         const row = ramRow(F, m, lane);
-        emitLaneTransitionMainFor(F, kind, f, m, pm, .{ .calls = calls, .first_id = first_id }, lane, out);
+        emitLaneTransitionMainFor(F, kind, f, m, pm, span, lane, out);
         const d = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, false));
         const e = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, true));
         const inv = E.secureFor(F, i, L.RAM + 4 * lane);
@@ -109,7 +111,7 @@ pub fn emitFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: [
         emitReadableMainFor(F, m, lane, out);
     }
     S.prefix(F, ram_term, E.secureFor(F, i, 16), E.secureFor(F, pi, 16), f[1], f[2], claims.ram, out);
-    emitTailMainFor(F, f, m, pm, .{ .calls = calls, .first_id = first_id }, out);
+    emitTailMainFor(F, f, m, pm, span, out);
     S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, kind, m)), active.mul(f[4]).neg(), E.secureFor(F, i, L.OWNER), E.secureFor(F, i, L.OWNER + 4), E.secureFor(F, pi, L.OWNER + 4), f[1], f[2], claims.owner, out);
     const d = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTuple(F, kind, f, m, false), true);
     const e = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTuple(F, kind, f, m, true), true);

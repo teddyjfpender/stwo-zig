@@ -25,7 +25,16 @@ pub const Config = struct {
     diagnose_constraints: enum { none, cpu, ram, arithmetic, crypto, providers, all } = .none,
     profile_stages: bool = true,
     diagnose_allocations: bool = false,
+    /// Admitted service roster. `ethereum_services_v3` adds SHA-256 compression
+    /// (tag 0x0003_0010) and is served only by the Word16 services lane and
+    /// native job collection; ROM decode is identical to v2.
+    execution_profile: rv.execution_profile.Profile = .ethereum_services_v2,
 };
+/// Tape profile for a job of this request. v3 tapes carry SHA-256 records
+/// next to a v2-decoded CPU statement (decode/effects are identical).
+pub fn tapeProfile(config: Config) rv.execution_profile.Profile {
+    return config.execution_profile;
+}
 pub const Request = struct {
     loaded: rv.elf.LoadedImage,
     authority: Full.ProgramAuthority,
@@ -36,7 +45,7 @@ pub const Request = struct {
         try validateBudget(config);
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 * 1024 * 1024);
         defer a.free(elf);
-        const input = try std.fs.cwd().readFileAlloc(a, config.input, 4 * 1024 * 1024);
+        const input = try std.fs.cwd().readFileAlloc(a, config.input, @import("stwo_riscv_frontend").rv64.ethereum_contract.INPUT_CAPACITY_MAX - 4);
         defer a.free(input);
         try pin(elf, config.elf_sha256);
         try pin(input, config.input_sha256);
@@ -118,6 +127,7 @@ pub const Program = struct {
 
 pub fn validateBudget(config: Config) !void {
     if (config.batch_steps == 0 or config.batch_steps >= 1 << 22 or config.max_steps == 0 or config.max_steps > 10000000000 or config.workers > 32 or !frontend.rv64_air.state_policy.isCyclic(config.state_policy)) return error.InvalidEthereumProofBudget;
+    if (config.execution_profile != .ethereum_services_v2 and config.execution_profile != .ethereum_services_v3) return error.UnsupportedEthereumExecutionProfile;
 }
 
 /// Runtime scheduling is separate from the statement and proof transcript.

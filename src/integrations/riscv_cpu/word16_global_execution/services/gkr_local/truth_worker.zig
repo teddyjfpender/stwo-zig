@@ -32,7 +32,7 @@ pub fn truthMass(truth: R.Truth) !Manifest.Mass {
     return (try @import("mass_authority.zig").truth(@import("../wire.zig").TruthDeclaration.from(truth))).absolute();
 }
 
-pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) [32]u8 {
+pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) ![32]u8 {
     var ch = W.Channel.init();
     config.mixInto(&ch);
     ch.mixU32s(&.{ 0x54574f31, 1, 8, @intFromEnum(truth.family()), truth.first(), truth.count() });
@@ -41,17 +41,19 @@ pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) [3
     switch (truth) {
         .keccak => |t| ch.mixU32s(&.{t.setup.log}),
         .secp => |t| ch.mixU32s(&.{ @intFromEnum(t.setup.kind), t.setup.logs[0], t.setup.logs[1], @intFromEnum(@TypeOf(t.setup.*).byte_policy) }),
+        else => return error.GkrV3ServiceUnsupported,
     }
     return ch.digestBytes();
 }
-pub fn truthStatementWithAuthority(truth: R.Truth, config: W.PcsConfig, execution: [32]u8, fixed: ?*const Fixed.Binding) [32]u8 {
-    const base = truthStatement(truth, config, execution);
+pub fn truthStatementWithAuthority(truth: R.Truth, config: W.PcsConfig, execution: [32]u8, fixed: ?*const Fixed.Binding) ![32]u8 {
+    const base = try truthStatement(truth, config, execution);
     return if (fixed) |binding| binding.statement(base) else base;
 }
 fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
     const kind: Manifest.Kind = switch (truth) {
         .keccak => .keccak,
         .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
+        else => return error.GkrV3ServiceUnsupported,
     };
     const root = if (fixed) |binding| binding.root() else truth.key().root;
     if (expected.kind != kind or expected.local_instances != null or !std.mem.eql(u8, &expected.fixed, &root) or !std.meta.eql(expected.mass, try truthMass(truth))) return error.WideTruthExpectedMismatch;

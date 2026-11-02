@@ -35,6 +35,8 @@ pub const Entry = struct {
         return .{ .raw = raw, .instruction = instruction };
     }
 };
+/// Admitted v3 bulk-memory ECALL (no payload; the step record is the call).
+pub const BulkCall = ethereum.bulk_memory.BulkCall;
 pub const Tape = struct {
     allocator: std.mem.Allocator,
     storage: []Step,
@@ -43,6 +45,13 @@ pub const Tape = struct {
     service_calls: std.ArrayList(services.Call) = .empty,
     secp_calls: std.ArrayList(ethereum.SecpCall) = .empty,
     last_secp_ids: [2]?u64 = @splat(null),
+    /// Admitted v3 SHA-256 compressions; always empty below v3.
+    sha256_calls: std.ArrayList(ethereum.Sha256Call) = .empty,
+    /// Admitted v3 arith256_mod calls; always empty below v3.
+    arith256_mod_calls: std.ArrayList(ethereum.Arith256ModCall) = .empty,
+    /// Admitted v3 curve/field calls (all ops, chronological); empty below v3.
+    curve_calls: std.ArrayList(ethereum.CurveCall) = .empty,
+    last_curve_ids: [ethereum.curves.COUNT]?u64 = @splat(null),
     initial_pc: u64,
     initial_clock: u64,
     execution_profile: profile.Profile,
@@ -56,13 +65,16 @@ pub const Tape = struct {
         self.memory_before.deinit(self.allocator);
         self.service_calls.deinit(self.allocator);
         self.secp_calls.deinit(self.allocator);
+        self.sha256_calls.deinit(self.allocator);
+        self.arith256_mod_calls.deinit(self.allocator);
+        self.curve_calls.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn steps(self: *const Tape) []const Step {
         return self.storage[0..self.len];
     }
     pub fn retainedBytes(self: *const Tape) usize {
-        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall);
+        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall) + self.sha256_calls.capacity * @sizeOf(ethereum.Sha256Call) + self.arith256_mod_calls.capacity * @sizeOf(ethereum.Arith256ModCall) + self.curve_calls.capacity * @sizeOf(ethereum.CurveCall);
     }
     /// Start the adjacent batch with already allocated buffers. This does not
     /// establish a public continuation relation; the proof coordinator must bind
@@ -75,6 +87,10 @@ pub const Tape = struct {
         self.service_calls.clearRetainingCapacity();
         self.secp_calls.clearRetainingCapacity();
         self.last_secp_ids = @splat(null);
+        self.sha256_calls.clearRetainingCapacity();
+        self.arith256_mod_calls.clearRetainingCapacity();
+        self.curve_calls.clearRetainingCapacity();
+        self.last_curve_ids = @splat(null);
     }
     /// Allocation and validation precede tape publication. The caller retains
     /// ownership of `record` on failure and may retry without executing again.
@@ -95,7 +111,7 @@ pub const Tape = struct {
     pub fn appendSecp(self: *Tape, call: ethereum.SecpCall) !void {
         const expected_format: profile.SecpPacketFormat = switch (self.execution_profile) {
             .ethereum_services_v1 => .big_endian_bytes_v1,
-            .ethereum_services_v2 => .little_endian_words_v2,
+            .ethereum_services_v2, .ethereum_services_v3 => .little_endian_words_v2,
             else => return error.InvalidTapeService,
         };
         if (call.packet_format != expected_format or call.call_id == 0) return error.InvalidTapeService;
@@ -109,11 +125,66 @@ pub const Tape = struct {
         self.secp_calls.appendAssumeCapacity(call);
         self.last_secp_ids[family] = call.call_id;
     }
+    /// Bulk memory carries no tape payload: the ECALL step (pointer, tag,
+    /// clock) is the whole call; the prover replays it on its RAM ledger.
+    /// Not counted by serviceCount; the tape wire needs no new section.
+    pub fn appendBulk(self: *Tape, call: BulkCall) !void {
+        if (self.execution_profile != .ethereum_services_v3 or !profile.isBulkTag(call.tag)) return error.InvalidTapeService;
+        try self.appendRecord(call.retirement());
+    }
+    pub fn appendSha256(self: *Tape, call: ethereum.Sha256Call) !void {
+        if (self.execution_profile != .ethereum_services_v3 or call.call_id == 0) return error.InvalidTapeService;
+        if (self.len == self.storage.len) return error.TapeFull;
+        if (self.sha256_calls.getLastOrNull()) |previous| {
+            if (previous.call_id == std.math.maxInt(u64) or call.call_id != previous.call_id + 1) return error.InvalidTapeService;
+        }
+        try self.sha256_calls.ensureUnusedCapacity(self.allocator, 1);
+        try self.appendRecord(call.retirement());
+        self.sha256_calls.appendAssumeCapacity(call);
+    }
+    pub fn appendArith256Mod(self: *Tape, call: ethereum.Arith256ModCall) !void {
+        if (self.execution_profile != .ethereum_services_v3 or call.call_id == 0) return error.InvalidTapeService;
+        if (self.len == self.storage.len) return error.TapeFull;
+        if (self.arith256_mod_calls.getLastOrNull()) |previous| {
+            if (previous.call_id == std.math.maxInt(u64) or call.call_id != previous.call_id + 1) return error.InvalidTapeService;
+        }
+        try self.arith256_mod_calls.ensureUnusedCapacity(self.allocator, 1);
+        try self.appendRecord(call.retirement());
+        self.arith256_mod_calls.appendAssumeCapacity(call);
+    }
+    /// The admitted Keccak sponge carries no tape payload: the ECALL step
+    /// (pointer, tag, clock) is the whole call and provers replay it on their
+    /// RAM ledger. Not counted by serviceCount; the tape wire is unchanged.
+    pub fn appendSponge(self: *Tape, call: ethereum.keccak_sponge.Call) !void {
+        if (self.execution_profile != .ethereum_services_v3) return error.InvalidTapeService;
+        try self.appendRecord(call.retirement());
+    }
+    pub fn appendCurve(self: *Tape, call: ethereum.CurveCall) !void {
+        if (self.execution_profile != .ethereum_services_v3 or call.call_id == 0) return error.InvalidTapeService;
+        if (self.len == self.storage.len) return error.TapeFull;
+        const k = ethereum.curves.index(call.op);
+        if (self.last_curve_ids[k]) |previous| {
+            if (previous == std.math.maxInt(u64) or call.call_id != previous + 1) return error.InvalidTapeService;
+        }
+        try self.curve_calls.ensureUnusedCapacity(self.allocator, 1);
+        try self.appendRecord(call.retirement());
+        self.curve_calls.appendAssumeCapacity(call);
+        self.last_curve_ids[k] = call.call_id;
+    }
     pub fn appendEvent(self: *Tape, event: ethereum.Event) !void {
         switch (event) {
+            .sponge => |e| try self.appendSponge(e.call),
             .keccak => |call| try self.appendService(call),
             .secp => |call| try self.appendSecp(call),
+            .sha256 => |call| try self.appendSha256(call),
+            .arith256_mod => |call| try self.appendArith256Mod(call),
+            .bulk => |e| try self.appendBulk(e.call),
+            .curve => |call| try self.appendCurve(call),
         }
+    }
+    /// Every service retirement recorded in this tape (all families).
+    pub fn serviceCount(self: *const Tape) usize {
+        return self.service_calls.items.len + self.secp_calls.items.len + self.sha256_calls.items.len + self.arith256_mod_calls.items.len + self.curve_calls.items.len;
     }
     fn appendRecord(self: *Tape, record: machine.Retirement) !void {
         if (self.len == self.storage.len) return error.TapeFull;

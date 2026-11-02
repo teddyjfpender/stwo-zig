@@ -1,0 +1,47 @@
+gkr 16 singles fast 1 5
+gkr 18 singles fast 1 3
+gkr 20 singles fast 1 3
+gkr 22 singles fast 1 3
+gkr 24 singles fast 1 2
+gkr 16 generic fast 1 5
+gkr 18 generic fast 1 3
+gkr 20 generic fast 1 3
+gkr 22 generic fast 1 3
+gkr 24 generic fast 1 2
+gkr 22 generic fast 2 3
+gkr 22 generic fast 4 3
+gkr 22 generic fast 8 3
+gkr 22 generic fast 12 3
+gkr 24 generic fast 8 2
+gkr 22 mixed fast 8 3
+gkr 16 generic reference 1 3
+gkr 18 generic reference 1 3
+gkr 20 generic reference 1 3
+gkr 20 singles reference 1 3
+om31 14 3
+om31 16 3
+om31 18 3
+om31 20 2
+logup 18 4 1 3
+logup 20 4 1 3
+logup 22 4 1 2
+logup 20 1 1 3
+logup 20 2 1 3
+logup 20 8 1 3
+logup 20 4 2 3
+logup 20 4 4 3
+logup 20 4 8 3
+logup 20 4 12 3
+logup 22 4 8 3
+columns 18 4 1 3
+columns 20 4 1 3
+columns 22 4 1 2
+columns 20 4 8 3
+columns 22 4 8 3
+inverse 20 1 5
+inverse 22 1 3
+inverse 22 8 5
+eq 16 5
+eq 20 5
+eq 22 3
+eq 24 2

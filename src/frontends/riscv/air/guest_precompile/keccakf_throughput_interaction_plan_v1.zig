@@ -12,6 +12,7 @@ const caller = @import("keccakf_caller.zig");
 const relations_mod = @import("keccakf_relations.zig");
 const trace = @import("keccakf_trace.zig");
 const witness = @import("keccakf_witness.zig");
+const tuples = @import("keccakf_lookup_tuples.zig");
 
 pub const chi_event_count: usize = authority.geometry.chi_lookups_per_round;
 pub const xor5_event_count: usize = authority.geometry.xor5_lookups_per_round;
@@ -157,42 +158,15 @@ pub fn chiTuple(
     {
         return error.InvalidTraceShape;
     }
-    const y = event / authority.lane_bits;
-    const z = event % authority.lane_bits;
-    var result: [6]S = undefined;
-    var packed_value = S.zero();
-    var power: u32 = 1;
-    for (0..5) |x| {
-        const source_x = (x + 3 * y) % 5;
-        const source_y = x;
-        const rotation = authority.rho_offsets[source_x][source_y];
-        const source_z = (z + authority.lane_bits - rotation) %
-            authority.lane_bits;
-        const theta = main[
-            trace.Layout.state + stateCell(source_x, source_y, source_z)
-        ].add(main[
-            trace.Layout.parity +
-                ((source_x + 4) % 5) * authority.lane_bits + source_z
-        ]).add(main[
-            trace.Layout.parity +
-                ((source_x + 1) % 5) * authority.lane_bits +
-                (source_z + 63) % 64
-        ]);
-        packed_value = packed_value.add(mulSmall(S, theta, power));
-        power *= authority.geometry.chi_input_radix;
-        result[1 + x] = next_state[stateCell(x, y, z)];
-    }
-    if (y == 0) for (0..authority.round_count) |round| {
-        if (((authority.round_constants[round] >> @intCast(z)) & 1) != 0) {
-            packed_value = packed_value.add(mulSmall(
-                S,
-                selectors[2 + round],
-                authority.geometry.chi_span,
-            ));
-        }
-    };
-    result[0] = packed_value;
-    return result;
+    return tuples.throughputChi(
+        S,
+        Scale(S).apply,
+        main[trace.Layout.state..][0..witness.state_cell_count],
+        main[trace.Layout.parity..][0..authority.geometry.parity_positions],
+        next_state,
+        selectors[2..][0..authority.round_count],
+        event,
+    );
 }
 
 pub fn xor5Tuple(
@@ -202,21 +176,20 @@ pub fn xor5Tuple(
 ) Error![6]S {
     if (main.len != trace.Layout.main_columns or event >= xor5_event_count)
         return error.InvalidTraceShape;
-    var result: [6]S = @splat(S.zero());
-    for (0..authority.geometry.xor5_batch) |offset| {
-        const position = event * authority.geometry.xor5_batch + offset;
-        if (position >= authority.geometry.parity_positions) continue;
-        const x = position / authority.lane_bits;
-        const z = position % authority.lane_bits;
-        var sum = S.zero();
-        for (0..5) |y| sum = sum.add(
-            main[trace.Layout.state + stateCell(x, y, z)],
-        );
-        result[offset] = sum;
-        result[authority.geometry.xor5_batch + offset] =
-            main[trace.Layout.parity + position];
-    }
-    return result;
+    return tuples.throughputXor5(
+        S,
+        main[trace.Layout.state..][0..witness.state_cell_count],
+        main[trace.Layout.parity..][0..authority.geometry.parity_positions],
+        event,
+    );
+}
+
+fn Scale(comptime S: type) type {
+    return struct {
+        fn apply(value: S, coefficient: u32) S {
+            return mulSmall(S, value, coefficient);
+        }
+    };
 }
 
 fn denominator(
@@ -242,10 +215,6 @@ fn mulSmall(comptime S: type, value: S, coefficient: u32) S {
 
 pub fn InteractionScalar(comptime S: type) type {
     return if (S == M31) QM31 else S;
-}
-
-inline fn stateCell(x: usize, y: usize, z: usize) usize {
-    return authority.laneIndex(x, y) * authority.lane_bits + z;
 }
 
 comptime {

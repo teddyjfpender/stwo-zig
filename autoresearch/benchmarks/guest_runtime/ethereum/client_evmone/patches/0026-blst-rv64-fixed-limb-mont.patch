@@ -1,0 +1,54 @@
+--- a/src/no_asm.h	2026-11-02 00:28:50
++++ b/src/no_asm.h	2026-11-02 00:31:59
+@@ -28,17 +28,16 @@
+ # endif
+ #endif
+ 
+-static void mul_mont_n(limb_t ret[], const limb_t a[], const limb_t b[],
+-                       const limb_t p[], limb_t n0, size_t n)
++/*
++ * stwo RV64: the Montgomery product body is always inlined, so mul_mont_n can
++ * call it with a constant limb count for 384-bit (6 x 64-bit limbs) and
++ * 256-bit (4 limbs) operands: loops fully unrolled, tmp[] in registers.
++ * Same arithmetic for every n.
++ */
++static inline __attribute__((always_inline))
++void mul_mont_body(limb_t ret[], const limb_t a[], const limb_t b[],
++                   const limb_t p[], limb_t n0, size_t n)
+ {
+-#if defined(CANDIDATE_BLS) || defined(ADMITTED_BLS)
+-    /* 384-bit operands (6 64-bit or 12 32-bit limbs: same little-endian bytes). */
+-    if (n * sizeof(limb_t) == 48) {
+-        stwo_arith384_mont(ret, a, b, p);
+-        return;
+-    }
+-#endif
+-    __builtin_assume(n != 0 && n%2 == 0);
+     llimb_t limbx;
+     limb_t mask, borrow, mx, hi, tmp[n+1], carry;
+     size_t i, j;
+@@ -90,6 +89,24 @@
+         ret[i] = (ret[i] & ~mask) | (tmp[i] & mask);
+ }
+ 
++static void mul_mont_n(limb_t ret[], const limb_t a[], const limb_t b[],
++                       const limb_t p[], limb_t n0, size_t n)
++{
++#if defined(CANDIDATE_BLS) || defined(ADMITTED_BLS)
++    /* 384-bit operands (6 64-bit or 12 32-bit limbs: same little-endian bytes). */
++    if (n * sizeof(limb_t) == 48) {
++        stwo_arith384_mont(ret, a, b, p);
++        return;
++    }
++#endif
++    __builtin_assume(n != 0 && n%2 == 0);
++#if LIMB_T_BITS==64
++    if (n == 6) { mul_mont_body(ret, a, b, p, n0, 6); return; }
++    if (n == 4) { mul_mont_body(ret, a, b, p, n0, 4); return; }
++#endif
++    mul_mont_body(ret, a, b, p, n0, n);
++}
++
+ #define MUL_MONT_IMPL(bits) \
+ inline void mul_mont_##bits(vec##bits ret, const vec##bits a, \
+                             const vec##bits b, const vec##bits p, limb_t n0) \

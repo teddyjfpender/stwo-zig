@@ -14,6 +14,7 @@ const TP = @import("truth_retention.zig");
 const W = @import("worker_protocol.zig");
 const KR = @import("../../keccak/shared/roster.zig");
 const SR = @import("../../secp/roster.zig");
+const Scope = @import("v2_scope.zig");
 const Input = struct { cpus: []struct { declaration: Wire.CpuDeclaration, request: Wire.CompactRequest }, truths: []struct { declaration: Wire.TruthDeclaration }, memory_words: u32 };
 const Totals = struct {
     coefficient_bytes: u64 = 0,
@@ -106,8 +107,10 @@ pub fn main() !void {
         setup.materials.program.log_size = rom_log;
         setup.bridges = entry.declaration.bridges;
         const r = entry.request;
+        try Scope.declaration(entry.declaration);
+        try Scope.calls(r.all(), r.bulk, r.sponge, r.ls_dword);
         total_steps = try std.math.add(u64, total_steps, r.cpu.steps);
-        const request = P.Request{ .calls = r.calls, .base = .{ .cpu = r.cpu, .epoch = r.epoch, .division_requests = r.division_requests, .multiplication_requests = r.multiplication_requests, .memory = .{ .epoch = r.memory_epoch, .ls_count = r.ls_count, .initial = if (i == 0) cells else &.{}, .terminal = if (i + 1 == data.cpus.len) cells else &.{} } } };
+        const request = P.Request{ .calls = r.all(), .bulk = r.bulk, .sponge = r.sponge, .base = .{ .cpu = r.cpu, .epoch = r.epoch, .division_requests = r.division_requests, .multiplication_requests = r.multiplication_requests, .memory = .{ .epoch = r.memory_epoch, .ls_count = r.ls_count, .initial = if (i == 0) cells else &.{}, .terminal = if (i + 1 == data.cpus.len) cells else &.{} } } };
         for (0..3) |tree| {
             if (tree == 1) continue;
             const legacy = try setup.logs(a, tree);
@@ -127,10 +130,12 @@ pub fn main() !void {
         fixed_source[data.cpus.len + i] = try FixedSource.truth(a, entry.declaration);
         fixed_done += 1;
         const t = entry.declaration;
+        try Scope.truthDeclaration(t);
         var k: KR.TruthSetup = undefined;
         var s: SR.TruthSetup = undefined;
         const truth: R.Truth = if (t.family == .keccak) blk: {
             k.log = t.logs[0];
+            k.policy = .triple_v2; // admitted by Scope.truthDeclaration above
             break :blk .{ .keccak = .{ .setup = &k, .first_id = t.first_id, .calls = t.calls } };
         } else blk: {
             s.kind = if (t.family == .add) .add else .double;

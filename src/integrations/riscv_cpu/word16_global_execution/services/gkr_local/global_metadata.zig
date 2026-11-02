@@ -143,9 +143,11 @@ pub const Provider = struct {
                     var fixed: [8]O = @splat(O.zero());
                     fixed[3] = O.fromBase(M.fromCanonical(@intCast(coord)));
                     fixed[6] = O.fromBase(M.fromCanonical(@intFromBool(coord < 3)));
-                    fixed[7] = O.fromBase(M.fromCanonical(if (coord < 3) A.crypto.secp256k1.program.get(src.kind).outputs[coord] else 0));
+                    fixed[7] = O.fromBase(M.fromCanonical(if (coord < 3) A.crypto.secp256k1.program.get(if (family == .add) .add else .double).outputs[coord] else 0));
                     try G.queriesFor(O, self.origin, &fixed, &lift(row), &sink);
                 },
+                // Outside the v2 scope (see v2_scope.zig); admission rejects earlier.
+                else => return error.GkrV3ServiceUnsupported,
             },
         }
         if (sink.invalid or sink.ram_count != l.ram_queries or sink.other_count != l.other_queries) return error.InvalidWideGlobalMetadata;

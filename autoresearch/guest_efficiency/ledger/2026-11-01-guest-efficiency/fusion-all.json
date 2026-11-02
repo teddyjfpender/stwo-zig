@@ -1,0 +1,340 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-result.v1",
+ "set": "all",
+ "elf": {
+  "path": "/workspace/scratch/528dc4b732ca/guest-cache/fusion-api-elf/ethereum-rv64-services-v2-lean.elf",
+  "sha256": "5375c4c2ebc1d8bc9bd19e10853167bb1e3324eaa561baabc49c163da30e864b"
+ },
+ "executor_sha256": "7a5c39227716e3702ba14660f133c08f71988d0a6a69257e59b4fc4f69aca426",
+ "rows": [
+  {
+   "block": 24626900,
+   "set": "scored",
+   "gas_used": 16338083,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 207195427,
+   "keccak_f_calls": 61761,
+   "secp_add_calls": 35756,
+   "secp_double_calls": 30448,
+   "loads": 35548848,
+   "stores": 24162989,
+   "determinism_ok": true,
+   "instructions_per_gas": 12.681746506000735
+  },
+  {
+   "block": 24628590,
+   "set": "scored",
+   "gas_used": 49134719,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 598936081,
+   "keccak_f_calls": 164183,
+   "secp_add_calls": 89379,
+   "secp_double_calls": 75920,
+   "loads": 105925568,
+   "stores": 70803054,
+   "instructions_per_gas": 12.189671441898344
+  },
+  {
+   "block": 24628595,
+   "set": "scored",
+   "gas_used": 54230474,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 677051934,
+   "keccak_f_calls": 184066,
+   "secp_add_calls": 109862,
+   "secp_double_calls": 93316,
+   "loads": 119627630,
+   "stores": 80334602,
+   "instructions_per_gas": 12.484713557915795
+  },
+  {
+   "block": 24628607,
+   "set": "scored",
+   "gas_used": 7372614,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 99438354,
+   "keccak_f_calls": 32835,
+   "secp_add_calls": 11496,
+   "secp_double_calls": 9768,
+   "loads": 19003228,
+   "stores": 12175641,
+   "instructions_per_gas": 13.487530202991774
+  },
+  {
+   "block": 24628608,
+   "set": "scored",
+   "gas_used": 12907474,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 144270020,
+   "keccak_f_calls": 44203,
+   "secp_add_calls": 21774,
+   "secp_double_calls": 18524,
+   "loads": 26739799,
+   "stores": 17666918,
+   "instructions_per_gas": 11.177246609212617
+  },
+  {
+   "block": 24628611,
+   "set": "scored",
+   "gas_used": 58862996,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 741977192,
+   "keccak_f_calls": 194844,
+   "secp_add_calls": 106493,
+   "secp_double_calls": 90460,
+   "loads": 128662666,
+   "stores": 84568278,
+   "instructions_per_gas": 12.605155062103872
+  },
+  {
+   "block": 24647140,
+   "set": "holdout",
+   "gas_used": 7704951,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 103887534,
+   "keccak_f_calls": 34900,
+   "secp_add_calls": 14123,
+   "secp_double_calls": 12012,
+   "loads": 18677978,
+   "stores": 12117246,
+   "instructions_per_gas": 13.483217998401289
+  },
+  {
+   "block": 24697070,
+   "set": "scored",
+   "gas_used": 17435221,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 248298541,
+   "keccak_f_calls": 63862,
+   "secp_add_calls": 41483,
+   "secp_double_calls": 35320,
+   "loads": 42888945,
+   "stores": 29039084,
+   "instructions_per_gas": 14.241204112067177
+  },
+  {
+   "block": 24697073,
+   "set": "holdout",
+   "gas_used": 22277128,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 291487546,
+   "keccak_f_calls": 66871,
+   "secp_add_calls": 57280,
+   "secp_double_calls": 48732,
+   "loads": 45171432,
+   "stores": 31326773,
+   "instructions_per_gas": 13.084610637421484
+  },
+  {
+   "block": 25229951,
+   "set": "holdout",
+   "gas_used": 57944048,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 591285985,
+   "keccak_f_calls": 141387,
+   "secp_add_calls": 69331,
+   "secp_double_calls": 58844,
+   "loads": 107108899,
+   "stores": 71358572,
+   "instructions_per_gas": 10.20443005638819
+  },
+  {
+   "block": 25229955,
+   "set": "scored",
+   "gas_used": 39102791,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 494429492,
+   "keccak_f_calls": 106761,
+   "secp_add_calls": 51297,
+   "secp_double_calls": 43568,
+   "loads": 85038596,
+   "stores": 56396698,
+   "instructions_per_gas": 12.644352982374071
+  },
+  {
+   "block": 25229957,
+   "set": "scored",
+   "gas_used": 9768139,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 117530717,
+   "keccak_f_calls": 37692,
+   "secp_add_calls": 18815,
+   "secp_double_calls": 16028,
+   "loads": 20547443,
+   "stores": 13731869,
+   "instructions_per_gas": 12.032047967376386
+  },
+  {
+   "block": 26235156,
+   "set": "scored",
+   "gas_used": 5443474,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 75797905,
+   "keccak_f_calls": 22419,
+   "secp_add_calls": 16541,
+   "secp_double_calls": 14028,
+   "loads": 12470331,
+   "stores": 8638610,
+   "instructions_per_gas": 13.924546162983418
+  },
+  {
+   "block": 26235159,
+   "set": "scored",
+   "gas_used": 57734946,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 840830327,
+   "keccak_f_calls": 168866,
+   "secp_add_calls": 95779,
+   "secp_double_calls": 81392,
+   "loads": 140287721,
+   "stores": 92027092,
+   "instructions_per_gas": 14.56362888085147
+  },
+  {
+   "block": 26235168,
+   "set": "scored",
+   "gas_used": 29142059,
+   "status": "completed",
+   "verified_output": true,
+   "output_matches_expected": true,
+   "execution_profile": "ethereum_services_v2",
+   "instructions": 489732787,
+   "keccak_f_calls": 93942,
+   "secp_add_calls": 46823,
+   "secp_double_calls": 39892,
+   "loads": 82305056,
+   "stores": 53165650,
+   "instructions_per_gas": 16.805016659941565
+  }
+ ],
+ "guards": [
+  {
+   "guard": "G1_complete_basket",
+   "ok": true,
+   "detail": {
+    "missing": []
+   }
+  },
+  {
+   "guard": "G2_exact_output",
+   "ok": true,
+   "detail": {
+    "failed": []
+   }
+  },
+  {
+   "guard": "G3_determinism",
+   "ok": true,
+   "detail": {
+    "nondeterministic": []
+   }
+  },
+  {
+   "guard": "G4_per_block_regression",
+   "ok": true,
+   "detail": {
+    "limit": 0.02,
+    "regressed": []
+   }
+  },
+  {
+   "guard": "G5_holdout_generalises",
+   "ok": true,
+   "detail": {
+    "scored_ratio": 0.9543330657027491,
+    "holdout_ratio": 0.9544900817872691,
+    "required_share": 0.5
+   }
+  },
+  {
+   "guard": "G6_execution_profile",
+   "ok": true,
+   "detail": {
+    "seen": [
+     "ethereum_services_v2"
+    ],
+    "allowed": [
+     "ethereum_services_v2"
+    ]
+   }
+  }
+ ],
+ "metrics": {
+  "scored": {
+   "blocks": 12,
+   "gas_used": 357472990,
+   "instructions": 4735488777,
+   "instructions_per_gas": 13.24712330573563,
+   "committed_bits_per_gas": 152364.36148370782,
+   "committed_bits_per_instruction": 11501.694214451703,
+   "keccak_f_calls_per_kgas": 3.2881757024495752,
+   "secp_calls_per_kgas": 3.3405656746262142,
+   "memory_ops_per_gas": 3.809396385444394
+  },
+  "holdout": {
+   "blocks": 3,
+   "gas_used": 87926127,
+   "instructions": 986661065,
+   "instructions_per_gas": 11.221477604716968,
+   "committed_bits_per_gas": 129133.63853762191,
+   "committed_bits_per_instruction": 11507.721450456787,
+   "keccak_f_calls_per_kgas": 2.765480617609826,
+   "secp_calls_per_kgas": 2.9606899437296947,
+   "memory_ops_per_gas": 3.2500112281756706
+  },
+  "all": {
+   "blocks": 15,
+   "gas_used": 445399117,
+   "instructions": 5722149842,
+   "instructions_per_gas": 12.847241100390416,
+   "committed_bits_per_gas": 147778.39034434574,
+   "committed_bits_per_instruction": 11502.733481031572,
+   "keccak_f_calls_per_kgas": 3.1849905979943824,
+   "secp_calls_per_kgas": 3.2655745026993395,
+   "memory_ops_per_gas": 3.6989683030736678
+  }
+ },
+ "ok": true
+}

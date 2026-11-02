@@ -48,6 +48,11 @@ impl Clone for Stack {
 
 impl StackTr for Stack {
     #[inline]
+    fn can_elide_push_pop(&self) -> bool {
+        self.len() < STACK_LIMIT
+    }
+
+    #[inline]
     fn len(&self) -> usize {
         self.len()
     }

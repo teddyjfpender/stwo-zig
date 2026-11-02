@@ -24,6 +24,8 @@ test "native tape wire preserves full64bit advice and service packets independen
         try std.testing.expectEqualSlices(u64, tape.memory_before.items, loaded.memory_before.items);
         try std.testing.expectEqualDeep(tape.service_calls.items, loaded.service_calls.items);
         try std.testing.expectEqualDeep(tape.secp_calls.items, loaded.secp_calls.items);
+        try std.testing.expectEqualDeep(tape.sha256_calls.items, loaded.sha256_calls.items);
+        try std.testing.expectEqualDeep(tape.arith256_mod_calls.items, loaded.arith256_mod_calls.items);
         const second = try temp.dir.createFile("normalized", .{ .read = true });
         defer second.close();
         try W.write(second, &loaded);
@@ -129,7 +131,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
     cpu.retired = clock;
     cpu.regs[2] = 0xfedcba9876543210;
     cpu.regs[3] = pointer;
-    var tape = try T.Tape.init(a, 20, pc, clock, profile);
+    var tape = try T.Tape.init(a, 24, pc, clock, profile);
     errdefer tape.deinit();
     for (words) |_| try tape.append(try cpu.step(&memory));
     if (profile != .rv64im) {
@@ -140,9 +142,9 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
         call.pc += 4;
         try tape.appendService(call);
     }
-    if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2) {
+    if (profile == .ethereum_services_v1 or profile == .ethereum_services_v2 or profile == .ethereum_services_v3) {
         for ([_]rv.ethereum_services.secp256k1.Kind{ .add, .double, .double }, 0..) |kind, i| {
-            var call = rv.ethereum_services.SecpCall{ .kind = kind, .packet_format = if (profile == .ethereum_services_v2) .little_endian_words_v2 else .big_endian_bytes_v1, .call_id = if (kind == .add) 3 else i + 5, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+            var call = rv.ethereum_services.SecpCall{ .kind = kind, .packet_format = if (profile != .ethereum_services_v1) .little_endian_words_v2 else .big_endian_bytes_v1, .call_id = if (kind == .add) 3 else i + 5, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
             for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |*before, *after, index| {
                 before.* = 0xfedcba9876543210 - index;
                 after.* = index;
@@ -150,5 +152,185 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
             try tape.appendSecp(call);
         }
     }
+    if (profile == .ethereum_services_v3) {
+        for (0..3) |i| {
+            var call = rv.ethereum_services.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
+            for (&call.before, 0..) |*w, index| w.* = 0x0badc0ffee000000 +% index *% 0x9e3779b97f4a7c15;
+            if (i == 1) @memset(call.before[12..16], 0);
+            call.after = call.before;
+            call.after[16..20].* = rv.ethereum_services.arith256.mulAddModPacket(call.before);
+            try tape.appendArith256Mod(call);
+        }
+        for (0..2) |i| {
+            var call = rv.ethereum_services.Sha256Call{ .call_id = 7 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
+            for (&call.before, 0..) |*w, index| w.* = 0x0123456789abcdef ^ index;
+            call.after = call.before;
+            call.after[0..4].* = rv.ethereum_services.sha256.compressPacket(call.before);
+            try tape.appendSha256(call);
+        }
+    } else {
+        const sha = rv.ethereum_services.Sha256Call{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+        try std.testing.expectError(error.InvalidTapeService, tape.appendSha256(sha));
+        const arith = rv.ethereum_services.Arith256ModCall{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+        try std.testing.expectError(error.InvalidTapeService, tape.appendArith256Mod(arith));
+    }
     return tape;
+}
+
+test "native tape wire v3 SHA-256 section: misaligned, mutated read-only words and pre-v3 counts reject" {
+    var tape = try fixture(.ethereum_services_v3);
+    defer tape.deinit();
+    // SHA-only v3 tape: the SHA-256 records are the last section.
+    tape.arith256_mod_calls.clearRetainingCapacity();
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const file = try temp.dir.createFile("tape", .{ .read = true });
+    defer file.close();
+    try W.write(file, &tape);
+    const bytes = try temp.dir.readFileAlloc(a, "tape", 1 << 20);
+    defer a.free(bytes);
+    try std.testing.expectEqual(@as(u32, 2), std.mem.readInt(u32, bytes[28..32], .little));
+    // The last record's read-only word 11 (after) is mutated.
+    var changed = try a.dupe(u8, bytes);
+    defer a.free(changed);
+    changed[changed.len - 1] ^= 1;
+    const bad = try temp.dir.createFile("bad", .{ .read = true });
+    defer bad.close();
+    try bad.writeAll(changed);
+    try bad.seekTo(0);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, bad, .{}));
+    // A v2 header must not smuggle a SHA-256 count.
+    @memcpy(changed, bytes);
+    std.mem.writeInt(u32, changed[8..12], @intFromEnum(rv.execution_profile.Profile.ethereum_services_v2), .little);
+    try bad.setEndPos(0);
+    try bad.seekTo(0);
+    try bad.writeAll(changed);
+    try bad.seekTo(0);
+    try std.testing.expectError(error.InvalidTapeWireHeader, W.readTail(a, bad, .{}));
+    // Misaligned pointer in the first SHA-256 record.
+    @memcpy(changed, bytes);
+    const first = changed.len - 2 * (32 + 96 + 96);
+    std.mem.writeInt(u64, changed[first + 24 ..][0..8], std.mem.readInt(u64, changed[first + 24 ..][0..8], .little) + 8, .little);
+    try bad.setEndPos(0);
+    try bad.seekTo(0);
+    try bad.writeAll(changed);
+    try bad.seekTo(0);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, bad, .{}));
+}
+
+test "v3 tape extension is present exactly when arith256_mod records exist (SHA-only v3 tapes keep the pre-arith bytes)" {
+    var tape = try fixture(.ethereum_services_v3);
+    defer tape.deinit();
+    try std.testing.expect(tape.arith256_mod_calls.items.len != 0 and tape.sha256_calls.items.len != 0);
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const file = try temp.dir.createFile("tape", .{ .read = true });
+    defer file.close();
+    try W.write(file, &tape);
+    const bytes = try temp.dir.readFileAlloc(a, "tape", 16384);
+    defer a.free(bytes);
+    const sha_word = std.mem.readInt(u32, bytes[28..32], .little);
+    try std.testing.expectEqual(@as(u32, (1 << 31) | @as(u32, @intCast(tape.sha256_calls.items.len))), sha_word);
+    // The arith256_mod section is last: [count, reserved] then 352-byte records.
+    const ext = bytes.len - tape.arith256_mod_calls.items.len * (32 + 160 + 160) - 8;
+    try std.testing.expectEqual(@as(u32, @intCast(tape.arith256_mod_calls.items.len)), std.mem.readInt(u32, bytes[ext..][0..4], .little));
+    var changed = try a.dupe(u8, bytes);
+    defer a.free(changed);
+    changed[31] &= 0x7f; // flag cleared: the extension becomes trailing data
+    try replace(file, changed);
+    try std.testing.expectError(error.TrailingTapeWireData, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    changed[ext + 4] = 1; // curve record count (formerly reserved) without its record
+    try replace(file, changed);
+    try std.testing.expectError(error.TruncatedTapeWireData, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    @memset(changed[ext..][0..4], 0); // announced but empty extension is not canonical
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireGeometry, W.readTail(a, file, .{}));
+    // SHA-only v3: no flag, no extension, size = the pre-arith formula.
+    tape.arith256_mod_calls.clearRetainingCapacity();
+    const sha_only = try temp.dir.createFile("sha-only", .{ .read = true });
+    defer sha_only.close();
+    try W.write(sha_only, &tape);
+    const sha_bytes = try temp.dir.readFileAlloc(a, "sha-only", 16384);
+    defer a.free(sha_bytes);
+    try std.testing.expectEqual(@as(u32, @intCast(tape.sha256_calls.items.len)), std.mem.readInt(u32, sha_bytes[28..32], .little));
+    try std.testing.expectEqual(W.HEADER_BYTES + tape.len * 48 + tape.memory_before.items.len * 8 + tape.service_calls.items.len * 432 + tape.secp_calls.items.len * 424 + tape.sha256_calls.items.len * (32 + 96 + 96), sha_bytes.len);
+    try std.testing.expectEqualSlices(u8, bytes[32 .. bytes.len - (bytes.len - sha_bytes.len)], sha_bytes[32..]);
+    try sha_only.seekTo(0);
+    var loaded = try W.readTail(a, sha_only, .{});
+    defer loaded.deinit();
+    try std.testing.expectEqual(@as(usize, 0), loaded.arith256_mod_calls.items.len);
+}
+
+fn appendCurves(tape: *T.Tape, pointer: u64) !void {
+    const C = rv.ethereum_services.curves;
+    const ops = [_]C.Op{ .bn254_fp2_mul, .arith384_mont, .bls12_381_g1_double, .bn254_fp2_mul };
+    var ids: [C.COUNT]u64 = @splat(0);
+    for (ops) |op| {
+        var before: [C.MAX_WORDS]u64 = @splat(0);
+        for (before[0..C.words(op)], 0..) |*w, i| w.* = 0x0123456789abcdef +% i *% 0x9e3779b97f4a7c15;
+        switch (op) {
+            .arith384_mont => before[12] |= 1,
+            // x, y < p: small canonical values with y != 0.
+            .bls12_381_g1_double => for (before[0..12], 0..) |*w, i| {
+                w.* = if (i % 6 == 0) 7 + i else 0;
+            },
+            else => {},
+        }
+        ids[C.index(op)] += 1;
+        const after = try C.execute(op, before[0..C.words(op)]);
+        try tape.appendCurve(.{ .op = op, .call_id = 40 + ids[C.index(op)], .clock = tape.initial_clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = before, .after = after });
+    }
+}
+
+test "v3 tape curve records round-trip after arith256_mod records; curve-only extension; forged records reject" {
+    var tape = try fixture(.ethereum_services_v3);
+    defer tape.deinit();
+    try appendCurves(&tape, (1 << 48) + 8192);
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const file = try temp.dir.createFile("tape", .{ .read = true });
+    defer file.close();
+    try W.write(file, &tape);
+    try std.testing.expectEqual(try W.encodedBytes(&tape), try file.getEndPos());
+    const bytes = try temp.dir.readFileAlloc(a, "tape", 32768);
+    defer a.free(bytes);
+    try file.seekTo(0);
+    var loaded = try W.readTail(a, file, .{});
+    defer loaded.deinit();
+    try std.testing.expectEqual(tape.curve_calls.items.len, loaded.curve_calls.items.len);
+    for (tape.curve_calls.items, loaded.curve_calls.items) |x, y| try std.testing.expect(std.meta.eql(x, y));
+    try std.testing.expectEqual(tape.arith256_mod_calls.items.len, loaded.arith256_mod_calls.items.len);
+    // Extension: [arith count, curve count], arith records, then 424-byte curve records.
+    const curve_bytes = tape.curve_calls.items.len * 424;
+    const ext = bytes.len - curve_bytes - tape.arith256_mod_calls.items.len * 352 - 8;
+    try std.testing.expectEqual(@as(u32, @intCast(tape.curve_calls.items.len)), std.mem.readInt(u32, bytes[ext + 4 ..][0..4], .little));
+    const first = bytes.len - curve_bytes;
+    var changed = try a.dupe(u8, bytes);
+    defer a.free(changed);
+    changed[first] = 12; // no such op
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    changed[first + 232 + 8 * 9] ^= 1; // a read-only word (bn254_fp2_mul b0) changed by the call
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    changed[first + 32] |= 8; // pointer no longer 32-byte aligned
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, file, .{}));
+    // Curve-only extension (no arith256_mod records) is canonical and round-trips.
+    var curve_only = try fixture(.ethereum_services_v3);
+    defer curve_only.deinit();
+    curve_only.arith256_mod_calls.clearRetainingCapacity();
+    try appendCurves(&curve_only, (1 << 48) + 8192);
+    try file.seekTo(0);
+    try file.setEndPos(0);
+    try W.write(file, &curve_only);
+    try file.seekTo(0);
+    var reloaded = try W.readTail(a, file, .{});
+    defer reloaded.deinit();
+    try std.testing.expectEqual(@as(usize, 0), reloaded.arith256_mod_calls.items.len);
+    try std.testing.expectEqual(curve_only.curve_calls.items.len, reloaded.curve_calls.items.len);
 }

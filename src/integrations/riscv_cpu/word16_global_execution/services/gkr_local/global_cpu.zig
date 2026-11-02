@@ -71,8 +71,8 @@ pub fn queriesFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main
                 sink.emit(.kio, K.equations.ioTuple(F, fixed, main, false), main[0].neg());
                 sink.emit(.kio, K.equations.ioTuple(F, fixed, main, true), main[0].neg());
             },
-            .add, .double => {
-                const kind: A.crypto.secp256k1.program.Kind = if (family == .add) .add else .double;
+            else => {
+                const kind: A.crypto.secp256k1.word16_bridge.types.Kind = @import("../types.zig").bridgeKind(family);
                 for (0..4) |lane| {
                     const row = S.equations.ramRow(F, main, lane);
                     sink.emit(.ram, R.equations.ramTuple(F, .transition, &row, false), main[0]);
