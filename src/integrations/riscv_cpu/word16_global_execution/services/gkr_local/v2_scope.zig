@@ -4,8 +4,9 @@
 //! exactly those three families. Every v3 extension of the classic services
 //! route (SHA-256, arith256_mod, curve/field families, bulk memory incl. the
 //! unaligned ucopy/cdesc/cmp and JUMPDEST jdesc/jscan/jtab kinds, Keccak
-//! sponge, and the throughput_v1 Keccak-f truth profile) and every v3 CPU AIR
-//! layout (fused-tail interaction, U8 byte-pair queries) is rejected here, at each admission boundary, instead of being
+//! sponge, the LS-D64 aligned-doubleword load/store head/tail components, and
+//! the throughput_v1 Keccak-f truth profile) and every v3 CPU AIR layout
+//! (fused-tail interaction, U8 byte-pair queries) is rejected here, at each admission boundary, instead of being
 //! silently dropped or mis-typed as a secp bridge. Lifting this requires
 //! porting each v3 family into the GKR roles and global authorities.
 const T = @import("../types.zig");
@@ -18,6 +19,8 @@ pub fn family(f: T.Family) !void {
 pub fn bridges(logs: T.Logs) !void {
     for (T.V3) |f| if (logs.at(f) != null) return error.GkrV3ServiceUnsupported;
     if (logs.bulk.any() or logs.sponge.any()) return error.GkrV3ServiceUnsupported;
+    // LS-D64 has no GKR role, mass or statement; every LD/SD stays LS32 here.
+    if (logs.ls_dword != null or logs.ls_dword_tail != null) return error.GkrV3ServiceUnsupported;
 }
 /// CPU geometry: the local GKR lane replaces the CPU LogUp interaction with
 /// its own term layout (`roster.terms(.cpu)`) over the historical 40-column
@@ -35,18 +38,18 @@ pub fn setup(s: *const R.CpuSetup) !void {
     try geometry(s.materials.geometry);
     return bridges(s.bridges);
 }
-pub fn calls(all: [T.FAMILIES]u32, bulk: T.BulkCounts, sponge: T.SpongeCounts) !void {
+pub fn calls(all: [T.FAMILIES]u32, bulk: T.BulkCounts, sponge: T.SpongeCounts, ls_dword: u32) !void {
     for (all[T.V2_FAMILIES..]) |n| if (n != 0) return error.GkrV3ServiceUnsupported;
-    if (bulk.any() or sponge.any()) return error.GkrV3ServiceUnsupported;
+    if (bulk.any() or sponge.any() or ls_dword != 0) return error.GkrV3ServiceUnsupported;
 }
 pub fn request(r: P.Request) !void {
-    return calls(r.calls, r.bulk, r.sponge);
+    return calls(r.calls, r.bulk, r.sponge, r.ls_dword);
 }
 /// Whole captured advice: every shard must be v2-only (used before any
 /// v2-only diagnostic such as the capture digest or shape planning).
 pub fn advice(a: *const @import("../collector.zig").Advice) !void {
     if (a.sha256.len != a.keccak.len or a.arith256_mod.len != a.keccak.len or a.curves.len != a.keccak.len or a.bulk.len != a.keccak.len or a.sponge.len != a.keccak.len) return error.InvalidCombinedInventory;
-    for (0..a.keccak.len) |i| try calls(@import("../pipeline.zig").adviceCalls(a, i), a.bulk[i].counts(), a.sponge[i].counts());
+    for (0..a.keccak.len) |i| try calls(@import("../pipeline.zig").adviceCalls(a, i), a.bulk[i].counts(), a.sponge[i].counts(), 0);
 }
 pub fn truth(t: R.Truth) !void {
     return switch (t) {

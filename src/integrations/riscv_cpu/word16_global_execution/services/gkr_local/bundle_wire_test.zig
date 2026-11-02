@@ -75,7 +75,7 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     const Scope = @import("v2_scope.zig");
     const T = @import("../types.zig");
     try Scope.bridges(.{ .keccak = 5, .add = 5, .double = 5 });
-    try Scope.calls(.{ 1, 1, 1 } ++ @as([T.FAMILIES - 3]u32, @splat(0)), .{}, .{});
+    try Scope.calls(.{ 1, 1, 1 } ++ @as([T.FAMILIES - 3]u32, @splat(0)), .{}, .{}, 0);
     for (T.V3) |f| {
         var logs = T.Logs{};
         logs.set(f, 5);
@@ -83,7 +83,7 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
         try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.family(f));
         var calls: [T.FAMILIES]u32 = @splat(0);
         calls[@intFromEnum(f)] = 1;
-        try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(calls, .{}, .{}));
+        try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(calls, .{}, .{}, 0));
     }
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .copy = 5 } }));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .sponge = .{ .perm = 5 } }));
@@ -91,17 +91,22 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .ucopy = 5 } }));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .cdesc = 5 } }));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .cmp = 5 } }));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .ucopy_rows = 1 }, .{}));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_calls = 1 }, .{}));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_words = 1 }, .{}));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .calls = 1 }, .{}));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .ucopy_rows = 1 }, .{}, 0));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_calls = 1 }, .{}, 0));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_words = 1 }, .{}, 0));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .calls = 1 }, .{}, 0));
     // JUMPDEST analysis kinds (jdesc/jscan/jtab) are v3 bulk too.
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .jdesc = 5 } }));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .jscan = 5 } }));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .jtab = 5 } }));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .jump_calls = 1 }, .{}));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .jump_rows = 1 }, .{}));
-    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{}, .{ .perms = 1 }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .jump_calls = 1 }, .{}, 0));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .jump_rows = 1 }, .{}, 0));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{}, .{ .perms = 1 }, 0));
+    // LS-D64 head/tail components and rows are v3-only (no GKR role).
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .ls_dword = 5 }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .ls_dword_tail = 5 }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .keccak = 5, .ls_dword = 5, .ls_dword_tail = 5 }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{}, .{}, 1));
 
     // Transport preflight: an otherwise admissible v2 metadata turned v3.
     const Cpu = @typeInfo(@FieldType(Wire.Metadata, "cpus")).pointer.child;
@@ -137,6 +142,19 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, Scope.declaration(cpus[0].declaration));
     cpus[0].declaration.geometry.cpu_u8_pairs = false;
     try Scope.declaration(cpus[0].declaration);
+    try Wire.validate(metadata, .{});
+    // LS-D64 declaration (head, tail-only) or rows in an otherwise v2 shard.
+    cpus[0].declaration.bridges.ls_dword = 5;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.declaration(cpus[0].declaration));
+    cpus[0].request.ls_dword = 1;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    cpus[0].declaration.bridges.ls_dword = null;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    cpus[0].request.ls_dword = 0;
+    cpus[0].declaration.bridges.ls_dword_tail = 5;
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Wire.validate(metadata, .{}));
+    cpus[0].declaration.bridges.ls_dword_tail = null;
     try Wire.validate(metadata, .{});
     const Truth = @typeInfo(@FieldType(Wire.Metadata, "truths")).pointer.child;
     var truth_claims = [_][8]u32{@splat(0)} ** 5;

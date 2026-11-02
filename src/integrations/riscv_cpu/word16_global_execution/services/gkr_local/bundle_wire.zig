@@ -85,7 +85,7 @@ pub fn validate(metadata: Metadata, limits: Limits) !void {
     // The wide route is v2-only; reject v3 declarations before shared preflight.
     for (metadata.cpus) |cpu| {
         try Scope.declaration(cpu.declaration);
-        try Scope.calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge);
+        try Scope.calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge, cpu.request.ls_dword);
     }
     for (metadata.truths) |truth| try Scope.truthDeclaration(truth.declaration);
     try Legacy.validateDeclarations(metadata.cpus, metadata.truths, metadata.memory_words, limits);
