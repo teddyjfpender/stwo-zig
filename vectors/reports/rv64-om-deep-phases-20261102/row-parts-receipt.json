@@ -1,0 +1,56 @@
+{
+  "scope": "same stronger candidate CPU0; bounded row subphase counters only",
+  "all4artifactshaexact": true,
+  "frozenreceiveraccepted": true,
+  "workers": [
+    {
+      "rows": 2097152,
+      "points_ns": 14577323,
+      "inverse_ns": 366390115,
+      "finalize_ns": 637273755
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14571379,
+      "inverse_ns": 368139219,
+      "finalize_ns": 640134162
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14608481,
+      "inverse_ns": 368874003,
+      "finalize_ns": 641904056
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14577015,
+      "inverse_ns": 369544780,
+      "finalize_ns": 643256087
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14621913,
+      "inverse_ns": 370099099,
+      "finalize_ns": 644371833
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14563284,
+      "inverse_ns": 369904829,
+      "finalize_ns": 645298234
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14617086,
+      "inverse_ns": 370320544,
+      "finalize_ns": 644858882
+    },
+    {
+      "rows": 2097152,
+      "points_ns": 14592551,
+      "inverse_ns": 372701429,
+      "finalize_ns": 650402886
+    }
+  ],
+  "caveat": "Per-worker intervals, not independent additive block wall; one diagnostic run."
+}
