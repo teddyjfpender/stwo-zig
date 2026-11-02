@@ -341,6 +341,11 @@ pub fn dwordCounts(logs: Logs, total: u32) ![DWORD_INSTANCES]u32 {
 pub fn dwordWidths() [3]usize {
     return A.memory.load_store_dword.layout.widths();
 }
+/// LS-D64 widths of a CPU geometry (Geometry.ls_dword_fused_pairs selects the
+/// fused-pair layout, interaction 28 -> 16).
+pub fn dwordWidthsFor(g: @import("../../word16_execution/geometry.zig").Geometry) [3]usize {
+    return A.memory.load_store_dword.layout.widthsFor(g.ls_dword_fused_pairs);
+}
 /// The routing rule shared by prover and receiver accounting: with an LS-D64
 /// component present, exactly the LD/SD events are its rows.
 pub fn isDwordEvent(e: A.memory.load_store_v2.native.Event) bool {

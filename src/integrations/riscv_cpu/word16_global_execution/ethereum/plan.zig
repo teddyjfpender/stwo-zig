@@ -32,6 +32,10 @@ pub const CpuLayout = struct {
     mul_u8_pairs: bool = false,
     /// LS32 fused tail + byte pairs, INIT/TEARDOWN fused single (requires u8_pairs).
     ls_fused_pairs: bool = false,
+    /// ALU fused tail (head and tail instances).
+    alu_fused_tail: bool = false,
+    /// LS-D64 fused tail + byte pair (requires u8_pairs and ls_dword).
+    ls_dword_fused_pairs: bool = false,
     /// Default layout for a profile route. Only the admitted
     /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
     /// LS-D64; every older route keeps its historical layout and bundle bytes.
@@ -67,6 +71,8 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.cpu_u8_pairs = layout.u8_pairs;
         g.mul_u8_pairs = layout.mul_u8_pairs;
         g.ls_fused_pairs = layout.ls_fused_pairs;
+        g.alu_fused_tail = layout.alu_fused_tail;
+        g.ls_dword_fused_pairs = layout.ls_dword_fused_pairs;
         d.* = .{ .geometry = g, .bridges = .{} };
         // The same two-instance ladder as LS32 (one inactive row per instance).
         if (dword != 0) {

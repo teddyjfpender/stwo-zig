@@ -349,7 +349,7 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
         for (0..T.DWORD_INSTANCES) |k| if (cpu.declaration.bridges.dwordLog(k)) |l| {
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(l));
             mass16 = try std.math.add(u64, mass16, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U16.len) << @intCast(l));
-            mass8 = try std.math.add(u64, mass8, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U8.len) << @intCast(l));
+            if (!g.ls_dword_fused_pairs) mass8 = try std.math.add(u64, mass8, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U8.len) << @intCast(l));
         };
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
         ram = try std.math.add(u64, ram, 58 * @as(u64, cpu.request.sponge.calls) + 36 * @as(u64, cpu.request.sponge.perms));

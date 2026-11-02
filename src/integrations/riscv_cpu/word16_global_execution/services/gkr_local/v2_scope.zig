@@ -27,7 +27,7 @@ pub fn bridges(logs: T.Logs) !void {
 /// CPU AIR and the single-multiplicity AND table; it has no fused-tail or
 /// byte-pair variant.
 pub fn geometry(g: @import("../../../word16_execution/geometry.zig").Geometry) !void {
-    if (g.cpu_fused_tail or g.cpu_u8_pairs or g.mul_u8_pairs or g.ls_fused_pairs) return error.UnsupportedFusedTailInLocalGkr;
+    if (g.cpu_fused_tail or g.cpu_u8_pairs or g.mul_u8_pairs or g.ls_fused_pairs or g.alu_fused_tail or g.ls_dword_fused_pairs) return error.UnsupportedFusedTailInLocalGkr;
 }
 /// CPU declaration (wire/plan admission): geometry and bridges.
 pub fn declaration(d: @import("../wire.zig").CpuDeclaration) !void {

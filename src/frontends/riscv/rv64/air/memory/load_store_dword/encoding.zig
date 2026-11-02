@@ -13,6 +13,19 @@ pub fn identity() [32]u8 {
     }
     return h.finalResult();
 }
+/// Fused-pair layout identity (Geometry.ls_dword_fused_pairs only).
+pub fn fusedIdentity() [32]u8 {
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("stwo-rv64/ls-dword/fused-pairs-v1/inter16/RAM fused (S-S'+claim*first)*b*a-active*(a-b)/K0*a*b=b*active+a (OWNER,U16_0)/K1*a*b=a+b (U16_1,U16_2)/AND-relation tagged pair (b13,b26,0,1)/fused (S-S'+total*first-K0-K1)*d3*p-(d3+p)/D3");
+    return h.finalResult();
+}
+pub fn mixFused(channel: *Channel) void {
+    channel.mixU32s(&.{ 0x4c534446, 1, L.MAIN, L.fused.INTERACTION, @intCast(L.fused.CONSTRAINTS) });
+    const digest = fusedIdentity();
+    var words: [8]u32 = undefined;
+    for (&words, 0..) |*w, j| w.* = std.mem.readInt(u32, digest[4 * j ..][0..4], .little);
+    channel.mixU32s(&words);
+}
 pub fn mix(channel: *Channel) void {
     channel.mixU32s(&.{ 0x4c534438, 1, L.MAIN, L.INTERACTION, @intCast(CONSTRAINTS) });
     const digest = identity();

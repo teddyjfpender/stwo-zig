@@ -54,6 +54,7 @@ pub const Tails = struct {
             var stage = try Profile.StageScope.begin(recorder, "source_alu_tail", "ALU tail witness");
             defer stage.end();
             result.alu = try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts[splits.alu.head..], prepared.alu.weights[splits.alu.head..], log);
+            result.alu.?.fused = g.alu_fused_tail;
         }
         if (g.binary_tail_log) |log| {
             var stage = try Profile.StageScope.begin(recorder, "source_binary_tail", "BINARY tail witness");

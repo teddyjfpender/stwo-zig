@@ -49,6 +49,13 @@ pub const Geometry = struct {
     /// the local prefix; other local slots are degree-one fractions) and
     /// INIT/TEARDOWN 8 -> 4 (fused single). load_store_v2.layout.fused.
     ls_fused_pairs: bool = false,
+    /// Opt-in fused-tail ALU (head and tail instances) interaction: 32 -> 28
+    /// columns, the same LogUp statement (alu_lookup.fused).
+    alu_fused_tail: bool = false,
+    /// Opt-in fused-pair LS-D64 services bridge (requires cpu_u8_pairs):
+    /// interaction 28 -> 16 (load_store_dword.layout.fused). Only the services
+    /// roster has an LS-D64 role; its AND pair mass is admitted there.
+    ls_dword_fused_pairs: bool = false,
     /// Omits the opt-in layout flags when false so legacy bundle.json bytes are unchanged.
     pub fn jsonStringify(self: Geometry, jws: anytype) !void {
         try jws.beginObject();
@@ -69,7 +76,7 @@ pub const Geometry = struct {
     }
     /// Opt-in layout flags: Boolean, default false, omitted from JSON when false.
     pub fn isLayoutFlag(comptime name: []const u8) bool {
-        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs") or std.mem.eql(u8, name, "ls_fused_pairs");
+        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs") or std.mem.eql(u8, name, "ls_fused_pairs") or std.mem.eql(u8, name, "alu_fused_tail") or std.mem.eql(u8, name, "ls_dword_fused_pairs");
     }
     pub fn initialLog(self: Geometry) u32 {
         return self.initial_log orelse self.boundary_log;
@@ -84,6 +91,7 @@ pub const Geometry = struct {
         // MUL pairs are served by the pair column that only the CPU pair layout provides.
         if (self.mul_u8_pairs and !self.cpu_u8_pairs) return error.InvalidMulPairGeometry;
         if (self.ls_fused_pairs and !self.cpu_u8_pairs) return error.InvalidLsPairGeometry;
+        if (self.ls_dword_fused_pairs and !self.cpu_u8_pairs) return error.InvalidLsPairGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
@@ -142,6 +150,9 @@ pub const Geometry = struct {
         return total;
     }
 };
+fn aluInteraction(geometry: Geometry) usize {
+    return if (geometry.alu_fused_tail) B.alu_experiment.lookup.fused.INTERACTION else B.alu_experiment.lookup.INTERACTION;
+}
 pub fn rows(log: u32) u64 {
     return @as(u64, 1) << @intCast(log);
 }
@@ -176,8 +187,8 @@ pub fn shapesForProgramLog(program_log: u32, geometry: Geometry) [ROLE_COUNT]Sha
             .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.interCountFor(geometry.cpu_fused_tail, geometry.cpu_u8_pairs) },
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
-            .alu => .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION },
-            .alu_tail => if (geometry.alu_tail_log != null) .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION } else .{ 0, 0, 0 },
+            .alu => .{ 2, B.alu_experiment.lookup.MAIN, aluInteraction(geometry) },
+            .alu_tail => if (geometry.alu_tail_log != null) .{ 2, B.alu_experiment.lookup.MAIN, aluInteraction(geometry) } else .{ 0, 0, 0 },
             .binary => .{ 2, B.binary_lookup.MAIN, B.binary_lookup.INTERACTION },
             .binary_tail => if (geometry.binary_tail_log != null) .{ 2, B.binary_lookup.MAIN, B.binary_lookup.INTERACTION } else .{ 0, 0, 0 },
             .shift => .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION },

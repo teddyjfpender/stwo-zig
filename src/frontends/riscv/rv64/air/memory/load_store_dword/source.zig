@@ -115,6 +115,80 @@ pub const Source = struct {
     }
     /// One serial pass in logical row order (the prefix order); MAIN may
     /// already be committed and released.
+    /// Pair index (b13, b26) of a row in the AND pair table.
+    fn pairIndex(meta: Metadata) usize {
+        return @as(usize, meta.range8[L.U8_CACHE[0]]) * 256 + meta.range8[L.U8_CACHE[1]];
+    }
+    /// Fused-pair layout: adds the AND-relation byte-pair multiplicity of every
+    /// physical row (padding included, weight one). Requires metadata.
+    pub fn addBytePairCounts(self: *const Source, out: []u64) !void {
+        if (out.len != 65536 or self.metadata.len != self.size()) return error.InvalidLsPhase;
+        for (self.metadata) |meta| out[pairIndex(meta)] = try std.math.add(u64, out[pairIndex(meta)], 1);
+    }
+    /// Fused-pair layout (L.fused): `pairs[x*256+y] = 1/p(x,y)` of the AND pair
+    /// table. The `range8` claim share carries the AND-relation pair share.
+    pub fn generatePairs(self: *Source, ch: T.Challenges, dict16: []const Q, pairs: []const Q) !T.Claims {
+        const I = V2.interaction;
+        const n = self.size();
+        if (pairs.len != 65536) return error.InvalidLsDictionary;
+        if (self.interaction.len != 0 or self.metadata.len != n or self.rows >= n) return error.InvalidLsPhase;
+        for (self.metadata, 0..) |meta, i| if (meta.flags & ~@as(u8, 7) != 0 or (meta.flags & 1) != @intFromBool(i < self.rows)) return error.InvalidLsMetadata;
+        try I.validateDictionary(ch.range16, dict16, 65536);
+        const a = self.allocator;
+        var claims = T.Claims.zero();
+        claims.range16 = try I.countDot(self.counts16, dict16);
+        {
+            const counts = try a.alloc(u64, 65536);
+            defer a.free(counts);
+            @memset(counts, 0);
+            try self.addBytePairCounts(counts);
+            claims.range8 = try I.countDot(counts, pairs);
+        }
+        const output = try a.alloc(M, L.fused.INTERACTION * n);
+        errdefer a.free(output);
+        const scratch = try a.alloc(Q, 5 * CHUNK);
+        defer a.free(scratch);
+        var prefix: [4]Q = .{ Q.zero(), Q.zero(), claims.range16.neg(), claims.range8.neg() };
+        var start: usize = 0;
+        while (start < n) : (start += CHUNK) {
+            const count: usize = @min(CHUNK, n - start);
+            const product = scratch[0..count];
+            const delta = scratch[CHUNK..][0..count];
+            const owner = scratch[2 * CHUNK ..][0..count];
+            const inv = scratch[3 * CHUNK ..][0..count];
+            const inv_owner = scratch[4 * CHUNK ..][0..count];
+            I.ParallelSupport.rowDenominators(self.metadata[start..][0..count], ch, product, delta, owner);
+            try core.fields.batchInverseInPlace(Q, product, inv);
+            try core.fields.batchInverseInPlace(Q, owner, inv_owner);
+            for (0..count) |k| {
+                const logical = start + k;
+                const pos = R.trace.physical(logical, self.log_size);
+                const meta = self.metadata[logical];
+                prefix[0] = prefix[0].add(delta[k].mul(inv[k]).mulM31(meta.active()));
+                R.trace.store(output, n, pos, L.fused.RAM_PREFIX, prefix[0]);
+                const own = inv_owner[k].mulM31(meta.active());
+                prefix[1] = prefix[1].add(own);
+                var r16: [L.LOGICAL_U16.len]Q = undefined;
+                for (L.U16_CACHE, &r16) |cache, *value| {
+                    value.* = dict16[meta.range16[cache]];
+                    prefix[2] = prefix[2].add(value.*);
+                }
+                prefix[3] = prefix[3].add(pairs[pairIndex(meta)]);
+                R.trace.store(output, n, pos, L.fused.WITNESS, own.add(r16[0]));
+                R.trace.store(output, n, pos, L.fused.WITNESS + 4, r16[1].add(r16[2]));
+                R.trace.store(output, n, pos, L.fused.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]));
+            }
+        }
+        if (!prefix[2].isZero() or !prefix[3].isZero()) return error.InvalidLsCounts;
+        claims.ram = prefix[0];
+        claims.owner = prefix[1];
+        R.trace.center(output, n, L.fused.RAM_PREFIX, claims.ram);
+        R.trace.center(output, n, L.fused.LOCAL_PREFIX, claims.owner);
+        self.interaction = output;
+        a.free(self.metadata);
+        self.metadata = &.{};
+        return claims;
+    }
     pub fn generate(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
         const I = V2.interaction;
         const n = self.size();

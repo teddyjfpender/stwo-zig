@@ -186,7 +186,7 @@ pub const CpuSetup = struct {
     pub fn dwordOffset(self: *const CpuSetup, k: usize, tree: usize) usize {
         var n = self.spongeEnd(tree);
         for (0..k) |j| if (self.bridges.dwordLog(j) != null) {
-            n += T.dwordWidths()[tree];
+            n += T.dwordWidthsFor(self.materials.geometry)[tree];
         };
         return n;
     }
@@ -233,7 +233,7 @@ pub const CpuSetup = struct {
             at += width;
         };
         for (0..T.DWORD_INSTANCES) |k| if (self.bridges.dwordLog(k)) |log| {
-            const width = T.dwordWidths()[tree];
+            const width = T.dwordWidthsFor(self.materials.geometry)[tree];
             @memset(out[at..][0..width], log);
             at += width;
         };
@@ -332,7 +332,7 @@ pub const Sources = struct {
             if (setup.bridges.dwordLog(k)) |log| {
                 const s = self.ls_dword[k] orelse return error.MissingCombinedServiceSource;
                 const data = if (tree == 1) s.main else s.interaction;
-                if (s.log_size != log or data.len != T.dwordWidths()[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                if (s.log_size != log or data.len != T.dwordWidthsFor(setup.materials.geometry)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
                 append(out, &at, data, log);
             } else if (self.ls_dword[k] != null) return error.UnexpectedCombinedServiceSource;
         }
@@ -350,7 +350,19 @@ pub const Sources = struct {
             try merge(&self.core, s.counts16, s.counts8);
             if (s.counts_and.len != 0) try mergeAnd(&self.core, s.counts_and);
         };
-        for (&self.ls_dword) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
+        if (self.core.materials.geometry.ls_dword_fused_pairs) {
+            // Fused-pair LS-D64: the two U8 queries per row are one AND-relation
+            // byte pair, merged into the AND table's pair column.
+            const zero8: [256]u64 = @splat(0);
+            for (&self.ls_dword) |*b| if (b.*) |*s| {
+                try merge(&self.core, s.counts16, &zero8);
+                const pairs = try self.core.allocator.alloc(u64, 65536);
+                defer self.core.allocator.free(pairs);
+                @memset(pairs, 0);
+                try s.addBytePairCounts(pairs);
+                try mergeAndPairTable(&self.core.and_table, pairs);
+            };
+        } else for (&self.ls_dword) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
     }
     pub fn releaseMain(self: *Sources) !void {
         try self.core.releaseMain();
@@ -534,6 +546,22 @@ pub fn mergeAndTable(table: *A.providers.tables.Request, pairs: bool, extra: []c
     };
     for (extra, 0..) |x, row| {
         const p = A.witness.physical(row, 16);
+        const total = try std.math.add(u64, table.main[p].v, x);
+        mass = try std.math.add(u64, mass, total);
+        if (mass >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
+        table.main[p] = M.fromCanonical(@intCast(total));
+    }
+}
+/// Adds service byte-pair multiplicities to the pair column of the
+/// pair-capable AND table (main phase), keeping the joint AND + pair mass
+/// below p exactly as Request.initWithPairs admits.
+pub fn mergeAndPairTable(table: *A.providers.tables.Request, extra: []const u64) !void {
+    const size: usize = 65536;
+    if (table.kind != .byte_and or table.interaction.len != 0 or table.pair_dictionary.len != 0 or extra.len != size or !table.pairs or table.main.len != 2 * size) return error.InvalidCombinedRangePhase;
+    var mass: u64 = 0;
+    for (table.main[0..size]) |m| mass = try std.math.add(u64, mass, m.v);
+    for (extra, 0..) |x, row| {
+        const p = size + A.witness.physical(row, 16);
         const total = try std.math.add(u64, table.main[p].v, x);
         mass = try std.math.add(u64, mass, total);
         if (mass >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;

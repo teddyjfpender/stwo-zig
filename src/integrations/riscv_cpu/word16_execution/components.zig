@@ -73,8 +73,8 @@ pub const Components = struct {
                         else => unreachable,
                     }
                 },
-                .alu => result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu },
-                .alu_tail => result.alu_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu_tail },
+                .alu => result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu, .fused = materials.geometry.alu_fused_tail },
+                .alu_tail => result.alu_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu_tail, .fused = materials.geometry.alu_fused_tail },
                 .binary, .binary_tail, .and_table => {
                     const component = B.binary_component.Component{ .kind = if (shape.role != .and_table) .binary else if (materials.geometry.cpu_u8_pairs) .and_pair_table else .and_table, .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .and_ = ch.and_ }, .claims = if (shape.role == .binary_tail) claims.binary_tail else if (shape.role == .binary) claims.binary else .{ .and_ = claims.and_table, .function = Q.zero() } };
                     if (shape.role == .binary_tail) result.binary_tail = component else if (shape.role == .binary) result.binary = component else result.and_table = component;

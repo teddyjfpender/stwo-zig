@@ -26,12 +26,15 @@ const LSD = A.memory.load_store_dword;
 /// Admitted LS-D64 geometry and masses of one CPU proof: present iff it has
 /// rows, one inactive terminal row, RAM14 gains 2 per row, U16 4 and U8 2 per
 /// physical row (padding included), OWNER19 at most 1 per row.
-pub fn admitDword(setup: *const R.CpuSetup, r: Request) !struct { range16: u64, range8: u64 } {
+/// Fused-pair layout (Geometry.ls_dword_fused_pairs): the two U8 queries are
+/// one AND-relation byte pair per physical row instead (`and_pairs`).
+pub fn admitDword(setup: *const R.CpuSetup, r: Request) !struct { range16: u64, range8: u64, and_pairs: u64 } {
     _ = try T.dwordCounts(setup.bridges, r.ls_dword);
-    var out: @TypeOf(admitDword(setup, r) catch unreachable) = .{ .range16 = 0, .range8 = 0 };
+    var out: @TypeOf(admitDword(setup, r) catch unreachable) = .{ .range16 = 0, .range8 = 0, .and_pairs = 0 };
+    const pairs = setup.materials.geometry.ls_dword_fused_pairs;
     for (0..T.DWORD_INSTANCES) |k| if (setup.bridges.dwordLog(k)) |l| {
         out.range16 += @as(u64, LSD.layout.LOGICAL_U16.len) << @intCast(l);
-        out.range8 += @as(u64, LSD.layout.LOGICAL_U8.len) << @intCast(l);
+        if (pairs) out.and_pairs += @as(u64, LSD.layout.fused.PAIR_QUERIES) << @intCast(l) else out.range8 += @as(u64, LSD.layout.LOGICAL_U8.len) << @intCast(l);
     };
     return out;
 }
@@ -144,6 +147,12 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
         const dword = try admitDword(setup, req);
+        // The AND relation of this CPU proof (BINARY, every byte-pair consumer
+        // of the pair-capable table, sponge byte-AND) keeps its joint mass below p.
+        if (setup.materials.geometry.ls_dword_fused_pairs) {
+            const sponge_and: u64 = if (setup.bridges.sponge.perm) |l| @as(u64, KS.layout.andCount(.perm)) << @intCast(l) else 0;
+            if (try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.andMass(), sponge_and), dword.and_pairs) >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+        }
         sponge_io = try std.math.add(u64, sponge_io, sponge.io);
         sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
         var mass16 = try std.math.add(u64, try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16), dword.range16);
@@ -295,8 +304,9 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
     if (s.bridges.ls_dword != null or s.bridges.ls_dword_tail != null or r.ls_dword != 0) {
         ch.mixU32s(&.{ 0x4c534436, 1, r.base.memory.ls_count, r.ls_dword });
         for (0..T.DWORD_INSTANCES) |k| ch.mixU32s(&.{ @intCast(k), @intFromBool(s.bridges.dwordLog(k) != null), s.bridges.dwordLog(k) orelse 0 });
-        for (T.dwordWidths()) |width| ch.mixU32s(&.{@intCast(width)});
+        for (T.dwordWidthsFor(s.materials.geometry)) |width| ch.mixU32s(&.{@intCast(width)});
         LSD.encoding.mix(ch);
+        if (s.materials.geometry.ls_dword_fused_pairs) LSD.encoding.mixFused(ch);
     }
 }
 fn mixBulkKind(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, kind: T.BulkKind, k: usize) void {

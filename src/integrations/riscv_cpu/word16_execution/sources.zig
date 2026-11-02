@@ -106,6 +106,7 @@ pub const Source = struct {
             break :blk try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts[0..splits.alu.head], prepared.alu.weights[0..splits.alu.head], g.alu_log);
         };
         errdefer alu.deinit();
+        alu.fused = g.alu_fused_tail;
         var binary = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_binary", "BINARY witness");
             defer stage.end();
