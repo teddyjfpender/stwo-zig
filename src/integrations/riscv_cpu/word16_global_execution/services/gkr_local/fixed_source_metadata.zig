@@ -68,6 +68,8 @@ fn finish(a: std.mem.Allocator, parts: []Part) !Report {
     return .{ .allocator = a, .parts = parts, .ordered_column_logs = logs, .ordered_log_signature = std.fmt.bytesToHex(h.finalResult(), .lower), .native_bytes = native, .unused_native_bytes = unused };
 }
 pub fn cpu(a: std.mem.Allocator, program_log: u32, declaration: Wire.CpuDeclaration) !Report {
+    // v2 roster only (see v2_scope.zig): v3 bridges have no fixed provenance here.
+    try @import("v2_scope.zig").bridges(declaration.bridges);
     try declaration.geometry.validate();
     var list: std.ArrayList(Part) = .empty;
     defer list.deinit(a);
@@ -88,6 +90,8 @@ pub fn cpu(a: std.mem.Allocator, program_log: u32, declaration: Wire.CpuDeclarat
             .keccak => "keccak_bridge",
             .add => "add_bridge",
             .double => "double_bridge",
+            // Rejected by the v2 scope admission above.
+            else => return error.GkrV3ServiceUnsupported,
         };
         try list.append(a, try part(name, if (family == .keccak) .geometry_schedule else .provider_program_schedule, log, Types.widths(family)[0], used));
     };
