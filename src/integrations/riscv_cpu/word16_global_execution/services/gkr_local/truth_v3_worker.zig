@@ -68,7 +68,7 @@ pub fn scratchBytes(truth: R.Truth) !usize {
     var x = struct {
         bytes: usize = 0,
         pub fn call(s: *@This(), comptime T: type) !void {
-            s.bytes = @sizeOf(T.N.Row) + 256 * @sizeOf(O);
+            s.bytes = @sizeOf(T.N.Row) + 256 * @sizeOf(O) + 8 * (T.byte_batches + T.wire_batches) * @sizeOf(@import("stwo_prover_engine").pcs.ColumnEvaluation) + @sizeOf([]core.fields.m31.M31) + @sizeOf(O);
         }
     }{};
     try C.visit(truth, &x);
