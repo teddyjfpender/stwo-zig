@@ -380,14 +380,19 @@ const FftEvalWorkItem = struct {
     extension: bool = false,
     /// Additional dyadic zero-top layers; exact2x retains the original path.
     zero_top_layers: u32 = 0,
+    /// Each joined worker owns one slot; errors are inspected before custody
+    /// or work receipts can publish any prepared evaluations.
+    failure: ?anyerror = null,
     /// Populated only by a selected backend transform. It prevents the caller
     /// from inferring device layer execution from input geometry.
     backend_execution: ?work_profile.M31ForwardFftExecution = null,
 };
 
-fn fftEvalWorker(item: *const FftEvalWorkItem) void {
+fn fftEvalWorker(item: *FftEvalWorkItem) void {
     if (item.zero_top_layers != 0) {
-        prover_circle.poly.evaluateDyadicExtensionBuffersWithTwiddlesWithPool(item.values, item.domain.logSize() - item.zero_top_layers, item.domain, item.twiddle_tree, null) catch {};
+        prover_circle.poly.evaluateDyadicExtensionBuffersWithTwiddlesWithPool(item.values, item.domain.logSize() - item.zero_top_layers, item.domain, item.twiddle_tree, null) catch |err| {
+            item.failure = err;
+        };
         return;
     }
     if (item.extension) {
@@ -403,6 +408,10 @@ fn fftEvalWorker(item: *const FftEvalWorkItem) void {
         item.domain,
         item.twiddle_tree,
     ) catch {};
+}
+
+fn checkFftEvalFailures(items: []const FftEvalWorkItem) !void {
+    for (items) |item| if (item.failure) |err| return err;
 }
 
 /// A self-contained work item for parallel inverse-FFT (interpolation).
@@ -566,6 +575,7 @@ pub fn extendCoefficientColumnsByGroupForBackend(
         for (work_items.items) |*item| fftEvalWorker(item);
     }
 
+    try checkFftEvalFailures(work_items.items);
     try recordForwardCompletion(
         work_recorder,
         completion_site,
@@ -765,4 +775,6 @@ pub const testing = if (builtin.is_test) struct {
     pub const recordInterpolationCompletion = Root.recordInterpolationCompletion;
     pub const recordForwardCompletion = Root.recordForwardCompletion;
     pub const materializeBackendExtensionZeros = Root.materializeBackendExtensionZeros;
+    pub const fftEvalWorker = Root.fftEvalWorker;
+    pub const checkFftEvalFailures = Root.checkFftEvalFailures;
 } else struct {};

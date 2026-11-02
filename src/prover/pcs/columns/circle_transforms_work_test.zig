@@ -192,3 +192,35 @@ test "circle transforms: backend extension buffers materialize implicit zeros" {
     for (values[0..8]) |value| try std.testing.expectEqual(M31.fromCanonical(0x5a5a), value);
     for (values[8..]) |value| try std.testing.expectEqual(M31.zero(), value);
 }
+
+test "circle transforms: joined dyadic fft worker errors cannot publish partially prepared LDE columns" {
+    const a = std.testing.allocator;
+    const Tw = @import("../../poly/twiddles.zig");
+    const Pools = @import("../../work_pool.zig");
+    const domain = canonic.CanonicCoset.new(5).circleDomain();
+    var tree = try Tw.precomputeM31(a, domain.half_coset);
+    defer Tw.deinitM31(a, &tree);
+    const borrowed = Tw.TwiddleTree([]const M31).init(tree.root_coset, tree.twiddles, tree.itwiddles);
+    var bad = [_]M31{M31.fromCanonical(991)} ** 16;
+    var good = [_]M31{M31.one()} ** 32;
+    var bad_views = [_][]M31{&bad};
+    var good_views = [_][]M31{&good};
+    var items = [_]FftEvalWorkItem{
+        .{ .values = &bad_views, .domain = domain, .twiddle_tree = borrowed, .zero_top_layers = 2 },
+        .{ .values = &good_views, .domain = domain, .twiddle_tree = borrowed, .zero_top_layers = 2 },
+    };
+    var pool: Pools.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 2 });
+    defer pool.deinit();
+    var joined = std.Thread.WaitGroup{};
+    pool.spawnWg(&joined, owner.testing.fftEvalWorker, .{&items[1]});
+    owner.testing.fftEvalWorker(&items[0]);
+    joined.wait();
+    try std.testing.expectEqual(error.InvalidLength, items[0].failure.?);
+    try std.testing.expect(items[1].failure == null);
+    try std.testing.expectError(error.InvalidLength, owner.testing.checkFftEvalFailures(&items));
+    for (bad) |value| try std.testing.expect(value.eql(M31.fromCanonical(991)));
+    // Borrowed buffers stay caller-owned on failure; valid peer work completed
+    // before the error was observed, and no allocation or owner was detached.
+    try owner.testing.checkFftEvalFailures(items[1..]);
+}

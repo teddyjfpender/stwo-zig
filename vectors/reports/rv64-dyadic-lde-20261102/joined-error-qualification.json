@@ -1,0 +1,16 @@
+{
+  "scope": "new dyadic FFT worker failure propagation only; no algorithm change",
+  "named_joined_failure_case_passes": [
+    "ReleaseSafe",
+    "ReleaseFast"
+  ],
+  "anonymous_aggregation_cases_per_direct_run": 3,
+  "new_dyadic_errors_recorded_per_item": true,
+  "every_pool_job_joined_before_error_inspection": true,
+  "error_inspected_before_receipt_or_output_publication": true,
+  "legacy_non_dyadic_worker_patterns_unchanged": true,
+  "fft_math_and_portable_pcs_allocation_failure_gates_pass": true,
+  "cli_build_pass": true,
+  "binary_sha256": "9c48a4a77add32598329ac50e24236e111343a931f7274d2f5697d83f724299c",
+  "benchmark_receipt_source": "deb3d88ef before this error-propagation follow-up; no new performance claim"
+}

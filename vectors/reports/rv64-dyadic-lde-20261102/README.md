@@ -42,3 +42,15 @@ removal of unnecessary FFT layers, NOT an established significant whole-prover
 speedup. All 16 authoritative artifact hashes match and all 4 frozen fresh receiver
 checks accept. Source-binding and 60-artifact byte-exact regeneration checks still
 pass. Full-block performance promotion and GPU execution remain separate gates.
+
+Final quality follow-up records errors from the new portable dyadic worker in a
+per-item slot. Every pool job joins before the caller inspects slots, and any
+error returns through the existing owned-output cleanup before work receipts or
+prepared columns publish. Legacy non-dyadic worker patterns are untouched.
+A focused joined bad-shape/valid-peer case runs in both Safe and Fast through the
+existing PCS commitments test root: the invalid source remains unmodified, its
+error propagates, and valid peer work completes before inspection. These are one
+named focused case plus three anonymous aggregation blocks, not four new cases.
+The normal FFT and portable PCS all-allocation-failure gates and CLI build pass.
+The earlier performance receipt predates this error-only follow-up; the combined
+root qualification is responsible for final delivery-source timing and parity.
