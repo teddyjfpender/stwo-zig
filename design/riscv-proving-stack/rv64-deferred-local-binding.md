@@ -161,3 +161,27 @@ Control proving is2.829s and candidate3.654s in single functional observations,
 not a causal performance A/B. See `vectors/reports/rv64-deferred-sail-20261102/`.
 Previously Rust-replayed numerical contexts retain identical child proof bytes;
 no new Rust physical PCS/whole-execution qualification is implied.
+
+## K17 geometry midpoint
+
+An explicit K17/source80/deferred run proves the full pinned block in225.72s
+(244.08s process wall), with35.35GB peak RSS and32,559,576 physical proof bytes.
+An independent complete receiver accepts all25 CPU and7 truth proofs. The four
+Keccak truth intervals are1..9038,9039..18076,18077..27114,27115..32835. Public
+RAM cell bytes and expected output match K18. Shared challenges and proof
+inventory legitimately change with geometry; cross-geometry proof-byte parity
+is neither expected nor claimed.
+
+| Qualified control policy | Proving | RSS | Physical proof bytes |
+| --- | ---: | ---: | ---: |
+| K18/source80/deferred |227.20s|38.03GB|27.07MB|
+| K17/source80/deferred |225.72s|35.35GB|32.56MB|
+| K16/checkpoint68/deferred |238.91s|26.79GB|43.44MB|
+
+Each row is a single complete-block observation, rather than an isolated
+repeated comparison. K17 offers an intermediate memory/proof-volume choice.
+Keep geometry explicit, preserve independent receiver authority, and include
+the added proof-opening/recursion cost when selecting a production instance
+class. No automatic geometry/default-policy promotion is made here.
+
+Evidence: `vectors/reports/rv64-deferred-local-binding-20261102/fullblock-deferred80-k17-v1/`.
