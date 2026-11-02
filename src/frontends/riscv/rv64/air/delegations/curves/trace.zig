@@ -135,8 +135,8 @@ pub fn Trace(comptime op: anytype) type {
                     const p = R.trace.physical(r, self.log_size);
                     try nativeRow(&row, self.packets, &self.counts, r);
                     for (0..L.BYTE_BATCHES) |b| {
-                        for (0..2) |i| {
-                            const index = 2 * b + i;
+                        for (0..L.BATCH) |i| {
+                            const index = L.BATCH * b + i;
                             if (index < L.BYTE_QUERIES) {
                                 const q = L.QUERIES[index];
                                 bytes_total = bytes_total.add(table[row[q.column] + q.addend]);
@@ -150,8 +150,8 @@ pub fn Trace(comptime op: anytype) type {
                         const before = &self.packets[r];
                         const after = try N.after(before);
                         for (0..L.WIRE_BATCHES) |w| {
-                            for (0..2) |i| {
-                                const id = 2 * w + i;
+                            for (0..L.BATCH) |i| {
+                                const id = L.BATCH * w + i;
                                 if (id >= L.WIRE_FRACTIONS) continue;
                                 const inv = try ch.wire.denominator(&externalTuple(L.PROGRAM_KIND, self.first_id + @as(u32, @intCast(r)), L.wireLabel(id), N.wireBytes(before, &after, id))).inv();
                                 wire_total = if (id >= L.COORDS) wire_total.add(inv) else wire_total.sub(inv);

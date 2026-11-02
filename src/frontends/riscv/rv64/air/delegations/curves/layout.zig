@@ -74,7 +74,14 @@ pub fn Layout(comptime op: anytype) type {
         /// Wire35 IDs 0..coords-1 are the packet coordinates before the call
         /// (consumed); coords + c is written coordinate c after (produced).
         pub const WIRE_FRACTIONS = d.coords + d.written;
-        pub const WIRE_BATCHES = (WIRE_FRACTIONS + 1) / 2;
+        /// Fractions cleared per cumulative batch: 2 (degree 3, native 2n
+        /// composition) for the curve/field ops; 3 (degree 4, native 4n) for
+        /// the secp row truths, a third fewer interaction columns.
+        pub const BATCH: usize = if (@TypeOf(op) == spec.SecpKind) 3 else 2;
+        pub const DEGREE: u8 = BATCH + 1;
+        /// log2 of the constraint evaluation blowup (degree - 1).
+        pub const LOG_EXTENSION: u32 = BATCH - 1;
+        pub const WIRE_BATCHES = (WIRE_FRACTIONS + BATCH - 1) / BATCH;
 
         pub const OUT = PACKET + PACKET_BYTES;
         pub const WIT = OUT + OUT_BYTES;
@@ -171,7 +178,7 @@ pub fn Layout(comptime op: anytype) type {
         pub const QUERIES: []const Query = &QUERY_ARRAY;
         pub const BYTE_QUERIES = QUERIES.len;
         pub const BYTE_FRACTIONS = BYTE_QUERIES + 1;
-        pub const BYTE_BATCHES = (BYTE_FRACTIONS + 1) / 2;
+        pub const BYTE_BATCHES = (BYTE_FRACTIONS + BATCH - 1) / BATCH;
         pub const BATCHES = BYTE_BATCHES + WIRE_BATCHES;
         pub const INTERACTION = 4 * BATCHES;
         pub const BYTE_LAST = 4 * (BYTE_BATCHES - 1);

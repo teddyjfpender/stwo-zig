@@ -70,6 +70,9 @@ test "secp row truth geometry: certified carries and cells per call" {
         try std.testing.expectEqual(Bridge.coordinates(Bridge.kindOf(kind)), L.COORDS);
         try std.testing.expectEqual(Bridge.written(Bridge.kindOf(kind)), L.WRITTEN);
         std.debug.print("secp row {s}: main {d} interaction {d} cells/row {d} byte queries {d} relations {d} constraints {d}\n", .{ @tagName(kind), L.MAIN, L.INTERACTION, L.MAIN + L.INTERACTION, L.BYTE_QUERIES, L.RELATIONS, L.CONSTRAINTS });
+        // Locked layout: three fractions per degree-4 batch.
+        try std.testing.expectEqual(@as(usize, 3), L.BATCH);
+        try std.testing.expectEqual(@as(usize, if (kind == .add) 4433 else 3463), L.MAIN + L.INTERACTION);
         inline for (L.GEOMETRY, 0..) |g, r| std.debug.print("  relation {d}: group {d} groups {d} carry bytes {d} q bytes {d}\n", .{ r, g.group, g.groups, g.carry_bytes, g.q_bytes });
     }
 }

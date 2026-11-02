@@ -438,6 +438,8 @@ test "geometry: exact carry certificates, widths and degree budget" {
             try std.testing.expect(g.honest_carry < (@as(u64, 1) << @intCast(g.carry_bits - 1)));
         }
         try std.testing.expect(L.QUERIES.len == L.BYTE_QUERIES);
+        // Curve ops keep two fractions per degree-3 batch (unchanged bytes).
+        if (comptime @TypeOf(op) == Op) try std.testing.expectEqual(@as(usize, 2), L.BATCH);
         try std.testing.expect(L.MAIN < 4096 and L.CONSTRAINTS > L.MAIN_CONSTRAINTS);
         std.debug.print("{s}: main {d} interaction {d} cells/row {d} constraints {d} byte queries {d}\n", .{ @tagName(op), L.MAIN, L.INTERACTION, L.MAIN + L.INTERACTION, L.CONSTRAINTS, L.BYTE_QUERIES });
     }
@@ -839,7 +841,7 @@ test "interaction: Wire35 claim equals the native sum and every residual vanishe
     }
 }
 
-test "packed 16-lane residuals equal scalar residuals and every constraint has degree at most 3" {
+test "packed 16-lane residuals equal scalar residuals and every constraint has degree at most Layout.DEGREE (3 curve, 4 secp row)" {
     @setEvalBranchQuota(100_000_000);
     inline for (KEYS) |op| {
         const H = Harness(op);
@@ -896,10 +898,12 @@ test "packed 16-lane residuals equal scalar residuals and every constraint has d
             H.Eq.emit(Q, &view, span, claim, ch, &sink);
             for (residuals, packed_residuals) |x, y| try std.testing.expect(x.eql(y.lane(lane)));
         }
-        // Each residual along a QM31 line: the fourth difference vanishes.
-        const rows = try a.alloc(Q, 5 * L.CONSTRAINTS);
+        // Each residual along a QM31 line: the (DEGREE + 1)-th difference
+        // vanishes and some DEGREE-th difference does not.
+        const STEPS = L.DEGREE + 2;
+        const rows = try a.alloc(Q, STEPS * L.CONSTRAINTS);
         defer a.free(rows);
-        for (0..5) |step| {
+        for (0..STEPS) |step| {
             for (values, 0..) |*x, c| {
                 const intercept = Q.fromU32Unchecked(@intCast(1 + c), 2, 3, 4);
                 const slope = Q.fromU32Unchecked(5, @intCast(6 + c), 7, 8);
@@ -909,19 +913,24 @@ test "packed 16-lane residuals equal scalar residuals and every constraint has d
             var sink = E.Sink{ .values = rows[step * L.CONSTRAINTS ..][0..L.CONSTRAINTS] };
             H.Eq.emit(Q, &view, span, claim, ch, &sink);
         }
-        var cubic = false;
-        for (0..L.CONSTRAINTS) |c| {
-            const r = struct {
-                fn at(all: []const Q, step: usize, k: usize) Q {
-                    return all[step * L.CONSTRAINTS + k];
+        const difference = struct {
+            fn at(all: []const Q, order: usize, k: usize) Q {
+                var acc = Q.zero();
+                var binomial: u64 = 1;
+                for (0..order + 1) |i| {
+                    const term = all[i * L.CONSTRAINTS + k].mulM31(M.fromCanonical(@intCast(binomial)));
+                    acc = if ((order - i) % 2 == 0) acc.add(term) else acc.sub(term);
+                    binomial = binomial * (order - i) / (i + 1);
                 }
-            }.at;
-            const third = r(rows, 3, c).sub(r(rows, 2, c).mulM31(M.fromCanonical(3))).add(r(rows, 1, c).mulM31(M.fromCanonical(3))).sub(r(rows, 0, c));
-            cubic = cubic or !third.isZero();
-            const fourth = r(rows, 4, c).sub(r(rows, 3, c).mulM31(M.fromCanonical(4))).add(r(rows, 2, c).mulM31(M.fromCanonical(6))).sub(r(rows, 1, c).mulM31(M.fromCanonical(4))).add(r(rows, 0, c));
-            try std.testing.expect(fourth.isZero());
+                return acc;
+            }
+        }.at;
+        var full_degree = false;
+        for (0..L.CONSTRAINTS) |c| {
+            full_degree = full_degree or !difference(rows, L.DEGREE, c).isZero();
+            try std.testing.expect(difference(rows, L.DEGREE + 1, c).isZero());
         }
-        try std.testing.expect(cubic);
+        try std.testing.expect(full_degree);
     }
 }
 
