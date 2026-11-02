@@ -167,13 +167,26 @@ fn serviceCalls(r: CompactRequest) u64 {
     return n;
 }
 pub const CpuDeclaration = struct { geometry: Geo, bridges: T.Logs };
+/// Keccak truth declaration `logs[1]`: 0 compact (unchanged bytes), 21
+/// throughput-v1 (the chi table log), and 21 | 4 << 8 throughput-quartet-v1
+/// (same tables, batch width four). Every other word is rejected.
+pub const KECCAK_THROUGHPUT_QUARTET_WORD: u32 = 21 | (4 << 8);
+/// throughput-r27-v1: the quartet word plus the 27-row slot (27 << 16).
+pub const KECCAK_THROUGHPUT_R27_WORD: u32 = KECCAK_THROUGHPUT_QUARTET_WORD | (27 << 16);
 pub fn keccakProfileWord(policy: A.crypto.keccak.equations.BatchPolicy) u32 {
-    return if (policy == .throughput_v1) policy.tableLog(.chi) else 0;
+    return switch (policy) {
+        .throughput_v1 => policy.tableLog(.chi),
+        .throughput_quartet_v1 => KECCAK_THROUGHPUT_QUARTET_WORD,
+        .throughput_r27_v1 => KECCAK_THROUGHPUT_R27_WORD,
+        else => 0,
+    };
 }
 pub fn keccakPolicy(word: u32) !A.crypto.keccak.equations.BatchPolicy {
     return switch (word) {
         0 => .triple_v2,
         21 => .throughput_v1,
+        KECCAK_THROUGHPUT_QUARTET_WORD => .throughput_quartet_v1,
+        KECCAK_THROUGHPUT_R27_WORD => .throughput_r27_v1,
         else => error.InvalidServicesTruthGeometry,
     };
 }
@@ -381,8 +394,8 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
         if (t.family == .keccak) {
             const policy = try keccakPolicy(t.logs[1]);
             if (t.logs[0] > 21) return error.InvalidServicesTruthGeometry;
-            try A.crypto.keccak.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
-            if (policy == .throughput_v1) _ = try A.crypto.keccak.layout.admitThroughputRoster(&.{t.calls});
+            try A.crypto.keccak.layout.validateGeometryFor(policy.geometry(), t.calls, t.first_id, t.logs[0]);
+            if (policy.throughputTables()) _ = try A.crypto.keccak.layout.admitThroughputRoster(&.{t.calls});
             native_rows = try std.math.add(u64, native_rows, (@as(u64, 1) << @intCast(t.logs[0])) + (@as(u64, 1) << @intCast(policy.tableLog(.chi))) + (@as(u64, 1) << @intCast(policy.tableLog(.xor5))));
         } else if (t.family == .sha256) {
             if (t.logs[0] > @import("../sha256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
