@@ -1,0 +1,229 @@
+{
+  "schema": 1,
+  "source_commit": "756963ee8 +05d95c344(recyclerknob cherry41d2f51a6)",
+  "binary_sha256": "b9f8d09ebcc3ef4fdca8c942153fb2c9eadd7f2ea0e6c39ce4e863cbbeb26e41",
+  "scope": "two ordinary CPU prefix; no fullblock or 128-bit claim",
+  "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+  "config_sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad",
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "memory_cap_bytes": 38654705664
+    },
+    "park_main": true,
+    "recycler_cache_bytes": 1073741824
+  },
+  "storage_env": {
+    "owned": "STWO_ZIG_GKR_TREE_CHECKPOINTS=2",
+    "dense136": "unset"
+  },
+  "all_five_durable_artifacts_byte_identical": true,
+  "both_independent_fresh_receivers_accepted": true,
+  "quiet_host": false,
+  "interpretation": "Single unquiet pair; memory-mode tighter checked admission permits overlapping stage1 at same36GiB estimate cap. Old dense136 is conservative and serialized; this does not prove dense cannot physically fit. Explicit dense104 is next matched control. No qualified speed multiplier/default promotion.",
+  "runs": [
+    {
+      "kind": "owned",
+      "prove_ns": 14479227708,
+      "peak_rss_bytes": 23763107840,
+      "wall_seconds": 17.76,
+      "user_seconds": 165.84,
+      "sys_seconds": 8.25,
+      "stage1_overlap_ns": 6521130709,
+      "schedule": {
+        "schema_version": 1,
+        "indexing": "array index is original worker ordinal",
+        "time_basis": "nanoseconds from each phase schedule start; stage1/stage2 origins distinct",
+        "stage1": [
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 16312121344,
+            "claimed_ns": 104958,
+            "started_ns": 105000,
+            "finished_ns": 6883675083,
+            "in_flight_bytes_at_start": 16312121344
+          },
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 15808677888,
+            "claimed_ns": 106333,
+            "started_ns": 106416,
+            "finished_ns": 6521237125,
+            "in_flight_bytes_at_start": 32120799232
+          }
+        ],
+        "stage2": [
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 11776653824,
+            "claimed_ns": 72792,
+            "started_ns": 73042,
+            "finished_ns": 7514678084,
+            "in_flight_bytes_at_start": 11776653824
+          },
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 11549358592,
+            "claimed_ns": 75875,
+            "started_ns": 75917,
+            "finished_ns": 7160633209,
+            "in_flight_bytes_at_start": 23326012416
+          }
+        ]
+      },
+      "workers": [
+        {
+          "source_ns": 389154166,
+          "seal_native_and_gkr_ns": 5909559875,
+          "main_commit_ns": 1304881709,
+          "gkr_ns": 4571579375,
+          "inputs_ns": 340537833,
+          "numerical_ns": 3609592292,
+          "binding_ns": 621390292,
+          "metadata_retire_ns": 2349042,
+          "spill_ns": 582506000,
+          "restore_ns": 263191500,
+          "native_complete_ns": 7251412625,
+          "stage1_ns": 6883569125,
+          "stage2_ns": 7514604166,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        },
+        {
+          "source_ns": 364030625,
+          "seal_native_and_gkr_ns": 5659530167,
+          "main_commit_ns": 1222913875,
+          "gkr_ns": 4404261084,
+          "inputs_ns": 334673125,
+          "numerical_ns": 3482581833,
+          "binding_ns": 586886833,
+          "metadata_retire_ns": 1876583,
+          "spill_ns": 495691875,
+          "restore_ns": 508687667,
+          "native_complete_ns": 6651868125,
+          "stage1_ns": 6521129250,
+          "stage2_ns": 7160555792,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "durable_sha256": {
+        "bundle.json": "6dff687fd3434c6f9ad867c94305467f5ca18cbcec3ed16771d95646b16ef13e",
+        "cells.bin": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+        "stage-one.bin": "3929bf168db0e9f71e61463741c4121907592707134c4ea0e40a1c9cf05db414",
+        "cpu-0.bin": "493b957e6ddf40e5a723bffadf6a2e390552da75b6fd3d28b2ce859c77cd4182",
+        "cpu-1.bin": "fbcb7a6eff87a4d3322cd931588dc6860163cfd3664f378f53cd0984bbb2d5d3"
+      }
+    },
+    {
+      "kind": "dense136",
+      "prove_ns": 18047945875,
+      "peak_rss_bytes": 16832069632,
+      "wall_seconds": 20.73,
+      "user_seconds": 147.19,
+      "sys_seconds": 6.85,
+      "stage1_overlap_ns": 0,
+      "schedule": {
+        "schema_version": 1,
+        "indexing": "array index is original worker ordinal",
+        "time_basis": "nanoseconds from each phase schedule start; stage1/stage2 origins distinct",
+        "stage1": [
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 20349149184,
+            "claimed_ns": 95833,
+            "started_ns": 95958,
+            "finished_ns": 5391061333,
+            "in_flight_bytes_at_start": 20349149184
+          },
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 19760771072,
+            "claimed_ns": 98083,
+            "started_ns": 5391069208,
+            "finished_ns": 10520485458,
+            "in_flight_bytes_at_start": 19760771072
+          }
+        ],
+        "stage2": [
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 11776653824,
+            "claimed_ns": 73209,
+            "started_ns": 73334,
+            "finished_ns": 7447947959,
+            "in_flight_bytes_at_start": 11776653824
+          },
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 11549358592,
+            "claimed_ns": 77750,
+            "started_ns": 77792,
+            "finished_ns": 7109846084,
+            "in_flight_bytes_at_start": 23326012416
+          }
+        ]
+      },
+      "workers": [
+        {
+          "source_ns": 357592625,
+          "seal_native_and_gkr_ns": 4496613000,
+          "main_commit_ns": 1134462125,
+          "gkr_ns": 3331916583,
+          "inputs_ns": 296869500,
+          "numerical_ns": 2507176875,
+          "binding_ns": 506390375,
+          "metadata_retire_ns": 2396333,
+          "spill_ns": 534360000,
+          "restore_ns": 253983833,
+          "native_complete_ns": 7193889583,
+          "stage1_ns": 5390962000,
+          "stage2_ns": 7447873416,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        },
+        {
+          "source_ns": 323477083,
+          "seal_native_and_gkr_ns": 4309574250,
+          "main_commit_ns": 1078435875,
+          "gkr_ns": 3200779625,
+          "inputs_ns": 280624292,
+          "numerical_ns": 2404778791,
+          "binding_ns": 493147417,
+          "metadata_retire_ns": 2104709,
+          "spill_ns": 494253666,
+          "restore_ns": 503130750,
+          "native_complete_ns": 6606636208,
+          "stage1_ns": 5129409750,
+          "stage2_ns": 7109767000,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "durable_sha256": {
+        "bundle.json": "6dff687fd3434c6f9ad867c94305467f5ca18cbcec3ed16771d95646b16ef13e",
+        "cells.bin": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+        "stage-one.bin": "3929bf168db0e9f71e61463741c4121907592707134c4ea0e40a1c9cf05db414",
+        "cpu-0.bin": "493b957e6ddf40e5a723bffadf6a2e390552da75b6fd3d28b2ce859c77cd4182",
+        "cpu-1.bin": "fbcb7a6eff87a4d3322cd931588dc6860163cfd3664f378f53cd0984bbb2d5d3"
+      }
+    }
+  ]
+}

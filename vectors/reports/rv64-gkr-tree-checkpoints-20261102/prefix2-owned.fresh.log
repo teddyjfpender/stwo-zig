@@ -1,0 +1,29 @@
+{
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "output": null,
+  "cpu_proofs": 2,
+  "truth_proofs": 0,
+  "load_and_setup_ns": 1402007333,
+  "verify_ns": 401189709
+}
+        1.83 real         4.80 user         0.44 sys
+          2653896704  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              162969  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                2958  involuntary context switches
+         58538485392  instructions retired
+         22673095433  cycles elapsed
+          2653325520  peak memory footprint

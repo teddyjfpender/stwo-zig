@@ -88,3 +88,12 @@ are below the15,024,128B admitted cap; the one-fact-per-row binding case also
 passes. Tracking-map bytes, allocator pages/free cache and stacks are explicitly
 outside that payload measurement. Dense104 is opt-in until separate actual
 concurrency/throughput evidence and review justify changing the default.
+
+A first real prefix of two ordinary CPU shards (8,388,606 steps), fully parked,
+cache1GiB and2x8 worker lanes under36GiB scheduler admission, fresh-verifies in both
+modes. All five authoritative artifacts are byte-identical. The owned checkpoint
+plan admits16.312+15.809GB task leases concurrently; stage1 overlaps for6.521s.
+Proving is14.479s with23.763GB peak RSS. The original dense136 plan serializes
+stage1 under the same cap, taking18.048s. This is one non-quiet pair, not a qualified
+speed multiplier. It demonstrates admission/concurrency, not physical inability
+of dense proofs to fit; the explicit tighter dense104 control is measured next.
