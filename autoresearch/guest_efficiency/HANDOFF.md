@@ -42,6 +42,13 @@ cells/instruction); basket 3.283 instr/gas, 40,336 -> 38,209 bits/gas before
 the secp row-truth merge, 37,073 -> 34,946 with it, and 34,171 with the
 throughput_r27_v1 Keccak truth merged as well (the prefix was re-proved and
 freshly verified on each merged tree: CPU cells 2,233,857,696 every time).
+On top of the fused2 layouts (MUL pairs, LS32/INIT/TEARDOWN fused pairs,
+ALU fused tail, LS-D64 fused pairs) the same prefix measures 2,282,308,512 ->
+2,114,536,352 (again exactly -167,772,160), calibration 119.881 -> 109.881;
+basket (client3, 3.130 instr/gas) 33,695 -> 31,667 bits/gas scored. Review fix:
+compact decode admits only PCs in (0, 2^31) and refuses felt-0 endpoints,
+because the JALR target 0xFFFFFFFE (= 2p) has felt 0 and would alias a ROM pc
+0 (`compact-decode.v2` identity; README compact-decode point 2).
 
 Open items:
 - Complete-block proof of the final client (calibration uses a 4-packet prefix; curve and sha256 costs are fixture/older values).
