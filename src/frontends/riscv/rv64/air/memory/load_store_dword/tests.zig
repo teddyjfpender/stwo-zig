@@ -382,6 +382,35 @@ test "LS-D64 rejects every non-LD/SD event at construction and capacity without 
     try testing.expectError(error.LsCapacityExceeded, D.source.Source.init(a, &many, LOG));
 }
 
+test "LS-D64 routing admits only naturally aligned LD/SD (opcode alone is not enough)" {
+    var w = try honestWorld();
+    defer w.deinit();
+    for ([_]Decode.Opcode{ .LD, .SD }) |op| {
+        const e = w.events.items[rowOf(&w, op)];
+        try testing.expect(D.source.admits(e));
+        try D.source.validate(e);
+        // Every misaligned effective address (A or the immediate off by 1..7)
+        // is refused by the router, so it can never become a dword row.
+        for (1..8) |k| {
+            var by_a = e;
+            by_a.a +%= k;
+            try testing.expect(!D.source.admits(by_a));
+            try testing.expectError(error.NotDwordLoadStoreEvent, D.source.validate(by_a));
+            var by_imm = e;
+            by_imm.immediate +%= k;
+            try testing.expect(!D.source.admits(by_imm));
+            try testing.expectError(error.NotDwordLoadStoreEvent, D.source.validate(by_imm));
+            const one = [_]D.source.Event{by_a};
+            try testing.expectError(error.NotDwordLoadStoreEvent, D.source.Source.init(a, &one, LOG));
+        }
+        // Wrap-around: A + I aligned modulo 2^64 is still natural alignment.
+        var wrapped = e;
+        wrapped.a = e.a +% e.immediate +% 8;
+        wrapped.immediate = std.math.maxInt(u64) - 7;
+        try testing.expect(D.source.admits(wrapped));
+    }
+}
+
 test "LS-D64 adversarial: value limb forgeries are local residuals" {
     var w = try honestWorld();
     defer w.deinit();

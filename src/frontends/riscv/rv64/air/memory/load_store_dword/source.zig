@@ -17,8 +17,11 @@ const CHUNK: usize = 4096;
 
 /// Only naturally aligned 8-byte LD/SD events are admitted (anything else is
 /// an LS32 row). The full LS32 event semantics check still applies.
+/// The routing rule: opcode AND natural 8-byte alignment of the effective
+/// address. A misaligned LD/SD traps in the executor, but the router must
+/// never send one to this row (it would fail `validate`, not fall back).
 pub fn admits(event: Event) bool {
-    return event.opcode == .LD or event.opcode == .SD;
+    return (event.opcode == .LD or event.opcode == .SD) and (event.a +% event.immediate) & 7 == 0;
 }
 pub fn validate(event: Event) !void {
     if (!admits(event)) return error.NotDwordLoadStoreEvent;

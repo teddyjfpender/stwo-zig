@@ -87,3 +87,23 @@ test "v3 LS-D64 adversarial: LB as LD, double consumption, shifted base and RAM 
         try std.testing.expectError(case.err, E.verify(a, &keys, &.{}, c.expected(), &c.bundle));
     }
 }
+
+test "v3 LS-D64 router keeps misaligned LD/SD in LS32 (natural 8-byte alignment is part of the rule)" {
+    const Event = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event;
+    const P = @import("pipeline.zig");
+    const state = std.mem.zeroes(@FieldType(Event, "before"));
+    const base = Event{ .opcode = .LD, .immediate = 8, .a = 0x1000, .epoch = 1, .tick = 4, .before = state, .after = state };
+    var events = [_]Event{ base, base, base, base };
+    events[1].opcode = .SD;
+    events[2].a +%= 4; // misaligned LD
+    events[3].opcode = .LW;
+    try std.testing.expect(T.isDwordEvent(events[0]) and T.isDwordEvent(events[1]));
+    try std.testing.expect(!T.isDwordEvent(events[2]) and !T.isDwordEvent(events[3]));
+    try std.testing.expectEqual(@as(u32, 2), P.dwordCount(&events));
+    var split = try P.splitEvents(a, &events, true);
+    defer split.deinit(a);
+    try std.testing.expectEqual(@as(usize, 2), split.dword.len);
+    try std.testing.expectEqual(@as(usize, 2), split.general.len);
+    try std.testing.expectEqual(@as(u64, 0x1004), split.general[0].a);
+    try std.testing.expect(split.general[1].opcode == .LW);
+}
