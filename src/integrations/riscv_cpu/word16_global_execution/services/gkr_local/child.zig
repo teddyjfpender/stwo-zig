@@ -95,10 +95,10 @@ pub fn parseTightAdmission(value: ?[]const u8) !bool {
     if (std.mem.eql(u8, text, "1")) return true;
     return error.InvalidGkrTightAdmissionPolicy;
 }
-pub fn parseStreamBottom(value: ?[]const u8, checkpointed: bool) !bool {
+pub fn parseStreamBottom(value: ?[]const u8, _: bool) !bool {
     const text = value orelse return false;
     if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
-    if (!std.mem.eql(u8, text, "1") or !checkpointed) return error.InvalidGkrStreamBottomPolicy;
+    if (!std.mem.eql(u8, text, "1")) return error.InvalidGkrStreamBottomPolicy;
     return true;
 }
 pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
@@ -114,7 +114,8 @@ pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
         else => return err,
     };
     defer if (stream) |v| a.free(v);
-    return .{ .checkpointed = cp, .tight_admission = cp or tight, .stream_bottom = try parseStreamBottom(stream, cp) };
+    const streaming = try parseStreamBottom(stream, cp);
+    return .{ .checkpointed = cp, .tight_admission = cp or tight or streaming, .stream_bottom = streaming };
 }
 
 pub const PhaseTiming = struct {
@@ -146,9 +147,9 @@ pub const Unbound = struct {
     }
     pub fn proveTimedWithPolicy(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, timing: ?*PhaseTiming) !*Unbound {
         const checkpointed = policy.checkpointed;
-        if (policy.stream_bottom and (!checkpointed or !policy.tight_admission)) return error.InvalidGkrStreamBottomPolicy;
+        if (policy.stream_bottom and !policy.tight_admission) return error.InvalidGkrStreamBottomPolicy;
         const metrics = try treeMetrics(a);
-        const plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithStreamedBottom(instances, limit) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
+        const plan = if (policy.stream_bottom) try Resource.Plan.forInstancesWithSourceStorage(instances, limit, checkpointed) else try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
@@ -163,7 +164,7 @@ pub const Unbound = struct {
         var source_inputs = if (policy.stream_bottom) try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(bounded, instances, &challenges, provider) else null;
         defer if (source_inputs) |*source| source.deinit();
         if (clock) |*timer| timing.?.inputs_ns = timer.lap();
-        var result = if (source_inputs) |source| try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
+        var result = if (source_inputs) |source| (if (checkpointed) try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else try GP.proveBatchSource(bounded, &ch, source.sources)) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
         const numerical_peak_bytes = self.budget.peak_live_bytes;
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
@@ -175,7 +176,7 @@ pub const Unbound = struct {
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
-        self.binding = if (checkpointed) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        self.binding = if (checkpointed or policy.stream_bottom) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
         if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;

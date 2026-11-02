@@ -1,0 +1,24 @@
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+PRODUCTION_CAP streamed=false copies=false rowlog=12 terms=15 requested_peak=13111184 original_capacity_peak=13112752 plan=15024128
+PRODUCTION_CAP streamed=false copies=false rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6578000 plan=8060928
+PRODUCTION_CAP streamed=false copies=true rowlog=12 terms=15 requested_peak=13111184 original_capacity_peak=13111488 plan=15024128
+PRODUCTION_CAP streamed=false copies=true rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6576256 plan=8060928
+PRODUCTION_CAP streamed=true copies=false rowlog=12 terms=15 requested_peak=4745506 original_capacity_peak=4750290 plan=10305536
+PRODUCTION_CAP streamed=true copies=false rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4218848 plan=5701632
+PRODUCTION_CAP streamed=true copies=true rowlog=12 terms=15 requested_peak=5269666 original_capacity_peak=5269970 plan=10305536
+PRODUCTION_CAP streamed=true copies=true rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4217104 plan=5701632
+STREAM68_MIXED instances=12 requested_peak=9494274 original_capacity_peak=11944450 plan=25303296
+STREAM68_EQUAL instances=16 requested_peak=2225424 original_capacity_peak=2225728 plan=6053888
+PRODUCTION_CAP streamed=true copies=false rowlog=12 terms=15 requested_peak=8392736 original_capacity_peak=8393520 plan=11878400
+PRODUCTION_CAP streamed=true copies=false rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4218848 plan=6488064
+PRODUCTION_CAP streamed=true copies=true rowlog=12 terms=15 requested_peak=8392736 original_capacity_peak=8393040 plan=11878400
+PRODUCTION_CAP streamed=true copies=true rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4217104 plan=6488064
+STREAM80_MIXED instances=12 requested_peak=21676400 original_capacity_peak=21677568 plan=29365248
+STREAM80_EQUAL instances=16 requested_peak=4219280 original_capacity_peak=4219584 plan=6840320
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-services-gkr-local success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:2G
+

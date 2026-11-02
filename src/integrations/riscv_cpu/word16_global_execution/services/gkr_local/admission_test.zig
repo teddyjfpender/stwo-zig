@@ -52,7 +52,7 @@ const Provider = struct {
         for (0..instance.terms) |i| sink.emitBase(.range16, [1]M{M.fromCanonical(@intCast((logical + i) % 65536))}, weight);
     }
 };
-fn exercise(copies: bool, log: u32, terms: u32, streamed: bool) !void {
+fn exercise(copies: bool, log: u32, terms: u32, streamed: bool, checkpointed: bool) !void {
     var physical = Retaining{ .child = a, .copies = copies };
     defer physical.deinit();
     const allocator = physical.allocator();
@@ -61,10 +61,10 @@ fn exercise(copies: bool, log: u32, terms: u32, streamed: bool) !void {
         .{ .origin = .{ .core = .range16 }, .row_log = log, .terms = terms, .fixed_offset = 0, .main_offset = 0 },
     };
     const old = try Resource.Plan.forInstances(&instances, std.math.maxInt(usize));
-    const plan = if (streamed) try Resource.Plan.forInstancesWithStreamedBottom(&instances, std.math.maxInt(usize)) else try Resource.Plan.forInstancesWithTightAdmission(&instances, std.math.maxInt(usize), false, true);
+    const plan = if (streamed) try Resource.Plan.forInstancesWithSourceStorage(&instances, std.math.maxInt(usize), checkpointed) else try Resource.Plan.forInstancesWithTightAdmission(&instances, std.math.maxInt(usize), false, true);
     try std.testing.expect(plan.peak_bytes < old.peak_bytes);
     const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
-    const child = try Child.Unbound.proveTimedWithPolicy(allocator, plan.peak_bytes, scope, &instances, Provider{}, .{ .checkpointed = streamed, .tight_admission = true, .stream_bottom = streamed }, null);
+    const child = try Child.Unbound.proveTimedWithPolicy(allocator, plan.peak_bytes, scope, &instances, Provider{}, .{ .checkpointed = checkpointed, .tight_admission = true, .stream_bottom = streamed }, null);
     defer child.deinit();
     try std.testing.expectEqual(plan.peak_bytes, child.budget.limit);
     try std.testing.expect(child.peak_gkr_owned_bytes <= plan.peak_bytes);
@@ -77,15 +77,15 @@ fn exercise(copies: bool, log: u32, terms: u32, streamed: bool) !void {
 }
 test "dense104 bounds original-capacity retention and worst nonresizing folds at exact cap" {
     for ([_]bool{ false, true }) |copies| {
-        try exercise(copies, 12, 15, false);
-        try exercise(copies, 15, 1, false);
+        try exercise(copies, 12, 15, false, false);
+        try exercise(copies, 15, 1, false, false);
     }
 }
 
 test "stream68 bounds retained capacities and no-resize copies at exact allocator cap" {
     for ([_]bool{ false, true }) |copies| {
-        try exercise(copies, 12, 15, true);
-        try exercise(copies, 15, 1, true);
+        try exercise(copies, 12, 15, true, true);
+        try exercise(copies, 15, 1, true, true);
     }
 }
 
@@ -127,4 +127,50 @@ test "stream68 bounds synchronized equal-size first folds with nonresizing backi
     var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
     defer pending.deinit(a);
     std.debug.print("STREAM68_EQUAL instances={d} requested_peak={d} original_capacity_peak={d} plan={d}\n", .{ instances.len, child.peak_gkr_owned_bytes, physical.peak, plan.peak_bytes });
+}
+
+test "stream dense80 bounds original-capacity retaining and no-resize folds at exact cap" {
+    for ([_]bool{ false, true }) |copies| {
+        try exercise(copies, 12, 15, true, false);
+        try exercise(copies, 15, 1, true, false);
+    }
+}
+test "stream dense80 exact cap covers many heterogeneous source instances with original-capacity retention" {
+    var physical = Retaining{ .child = a, .copies = false };
+    defer physical.deinit();
+    var instances: [12]Frame.Instance = undefined;
+    const logs = [_]u32{ 5, 6, 7, 8, 9, 10 };
+    const terms = [_]u32{ 1, 3, 7, 15, 63, 97 };
+    for (logs, terms, 0..) |log, count, i| {
+        instances[2 * i] = .{ .origin = .{ .core = .alu }, .row_log = log, .terms = count, .fixed_offset = 0, .main_offset = 0 };
+        instances[2 * i + 1] = .{ .origin = .{ .core = .range16 }, .row_log = log, .terms = count, .fixed_offset = 0, .main_offset = 0 };
+    }
+    const plan = try Resource.Plan.forInstancesWithSourceStorage(&instances, std.math.maxInt(usize), false);
+    try std.testing.expectEqual(@as(usize, 0), plan.input_bytes);
+    try std.testing.expectError(error.LocalGkrBudgetExceeded, Resource.Plan.forInstancesWithSourceStorage(&instances, plan.peak_bytes - 1, false));
+    const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    const child = try Child.Unbound.proveTimedWithPolicy(physical.allocator(), plan.peak_bytes, scope, &instances, Provider{}, .{ .checkpointed = false, .tight_admission = true, .stream_bottom = true }, null);
+    defer child.deinit();
+    try std.testing.expectEqual(plan.peak_bytes, child.budget.limit);
+    try std.testing.expect(child.peak_gkr_owned_bytes <= plan.peak_bytes);
+    try std.testing.expect(physical.peak <= plan.peak_bytes);
+    var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
+    defer pending.deinit(a);
+    std.debug.print("STREAM80_MIXED instances={d} requested_peak={d} original_capacity_peak={d} plan={d}\n", .{ instances.len, child.peak_gkr_owned_bytes, physical.peak, plan.peak_bytes });
+}
+
+test "stream dense80 bounds synchronized equal-size first folds with nonresizing backing owners" {
+    var physical = Retaining{ .child = a, .copies = true };
+    defer physical.deinit();
+    var instances: [16]Frame.Instance = undefined;
+    for (&instances, 0..) |*instance, i| instance.* = .{ .origin = .{ .core = if (i % 2 == 0) .alu else .range16 }, .row_log = 8, .terms = 15, .fixed_offset = 0, .main_offset = 0 };
+    const plan = try Resource.Plan.forInstancesWithSourceStorage(&instances, std.math.maxInt(usize), false);
+    const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    const child = try Child.Unbound.proveTimedWithPolicy(physical.allocator(), plan.peak_bytes, scope, &instances, Provider{}, .{ .checkpointed = false, .tight_admission = true, .stream_bottom = true }, null);
+    defer child.deinit();
+    try std.testing.expect(child.peak_gkr_owned_bytes <= plan.peak_bytes);
+    try std.testing.expect(physical.peak <= plan.peak_bytes);
+    var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
+    defer pending.deinit(a);
+    std.debug.print("STREAM80_EQUAL instances={d} requested_peak={d} original_capacity_peak={d} plan={d}\n", .{ instances.len, child.peak_gkr_owned_bytes, physical.peak, plan.peak_bytes });
 }

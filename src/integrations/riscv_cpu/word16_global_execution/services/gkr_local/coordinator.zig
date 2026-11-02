@@ -348,7 +348,7 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
     const full_nodes = if (options.retained_store) |store| store.stats().merkle_parking_enabled else false;
     var disk: usize = 0;
     for (result.stage1, result.stage2, 0..) |*stage1, *stage2, i| {
-        const plan = if (i < setups.len) (if (policy.stream_bottom) try Retention.forCpuWithStreamedBottom(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget) else try Retention.forCpuWithTightAdmission(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed, policy.tight_admission)) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
+        const plan = if (i < setups.len) (if (policy.stream_bottom) try Retention.forCpuWithSourceStorage(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed) else try Retention.forCpuWithTightAdmission(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed, policy.tight_admission)) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;

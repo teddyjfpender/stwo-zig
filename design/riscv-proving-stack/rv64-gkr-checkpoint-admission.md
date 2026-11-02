@@ -170,3 +170,29 @@ owners remain outside those task leases.
 The initial source push ran the repository pre-push lanes. Cairo Metal failed
 because `STWO_METAL_CORE_AOT_BUNDLE` was unavailable. The already-authorized
 hook exception was used after the focused RV64 Safe/Fast gates passed.
+
+## Streamed bottom, dense upper storage: independent operational choice
+
+`STWO_ZIG_GKR_STREAM_BOTTOM=1` also works with checkpoint policy unset. This
+streams raw facts, stores every secure upper tree level, and replays metadata
+for terminal binding. It automatically selects tight admission. Explicit
+checkpoint2 plus stream1 retains the existing stride-two source path and68N
+bound. Materialized default136 and tight dense104 controls remain unchanged.
+Invalid nonempty policies fail before worker admission; there is no fallback.
+
+The source-dense numerical payload reserve is80N plus the unchanged checked
+metadata. All original secure upper creation capacities total64*sum(N_i−1),
+less than64N, even if allocators retain backing after shrink. At common outer
+height h>=1, shared Eq construction is at most max(32,12Nmax/2^h) (<=6Nmax for production Frame N>=32; the scalar constant/header allowance is also covered by metadata), and one
+copy-half resize fallback is at most16Nmax/2^h (<=8Nmax). Instance folds and
+plane finalizers are sequential; parallel row jobs join before return. Thus
+these phases are below78N without assuming any bank-retirement discount.
+At bottom h0 every earlier upper oracle has been destroyed; source first folds
+own32N and Eq/copy transients are at most12Nmax+16Nmax, giving60N. Choose80N
+with metadata separately charged, and take the maximum with actual metadata-
+projection/binding scratch. No dense raw N/D planes exist. Explicit public
+opaque cloning/materialization is excluded from this production path.
+
+This bounds requested and original live payload capacities, not free recycler
+cache, allocator rounding, stacks, MAIN/PCS/setup/capture owners or RSS. The same
+frozen policy selects the scheduler retention estimate and hard child limit.
