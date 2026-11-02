@@ -77,6 +77,38 @@ pub fn scratchBytes(truth: R.Truth) !usize {
 pub fn admit(truth: R.Truth, budget: usize) !void {
     if (try std.math.add(usize, try interactionBytes(truth), try scratchBytes(truth)) > budget) return error.V3TruthBudgetExceeded;
 }
+pub fn validateSource(truth: R.Truth, source: *const R.TruthSource) !void {
+    if (!std.mem.eql(u8, @tagName(truth), @tagName(source.*))) return error.V3TruthSourceMismatch;
+    switch (source.*) {
+        .sha256 => |v| {
+            try v.source.validateMetadata();
+            if (v.source.log_size != try C.logSize(truth) or v.source.first_id != truth.first() or v.source.inputs.len != truth.count()) return error.V3TruthSourceMismatch;
+        },
+        .arith256_mod => |v| {
+            try v.source.validateMetadata();
+            if (v.source.log_size != try C.logSize(truth) or v.source.first_id != truth.first() or v.source.inputs.len != truth.count()) return error.V3TruthSourceMismatch;
+        },
+        .curve => |u| {
+            if (std.meta.activeTag(u) != truth.curve.setup.op) return error.V3TruthSourceMismatch;
+            switch (u) {
+                inline else => |v| {
+                    try v.validateMetadata();
+                    if (v.log_size != try C.logSize(truth) or v.first_id != truth.first() or v.packets.len != truth.count()) return error.V3TruthSourceMismatch;
+                },
+            }
+        },
+        .secp_row => |u| {
+            if (std.meta.activeTag(u) != truth.secp_row.setup.kind) return error.V3TruthSourceMismatch;
+            switch (u) {
+                inline else => |v| {
+                    try v.validateMetadata();
+                    if (v.log_size != try C.logSize(truth) or v.first_id != truth.first() or v.packets.len != truth.count()) return error.V3TruthSourceMismatch;
+                },
+            }
+        },
+        else => return error.NotV3Truth,
+    }
+}
 pub const NativeTruthWorker = struct {
     allocator: std.mem.Allocator,
     truth: R.Truth,
@@ -97,6 +129,7 @@ pub const NativeTruthWorker = struct {
     pub fn initWithAuthority(a: std.mem.Allocator, truth: R.Truth, source: R.TruthSource, e: M.ExpectedWorker, config: W.PcsConfig, budget: usize, fixed: ?*const Fixed.Binding) !@This() {
         if (fixed) |f| try f.require(truth.key(), config) else try W.validateConfig(config);
         try expected(truth, e, fixed);
+        try validateSource(truth, &source);
         try admit(truth, budget);
         var scheme = try W.Scheme.init(a, config);
         scheme.setCompactPolynomialStorage(5);
