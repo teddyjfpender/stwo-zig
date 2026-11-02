@@ -17,5 +17,27 @@
   ],
   "build_steps_succeeded": 20,
   "security_qualified": false,
-  "remaining": "Final Fast CLI/build and complete-block source qualification after concrete inline classic numeric calls."
+  "remaining": "Final full-block source qualification; no reviewed whole-protocol128 certificate or accepting currentOM recursion.",
+  "ReleaseFast": {
+    "source": "adeccbf24 plus observation-onlyCLI f41db7285 (code identical to a7112906d)",
+    "passed_targets": [
+      "test-native-cpu-gkr-rows",
+      "test-stwo-prover-gkr-resource",
+      "test-riscv64-services-gkr-local",
+      "test-riscv64-truth-parallel",
+      "rv64-word16-ethereum-gkr",
+      "rv64-om-retention-plan"
+    ],
+    "build_steps_succeeded": 12
+  },
+  "binaries": {
+    "rv64-word16-ethereum-gkr": {
+      "sha256": "2eaf3b3ab6a179a580bd738a4f2472ba3f11de639c1e0338c6ae8711f8b4b09b",
+      "frozen_path": "/tmp/rv64-gkr-final-source-v1/rv64-word16-ethereum-gkr"
+    },
+    "rv64-om-retention-plan": {
+      "sha256": "afd35d9400ede4f245e7527b4292121bbdf135d4260bfd22a34311549f2f94fd",
+      "frozen_path": "/tmp/rv64-gkr-final-source-v1/rv64-om-retention-plan"
+    }
+  }
 }
