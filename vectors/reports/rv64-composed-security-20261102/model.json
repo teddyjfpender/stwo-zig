@@ -37,7 +37,7 @@
     "composition_mix": 183840,
     "oods_circle_correspondence": 148397830963200,
     "deep_batching": 1105650,
-    "fri_unique_curve_correspondence": 949874967183360
+    "fri_unique_curve_correspondence": 60397977600
   },
   "conditional_term_bits": {
     "joint_cleared_lookup_all_scopes": 211.49522551003926,
@@ -48,61 +48,63 @@
     "composition_mix": 225.8322088166973,
     "oods_circle_correspondence": 196.24383666065154,
     "deep_batching": 223.24383666065154,
-    "fri_unique_curve_correspondence": 193.5655690429915
+    "fri_unique_curve_correspondence": 207.5065188030137
   },
   "query_union_bits": 159.55979622216205,
-  "conditional_algebraic_union_bits": 193.35613709119443,
+  "conditional_algebraic_union_bits": 196.24321237512797,
   "old_lookup_pairwise_union_bits": 183.21254012473685,
   "joint_lookup_bits": 211.49522551003926,
-  "round_source_formula_value": 2347836,
+  "all_candidate_caps_child_round_bound": 10355,
+  "all_candidate_caps_proof_cap": 256,
+  "round_source_formula_value": 2716672,
   "round_upper_bound": 4194304,
-  "collision_coefficient_conservative": 94,
-  "conditional_BCS_formula": "(T+2^22)*(sum(degree_weights)*6561/2^256 +30*(41/64)^256) +94*(T^2+1)/2^256",
+  "collision_coefficient_conservative": 169,
+  "conditional_BCS_formula": "(T+2^22)*(sum(degree_weights)*6561/2^256 +30*(41/64)^256) +169*(T^2+1)/2^256",
   "work_table": [
     {
       "log2_adversarial_RO_queries": 0,
-      "unclipped_error_bits": 137.55979587809998,
-      "unclipped_error": 3.893814367683526e-42,
-      "unclipped_success_per_query_bits": 137.55979587809998
+      "unclipped_error_bits": 137.55979587818365,
+      "unclipped_error": 3.893814367457796e-42,
+      "unclipped_success_per_query_bits": 137.55979587818365
     },
     {
       "log2_adversarial_RO_queries": 64,
-      "unclipped_error_bits": 95.55979619879326,
-      "unclipped_error": 1.7125172887962902e-29,
-      "unclipped_success_per_query_bits": 159.55979619879326
+      "unclipped_error_bits": 95.55979618030915,
+      "unclipped_error": 1.712517310737532e-29,
+      "unclipped_success_per_query_bits": 159.55979618030915
     },
     {
       "log2_adversarial_RO_queries": 120,
-      "unclipped_error_bits": 9.445411147081131,
-      "unclipped_error": 0.0014343261731089988,
-      "unclipped_success_per_query_bits": 129.44541114708113
+      "unclipped_error_bits": 8.599120563027554,
+      "unclipped_error": 0.0025787353527964986,
+      "unclipped_success_per_query_bits": 128.59912056302755
     },
     {
       "log2_adversarial_RO_queries": 121,
-      "unclipped_error_bits": 7.445411147701861,
-      "unclipped_error": 0.005737304689967997,
-      "unclipped_success_per_query_bits": 128.44541114770186
+      "unclipped_error_bits": 6.599120563372708,
+      "unclipped_error": 0.010314941408717998,
+      "unclipped_success_per_query_bits": 127.59912056337271
     },
     {
       "log2_adversarial_RO_queries": 122,
-      "unclipped_error_bits": 5.445411148011999,
-      "unclipped_error": 0.022949218754935996,
-      "unclipped_success_per_query_bits": 127.445411148012
+      "unclipped_error_bits": 4.599120563545284,
+      "unclipped_error": 0.041259765629935996,
+      "unclipped_success_per_query_bits": 126.59912056354528
     },
     {
       "log2_adversarial_RO_queries": 124,
-      "unclipped_error_bits": 1.4454111482448297,
-      "unclipped_error": 0.367187500019744,
-      "unclipped_success_per_query_bits": 125.44541114824483
+      "unclipped_error_bits": 0.5991205636746599,
+      "unclipped_error": 0.660156250019744,
+      "unclipped_success_per_query_bits": 124.59912056367466
     },
     {
       "log2_adversarial_RO_queries": 128,
-      "unclipped_error_bits": -6.554588851682411,
-      "unclipped_error": 94.00000000031591,
-      "unclipped_success_per_query_bits": 121.44541114831759
+      "unclipped_error_bits": -7.4008794362848676,
+      "unclipped_error": 169.0000000003159,
+      "unclipped_success_per_query_bits": 120.59912056371513
     }
   ],
-  "bounded_work_1_through_2pow120_uniform_per_query_bits": 129.4402145525155,
+  "bounded_work_1_through_2pow120_uniform_per_query_bits": 128.5962278395982,
   "native_theorem_correspondence_review_complete": false,
   "recursion_security_qualified": false,
   "whole_protocol_128_certified": false,
@@ -110,7 +112,7 @@
   "limitations": [
     "coarse OODS/FRI source-degree and multi-scope BCS correspondence require independent proof review",
     "source unit/support/canonicality and characteristic lemmas must hold",
-    "R is an analysis bound, not newly enforced receiver authority",
+    "R is derived from accepted source caps; multi-scope ROM correspondence still requires review",
     "existing recursion secure field/profile is separate and not upgraded by native OM31",
     "256-bit hash theorem constants do not prove unrestricted literal128 per-work security"
   ]

@@ -10,7 +10,7 @@ Primary sources consulted are the [S-two whitepaper 2026/532](https://eprint.iac
 
 For β2, rateρ=1/4. With minimum nonzero table size 32, quotient-only correction gives `rho_plus=(1/4)*(1+2/32)=17/64`. Choose the **analysis** agreement `alpha=41/64`, distance `theta=23/64`. Then `theta<(1-rho_plus)/2`; this is strictly inside unique decoding even for the enlarged space. The earlier 5/8 agreement is on the original unique-radius boundary and should not be silently called a proven strict regime. No protocol parameter changes are needed to analyze a weaker agreement. All 256 raw query positions still count: duplicates are sampled IID before deduplication, and checking an entire fold 4block is no weaker than checking its selected position.
 
-The corresponding whole-roster query term is exactly `30*(41/64)^256`, about **2^-159.56**. Thus there is room to choose a conservative proof regime rather than relying on the unproved list-decoding-layout claim. The OM31 quadratic-conjugate quotient and fold 4 insertion/folding correspondence still require a written implementation-to-theorem review; this document does not substitute a numeric margin for that work.
+The corresponding whole-roster query term is exactly `30*(41/64)^256`, about **2^-159.56**. Thus there is room to choose a conservative proof regime rather than relying on the unproved list-decoding-layout claim. The OM31 quadratic-conjugate quotient and fold 4 folding correspondence still require a written implementation-to-theorem review; this document does not substitute a numeric margin for that work.
 
 ## Actual randomness and algebraic events
 
@@ -28,9 +28,9 @@ The following weights are over the entire native roster; multiplying each bymu g
 | Composition coefficient mixing |183,840|225.83|
 | Coarse OODS correspondence |148,397,830,963,200|196.24|
 | DEEP sample batching |1,105,650|223.24|
-| Conservative unique-curve FRI correspondence |949,874,967,183,360|193.57|
+| Unique-curve FRI, source-specific single first layer |60,397,977,600|207.51|
 
-The last three rows depend on the stated PCS/FRI correspondence review. They are not presented as already machine-checked or externally reviewed proofs. Their formulas are concrete: OODS uses `32*P*C*S*N`, overcounting mask poles and a common-denominator residual of degree bounded by component count and `d*N`; DEEP uses `P*C*S`; FRI uses `P*8*32*(C+1)*(4N)`. Four binary folds contribute challenge degree 15. At most C insertions can add at most 30C through the squared challenge powers, giving the conservative `32(C+1)` curve degree. The unique-curve bad-set threshold is degree times domain size, and 8 macro-rounds overbounds the admitted heights. Review must establish that these exact source expressions match the theorem's enlarged-space and multi-domain relation, including every conjugate/offset. These are not the old unexplained65,536factor or a claim that passing unit tests proves proximity soundness.
+The PCS rows still need an independent OODS/DEEP correspondence review. OODS uses `32*P*C*S*N`, overcounting mask poles and a common-denominator residual; DEEP uses `P*C*S`. The corrected FRI bound is `P*8*15*(4N)`: this implementation has one first-layer polynomial, not per-height insertions during FRI. Appendix below instantiates the actual degree-15 unique-decoding theorem and the sibling reconstruction, rather than assuming that a linear-FRI theorem extends automatically.
 
 Secp's source polynomial has degree 62: two 32-byte polynomials multiply, while the carry polynomial has 62 coefficients and is multiplied by a degree-one factor. The source consumes an independent OM31 challenge after sealed MAIN. The conservative row union uses 395,264 product rows, including padding. Its byte/carry bounds must justify that a false integer modular identity is not already zero coefficientwise moduloM31.
 
@@ -52,15 +52,15 @@ Lookup poles, row coordinates 0/1, stereographic poles and degenerate quadratic-
 
 ## Adaptive Fiat–Shamir and the whole native bundle
 
-The source-count round envelope used by the executable calculation is
+The round count now follows **all accepted candidate caps**, not only the measured roster. With `I<=128`, `V<=30`, tuple arity `A<=128` and proof count `P<=256`, a local child has at most
 
-`25*(2V²+(4I+16)V+128)+30*(2CS+512+16V)+4096 = 2,347,836 < R=2^22`.
+`V*(2I+3)+V*(V-1)+4I+1+9*(A+2)+32 = 10,355`
 
-It deliberately treats many values as separate messages. GKR layer/round counts and native sampled-column counts are geometry-bound. This is an **analysis** bound; an independently checked transcript-round authority and a multi-scope BCS correspondence remain required. Shared RAM/KIO/Wire challenges follow the ordered manifest of every sealed MAIN/root/local marginal, and local scopes bind statement/ordinal/geometry. Parallel execution is not permission to ignore adaptive grinding over those scopes.
+challenge/message operations. Per layer this counts active-claim mixes, two initial draws, polynomial mix plus challenge per sumcheck round, returned-mask mixes and final challenge. The begin/scope/instance encoding and nine relation namespaces are included. The native PCS path is bounded by 256 operations per proof: at most eight macro-FRI rounds, root/sample/terminal mixes, fixed OODS/composition/DEEP draws and 32 raw query draw blocks; value-vector widths are not additional rounds. Shared manifest draws/mixes add at most 256. Thus `256*(10,355+256)+256 = 2,716,672 < R=2^22`. Source authorities are `om31_security_candidate.zig` caps, `child.begin`, `challenges.draw`, `verifier_kernel.zig`, `core/fri_family.zig`, `core/queries.zig` and `manifest.drawShared`. No new runtime transcript-counter authority or protocol is introduced.
 
-A conservative composition unions 30 native proofs plus the shared challenge protocol. Retaining each proof's BCS hash term and one additional identity-hash collision term gives
+A deliberately conservative composition counts the 25 local-GKR subprotocols separately from 30 native PCS proofs and one shared-manifest protocol. Keeping each scope's BCS hash term, plus an identity-hash term, gives
 
-`eps_native(T) <= (T+2^22)*E + 94*(T²+1)/2^256`,
+`eps_native(T) <= (T+2^22)*E + 169*(T²+1)/2^256`,
 
 where `E=sum(degree_weights)*mu +30*(41/64)^256`.
 
@@ -70,11 +70,11 @@ This is a finite **conditional** bound, not an implemented certificate. It assum
 |---|---:|
 |1|137.56|
 |2^64|159.56|
-|2^120|129.45|
-|2^121|128.45|
-|2^122|127.45|
+|2^120|128.60|
+|2^121|127.60|
+|2^122|126.60|
 
-Bounding the decreasing `(1+R/T)*E` and increasing hash term separately gives more than 129 bits per query uniformly for `1<=T<=2^120`. This matches a bounded-work candidate model and is not a 2^-128 statistical failure claim for a 2^120 query adversary. At 2^120 the conservative total success bound is about 0.00143.
+Bounding the decreasing `(1+R/T)*E` and increasing hash term separately gives more than 128.59 bits per query uniformly for `1<=T<=2^120`. This matches a bounded-work candidate model and is not a 2^-128 statistical failure claim for a 2^120 query adversary. At 2^120 the conservative total success bound is about 0.00258.
 
 Raw 256-bit hashing does **not** make the whitepaper's exact constants prove an unrestricted literal128-bit per-work inequality near 2^128 queries. The table's bound becomes uninformative there; this is a proof-bound limitation, not a demonstrated attack. A global single-collision-event analysis may remove the conservative per-proof factor, but even coefficient 3 has a constant-factor distinction from an exact128-bit target. Decide the concrete work definition and tolerated constants. If a strict unrestricted inequality is required, a wider commitment/FS digest (or a different reviewed reduction) must be costed; increasing FRI queries or OM31 width cannot repair that hash term. No hash migration is proposed without review.
 
@@ -83,3 +83,24 @@ Raw 256-bit hashing does **not** make the whitepaper's exact constants prove an 
 For the native bundle, the practical next step is to review the unique-decoding implementation correspondence, formalize the source weighting/canonicality and late-binding lemmas, verify the transcript-round/multi-scope ROM reduction, and register the resulting receiver-owned statement of assumptions and work range. More queries are not the first missing ingredient. This analysis deliberately keeps the receiver's `security_qualified=false` and certificate registry unchanged.
 
 A composed recursive result additionally obeys `eps_total <= eps_native + sum eps_leaf/fold/root + statement/topology binding errors`. The existing RV64 recursion substrate proves outer circuit AIRs with QM31-based profiles; its internal FS channel is M31-reduced, although its Merkle commitments are plain unreduced 256-bit Blake. Numerical OM31 circuit-verifier tests do not upgrade those outer proof-system challenges or establish an accepting full recursive receiver for this new global-GKR execution lane. Therefore no finite128-bit **recursive whole-protocol** claim follows from this native budget. Each outer layer needs a matching reviewed secure-field/channel/parameter identity and a counted topology/error budget, plus actual end-to-end statement/coverage/global-debt closure.
+
+
+## Source-specific fold-4 correspondence
+
+The primary [S-two whitepaper](https://eprint.iacr.org/2026/532), Appendix A.2 **Remark 12**, explicitly states degree-M curve decodability in the strict unique regime with threshold `M*|D|`. **Remark 13** explicitly extends both CA over given sets (Theorem 8) and weighted CA (Theorem 9) to the same threshold. This is stronger than interpolating M+1 separately close codewords and taking a union of disagreements.
+
+Instantiate a macro fold of size `m=2^s<=16`. Iterated even/odd decomposition writes each input fiber as coefficient functions `f_0,...,f_(m-1)` on the quotient domain. Source challenges `z,z²,z⁴,z⁸` combine these as `sum z^j*f_j`, degree at most 15 in z. The inverse-butterfly matrices are invertible because the characteristic is odd and the canonical-domain twiddles are nonzero. Low-degree coefficient codewords reconstruct one original low-degree word. All coefficient functions jointly agreeing on a quotient-domain set A means agreement at **all m siblings** above A; its density is still |A|/|D|, not divided by m.
+
+To see why the same agreement density survives, use Remark 12 to obtain a degree-M curve of proximates. At any coordinate where the coefficient vector differs, accidental agreement is a nonzero degree-M polynomial in z. Across the domain there are at most M|D| bad z. Beyond that threshold one proximate agreement set has no accidental coordinates; Theorem 8/Remark 13 then gives joint coefficient agreement on that same set. The weighted version transports the conditional success weights from previously committed layers. Hence the standard backward query-success argument applies with unchanged theta. Full sibling openings are checked by `core/fri_family.zig.verify` through `foldCircleSubsets`/inner `verifyAndFoldImpl`; this is not a test of just one arbitrarily chosen linear combination.
+
+The important source restriction is verified in `prover/fri_commit_ops_family.zig.commitInnerLayers`: it accepts exactly one `FirstLayerProver`, folds it circle-to-line, then folds only that line evaluation. It has **no smaller-height source insertion inside a macro round**. `pcs/quotient_field.zig.computeChunk` has already produced one common-domain quotient word before `fri_lazy_commit_family.zig` passes it to FRI. The earlier `32(C+1)` insertion-degree discussion was therefore inappropriate for this source and has been removed. Multi-height column soundness belongs to the preceding PCS/DEEP lifting correspondence; it is not secretly discharged by this FRI argument.
+
+At most eight macro rounds, challenge degree at most15, and domain size at most4N give the conservative threshold `8*15*4N` per native proof. Nonuniform raw-mod sampling changes bad-set probability to threshold*mu. This closes the specific generic-curve/arity-16 gap, subject to independent review of the stated circle/line coefficient-space correspondence. It does not certify the remaining OODS/DEEP or execution-semantic premises.
+
+A fold-1 engineering alternative already exists in the source. It uses fresh independent challenges after each binary commitment, up to24 instead of6 macro rounds at the maximum domain. It removes the arity-16 correspondence obligation but introduces roughly four times as many FRI root commitments/draws and more authentication paths; exact proving/recursion cost needs measurement under a distinct receiver-owned profile. It is not selected here.
+
+## Possible tighter multi-scope hash accounting — not used numerically
+
+All local children begin with the GKR tag, statement/fixed/MAIN roots, ordinal and ordered instances. Native workers have a different tag, kind/ordinal and statement; shared challenges have the manifest tag and digest. No challenge is drawn before these scope bindings. Raw draw inputs have length37 while transcript mix inputs have length divisible by4, and raw query counters cannot wrap under the round cap. Conditional on no state/hash collision, distinct post-scope challenge queries therefore belong to disjoint challenge streams. Repeated public configuration prefixes have no secret challenge at that point.
+
+This supports investigating `sum T_i<=T`, `sum T_i²<=T²`, and replacing per-scope quadratic terms by a single global collision event plus scope constants. However the commitment hashing, identity hashing, repeated fixed trees, and the BCS binding-oracle reduction must be audited together; domain tags alone are not a proof of a universal multiscope ROM theorem. The executable model deliberately retains coefficient169, rather than claiming the potentially much tighter coefficient4. Both versions still have a constant-factor distinction from unrestricted literal128 near T=2^128.
