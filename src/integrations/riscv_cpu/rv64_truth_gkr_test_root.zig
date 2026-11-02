@@ -22,3 +22,6 @@ test {
 test {
     _ = @import("word16_global_execution/services/gkr_local/advice_retirement_test.zig");
 }
+test {
+    _ = @import("word16_global_execution/services/gkr_local/coordinator.zig");
+}
