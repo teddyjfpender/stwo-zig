@@ -20,7 +20,7 @@ pub const Admission = struct {
     initial_registers: [32]u64,
     max_prefix_steps: u32 = (1 << 22) - 1,
     pub fn validateCpu(self: Admission, geometry: Mat.Geometry, public: @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary) !void {
-        if (self.max_prefix_steps == 0 or self.max_prefix_steps >= 1 << 22) return error.InvalidExecutionBudget;
+        if (self.max_prefix_steps == 0 or self.max_prefix_steps >= 1 << 23) return error.InvalidExecutionBudget;
         if (public.steps > self.max_prefix_steps) return error.ExecutionPrefixBudgetExceeded;
         try geometry.validate();
         try public.validate(geometry.cpu_log);

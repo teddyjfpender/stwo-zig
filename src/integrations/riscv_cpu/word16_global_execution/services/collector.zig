@@ -229,6 +229,8 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     var ki: usize = 0;
     var si: usize = 0;
     var previous: u24 = 0;
+    // OWNER tick stride of this CPU's encoding (4, or 1 under the wide clock).
+    const stride: u32 = A.word16_execution.layout.ramStride(cpu.log_size);
     while (mi < ee.len or ci < cpu.services.items.len) {
         const mt = if (mi < ee.len) cpu.memory.items[mi].tick else std.math.maxInt(u24);
         const ct = if (ci < cpu.services.items.len) cpu.services.items[ci].tick else std.math.maxInt(u24);
@@ -239,7 +241,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
             const desc = try LS.native.describe(rec.opcode);
             const ea = rec.a +% rec.immediate;
             const address = ea & ~@as(u64, 7);
-            if (rec.epoch != cpu.epoch or rec.tick & 3 != 0 or rec.effect.address.toInt() != ea or rec.effect.width != desc.width or rec.effect.write != desc.write) return error.InvalidMemoryRecordEffect;
+            if (rec.epoch != cpu.epoch or rec.tick % stride != 0 or rec.effect.address.toInt() != ea or rec.effect.width != desc.width or rec.effect.write != desc.write) return error.InvalidMemoryRecordEffect;
             const before = try get(ledger, address);
             if (before.value != rec.effect.before_word.toInt()) return error.InconsistentCapturedMemoryBefore;
             const after = A.memory.closed_ram.types.State{ .value = rec.effect.after_word.toInt(), .epoch = cpu.epoch, .tick = rec.tick, .rights = before.rights };
@@ -249,12 +251,12 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
             mi += 1;
         } else {
             const rec = cpu.services.items[ci];
-            if (rec.epoch != cpu.epoch or rec.tick & 3 != 0) return error.InvalidCombinedServiceOwner;
+            if (rec.epoch != cpu.epoch or rec.tick % stride != 0) return error.InvalidCombinedServiceOwner;
             if (rec.tag == 0x10001) {
                 if (ki >= kk.len) return error.InvalidCombinedServiceOwner;
                 const captured = tape.service_calls.items[ki];
                 if (rec.pointer & 7 != 0 or rec.pointer > std.math.maxInt(u64) - 199) return error.InvalidCombinedServiceOwner;
-                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                try owner(rec.pointer, rec.tick, stride, tape, captured.pointer, captured.clock);
                 var call: K.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = captured.before, .after = captured.after, .predecessors = undefined };
                 for (0..25) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
                 try K.source.validate(call);
@@ -266,7 +268,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 const captured = tape.secp_calls.items[si];
                 if (rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * captured.wordCount() - 1)) return error.InvalidCombinedServiceOwner;
                 if (captured.packet_format != .little_endian_words_v2 or captured.tag() != rec.tag) return error.InvalidCombinedServiceOwner;
-                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                try owner(rec.pointer, rec.tick, stride, tape, captured.pointer, captured.clock);
                 var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = captured.before, .after = captured.after, .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
                 for (0..captured.wordCount()) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
                 try S.source.validate(S.types.kindOf(captured.kind), call);
@@ -280,7 +282,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 const captured = tape.sha256_calls.items[hi];
                 const words = @TypeOf(captured).WORDS;
                 if (rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
-                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                try owner(rec.pointer, rec.tick, stride, tape, captured.pointer, captured.clock);
                 var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = @splat(0), .after = @splat(0), .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
                 call.before[0..words].* = captured.before;
                 call.after[0..words].* = captured.after;
@@ -294,7 +296,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 const captured = tape.arith256_mod_calls.items[ri];
                 const words = @TypeOf(captured).WORDS;
                 if (rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
-                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                try owner(rec.pointer, rec.tick, stride, tape, captured.pointer, captured.clock);
                 var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = @splat(0), .after = @splat(0), .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
                 call.before[0..words].* = captured.before;
                 call.after[0..words].* = captured.after;
@@ -310,7 +312,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 const captured = tape.curve_calls.items[ui];
                 const words = captured.wordCount();
                 if (captured.tag() != rec.tag or rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
-                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                try owner(rec.pointer, rec.tick, stride, tape, captured.pointer, captured.clock);
                 var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = captured.before, .after = captured.after, .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
                 for (0..words) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
                 try S.source.validate(S.types.curveKind(captured.op), call);
@@ -451,8 +453,8 @@ fn jumpdestCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, epoch: 
 fn withValue(clock: BM.types.State, value: u64, rights: u2) BM.types.State {
     return .{ .value = value, .epoch = clock.epoch, .tick = clock.tick, .rights = rights };
 }
-fn owner(pointer: u64, tick: u24, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
-    if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or 4 * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;
+fn owner(pointer: u64, tick: u24, stride: u32, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
+    if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or stride * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;
 }
 fn get(ledger: *Old.Ledger, address: u64) !A.memory.closed_ram.types.State {
     const entry = try ledger.states.getOrPut(ledger.allocator, address);

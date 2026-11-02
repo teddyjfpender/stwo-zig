@@ -16,7 +16,8 @@ pub fn ChallengesFor(comptime C: type) type {
 }
 pub const Challenges = ChallengesFor(E.Q);
 
-pub fn Equations(comptime op: spec.Op) type {
+pub fn Equations(comptime op: anytype) type {
+    if (@TypeOf(op) == @TypeOf(.enum_literal)) return Equations(@as(spec.Op, op));
     return struct {
         pub const L = LayoutOf(op);
         const d = L.DEF;
@@ -160,7 +161,7 @@ pub fn Equations(comptime op: spec.Op) type {
             var out: [Base.WIRE_ARITY]F = undefined;
             out[0] = k(F, L.PROGRAM_KIND);
             out[1] = E.firstIdFor(F, public).add(v.fixed(Base.ROW));
-            out[2] = k(F, @intCast(wire));
+            out[2] = k(F, L.wireLabel(wire));
             for (0..32) |b| out[3 + b] = v.main(if (wire < L.COORDS) L.PACKET + 32 * wire + b else L.afterColumn(wire - L.COORDS, b));
             return out;
         }
@@ -175,17 +176,38 @@ pub fn Equations(comptime op: spec.Op) type {
             if (index == L.BYTE_QUERIES) return .{ v.main(L.MULT).neg(), gamma.sub(E.liftFor(F, v.fixed(Base.BYTE))) };
             return .{ F.zero(), E.SecureFor(F).one() };
         }
-        fn batch(comptime F: type, delta: E.SecureFor(F), n0: F, d0: E.SecureFor(F), n1: F, d1: E.SecureFor(F), sink: *E.SinkFor(F)) void {
-            sink.emit(delta.mul(d0).mul(d1).sub(E.mulBaseFor(F, d1, n0)).sub(E.mulBaseFor(F, d0, n1)));
+        /// delta * prod d_i - sum_i n_i prod_{j != i} d_j (degree BATCH + 1).
+        fn batch(comptime F: type, delta: E.SecureFor(F), n: [L.BATCH]F, den: [L.BATCH]E.SecureFor(F), sink: *E.SinkFor(F)) void {
+            if (L.BATCH == 2) {
+                // Unchanged expression for the curve/field ops.
+                sink.emit(delta.mul(den[0]).mul(den[1]).sub(E.mulBaseFor(F, den[1], n[0])).sub(E.mulBaseFor(F, den[0], n[1])));
+                return;
+            }
+            var all = delta;
+            for (den) |x| all = all.mul(x);
+            var weighted = E.SecureFor(F).zero();
+            inline for (0..L.BATCH) |i| {
+                var others = E.SecureFor(F).one();
+                inline for (0..L.BATCH) |j| if (j != i) {
+                    others = others.mul(den[j]);
+                };
+                weighted = weighted.add(E.mulBaseFor(F, others, n[i]));
+            }
+            sink.emit(all.sub(weighted));
         }
         pub fn emit(comptime F: type, v: anytype, public: E.CallSpanFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
             emitMain(F, v, public, sink);
             for (0..L.BYTE_BATCHES) |b| {
                 const current = secure(F, v, 4 * b, false);
                 const prior = if (b == 0) secure(F, v, L.BYTE_LAST, true) else secure(F, v, 4 * (b - 1), false);
-                const f0 = byteFraction(F, v, ch, 2 * b);
-                const f1 = byteFraction(F, v, ch, 2 * b + 1);
-                batch(F, current.sub(prior), f0[0], f0[1], f1[0], f1[1], sink);
+                var num: [L.BATCH]F = undefined;
+                var den: [L.BATCH]E.SecureFor(F) = undefined;
+                for (0..L.BATCH) |i| {
+                    const f = byteFraction(F, v, ch, L.BATCH * b + i);
+                    num[i] = f[0];
+                    den[i] = f[1];
+                }
+                batch(F, current.sub(prior), num, den, sink);
             }
             // Inputs consumed (-active), written coordinates produced (+active).
             const active = v.main(L.ACTIVE);
@@ -193,10 +215,10 @@ pub fn Equations(comptime op: spec.Op) type {
                 const at = L.WIRE_FIRST + 4 * w;
                 const current = secure(F, v, at, false);
                 const prior = if (w == 0) secure(F, v, L.WIRE_LAST, true).sub(E.mulBaseFor(F, E.splatFor(F, claim), v.fixed(Base.FIRST))) else secure(F, v, at - 4, false);
-                var den: [2]E.SecureFor(F) = undefined;
-                var num: [2]F = undefined;
-                for (0..2) |i| {
-                    const id = 2 * w + i;
+                var den: [L.BATCH]E.SecureFor(F) = undefined;
+                var num: [L.BATCH]F = undefined;
+                for (0..L.BATCH) |i| {
+                    const id = L.BATCH * w + i;
                     if (id < L.WIRE_FRACTIONS) {
                         den[i] = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &tuple(F, v, public, id), true);
                         num[i] = if (id >= L.COORDS) active else active.neg();
@@ -205,7 +227,7 @@ pub fn Equations(comptime op: spec.Op) type {
                         num[i] = F.zero();
                     }
                 }
-                batch(F, current.sub(prior), num[0], den[0], num[1], den[1], sink);
+                batch(F, current.sub(prior), num, den, sink);
             }
         }
     };

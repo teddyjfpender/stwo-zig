@@ -83,6 +83,7 @@ pub const Source = struct {
         var registers = public.initial_registers;
         var clocks: [32]u32 = @splat(0);
         var pc = public.initial_pc;
+        const stride: u32 = L.ramStride(log_size);
         for (metadata, 0..) |*meta, index| {
             const word = try program.lookup(pc);
             const entry = program.entries[word];
@@ -107,10 +108,10 @@ pub const Source = struct {
                 try functions.append(a, .{ .operation = entry.operation, .a = if (entry.use_pc) pc else meta.values[0], .b = if (entry.use_immediate) entry.immediate else meta.values[1], .c = if (entry.dynamic_next) next else c });
             } else if (entry.instruction.opcode == .ECALL) {
                 if (record.memory != null or c != 0) return error.InvalidExecutionAdvice;
-                try services.append(a, .{ .pointer = meta.values[0], .tag = meta.values[1], .epoch = epoch, .tick = @intCast(4 * (index + 1)) });
+                try services.append(a, .{ .pointer = meta.values[0], .tag = meta.values[1], .epoch = epoch, .tick = @intCast(stride * (index + 1)) });
             } else {
                 const effect = record.memory orelse return error.MissingExecutionMemory;
-                try memory.append(a, .{ .opcode = entry.instruction.opcode, .a = meta.values[0], .immediate = entry.immediate, .b = meta.values[1], .c = c, .epoch = epoch, .tick = @intCast(4 * (index + 1)), .effect = effect });
+                try memory.append(a, .{ .opcode = entry.instruction.opcode, .a = meta.values[0], .immediate = entry.immediate, .b = meta.values[1], .c = c, .epoch = epoch, .tick = @intCast(stride * (index + 1)), .effect = effect });
             }
             if (effects.writes_rd and entry.ids[2] != 0) registers[entry.ids[2]] = record.result.toInt();
             pc = next;
@@ -144,13 +145,15 @@ pub const Source = struct {
     fn fill(ctx: *const anyopaque, start: usize, end: usize, counts16: []u64, counts8: []u64) void {
         const self: *const Source = @ptrCast(@alignCast(ctx));
         const n = self.size();
+        const wide = L.wideClock(self.log_size);
         for (start..end) |physical| {
             const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.log_size), self.log_size);
             const values = self.row(logical) catch unreachable; // prevalidated framing.
             for (values, 0..) |value, column| self.main[column * n + physical] = value;
             for (0..3) |slot| {
                 counts16[values[L.main.gap16 + slot].v] += 1;
-                counts8[values[L.main.gap8 + slot].v] += 1;
+                // Wide clock: gap8 < 2^9 is queried as the U16 value 128*gap8.
+                if (wide) counts16[L.WIDE_GAP_SCALE * values[L.main.gap8 + slot].v] += 1 else counts8[values[L.main.gap8 + slot].v] += 1;
             }
         }
     }

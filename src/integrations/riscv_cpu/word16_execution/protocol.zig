@@ -120,6 +120,10 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
         channel.mixU32s(&.{ 0x46555345, X.layout.fused.COUNT, X.equations.FUSED_CONSTRAINTS });
         digest(channel, X.features.fusedTailIdentity());
     }
+    if (materials.geometry.wideClock()) {
+        channel.mixU32s(&.{ 0x57494445, materials.geometry.cpu_log, X.layout.WIDE_GAP_SCALE, X.layout.ramStride(materials.geometry.cpu_log) });
+        digest(channel, X.features.wideClockIdentity());
+    }
     if (materials.geometry.cpu_u8_pairs) {
         channel.mixU32s(&.{ 0x50414952, X.layout.pairs.COUNT, X.equations.PAIR_CONSTRAINTS, A.providers.tables.N_PAIR_CONSTRAINTS });
         digest(channel, X.features.pairIdentity());

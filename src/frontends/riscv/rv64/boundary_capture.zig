@@ -15,7 +15,7 @@ pub const Capture = struct {
     steps: u32 = 0,
     cells: std.AutoHashMap(u64, Cell),
     pub fn init(a: std.mem.Allocator, initial_clock: u64, max_steps: u32, max_cells: u32) !Capture {
-        if (max_steps == 0 or max_steps >= 1 << 22 or max_cells == 0 or max_cells > 1 << 24 or initial_clock > std.math.maxInt(u64) - @as(u64, max_steps)) return error.InvalidBoundaryCapture;
+        if (max_steps == 0 or max_steps >= 1 << 23 or max_cells == 0 or max_cells > 1 << 24 or initial_clock > std.math.maxInt(u64) - @as(u64, max_steps)) return error.InvalidBoundaryCapture;
         return .{ .allocator = a, .initial_clock = initial_clock, .max_steps = max_steps, .max_cells = max_cells, .cells = std.AutoHashMap(u64, Cell).init(a) };
     }
     pub fn deinit(self: *Capture) void {

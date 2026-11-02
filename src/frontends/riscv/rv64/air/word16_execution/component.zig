@@ -66,7 +66,7 @@ pub fn ComponentFor(comptime C: type) type {
             return if (tree == 1) L.previousMain(column) else tree == 2 and L.previousInterMode(self.fused, self.pairs != null, column);
         }
         pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
-            if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG) return error.InvalidExecutionGeometry;
+            try self.validateEncoding();
             if (comptime C == Q) try T.validateInputs(self.public, self.log_size);
             var logs: [3][]u32 = undefined;
             var done: usize = 0;
@@ -76,6 +76,13 @@ pub fn ComponentFor(comptime C: type) type {
                 done += 1;
             }
             return core.air.components.TraceLogDegreeBounds.initOwned(try a.dupe([]u32, &logs));
+        }
+        /// The wide-clock encoding (log 23) is defined only on the fused tail
+        /// without byte pairs: its three gap8 queries are scaled U16 queries.
+        pub fn validateEncoding(self: *const Self) !void {
+            if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG) return error.InvalidExecutionGeometry;
+            if (self.public.wide_clock != L.wideClock(self.log_size)) return error.InvalidExecutionGeometry;
+            if (L.wideClock(self.log_size) and (!self.fused or self.pairs != null)) return error.InvalidExecutionGeometry;
         }
         pub fn preprocessedColumnIndices(self: *const Self, a: std.mem.Allocator) ![]usize {
             const data = try a.alloc(usize, 3);
@@ -111,6 +118,7 @@ pub fn ComponentFor(comptime C: type) type {
         }
         pub fn evaluateQuotientsAtPointFor(self: *const Self, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, sink: *E.SinkFor(F)) !void {
             comptime if (E.ConstFor(F) != C) @compileError("execution component lane mismatch");
+            try self.validateEncoding();
             if (comptime C == Q) try T.validateInputs(self.public, self.log_size);
             var fixed: [3]F = undefined;
             var main: [L.main.COUNT]F = undefined;
@@ -137,7 +145,8 @@ pub fn ComponentFor(comptime C: type) type {
         }
         fn evaluateDomain(self: *const Self, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
             comptime if (C != Q) @compileError("external lane has no native domain evaluator");
-            if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG or trace.polys.items.len != 3) return error.InvalidExecutionGeometry;
+            if (trace.polys.items.len != 3) return error.InvalidExecutionGeometry;
+            try self.validateEncoding();
             try T.validateInputs(self.public, self.log_size);
             const a = acc.allocator;
             var polys: [COLUMNS]cp.Poly = undefined;

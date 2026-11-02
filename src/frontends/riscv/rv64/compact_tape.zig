@@ -11,7 +11,8 @@ const services = @import("service_session.zig");
 const ethereum = @import("ethereum_services/session.zig");
 pub const NO_MEMORY = std.math.maxInt(u32);
 // The last ordinary RAM timestamp is 4*steps, strictly below 2^24.
-pub const MAX_STEPS = (1 << 22) - 1;
+/// One CPU segment: up to 2^23-1 steps (log-23 wide-clock CPU).
+pub const MAX_STEPS = (1 << 23) - 1;
 pub const Clock = enum { local, global };
 pub const Step = extern struct {
     next_pc: u64,

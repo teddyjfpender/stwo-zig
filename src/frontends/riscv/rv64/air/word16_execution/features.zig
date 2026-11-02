@@ -158,6 +158,17 @@ pub fn pairIdentity() [32]u8 {
     return hash.finalResult();
 }
 
+/// Separate domain for the wide-clock CPU encoding. Mixed ONLY when the CPU
+/// log exceeds layout.CLOCK24_MAX_LOG (always on top of the fused tail).
+pub fn wideClockIdentity() [32]u8 {
+    const std = @import("std");
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.word16-execution.full64.wide-clock.v1:log23;fused-tail-only;REG-tick=4*row+slot+1<2^25;previous-clock=tick-1-gap16-65536*gap8;gap8-range=U16(128*gap8)=>gap=gap16+512*u<2^26;OWNER-tick=row+1(stride1)<2^24;RAM-side epoch16/tick24 unchanged");
+    const base = fusedTailIdentity();
+    hash.update(&base);
+    return hash.finalResult();
+}
+
 /// Separate domain for the opt-in fused-tail CPU interaction. Mixed ONLY when
 /// Geometry.cpu_fused_tail is set, so the historical transcript is unchanged.
 pub fn fusedTailIdentity() [32]u8 {

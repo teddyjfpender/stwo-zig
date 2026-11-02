@@ -7,18 +7,26 @@ pub const OwnerChallengesFor = @import("../memory/load_store_v2/types.zig").Owne
 pub const OwnerChallenges = OwnerChallengesFor(Q);
 pub fn InputsFor(comptime C: type) type {
     E.assertConstLane(C);
-    return struct { steps: E.CountFor(C), initial_pc: [4]E.CountFor(C), final_pc: [4]E.CountFor(C), epoch: E.CountFor(C) };
+    return struct {
+        steps: E.CountFor(C),
+        initial_pc: [4]E.CountFor(C),
+        final_pc: [4]E.CountFor(C),
+        epoch: E.CountFor(C),
+        /// Structural, never a wire: must equal `layout.wideClock(log)`
+        /// (checked by validateInputs). Selects the wide-clock encoding.
+        wide_clock: bool = false,
+    };
 }
 pub const Inputs = InputsFor(Q);
 pub fn validateInputs(public: Inputs, log: u32) !void {
-    if (log < 5 or log > 22 or public.steps == 0 or public.steps >= @as(u32, 1) << @intCast(log) or public.epoch == 0 or public.epoch > 65535) return error.InvalidExecutionInputs;
+    if (log < 5 or log > @import("layout.zig").MAX_LOG or public.wide_clock != @import("layout.zig").wideClock(log) or public.steps == 0 or public.steps >= @as(u32, 1) << @intCast(log) or public.epoch == 0 or public.epoch > 65535) return error.InvalidExecutionInputs;
     for (public.initial_pc ++ public.final_pc) |limb| if (limb > 65535) return error.InvalidExecutionInputs;
     if (public.initial_pc[0] & 3 != 0 or public.final_pc[0] & 3 != 0) return error.InvalidExecutionInputs;
 }
 pub fn inputs(boundary: Boundary, epoch: u16, log: u32) !Inputs {
     try boundary.validate(log);
     if (epoch == 0) return error.InvalidExecutionEpoch;
-    var result = Inputs{ .steps = boundary.steps, .initial_pc = undefined, .final_pc = undefined, .epoch = epoch };
+    var result = Inputs{ .steps = boundary.steps, .initial_pc = undefined, .final_pc = undefined, .epoch = epoch, .wide_clock = @import("layout.zig").wideClock(log) };
     for (0..4) |i| {
         const shift: u6 = @intCast(16 * i);
         result.initial_pc[i] = @as(u16, @truncate(boundary.initial_pc >> shift));

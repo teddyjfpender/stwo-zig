@@ -56,7 +56,7 @@ pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *
                 const d = try LS.native.describe(record.opcode);
                 const ea = record.a +% record.immediate;
                 const address = ea & ~@as(u64, 7);
-                if (record.epoch != cpu.epoch or record.tick & 3 != 0 or record.effect.address.toInt() != ea or record.effect.width != d.width or record.effect.write != d.write) return error.InvalidMemoryRecordEffect;
+                if (record.epoch != cpu.epoch or record.tick % A.word16_execution.layout.ramStride(cpu.log_size) != 0 or record.effect.address.toInt() != ea or record.effect.width != d.width or record.effect.write != d.write) return error.InvalidMemoryRecordEffect;
                 const before = try get(&ledger, address);
                 if (before.value != record.effect.before_word.toInt()) return error.InconsistentCapturedMemoryBefore;
                 const after = A.memory.closed_ram.types.State{ .value = record.effect.after_word.toInt(), .epoch = cpu.epoch, .tick = record.tick, .rights = before.rights };
@@ -67,7 +67,7 @@ pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *
             } else {
                 const record = cpu.services.items[ci];
                 const captured = tape.service_calls.items[ci];
-                if (record.tag != 0x10001 or captured.pointer != record.pointer or captured.clock <= tape.initial_clock or captured.clock - tape.initial_clock > tape.len or 4 * (captured.clock - tape.initial_clock) != record.tick or record.epoch != cpu.epoch) return error.InvalidCapturedKeccakOwner;
+                if (record.tag != 0x10001 or captured.pointer != record.pointer or captured.clock <= tape.initial_clock or captured.clock - tape.initial_clock > tape.len or A.word16_execution.layout.ramStride(cpu.log_size) * (captured.clock - tape.initial_clock) != record.tick or record.epoch != cpu.epoch) return error.InvalidCapturedKeccakOwner;
                 if (captured.pointer & 7 != 0 or captured.pointer > std.math.maxInt(u64) - 199) return error.InvalidCapturedKeccakOwner;
                 var call: B.types.Call = .{ .pointer = captured.pointer, .epoch = cpu.epoch, .tick = record.tick, .before = captured.before, .after = captured.after, .predecessors = undefined };
                 for (0..25) |lane| {
