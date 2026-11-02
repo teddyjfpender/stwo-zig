@@ -197,6 +197,8 @@ pub fn ForField(comptime S: type) type {
                 }
             }
             pub fn computeAll(self: *@This(), a: std.mem.Allocator, out: *Column) !void {
+                var phase = @import("wide_phase_profile.zig").Scope.begin(S, "quotient_rows", self.domain_size);
+                defer phase.end();
                 if (out.len() != self.domain_size) return error.ShapeMismatch;
                 if (self.parallel_shards > 1) {
                     const helpers = try a.alloc(RowScratch, self.parallel_shards - 1);

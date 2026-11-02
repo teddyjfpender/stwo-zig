@@ -4,6 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const Geometry = @import("../quotient_column_geometry.zig");
 const M = core.fields.m31.M31;
+const Phase = @import("../wide_phase_profile.zig");
 pub fn ForField(comptime S: type) type {
     return struct {
         const DEGREE = @typeInfo(@TypeOf(S.zero().toM31Array())).array.len;
@@ -47,6 +48,8 @@ pub fn ForField(comptime S: type) type {
                 self.* = undefined;
             }
             pub fn init(a: std.mem.Allocator, columns: []const Geometry.ColumnEvaluation, batches: []const Q.ColumnSampleBatch, constants: *const Q.QuotientConstants, lifting_log: u32, byte_limit: ?usize) !@This() {
+                var catalog_phase = Phase.Scope.begin(S, "catalog_allocate", columns.len);
+                defer catalog_phase.end();
                 if (batches.len != constants.line_coeffs.len) return error.ShapeMismatch;
                 var specs: std.ArrayList(Spec) = .empty;
                 defer specs.deinit(a);
@@ -116,7 +119,13 @@ pub fn ForField(comptime S: type) type {
                     coefficient_basis[i] = spec.coefficients;
                     initialized += 1;
                 }
+                catalog_phase.end();
+                var combine_phase = Phase.Scope.begin(S, "numerator_combine", members.items.len);
+                defer combine_phase.end();
                 try Setup.combine(a, groups, members.items);
+                combine_phase.end();
+                var fft_phase = Phase.Scope.begin(S, "numerator_fft", groups.len);
+                defer fft_phase.end();
                 try Setup.evaluateCoefficientViews(a, groups, coefficient_basis);
                 return .{ .groups = groups, .resources = resources };
             }
