@@ -6,6 +6,12 @@ pub const interaction = @import("interaction.zig");
 pub const component = @import("component.zig");
 pub const parallel = @import("parallel.zig");
 pub const tables = @import("tables.zig");
+/// Throughput-v1 (2^21/2^16 RV32 tables) multiplicities; selected by BatchPolicy.throughput_v1.
+pub const throughput_counts = @import("throughput_counts.zig");
+pub const batch_policy = @import("batch_policy.zig");
+/// Shared semantic authority and RV32 throughput table schema (reused, not copied).
+pub const authority = @import("../../../../air/guest_precompile/keccakf_authority.zig");
+pub const throughput_tables = @import("../../../../air/guest_precompile/keccakf_throughput_tables_v1.zig");
 pub const bridge = struct {
     pub const layout = @import("bridge/layout.zig");
     pub const equations = @import("bridge/equations.zig");

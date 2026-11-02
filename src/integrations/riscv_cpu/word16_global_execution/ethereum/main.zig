@@ -83,7 +83,7 @@ pub fn main() !void {
     const trim_ns = timer.read() - trim_start;
     const cpu_declarations = try Plan.cpus(a, &captured);
     defer a.free(cpu_declarations);
-    const truth_declarations = try Plan.truths(a, &captured);
+    const truth_declarations = try Plan.truthsForProfile(a, &captured, config.value.execution_profile == .ethereum_services_v3);
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     try admitProfile(config.value, cpu_declarations, truth_declarations);
@@ -125,6 +125,8 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     // (its ROM decodes the Zbb subset); every other request rejects it.
     if (config.execution_profile != .ethereum_services_v3_zbb) for (cpus) |d| if (d.bridges.zbb != null) return error.UnadmittedZbbBinaryComponent;
     if (@import("stwo_riscv_frontend").rv64.execution_profile.isV3(config.execution_profile)) return;
+    // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
+    for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
     for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
     for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;

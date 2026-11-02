@@ -190,7 +190,14 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         if (family < previous or truth.count() == 0 or truth.first() != next[family]) return error.InvalidCombinedTruthSpan;
         previous = family;
         switch (truth) {
-            .keccak => |t| try K.layout.validateGeometry(t.calls, t.first_id, t.setup.log),
+            .keccak => |t| {
+                try K.layout.validateGeometry(t.calls, t.first_id, t.setup.log);
+                switch (t.setup.policy) {
+                    .triple_v2 => {},
+                    .throughput_v1 => _ = try K.layout.admitThroughputRoster(&.{t.calls}),
+                    .quartet_v3 => return error.InvalidServicesTruthGeometry,
+                }
+            },
             .secp => |t| {
                 const p = S.program.get(t.setup.kind);
                 const mass = try S.layout.admitRoster(&.{ .{ .kind = .product, .program = p, .calls = t.calls, .first_id = t.first_id, .log = t.setup.logs[0] }, .{ .kind = .linear, .program = p, .calls = t.calls, .first_id = t.first_id, .log = t.setup.logs[1] } }, &.{});
@@ -296,7 +303,15 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
     ch.mixU64(expected.final_pc);
     for (expected.final_registers) |x| ch.mixU64(x);
     switch (truth) {
-        .keccak => |t| ch.mixU32s(&.{ t.setup.log, 13, 10, K.layout.FIXED, K.layout.MAIN, K.layout.INTERACTION, 11 }),
+        // Compact words are unchanged (existing bundles); the throughput
+        // profile mixes its own identity and geometry instead, before roots.
+        .keccak => |t| switch (t.setup.policy) {
+            .throughput_v1 => {
+                ch.mixU32s(&.{ 0x4b545055, 1, t.setup.log, t.setup.policy.tableLog(.chi), t.setup.policy.tableLog(.xor5), K.layout.FIXED, K.layout.MAIN, @intCast(t.setup.policy.interactionCount()), 11 });
+                t.setup.policy.mix(ch);
+            },
+            else => ch.mixU32s(&.{ t.setup.log, 13, 10, K.layout.FIXED, K.layout.MAIN, K.layout.INTERACTION, 11 }),
+        },
         .secp => |t| {
             const policy = @import("../secp/roster.zig").TruthSetup.byte_policy;
             S.byte_encoding.mix(ch, policy);

@@ -75,7 +75,25 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
     }
     return out;
 }
+pub const KeccakPolicy = A.crypto.keccak.equations.BatchPolicy;
+/// Exact committed MAIN+INTERACTION cells of one Keccak truth proof
+/// (permutation at `log` plus both tables), the quantity the cost proxy counts.
+pub fn keccakTruthCells(policy: KeccakPolicy, log: u32) u64 {
+    const L = A.crypto.keccak.layout;
+    const permutation = (@as(u64, L.MAIN) + policy.interactionCount()) << @intCast(log);
+    return permutation + (@as(u64, 5) << @intCast(policy.tableLog(.chi))) + (@as(u64, 5) << @intCast(policy.tableLog(.xor5)));
+}
+/// v3 profile: each truth takes the throughput tables exactly when that is
+/// fewer committed cells (log >= 13: 1,988 cells/row saved vs the 2^21+2^16
+/// tables). v2 never selects it (receiver policy rejects it there).
+pub fn keccakTruthPolicy(v3: bool, log: u32) KeccakPolicy {
+    if (!v3) return .triple_v2;
+    return if (keccakTruthCells(.throughput_v1, log) < keccakTruthCells(.triple_v2, log)) .throughput_v1 else .triple_v2;
+}
 pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclaration {
+    return truthsForProfile(a, captured, false);
+}
+pub fn truthsForProfile(a: std.mem.Allocator, captured: *const Capture, v3: bool) ![]W.TruthDeclaration {
     var total: [3]u32 = @splat(0);
     for (captured.advice.keccak, captured.advice.secp) |k, s| {
         total[0] = try std.math.add(u32, total[0], @intCast(k.len));
@@ -95,7 +113,7 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
         // product below then wraps (latent: logs below 18 were under-sized).
         const calls: u32 = @min(max_keccak, total[0] - next + 1);
         const log: u32 = if (calls > max_keccak / 2) 18 else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
-        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, 0 } });
+        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicy(v3, log)) } });
         next = try std.math.add(u32, next, calls);
     }
     for (1..3) |family| {
@@ -157,6 +175,15 @@ test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
     const narrowed = @min(@as(u32, ((1 << 18) / 29) * 2), calls);
     _ = narrowed;
     try std.testing.expectEqual(@as(u32, 16), try A.crypto.keccak.layout.logSize(calls));
+}
+test "v3 keccak truth takes the throughput tables exactly where they commit fewer cells" {
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(true, 12));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicy(true, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicy(true, 18));
+    // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
+    try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
 }
 test "two-instance planner reduces physical rows only and respects reserved LS rows" {
     try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));

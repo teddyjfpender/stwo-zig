@@ -119,8 +119,22 @@ def admitted_cells(calibration: dict, admitted_calls: dict | None) -> float:
     return cells
 
 
+V3_PROFILE = "ethereum_services_v3"
+
+
+def keccak_coefficient(calibration: dict, profile: str | None) -> float:
+    """Cells per Keccak-f truth call: the v3 profile proves Keccak-f with the
+    throughput-table truth (keccak_cells_per_call_v3); every other profile
+    (v2, baseline) keeps the frozen compact coefficient."""
+    c = calibration["coefficients"]
+    if profile == V3_PROFILE and "keccak_cells_per_call_v3" in c:
+        return c["keccak_cells_per_call_v3"]
+    return c["keccak_cells_per_call"]
+
+
 def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int,
-                   candidate_calls: dict | None = None, admitted_calls: dict | None = None) -> float:
+                   candidate_calls: dict | None = None, admitted_calls: dict | None = None,
+                   profile: str | None = None) -> float:
     """Frozen linear proxy for committed witness bits at the LDE (see calibration.json).
 
     admitted_calls holds ADMITTED ethereum_services_v3 usage per service
@@ -128,7 +142,7 @@ def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: 
     calibration.json admitted_services table (each entry cites its derivation)."""
     c = calibration["coefficients"]
     cells = (c["cpu_cells_per_instruction"] * instructions
-             + c["keccak_cells_per_call"] * keccak
+             + keccak_coefficient(calibration, profile) * keccak
              + c["secp_cells_per_call"] * (secp_add + secp_double)
              + candidate_cells(calibration, candidate_calls)
              + admitted_cells(calibration, admitted_calls))
@@ -146,7 +160,8 @@ def aggregate(rows: list[dict], calibration: dict) -> dict:
             tot[k] += int(r.get(k) or 0)
     bits = sum(committed_bits(calibration, r["instructions"], r.get("keccak_f_calls", 0),
                               r.get("secp_add_calls", 0), r.get("secp_double_calls", 0),
-                              r.get("candidate_service_calls"), r.get("admitted_service_calls")) for r in rows)
+                              r.get("candidate_service_calls"), r.get("admitted_service_calls"),
+                              r.get("execution_profile")) for r in rows)
     return {
         "blocks": len(rows),
         "gas_used": gas,

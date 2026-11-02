@@ -250,6 +250,10 @@ pub const Case = struct {
         }
     }
     pub fn init(a: std.mem.Allocator, mutation: Mutation, split: bool) !Case {
+        return initPolicy(a, mutation, split, .triple_v2);
+    }
+    /// `policy` selects the Keccak-f truth's lookup profile (v3 throughput or compact).
+    pub fn initPolicy(a: std.mem.Allocator, mutation: Mutation, split: bool, policy: KR.TruthSetup.Policy) !Case {
         var captured = try Captured.init(a);
         defer captured.deinit();
         const advice = &captured.advice;
@@ -282,7 +286,7 @@ pub const Case = struct {
         }
         const k = try a.create(KR.TruthSetup);
         errdefer a.destroy(k);
-        k.* = try KR.TruthSetup.init(a, KECCAK_LOG);
+        k.* = try KR.TruthSetup.initPolicy(a, KECCAK_LOG, @import("../keccak/shared/key.zig").Key.Suite.production(), policy);
         errdefer k.deinit();
         var buffer: [2]R.Truth = undefined;
         const bundle = try E.produce(a, &.{ setups[0], setups[1] }, truthsFor(k, split, &buffer), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expectedFor(captured.program.identity, captured.loaded));
