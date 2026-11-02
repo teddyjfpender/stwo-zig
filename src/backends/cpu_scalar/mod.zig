@@ -85,17 +85,16 @@ pub fn configured(comptime options: CommitmentOptions) type {
         pub const adopts_source_trace_arena = options.source_trace_arena;
         pub const reuses_constant_merkle_parents = true;
         pub const lazy_merkle_reuses_constant_parents = false;
-        /// The combined CPU LDE elides the degenerate first forward layer only for
-        /// an exact 2x extension. This declaration lets cold logical-work
+        /// The combined CPU LDE elides all leading zero-child forward layers
+        /// for a dyadic extension. This declaration lets cold logical-work
         /// accounting describe the implementation without entering FFT kernels.
         pub fn combinedCircleLdeSkippedForwardLayers(
             base_log_size: u32,
             extended_log_size: u32,
         ) u32 {
-            return if (extended_log_size > 2 and
-                extended_log_size > base_log_size and
-                extended_log_size - base_log_size == 1)
-                1
+            return if (extended_log_size > 2 and base_log_size >= 1 and
+                extended_log_size > base_log_size)
+                extended_log_size - base_log_size
             else
                 0;
         }
@@ -341,6 +340,20 @@ pub fn configured(comptime options: CommitmentOptions) type {
                     if (exact_double) {
                         prover.poly.circle.poly.evaluateExtensionBuffersWithTwiddlesWithPool(
                             &extended_batch,
+                            job.extended_domain,
+                            job.extended_twiddles,
+                            job.row_pool,
+                        ) catch |err| {
+                            job.err = err;
+                        };
+                        return;
+                    }
+                    if (job.base_domain.logSize() >= 1 and
+                        job.extended_domain.logSize() > job.base_domain.logSize())
+                    {
+                        prover.poly.circle.poly.evaluateDyadicExtensionBuffersWithTwiddlesWithPool(
+                            &extended_batch,
+                            job.base_domain.logSize(),
                             job.extended_domain,
                             job.extended_twiddles,
                             job.row_pool,
@@ -762,7 +775,7 @@ fn expectCombinedCircleLdeMatchesSeparate(
     var actual_extended_batch_a = [_][]M31{actual_extended_a};
     var actual_extended_batch_b = [_][]M31{actual_extended_b};
     var no_transform_buffer: [0]M31 = .{};
-    _ = try CpuBackend.interpolateAndEvaluateCircleBuffers(
+    const receipt_a = try CpuBackend.interpolateAndEvaluateCircleBuffers(
         allocator,
         &source_batch,
         &actual_base_batch_a,
@@ -775,7 +788,7 @@ fn expectCombinedCircleLdeMatchesSeparate(
         extended_domain,
         extended_twiddle_view,
     );
-    _ = try CpuBackend.interpolateAndEvaluateCircleBuffers(
+    const receipt_b = try CpuBackend.interpolateAndEvaluateCircleBuffers(
         allocator,
         &source_batch,
         &actual_base_batch_b,
@@ -789,6 +802,11 @@ fn expectCombinedCircleLdeMatchesSeparate(
         extended_twiddle_view,
     );
 
+    try receipt_a.validate();
+    try receipt_b.validate();
+    const expected_skip = if (extended_log_size > 2 and base_log_size >= 1) extended_log_size - base_log_size else 0;
+    try std.testing.expectEqual(expected_skip, receipt_a.forward.skipped_layers);
+    try std.testing.expectEqual(expected_skip, receipt_b.forward.skipped_layers);
     try std.testing.expectEqualSlices(M31, expected_base, actual_base_a);
     try std.testing.expectEqualSlices(M31, expected_base, actual_base_b);
     try std.testing.expectEqualSlices(M31, expected_extended, actual_extended_a);
@@ -799,6 +817,9 @@ test "cpu_scalar: combined circle LDE is canonical for 2x and wider extension" {
     const allocator = std.testing.allocator;
     try expectCombinedCircleLdeMatchesSeparate(allocator, 4, 5);
     try expectCombinedCircleLdeMatchesSeparate(allocator, 4, 6);
+    try expectCombinedCircleLdeMatchesSeparate(allocator, 4, 7);
+    try expectCombinedCircleLdeMatchesSeparate(allocator, 1, 3);
+    try std.testing.checkAllAllocationFailures(allocator, expectCombinedCircleLdeMatchesSeparate, .{ @as(u32, 4), @as(u32, 6) });
 }
 
 test {

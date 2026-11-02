@@ -1,0 +1,30 @@
+{
+  "scope": "actual CPU owned-backing combined dyadic LDE hook; candidate CPU0 ABBA",
+  "baseline_binary_sha256": "c4a5de848bde684c7914e48c9e5cab45f2785f606486de42825f457aff0848c6",
+  "new_binary_sha256": "1706f65d21f293fa494e6528e7832aaf5b7d9b81e03c0fe534cd29467c7f7fc0",
+  "four_authoritative_artifacts_exact_each_run": true,
+  "fresh_frozen_receiver_acceptances": 4,
+  "backend_safe_fast_tests_each": 13,
+  "direct_transform_and_portable_pcs_safe_fast_passed": true,
+  "independent_source_reviewer": "recover_pipeline_wave2",
+  "resource_file_sha256": "8f6cf07a241918fc102e5d3e58d060e1dae279e512edc644afff21f3dd37f590",
+  "means": {
+    "old": {
+      "prove_seconds": 16.330633125,
+      "physical_streaming_transform_seconds": 2.312153,
+      "all_producer_extension_job_seconds_including_setup": 7.6753654105,
+      "all_producer_interpolation_job_seconds_including_setup": 1.5395863405,
+      "process_maximum_rss_bytes_mean": 12104523776
+    },
+    "new": {
+      "prove_seconds": 16.2550705835,
+      "physical_streaming_transform_seconds": 2.2376015,
+      "all_producer_extension_job_seconds_including_setup": 7.273047048,
+      "all_producer_interpolation_job_seconds_including_setup": 1.5442159395,
+      "process_maximum_rss_bytes_mean": 12104523776
+    }
+  },
+  "whole_prover_speedup_established": false,
+  "gpu_execution_qualified": false,
+  "whole_protocol_128_certificate": false
+}
