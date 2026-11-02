@@ -9,6 +9,24 @@ const I = @import("interaction.zig");
 const C = @import("component.zig");
 const E = @import("equations.zig");
 const schema = @import("../../../../air/guest_precompile/keccakf_tables.zig");
+/// Throughput-v1 universes (2^21 five-output chi, 2^16 three-position xor5)
+/// are the RV32 authority's tables, reused unchanged.
+const throughput = @import("../../../../air/guest_precompile/keccakf_throughput_tables_v1.zig");
+pub const Policy = E.BatchPolicy;
+fn tableOf(kind: C.Kind) @import("batch_policy.zig").Table {
+    return if (kind == .chi) .chi else .xor5;
+}
+/// Exact fixed tuple of table row `i` under `policy`.
+pub fn tupleAt(policy: Policy, kind: C.Kind, i: usize) ![6]M {
+    if (kind == .permutation) return error.InvalidKeccakTable;
+    if (policy == .throughput_v1) return throughput.tupleAt(if (kind == .chi) .chi else .xor5, i);
+    return schema.tupleAt(if (kind == .chi) .chi else .xor5, i);
+}
+/// Semantic (non-padding) rows; padded xor5 throughput rows must stay unused.
+pub fn semanticRows(policy: Policy, kind: C.Kind) usize {
+    if (policy == .throughput_v1) return throughput.semanticRows(if (kind == .chi) .chi else .xor5);
+    return schema.size(if (kind == .chi) .chi else .xor5);
+}
 pub const Trace = struct {
     allocator: std.mem.Allocator,
     kind: C.Kind,
@@ -19,8 +37,12 @@ pub const Trace = struct {
     owns_main: bool = true,
     multiplicities: []u32 = &.{},
     interaction: []M = &.{},
+    policy: Policy = .triple_v2,
     pub fn init(a: std.mem.Allocator, kind: C.Kind, counts: []const u64) !Trace {
         return initWithMainAllocator(a, a, kind, counts);
+    }
+    pub fn initPolicy(a: std.mem.Allocator, kind: C.Kind, policy: Policy, counts: []const u64) !Trace {
+        return buildPolicy(a, .{ .owned = a }, kind, policy, counts);
     }
     pub fn initWithMainAllocator(a: std.mem.Allocator, main_allocator: std.mem.Allocator, kind: C.Kind, counts: []const u64) !Trace {
         return build(a, .{ .owned = main_allocator }, kind, counts);
@@ -29,15 +51,18 @@ pub const Trace = struct {
         return build(a, .{ .borrowed = main }, kind, counts);
     }
     fn build(a: std.mem.Allocator, storage: Storage.Buffer, kind: C.Kind, counts: []const u64) !Trace {
-        if (kind == .permutation) return error.InvalidKeccakTable;
-        const old: schema.Kind = if (kind == .chi) .chi else .xor5;
-        const log = schema.logSize(old);
-        const n = schema.size(old);
+        return buildPolicy(a, storage, kind, .triple_v2, counts);
+    }
+    fn buildPolicy(a: std.mem.Allocator, storage: Storage.Buffer, kind: C.Kind, policy: Policy, counts: []const u64) !Trace {
+        if (kind == .permutation or policy == .quartet_v3) return error.InvalidKeccakTable;
+        const log = policy.tableLog(tableOf(kind));
+        const n = @as(usize, 1) << @intCast(log);
         if (counts.len != n) return error.InvalidKeccakTableCounts;
         var total: u64 = 0;
-        for (counts) |count| {
+        for (counts, 0..) |count, i| {
             total = try std.math.add(u64, total, count);
             if (total >= core.fields.m31.Modulus) return error.InvalidKeccakTableCounts;
+            if (count != 0 and i >= semanticRows(policy, kind)) return error.InvalidKeccakTableCounts;
         }
         try storage.validate(n);
         if (storage == .borrowed) try Storage.exclude(&.{.{ .values = storage.borrowed, .cells = n }}, std.mem.sliceAsBytes(counts));
@@ -50,13 +75,13 @@ pub const Trace = struct {
         errdefer storage.release(main);
         for (counts, 0..) |count, i| {
             const r = physical(i, log);
-            const tuple = try schema.tupleAt(old, i);
+            const tuple = try tupleAt(policy, kind, i);
             for (tuple, 0..) |v, c| fixed[c * n + r] = v;
             fixed[6 * n + r] = M.fromCanonical(@intFromBool(i == 0));
             main[r] = M.fromCanonical(@intCast(count));
             multiplicities[i] = @intCast(count);
         }
-        return .{ .allocator = a, .kind = kind, .log_size = log, .fixed = fixed, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .multiplicities = multiplicities };
+        return .{ .allocator = a, .kind = kind, .log_size = log, .fixed = fixed, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .multiplicities = multiplicities, .policy = policy };
     }
     pub fn deinit(self: *Trace) void {
         self.allocator.free(self.fixed);
@@ -69,7 +94,7 @@ pub const Trace = struct {
         return @as(usize, 1) << @intCast(self.log_size);
     }
     pub fn validateMetadata(self: *const Trace) !void {
-        if (self.kind == .permutation or self.log_size != @as(u32, if (self.kind == .chi) 13 else 10) or self.multiplicities.len != self.size()) return error.InvalidKeccakTableCounts;
+        if (self.kind == .permutation or self.policy == .quartet_v3 or self.log_size != self.policy.tableLog(tableOf(self.kind)) or self.multiplicities.len != self.size()) return error.InvalidKeccakTableCounts;
         var total: u64 = 0;
         for (self.multiplicities) |count| {
             total = try std.math.add(u64, total, count);
@@ -97,6 +122,25 @@ pub const Trace = struct {
         const data = try self.allocator.alloc(M, 4 * n);
         errdefer self.allocator.free(data);
         const ch = if (self.kind == .chi) challenges.chi else challenges.xor5;
+        if (self.policy == .throughput_v1) {
+            // 2^21 rows: one batched inversion; same prefix as the serial loop.
+            const work = try self.allocator.alloc(Q, 2 * n);
+            defer self.allocator.free(work);
+            for (work[0..n], 0..) |*value, i| {
+                const r = physical(i, self.log_size);
+                var tuple: [6]Q = undefined;
+                for (&tuple, 0..) |*v, c| v.* = Q.fromBase(self.fixed[c * n + r]);
+                value.* = ch.denominator(&tuple);
+            }
+            try core.fields.batchInverseInPlace(Q, work[0..n], work[n..]);
+            var total = Q.zero();
+            for (work[n..], 0..) |inverse, i| {
+                total = total.add(inverse.mulM31(M.fromCanonical(self.multiplicities[i])));
+                I.store(data, n, physical(i, self.log_size), 0, total);
+            }
+            self.interaction = data;
+            return total;
+        }
         var sum = Q.zero();
         for (0..n) |i| {
             const r = physical(i, self.log_size);

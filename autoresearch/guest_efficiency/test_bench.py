@@ -242,6 +242,28 @@ class AdmittedScheme(unittest.TestCase):
         delta = bench.committed_bits(CAL, 10, 0, 0, 0, None, use) - bench.committed_bits(CAL, 10, 0, 0, 0)
         self.assertAlmostEqual(delta, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
 
+    def test_unaligned_memcpy_and_memcmp_usage_is_charged(self):
+        report = {"bulk_memcpy_unaligned_calls": 2, "bulk_memcpy_unaligned_bytes": 48,
+                  "bulk_memcmp_calls": 3, "bulk_memcmp_bytes": 40}
+        use = bench.admitted_usage(report)
+        self.assertEqual(use, {"memcpy_unaligned": {"calls": 2, "bytes": 48}, "memcmp": {"calls": 3, "bytes": 40}})
+        c = CAL["coefficients"]
+        t = CAL["admitted_services"]
+        cells = (2 * t["memcpy_unaligned"]["cells_per_call"] + 48 * t["memcpy_unaligned"]["cells_per_byte"]
+                 + 3 * t["memcmp"]["cells_per_call"] + 40 * t["memcmp"]["cells_per_byte"])
+        delta = bench.committed_bits(CAL, 0, 0, 0, 0, None, use) - bench.committed_bits(CAL, 0, 0, 0, 0)
+        self.assertGreater(cells, 0)
+        self.assertAlmostEqual(delta, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
+
+    def test_sponge_usage_and_cost_per_permutation(self):
+        report = {"keccak_sponge_calls": 2, "keccak_sponge_bytes": 300, "keccak_sponge_permutations": 4}
+        self.assertEqual(bench.admitted_usage(report),
+                         {"keccak_sponge": {"calls": 2, "bytes": 300, "permutations": 4}})
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 1.0, "keccak_cells_per_call": 0.0,
+                                "secp_cells_per_call": 0.0, "composition_fraction": 0.0},
+               "admitted_services": {"keccak_sponge": {"cells_per_call": 10.0, "cells_per_permutation": 1000.0}}}
+        self.assertEqual(bench.committed_bits(cal, 5, 0, 0, 0, None, bench.admitted_usage(report)), 5 + 20 + 4000)
+
     def test_all_three_services_cost_additively(self):
         c = CAL["coefficients"]
         t = CAL["admitted_services"]
@@ -342,6 +364,22 @@ class Elf(unittest.TestCase):
         self.assertEqual(res["buckets"]["mem_alloc"]["instructions"], 80)
         self.assertEqual(res["buckets"]["evm_interpreter"]["instructions"], 448)
         self.assertEqual(res["buckets"]["unattributed"]["instructions"], 3)
+
+
+class KeccakProfileCoefficientTest(unittest.TestCase):
+    def test_v3_uses_throughput_coefficient_v2_keeps_frozen(self):
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 0.0, "keccak_cells_per_call": 100.0,
+                                "keccak_cells_per_call_v3": 60.0, "secp_cells_per_call": 0.0, "composition_fraction": 0.0}}
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0), 200.0)
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0, profile="ethereum_services_v2"), 200.0)
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0, profile="ethereum_services_v3"), 120.0)
+        del cal["coefficients"]["keccak_cells_per_call_v3"]
+        self.assertEqual(bench.committed_bits(cal, 0, 2, 0, 0, profile="ethereum_services_v3"), 200.0)
+
+    def test_frozen_calibration_keeps_v2_coefficient(self):
+        c = CAL["coefficients"]
+        self.assertAlmostEqual(c["keccak_cells_per_call"], 72159.27004720572)
+        self.assertLess(c["keccak_cells_per_call_v3"], c["keccak_cells_per_call"])
 
 
 if __name__ == "__main__":

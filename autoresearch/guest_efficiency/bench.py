@@ -76,12 +76,19 @@ def candidate_cells(calibration: dict, candidate_calls: dict | None) -> float:
 
 
 # ADMITTED ethereum_services_v3 services: calibration.json admitted_services key ->
-# (execution-report call field, execution-report byte field or None).
+# (execution-report call field, execution-report byte field or None[,
+#  execution-report permutation field]). The Keccak-256 sponge is costed per
+# call (call row) and per permutation (perm row + Keccak-f truth).
 ADMITTED_REPORT_FIELDS = {
     "sha256_compress": ("sha256_calls", None),
     "arith256_mod": ("arith256_mod_calls", None),
     "memcpy": ("bulk_memcpy_calls", "bulk_memcpy_bytes"),
     "memset": ("bulk_memset_calls", "bulk_memset_bytes"),
+    # memcpy whose source is not 8-aligned (ucopy body rows; bytes = len).
+    "memcpy_unaligned": ("bulk_memcpy_unaligned_calls", "bulk_memcpy_unaligned_bytes"),
+    # memcmp: bytes = 8 x examined word pairs (the proof's cmp rows), not len.
+    "memcmp": ("bulk_memcmp_calls", "bulk_memcmp_bytes"),
+    "keccak_sponge": ("keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations"),
 }
 # Admitted v3 curve/field services: the execution report's `curve_calls` is one
 # call count per op in curves.Op order (Wire35 kinds 5..11).
@@ -92,10 +99,12 @@ ADMITTED_CURVE_OPS = ("bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12
 def admitted_usage(report: dict) -> dict | None:
     """Per-service admitted usage from one execution report (None when no admitted v3 call ran)."""
     out = {}
-    for name, (calls_key, bytes_key) in ADMITTED_REPORT_FIELDS.items():
+    for name, (calls_key, bytes_key, *perms_key) in ADMITTED_REPORT_FIELDS.items():
         calls = int(report.get(calls_key) or 0)
         if calls:
             out[name] = {"calls": calls, "bytes": int(report.get(bytes_key) or 0) if bytes_key else 0}
+            if perms_key:
+                out[name]["permutations"] = int(report.get(perms_key[0]) or 0)
     curve = report.get("curve_calls") or []
     if len(curve) not in (0, len(ADMITTED_CURVE_OPS)):
         raise ValueError(f"curve_calls has {len(curve)} entries, expected {len(ADMITTED_CURVE_OPS)}")
@@ -115,12 +124,27 @@ def admitted_cells(calibration: dict, admitted_calls: dict | None) -> float:
         if name not in table:
             raise ValueError(f"admitted service {name!r} has no measured cost in calibration.json")
         cost = table[name]
-        cells += cost["cells_per_call"] * int(use.get("calls", 0)) + cost.get("cells_per_byte", 0.0) * int(use.get("bytes", 0))
+        cells += (cost["cells_per_call"] * int(use.get("calls", 0)) + cost.get("cells_per_byte", 0.0) * int(use.get("bytes", 0))
+                  + cost.get("cells_per_permutation", 0.0) * int(use.get("permutations", 0)))
     return cells
 
 
+V3_PROFILE = "ethereum_services_v3"
+
+
+def keccak_coefficient(calibration: dict, profile: str | None) -> float:
+    """Cells per Keccak-f truth call: the v3 profile proves Keccak-f with the
+    throughput-table truth (keccak_cells_per_call_v3); every other profile
+    (v2, baseline) keeps the frozen compact coefficient."""
+    c = calibration["coefficients"]
+    if profile == V3_PROFILE and "keccak_cells_per_call_v3" in c:
+        return c["keccak_cells_per_call_v3"]
+    return c["keccak_cells_per_call"]
+
+
 def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int,
-                   candidate_calls: dict | None = None, admitted_calls: dict | None = None) -> float:
+                   candidate_calls: dict | None = None, admitted_calls: dict | None = None,
+                   profile: str | None = None) -> float:
     """Frozen linear proxy for committed witness bits at the LDE (see calibration.json).
 
     admitted_calls holds ADMITTED ethereum_services_v3 usage per service
@@ -128,7 +152,7 @@ def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: 
     calibration.json admitted_services table (each entry cites its derivation)."""
     c = calibration["coefficients"]
     cells = (c["cpu_cells_per_instruction"] * instructions
-             + c["keccak_cells_per_call"] * keccak
+             + keccak_coefficient(calibration, profile) * keccak
              + c["secp_cells_per_call"] * (secp_add + secp_double)
              + candidate_cells(calibration, candidate_calls)
              + admitted_cells(calibration, admitted_calls))
@@ -146,7 +170,8 @@ def aggregate(rows: list[dict], calibration: dict) -> dict:
             tot[k] += int(r.get(k) or 0)
     bits = sum(committed_bits(calibration, r["instructions"], r.get("keccak_f_calls", 0),
                               r.get("secp_add_calls", 0), r.get("secp_double_calls", 0),
-                              r.get("candidate_service_calls"), r.get("admitted_service_calls")) for r in rows)
+                              r.get("candidate_service_calls"), r.get("admitted_service_calls"),
+                              r.get("execution_profile")) for r in rows)
     return {
         "blocks": len(rows),
         "gas_used": gas,
@@ -438,7 +463,9 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
            "admitted_service_calls": admitted_usage(e)}
     if repeat > 1:
         keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "arith256_mod_calls",
-                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes", "curve_calls", "verified_output")
+                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes",
+                "bulk_memcpy_unaligned_calls", "bulk_memcpy_unaligned_bytes", "bulk_memcmp_calls", "bulk_memcmp_bytes",
+                "keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations", "curve_calls", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     return row

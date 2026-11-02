@@ -32,14 +32,19 @@ pub fn ComponentFor(comptime Lane: type) type {
         challenges: E.ChallengesFor(Lane),
         claim: Lane,
         stage_recorder: ?*engine.stage_profile.Recorder = null,
+        /// Lookup interpretation of the shared MAIN witness. `triple_v2` is the
+        /// compact default; `throughput_v1` uses the 2^21/2^16 RV32 tables.
+        policy: E.BatchPolicy = .triple_v2,
         const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn parameters(self: *const Self) Parameters {
-            return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .batches = L.BATCHES, .lookup_degree = 4, .emit_q = emitTripleQ };
+            const throughput = self.policy == .throughput_v1;
+            return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .policy = self.policy, .batches = self.policy.batches(), .lookup_degree = self.policy.degree(), .emit_q = if (throughput) emitThroughputQ else emitTripleQ };
         }
         pub fn proverParameters(self: *const Self) Parameters {
             var result = self.parameters();
-            result.emit_packed = emitTriplePacked;
-            result.legacy_gather = true;
+            result.emit_packed = if (self.policy == .throughput_v1) emitThroughputPacked else emitTriplePacked;
+            // The tiled gather oracle is sized for the triple-v2 interaction width.
+            result.legacy_gather = self.policy == .triple_v2;
             return result;
         }
         pub fn asProverComponent(self: *const Self) cp.ComponentProver {
@@ -57,6 +62,8 @@ pub fn ComponentFor(comptime Lane: type) type {
             return parameters_value.evaluateDomain(trace, accumulator, pool);
         }
         pub fn validate(self: *const Self) !void {
+            // Quartet owns its own adapter (quartet_component.zig).
+            if (self.policy == .quartet_v3) return error.InvalidKeccakPolicy;
             const p = self.parameters();
             return p.validate();
         }
@@ -67,10 +74,10 @@ pub fn ComponentFor(comptime Lane: type) type {
             return if (self.kind == .permutation) L.MAIN else 1;
         }
         pub fn interactionCount(self: *const Self) usize {
-            return if (self.kind == .permutation) 4 * L.BATCHES else 4;
+            return if (self.kind == .permutation) self.policy.interactionCount() else 4;
         }
         pub fn nConstraints(self: *const Self) usize {
-            return if (self.kind == .permutation) L.DIRECT + L.BATCHES else 1;
+            return if (self.kind == .permutation) self.policy.constraints() else 1;
         }
         fn callSpan(self: *const Self) !V.CallSpanFor(Lane) {
             if (comptime V.isExternalLane(Lane)) return .{ .calls = self.calls, .first_id = self.first_call_id, .nonempty = self.calls_nonzero orelse return error.MissingRv64LaneFlag };
@@ -136,8 +143,9 @@ pub fn ComponentFor(comptime Lane: type) type {
                 v.* = try lane.sample(F, masks, 1, m + c, sample_index, 5);
             };
             for (&scratch.previous_header, 0..) |*v, c| v.* = try lane.sample(F, masks, 1, m + L.ACTIVE_A + c, 1, 2);
-            for (&scratch.interaction, 0..) |*v, batch| v.* = try lane.secureSample(F, masks, 2, i + 4 * batch, 0, if (4 * batch + 4 >= inter_count) 2 else 1);
-            E.emitFor(F, scratch.row(), &scratch.interaction, previous, self.claim, self.challenges, try self.callSpan(), sink);
+            const batches = self.policy.batches();
+            for (scratch.interaction[0..batches], 0..) |*v, batch| v.* = try lane.secureSample(F, masks, 2, i + 4 * batch, 0, if (4 * batch + 4 >= inter_count) 2 else 1);
+            E.emitForPolicy(F, self.policy, scratch.row(), scratch.interaction[0..batches], previous, self.claim, self.challenges, try self.callSpan(), sink);
         }
         pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
             const p = self.proverParameters();
@@ -148,6 +156,12 @@ pub fn ComponentFor(comptime Lane: type) type {
 pub const Component = ComponentFor(Q);
 fn emitTripleQ(row: E.Row, interaction: []const Q, prior: Q, claim: Q, ch: E.Challenges, public: E.Public, sink: *Sink) void {
     E.emit(row, interaction, prior, claim, ch, public, sink);
+}
+fn emitThroughputQ(row: E.Row, interaction: []const Q, prior: Q, claim: Q, ch: E.Challenges, public: E.Public, sink: *Sink) void {
+    E.emitThroughputFor(Q, row, interaction, prior, claim, ch, public, sink);
+}
+fn emitThroughputPacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
+    E.emitThroughputFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
 }
 fn emitTriplePacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
     E.emitFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
@@ -165,6 +179,7 @@ pub const Parameters = struct {
     challenges: E.Challenges,
     claim: Q,
     stage_recorder: ?*engine.stage_profile.Recorder = null,
+    policy: E.BatchPolicy = .triple_v2,
     batches: usize,
     lookup_degree: u8,
     emit_q: ScalarEmitter,
@@ -172,9 +187,12 @@ pub const Parameters = struct {
     legacy_gather: bool = false,
     pub fn validate(self: *const Parameters) !void {
         switch (self.kind) {
-            .permutation => try L.validateGeometry(self.calls, self.first_call_id, self.log_size),
-            .chi => if (self.log_size != 13 or self.calls != 0) return error.InvalidKeccakComponentGeometry,
-            .xor5 => if (self.log_size != 10 or self.calls != 0) return error.InvalidKeccakComponentGeometry,
+            .permutation => {
+                try L.validateGeometry(self.calls, self.first_call_id, self.log_size);
+                if (self.policy == .throughput_v1) _ = try L.admitThroughputRoster(&.{self.calls});
+            },
+            .chi => if (self.log_size != self.policy.tableLog(.chi) or self.calls != 0) return error.InvalidKeccakComponentGeometry,
+            .xor5 => if (self.log_size != self.policy.tableLog(.xor5) or self.calls != 0) return error.InvalidKeccakComponentGeometry,
         }
     }
     pub fn fixedCount(self: *const Parameters) usize {

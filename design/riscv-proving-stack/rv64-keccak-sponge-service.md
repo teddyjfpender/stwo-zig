@@ -174,15 +174,99 @@ IO11 closed globally and IDs unique, the written state is
 `f(... f(f(old ⊕ m_0) ⊕ m_1) ...)`, i.e. Keccak-256 absorption of the masked,
 padded message.
 
-S7 Canonical RAM writes (joint write induction): sponge writes are the 25 state
-words with `after` = bytes matched to truth output bytes (independently
-anchored by the truth's bit columns); reads keep their values. Clock ticks are
-the OWNER-bound `4r + 4`. No new circular edge.
+S7 Canonical RAM writes (joint write induction): see section 4.1.
 
 S8 Masses: RAM 58/call + 36/perm, IO 50/call + 50/perm (plus 50/perm truth
 production), OWNER ≤ 3/call, U16/U8/AND unconditional per physical row; all
 admitted below p (`protocol.admitSponge`, wire read); the AND table's
 consumer mass `8 · BINARY rows + 136 · 2^perm_log` is admitted below p.
+
+### 4.1 Sponge writer case of the joint REG/RAM write induction
+
+The joint induction ([rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md),
+sections 2-4) requires every RAM producer to have canonical produced clocks
+`4r'+4` (P1), atomic Boolean-weighted transitions coupled to its OWNER weight
+(P4), and written limbs that are either independently anchored or depend only
+on tokens with strictly smaller `(epoch, clock)`. The sponge is a RAM producer
+in two places: the call row (4 packet words and 25 state words) and the perm
+row (18 message slots). Line numbers refer to `ks/equations.zig` unless
+another file is named.
+
+*Clocks (P1).* Every sponge after token carries the call's after clock
+`(E, TL, TH)`. The call row binds it through its OWNER19 ECALL tuple (slot 17
+`E`, slot 18 `TL + 65536 TH`, line 80, consumed with weight `−active`, line
+170) to the CPU ECALL row `r`, whose tick is `4r+4`; `TL` is U16-ranged and
+`TH` U8-ranged (lines 193, 205), so the split is the canonical one. The perm
+rows of the call's run take the same clock from the token (line 223, first row)
+and copy it along the run (line 351). Hence every sponge-produced tick is
+`4r+4` of an ECALL row in that CPU proof's epoch.
+
+*Atomic transitions and weights (P2, P4).* Every sponge RAM access is one
+`ramPair`: the before token with weight `w` and the after token with weight
+`−w`, same address and rights. Call-row pairs use `w = active` (lines 173-182),
+the same Boolean that weights its OWNER ECALL consumption, so each sponge ECALL
+of the CPU contributes exactly one call row and its 29 transitions. Perm-row
+slot pairs use the Boolean read flag `r_j` (line 244); these are reads
+(`after = before`), so a wrongly set flag can only add a consistent
+read transition (or leave a debt), never a new value. Each pair carries the
+strict-predecessor clock gap with ranged gaps (`clockConstraints`), so the
+before token is `<lex (E, 4r+4)` exactly as for LS (P2).
+
+*Rights.* State words: `R = W = 1` constants in both tuples, so a state word
+must be readable and writable from its INIT rights onward. Packet words:
+`R = 1`, `W` a Boolean witness copied into both tuples. Message words: `R = 1`,
+`W` copied likewise. Rights are preserved by every transition.
+
+*Ordering.* All 29 + `W` accesses of one call share the clock `(E, 4r+4)`.
+The executor requires packet, state and message words to be pairwise disjoint;
+an aliasing proof would need two transitions of one word at the same clock,
+and the second one's before token (the first one's after token) would not be
+strictly earlier, so the gap equation has no solution with ranged gaps. Within
+a call, each state word is one atomic old → new transition; no word is both
+read as message and written. Across calls, the ticks differ (distinct ECALL
+rows), so a later call reads the earlier call's written state through ordinary
+chronology (scenario E in `ks/tests.zig`; sponge C in the services fixture).
+
+*Written values (the induction case).* Only the 25 state words change value.
+
+- **Packet and message reads**: `after = before` (lines 173-178, 242-246);
+  new edge "sponge read (e,4r+4) → its before token `<lex (e,4r+4)`", strictly
+  decreasing as LS edge E3. IH gives canonical limbs.
+- **State write** (`after` limbs `= new_{2i} + 256 new_{2i+1}`, line 180): the
+  same 8 `new` bytes of lane `l` form the IO11 tuple `(id + q + fin − 1, 1, l,
+  new)` consumed with weight `−active` (lines 188-191). IO11 closes globally
+  with mass `< p` (S8). The only producers of direction-1 tuples are Keccak-f
+  truth rows, with Boolean weight `ioActive`, and their tuple bytes are
+  `Σ_bit 2^bit · v` (`air/delegations/keccak/equations.zig:68-77`) over state
+  bits `v` that are Boolean on every IO row
+  (`air/delegations/keccak/equations.zig:183`; inactive rows are zero, `:191`).
+  The call link (direction 2) and perm consumers cannot supply a direction-1
+  tuple. So every consumed output tuple equals a truth tuple field-element-wise:
+  each `new` byte is an integer in `[0, 256)` and each written limb is in
+  `[0, 2^16)`. **Independent anchor**: the bound depends on truth booleanity
+  and IO11 closure only, not on any RAM or REG token, so the case adds no
+  dependency edge and needs no extra range query.
+- `old` bytes need no range: they appear in RAM only as the before value
+  (which P2 equates with a produced, hence canonical, token). For a non-fresh
+  call they also form the link consumed as `pre` on the first perm row, where
+  rate bytes are AND-checked and capacity bytes become truth input bits, so
+  the link carries the canonical split of the true old state (S6).
+- C value: the OWNER ECALL tuple has `C = 0` (slots 5-8 zero), as for the
+  other bridges; the ECALL writes no register.
+
+So the lemma extends with one strictly decreasing read edge (same shape as
+bulk's B7 read edge) and one independently anchored writer. Load-bearing
+facts a future change must keep: the `new` bytes used for the RAM after limbs
+are the same columns as the IO11 output tuple (do not give the write its own
+unranged columns), the truth IO-row booleanity, and the Boolean `active`
+weight shared by OWNER and the call-row RAM pairs.
+
+Adversarial coverage: `keccak sponge adversarial: digest-write forgery is
+rejected` (`ks/tests.zig`): (a) written limbs `limb0 + 65536, limb1 − 1` (same
+integer word) with a RAM environment forged to match, so RAM14, OWNER, AND,
+ranges and every local residual pass, rejected only by IO11; (b) same limbs,
+non-canonical byte split, rejected by IO11; (c) state pointer redirected,
+rejected by RAM14 (packet read).
 
 ## 5. Tests
 
@@ -203,6 +287,7 @@ match `std` Keccak-256 and close; degree ≤ 3 by fourth finite differences.
 | length mismatch (rb, or consistent packet len) | local; RAM14 packet read |
 | missing `0x80`, nonzero fresh state | local |
 | non-canonical tail byte split | U8 range |
+| digest-write forgery (non-canonical written limbs, RAM-consistent; byte split; redirected state) | IO11; IO11; RAM14 |
 
 `exec` tests (`test-riscv64-execution`): Keccak-256 for lengths 0..559 at
 all 8 alignments, split absorb + finalize, empty message, and traps (domain,
@@ -214,7 +299,30 @@ Services (`zig build test-riscv64-word16-sponge-services
 
 ## 6. Cost
 
-See section 8 for measured numbers.
+Measured geometry (2026-11-02), complete block 26,235,156 with the evmone v3
+guest routing Keccak-256 inputs > 64 bytes to the sponge (`build.py --profile
+v3 --v3-set sha,arith,mem,keccak`; `rv64-ethereum-proof nativeprepare`, 5
+packets; `rv64-word16-ethereum plan`): 4,731 calls, 19,562 permutations.
+Exact padded MAIN+INTERACTION cells (widths × 2^log, as cost.json computes):
+
+| Component | Rows (logs over 4 shards) | Cells | Per unit | Nominal |
+|---|---|---:|---:|---:|
+| call | 12/5/5/11 → 6,208 | 6,667,392 | 1,409.3 / call | 1,074 |
+| perm | 14/5/7/13 → 24,736 | 41,086,496 | 2,100.3 / permutation | 1,661 |
+| Keccak-f truth (shared) | log18 + log16 over 20,994 IDs | 1,480,785,920 | 70,533.8 / ID | |
+
+`calibration.json` `admitted_services.keccak_sponge`: 1,409.3 per call and
+2,100.3 + 72,159.3 (frozen Keccak truth coefficient) per permutation.
+Basket (15 blocks, all guards, exact outputs): provable v3 scored 4.778 →
+4.426 instr/gas, 67,192 → 64,114 bits/gas; Keccak glue 0.465 → 0.108
+instr/gas (`notes/keccak-sponge-admitted-results-20261102.json`).
+
+Confirmed by a produced proof: a 1-packet prefix of the same block
+(`rv64-word16-ethereum produce request.json native/jobs OUT 1`, 1 CPU + 4
+truth proofs, 26.4 s, 15.2 GB max RSS) accepted by a fresh `verify-prefix`
+(a v2 request rejects it). Its roster.json: `sponge_call` log 12, 2,943
+active rows, 4,399,104 cells (1,494.7 / call); `sponge_perm` log 14, 13,685
+active rows, 27,213,824 cells (1,988.6 / permutation).
 
 ## 7. Integration
 
@@ -226,4 +334,8 @@ sources, AND merge, Keccak truth inputs), `protocol` (`admitSponge`, ID
 checks, transcript block), `statement`, `air_components`, `worker`,
 `pipeline`, `execution` (IO sum), `wire`, `collector` +
 `sponge_collector.zig` (ledger replay). Driver: plan logs and Keccak truth
-totals, `admitProfile`, native batch and work-packet admission.
+totals, `admitProfile`, native batch and work-packet admission (sponge is a
+payload-free tag: no tape payload, RAM effects in the capture, touched-word
+bound `BULK_MAX_TOUCHED_WORDS` covers 29 + W ≤ 131,102 words), cost/roster
+telemetry rows `sponge_call`/`sponge_perm`. Exercised end to end by the
+prefix proof in section 6.

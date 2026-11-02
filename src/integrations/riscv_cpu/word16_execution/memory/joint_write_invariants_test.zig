@@ -195,8 +195,25 @@ test "LS32 Keccak ADD DOUBLE producers retain byte anchors zero register C and c
     try compareBridge(K, null);
     try compareBridge(S, .add);
     try compareBridge(S, .double);
-    // Adding another RAM-writing service requires reopening the induction.
-    try std.testing.expectEqual(@as(usize, 4), std.meta.fields(@import("../../word16_global_execution/services/roster.zig").Sources).len);
+}
+fn expectNames(comptime T: type, names: []const []const u8) !void {
+    const fields = std.meta.fields(T);
+    try std.testing.expectEqual(names.len, fields.len);
+    inline for (fields, 0..) |f, i| try std.testing.expectEqualStrings(names[i], f.name);
+}
+test "services RAM writer inventory matches the joint write induction cases" {
+    // Every RAM writer below has a case (W1-W5) in
+    // design/riscv-proving-stack/rv64-ls-joint-write-induction.md section 11.
+    // Adding a roster source, a bridge kind, a bulk kind or a sponge kind
+    // requires adding its case there first, then updating this inventory.
+    const Roster = @import("../../word16_global_execution/services/roster.zig");
+    try expectNames(Roster.Sources, &.{ "core", "keccak", "add", "double", "sha256", "arith256_mod", "curves", "bulk", "sponge_plan", "sponge" });
+    try expectNames(S.types.Kind, &.{ "add", "double", "sha256", "arith256_mod", "bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul", "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double" });
+    const BM = A.crypto.bulk_memory;
+    try expectNames(BM.layout.Kind, &.{ "desc", "copy", "set", "ucopy", "cdesc", "cmp" });
+    try std.testing.expectEqual(BM.layout.kinds.len, @typeInfo(@FieldType(Roster.Sources, "bulk")).array.len);
+    try expectNames(A.crypto.keccak_sponge.layout.Kind, &.{ "call", "perm" });
+    try std.testing.expectEqual(@as(usize, 2), @typeInfo(@FieldType(Roster.Sources, "sponge")).array.len);
 }
 test "LS32 curve/field producers (kinds 5..11) retain byte anchors zero register C and continuation clock equality" {
     // Case C7 of design/riscv-proving-stack/rv64-curve-services.md: every

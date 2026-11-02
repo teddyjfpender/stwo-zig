@@ -75,8 +75,10 @@ pub const Owner = struct {
         }
         for (truth, truths) |d, *out| switch (d.family) {
             .keccak => {
+                // logs[1] selects the Keccak lookup profile (wire.keccakPolicy).
+                const policy = try @import("../services/wire.zig").keccakPolicy(d.logs[1]);
                 var found: ?*const K.TruthSetup = null;
-                for (self.keccak_owners.items) |s| if (s.log == d.logs[0]) {
+                for (self.keccak_owners.items) |s| if (s.log == d.logs[0] and s.policy == policy) {
                     found = s;
                     break;
                 };
@@ -84,7 +86,7 @@ pub const Owner = struct {
                     try self.keccak_owners.ensureUnusedCapacity(a, 1);
                     const s = try a.create(K.TruthSetup);
                     errdefer a.destroy(s);
-                    s.* = try K.TruthSetup.initWithSuite(a, d.logs[0], suite);
+                    s.* = try K.TruthSetup.initPolicy(a, d.logs[0], suite, policy);
                     self.keccak_owners.appendAssumeCapacity(s);
                     found = s;
                 }

@@ -24,7 +24,7 @@ pub const CpuSetup = struct {
     bridges: T.Logs,
     fixed: [T.FAMILIES][]M,
     /// Bulk-memory fixed columns (desc, copy, set), after every family.
-    bulk_fixed: [3][]M = @splat(&.{}),
+    bulk_fixed: [T.bulk_kinds.len][]M = @splat(&.{}),
     /// Keccak-sponge fixed columns (call, perm), after the bulk block.
     sponge_fixed: [2][]M = @splat(&.{}),
     key: Key,
@@ -214,7 +214,7 @@ pub const Sources = struct {
     arith256_mod: ?S.source.Source = null,
     /// Curve/field bridges (families 5..11, curves.Op order).
     curves: [T.CURVES]?S.source.Source = @splat(null),
-    bulk: [3]?BM.source.Source = @splat(null),
+    bulk: [T.bulk_kinds.len]?BM.source.Source = @splat(null),
     /// Keccak-sponge plan (owned) and its call/perm sources.
     sponge_plan: ?*KS.source.Plan = null,
     sponge: [2]?KS.source.Source = @splat(null),
@@ -554,7 +554,7 @@ pub const TruthSource = union(enum) {
                     offset += shard.inputs.len;
                 }
                 if (written != t.calls) return error.InvalidCombinedTruthSpan;
-                break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpan(a, inputs, t.first_id, t.setup.log) };
+                break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpanPolicy(a, inputs, t.first_id, t.setup.log, t.setup.policy) };
             },
             .secp => |t| block: {
                 const inputs = try a.alloc(S.types.Call, t.calls);
@@ -667,7 +667,7 @@ pub const TruthSource = union(enum) {
                     protected[i] = part.fixed;
                     protected[3 + i] = if (tree == 1) part.interaction else part.main;
                     matrices[i] = if (tree == 1) &part.main else &part.interaction;
-                    const width: usize = if (i == 0) (if (tree == 1) A.crypto.keccak.layout.MAIN else A.crypto.keccak.layout.INTERACTION) else (if (tree == 1) 1 else 4);
+                    const width: usize = if (i == 0) (if (tree == 1) A.crypto.keccak.layout.MAIN else s.policy().interactionCount()) else (if (tree == 1) 1 else 4);
                     expected[i] = try std.math.mul(usize, width, part.size());
                 }
             },

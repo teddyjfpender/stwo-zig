@@ -161,7 +161,7 @@ pub const Worker = struct {
                 for (&source.curves, T.FIRST_CURVE..) |*c, k| if (c.*) |*b| {
                     extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
                 };
-                var bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero());
+                var bulk: [T.bulk_kinds.len]T.BulkClaims = @splat(T.BulkClaims.zero());
                 for (&source.bulk, &bulk) |*b, *out| if (b.*) |*s| {
                     out.* = try s.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 }, source.core.range16.dictionary);
                 };
@@ -250,7 +250,7 @@ pub const Worker = struct {
 fn truthClaims(source: *R.TruthSource, draw: P.TruthDraw) ![3]Q {
     return switch (source.*) {
         .keccak => |*s| switch (draw) {
-            .keccak => |ch| .{ try A.crypto.keccak.interaction.generate(&s.permutation, ch), try s.chi.generateInteraction(ch), try s.xor5.generateInteraction(ch) },
+            .keccak => |ch| .{ try A.crypto.keccak.interaction.generateForPolicy(&s.permutation, ch, s.policy(), .{ .pool = engine.work_pool.currentScopedPool() }), try s.chi.generateInteraction(ch), try s.xor5.generateInteraction(ch) },
             else => error.InvalidCombinedTruthChallenge,
         },
         .secp => |*s| switch (draw) {
