@@ -313,6 +313,73 @@ test "in-process handoff capture equals the on-disk packet capture" {
         try std.testing.expectEqual(@as(u32, 1), stats.batches);
     }
 }
+fn expectSameTree(x: std.fs.Dir, y: std.fs.Dir) !void {
+    var walker = try x.walk(a);
+    defer walker.deinit();
+    var files: usize = 0;
+    while (try walker.next()) |entry| {
+        if (entry.kind != .file) continue;
+        const left = try x.readFileAlloc(a, entry.path, 1 << 30);
+        defer a.free(left);
+        const right = y.readFileAlloc(a, entry.path, 1 << 30) catch |err| {
+            std.debug.print("segment tree lacks {s}: {s}\n", .{ entry.path, @errorName(err) });
+            return err;
+        };
+        defer a.free(right);
+        try std.testing.expectEqualSlices(u8, left, right);
+        files += 1;
+    }
+    var count: usize = 0;
+    var other = try y.walk(a);
+    defer other.deinit();
+    while (try other.next()) |entry| count += @intFromBool(entry.kind == .file);
+    try std.testing.expectEqual(files, count);
+    try std.testing.expect(files >= 4);
+}
+test "fast first pass + parallel segment walks equal the serial walk (native jobs and direct capture)" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    for ([_]u32{ 1, 2, 3, 4, 7 }) |batch_steps| for ([_]u32{ 0, 2 }) |max_batches| {
+        var config = fixture.config();
+        config.batch_steps = batch_steps;
+        config.max_batches = max_batches;
+        fixture.temp.dir.deleteTree("artifacts") catch {};
+        fixture.temp.dir.deleteTree("serial") catch {};
+        const serial_summary = try Collect.run(a, config);
+        try fixture.temp.dir.rename("artifacts", "serial");
+        var serial_dir = try fixture.temp.dir.openDir("serial", .{ .iterate = true });
+        defer serial_dir.close();
+        for ([_]u8{ 1, 2, 3, 8 }) |workers| {
+            fixture.temp.dir.deleteTree("artifacts") catch {};
+            const summary = try Collect.runWithOptions(a, config, .{ .segment_workers = workers });
+            try std.testing.expectEqualDeep(serial_summary, summary);
+            var dir = try fixture.temp.dir.openDir("artifacts", .{ .iterate = true });
+            defer dir.close();
+            try expectSameTree(serial_dir, dir);
+        }
+        // Direct capture against the serial on-disk packets (the packet
+        // reader admits complete collections; prefixes are cut from those).
+        if (max_batches != 0) continue;
+        var image_owner = try Image.Owner.init(a, config);
+        defer image_owner.deinit();
+        var program = try Program.initWithAuthority(a, &image_owner.authority);
+        defer program.deinit();
+        var jobs = try serial_dir.openDir("jobs", .{});
+        defer jobs.close();
+        for ([_]u32{ 0, 1 }) |prefix| {
+            var serial = try Capture.Owner.init(a, &image_owner, &program, config, jobs, prefix);
+            defer serial.deinit();
+            for ([_]u8{ 1, 2, 5 }) |workers| for ([_]u8{ 1, 3 }) |inflight| {
+                var stats: Direct.Stats = .{};
+                var direct = try Direct.captureWithSegments(a, &image_owner, &program, config, prefix, inflight, workers, &stats);
+                defer direct.deinit();
+                try same(&serial, &direct);
+                try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
+                try std.testing.expectEqual(@as(u32, @intCast(serial.native.items.len)), stats.segments.?.segments);
+            };
+        }
+    };
+}
 const FirstBatch = struct {
     tape: @import("stwo_riscv_frontend").rv64.compact_tape.Tape,
     finished: @import("../../rv64_ethereum_batch.zig").Finished,

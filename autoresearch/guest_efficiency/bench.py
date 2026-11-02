@@ -435,7 +435,8 @@ def cmd_build_exec(a):
 
 def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cache: Path, out: Path,
                   basket: dict, keep_profile: bool, repeat: int, profile: str | None = None,
-                  adapter: list[str] | None = None, ls_histogram: bool = False) -> dict:
+                  adapter: list[str] | None = None, ls_histogram: bool = False,
+                  engine: str | None = None) -> dict:
     blk = cache / "blocks" / str(b["block"])
     inp = blk / "canonical-input.ssz"
     expected = (blk / "expected-output.bin").read_bytes()
@@ -459,6 +460,10 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
     if ls_histogram:
         # Diagnostic: the executor observes retired rows only; counts are unchanged.
         cfg["ls_histogram"] = True
+    if engine:
+        # Executor implementation only (reference interpreter or fast first pass);
+        # every report field except timing is identical by construction and test.
+        cfg["engine"] = engine
     d = out / "blocks" / str(b["block"])
     d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -512,7 +517,7 @@ def cmd_run(a):
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
         futs = [pool.submit(execute_block, b, elf, raw, abi, Path(a.executor).resolve(), cache, out, basket,
                             a.keep_profiles, 2 if b["block"] in det else 1, a.profile,
-                            a.input_adapter.split() if a.input_adapter else None, a.ls_histogram) for b in blocks]
+                            a.input_adapter.split() if a.input_adapter else None, a.ls_histogram, a.engine) for b in blocks]
         rows = [f.result() for f in futs]
     rows.sort(key=lambda r: r["block"])
     ok_rows = [r for r in rows if r.get("instructions")]
@@ -629,6 +634,8 @@ def main(argv=None):
                         "the output is still checked against the host-validated expected output")
     s.add_argument("--ls-histogram", action="store_true",
                    help="record per-block opcode counts and the executor's load/store offset histogram (diagnostic)")
+    s.add_argument("--engine", choices=("reference", "fast"), default=None,
+                   help="executor engine (fast = pre-decoded first pass; identical report fields)")
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("compare")

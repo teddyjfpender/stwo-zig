@@ -29,12 +29,15 @@ const Native = @import("../../word16_execution/prepared.zig").Prepared;
 const Program = @import("../../word16_execution/program.zig").Program;
 const Capture = @import("capture.zig");
 const Walk = @import("../../rv64_ethereum_native_prepare.zig").Walk;
+const Segments = @import("../../rv64_ethereum_segments.zig");
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const Stats = struct {
     batches: u32 = 0,
     max_inflight: u8 = 0,
     execution_ns: u64 = 0,
     join_wait_ns: u64 = 0,
+    /// Parallel segment scheduling (segment_workers > 0 only).
+    segments: ?Segments.Stats = null,
 };
 const Job = struct {
     allocator: std.mem.Allocator,
@@ -178,6 +181,12 @@ const Consumer = struct {
 /// `a` must be thread-safe. `inflight` = 1 runs admission and capture of each
 /// batch on the calling thread right after it executes (no overlap).
 pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, stats: *Stats) !Capture.Owner {
+    return captureWithSegments(a, image, program, config, prefix_packets, inflight, 0, stats);
+}
+/// `segment_workers` > 0: batches come from a fast first pass plus that many
+/// concurrent segment walks (rv64_ethereum_segments.zig), in index order and
+/// byte-identical to the serial walk; 0 = the serial walk.
+pub fn captureWithSegments(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, segment_workers: u8, stats: *Stats) !Capture.Owner {
     if (prefix_packets > 256) return error.TooManyEthereumPackets;
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
     var walk_config = config;
@@ -185,6 +194,11 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
     if (prefix_packets != 0 and (walk_config.max_batches == 0 or walk_config.max_batches > prefix_packets)) walk_config.max_batches = prefix_packets;
     var walk = try Walk.create(a, walk_config);
     defer walk.destroy();
+    var source = try Segments.Source.init(a, walk, segment_workers);
+    defer {
+        if (source.segments) |seg| stats.segments = seg.stats;
+        source.deinit();
+    }
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
     var queue = Queue{};
@@ -202,19 +216,16 @@ pub fn capture(a: std.mem.Allocator, image: *const Image.Owner, program: *const 
     var failure: ?anyerror = null;
     while (!queue.isStopped()) {
         const started = timer.read();
-        const maybe = walk.next() catch |err| {
+        const maybe = source.next() catch |err| {
             failure = err;
             break;
         };
         stats.execution_ns += timer.read() - started;
-        var step = maybe orelse break;
+        const step = maybe orelse break;
         var finished = step.finished;
         defer finished.deinit();
-        const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = walk.tape.initial_clock, .before = Packet.ABSENT_ROOT, .after = Packet.ABSENT_ROOT };
-        var tape = walk.advanceTakingTape(&step.batch) catch |err| {
-            failure = err;
-            break;
-        };
+        var tape = step.tape;
+        const metadata = Header.Metadata{ .identity = walk.identity, .index = step.index, .first_step = tape.initial_clock, .before = Packet.ABSENT_ROOT, .after = Packet.ABSENT_ROOT };
         const job = a.create(Job) catch |err| {
             tape.deinit();
             failure = err;

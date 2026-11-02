@@ -180,13 +180,13 @@ pub fn sext32(value: u32) u64 {
     return @bitCast(@as(i64, @as(i32, @bitCast(value))));
 }
 
-fn divSigned64(a: i64, b: i64, remainder: bool) u64 {
+pub fn divSigned64(a: i64, b: i64, remainder: bool) u64 {
     if (b == 0) return if (remainder) @bitCast(a) else std.math.maxInt(u64);
     if (a == std.math.minInt(i64) and b == -1) return if (remainder) 0 else @bitCast(a);
     return @bitCast(if (remainder) @rem(a, b) else @divTrunc(a, b));
 }
 
-fn divSigned32(a: i32, b: i32, remainder: bool) u32 {
+pub fn divSigned32(a: i32, b: i32, remainder: bool) u32 {
     if (b == 0) return if (remainder) @bitCast(a) else std.math.maxInt(u32);
     if (a == std.math.minInt(i32) and b == -1) return if (remainder) 0 else @bitCast(a);
     return @bitCast(if (remainder) @rem(a, b) else @divTrunc(a, b));

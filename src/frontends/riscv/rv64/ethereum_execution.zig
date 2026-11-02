@@ -58,7 +58,13 @@ const Config = struct {
     /// Diagnostic only: per-opcode load/store byte-offset histogram. Observes
     /// retired rows; never changes execution or any other report field.
     ls_histogram: bool = false,
+    /// `fast`: retire ordinary instructions with fast_execution.Engine and
+    /// every other instruction (services, traps, halt-flag stores, the step
+    /// limit) with the reference session. Report fields are identical; only
+    /// timing differs. Not combinable with per-retirement diagnostics.
+    engine: Engine = .reference,
 };
+const Engine = enum { reference, fast };
 /// Load/store opcodes in decode order LB..SD.
 const LS_FIRST = @intFromEnum(rv.decode.Opcode.LB);
 const LS_COUNT = @intFromEnum(rv.decode.Opcode.SD) - LS_FIRST + 1;
@@ -181,6 +187,9 @@ const Report = struct {
     zbb_binary_counts: ?ZbbBinaryCounts = null,
     zbb_shard_distinct_facts: ?[]const u64 = null,
     ls_histogram: ?LsHistogram = null,
+    engine: Engine = .reference,
+    /// Retirements executed by the fast engine (the rest by the reference).
+    fast_retired: u64 = 0,
     /// Same fields in declaration order; `zbb_binary_counts` is emitted only
     /// for the Zbb profile, so every other profile's report keeps its exact
     /// pre-Zbb JSON shape (no new null key).
@@ -188,7 +197,10 @@ const Report = struct {
         try jws.beginObject();
         inline for (std.meta.fields(@This())) |field| {
             const omit = comptime std.mem.eql(u8, field.name, "zbb_binary_counts") or std.mem.eql(u8, field.name, "zbb_shard_distinct_facts");
-            if (!omit or @field(self, field.name) != null) {
+            // Engine fields appear only for the fast engine (reference reports keep their shape).
+            const engine_field = comptime std.mem.eql(u8, field.name, "engine") or std.mem.eql(u8, field.name, "fast_retired");
+            const shown = if (engine_field) self.engine != .reference else (!omit or @field(self, field.name) != null);
+            if (shown) {
                 try jws.objectField(field.name);
                 try jws.write(@field(self, field.name));
             }
@@ -256,6 +268,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     const is_isa = c.execution_profile == .ethereum_services_v3_candidate_isa;
     const is_candidate = c.execution_profile == .ethereum_services_v3_candidate or is_isa;
     if (is_candidate and (c.compact_capture_batch_steps != null or c.census_batch_steps != null or c.capture_ram_boundaries)) return error.CandidateProfileIsExecutionOnly;
+    if (c.engine == .fast and (is_candidate or c.compact_capture_batch_steps != null or c.census_batch_steps != null or c.capture_ram_boundaries or c.frequent_operation_limit != null or c.ls_histogram or c.zbb_shard_steps != null)) return error.FastEngineIsExecutionOnly;
     var setup_timer = try std.time.Timer.start();
     var loaded = try contract.load(A, c.symbols, bytes, input);
     defer loaded.deinit();
@@ -308,8 +321,14 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         report.pc_profile = .{ .start = range.start, .end = range.end, .counts = counts };
     }
     errdefer if (report.pc_profile) |profile| A.free(profile.counts);
+    report.engine = c.engine;
+    // Pre-decode is timed as execution.
     var timer = try std.time.Timer.start();
+    var engine: ?rv.fast_execution.Engine = if (c.engine == .fast) try rv.fast_execution.Engine.init(A, memory, .{ .watch = &.{.{ c.symbols.halt_flag, 4 }}, .counting = true, .isa = session.decoder.isa }) else null;
+    defer if (engine) |*e| e.deinit();
     while (true) {
+        // Fast retirements stop before any instruction the reference must retire.
+        if (engine) |*e| _ = e.run(&session.cpu, c.max_steps);
         if (tape) |*value| if (value.len == value.storage.len) {
             report.compact_capture.?.account(value);
             value.clearRetainingCapacity();
@@ -519,6 +538,18 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         report.zbb_shard_distinct_facts = try A.dupe(u64, zbb_shards.items);
     }
     report.execution_ns = timer.read();
+    if (engine) |*e| {
+        const pcs: ?rv.fast_execution.PcCounts = if (report.pc_profile) |*p| .{ .start = p.start, .end = p.end, .counts = p.counts, .outside = &p.outside } else null;
+        var all: [@typeInfo(rv.decode.Opcode).@"enum".fields.len]u64 = @splat(0);
+        e.census(&all, &report.loads, &report.stores, pcs);
+        for (all, 0..) |n, i| {
+            const op: rv.decode.Opcode = @enumFromInt(i);
+            if (rv.decode.isBase(op)) report.opcode_counts[i] += n else inline for (ZBB_BINARY_OPS, @typeInfo(ZbbBinaryCounts).@"struct".fields) |o, f| {
+                if (op == o) @field(report.zbb_binary_counts.?, f.name) += n;
+            }
+        }
+        report.fast_retired = e.fast_retired;
+    }
     report.instructions = session.cpu.retired;
     report.pc = session.cpu.pc;
     report.final_registers = session.cpu.regs;

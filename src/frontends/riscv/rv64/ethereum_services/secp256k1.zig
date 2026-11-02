@@ -111,13 +111,35 @@ pub fn execute(program: *const Program, inputs: []const u256) !Values {
         const a = resolve(op.lhs, &values);
         const b = resolve(op.rhs, &values);
         values[op.result] = switch (op.kind) {
-            .multiply => @intCast(@as(u512, a) * b % modulus),
-            .add => @intCast((@as(u512, a) + b) % modulus),
+            .multiply => mulMod(a, b),
+            .add => addMod(a, b),
             .subtract => if (a >= b) a - b else modulus - (b - a),
             .reduce_once => if (a >= modulus) a - modulus else a,
         };
     }
     return values;
+}
+/// 2^256 mod p for p = 2^256 - 2^32 - 977.
+const FOLD: u512 = (1 << 32) + 977;
+/// Exactly (a * b) mod p for any u256 a, b: fold the high half with
+/// 2^256 = FOLD (mod p) three times, then one conditional subtraction. Equal
+/// to the generic `u512 % p` (differentially tested) at a small cost.
+pub fn mulMod(a: u256, b: u256) u256 {
+    return reduceWide(@as(u512, a) * b);
+}
+/// Exactly (a + b) mod p for any u256 a, b (a + b < 2^257 < 4p).
+pub fn addMod(a: u256, b: u256) u256 {
+    var s: u257 = @as(u257, a) + b;
+    while (s >= MODULUS) s -= MODULUS;
+    return @intCast(s);
+}
+pub fn reduceWide(x: u512) u256 {
+    const low: u512 = std.math.maxInt(u256);
+    const t1 = (x & low) + (x >> 256) * FOLD; // < 2^290
+    const t2 = (t1 & low) + (t1 >> 256) * FOLD; // < 2^256 + 2^67
+    var t3 = (t2 & low) + (t2 >> 256) * FOLD; // < 2^256
+    while (t3 >= MODULUS) t3 -= MODULUS;
+    return @intCast(t3);
 }
 pub fn resolve(ref: Ref, values: *const Values) u256 {
     return switch (ref) {
@@ -130,4 +152,17 @@ pub fn bytes(value: u256) [32]u8 {
     var out: [32]u8 = undefined;
     std.mem.writeInt(u256, &out, value, .little);
     return out;
+}
+
+test "secp256k1 fast reduction equals the generic u512 remainder" {
+    var prng = std.Random.DefaultPrng.init(0x5ec9256b1);
+    const r = prng.random();
+    const edges = [_]u256{ 0, 1, 2, MODULUS - 1, MODULUS, MODULUS + 1, std.math.maxInt(u256), std.math.maxInt(u256) - 1, 1 << 255, (1 << 256) - (1 << 32) };
+    var cases: usize = 0;
+    while (cases < 200000) : (cases += 1) {
+        const a: u256 = if (cases < edges.len * edges.len) edges[cases / edges.len] else r.int(u256);
+        const b: u256 = if (cases < edges.len * edges.len) edges[cases % edges.len] else if (cases % 3 == 0) r.int(u64) else r.int(u256);
+        try std.testing.expectEqual(@as(u256, @intCast(@as(u512, a) * b % MODULUS)), mulMod(a, b));
+        try std.testing.expectEqual(@as(u256, @intCast((@as(u512, a) + b) % MODULUS)), addMod(a, b));
+    }
 }

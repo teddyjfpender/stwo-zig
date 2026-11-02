@@ -19,7 +19,10 @@ pub fn main() !void {
     defer std.process.argsFree(base, args);
     const worker_mode = args.len >= 2 and std.mem.eql(u8, args[1], "worker");
     const inspect_mode = args.len >= 2 and std.mem.eql(u8, args[1], "inspect-job");
-    if (args.len != (if (worker_mode or inspect_mode) @as(usize, 4) else 3)) return error.ExpectedModeAndEthereumProofConfig;
+    // nativeprepare takes one optional producer-only flag: --segment-workers=N.
+    const native_mode = args.len >= 2 and std.mem.eql(u8, args[1], "nativeprepare");
+    const segment_workers: u8 = if (native_mode and args.len == 4 and std.mem.startsWith(u8, args[3], "--segment-workers=")) try std.fmt.parseUnsigned(u8, args[3]["--segment-workers=".len..], 10) else 0;
+    if (args.len != (if (worker_mode or inspect_mode) @as(usize, 4) else if (native_mode and args.len == 4 and segment_workers != 0) @as(usize, 4) else 3)) return error.ExpectedModeAndEthereumProofConfig;
     const raw = try std.fs.cwd().readFileAlloc(base, args[2], 16384);
     defer base.free(raw);
     const parsed = try std.json.parseFromSlice(Request.Config, base, raw, .{});
@@ -35,7 +38,7 @@ pub fn main() !void {
     var binding = try work.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     if (std.mem.eql(u8, args[1], "verify") or std.mem.eql(u8, args[1], "verify-prefix")) return emit(a, try @import("rv64_ethereum_verify_chain.zig").verify(a, config, std.mem.eql(u8, args[1], "verify")));
-    if (std.mem.eql(u8, args[1], "nativeprepare")) return emit(a, try @import("rv64_ethereum_native_prepare.zig").runWithOptions(a, config, .{ .pipeline = !config.diagnose_allocations }));
+    if (std.mem.eql(u8, args[1], "nativeprepare")) return emit(a, try @import("rv64_ethereum_native_prepare.zig").runWithOptions(a, config, .{ .pipeline = !config.diagnose_allocations, .segment_workers = segment_workers }));
     if (inspect_mode) return emit(a, try @import("rv64_ethereum_packet_inspect.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
     if (worker_mode) return emit(a, try @import("rv64_ethereum_packet_worker.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
     if (std.mem.eql(u8, args[1], "finalize")) return emit(a, try @import("rv64_ethereum_finalize.zig").run(a, config));

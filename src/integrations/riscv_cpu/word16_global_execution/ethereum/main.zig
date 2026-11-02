@@ -88,7 +88,7 @@ pub fn main() !void {
     // GKR driver's capture schema stays limited to its own 1-2 packets.)
     const capture_options = operational.captureOptions();
     var direct_stats: @import("direct.zig").Stats = .{};
-    var captured = if (direct) try @import("direct.zig").capture(a, &image, &program, config.value, count, operational.capture_inflight, &direct_stats) else jobs: {
+    var captured = if (direct) try @import("direct.zig").captureWithSegments(a, &image, &program, config.value, count, operational.capture_inflight, operational.segment_workers, &direct_stats) else jobs: {
         var jobs = try std.fs.cwd().openDir(args[3], .{});
         defer jobs.close();
         break :jobs try Capture.initWithOptions(a, &image, &program, config.value, jobs, count, capture_options.forPool(&pool));
