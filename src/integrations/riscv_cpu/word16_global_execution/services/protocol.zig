@@ -196,10 +196,10 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         previous = family;
         switch (truth) {
             .keccak => |t| {
-                try K.layout.validateGeometry(t.calls, t.first_id, t.setup.log);
+                try K.layout.validateGeometryFor(t.setup.policy.geometry(), t.calls, t.first_id, t.setup.log);
                 switch (t.setup.policy) {
                     .triple_v2 => {},
-                    .throughput_v1, .throughput_quartet_v1 => _ = try K.layout.admitThroughputRoster(&.{t.calls}),
+                    .throughput_v1, .throughput_quartet_v1, .throughput_r27_v1 => _ = try K.layout.admitThroughputRoster(&.{t.calls}),
                     .quartet_v3 => return error.InvalidServicesTruthGeometry,
                 }
             },
@@ -318,7 +318,7 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
         // Compact words are unchanged (existing bundles); the throughput
         // profile mixes its own identity and geometry instead, before roots.
         .keccak => |t| switch (t.setup.policy) {
-            .throughput_v1, .throughput_quartet_v1 => {
+            .throughput_v1, .throughput_quartet_v1, .throughput_r27_v1 => {
                 ch.mixU32s(&.{ 0x4b545055, 1, t.setup.log, t.setup.policy.tableLog(.chi), t.setup.policy.tableLog(.xor5), K.layout.FIXED, K.layout.MAIN, @intCast(t.setup.policy.interactionCount()), 11 });
                 t.setup.policy.mix(ch);
             },

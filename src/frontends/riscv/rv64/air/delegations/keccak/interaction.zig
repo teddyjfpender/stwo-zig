@@ -85,6 +85,7 @@ pub const Prepared = struct {
             .quartet_v3 => for (start..end) |logical| try self.fillRowBatch(4, logical, &sum),
             .throughput_v1 => for (start..end) |logical| try self.fillRowThroughput(.throughput_v1, logical, &sum),
             .throughput_quartet_v1 => for (start..end) |logical| try self.fillRowThroughput(.throughput_quartet_v1, logical, &sum),
+            .throughput_r27_v1 => for (start..end) |logical| try self.fillRowThroughput(.throughput_r27_v1, logical, &sum),
         }
         return sum;
     }
@@ -119,7 +120,40 @@ pub const Prepared = struct {
                 store(self.data, n, r, batch, sum.*);
             }
         } else for (0..policy.roundBatches()) |batch| store(self.data, n, r, batch, sum.*);
-        try self.fillIo(width, policy.roundBatches(), &main, &fixed, n, r, sum);
+        if (policy == .throughput_r27_v1) {
+            try self.fillIoR27(policy, logical, &main, &fixed, n, r, sum);
+        } else try self.fillIo(width, policy.roundBatches(), &main, &fixed, n, r, sum);
+    }
+    /// 27-row slot IO: group A then group B entries (E.ioTupleR27For, the
+    /// AIR's own tuples and weights), four per batch.
+    fn fillIoR27(self: *const Prepared, comptime policy: E.BatchPolicy, logical: usize, main: *const [L.MAIN]M, fixed: *const [L.FIXED]M, n: usize, r: usize, sum: *Q) !void {
+        const entries = comptime policy.ioLookups();
+        var qm: [L.MAIN]Q = undefined;
+        var qf: [L.FIXED]Q = undefined;
+        for (&qm, main) |*v, b| v.* = Q.fromBase(b);
+        for (&qf, fixed) |*v, b| v.* = Q.fromBase(b);
+        var weights: [entries]Q = undefined;
+        var any = false;
+        var previous_state: [L.STATE]Q = undefined;
+        const row = E.Row{ .main = &qm, .fixed = &qf, .state_minus_two = qm[0..L.STATE], .state_minus_one = &previous_state, .state_plus_one = qm[0..L.STATE], .state_plus_two = qm[0..L.STATE] };
+        for (&weights, 0..) |*w, entry| {
+            w.* = E.ioActiveR27For(Q, row, entry);
+            any = any or !w.isZero();
+        }
+        var inverses: [entries]Q = undefined;
+        if (any) {
+            const previous = try self.trace.metadataRow((logical + n - 1) % n);
+            for (&previous_state, previous[0..L.STATE]) |*v, b| v.* = Q.fromBase(b);
+            var denominators: [entries]Q = undefined;
+            for (&denominators, 0..) |*d, entry| d.* = if (weights[entry].isZero()) Q.one() else self.ch.io.denominator(&E.ioTupleR27For(Q, row, entry));
+            try core.fields.batchInverseInPlace(Q, &denominators, &inverses);
+        }
+        for (0..policy.ioBatches()) |local| {
+            if (any) for (0..4) |i| if (4 * local + i < entries) {
+                sum.* = sum.*.add(inverses[4 * local + i].mul(weights[4 * local + i]));
+            };
+            store(self.data, n, r, policy.roundBatches() + local, sum.*);
+        }
     }
     fn fillRowBatch(self: *const Prepared, comptime width: usize, logical: usize, sum: *Q) !void {
         const n = self.trace.size();

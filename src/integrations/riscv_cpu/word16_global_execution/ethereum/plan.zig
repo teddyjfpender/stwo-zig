@@ -131,11 +131,22 @@ pub const KeccakTruthOptions = struct {
     /// v3 default since it proved and fresh-verified a real 4-packet prefix
     /// of block 24,628,607; `false` keeps `throughput_v1`.
     quartet: bool = true,
+    /// Quartet batching on the 27-row slot (`throughput_r27_v1`, 480
+    /// interaction columns, 27 rows per pair). Requires `quartet`.
+    r27: bool = false,
+    pub fn throughput(self: KeccakTruthOptions) KeccakPolicy {
+        if (self.quartet and self.r27) return .throughput_r27_v1;
+        return if (self.quartet) .throughput_quartet_v1 else .throughput_v1;
+    }
 };
 pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
     if (!options.v3) return .triple_v2;
-    const throughput: KeccakPolicy = if (options.quartet) .throughput_quartet_v1 else .throughput_v1;
+    const throughput = options.throughput();
     return if (keccakTruthCells(throughput, log) < keccakTruthCells(.triple_v2, log)) throughput else .triple_v2;
+}
+/// Smallest log holding `calls` permutations in `geometry` (>= 5).
+fn keccakLogFor(geometry: A.crypto.keccak.layout.Geometry, calls: u32) u32 {
+    return @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * @as(u32, @intCast(geometry.rowsPerPair())))));
 }
 pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclaration {
     return truthsForProfile(a, captured, false);
@@ -161,14 +172,26 @@ fn truthsForCounts(a: std.mem.Allocator, total: [3]u32, max_log: u32) ![]W.Truth
 fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, options: KeccakTruthOptions) !void {
     if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
     // Keep full shard lengths even so partitioning preserves paired slots.
-    const max_keccak: u32 = ((@as(u32, 1) << @intCast(max_log)) / A.crypto.keccak.layout.ROWS_PER_PAIR) * 2;
+    // Shards are cut in the v3 throughput profile's slot geometry; a shard
+    // small enough for the compact truth is resized in the pair29 geometry
+    // when that commits fewer cells.
+    const geometry: A.crypto.keccak.layout.Geometry = if (options.v3) options.throughput().geometry() else .pair29;
+    const max_keccak: u32 = ((@as(u32, 1) << @intCast(max_log)) / @as(u32, @intCast(geometry.rowsPerPair()))) * 2;
     var next: u32 = 1;
     while (next <= total[0]) {
         // Explicit u32: @min with a comptime bound narrows to u15, and the row
         // product below then wraps (latent: logs below 18 were under-sized).
         const calls: u32 = @min(max_keccak, total[0] - next + 1);
-        const log: u32 = if (calls > max_keccak / 2) max_log else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
-        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicyFor(options, log)) } });
+        const log: u32 = if (calls > max_keccak / 2) max_log else keccakLogFor(geometry, calls);
+        var choice: struct { policy: KeccakPolicy, log: u32 } = .{ .policy = .triple_v2, .log = log };
+        if (options.v3) {
+            const throughput = options.throughput();
+            const compact_log = keccakLogFor(.pair29, calls);
+            choice = if (keccakTruthCells(throughput, log) < keccakTruthCells(.triple_v2, compact_log)) .{ .policy = throughput, .log = log } else .{ .policy = .triple_v2, .log = compact_log };
+            // A pair29 compact truth is longer than a pair27 shard; it must fit.
+            if (choice.log > max_log) return error.EthereumTruthCapacityExceeded;
+        }
+        try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ choice.log, W.keccakProfileWord(choice.policy) } });
         next = try std.math.add(u32, next, calls);
     }
     for (1..3) |family| {
@@ -256,6 +279,42 @@ test "v3 keccak truth takes the throughput tables exactly where they commit fewe
     // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
     try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
     try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
+}
+test "r27 keccak truth plan cuts shards in 27-row slots and keeps the compact truth for small spans" {
+    const r27 = KeccakTruthOptions{ .v3 = true, .r27 = true };
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, keccakTruthPolicyFor(r27, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(r27, 12));
+    // r27 requires the quartet batching.
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false, .r27 = true }, 18));
+    // log18: 2^18 x (1923 + 480) + 5 x (2^21 + 2^16).
+    try std.testing.expectEqual(@as(u64, 640_745_472), keccakTruthCells(.throughput_r27_v1, 18));
+    // The prefix of block 24,628,607: 22,385 IDs -> 19,418 (log18) + 2,967.
+    var out: std.ArrayList(W.TruthDeclaration) = .{};
+    defer out.deinit(std.testing.allocator);
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, r27);
+    try std.testing.expectEqual(@as(usize, 2), out.items.len);
+    try std.testing.expectEqual(@as(u32, 19_418), out.items[0].calls);
+    try std.testing.expectEqualDeep([2]u32{ 18, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[0].logs);
+    try std.testing.expectEqual(@as(u32, 19_419), out.items[1].first_id);
+    try std.testing.expectEqualDeep([2]u32{ 16, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[1].logs);
+    for (out.items) |d| try A.crypto.keccak.layout.validateGeometryFor(.pair27, d.calls, d.first_id, d.logs[0]);
+    // A small span takes the compact truth sized in its own (29-row) slots.
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 140, 0, 0 }, 18, r27);
+    try std.testing.expectEqualDeep([2]u32{ 11, 0 }, out.items[0].logs);
+    try A.crypto.keccak.layout.validateGeometry(140, 1, 11);
+    // 292 calls: 146 x 27 = 3,942 rows fit log12, 146 x 29 = 4,234 do not;
+    // r27 at log12 (20.6 M cells) beats compact at log13 (37.1 M).
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 292, 0, 0 }, 18, r27);
+    try std.testing.expectEqualDeep([2]u32{ 12, W.KECCAK_THROUGHPUT_R27_WORD }, out.items[0].logs);
+    try std.testing.expectError(error.InvalidKeccakComponentGeometry, A.crypto.keccak.layout.validateGeometry(292, 1, 12));
+    try A.crypto.keccak.layout.validateGeometryFor(.pair27, 292, 1, 12);
+    // The pair29 default plan is unchanged.
+    out.clearRetainingCapacity();
+    try appendKeccakSecp(std.testing.allocator, &out, .{ 22_385, 0, 0 }, 18, .{ .v3 = true });
+    try std.testing.expectEqual(@as(u32, 18_078), out.items[0].calls);
+    try std.testing.expectEqualDeep([2]u32{ 16, W.KECCAK_THROUGHPUT_QUARTET_WORD }, out.items[1].logs);
 }
 test "quartet keccak truth option keeps the throughput tables and cuts 152 interaction columns per row" {
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .quartet = true }, 18));

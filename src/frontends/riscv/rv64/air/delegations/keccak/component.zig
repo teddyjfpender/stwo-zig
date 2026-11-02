@@ -40,6 +40,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             const emit_q: ScalarEmitter = switch (self.policy) {
                 .throughput_v1 => emitThroughputQ,
                 .throughput_quartet_v1 => emitThroughputQuartetQ,
+                .throughput_r27_v1 => emitThroughputR27Q,
                 else => emitTripleQ,
             };
             return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .policy = self.policy, .batches = self.policy.batches(), .lookup_degree = self.policy.degree(), .emit_q = emit_q };
@@ -49,6 +50,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             result.emit_packed = switch (self.policy) {
                 .throughput_v1 => emitThroughputPacked,
                 .throughput_quartet_v1 => emitThroughputQuartetPacked,
+                .throughput_r27_v1 => emitThroughputR27Packed,
                 else => emitTriplePacked,
             };
             // The tiled gather oracle is sized for the triple-v2 interaction width.
@@ -177,6 +179,12 @@ fn emitThroughputQuartetQ(row: E.Row, interaction: []const Q, prior: Q, claim: Q
 fn emitThroughputQuartetPacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
     E.emitThroughputQuartetFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
 }
+fn emitThroughputR27Q(row: E.Row, interaction: []const Q, prior: Q, claim: Q, ch: E.Challenges, public: E.Public, sink: *Sink) void {
+    E.emitThroughputR27For(Q, row, interaction, prior, claim, ch, public, sink);
+}
+fn emitThroughputR27Packed(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
+    E.emitThroughputR27For(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
+}
 fn emitTriplePacked(row: E.RowFor(@import("../../evaluation.zig").PackedBase), interaction: []const @import("../../evaluation.zig").PackedSecure, prior: @import("../../evaluation.zig").PackedSecure, claim: Q, ch: E.Challenges, public: E.Public, sink: *@import("../../evaluation.zig").PackedSink) void {
     E.emitFor(@import("../../evaluation.zig").PackedBase, row, interaction, prior, claim, ch, public, sink);
 }
@@ -202,7 +210,7 @@ pub const Parameters = struct {
     pub fn validate(self: *const Parameters) !void {
         switch (self.kind) {
             .permutation => {
-                try L.validateGeometry(self.calls, self.first_call_id, self.log_size);
+                try L.validateGeometryFor(self.policy.geometry(), self.calls, self.first_call_id, self.log_size);
                 if (self.policy.throughputTables()) _ = try L.admitThroughputRoster(&.{self.calls});
             },
             .chi => if (self.log_size != self.policy.tableLog(.chi) or self.calls != 0) return error.InvalidKeccakComponentGeometry,
