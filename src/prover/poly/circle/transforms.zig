@@ -711,6 +711,33 @@ pub fn evaluateExtensionBuffersWithTwiddlesWithPool(
     try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 1, true, pool);
 }
 
+/// Evaluate dyadically zero-padded coefficient windows. The degenerate top
+/// layers only copy their nonzero child; the remaining original FFT cascade
+/// keeps the global twiddle offsets. No scratch or additional owner is needed.
+pub fn evaluateDyadicExtensionBuffersWithTwiddlesWithPool(values_batch: []const []M31, coefficient_log: u32, domain: CircleDomain, tree: M31TwiddleTree, pool: ?*WorkPool) PolyError!void {
+    const log = domain.logSize();
+    if (coefficient_log > log or log >= @bitSizeOf(usize)) return PolyError.InvalidLogSize;
+    if (!domain.half_coset.isDoublingOf(tree.root_coset)) return PolyError.InvalidLogSize;
+    const coefficient_len = @as(usize, 1) << @intCast(coefficient_log);
+    for (values_batch, 0..) |values, i| {
+        if (values.len != domain.size()) return PolyError.InvalidLength;
+        for (values_batch[0..i]) |other| if (overlaps(values, other)) return PolyError.InvalidLength;
+    }
+    if (values_batch.len == 0) return;
+    // Preserve the existing fused 2x expansion kernel and its precise layer
+    // accounting. The new path removes two or more leading zero layers.
+    if (coefficient_log + 1 == log) return evaluateExtensionBuffersWithTwiddlesWithPool(values_batch, domain, tree, pool);
+    if (coefficient_log == 0 or log <= 2 or coefficient_log == log) {
+        for (values_batch) |values| @memset(values[coefficient_len..], M31.zero());
+        return evaluateBuffersWithTwiddles(values_batch, domain, tree);
+    }
+    for (values_batch) |values| {
+        var filled = coefficient_len;
+        while (filled < values.len) : (filled *= 2) @memcpy(values[filled .. 2 * filled], values[0..filled]);
+    }
+    return evaluateBuffersTailLayers(values_batch, domain, tree, log - coefficient_log, false, pool);
+}
+
 fn evaluateBuffersTailLayers(
     values_batch: []const []M31,
     domain: CircleDomain,

@@ -378,12 +378,18 @@ const FftEvalWorkItem = struct {
     /// Upper halves are unwritten and mathematically zero (2x extension);
     /// the worker uses the degenerate-first-layer path.
     extension: bool = false,
+    /// Additional dyadic zero-top layers; exact2x retains the original path.
+    zero_top_layers: u32 = 0,
     /// Populated only by a selected backend transform. It prevents the caller
     /// from inferring device layer execution from input geometry.
     backend_execution: ?work_profile.M31ForwardFftExecution = null,
 };
 
 fn fftEvalWorker(item: *const FftEvalWorkItem) void {
+    if (item.zero_top_layers != 0) {
+        prover_circle.poly.evaluateDyadicExtensionBuffersWithTwiddlesWithPool(item.values, item.domain.logSize() - item.zero_top_layers, item.domain, item.twiddle_tree, null) catch {};
+        return;
+    }
     if (item.extension) {
         prover_circle.poly.evaluateExtensionBuffersWithTwiddles(
             item.values,
@@ -485,6 +491,10 @@ pub fn extendCoefficientColumnsByGroupForBackend(
             const batch_values = try allocator.alloc([]M31, chunk_len);
             errdefer allocator.free(batch_values);
 
+            const zero_top_layers: u32 = if (log_blowup_factor > 1 and group.log_size >= 1 and extended_log_size >= 3) log_blowup_factor else 0;
+            if (zero_top_layers != 0) for (group.indices.items[batch_start .. batch_start + chunk_len]) |idx| {
+                if (coeffs[idx].coefficients().len != domain_size >> @intCast(zero_top_layers)) return error.ShapeMismatch;
+            };
             var batch_extension = chunk_len > 0;
             for (group.indices.items[batch_start .. batch_start + chunk_len], 0..) |idx, bi| {
                 const values = try allocator.alloc(M31, domain_size);
@@ -492,7 +502,7 @@ pub fn extendCoefficientColumnsByGroupForBackend(
                 @memcpy(values[0..coeff_slice.len], coeff_slice);
                 if (coeff_slice.len * 2 != values.len) {
                     batch_extension = false;
-                    if (coeff_slice.len < values.len) @memset(values[coeff_slice.len..], M31.zero());
+                    if (zero_top_layers == 0 and coeff_slice.len < values.len) @memset(values[coeff_slice.len..], M31.zero());
                 }
                 batch_values[bi] = values;
                 out[idx] = .{
@@ -514,6 +524,7 @@ pub fn extendCoefficientColumnsByGroupForBackend(
                 .domain = domain,
                 .twiddle_tree = twiddle_tree,
                 .extension = batch_extension,
+                .zero_top_layers = zero_top_layers,
             });
             try work_value_slices.append(allocator, batch_values);
         }
@@ -588,7 +599,7 @@ fn recordForwardCompletion(
         } else work_profile.M31ForwardFftExecution{
             .log_size = item.domain.logSize(),
             .column_count = column_count,
-            .skipped_layers = if (item.extension) 1 else 0,
+            .skipped_layers = if (item.zero_top_layers != 0) item.zero_top_layers else if (item.extension) 1 else 0,
         };
         butterflies = std.math.add(
             u64,
@@ -615,9 +626,10 @@ fn recordForwardCompletion(
 
 fn materializeBackendExtensionZeros(work_items: []const FftEvalWorkItem) void {
     for (work_items) |item| {
-        if (!item.extension) continue;
+        if (!item.extension and item.zero_top_layers == 0) continue;
         for (item.values) |values| {
-            @memset(values[values.len / 2 ..], M31.zero());
+            const start = if (item.zero_top_layers != 0) values.len >> @intCast(item.zero_top_layers) else values.len / 2;
+            @memset(values[start..], M31.zero());
         }
     }
 }
