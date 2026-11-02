@@ -68,6 +68,7 @@ pub const Materials = struct {
         return fromProgram(a, program, geometry, suite);
     }
     fn fromProgram(a: std.mem.Allocator, program: Program, geometry: Geometry, suite: Suite) !Materials {
+        if (program.compact and !geometry.cpu_compact_decode) return error.InvalidCpuCompactGeometry;
         const cpu = try W.fixed.cpu(a, geometry.cpu_log);
         errdefer a.free(cpu);
         const boundary = try W.fixed.boundary(a);
@@ -108,7 +109,11 @@ pub const Materials = struct {
         errdefer shifts.deinit();
         var and_ = try air.providers.tables.Setup.init(a, .byte_and);
         errdefer and_.deinit();
-        return .{ .allocator = a, .suite = suite, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
+        // Last fallible step: on failure the caller's program copy is intact
+        // (makeCompact allocates the compact ROM before freeing the legacy one).
+        var bound = program;
+        if (geometry.cpu_compact_decode) try bound.makeCompact();
+        return .{ .allocator = a, .suite = suite, .geometry = geometry, .program = bound, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
     }
     /// Retire only original matrices not used by native request generators.
     /// All phase/shape checks precede mutation; the sealed key stays unchanged.
