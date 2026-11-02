@@ -65,19 +65,25 @@
       "padded_raw_facts": 16777216,
       "instances": 2
     },
-    "Struth_Wire": {
+    "Struth_product_Wire": {
       "old_inter_cells": 12648448,
       "separate_binding_cells": 6324224,
       "padded_raw_facts": 1581056,
       "instances": 3
+    },
+    "Struth_linear_Wire": {
+      "old_inter_cells": 10616832,
+      "separate_binding_cells": 5308416,
+      "padded_raw_facts": 1327104,
+      "instances": 3
     }
   },
   "totals": {
-    "current_global_inter_cells": 821538816,
-    "separate_global_gkr_binding_cells": 710975488,
-    "saved_cells": 110563328,
+    "current_global_inter_cells": 832155648,
+    "separate_global_gkr_binding_cells": 716283904,
+    "saved_cells": 115871744,
     "all_main_inter_cells": 17461658112,
-    "saved_fraction": 0.006331777159467959,
-    "padded_raw_facts": 102089216
+    "saved_fraction": 0.006635781279005264,
+    "padded_raw_facts": 103416320
   }
 }
