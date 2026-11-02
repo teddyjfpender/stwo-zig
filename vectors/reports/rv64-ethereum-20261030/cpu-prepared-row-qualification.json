@@ -1,0 +1,218 @@
+{
+  "schema": "rv64-prepared-cpu-row-v1",
+  "scope": "generic CPU residual evaluation; no layout, degree, masks, transcript, or proof format changes",
+  "implementation": {
+    "frame": "One frame.inflate result per row shared by execution, DIV, K, MUL and secp dispatch. Public standalone execution wrapper still prepares its own view.",
+    "derived": "Inflation.applyPrepared returns typed Result consumed by Component.emitInflated; only canonical physical-to-logical substitution may skip reconstruction arithmetic. General independently supplied logical View wrappers retain original equations.",
+    "authority": "One shared residual dispatcher; skipped slots are exact zero polynomials after canonical substitution, preserving emission count and random weights."
+  },
+  "identities": {
+    "word": "byte := sum(2^j*bit_j,j=0..7), therefore byte - sum(2^j*bit_j)=0 for arbitrary QM31 physical inputs. All Boolean bit constraints remain.",
+    "compact_product_carry": "carry := low + 256*(bit8 + 2*bit9 + 4*bit10); identical to low + 256*bit8 + 512*bit9 + 1024*bit10 in the field. Boolean top bits, disabled carry and convolution constraints remain.",
+    "full_product_carry": "carry := sum(2^j*bit_j,j=0..10); reconstruction slot remains zero and every Boolean/arithmetic constraint remains."
+  },
+  "gates": {
+    "safe_air": "PASS",
+    "safe_parallel": "PASS",
+    "arbitrary_Q_profiles": [
+      "rv64im inline",
+      "rv64im division",
+      "K division",
+      "K division+multiplication",
+      "Ethereum BE v1",
+      "Ethereum LE words v2"
+    ],
+    "general_wrapper_mutation": "PASS independent byte and compact/full carry mutations retain nonzero reconstruction residual",
+    "signed_W_high_carry": "PASS compact and full projection comparisons",
+    "safe_keccak_cpu": "PASS",
+    "row_cases": {
+      "total": 96,
+      "base": 48,
+      "arbitrary_QM31": 48,
+      "additional_signed_product_arbitrary_QM31": 16
+    }
+  },
+  "microbench": {
+    "command": "zig-out/bin/rv64-quotient-benchmark prepared-frame",
+    "rows_per_sample": 4096,
+    "constraints": 1008,
+    "main_columns": 405,
+    "interaction_columns": 204,
+    "warmup": "sample0 excluded from warmed medians",
+    "raw_files": [
+      "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+      "/tmp/stwo-rv64-prepared-frame/derived-micro.txt"
+    ],
+    "samples": [
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 0,
+        "mode": "repeated",
+        "ns": 64995750
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 0,
+        "mode": "hoisted",
+        "ns": 41370584
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 1,
+        "mode": "repeated",
+        "ns": 41829166
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 1,
+        "mode": "hoisted",
+        "ns": 38101625
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 2,
+        "mode": "repeated",
+        "ns": 41583875
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 2,
+        "mode": "hoisted",
+        "ns": 37765416
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 3,
+        "mode": "repeated",
+        "ns": 41637375
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/hoist-only-micro.txt",
+        "sample": 3,
+        "mode": "hoisted",
+        "ns": 37927375
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 0,
+        "mode": "repeated",
+        "ns": 65590917
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 0,
+        "mode": "hoisted",
+        "ns": 41468417
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 0,
+        "mode": "derived",
+        "ns": 37850917
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 1,
+        "mode": "repeated",
+        "ns": 42396750
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 1,
+        "mode": "hoisted",
+        "ns": 39311334
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 1,
+        "mode": "derived",
+        "ns": 40438125
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 2,
+        "mode": "repeated",
+        "ns": 44539416
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 2,
+        "mode": "hoisted",
+        "ns": 39887709
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 2,
+        "mode": "derived",
+        "ns": 38243500
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 3,
+        "mode": "repeated",
+        "ns": 42966458
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 3,
+        "mode": "hoisted",
+        "ns": 39047541
+      },
+      {
+        "source": "/tmp/stwo-rv64-prepared-frame/derived-micro.txt",
+        "sample": 3,
+        "mode": "derived",
+        "ns": 38564208
+      }
+    ],
+    "interpretation": "Short CPU kernel attribution only; incremental derived gain is noisy and requires complete-prefix measurement."
+  },
+  "whole_proof_status": "Five historical serialized proofs exactly preserved; all fresh-process receivers PASS. Parent owns real-prefix timing.",
+  "historical_proofs": [
+    {
+      "case": "keccak",
+      "historical_receipt": "keccak-cpu-v1.json",
+      "proof_sha256": "45229b60449f1a1a1c4830302d33e74c601eb982dcfb870511f818ccfecec490",
+      "proof_bytes": 2269408,
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifacts": "/tmp/stwo-rv64-prepared-frame/fixtures/keccak"
+    },
+    {
+      "case": "cyclic",
+      "historical_receipt": "keccak-cpu-cyclic-v2.json",
+      "proof_sha256": "49d867b2405a734a2581257115ba5d61f91e6b6356aad3a8652d00bdb99b56eb",
+      "proof_bytes": 2266976,
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifacts": "/tmp/stwo-rv64-prepared-frame/fixtures/cyclic"
+    },
+    {
+      "case": "mul",
+      "historical_receipt": "mul-cpu-v3.json",
+      "proof_sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0",
+      "proof_bytes": 2341472,
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifacts": "/tmp/stwo-rv64-prepared-frame/fixtures/mul"
+    },
+    {
+      "case": "eth-v1",
+      "historical_receipt": "ethereum-cpu-secp-v1.json",
+      "proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+      "proof_bytes": 3015640,
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifacts": "/tmp/stwo-rv64-prepared-frame/fixtures/eth-v1"
+    },
+    {
+      "case": "eth-v2",
+      "historical_receipt": "ethereum-cpu-secp-v2.json",
+      "proof_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4",
+      "proof_bytes": 3017800,
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifacts": "/tmp/stwo-rv64-prepared-frame/fixtures/eth-v2"
+    }
+  ]
+}

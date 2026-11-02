@@ -1,0 +1,190 @@
+{
+  "status": "qualified bounded plural Keccak truth roster, actual four-proof prefix",
+  "base_commit": "516717243da380908e7531b0ebe5aa8037bd8c74",
+  "protocol": "Explicit named bounded-v3 accepting API; one-truth v2 public APIs and wire unchanged; no legacy/default activation",
+  "api": {
+    "truth": "receiver-owned protocol.Truth{setup,first_id,calls}",
+    "prover": "execution.produceBounded",
+    "receiver": "execution.verifyBounded",
+    "bundle": "BoundedBundle{manifest,cpus,truths}",
+    "tool": "same fixture tool produce-bounded/verify-bounded; schema3 fixed independently expected two-span roster"
+  },
+  "inventory": {
+    "order": "allCPU+bridge proofs followed by ordered truth proofs",
+    "spans": "first_id1 then exact priorend, no gaps/overlap/duplicate; finalend=sumCPUcalls+1; no empty entries except oneempty for total0",
+    "setup": "fixedgeometry-only; each truth may share immutablekey atsamegeometry; truthMAIN commits activeflag/count/firstID",
+    "barrier": "every actualfixed/MAIN receipt sealed before commonRAM14/IO11; everyworker remeasures actualroots beforeFS; receiver reconstructs completeexpectedSpec and verifies actualproofroots"
+  },
+  "scope": {
+    "instructions": 4,
+    "cpus": 2,
+    "truths": 2,
+    "truth_spans": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        1
+      ]
+    ],
+    "calls": 2,
+    "per_truth_log": 5,
+    "program": [
+      "SD x1,0(x2)",
+      "ECALL Keccak",
+      "LD x0,0(a0)",
+      "ECALL Keccak"
+    ],
+    "pointer_hex": "0x8000000000000ff8",
+    "words_per_call": 25,
+    "image": "independentlyexpected pristinezero/RW; solefirstINIT/lastTERM",
+    "capture": "manuallycaptured CompactTape advice, not hostVM timing evidence"
+  },
+  "physical_closure": {
+    "cpu_fields": 38,
+    "truth_fields": 3,
+    "local": "EachCPU mergedrelation prefix and otherphysical claims must close after removing only itsRAM andbridgeIO debt; canonicalCoreComponents preserves all optionalDIV presenceguards",
+    "global_ram": "sum allCPU LS/INIT/TERM/bridgeRAM claims; actualexpectedboundaryclaims independentlyanchored",
+    "global_io": "sum allCPU bridgeIO plus alltruth physicalclaims after everyproof verifies; localchi/xor remain joint rationalidentity contributions, not individuallyclaimed certificates",
+    "total_claim_fields_in_fixture": 82
+  },
+  "admission": {
+    "global_io": "50*sumcalls<p, independent of local\u03c7/XOR",
+    "local_truth": "existing K.validateGeometry\u2192logSize\u2192admitRoster for eachindependentlychallenged proof; tested two100000-call localspans whose\u03c7sum>p",
+    "global_ram": "2*sumLS+50*sumcalls+initialcount+terminalcount<p",
+    "ranges": "perCPU canonicalrange budgets plus22U16/19U8perphysicalbridge row",
+    "coverage": "CPUepochs/stepcounts/PC/REGcontinuity/maxTotal/image/program/rights/publicboundaries unchanged"
+  },
+  "gates": {
+    "original_composition": "Safe9 PASS; all v2/S2 proofs+metadata+accounting exactlyprior shared-v2 artifact; separatefreshreceiverPASS",
+    "native2n": "Safe9/Fast9 PASS against516717243; CPU+bridgeS1, truthS2",
+    "fresh": "newprocess receiver reconstructs allfour independentsetups; worker1and16PASS",
+    "worker_parity": "metadata andallfour completeproofbytes EXACT1vs16",
+    "span_attacks": [
+      "duplicateID",
+      "overlap",
+      "missingcover",
+      "gap",
+      "invalidemptyentry",
+      "local\u03c7characteristicboundary"
+    ],
+    "actual_proof_attacks": [
+      "missingtruth proof",
+      "coherentlyresealed duplicatedtruthMAINroot",
+      "swappedtruthproof ownership",
+      "coherentlyresealed wrongfirstID",
+      "globallybalanced truthclaim corruption",
+      "locallyvalid falseKoutput rejectsIO",
+      "locallyvalid falseepoch0predecessor +recomputed validKoutput rejectsRAM"
+    ],
+    "ownership": "existing narrowmain-release metadata and per-sourcecleanup retained; newboundedarrays audited but no exhaustive fullprotocol allocation-failure claim"
+  },
+  "artifacts": {
+    "cpu0.bin": {
+      "bytes": 996896,
+      "sha256": "91a12b8dca72895af4c9838bd520eaa44ca4028e20d1c55cb20c660e0aaf30de"
+    },
+    "cpu1.bin": {
+      "bytes": 997648,
+      "sha256": "09df3dcac6902803290344aa7c63978828b7f2b41feba95898657ba7b002e80c"
+    },
+    "metadata.json": {
+      "bytes": 51270,
+      "sha256": "c084ebf9e3efff02b16bcb1d2da75d30eb59d2ef98e124e08ca4bf2a974ee0aa"
+    },
+    "truth0.bin": {
+      "bytes": 1620488,
+      "sha256": "a3d1adbd79fcbe1cd7006618e7e510497dab5ffc80bfdf5a9628044d439923fd"
+    },
+    "truth1.bin": {
+      "bytes": 1624376,
+      "sha256": "962b702175bfcd0e83317c374da0e01859bf6eff6cf20502efa8fd274ba9d7d9"
+    }
+  },
+  "artifact_directory": "interop_artifacts/rv64-word16-keccak-bounded-v3",
+  "tool": {
+    "bytes": 4538160,
+    "sha256": "8b98ed43e2a339f0bc896df838c15b1057d10426d1fa98b00c82e01d3f0f8935"
+  },
+  "current_one_truth_control": {
+    "directory": "/tmp/rv64-word16-keccak-shared-v2-s1-control",
+    "artifacts": {
+      "accounting.json": {
+        "bytes": 962,
+        "sha256": "fe41f5cee7d8138856030cced62be9f3803e144a8ef8eed55edd1b98e89aaa86"
+      },
+      "cpu0.bin": {
+        "bytes": 994128,
+        "sha256": "55bc1b711b06458efe350de322ef4713ffc1624be9e84eb68e9931dd75a58558"
+      },
+      "cpu1.bin": {
+        "bytes": 998672,
+        "sha256": "857678a0aa43ef1d8576b756809365f54a6754f1433e1e230b76058b0f627f73"
+      },
+      "metadata.json": {
+        "bytes": 48830,
+        "sha256": "82f20deac4c10999489c77574eaf2d195fda1a6ae5bfdb7c9ed781770b7969d6"
+      },
+      "truth.bin": {
+        "bytes": 1616232,
+        "sha256": "d8f278b6821166f4f038dad126e8571b08108097dea27f9469c1526ec4c01131"
+      }
+    },
+    "total_proof_bytes": 3609032
+  },
+  "cost": {
+    "bounded_proof_bytes": 5239408,
+    "one_truth_sameS1_proof_bytes": 3609032,
+    "extra_bytes": 1630376,
+    "extra_percent": 45.174883459054946,
+    "native_source_cells_fixed_main_inter": [
+      4333184,
+      2867904,
+      8154880
+    ],
+    "component_oods_q_samples": 27462,
+    "basis": "measuredcurrentS1 one-truth masks/shapes +oneunchanged log5/13/10truth; counts/firstIDs donotchange masks or nativewidths; excludes composition/FRI/Merkle values",
+    "native_permutation_rows": 64,
+    "one_truth_rows": 32,
+    "note": "Splittingtwoodd calls duplicatesonepairedslot+chi/xor tableandproof overhead. Thisfixture demonstrates boundedcorrectness, not savings."
+  },
+  "real_roster_model": {
+    "calls": 32835,
+    "single_log19_active_rows": 476122,
+    "two_log18_capacity_each": 18078,
+    "native_area": "same summedpermutationarea forone19vs two18; additionaltable/proof overhead remains",
+    "peak": "half permutation coefficient/scratch perworker is structural; complete devicefit/RSS/throughput unmeasured"
+  },
+  "limits": [
+    "boundedcentral qualificationharness retainsPCSowners; not scalable25worker coordinator or spillbudget",
+    "no secp or fullETH/terminaloutput certificate",
+    "q70/P26/blowup1 nominalconfig96; wholeprotocolsecuritybits notestablished aftermass/degree/union accounting",
+    "no parameters lowered, no witness-only checks replace AIR"
+  ],
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "4329920d37592cb38edce9cffa5325bcdb72b15dc83b1489ea0d06582266b053",
+    "src/integrations/riscv_cpu/rv64_word16_keccak_shared_test_root.zig": "b287589de7cbaab7950fd20bd7d7ef9682f9fab118539c9109faceb8f6dd2ff5",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/README.md": "af9dc1d136e88cf602dda2187261b4e2ee52a2054f17e29991ff992fc01e01e3",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/bounded_test.zig": "d08df0ef40ef1e4fcb77ced95c91920524d4fa1dd6b01d7a9fab36965021b9e3",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/execution.zig": "d4f1095fc510f9b1251d22cd5b70869bab403c45c3f0705950926e04af82b397",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/fixture.zig": "44282fa1e8b7b90058d863ef5b153692f1b87841d0df35cbcac99d8006419fdf",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/fixture_main.zig": "5e00dff71f0d2c32389ee016dfec3bf11e31585ce82a0dc419e2ed2ba14d15f6",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/protocol.zig": "3ca10d742a49b8813f992d5e71781713e6746394071baae373534b1c430078e5",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/roster.zig": "8983276b81c0af0391a4c7abe436bddd8e8ea209b1044caeb67d79d287eed915"
+  },
+  "dependency_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/components.zig": "0c9c1168be2b652a8b156725645c36c5643eb9ecf08e90348f9cd784cf574588",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "db1bbc70a6366750347589205ee71f9d72925f30fc671b5e69190fc8e918d113",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "dd575dfaab688ce3f33cb860268b2d5a5f5b59aa79d35e107df02289b9cae1de",
+    "src/frontends/riscv/rv64/air/delegations/keccak/component.zig": "6f889bed8c91f677179c063a80fa6438225ea733672e5d507e437c5b187e9a4c",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/component.zig": "aa754b27de61fba029c2ec058463c01e1ccf20d1776a4031dac1ba2c677ffa29"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-word16-keccak-bounded-s1-safe.log",
+    "fast": "/tmp/rv64-word16-keccak-bounded-s1-fast.log",
+    "tools": "/tmp/rv64-word16-keccak-bounded-s1-tools.log"
+  },
+  "independent_review": "Byte agent read-only protocol/execution review found no concrete soundness blocker: exact spans, local/global masses, expected manifest plus actual roots, transcript-bound physical claims and local/global closure. Manual review, not formal proof."
+}

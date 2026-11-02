@@ -1,0 +1,37 @@
+1/28 gkr_parallel_capture_root.test_0...OK
+2/28 lookups.parallel_rows_test.test.Q mixed-gate scoped row kernels preserve complete proof transcript and fresh binding...GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=1 control_ns=131551583 prove_ns=128081583 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=2 control_ns=131551583 prove_ns=121248750 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=4 control_ns=131551583 prove_ns=121254375 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=8 control_ns=131551583 prove_ns=122548625 json_bytes=74818
+OK
+3/28 lookups.parallel_rows_test.test.OM mixed-gate scoped row kernels preserve complete proof transcript and fresh binding...GKR_ROW_CAPTURE field=fields.om31.OM31 workers=1 control_ns=205451000 prove_ns=207076542 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=2 control_ns=205451000 prove_ns=186468958 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=4 control_ns=205451000 prove_ns=177666875 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=8 control_ns=205451000 prove_ns=178968958 json_bytes=151877
+OK
+4/28 lookups.parallel_rows_test.test.row kernels fall back without a nested lease and use bounded stack payload...OK
+5/28 lookups.gkr_prover.test.gkr prover: grand product prove and verify...OK
+6/28 lookups.gkr_prover.test.gkr prover: logup generic prove and verify...OK
+7/28 lookups.gkr_prover.test.gkr prover: logup singles prove and verify...OK
+8/28 lookups.gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+9/28 lookups.gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+10/28 lookups.gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+11/28 lookups.mle.test.mle: init validates power-of-two length...OK
+12/28 lookups.mle.test.mle: fix first variable preserves evaluation semantics...OK
+13/28 lookups.mle.test.mle: fix first variable lifts base-field mle...OK
+14/28 lookups.mle.test.mle: evalAtPoint validates dimensions...OK
+15/28 lookups.gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+16/28 lookups.gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+17/28 lookups.sumcheck.test.sumcheck: prove and partially verify single mle...OK
+18/28 lookups.sumcheck.test.sumcheck: invalid proof is rejected...OK
+19/28 lookups.utils.test.lookups utils: lagrange interpolation...OK
+20/28 lookups.utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+21/28 lookups.utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+22/28 lookups.utils.test.lookups utils: polynomial arithmetic and normalization...OK
+23/28 lookups.utils.test.lookups utils: horner and random linear combination...OK
+24/28 lookups.utils.test.lookups utils: eq kernel...OK
+25/28 lookups.utils.test.lookups utils: fold mle evals...OK
+26/28 lookups.utils.test.lookups utils: reciprocal arithmetic...OK
+27/28 cooperative_queue.test.cooperative queue: split runs every index once on one thread...OK
+28/28 cooperative_queue.test.cooperative queue: many threads drain nested splits from many items...OK
+All 28 tests passed.

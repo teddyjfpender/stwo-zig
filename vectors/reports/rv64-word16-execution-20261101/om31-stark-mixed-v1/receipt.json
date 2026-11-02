@@ -1,0 +1,25 @@
+{
+  "schema": "rv64-om31-stark-mixed-qualification-v1",
+  "implementation_commit": "669491017",
+  "reported_by": "independent mixed-height ALU+GKR physical integration gate",
+  "independent_reproduction": "two MAIN-only actual Boolean AIR roles with trace logs5/6; original engine failed InvalidLastLayerDegree before core verification",
+  "cause": "wide sampled-values fallback omitted point.repeatedDouble(lifting_log_size-column.log_size), inconsistent with legacy sampler, DEEP preparation and receiver",
+  "fix": "evaluate each M31 coefficient polynomial at its correctly folded secure circle point; no protocol or height change",
+  "additional_fix": "constant-only accumulation initializes DEGREE coordinate planes rather than only4",
+  "passed": {
+    "combined_release_safe": 14,
+    "combined_release_fast": 14,
+    "mixed_main_roles_fold_profiles": [
+      1,
+      4
+    ],
+    "legacy_qm31_full_prover_cases_in_each": 5,
+    "constant_upper_half_regression": true,
+    "constant_allocation_failure_sweep": true,
+    "existing_full_pipeline_failure_and_mutation_gates": true
+  },
+  "qualification_scope": "tiny actual M31 AIR full wide STARK plus field-width and retained Q regressions; real mixed ALU+GKR physical adapter requalification belongs to integration agent",
+  "production_field_switch": false,
+  "whole_protocol_128_certificate": false,
+  "performance_claim": null
+}

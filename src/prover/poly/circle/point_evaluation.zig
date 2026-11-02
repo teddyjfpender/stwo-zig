@@ -11,31 +11,8 @@ const CirclePointQM31 = circle.CirclePointQM31;
 ///
 /// The carry-style reduction preserves the recursive evaluator's left/right
 /// merge order while using bounded stack storage and no recursion.
-pub inline fn evalAtPointIterative(
-    coeffs: []const M31,
-    factors: []const QM31,
-    log_size: u32,
-) QM31 {
-    std.debug.assert(coeffs.len == (@as(usize, 1) << @intCast(log_size)));
-    std.debug.assert(factors.len == log_size);
-
-    if (log_size == 0) return QM31.fromBase(coeffs[0]);
-
-    var pending: [circle.M31_CIRCLE_LOG_ORDER + 1]QM31 = undefined;
-
-    for (coeffs, 0..) |coeff, coeff_idx| {
-        var value = QM31.fromBase(coeff);
-        var level: usize = @as(usize, @intCast(@ctz(~coeff_idx)));
-        if (level > @as(usize, @intCast(log_size))) level = @as(usize, @intCast(log_size));
-        var merge_level: usize = 0;
-        while (merge_level < level) : (merge_level += 1) {
-            value = pending[merge_level].add(value.mul(factors[merge_level]));
-        }
-        pending[level] = value;
-    }
-
-    return pending[log_size];
-}
+pub const ForField = @import("point_evaluation_family.zig").ForField;
+pub const evalAtPointIterative = ForField(QM31).evalAtPointIterative;
 
 const PackedM31 = m31.PackedM31;
 

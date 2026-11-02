@@ -1,0 +1,79 @@
+{
+  "schema": "rv64-om31-main-only-v1",
+  "qualification": "MAIN arithmetic and native verifier wrappers; incomplete wide execution route",
+  "dependencies": [
+    "806a88b00",
+    "9ce4daf24",
+    "03392a413"
+  ],
+  "safe": "PASS",
+  "fast": "PASS",
+  "gate": "zig build test-riscv64-gkr-circuit -Doptimize={ReleaseSafe,ReleaseFast} -j2 --summary all",
+  "direct_fast_result": "All 36 tests passed.",
+  "roles": [
+    {
+      "role": "cpu",
+      "main": 47,
+      "direct_constraints": 41,
+      "max_degree": 3,
+      "interaction": 0
+    },
+    {
+      "role": "alu",
+      "main": 47,
+      "direct_constraints": 49,
+      "max_degree": 3,
+      "interaction": 0
+    },
+    {
+      "role": "binary",
+      "main": 29,
+      "direct_constraints": 30,
+      "max_degree": 2,
+      "interaction": 0
+    },
+    {
+      "role": "shift",
+      "main": 52,
+      "direct_constraints": 27,
+      "max_degree": 3,
+      "interaction": 0
+    },
+    {
+      "role": "ls",
+      "main": 70,
+      "direct_constraints": 247,
+      "max_degree": 3,
+      "interaction": 0
+    },
+    {
+      "role": "jalr",
+      "main": 17,
+      "direct_constraints": 1,
+      "max_degree": 2,
+      "interaction": 0
+    },
+    {
+      "role": "mul",
+      "main": 87,
+      "direct_constraints": 141,
+      "max_degree": 3,
+      "interaction": 0
+    },
+    {
+      "role": "div",
+      "main": 78,
+      "direct_constraints": 164,
+      "max_degree": 3,
+      "interaction": 0
+    }
+  ],
+  "open_gates": [
+    "real wide prover/domain adapter",
+    "service bridge/truth MAIN arithmetic",
+    "local GKR physical binding and closure",
+    "wide global classic RAM/KIO/Wire",
+    "complete wide route and whole-protocol128 budget"
+  ],
+  "performance_claim": null
+}

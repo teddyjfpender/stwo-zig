@@ -1,0 +1,18 @@
+{
+  "schema": "rv64-service-packet-inline-v1",
+  "status": "native block output and host packet math qualification PASS; new ELF complete proof pending",
+  "full_block_proof_verified": false,
+  "baseline_elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+  "candidate_elf_sha256": "6db903f0a311882fa25c02dbdb7eea4bdbfd5fa3c6535377021edbf84a39c5cb",
+  "baseline_instructions": 213659488,
+  "candidate_instructions": 212188252,
+  "instruction_reduction": 1471236,
+  "instruction_reduction_fraction": 0.006885891255154597,
+  "output_equal": true,
+  "calls_unchanged": true,
+  "candidate_loads": 37648790,
+  "candidate_stores": 26512911,
+  "host_tests": "3 release word-packet control tests PASS, including bit/boundary/weak normalization vectors",
+  "timing": "No isolated native speed claim: baseline captured extra tape/census; candidate only PC histogram",
+  "change": "Inline fixed-size input/output packet conversion and field-word conversions; ABI and circuit semantics unchanged"
+}

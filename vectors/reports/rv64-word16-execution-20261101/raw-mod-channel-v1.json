@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "kind": "additive_raw_mod_channel_primitives",
+  "source_base": "423a135cb",
+  "source_commit": "7ae333220",
+  "legacy": "Core raw-native uniform sampler and circuit NativeChannel source unchanged; legacy retry parity gap remains independently documented",
+  "profiles": {
+    "qm31": {
+      "degree": 4,
+      "bulk_values_per_raw_block": 2,
+      "relative_density_bound": 5.062499990570359,
+      "density_bits": 2.3398500001973956,
+      "production_selected": false,
+      "security_certificate": false
+    },
+    "om31": {
+      "degree": 8,
+      "bulk_values_per_raw_block": 1,
+      "relative_density_bound": 25.628906154524884,
+      "density_bits": 4.679700000394791,
+      "conditional_degree_2pow27_margin_bits": 216.32029999423074,
+      "production_selected": false,
+      "security_certificate": false
+    }
+  },
+  "gates": {
+    "native_safe": {
+      "path": "/tmp/rv64-raw-mod-native-safe-final.log",
+      "sha256": "23224d5c17752c69eb393847365d9ba64430480fa9e1ab822e567e8df7e1ba4b",
+      "summary": "Build Summary: 3/3 steps succeeded; 65/65 tests passed\ntest-raw-mod-channel success\n+- run test 65 passed 3s MaxRSS:2M\n   +- compile test ReleaseSafe native success 5s MaxRSS:413M"
+    },
+    "native_fast": {
+      "path": "/tmp/rv64-raw-mod-native-fast-final.log",
+      "sha256": "375c19e0634ab2ca3283858696cb85ebd2117d657382441d77dc004241fcdd94",
+      "summary": "Build Summary: 3/3 steps succeeded; 65/65 tests passed\ntest-raw-mod-channel success\n+- run test 65 passed 3s MaxRSS:2M\n   +- compile test ReleaseFast native success 5s MaxRSS:389M"
+    },
+    "circuit_safe": {
+      "path": "/tmp/rv64-raw-mod-circuit-safe-final.log",
+      "sha256": "ccc7db4854b59dc7caea03193e390be7e136980ec464bde7d31e6420f19f1362",
+      "summary": "Build Summary: 3/3 steps succeeded; 17/17 tests passed\nnative-verifier-test success\n+- run test 17 passed 708ms MaxRSS:2M\n   +- compile test ReleaseSafe native success 4s MaxRSS:392M"
+    },
+    "circuit_fast": {
+      "path": "/tmp/rv64-raw-mod-circuit-fast-final.log",
+      "sha256": "4cb2d1634db387fbb65e2a7fe6d223c3fc9ee8609dd34c68af7606cb5af5684d",
+      "summary": "Build Summary: 3/3 steps succeeded; 17/17 tests passed\nnative-verifier-test success\n+- run test 17 passed 440ms MaxRSS:2M\n   +- compile test ReleaseFast native success 4s MaxRSS:351M"
+    }
+  },
+  "actual_blake_rejection_fixture": {
+    "digest_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+    "counter": 107289826,
+    "word_index": 2,
+    "word": "ffffffff",
+    "hash_hex": "c0eca86c7e6264b3fffffffff4e67a7e5e34462b8cfed27d0f551b7a19cc143c",
+    "ci_search": false,
+    "behavior": "Legacy retries; additive profile consumes once; actual circuit agrees on all8 coordinates and subsequent raw counter; counter mutation rejected"
+  },
+  "tests": [
+    "canonical six boundary values",
+    "distinct receiver-selected degree/packing tags",
+    "native/circuit scalar and odd/even/empty bulk packing",
+    "OM31 canonical field mixing",
+    "wrapping32-bit counters and mix reset",
+    "all8 output coordinates and forged upper-half rejection",
+    "NoValue/value topology parity",
+    "real rare raw Blake block and hash-counter mutation rejection"
+  ],
+  "limits": [
+    "These are channel/sampler primitives, not a degree8 PCS/FRI verifier or whole128 certificate.",
+    "QM31 biased control must not inherit nominal96 qualification.",
+    "Native MerkleChannel is typed to legacy state; new engines need an explicit receiver-selected adapter.",
+    "No GPU qualification."
+  ]
+}

@@ -1,0 +1,98 @@
+warning: build_support/backends/cuda_tools.zig: 488 lines approaches the 500-line build-support owner ceiling (12 line(s) of headroom)
+note: 260 unchanged file(s) are within 10% of a size ceiling; rerun with --show-headroom to list them
+error: backends/cpu_scalar/riscv_composition.zig: 872 lines exceeds the 850-line manual-source ceiling
+error: backends/cuda/runtime/context.zig: 1062 lines exceeds the 850-line manual-source ceiling
+error: backends/cuda/runtime/stages/relation.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/commit_backend.zig: 1251 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime.m: 1118 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/base_polynomial_composition.zig: 1572 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/bindings.zig: 1164 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/fri_fold_commit.m: 875 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/lifecycle_and_tree.m: 863 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/merkle_epochs.m: 1133 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/opening_operations.zig: 881 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/polynomial_evaluation.m: 1125 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/quotients.m: 1174 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/shaders/blake3_interactions.metal: 2811 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/tests/fri_fold_commit.zig: 852 lines exceeds the 850-line manual-source ceiling
+error: core/crypto/blake2s_backend.zig: 884 lines exceeds the 850-line manual-source ceiling
+error: frontends/cairo/proving/transaction.zig: 931 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/guest_precompile/bulk_memcpy_lifted_composition_diagnostic_v1.zig: 1116 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/lang/row_window.zig: 870 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/diagnostics/segment_manifest.zig: 997 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/guest_precompile/ethereum_candidate_leaf_orchestration_v1.zig: 936 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/incremental_ethereum_omit_orchestration_v4.zig: 1393 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/incremental_ethereum_verifier_v3.zig: 1011 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/main_trace_plan_execution_production_state.zig: 856 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_ethereum_candidate_provider_v1.zig: 858 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_ethereum_omit_provider_proof_v1.zig: 1190 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_provider_order_proof_v2.zig: 894 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/ethereum_omit_protocol_v1.zig: 1455 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/provider_order_component.zig: 1043 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/framework_interaction.zig: 1129 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig: 870 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/relation_interaction_runtime.zig: 1010 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/tests/universal_typed_component_test.zig: 1107 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/binary_fri_outer_bundle_bundle_for_source_schedule_and_manifest.zig: 869 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/detached_fri_core_part_03.zig: 1140 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/detached_fri_core_part_11.zig: 859 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/ethereum_leaf_context_v1.zig: 967 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/incremental_ethereum_vm_composition_program_v4.zig: 909 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recording_poseidon_channel_v4.zig: 876 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig: 932 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_heterogeneous_session_v3.zig: 1453 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig: 894 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig: 948 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/segment_outer_transaction_v2.zig: 994 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig: 1396 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/eval/controller.zig: 921 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/proof_session.zig: 851 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/resident_plan.zig: 936 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/trace_commit.zig: 944 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/relation_adapter.zig: 859 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/request_compiler.zig: 876 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/tests/relation_adapter_test.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_metal/eval_codegen.zig: 918 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig: 895 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/segment_v2_native_proof_test.zig: 1093 lines exceeds the 850-line manual-source ceiling
+error: interop/postcard/proof_preflight.zig: 969 lines exceeds the 850-line manual-source ceiling
+error: prover/air/accumulation.zig: 1026 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_parallel.zig: 906 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_programs.zig: 1104 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_prover.zig: 929 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/columns/preparation.zig: 943 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/quotient_tile_executor.zig: 961 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/sampled_coefficient_plans.zig: 957 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/sampled_values.zig: 1008 lines exceeds the 850-line manual-source ceiling
+error: prover/prove.zig: 934 lines exceeds the 850-line manual-source ceiling
+error: prover/vcs_lifted/leaves.zig: 876 lines exceeds the 850-line manual-source ceiling
+error: prover/work_pool.zig: 867 lines exceeds the 850-line manual-source ceiling
+error: prover_api/work_profile_execution.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: scripts/check_upstream_pins.py: 860 lines exceeds the 850-line manual-source ceiling
+error: scripts/riscv_refinement_lib/sail_lean_bridge.py: 863 lines exceeds the 850-line manual-source ceiling
+error: scripts/tests/test_cuda_build.py: 862 lines exceeds the 850-line manual-source ceiling
+error: tools/riscv/analyze_legacy_semantics/main.zig: 1377 lines exceeds the 850-line manual-source ceiling
+error: borrowed_proof_capture_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_circle_lde_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_composition_pool_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_composition_pool_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_external_allocation_admission_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_fri_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_fri_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_fri_inverse_lease_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_quotient_allocation_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_quotient_allocation_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_quotient_result_ownership_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_resident_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_sampled_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_sampled_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_native_polynomial_aot_export.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_native_polynomial_aot_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: shared_external_memory_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: shared_external_pcs_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: build_support/graph/modules.zig: build-support owner exceeds the 500-line ceiling
+error: tools/riscv/analyze_legacy_semantics/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/function_value/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/memcpy_admission/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/memcpy_hotspot/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/pc_hotspot/main.zig: active Zig command/test owner exceeds the 300-line ceiling

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "zig-out/bin/rv64-secp-fixture",
+    "verify",
+    "/tmp/stwo-rv64-secp-metadata-add",
+    "add",
+    "5",
+    "3"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 9324625,
+  "fresh_process": true
+}

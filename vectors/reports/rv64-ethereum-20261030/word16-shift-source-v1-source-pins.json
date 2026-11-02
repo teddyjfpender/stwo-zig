@@ -1,0 +1,20 @@
+{
+  "owned": {
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source.zig": "d3828b4383958c6c64e7db4c9a250e6f5f73ce618aeb6ac1b165d2983d5a4d95",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source_test.zig": "ab568ddce277df5e9d4af989edbc3c2997cd09059d2f904f865051cd4d544681",
+    "src/frontends/riscv/rv64_word16_shift_source_test_root.zig": "3998f1a4583e609e5fa8cb5eb24ffa97da1c7cb298aea8135a52af726026b8e0",
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "c63e5c73569dd23b6c9f2fb7e28bd0b9ca90fb64ed5b167257e0520003386b15",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture_trace.zig": "75867091ac27eec9e47f25cbc9422c905e90e41c78d0e891d48000d583c4a54a",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture.zig": "5a419fdc4288933de1f29decd765bb1a98bb598078f14bf9cf7e4bfebb1b884b",
+    "src/integrations/riscv_cpu/tests/rv64_word16_shift_word_packed_proof_test.zig": "465148f54cfb008a7f620d98e878a5d13b032256d50b8c76eca2be7adc5087d9",
+    "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig": "f87c610c2b279d690bd5d90f441333c151e7f7bfae92ff38d22ceda504a428ce"
+  },
+  "registration": {
+    "test-riscv64-word16-shift-source": 6,
+    "existing_packed_proof_runtime": 2,
+    "one_export": "shift_word_packed_experiment.source",
+    "ops": "appendShiftFact only; AluFact and mappingsunchanged"
+  },
+  "previous_circuit_foundation_commit": "0da5b8d79",
+  "report": "word16-shift-source-v1-qualification.json"
+}

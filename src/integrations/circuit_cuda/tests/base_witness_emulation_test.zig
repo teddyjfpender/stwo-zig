@@ -220,10 +220,18 @@ test "circuit CUDA base row emulation equals CPU witness and complete table coun
             if (component == 0) pp[0][0] = 160 else raw[4 * 3] ^= 1;
             error_flag = 0;
             try std.testing.expectEqual(@as(c_int, 0), stwo_circuit_base_witness_emulate(
-                @intCast(component), &raw, 160, 16, 8,
-                &pp_ptrs, @intCast(base.pp_widths[component]),
-                &out_ptrs, @intCast(base.output_widths[component]),
-                &count_ptrs, @intCast(base.count_lengths.len), &error_flag,
+                @intCast(component),
+                &raw,
+                160,
+                16,
+                8,
+                &pp_ptrs,
+                @intCast(base.pp_widths[component]),
+                &out_ptrs,
+                @intCast(base.output_widths[component]),
+                &count_ptrs,
+                @intCast(base.count_lengths.len),
+                &error_flag,
             ));
             try std.testing.expectEqual(@as(u32, 1), error_flag);
         }

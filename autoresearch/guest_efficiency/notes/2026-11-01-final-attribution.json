@@ -1,0 +1,283 @@
+{
+ "instructions": 98800238,
+ "buckets": {
+  "evm_interpreter": {
+   "instructions": 35622304,
+   "fraction": 0.3605
+  },
+  "mem_alloc": {
+   "instructions": 18117528,
+   "fraction": 0.1834
+  },
+  "mpt_rlp": {
+   "instructions": 17343936,
+   "fraction": 0.1755
+  },
+  "secp_ecdsa_glue": {
+   "instructions": 11242490,
+   "fraction": 0.1138
+  },
+  "ssz_statement_sha256": {
+   "instructions": 10425954,
+   "fraction": 0.1055
+  },
+  "keccak_glue": {
+   "instructions": 3536373,
+   "fraction": 0.0358
+  },
+  "other": {
+   "instructions": 1337708,
+   "fraction": 0.0135
+  },
+  "ssz_input": {
+   "instructions": 1173939,
+   "fraction": 0.0119
+  },
+  "unattributed": {
+   "instructions": 6,
+   "fraction": 0.0
+  }
+ },
+ "top_functions": [
+  {
+   "function": "memcpy",
+   "self_instructions": 10861100
+  },
+  {
+   "function": "_RNvCsd1usNi2Cgh5_4sha28compress",
+   "self_instructions": 10364508
+  },
+  {
+   "function": "_RNvYINtNtCs8yUqJ7KiVQW_12revm_handler15mainnet_handler14MainnetHandlerINtNtCslTaTGQtdAjP_12revm_context3evm3EvmINtNtB1b_7context7ContextNtNtB1b_5block8BlockEnvNtNtB1b_2tx5TxEnvNtNtB1b_3cfg6CfgEnvQINt",
+   "self_instructions": 9578392
+  },
+  {
+   "function": "_RNvNtNtCslAs2FIMEUa1_13revm_bytecode6legacy8analysis14analyze_legacy",
+   "self_instructions": 5924736
+  },
+  {
+   "function": "_RINvMNtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt3rlpINtNtB5_4node4NodeNtNtB5_7memoize5CacheE15resolve_digestsNtNtCsgz66oD9oxhN_16alloy_primitives6bytes_5BytesECs7d4tm4EtruI_5tries",
+   "self_instructions": 5638831
+  },
+  {
+   "function": "_RNvMNtNtCs7mmpPYKSxN2_4k25610arithmetic5fieldNtB2_12FieldElement6square",
+   "self_instructions": 4499352
+  },
+  {
+   "function": "_RNvNtNtCs7mmpPYKSxN2_4k25610arithmetic12stwo_inverse15inv_mod_vartime",
+   "self_instructions": 3405717
+  },
+  {
+   "function": "native_keccak256",
+   "self_instructions": 3314241
+  },
+  {
+   "function": "_RNvMs_NtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt3rlpINtNtB6_4node4NodeNtNtB6_7memoize5CacheE11decode_intoCs7d4tm4EtruI_5tries",
+   "self_instructions": 3050267
+  },
+  {
+   "function": "memmove",
+   "self_instructions": 3022858
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions6memory5mloadNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1I_5block8BlockEnvNtNtB1I_2tx5TxEnvNtNtB1I",
+   "self_instructions": 2170130
+  },
+  {
+   "function": "memset",
+   "self_instructions": 1496904
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions6memory6mstoreNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 1437184
+  },
+  {
+   "function": "_RNvMs1_NtCs6lEn9MDLHFJ_8indexmap3mapINtB5_8IndexMapINtNtNtCsgz66oD9oxhN_16alloy_primitives4bits5fixed10FixedBytesKj20_ENtNtBU_6bytes_5BytesINtNtNtBU_3map5fixed13FbBuildHasherKB1O_EE11insert_fullCs7d4",
+   "self_instructions": 1378696
+  },
+  {
+   "function": "_RNvCslwEoflKP0YH_7___rustc12___rust_alloc",
+   "self_instructions": 1355738
+  },
+  {
+   "function": "_RNvMNtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt3rlpINtNtB4_4node4NodeNtNtB4_7memoize5CacheE11rlp_encodedCs7d4tm4EtruI_5tries",
+   "self_instructions": 1238920
+  },
+  {
+   "function": "_RNvXs5_NtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt3rlpNtB5_7NodeRefNtNtCsd4p99lIiS9L_9alloy_rlp6encode9Encodable6encode",
+   "self_instructions": 1154536
+  },
+  {
+   "function": "_RINvNtCsapiOon2qsya_4core3ptr9drop_glueINtNtCsgJMzhFN4zL4_5alloc5boxed3BoxINtNtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt4node4NodeNtNtB1f_7memoize5CacheEEECsbYNNEmJr0Cy_24stateless_validator_reth",
+   "self_instructions": 1151464
+  },
+  {
+   "function": "_RNvNtNtCs6T8bRg8Co3m_15alloy_consensus6crypto9secp256k124recover_signer_unchecked",
+   "self_instructions": 1125521
+  },
+  {
+   "function": "memcmp",
+   "self_instructions": 979552
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4pushKj1_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 954674
+  },
+  {
+   "function": "_RNvMNtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt3rlpINtNtB4_4node4NodeNtNtB4_7memoize5CacheE7memoizeCs7d4tm4EtruI_5tries",
+   "self_instructions": 745919
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions10arithmetic3addNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 658119
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions6system12calldataloadNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1Q_5block8BlockEnvNtNtB1Q_2tx5TxEn",
+   "self_instructions": 647657
+  },
+  {
+   "function": "_RNvXsb_NtNtCs7mmpPYKSxN2_4k25610arithmetic6affineNtB5_11AffinePointINtNtCs728h4EYXU8G_14elliptic_curve5point15DecompressPointNtB9_9Secp256k1E10decompress",
+   "self_instructions": 637884
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4swapKj1_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 602764
+  },
+  {
+   "function": "_RNvMNtCsesVklj8bDiM_5ruint3divINtB4_4UintKj100_Kj4_E14div_rem_by_refCsgz66oD9oxhN_16alloy_primitives",
+   "self_instructions": 522082
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions7bitwise3shlNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1H_5block8BlockEnvNtNtB1H_2tx5TxEnvNtNtB1H_",
+   "self_instructions": 445222
+  },
+  {
+   "function": "_RINvCsjdHue3M7b4S_13libssz_merkle9merkleizeNtB2_10Sha2HasherECsbYNNEmJr0Cy_24stateless_validator_reth",
+   "self_instructions": 424371
+  },
+  {
+   "function": "_RNvMNtNtCs9vp5B4QSiGH_22revm_context_interface15journaled_state7accountINtB2_16JournaledAccountQINtNtNtCsfdPm68OQqdf_13revm_database6states5state5StateINtNtCs1Y9FNTTW98I_9stateless10witness_db15Witne",
+   "self_instructions": 417287
+  },
+  {
+   "function": "_RNvMs0_NtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt4nodeINtB5_4NodeNtNtB7_7memoize5CacheE3getCs7d4tm4EtruI_5tries",
+   "self_instructions": 408382
+  },
+  {
+   "function": "_RNvNtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt3rlp18encode_list_header",
+   "self_instructions": 402798
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4pushKj14_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 376551
+  },
+  {
+   "function": "_RNvXs2_NtCslTaTGQtdAjP_12revm_context7contextINtB5_7ContextNtNtB7_5block8BlockEnvNtNtB7_2tx5TxEnvNtNtB7_3cfg6CfgEnvQINtNtNtCsfdPm68OQqdf_13revm_database6states5state5StateINtNtCs1Y9FNTTW98I_9stateles",
+   "self_instructions": 374350
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4pushKj20_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 368385
+  },
+  {
+   "function": "_RNvXNtCs8yUqJ7KiVQW_12revm_handler3evmINtNtCslTaTGQtdAjP_12revm_context3evm3EvmINtNtBF_7context7ContextNtNtBF_5block8BlockEnvNtNtBF_2tx5TxEnvNtNtBF_3cfg6CfgEnvQINtNtNtCsfdPm68OQqdf_13revm_database6st",
+   "self_instructions": 357481
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack3dupKj2_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 356100
+  },
+  {
+   "function": "_RNvMs_NtNtCsfdPm68OQqdf_13revm_database6states5stateINtB4_5StateINtNtCs1Y9FNTTW98I_9stateless10witness_db15WitnessDatabaseNtNtCs7d4tm4EtruI_5tries4zeth11SparseStateEE7storageCsbYNNEmJr0Cy_24stateless",
+   "self_instructions": 355397
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack3dupKj1_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 349820
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter11interpreter13shared_memory18resize_memory_coldNtB2_12SharedMemoryECsbYNNEmJr0Cy_24stateless_validator_reth",
+   "self_instructions": 347118
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4swapKj2_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 333312
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions7bitwise3shrNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1H_5block8BlockEnvNtNtB1H_2tx5TxEnvNtNtB1H_",
+   "self_instructions": 324340
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions7bitwise6bitandNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 324135
+  },
+  {
+   "function": "_RNvXNtNtCsapiOon2qsya_4core4iter8adaptersINtB2_12GenericShuntINtNtB2_3map3MapINtNtNtB6_5slice4iter7WindowsjENCINvNtCsbj55IcUAS9L_6libssz6decode37decode_variable_length_items_with_maxINtNtCs5P9i2OJ9Jq",
+   "self_instructions": 304584
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4pushKj4_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 290400
+  },
+  {
+   "function": "_RNvMs_NtNtCsfdPm68OQqdf_13revm_database6states5stateINtB4_5StateINtNtCs1Y9FNTTW98I_9stateless10witness_db15WitnessDatabaseNtNtCs7d4tm4EtruI_5tries4zeth11SparseStateEE23load_cache_account_withCsbYNNEm",
+   "self_instructions": 277001
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions10arithmetic3subNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 276057
+  },
+  {
+   "function": "_RNvMs0_NtNtCs4Tbj5ILxwFe_8zeth_mpt3mpt4nodeINtB5_4NodeNtNtB7_7memoize5CacheE6insertCs7d4tm4EtruI_5tries",
+   "self_instructions": 274073
+  },
+  {
+   "function": "_RNvMNtNtCs7mmpPYKSxN2_4k25610arithmetic3mulNtB2_9WordTable14select_vartime",
+   "self_instructions": 273348
+  },
+  {
+   "function": "_RINvMs_NtNtCslTaTGQtdAjP_12revm_context7journal5innerINtB5_12JournalInnerNtNtNtCs9vp5B4QSiGH_22revm_context_interface15journaled_state5entry12JournalEntryE25load_account_mut_optionalQINtNtNtCsfdPm68O",
+   "self_instructions": 269104
+  },
+  {
+   "function": "_RINvXs6_NtCs5P9i2OJ9JqQ_12libssz_types16progressive_listINtB6_15ProgressiveListhENtCsjdHue3M7b4S_13libssz_merkle12HashTreeRoot14hash_tree_rootNtB1j_10Sha2HasherECsbYNNEmJr0Cy_24stateless_validator_re",
+   "self_instructions": 263605
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack3dupKj3_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1",
+   "self_instructions": 250300
+  },
+  {
+   "function": "_RNvYINtNtCs8yUqJ7KiVQW_12revm_handler15mainnet_handler14MainnetHandlerINtNtCslTaTGQtdAjP_12revm_context3evm3EvmINtNtB1b_7context7ContextNtNtB1b_5block8BlockEnvNtNtB1b_2tx5TxEnvNtNtB1b_3cfg6CfgEnvQINt",
+   "self_instructions": 243468
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions5stack4pushKj2_NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB",
+   "self_instructions": 243364
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions7bitwise2eqNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1G_5block8BlockEnvNtNtB1G_2tx5TxEnvNtNtB1G_3",
+   "self_instructions": 243102
+  },
+  {
+   "function": "_RNvMNtNtCs7mmpPYKSxN2_4k25610arithmetic3mulNtB2_9WordTable3new",
+   "self_instructions": 240864
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions4host5sloadNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1G_5block8BlockEnvNtNtB1G_2tx5TxEnvNtNtB1G_3",
+   "self_instructions": 237351
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions6system9keccak256NtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1M_5block8BlockEnvNtNtB1M_2tx5TxEnvNtN",
+   "self_instructions": 222132
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions7control4jumpNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1I_5block8BlockEnvNtNtB1I_2tx5TxEnvNtNtB1I",
+   "self_instructions": 220671
+  },
+  {
+   "function": "_RINvNtNtCsktNPEPrK2z0_16revm_interpreter12instructions10arithmetic3expNtNtB6_11interpreter14EthInterpreterINtNtCslTaTGQtdAjP_12revm_context7context7ContextNtNtB1L_5block8BlockEnvNtNtB1L_2tx5TxEnvNtNt",
+   "self_instructions": 214668
+  }
+ ]
+}

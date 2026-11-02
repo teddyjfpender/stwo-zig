@@ -1,0 +1,235 @@
+{
+  "schema": "rv64-cuda-resident-sumcheck-qualification-v1",
+  "base_pr": 311,
+  "base_commit": "93bfb2fdb3fa5bc43dd96aed685b598cb5d1bd28",
+  "scope": "complete single-LogUp-oracle resident sumcheck feedback and numerical native-verifier assembly; not full GKR or Ethereum proof",
+  "host": {
+    "system": "Linux",
+    "machine": "x86_64"
+  },
+  "toolchain": {
+    "zig": "0.15.2",
+    "nvcc": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Tue_Sep_01_08:45:21_PDT_2026\nCuda compilation tools, release 13.4, V13.4.92\nBuild cuda_13.4.r13.4/compiler.38855100_0"
+  },
+  "tests": {
+    "ReleaseSafe": 20,
+    "ReleaseFast": 20,
+    "real_native_context_ffi_compile": [
+      "ReleaseSafe",
+      "ReleaseFast"
+    ],
+    "source_conformance_unit": 31,
+    "independent_field_cases": 4196,
+    "full_native_proof_transcript_mask_cases": 10,
+    "native_round_records_compared": 38,
+    "random_native_cubic_comparisons": 1024,
+    "native_inverse_comparisons": 512,
+    "assembly_allocation_failure_sweep": true
+  },
+  "structural_changes": {
+    "per_round_secure_inversions": {
+      "direct_control": 3,
+      "optimized": 1
+    },
+    "sm120_secure_reduction_registers": {
+      "combined": 128,
+      "split": 80
+    },
+    "secure_reduction_shared_bytes": {
+      "combined": 256,
+      "split": 128
+    },
+    "split_first_stage_block_multiplier": 2,
+    "default_secure_sum": "combined",
+    "intermediate_host_transfer_bytes": 0,
+    "terminal_mask_readback_words": 32,
+    "state_readback_words": 40,
+    "record_words_per_round": 44
+  },
+  "cuda_architectures_compiled": [
+    "sm_89",
+    "sm_120"
+  ],
+  "hardware_harnesses_linked": [
+    "resident-smoke",
+    "sumcheck-smoke"
+  ],
+  "device_runs": {
+    "resident": {
+      "exit_code": 77,
+      "stdout": "",
+      "stderr": "SKIP: NVIDIA device/driver unavailable\n"
+    },
+    "sumcheck": {
+      "exit_code": 77,
+      "stdout": "",
+      "stderr": "SKIP: NVIDIA device/driver unavailable\n"
+    }
+  },
+  "gpu_execution_verified": false,
+  "hardware_speedup_measured": false,
+  "device_sanitizers_run": false,
+  "full_ethereum_block_verified": false,
+  "physical_pcs_binding_verified": false,
+  "pinned_rust_protocol_oracle_run": false,
+  "whole_protocol_security_certified": false,
+  "broad_ci": "pre-existing formatting/source-layout findings remain; focused integration contracts pass",
+  "source_files": [
+    {
+      "path": "src/backends/cuda/native/commitment/blake2s_core.cuh",
+      "sha256": "900f5e34af77afbfde0b5253efd6ab0c0ead9c15cb83809c4cb0c8180dc515d7"
+    },
+    {
+      "path": "src/backends/cuda/native/commitment/blake2s_domain_states.h",
+      "sha256": "380318f129647f41dec900ebf5543263d20f18acefe079b291fae5fc3c548132"
+    },
+    {
+      "path": "src/backends/cuda/native/oods/field.cuh",
+      "sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+    },
+    {
+      "path": "src/backends/cuda/native/runtime/context.cu",
+      "sha256": "64be59734e33026270cd951ea7e02c1e915384f6b976dee0aa126f86ca546cd6"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/custody.cuh",
+      "sha256": "1888cb276ba0aac2ba8c13a327abfb1de85c90087a92359b05663a408dd9fbfd"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.cu",
+      "sha256": "f9ef62c04b4f050201cff42987abf8806696e83d384904694cf97e54c262eb71"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.h",
+      "sha256": "4dfa32a534012a4a3cf52c0b5f1fe746691505fbc0fae15e6e3f70e196d701f2"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/om31.cuh",
+      "sha256": "fe75730531a7638460b8a53e0d33d2daad53b7aff342b69fd196d1bbcdeb8d0b"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/round.cu",
+      "sha256": "80a049d46ff55cf9bc74c5639739e11aa6647d0ea07151dd2860b3bf3b1103c7"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/round.cuh",
+      "sha256": "3e18a4034ef4be8c3d84671034aa6601a431e8e340844f2c7fdceaec264abb14"
+    },
+    {
+      "path": "src/backends/cuda/native/transcript/blake2s_words.cuh",
+      "sha256": "f07b30ce24db3426ac539a64a43c8d14eb48b4f774778c8b5cc5d1bb739d7921"
+    },
+    {
+      "path": "src/core/channel/raw_mod_m31.zig",
+      "sha256": "a45bc12b7580611d519523dd451cb2f0d7ee1d6e1d3842708c813ceb4cb754f7"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/build.zig",
+      "sha256": "fc66a79c8d4158d85ea879d793036d601f6fe604f4bded1e74e475ca03eb24aa"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/abi.zig",
+      "sha256": "0db93cd30c7e20520b01a090609efcade0a25f61c77571b16f96b1aa09e9e454"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/assembly.zig",
+      "sha256": "1359b254406cf7493bc0f4ab7b59d44555ebfb98f9a7913fb03f698d6c137404"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/mod.zig",
+      "sha256": "9294d563741e2aa53e9f7afd42c7075aa76b46e4faa8108331f2b229bbc7eab9"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/plan.zig",
+      "sha256": "0ed869160e141bb9cad4753e100d471173771c671d1b32496cb7468b8f8d669e"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident.zig",
+      "sha256": "8e2653eb787dff2323521bfca7f558ea3e21f90e6be02a27f14bf91eaaaa4a86"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/scheduler.zig",
+      "sha256": "40d345ed6e61fce679c26145d79406feab33e8e686c45c999d9472d58923230e"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/sumcheck.zig",
+      "sha256": "ce3a17d6d3294b30e1ea8c53cafc1c1c38e0ac6aa78af5209b8ad214c17235b3"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/numerical_test.zig",
+      "sha256": "becbdfb772638621bbf45115bdcf944ac8482e3267be931402b93feaae605cdd"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/plan_test.zig",
+      "sha256": "5ba2dc95ab28394ff4a57514f40d7b1897adadf39945e77dc8159b6b33aebbab"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/resident_test.zig",
+      "sha256": "7a85d161c91937052541be4046dabc681b3c6b9b720e9eeda14605e78994ae8a"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/scheduler_test.zig",
+      "sha256": "a4cee38df838fa37a0c7236a3912ac7f1936f4753a3b02e8cd18a4b8eedf4d03"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/sumcheck_numerical_test.zig",
+      "sha256": "5c5e13db1fe9c83bc5c664c903cd74d79d3ec3ae0511c6350ed2cdb712a3c53a"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/sumcheck_test.zig",
+      "sha256": "15b4bfc8fe517e854aaefe99f298e6c7a7886b8b1333445bde85781bb9b0070c"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64_binding_check_root.zig",
+      "sha256": "89ace8d04efc41efa5de3ebab9e0633d5d01a35f4460627235bb80343c523d34"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64_numerical_test_root.zig",
+      "sha256": "6435eb79f5f275406f306a63737982ac6286d145ff80723d058058aa6f39b443"
+    },
+    {
+      "path": "src/prover/lookups/gkr_circuit_field.zig",
+      "sha256": "85106001a5ca350db99b467fabb9d14de85c582f7352e6aa082a460f30633bc8"
+    },
+    {
+      "path": "src/prover/lookups/sumcheck_field.zig",
+      "sha256": "15304c3d6c45f845e483d95fa9af04d797c32ef86e73ed9feae99b947e455c74"
+    },
+    {
+      "path": "src/prover/lookups/verifier_kernel.zig",
+      "sha256": "4047f640e8293e508fe1c6239e5db3b66bcba65b6668190263290577450adb11"
+    },
+    {
+      "path": "tests/cuda/rv64/README.md",
+      "sha256": "edfbf63e04c1039a9ec17ac21cefd1899afa1858a1bcf37d9ad702d6558ceca7"
+    },
+    {
+      "path": "tests/cuda/rv64/context_owner.cuh",
+      "sha256": "d47e1c341364b8d0b9c60036c80866ca913b62dd354f80490d42a7f85b6c3eb8"
+    },
+    {
+      "path": "tests/cuda/rv64/custody_test.cpp",
+      "sha256": "ed0878ede8beda847ce37db00876958867b3d34b991af45d0dda370579e19634"
+    },
+    {
+      "path": "tests/cuda/rv64/host_include/cuda_runtime_api.h",
+      "sha256": "c6327a0a2ecf85094fea52dc8a5fcc6ec2af9008a3a48b6819b745c751aa6b07"
+    },
+    {
+      "path": "tests/cuda/rv64/independent_field.py",
+      "sha256": "7352b54edaa9d2f7eff8813aa63ef459570115424ee3ead09f416858b1afb0d2"
+    },
+    {
+      "path": "tests/cuda/rv64/numerical_bridge.cpp",
+      "sha256": "c04db687460a4aaec9242b82168f7d3711abc6f80584f38579c6f1fd4ebdd969"
+    },
+    {
+      "path": "tests/cuda/rv64/resident_smoke.cu",
+      "sha256": "c49b714db6ae479d44cee639c7c677dcf66896462f18d97063b26630ef614689"
+    },
+    {
+      "path": "tests/cuda/rv64/sumcheck_smoke.cu",
+      "sha256": "65213462e1fa8048106a478d64f2bb0635cd3e690e685f021c2cf999782a4863"
+    }
+  ]
+}

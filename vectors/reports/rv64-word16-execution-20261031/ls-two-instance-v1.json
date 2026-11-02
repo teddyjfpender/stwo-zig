@@ -1,0 +1,818 @@
+{
+  "schema_version": 1,
+  "scope": "Opt-in two ordinary LS instances inside ONE existing CPU PCS; no extra CPU or wrapped proof, no default switch. Core canonical schema3.",
+  "base_commit": "0a05535b0",
+  "geometry": {
+    "field": "ls_tail_log:?u32=null",
+    "cli": "--ls-ladder=headLog,tailLog",
+    "tail_role_ordinal": 17,
+    "structural_roles": 18,
+    "present_components_default": 17,
+    "present_components_with_tail": 18,
+    "tail_widths": [
+      3,
+      79,
+      96
+    ],
+    "native_degree_bound": 3,
+    "plain_core_composition_log_split": 1,
+    "native_constraint_evaluation": "2n for both existing LS component instances; no new polynomial authority or weighted extension in the plain core."
+  },
+  "ledger": {
+    "core_claim_count": 38,
+    "tail_fields_appended_at": 33,
+    "tail_fields": [
+      "ram",
+      "owner",
+      "range16",
+      "range8",
+      "selection"
+    ],
+    "nonshared_keccak_claim_count": 46,
+    "shared_keccak_cpu_claim_count": 43,
+    "secp_cpu_claim_count": 48,
+    "canonical_exports": [
+      "P.CLAIM_COUNT",
+      "P.ramClaim"
+    ],
+    "absence": "Zero columns, no component or private allocation from admitted constructors, and five zero ledger fields. Public total/capacity and ghost claim checks precede physical verification.",
+    "closure": "RAM is separately physically bound by LS96. Existing non-RAM combined-prefix semantics are unchanged. Global/service local closures exempt the canonical RAM sum including both instances, never unbound ghost debt."
+  },
+  "custody": {
+    "construction": "Same existing native row writer, two slices of the once-collected chronological native events, absolute CPU epoch/ticks retained, no Tape reexecution or large-then-compress witness.",
+    "histograms": "Shared range16/range8/selection challenges. Merge every physical padding query from both instances; dedicated selection histogram remains alive after MAIN is transferred.",
+    "ownership": "Optional tail MAIN and INTER allocations adopted once by existing multi-backing PCS. Owner flags clear only for transferred shapes; private extra uncommitted owner remains owned. No new GPU path.",
+    "failure": "Owned memory constructors unwind completed private sources on error; no new borrowed ladder buffer API. Existing native borrowed source prevalidation/startgate contracts retained. No whole-source retry claim after interaction publication."
+  },
+  "qualification": {
+    "focused_safe_runtime9": "PASS",
+    "focused_fast_runtime9": "PASS",
+    "actual_metadata_count": 9,
+    "safe_logs": [
+      "/tmp/rv64-ls-ladder-latest-safe.log",
+      "/tmp/rv64-ls-ladder-final-safe.log",
+      "/tmp/rv64-ls-ladder-public-final-safe.log"
+    ],
+    "fast_log": "/tmp/rv64-ls-ladder-public-final-fast.log",
+    "regression_fast": {
+      "coordinator": 20,
+      "prepared": 14,
+      "global_execution": 15,
+      "shared_keccak": 5,
+      "keccak_bridge": 13,
+      "secp_bridge": 10,
+      "boundary_global_diagnostic": 4
+    },
+    "regression_log": "/tmp/rv64-ls-ladder-latest-regressions-fast.log",
+    "cases": [
+      "Deterministic N-1 head count; empty-tail/absent-tail/over-capacity/zero-field admissions; old role ordinals unchanged; absent shape has zero widths.",
+      "Actual native130-step LD/BEQ loop,65 ordinary events split31+34, ONE18-component PCS proof and fresh independent setup. Same immutable setup reused for132steps/66events.",
+      "Real receiver rejects missing physical tail roster, altered total/count/span, balanced head/tail RAM edits and balanced absent-tail/CPU ghost claims.",
+      "Exhaustive native memory-constructor allocation failures; owned MAIN/INTER versus borrowed reference exact proof/claims. Extra private allocation outside omitted roster retains ownership and is freed.",
+      "Actual two-shard global RAM proofs with a tail in each; fresh expected keys; balanced cross-shard tail RAM claim edits reject.",
+      "Positive32ordinary+1Keccak per CPU, tail31+1; nonshared and independently proved shared-truth protocols fresh verify with canonical extended ledgers.",
+      "Positive32SD+SecpADD then ADDI+SecpDOUBLE, first CPU tail31+1; all4 actual CPU/truth proofs and fresh expected receiver keys pass."
+    ],
+    "tests_scope": "Global/service fixtures are bounded qualification, not all-block activation. Non1 secp TruthComponents.initSpan is exposed for the separately owned combined protocol; existing first1 delegates and component authority remain unchanged. K shared truthComponents visibility-only export preserves its existing first-id authority. The final durable-reader preflight calls the same tested tail-class guard before RAM sidecar/key allocation; it changes only rejection timing, not valid proof statements or bytes.",
+    "fmt_diff_and_conformance31": "PASS; inherited whole-repository conformance hook violations bypassed for scoped commit."
+  },
+  "real_packet": {
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "packet": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+    "steps": 4194303,
+    "ordinary_events": 1202034,
+    "settings": "Same compiled binary, recycler0, commitbatch64, trusted16workers; grouping/omission defaults unchanged.",
+    "cli_sha256": "55aca9e7bea79011a28812e4adcdd9c7d8fecc48efe69dd7831fdef7228fa0aa",
+    "build_log": "/tmp/rv64-ls-ladder-final-current-fast.log",
+    "semantics": "CPU endpoints/registers/clocks, epochs, arithmetic counts, total LS count and RAM boundary cells exact across geometries. Same cells.bin bytes. Claims/proofs and geometry intentionally differ.",
+    "source_cells_definition": "Sum native trace length times committed fixed/MAIN/INTER widths per present role, including padding. Not actual instruction count, memory traffic, total FFT executions or RSS.",
+    "cell_difference": {
+      "fixed": 2359296,
+      "main": 62128128,
+      "interaction": 75497472
+    },
+    "total_cells_removed": 139984896,
+    "physical_LS_rows": {
+      "single": 2097152,
+      "head": 1048576,
+      "tail": 262144,
+      "combined": 1310720
+    },
+    "active_counts": {
+      "single": 1202034,
+      "head": 1048575,
+      "tail": 153459
+    },
+    "padding_rows": {
+      "single": 895118,
+      "head": 1,
+      "tail": 108685,
+      "combined": 108686,
+      "removed": 786432
+    },
+    "declared_LS_constraint_points": {
+      "single": 4194304,
+      "ladder": 2621440,
+      "removed": 1572864,
+      "residuals_per_point": 273,
+      "definition": "Native2n domain points across the LS handles only; not actual CPU instructions or FFT execution counts."
+    },
+    "native_inverse_model": {
+      "definition": "Existing LS generator2 chunk batch-inverse calls per4096rows plus1 selection-dictionary batch call per instance. Complete range dictionaries shared; local validation/count-dot/selection setup repeats per instance. No new inverse shortcut.",
+      "single_chunk_calls": 1024,
+      "ladder_chunk_calls": 640,
+      "single_selection_dictionary_calls": 1,
+      "ladder_selection_dictionary_calls": 2,
+      "selection_dictionary_entries_per_instance": 131072
+    },
+    "decoded_OODS_QM31": {
+      "single_by_tree": [
+        127,
+        1605,
+        668,
+        8
+      ],
+      "single_total": 2408,
+      "ladder_by_tree": [
+        130,
+        1685,
+        772,
+        8
+      ],
+      "ladder_total": 2595,
+      "difference_by_tree": [
+        3,
+        80,
+        104,
+        0
+      ],
+      "difference_total": 187,
+      "scope": "Actual decoded sampled_values tree vectors, not a logical-width estimate. Sample inspector is external report-only tool."
+    },
+    "proof_byte_increase": 53168,
+    "single": {
+      "directory": "/tmp/rv64-ls-ladder-current-real0-single-v1",
+      "proof_sha256": "f39b97045da0503bf21ec039490493f14a6a74bca2024183c56a15143669b407",
+      "proof_bytes": 1149952,
+      "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "ram_sidecar_bytes": 32612038,
+      "statement_sha256": "6459f5f5fe22361fc750ce9d7182fab69d103e034d5a1260d40452a122af2593",
+      "report": {
+        "commit_batch_columns": 64,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "smp",
+          "cache_cap_bytes": 0,
+          "stats": {
+            "reused_blocks": 0,
+            "mapped_blocks": 0,
+            "cached_bytes": 0
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 13297,
+        "proof_and_public_statement_bytes": 33775287,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 538446336
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "ls_tail_log": null,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 307225667,
+        "provider_source_ns": 567129334,
+        "setup_ns": 317170667,
+        "prove_ns": 9323708125,
+        "same_process_verify_ns": 78050083,
+        "proof_bytes": 1149952,
+        "total_ns": 10334108250,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857030656,
+          "last_rss_bytes": 1330970624,
+          "sampled_peak_rss_bytes": 10581196800,
+          "process_lifetime_peak_rss_bytes": 10581196800,
+          "samples": 672,
+          "failed_samples": 0
+        }
+      },
+      "selected_stages": {
+        "native_advice_preparation": {
+          "id": "native_advice_preparation",
+          "label": "One CPU witness and exact family grouping",
+          "seconds": 0.307211,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.336017,
+            "system_seconds": 0.121862,
+            "minor_faults": 151583,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 340
+          }
+        },
+        "immutable_setup": {
+          "id": "immutable_setup",
+          "label": "Program and selected geometry fixed commitment",
+          "seconds": 0.317173,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.75188,
+            "system_seconds": 0.277281,
+            "minor_faults": 121659,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1360
+          }
+        },
+        "provider_source_construction": {
+          "id": "provider_source_construction",
+          "label": "Independent provider witnesses from retained native facts",
+          "seconds": 0.567133,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.24144,
+            "system_seconds": 0.859562,
+            "minor_faults": 197869,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 943
+          }
+        },
+        "source_memory": {
+          "id": "source_memory",
+          "label": "Memory witness construction",
+          "seconds": 0.424704,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.312145,
+            "system_seconds": 0.075479,
+            "minor_faults": 84439,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 468
+          }
+        },
+        "source_memory_ls": {
+          "id": "source_memory_ls",
+          "label": "Ordinary LS witness",
+          "seconds": 0.08994,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.99438,
+            "system_seconds": 0.058382,
+            "minor_faults": 54114,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 427
+          }
+        },
+        "main_commit": {
+          "id": "main_commit",
+          "label": "Joined main streaming commitment",
+          "seconds": 1.36499,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.905803,
+            "system_seconds": 1.209582,
+            "minor_faults": 450476,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6183
+          }
+        },
+        "interaction_generation": {
+          "id": "interaction_generation",
+          "label": "Close all seventeen component obligations",
+          "seconds": 1.14854,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6.001903,
+            "system_seconds": 0.076005,
+            "minor_faults": 135125,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1557
+          }
+        },
+        "inter_memory": {
+          "id": "inter_memory",
+          "label": "LS INIT TEARDOWN and selection interactions",
+          "seconds": 0.262623,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.712947,
+            "system_seconds": 0.033055,
+            "minor_faults": 60506,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 815
+          }
+        },
+        "inter_ls": {
+          "id": "inter_ls",
+          "label": "Load store interactions",
+          "seconds": 0.180276,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.274902,
+            "system_seconds": 0.023957,
+            "minor_faults": 49748,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 488
+          }
+        },
+        "interaction_commit": {
+          "id": "interaction_commit",
+          "label": "Joined interaction streaming commitment",
+          "seconds": 1.131389,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9.478805,
+            "system_seconds": 1.275156,
+            "minor_faults": 419258,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5076
+          }
+        },
+        "composition_evaluation": {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 1.944557,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 15.074167,
+            "system_seconds": 0.505746,
+            "minor_faults": 625130,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3768
+          }
+        },
+        "sampled_value_evaluation": {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.275654,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.593348,
+            "system_seconds": 0.005174,
+            "minor_faults": 238,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 103
+          }
+        },
+        "fri_quotient_build_and_commit": {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 1.511849,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.327905,
+            "system_seconds": 0.206061,
+            "minor_faults": 133501,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1452
+          }
+        },
+        "proof_of_work": {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.041511,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.646604,
+            "system_seconds": 0.000908,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 147
+          }
+        },
+        "trace_decommit": {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.840613,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.899567,
+            "system_seconds": 0.898189,
+            "minor_faults": 610429,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3208
+          }
+        }
+      },
+      "fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 940095625,
+        "image_ns": 315806333
+      },
+      "process_time_line": "10.79 real        55.88 user         5.66 sys",
+      "maximum_resident_set_size_bytes": 10581196800,
+      "peak_memory_footprint_bytes": 10584204072,
+      "final_reader_fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 842911167,
+        "image_ns": 294662209
+      }
+    },
+    "ladder": {
+      "directory": "/tmp/rv64-ls-ladder-current-real0-two-v1",
+      "proof_sha256": "89a38fb68f2ea0ec0c0eb1b86d8045d3394ae4b24e65141796af65d1990d20b7",
+      "proof_bytes": 1203120,
+      "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "ram_sidecar_bytes": 32612038,
+      "statement_sha256": "b889db1528f073e7523ac747bb6a6b44a12b79908a8cb0149c2a421e16471558",
+      "report": {
+        "commit_batch_columns": 64,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "smp",
+          "cache_cap_bytes": 0,
+          "stats": {
+            "reused_blocks": 0,
+            "mapped_blocks": 0,
+            "cached_bytes": 0
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 13460,
+        "proof_and_public_statement_bytes": 33828618,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 64808864,
+          "main": 531623648,
+          "interaction": 462948864
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 20,
+          "ls_tail_log": 18,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 456116416,
+        "provider_source_ns": 759038750,
+        "setup_ns": 505068125,
+        "prove_ns": 10356365166,
+        "same_process_verify_ns": 83828167,
+        "proof_bytes": 1203120,
+        "total_ns": 11598398000,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857047040,
+          "last_rss_bytes": 1311768576,
+          "sampled_peak_rss_bytes": 9010003968,
+          "process_lifetime_peak_rss_bytes": 9010003968,
+          "samples": 758,
+          "failed_samples": 0
+        }
+      },
+      "selected_stages": {
+        "native_advice_preparation": {
+          "id": "native_advice_preparation",
+          "label": "One CPU witness and exact family grouping",
+          "seconds": 0.456115,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.472199,
+            "system_seconds": 0.132077,
+            "minor_faults": 151584,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 693
+          }
+        },
+        "immutable_setup": {
+          "id": "immutable_setup",
+          "label": "Program and selected geometry fixed commitment",
+          "seconds": 0.505071,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.167248,
+            "system_seconds": 0.314214,
+            "minor_faults": 120823,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1929
+          }
+        },
+        "provider_source_construction": {
+          "id": "provider_source_construction",
+          "label": "Independent provider witnesses from retained native facts",
+          "seconds": 0.759044,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.11479,
+            "system_seconds": 0.561503,
+            "minor_faults": 168702,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1355
+          }
+        },
+        "source_memory": {
+          "id": "source_memory",
+          "label": "Memory witness construction",
+          "seconds": 0.572799,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.128672,
+            "system_seconds": 0.079689,
+            "minor_faults": 66458,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 498
+          }
+        },
+        "source_memory_ls": {
+          "id": "source_memory_ls",
+          "label": "Ordinary LS witness",
+          "seconds": 0.075099,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.55572,
+            "system_seconds": 0.0404,
+            "minor_faults": 27875,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 263
+          }
+        },
+        "source_memory_ls_tail": {
+          "id": "source_memory_ls_tail",
+          "label": "Tail LS witness",
+          "seconds": 0.02551,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.132157,
+            "system_seconds": 0.013761,
+            "minor_faults": 8194,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 83
+          }
+        },
+        "main_commit": {
+          "id": "main_commit",
+          "label": "Joined main streaming commitment",
+          "seconds": 1.61507,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.275942,
+            "system_seconds": 1.233716,
+            "minor_faults": 389874,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 7385
+          }
+        },
+        "interaction_generation": {
+          "id": "interaction_generation",
+          "label": "Close all seventeen component obligations",
+          "seconds": 1.302291,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 5.251019,
+            "system_seconds": 0.185819,
+            "minor_faults": 117262,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 2127
+          }
+        },
+        "inter_memory": {
+          "id": "inter_memory",
+          "label": "LS INIT TEARDOWN and selection interactions",
+          "seconds": 0.212436,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.748327,
+            "system_seconds": 0.053099,
+            "minor_faults": 42651,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 747
+          }
+        },
+        "inter_ls": {
+          "id": "inter_ls",
+          "label": "Load store interactions",
+          "seconds": 0.0947,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.091111,
+            "system_seconds": 0.016076,
+            "minor_faults": 25171,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 379
+          }
+        },
+        "inter_ls_tail": {
+          "id": "inter_ls_tail",
+          "label": "Tail load store interactions",
+          "seconds": 0.022309,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.217357,
+            "system_seconds": 0.004307,
+            "minor_faults": 6720,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 107
+          }
+        },
+        "interaction_commit": {
+          "id": "interaction_commit",
+          "label": "Joined interaction streaming commitment",
+          "seconds": 1.155292,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 8.701579,
+            "system_seconds": 0.962774,
+            "minor_faults": 351983,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4633
+          }
+        },
+        "composition_evaluation": {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 2.37863,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 13.941601,
+            "system_seconds": 0.51521,
+            "minor_faults": 554653,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4786
+          }
+        },
+        "sampled_value_evaluation": {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.257505,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.563715,
+            "system_seconds": 0.001239,
+            "minor_faults": 224,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 103
+          }
+        },
+        "fri_quotient_build_and_commit": {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 1.329039,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.195291,
+            "system_seconds": 0.179666,
+            "minor_faults": 120078,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1202
+          }
+        },
+        "proof_of_work": {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.112048,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.75266,
+            "system_seconds": 0.001884,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 375
+          }
+        },
+        "trace_decommit": {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.789566,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.717136,
+            "system_seconds": 0.876625,
+            "minor_faults": 542102,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3517
+          }
+        }
+      },
+      "fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 924226917,
+        "image_ns": 299457750
+      },
+      "process_time_line": "11.62 real        53.88 user         5.17 sys",
+      "maximum_resident_set_size_bytes": 9010003968,
+      "peak_memory_footprint_bytes": 9012108920,
+      "final_reader_fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 917925583,
+        "image_ns": 286850333
+      }
+    },
+    "performance_qualification": "Functional concurrent engineering observations only. Root wide jobs and compilers were active; no matched speedup claim. Current ladder wall was longer despite fewer cells. RSS is the explicit time maximum-resident metric; Darwin peak-memory-footprint is recorded separately and is not called RSS.",
+    "superseded_exploratory_pair": "Earlier /tmp/rv64-ls-ladder-real0-{single,two}-v1 used4ce beforeSHIFT36 and is excluded from current proof pins.",
+    "final_receiver_cli_sha256": "4049cd13ad48eb413a06b7d9b00e02b502b159dfaf996f6a5de7cc93da1f80b6",
+    "final_receiver_build_log": "/tmp/rv64-ls-ladder-public-final-fast.log"
+  },
+  "compatibility": {
+    "core_schema": 3,
+    "standalone_durable_bundle_schema": 3,
+    "old_schema2": "Explicitly rejected by standalone Bundle reader; old proof bytes intentionally incompatible.",
+    "global_and_service": "Existing container tags remain, but complete coreFS3, shape logs and derived claim-count transcript bind the new format/semantics. No old proof fallback or runtime semantic profile enum.",
+    "legacy_full_ethereum": "No legacy Full/Lean proof polynomial or transcript edits in this slice.",
+    "future_default": "Keep optional. Benefit trades fewer rows for extra columns/openings and per-instance setup; broad matched benchmarks and workload planning remain separate."
+  },
+  "source_sha256": {
+    "build_support/products/catalog.zig": "6477e2fefca45284267fb44cb9743d281b41f346ca6361be990810ad6f718fbe",
+    "build_support/products/riscv_cpu.zig": "736906f992d0a97f0768cdefef61146530ff4f11934cffa6ebe4377c2106fd6c",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "bfb2617bc606baed97ec334d3efc270fee7747c85439f9aad1c8a8e17f95b836",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_program_test.zig": "5cda1ac71a4d58c99357893c89f79fa0bdda40db06c136bdc2f84b0cc9227c54",
+    "src/integrations/riscv_cpu/word16_execution/components.zig": "dbfcbbce1ec47c70e3074a4317843a262d4b5a42081b3488734ad75eba7826d5",
+    "src/integrations/riscv_cpu/word16_execution/driver.zig": "3d94a1d86ceaae2ea1c3456086abc9d9bc85785f201ed54b6e7402f627cf21af",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "3dc39081149c96b9605a792ac063c873b3e3a037f01fc2e2443b2dc933e567e8",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "56bc776c81a91d47105ce3acba808ae9d6df91ac6e0dd1e267465adf05fe2b2a",
+    "src/integrations/riscv_cpu/word16_execution/interaction_ownership.zig": "2d447eea7b422de6722ca9bb974083ca01c9fb180b78a2d22290f8aa34ddc640",
+    "src/integrations/riscv_cpu/word16_execution/main_ownership.zig": "3c3805230e93f79e642ce72650cd44cfc245ad52548664e0e93b36d37b4e362a",
+    "src/integrations/riscv_cpu/word16_execution/memory/global_manifest.zig": "49e6e8743dd6a35547c81cde344eec5f8330b12fc9b775d60f22e9c9549552f2",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "12a038525529d3824e77c28de45f7f49e5f6550fb2a8dd401ad6d99701365577",
+    "src/integrations/riscv_cpu/word16_execution/native_diagnostic.zig": "40b25a575b3c07b5d22402142fc7267035105b50f23eee12167052f1b52d5d31",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "9e536fec123abe6b24881feda640ca530eea0dff11036bc560f3c1bba797a5f9",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "8f2449ce5c7f008da43d29ad9f1f2f632c893727e3b79d7bd94b858fbfbe85c7",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "b566d317ea281181859d7d6c56d278c28743038ab72652c17b4383a4ae705ac3",
+    "src/integrations/riscv_cpu/word16_global_execution/execution.zig": "e43b3418fd875fb4a11cc7cff686a6a8e85305cff67452f20bec4abaf7974edd",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution.zig": "927353e7eb0519d21e191c9d80f3bb7db6ce1eb0c0bb3eebd19bc595cce1684b",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/fixture.zig": "c7850d6bfa47b2674ea77d46b6d3446c02e5525ee671338773db14142569ac9b",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/execution.zig": "273f754399c10d6dc982336fa840659f606e15c6daaa9d342acde9185b2aae22",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/protocol.zig": "0679ca20c8b7b0e3e04e13acf2410f7af0353d61db492d18375a04ccdac5ab36",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "1606524c45448919e2d30c1e393fcaadb37b05d8c98f0979a4b16dd7f4e83ec8",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/execution.zig": "92171fb6a542b0015c8f22f46b0389e86c6eb72afbdc6249785cfe54289676c0",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/fixture.zig": "89ba8b17ad0abee60607189480c5aae52dce9e7506867c917cb59b4fedc66c0e",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/protocol.zig": "0334fa9c67bc722a539f5ab9b748afa31a849839820383cc65d3aa15f59117c6",
+    "src/integrations/riscv_cpu/word16_global_execution/soundness_review.md": "83002b233358cfde1f170f55794eb569fab9df306fffdba41a8d22f97c977302",
+    "src/integrations/riscv_cpu/rv64_word16_ls_ladder_test_root.zig": "4110b699341ee3c2a350abf2dc943eb2c3d9e1f1cfb6638c832c251175cd6ace",
+    "src/integrations/riscv_cpu/word16_execution/ls_ladder_test.zig": "15b03323eb39f04d11b54ce8b1810c3ae9893117c35451dae0322be903a65ce8",
+    "design/riscv-proving-stack/rv64-ls-two-instance-ladder.md": "dfeadd36df823d8b9658229b8ae36921dcb50aac888f4d194e3033f0d1749620"
+  },
+  "report_tool_sha256": "c17f75694782bc2b36ec04a7e53d90bdc7f9033057b7c25fdaf928d36edeb4f9"
+}

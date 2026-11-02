@@ -1,0 +1,28 @@
+{
+  "source_commit": "de7f6e125",
+  "default": "park_main=true; fully parked Store, max32 workers",
+  "explicit_resident": "park_main=false; no Store, max8 workers; coordinator resident byte and schedule admission unchanged",
+  "report": "resources.park_main and retained_main=null for resident; original Store stats for parked",
+  "checks": [
+    {
+      "command": "zig fmt --check src/integrations/riscv_cpu/word16_global_execution/ethereum/gkr_main.zig",
+      "result": "PASS"
+    },
+    {
+      "command": "zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 42,
+      "max_rss": "2G"
+    },
+    {
+      "case": "CLI park_main=false, retained_frontend_bytes=0",
+      "result": "exit1 MissingWideResourceAdmission; output directory not created"
+    },
+    {
+      "case": "CLI park_main string false",
+      "result": "exit1 UnexpectedToken; output directory not created"
+    }
+  ],
+  "remaining_gate": "Parent matched resident/parked prefix artifact parity and fresh receiver; no performance claim yet",
+  "protocol_effect": "none"
+}

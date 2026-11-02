@@ -1,0 +1,31 @@
+{
+  "schema": "keth-op-reference-build-v1",
+  "target": "deposit-oracle",
+  "source": {
+    "repository": "https://github.com/ethereum-optimism/optimism",
+    "revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+    "git_tree": "5b196656c21660e5fd8f5e7adb359d87f820cfd5"
+  },
+  "source_files_sha256": {
+    "op_deposit_oracle/main.go": "6311de506fa28ce4121075b1a3954a3bbc762fe40a55bfc4c8c2cbeb5318e952"
+  },
+  "go_version": "1.26.10",
+  "go_mod_sha256": "43c6a2b6bcfca1343d3aab795eb56e0cb20dd1f822dd9b73086bca09c6a59115",
+  "go_sum_sha256": "36dc5dbcca300e068079779583dc7ac521c2fb29112f03ed5efd3f8b6a65f08f",
+  "binary_sha256": "a057487265273fa46460998959d82b85e897418e40a2efc8051beb16b2fc5210",
+  "command": [
+    "mise",
+    "exec",
+    "go@1.26.10",
+    "--",
+    "go",
+    "-C",
+    "/Users/theodorepender/code/cryptography/optimism-op-batch-reference",
+    "build",
+    "-trimpath",
+    "-o",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-deposit-oracle-2",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/autoresearch/experiments/evm_keth/op_deposit_oracle/main.go"
+  ],
+  "elapsed_seconds": 1.1338352089805994
+}

@@ -1,0 +1,387 @@
+{
+  "source": "51e952592",
+  "base": "63ab7e2c6",
+  "scope": "realCPU0 4194303steps matchedq70/P26/f4/16workers/stride2/parkfalse; sharedhost, notwholeblock/128qualification",
+  "runs": [
+    {
+      "run": 0,
+      "variant": "retained_odd",
+      "binary_sha256": "8485530e4689c1273c9408e6814c69800401f3dd367339e7079f9b3c32e03e9a",
+      "numerical_requested_peak": 8847246298,
+      "including_binding_requested_peak": 8847246298,
+      "raw_input_bytes": 4541656320,
+      "prove_seconds": 8.841132792,
+      "numerical_seconds": 2.066329666,
+      "gkr_seconds": 2.593034459,
+      "binding_seconds": 0.340195875,
+      "artifact_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 941772084,
+        "verify_ns": 396586666
+      },
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 946184041,
+        "packet_import_ns": 501472875,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 487989625,
+        "prove_ns": 8841132792,
+        "same_process_verify_ns": 400073375,
+        "workers": [
+          {
+            "source_ns": 323197792,
+            "seal_native_and_gkr_ns": 3559199708,
+            "main_commit_ns": 902771458,
+            "gkr_ns": 2593034459,
+            "inputs_ns": 186384834,
+            "numerical_ns": 2066329666,
+            "binding_ns": 340195875,
+            "metadata_retire_ns": 1847000,
+            "spill_ns": 84,
+            "restore_ns": 0,
+            "native_complete_ns": 4876442167,
+            "stage1_ns": 3884244625,
+            "stage2_ns": 4876442167,
+            "actual_main_merkle_bytes": 33554400,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 10702001583,
+        "retained_main": null
+      },
+      "max_rss_bytes": 15164702720,
+      "peak_footprint_bytes": 15170563496
+    },
+    {
+      "run": 1,
+      "variant": "lazy_odd",
+      "binary_sha256": "69d43b435d4546feb0b11e9b8822643b70a8afcdaa011d7ca57bf82c90959e62",
+      "numerical_requested_peak": 7233043514,
+      "including_binding_requested_peak": 7233043514,
+      "raw_input_bytes": 4541656320,
+      "prove_seconds": 9.078498916,
+      "numerical_seconds": 2.180547334,
+      "gkr_seconds": 2.711883417,
+      "binding_seconds": 0.334112291,
+      "artifact_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 951684625,
+        "verify_ns": 397013167
+      },
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 955348000,
+        "packet_import_ns": 521270667,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 483194958,
+        "prove_ns": 9078498916,
+        "same_process_verify_ns": 404493667,
+        "workers": [
+          {
+            "source_ns": 320473750,
+            "seal_native_and_gkr_ns": 3699109709,
+            "main_commit_ns": 924295250,
+            "gkr_ns": 2711883417,
+            "inputs_ns": 197112375,
+            "numerical_ns": 2180547334,
+            "binding_ns": 334112291,
+            "metadata_retire_ns": 18125,
+            "spill_ns": 41,
+            "restore_ns": 84,
+            "native_complete_ns": 4977831791,
+            "stage1_ns": 4019601667,
+            "stage2_ns": 4977831917,
+            "actual_main_merkle_bytes": 33554400,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 10948754375,
+        "retained_main": null
+      },
+      "max_rss_bytes": 13826064384,
+      "peak_footprint_bytes": 13831285320
+    },
+    {
+      "run": 2,
+      "variant": "lazy_odd",
+      "binary_sha256": "69d43b435d4546feb0b11e9b8822643b70a8afcdaa011d7ca57bf82c90959e62",
+      "numerical_requested_peak": 7233043514,
+      "including_binding_requested_peak": 7233043514,
+      "raw_input_bytes": 4541656320,
+      "prove_seconds": 9.140056375,
+      "numerical_seconds": 2.18265125,
+      "gkr_seconds": 2.705976417,
+      "binding_seconds": 0.332769708,
+      "artifact_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 951793709,
+        "verify_ns": 396130833
+      },
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 987360167,
+        "packet_import_ns": 520893875,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 495327458,
+        "prove_ns": 9140056375,
+        "same_process_verify_ns": 413737708,
+        "workers": [
+          {
+            "source_ns": 325120000,
+            "seal_native_and_gkr_ns": 3710108541,
+            "main_commit_ns": 941161083,
+            "gkr_ns": 2705976417,
+            "inputs_ns": 190456459,
+            "numerical_ns": 2182651250,
+            "binding_ns": 332769708,
+            "metadata_retire_ns": 18417,
+            "spill_ns": 42,
+            "restore_ns": 84,
+            "native_complete_ns": 5024065083,
+            "stage1_ns": 4035247083,
+            "stage2_ns": 5024065209,
+            "actual_main_merkle_bytes": 33554400,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 11060438959,
+        "retained_main": null
+      },
+      "max_rss_bytes": 13826064384,
+      "peak_footprint_bytes": 13831268912
+    },
+    {
+      "run": 3,
+      "variant": "retained_odd",
+      "binary_sha256": "8485530e4689c1273c9408e6814c69800401f3dd367339e7079f9b3c32e03e9a",
+      "numerical_requested_peak": 8847246298,
+      "including_binding_requested_peak": 8847246298,
+      "raw_input_bytes": 4541656320,
+      "prove_seconds": 9.2393755,
+      "numerical_seconds": 2.16537125,
+      "gkr_seconds": 2.691590334,
+      "binding_seconds": 0.341390834,
+      "artifact_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 978076375,
+        "verify_ns": 403184625
+      },
+      "report": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 959913667,
+        "packet_import_ns": 521506041,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 508808833,
+        "prove_ns": 9239375500,
+        "same_process_verify_ns": 417964041,
+        "workers": [
+          {
+            "source_ns": 328909959,
+            "seal_native_and_gkr_ns": 3709540500,
+            "main_commit_ns": 954788041,
+            "gkr_ns": 2691590334,
+            "inputs_ns": 184717666,
+            "numerical_ns": 2165371250,
+            "binding_ns": 341390834,
+            "metadata_retire_ns": 1998583,
+            "spill_ns": 42,
+            "restore_ns": 125,
+            "native_complete_ns": 5117571000,
+            "stage1_ns": 4040449125,
+            "stage2_ns": 5117571167,
+            "actual_main_merkle_bytes": 33554400,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 11147445250,
+        "retained_main": null
+      },
+      "max_rss_bytes": 15164702720,
+      "peak_footprint_bytes": 15170530680
+    }
+  ],
+  "medians": {
+    "retained_odd": {
+      "numerical_requested_peak": 8847246298.0,
+      "including_binding_requested_peak": 8847246298.0,
+      "prove_seconds": 9.040254145999999,
+      "numerical_seconds": 2.115850458,
+      "gkr_seconds": 2.6423123965,
+      "binding_seconds": 0.3407933545
+    },
+    "lazy_odd": {
+      "numerical_requested_peak": 7233043514.0,
+      "including_binding_requested_peak": 7233043514.0,
+      "prove_seconds": 9.1092776455,
+      "numerical_seconds": 2.181599292,
+      "gkr_seconds": 2.708929917,
+      "binding_seconds": 0.3334409995
+    }
+  },
+  "all_artifacts_identical": true,
+  "all_fresh_accepted": true
+}

@@ -84,15 +84,22 @@ fn entriesForIo(comptime S: type, enabler: S, wide_flag: S, io_flag: S, input: [
     return list;
 }
 
-pub fn rowPairsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(S) {
+pub fn rowPairsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(logup.SecureFor(S)) {
     var list = entriesGeneric(S, main);
     return .{ list.pairWith(0, relations) catch unreachable, list.pairWith(1, relations) catch unreachable };
 }
 
 pub fn interactionConstraintsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S, is_first: S, sums: [N_SUMS]S, previous: [N_SUMS]S, claims: [N_SUMS]S, relations: anytype) [N_SUMS]S {
+    return interactionConstraintsMixed(S, main, is_first, sums, previous, claims, relations);
+}
+
+/// Local permutation/entry coordinates remain in S; only FS relation values
+/// and stitched prefixes use its optional secure field.
+pub fn interactionConstraintsMixed(comptime S: type, main: [N_MAIN_COLUMNS]S, is_first: S, sums: [N_SUMS]logup.SecureFor(S), previous: [N_SUMS]logup.SecureFor(S), claims: [N_SUMS]logup.SecureFor(S), relations: anytype) [N_SUMS]logup.SecureFor(S) {
+    const Secure = logup.SecureFor(S);
     const pairs = rowPairsGeneric(S, main, relations);
-    var result: [N_SUMS]S = undefined;
-    for (&result, 0..) |*value, index| value.* = logup.pairConstraintGeneric(S, sums[index], previous[index], is_first, claims[index], pairs[index]);
+    var result: [N_SUMS]Secure = undefined;
+    for (&result, 0..) |*value, index| value.* = logup.pairConstraintGeneric(Secure, sums[index], previous[index], logup.liftFor(S, is_first), claims[index], pairs[index]);
     return result;
 }
 

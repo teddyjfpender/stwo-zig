@@ -1,0 +1,56 @@
+{
+  "schema": "rv64-gkr-stream-bottom-v1",
+  "status": "qualifiedisolatedoptinprototype; defaultOFF",
+  "base": "347517d0c plusqualified756963ee8/211fe2272admissiondependencies",
+  "selection": "STWO_ZIG_GKR_STREAM_BOTTOM=1 requiresSTWO_ZIG_GKR_TREE_CHECKPOINTS=2; defaultOFF",
+  "tests": {
+    "core_ReleaseSafe": 30,
+    "external_pinned_source_ReleaseFast": 31,
+    "metadata_adapter_child_allOOM_ReleaseSafe": true,
+    "metadata_adapter_child_allOOM_ReleaseFast": true,
+    "physical_twoCPU_K_ADD_DOUBLE_fresh_allglobals_ReleaseSafe": true,
+    "physical_twoCPU_K_ADD_DOUBLE_fresh_allglobals_ReleaseFast": true,
+    "durable_test_stwo_prover_gkr_resource_ReleaseSafe": "PASS includingnewcoretests"
+  },
+  "whole_protocol_128": false,
+  "production_default": false,
+  "raw_plane_metric": "actualfullrawN/Dplanes0; boundedtilesonhelperstacksremain; plannedinputreservationseparate",
+  "old104_admission_bound_unchanged": true,
+  "source": "4e8014c6a",
+  "independent_review": "pipeline read-only PASS: stable callback/readers, ordinal error joins, source-aware placeholder/pop, immutable clone, ranges/padding and original kernels",
+  "real_CPU0": {
+    "same_binary_ABBA_runs": 4,
+    "all16_authoritative_artifact_hashes_identical": true,
+    "all4_fresh_receivers_accepted": true,
+    "medians": {
+      "lazy_dense_bottom": {
+        "numerical_requested_peak": 7233043898.0,
+        "including_binding_requested_peak": 7233043898.0,
+        "actual_raw_plane_bytes": 4541656320.0,
+        "planned_input_reserve_bytes": 4541656320.0,
+        "prove_seconds": 8.932214771,
+        "inputs_seconds": 0.19319410399999998,
+        "numerical_seconds": 2.170436521,
+        "gkr_seconds": 2.692766146,
+        "binding_seconds": 0.3290069585
+      },
+      "stream_bottom": {
+        "numerical_requested_peak": 2691389018.0,
+        "including_binding_requested_peak": 2691389018.0,
+        "actual_raw_plane_bytes": 0.0,
+        "planned_input_reserve_bytes": 4541656320.0,
+        "prove_seconds": 9.2271485,
+        "inputs_seconds": 2.5625e-06,
+        "numerical_seconds": 2.582366083,
+        "gkr_seconds": 2.9150301040000004,
+        "binding_seconds": 0.33255358349999997
+      }
+    },
+    "requested_peak_scope": "numerical admittedowners; notRSS or wholeprovermemory",
+    "max_RSS_bytes": {
+      "old": 13826523136,
+      "stream": 11047092224
+    },
+    "fullblock_qualified": false
+  }
+}

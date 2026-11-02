@@ -16,7 +16,10 @@ pub const big_limb_count: usize = execution_tables.BIG_LIMB_COUNT;
 pub const big_column_count: usize = big_limb_count + 1;
 pub const small_limb_count: usize = execution_tables.SMALL_LIMB_COUNT;
 pub const small_column_count: usize = small_limb_count + 1;
-pub const max_big_rows: usize = 1 << 24;
+// Pinned cairo_claim_generator.rs uses MAX_SEQUENCE_LOG_SIZE (25), also used
+// by our claim generator. A separate 24-bit limit splits valid large inputs
+// differently from their claims and prevents fixed-range construction.
+pub const max_big_rows: usize = 1 << @import("../claim_generator.zig").max_sequence_log_size;
 
 pub const Error = error{
     AllocationSizeOverflow,
@@ -43,7 +46,11 @@ pub fn addressRowCount(input: *const adapter.ProverInput) Error!usize {
 }
 
 pub fn bigComponentCount(input: *const adapter.ProverInput) Error!usize {
-    const rows = try packedCount(input.memory.f252_values.len);
+    return bigComponentCountForValues(input.memory.f252_values.len);
+}
+
+fn bigComponentCountForValues(value_count: usize) Error!usize {
+    const rows = try packedCount(value_count);
     const natural = std.math.divCeil(usize, rows, max_big_rows) catch
         return Error.AllocationSizeOverflow;
     return @max(natural, 1);
@@ -176,6 +183,14 @@ test "Cairo memory tables: Rust row geometry pads packed values before powers of
     try std.testing.expectEqual(@as(usize, 1), try bigComponentCount(&input));
     try std.testing.expectEqual(@as(usize, 32), try bigRowCount(&input, 0));
     try std.testing.expectEqual(@as(usize, 64), try smallRowCount(&input));
+}
+
+test "Cairo memory tables: large-value splitting matches the pinned 25-bit sequence bound" {
+    try std.testing.expectEqual(@as(usize, 1 << 25), max_big_rows);
+    try std.testing.expectEqual(@as(usize, 1), try bigComponentCountForValues((1 << 24) + 1));
+    try std.testing.expectEqual(@as(usize, 1), try bigComponentCountForValues(30_418_602));
+    try std.testing.expectEqual(@as(usize, 1), try bigComponentCountForValues(1 << 25));
+    try std.testing.expectEqual(@as(usize, 2), try bigComponentCountForValues((1 << 25) + 1));
 }
 
 test "Cairo memory tables: requested padding components are one zero SIMD block" {

@@ -27,6 +27,22 @@ const circle = @import("stwo_core").circle;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const relation_challenges = @import("relation_challenges.zig");
+const core_utils = @import("stwo_core").utils;
+const packed_fields = @import("stwo_core").fields.packed_extensions;
+
+/// `numerators[i] *= inverses[i]`, four terms per packed product (exact, so
+/// identical to the scalar loop).
+fn fractionsInPlace(numerators: []QM31, inverses: []const QM31) void {
+    @setEvalBranchQuota(8_000);
+    var i: usize = 0;
+    while (i + 4 <= numerators.len) : (i += 4) {
+        packed_fields.storePackedQM31x4(numerators.ptr + i, packed_fields.mulPackedQM31x4(
+            packed_fields.loadPackedQM31x4(numerators.ptr + i),
+            packed_fields.loadPackedQM31x4(inverses.ptr + i),
+        ));
+    }
+    while (i < numerators.len) : (i += 1) numerators[i] = numerators[i].mul(inverses[i]);
+}
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -137,14 +153,15 @@ fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type 
                     }
                 }
                 try fields.batchInverseInPlace(QM31, denominators, inverses);
+                // Fraction values n/d, four terms per packed product; the
+                // running sums below then only add.
+                fractionsInPlace(numerators, inverses);
 
                 for (0..n_sums) |sum_index| {
                     var accumulator = QM31.zero();
                     for (0..chunk_len) |local_row| {
                         const term_index = sum_index * chunk_len + local_row;
-                        accumulator = accumulator.add(
-                            numerators[term_index].mul(inverses[term_index]),
-                        );
+                        accumulator = accumulator.add(numerators[term_index]);
                         self.trace_sums[
                             sum_index * self.trace_size +
                                 self.row_start + local_row
@@ -158,7 +175,7 @@ fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type 
         const PlacementWorker = struct {
             columns: *[4 * n_sums][]M31,
             trace_sums: []const QM31,
-            logical_rows: []const usize,
+            log_size: u32,
             chunks: []const Chunk,
             trace_size: usize,
             committed_start: usize,
@@ -167,7 +184,12 @@ fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type 
             fn run(self: *@This()) void {
                 for (0..n_sums) |sum_index| {
                     for (self.committed_start..self.committed_end) |committed_row| {
-                        const logical_row = self.logical_rows[committed_row];
+                        // Inverse of the committed placement
+                        // bitReverse(cosetIndexToCircleDomainIndex(logical)).
+                        const logical_row = core_utils.circleDomainIndexToCosetIndex(
+                            core_utils.bitReverseIndex(committed_row, self.log_size),
+                            self.log_size,
+                        );
                         const offset = self.chunks[logical_row / PARALLEL_CHUNK_ROWS]
                             .offsets[sum_index];
                         const current = self.trace_sums[
@@ -233,13 +255,6 @@ fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type 
                 result.claims[sum_index] = claim;
             }
 
-            const placement = try permutation.BitReversalTable.init(allocator, log_size);
-            defer placement.deinit(allocator);
-            const logical_rows = try allocator.alloc(usize, size);
-            defer allocator.free(logical_rows);
-            for (placement.mapping, 0..) |committed_row, logical_row| {
-                logical_rows[committed_row] = logical_row;
-            }
             const worker_count = @min(chunk_count, pool.workerCount());
             const workers = try allocator.alloc(PlacementWorker, worker_count);
             defer allocator.free(workers);
@@ -247,7 +262,7 @@ fn ParallelColumnGenerator(comptime n_sums: usize, comptime Context: type) type 
                 worker.* = .{
                     .columns = &result.columns,
                     .trace_sums = trace_sums,
-                    .logical_rows = logical_rows,
+                    .log_size = log_size,
                     .chunks = chunks,
                     .trace_size = size,
                     .committed_start = size * index / worker_count,

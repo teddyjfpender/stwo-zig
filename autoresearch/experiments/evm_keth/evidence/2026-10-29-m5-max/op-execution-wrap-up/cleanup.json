@@ -1,0 +1,37 @@
+{
+  "schema": "keth-generated-artifact-cleanup-v1",
+  "removed": [
+    {
+      "path": "op-tx3-partition-1",
+      "logical_bytes": 36676080930,
+      "reason": "Regenerable serialized witness; retained CPI/proofs/provenance, or incomplete aborted export",
+      "retained_trace_sha256": "a4a4c57031c0502bc14056d38c4dd4446e164a7fe6d2c9cffd106abf0f00472a"
+    },
+    {
+      "path": "keth-memory-profile-streamed/trace.json",
+      "logical_bytes": 36676080930,
+      "reason": "Regenerable serialized witness; retained CPI/proofs/provenance, or incomplete aborted export",
+      "retained_trace_sha256": "c8eb67e9659fa73c7eabcde806fb6e7543b587e8c03fdf4e81b9e4139f83cad1"
+    },
+    {
+      "path": "keth-memory-profile-baseline/trace.json",
+      "logical_bytes": 36676080930,
+      "reason": "Regenerable serialized witness; retained CPI/proofs/provenance, or incomplete aborted export",
+      "retained_trace_sha256": "76cbc2249667338edbb766f0c57fef75986101fa122d651bbe0f9f7ee75f43de"
+    },
+    {
+      "path": "op-tx3-root-bound-trace",
+      "logical_bytes": 10737418230,
+      "reason": "Regenerable serialized witness; retained CPI/proofs/provenance, or incomplete aborted export",
+      "retained_trace_sha256": null
+    },
+    {
+      "path": "ethereum-main-direct-inspection/data/1/22615247/1/prover_input_info_22615247",
+      "logical_bytes": 10450658346,
+      "reason": "Regenerable serialized witness; retained CPI/proofs/provenance, or incomplete aborted export",
+      "retained_trace_sha256": null
+    }
+  ],
+  "removed_logical_bytes": 131216319366,
+  "proofs_and_canonical_inputs_retained": true
+}

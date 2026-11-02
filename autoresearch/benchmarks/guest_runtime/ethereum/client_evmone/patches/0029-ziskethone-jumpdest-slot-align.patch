@@ -1,0 +1,29 @@
+diff --git a/cpp-guest/src/evmc2_evmone.cpp b/cpp-guest/src/evmc2_evmone.cpp
+index 310a1a7..6269c3b 100644
+--- a/cpp-guest/src/evmc2_evmone.cpp
++++ b/cpp-guest/src/evmc2_evmone.cpp
+@@ -74,14 +74,24 @@ inline constexpr size_t kAnalysisNode = (sizeof(Analysis) + 7) / 8 * 8;
+ inline constexpr size_t analyze_storage_bytes(size_t code_size) {
+     const size_t padded = (code_size + 33 + 7) / 8 * 8;
+     const size_t bitset_words = (code_size + 64) / 64;
++#if defined(CANDIDATE_JUMPDEST) || defined(ADMITTED_JUMPDEST)
++    // stwo jumpdest service: analyze_into 64-aligns the padded code inside the
++    // slot (the slot itself is only 8-aligned), which needs up to 56 bytes more.
++    return padded + bitset_words * 8 + 56;
++#else
+     return padded + bitset_words * 8;
++#endif
+ }
+ // Slot size = node + storage for the largest cacheable (deployed) code.
+ inline constexpr size_t kSlotBytes =
+     kAnalysisNode + analyze_storage_bytes(zeg::kMaxCodeSizeAmsterdam);
+ // The fixed analysis cache is 1152 * kSlotBytes (the biggest heap reservation);
+ // if this moves, update scripts/heap_gate/sites.tsv and HEAP_BUDGET.md.
++#if defined(CANDIDATE_JUMPDEST) || defined(ADMITTED_JUMPDEST)
++static_assert(kSlotBytes == 73808 + 56);  // heap-budget: evmone-analysis-slot (+ jumpdest alignment)
++#else
+ static_assert(kSlotBytes == 73808);  // heap-budget: evmone-analysis-slot
++#endif
+ 
+ evmc2_pre_execution* w_prepare(evmc_vm* /*vm*/, uint8_t const* code,
+                                size_t code_size, uint8_t* out_buf,

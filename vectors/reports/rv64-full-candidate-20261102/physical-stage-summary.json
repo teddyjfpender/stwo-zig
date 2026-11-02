@@ -1,0 +1,2225 @@
+{
+  "semantics": "inclusive recorded scopes; paths can overlap/nest/parallelize, not a disjoint wall partition",
+  "physical": {
+    "physical-0000.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 3.3432520000000006,
+        "occurrences": 53
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.281876,
+        "occurrences": 53
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 1.060338,
+        "occurrences": 53
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.278948,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.090824,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.7e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.752438,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.182804,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.267182,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000133,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.141643,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000166,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.180204,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.603335,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.898007,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002217,
+        "occurrences": 1
+      }
+    },
+    "physical-0001.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 4.043598,
+        "occurrences": 47
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 3.2509710000000007,
+        "occurrences": 47
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7917289999999999,
+        "occurrences": 47
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.250287,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.046063,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 1.9e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.461159,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.185727,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.258179,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000148,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.119479,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000164,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.133151,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.61115,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.671367,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001903,
+        "occurrences": 1
+      }
+    },
+    "physical-0002.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.7097930000000003,
+        "occurrences": 46
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 1.9429439999999996,
+        "occurrences": 46
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7659620000000003,
+        "occurrences": 46
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.25567399999999996,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.044066,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.4e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.455468,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.180222,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.264816,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000111,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.118729,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.00016,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.150507,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.61364,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.666809,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001682,
+        "occurrences": 1
+      }
+    },
+    "physical-0003.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.770793999999999,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 1.9887800000000002,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7809859999999998,
+        "occurrences": 55
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.258523,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.052741,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.4e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.556804,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.198508,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.267473,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000168,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.121706,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000251,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.397339,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.618867,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.677166,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002365,
+        "occurrences": 1
+      }
+    },
+    "physical-0004.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.9565140000000003,
+        "occurrences": 57
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.0990289999999994,
+        "occurrences": 57
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8563790000000001,
+        "occurrences": 57
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.262727,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.035353,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.717288,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.181653,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.263851,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000126,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.129884,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000193,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.515602,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.61247,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.790998,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002126,
+        "occurrences": 1
+      }
+    },
+    "physical-0005.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.9718400000000003,
+        "occurrences": 57
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.0920829999999997,
+        "occurrences": 57
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8785740000000001,
+        "occurrences": 57
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.259972,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.095552,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.8e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.70131,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.180237,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.264509,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000146,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.129594,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000213,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.549105,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.608883,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.764319,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002058,
+        "occurrences": 1
+      }
+    },
+    "physical-0006.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.881682,
+        "occurrences": 57
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.019679,
+        "occurrences": 57
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.860809,
+        "occurrences": 57
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.262062,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.0621,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.6e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.843141,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.190769,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.266913,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.00016,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.134698,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000248,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.581632,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.623987,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.769036,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002402,
+        "occurrences": 1
+      }
+    },
+    "physical-0007.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.782637,
+        "occurrences": 48
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.0139830000000005,
+        "occurrences": 48
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.767728,
+        "occurrences": 48
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.256734,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.051994,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.8e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.412751,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.180627,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.266347,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000165,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.119254,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000176,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.441494,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.628334,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.614833,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002172,
+        "occurrences": 1
+      }
+    },
+    "physical-0008.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.842601,
+        "occurrences": 49
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.051142,
+        "occurrences": 49
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7904840000000001,
+        "occurrences": 49
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.26086200000000004,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.057147,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.9e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.428364,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.179578,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.264229,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000158,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.123491,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000196,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.047707,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.616052,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.649205,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002035,
+        "occurrences": 1
+      }
+    },
+    "physical-0009.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.8037340000000004,
+        "occurrences": 49
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.042698,
+        "occurrences": 49
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.760038,
+        "occurrences": 49
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.26721700000000004,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.067349,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.7e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.392527,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.17761,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.265954,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000142,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.116523,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000181,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.432173,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.615425,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.547844,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001987,
+        "occurrences": 1
+      }
+    },
+    "physical-0010.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.8494159999999997,
+        "occurrences": 56
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.068745,
+        "occurrences": 56
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7795710000000001,
+        "occurrences": 56
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.262793,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.126141,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.7e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.449121,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.179197,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.264423,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000173,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.117664,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.00024,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 4.045203,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.616069,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.578717,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.00229,
+        "occurrences": 1
+      }
+    },
+    "physical-0011.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.8670760000000004,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.091867,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7742100000000001,
+        "occurrences": 50
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.254521,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.124644,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.7e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.300392,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.182348,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.268029,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000146,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.112621,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000191,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.083026,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.627364,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.539261,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002131,
+        "occurrences": 1
+      }
+    },
+    "physical-0012.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.9084119999999993,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.122331000000001,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7850810000000001,
+        "occurrences": 50
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.25240799999999997,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.125645,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.379036,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.189955,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.265019,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.00013,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.115487,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000184,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.608631,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.626224,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.55552,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002024,
+        "occurrences": 1
+      }
+    },
+    "physical-0013.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.9124639999999995,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.1281,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7833569999999997,
+        "occurrences": 50
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.261712,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.125971,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.5e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.365053,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.190043,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.267507,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000145,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.115326,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000199,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.114962,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.628812,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.559488,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001925,
+        "occurrences": 1
+      }
+    },
+    "physical-0014.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.941785,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.15497,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.7857310000000002,
+        "occurrences": 55
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.272878,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.125886,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.9e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.438641,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.192401,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.262605,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000153,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.117033,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000235,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.801422,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.62733,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.600828,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002065,
+        "occurrences": 1
+      }
+    },
+    "physical-0015.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 3.4639509999999993,
+        "occurrences": 54
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.561829000000001,
+        "occurrences": 54
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.9010400000000002,
+        "occurrences": 54
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.278867,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.150129,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.1e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.546294,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.191806,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.26425,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000143,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.129155,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000173,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.618696,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.618115,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.826769,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001877,
+        "occurrences": 1
+      }
+    },
+    "physical-0016.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.8526,
+        "occurrences": 48
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.075379999999999,
+        "occurrences": 48
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.776251,
+        "occurrences": 48
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.262107,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.126298,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.8e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.384771,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.199282,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.259774,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000117,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.114113,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000176,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.135572,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.600862,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.69209,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.00182,
+        "occurrences": 1
+      }
+    },
+    "physical-0017.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 3.4395159999999994,
+        "occurrences": 52
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.5446370000000003,
+        "occurrences": 52
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8938400000000002,
+        "occurrences": 52
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.258227,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.146489,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 4.8e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.566305,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.191299,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.269794,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000122,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.13007,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000162,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.76196,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.629255,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.841582,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001853,
+        "occurrences": 1
+      }
+    },
+    "physical-0018.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.881190000000001,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.094551,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.785548,
+        "occurrences": 55
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.295759,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.126109,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.55269,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.203317,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.271784,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000151,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.12106,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000247,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 4.275727,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.626198,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.77656,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002235,
+        "occurrences": 1
+      }
+    },
+    "physical-0019.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.968417,
+        "occurrences": 56
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.1606149999999995,
+        "occurrences": 56
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8066909999999998,
+        "occurrences": 56
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.268881,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.128836,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 4.3e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.477249,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.209482,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.274236,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000161,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.118933,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000249,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.538657,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.627692,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.750544,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002204,
+        "occurrences": 1
+      }
+    },
+    "physical-0020.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.9081789999999996,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.100413,
+        "occurrences": 55
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8066920000000002,
+        "occurrences": 55
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.27712800000000004,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.128328,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.3e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.527679,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.207312,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.271974,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000196,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.11871,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000242,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.582548,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.637549,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.729204,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002243,
+        "occurrences": 1
+      }
+    },
+    "physical-0021.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.9166549999999996,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.0753389999999996,
+        "occurrences": 50
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8403069999999998,
+        "occurrences": 50
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.275725,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.044689,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.5e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.463189,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.212048,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.274613,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000124,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.116004,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.00019,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 4.001647,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.622784,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.736617,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002105,
+        "occurrences": 1
+      }
+    },
+    "physical-0022.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 3.39935,
+        "occurrences": 52
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.4607689999999995,
+        "occurrences": 52
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.9375290000000002,
+        "occurrences": 52
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.265324,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.065899,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 1.9e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.637254,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.201196,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.272843,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000154,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.137548,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000168,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.425382,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.618717,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.870377,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001842,
+        "occurrences": 1
+      }
+    },
+    "physical-0023.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 2.817726,
+        "occurrences": 48
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 1.9975070000000004,
+        "occurrences": 48
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.8192259999999999,
+        "occurrences": 48
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.277252,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.048124,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 4.2e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.420535,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.202254,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.268016,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000145,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.118794,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000194,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.112005,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.5e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.633077,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.749504,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002109,
+        "occurrences": 1
+      }
+    },
+    "physical-0024.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 3.2694239999999994,
+        "occurrences": 52
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.297091,
+        "occurrences": 52
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.9712839999999999,
+        "occurrences": 52
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.263599,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.080782,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.8e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 2.560019,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.213089,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.274816,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.00014,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.13721,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.00019,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 3.274169,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.621543,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.849202,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.002018,
+        "occurrences": 1
+      }
+    },
+    "physical-0025.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 4.457284999999999,
+        "occurrences": 143
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.612451999999999,
+        "occurrences": 143
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 1.8414600000000005,
+        "occurrences": 143
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.024799,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 2.762505,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3.5e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 12.121154,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.026036,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.02709,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.001321,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.499506,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.001762,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 0.564511,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.6e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.043665,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.109914,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001286,
+        "occurrences": 1
+      }
+    },
+    "physical-0026.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 4.48426,
+        "occurrences": 143
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 2.6290359999999975,
+        "occurrences": 143
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 1.851743,
+        "occurrences": 143
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.019532,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 2.958347,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 4.1e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 12.663409,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.027454,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.028694,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.001317,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.495811,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.001668,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 0.577031,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.045863,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 1.091302,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.001209,
+        "occurrences": 1
+      }
+    },
+    "physical-0027.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 1.0824040000000001,
+        "occurrences": 35
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 0.630043,
+        "occurrences": 35
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.451551,
+        "occurrences": 35
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.019487,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.300698,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.5e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 0.941666,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.011062,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.015585,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000161,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.063814,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000242,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 0.182936,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.046909,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 0.306716,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.000221,
+        "occurrences": 1
+      }
+    },
+    "physical-0028.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 0.013890000000000007,
+        "occurrences": 29
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 0.005977,
+        "occurrences": 29
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.007325999999999999,
+        "occurrences": 29
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.0011870000000000001,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.008602,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 3e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 0.032781,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.000152,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.000574,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.000151,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.001476,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000211,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 0.00489,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.7e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.001033,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 0.003537,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.000185,
+        "occurrences": 1
+      }
+    },
+    "physical-0029.stages.json": {
+      "streaming_commit_prepare": {
+        "inclusive_seconds": 0.467751,
+        "occurrences": 29
+      },
+      "streaming_commit_prepare/streaming_transform": {
+        "inclusive_seconds": 0.2766730000000001,
+        "occurrences": 29
+      },
+      "streaming_commit_prepare/streaming_leaf_hash": {
+        "inclusive_seconds": 0.19040800000000002,
+        "occurrences": 29
+      },
+      "merkle_commit": {
+        "inclusive_seconds": 0.012799999999999999,
+        "occurrences": 2
+      },
+      "interaction_generation": {
+        "inclusive_seconds": 0.138099,
+        "occurrences": 1
+      },
+      "draw_random_coeff": {
+        "inclusive_seconds": 1.9e-05,
+        "occurrences": 1
+      },
+      "composition_trace_extract": {
+        "inclusive_seconds": 2.9e-05,
+        "occurrences": 1
+      },
+      "composition_evaluation": {
+        "inclusive_seconds": 0.401556,
+        "occurrences": 1
+      },
+      "composition_interpolate_and_split": {
+        "inclusive_seconds": 0.00564,
+        "occurrences": 1
+      },
+      "composition_commit": {
+        "inclusive_seconds": 0.006244,
+        "occurrences": 1
+      },
+      "oods_point_and_mask_points": {
+        "inclusive_seconds": 0.00015,
+        "occurrences": 1
+      },
+      "sampled_value_evaluation": {
+        "inclusive_seconds": 0.027973,
+        "occurrences": 1
+      },
+      "sampled_value_channel_mix": {
+        "inclusive_seconds": 0.000241,
+        "occurrences": 1
+      },
+      "fri_quotient_build_and_commit": {
+        "inclusive_seconds": 0.090784,
+        "occurrences": 1
+      },
+      "proof_of_work": {
+        "inclusive_seconds": 1.8e-05,
+        "occurrences": 1
+      },
+      "fri_decommit": {
+        "inclusive_seconds": 0.025752,
+        "occurrences": 1
+      },
+      "trace_decommit": {
+        "inclusive_seconds": 0.089404,
+        "occurrences": 1
+      },
+      "constraint_check_and_assembly": {
+        "inclusive_seconds": 0.000235,
+        "occurrences": 1
+      }
+    }
+  }
+}

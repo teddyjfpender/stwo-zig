@@ -1,0 +1,9 @@
+1/8 om31_fri_test.test.OM31 FRI actual commit decommit and fresh verification with fold1 and fold4...OK
+2/8 om31_fri_test.test.OM31 FRI public Q facade retains original concrete types...OK
+3/8 om31_fri_test.test.OM31 FRI allocation failures release owned planes trees and proofs...OK
+4/8 om31_fri_test.test.OM31 FRI rejects high-coordinate leaf challenge terminal and shape mutations...OK
+5/8 om31_fri_test.test_0...OK
+6/8 fri_test.test.prover fri: commit and decommit roundtrip with verifier...OK
+7/8 fri_test.test.prover fri: commit rejects non-canonic domain...OK
+8/8 fri_test.test.prover fri: commit rejects high-degree last layer...OK
+All 8 tests passed.

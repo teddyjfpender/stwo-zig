@@ -1,0 +1,242 @@
+// Pinned reference execution and validation; no Cairo or derivation claims.
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/consensus/beacon"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/stateless"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/superchain"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
+)
+
+type headerChain struct {
+	config  *params.ChainConfig
+	headers []*types.Header
+	engine  consensus.Engine
+}
+
+func (c *headerChain) Config() *params.ChainConfig  { return c.config }
+func (c *headerChain) CurrentHeader() *types.Header { return c.headers[0] }
+func (c *headerChain) Engine() consensus.Engine     { return c.engine }
+func (c *headerChain) GetHeader(hash common.Hash, number uint64) *types.Header {
+	header := c.GetHeaderByHash(hash)
+	if header != nil && header.Number.Uint64() == number {
+		return header
+	}
+	return nil
+}
+func (c *headerChain) GetHeaderByHash(hash common.Hash) *types.Header {
+	for _, header := range c.headers {
+		if header.Hash() == hash {
+			return header
+		}
+	}
+	return nil
+}
+func (c *headerChain) GetHeaderByNumber(number uint64) *types.Header {
+	for _, header := range c.headers {
+		if header.Number.Uint64() == number {
+			return header
+		}
+	}
+	return nil
+}
+
+type input struct {
+	ChainID            uint64               `json:"chain_id"`
+	Block              json.RawMessage      `json:"block"`
+	Witness            stateless.ExtWitness `json:"witness"`
+	MessagePasserProof struct {
+		Address common.Address  `json:"address"`
+		Proof   []hexutil.Bytes `json:"accountProof"`
+	} `json:"message_passer_proof"`
+}
+
+func execute(in *input, result map[string]any, capture *captureWriter) error {
+	var header types.Header
+	if err := json.Unmarshal(in.Block, &header); err != nil {
+		return err
+	}
+	var body struct {
+		Hash         common.Hash          `json:"hash"`
+		Transactions []*types.Transaction `json:"transactions"`
+		Withdrawals  types.Withdrawals    `json:"withdrawals"`
+	}
+	if err := json.Unmarshal(in.Block, &body); err != nil {
+		return err
+	}
+	if body.Hash != header.Hash() {
+		return errors.New("RPC header hash mismatch")
+	}
+	if types.DeriveSha(types.Transactions(body.Transactions), trie.NewStackTrie(nil)) != header.TxHash {
+		return errors.New("transaction root mismatch")
+	}
+	if len(in.Witness.Headers) == 0 || len(in.Witness.Headers) > 256 {
+		return errors.New("require 1-256 ancestor headers")
+	}
+	child := &header
+	for _, parent := range in.Witness.Headers {
+		if child.ParentHash != parent.Hash() || child.Number.Uint64() != parent.Number.Uint64()+1 {
+			return errors.New("ancestor hash/number chain mismatch")
+		}
+		child = parent
+	}
+	config := params.MainnetChainConfig
+	if in.ChainID != 1 {
+		chain, err := superchain.GetChain(in.ChainID)
+		if err != nil {
+			return err
+		}
+		registryConfig, err := chain.Config()
+		if err != nil {
+			return err
+		}
+		config, err = params.LoadOPStackChainConfig(registryConfig)
+		if err != nil {
+			return err
+		}
+	}
+	result["chain_config"] = config
+	result["embedded_registry_commit"] = superchain.EmbeddedRegistryCommit()
+	result["block_hash"] = header.Hash()
+	result["block_number"] = header.Number.Uint64()
+	result["transactions"] = len(body.Transactions)
+	result["gas_used"] = header.GasUsed
+	result["witness_nodes"] = len(in.Witness.State)
+	result["witness_codes"] = len(in.Witness.Codes)
+	result["ancestor_headers"] = len(in.Witness.Headers)
+	chain := &headerChain{config: config, headers: in.Witness.Headers, engine: beacon.New(ethash.NewFaker())}
+	if err := chain.engine.VerifyHeader(chain, &header); err != nil {
+		return fmt.Errorf("execution header rules: %w", err)
+	}
+	result["execution_header_rules_checked"] = true
+	if header.UncleHash != types.EmptyUncleHash {
+		return errors.New("only empty post-merge uncle lists are admitted")
+	}
+	if header.WithdrawalsHash != nil {
+		if body.Withdrawals == nil {
+			return errors.New("missing withdrawals list")
+		}
+		if config.IsOptimismIsthmus(header.Time) {
+			if len(body.Withdrawals) != 0 {
+				return errors.New("OP withdrawal list must be empty")
+			}
+		} else if types.DeriveSha(body.Withdrawals, trie.NewStackTrie(nil)) != *header.WithdrawalsHash {
+			return errors.New("withdrawals list root mismatch")
+		}
+	} else if body.Withdrawals != nil {
+		return errors.New("unexpected withdrawals list")
+	}
+	var blobCount uint64
+	for _, tx := range body.Transactions {
+		if tx.BlobTxSidecar() != nil {
+			return errors.New("block contains blob sidecar")
+		}
+		blobCount += uint64(len(tx.BlobHashes()))
+	}
+	if config.IsOptimism() {
+		if blobCount != 0 {
+			return errors.New("OP body contains blob transaction")
+		}
+		if config.IsJovian(header.Time) {
+			footprint, err := types.CalcDAFootprint(body.Transactions)
+			if err != nil {
+				return err
+			}
+			if header.BlobGasUsed == nil || *header.BlobGasUsed != footprint || footprint > header.GasLimit {
+				return errors.New("OP DA footprint mismatch")
+			}
+		}
+	} else if (header.BlobGasUsed == nil && blobCount != 0) ||
+		(header.BlobGasUsed != nil && *header.BlobGasUsed != blobCount*params.BlobTxBlobGasPerBlob) {
+		return errors.New("Ethereum blob gas mismatch")
+	}
+	result["body_roots_and_blob_accounting_checked"] = true
+
+	block := types.NewBlockWithHeader(&header).WithBody(types.Body{
+		Transactions: body.Transactions, Withdrawals: body.Withdrawals,
+	})
+	witness, err := stateless.NewWitness(&header, nil, false)
+	if err != nil {
+		return err
+	}
+	if err := witness.FromExtWitness(&in.Witness); err != nil {
+		return err
+	}
+	memdb := witness.MakeHashDB()
+	defer memdb.Close()
+	database := state.NewDatabase(triedb.NewDatabase(memdb, triedb.HashDefaults), state.NewCodeDB(memdb))
+	statedb, err := state.New(witness.Root(), database)
+	if err != nil {
+		return err
+	}
+	started := time.Now()
+	processed, err := core.NewStateProcessor(chain).Process(context.Background(), block, statedb, vm.Config{Tracer: capture.hooks(statedb, config, header.Time)})
+	result["execution_seconds"] = time.Since(started).Seconds()
+	if err != nil {
+		return fmt.Errorf("offline execution: %w", err)
+	}
+	if err := statedb.Error(); err != nil {
+		return fmt.Errorf("witness read: %w", err)
+	}
+	stateRoot := statedb.IntermediateRoot(config.IsEIP158(block.Number()))
+	receiptRoot := types.DeriveSha(processed.Receipts, trie.NewStackTrie(nil))
+	result["computed_state_root"], result["computed_receipt_root"] = stateRoot, receiptRoot
+	if err := statedb.Error(); err != nil {
+		return fmt.Errorf("witness root: %w", err)
+	}
+	if stateRoot != header.Root || receiptRoot != header.ReceiptHash {
+		return errors.New("computed state/receipt roots differ from observed header")
+	}
+	if err := core.NewBlockValidator(config, nil).ValidateState(block, statedb, processed, false); err != nil {
+		return fmt.Errorf("reference state validation: %w", err)
+	}
+	result["requests_hash_checked"] = true
+	if config.IsOptimismIsthmus(header.Time) {
+		if in.MessagePasserProof.Address != params.OptimismL2ToL1MessagePasser || header.WithdrawalsHash == nil {
+			return errors.New("post-Isthmus withdrawal root proof required")
+		}
+		db := memorydb.New()
+		defer db.Close()
+		for _, raw := range in.MessagePasserProof.Proof {
+			if err := db.Put(crypto.Keccak256(raw), raw); err != nil {
+				return err
+			}
+		}
+		leaf, err := trie.VerifyProof(stateRoot, crypto.Keccak256(in.MessagePasserProof.Address.Bytes()), db)
+		if err != nil {
+			return err
+		}
+		var account types.StateAccount
+		if err := rlp.DecodeBytes(leaf, &account); err != nil {
+			return err
+		}
+		if account.Root != *header.WithdrawalsHash {
+			return errors.New("post-Isthmus message passer storage root mismatch")
+		}
+		result["withdrawal_storage_root_checked"] = true
+	}
+	if capture != nil && capture.err != nil {
+		return capture.err
+	}
+	result["offline_execution_checked"] = true
+	return nil
+}

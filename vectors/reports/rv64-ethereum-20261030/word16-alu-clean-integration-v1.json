@@ -1,0 +1,103 @@
+{
+  "schema": "word16-alu-clean-staged-integration-v1",
+  "tree": "ace2595b0b6821c117a5d22bdcf908a9f2c6ce86",
+  "isolated_checkout": "/private/tmp/stwo-rv64-qualified-alu-v1",
+  "targets_passed": [
+    "test-riscv64-word16-alu",
+    "test-riscv64-word16-alu-proof",
+    "test-riscv64-word16-thin-cpu",
+    "test-riscv64-distributed-functional",
+    "test-riscv64-distributed-execution",
+    "rv64-word16-alu-fixture",
+    "rv64-distributed-execution-fixture"
+  ],
+  "minimum_test_counts": [
+    9,
+    2,
+    14,
+    16,
+    10
+  ],
+  "mode": "ReleaseFast",
+  "log_sha256": "0c1fdf11ce48b000912eba142123b7a23fe673819bd88bbf0f54782c9001d002",
+  "alu_producer": {
+    "scope": "diagnostic-public-io-alu-u16-one-pcs",
+    "proof_bytes": 257280,
+    "proof_sha256": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "source_cells": 791872,
+    "source_bytes": 3167488,
+    "trace_oods_masks": 198,
+    "alu": {
+      "log": 5,
+      "fixed": 2,
+      "main": 60,
+      "interaction": 52
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 10,
+    "range_mass_including_padding": 640,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "alu_fresh_receiver": {
+    "accepted": true,
+    "independently_expected_roster_and_fixed_root": true,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "historical_execution_producer": {
+    "scope": "experimental-register-only-binary-reset-v1",
+    "instructions": 6,
+    "cpu_shards": 2,
+    "shared_binary_provider": 1,
+    "physical_components": 12,
+    "physical_proofs": 3,
+    "queries_per_proof": 70,
+    "pow_bits_per_proof": 26,
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false,
+    "complete_manifest": "4b850e396443fcde0d09eb34f73d5798565bbefacbc0322276e65e288197f3b0",
+    "actual_function_mass": 6,
+    "conservative_manifest_positive_capacity": 131072,
+    "cpu0_bytes": 276128,
+    "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+    "cpu1_bytes": 261632,
+    "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+    "binary_bytes": 227856,
+    "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+  },
+  "historical_execution_fresh_receiver": {
+    "accepted_register_only_binary_execution": true,
+    "instructions": 6,
+    "cpu_shards": 2,
+    "verified_physical_proofs": 3,
+    "local_reg_rom_u16_u8_closed_each_shard": true,
+    "shared_function_closed": true,
+    "genesis_adjacency_terminal_output_checked": true,
+    "clock_profile": "reset-v1",
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false
+  },
+  "scope": "Diagnostic joined ALU/BINARY/branch/immediate/W instructions; closed local proof only. Unified V2 global challenge tests do not enable an open physical V2 CPU receiver. No full-ISA/RAM/Ethereum or GPU activation.",
+  "performance_claim": false,
+  "hook_exception": "Previously authorized exception for inherited repository-wide hooks; focused qualification recorded separately."
+}

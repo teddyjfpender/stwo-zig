@@ -1,0 +1,100 @@
+{
+  "schema": "rv64-packed-standalone-full-csp-v2",
+  "status": "PASS",
+  "control_policy": "limbs24_v2",
+  "standalone_arithmetic": "inline_v4",
+  "standalone_state": "inverse_v1",
+  "trusted_receiver_control": "optional fourth argument; absent means bytes_v1; no producer autodetection",
+  "statement_and_claims_schema_unchanged": true,
+  "packed_only_Full_transcript_tag": [
+    1381381684,
+    1179995212,
+    1129599564,
+    2,
+    2
+  ],
+  "safe_full_proof_gate": {
+    "command": "zig build test-riscv64-full-proof -Doptimize=ReleaseSafe",
+    "tests_including_root": 5,
+    "exit_code": 0
+  },
+  "driver_unit_tests": {
+    "tests": 11,
+    "exit_code": 0
+  },
+  "proof_suite": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "actual_CSP_case": {
+    "target": "keccak",
+    "input_bytes": 128,
+    "retirements": 8721,
+    "complete_guest_execution_proved": true,
+    "independent_ELF_input_initial_and_terminal_statement_validation": true,
+    "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+    "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+    "proof_bytes": 462208,
+    "proof_sha256": "d30152e244c2e5b191505d2c1db2bec431e10bf38f194c89f8228146ec5f9e38",
+    "main_columns": 464,
+    "interaction_columns": 264
+  },
+  "sparse_high64_fixture": "Three native retirements: AUIPC wrapping highPC+4096 to0; ADDI to1; JALR clears lowbit and returns high64PC+4; fresh expected receiver and wrong terminalPC/control reject",
+  "fresh_process_cases": [
+    {
+      "case": "csp-packed",
+      "expected_accept": true,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "case": "csp-default-byte-reject",
+      "expected_accept": false,
+      "exit_code": 1,
+      "error": "error: UntrustedRv64FullPreprocessing"
+    },
+    {
+      "case": "csp-explicit-byte-reject",
+      "expected_accept": false,
+      "exit_code": 1,
+      "error": "error: UntrustedRv64FullPreprocessing"
+    },
+    {
+      "case": "invalid-policy",
+      "expected_accept": false,
+      "exit_code": 1,
+      "error": "error: InvalidControlPolicy"
+    },
+    {
+      "case": "sparse-high64-wrap-packed",
+      "expected_accept": true,
+      "exit_code": 0,
+      "error": null
+    }
+  ],
+  "binaries": {
+    "rv64-full-verify": "a4cc35d66fe1554f341ee4a09157c7dd6f14d94a686e4321be6670191b1c381b",
+    "rv64-csp-full": "5063e6943ae1c9f545a259713afa383dd821d6e26c97e1d45961bf9b2d05e72e"
+  },
+  "limits": [
+    "Only the selected complete keccak128 CSP guest is qualified here; the new17-case suite is separate.",
+    "Pilot runtime is functional diagnostic evidence, not an isolated performance comparison.",
+    "This is standalone Full, not a service/continuation or Ethereum whole-block qualification."
+  ],
+  "legacy_default_actual_CSP_artifacts_byte_identical_to_history": {
+    "reference": "vectors/reports/rv64-performance-round2-20261030/optimized-final.json",
+    "artifacts": {
+      "statement.json": "b6d6083fc41d58c4e9659dbabbbab86e757d7e39bb8fcf18be49c9825daa8adb",
+      "claims.json": "b8e00b922af5f810e5c632cc8bf1762d36f6b7e1c4f71c91c2d121bd0684ef4b",
+      "proof.bin": "1633e561bdba5250c68cb1ae15cbbb1579b2132346d05beee89d30ad1738347f"
+    },
+    "fresh_verifier_default_three_paths_accepted": true
+  },
+  "owned_main_handoff_width_fix": {
+    "source": "src/integrations/riscv_cpu/rv64_trace_main.zig",
+    "change": "takeMainForCommit derives width using Frame.widthWithControl(execution_profile,control_policy), matching Trace allocation and allocator preflight.",
+    "previous_failure": "packed standalone returned InvalidRv64FullMainPhase before ownership transfer because the helper still assumed the legacy115-column control body.",
+    "scope": "Only the explicit packed profile changes width. The default bytes profile retains identical width, source header order, Statement/Claims JSON and proof bytes.",
+    "qualification": "Safe standalone packed proof and actual packed CSP pilot both pass through the consuming owned-main PCS handoff."
+  }
+}

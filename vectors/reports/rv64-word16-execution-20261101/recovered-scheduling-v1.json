@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "kind": "recovered_scheduling_qualification",
+  "original_base": "eac3b7c076ad876775dc52b09456fb6801c6d741",
+  "original_scheduling_commit": "c4e6d1e07d8ee6386200c2a9c3ef3ced3b0fa6ad",
+  "branch": "codex/rv64-recovered-scheduling",
+  "original_worktree_untouched": true,
+  "changes": [
+    "Replace concurrently mutated std.time.Timer with immutable Instant origin and thread-owned samples.",
+    "Single-lane and single-item execution reuse the caller pool only when the requested worker count matches; otherwise use a joined lane-local pool."
+  ],
+  "regression": "Bound outer four-worker pool; execute single lanes with one, two, four workers and one item of a three-lane/two-worker policy; assert actual callback workers, trace worker counts, monotonic per-item intervals, caller pool restoration. Existing four-lane concurrency/admission/proof-parity tests also pass in full Safe suite.",
+  "checks": {
+    "safe_full_combined_and_terminal": {
+      "log": "/tmp/rv64-recovered-scheduling-safe.log",
+      "sha256": "7d09c74e7ad69d76817728027435c51a65d0b7955dc55614ad370aa77a75eac5",
+      "summary": "Build Summary: 4/4 steps succeeded\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:5G\ntest-riscv64-word16-ethereum-terminal success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:5G"
+    },
+    "safe_single_lane_regression": {
+      "log": "/tmp/rv64-recovered-scheduling-single-safe.log",
+      "sha256": "3f2150462478a560937989cf4e87fc9adb9209a36455ba670cb10f48af433ac6",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 5s MaxRSS:430M"
+    },
+    "fast_single_lane_regression": {
+      "log": "/tmp/rv64-recovered-scheduling-single-fast.log",
+      "sha256": "f9f00d264ac96cd1d24713274e3130179193d1821cb288fb5395af718327452d",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4s MaxRSS:394M"
+    },
+    "fast_terminal": {
+      "log": "/tmp/rv64-recovered-scheduling-terminal-fast.log",
+      "sha256": "10762e1a34df866aaa5277dd144565da70c73e16fa7834f21628d3fbacb25900",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-word16-ethereum-terminal success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G"
+    }
+  },
+  "original_prefix_evidence": {
+    "receipt": "/private/tmp/stwo-rv64-perf-runs/sched-sweep-smoke.receipt.json",
+    "all_identical": true,
+    "all_fresh_verified": true,
+    "scope": "Original c4 scheduling implementation smoke evidence. Recovered fix has not run a new real prefix; full Safe suite includes tiny production proof parity and verification."
+  },
+  "default_policy": "Canonical driver remains two lanes of eight for a sixteen-worker request.",
+  "admission_scope": "Estimated in-flight transient bytes only (8 bytes/native cell), not a hard process or device memory cap; an oversized index runs alone.",
+  "performance_claim": null,
+  "hook_exception": "Session-authorized exception for pre-existing repository hook findings."
+}

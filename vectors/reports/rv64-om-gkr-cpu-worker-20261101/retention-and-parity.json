@@ -1,0 +1,37 @@
+{
+  "utc": "2026-11-01T16:59:13.657440+00:00",
+  "source_base": "eeb0c59d1",
+  "test_source_sha256": "5b66a4d2026a151c9d381c2a3e07410be483dba92146f85e74b8dc12bd7d7159",
+  "gates": {
+    "ReleaseSafe": {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "result": "PASS"
+    },
+    "ReleaseFast": {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "result": "PASS"
+    }
+  },
+  "cases": [
+    "Keccak CPU shard",
+    "ADD+DOUBLE CPU shard"
+  ],
+  "parity": "SHA256 over identical physical OM proof bytes followed by all canonical physical claims matches unretired control and retired+trimmed+park/unmap/restored worker; both variants freshly verified",
+  "ownership": [
+    "parked abort without restoration leaves zero reserved/mapped bytes and empty owner registries",
+    "later worker stage-one OOM preserves earlier parked owner until ordinary unwind",
+    "early stage-two OOM retries successfully after retirement/restoration"
+  ],
+  "plan_checks": [
+    "shape-predicted global metadata bytes equal all actually retained RAM metadata/public cells/bridge call slices",
+    "coefficient and binding bytes equal actual retained planes",
+    "MAIN Merkle allocation bytes are at most conservative tree upper bound",
+    "too-small global witness cap rejected before witness allocation"
+  ],
+  "scope": [
+    "same new OM functional control profile, not legacy Q cross-protocol identity",
+    "no full-block speed or RSS improvement claimed",
+    "parked MAIN Merkle layers remain resident in coefficient-only Store",
+    "immutable setup/original capture inventories/source construction/PCS scratch remain separate admission categories"
+  ]
+}

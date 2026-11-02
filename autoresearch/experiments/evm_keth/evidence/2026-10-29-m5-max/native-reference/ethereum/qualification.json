@@ -1,0 +1,88 @@
+{
+  "schema": "keth-op-reference-qualification-v1",
+  "status": "qualified",
+  "input_sha256": "e711cbaccb82923c8f4081b0006cf4e9e9f8f3beb297f694fec7a16d3592a046",
+  "binary_sha256": "53be5cf572b8cf4f41caf48d8dea321bdbf66087f86eacbd5350e052cf574473",
+  "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+  "block_number": 22615247,
+  "native_execution_only": true,
+  "cairo_execution_proved": false,
+  "derivation_proved": false,
+  "trials": [
+    {
+      "name": "trial-1",
+      "elapsed_seconds": 0.5587506250012666,
+      "returncode": 0,
+      "input_sha256": "e711cbaccb82923c8f4081b0006cf4e9e9f8f3beb297f694fec7a16d3592a046",
+      "result_sha256": "70eff763864dc66e98e29c17987aa80d66db59a90eb4fd82f5e17ca9f40d1f8c",
+      "execution_seconds": 0.004020917,
+      "offline_execution_checked": true,
+      "error": null
+    },
+    {
+      "name": "trial-2",
+      "elapsed_seconds": 0.02168291702400893,
+      "returncode": 0,
+      "input_sha256": "e711cbaccb82923c8f4081b0006cf4e9e9f8f3beb297f694fec7a16d3592a046",
+      "result_sha256": "4b5954f9bfc1a32e75779684f45915ccb61c4c34e669076f67e581dbd099c7b6",
+      "execution_seconds": 0.002600208,
+      "offline_execution_checked": true,
+      "error": null
+    },
+    {
+      "name": "trial-3",
+      "elapsed_seconds": 0.018761459010420367,
+      "returncode": 0,
+      "input_sha256": "e711cbaccb82923c8f4081b0006cf4e9e9f8f3beb297f694fec7a16d3592a046",
+      "result_sha256": "753da8fabe9a93935cf88c9b358517e8983a56717c025b1f0be923a18298f567",
+      "execution_seconds": 0.00233175,
+      "offline_execution_checked": true,
+      "error": null
+    }
+  ],
+  "negative_checks": [
+    {
+      "name": "missing_state",
+      "elapsed_seconds": 0.012255916983122006,
+      "returncode": 1,
+      "input_sha256": "17ee1721d7b980fecc4c20c023756693b1b80ef48ef23edb446a59d8622e0f63",
+      "result_sha256": "cbcbcb576b8260a7cbef943a558f3088cfe03741a24febc1050958e2cce5cb90",
+      "execution_seconds": null,
+      "offline_execution_checked": false,
+      "error": "missing trie node be3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7 (path ) state 0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7 is not available, not found"
+    },
+    {
+      "name": "missing_code",
+      "elapsed_seconds": 0.012531166983535513,
+      "returncode": 1,
+      "input_sha256": "ee77820963794cf228d33b946012e5ae6cfc71adf71e1165bdae94cb7a3d11a8",
+      "result_sha256": "d765ffb9287dd82f3fca1c79c89be37e7d9871d1cee75cd99b23ffd4c404680e",
+      "execution_seconds": 0.000888666,
+      "offline_execution_checked": false,
+      "error": "witness read: code is not found f57acd40259872606d76197ef052f3d35588dadf919ee1f0e3cb9b62d3f4b02c"
+    },
+    {
+      "name": "withdrawal_root",
+      "elapsed_seconds": 0.012491041008615866,
+      "returncode": 1,
+      "input_sha256": "90ae661cd70369b5e2d47cd2792febf69ccce4fd1636ef9e4ad96d8761344b34",
+      "result_sha256": "924fd49cc1c9f2069f25104b15abe1fd8273b2ee1c8e8b64d57544d0baa1b195",
+      "execution_seconds": null,
+      "offline_execution_checked": false,
+      "error": "withdrawals list root mismatch"
+    },
+    {
+      "name": "requests_hash",
+      "elapsed_seconds": 0.018363333016168326,
+      "returncode": 1,
+      "input_sha256": "c82bdb4c1da4259347c4c898d64c72a94f0b82d12986531205e312a6dac79561",
+      "result_sha256": "339073d8adae6ff86f6253bb04d43f65c03e83990db3b7ecf8fc9742ef9ba9b8",
+      "execution_seconds": 0.001865584,
+      "offline_execution_checked": false,
+      "error": "reference state validation: invalid requests hash (remote: 0000000000000000000000000000000000000000000000000000000000000000 local: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)"
+    }
+  ],
+  "native_execution_median_seconds": 0.002600208,
+  "native_execution_min_seconds": 0.00233175,
+  "native_execution_max_seconds": 0.004020917
+}

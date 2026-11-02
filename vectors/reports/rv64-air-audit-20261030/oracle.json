@@ -1,0 +1,29 @@
+{
+  "oracle": "Unicorn",
+  "version": "2.1.4",
+  "seed": 1381381684,
+  "samples": 64,
+  "vector_sha256": "30c32ad2127f3ac53b6eafbf3920f19bb98b34ee73efacc4c63efd91f77b9d26",
+  "vectors": 14815,
+  "opcodes": 63,
+  "expected_opcodes": 63,
+  "cached_decode": false,
+  "proof_supported": false,
+  "cached_execution": {
+    "vectors": 14815,
+    "opcodes": 63,
+    "expected_opcodes": 63,
+    "cached_decode": true,
+    "proof_supported": false
+  },
+  "sail_conformance": false,
+  "compiled_guest": {
+    "stop": "breakpoint",
+    "a0": 16810760518898651055,
+    "retired": 1025,
+    "proof_supported": false,
+    "sp1_abi_supported": false,
+    "native_a0": 16810760518898651055,
+    "source_sha256": "f53e950fd7b5f017061273cac2bbd2c0944d9e6043d4178a454c62d3fe303ed4"
+  }
+}

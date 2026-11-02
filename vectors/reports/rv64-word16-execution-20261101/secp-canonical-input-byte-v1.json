@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "kind": "receiver_selected_word16_secp_canonical_input_bytes",
+  "base_commit": "f26bbec01a97db199605362b2fc3991c39ce9b35",
+  "profile_authority": "TruthSetup.byte_policy constant; query encoding v1 mixed before MAIN; no producer-selectable policy or CPU schema change",
+  "legacy": "default local policy and no-op encoding preserve existing legacy query map/transcript",
+  "product": {
+    "main": 319,
+    "old_interaction": 384,
+    "new_interaction": 300,
+    "old_byte_queries": 284,
+    "new_byte_queries": 220,
+    "retained_metadata_bytes": 284
+  },
+  "linear": {
+    "main": 200,
+    "old_interaction": 176,
+    "new_interaction": 92,
+    "old_byte_queries": 128,
+    "new_byte_queries": 64,
+    "retained_metadata_bytes": 128
+  },
+  "gates": {
+    "safe": {
+      "path": "/tmp/rv64-secp-canonical-inputs-safe-final-v3.log",
+      "sha256": "a416007abc077f053c72f60c3216e6aeb4c35993098285fc592daed16b1cc3c8",
+      "summary": "Build Summary: 6/6 steps succeeded\ntest-riscv64-secp success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 29s MaxRSS:1G\ntest-riscv64-word16-secp-bridge success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G"
+    },
+    "cli_safe": {
+      "path": "/tmp/rv64-secp-canonical-cli-safe.log",
+      "sha256": "dc3251d864b2eaadd996f8650014ce7808697da668dc1a16eb1faad44d0e937a",
+      "summary": "Build Summary: 2/2 steps succeeded\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:5G"
+    },
+    "fast_and_cli": {
+      "path": "/tmp/rv64-secp-canonical-inputs-fast-final-v3.log",
+      "sha256": "bb5c17fe6a264ded4cd83dae25239b46effa129ea9ea454ec1f0dd1e95b23483",
+      "summary": "Build Summary: 8/8 steps succeeded\ntest-riscv64-secp success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 28s MaxRSS:1G\ntest-riscv64-word16-secp-bridge success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G"
+    }
+  },
+  "physical_adversarial_test": "Both LHS and RHS byte256 zero-product physical proofs are locally valid but actual closed Word16 receiver rejects UnclosedSecpWire. Numerically rebalanced declared claim also rejected. Dishonest interaction reads actual committed field coordinates, not u8 metadata.",
+  "prefix": {
+    "directory": "/tmp/rv64-secp-canonical-inputs-prefix4-v1",
+    "baseline": "/tmp/rv64-wave2-final-legacy-prefix4-v1",
+    "complete_block": false,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "total_steps": 16777212,
+    "parity": {
+      "schema": true,
+      "core_schema": true,
+      "memory_words": true,
+      "cells_sha256": true,
+      "cpu_declarations": true,
+      "cpu_requests": true,
+      "truth_declarations": true
+    },
+    "fresh_receiver": {
+      "core_schema": 6,
+      "accepted": true,
+      "completed_ethereum_block": false,
+      "output": null,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "load_and_setup_ns": 2911118166,
+      "verify_ns": 331711750,
+      "fixed_native_cache": {
+        "limit_bytes": 268435456,
+        "retained_bytes": 181229952,
+        "native_backing_bytes": 181214336,
+        "groups": 121,
+        "hits": 428,
+        "duplicate_native_bytes_released": 738370048,
+        "observed_individual_owners": 549,
+        "observed_backing_owners": 0,
+        "observed_spans": 549,
+        "owner_leases": 5
+      },
+      "program_metadata_cache": {
+        "limit_bytes": 67108864,
+        "retained_bytes": 30951766,
+        "payload_bytes": 30951414,
+        "programs": 1,
+        "hits": 4,
+        "metadata_bytes_not_rebuilt": 123805656,
+        "duplicate_metadata_bytes_released": 0,
+        "owner_leases": 6
+      }
+    },
+    "legacy_bundle_rejected": "GlobalExecutionInventoryMismatch",
+    "timing": "uncontrolled source qualification; no measured speedup claim",
+    "artifact_sha256": {
+      "bundle.json": "c3212190c07e0f5097707fad92c0206f0328363286bbeeb84288099724392bff",
+      "cost.json": "c32641f0b46ab373537f901041831ae9e0f7fd7442a7fa6f56cce35a0a1daebf",
+      "report.json": "3f87c9d6e24f3c1cacb6db68949293242fa81cb17cedc8ad54d32602b2d1a822",
+      "roster.json": "afcb79ac71529f4538268e30abe2fa7cd2c99a1b29543cb8a642e9c59860e27c",
+      "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d"
+    },
+    "fresh_receiver_final_source": {
+      "core_schema": 6,
+      "accepted": true,
+      "completed_ethereum_block": false,
+      "output": null,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "load_and_setup_ns": 2951904834,
+      "verify_ns": 275763500,
+      "fixed_native_cache": {
+        "limit_bytes": 268435456,
+        "retained_bytes": 181229952,
+        "native_backing_bytes": 181214336,
+        "groups": 121,
+        "hits": 428,
+        "duplicate_native_bytes_released": 738370048,
+        "observed_individual_owners": 549,
+        "observed_backing_owners": 0,
+        "observed_spans": 549,
+        "owner_leases": 5
+      },
+      "program_metadata_cache": {
+        "limit_bytes": 67108864,
+        "retained_bytes": 30951766,
+        "payload_bytes": 30951414,
+        "programs": 1,
+        "hits": 4,
+        "metadata_bytes_not_rebuilt": 123805656,
+        "duplicate_metadata_bytes_released": 0,
+        "owner_leases": 6
+      }
+    },
+    "final_source_receiver_executable_sha256": "a41afec95aea112fca1bf82c32130bdd10f96741be9d1b63ed4d7c483eeee75b"
+  },
+  "cost": {
+    "scope": "exact layout accounting; no speed projection",
+    "prefix_native_cells_saved": 5849088,
+    "prefix_lifted_leaf_cells_saved_no_blowup": 8257536,
+    "retained_full_block_native_cells_saved": 61071360,
+    "retained_full_block_lifted_leaf_cells_saved_no_blowup": 66748416,
+    "whole_block_native_fraction_approx": 0.00292
+  },
+  "security": "Qualification uses nominal96 control. This is not 128-bit whole-protocol evidence.",
+  "gpu": "Device qualifications explicitly deferred by user.",
+  "open_gates": [
+    "Final integration source qualification after parent CPU schema/profile integration.",
+    "Recursion leaf admission and circuit requalification for the new local truth query identity.",
+    "Whole-protocol128-bit security review belongs to separate authority."
+  ],
+  "degree_gate": "All arbitrary QM31 residuals degree<=4, both product/linear and both local/canonical-input policies.",
+  "test_floors": {
+    "secp": 32,
+    "word16_secp_bridge": 11,
+    "combined_services": 21
+  },
+  "next_domain_options": {
+    "selected": "secp remains 4n with triple fractions",
+    "secp_D3_pair_candidate": {
+      "product_interaction": 448,
+      "linear_interaction": 136,
+      "point_column_area_ratio_vs_original_product": 0.5455192034139402,
+      "point_column_area_ratio_vs_original_linear": 0.44680851063829785,
+      "native_cell_increase_vs_original_retained_full_block": 12025856,
+      "qualification": "not implemented or selected; direct/interactions need degree3 gates and full costs"
+    },
+    "keccak_D3_pair_candidate": "Existing inactive prototype +28.8% committed columns; lower point area does not imply lower memory/recursion cost."
+  }
+}

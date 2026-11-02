@@ -1,0 +1,37 @@
+{
+  "scope": "Owned CPU MAIN multibacking streaming; no AIR/transcript/geometry change; same batch cap8",
+  "base_commit": "c0637c1196284bd7b467f137cf0c6ac9e78adfe7",
+  "source_sha256": {
+    "src/prover/pcs/commit_ops.zig": "d9b789964c4bd033da520c92ab6f4ae8b8d92cc5a0abec46bc4b7db363d75c0d",
+    "src/prover/pcs/scheme.zig": "5d680869392de89679398230e76459ccb1b973fdb750b853dd292a64f22b3078",
+    "src/prover/pcs/tree_builders.zig": "0d7ffa744c1551ad30f7739653887a9b231e0202d5fe8d5f65efebd582fc3583",
+    "src/prover/pcs/columns/preparation.zig": "559e7210765ea0fa48f7f35f8cc65d9ba5c7d6b81dfe017552c3aa284593feb0",
+    "src/prover/pcs/coefficient_storage_test.zig": "b62ee575541bc1e57989b2df8e1e57d12a6faefbc71f84206ca0b12fa62d8477",
+    "src/integrations/riscv_cpu/word16_execution/main_ownership.zig": "f48f1ba6224f02bb769e12edc8d4b7a907853dc78e594e1023c86ffa62b1872a",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "eecf8c28a4b7ea444e07e305cc567b86bc596a430e7bd8cdcd3f874969671c52",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "8a768c013ed5ccf0bcd048c76b99a2ea3fe4e247af2abb1c5d836639072a8602",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "c5f87e98eb73ab6eaba75247cbe38e66b26f572d5bf4edc10fadea4abcc6636c"
+  },
+  "qualification": {
+    "pcs_safe": "PASS",
+    "pcs_fast": "PASS",
+    "prepared_safe_runtime9": "PASS",
+    "prepared_fast_runtime9": "PASS",
+    "coordinator_fast_runtime20": "PASS",
+    "coordinator_safe_runtime20": "PASS"
+  },
+  "semantics": "Full proof bytes and all33 claims equal owned8 vs borrowed8 under current BINARY-v2; fresh independent verifier PASS",
+  "ownership": "All existing wide MAIN allocations transfer once. Only AND/SHIFT table multiplicities copied because generators retain their original MAIN; no CPU replay/rebuild or wide memcpy.",
+  "runtime_counts": {
+    "pcs_safe_fast": 13,
+    "prepared_safe_fast": 9,
+    "coordinator_safe_fast": 20
+  },
+  "logs": [
+    "/tmp/rv64-owned-main-pcs-safe.log",
+    "/tmp/rv64-owned-main-pcs-fast.log",
+    "/tmp/rv64-owned-main-prepared-safe.log",
+    "/tmp/rv64-owned-main-execution-fast.log",
+    "/tmp/rv64-owned-main-coordinator-safe.log"
+  ]
+}

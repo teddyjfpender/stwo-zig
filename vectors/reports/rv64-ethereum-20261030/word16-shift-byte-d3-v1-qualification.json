@@ -1,0 +1,188 @@
+{
+  "status": "inactive standalone byte-interface SHIFT math diagnostic; no CPU or production profile activation",
+  "artifact": {
+    "directory": "vectors/reports/interop_artifacts/rv64-word16-shift-byte-v1",
+    "producer": {
+      "scope": "diagnostic-public-io-byte-shift-table-u16-one-pcs",
+      "proof_bytes": 284128,
+      "proof_sha256": "c15aeeb9258eaf39d100990982265146dd8113ae4c23fb6024f1ec581cc0407c",
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96,
+      "source_cells": 827744,
+      "source_bytes": 3310976,
+      "trace_oods_masks": 256,
+      "shift": {
+        "log": 5,
+        "fixed": 2,
+        "main": 89,
+        "interaction": 56
+      },
+      "shift_table": {
+        "log": 11,
+        "fixed": 8,
+        "main": 1,
+        "interaction": 8
+      },
+      "public_consumer": {
+        "log": 5,
+        "fixed": 34,
+        "main": 14,
+        "interaction": 8
+      },
+      "u16": {
+        "log": 16,
+        "fixed": 3,
+        "main": 1,
+        "interaction": 8
+      },
+      "positive_function_mass": 7,
+      "shift_mass_including_padding": 288,
+      "range_mass_including_padding": 288,
+      "max_degree": 3,
+      "quotient_factor": 2,
+      "cpu_bound": false,
+      "ram_bound": false
+    },
+    "fresh_process_receiver": {
+      "accepted": true,
+      "independently_expected_roster_and_fixed_root": true,
+      "cpu_bound": false,
+      "ram_bound": false
+    }
+  },
+  "gates": {
+    "local_safe": 5,
+    "local_fast": 5,
+    "q70_proof_safe": 1,
+    "q70_proof_fast": 1,
+    "logs": [
+      "/tmp/rv64-shift-safe5.log",
+      "/tmp/rv64-shift-fast5.log",
+      "/tmp/rv64-shift-proof-safe.log",
+      "/tmp/rv64-shift-fast.log"
+    ]
+  },
+  "physical_cost": {
+    "shift": {
+      "fixed": 2,
+      "main": 89,
+      "interaction": 56,
+      "height": 32,
+      "degree": 3,
+      "quotient_factor": 2,
+      "trace_masks": 159
+    },
+    "provider_shift_table": {
+      "fixed": 8,
+      "main": 1,
+      "interaction": 8,
+      "height": 2048,
+      "degree": 3,
+      "quotient_factor": 2,
+      "trace_masks": 21
+    },
+    "provider_u16": {
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8,
+      "height": 65536,
+      "degree": 2,
+      "quotient_factor": 2,
+      "trace_masks": 16
+    },
+    "public_consumer": {
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8,
+      "height": 32,
+      "trace_masks": 60
+    },
+    "total_fixed_cells": 214144,
+    "total_main_cells": 70880,
+    "total_interaction_cells": 542720,
+    "total_source_cells": 827744,
+    "total_source_bytes": 3310976,
+    "trace_secure_masks": 256,
+    "max_native_log": 16,
+    "composition_log": 17,
+    "shift_queries_including_padding": 288,
+    "u16_queries_including_padding": 288,
+    "positive_function_mass": 7
+  },
+  "polynomial_authority": {
+    "local": "shift_byte.emitFor(F),43 equations, shared scalar arbitrary QM31 and SIMD base/secure",
+    "complete": "shift_byte_lookup.emitFor(F),61 equations, five strict pair/single products and one prefix for each table/range plus one FUNCTION inverse/prefix",
+    "table": "providers.tables.Kind.byte_shift.tupleAt/rowIndex and evaluateFor unchanged, new concrete D3/2n adapter",
+    "range": "providers.scalar_range unchanged",
+    "function": "function_bus unchanged, global IDs32..37",
+    "signed_fills": "committed fill advice=arithmetic-right-selector*sign; q*(linear opcode mode*table output or fill advice*table output), degree3, no fourth selector factor"
+  },
+  "integer_obligations": [
+    "all A bytes and within-byte shift amount canonical from complete SHIFT tuple memberships",
+    "B four limbs U16; qLow directU16 and64*qLow U16; because qLow<2^16,64*qLow<2^22<p, scaled membership implies qLow<=1023 without modular alias",
+    "Boolean offset8,sumactive; W disallows offsets4..7; Boolean ignored bit5 allowed onlyW; exact B0 decomposition then canonical masked shift amount",
+    "leftLow/rightCarry and rightLow/leftCarry use disjoint bit positions at common amount, sums are canonical bytes; bounds are consequences of fixedtable semantics, not a scaled-range extension",
+    "three signs Boolean; canonical byte projection512*byte\u221265536*sign isU16 iff sign isbit7; Wresult upperbytes signextend constrained resultbyte3",
+    "no Word16 product convolution or foreignfield reduction assertion"
+  ],
+  "adversarial": [
+    "false C rejects native/prover",
+    "wrong SHIFT tuple and adjusted C: every43local residualzero; lookup proof rejects ConstraintsNotSatisfied",
+    "SLL(1,1) forged C1 viaqLow=64^-1 modp: all43localzero and64*q=1 U16; directq range rejects ConstraintsNotSatisfied",
+    "SLLW(0,0) forged negative upperword via falsebit31: all43localzero; canonical sign projection rejects ConstraintsNotSatisfied",
+    "prefix sampled-value mutation rejected by fresh independently expected receiver",
+    "all six modes\u00d711edgeA\u00d7128amounts/highignoredB=8448native cases",
+    "dense arbitraryQM31 cubic residual test and PB/PS16lane parity, complete61residual lane parity",
+    "scalar/SIMD complete2n quotient rows exact, previoushalos, nonaligned intervals crossing denominator cosets, additive second pass, invalidshape before output mutation"
+  ],
+  "transcript": [
+    "config and exact roster digest plus role geometries/count bounds mixed before fixed/main roots",
+    "all variable function payload/multiplicity and both provider counts committed in main before challenges",
+    "independently tagged table/range/function challenges internal to diagnostic coordinator; no caller-alpha API",
+    "all six canonical physical claims close three families and mix before interaction root"
+  ],
+  "telemetry": {
+    "tiny_fixture_producer_rss_bytes": 77578240,
+    "tiny_fixture_receiver_rss_bytes": 18989056,
+    "scope": "one tiny diagnostic, no production speed/cost win claim"
+  },
+  "limitations": [
+    "no standalone reusable narrow native SHIFT Source yet; diagnostic generator uses scalar Q witness and inversions",
+    "no exhaustive constructor OOM or large-source benchmark qualification yet",
+    "no actual CPU SHIFT routing or global aggregate protocol activated",
+    "Word16 table2^20 alternative remains unimplemented and must be compared by wholeproof cost and actual per-batch distribution",
+    "underlying q70/pow26/logblowup1 config reports96nominal bits, not a128bit wholeprotocol claim"
+  ],
+  "source_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte.zig": "4a4171f67cc6347497b87520d277d268b79615e7f87d1ddc1b5d3e5f932ba876",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_lookup.zig": "c5835f69c742e18be24925df45b4c5f496524241604ebee50881e2f4fc8b4838",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_component.zig": "9a311f13bfeb6fb62f133394b58505e41eeb7fff6ea232a9b1caef54938f8798",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_packed_rows.zig": "9a97ea81c16506b73c4dc719083ae7fa5ba50727b85c1712342a0a21555cbb44",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_table_component.zig": "38902188f5baacb99e14bf130ec04d36ba92f6d2671d8cd864ba67c845866eaf",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_test.zig": "2eb0a3eba3e3abf89211ec3cd1d67038bdb894316d4e89aba9e082786ddb2aef",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_packed_rows_test.zig": "64d829ef268fb88e72c05d9711ea0651b26588ade9093f8e7c5226f2a621690a",
+    "src/frontends/riscv/rv64_word16_shift_test_root.zig": "9efcc333c7af22d0a79e38ef2eb8d5a9135af74bcc1c8aff54cf44659f9069e1",
+    "src/integrations/riscv_cpu/rv64_word16_shift_proof_test_root.zig": "8b6286fc55e688e38dc4f196f426bf2b6cc0ae4a6097fb40dcf0a53478373f3c",
+    "src/integrations/riscv_cpu/tests/rv64_word16_shift_proof_test.zig": "da19339f5b226cf35f4ad51edbbbd8e3a64ef5118ef46e7521f5a70be4baa5ea",
+    "src/integrations/riscv_cpu/word16/shift_fixture.zig": "bde10c075ba6127e5be304425afbd04b0ae25ed196c664b35847b1014ed7dd64",
+    "src/integrations/riscv_cpu/word16/shift_fixture_trace.zig": "efd73796ed6cf80baa24660eb98c8978fda122442f5e31b8958d8e11fea898ea",
+    "src/integrations/riscv_cpu/rv64_word16_shift_fixture_main.zig": "07ddfb5a3b45fa9962a558d01457814058bfa64f8d80326d46e97782e062a4b0"
+  },
+  "shared_dependency_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "9222cd66618d88aae66d7d649a83aa0a6a46411a67431729d142912e3237406a",
+    "src/frontends/riscv/rv64/air/word16_v1/function_bus.zig": "be69a6e6152260de042fffb9b7ec39c3a5dde17e814029e2b93a7412213ab4b2",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_source.zig": "cb57623c0f92c8f7096715912ec734b3593a9672be0f4ab60ed0e867d94cc50a",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_component.zig": "435bc1790121cc2cab636ccf30790f4c1eed166f1ab14ba0371b357aadcbddb3",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "e4548067bb5019fb345cd752cb4320b054bc090e709351652ba98ac3f18690e4",
+    "src/frontends/riscv/rv64/air/word16_v1/expected_roster.zig": "2c47c28b744b1ad3af8d0233c995108ff382735e46716b3b710ab1ae4589194e",
+    "src/frontends/riscv/rv64/air/providers/tables.zig": "d25b3b9487dd22fb81325d2812d93fa65c29909e77f12298427fb480ad4e4c28",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "295e4a8947d08fea482a8514404063b3f67546bccfa01f194db65d8df81ef802",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/air/packed_fields16.zig": "bda65255b53e5bf98da36544d3d821c196efd467e1b2c988faea96a595db66ea",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700"
+  },
+  "superseded_by": "word16-shift-packed-d3-v1-qualification.json",
+  "snapshot_scope": "Historical first prototype/cost review. Later shared helpers preserve BYTE proof c15a exactly; final current source pins and measured packed-table comparison are in the superseding report."
+}

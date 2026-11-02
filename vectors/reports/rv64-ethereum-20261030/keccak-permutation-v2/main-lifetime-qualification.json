@@ -1,0 +1,50 @@
+{
+  "schema": "rv64-keccak-main-lifetime-qualification-v2",
+  "strict_release_safe_tests": 26,
+  "artifacts": [
+    {
+      "name": "serial",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-metadata-serial/proof.bin",
+      "bytes": 1621800,
+      "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68"
+    },
+    {
+      "name": "parallel",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-metadata-parallel/proof.bin",
+      "bytes": 1621800,
+      "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68"
+    },
+    {
+      "name": "bridge",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-metadata-bridge/proof.bin",
+      "bytes": 1661832,
+      "sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8"
+    }
+  ],
+  "primitive_and_combined_proof_bytes_equal_previous_v2": true,
+  "single_and_three_worker_proof_bytes_equal": true,
+  "main_released_after_commit_before_challenges": true,
+  "metadata": {
+    "paired_row_bytes": 488,
+    "bridge_call_bytes": 528,
+    "table_multiplicity_bytes": 36864,
+    "permutation_reexecutions": 0
+  },
+  "model_at_klog18": {
+    "main_bytes": 2016411648,
+    "maximum_packed_metadata_bytes": 127926272,
+    "post_main_commit_retention_reduction_bytes": 1888485376,
+    "scope": "Allocation/lifetime model, not measured whole-prover RSS; actual metadata allocates active29-row slots only. Requires owned-main adoption or release."
+  },
+  "gates": [
+    "every original packed row and bridge row matches wide witness",
+    "claims/all4 interaction matrices match after main release",
+    "main arena destroyed before challenge and generation",
+    "all allocator failures clean",
+    "forged packed state and table multiplicity metadata fail committed AIR authority"
+  ],
+  "remaining": [
+    "Integrate owned ragged-main transaction",
+    "Whole CPU/crypto/RAM measured peak and wall-time"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "purpose": "Combined compact96 leaf hashing and pooled public-auxiliary qualification on real first Ethereum shard",
+  "source_compiled": "2ef20a0ca with already-committed d0fa28146 schedule parser fix",
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "steps": 4194303,
+  "prove_seconds": 9.346326292,
+  "total_before_report_seconds": 11.2829625,
+  "workers": [
+    {
+      "source_ns": 375190500,
+      "seal_native_and_gkr_ns": 3787757333,
+      "main_commit_ns": 1022438458,
+      "gkr_ns": 2701470333,
+      "inputs_ns": 215492125,
+      "numerical_ns": 2154596500,
+      "binding_ns": 306531750,
+      "metadata_retire_ns": 2541709,
+      "spill_ns": 166,
+      "restore_ns": 0,
+      "native_complete_ns": 5099541417,
+      "stage1_ns": 4165489750,
+      "stage2_ns": 5099541417,
+      "actual_main_merkle_bytes": 33554400,
+      "stage1_completed": true,
+      "stage2_completed": true
+    }
+  ],
+  "artifacts": {
+    "cpu-0.bin": {
+      "bytes": 679424,
+      "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+      "matches_owned_simd": true
+    },
+    "stage-one.bin": {
+      "bytes": 88400,
+      "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+      "matches_owned_simd": true
+    },
+    "bundle.json": {
+      "bytes": 5489,
+      "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+      "matches_owned_simd": true
+    },
+    "cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "matches_owned_simd": true
+    }
+  },
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 1,
+    "truth_proofs": 0,
+    "load_and_setup_ns": 934102292,
+    "verify_ns": 392785708
+  },
+  "limitations": [
+    "Single shared-host observation; not a quiet repeated causal A/B",
+    "Prefix only, no completed Ethereum block",
+    "Classic QM3116-worker control remains faster (5.252381 s); wider OM31 and proof construction differ",
+    "Neither benchmark profile certifies whole-protocol128 security",
+    "Two-second stretch target not met"
+  ]
+}

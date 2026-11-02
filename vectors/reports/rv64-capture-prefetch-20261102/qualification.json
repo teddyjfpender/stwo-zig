@@ -1,0 +1,38 @@
+{
+  "schema": "rv64-capture-prefetch-qualification-v1",
+  "source_commit": "3caa9f8618c42dcac2530a75c75473823f517bfe",
+  "base_commit": "b5e930610e8bd8528cd993634439e4a6c7a6dbcb",
+  "status": "additive-opt-in-producer-fixture-qualified",
+  "default": "serial-unchanged",
+  "tests": {
+    "target": "test-riscv64-capture-prefetch",
+    "expected_focused_tests": 5,
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "independent_source_review": "recover_air_wave2 PASS"
+  },
+  "coverage": [
+    "serial metadata/native facts/ordered RAM and service advice parity",
+    "existing two-worker pool and held-lease fallback",
+    "one-slot aggregate packet heap reservation fallback",
+    "decoded packet heap and wire size refusals",
+    "required corrupt future packet error parity",
+    "terminal-first joined speculative failure disposal",
+    "valid duplicate packet adjacency rejection",
+    "all-allocation cleanup with deterministic held-lease injection"
+  ],
+  "bound": {
+    "inflight_packets": 2,
+    "per_packet_decoded_heap_default_bytes": 536870912,
+    "aggregate_decoded_heap_reservation_default_bytes": 1073741824,
+    "aggregate_preflight_wire_default_bytes": 1073741824,
+    "native_capture_allocator": "thread-safe borrowed caller allocator; original retained ownership",
+    "native_bound": "at most two concurrent admitted batch_steps captures; not a heap bound",
+    "rss_bound": false
+  },
+  "pool": "caller supplied; synchronous join; no global/discovered/new pools; helper capture has no nested submissions",
+  "performance": "unmeasured; two-packet windows are not a continuous three-stage pipeline",
+  "remaining_gate": "real full-block all proof/bundle/cell artifact byte parity and fresh independently pinned verification before default promotion",
+  "security": "no protocol/transcript/AIR change; no GPU qualification or whole-128 claim",
+  "hooks": "one-off core.hooksPath=/dev/null authorized exception; no persisted configuration"
+}

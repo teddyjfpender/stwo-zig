@@ -4,10 +4,18 @@ const stream = @import("blake2_stream4.zig");
 
 pub fn cacheBytes(comptime H: type, comptime Column: type) usize {
     if (comptime !stream.supports(H)) return 0;
-    return @sizeOf(Cache(H, Column));
+    return @sizeOf(Cache(H, Column, SliceSource(H)));
 }
 
-fn Cache(comptime H: type, comptime Column: type) type {
+fn SliceSource(comptime H: type) type {
+    return struct {
+        values: []const H,
+        pub fn get(self: @This(), index: usize) H {
+            return self.values[index];
+        }
+    };
+}
+fn Cache(comptime H: type, comptime Column: type, comptime Source: type) type {
     return struct {
         const Self = @This();
         const Group = struct { columns: []const Column, log: u32 };
@@ -15,7 +23,7 @@ fn Cache(comptime H: type, comptime Column: type) type {
         groups: [@bitSizeOf(usize)]Group = undefined,
         blocks: [@bitSizeOf(usize)]Block = undefined,
         count: usize = 0,
-        base: []const H,
+        base: Source,
         base_log: u32,
         absorptions: usize = 0,
 
@@ -30,7 +38,7 @@ fn Cache(comptime H: type, comptime Column: type) type {
                 const row = block_start + lane;
                 const parent = ((row >> shift) << 1) + (row & 1);
                 if (ordinal == 0) {
-                    block.states[lane] = self.base[parent];
+                    block.states[lane] = self.base.get(parent);
                 } else {
                     self.ensure(ordinal - 1, parent);
                     block.states[lane] = self.blocks[ordinal - 1].states[parent & 3];
@@ -45,7 +53,7 @@ fn Cache(comptime H: type, comptime Column: type) type {
             const previous_log = if (self.count == 0) self.base_log else self.groups[self.count - 1].log;
             const shift: std.math.Log2Int(usize) = @intCast(final_log - previous_log + 1);
             const index = ((position >> shift) << 1) + (position & 1);
-            if (self.count == 0) return self.base[index];
+            if (self.count == 0) return self.base.get(index);
             self.ensure(self.count - 1, index);
             return self.blocks[self.count - 1].states[index & 3];
         }
@@ -55,9 +63,14 @@ fn Cache(comptime H: type, comptime Column: type) type {
 /// Returns null before touching outputs if the native domain cannot form a
 /// complete four-row block. The established scalar cache handles that case.
 pub fn finalize(comptime H: type, range: anytype) ?usize {
+    return finalizeWithSource(H, range, SliceSource(H){ .values = range.base_hashers });
+}
+/// Same bounded four-row/per-height cache; compact storage reconstructs only
+/// requested hashers on helper stacks, never materializes a full []H array.
+pub fn finalizeWithSource(comptime H: type, range: anytype, source: anytype) ?usize {
     if (comptime !stream.supports(H)) return null;
     const Column = std.meta.Child(@TypeOf(range.tail_columns));
-    var cache: Cache(H, Column) = .{ .base = range.base_hashers, .base_log = range.base_log_size };
+    var cache: Cache(H, Column, @TypeOf(source)) = .{ .base = source, .base_log = range.base_log_size };
     var begin: usize = 0;
     while (begin < range.tail_columns.len) {
         const log = range.tail_columns[begin].log_size;

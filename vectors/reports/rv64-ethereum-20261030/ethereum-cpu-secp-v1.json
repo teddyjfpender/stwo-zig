@@ -1,0 +1,252 @@
+{
+  "execution_profile": "ethereum_services_v1",
+  "one_pcs_cpu_rom_state_keccak_secp_mul_div": true,
+  "public_ram_boundary_control": true,
+  "ethereum_block_proof": false,
+  "proof_bytes": 3015640,
+  "proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+  "suite": {
+    "fri_queries": 70,
+    "pow_bits": 26
+  },
+  "artifacts": {
+    "public.json": {
+      "bytes": 7911,
+      "sha256": "1878bdd541c11328e9332c554af36980ff1887a8047a776d53ef2092ba25be53"
+    },
+    "claims.json": {
+      "bytes": 2244,
+      "sha256": "b6507b35c4b7fb11241d9e60292d42cdea2941512661ca8ed05849d4bdfd2c7c"
+    },
+    "proof.bin": {
+      "bytes": 3015640,
+      "sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e"
+    }
+  },
+  "verifier": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/zig-out/bin/rv64-keccak-cpu-verify",
+    "bytes": 1828440,
+    "sha256": "636cbec939e0865596d863675af16376fae3ece86b0f0103a712717e28874af7"
+  },
+  "receiver": {
+    "verified": true,
+    "one_pcs_execution": true,
+    "execution_profile": "ethereum_services_v1",
+    "division_provider_present": true,
+    "multiplication_provider_present": true,
+    "keccak_provider_present": true,
+    "secp_add_provider_present": true,
+    "secp_double_provider_present": true,
+    "public_cell_boundary_control": true,
+    "ethereum_block_proof": false,
+    "independent_setup_ns": 3952834,
+    "verify_with_decode_ns": 24328000,
+    "proof_bytes": 3015640,
+    "setup_identity": [
+      136,
+      7,
+      163,
+      211,
+      116,
+      181,
+      177,
+      78,
+      83,
+      138,
+      169,
+      194,
+      172,
+      150,
+      115,
+      12,
+      141,
+      183,
+      200,
+      71,
+      118,
+      49,
+      47,
+      124,
+      178,
+      174,
+      14,
+      196,
+      10,
+      182,
+      146,
+      195
+    ]
+  },
+  "fresh_receiver_cases": [
+    {
+      "case": "valid",
+      "rejected": false,
+      "exit_code": 0
+    },
+    {
+      "case": "execution-profile",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "arithmetic-policy",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "state-policy",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "terminal-pc",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "terminal-register",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "rom-high-pc",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "immutable-instruction",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "initial-ram",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "final-ram",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "ram-clock",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "ram-permission",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "add-count",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "add-first-id",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "add-roster",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "add-geometry",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "double-count",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "double-first-id",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "double-roster",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "double-geometry",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_header",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_add-product",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_add-linear",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_add-bridge",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_double-product",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_double-linear",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-secp_double-bridge",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "claim-bytes",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "balanced-header-add",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "balanced-header-double",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "previous-add-counter",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "previous-double-counter",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "previous-secp-prefix",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "truncated",
+      "rejected": true,
+      "exit_code": 1
+    }
+  ]
+}

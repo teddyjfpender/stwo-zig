@@ -1,0 +1,15 @@
+# Exclusive GKR fold ownership
+
+The sumcheck driver owns its active oracle array, either by an explicit consuming call or after cloning caller oracles. The previous GKR fold nevertheless allocated fresh half-sized secure matrices every round, then deinitialized the preceding oracle. This slice adds an optional destructive oracle interface and keeps the existing non-mutating APIs available.
+
+Borrowed caller matrices and the first M31-to-secure numerator lift retain the old allocation path. Exclusively owned secure matrices use the same packed half-split formula in their own prefix. Each index reads only its own old prefix value and the immutable corresponding suffix, so disjoint pooled ranges remain race-free, including unaligned range boundaries. All helpers join before any allocator resize/free.
+
+After arithmetic, a successful allocator resize transfers the same pointer to the half-sized owner. The driver recycler supports this while the request stays at or above its256KiB threshold. Allocators that cannot resize receive a new half-sized owner with a bounded prefix copy. No MLE fields, backing cache or hidden capacity are introduced, and `intoOwnedEvals` retains its contract. The worst-case fallback requests the same half-sized buffer as the original implementation.
+
+The destructive failure contract is explicit: an internal owned prefix may have changed when a fallback allocation fails; every buffer remains valid for deinitialization, and the proof aborts. The failed oracle must not be retried. The sumcheck driver already consumes/cleans its internal array on all errors. This does not weaken the non-mutating public fold contract or allow caller matrices to change. Partially folded numerator/denominator owners remain individually valid for cleanup. Immutable Eq custody stays with the same oracle rather than cloning it to manufacture another owner.
+
+Focused tests cover pointer reuse, nonresizable fallback, forced fallback OOM, original caller matrix preservation through every GKR allocation failure, and three-worker pooled aliasing at65536elements in Q/OM. A separate optional-oracle error checks that its error set propagates and the owner is consumed exactly once. The actual pinned6091851f7 comparison passes46tests in Safe; the preceding Fast capture passes45tests before adding only that final interface-error regression. Both preserve full Q/OM mixed-height four-gate proof bytes, next transcript draws and fresh terminal-MLE binding under1/2/4/8workers. Safe/Fast full ownership targets pass; the parent integrated Fast gate will include the final added regression.
+
+Performance is not yet measured. The hypothesis is reduced geometric allocation/free traffic, not fewer arithmetic operations or fewer fold bytes. A recycler can retain the original physical mapping after a logical shrink, so requested allocator bytes must not be called RSS savings. The parent owns the actual prefix A/B window after its ongoing full-block run. No proof, transcript, field, security or admission policy changes.
+
+Commands and raw qualification logs are in `vectors/reports/rv64-gkr-owned-fold-20261102/`.

@@ -1,0 +1,154 @@
+{
+  "schema": "keth-block-bundle-summary-v1",
+  "status": "qualified-segmented-keth-block-workload",
+  "workload": {
+    "block_number": 22615247,
+    "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+    "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+    "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+    "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+    "gas_used": 1331413,
+    "transactions": 26,
+    "withdrawals": 16,
+    "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+    "fixture_bytes": 2078954
+  },
+  "complete_bundle_samples": 1,
+  "measurement_sessions": 6,
+  "uninterrupted_end_to_end_sample": false,
+  "proof_count": 45,
+  "workers": 4,
+  "host": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "cpu": "x86_64",
+    "logical_cpus": 9
+  },
+  "witness_transports": [
+    ".cpi",
+    ".json"
+  ],
+  "elapsed_wall_ns": null,
+  "recorded_driver_session_wall_ns": 5177698815241,
+  "standalone_stage_retries": [
+    {
+      "segment": "teardown",
+      "product_wall_ns": 531755078678,
+      "official_verifier_wall_ns": 290908293,
+      "note": "separate capacity retry; no uninterrupted end-to-end wall measurement"
+    },
+    {
+      "segment": "mpt_diff_0",
+      "product_wall_ns": 340274415022,
+      "official_verifier_wall_ns": 76443828,
+      "note": "separate capacity retry; no uninterrupted end-to-end wall measurement"
+    }
+  ],
+  "native_trace_wall_ns": 598921644261,
+  "witness_conversion_wall_ns": 729195130392,
+  "product_wall_ns": 3896124699535,
+  "prove_ns": 3818994365030,
+  "official_verification_wall_ns": 12017611720,
+  "cairo_opcode_transitions": 106374029,
+  "peak_product_rss_bytes": 5247311872,
+  "peak_file_backing_bytes": 14217551872,
+  "producer_binary_sha256s": [
+    "5c76e932f7674782f9499d00bcd163f8226f7992280330acf8866335a03111d5",
+    "77b69025c5c4529d03c8b3919a6c16356c576b08c0d15a72714cdf46a7470eb3",
+    "965b97bdfaa4272baa7bf8bde3cb141a0606acababe8687c1e81fe0dbbda97f6",
+    "c388e3ade22450ed63f27d51e9a0c29c0de2dc02d03ff5afb88adab9ad096bb1"
+  ],
+  "peak_trace_rss_bytes": 3142385664,
+  "proof_json_bytes": 362768680,
+  "compressed_proof_bytes": 87474716,
+  "roles": {
+    "init": {
+      "proof_count": 1,
+      "cairo_opcode_transitions": 273354,
+      "product_wall_ns": 12086867835,
+      "prove_ns": 11562855167,
+      "official_verification_wall_ns": 316728231,
+      "peak_product_rss_bytes": 1421860864,
+      "peak_file_backing_bytes": 0,
+      "memory_modes": [
+        "ordinary"
+      ],
+      "worker_counts": [
+        4
+      ]
+    },
+    "body": {
+      "proof_count": 26,
+      "cairo_opcode_transitions": 59641003,
+      "product_wall_ns": 769759985155,
+      "prove_ns": 702066531976,
+      "official_verification_wall_ns": 10072297094,
+      "peak_product_rss_bytes": 5048139776,
+      "peak_file_backing_bytes": 0,
+      "memory_modes": [
+        "ordinary"
+      ],
+      "worker_counts": [
+        4
+      ]
+    },
+    "teardown": {
+      "proof_count": 1,
+      "cairo_opcode_transitions": 8233229,
+      "product_wall_ns": 531755078678,
+      "prove_ns": 530584431314,
+      "official_verification_wall_ns": 290908293,
+      "peak_product_rss_bytes": 5247311872,
+      "peak_file_backing_bytes": 14217551872,
+      "memory_modes": [
+        "temporary-file-backed"
+      ],
+      "worker_counts": [
+        4
+      ]
+    },
+    "mpt_diff": {
+      "proof_count": 16,
+      "cairo_opcode_transitions": 38212026,
+      "product_wall_ns": 2567993941802,
+      "prove_ns": 2560353022457,
+      "official_verification_wall_ns": 1287767869,
+      "peak_product_rss_bytes": 5035982848,
+      "peak_file_backing_bytes": 10867290112,
+      "memory_modes": [
+        "temporary-file-backed"
+      ],
+      "worker_counts": [
+        4
+      ]
+    },
+    "aggregator": {
+      "proof_count": 1,
+      "cairo_opcode_transitions": 14417,
+      "product_wall_ns": 14528826065,
+      "prove_ns": 14427524116,
+      "official_verification_wall_ns": 49910233,
+      "peak_product_rss_bytes": 3142385664,
+      "peak_file_backing_bytes": 904613888,
+      "memory_modes": [
+        "temporary-file-backed"
+      ],
+      "worker_counts": [
+        4
+      ]
+    }
+  },
+  "claims": {
+    "op_stack_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  },
+  "notes": [
+    "Compilation excluded; serial segments; fresh bundle cache retained across segments.",
+    "Elapsed time sums active measurement sessions; includes failed attempts and resume rechecks, excludes time between sessions.",
+    "Product time includes loading, proving, Zig verification and publication.",
+    "RSS is Linux wait4 per-process/descendant peak, not simultaneous parent-child sum.",
+    "File-backed mode uses temporary disk and reclaimable filesystem cache; RSS is not total physical footprint.",
+    "Consistency proof is not recursive aggregation; every child independently verifies."
+  ]
+}

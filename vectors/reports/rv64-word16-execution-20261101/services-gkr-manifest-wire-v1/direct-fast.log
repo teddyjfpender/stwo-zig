@@ -1,0 +1,41 @@
+1/40 rv64_services_gkr_local_test_root.test_0...OK
+2/40 word16_global_execution.services.gkr_local.tests.test.local fraction authority covers actual CPU and all chip projections...OK
+3/40 word16_global_execution.services.gkr_local.tests.test.table and service bridges emit only admitted local fractions...OK
+4/40 word16_global_execution.services.gkr_local.tests.test.mixed-height GKR uses suffix before row lane split...OK
+5/40 word16_global_execution.services.gkr_local.tests.test.whole local allocation plan rejects before fact allocations...OK
+6/40 word16_global_execution.services.gkr_local.tests.test.whole local closure rejects zero-weight poles and unbalanced claims...OK
+7/40 word16_global_execution.services.gkr_local.tests.test.actual services metadata provider rejects global-only role without MAIN access...OK
+8/40 word16_global_execution.services.gkr_local.tests.test.native local fractions and weighted row projection agree including padding...OK
+9/40 word16_global_execution.services.gkr_local.tests.test.bounded local child fresh verifies with terminal obligation still explicit...OK
+10/40 word16_global_execution.services.gkr_local.tests.test_0...OK
+11/40 word16_global_execution.services.gkr_local.tests.test.local GKR owner and pending receiver clean up every allocation failure...OK
+12/40 word16_global_execution.services.gkr_local.tests.test.Eq recurrence and cyclic prefix bind each terminal pair without cancellation...OK
+13/40 word16_global_execution.services.gkr_local.tests.test_1...OK
+14/40 word16_global_execution.services.gkr_local.tests.test.all eight actual role terminal bindings have degree at most three...OK
+15/40 word16_global_execution.services.gkr_local.tests.test.local OM child wire preserves canonical transcript rejects aliases and releases all partial decodes...OK
+16/40 word16_global_execution.services.gkr_local.tests.test_2...OK
+17/40 word16_global_execution.services.gkr_local.metadata_test.test.actual K ADD DOUBLE metadata equals physical MAIN fractions and survives owned take...OK
+18/40 logup_gkr.mle_point.test.logup-gkr mle point: eq column satisfies anchors and carry recurrence...OK
+19/40 logup_gkr.mle_point.test.logup-gkr mle point: any single eq cell mutation violates the constraints...OK
+20/40 logup_gkr.mle_point.test.logup-gkr mle point: succinct carry quotient and anchors match interpolation...OK
+21/40 logup_gkr.mle_point.test.logup-gkr mle point: degenerate coordinates are rejected...OK
+22/40 word16_global_execution.services.gkr_local.role_test.test.original ALU and actual13 local GKR fractions prove through single MAIN span and fresh wide receiver...OK
+23/40 word16_global_execution.services.gkr_local.role_test.test.physical GKR binding rejects changed arithmetic-valid MAIN target Eq and prefix...OK
+24/40 word16_global_execution.services.gkr_local.role_test.test.mixed-height physical role binding uses common GKR suffix and globally lifted PCS masks...OK
+25/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest verifies actual local children before deriving shared eight-coordinate globals...OK
+26/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest rejects missing reordered and relabeled worker authority before allocation...OK
+27/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest rejects substituted local statement root roster or receipt...OK
+28/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest commits classic truth roots and execution scope before global draws...OK
+29/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest closes RAM KIO and Wire separately across every worker...OK
+30/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest unwinds every partial child verification allocation failure...OK
+31/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest rejects absent relation debt even if another worker cancels it...OK
+32/40 word16_global_execution.services.gkr_local.manifest_test.test.OM manifest enforces whole-execution characteristic bounds before allocation...OK
+33/40 word16_global_execution.services.gkr_local.manifest_wire_test.test.stage1 file exact roundtrip freshly checks both real local children and ordered truth slot...OK
+34/40 word16_global_execution.services.gkr_local.manifest_wire_test.test.stage1 file every truncation trailing byte and framing substitution reject before allocations...OK
+35/40 word16_global_execution.services.gkr_local.manifest_wire_test.test.stage1 file rejects nested noncanonical fields and checked child root substitution...OK
+36/40 word16_global_execution.services.gkr_local.manifest_wire_test.test.stage1 file unwinds partial decoders nested arenas and manifest allocation failures...OK
+37/40 word16_global_execution.services.gkr_local.manifest_wire_test.test.nested child wire preserves declared polynomial length including trailing zero coordinates...OK
+38/40 word16_global_execution.services.gkr_local.table_role_test.test.ROM range8 and public REG fragments bind original table queries through shared packed2n kernel...OK
+39/40 word16_global_execution.services.gkr_local.table_role_test.test.table GKR rejects arithmetic-valid stale multiplicity and changed public register endpoint...OK
+40/40 word16_global_execution.services.gkr_local.table_role_test.test.every table role shares native and packed MAIN query authority across16 distinct rows...OK
+All 40 tests passed.

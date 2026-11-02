@@ -1,0 +1,49 @@
+{
+  "schema": "rv64-om31-gkr-core-qualification-v1",
+  "implementation_commit": "1ff7ac054",
+  "base": "a5c192f7f",
+  "dependency_commits": [
+    "7ae333220",
+    "881bfd0d8",
+    "d38590907"
+  ],
+  "status": "qualified additive numerical core, production receiver unchanged",
+  "actual_channel": "core.channel.raw_mod_m31.Om31Channel",
+  "tests": {
+    "numerical_release_safe": 25,
+    "numerical_release_fast": 25,
+    "historical_qm31_ls_prototype_release_safe": 22,
+    "historical_qm31_ls_prototype_release_fast": 22,
+    "qm31_actual_wire_circuit_release_safe": 9,
+    "qm31_actual_wire_circuit_release_fast": 9
+  },
+  "covered": [
+    "mixed-height GrandProduct, LogUpGeneric, LogUpMultiplicities (M31 signed/count/zero weights), LogUpSingles",
+    "independent direct product and fraction-sum output agreement",
+    "full terminal MLE evaluation binding at per-instance suffix points",
+    "sumcheck coefficient, layer mask, output claim and input/terminal mutations rejected",
+    "exhaustive allocator-failure injection across mixed-height prover and native verifier; valid-path owners unchanged",
+    "inherited QM31 numerical unit tests"
+  ],
+  "qm31_real_witness": {
+    "ls_log": 20,
+    "tail_log": 18,
+    "input_bytes": 41943064,
+    "proof_bytes": 381800,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "byte_identical_to": "vectors/reports/rv64-word16-execution-20261101/gkr-circuit-cost-v1/real-ls20-tail18.proof.bin",
+    "fresh_receiver_accepted": true,
+    "historical_input_note": "historical 12-U16/4-U8 LS layout, not current production LS7"
+  },
+  "limits": [
+    "No production services or PCS selection changed",
+    "No whole-protocol 128-bit claim",
+    "No OM31 recursive proof or device qualification in this slice",
+    "Core artifact is partial until the embedding protocol authenticates actual input MLEs",
+    "Every LogUp output denominator must be nonzero before rational claim closure; no proof-dependent redraw",
+    "Existing legacy allocation-error mapping retained; fault-injection adapter normalizes ShapeMismatch and InvalidSumcheck on fixed valid input",
+    "Prover still clones input and owns binary layers; this is not a streaming memory reduction"
+  ],
+  "performance_claim": null,
+  "host": "shared, concurrent workloads; qualification does not claim speedup"
+}

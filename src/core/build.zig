@@ -20,6 +20,12 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Compile and test the stwo_core package");
     test_step.dependOn(&run_tests.step);
 
+    _ = addFocusedTests(b, target, optimize, check_only, .{
+        .step = "test-raw-mod-channel",
+        .description = "Test additive experimental raw-mod M31 channel profiles",
+        .root = "raw_mod_channel_test_root.zig",
+    });
+
     const fields_step = addFocusedTests(b, target, optimize, check_only, .{
         .step = "test-fields",
         .description = "Run only core field arithmetic tests",

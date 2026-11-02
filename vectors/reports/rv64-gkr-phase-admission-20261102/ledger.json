@@ -1,0 +1,556 @@
+{
+  "scope": "Source-derived admission ledger; baseline durations measured16workers andv2serialparking. These are NOT2\u00d78 performance predictions or complete RSS bounds.",
+  "baseline_report": "/tmp/stwo-rv64-om-ethereum-fullblock-optimized-v1/report.json",
+  "baseline_source": "6091851f7",
+  "baseline_prove_s": 620.821692792,
+  "inventory": {
+    "cpus": 25,
+    "truths": 5,
+    "steps": 104253913
+  },
+  "formula": {
+    "stage1": "unchanged max(2MAIN + max(GKRpeak, globalcapacity), representedstage1, representedstage2)",
+    "stage2": "max(2MAIN + max(globalcapacity, 2(binding + globaloutput)) + globalscratch, representedstage2)",
+    "retained": "Complete pending inventory independently admitted once, including binding, narrowglobalmetadata, localproofs and descriptors. MAINcoefficients/nodes parked separately. Binding moves to PCS in complete and is freed by prover; localproof/globalmetadata retained until all phase2jobs join."
+  },
+  "retained_inventory_bytes": 17053813640,
+  "cache_cap_bytes": 4294967296,
+  "sum_cap_retained_and_cache_bytes": 55708519304,
+  "excluded": "Remaining original capture/advice, immutable setup, PCS temporary scratch, allocator/kernel/pagecache; sum is not wholeprocesslimit. Knownrostermaxindividualstage1estimate below32GiB, so oversized-single fallback not triggered.",
+  "workers": [
+    {
+      "index": 0,
+      "kind": "cpu",
+      "stage1_charge_bytes": 20466589696,
+      "old_stage2_charge_bytes": 20466589696,
+      "stage2_charge_bytes": 11894094336,
+      "binding_retained_bytes": 576210944,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 191352544,
+      "fully_parked_retained_bytes": 767563488,
+      "baseline_stage1_s": 6.735585709,
+      "baseline_stage2_s": 10.796965291,
+      "baseline_native_s": 8.069398917,
+      "baseline_spill_s": 1.9670315,
+      "baseline_restore_s": 2.727566333
+    },
+    {
+      "index": 1,
+      "kind": "cpu",
+      "stage1_charge_bytes": 19643334144,
+      "old_stage2_charge_bytes": 19643334144,
+      "stage2_charge_bytes": 11431921664,
+      "binding_retained_bytes": 567953408,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 53641464,
+      "fully_parked_retained_bytes": 621594872,
+      "baseline_stage1_s": 5.79139625,
+      "baseline_stage2_s": 9.138408583,
+      "baseline_native_s": 6.797831916,
+      "baseline_spill_s": 1.721778416,
+      "baseline_restore_s": 2.340576542
+    },
+    {
+      "index": 2,
+      "kind": "cpu",
+      "stage1_charge_bytes": 19511758336,
+      "old_stage2_charge_bytes": 19511758336,
+      "stage2_charge_bytes": 11407411200,
+      "binding_retained_bytes": 564807680,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 50827768,
+      "fully_parked_retained_bytes": 615635448,
+      "baseline_stage1_s": 6.161827333,
+      "baseline_stage2_s": 8.883721958,
+      "baseline_native_s": 6.596249459,
+      "baseline_spill_s": 1.710199083,
+      "baseline_restore_s": 2.287472458
+    },
+    {
+      "index": 3,
+      "kind": "cpu",
+      "stage1_charge_bytes": 21994105856,
+      "old_stage2_charge_bytes": 21994105856,
+      "stage2_charge_bytes": 11531707904,
+      "binding_retained_bytes": 569004032,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 71818120,
+      "fully_parked_retained_bytes": 640822152,
+      "baseline_stage1_s": 7.711558125,
+      "baseline_stage2_s": 9.169310625,
+      "baseline_native_s": 6.813465084,
+      "baseline_spill_s": 1.906170958,
+      "baseline_restore_s": 2.355845416
+    },
+    {
+      "index": 4,
+      "kind": "cpu",
+      "stage1_charge_bytes": 29397380608,
+      "old_stage2_charge_bytes": 29397380608,
+      "stage2_charge_bytes": 11903178752,
+      "binding_retained_bytes": 584599552,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 97051704,
+      "fully_parked_retained_bytes": 681651256,
+      "baseline_stage1_s": 10.441045375,
+      "baseline_stage2_s": 9.721200541,
+      "baseline_native_s": 7.266869834,
+      "baseline_spill_s": 2.218918292,
+      "baseline_restore_s": 2.454330541
+    },
+    {
+      "index": 5,
+      "kind": "cpu",
+      "stage1_charge_bytes": 29359566336,
+      "old_stage2_charge_bytes": 29359566336,
+      "stage2_charge_bytes": 11901016064,
+      "binding_retained_bytes": 584337408,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 96893400,
+      "fully_parked_retained_bytes": 681230808,
+      "baseline_stage1_s": 9.833564291,
+      "baseline_stage2_s": 9.502696542,
+      "baseline_native_s": 7.031724375,
+      "baseline_spill_s": 2.163749875,
+      "baseline_restore_s": 2.470972125
+    },
+    {
+      "index": 6,
+      "kind": "cpu",
+      "stage1_charge_bytes": 25883683328,
+      "old_stage2_charge_bytes": 25883683328,
+      "stage2_charge_bytes": 11811533824,
+      "binding_retained_bytes": 565467136,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 143167272,
+      "fully_parked_retained_bytes": 708634408,
+      "baseline_stage1_s": 8.590233709,
+      "baseline_stage2_s": 10.019181541,
+      "baseline_native_s": 7.547580084,
+      "baseline_spill_s": 2.0943485,
+      "baseline_restore_s": 2.471601416
+    },
+    {
+      "index": 7,
+      "kind": "cpu",
+      "stage1_charge_bytes": 19395223040,
+      "old_stage2_charge_bytes": 19395223040,
+      "stage2_charge_bytes": 11393068032,
+      "binding_retained_bytes": 510937088,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 137371256,
+      "fully_parked_retained_bytes": 648308344,
+      "baseline_stage1_s": 6.608471917,
+      "baseline_stage2_s": 9.475030125,
+      "baseline_native_s": 7.264634959,
+      "baseline_spill_s": 1.782582084,
+      "baseline_restore_s": 2.210395083
+    },
+    {
+      "index": 8,
+      "kind": "cpu",
+      "stage1_charge_bytes": 20799851520,
+      "old_stage2_charge_bytes": 20799851520,
+      "stage2_charge_bytes": 11478448640,
+      "binding_retained_bytes": 524570624,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 142542024,
+      "fully_parked_retained_bytes": 667112648,
+      "baseline_stage1_s": 7.132912041,
+      "baseline_stage2_s": 9.620212917,
+      "baseline_native_s": 6.731761291,
+      "baseline_spill_s": 1.9787745,
+      "baseline_restore_s": 2.888451584
+    },
+    {
+      "index": 9,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18428614144,
+      "old_stage2_charge_bytes": 18428614144,
+      "stage2_charge_bytes": 11361756160,
+      "binding_retained_bytes": 508192768,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 134575944,
+      "fully_parked_retained_bytes": 642768712,
+      "baseline_stage1_s": 6.441235666,
+      "baseline_stage2_s": 8.964728875,
+      "baseline_native_s": 6.858682125,
+      "baseline_spill_s": 1.834027917,
+      "baseline_restore_s": 2.106046708
+    },
+    {
+      "index": 10,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18309598720,
+      "old_stage2_charge_bytes": 18309598720,
+      "stage2_charge_bytes": 11347769344,
+      "binding_retained_bytes": 500942848,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 135567800,
+      "fully_parked_retained_bytes": 636510648,
+      "baseline_stage1_s": 6.578831125,
+      "baseline_stage2_s": 9.807715792,
+      "baseline_native_s": 7.118779917,
+      "baseline_spill_s": 1.745919417,
+      "baseline_restore_s": 2.688935833
+    },
+    {
+      "index": 11,
+      "kind": "cpu",
+      "stage1_charge_bytes": 17141509632,
+      "old_stage2_charge_bytes": 17141509632,
+      "stage2_charge_bytes": 11249372160,
+      "binding_retained_bytes": 485541888,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 134859624,
+      "fully_parked_retained_bytes": 620401512,
+      "baseline_stage1_s": 5.434211,
+      "baseline_stage2_s": 8.311000584,
+      "baseline_native_s": 6.270165583,
+      "baseline_spill_s": 1.606156625,
+      "baseline_restore_s": 2.040834959
+    },
+    {
+      "index": 12,
+      "kind": "cpu",
+      "stage1_charge_bytes": 17935019520,
+      "old_stage2_charge_bytes": 17935019520,
+      "stage2_charge_bytes": 11303111680,
+      "binding_retained_bytes": 491833344,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 134831064,
+      "fully_parked_retained_bytes": 626664408,
+      "baseline_stage1_s": 5.82456925,
+      "baseline_stage2_s": 9.218553708,
+      "baseline_native_s": 7.089698166,
+      "baseline_spill_s": 1.655968417,
+      "baseline_restore_s": 2.128855417
+    },
+    {
+      "index": 13,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18269404672,
+      "old_stage2_charge_bytes": 18269404672,
+      "stage2_charge_bytes": 11352394752,
+      "binding_retained_bytes": 500221952,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 134671704,
+      "fully_parked_retained_bytes": 634893656,
+      "baseline_stage1_s": 5.738933625,
+      "baseline_stage2_s": 8.745749166,
+      "baseline_native_s": 6.616482917,
+      "baseline_spill_s": 1.664637417,
+      "baseline_restore_s": 2.129266208
+    },
+    {
+      "index": 14,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18066669056,
+      "old_stage2_charge_bytes": 18066669056,
+      "stage2_charge_bytes": 11318859776,
+      "binding_retained_bytes": 494553088,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 135247112,
+      "fully_parked_retained_bytes": 629800200,
+      "baseline_stage1_s": 5.8543845,
+      "baseline_stage2_s": 9.605523417,
+      "baseline_native_s": 7.506166709,
+      "baseline_spill_s": 1.600301542,
+      "baseline_restore_s": 2.099356583
+    },
+    {
+      "index": 15,
+      "kind": "cpu",
+      "stage1_charge_bytes": 19202637312,
+      "old_stage2_charge_bytes": 19202637312,
+      "stage2_charge_bytes": 11572595712,
+      "binding_retained_bytes": 521979904,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 177739016,
+      "fully_parked_retained_bytes": 699718920,
+      "baseline_stage1_s": 6.045386,
+      "baseline_stage2_s": 10.437531625,
+      "baseline_native_s": 7.998203167,
+      "baseline_spill_s": 1.775522583,
+      "baseline_restore_s": 2.439328375
+    },
+    {
+      "index": 16,
+      "kind": "cpu",
+      "stage1_charge_bytes": 17617812992,
+      "old_stage2_charge_bytes": 17617812992,
+      "stage2_charge_bytes": 11322698752,
+      "binding_retained_bytes": 496584704,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 134424040,
+      "fully_parked_retained_bytes": 631008744,
+      "baseline_stage1_s": 5.757880167,
+      "baseline_stage2_s": 9.147718084,
+      "baseline_native_s": 6.925188542,
+      "baseline_spill_s": 1.725652667,
+      "baseline_restore_s": 2.2225295
+    },
+    {
+      "index": 17,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18550521344,
+      "old_stage2_charge_bytes": 18550521344,
+      "stage2_charge_bytes": 11542375424,
+      "binding_retained_bytes": 517556224,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 177430152,
+      "fully_parked_retained_bytes": 694986376,
+      "baseline_stage1_s": 6.379919667,
+      "baseline_stage2_s": 10.255708167,
+      "baseline_native_s": 7.851063792,
+      "baseline_spill_s": 1.934381708,
+      "baseline_restore_s": 2.40464425
+    },
+    {
+      "index": 18,
+      "kind": "cpu",
+      "stage1_charge_bytes": 19510705664,
+      "old_stage2_charge_bytes": 19510705664,
+      "stage2_charge_bytes": 11396995072,
+      "binding_retained_bytes": 503269376,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 135898152,
+      "fully_parked_retained_bytes": 639167528,
+      "baseline_stage1_s": 6.907374708,
+      "baseline_stage2_s": 10.046388459,
+      "baseline_native_s": 7.835837125,
+      "baseline_spill_s": 1.968783208,
+      "baseline_restore_s": 2.210551292
+    },
+    {
+      "index": 19,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18453331456,
+      "old_stage2_charge_bytes": 18453331456,
+      "stage2_charge_bytes": 11373516800,
+      "binding_retained_bytes": 503597056,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 135473128,
+      "fully_parked_retained_bytes": 639070184,
+      "baseline_stage1_s": 7.056634458,
+      "baseline_stage2_s": 9.178365125,
+      "baseline_native_s": 6.8687635,
+      "baseline_spill_s": 1.90658,
+      "baseline_restore_s": 2.309601583
+    },
+    {
+      "index": 20,
+      "kind": "cpu",
+      "stage1_charge_bytes": 18661191168,
+      "old_stage2_charge_bytes": 18661191168,
+      "stage2_charge_bytes": 11396544512,
+      "binding_retained_bytes": 508479488,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 135567464,
+      "fully_parked_retained_bytes": 644046952,
+      "baseline_stage1_s": 7.495098542,
+      "baseline_stage2_s": 9.458463542,
+      "baseline_native_s": 7.191405333,
+      "baseline_spill_s": 1.927364125,
+      "baseline_restore_s": 2.267058167
+    },
+    {
+      "index": 21,
+      "kind": "cpu",
+      "stage1_charge_bytes": 17919094272,
+      "old_stage2_charge_bytes": 17919094272,
+      "stage2_charge_bytes": 11300555776,
+      "binding_retained_bytes": 491440128,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 134826984,
+      "fully_parked_retained_bytes": 626267112,
+      "baseline_stage1_s": 6.649895833,
+      "baseline_stage2_s": 9.423090125,
+      "baseline_native_s": 7.278007625,
+      "baseline_spill_s": 1.865437583,
+      "baseline_restore_s": 2.145082458
+    },
+    {
+      "index": 22,
+      "kind": "cpu",
+      "stage1_charge_bytes": 19809775104,
+      "old_stage2_charge_bytes": 19809775104,
+      "stage2_charge_bytes": 11619556352,
+      "binding_retained_bytes": 531138560,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 179606712,
+      "fully_parked_retained_bytes": 710745272,
+      "baseline_stage1_s": 7.992043291,
+      "baseline_stage2_s": 9.652074458,
+      "baseline_native_s": 7.316822625,
+      "baseline_spill_s": 2.217754,
+      "baseline_restore_s": 2.33525175
+    },
+    {
+      "index": 23,
+      "kind": "cpu",
+      "stage1_charge_bytes": 17970896384,
+      "old_stage2_charge_bytes": 17970896384,
+      "stage2_charge_bytes": 11296762880,
+      "binding_retained_bytes": 493897728,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 137355752,
+      "fully_parked_retained_bytes": 631253480,
+      "baseline_stage1_s": 6.911275291,
+      "baseline_stage2_s": 9.236615084,
+      "baseline_native_s": 6.918515792,
+      "baseline_spill_s": 1.811767417,
+      "baseline_restore_s": 2.318099125
+    },
+    {
+      "index": 24,
+      "kind": "cpu",
+      "stage1_charge_bytes": 17443721216,
+      "old_stage2_charge_bytes": 17443721216,
+      "stage2_charge_bytes": 11482619392,
+      "binding_retained_bytes": 488654848,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 214697648,
+      "fully_parked_retained_bytes": 703352496,
+      "baseline_stage1_s": 6.869039417,
+      "baseline_stage2_s": 10.59991775,
+      "baseline_native_s": 7.824912,
+      "baseline_spill_s": 2.007272625,
+      "baseline_restore_s": 2.775005709
+    },
+    {
+      "index": 25,
+      "kind": "truth",
+      "stage1_charge_bytes": 12622831616,
+      "old_stage2_charge_bytes": 12622831616,
+      "stage2_charge_bytes": 15240863744,
+      "binding_retained_bytes": 0,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 163718904,
+      "fully_parked_retained_bytes": 163718904,
+      "baseline_stage1_s": 4.8848655,
+      "baseline_stage2_s": 90.015775792,
+      "baseline_native_s": 87.109484125,
+      "baseline_spill_s": 2.71327525,
+      "baseline_restore_s": 2.906291667
+    },
+    {
+      "index": 26,
+      "kind": "truth",
+      "stage1_charge_bytes": 12622831616,
+      "old_stage2_charge_bytes": 12622831616,
+      "stage2_charge_bytes": 15240863744,
+      "binding_retained_bytes": 0,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 140226584,
+      "fully_parked_retained_bytes": 140226584,
+      "baseline_stage1_s": 4.755621167,
+      "baseline_stage2_s": 89.201568709,
+      "baseline_native_s": 85.846129291,
+      "baseline_spill_s": 2.824104583,
+      "baseline_restore_s": 3.355439334
+    },
+    {
+      "index": 27,
+      "kind": "truth",
+      "stage1_charge_bytes": 9678358528,
+      "old_stage2_charge_bytes": 9678358528,
+      "stage2_charge_bytes": 9681174528,
+      "binding_retained_bytes": 0,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 117329920,
+      "fully_parked_retained_bytes": 117329920,
+      "baseline_stage1_s": 3.044233292,
+      "baseline_stage2_s": 10.651189875,
+      "baseline_native_s": 9.966947875,
+      "baseline_spill_s": 0.775735208,
+      "baseline_restore_s": 0.684242
+    },
+    {
+      "index": 28,
+      "kind": "truth",
+      "stage1_charge_bytes": 8601716736,
+      "old_stage2_charge_bytes": 8601716736,
+      "stage2_charge_bytes": 8604532736,
+      "binding_retained_bytes": 0,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 1641760,
+      "fully_parked_retained_bytes": 1641760,
+      "baseline_stage1_s": 0.0243655,
+      "baseline_stage2_s": 0.169185375,
+      "baseline_native_s": 0.160567375,
+      "baseline_spill_s": 0.010419083,
+      "baseline_restore_s": 0.008618
+    },
+    {
+      "index": 29,
+      "kind": "truth",
+      "stage1_charge_bytes": 9029289984,
+      "old_stage2_charge_bytes": 9029289984,
+      "stage2_charge_bytes": 9032105984,
+      "binding_retained_bytes": 0,
+      "narrow_metadata_and_proof_owner_reserve_bytes": 55893648,
+      "fully_parked_retained_bytes": 55893648,
+      "baseline_stage1_s": 1.594869291,
+      "baseline_stage2_s": 4.881144875,
+      "baseline_native_s": 4.597545958,
+      "baseline_spill_s": 0.302814542,
+      "baseline_restore_s": 0.283598834
+    }
+  ],
+  "summary": {
+    "stage1_pairs": 118,
+    "stage1_cpu_cpu_pairs": 0,
+    "stage2_pairs": 435,
+    "largest_stage2_pair_charge_bytes": 30481727488,
+    "baseline_native_sum_s": 367.26888546099997,
+    "baseline_spill_sum_s": 53.417429125,
+    "baseline_restore_sum_s": 66.06584925
+  },
+  "runtime_caveats": [
+    "Scheduler claims next indices as lanes finish; pair admissibility is not a promised runtime ordering.",
+    "Stage1CPUworkers effectivelyserial at32GiB; lastCPU/truth andtruth/truth overlap canfit. Main expectedconcurrency improvement isstage2.",
+    "Two8workerproofs maycontendfor memorybandwidth or runslower individually than16workerbaseline; only matchedfullrun canestablishwallgain.",
+    "v3parking independently addresses baseline119.5sspill+restore; thisledger mustnotattribute those changes to admission.",
+    "Static fullroster model ROMlog20 is conservative; runtime forCpu/forTruth/Store validates currentgeometry."
+  ],
+  "pair_examples": {
+    "stage1": [
+      {
+        "workers": [
+          0,
+          25
+        ],
+        "charge_bytes": 33089421312
+      },
+      {
+        "workers": [
+          0,
+          26
+        ],
+        "charge_bytes": 33089421312
+      },
+      {
+        "workers": [
+          0,
+          27
+        ],
+        "charge_bytes": 30144948224
+      },
+      {
+        "workers": [
+          0,
+          28
+        ],
+        "charge_bytes": 29068306432
+      },
+      {
+        "workers": [
+          0,
+          29
+        ],
+        "charge_bytes": 29495879680
+      },
+      {
+        "workers": [
+          1,
+          25
+        ],
+        "charge_bytes": 32266165760
+      },
+      {
+        "workers": [
+          1,
+          26
+        ],
+        "charge_bytes": 32266165760
+      },
+      {
+        "workers": [
+          1,
+          27
+        ],
+        "charge_bytes": 29321692672
+      }
+    ],
+    "stage2_largest": {
+      "workers": [
+        25,
+        26
+      ],
+      "charge_bytes": 30481727488
+    },
+    "stage2_all_pairs_fit": true
+  }
+}

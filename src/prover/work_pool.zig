@@ -10,6 +10,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+/// Cooperative composition queue: one wave driven by every leased thread,
+/// with split (row/column) batches taking priority over new top-level work.
+pub const cooperative = @import("cooperative_queue.zig");
+
 /// Fixed storage ceiling, not a scheduling target.
 pub const MAX_WORKERS: usize = 32;
 pub const WORKER_STACK_SIZE: usize = 16 * 1024 * 1024;

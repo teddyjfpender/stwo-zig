@@ -1,0 +1,12 @@
+{
+  "kind": "synthetic-execution-contract-test",
+  "real_chain_block": false,
+  "block_hash": "0x446f5c19403992552905afea75ae8cff8d8543a9a5dda9d2a3168affee9a9343",
+  "parent_state_root": "0xa97d12097681d3a6f2a6f5683857d116f3962f9b9681c2216f9b2549ba89d1d1",
+  "program_claim_words": {
+    "count": 5352732,
+    "sha256_le": "b5a4642df92e7c7792639e4a03d296b8ee6007ecb2c09b4bc0d3a7316211f605"
+  },
+  "compiled_cells": 191169,
+  "description": "Native op-geth deposit transition from synthetic authenticated state; system contracts are absent. Six genuine STARKs exercise the host verifier. No observed Mainnet block, derivation or settlement claim."
+}

@@ -103,6 +103,11 @@ pub fn Builder(comptime S: type) type {
         // names for the shipped QM31 instantiation, and an unqualified name that
         // resolves both inside and outside the generic is a compile error.
         const Self = @This();
+        const Secure = logup.SecureFor(S);
+        fn combineRelation(relation: anytype, values: anytype) Secure {
+            if (comptime @hasDecl(S, "SecureField") or @hasDecl(S, "fromBaseScalar")) return relation.combineFor(S, values);
+            return relation.combine(values);
+        }
         const ops = common.Ops(S);
         const ctl = control.Ops(S);
 
@@ -127,21 +132,21 @@ pub fn Builder(comptime S: type) type {
                 return self.denominatorWith(relations);
             }
 
-            pub fn denominatorWith(self: *const @This(), relations: anytype) Error!S {
+            pub fn denominatorWith(self: *const @This(), relations: anytype) Error!Secure {
                 try self.validate();
                 return switch (self.domain) {
-                    .registers_state => relations.registers_state.combine(self.values[0..2].*),
-                    .memory_access => relations.memory_access.combine(self.values[0..7].*),
-                    .program_access => relations.program_access.combine(self.values[0..5].*),
-                    .merkle => relations.merkle.combine(self.values[0..4].*),
-                    .poseidon2 => relations.poseidon2.combine(self.values[0..16].*),
-                    .poseidon2_io => relations.poseidon2_io.combine(self.values[0..32].*),
-                    .bitwise => relations.bitwise.combine(self.values[0..4].*),
-                    .range_check_20 => relations.range_check_20.combine(self.values[0..1].*),
-                    .range_check_8_11 => relations.range_check_8_11.combine(self.values[0..2].*),
-                    .range_check_8_8_4 => relations.range_check_8_8_4.combine(self.values[0..3].*),
-                    .range_check_8_8 => relations.range_check_8_8.combine(self.values[0..2].*),
-                    .range_check_m31 => relations.range_check_m31.combine(self.values[0..2].*),
+                    .registers_state => Self.combineRelation(relations.registers_state, self.values[0..2].*),
+                    .memory_access => Self.combineRelation(relations.memory_access, self.values[0..7].*),
+                    .program_access => Self.combineRelation(relations.program_access, self.values[0..5].*),
+                    .merkle => Self.combineRelation(relations.merkle, self.values[0..4].*),
+                    .poseidon2 => Self.combineRelation(relations.poseidon2, self.values[0..16].*),
+                    .poseidon2_io => Self.combineRelation(relations.poseidon2_io, self.values[0..32].*),
+                    .bitwise => Self.combineRelation(relations.bitwise, self.values[0..4].*),
+                    .range_check_20 => Self.combineRelation(relations.range_check_20, self.values[0..1].*),
+                    .range_check_8_11 => Self.combineRelation(relations.range_check_8_11, self.values[0..2].*),
+                    .range_check_8_8_4 => Self.combineRelation(relations.range_check_8_8_4, self.values[0..3].*),
+                    .range_check_8_8 => Self.combineRelation(relations.range_check_8_8, self.values[0..2].*),
+                    .range_check_m31 => Self.combineRelation(relations.range_check_m31, self.values[0..2].*),
                 };
             }
         };
@@ -165,19 +170,19 @@ pub fn Builder(comptime S: type) type {
                 return self.pairWith(batch, relations);
             }
 
-            pub fn pairWith(self: *const @This(), batch: usize, relations: anytype) Error!logup.RowPairFor(S) {
+            pub fn pairWith(self: *const @This(), batch: usize, relations: anytype) Error!logup.RowPairFor(Secure) {
                 const first = &self.entries[batch * self.batch_size];
                 if (self.batch_size == 1 or batch * self.batch_size + 1 == self.len) {
-                    return logup.RowPairFor(S).single(
-                        first.numerator,
+                    return logup.RowPairFor(Secure).single(
+                        logup.liftFor(S, first.numerator),
                         try first.denominatorWith(relations),
                     );
                 }
                 const second = &self.entries[batch * self.batch_size + 1];
                 return .{
-                    .n1 = first.numerator,
+                    .n1 = logup.liftFor(S, first.numerator),
                     .d1 = try first.denominatorWith(relations),
-                    .n2 = second.numerator,
+                    .n2 = logup.liftFor(S, second.numerator),
                     .d2 = try second.denominatorWith(relations),
                 };
             }

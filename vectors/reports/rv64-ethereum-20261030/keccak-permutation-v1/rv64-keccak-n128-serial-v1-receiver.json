@@ -1,0 +1,12 @@
+{
+  "schema": "rv64-keccak-fresh-process-v1",
+  "artifact_directory": "vectors/reports/interop_artifacts/rv64-keccak-n128-serial-v1",
+  "verified": true,
+  "cpu_component": false,
+  "ram_hash_boundary": false,
+  "lane_ram_bridge": false,
+  "calls": 5,
+  "proof_sha256": "945ab87ed2b5bb5ff2e187149063f6880e16ea60cda44c7f4f5677a935d87a4c",
+  "fresh_process_wall_ns": 19005833,
+  "historical_setup": "v1 request-dependent geometry control; no immutable-cache claim."
+}

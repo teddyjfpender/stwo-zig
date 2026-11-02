@@ -1,0 +1,250 @@
+{
+  "schema": 1,
+  "scope": "Typed arithmetic constants and point adapters for the existing Word16 LS/boundary/selection/scalar-range authority; no recursive receiver, proof or acceptance API. Native physical schema, source ownership and semantics unchanged.",
+  "base_commit": "740dbf0b4dd6202c0366239004c46f0708b6b1da",
+  "source_sha256": {
+    "build_support/products/catalog.zig": "8d40b72e17e515961e4bd5afee5281c0fd3c1fcd29f59dd01f0444968159df94",
+    "build_support/products/riscv_recursion.zig": "e539af97b07c4e216d69de4c6f608804b6d8ba02c10103e276172ff113dd7132",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/equations.zig": "2725eb7db466e033a0118baeead259883a55ba1de245a284bf1c225c441c4f3e",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/authority.zig": "c31cb34d4de260e3ab2a0ebe5115647efa624723bf0bb93c9602c9b88b414884",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/equations.zig": "1587367648583c33f0346feae269c1a1ede1818ba55e80706a0f98ccb97f9231",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/types.zig": "7a162b70b297ea94288379436460a04af9de8fd9c2049fdbb7e722ce8e04f856",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/component.zig": "0435cea2bd3d259beb5773ad947a1520ecbf83eb42ca0ebc84bc89d64917fb4f",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/equations.zig": "6bc84e300656d0fa0ca5d73132a2014290e46ef527feb8ea3c70e424f562ecc5",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/types.zig": "042c90572f95020c42fdde3e36b5e1a185bf2313ac2140baf3d60c16fce9176d",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "5ef059483264e3a192d2521d2381ea6d50089cdbd4d230a299316063ff5f5205",
+    "src/integrations/riscv_cpu/rv64_ls_circuit_lanes_test_root.zig": "b791a60cc091766bcb1baa52b9b24ce532a4a5f8b47d2d0d37217a8bb6c3e43b",
+    "src/integrations/riscv_cpu/tests/rv64_ls_circuit_lanes_test.zig": "bcac2224a45d931cdcf0912511ac380dfd2ad9fd0b5d2138833707e45d3769b1"
+  },
+  "native_layouts": {
+    "ls": {
+      "main": 71,
+      "interaction": 48,
+      "constraints": 261
+    },
+    "boundary": {
+      "main": 23,
+      "interaction": 20,
+      "constraints": 47
+    },
+    "paired_selection": {
+      "fixed": 6,
+      "main": 2,
+      "interaction": 8,
+      "constraints": 3
+    },
+    "scalar_table": {
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8,
+      "constraints": 3
+    },
+    "degree": 3,
+    "composition_split": 1
+  },
+  "api": {
+    "native_alias": "Component = ComponentFor(Q)",
+    "external_parameters": "claims/challenges use typed existing For(C); rows use CountFor(C), rows_nonzero is a required derived statement flag for the point entry",
+    "public_count_contract": "Future statement must bind count and derive count!=0. Generic point entry rejects missing flag; arithmetic emit is a low-level preconditioned API, not admission.",
+    "native_domain": "existing PackedM31/PackedQM31 accumulation and ownership paths retained",
+    "point": "same generic circle quotient denominator, exact current/previous masks and absolute column offsets",
+    "default_proof_bytes_preserved": true,
+    "new_runtime_protocol_enums": 0,
+    "recursive_proofs_generated": false
+  },
+  "new_focused_suite": {
+    "target": "test-riscv64-ls-circuit-lanes",
+    "named_tests": 5,
+    "runtime_guard_floor": 6,
+    "modes": [
+      "ReleaseSafe",
+      "ReleaseFast"
+    ],
+    "result": "PASS",
+    "cases": [
+      "all6 kinds and counts0/7 complete dense-Q versus Circuit-wire residuals",
+      "changed dynamic challenge/physical claim/count/nonempty rejected",
+      "full scaled random point accumulator Q versus Circuit, nonzero offsets and prior masks",
+      "missing flag and malformed samples rejected",
+      "local ledger redistribution preserves only the authenticated sum; RAM remains separate"
+    ],
+    "logs": [
+      "/tmp/rv64-ls-circuit-lanes-focused-final-safe.log",
+      "/tmp/rv64-ls-circuit-lanes-final-memory-fast.log"
+    ]
+  },
+  "existing_gates": [
+    {
+      "mode": "ReleaseSafe",
+      "targets": [
+        "test-riscv64-word16-execution-circuit",
+        "test-riscv64-word16-memory"
+      ],
+      "result": "PASS",
+      "log": "/tmp/rv64-ls-circuit-lanes-initial-safe.log"
+    },
+    {
+      "mode": "ReleaseFast",
+      "targets": [
+        "test-riscv64-word16-execution-coordinator",
+        "test-riscv64-word16-combined-services",
+        "test-riscv64-closed-load-store"
+      ],
+      "result": "PASS",
+      "log": "/tmp/rv64-ls-circuit-lanes-final-fast.log"
+    },
+    {
+      "mode": "ReleaseFast",
+      "targets": [
+        "test-riscv64-ls-circuit-lanes",
+        "test-riscv64-word16-memory"
+      ],
+      "result": "PASS",
+      "log": "/tmp/rv64-ls-circuit-lanes-final-memory-fast.log"
+    }
+  ],
+  "native_controls": {
+    "ecdsa": {
+      "new": {
+        "directory": "/tmp/rv64-ls-circuit-lanes-ecdsa",
+        "files": {
+          "cells.bin": {
+            "bytes": 83460,
+            "sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800"
+          },
+          "proof.bin": {
+            "bytes": 753000,
+            "sha256": "5884917a97fc94352eb4136b9290dc6dae60ec857d577d87843d1d6453e7f3b7"
+          },
+          "statement.json": {
+            "bytes": 15072,
+            "sha256": "5127fb7a34d9a42d5c20f8294304ba86254b771e2da9f9fd2f9f434a607e6dcc"
+          }
+        }
+      },
+      "control_directory": "/tmp/rv64-cpu-clock47-ecdsa",
+      "all_proofs_and_complete_public_state_memory_bytes_exact": true,
+      "fresh_receiver": "PASS",
+      "logs": [
+        "/tmp/rv64-ls-circuit-lanes-ecdsa-produce.log",
+        "/tmp/rv64-ls-circuit-lanes-ecdsa-fresh.log"
+      ]
+    },
+    "sail": {
+      "new": {
+        "directory": "/tmp/rv64-ls-circuit-lanes-sail",
+        "files": {
+          "cells.bin": {
+            "bytes": 108,
+            "sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+          },
+          "proof.bin": {
+            "bytes": 1020784,
+            "sha256": "55c7dfa8d918497f58eeece5b0797976944d279d2bdd2502070b2fd9718cc7bf"
+          },
+          "statement.json": {
+            "bytes": 14785,
+            "sha256": "630ab51516f4b4eab9375227f0eb450e95ac06c6bac5ebb46902461020442501"
+          }
+        }
+      },
+      "control_directory": "/tmp/rv64-cpu-clock47-sail",
+      "all_proofs_and_complete_public_state_memory_bytes_exact": true,
+      "fresh_receiver": "PASS",
+      "logs": [
+        "/tmp/rv64-ls-circuit-lanes-sail-produce.log",
+        "/tmp/rv64-ls-circuit-lanes-sail-fresh.log"
+      ]
+    },
+    "prefix4": {
+      "new": {
+        "directory": "/tmp/rv64-ls-circuit-lanes-prefix4",
+        "files": {
+          "bundle.json": {
+            "bytes": 129344,
+            "sha256": "212df07cfc6531c2874c2a82dd9de6ca054a06b37a6180d1e7a514ad9d7e286f"
+          },
+          "cells.bin": {
+            "bytes": 34523982,
+            "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d"
+          },
+          "cost.json": {
+            "bytes": 3447,
+            "sha256": "280fa4e0f5615f34ac87eb4626e3cc821fa6380c42bcce682617a6ea5250a27f"
+          },
+          "cpu-0.bin": {
+            "bytes": 873536,
+            "sha256": "497229d98f1a76c92539f5340b5fc6072d2042cda42dadc21ec21f97fb79fa80"
+          },
+          "cpu-1.bin": {
+            "bytes": 842368,
+            "sha256": "65742e9f80957abe38322f706b1ff5d682118d6b83017d33ab8c21a7c1bbde23"
+          },
+          "cpu-2.bin": {
+            "bytes": 821632,
+            "sha256": "f7f82518b58ded509142174d5d983523fb2f42d176eea1347e44915539132f4a"
+          },
+          "cpu-3.bin": {
+            "bytes": 1489296,
+            "sha256": "2db29e09edcdecc689f59052509357034c5444ebe5b8794f680d926c06cc3964"
+          },
+          "truth-0.bin": {
+            "bytes": 1623672,
+            "sha256": "77cf0778615c129360fef4e3c6ac9ebe3549db3c521a099318c0b838480046b9"
+          },
+          "truth-1.bin": {
+            "bytes": 520904,
+            "sha256": "e0335cb7210811e3e25cfd94f5746cad999162d7535a0a352a2d76e7ffde2c3f"
+          },
+          "truth-2.bin": {
+            "bytes": 494688,
+            "sha256": "bad4a8e21386e7b9b1e03dc13d64784e1b73513814429c84443a1c77fef8a37b"
+          }
+        }
+      },
+      "control_directory": "/tmp/rv64-cpu-clock47-prefix4-v1",
+      "all_proofs_and_complete_public_state_memory_bytes_exact": true,
+      "fresh_receiver": "PASS",
+      "logs": [
+        "/tmp/rv64-ls-circuit-lanes-prefix4-produce.log",
+        "/tmp/rv64-ls-circuit-lanes-prefix4-fresh.log"
+      ]
+    }
+  },
+  "legacy_finite_image_ls": {
+    "artifact": {
+      "directory": "/tmp/rv64-ls-circuit-lanes-legacy-control",
+      "files": {
+        "proof.bin": {
+          "bytes": 433488,
+          "sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664"
+        }
+      }
+    },
+    "retained_sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+    "exact": true,
+    "fresh_receiver": "PASS"
+  },
+  "control_scope": "Parent-designated frozen CPU47 production controls before Fold4 plumbing (2869530de); not claimed source-identical to740db. Default transcript compatibility is proved here by exact encoded proof/public/RAM bytes. No Binary29 authority or whole-block rerun is claimed by this slice.",
+  "tools": {
+    "rv64-word16-csp": "63ebac9635e17398ac2b9dc8331622a8cd2d85b4c3839ff6503b4a38100ae5b5",
+    "rv64-word16-sail": "8a6141c81ab0b814a4690b4b09db7b6a829b2feea9828c5e6eed9ac32ede6520",
+    "rv64-word16-ethereum": "b1026dec5671c9751347e4309735122c9ced30afd094024570a5fbd016124d3a",
+    "rv64-load-store-fixture": "5d30ac99c5a0de283b4cc737f1ab828426b6995c9ffd7a5cc2be41c1e8de2ee0"
+  },
+  "config_sha256": {
+    "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json": "23cdaf1b9e03c16fab1a097e02730e87af0f17ec5ba82f556fae413446c42e21",
+    "/tmp/rv64-word16-sail-workload-v2/config.json": "094efa4f2884c6e160db6c5d7a9fba55255a5b1363e23576a55bac59373aa020",
+    "/tmp/rv64-word16-sail-workload-v2/config-no-rvfi.json": "ef4e8ce4f4c12bfc8e5c76309c49c11316cf459b3f0052251452a9c811413fb3",
+    "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad"
+  },
+  "source_hygiene": {
+    "zig_fmt_check": "PASS",
+    "git_diff_check": "PASS",
+    "conformance_existing_errors": 97,
+    "new_errors_against_recorded_baseline": 0,
+    "log": "/tmp/rv64-ls-circuit-lanes-source-conformance.log"
+  },
+  "performance": "No change in committed cells/masks/queries. No speed or memory claim; functional runs were not controlled benchmarks.",
+  "remaining": "Typed complete Word16 transcript/point roster and register-boundary/service adapters, shared-manifest/global physical closure, image/terminal and adjacency/root authority are still required before recursive acceptance."
+}

@@ -1,0 +1,319 @@
+{
+  "schema": "rv64-resume-qualification-v1",
+  "ethereum_block_proof": false,
+  "scope": "synthetic5-instruction ABI complete3batch proof only",
+  "all_proof_bytes_equal_to_single_pass": true,
+  "cases": [
+    {
+      "case": "produce-prefix",
+      "result": {
+        "exit_code": 0,
+        "wall_ns": 1095164375,
+        "receiver": {
+          "schema": "rv64-ethereum-authenticated-execution-v1",
+          "completed": false,
+          "full_block_proof_verified": false,
+          "fresh_process_receiver_required": true,
+          "verified_batches": 1,
+          "instructions": 2,
+          "calls": [
+            0,
+            0,
+            0
+          ],
+          "initial_root": [
+            571441935,
+            1931507375,
+            1872822652,
+            1614991679,
+            1306544142,
+            1359630346,
+            913217215,
+            1758171572,
+            1716500372
+          ],
+          "final_root": [
+            571441935,
+            1931507375,
+            1872822652,
+            1614991679,
+            1306544142,
+            1359630346,
+            913217215,
+            1758171572,
+            1716500372
+          ],
+          "initial_pc": 4096,
+          "final_pc": 4104,
+          "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+          "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+          "proof_bytes": 172768,
+          "immutable_setup_ns": 619375,
+          "terminal_ns": 0,
+          "total_ns": 659120291,
+          "recursive_aggregation": false,
+          "resumed": false,
+          "resume_ns": 0,
+          "workers": 1
+        },
+        "error": null
+      }
+    },
+    {
+      "case": "verify-prefix",
+      "result": {
+        "exit_code": 0,
+        "wall_ns": 11426875,
+        "receiver": {
+          "status": "authenticated_execution_prefix_verified",
+          "full_block_proof_verified": false,
+          "batches": 1,
+          "instructions": 2,
+          "calls": [
+            0,
+            0,
+            0
+          ],
+          "final_root": [
+            571441935,
+            1931507375,
+            1872822652,
+            1614991679,
+            1306544142,
+            1359630346,
+            913217215,
+            1758171572,
+            1716500372
+          ],
+          "final_pc": 4104,
+          "final_registers": [
+            0,
+            272629760,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "setup_ns": 379042,
+          "verify_ns": 2146167,
+          "proof_bytes": 172768
+        },
+        "error": null
+      }
+    },
+    {
+      "case": "resume",
+      "result": {
+        "exit_code": 0,
+        "wall_ns": 7488313666,
+        "receiver": {
+          "schema": "rv64-ethereum-authenticated-execution-v1",
+          "completed": true,
+          "full_block_proof_verified": false,
+          "fresh_process_receiver_required": true,
+          "verified_batches": 3,
+          "instructions": 5,
+          "calls": [
+            0,
+            0,
+            0
+          ],
+          "initial_root": [
+            571441935,
+            1931507375,
+            1872822652,
+            1614991679,
+            1306544142,
+            1359630346,
+            913217215,
+            1758171572,
+            1716500372
+          ],
+          "final_root": [
+            245227248,
+            851222474,
+            1668451522,
+            40605227,
+            1492438494,
+            1002423035,
+            1758722281,
+            477336562,
+            1122487923
+          ],
+          "initial_pc": 4096,
+          "final_pc": 4116,
+          "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+          "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+          "proof_bytes": 1579381,
+          "immutable_setup_ns": 502875,
+          "terminal_ns": 4386778292,
+          "total_ns": 7477350375,
+          "recursive_aggregation": false,
+          "resumed": true,
+          "resume_ns": 3610792,
+          "workers": 1
+        },
+        "error": null
+      }
+    },
+    {
+      "case": "complete-receiver",
+      "result": {
+        "exit_code": 0,
+        "wall_ns": 31006917,
+        "receiver": {
+          "status": "ethereum_execution_proof_verified",
+          "full_block_proof_verified": true,
+          "batches": 3,
+          "instructions": 5,
+          "calls": [
+            0,
+            0,
+            0
+          ],
+          "final_root": [
+            245227248,
+            851222474,
+            1668451522,
+            40605227,
+            1492438494,
+            1002423035,
+            1758722281,
+            477336562,
+            1122487923
+          ],
+          "final_pc": 4116,
+          "final_registers": [
+            0,
+            272629760,
+            43,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "setup_ns": 1481665,
+          "verify_ns": 16040334,
+          "proof_bytes": 1579381
+        },
+        "error": null
+      }
+    },
+    {
+      "case": "single-pass-control",
+      "result": {
+        "exit_code": 0,
+        "wall_ns": 8125515000,
+        "receiver": {
+          "schema": "rv64-ethereum-authenticated-execution-v1",
+          "completed": true,
+          "full_block_proof_verified": false,
+          "fresh_process_receiver_required": true,
+          "verified_batches": 3,
+          "instructions": 5,
+          "calls": [
+            0,
+            0,
+            0
+          ],
+          "initial_root": [
+            571441935,
+            1931507375,
+            1872822652,
+            1614991679,
+            1306544142,
+            1359630346,
+            913217215,
+            1758171572,
+            1716500372
+          ],
+          "final_root": [
+            245227248,
+            851222474,
+            1668451522,
+            40605227,
+            1492438494,
+            1002423035,
+            1758722281,
+            477336562,
+            1122487923
+          ],
+          "initial_pc": 4096,
+          "final_pc": 4116,
+          "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+          "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+          "proof_bytes": 1579381,
+          "immutable_setup_ns": 506125,
+          "terminal_ns": 4374478709,
+          "total_ns": 8113636708,
+          "recursive_aggregation": false,
+          "resumed": false,
+          "resume_ns": 0,
+          "workers": 1
+        },
+        "error": null
+      }
+    },
+    {
+      "case": "resume-completed-reject",
+      "result": {
+        "exit_code": 1,
+        "wall_ns": 27248458,
+        "receiver": null,
+        "error": "error: EthereumPrefixAlreadyAtTerminal"
+      }
+    }
+  ],
+  "limitations": "Synthetic ABI gate; real47-batch recovery and failure diagnosis remain in progress."
+}

@@ -1,0 +1,1 @@
+{"block": 24626900, "set": "scored", "gas_used": 16338083, "status": "completed", "verified_output": true, "output_matches_expected": true, "execution_profile": "ethereum_services_v2", "instructions": 217562838, "keccak_f_calls": 61761, "secp_add_calls": 35756, "secp_double_calls": 30448, "loads": 38842124, "stores": 25998565, "instructions_per_gas": 13.316301428998738}

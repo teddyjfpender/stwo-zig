@@ -1,0 +1,104 @@
+{
+  "schema": "rv64-division-service-qualification-v1",
+  "standalone_arithmetic_verified": true,
+  "cpu_ingress_verified": false,
+  "whole_guest_proof": false,
+  "profile": {
+    "version": "division_service_v1",
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "artifacts": [
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v1/requests.json",
+      "bytes": 4876,
+      "sha256": "9bbb9eb28851461cdaaa33643790916ad9da90301b2c68ef2445541ba3e1127f"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v1/claim.json",
+      "bytes": 43,
+      "sha256": "1a87e847a42741afe7fc9104ef3eb438dd35f3f2348f5be5a69a015f87082d7c"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v1/proof.bin",
+      "bytes": 277192,
+      "sha256": "0c107906c5115f89ac5ba1f605eefec85ff933f1d826c89d44b0d71d07096323"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/zig-out/bin/rv64-division-verify",
+      "bytes": 909864,
+      "sha256": "ccd4c84b59141905c6d03c693609426be36adb7e9a25864d1669c36f8c035d88"
+    }
+  ],
+  "requests": 64,
+  "main_columns": 1134,
+  "interaction_columns": 8,
+  "fixed_columns": 3,
+  "constraints": 1564,
+  "cases": [
+    {
+      "case": "valid",
+      "expected_accept": true,
+      "passed": true,
+      "receiver_exit": 0,
+      "error": null
+    },
+    {
+      "case": "word-upper-operand",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64DivisionRequestClosure"
+    },
+    {
+      "case": "typed-opcode",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64DivisionRequestClosure"
+    },
+    {
+      "case": "result",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64DivisionRequestClosure"
+    },
+    {
+      "case": "count",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64DivisionFixedRootMismatch"
+    },
+    {
+      "case": "claim",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64DivisionRequestClosure"
+    },
+    {
+      "case": "noncanonical-claim",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: InvalidRv64DivisionClaim"
+    },
+    {
+      "case": "proof-byte",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: ProofOfWork"
+    }
+  ],
+  "ethereum_6270_requests_source_cost": {
+    "padded_rows": 8192,
+    "main_bytes": 37158912,
+    "fixed_bytes": 98304,
+    "interaction_bytes": 262144,
+    "narrow_request_metadata_bytes": 200640,
+    "scope": "source only; excludes PCS/FFT/openings and caller"
+  }
+}

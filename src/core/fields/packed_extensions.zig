@@ -115,3 +115,119 @@ pub inline fn mulPackedQM31x4(lhs: PackedQM31x4, rhs: PackedQM31x4) PackedQM31x4
         .c1b = cross_minus_products.b,
     };
 }
+
+pub inline fn addPackedQM31x4(lhs: PackedQM31x4, rhs: PackedQM31x4) PackedQM31x4 {
+    return .{
+        .c0a = m31.addVec4(lhs.c0a, rhs.c0a),
+        .c0b = m31.addVec4(lhs.c0b, rhs.c0b),
+        .c1a = m31.addVec4(lhs.c1a, rhs.c1a),
+        .c1b = m31.addVec4(lhs.c1b, rhs.c1b),
+    };
+}
+
+pub inline fn subPackedQM31x4(lhs: PackedQM31x4, rhs: PackedQM31x4) PackedQM31x4 {
+    return .{
+        .c0a = m31.subVec4(lhs.c0a, rhs.c0a),
+        .c0b = m31.subVec4(lhs.c0b, rhs.c0b),
+        .c1a = m31.subVec4(lhs.c1a, rhs.c1a),
+        .c1b = m31.subVec4(lhs.c1b, rhs.c1b),
+    };
+}
+
+pub inline fn splatPackedQM31x4(value: qm31.QM31) PackedQM31x4 {
+    const limbs = value.toM31Array();
+    return .{
+        .c0a = @splat(limbs[0].v),
+        .c0b = @splat(limbs[1].v),
+        .c1a = @splat(limbs[2].v),
+        .c1b = @splat(limbs[3].v),
+    };
+}
+
+pub inline fn zeroPackedQM31x4() PackedQM31x4 {
+    return .{ .c0a = @splat(0), .c0b = @splat(0), .c1a = @splat(0), .c1b = @splat(0) };
+}
+
+/// Splits lanes `(x0, x1, x2, x3)`, `(x4, x5, x6, x7)` into the even
+/// `(x0, x2, x4, x6)` and odd `(x1, x3, x5, x7)` elements.
+pub inline fn evenOddPackedQM31x4(lo: PackedQM31x4, hi: PackedQM31x4) [2]PackedQM31x4 {
+    const even = @Vector(4, i32){ 0, 2, -1, -3 };
+    const odd = @Vector(4, i32){ 1, 3, -2, -4 };
+    return .{
+        .{
+            .c0a = @shuffle(u32, lo.c0a, hi.c0a, even),
+            .c0b = @shuffle(u32, lo.c0b, hi.c0b, even),
+            .c1a = @shuffle(u32, lo.c1a, hi.c1a, even),
+            .c1b = @shuffle(u32, lo.c1b, hi.c1b, even),
+        },
+        .{
+            .c0a = @shuffle(u32, lo.c0a, hi.c0a, odd),
+            .c0b = @shuffle(u32, lo.c0b, hi.c0b, odd),
+            .c1a = @shuffle(u32, lo.c1a, hi.c1a, odd),
+            .c1b = @shuffle(u32, lo.c1b, hi.c1b, odd),
+        },
+    };
+}
+
+/// Inverse of `evenOddPackedQM31x4`: returns `(e0, o0, e1, o1)`, `(e2, o2, e3, o3)`.
+pub inline fn interleavePackedQM31x4(even: PackedQM31x4, odd: PackedQM31x4) [2]PackedQM31x4 {
+    const lo = @Vector(4, i32){ 0, -1, 1, -2 };
+    const hi = @Vector(4, i32){ 2, -3, 3, -4 };
+    return .{
+        .{
+            .c0a = @shuffle(u32, even.c0a, odd.c0a, lo),
+            .c0b = @shuffle(u32, even.c0b, odd.c0b, lo),
+            .c1a = @shuffle(u32, even.c1a, odd.c1a, lo),
+            .c1b = @shuffle(u32, even.c1b, odd.c1b, lo),
+        },
+        .{
+            .c0a = @shuffle(u32, even.c0a, odd.c0a, hi),
+            .c0b = @shuffle(u32, even.c0b, odd.c0b, hi),
+            .c1a = @shuffle(u32, even.c1a, odd.c1a, hi),
+            .c1b = @shuffle(u32, even.c1b, odd.c1b, hi),
+        },
+    };
+}
+
+/// Loads eight consecutive AoS values `ptr[0..8]` and returns the four even
+/// (`ptr[0], ptr[2], ptr[4], ptr[6]`) and four odd elements as packed lanes.
+pub inline fn loadEvenOddPackedQM31x4(ptr: [*]const qm31.QM31) [2]PackedQM31x4 {
+    return evenOddPackedQM31x4(loadPackedQM31x4(ptr), loadPackedQM31x4(ptr + 4));
+}
+
+/// Exact field sum of the four lanes (field addition is associative, so the
+/// result equals any sequential scalar accumulation of the same terms).
+pub inline fn sumLanesPackedQM31x4(value: PackedQM31x4) qm31.QM31 {
+    var out: [4]qm31.QM31 = undefined;
+    storePackedQM31x4(&out, value);
+    return out[0].add(out[1]).add(out[2]).add(out[3]);
+}
+
+test "packed QM31x4 helpers agree with scalar arithmetic" {
+    var values: [8]qm31.QM31 = undefined;
+    for (&values, 0..) |*v, i| {
+        const x: u32 = @intCast(97 * i + 13);
+        v.* = qm31.QM31.fromU32Unchecked(x, m31.Modulus - 1 - x, x * 3, 7 + x);
+    }
+    const pair = loadEvenOddPackedQM31x4(&values);
+    const k = qm31.QM31.fromU32Unchecked(5, m31.Modulus - 2, 9, 1);
+    const sum = addPackedQM31x4(pair[0], pair[1]);
+    const diff = subPackedQM31x4(pair[0], mulPackedQM31x4(pair[1], splatPackedQM31x4(k)));
+    var got_sum: [4]qm31.QM31 = undefined;
+    var got_diff: [4]qm31.QM31 = undefined;
+    storePackedQM31x4(&got_sum, sum);
+    storePackedQM31x4(&got_diff, diff);
+    var total = qm31.QM31.zero();
+    for (0..4) |i| {
+        try std.testing.expect(got_sum[i].eql(values[2 * i].add(values[2 * i + 1])));
+        try std.testing.expect(got_diff[i].eql(values[2 * i].sub(values[2 * i + 1].mul(k))));
+        total = total.add(got_sum[i]);
+    }
+    try std.testing.expect(sumLanesPackedQM31x4(sum).eql(total));
+    const back = interleavePackedQM31x4(pair[0], pair[1]);
+    var round: [8]qm31.QM31 = undefined;
+    storePackedQM31x4(&round, back[0]);
+    storePackedQM31x4(round[4..].ptr, back[1]);
+    for (values, round) |x, y| try std.testing.expect(x.eql(y));
+    try std.testing.expect(sumLanesPackedQM31x4(zeroPackedQM31x4()).isZero());
+}

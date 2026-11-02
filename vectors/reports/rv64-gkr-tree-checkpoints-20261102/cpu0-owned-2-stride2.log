@@ -1,0 +1,19 @@
+GKR_TREE_POLICY stride=2 numerical_requested_peak=8847246298 including_binding_peak=8847246298 raw_input_bytes=4541656320
+       11.31 real        84.00 user         4.83 sys
+         15164702720  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1845381  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  15  voluntary context switches
+               55019  involuntary context switches
+       1148644169842  instructions retired
+        358705500107  cycles elapsed
+         15170530680  peak memory footprint

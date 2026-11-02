@@ -96,7 +96,12 @@ pub fn initJobFromEndpoints(config: core.pcs.PcsConfig, first: Endpoint, last: E
     if (!std.meta.eql(first.program, last.program)) return error.SegmentProgramMismatch;
     return spans.JobContext.init(try spans.CompleteExecution.init(
         @import("../recursion/blake3_execution_span.zig").protocolIdentity(config),
-        first.program, first.machine, last.machine, first.io, last.io, last.cycle,
+        first.program,
+        first.machine,
+        last.machine,
+        first.io,
+        last.io,
+        last.cycle,
     ), segments);
 }
 

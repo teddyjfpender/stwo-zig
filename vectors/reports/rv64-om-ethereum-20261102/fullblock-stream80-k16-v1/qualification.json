@@ -1,0 +1,351 @@
+{
+  "scope": "Complete pinned block 24628607, 104253913 steps; streamed raw inputs and dense upper tree. Artifact comparison uses the same profile and geometry. Single combined-source observation.",
+  "relevant_runtime_source_snapshot": "a03d5de4a; frozen binary is measurement authority",
+  "binary_sha256": "be5c5b98f9bff77c90cf16c83b5852b9f0c83a1286823095a3ad3ca4c4ec0fbf",
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "environment": {
+    "STWO_ZIG_GKR_STREAM_BOTTOM": "1",
+    "STWO_ZIG_GKR_TREE_CHECKPOINTS": "unset",
+    "STWO_ZIG_GKR_TIGHT_ADMISSION": "unset",
+    "STWO_ZIG_PROFILE_OM_DOMAIN": "1"
+  },
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "park_main": true,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8,
+        8
+      ],
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 2,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 2147483648,
+      "max_inflight_wire_bytes": 1073741824
+    },
+    "recycler_cache_bytes": 1073741824,
+    "keccak_max_log": 16
+  },
+  "gkr_tree_policy": {
+    "checkpointed": false,
+    "tight_admission": true,
+    "stream_bottom": true
+  },
+  "prove_seconds": 224.75163475,
+  "wall_seconds": 243.16,
+  "process_user_seconds": 2576.36,
+  "process_system_seconds": 144.62,
+  "maximum_rss_bytes": 37707694080,
+  "peak_footprint_bytes": 37736510008,
+  "capture_seconds": 6.1512655,
+  "setup_seconds": 11.016998959,
+  "stage1_seconds": 90.368393792,
+  "stage2_seconds": 134.194701084,
+  "summed_numerical_seconds": 96.507715458,
+  "maximum_cpu_numerical_requested_peak_bytes": 12272580640,
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 11,
+    "load_and_setup_ns": 11323188334,
+    "verify_ns": 1054555208
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 145653,
+      "sha256": "3317c5a803830ba804a3c84fde33a823ce8470ef72fec300fa7c7bd62c320f24",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 684928,
+      "sha256": "2f7b3c01f708d9277cd3c55ad7693c32fd6ae113c75c566abe60b973e80bb126",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 667776,
+      "sha256": "9eac305edfb2abf67420c4dc5c67c1b41e81c81fda33a58c0d5974782f35b2f2",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 893664,
+      "sha256": "44eaea481ed4dd43ca848ec43ab51e9856cd88cd8b86a7744b9caf67f58fe0c9",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-11.bin",
+      "bytes": 756160,
+      "sha256": "a1d2405e1c2a406ed4a04efe213ad5a147b2815216dabe6badb118a3e003e220",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-12.bin",
+      "bytes": 761856,
+      "sha256": "0b075ff93d1720a91fb3c729cb0e389154fa027fe7afb05d9e38cf2761893087",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-13.bin",
+      "bytes": 741152,
+      "sha256": "0a6d4b62947aff2e7425f7996033c29a6b3799f009e34cc8a2f9116d21f8181e",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-14.bin",
+      "bytes": 879968,
+      "sha256": "83369719cc0d4a98f8b42ecc914657d9c0171fd99cf68a6aee7d58d358a8a2e2",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-15.bin",
+      "bytes": 726272,
+      "sha256": "459bccc94b31bbf594b4714d4d394d65bcde193912cbf7442f26cc29602f9e86",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-16.bin",
+      "bytes": 703104,
+      "sha256": "6a27718af043603ed5c2b4c23ffa27170f925a5edbd9b553ecde7c800d221a34",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-17.bin",
+      "bytes": 683744,
+      "sha256": "0a6351575068598782b19ca140c1f044e2d7eef92526d2ebdac5b978f56afe0f",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-18.bin",
+      "bytes": 876352,
+      "sha256": "702112c73e177bd68efeec6a83f36784ca6138c76944d1f1e2941966ef612b96",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-19.bin",
+      "bytes": 882976,
+      "sha256": "38fa5690491e9c7987715c0f6a123bb862916d1532c084c13bbdf77b8a52c6c7",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 643904,
+      "sha256": "0743cc5b09c33ede25c7f4fbb6f637b7b084eb0e036a7526a5ae02b9797b8957",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-20.bin",
+      "bytes": 868896,
+      "sha256": "18afe9b55f0a8d86b718f7f9db5363e1c3d21e087248e0e04d5e2e15729ebb05",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-21.bin",
+      "bytes": 759392,
+      "sha256": "f3dc258ae1f6d6c312526b5c9deb9683e87b122d2ae55f72c265c73cb5ccdefe",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-22.bin",
+      "bytes": 683072,
+      "sha256": "6477df1aa0e9f445fe2002d5a1b7ad90133a3bae9b88fa770b2e1c5293f8f2c2",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-23.bin",
+      "bytes": 724128,
+      "sha256": "a88b3c1aaeee8aaca79e28b3ff4712363dda089eec3afd6b0dccb22b24f8ce87",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-24.bin",
+      "bytes": 735200,
+      "sha256": "8deda48a3e2b18cac297b976c3c1bac3e1502842ad7d2a54ad898219af36b822",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 885984,
+      "sha256": "0ef5b19dade09a85972cf553a8bed1c11c730100b2e8dd1296af085316763c8f",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 789920,
+      "sha256": "be95281e7d52b10dad20511e7c05dd3c7e7d10e3bf91cfeaee473019fd2f0278",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 791840,
+      "sha256": "a3932942a10a5acb75b24d317e4e4f04e8edd1d63340f5f57d146946ab0c81d0",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 858112,
+      "sha256": "0c64c4db1ee5dc784541956591947f505ccc369adbe51ccf9ae73c3ed39f62bd",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 730752,
+      "sha256": "32d03363e456ba5be1ec45e2676d62bc1a133e0201f35b857b364a885915fc6e",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 737664,
+      "sha256": "cdc18fd16675d24078904a2ba4ec5964130f1a5804d2a51b9ca944c93d19b385",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 742080,
+      "sha256": "00ee49430f9a416f4282f15c03cd44e706a5ea1f3b0313e62ad2e202bffb9e78",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 2240660,
+      "sha256": "548ca74df8ae7dee27e26cc9e669ee2a963b0b31a6627d521c98129598256a29",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 2755312,
+      "sha256": "f47fc7054d212cf1ac2cec2715e613cb1209bcc29ae3c7c348792b3ae95adb50",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 2748304,
+      "sha256": "842d60b902cdfd29225ba644ba52ac45dbb90db9b090de6876777513ce44c0be",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-10.bin",
+      "bytes": 784248,
+      "sha256": "9feb613e1304608445d1b5654f77828a0d4bf044de2015f2b513d6a4e1bfad1d",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 2748144,
+      "sha256": "d8aea56b05dca9096ede181076d7ff61eb5e013879f6f72f7542b59ba9474abb",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 2748752,
+      "sha256": "e665d24540d91b328e012d25ce4aeac9ca99026e6ca376f7ceb8b1b768b55b81",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 2743536,
+      "sha256": "8ec7199b9cc1bc9ac056f54c3c64149a9073da0661a99b3fd5e130ea683918bf",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-5.bin",
+      "bytes": 2753680,
+      "sha256": "3d4c42610a6135856c616b1d6a06e18d953e13a6b076bf5e48bc3985215543d6",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-6.bin",
+      "bytes": 2753168,
+      "sha256": "529f542f163155090d77588cc3408291051ce9597b795c039e4542d8fe7ea20d",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-7.bin",
+      "bytes": 2698052,
+      "sha256": "aa0fe1fc8c5490b89a098344a9e35d8db5c43a2f76fb012311471fd012b09755",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-8.bin",
+      "bytes": 814616,
+      "sha256": "afd85fd4c73a538182b0159c35b710c268a00aad4c0914a0ec28bd51641daa35",
+      "matches_previous_same_profile_geometry": true
+    },
+    {
+      "name": "truth-9.bin",
+      "bytes": 681608,
+      "sha256": "22c2c1d5ee9e0d66571e73759435d18112cef5859c1703f7a795edc055916616",
+      "matches_previous_same_profile_geometry": true
+    }
+  ],
+  "limitations": [
+    "No reviewed whole-protocol128 certificate",
+    "No accepting current OM/GKR recursive root",
+    "GPU execution deferred",
+    "Two-second shard target unmet"
+  ]
+}

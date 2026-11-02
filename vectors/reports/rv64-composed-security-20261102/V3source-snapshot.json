@@ -1,0 +1,14 @@
+{
+  "revision": "6423bc59e",
+  "files": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/source_bounds.zig": "cd901373431f561964074de26c23d0cbfd84c7820593d7acffa82b2b26eb551b",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/challenges.zig": "c0b0d001ae25b1c29c9a44d41d0126a33ff2252f374efc12d7141681e2574cd6",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/roster.zig": "11cfc79ace850ae5764d74628a1aca571f19357bf881ce8de0f9caba975e7a0b",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_v3_catalog.zig": "cd02146c76946606d34d3423503474f6772c2a12ab9156373694bb184bf66a7d",
+    "src/frontends/riscv/rv64/air/delegations/keccak/batch_policy.zig": "e7b44eb82ad90b1938475fe1b9e400117abffd86343beb3c8a5db06150e8874e",
+    "src/integrations/riscv_cpu/word16_global_execution/services/wire.zig": "220d3e026e84b3ba70c7c7fda2b64c1518536e7d0c21eb397a0911a1c2b426ba",
+    "src/frontends/riscv/rv64/air/delegations/sha256/equations.zig": "557ae0729238772dfa4120bc64dc5634ad55660b2af7d49ded8d4d5bd28da9d5",
+    "src/frontends/riscv/rv64/air/delegations/arith256/equations.zig": "5842ef3e58149f370f841b13eef866a5f325bda712ea4a92d86feddac6521b63",
+    "src/frontends/riscv/rv64/air/delegations/curves/equations.zig": "1393a8ac2e9796ba17511ea5b3197be491a7e19c31ebaa6a02350af36afebf61"
+  }
+}

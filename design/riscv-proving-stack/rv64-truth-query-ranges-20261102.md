@@ -1,0 +1,13 @@
+# Immutable truth query ranges
+
+`truth_metadata.Provider.emitRange(instance, logicalRow, firstQuery, count, sink)` exposes bounded slices of the existing truth-query authority. `emit` remains a full-range wrapper. This is source preparation for future streamed truth facts and GPU handoff; it does not enable a new GKR truth protocol or establish a performance gain.
+
+Frame membership and logical row are checked before any emission. The range check uses `first <= queries` and `count <= queries-first`, avoiding addition overflow. Valid empty ranges emit nothing; invalid ranges, including overflow-sized counts, fail before calling the sink. Keccak splits the interval once at1600: selected state queries use existing `chiAccessors`, selected parity queries use `xor5Accessors`. The original24round selectors, activation weight, packed row/next-row getters and full query order remain unchanged. Secp uses the original retained byte offset and local/canonical-input policy. CHI/XOR/BYTE provider tables retain their existing single query.
+
+The adapter allocates no storage and never rebuilds expanded MAIN or Q rows. Callback output belongs to the caller; the provider reads immutable metadata. Future64-fact sources can request selected queries instead of emitting all1920Keccak queries for each small chunk. This patch does not wire such a source or alter existing resource admission, transcript, namespaces, GKR selection or security policy.
+
+Qualification is pinned in `vectors/reports/rv64-truth-range-source-20261102/`. Existing independent full-row equation/tuple oracles are compared against concatenated37-query chunks and selected partial/empty ranges for every padded row and both secp policies. This crosses the CHI/XOR boundary. Range access remains valid after MAIN ownership is taken; malformed frame/row/range requests produce no sink calls. The whole truth-GKR and classic-witness targets pass in Safe and Fast, including original physical K/secp proofs, shared closure, fresh receivers and existing ownership/OOM tests.
+
+A functional-only real4CPU+3truth service-prefix gate clears every GKR operational environment flag and compares all10authoritative artifacts with the previously accepted49/7d prefix. All are exact and a fresh receiver accepts. These are not matched performance runs; no speed claim is made. The prefix is not complete Ethereum coverage, and this receipt is not a128-bit security or GPU qualification.
+
+Independent read-only source review also passed: no arithmetic, range, order, padded-query, custody or shared-relation scope bug was found. This source review is separate from the recorded runtime gates.

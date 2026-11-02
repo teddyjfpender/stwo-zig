@@ -76,8 +76,19 @@ pub fn applyRound(
 
 fn readSmall(tables: program.TableContext, address: u32) !u32 {
     const encoded = tables.limb(address_to_id_table, address, 0);
-    if (encoded == empty_value_id or encoded >= large_value_tag) {
+    if (encoded == empty_value_id or encoded >> 30 > 1) {
         return error.BlakeMessageNotSmall;
+    }
+    if (encoded >= large_value_tag) {
+        // The adapter spills small integers into the F252 table after the
+        // small-value dictionary fills. Upstream MemoryValue::as_small accepts
+        // either tag and checks conversion to u128 before truncating to u32.
+        if (tables.limb(memory_value_table, encoded, 14) > 3)
+            return error.BlakeMessageNotSmall;
+        for (15..28) |index| {
+            if (tables.limb(memory_value_table, encoded, @intCast(index)) != 0)
+                return error.BlakeMessageNotSmall;
+        }
     }
     return tables.limb(memory_value_table, encoded, 0) |
         (tables.limb(memory_value_table, encoded, 1) << 9) |
@@ -121,4 +132,34 @@ test "Blake G and sigma match the official scalar semantics" {
     var selected: [16]u32 = undefined;
     try applyRoundSigma(&.{1}, &selected);
     for (selected, sigma[1]) |actual, expected| try std.testing.expectEqual(expected, actual);
+}
+
+test "Blake messages accept small integers spilled into the F252 table" {
+    const Context = struct {
+        encoded: u32 = 0,
+        high_limb: u32 = 0,
+        fn limb(raw: *anyopaque, table: u32, _: u32, index: u32) u32 {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (table == address_to_id_table) return self.encoded;
+            if (index == 14) return self.high_limb;
+            return switch (index) {
+                0 => 0x1ef,
+                1 => 0x0e6,
+                2 => 0x02a,
+                3 => 0x011,
+                else => 0,
+            };
+        }
+    };
+    var context: Context = .{};
+    const tables: program.TableContext = .{ .context = &context, .limb_fn = Context.limb };
+    const small = try readSmall(tables, 0);
+    context.encoded = large_value_tag;
+    try std.testing.expectEqual(small, try readSmall(tables, 0));
+    context.high_limb = 3;
+    try std.testing.expectEqual(small, try readSmall(tables, 0));
+    context.high_limb = 4;
+    try std.testing.expectError(error.BlakeMessageNotSmall, readSmall(tables, 0));
+    context.encoded = empty_value_id;
+    try std.testing.expectError(error.BlakeMessageNotSmall, readSmall(tables, 0));
 }

@@ -1,0 +1,24 @@
+1/23 rv64_services_gkr_local_test_root.test_0...OK
+2/23 word16_global_execution.services.gkr_local.tests.test.local fraction authority covers actual CPU and all chip projections...OK
+3/23 word16_global_execution.services.gkr_local.tests.test.table and service bridges emit only admitted local fractions...OK
+4/23 word16_global_execution.services.gkr_local.tests.test.mixed-height GKR uses suffix before row lane split...OK
+5/23 word16_global_execution.services.gkr_local.tests.test.whole local allocation plan rejects before fact allocations...OK
+6/23 word16_global_execution.services.gkr_local.tests.test.whole local closure rejects zero-weight poles and unbalanced claims...OK
+7/23 word16_global_execution.services.gkr_local.tests.test.actual services metadata provider rejects global-only role without MAIN access...OK
+8/23 word16_global_execution.services.gkr_local.tests.test.native local fractions and weighted row projection agree including padding...OK
+9/23 word16_global_execution.services.gkr_local.tests.test.bounded local child fresh verifies with terminal obligation still explicit...OK
+10/23 word16_global_execution.services.gkr_local.tests.test_0...OK
+11/23 word16_global_execution.services.gkr_local.tests.test.local GKR owner and pending receiver clean up every allocation failure...OK
+12/23 word16_global_execution.services.gkr_local.tests.test.Eq recurrence and cyclic prefix bind each terminal pair without cancellation...OK
+13/23 word16_global_execution.services.gkr_local.tests.test_1...OK
+14/23 word16_global_execution.services.gkr_local.tests.test.all eight actual role terminal bindings have degree at most three...OK
+15/23 word16_global_execution.services.gkr_local.tests.test.local OM child wire preserves canonical transcript rejects aliases and releases all partial decodes...OK
+16/23 word16_global_execution.services.gkr_local.metadata_test.test.actual K ADD DOUBLE metadata equals physical MAIN fractions and survives owned take...OK
+17/23 logup_gkr.mle_point.test.logup-gkr mle point: eq column satisfies anchors and carry recurrence...OK
+18/23 logup_gkr.mle_point.test.logup-gkr mle point: any single eq cell mutation violates the constraints...OK
+19/23 logup_gkr.mle_point.test.logup-gkr mle point: succinct carry quotient and anchors match interpolation...OK
+20/23 logup_gkr.mle_point.test.logup-gkr mle point: degenerate coordinates are rejected...OK
+21/23 word16_global_execution.services.gkr_local.role_test.test.original ALU and actual13 local GKR fractions prove through single MAIN span and fresh wide receiver...OK
+22/23 word16_global_execution.services.gkr_local.role_test.test.physical GKR binding rejects changed arithmetic-valid MAIN target Eq and prefix...OK
+23/23 word16_global_execution.services.gkr_local.role_test.test.mixed-height physical role binding uses common GKR suffix and globally lifted PCS masks...OK
+All 23 tests passed.

@@ -79,7 +79,7 @@ set_option linter.unusedSimpArgs false
 -- are not byte-identical. The polynomial digest identifies the reviewed one-GiB export; it is a
 -- semantic profile change from the earlier four-MiB transcription.
 #guard loadStoreProgramIrDigest ==
-  "dc7a7abc306d0bd0473b115f4cf674efb660caf9dc90c3e900f64e5542b14876"
+  "bea45e36b04fbef09cb567851a344ef5ec11bd4917bcf71c2333b094141a4e2e"
 #guard loadStoreIrDigest ==
   "d9af9ea593130937565b96891babc7984389743410d5d3f77a5f499e6ff9f1a6"
 #guard loadStorePolynomialDigest ==

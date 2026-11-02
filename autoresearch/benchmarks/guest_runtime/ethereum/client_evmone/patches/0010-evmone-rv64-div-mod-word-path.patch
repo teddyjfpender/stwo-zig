@@ -1,0 +1,36 @@
+diff --git a/lib/evmone/instructions.hpp b/lib/evmone/instructions.hpp
+index 97bbbcb..9bb63ec 100644
+--- a/lib/evmone/instructions.hpp
++++ b/lib/evmone/instructions.hpp
+@@ -267,6 +267,15 @@ inline void div(StackTop stack) noexcept
+ #if defined(ZEG_ZISK)
+     zkvm_u256_le_div(zeg_u256::le(stack[0]), zeg_u256::le(v), zeg_u256::le(v));
+ #else
++#if defined(__riscv)
++    // stwo RV64IM: both operands below 2^64 (the common case) use the native divider.
++    const auto& u = stack[0];
++    if ((u[1] | u[2] | u[3] | v[1] | v[2] | v[3]) == 0)
++    {
++        v = v[0] != 0 ? u[0] / v[0] : 0;
++        return;
++    }
++#endif
+     v = v != 0 ? stack[0] / v : 0;
+ #endif
+ }
+@@ -287,6 +296,15 @@ inline void mod(StackTop stack) noexcept
+ #if defined(ZEG_ZISK)
+     zkvm_u256_le_mod(zeg_u256::le(stack[0]), zeg_u256::le(v), zeg_u256::le(v));
+ #else
++#if defined(__riscv)
++    // stwo RV64IM: both operands below 2^64 (the common case) use the native divider.
++    const auto& u = stack[0];
++    if ((u[1] | u[2] | u[3] | v[1] | v[2] | v[3]) == 0)
++    {
++        v = v[0] != 0 ? u[0] % v[0] : 0;
++        return;
++    }
++#endif
+     v = v != 0 ? stack[0] % v : 0;
+ #endif
+ }

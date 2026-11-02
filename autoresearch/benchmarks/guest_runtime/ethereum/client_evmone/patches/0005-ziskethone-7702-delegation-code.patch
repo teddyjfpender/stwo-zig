@@ -1,0 +1,16 @@
+--- a/cpp-guest/src/zisk_state_db.cpp
++++ b/cpp-guest/src/zisk_state_db.cpp
+@@ -2068,8 +2068,11 @@
+         const auto delegation_hash = keccak256_bytes32(
+             delegation, sizeof(delegation));
+         accounts_.set_code_hash_at(signer_idx, delegation_hash, tx_counter_);
+-        // EIP-7928: a BAL code change carries the code bytes.
+-        if (bal_) contracts_.insert(delegation_hash, delegation, sizeof(delegation), signer_idx);
++        // Register the designator's code (as for CREATE output): a later
++        // call to the signer resolves it by code hash. A canonical EIP-8025
++        // witness carries only pre-state codes, so before Amsterdam nothing
++        // else provides it (EIP-7928: a BAL code change carries the bytes).
++        contracts_.insert(delegation_hash, delegation, sizeof(delegation), signer_idx);
+     }
+ 
+     return (signer_was_non_empty && charges == nullptr) ? 12500 : 0;

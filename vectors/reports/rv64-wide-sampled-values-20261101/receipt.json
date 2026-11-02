@@ -1,0 +1,35 @@
+{
+  "schema": "rv64-wide-sampled-values-v1",
+  "base": "6d795d827 +47063c48c",
+  "scope": "OM31 retained coefficient shared sampled-point evaluation; Q wrappers unchanged except exactfirstmergebase scaling",
+  "qualification": {
+    "focusedSafe": "96/96PASS",
+    "focusedFast": "96/96PASS",
+    "fullOMSafe": "PASS historical6durablehashes exact+fresh/mutations/allOOM",
+    "fullOMFast": "PASS historical6durablehashes exact+fresh/mutations/allOOM",
+    "normalization": "global log minus column log; coefficientdegree keyed separately",
+    "ownership": "all row helpers join before basisfree/coefficientrelease; genuineOOMpropagates, scratchcapfallbacktested"
+  },
+  "resources": {
+    "scratch_cap_bytes": 33554432,
+    "cap_includes": "allgroupmetadata+onecurrentbasis; output+existingonecolumninterpolation remain proof allocator",
+    "log22_basis_bytes": 131072,
+    "maximum_circle_basis_bytes": 3145728,
+    "additional_N_sized_buffers": 0,
+    "pool": "existing scoped row_work leases only; no newpool/cache"
+  },
+  "micro_shared_host": {
+    "columns": 16,
+    "log": 16,
+    "scalar_ns": 24187375,
+    "split_including_basis_ns": 1860834,
+    "basis_bytes": 16384,
+    "ratio": 12.998
+  },
+  "limits": [
+    "Actualproductionprefix A/B pending",
+    "NotGPUqualification orwhole128certificate",
+    "Scalarcapfallback mayrevisitcompletedgroups oncaprefusal; deterministic boundedmemory",
+    "Evaluation-only input fallback retains one-column interpolation schedule"
+  ]
+}

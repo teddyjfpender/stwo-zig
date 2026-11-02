@@ -1,0 +1,76 @@
+{
+  "source_commit": "cc89ff665",
+  "tests": {
+    "ReleaseSafe": "PASS28",
+    "ReleaseFast": "PASS28",
+    "cost_CLI_ReleaseFast_build": "PASS"
+  },
+  "whole_fixture": {
+    "physical_proofs": 5,
+    "baseline": "one-lane resident",
+    "candidate": "two-lane fully-node-and-coefficient-parked",
+    "all_proofs_claims_manifest_byte_exact": true,
+    "fresh_independent_keys_accepted": true,
+    "timing_substage_and_actual_node_counter_assertions": "PASS"
+  },
+  "telemetry": {
+    "API": "Options.worker_timings nullable caller-owned []WorkerTiming",
+    "fields": [
+      "source_ns",
+      "seal_native_and_gkr_ns",
+      "main_commit_ns",
+      "gkr_ns",
+      "metadata_retire_ns",
+      "spill_ns",
+      "restore_ns",
+      "native_complete_ns",
+      "stage1_ns",
+      "stage2_ns",
+      "actual_main_merkle_bytes",
+      "stage1_completed",
+      "stage2_completed"
+    ],
+    "nil": "no clock calls; no protocol effect"
+  },
+  "shape_report": {
+    "scope": "source-derived bounds/cell accounting; no full-block witness or proof constructed",
+    "roster_sha256": "092d01647bcd8280fb2934d4d4a13aab3733676899810e26527ccde0f13476e3",
+    "guest_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "ROM_log": 20,
+    "ROM_lower_rows": 540147,
+    "ROM_upper_rows": 572754,
+    "ROM_caveat": "executable-word lower bound plus all conditional-branch-opcode upper bound; enough to pin log20 without claiming a full decode or accepting inventory",
+    "host_commit_node_branch": "Native CPU streaming compactForQueries prunes bottom4 at committedlog>=20; model separate from unpruned upper; runtime parkingPlan/counter authoritative",
+    "beta": 1,
+    "CPU_workers": 25,
+    "truth_workers": 5,
+    "original_bundle_sha256": "03a050982648336eea2b09b7baf987c71e5e4c95d5db77506aed1a19aacaf962",
+    "roster_filter": "Preserves every declaration, compact request andmemory_words; excludes unused legacy claims/proof transport/root metadata"
+  },
+  "physical_cells": {
+    "legacy_with_perproof_fixed": 20275416896,
+    "new_with_perproof_fixed": 18886252608,
+    "reduction_percent": 6.851470897617196,
+    "working_GKR_facts_counted_as_cells": false,
+    "speedup_claim": false
+  },
+  "admission": {
+    "fully_parked_frontend_GiB": 15.882601626217365,
+    "max_GKR_peak_GiB": 24.292864322662354,
+    "max_represented_stage1_task_GiB": 26.9704914316535,
+    "unpruned_nodes_GiB": 12.609862387180328,
+    "host_streaming_nodes_modeled_GiB": 0.8911123871803284,
+    "scope_exclusions": [
+      "shared immutable setup",
+      "original captured/prepared/advice inventory",
+      "complete source-construction and PCS transient scratch",
+      "allocator/kernel/RSS"
+    ],
+    "two_worst_stage1_lanes": "exceeds64GiB before exclusions; not admitted or run"
+  },
+  "still_open": [
+    "production full25CPU OM/GKR proving",
+    "whole-protocol128 certificate",
+    "GPU execution (explicitly deferred)"
+  ]
+}

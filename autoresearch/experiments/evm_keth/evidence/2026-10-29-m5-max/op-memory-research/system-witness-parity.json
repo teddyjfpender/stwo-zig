@@ -1,0 +1,9 @@
+{
+  "equal": true,
+  "execution_steps": 1436741,
+  "instruction_cache_order_ignored": true,
+  "memory_addresses": 2053160,
+  "memory_big_values": 467434,
+  "memory_small_values": 147060,
+  "schema": "keth-typed-witness-comparison-v1"
+}

@@ -1,0 +1,61 @@
+{
+  "schema": "keth-native-reference-provenance-v1",
+  "scope": "offline reference EVM execution with exact observed roots; no Cairo OP or derivation proof",
+  "reference_repository": "https://github.com/ethereum-optimism/optimism",
+  "reference_revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+  "reference_go_mod_sha256": "43c6a2b6bcfca1343d3aab795eb56e0cb20dd1f822dd9b73086bca09c6a59115",
+  "reference_go_sum_sha256": "36dc5dbcca300e068079779583dc7ac521c2fb29112f03ed5efd3f8b6a65f08f",
+  "reference_binary_sha256": "53be5cf572b8cf4f41caf48d8dea321bdbf66087f86eacbd5350e052cf574473",
+  "reference_helper_sha256": "0fc10326b60ae73c07414b61eae0c488ec4e8f7c624426e5db8e913f4b27b90c",
+  "source_sha256": {
+    "autoresearch/experiments/evm_keth/assemble_op_reference.py": "d81c584a561eb154a160491897dd4466511fc7c9fc894fafb0fbec7eabb44f06",
+    "autoresearch/experiments/evm_keth/collect_state_witness.py": "dd2b55d765c1b8ec0fb94101bea4ad4ebac5219e7b99c2b7cb4bd8fdf298ed05",
+    "autoresearch/experiments/evm_keth/state_proofs.py": "e30548da73372a91ca51c1d78be7385c8983d1ad4cfc72b22e12de3addb86113",
+    "autoresearch/experiments/evm_keth/witness_nodes.py": "d8cbdcf2070eacd506a6ad36151eabd7ecba2244ee81307c318330f821f3fcd6",
+    "autoresearch/experiments/evm_keth/qualify_op_reference.py": "bfa7c8ed503cc73ac456d17e9ef38c891670116dabfcbdfa8bc7e3f007b46353"
+  },
+  "archives": {
+    "optimism-input.json.gz": {
+      "sha256": "ff0687ede5ed4ed52b244f23569912e01e96221647938d6a749f0068b5761209",
+      "uncompressed_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+      "bytes": 7559820,
+      "compressed_bytes": 2837239
+    },
+    "optimism-collection.json.gz": {
+      "sha256": "a346d055523a1b865ebcbdc038fa194eaa41f6cc1e4d665adc87b2bc915aff0d",
+      "uncompressed_sha256": "7456501eaacb24eed4f644a89548d731feffbb78c3123721140ab43133693bf8",
+      "bytes": 303509,
+      "compressed_bytes": 46214
+    },
+    "ethereum-input.json.gz": {
+      "sha256": "272d032f4222735f85d806cd8703dea6ae43ad633e786a3f019344160f057b12",
+      "uncompressed_sha256": "e711cbaccb82923c8f4081b0006cf4e9e9f8f3beb297f694fec7a16d3592a046",
+      "bytes": 1079650,
+      "compressed_bytes": 440808
+    }
+  },
+  "retained_registry_revision": "fcc7f4bf9fe577531f0e15eba52e3d8d6679f3e9",
+  "embedded_registry_revision": "ac4e48516794322e20abfe4f4c175e379b9a5d19",
+  "execution_fork_times_match_retained_config": {
+    "canyon_time": true,
+    "ecotone_time": true,
+    "fjord_time": true,
+    "granite_time": true,
+    "holocene_time": true,
+    "isthmus_time": true,
+    "jovian_time": true,
+    "karst_time": true
+  },
+  "ethereum_fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+  "op_execution_reference_checked": true,
+  "cairo_op_execution_proved": false,
+  "op_derivation_proved": false,
+  "consensus_authenticated": false,
+  "local_trace": {
+    "path": "block-data/keth-integration-20261029/optimism-trace-probes/optimism.drpc.org-debug_traceBlockByNumber.json",
+    "sha256": "30064202162f88e81a3bd4920e65510a1e961d90b37b9f6c18a55d9143a603fe",
+    "bytes": 15384677,
+    "retention": "full raw trace retained locally; the native input and access preimages are curated for offline replay"
+  },
+  "access_list_sha256": "f616318bbbdfce9297ec890e706a5a7443416041c33bfaa6727af49e17dc9227"
+}

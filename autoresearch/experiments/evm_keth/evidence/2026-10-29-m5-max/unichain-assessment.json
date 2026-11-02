@@ -1,0 +1,44 @@
+{
+  "schema": "keth-op-stack-scope-assessment-v1",
+  "observation_sha256": "a8b74b623d354b1a57ab6692f1f0c05c01b5d3472b4bec8a5097ad7100df71b9",
+  "chain_config_sha256": "42dbf47504971cd8baadcdd089b1d025bf535f4dfd4ee874291d066dbd1a3658",
+  "chain_id": 130,
+  "chain_name": "Unichain",
+  "block_number": 62529693,
+  "block_hash": "0x83e784dec34f68ddd027a5c0e5edaca95169507ec113b9d23154cd2c1be738d4",
+  "timestamp": 1793278052,
+  "gas_used": 799080,
+  "transactions": 12,
+  "block_time_seconds": 1,
+  "active_configured_forks": {
+    "canyon": 0,
+    "delta": 0,
+    "ecotone": 0,
+    "fjord": 0,
+    "granite": 0,
+    "holocene": 1736445601,
+    "isthmus": 1746806401,
+    "jovian": 1764691201,
+    "karst": 1783526401
+  },
+  "unsupported_keth_transaction_types": [
+    "0x7e"
+  ],
+  "keth_revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+  "keth_chain_id_admitted": 1,
+  "keth_execution_compatible": false,
+  "op_stack_execution_proved": false,
+  "op_stack_derivation_proved": false,
+  "requirements": [
+    "Port deposit/post-execution transaction decoding and fork-specific state transitions into constrained Cairo execution.",
+    "Implement and differentially test L1 data fees, operator fees, fee vault credits and fork-specific gas accounting.",
+    "Match this chain configuration: timestamps, header fields, block rules, system calls, withdrawals and precompiles.",
+    "Acquire execution state/code/trie witnesses and compare every executed block with an OP reference execution client.",
+    "Publish and constrain chain/config identity, block hash and pre/post roots; bind the MessagePasser storage root and output root.",
+    "Prove L1 data/receipt/blob processing and derivation, or verify a separate derivation proof bound to the identical execution inputs.",
+    "Verify every segment plus its consistency proof; implement recursive compression and the intended settlement verifier if a single on-chain proof is required.",
+    "Benchmark complete blocks and ranges at this chain block cadence, with repeated trials and retained exact-byte verifier receipts."
+  ],
+  "performance_estimate": null,
+  "performance_estimate_note": "An Ethereum gas ratio does not determine OP execution, derivation or settlement proving cost."
+}

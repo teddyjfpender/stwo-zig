@@ -1,0 +1,145 @@
+1/144 om31_fri_test.test.wide FRI: high-coordinate line folds match independent butterflies...OK
+2/144 om31_fri_test.test.wide FRI: coordinate and secure circle folds match the row oracle...OK
+3/144 om31_fri_test.test.wide FRI: QM31 facade keeps its concrete public types...OK
+4/144 om31_fri_test.test.wide FRI: proof carrier, captures and verifier instantiate with eight coordinates...OK
+5/144 om31_fri_test.test.wide FRI: failed final resize preserves original owner after all prefix folds...OK
+6/144 mod.test.api signature: core vector constructors preserve element types...OK
+7/144 mod.test.component vec: flatten and flatten cols...OK
+8/144 poly.line.test.line domain: invalid coset with non-unique x coordinates...OK
+9/144 poly.line.test.line domain: size 2 works...OK
+10/144 poly.line.test.line domain: size 1 works...OK
+11/144 poly.line.test.line domain: size matches 2^log_size...OK
+12/144 poly.line.test.line domain: coset getter...OK
+13/144 poly.line.test.line domain: double maps x by circle double map...OK
+14/144 poly.line.test.line domain: iterator matches at(i)...OK
+15/144 poly.line.test.line poly: len and ordered roundtrip...OK
+16/144 poly.line.test.line poly: constant polynomial evaluates to constant...OK
+17/144 circle.test.circle: generator order checks...OK
+18/144 circle.test.circle: log order and double_x consistency...OK
+19/144 circle.test.circle: generator on-curve and scalar-add law...OK
+20/144 circle.test.circle: point index arithmetic...OK
+21/144 circle.test.circle: coset iterator consistency...OK
+22/144 circle.test.circle: half-odds plus conjugate equals odds(parent)...OK
+23/144 circle.test.circle: random secure point is deterministic and on-curve...OK
+24/144 circle.test.circle: checked secure-point map rejects a zero denominator...OK
+25/144 circle.test.circle: coset cached half-step invariants...OK
+26/144 fields.m31.test.m31: bounded product reduction matches generic reduction...OK
+27/144 fields.m31.test.m31: generic reduction canonicalizes the full u64 range...OK
+28/144 fields.m31.test.m31: packed four-term dot product matches scalar accumulation...OK
+29/144 fields.m31.test.m31: packed reduction edge cases...OK
+30/144 fields.mod.test.fields: batch inverse matches scalar inverse (m31)...OK
+31/144 fields.mod.test.fields: batch inverse chunked matches batch inverse (m31)...OK
+32/144 fields.mod.test.fields: packed QM31 batch inverse matches scalar inverse...OK
+33/144 fields.mod.test.fields: packed QM31 coordinate load/store preserves each element...OK
+34/144 fields.mod.test.fields: packed QM31 batch inverse covers all widths and memory-sized chunks...OK
+35/144 fields.mod.test.fields: packed QM31 inverse weights match coordinate arithmetic...OK
+36/144 fields.qm31.test.qm31: mul and square match schoolbook reference...OK
+37/144 fields.qm31.test.qm31: sparse base multiplication and squaring preserve generic field results...OK
+38/144 fields.qm31.test.qm31: inverse...OK
+39/144 fields.qm31.test.qm31: basic ops parity sanity...OK
+40/144 fields.qm31.test.qm31: m31 array roundtrip...OK
+41/144 fields.qm31.test.qm31: randomized field laws...OK
+42/144 fields.cm31.test.cm31: mul and square match schoolbook reference...OK
+43/144 fields.cm31.test.cm31: inverse...OK
+44/144 fields.cm31.test.cm31: basic ops parity sanity...OK
+45/144 fields.cm31.test.cm31: randomized field laws...OK
+46/144 fri.folding_family.test.fri folding: coset walk matches indexed bit-reversed coordinates...OK
+47/144 fri.config.test.fri fold steps: match compute_all_fold_steps around the step boundary...OK
+48/144 fft.test.fft: butterfly formula for m31...OK
+49/144 fft.test.fft: ibutterfly after butterfly gives doubled inputs (m31)...OK
+50/144 fft.test.fft: butterfly supports qm31 values with m31 twiddle...OK
+51/144 utils.test.utils: bit reverse index and permutation...OK
+52/144 utils.test.utils: offset bit reversed index matches repeated previous...OK
+53/144 utils.test.utils: equal domain and evaluation logs follow wrapped coset order...OK
+54/144 utils.test.utils: circle and coset index conversion are inverses...OK
+55/144 utils.test.utils: coset-order roundtrip...OK
+56/144 utils.test.utils: bit reverse coset to circle domain order...OK
+57/144 poly.circle.mod.test.circle poly: canonic domain is canonic...OK
+58/144 poly.circle.mod.test.circle poly: bit-reverse indices preserve repeated doubling relation...OK
+59/144 poly.circle.domain.test.circle domain: iterator matches at(i)...OK
+60/144 poly.circle.domain.test.circle domain: non-canonic domain detection...OK
+61/144 poly.circle.domain.test.circle domain: at/index conjugate relation...OK
+62/144 poly.circle.domain.test.circle domain: split preserves point order via interleaving...OK
+63/144 vcs_lifted.mod.test.vcs_lifted: packed leaf constants...OK
+64/144 vcs_lifted.mod.test.vcs_lifted: packLeaf produces deterministic output...OK
+65/144 vcs_lifted.mod.test.vcs_lifted: packLeaf changes with different values...OK
+66/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hash children deterministic...OK
+67/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: direct column-major leaves match packed messages...OK
+68/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: mix root changes channel digest...OK
+69/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: plain updateLeaf matches explicit byte packing...OK
+70/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: pinned Cairo Rust oracle uses plain leaf and parent hashes...OK
+71/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hashU32s matches proving@5a7c5ed hasher_test vectors...OK
+72/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hashU32sFollowedByDigest absorbs the digest words once...OK
+73/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hashU32s encodes words exactly like mixU32s...OK
+74/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: pinned raw Stwo oracle uses domain-prefixed hashes...OK
+75/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: updateLeafPackedBytes matches updateLeaf...OK
+76/144 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hashChildrenWithSeed matches fixed parent hash...OK
+77/144 vcs_lifted.blake2_merkle.test.BLAKE2s direct mixed-height SIMD leaves match independent scalar messages...OK
+78/144 vcs.blake2_hash.test.blake2 hash: single hash test...OK
+79/144 vcs.blake2_hash.test.blake2 hash: incremental equals one-shot...OK
+80/144 vcs.blake2_hash.test.blake2 hash: streamed u32 words and digest word conversion...OK
+81/144 vcs.blake2_hash.test.blake2 hash: m31 output limbs are canonical...OK
+82/144 vcs.blake2_hash.test.blake2 hash: fixed128 backend matches generic hasher...OK
+83/144 vcs.blake2_hash.test.blake2 hash: scalar and simd backends match without shared policy mutation...OK
+84/144 vcs.blake2_hash.test.blake2 hash: compatibility backend selectors remain observable...OK
+85/144 vcs.blake2_hash.test.blake2 hash: backend wrapper matches std reference on varied lengths...OK
+86/144 channel.raw_mod_m31.test_0...OK
+87/144 poly.utils.test.poly utils: repeat value...OK
+88/144 poly.utils.test.poly utils: fold basic...OK
+89/144 poly.utils.test.poly utils: fold iterative matches recursive reference...OK
+90/144 poly.utils.test.poly utils: get folding alphas...OK
+91/144 poly.utils.test.poly utils: domain line twiddles from tree...OK
+92/144 poly.utils.test.poly utils: domain line twiddles fails on short buffer...OK
+93/144 poly.utils.test.poly utils: domain line twiddle layer view matches allocated layers...OK
+94/144 crypto.blake2s_backend.test_0...OK
+95/144 channel.blake2s.test.blake2s channel: draw counters...OK
+96/144 channel.blake2s.test.blake2s channel: draw_u32s differs on successive calls...OK
+97/144 channel.blake2s.test.blake2s channel: draw_secure_felt differs on successive calls...OK
+98/144 channel.blake2s.test.blake2s channel: draw_secure_felts are unique for small sample...OK
+99/144 channel.blake2s.test.blake2s channel: mix_felts changes digest...OK
+100/144 channel.blake2s.test.blake2s channel: compiled Metal transcript vector remains canonical...OK
+101/144 channel.blake2s.test.blake2s channel: mix_u64 matches mix_u32s and upstream digest bytes...OK
+102/144 channel.blake2s.test.blake2s channel: mix_u32s upstream digest bytes...OK
+103/144 channel.blake2s.test.blake2s channel: parallel grinding returns the canonical lattice nonce...OK
+104/144 channel.blake2s.test.blake2s channel: grind matches Rust Stwo SimdBackend known answers...OK
+105/144 channel.blake2s.test.blake2s m31 channel: grind matches Rust Stwo SimdBackend known answers...OK
+106/144 channel.blake2s.test.blake2s channels: grind matches proving@5a7c5ed SimdBackend known answers...OK
+107/144 channel.blake2s.test.blake2s channel: grind agrees with Rust below the lattice boundary...OK
+108/144 channel.blake2s.test.blake2s channel: zero-bit grinding is independent of worker count...OK
+109/144 channel.blake2s.test.blake2s channel: failed worker residues are completed synchronously...OK
+110/144 queries.test.queries: draw and normalize...OK
+111/144 queries.test.queries: sortedUniquePositions matches sorted().dedup()...OK
+112/144 queries.test.queries: fold dedups sorted positions...OK
+113/144 vcs_lifted.verifier.test.vcs_lifted verifier: verifies simple proof...OK
+114/144 vcs_lifted.verifier.test.vcs_lifted verifier: every allocation failure preserves capture and releases columns...OK
+115/144 vcs_lifted.verifier.test.vcs_lifted verifier: captured paths preserve input order and duplicates...OK
+116/144 vcs_lifted.verifier.test.vcs_lifted verifier: rejects queried column count mismatch...OK
+117/144 vcs_lifted.verifier.test.vcs_lifted verifier: duplicate mismatch releases only initialized columns...OK
+118/144 crypto.blake_sigma.test.blake sigma: every round is a permutation and round 0 is the identity...OK
+119/144 vcs_lifted.merkle_hasher.test.lifted merkle_hasher: blake2 merkle satisfies contract...OK
+120/144 vcs.hash.test.hash: eql matches byte equality...OK
+121/144 channel.raw_mod_m31_test.test.raw-mod profile boundaries are canonical including both legacy rejected raw words...OK
+122/144 channel.raw_mod_m31_test.test.raw-mod channels separate trusted degree and packing profiles and consume exact raw counters...OK
+123/144 channel.raw_mod_m31_test.test.raw-mod accepts a real raw Blake rejection block once while legacy sampling still retries...OK
+124/144 crypto.tests.blake2s_backend.test.BLAKE2s plain four-message batches match the independent standard library...OK
+125/144 crypto.tests.blake2s_backend.test.blake2s backend: one-shot known vector...OK
+126/144 crypto.tests.blake2s_backend.test.blake2s backend: incremental equals one-shot...OK
+127/144 crypto.tests.blake2s_backend.test.blake2s backend: fixed128 equals generic stream hash...OK
+128/144 crypto.tests.blake2s_backend.test.blake2s backend: fixed single-block helpers equal generic hash...OK
+129/144 crypto.tests.blake2s_backend.test.blake2s backend: four-way single-block hashes match scalar messages...OK
+130/144 crypto.tests.blake2s_backend.test.blake2s backend: eight-way single-block hashes match scalar messages...OK
+131/144 crypto.tests.blake2s_backend.test.blake2s backend: prepared fixed40 nonce words match complete hashes...OK
+132/144 crypto.tests.blake2s_backend.test.blake2s backend: four-way terminal compression matches scalar messages...OK
+133/144 crypto.tests.blake2s_backend.test.blake2s backend: eight-way terminal compression matches scalar messages...OK
+134/144 crypto.tests.blake2s_backend.test.blake2s backend: four-way equal messages match seeded scalar stream...OK
+135/144 crypto.tests.blake2s_backend.test.blake2s backend: fixed-seed scalar and simd modes cover boundaries and unaligned tails...OK
+136/144 crypto.tests.blake2s_backend.test.blake2s backend: four-way incremental updates preserve independent streams...OK
+137/144 crypto.tests.blake2s_backend.test.blake2s backend: four-way final tails preserve independent states...OK
+138/144 crypto.tests.blake2s_dispatch.test.blake2s backend: backend selection is observable and captured per hasher...OK
+139/144 crypto.tests.blake2s_dispatch.test.blake2s backend: process default changes do not alter existing hashers...OK
+140/144 crypto.tests.blake2s_dispatch.test.blake2s backend: compatibility selectors preserve default semantics...OK
+141/144 crypto.tests.blake2s_dispatch.test.blake2s backend: four-lane helpers honor explicit dispatch mode...OK
+142/144 crypto.tests.blake2s_dispatch.test.blake2s backend: four-way read-only aliases and scalar tails are supported...OK
+143/144 channel.blake2s_pow_order.test.blake2s pow order: index map is the Stwo SIMD lattice and strictly increasing...OK
+144/144 channel.blake2s_pow_order.test.blake2s pow order: residue search returns the minimum for every stride...OK
+All 144 tests passed.

@@ -1,0 +1,24 @@
+{
+  "schema": "keth-file-backed-proof-equivalence-v1",
+  "scope": "real Keth init witness; functional equivalence, not a timing comparison",
+  "input_sha256": "92ad276a5c9a535812eb5986f342d96f4c5e5dc6f95603599a40f5f22b0cc163",
+  "baseline_proof_sha256": "b5f6f852d7f00f71271e81cbbf403ddeddf9d9e60a851a68371534eee16d0b59",
+  "file_backed_proof_sha256": "b5f6f852d7f00f71271e81cbbf403ddeddf9d9e60a851a68371534eee16d0b59",
+  "byte_identical": true,
+  "official_verifier": {
+    "schema_version": 1,
+    "adapter_version": "stwo-cairo-official-verifier/1",
+    "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+    "proof_sha256": "b5f6f852d7f00f71271e81cbbf403ddeddf9d9e60a851a68371534eee16d0b59",
+    "channel": "blake2s",
+    "proof_format": "json",
+    "verified": true,
+    "wall_time_ns": 352740905,
+    "error": null
+  },
+  "product_sha256": "66ec6806e64e4115788f62464caece86ec4995a5dcf6ec2911dd620087ca1a23",
+  "allocator_log": "cairo_file_backed_allocator peak_backing_bytes=1093926912 live_backing_bytes=0 cooling_count=54",
+  "timing_qualified": false,
+  "timing_exclusion_reason": "functional preflight overlapped a CPU rebuild"
+}

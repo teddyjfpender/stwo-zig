@@ -1,0 +1,357 @@
+{
+  "schema": "rv64-process-control-functional-pilot-v1",
+  "status": "qualified-root-chain-process-control; no aggregate protocol activation",
+  "protocol": "existing-independent-root-chain-proofs; no aggregate or distributed-alpha activation",
+  "binary_sha256": "a114fa78e42dd3d89e7e8e66a2e14387d84d066f10f27365bbd235148e2bf739",
+  "real_block_prefix": {
+    "elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "collection_walks": 1,
+    "jobs": 2,
+    "steps_each": 65536,
+    "process_order": [
+      1,
+      0
+    ],
+    "later_worker_required_accepted_prefix": false,
+    "fragment_records_global_chain_accepted": false,
+    "finalize_and_separate_fresh_prefix_receiver": "PASS",
+    "job0_exact_old_serial_sha256": "7fa69a687e73382c429fbb196333239c6387454744a510a9b9223f4b5cc8ceba",
+    "job1_sha256": "32cf9e1727da46cb69abe30fbe6385c351d2418b2d60b433de80d7a0f885d0ea",
+    "both_proofs_and_complete_receipts_equal_frozen_serial": true
+  },
+  "negative_checks": [
+    "missing job0 rejects with no summary",
+    "extra batch2 rejects with no summary",
+    "forged completed=true rejects terminal PC",
+    "duplicate worker rejects without changing proof bytes"
+  ],
+  "historical_full_receiver_regression": {
+    "batches": 51,
+    "steps": 213659488,
+    "proof_bytes": 150876796,
+    "calls": [
+      32835,
+      24960,
+      19968
+    ],
+    "terminal": "PASS",
+    "scope": "functional regression only; compiler/test concurrency prevents performance comparison"
+  },
+  "limits": [
+    "only real jobs5 and26 proved through packet workers; not all51workers rerun",
+    "no memory-aware parallel dispatcher; atmostonewideworker ran at a time",
+    "no proof aggregation or global manifest alpha activation",
+    "collector process-resume not implemented; durable jobs remain usable",
+    "nativeprepare requires existing configured output parent",
+    "worker sampledRSS excludes native/decode; time-l and lifetimeRSS cover whole worker",
+    "both real workers remain above16GB target",
+    "content/nativevalue digests are not Stage1 delegation PCS roots"
+  ],
+  "serial_reference_binary_sha256": "8a6de436259e3e7aacf7347e6e89c656cd29f230bd17959659b3fc3b7ad7e552",
+  "portable_complete_gate": {
+    "target": "test-riscv64-ethereum-packet-control",
+    "tests": 1,
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "fixture": "synthetic pinned ELF5 instructions/2jobs; actual halt1/length43/zero43 output writes with joined CPU/privateRAM proofs+terminal",
+    "checks": [
+      "later worker before first proof",
+      "hole/extra/duplicate rejection",
+      "serialized index/root/PC/register/call-ID mutations",
+      "no accepted summary before canonical receiver",
+      "inspect-job never claims proof acceptance",
+      "outer timer inequality",
+      "directory and parent fsync before frontier publication"
+    ]
+  },
+  "codec_gate": {
+    "target": "test-riscv64-work-packet",
+    "tests": 8,
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "reference": "work-packet-v1.json"
+  },
+  "full_native_collection": {
+    "jobs": 51,
+    "steps": 213659488,
+    "completed": true,
+    "global_chain_accepted": false,
+    "wire_bytes": 11896243105,
+    "largest": {
+      "index": 50,
+      "bytes": 425770155
+    },
+    "encoded_cap_each": 536870912,
+    "whole_process_max_rss_bytes": 1025916928,
+    "observed_seconds": 17.84,
+    "timing_scope": "one native execution walk + capture/graph/streamedpacket/terminal certificate; overlapped small functional compilation, no comparative throughput claim",
+    "inspect50": {
+      "index": 50,
+      "file_bytes": 425770155,
+      "tape_retained_bytes": 204586000,
+      "frontier_owned_bytes": 194035640,
+      "cells": 241829,
+      "steps": 3944338,
+      "division_requests": 0,
+      "multiplication_requests": 9242,
+      "calls": [
+        1716,
+        0,
+        0
+      ],
+      "before": [
+        862587282,
+        771122139,
+        1564827693,
+        1770611650,
+        244445452,
+        1038104569,
+        630097198,
+        862317516,
+        1543696930
+      ],
+      "after": [
+        75517393,
+        238413876,
+        1295184721,
+        1967043464,
+        1889038314,
+        328984544,
+        1874489616,
+        684278147,
+        1702762391
+      ],
+      "physical_proof_verified": false,
+      "global_chain_accepted": false
+    },
+    "inspect26": {
+      "index": 26,
+      "file_bytes": 269042050,
+      "tape_retained_bytes": 220096048,
+      "frontier_owned_bytes": 35987904,
+      "cells": 263515,
+      "steps": 4194303,
+      "division_requests": 73,
+      "multiplication_requests": 25630,
+      "calls": [
+        9845,
+        0,
+        0
+      ],
+      "before": [
+        32422298,
+        1213620960,
+        1455544297,
+        114731135,
+        1341573756,
+        1221968407,
+        1401762322,
+        283266169,
+        119734459
+      ],
+      "after": [
+        112080984,
+        937038378,
+        1013934217,
+        493447348,
+        167457807,
+        21292206,
+        1363036225,
+        59897353,
+        2077763682
+      ],
+      "physical_proof_verified": false,
+      "global_chain_accepted": false
+    },
+    "default_decoded_allocation_cap": 536870912
+  },
+  "real_detached_workers": {
+    "5": {
+      "index": 5,
+      "physical_fragment_verified": true,
+      "global_chain_accepted": false,
+      "packet_sha256": "803f166ee91080edeabe63e42a48e56cefc0531467bbc71f5462e22bc5a1a1db",
+      "metrics": {
+        "memory": {
+          "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 699793408,
+          "last_rss_bytes": 3100459008,
+          "sampled_peak_rss_bytes": 23763615744,
+          "process_lifetime_peak_rss_bytes": 23768743936,
+          "samples": 2283,
+          "failed_samples": 0
+        },
+        "index": 5,
+        "first_step": 20971515,
+        "instructions": 4194303,
+        "ram_cells": 3034,
+        "keccak_calls": 16,
+        "secp_add_calls": 1188,
+        "secp_double_calls": 960,
+        "source_cells": {
+          "fixed": 44721904,
+          "main": 1667750624,
+          "interaction": 692648064
+        },
+        "proof_bytes": 3358976,
+        "native_ns": 0,
+        "openings_ns": 0,
+        "ram_witness_ns": 17834333,
+        "setup_ns": 365808917,
+        "cpu_witness_ns": 2012049084,
+        "prove_ns": 23168557208,
+        "receiver_setup_ns": 0,
+        "encode_ns": 4059750,
+        "verify_ns": 35786375,
+        "write_ns": 8316417,
+        "cache_publish_ns": 625,
+        "total_after_native_ns": 25612412750,
+        "reused_expected_setup": true,
+        "shared_main_arena_adopted": true,
+        "constraint_diagnostics_enabled": false
+      },
+      "authority_ns": 544622458,
+      "packet_read_ns": 141511083,
+      "prove_worker_ns": 25625819792,
+      "total_before_completion_ns": 26312117875,
+      "proof_sha256": "656854ed24b391b7af29fd89812e4215a1ccaa4c64ff60aa47764adb51df104e",
+      "proof_and_full_receipt_byte_equal_frozen_serial": true,
+      "timing_qualification": "functional/RSS evidence, not isolated performance comparison"
+    },
+    "26": {
+      "index": 26,
+      "physical_fragment_verified": true,
+      "global_chain_accepted": false,
+      "packet_sha256": "f3fe9366b2b9f81031f06de3ff9b2ed5e2815b213228403f354e4b3f82d1ea35",
+      "metrics": {
+        "memory": {
+          "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 766476288,
+          "last_rss_bytes": 5747572736,
+          "sampled_peak_rss_bytes": 33528430592,
+          "process_lifetime_peak_rss_bytes": 33528430592,
+          "samples": 3390,
+          "failed_samples": 0
+        },
+        "index": 26,
+        "first_step": 109051878,
+        "instructions": 4194303,
+        "ram_cells": 263515,
+        "keccak_calls": 9845,
+        "secp_add_calls": 0,
+        "secp_double_calls": 0,
+        "source_cells": {
+          "fixed": 58522560,
+          "main": 2323421424,
+          "interaction": 1366912064
+        },
+        "proof_bytes": 2906080,
+        "native_ns": 0,
+        "openings_ns": 0,
+        "ram_witness_ns": 1606385125,
+        "setup_ns": 395103250,
+        "cpu_witness_ns": 6642024125,
+        "prove_ns": 32886705375,
+        "receiver_setup_ns": 0,
+        "encode_ns": 2846500,
+        "verify_ns": 29389292,
+        "write_ns": 4430000,
+        "cache_publish_ns": 417,
+        "total_after_native_ns": 41566884166,
+        "reused_expected_setup": true,
+        "shared_main_arena_adopted": true,
+        "constraint_diagnostics_enabled": false
+      },
+      "authority_ns": 518244834,
+      "packet_read_ns": 180827125,
+      "prove_worker_ns": 41606803417,
+      "total_before_completion_ns": 42306117375,
+      "proof_sha256": "5c052b8bd1302aae9238b5141ccce5acdd5310592b1d391c6eed97b051dbbe33",
+      "proof_and_full_receipt_byte_equal_frozen_serial": true,
+      "timing_qualification": "functional/RSS evidence, not isolated performance comparison"
+    }
+  },
+  "replacement_full_receiver": {
+    "status": "ethereum_execution_proof_verified",
+    "full_block_proof_verified": true,
+    "batches": 51,
+    "instructions": 213659488,
+    "calls": [
+      32835,
+      24960,
+      19968
+    ],
+    "final_root": [
+      75517393,
+      238413876,
+      1295184721,
+      1967043464,
+      1889038314,
+      328984544,
+      1874489616,
+      684278147,
+      1702762391
+    ],
+    "final_pc": 17308,
+    "final_registers": [
+      0,
+      17292,
+      33547472,
+      33556480,
+      0,
+      2533359616,
+      2192356,
+      23552,
+      1,
+      43,
+      12583820,
+      12583824,
+      0,
+      12582963,
+      20,
+      40,
+      35233488,
+      257,
+      36575136,
+      33554016,
+      24,
+      33647488,
+      33553992,
+      6,
+      24,
+      33549560,
+      20,
+      33551672,
+      7274496,
+      2181038080,
+      2952790016,
+      0
+    ],
+    "setup_ns": 11609831041,
+    "verify_ns": 875038000,
+    "proof_bytes": 150876796,
+    "verifier_cache": {
+      "hits": 15,
+      "misses": 36,
+      "entries": 8,
+      "retained_bytes": 345960,
+      "peak_retained_bytes": 391296,
+      "cold_setup_ns": 11609831041
+    },
+    "scope": "frozen51-proof chain hardlinked toisolateddirectory; onlyjob5/26 proof+receipt replaced by newly generated detached-worker artifacts; fresh canonical receiver validates all51+terminal"
+  },
+  "native_terminal_byte_equal_frozen_serial": true,
+  "final_frozen_binary": {
+    "binary_sha256": "5daf50a4a54d4155dbee1ae8a79c5f431c7263f68f90a853f585edd82e7ae520",
+    "mode": "ReleaseFast",
+    "scope": "root-chain process control; no distributed alpha or aggregate proof",
+    "source_manifest_sha256": "e6ec3064cde26f8b7b7e77f8732a70fe51e57637149988810dc78780758d1098"
+  }
+}

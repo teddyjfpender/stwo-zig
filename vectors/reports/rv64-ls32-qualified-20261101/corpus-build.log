@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded
+rv64-word16-csp success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 51s MaxRSS:3G
+rv64-word16-sail success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 53s MaxRSS:3G
+

@@ -1,0 +1,28 @@
+{
+  "owned": {
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "f641b29cc8bc0f9c13977ffd419b64d07dab0b558bd2b7608e81af0911a1d28c",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source_test.zig": "013460794d2adb06bba7762c2428800c3034135e30632f822e162b3837c764d5",
+    "src/integrations/riscv_cpu/word16/weighted_binary_fixture.zig": "7450c18eae228a07c57c88fc9b532c604b2664c00ecfae4fd00d3f07e2019ebb",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_binary_main.zig": "45de78b190866b1b57e1a7f7d0fccef072636462d1de21217e6304461cf653e5",
+    "src/integrations/riscv_cpu/tests/rv64_word16_weighted_binary_test.zig": "df1adb24b2e3cdac5a1b2581b1acf706630f2169760d585bd8d70814078beeee",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig": "9a4bcae6eb973c43a66e84d4e55d27cf270e329e1cf66765920208c4eeb41717"
+  },
+  "registration_hunks": {
+    "existing_source_minimum": "word16-binary-source3->9 actual(runtime includes two table tests)",
+    "new_suite": "test-riscv64-word16-weighted-binary4",
+    "new_tool": "rv64-word16-weighted-binary",
+    "files": [
+      "build_support/products/catalog.zig",
+      "build_support/products/riscv_cpu.zig"
+    ]
+  },
+  "dependencies": {
+    "src/frontends/riscv/rv64/air/word16_v1/binary.zig": "78b69c822b99316921a97cc76dbbd302f9e3c3c31663df42e860de9b37c7e61c",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_lookup.zig": "684e5e443ca7b0c4302d619c960ff3e14437ceaa6d08c019740cc000b7b71116",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "e4548067bb5019fb345cd752cb4320b054bc090e709351652ba98ac3f18690e4",
+    "src/frontends/riscv/rv64/air/word16_v1/expected_roster.zig": "2c47c28b744b1ad3af8d0233c995108ff382735e46716b3b710ab1ae4589194e",
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "c63e5c73569dd23b6c9f2fb7e28bd0b9ca90fb64ed5b167257e0520003386b15"
+  },
+  "report": "word16-binary-weighted-source-v1-qualification.json",
+  "frozen": true
+}

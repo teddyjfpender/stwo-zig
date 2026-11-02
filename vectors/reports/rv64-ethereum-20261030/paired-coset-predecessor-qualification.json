@@ -1,0 +1,39 @@
+{
+  "schema": "rv64-paired-coset-predecessor-v1",
+  "status": "functional and historical proof parity PASS; isolated whole-job performance not measured",
+  "source": "src/frontends/riscv/rv64/air/full/coset_evaluation.zig",
+  "algorithm": [
+    "Coefficient and mask sources are immutable borrowed inputs for the Evaluation lifetime.",
+    "On consecutive partner parts, swap current/previous buffers for predecessor-marked columns and transform only unmarked columns. Arbitrary/repeated part requests use the complete original transform path.",
+    "No extra field storage. One extra borrowed-buffer header per unmarked source. Any unsuccessful transform invalidates the cached part; retries reconstruct all current/previous views."
+  ],
+  "cost_model": {
+    "notation": "C source columns, P predecessor-marked columns, four n-sized cosets",
+    "old_transformed_columns": "4(C+P)",
+    "new_transformed_columns": "4C for the sequential0/1/2/3 schedule",
+    "native_scratch": "unchanged n(C+P) M31",
+    "keccak_C": 4551,
+    "keccak_P": 1607,
+    "keccak_old_transforms": 24632,
+    "keccak_new_transforms": 18204,
+    "speedup": null
+  },
+  "gates": {
+    "safe": [
+      "test-riscv64-coset",
+      "test-riscv64-parallel",
+      "test-riscv64-providers"
+    ],
+    "coverage": [
+      "Arbitrary degree-bounded coefficients and direct point/full4n FFT equality for logs2..9.",
+      "All predecessor mask patterns; exact buffer swaps, arbitrary/repeated part requests, allocation errors and failed-transform retry.",
+      "CPU native full4n quotient and serialized proof equality across1/3/8/16 workers.",
+      "Historical primitive, bridge and five joined q70/P26 proof SHA controls, including fresh receivers; forcedKlog14/15 native and proof gates after the separately documented fixed-tail correction."
+    ],
+    "control_receipts": [
+      "keccak-partial-tail-fix-qualification.json",
+      "keccak-interaction-dictionary-qualification.json"
+    ]
+  },
+  "performance": "Whole-job timings include several other qualified optimizations and cannot be attributed to this cache alone."
+}

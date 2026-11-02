@@ -1,0 +1,94 @@
+{
+  "schema": "rv64-prepared-worker-v1",
+  "scope": "Cache-backed pure worker seam. Not yet the detached frontier or distributed queue implementation.",
+  "api": {
+    "context": "PreparedContext{authority:*constFull.ProgramAuthority,policy:*constR.policy.Policy,frontier:*R.values.Cache}",
+    "entry": "provePrepared(a,context,config,tape:*Tape,finished:*Native.Finished,cursor,dir,PreparedTiming)!Metrics",
+    "ownership": "Authority/policy borrowed/exclusive frontier+cursor; Finished/Tape remain caller-owned one-shot inputs. RAM consumes openings on constructor success; Tape clears after all builders copy advice. Any later failure aborts packet, no in-place OOM retry. Native finish failure leaves capture unchanged.",
+    "native_adapter": "Native.finish followed by capture clear and delegation to the one canonical proving body; no VM/guestMemory/Capture access inside prepared body.",
+    "timing": "Native finish/openings time and optional pre-worker capture-release overhead included exactly once in total_after_native; timing-only sum saturates on overflow."
+  },
+  "gates": {
+    "release_safe_chain_tests": 7,
+    "release_fast_chain_tests": 7,
+    "actual_private_ram_owned_arena_proof_byte_parity": true,
+    "native_memory_cpu_capture_destroyed_before_proof": true,
+    "independently_rebuilt_receiver": true,
+    "failing_allocator_zero_preflight_rejections": true,
+    "valid_input_first_allocation_failure_cleanup": true,
+    "real_guest_steps": 65536,
+    "proof_bytes": 962896,
+    "proof_sha256": "7fa69a687e73382c429fbb196333239c6387454744a510a9b9223f4b5cc8ceba",
+    "matched_frozen_reference_proof_equal": true,
+    "matched_frozen_reference_entire_receipt_json_equal": true,
+    "frozen_fresh_verify_prefix": true
+  },
+  "historical_scope_correction": "The older pilot16 16b3aa\u2026 proof uses DIV.present. Current matched reference and candidate both use DIV.none with zero requests; comparing across those rosters would be invalid. Same-pinned input/ELF/controlbytes/statev2 and matched roster were regenerated with frozen pre-seam SIMD-all binary.",
+  "performance": "Functional identity gates, not a timing benchmark or speedup claim.",
+  "archive": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1",
+  "pins": [
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1/rv64_ethereum_prove_batch.zig",
+      "bytes": 12366,
+      "sha256": "0748faec745a2fbdc07cdf4194ace9c0d6f90dd3e3a3403c48da23414d69a78a"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1/rv64_ethereum_prepared_test.zig",
+      "bytes": 8383,
+      "sha256": "468bf0ec9da74ce42d9f5ccc75547a99f4e8cc29fd7c42b25e27c9a8c4af4d98"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1/rv64-ethereum-proof",
+      "bytes": 5525424,
+      "sha256": "a152a54d2d19ba8dde4a97fd7aed2996887509029ee60001056a40ccd7b48fe7"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1/candidate/batch-000000.proof",
+      "bytes": 962896,
+      "sha256": "7fa69a687e73382c429fbb196333239c6387454744a510a9b9223f4b5cc8ceba"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1/reference/batch-000000.proof",
+      "bytes": 962896,
+      "sha256": "7fa69a687e73382c429fbb196333239c6387454744a510a9b9223f4b5cc8ceba"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-prepared-worker-v1/frozen-receiver.json",
+      "bytes": 977,
+      "sha256": "58378d1fef0801f72d061a9bf78e72c92c56975a6fde782b5d9540b61847edb0"
+    }
+  ],
+  "reference_binary": {
+    "path": "/tmp/stwo-rv64-delivery/proof-tools-simd-all-v1/rv64-ethereum-proof",
+    "bytes": 5324176,
+    "sha256": "4d0cfa5042c4f2558462af344bf6805f6a75195f8a3b2c4d3adab07c84cd4066"
+  },
+  "config": {
+    "elf": "/private/tmp/stwo-rv64-ethereum-services-v2/ethereum-rv64-services-v2.elf",
+    "input": "/tmp/stwo-rv64-ethereum/fixture/canonical-input.ssz",
+    "elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+    "symbols": {
+      "input_start": 8388608,
+      "input_end": 12582912,
+      "halt_flag": 12582912,
+      "output_len": 12582916,
+      "output_data": 12582920,
+      "output_end": 16777216,
+      "stack_bottom": 16777216,
+      "stack_top": 33554432,
+      "heap_start": 33647392,
+      "heap_end": 268435456
+    },
+    "max_steps": 1000000000,
+    "output_directory": "/tmp/stwo-rv64-prepared-worker-pilot-16",
+    "terminal_pc": 17308,
+    "batch_steps": 65536,
+    "max_batches": 1,
+    "workers": 4,
+    "control_policy": "bytes_v1",
+    "state_policy": "cyclic_v2",
+    "profile_stages": false
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "rv64-parallel-logup-microbenchmark-v1",
+  "scope": "One actual complete software CSP ECDSA execution. Single samples; init and interaction timing exclude hash generation, commitments and proof verification.",
+  "command": "RV64_TRACE_BENCH_CONFIG=<case-config.json> RV64_TRACE_BENCH_WORKERS=18 zig build test-riscv64-full-capture -Doptimize=ReleaseFast",
+  "steps": 1625938,
+  "rows": 2097152,
+  "main_columns": 519,
+  "interaction_columns": 260,
+  "workers": 18,
+  "reference": {
+    "variant": "parallel constructor, serial logical-order interaction",
+    "init_ns": 641093833,
+    "interaction_ns": 4360554750
+  },
+  "candidate": {
+    "variant": "parallel physical inverse/contribution fill, joined logical prefix scan",
+    "init_ns": 639871958,
+    "interaction_ns": 584935875
+  },
+  "equal_byte_hashes": {
+    "main_blake2s": "70b230fd48950415c5528768d356044970f617ec8fa60e18e80cc8ec0c5d2961",
+    "interaction_blake2s": "57f0326d64fa280790daa460f8426cb2ce786bf9cf2d708ceffd8370379f54e5"
+  },
+  "source_references": [
+    {
+      "file": "trace-source-original.zig",
+      "sha256": "3454cd27bcf6b3fd9cc89bb49479b5e2cff5b9937e0a165dc0f58453c4de972c"
+    },
+    {
+      "file": "trace-source-pass1.zig",
+      "sha256": "ee680a7f6fa590bc2dfb54a1563dcd1ea5d8afa96fb67999e6a4c7e516b20c72"
+    },
+    {
+      "file": "trace-source-parallel-logup.zig",
+      "sha256": "9fa7ff795158e0fa6d911726b751449f8a31f45aa230053a5e0b4c1fe656a936"
+    }
+  ],
+  "ownership": {
+    "shared_borrowed": "Immutable plan/program/metadata and inverse dictionaries; output data owned by coordinator",
+    "per_worker": "128 KiB preallocated heap scratch and disjoint 32-row-aligned physical output bands",
+    "worker_allocations": 0,
+    "additional_wide_intermediate_bytes": 0,
+    "temporary_prefix_storage": "Existing five prefix column slots hold row contributions until the joined scan",
+    "publication": "All helpers join, logical prefix scan completes, expected state closure validates, then interaction is published and metadata retired",
+    "failure": "Unpublished interaction and scratch are freed only after the helper barrier; metadata remains available for caller-directed retry"
+  },
+  "checks": [
+    "Serial/4-worker full interaction byte equality",
+    "Allocation failure injection for constructor and interaction coordinator buffers",
+    "Parallel zero-denominator rollback followed by successful generation",
+    "Small worker stack rejected",
+    "Mixed bitwise/shift/MUL/DIVU/RAM rows at full 64-bit addresses satisfy unchanged AIR",
+    "Generation after main retirement and consumed-phase rejection"
+  ],
+  "whole_proof_acceptance": "Qualified separately by root full-lifecycle proof, fresh verification and exact serialized-proof comparison; this microbenchmark alone is not that gate."
+}

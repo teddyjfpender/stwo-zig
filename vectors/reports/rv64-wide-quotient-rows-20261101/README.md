@@ -1,0 +1,7 @@
+# Wide DEEP quotient row execution
+
+The real CPU0 prefix recorder attributed 8.710 s to the combined lazy FRI quotient build and commitment. The historical QM31 control recorded 0.796 s, with a different extension/security profile. Aggregate combination and coefficient FFTs already shared the parameterized pooled M31 implementation. The wide fallback still walked every domain point and finalized all rows serially.
+
+This slice reuses the qualified incremental bit-reversed coset walker and the existing scoped row scheduler. Each ordinal has a separate mutable workspace and bounded inverse tile; groups, constants and batches remain immutable. Helper scratch is capped at 8 MiB and consumes only the remaining admitted quotient byte budget. A scalar-exact cap remains valid. Jobs join before any error is propagated or backing freed; held/cooperative pools fall back without a new pool or cache.
+
+Both ReleaseSafe and ReleaseFast qualification pass, including actual nonzero 16,384-row coordinate-byte parity, saturated-lease fallback, poles, allocation failures and existing full wide proof/fresh-receiver fixtures. Independent review found no correctness blocker. The durable proof fixtures are small; the direct row gate exercises actual parallel work. The real 4.19M-row shard A/B is pending parent integration. No whole-stage or block speedup is claimed here, and the legacy QM31 control remains substantially faster than the experimental wide-GKR route at the last measured point.

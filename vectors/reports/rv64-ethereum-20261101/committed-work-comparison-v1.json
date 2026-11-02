@@ -1,0 +1,278 @@
+{
+ "schema": 1,
+ "kind": "rv64_committed_work_vs_zisk",
+ "scope": "Hardware-independent committed-cell/bit accounting; observations only; no proving run; no timing; different blocks and different security profiles",
+ "harness": "scripts/rv64_committed_work_report.py (python3 -I)",
+ "ours": {
+  "block": 24628607,
+  "gas_used": 7372614,
+  "gas_source": "etherscan.io/block/24628607 (7,372,614, matches caller)",
+  "run_dir": "/tmp/rv64-ls32-qualified-complete-v1 (LS32 qualified complete block, core schema 7; cost.json byte-identical to vectors/reports/rv64-ls32-qualified-20261101/complete-cost.json)",
+  "field": "M31, 31 bits/cell; QM31 interaction/composition as 4 base columns",
+  "suite": "q70/P26/log_blowup1/fold1/last-layer 0, prefixed Blake2s Merkle (measured from all 30 proof headers)",
+  "instructions": 104253913,
+  "proofs": {
+   "cpu": 25,
+   "truth": 5
+  },
+  "native_cells": {
+   "fixed": 1424594496,
+   "main": 10230620160,
+   "interaction": 8681273600,
+   "composition": 853606400,
+   "total": 21190094656,
+   "trace_total_excl_composition": 20336488256
+  },
+  "lde_cells": {
+   "fixed": 2849188992,
+   "main": 20461240320,
+   "interaction": 17362547200,
+   "composition": 1707212800,
+   "total": 42380189312
+  },
+  "native_bits": {
+   "fixed": 44162429376,
+   "main": 317149224960,
+   "interaction": 269119481600,
+   "composition": 26461798400,
+   "total": 656892934336,
+   "trace_total_excl_composition": 630431135936
+  },
+  "lde_bits": {
+   "fixed": 88324858752,
+   "main": 634298449920,
+   "interaction": 538238963200,
+   "composition": 52923596800,
+   "total": 1313785868672
+  },
+  "blake2s_compressions": {
+   "fixed": {
+    "nonfinal": 152096705,
+    "final": 211558400,
+    "parents": 211558370,
+    "leaf": 363655105,
+    "total": 575213475
+   },
+   "main": {
+    "nonfinal": 1293283110,
+    "final": 211558400,
+    "parents": 211558370,
+    "leaf": 1504841510,
+    "total": 1716399880
+   },
+   "interaction": {
+    "nonfinal": 1107105115,
+    "final": 211558400,
+    "parents": 211558370,
+    "leaf": 1318663515,
+    "total": 1530221885
+   },
+   "composition": {
+    "nonfinal": 211558400,
+    "final": 211558400,
+    "parents": 211558370,
+    "leaf": 423116800,
+    "total": 634675170
+   },
+   "fri": {
+    "nonfinal": 423116680,
+    "final": 423116680,
+    "parents": 423116047,
+    "leaf": 846233360,
+    "total": 1269349407
+   },
+   "all": {
+    "leaf": 4456510290,
+    "parents": 1269349527,
+    "total": 5725859817
+   }
+  },
+  "pow_expected_hashes": 2013265920,
+  "fri_committed_layers_per_proof": [
+   12,
+   17,
+   18,
+   22
+  ],
+  "queries": [
+   70
+  ],
+  "openings": {
+   "sampled_qm31": 73140,
+   "queried_m31": 3968580,
+   "pcs_hash_witnesses": 126416,
+   "fri_witness_qm31": 31604,
+   "fri_hash_witnesses": 231235,
+   "last_layer_qm31": 30
+  },
+  "proof_bytes": 29481608,
+  "estimated_hash_rows": [
+   "truth-0",
+   "truth-1",
+   "truth-2",
+   "truth-3",
+   "truth-4"
+  ],
+  "per_instruction": {
+   "native_cells": 203.2546697407895,
+   "native_bits": 6300.894761964474,
+   "lde_bits": 12601.789523928948,
+   "lde_bits_by_tree": {
+    "fixed": 847.2090515393892,
+    "main": 6084.169233244991,
+    "interaction": 5162.769892387636,
+    "composition": 507.6413467569318
+   },
+   "blake2s_compressions": 54.92225329710166
+  },
+  "per_gas": {
+   "native_bits": 89099.05419380426,
+   "lde_bits": 178198.10838760852,
+   "lde_bits_by_tree": {
+    "fixed": 11980.127910127942,
+    "main": 86034.40379762185,
+    "interaction": 73005.17336184968,
+    "composition": 7178.403318009054
+   }
+  }
+ },
+ "ours_prefix_validation": {
+  "run_dir": "/private/tmp/stwo-rv64-perf-runs/perf2-baseline-prefix4 (core schema 5, 4 CPU + 3 truth, not a complete block)",
+  "instructions": 16777212,
+  "native_cells": {
+   "fixed": 231268768,
+   "main": 1558799744,
+   "interaction": 1267334272,
+   "composition": 135135232,
+   "total": 3192538016,
+   "trace_total_excl_composition": 3057402784
+  },
+  "lde_bits": {
+   "fixed": 14338663616,
+   "main": 96645584128,
+   "interaction": 78574724864,
+   "composition": 8378384384,
+   "total": 197937356992
+  },
+  "per_instruction": {
+   "native_cells": 190.2901397443151,
+   "native_bits": 5898.9943320737675,
+   "lde_bits": 11797.988664147535,
+   "lde_bits_by_tree": {
+    "fixed": 854.651155150212,
+    "main": 5760.527084476253,
+    "interaction": 4683.419680457039,
+    "composition": 499.3907440640316
+   },
+   "blake2s_compressions": 53.6514822605806
+  },
+  "proof_bytes": 6330528
+ },
+ "zisk": {
+  "block": 25701329,
+  "gas_used": 59982888,
+  "gas_source": "etherscan.io/block/25701329 (59,982,888 of 60,000,000)",
+  "sources": {
+   "area": "ziskethone docs/perf-notes.md @1c3e8d1 (44.6G area; MAIN 16.5G = steps x 68; keccak 20.8G; MEMORY 4.2G; OPCODES 3.5G)",
+   "area_definition": "zisk core/src/zisk_ops_costs.rs:10-14 @64a1f166 + proofman setup info.rs: Total = stage1 + stage2 + quotient base columns, fixed excluded, per-op ceil(Total/lanes)",
+   "census": "AIR column census of zisk @64a1f166 (traces.rs), stage-2 via std_sum.pil rule, Q = 6 base columns at max degree 3 / blowup 2"
+  },
+  "field": "Goldilocks, 64 bits/cell; cubic extension = 3 base columns",
+  "suite": "blowup 2, BLAKE3 binary Merkle, 24 grinding bits, 128-bit proven-regime query solver (query count solved at setup; not in source)",
+  "steps_inferred": 242647058.82352942,
+  "area_trace_cells": 44600000000.0,
+  "split_fractions_inferred": {
+   "main": 0.6760813764998513,
+   "interaction": 0.2975155109968288,
+   "composition": 0.02640311250331989
+  },
+  "trace_cells": {
+   "main": 30153229391.893368,
+   "interaction": 13269191790.458565,
+   "composition": 1177578817.648067,
+   "total": 44600000000.0
+  },
+  "lde_bits": {
+   "main": 3859613362162.351,
+   "interaction": 1698456549178.6963,
+   "composition": 150730088658.95258,
+   "total": 5708800000000.0
+  },
+  "fixed_setup_cells_inferred": 333012558.9731736,
+  "per_step_lde_bits": {
+   "main": 15906.285371335749,
+   "interaction": 6999.699717827354,
+   "composition": 621.190668412653,
+   "total": 23527.17575757576
+  },
+  "per_gas_lde_bits": {
+   "main": 64345.240632000765,
+   "interaction": 28315.68478627932,
+   "composition": 2512.884819066274,
+   "total": 95173.81023734636
+  },
+  "notes": [
+   "sum of perf-notes parts is 45.0G vs stated 44.6G; split fractions applied to 44.6G",
+   "16.5G/68 = 242.6M steps vs 234.8M self-step total in same notes (older emulator constants; current Main cost is 62)",
+   "area excludes padding to 2^N instance rows (up to ~+4% Main) and BASE rom/tables (~0.285G)",
+   "keccak area assumes all 20.8G is Keccakf; MEMORY/OPCODES splits use inferred AIR weights"
+  ]
+ },
+ "comparison_witness_lde_bits_excl_fixed": {
+  "ours": {
+   "total": 1225461009920,
+   "by_tree": {
+    "main": 634298449920,
+    "interaction": 538238963200,
+    "composition": 52923596800,
+    "total": 1225461009920
+   },
+   "per_instruction": {
+    "main": 6084.169233244991,
+    "interaction": 5162.769892387636,
+    "composition": 507.6413467569318,
+    "total": 11754.58047238956
+   },
+   "per_gas": {
+    "main": 86034.40379762185,
+    "interaction": 73005.17336184968,
+    "composition": 7178.403318009054,
+    "total": 166217.98047748057
+   }
+  },
+  "zisk": {
+   "total": 5708800000000.0,
+   "by_tree": {
+    "main": 3859613362162.351,
+    "interaction": 1698456549178.6963,
+    "composition": 150730088658.95258,
+    "total": 5708800000000.0
+   },
+   "per_step": {
+    "main": 15906.285371335749,
+    "interaction": 6999.699717827354,
+    "composition": 621.190668412653,
+    "total": 23527.17575757576
+   },
+   "per_gas": {
+    "main": 64345.240632000765,
+    "interaction": 28315.68478627932,
+    "composition": 2512.884819066274,
+    "total": 95173.81023734636
+   }
+  },
+  "ratio_zisk_over_ours": {
+   "per_instruction_or_step": 2.0015325781161613,
+   "per_gas": 0.5725843254980506,
+   "per_block": 4.658491746198175
+  }
+ },
+ "caveats": [
+  "different blocks: 7.37M gas vs 59.98M gas; instruction mix and keccak share differ",
+  "security: ours nominal 96-bit conjectured (q70 + 26 PoW at blowup 2^1) not 128-bit qualified; ZisK targets 128-bit proven regime with 24 grinding bits; equal-security ours needs more queries and/or larger blowup",
+  "commitment bits are not the whole cost: hashing, FFT/LDE, constraint evaluation, openings, PoW, recursion/aggregation and witness generation are excluded",
+  "ours ZisK-like row excludes fixed trees for parity with ZisK area (which excludes fixed); ours fixed LDE = 88.3 Gbit",
+  "ours includes padding rows; ZisK area excludes padding",
+  "per-instruction: RV64 retirements vs ZisK steps are not the same unit (ZisK steps are transpiled ops; precompile work is not in the step count)"
+ ]
+}

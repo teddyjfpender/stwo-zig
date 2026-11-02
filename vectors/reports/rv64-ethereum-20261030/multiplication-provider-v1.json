@@ -1,0 +1,167 @@
+{
+  "schema": "rv64-multiplication-provider-qualification-v1",
+  "standalone_mul_byte_provider": true,
+  "cpu_ingress": false,
+  "ethereum_block_proof": false,
+  "operations": [
+    "MUL",
+    "MULH",
+    "MULHU",
+    "MULHSU",
+    "MULW"
+  ],
+  "request_count": 80,
+  "log_size": 7,
+  "queries": 70,
+  "pow_bits": 26,
+  "layout": {
+    "fixed": 3,
+    "main": 87,
+    "interaction": 132,
+    "constraints": 174,
+    "degree_max": 4,
+    "byte_queries_per_padded_row": 96,
+    "previous_main": 1,
+    "previous_interaction": 4
+  },
+  "source_bytes_including_byte_table": 125952,
+  "coset_evaluation_source_scratch_bytes": 116224,
+  "cost_scope": "source/scratch only; excludes polynomial coefficients, FFT twiddles, PCS, stacks and caller metadata",
+  "receiver_cost_single_sample": {
+    "verified": true,
+    "standalone_mul_byte_provider": true,
+    "cpu_ingress": false,
+    "ethereum_block_proof": false,
+    "fresh_receiver_ns": 4374541,
+    "proof_bytes": 99864
+  },
+  "receiver_cost_scope": "cold process; diagnostic, not benchmark",
+  "artifacts": [
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/public.json",
+      "bytes": 6156,
+      "sha256": "f4c8f0c66274fd831d72fb1fe78ef51c2c8199ed0a64ddfd4e3e7c68bd102aeb"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/claims.json",
+      "bytes": 223,
+      "sha256": "de1d8f84b9aabc185b41c08de6388224d3182d2e2f96f6fd48f0ecde76e9175c"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/proof.bin",
+      "bytes": 99864,
+      "sha256": "a96a11d7b7b03e479ef9eac007910b474474a571c9c6bfa0962079c37ec2c9b3"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/bad-count-prefix.bin",
+      "bytes": 99864,
+      "sha256": "6e01c9514938398c70f5ec29b0ac76ce4794de8f4718051b3ba8df6a1c5921be"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/bad-state-prefix.bin",
+      "bytes": 99864,
+      "sha256": "218d5765859140d8a983028428eafb0962978e48a08a9730d4de975868647424"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/zig-out/bin/rv64-multiplication-verify",
+      "bytes": 846776,
+      "sha256": "8c21480b893ce0ef4016f88c27e684aa82c07f996293412118ccfc92071ffa00"
+    }
+  ],
+  "cases": [
+    {
+      "case": "valid",
+      "expected_accept": true,
+      "passed": true,
+      "receiver_exit": 0,
+      "error": null
+    },
+    {
+      "case": "request-opcode",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "request-a-full64",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "request-b-full64",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "request-result",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "ignored-W-upper-input-still-bus-bound",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "count",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "multiplication-claim",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "bytes-claim",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64MultiplicationClosure"
+    },
+    {
+      "case": "balanced-false-claims",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: OodsNotMatching"
+    },
+    {
+      "case": "noncanonical",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: InvalidRv64MultiplicationClaim"
+    },
+    {
+      "case": "previous-count-prefix",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: OodsNotMatching"
+    },
+    {
+      "case": "previous-state-prefix",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: OodsNotMatching"
+    }
+  ],
+  "full4n_reference_n_coset_complete_proof_sha256_equal": true,
+  "colluding_wrong_signed_high_result_rejected_before_artifact": true,
+  "dense_extension_fifth_difference_degree4_gate": true
+}

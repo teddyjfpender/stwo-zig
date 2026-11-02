@@ -1,0 +1,29 @@
+{
+  "base": "2684f8465ec016e8326af9b2f1155f1d9b13e712",
+  "authority": "borrowed input / moving internal layer GKR d5037079b",
+  "numerical_tests": {
+    "ReleaseSafe": 34,
+    "ReleaseFast": 34
+  },
+  "services_exact_plan_admission": {
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "includes_allocation_failure_lifecycle": true,
+    "includes_external_parent_binding_reservation": true
+  },
+  "bound": "shape input + (3*secure_bytes+4)*facts +4096*((I+1)*(V+1)+(V+1)^2), maximum with input+binding+headers+metadata phase",
+  "OM31_multiplicity_plane_bytes_per_fact": 136,
+  "all_checked_integer_arithmetic": true,
+  "resource_failure": "OutOfMemory plus hard-budget didExceedBudget flag; never malformed proof normalization",
+  "claims": {
+    "RSS": false,
+    "production_GPU": false,
+    "throughput": false,
+    "whole_protocol_128": false
+  },
+  "notes": [
+    "Allocator requested bytes only; excludes allocator overhead/stacks/transcript/embedding PCS/recursion.",
+    "Old136B/fact was not a valid old-cloning-prover bound. No admission is lowered.",
+    "Source supports mixed GP/generic/M31 multiplicity/singles, Q/O fields; geometry1..30, type-size/degree tripwires."
+  ]
+}

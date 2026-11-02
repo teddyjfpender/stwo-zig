@@ -1,0 +1,342 @@
+{
+  "schema": 1,
+  "source_commit": "211fe2272 +51e952592/ca7dd131c(lazycherries82bc/a3b) +05d95c344(cache41d2)",
+  "binary_sha256": "96138ca25fdd4dc24d86930f9ae354228fa68243ee5c2299e899295b0a502de7",
+  "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+  "config_sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad",
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "memory_cap_bytes": 38654705664
+    },
+    "park_main": true,
+    "recycler_cache_bytes": 1073741824
+  },
+  "scope": "8388606step ordinaryCPU two-shard prefix only; engineering control, no fullblock/security claim",
+  "all_fifteen_authoritative_artifact_hashes_identical": true,
+  "all_three_independent_fresh_receivers_accepted": true,
+  "quiet_host": false,
+  "interpretation": "Single samebinary triplet, no significant speed multiplier claimed. Tight dense admission enables both stage1 jobs without recomputation; lazy mode reduces per-job numerical memory with work tradeoff. Scheduler cap is payload admission, not RSS guarantee; processRSS rises when jobs overlap.",
+  "runs": [
+    {
+      "kind": "dense136",
+      "prove_ns": 20134178000,
+      "peak_rss_bytes": 16829890560,
+      "wall_seconds": 23.53,
+      "user_seconds": 161.51,
+      "system_seconds": 8.36,
+      "stage1_ns": 11709299917,
+      "stage1_overlap_ns": 0,
+      "stage2_ns": 8340013958,
+      "workers": [
+        {
+          "source_ns": 374626375,
+          "seal_native_and_gkr_ns": 4993025833,
+          "main_commit_ns": 1294530750,
+          "gkr_ns": 3666103041,
+          "inputs_ns": 317941667,
+          "numerical_ns": 2816855917,
+          "binding_ns": 506172583,
+          "metadata_retire_ns": 2740042,
+          "spill_ns": 496773250,
+          "restore_ns": 280676459,
+          "native_complete_ns": 8059336625,
+          "stage1_ns": 5867165541,
+          "stage2_ns": 8340013125,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        },
+        {
+          "source_ns": 337763791,
+          "seal_native_and_gkr_ns": 4797020542,
+          "main_commit_ns": 1247450500,
+          "gkr_ns": 3515756500,
+          "inputs_ns": 296067416,
+          "numerical_ns": 2695131875,
+          "binding_ns": 499529792,
+          "metadata_retire_ns": 2289708,
+          "spill_ns": 705042667,
+          "restore_ns": 550993166,
+          "native_complete_ns": 7395121042,
+          "stage1_ns": 5842116708,
+          "stage2_ns": 7946114250,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "schedule": {
+        "schema_version": 1,
+        "indexing": "array index is original worker ordinal",
+        "time_basis": "nanoseconds from each phase schedule start; stage1/stage2 origins distinct",
+        "stage1": [
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 20349149184,
+            "claimed_ns": 124292,
+            "started_ns": 124333,
+            "finished_ns": 5867294417,
+            "in_flight_bytes_at_start": 20349149184
+          },
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 19760771072,
+            "claimed_ns": 131750,
+            "started_ns": 5867302708,
+            "finished_ns": 11709424250,
+            "in_flight_bytes_at_start": 19760771072
+          }
+        ],
+        "stage2": [
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 11776653824,
+            "claimed_ns": 83708,
+            "started_ns": 84000,
+            "finished_ns": 8340097958,
+            "in_flight_bytes_at_start": 11776653824
+          },
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 11549358592,
+            "claimed_ns": 88583,
+            "started_ns": 88667,
+            "finished_ns": 7946204542,
+            "in_flight_bytes_at_start": 23326012416
+          }
+        ]
+      },
+      "metrics": [
+        "GKR_TREE_POLICY stride=1 numerical_requested_peak=12615738288 including_binding_peak=12615738288 raw_input_bytes=4541656320 tight_admission=false admitted_peak_bytes=17162455552 allocator_limit_bytes=34359738368",
+        "GKR_TREE_POLICY stride=1 numerical_requested_peak=12350314832 including_binding_peak=12350314832 raw_input_bytes=4446104832 tight_admission=false admitted_peak_bytes=16801372672 allocator_limit_bytes=34359738368"
+      ],
+      "artifacts": {
+        "bundle.json": "6dff687fd3434c6f9ad867c94305467f5ca18cbcec3ed16771d95646b16ef13e",
+        "cells.bin": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+        "stage-one.bin": "3929bf168db0e9f71e61463741c4121907592707134c4ea0e40a1c9cf05db414",
+        "cpu-0.bin": "493b957e6ddf40e5a723bffadf6a2e390552da75b6fd3d28b2ce859c77cd4182",
+        "cpu-1.bin": "fbcb7a6eff87a4d3322cd931588dc6860163cfd3664f378f53cd0984bbb2d5d3"
+      }
+    },
+    {
+      "kind": "dense104",
+      "prove_ns": 16229481542,
+      "peak_rss_bytes": 30733385728,
+      "wall_seconds": 19.25,
+      "user_seconds": 174.88,
+      "system_seconds": 11.51,
+      "stage1_ns": 6895071292,
+      "stage1_overlap_ns": 6603895166,
+      "stage2_ns": 9246939333,
+      "workers": [
+        {
+          "source_ns": 396573250,
+          "seal_native_and_gkr_ns": 5905266250,
+          "main_commit_ns": 1452057958,
+          "gkr_ns": 4418685792,
+          "inputs_ns": 371401458,
+          "numerical_ns": 3399631417,
+          "binding_ns": 615218250,
+          "metadata_retire_ns": 4316708,
+          "spill_ns": 588913000,
+          "restore_ns": 296849709,
+          "native_complete_ns": 8950088375,
+          "stage1_ns": 6895069333,
+          "stage2_ns": 9246938125,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        },
+        {
+          "source_ns": 369903292,
+          "seal_native_and_gkr_ns": 5662214750,
+          "main_commit_ns": 1371332875,
+          "gkr_ns": 4256231417,
+          "inputs_ns": 344296792,
+          "numerical_ns": 3273174583,
+          "binding_ns": 606798542,
+          "metadata_retire_ns": 2857541,
+          "spill_ns": 568918209,
+          "restore_ns": 586874083,
+          "native_complete_ns": 8236134209,
+          "stage1_ns": 6603893833,
+          "stage2_ns": 8823008333,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "schedule": {
+        "schema_version": 1,
+        "indexing": "array index is original worker ordinal",
+        "time_basis": "nanoseconds from each phase schedule start; stage1/stage2 origins distinct",
+        "stage1": [
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 16312121344,
+            "claimed_ns": 93542,
+            "started_ns": 93667,
+            "finished_ns": 6895164959,
+            "in_flight_bytes_at_start": 16312121344
+          },
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 15808677888,
+            "claimed_ns": 97917,
+            "started_ns": 97959,
+            "finished_ns": 6603993125,
+            "in_flight_bytes_at_start": 32120799232
+          }
+        ],
+        "stage2": [
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 11776653824,
+            "claimed_ns": 105750,
+            "started_ns": 105875,
+            "finished_ns": 9247045208,
+            "in_flight_bytes_at_start": 11776653824
+          },
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 11549358592,
+            "claimed_ns": 106625,
+            "started_ns": 106667,
+            "finished_ns": 8823116125,
+            "in_flight_bytes_at_start": 23326012416
+          }
+        ]
+      },
+      "metrics": [
+        "GKR_TREE_POLICY stride=1 numerical_requested_peak=12350314832 including_binding_peak=12350314832 raw_input_bytes=4446104832 tight_admission=true admitted_peak_bytes=12849279488 allocator_limit_bytes=12849279488",
+        "GKR_TREE_POLICY stride=1 numerical_requested_peak=12615738288 including_binding_peak=12615738288 raw_input_bytes=4541656320 tight_admission=true admitted_peak_bytes=13125427712 allocator_limit_bytes=13125427712"
+      ],
+      "artifacts": {
+        "bundle.json": "6dff687fd3434c6f9ad867c94305467f5ca18cbcec3ed16771d95646b16ef13e",
+        "cells.bin": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+        "stage-one.bin": "3929bf168db0e9f71e61463741c4121907592707134c4ea0e40a1c9cf05db414",
+        "cpu-0.bin": "493b957e6ddf40e5a723bffadf6a2e390552da75b6fd3d28b2ce859c77cd4182",
+        "cpu-1.bin": "fbcb7a6eff87a4d3322cd931588dc6860163cfd3664f378f53cd0984bbb2d5d3"
+      }
+    },
+    {
+      "kind": "lazy104",
+      "prove_ns": 16713793250,
+      "peak_rss_bytes": 20353908736,
+      "wall_seconds": 19.81,
+      "user_seconds": 192.82,
+      "system_seconds": 9.11,
+      "stage1_ns": 7889557417,
+      "stage1_overlap_ns": 7565844875,
+      "stage2_ns": 8733672541,
+      "workers": [
+        {
+          "source_ns": 402439417,
+          "seal_native_and_gkr_ns": 6904290166,
+          "main_commit_ns": 1494996084,
+          "gkr_ns": 5370207875,
+          "inputs_ns": 368263334,
+          "numerical_ns": 4323969000,
+          "binding_ns": 677900250,
+          "metadata_retire_ns": 4027334,
+          "spill_ns": 578798958,
+          "restore_ns": 295414500,
+          "native_complete_ns": 8438256667,
+          "stage1_ns": 7889555917,
+          "stage2_ns": 8733671167,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        },
+        {
+          "source_ns": 370108792,
+          "seal_native_and_gkr_ns": 6652681833,
+          "main_commit_ns": 1406169083,
+          "gkr_ns": 5211376292,
+          "inputs_ns": 362568875,
+          "numerical_ns": 4188461292,
+          "binding_ns": 660226666,
+          "metadata_retire_ns": 2442333,
+          "spill_ns": 540610292,
+          "restore_ns": 579359125,
+          "native_complete_ns": 7744464583,
+          "stage1_ns": 7565843292,
+          "stage2_ns": 8323823833,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "schedule": {
+        "schema_version": 1,
+        "indexing": "array index is original worker ordinal",
+        "time_basis": "nanoseconds from each phase schedule start; stage1/stage2 origins distinct",
+        "stage1": [
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 16312121344,
+            "claimed_ns": 96875,
+            "started_ns": 96917,
+            "finished_ns": 7889654334,
+            "in_flight_bytes_at_start": 16312121344
+          },
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 15808677888,
+            "claimed_ns": 101417,
+            "started_ns": 101459,
+            "finished_ns": 7565946334,
+            "in_flight_bytes_at_start": 32120799232
+          }
+        ],
+        "stage2": [
+          {
+            "lane": 1,
+            "workers": 8,
+            "estimate_bytes": 11776653824,
+            "claimed_ns": 76792,
+            "started_ns": 76917,
+            "finished_ns": 8733749458,
+            "in_flight_bytes_at_start": 11776653824
+          },
+          {
+            "lane": 0,
+            "workers": 8,
+            "estimate_bytes": 11549358592,
+            "claimed_ns": 79792,
+            "started_ns": 79875,
+            "finished_ns": 8323905125,
+            "in_flight_bytes_at_start": 23326012416
+          }
+        ]
+      },
+      "metrics": [
+        "GKR_TREE_POLICY stride=2 numerical_requested_peak=7080864540 including_binding_peak=7080864540 raw_input_bytes=4446104832 tight_admission=true admitted_peak_bytes=12849279488 allocator_limit_bytes=12849279488",
+        "GKR_TREE_POLICY stride=2 numerical_requested_peak=7233043514 including_binding_peak=7233043514 raw_input_bytes=4541656320 tight_admission=true admitted_peak_bytes=13125427712 allocator_limit_bytes=13125427712"
+      ],
+      "artifacts": {
+        "bundle.json": "6dff687fd3434c6f9ad867c94305467f5ca18cbcec3ed16771d95646b16ef13e",
+        "cells.bin": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+        "stage-one.bin": "3929bf168db0e9f71e61463741c4121907592707134c4ea0e40a1c9cf05db414",
+        "cpu-0.bin": "493b957e6ddf40e5a723bffadf6a2e390552da75b6fd3d28b2ce859c77cd4182",
+        "cpu-1.bin": "fbcb7a6eff87a4d3322cd931588dc6860163cfd3664f378f53cd0984bbb2d5d3"
+      }
+    }
+  ]
+}

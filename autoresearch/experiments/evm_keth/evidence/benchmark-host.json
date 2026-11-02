@@ -1,0 +1,15 @@
+{
+  "schema": "keth-benchmark-host-v1",
+  "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "architecture": "x86_64",
+  "logical_cpus_visible": 9,
+  "cpu_affinity_count": 9,
+  "worker_count": 4,
+  "cgroup_memory_max_bytes": 8589934592,
+  "backend": "cpu",
+  "timing_notes": [
+    "Compilation excluded. Each accepted segment has one measured trial.",
+    "Sessions were interrupted; accepted-stage times are summed, not uninterrupted block latency.",
+    "File-backed mode uses temporary disk and reclaimable filesystem cache; RSS is not total physical footprint."
+  ]
+}

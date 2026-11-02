@@ -1,0 +1,32 @@
+{
+  "core_schema": 7,
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "output": null,
+  "cpu_proofs": 4,
+  "truth_proofs": 3,
+  "load_and_setup_ns": 2350783667,
+  "verify_ns": 255242917,
+  "fixed_native_cache": {
+    "limit_bytes": 268435456,
+    "retained_bytes": 181229952,
+    "native_backing_bytes": 181214336,
+    "groups": 121,
+    "hits": 428,
+    "duplicate_native_bytes_released": 738370048,
+    "observed_individual_owners": 549,
+    "observed_backing_owners": 0,
+    "observed_spans": 549,
+    "owner_leases": 5
+  },
+  "program_metadata_cache": {
+    "limit_bytes": 67108864,
+    "retained_bytes": 30951766,
+    "payload_bytes": 30951414,
+    "programs": 1,
+    "hits": 4,
+    "metadata_bytes_not_rebuilt": 123805656,
+    "duplicate_metadata_bytes_released": 0,
+    "owner_leases": 6
+  }
+}

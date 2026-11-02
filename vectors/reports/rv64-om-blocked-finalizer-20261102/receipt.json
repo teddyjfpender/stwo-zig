@@ -1,0 +1,185 @@
+{
+  "scope": "actual stronger-candidate CPU0 ABBA; source batching only, no security/protocol change",
+  "baseline_sha256": "c4a5de848bde684c7914e48c9e5cab45f2785f606486de42825f457aff0848c6",
+  "candidate_sha256": "3067ebc5b0c1619ea0762ceba46d55ccc1ddfc8bcd5dadb5e7d2e1abba886ba8",
+  "all16artifactshaexact": true,
+  "frozenfresh4accepted": true,
+  "profiling_flags": "both explicit OM profile flags unset in every run",
+  "mean_prove_seconds": {
+    "control": 16.4939463125,
+    "blocked": 16.3468742505
+  },
+  "mean_fri_stage_seconds": {
+    "control": 2.1970795,
+    "blocked": 1.9380354999999998
+  },
+  "mean_fri_stage_user_seconds": {
+    "control": 14.391435999999999,
+    "blocked": 12.332758
+  },
+  "requested_extra_heap_bytes": 0,
+  "bounded_stack_tile_bytes": 2304,
+  "qualification": [
+    "coefficient-storage Safe/Fast: scalar oracle with all8coordinates, mixed heights, aligned/unaligned starts, full/partial64row tile, scalar tails",
+    "nativeOM Safe/Fast actual uniform/mixed/hybrid fold1/fold4, durable fresh receiver, allOOM, explicit3workers+heldlease+exactcap/pole errors"
+  ],
+  "caveats": [
+    "Whole CPU0 prove difference ~0.9% is below host variance; no holistic speed claim.",
+    "Target FRI stage improves ~11.8% and stage CPU work ~14.3%; no full-block measurement yet.",
+    "All functional builds finished before timed ABBA; external host quiet cannot be proven."
+  ],
+  "runs": [
+    {
+      "kind": "a0",
+      "binary_sha256": "c4a5de848bde684c7914e48c9e5cab45f2785f606486de42825f457aff0848c6",
+      "start_unix": 1793597344.458679,
+      "end_unix": 1793597365.336708,
+      "out": "/tmp/stwo-rv64-om-blocked-finalizer-cpu0-a0-v1",
+      "log": "/tmp/rv64-om-blocked-finalizer-cpu0-a0.log",
+      "prove_ns": 15938540667,
+      "hashes": {
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8"
+      },
+      "fresh": true,
+      "fri_stage": {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 2.117647,
+        "children": null,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 13.871544,
+          "system_seconds": 0.992534,
+          "minor_faults": 486474,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 3282,
+          "process_peak_resident_bytes_at_end": 12104515584,
+          "process_resident_bytes_at_end": 5977358336,
+          "process_footprint_bytes_at_end": 4259403992,
+          "process_footprint_peak_bytes_at_end": 12108899928,
+          "lane_threads": 8,
+          "lane_user_seconds": 13.871546,
+          "lane_system_seconds": 0.992545
+        }
+      }
+    },
+    {
+      "kind": "b0",
+      "binary_sha256": "3067ebc5b0c1619ea0762ceba46d55ccc1ddfc8bcd5dadb5e7d2e1abba886ba8",
+      "start_unix": 1793597365.336959,
+      "end_unix": 1793597387.2100859,
+      "out": "/tmp/stwo-rv64-om-blocked-finalizer-cpu0-b0-v1",
+      "log": "/tmp/rv64-om-blocked-finalizer-cpu0-b0.log",
+      "prove_ns": 16189259292,
+      "hashes": {
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8"
+      },
+      "fresh": true,
+      "fri_stage": {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 1.922289,
+        "children": null,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 12.222764,
+          "system_seconds": 1.017076,
+          "minor_faults": 481811,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 5308,
+          "process_peak_resident_bytes_at_end": 12104466432,
+          "process_resident_bytes_at_end": 5977358336,
+          "process_footprint_bytes_at_end": 4259420352,
+          "process_footprint_peak_bytes_at_end": 12108867136,
+          "lane_threads": 8,
+          "lane_user_seconds": 12.222765,
+          "lane_system_seconds": 1.017085
+        }
+      }
+    },
+    {
+      "kind": "b1",
+      "binary_sha256": "3067ebc5b0c1619ea0762ceba46d55ccc1ddfc8bcd5dadb5e7d2e1abba886ba8",
+      "start_unix": 1793597387.210342,
+      "end_unix": 1793597408.7834601,
+      "out": "/tmp/stwo-rv64-om-blocked-finalizer-cpu0-b1-v1",
+      "log": "/tmp/rv64-om-blocked-finalizer-cpu0-b1.log",
+      "prove_ns": 16504489209,
+      "hashes": {
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8"
+      },
+      "fresh": true,
+      "fri_stage": {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 1.953782,
+        "children": null,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 12.442752,
+          "system_seconds": 1.021708,
+          "minor_faults": 484524,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 3484,
+          "process_peak_resident_bytes_at_end": 12104466432,
+          "process_resident_bytes_at_end": 5977325568,
+          "process_footprint_bytes_at_end": 4259338360,
+          "process_footprint_peak_bytes_at_end": 12108883544,
+          "lane_threads": 8,
+          "lane_user_seconds": 12.442753,
+          "lane_system_seconds": 1.021717
+        }
+      }
+    },
+    {
+      "kind": "a1",
+      "binary_sha256": "c4a5de848bde684c7914e48c9e5cab45f2785f606486de42825f457aff0848c6",
+      "start_unix": 1793597408.7836952,
+      "end_unix": 1793597430.893918,
+      "out": "/tmp/stwo-rv64-om-blocked-finalizer-cpu0-a1-v1",
+      "log": "/tmp/rv64-om-blocked-finalizer-cpu0-a1.log",
+      "prove_ns": 17049351958,
+      "hashes": {
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8"
+      },
+      "fresh": true,
+      "fri_stage": {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 2.276512,
+        "children": null,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 14.911328,
+          "system_seconds": 1.022419,
+          "minor_faults": 486094,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 4870,
+          "process_peak_resident_bytes_at_end": 12104515584,
+          "process_resident_bytes_at_end": 5977358336,
+          "process_footprint_bytes_at_end": 4259453216,
+          "process_footprint_peak_bytes_at_end": 12108883520,
+          "lane_threads": 8,
+          "lane_user_seconds": 14.911328,
+          "lane_system_seconds": 1.022429
+        }
+      }
+    }
+  ]
+}

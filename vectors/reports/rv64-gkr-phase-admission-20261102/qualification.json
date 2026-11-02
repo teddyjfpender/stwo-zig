@@ -1,0 +1,30 @@
+{
+  "source_commit": "795651d05",
+  "gates": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 45,
+      "max_rss": "2G"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 47,
+      "max_rss": "2G"
+    }
+  ],
+  "coverage": [
+    "Actual complete twoCPU+Keccak+ADD+DOUBLE physical proofs versus original fixture allbytes/claims/manifest exact; fresh independentlyconstructedkeys accepted",
+    "Fullyparked two-lane fixture exact versus resident single-lane and fresh receiver",
+    "Zero global budget and arithmetic overflow reject in phaseformula before allocation",
+    "Large actualINTERpayload explicitlydouble-reserved ratherthan relyingonlyon smaller globalcapacity",
+    "Coordinator absent parking andzero memorycap rejection; later-worker abort releases parked owners andmappedbytes"
+  ],
+  "proof_effect": "No statement, challenge, hash, AIR, proof wire or physical claim change; only phase-specific operational task leases.",
+  "ownership": "Full retained inventory independently admitted once in original admit before any task starts. GKR child proof+binding+global metadata remain counted; only numerical GKR working planes are absent fromstage2 task. Binding ownership passes toPCS andgetsfreed byprover; childproofs+advice persist untiljoined coordinator cleanup.",
+  "stage2_floor": "2*MAINcoeff + max(globalcapacity,2*(binding+globaloutput)) + globalscratch, maxrepresentedstage2task. Stage1 charge exactlyprevious formula.",
+  "scope_limit": "Represented-payload estimates and conservative nativePCS reserve, not a mathematical wholePCS transient or processRSS bound; immutable/setup/capture/recycler explicitly outside.",
+  "full_inventory_analysis": "ledger.json fromexistingqualifiedfull25shapemodel andactual6091851f7 fullblockworker durations. All435stage2worker pairs fit32GiB; largest28.388GiB, zeroCPU-CPUstage1pairsfit.",
+  "remaining": "Root integrated v3parking +phaseadmission +numericalclassicparallel fullblock fresh qualification and measuredtwo\u00d78 performance/RSS; do not infer2x speed from pair fit."
+}

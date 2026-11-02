@@ -1,0 +1,51 @@
+{
+  "schema": "rv64-packed-gkr-numerical-v1",
+  "base_commit": "171de6ab8",
+  "upstream_source_commit": "826591c6c",
+  "upstream_authorities": [
+    "src/prover/backend/simd/lookups/gkr.rs",
+    "src/prover/backend/simd/lookups/mle.rs"
+  ],
+  "changes": [
+    "native-pack GrandProduct/LogUp r(0)/r(2) oracle reductions",
+    "native-pack adjacent-pair nextLayer with existing bounded pool ranges",
+    "native-pack M31/Secure halfsplit MLE folds",
+    "native-pack Eq scaling"
+  ],
+  "resources": {
+    "additional_heap_buffers": 0,
+    "storage": "existing scalar Q/OM AoS owners unchanged; one native pack transposed at a time",
+    "pool": "existing scoped row_work nonblocking bounded leases/fallback; no new pools",
+    "range_safety": "readonly inputs; separate disjoint destinations; scalar tails for arbitrary first/end"
+  },
+  "qualification": {
+    "ReleaseSafe": "test-native-cpu-gkr-rows PASS",
+    "ReleaseFast": "test-native-cpu-gkr-rows PASS",
+    "prechange_source_capture": "CORRECTION: original32-test capture used implicit @import(root) baseline selection, which selected the test runner and therefore new source. Numerical oracle/ordinary gates valid; true old-source parity superseded by explicit38-test capture in ../rv64-gkr-cubic-20261101.",
+    "independent_numerical_oracle": "all4gate formulas, M31 zero/signed/count weights, secure weights, unaligned starts and short/partial packs",
+    "allocation_failure": "existing full lifecycle allocation-failure tests retained and pass"
+  },
+  "microbenchmark": {
+    "host": "arm64",
+    "conditions": "shared host, no controlled whole-pipeline performance claim",
+    "terms": 65536,
+    "rounds": 5,
+    "Q": {
+      "scalar_ns": 33267791,
+      "packed_ns": 9070332,
+      "speedup": 3.668
+    },
+    "OM": {
+      "scalar_ns": 109919666,
+      "packed_ns": 28243750,
+      "speedup": 3.892
+    }
+  },
+  "limits": [
+    "The original small fixture control used the implicit-root capture flaw; it is not a valid prechange performance comparison. See corrected explicit capture.",
+    "Production prefix/fullblock measurements pending root integration",
+    "This is SIMD arithmetic reuse, not a cryptographic/protocol change or GPU qualification",
+    "Scalar tails and point/native verification remain",
+    "Generic4point interpolation stillperforms12secure inversions perround, outside thisslice"
+  ]
+}

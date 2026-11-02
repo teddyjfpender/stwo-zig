@@ -1,0 +1,155 @@
+{
+  "schema": "rv64-lookup-chip-architecture-review-v1",
+  "status": "Primary-source review and explicit cost hypotheses; new chip inactive/unqualified until separate gates",
+  "sources": [
+    {
+      "repository": "0xPolygonHermez/zisk",
+      "commit": "64a1f1664184e76053686745d50c6b9aaa51b034",
+      "files": [
+        {
+          "path": "state-machines/binary/pil/binary.pil",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zisk-state-machines-binary-pil-binary.pil",
+          "source": "https://github.com/0xPolygonHermez/zisk/blob/64a1f1664184e76053686745d50c6b9aaa51b034/state-machines/binary/pil/binary.pil"
+        },
+        {
+          "path": "state-machines/binary/pil/binary_table.pil",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zisk-state-machines-binary-pil-binary_table.pil",
+          "source": "https://github.com/0xPolygonHermez/zisk/blob/64a1f1664184e76053686745d50c6b9aaa51b034/state-machines/binary/pil/binary_table.pil"
+        },
+        {
+          "path": "state-machines/arith/pil/arith.pil",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zisk-state-machines-arith-pil-arith.pil",
+          "source": "https://github.com/0xPolygonHermez/zisk/blob/64a1f1664184e76053686745d50c6b9aaa51b034/state-machines/arith/pil/arith.pil"
+        },
+        {
+          "path": "state-machines/main/pil/main.pil",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zisk-state-machines-main-pil-main.pil",
+          "source": "https://github.com/0xPolygonHermez/zisk/blob/64a1f1664184e76053686745d50c6b9aaa51b034/state-machines/main/pil/main.pil"
+        }
+      ]
+    },
+    {
+      "repository": "matter-labs/zksync-airbender",
+      "commit": "6ec4ea725d654c5e4fd3a122d571ca37804f9abd",
+      "files": [
+        {
+          "path": "cs/src/tables.rs",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zksync-airbender-cs-src-tables.rs",
+          "source": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/cs/src/tables.rs"
+        },
+        {
+          "path": "docs/subarguments_used.md",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zksync-airbender-docs-subarguments_used.md",
+          "source": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/docs/subarguments_used.md"
+        },
+        {
+          "path": "cs/src/definitions/mod.rs",
+          "local": "/tmp/stwo-rv64-lookup-chip-review/zksync-airbender-cs-src-definitions-mod.rs",
+          "source": "https://github.com/matter-labs/zksync-airbender/blob/6ec4ea725d654c5e4fd3a122d571ca37804f9abd/cs/src/definitions/mod.rs"
+        }
+      ]
+    }
+  ],
+  "primary_source_lessons": {
+    "zisk_binary": "The pinned binary AIR decomposes64-bit operands/results into bytes and delegates byte operations to a typed table. It adds helpers to reduce lookup expression degree and reconstructs operation-bus words. Its broad combined binary table has millions of rows; copying it is not a cheap replacement for our already-small dedicated byte AND/SHIFT tables.",
+    "zisk_arith": "Pinned arithmetic uses16-bit limbs, signed carries, and explicit division-zero/overflow logic. This demonstrates separation of ordinary arithmetic but does not justify reusing its integer bounds in M31:65535\u00b2 exceeds p, and an eight-term convolution can reach about2^35. ADD16 input+input+carry stays below2^17 and is safe; multiplication needs split products or a separately proved carry argument.",
+    "zisk_main": "Main consumes/proves delegated operation and continuation buses. A narrower arithmetic chip alone does not remove CPU retirement rows or state/control authority; immutable fact-table multiplicities can reduce delegated rows only after a constrained caller bus routes the same operation tuple.",
+    "airbender_tables": "Pinned tables use byte AND/XOR/OR, two-byte range checks and16-bit ranges. The16-bit shift implementation has a22-bit key (16input,5shift,1direction), hence2^22 rows. This requires a complete table-domain cost, not merely counting fewer caller queries.",
+    "airbender_subarguments": "The pinned design precommits memory-related columns before common challenges and checks the same transcript during recursive verification. Its read-range induction requires unique canonical initialization, strictly increasing clocks and canonical writes; this is not permission to drop our already-qualified canonical-v3 obligations."
+  },
+  "actual_baselines": {
+    "ethereum_cpu_main": 385,
+    "ethereum_cpu_interaction": 148,
+    "ethereum_padded_cpu_rows": 213909504,
+    "ethereum_cpu_share_main_inter_cells_percent": 91.6468,
+    "csp_actual_inverse_v1_inline_v4_ecdsa_main": 499,
+    "csp_actual_inverse_v1_inline_v4_ecdsa_interaction": 260,
+    "csp_canonical_v3_status": "Not qualified by current17CSP controls; do not compare hypothetical204inter against actual260 silently.",
+    "keccak_main": 1923,
+    "keccak_interaction": 2596,
+    "raw_lookup_degree": "Current basic BYTE batches3 =>rawdegree4 andfullCPUquotientn+2. Geometry labels are not substituted for actual degree/domain bounds."
+  },
+  "table_native_models": [
+    {
+      "kind": "range16",
+      "tuple_arity": 1,
+      "rows": 65536,
+      "D2_strict_provider_columns": 12,
+      "native_bytes": 3145728
+    },
+    {
+      "kind": "byte_pair_range",
+      "tuple_arity": 2,
+      "rows": 65536,
+      "D2_strict_provider_columns": 13,
+      "native_bytes": 3407872
+    },
+    {
+      "kind": "byte_pair_sign",
+      "tuple_arity": 4,
+      "rows": 65536,
+      "D2_strict_provider_columns": 15,
+      "native_bytes": 3932160
+    },
+    {
+      "kind": "existing_byte_AND",
+      "tuple_arity": 3,
+      "rows": 65536,
+      "current_columns": 14,
+      "native_bytes": 3670016
+    },
+    {
+      "kind": "existing_byte_SHIFT",
+      "tuple_arity": 6,
+      "rows": 2048,
+      "current_columns": 17,
+      "native_bytes": 139264
+    },
+    {
+      "kind": "Airbender_style_shift16_full5bit_direction",
+      "tuple_arity": 3,
+      "rows": 4194304,
+      "D2_strict_provider_columns": 14,
+      "native_bytes": 234881024
+    }
+  ],
+  "clearing_costs": {
+    "D2_unconditional_consumer": "One secure prefix per query: \u0394*d\u22121=0; poles impossible. For4pair queries=>16M31inter columns, finalprefix terminal zero degree2. Conditional variable weights require a separate inverse or another proved nonzero authority.",
+    "D2_provider": "Explicit inv*d\u22121 andprefix\u0394\u2212weight*inv, pluslast*prefix=0. No nonfirst predecessor mask product.8M31inter columns and4previous-prefix masks; allrawresiduals degree2.",
+    "D3_two_query_consumer": "Two product inverses plusone sharedprefix for4queries=>12M31inter. Product-inverse identity degree3; numerator*inverse prefix update degree2.",
+    "D5_four_query_consumer": "Oneproductinverse+sharedprefix for4queries=>8M31inter. Rawdegree5; Kquartetnative4n/STARK/fullQOODS gate nowPASS. CPU application separatelyunqualified.",
+    "domain_warning": "Degree2 does not automatically imply n-point native quotient evaluation: canonical n-point domain is the trace/pole domain. Budget2n unless a distinct shifted-domain path is implemented/proved. Isolated lowerdegree does not shrink wholeCPU/FRI while other constraints set its maximum."
+  },
+  "minimal_sign_pair_hypothesis": {
+    "source_reference": "encoding.Plan marks all8memory_before bytes for LB; currentmemory_constraints consumes their sign bits. Replacing64bits by8bytes+8signs would remove48CPUmain columns under a new representation profile.",
+    "provider": "All65536(x,y) pairs with exactsigns; every table fact derived independently by receiver. No observed-trace-as-setup authority.",
+    "D2_net_cpu_columns_saved": 32,
+    "D3_net_cpu_columns_saved": 36,
+    "D5_net_cpu_columns_saved_if_domain_gate_passes": 40,
+    "D3_gross_saved_M31_cells": 7700742144,
+    "constant_table_M31_cells_per_proof": 983040,
+    "constant_table_M31_cells_51proofs": 50135040,
+    "source_status": "Inactiveprototype ReleaseSafe/Fast4PASS inclactualmixed-domainnativeSTARK; noCPUintegration. Currentbaselineconsumer1pair has8inter; projectedstitchedD2four-pair16inter remainsfutureoptimization.",
+    "soundness": "Lookup both byte coordinates independently; packing x+256*y alone admits noncanonical cancellation (x=p\u2212256,y=1 gives0). Preserve strict poles, prefix endpoints, aggregate request mass<p, count roots before challenges, typed family domain separation and transcript-bound physical claims."
+  },
+  "memory_and_LS_joint_architecture": {
+    "priority": "Move RAM-specific advice out of CPU to an independently sized LS chip and precommit the RAM subset of LS main exactly once. Do not materialize18RAMcoords at every CPU row or recommit the same tuples in a second tree.",
+    "cost_formula": "If r CPU main columns are removed, b CPUopbus inter columns added, LS has(18RAM+uother+kinter) native columns and Nls rows, net native-cell saving before other removed providers is(r\u2212b)*Ncpu\u2212(18+u+k)*Nls\u2212fixedproviderTax. Use actual padded per-batch LS heights; do not substitute instruction count.",
+    "mandatory_constraints": [
+      "CPUdecode/control binds typed op,width,strictclock,address,source,result to LS; load extraction/partial-store masks/permissions remain proved.",
+      "LSRAMcontributing columns all committed before global RAM challenge; split-phase source mappings avoid duplicate RAM tuple storage/commitment.",
+      "All memory-capable contributors K/secp/CPU bind the same memory root/challenge contract and strictly ordered full-width clocks; no reset-clock cross-batch cycles.",
+      "Canonical initial/write values and unique init/teardown or authenticated image/policy authority must survive removal of per-batch Poseidon.",
+      "Fixed setup remains program/geometry/table-only; counts/IDs/endpoints are transcript-bound instance inputs.",
+      "Model native matrices, PCS2nretention/coefficients, quotient scratch, masks/openings, commitment leaf prefix caching, receiver setup and phase ownership/OOM cleanup together."
+    ],
+    "avoid_double_counting": "If memory_before advice already moved to LS, apply sign-pair reduction at LS height, not again at all CPU rows. Naive18coords/CPU precommit adds~15.4GBcumulative source vs~10.79GBPoseidonMAINremoved, not a whole-RAM win."
+  },
+  "next_rank": [
+    "Prove quartetD5 fits existing4n using valid native trace and independent fullQOODS receiver; then costCPUrange/AND quartet separately.",
+    "Qualify immutable sign-pair D2primitive/membership/poles/boundaries before any CPU representation change.",
+    "Design thin CPU/ALU/LS buses with actual opcode/event census and complete padding/domain costs; preserve canonical-v3 and scalar legacy controls.",
+    "Consider immutable verified frequent-op facts only as routing for delegated family requests; top256observed6.086%instruction coverage does not itself reduce CPU rows.",
+    "Do not adopt16-bit foreign multiplication or huge general shift tables from field/layout-blind width comparisons."
+  ]
+}

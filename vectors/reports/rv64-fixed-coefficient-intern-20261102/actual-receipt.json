@@ -1,0 +1,14 @@
+{
+  "source_commit": "452b029566136744991d6cba9afd4cd3dfff57a5",
+  "binary_sha256": "a3addb86b2626165f57d0221f8362970522e002bc58d98a9be79a8c4af8fb3b5",
+  "command": [
+    "zig-out/bin/rv64-word16-ethereum-gkr",
+    "verify-candidate",
+    "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+    "12884901888"
+  ],
+  "returncode": 0,
+  "security_qualified": false,
+  "controlled_speedup_claim": false
+}

@@ -1,0 +1,123 @@
+{
+  "status": "historical pre-Word16-proof source cost review; measured BYTE, naive Word16 and packed Word16 qualifications now supersede its estimates",
+  "census": {
+    "path": "/tmp/stwo-rv64-guest-lean-artifacts/round5-execution.json",
+    "sha256": "e79fa885b271dc6f2b2e24714de94100cf5816137464902b6c02567d8d54235b",
+    "instructions": 104253913,
+    "shift_counts": {
+      "SLL": 560398,
+      "SRL": 532148,
+      "SRA": 0,
+      "SLLI": 7353559,
+      "SRLI": 2121192,
+      "SRAI": 87052,
+      "SLLW": 0,
+      "SRLW": 0,
+      "SRAW": 0,
+      "SLLIW": 0,
+      "SRLIW": 2061443,
+      "SRAIW": 0
+    },
+    "total_shifts": 12715792,
+    "per_batch_distribution": "not yet measured; whole-execution average does not determine padded family geometry"
+  },
+  "bus": "one global-ID payload13 pure function tuple; no repeated PC/time/owner; committed operands and multiplicity before complete FS manifest challenges",
+  "shared_constraints": {
+    "selector_policy": "six Boolean operation selectors sum to active; eight byte or four word offset flags Boolean, sum active, W forbids upperhalf offset flags. No direction\u00d7width\u00d7offset products need physical staging: direction/width modes are LINEAR sums of operation selectors and inside/outside source bounds are immutable integer loop cases.",
+    "degree": "all local identities at most cubic after staging; strict two-denominator inverses and two prefix equations give D3/2n; must be established by full quotient/OODS proof before acceptance",
+    "range": "nine U16 requests per padded row: four B limbs, qLow and64*qLow, three canonical sign projections; every query includes padding",
+    "amount": "B0=r+chunkWidth*offset+32*qTop+64*qLow, qTopBoolean and zero outside W; qLow direct U16 plus scaled U16; r canonical from shared shift table",
+    "soundness_counterexample": "scaled qLow alone permits qLow=64^-1 modp=2^25, B0=1,r=0; direct bound prevents this modular alias",
+    "sign": "input and derived output chunks must first be canonical; byte projection512*x\u221265536*sign or limb projection2*x\u221265536*sign intoU16 then uniquely determines top bit",
+    "signed_fill": "two advice fields selectorSRA*signA63 and selectorSRAW*signA31; output offset selector times fill times table output is cubic; do not multiply another direction/width selector on top",
+    "output": "left/right table low/high bounds plus common r prove non-overlapping summands and canonical C chunks; W upper chunks sign-extend independently constrained C bit31",
+    "integers": "all limb reconstructions and amount equations have absolute integer bounds below M31; no16-bit product convolution claim",
+    "result_formula": "For each destinationchunk i, sum offsets q[k] times [L64*leftIn64(i,k)+LW*leftIn32(i,k)+R64*rightIn64(i,k)+RW*rightIn32(i,k)+fill64*rightOutside64(i,k)+fill32*rightOutside32(i,k)]. Each In/Outside expression is an affine sum of table output columns chosen by static chunk index bounds. L64/LW/R64/RW are linear selector sums; fill64/fill32 are committed advice constrained to selSRA*sign63/selSRAW*sign31. Therefore every term is q*mode*table or q*fill*table, degree3. Upper W result chunks add wordMode*allOnes*signC31, degree2. Never multiply an additional direction/word selector onto already gated fill advice."
+  },
+  "candidates": {
+    "byte": {
+      "chunk_bits": 8,
+      "main": 89,
+      "interaction": 56,
+      "fixed": 2,
+      "total_native_columns": 147,
+      "offset_staging_columns": 8,
+      "table_queries_per_row": 9,
+      "table": {
+        "log": 11,
+        "fixed": 8,
+        "main": 1,
+        "interaction": 8,
+        "tuple_arity": 6,
+        "tuple": "input,r,leftLow,leftCarry,rightLow,rightCarry",
+        "reuses_existing_authority": "providers/tables.Kind.byte_shift and tupleAt; new D3 adapter still required"
+      },
+      "trace_masks_per_component": 159,
+      "status": "actual physical89main/56inter/2fixed D3 standalone proof qualified; efficient reusableSource andCPU integration pending"
+    },
+    "word16": {
+      "chunk_bits": 16,
+      "main": 53,
+      "interaction": 48,
+      "fixed": 2,
+      "total_native_columns": 103,
+      "offset_staging_columns": 4,
+      "table_queries_per_row": 5,
+      "table": {
+        "log": 20,
+        "fixed": 8,
+        "main": 1,
+        "interaction": 8,
+        "tuple_arity": 6,
+        "tuple": "input,r,leftLow,leftCarry,rightLow,rightCarry",
+        "difference_from_user_document": "same2^16inputs*16within-shifts with bothdirections in tuple; no duplicate direction-index rows, unlike2^21 input/r/dir table; arity6 is larger than arity5 directional tuple"
+      },
+      "trace_masks_per_component": 115
+    }
+  },
+  "additional_providers": {
+    "scalar_u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8,
+      "trace_masks": 16,
+      "reuse": "one qualified provider shared withCPU/ALU when physically in same proof; positive query masses combined before allocation"
+    },
+    "shift_table_trace_masks": 21
+  },
+  "native_cell_comparison": [
+    {
+      "padded_shift_rows": 32,
+      "byte_cells_including_u16": 825952,
+      "word16_cells_including_u16": 18615520
+    },
+    {
+      "padded_shift_rows": 262144,
+      "byte_cells_including_u16": 39356416,
+      "word16_cells_including_u16": 45613056
+    },
+    {
+      "padded_shift_rows": 524288,
+      "byte_cells_including_u16": 77891584,
+      "word16_cells_including_u16": 72613888
+    },
+    {
+      "padded_shift_rows": 1048576,
+      "byte_cells_including_u16": 154961920,
+      "word16_cells_including_u16": 126615552
+    }
+  ],
+  "native_area_crossover_rows": 404340.36363636365,
+  "whole_proof_cost_requirements": [
+    "Counts89/53main avoid extra direction/width offset staging by the explicit linear-mode result formula; this is an architecture estimate awaiting real generic AIR/native proof, not a qualified physical footprint.",
+    "Standalone byte maximum native log=max(shift_log,16), word max=max(shift_log,20): at shiftlog19 Word16 doubles global2n quotient/FRI domain despite lower native sourcearea. JoinedCPUlog22 hides this globalmax penalty but not table FFT/commit/openings.",
+    "Count source plus retained coefficients,2nLDE, FFT scratch, Merkle native-prefix caches/lifted maximum-height leaf states, composition/FRI, query absorption and masks, prover/receiver setup cache ownership.",
+    "Word16 table17*2^20=17825792sourcecells (71303168B) before allPCS/FFT storage versus byte34816cells (139264B); the word-table inverse dictionary is2^20securevalues=16MiB.",
+    "No universal Word16 default until actual per-batch shift geometry and complete retained proof cost are measured.",
+    "Global positive relation mass must be strictly below p across all same-challenge consumers, including padding and every component; function/shift/U16 budgets separate.",
+    "Both strict inverse and terminalprefix required; private interaction output published only after inversions, both prefix corrections and terminal claim checks succeed."
+  ],
+  "superseded_by": "word16-shift-packed-d3-v1-qualification.json",
+  "snapshot_scope": "Historical first prototype/cost review. Later shared helpers preserve BYTE proof c15a exactly; final current source pins and measured packed-table comparison are in the superseding report."
+}

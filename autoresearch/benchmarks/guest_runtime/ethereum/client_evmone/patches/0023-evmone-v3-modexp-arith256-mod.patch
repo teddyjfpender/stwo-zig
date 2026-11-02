@@ -1,0 +1,69 @@
+diff --git a/lib/evmone_precompiles/modexp.cpp b/lib/evmone_precompiles/modexp.cpp
+index 2d871fd..420e896 100644
+--- a/lib/evmone_precompiles/modexp.cpp
++++ b/lib/evmone_precompiles/modexp.cpp
+@@ -11,6 +11,13 @@
+ 
+ using namespace intx;
+ 
++#if defined(ADMITTED_ARITH)
++// stwo admitted ethereum_services_v3: r = (a*b + c) mod m through the
++// arith256_mod service (client_evmone glue/arith_stwo.cpp).
++extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
++    const uint64_t m[4], uint64_t r[4]) noexcept;
++#endif
++
+ namespace evmone::crypto
+ {
+ namespace
+@@ -364,12 +371,21 @@ void mul_amm(std::span<uint64_t, N> r, std::span<const uint64_t, N> x,
+ 
+ /// Almost Montgomery Multiplication specialized for 4-word (256-bit) operands.
+ /// Delegates to mul_amm_256 in mulmod.cpp.
++/// stwo admitted v3: 256-bit moduli run in PLAIN form (modexp_odd converts
++/// base to base % mod instead of base*R % mod), so this is r = x*y mod m on the
++/// arith256_mod service; the final "multiply by 1" leaves the plain value.
+ template <>
+ [[gnu::always_inline]] inline void mul_amm<4>(std::span<uint64_t, 4> r,
+     std::span<const uint64_t, 4> x, std::span<const uint64_t, 4> y,
+     std::span<const uint64_t, 4> mod, uint64_t mod_inv) noexcept
+ {
++#if defined(ADMITTED_ARITH)
++    (void)mod_inv;
++    static constexpr uint64_t zero[4] = {0, 0, 0, 0};
++    stwo_arith256_mod(x.data(), y.data(), zero, mod.data(), r.data());
++#else
+     mul_amm_256(r, x, y, mod, mod_inv);
++#endif
+ }
+ 
+ /// Maximum window width used by the windowed method in modexp_odd.
+@@ -424,11 +440,23 @@ void modexp_odd(std::span<uint64_t> result, std::span<const uint64_t> base, Expo
+     const auto rem_scratch =
+         scratch.subspan(n + base.size() + MAX_PRECOMPUTED * n, 2 * n + 2 * base.size() + 2);
+ 
+-    // Compute base_mont = table[0] = (base * R) % mod, where R = 2^(n*64).
+-    // The numerator u = base << (n*64): base in the upper words, lower n words are zero.
+-    std::ranges::fill(u.first(n), uint64_t{0});  // Lower n words of u must be zero.
+-    std::ranges::copy(base, u.subspan(n).begin());
+-    rem(base_mont, u, mod, rem_scratch);
++#if defined(ADMITTED_ARITH)
++    if (n == 4)
++    {
++        // Plain form for the arith256_mod path: table[0] = base % mod.
++        std::ranges::copy(base, u.begin());
++        std::ranges::fill(u.subspan(base.size()), uint64_t{0});
++        rem(base_mont, u, mod, rem_scratch);
++    }
++    else
++#endif
++    {
++        // Compute base_mont = table[0] = (base * R) % mod, where R = 2^(n*64).
++        // The numerator u = base << (n*64): base in the upper words, lower n words are zero.
++        std::ranges::fill(u.first(n), uint64_t{0});  // Lower n words of u must be zero.
++        std::ranges::copy(base, u.subspan(n).begin());
++        rem(base_mont, u, mod, rem_scratch);
++    }
+ 
+     // Double-buffer exponentiation loop, parameterized by mul_amm size.
+     const auto exp_loop = [&]<size_t N>() {

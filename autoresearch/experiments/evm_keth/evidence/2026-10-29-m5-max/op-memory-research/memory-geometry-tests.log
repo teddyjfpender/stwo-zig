@@ -1,0 +1,11 @@
+1/10 .tmp-keth-memory-tests.test_0...OK
+2/10 src.frontends.cairo.witness.memory_tables.test.Cairo memory tables: Rust row geometry pads packed values before powers of two...OK
+3/10 src.frontends.cairo.witness.memory_tables.test.Cairo memory tables: large-value splitting matches the pinned 25-bit sequence bound...OK
+4/10 src.frontends.cairo.witness.memory_tables.test.Cairo memory tables: requested padding components are one zero SIMD block...OK
+5/10 src.frontends.cairo.witness.memory_tables.test.Cairo memory tables: empty big values use one SIMD padding component...OK
+6/10 src.frontends.cairo.witness.memory_tables.test.Cairo memory tables: value columns use 9-bit limbs and zero padding...OK
+7/10 src.frontends.cairo.witness.memory_tables.test.Cairo memory tables: noncanonical values fail closed...OK
+8/10 src.frontends.cairo.witness.deductions.blake.test.Blake triple xor uses full-width words...OK
+9/10 src.frontends.cairo.witness.deductions.blake.test.Blake G and sigma match the official scalar semantics...OK
+10/10 src.frontends.cairo.witness.deductions.blake.test.Blake messages accept small integers spilled into the F252 table...OK
+All 10 tests passed.

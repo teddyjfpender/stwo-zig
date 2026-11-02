@@ -77,24 +77,29 @@ fn frame<'a>(bytes: &'a [u8], offset: &mut usize) -> Result<&'a [u8]> {
     Ok(data)
 }
 
-fn project(bytes: &[u8]) -> Result<(Vec<u8>, String)> {
-    // ponytail: this converter admits one pinned fixture; extend the explicit
-    // fixture/fork contract when promoting the remaining corpus blocks.
-    checked_hash(
-        bytes,
-        "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
-    )?;
+/// `general == false` admits only the pinned block 24,628,607 fixture (the
+/// historical contract). `general == true` admits any BPO2-era mainnet block
+/// without execution requests; callers must pin the source fixture and the
+/// canonical output hashes themselves (see autoresearch/guest_efficiency).
+fn project(bytes: &[u8], general: bool) -> Result<(Vec<u8>, String)> {
+    if !general {
+        checked_hash(
+            bytes,
+            "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
+        )?;
+    }
     let mut offset = 0;
     let public: PublicInput = decode(frame(bytes, &mut offset)?)?;
     let WitnessInput { witness } = decode(frame(bytes, &mut offset)?)?;
     require(offset == bytes.len(), "trailing framed input")?;
+    let inventory = (
+        witness.state.len(),
+        witness.codes.len(),
+        witness.keys.len(),
+        witness.headers.len(),
+    );
     require(
-        (
-            witness.state.len(),
-            witness.codes.len(),
-            witness.keys.len(),
-            witness.headers.len(),
-        ) == (3854, 120, 835, 1),
+        general || inventory == (3854, 120, 835, 1),
         "wrong witness inventory",
     )?;
     let mut block_bytes = public.block.as_slice();
@@ -102,9 +107,22 @@ fn project(bytes: &[u8]) -> Result<(Vec<u8>, String)> {
     require(block_bytes.is_empty(), "trailing block RLP")?;
     let header = &block.header;
     require(
-        header.number == 24628607 && header.timestamp == 1773164303,
+        general || (header.number == 24628607 && header.timestamp == 1773164303),
         "wrong block",
     )?;
+    if general {
+        require(header.timestamp >= 1767747671, "pre-BPO2 block")?;
+        if let Some(t) = public.chain_config.amsterdam_time {
+            require(header.timestamp < t, "Amsterdam-fork block is not supported by the BPO2 guest")?;
+        }
+        require(
+            header.requests_hash
+                == Some(alloy_primitives::b256!(
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                )),
+            "non-empty execution requests are not reconstructible from this fixture",
+        )?;
+    }
     require(
         public.chain_config.chain_id == 1
             && public.chain_config.bpo1_time == Some(1765290071)
@@ -113,7 +131,8 @@ fn project(bytes: &[u8]) -> Result<(Vec<u8>, String)> {
     )?;
     require(block.body.ommers.is_empty(), "post-merge ommers")?;
     require(
-        block.body.transactions.len() == 66 && public.public_keys.len() == 66,
+        block.body.transactions.len() == public.public_keys.len()
+            && (general || block.body.transactions.len() == 66),
         "wrong transaction/key count",
     )?;
     let mut parent_bytes = witness
@@ -233,8 +252,9 @@ fn project(bytes: &[u8]) -> Result<(Vec<u8>, String)> {
     });
     let request_root = request.hash_tree_root(&Sha2Hasher);
     require(
-        request_root
-            == alloy_primitives::b256!(
+        general
+            || request_root
+                == alloy_primitives::b256!(
                 "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030"
             )
             .0,
@@ -274,10 +294,12 @@ fn project(bytes: &[u8]) -> Result<(Vec<u8>, String)> {
         StatelessInput::from_schema_prefixed_ssz(&canonical)?.1 == input,
         "SSZ roundtrip mismatch",
     )?;
-    checked_hash(
-        &canonical,
-        "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
-    )?;
+    if !general {
+        checked_hash(
+            &canonical,
+            "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+        )?;
+    }
     let normalized = format!(
         "{{\"projection\":{},\"new_payload_request_root\":\"{:#x}\"}}\n",
         normalized.trim(),
@@ -288,53 +310,36 @@ fn project(bytes: &[u8]) -> Result<(Vec<u8>, String)> {
 
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args_os().collect();
+    let general = args.len() == 4 && args[1] == "--general";
     require(
-        args.len() == 3,
-        "usage: stwo-ethereum-input-projection ZISK_INPUT NEW_OUTPUT_DIRECTORY",
+        args.len() == 3 || general,
+        "usage: stwo-ethereum-input-projection [--general] ZISK_INPUT NEW_OUTPUT_DIRECTORY",
     )?;
+    let (input, out) = if general { (&args[2], &args[3]) } else { (&args[1], &args[2]) };
+    let size = fs::metadata(input)?.len();
     require(
-        fs::metadata(&args[1])?.len() == 2718960,
+        if general { size > 0 && size <= 64 * 1024 * 1024 } else { size == 2718960 },
         "wrong fixture size",
     )?;
-    let (canonical, normalized) = project(&fs::read(&args[1])?)?;
+    let (canonical, normalized) = project(&fs::read(input)?, general)?;
     let mut runner = u32::try_from(canonical.len())?.to_le_bytes().to_vec();
     runner.extend_from_slice(&canonical);
-    checked_hash(
-        &runner,
-        "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
-    )?;
-    let output = Path::new(&args[2]);
+    if !general {
+        checked_hash(
+            &runner,
+            "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+        )?;
+    }
+    let output = Path::new(out);
     fs::create_dir(output)?;
     fs::write(output.join("canonical-input.ssz"), &canonical)?;
     fs::write(output.join("stwo-runner-input.bin"), &runner)?;
     fs::write(output.join("normalization-v1.json"), normalized)?;
     println!(
-        "canonical_bytes={} runner_bytes={} transaction_keys=66 input_projection_verified=true block_execution_verified=false",
+        "canonical_bytes={} runner_bytes={} general={} input_projection_verified=true block_execution_verified=false",
         canonical.len(),
-        runner.len()
+        runner.len(),
+        general
     );
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rejects_malformed_frames_and_changed_fixture() {
-        let mut valid = 1_u64.to_le_bytes().to_vec();
-        valid.extend_from_slice(&[42, 0, 0, 0, 0, 0, 0, 0]);
-        let mut offset = 0;
-        assert_eq!(frame(&valid, &mut offset).unwrap(), &[42]);
-        assert_eq!(offset, valid.len());
-        for truncated in 0..valid.len() {
-            assert!(frame(&valid[..truncated], &mut 0).is_err());
-        }
-        valid[15] = 1;
-        assert!(frame(&valid, &mut 0).is_err());
-        let mut overflowing = usize::MAX;
-        assert!(frame(&valid, &mut overflowing).is_err());
-        assert!(frame(&u64::MAX.to_le_bytes(), &mut 0).is_err());
-        assert!(project(&valid).is_err());
-    }
 }

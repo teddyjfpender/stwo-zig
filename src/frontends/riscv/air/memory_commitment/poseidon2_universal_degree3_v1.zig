@@ -152,6 +152,7 @@ pub const entriesFromColumns = equations.entriesFromColumns;
 pub const entriesGeneric = equations.entriesGeneric;
 pub const rowPairsGeneric = equations.rowPairsGeneric;
 pub const interactionConstraintsGeneric = equations.interactionConstraintsGeneric;
+pub const interactionConstraintsMixed = equations.interactionConstraintsMixed;
 
 const walk = @import("poseidon2_degree3_schedule.zig").walk;
 

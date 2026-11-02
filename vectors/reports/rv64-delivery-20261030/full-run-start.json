@@ -1,0 +1,40 @@
+{
+  "schema": "rv64-full-run-start-v1",
+  "status": "running",
+  "full_block_proof_verified": false,
+  "config": {
+    "elf": "/private/tmp/stwo-rv64-ethereum-services-v2/ethereum-rv64-services-v2.elf",
+    "input": "/tmp/stwo-rv64-ethereum/fixture/canonical-input.ssz",
+    "elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+    "symbols": {
+      "input_start": 8388608,
+      "input_end": 12582912,
+      "halt_flag": 12582912,
+      "output_len": 12582916,
+      "output_data": 12582920,
+      "output_end": 16777216,
+      "stack_bottom": 16777216,
+      "stack_top": 33554432,
+      "heap_start": 33647392,
+      "heap_end": 268435456
+    },
+    "max_steps": 1000000000,
+    "output_directory": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/interop_artifacts/rv64-ethereum-block-24628607",
+    "terminal_pc": 17308,
+    "batch_steps": 4194303,
+    "max_batches": 0,
+    "workers": 16,
+    "profile_stages": true,
+    "omit_unused_arithmetic": true
+  },
+  "executor_sha256": "b8c09a77dc709a081ae5cde67e7f5397cc22671a68fdceaca84b7d04f69cefb6",
+  "nominal_instructions_from_native_control": 213659488,
+  "expected_batches": 51,
+  "limitations": [
+    "Whole-run timing includes concurrent engineering activity.",
+    "Serialized fresh receiver and terminal certificate must finish before full execution is qualified.",
+    "No recursive aggregation or OP derivation proof is claimed."
+  ]
+}

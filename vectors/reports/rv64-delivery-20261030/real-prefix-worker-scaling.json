@@ -1,0 +1,41 @@
+{
+  "schema": "rv64-real-prefix-worker-scaling-v1",
+  "instructions": 1048576,
+  "same_frozen_binary": true,
+  "full_block_proof_verified": false,
+  "repetitions": 1,
+  "measurements": [
+    {
+      "workers": 4,
+      "prove_ns": 26566633375,
+      "total_after_native_ns": 28784962000,
+      "rss_bytes": 8504885248,
+      "proof_sha256": "43379e4fc068d6bddc1b3b800bb3d982ee0002bc6ba3fa087047d57bc2f6333b"
+    },
+    {
+      "workers": 8,
+      "prove_ns": 14996770958,
+      "total_after_native_ns": 16757013167,
+      "rss_bytes": 9413623808,
+      "proof_sha256": "43379e4fc068d6bddc1b3b800bb3d982ee0002bc6ba3fa087047d57bc2f6333b"
+    },
+    {
+      "workers": 12,
+      "prove_ns": 12788101750,
+      "total_after_native_ns": 14460388917,
+      "rss_bytes": 9410314240,
+      "proof_sha256": "43379e4fc068d6bddc1b3b800bb3d982ee0002bc6ba3fa087047d57bc2f6333b"
+    },
+    {
+      "workers": 16,
+      "prove_ns": 10354260833,
+      "total_after_native_ns": 11955965917,
+      "rss_bytes": 9413132288,
+      "proof_sha256": "43379e4fc068d6bddc1b3b800bb3d982ee0002bc6ba3fa087047d57bc2f6333b"
+    }
+  ],
+  "limitations": [
+    "Single sequential instrumented samples; no statistical confidence interval.",
+    "First real-block prefix; later crypto/RAM geometry differs."
+  ]
+}

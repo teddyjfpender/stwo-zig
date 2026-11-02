@@ -41,8 +41,10 @@ pub fn digestFirstRoundRoster(entries: []const FirstRoundEntry) Digest {
     std.mem.writeInt(u32, &word, @intCast(entries.len), .little);
     hash.update(&word);
     for (entries) |entry| {
-        std.mem.writeInt(u32, &word, @intFromEnum(entry.family), .little); hash.update(&word);
-        std.mem.writeInt(u32, &word, entry.index, .little); hash.update(&word);
+        std.mem.writeInt(u32, &word, @intFromEnum(entry.family), .little);
+        hash.update(&word);
+        std.mem.writeInt(u32, &word, entry.index, .little);
+        hash.update(&word);
         hash.update(&entry.roots[0]);
         hash.update(&entry.roots[1]);
     }

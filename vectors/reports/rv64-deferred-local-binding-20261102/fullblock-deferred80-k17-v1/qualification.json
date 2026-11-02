@@ -1,0 +1,325 @@
+{
+  "scope": "Complete pinned block; explicit K17 truth geometry with source80 and deferred local projections, same2x8 resources. Distinct manifest/geometry, no cross-geometry byte-parity claim.",
+  "runtime_source_snapshot": "f35c350d3",
+  "binary_sha256": "02195aee6a1c9fea3deef751bf4088189dcb28b107c6c4d19d7af6c9df406c53",
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "park_main": true,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8,
+        8
+      ],
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 2,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 2147483648,
+      "max_inflight_wire_bytes": 1073741824
+    },
+    "recycler_cache_bytes": 1073741824,
+    "keccak_max_log": 17,
+    "defer_local_binding": true
+  },
+  "gkr_tree_policy": {
+    "checkpointed": false,
+    "tight_admission": true,
+    "stream_bottom": true
+  },
+  "prove_seconds": 225.717882708,
+  "wall_seconds": 244.08,
+  "process_user_seconds": 2588.95,
+  "process_system_seconds": 138.78,
+  "maximum_rss_bytes": 35345154048,
+  "peak_footprint_bytes": 35364978392,
+  "stage1_seconds": 87.14591325,
+  "stage2_seconds": 138.387440917,
+  "cpu_proofs": 25,
+  "truth_proofs": 7,
+  "physical_proof_bytes": 32559576,
+  "keccak_calls": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 9038,
+      "logs": [
+        17,
+        0
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 9039,
+      "calls": 9038,
+      "logs": [
+        17,
+        0
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 18077,
+      "calls": 9038,
+      "logs": [
+        17,
+        0
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 27115,
+      "calls": 5721,
+      "logs": [
+        17,
+        0
+      ]
+    }
+  ],
+  "ram_cells_byte_identical_to_k18": true,
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 7,
+    "load_and_setup_ns": 11449778958,
+    "verify_ns": 1010385834
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 139059,
+      "sha256": "f4e46dd285bad276c0e48de28d0d485ed7c41c62b16e6a58e0255e4673f7ada7"
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b"
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 688320,
+      "sha256": "d45455641dd9eaed08bda5c0efa79b28abaef9a537b9d68b2f0134d7dc8f4a1f"
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 661696,
+      "sha256": "54096164c5e21d440338ad7e3cc17b2f5e1671fedebeda170ad1c83081c8a040"
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 897440,
+      "sha256": "b893eea6998ba66c9f48247c3c63d75bdb64147ca808ecc6a152b8ce4777117f"
+    },
+    {
+      "name": "cpu-11.bin",
+      "bytes": 758592,
+      "sha256": "c44a67534d5175156834f8def18cb9ad409d2ee13de40f0ccedd4218e17f110e"
+    },
+    {
+      "name": "cpu-12.bin",
+      "bytes": 759616,
+      "sha256": "dfb4572c75304219df0c3b926958aab0d6a28ae24568671d1f11c262e36e6429"
+    },
+    {
+      "name": "cpu-13.bin",
+      "bytes": 740128,
+      "sha256": "68bb3e1de0ac87d8e4b7b1a526f264240895b1e0e15142cf517014f43ea48193"
+    },
+    {
+      "name": "cpu-14.bin",
+      "bytes": 883008,
+      "sha256": "664f099e9538ac98da0c8bf26629275a91ead8ecbc9935c11823e10c2fced49c"
+    },
+    {
+      "name": "cpu-15.bin",
+      "bytes": 726272,
+      "sha256": "8cd8da72b2df4f2a6149b4de4485a1a82495e927b75fc70bd828b8a25b90706c"
+    },
+    {
+      "name": "cpu-16.bin",
+      "bytes": 697472,
+      "sha256": "1ca83bb0b02e9cec7e8f9d7c8728c5f9ae15898fbbeea7a2852bd3b6c764f0e6"
+    },
+    {
+      "name": "cpu-17.bin",
+      "bytes": 685408,
+      "sha256": "7b00c4a70f93bea1ec43a77252c2034dd018abe86092118d6175e1140b516771"
+    },
+    {
+      "name": "cpu-18.bin",
+      "bytes": 872864,
+      "sha256": "2c778f1dd73a55edc00c5f1a7988cbdf1462d9cffbc481ce2d56d5acaeb6171c"
+    },
+    {
+      "name": "cpu-19.bin",
+      "bytes": 879136,
+      "sha256": "7735d68c7770be4ee03c52d3851bbcb38f4f2ab40c472fac123d52d292ac278d"
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 642528,
+      "sha256": "cf57e9b4001e60e9ff0ae46c4c42d087a14b35f6b1073a308da7b45c3d516879"
+    },
+    {
+      "name": "cpu-20.bin",
+      "bytes": 865888,
+      "sha256": "b28bc3255a06aff240144db957f1995be533b11d41d003c11e2fb2c231004615"
+    },
+    {
+      "name": "cpu-21.bin",
+      "bytes": 757088,
+      "sha256": "56c8cf697e9401ff0c4a714f7af891e524bfd82cba38444a24571e341bfce25f"
+    },
+    {
+      "name": "cpu-22.bin",
+      "bytes": 682016,
+      "sha256": "99a3413a8863e1961e6125f9d9bce6543efee54b8a22cc2e0bb4183e3d7272d1"
+    },
+    {
+      "name": "cpu-23.bin",
+      "bytes": 730464,
+      "sha256": "1ba936df101effe55e6cba218bc565c653bf710807ebfe937f313cda3a93fedf"
+    },
+    {
+      "name": "cpu-24.bin",
+      "bytes": 725824,
+      "sha256": "dae0810197f5466f890386260da069ea5e746e1ed663af96cbbd016e88110187"
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 886944,
+      "sha256": "05825f0c52da305eeaa1143c5932a3e3fc25720e23b34281f37e68cbd5973934"
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 796320,
+      "sha256": "c76e7341bac902811f1eb7589ece5507fb2a9d650c7aebc466ae4ebfe0b62903"
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 791360,
+      "sha256": "9de59122ceefa5ebbdaa17d0870d3ee97e8c0df7bfacba2dd9e4135cfc1bb840"
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 858336,
+      "sha256": "e32b035340adcd30098b0507bb7d74a21e0005cff759b289514150c3f030394f"
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 725504,
+      "sha256": "8a5f3bf4b17551fd1215335a1f55e4229aea1992824754ebfd18bd177aad2407"
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 740096,
+      "sha256": "1d11b627d8103ea3bf6754ff4764e5569b0188364c97b2e7b3721f7c441e8022"
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 752064,
+      "sha256": "9a57d8e58ceef733e15c312bf4abfd17d4e53d0ed92ec0bd33e76ef6bfd6266a"
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 2240500,
+      "sha256": "0c386102b21fc4da604e268bb6ba5501a9a44fa302e37223307f014ee5882f11"
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 2769016,
+      "sha256": "c9f62c0fbfdef3ce7bf9bb0d747c87356a0c921d40bd5d84191ce40329828e30"
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 2769752,
+      "sha256": "14f7d6501b75aa85351675c07b8d31f06a2e2a43d9cfb021c6116b4f8049e020"
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 2772504,
+      "sha256": "9205c9768a13f362f63222dad5741dc2ce600dadc34f881995011a868e0363a7"
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 2769688,
+      "sha256": "ab60fd0b978b06e45880835109d5df71811e2d21ff05d3efca55dfdf501435db"
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 811992,
+      "sha256": "8e48d8cb4ab13df0bc4946a07ce85925dfb0dbd4b45f2451d7ab7a0328da7ba3"
+    },
+    {
+      "name": "truth-5.bin",
+      "bytes": 677256,
+      "sha256": "6b0ef10ed4804f525570f78d90a8dda87cc039687cbc5f54d1b2d04a3de26628"
+    },
+    {
+      "name": "truth-6.bin",
+      "bytes": 784984,
+      "sha256": "daada8bc61dfa0fcb529d6bffcd9f8a735a78b0b28c1dd8d61faadeecdfebbaa"
+    }
+  ],
+  "limitations": [
+    "Single geometry observation, not repeated causal benchmark",
+    "Different geometry changes shared challenges and proof bytes",
+    "No whole128 or current accepting OM/GKR recursion qualification",
+    "GPU execution deferred"
+  ]
+}

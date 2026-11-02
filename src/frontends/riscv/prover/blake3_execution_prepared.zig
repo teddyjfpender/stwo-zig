@@ -46,7 +46,8 @@ pub fn ForBackend(comptime Backend: type) type {
             self.shape.public_data.io_entries.output_words = try owned.dupe(@import("../air/public_data.zig").OutputWord, source.public_data.io_entries.output_words);
             self.plan = if (pin.plan.program_schedule == .sparse_active)
                 try plans.Plan.initSparse(owned, pin.plan.roots, pin.plan.memories, pin.plan.programs, pin.plan.program_leaves)
-            else try plans.Plan.init(owned, pin.plan.roots, pin.plan.memories, pin.plan.programs, pin.plan.program_leaves);
+            else
+                try plans.Plan.init(owned, pin.plan.roots, pin.plan.memories, pin.plan.programs, pin.plan.program_leaves);
             const owned_pin = self.admission();
             const hashes = try Hashes.initVerifier(a, owned_pin);
             self.hashes = hashes;

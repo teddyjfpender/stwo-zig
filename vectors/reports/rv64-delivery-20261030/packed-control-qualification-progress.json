@@ -1,0 +1,93 @@
+{
+  "schema": "rv64-packed-control-progress-v1",
+  "status": "pure/control/provider and joined27 native proof gates PASS; real Ethereum prefix/block benchmark pending",
+  "control_policy": "limbs24_v2",
+  "range": "Three separate24/24/16 coordinates peru64; injective via canonicalreceiverROM and BYTE-auth operands; no full-u64 M31compression",
+  "geometry": {
+    "ROM_tuple_fields_before": 41,
+    "ROM_tuple_fields_after": 26,
+    "CPU_control_body_before": 115,
+    "CPU_control_body_after": 95,
+    "CPU_ETH_control_width_before": 121,
+    "CPU_ETH_control_width_after": 101,
+    "previous_nextPC_samples_before": 8,
+    "previous_nextPC_samples_after": 3,
+    "actual52_CPU_constraints_before": 1006,
+    "actual52_CPU_constraints_after": 946,
+    "BYTE_mass_change": 0,
+    "provider_interaction_column_change": 0
+  },
+  "gates": {
+    "AIR_ReleaseSafe": "PASS; oldpolynomialdenseoracle, canonical limbs, full64wrap, branch/JALR, unmaskedpadding, alias/rawidentity",
+    "CPU_degree_ReleaseSafe": "PASS all64andactual52 admittedinstructionsets bothschemas; allresiduals<=degree4",
+    "authenticated_execution_ReleaseSafe": "PASS bytes/packed xBE/wordABI xowned/sharedmain, exactowned/shared serializedbytes+freshreceivers+claimsattacks+policy-downgrade rejection",
+    "isolated_packed_ROM_PCS_ReleaseSafe": "PASS; independentreceiver, rawFENCEaliasandbyte-v1schema rejection",
+    "historical_5_SHAs": "PASS exact +148 fresh adversarial receivercases +5legacyJSON compatibility cases",
+    "real_ethereum_prefix": {
+      "instructions": 65536,
+      "separate_receiver": {
+        "status": "authenticated_execution_prefix_verified",
+        "full_block_proof_verified": false,
+        "batches": 1,
+        "instructions": 65536,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "final_root": [
+          1502352530,
+          364355436,
+          1359195591,
+          962531076,
+          1824467654,
+          914745454,
+          1429599103,
+          1638779884,
+          593832607
+        ],
+        "final_pc": 2193052,
+        "final_registers": [
+          0,
+          1435860,
+          33543792,
+          33556480,
+          0,
+          0,
+          8420432,
+          8,
+          33544056,
+          33647152,
+          33682096,
+          8420359,
+          278,
+          33682368,
+          33682176,
+          272,
+          7,
+          56,
+          8,
+          31407,
+          278,
+          33682096,
+          2,
+          2,
+          33648032,
+          2481,
+          33614384,
+          8389230,
+          0,
+          33682184,
+          235,
+          16595
+        ],
+        "setup_ns": 174191750,
+        "verify_ns": 20159625,
+        "proof_bytes": 1303552
+      },
+      "wrong_control_receiver": "InvalidEthereumBatchReceipt rejection"
+    },
+    "independent_integration_review": "No packed-specific offset/authority/lifetime defect found; direct borrowed-input alias API hardening added separately and under final tests."
+  },
+  "performance": "Only models so far; no speed or RSS improvement claimed. Matched measurement and real proof required."
+}

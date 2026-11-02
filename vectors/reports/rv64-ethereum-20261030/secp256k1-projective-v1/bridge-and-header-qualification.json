@@ -1,0 +1,109 @@
+{
+  "schema": "rv64-projective-secp256k1-bridge-qualification",
+  "security": {
+    "pow_bits": 26,
+    "queries": 70,
+    "nominal_pcs_bits": 96
+  },
+  "strict_release_safe_tests": 24,
+  "artifacts": [
+    {
+      "name": "bridge-add-v1",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-add-v1/proof.bin",
+      "proof_bytes": 398704,
+      "sha256": "490fafb845e309595990c8d83593fe4f91c13e40fd404780ffa1f5b6b4f5b303"
+    },
+    {
+      "name": "bridge-double-v1",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-double-v1/proof.bin",
+      "proof_bytes": 405152,
+      "sha256": "11ed28ff7cf605f7f740f2dac3b16cd15dc3a8b7fdc9d58e976f2500de6305e1"
+    },
+    {
+      "name": "bridge-empty-v1",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-empty-v1/proof.bin",
+      "proof_bytes": 400224,
+      "sha256": "039448f1489079e63496d4beb2197d3e1e2d103327eacc25a59bbb163a3ae6b5"
+    },
+    {
+      "name": "bridge-add-v2",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-add-v2/proof.bin",
+      "proof_bytes": 381216,
+      "sha256": "3c9f7b719435a011eeb8cb3ef691093afe07c675ef1e028b5072b92457c6fce6"
+    },
+    {
+      "name": "bridge-double-v2",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-double-v2/proof.bin",
+      "proof_bytes": 404528,
+      "sha256": "28f0a70719f028bfb60fe6acdba7789c4d1436563bddb55b6a36261436ae3e87"
+    },
+    {
+      "name": "bridge-add-v2-serial",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-add-v2-serial/proof.bin",
+      "proof_bytes": 446536,
+      "sha256": "887f1ce76f64a9795f3668201412d5cf3a69e3abdbc2c161d9e4674ba1cabf3f"
+    },
+    {
+      "name": "bridge-add-v2-parallel",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-add-v2-parallel/proof.bin",
+      "proof_bytes": 446536,
+      "sha256": "887f1ce76f64a9795f3668201412d5cf3a69e3abdbc2c161d9e4674ba1cabf3f"
+    },
+    {
+      "name": "bridge-empty-v2",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-bridge-empty-v2/proof.bin",
+      "proof_bytes": 416016,
+      "sha256": "2a9792d85b94d7b017b7a61439a9ecce07a10e307384bd373af27a32d698ab94"
+    }
+  ],
+  "v1_proof_bytes_preserved_by_format_refactor": true,
+  "v2_serial_parallel_proof_bytes_equal": true,
+  "implementation": {
+    "bridge_columns": {
+      "fixed": 7,
+      "main": 128,
+      "interaction": 72
+    },
+    "bridge_rows_per_call": {
+      "add": 6,
+      "double": 3
+    },
+    "bridge_constraints": 230,
+    "maximum_degree": 4,
+    "metadata_byte_queries_per_row": 42,
+    "coordinate_byte_queries_per_row": 0,
+    "coordinate_ranges": "Authenticated through shared typed wire bus to modular rows; no duplicate64 BYTE requests",
+    "packet_formats": {
+      "v1": "32-byte BE XYZ; tags0x20001/2",
+      "v2": "32-byte nativeLE four-u64 XYZ; tags0x20011/12"
+    },
+    "packet_bytes": {
+      "add": 192,
+      "double": 96
+    },
+    "packet_alignment": 32,
+    "packet_update": "Overwrite first96B only; ADD RHS unchanged and may be read-only",
+    "immutable_setup": "Topology and geometry only; count/IDs are main+instance authority"
+  },
+  "cpu_header": {
+    "main_counters": 2,
+    "interaction": 4,
+    "constraints": 7,
+    "selector_constraints": 12,
+    "max_degree": 3,
+    "integrated": false
+  },
+  "foreign_identity_budget": {
+    "authority": "Existing unchanged degree62 carry polynomial at one post-main QM31 challenge",
+    "real_block_products": 658944,
+    "max_degree": 62,
+    "union_failure_upper_bound": 1.9209706783585254e-30,
+    "negative_log2_bound": 98.71600734870519,
+    "scope": "Foreign product identities only; does not account for FRI, lookup compression/rational relations, OODS, aggregation or other components"
+  },
+  "remaining": [
+    "Shared CPU coordinator integration for new profiles",
+    "Private authenticated RAM hash boundary and continuation",
+    "Whole-block proof, whole-cost profile and complete soundness budget"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "schema": "rv64-csp-full-single-shot-proofs-v1",
+  "complete": true,
+  "whole_guest_proof": true,
+  "profile_only": false,
+  "all_selected_profiled": false,
+  "selected_cases": 1,
+  "execution_report_sha256": "cc90cc1276bbe91a93a4d792018b9d9f91f407d035485a2dea236c2b830c5b3b",
+  "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "driver_sha256": "1fa7942dee8aa6fff0de460c561f503e52be008bd0b9fca0452c760f046e611d",
+  "binary_sha256": "87a0ff3acab7f7aa6d89f3bd0e18afc1806853348b322e491e019f6f7d22c31a",
+  "verifier_binary_sha256": "cf4431f889b67fe1cd475ee8ddc1c8673f20ca2c35bfb4f86334a83058e3436c",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "memory_limit_bytes": 51539607552,
+  "timeout_seconds": 7200,
+  "verify_timeout_seconds": 1800,
+  "scope": "One guest capture and one STARK per selected complete execution; separate fresh-process receiver verification. Profile-only never establishes a proof.",
+  "cases": [
+    {
+      "target": "keccak",
+      "size": 128,
+      "negative": false,
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "expected_instructions": 8721,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "0d3d7d4d6ea3165b76b0bb003ea04b7bae69aef7132d386a2e43dd616cee6c36",
+      "prover": {
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 8721,
+        "rows": 16384,
+        "main_columns": 588,
+        "interaction_columns": 340,
+        "cpu_base_bytes": 61014016,
+        "rom_words": 1930,
+        "ram_cells": 259,
+        "capture_ns": 333583,
+        "setup_ns": 7257250,
+        "witness_ns": 74733125,
+        "prove_ns": 2872970208,
+        "encode_decode_ns": 885084,
+        "verify_ns": 4726166,
+        "proof_bytes": 524240,
+        "oods_samples": 1087,
+        "queried_base_values": 72940,
+        "authenticated_hashes": 2808,
+        "peak_caller_bytes": 362560240,
+        "pow_bits": 26,
+        "fri_queries": 70
+      },
+      "prover_process_ns": 3371761625,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "b6d6083fc41d58c4e9659dbabbbab86e757d7e39bb8fcf18be49c9825daa8adb",
+        "claims.json": "b4b742f703e0713be81a0d0d798e93e52553f202f1b390b8b8731248775d5130",
+        "proof.bin": "597fb3fac02030d5bc2f92a20a4dbe2d9e387c86158bfd0cd4e180840962fbc0"
+      },
+      "fresh_process": {
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 414708,
+        "independent_setup_ns": 6549833,
+        "verify_ns": 4837625,
+        "proof_bytes": 524240
+      },
+      "verify_process_ns": 377458833
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "scope": "Joined parallel native SHIFT source construction only; unchanged qualified native row authority, physical MAIN53/INTER48, metadata26B, five SHIFT and nine U16 queries per physical row. No protocol/FS, geometry or LS interaction layout change.",
+  "base_commit": "534a7845f",
+  "implementation": {
+    "authority": "Existing nativeRow/rowToColumnsFor and lookup-index projections moved unchanged into one concrete NativeSupport.write, shared scalar/parallel. Full native fact/geometry/input-alias validation remains before borrowed writes. No VM, Tape restore or native instruction replay.",
+    "partition": "Physical contiguous16-row partitions; inverse permutation selects logical fact/metadata. Private metadata page establishment once after successful submissions.",
+    "histogram_scratch_bytes_per_worker": 8912896,
+    "histogram_scratch_bytes_at16": 142606336,
+    "pool": "Existing scoped WorkPool lease, min(pool workers,max(1,N/4096)); serial allocates no histogram scratch. No nested pool/global scratch. Release stack>=256KiB and Debug>=1MiB, including1-worker pools.",
+    "failure": "All allocations/submissions before startgate. Partial submit cancels/drains waiting helpers; owned allocations free exactly once and borrowed MAIN remains untouched. Checked postjoin histogram merge has no allocation. No general postwrite rollback claim for invalid-mass errors.",
+    "mass": "SHIFT5*N and U16 9*N checked after merge, including all padding. Each bin and total retain existing below-characteristic admission."
+  },
+  "qualification": {
+    "focused_safe_runtime5": "PASS",
+    "focused_fast_runtime5": "PASS",
+    "existing_shift_source_fast_runtime7": "PASS",
+    "metadata_runtime_count": 5,
+    "logs": [
+      "/tmp/rv64-shift-native-fill-safe.log",
+      "/tmp/rv64-shift-native-fill-fast.log",
+      "/tmp/rv64-shift-native-fill-old-source-fast.log"
+    ],
+    "tests": [
+      "65536-row MAIN/metadata/SHIFT and U16 histograms exact vs explicit serial reference at1/3/16;40001 facts cover all6 operations, full64 signed operands and ignored high shift bits.",
+      "MAIN retirement before generation: all48 interaction columns and three physical claims exact at1/3/16.",
+      "Partial submit0/1 cancellation/drain, sentinel borrowed MAIN preservation, immediate pool reuse, undersized1worker stack rejection and exhaustive owned/borrowed allocation failures.",
+      "Actual full17-role mixed ISA proof bytes/33claims exact at1/3/16, SHIFTlog16; fresh independently reconstructed setup receiver."
+    ],
+    "fmt_diff_and_conformance31": "PASS; inherited whole-repository hook violations bypassed for scoped commit."
+  },
+  "real_packet": {
+    "directory": "/tmp/rv64-shift-native-fill-real0-v1",
+    "steps": 4194303,
+    "cli_sha256": "96ed84f1c77b9eefed9c92308a5cd47d5a93c1ad4186e9f3d8707ddb6310a07d",
+    "build_log": "/tmp/rv64-shift-native-cli-fast.log",
+    "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+    "proof_bytes": 1152816,
+    "retained_proof_exact": true,
+    "ram_sidecar_exact": true,
+    "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "statement_semantics": "Exact after restoring default omit_empty_division=false in old JSON geometry.",
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 891539875,
+      "image_ns": 304613875
+    },
+    "selected_stages": {
+      "provider_source_construction": {
+        "id": "provider_source_construction",
+        "label": "Independent provider witnesses from retained native facts",
+        "seconds": 0.696092,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 2.370295,
+          "system_seconds": 0.784157,
+          "minor_faults": 189421,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 1351
+        }
+      },
+      "source_binary": {
+        "id": "source_binary",
+        "label": "BINARY witness",
+        "seconds": 0.025918,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 0.245985,
+          "system_seconds": 0.033002,
+          "minor_faults": 14752,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 162
+        }
+      },
+      "source_shift": {
+        "id": "source_shift",
+        "label": "SHIFT witness",
+        "seconds": 0.051369,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 0.38526,
+          "system_seconds": 0.041648,
+          "minor_faults": 24993,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 151
+        }
+      }
+    },
+    "report": {
+      "commit_batch_columns": 8,
+      "interaction_page_preparation": true,
+      "allocator": {
+        "policy": "smp",
+        "cache_cap_bytes": 0,
+        "stats": {
+          "reused_blocks": 0,
+          "mapped_blocks": 0,
+          "cached_bytes": 0
+        }
+      },
+      "public_ram_sidecar_bytes": 32612038,
+      "public_statement_json_bytes": 11953,
+      "proof_and_public_statement_bytes": 33776807,
+      "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "steps": 4194303,
+      "source_cells": {
+        "fixed": 67168160,
+        "main": 593751776,
+        "interaction": 655329792
+      },
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 20,
+        "binary_log": 20,
+        "shift_log": 20,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 21,
+        "boundary_log": 20,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "native_prepare_ns": 396261541,
+      "provider_source_ns": 696088916,
+      "setup_ns": 393311833,
+      "prove_ns": 13474099083,
+      "same_process_verify_ns": 87258583,
+      "proof_bytes": 1152816,
+      "total_ns": 14612974709,
+      "memory": {
+        "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 857030656,
+        "last_rss_bytes": 1331249152,
+        "sampled_peak_rss_bytes": 11551752192,
+        "process_lifetime_peak_rss_bytes": 11551752192,
+        "samples": 966,
+        "failed_samples": 0
+      }
+    },
+    "process_time_line": "15.02 real        66.56 user         7.34 sys",
+    "observations": "Concurrent/nonisolated functional observation; no matched speedup claim. Tool build completed and binary hash pinned before launch. Includes qualified BINARY native slice534a7845f."
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_native_fill.zig": "787845b4dbdb7030ae9a63e4b30f2d73f4b37a4cc28c89bf828e5516e9f4c49b",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source.zig": "d71dfa729b41cc803bfd72931b6948d4c4d8c42fd34af27ad03ab1c90253753d",
+    "src/integrations/riscv_cpu/rv64_word16_shift_native_fill_test_root.zig": "8d89a33d030e11ae1bd9c4c8cf92bc562bef7721ebaeeb3f112c3ae81f0dfd61",
+    "src/integrations/riscv_cpu/word16_execution/shift_native_fill_test.zig": "163dc8b7f58cc8cc65411f0660b31129db1f9874939457bbae42dcada1380c5a",
+    "build_support/products/riscv_cpu.zig": "939f938e144fa9dd84a7f949ef341689a0d4b61d3df09f1ef0ffc81b56fd7f1b",
+    "build_support/products/catalog.zig": "30ce676c3d515c438469282f6ea4a24a913d8e45b13e03c58f64520672807a21"
+  }
+}

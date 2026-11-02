@@ -1,0 +1,24 @@
+{
+  "scope": "First v3 OM31 adapter prerequisite: existing bulk rational-query authority, not a new accepting GKR route",
+  "source_change": "Two QM31-only helper challenge parameter types now use existing lane-derived ChallengesFor",
+  "component_kinds": [
+    "desc",
+    "copy",
+    "set",
+    "ucopy",
+    "cdesc",
+    "cmp",
+    "jdesc",
+    "jscan",
+    "jtab"
+  ],
+  "oracle": "Two independent QM31 challenge evaluations reconstruct low/high halves of full OM31 denominator; weights and relation order checked",
+  "safe_pass": true,
+  "fast_pass": true,
+  "arithmetic_constraints_columns_transcript_unchanged": true,
+  "v3_gkr_admission_enabled": false,
+  "limits": [
+    "Not a complete OM31 bulk PCS proof",
+    "Raw local/global projection and worker integration still required"
+  ]
+}

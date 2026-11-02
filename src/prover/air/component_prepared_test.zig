@@ -725,39 +725,38 @@ test "prepared domain run performs no allocation" {
     try std.testing.expectEqual(@as(usize, 0), accumulator.next_power_index);
 }
 
-
 test "streamed prepared composition preserves powers and bounds live preparation" {
     const a = std.testing.allocator;
-    for ([_]usize{1,2,4}) |workers| {
+    for ([_]usize{ 1, 2, 4 }) |workers| {
         var control = Control{};
-        const components = [_]MockComponent{component(0,5,&control),component(1,7,&control),component(2,11,&control),component(3,13,&control)};
-        var reference = try runRequestedCompositionWithPreparation(a,&components,workers,2*1024*1024,.eager);
+        const components = [_]MockComponent{ component(0, 5, &control), component(1, 7, &control), component(2, 11, &control), component(3, 13, &control) };
+        var reference = try runRequestedCompositionWithPreparation(a, &components, workers, 2 * 1024 * 1024, .eager);
         defer reference.deinit(a);
-        try std.testing.expectEqual(@as(usize,4),control.peak_live_states.load(.acquire));
-        control.peak_live_states.store(0,.release);
-        var streamed = try runRequestedCompositionWithPreparation(a,&components,workers,2*1024*1024,.streamed);
+        try std.testing.expectEqual(@as(usize, 4), control.peak_live_states.load(.acquire));
+        control.peak_live_states.store(0, .release);
+        var streamed = try runRequestedCompositionWithPreparation(a, &components, workers, 2 * 1024 * 1024, .streamed);
         defer streamed.deinit(a);
-        try std.testing.expectEqual(@as(usize,1),control.peak_live_states.load(.acquire));
-        try std.testing.expectEqual(@as(usize,0),control.live_states.load(.acquire));
-        try std.testing.expectEqual(@as(usize,0),control.legacy_calls.load(.acquire));
-        for (0..reference.len()) |row| try std.testing.expectEqualDeep(reference.at(row),streamed.at(row));
+        try std.testing.expectEqual(@as(usize, 1), control.peak_live_states.load(.acquire));
+        try std.testing.expectEqual(@as(usize, 0), control.live_states.load(.acquire));
+        try std.testing.expectEqual(@as(usize, 0), control.legacy_calls.load(.acquire));
+        for (0..reference.len()) |row| try std.testing.expectEqualDeep(reference.at(row), streamed.at(row));
     }
 }
 fn streamedAllocationFailure(a: std.mem.Allocator) !void {
     var control = Control{};
-    defer std.debug.assert(control.live_states.load(.acquire)==0);
-    const components = [_]MockComponent{component(0,5,&control),component(1,7,&control),component(2,11,&control)};
-    var result = try runRequestedCompositionWithPreparation(a,&components,1,2*1024*1024,.streamed);
+    defer std.debug.assert(control.live_states.load(.acquire) == 0);
+    const components = [_]MockComponent{ component(0, 5, &control), component(1, 7, &control), component(2, 11, &control) };
+    var result = try runRequestedCompositionWithPreparation(a, &components, 1, 2 * 1024 * 1024, .streamed);
     defer result.deinit(a);
 }
 test "streamed prepared composition releases every failed allocation" {
-    try std.testing.checkAllAllocationFailures(std.testing.allocator,streamedAllocationFailure,.{});
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, streamedAllocationFailure, .{});
 }
 test "streamed prepared composition stops and cleans up failed execution" {
     var control = Control{};
-    var components = [_]MockComponent{component(0,5,&control),component(1,7,&control),component(2,11,&control)};
+    var components = [_]MockComponent{ component(0, 5, &control), component(1, 7, &control), component(2, 11, &control) };
     components[1].run_error = error.StreamedSentinel;
-    try std.testing.expectError(error.StreamedSentinel,runRequestedCompositionWithPreparation(std.testing.allocator,&components,2,2*1024*1024,.streamed));
-    try std.testing.expectEqual(@as(usize,0),control.live_states.load(.acquire));
-    try std.testing.expectEqual(@as(usize,2),control.prepare_calls.load(.acquire));
+    try std.testing.expectError(error.StreamedSentinel, runRequestedCompositionWithPreparation(std.testing.allocator, &components, 2, 2 * 1024 * 1024, .streamed));
+    try std.testing.expectEqual(@as(usize, 0), control.live_states.load(.acquire));
+    try std.testing.expectEqual(@as(usize, 2), control.prepare_calls.load(.acquire));
 }

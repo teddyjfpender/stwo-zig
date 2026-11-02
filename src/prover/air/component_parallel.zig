@@ -10,6 +10,7 @@ const host_budget_allocator = @import("../host_budget_allocator.zig");
 const secure_column = @import("../secure_column.zig");
 const task_graph = @import("../task_graph.zig");
 const work_pool = @import("../work_pool.zig");
+const queue = @import("component_queue.zig");
 
 const QM31 = qm31.QM31;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
@@ -118,6 +119,39 @@ pub fn computeWithRecorderDiagnosed(
         trace,
         pool,
         diagnostic,
+        .auto,
+        .{},
+    );
+}
+
+pub const Scheduler = queue.Scheduler;
+pub const QueueOptions = queue.QueueOptions;
+
+/// Same contract as `compute`, with an explicit scheduler. Used by the
+/// scheduler equivalence tests.
+pub fn computeWithScheduler(
+    allocator: std.mem.Allocator,
+    components: anytype,
+    max_log_size: u32,
+    total_constraints: usize,
+    random_coeff: QM31,
+    trace: anytype,
+    pool: *work_pool.WorkPool,
+    scheduler: Scheduler,
+    options: QueueOptions,
+) anyerror!SecureColumnByCoords {
+    if (components.len == 0) return error.EmptyComponentSet;
+    return computeLegacy(
+        allocator,
+        components,
+        max_log_size,
+        total_constraints,
+        random_coeff,
+        trace,
+        pool,
+        null,
+        scheduler,
+        options,
     );
 }
 
@@ -597,6 +631,8 @@ fn computeLegacy(
     trace: anytype,
     pool: *work_pool.WorkPool,
     diagnostic: ?*?prover_api.EvaluationDiagnostic,
+    scheduler: Scheduler,
+    queue_options: QueueOptions,
 ) anyerror!SecureColumnByCoords {
     const Component = @TypeOf(components[0]);
     const TracePointer = @TypeOf(trace);
@@ -608,8 +644,9 @@ fn computeLegacy(
         expected_next_power_index: usize,
         diagnostic: ?*?prover_api.EvaluationDiagnostic,
         err: ?anyerror = null,
+        exclusive_done: bool = false,
 
-        fn run(self: *@This()) void {
+        pub fn run(self: *@This()) void {
             self.component.evaluateConstraintQuotientsOnDomain(
                 self.trace,
                 &self.accumulator,
@@ -618,7 +655,7 @@ fn computeLegacy(
             };
         }
 
-        fn runParallel(self: *@This(), shared_pool: *work_pool.WorkPool) void {
+        pub fn runParallel(self: *@This(), shared_pool: *work_pool.WorkPool) void {
             self.component.evaluateConstraintQuotientsOnDomainParallel(
                 self.trace,
                 &self.accumulator,
@@ -682,6 +719,9 @@ fn computeLegacy(
         return error.ConstraintPowerRangeMismatch;
     }
 
+    if (queue.select(components, scheduler)) {
+        return queue.compute(allocator, workers, components, pool, max_log_size, queue_options);
+    }
     if (hasPoolExclusiveDomain(components)) {
         return computePoolExclusive(workers, components, pool);
     }
@@ -734,34 +774,9 @@ fn componentRows(component: anytype) !u64 {
     return @as(u64, 1) << @intCast(log_size);
 }
 
-fn validatePowerRanges(workers: anytype) !void {
-    for (workers) |worker| {
-        if (worker.accumulator.next_power_index != worker.expected_next_power_index) {
-            prover_api.EvaluationDiagnostic.recordFirst(worker.diagnostic, .{
-                .stage = .component_evaluation,
-                .cause = error.ConstraintPowerRangeMismatch,
-                .component_index = worker.component_index,
-                .actual = worker.accumulator.next_power_index,
-                .expected = worker.expected_next_power_index,
-            });
-            return error.ConstraintPowerRangeMismatch;
-        }
-    }
-}
-
-fn firstWorkerError(workers: anytype) ?anyerror {
-    for (workers) |worker| {
-        if (worker.err) |err| {
-            prover_api.EvaluationDiagnostic.recordFirst(worker.diagnostic, .{
-                .stage = .component_evaluation,
-                .cause = err,
-                .component_index = worker.component_index,
-            });
-            return err;
-        }
-    }
-    return null;
-}
+const state = @import("component_worker_state.zig");
+const validatePowerRanges = state.validatePowerRanges;
+const firstWorkerError = state.firstWorkerError;
 
 fn computePoolExclusive(workers: anytype, components: anytype, pool: *work_pool.WorkPool) anyerror!SecureColumnByCoords {
     const caller_index = dominantPoolExclusiveComponent(components);
@@ -903,5 +918,4 @@ fn executePreparedGraph(graph: *task_graph.ComponentTaskGraph, execution: compos
             return failure;
         },
     };
-
 }

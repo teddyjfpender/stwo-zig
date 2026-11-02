@@ -1,0 +1,20 @@
+1/17 rv64_main_merkle_parking_test_root.test_0...OK
+2/17 word16_global_execution.retained_main_merkle_test.test.fully parked MAIN nodes preserve root shape and exact data with no resident payload...OK
+3/17 word16_global_execution.retained_main_merkle_test.test.fully parked restore refuses file header node and length tamper without publishing mappings...OK
+4/17 word16_global_execution.retained_main_merkle_test.test.fully parked complete owner lifecycle cleans every allocation failure and abort...OK
+5/17 word16_global_execution.retained_main_merkle_test.test.fully parked combined disk limit refuses before coefficient or node ownership changes...OK
+6/17 word16_global_execution.retained_main_merkle_test.test.actual CPU OM service shards fully parked and resident proofs are exact and fresh accepted...FULL_MAIN_PARKING shard=0 proof_claims_sha256=bdbbd96c95a15b0332d66d22765763f2a358d8b31a94a23f2c61b25ebcf4f1fa
+FULL_MAIN_PARKING shard=1 proof_claims_sha256=75fa333bfba1eddf904f8ee730c175bc4d9f72247faaed3b52d367f0142cfaaf
+OK
+7/17 word16_global_execution.retained_main_merkle_test.test.actual CPU fully parked abort and later worker OOM release nodes without restore...OK
+8/17 word16_global_execution.retained_main_merkle_test.test.fully parked mappings reserve and release the same SharedHostBudget cap...OK
+9/17 word16_global_execution.services.gkr_local.cpu_worker_test.test.actual CPU Keccak services shard local GKR and physical OM proof fresh verify...OK
+10/17 word16_global_execution.services.gkr_local.cpu_worker_test.test.actual CPU ADD DOUBLE shard local GKR and physical OM proof fresh verify...OK
+11/17 word16_global_execution.services.gkr_local.cpu_worker_test.test.CPU worker stage-one early OOM destroys its retained owners once...OK
+12/17 word16_global_execution.services.gkr_local.cpu_worker_test.test.CPU parked worker abort tears down FD registry and store without restore...OK
+13/17 word16_global_execution.services.gkr_local.cpu_worker_test.test.later CPU stage-one OOM unwinds prior parked worker without stale owners...OK
+14/17 logup_gkr.mle_point.test.logup-gkr mle point: eq column satisfies anchors and carry recurrence...OK
+15/17 logup_gkr.mle_point.test.logup-gkr mle point: any single eq cell mutation violates the constraints...OK
+16/17 logup_gkr.mle_point.test.logup-gkr mle point: succinct carry quotient and anchors match interpolation...OK
+17/17 logup_gkr.mle_point.test.logup-gkr mle point: degenerate coordinates are rejected...OK
+All 17 tests passed.

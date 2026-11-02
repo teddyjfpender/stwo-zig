@@ -1,0 +1,30 @@
+{
+  "base_commit": "3841fd1dba45ccc0edaad50cdf1e3393eb9346a0",
+  "scope": "claim-free geometry/constraint/degree/mask authorities reused by actual CPU/truth components and preflight",
+  "protocol_changes": false,
+  "new_apis": [
+    "geometry.shapesForProgramLog(log,geometry)",
+    "gkr_local.shape_metadata.forOrigin(Frame.Origin)",
+    "truth_components.shapesForDeclaration(TruthDeclaration)",
+    "truth_role.Shape.{widths,nConstraints,maxDegree,maxSamples}"
+  ],
+  "checks": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "6e20a4b54338d08ac17dd51bf813b96e2d64addcf5902b40c403fc8f2c578850"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    }
+  ],
+  "gates": [
+    "real CPU K/ADD/DOUBLE component metadata matches pure descriptor for all roster slots",
+    "all actual CPU mask samples and declared per-constraint degrees bounded by pure descriptors",
+    "real truth K/ADD physical metadata/masks/degrees match pure declarations",
+    "actual complete candidate and default control fresh verification preserved",
+    "no fake zero claims or uninitialized challenge component construction in new APIs"
+  ]
+}

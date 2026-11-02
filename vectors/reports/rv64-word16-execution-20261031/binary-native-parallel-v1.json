@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "scope": "Joined parallel native BINARY source construction only; unchanged qualified row equations, physical MAIN42/INTER24, metadata46B, eight physical AND queries per row and weighted FUNCTION multiplicity. No protocol/FS or default geometry change.",
+  "base_commit": "dac440622",
+  "implementation": {
+    "authority": "Existing nativeRow and rowToColumnsFor equations moved unchanged into one concrete NativeSupport.write used by scalar/parallel formatters. Full fact/weight validation precedes allocation and borrowed writes.",
+    "partition": "Physical contiguous16-row partitions; inverse permutation selects logical fact/metadata. Private metadata pages established once after successful submissions.",
+    "histogram_scratch_bytes_per_worker": 524288,
+    "histogram_scratch_bytes_at16": 8388608,
+    "pool": "Existing scoped pool lease, min(pool workers,max(1,N/4096)); no nested pool/global scratch. Release stack>=256KiB, Debug>=1MiB, including single-worker pools.",
+    "failure": "All allocations/submissions precede opening start gate. Partial submit cancels/drains helpers; owned allocations clean exactly once; borrowed MAIN unchanged on allocation/submission/stack failure. Private checked histogram reduction after joined complete writes; no general borrowed rollback claim for postwrite invalid-mass errors.",
+    "mass": "AND counts total8*N inclpadding independent of FUNCTION multiplicity; canonical \u03bc and total \u03bc<p unchanged."
+  },
+  "qualification": {
+    "focused_safe_runtime5": "PASS",
+    "focused_fast_runtime5": "PASS",
+    "existing_binary_source_fast_runtime10": "PASS",
+    "metadata_runtime_count": 5,
+    "logs": [
+      "/tmp/rv64-binary-native-fill-safe.log",
+      "/tmp/rv64-binary-native-fill-fast.log",
+      "/tmp/rv64-binary-native-fill-old-source-fast.log"
+    ],
+    "tests": [
+      "65536-row weighted MAIN/metadata/AND histogram exact against explicit serial reference at1/3/16;40001 facts cover all3 operations and full64 operands, weights0..100.",
+      "MAIN retirement before generation: all24 interaction columns and both claims exact at1/3/16.",
+      "Partial helper submission0/1, sentinel borrowed MAIN preservation, immediate pool reuse, undersized1worker stack and exhaustive owned/borrowed allocation failures.",
+      "Actual full17-role proof bytes/33claims exact at1/3/16, binarylog16; fresh independent setup receiver."
+    ],
+    "fmt_diff_and_conformance31": "PASS; known inherited whole-repository hook violations bypassed for scoped commit."
+  },
+  "real_packet": {
+    "directory": "/tmp/rv64-binary-native-fill-real0-v1",
+    "steps": 4194303,
+    "cli_sha256": "633831cd41747323f44462b1ee6d4365cc808d9bfcdc789b4de00b318074f196",
+    "build_log": "/tmp/rv64-binary-native-cli-fast.log",
+    "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+    "proof_bytes": 1152816,
+    "retained_proof_exact": true,
+    "ram_sidecar_exact": true,
+    "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "statement_semantics": "Exact after restoring default omit_empty_division=false in old JSON geometry.",
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 930899125,
+      "image_ns": 311470292
+    },
+    "selected_stages": {
+      "provider_source_construction": {
+        "id": "provider_source_construction",
+        "label": "Independent provider witnesses from retained native facts",
+        "seconds": 0.943408,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 2.252165,
+          "system_seconds": 0.731976,
+          "minor_faults": 183668,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 1483
+        }
+      },
+      "source_binary": {
+        "id": "source_binary",
+        "label": "BINARY witness",
+        "seconds": 0.031133,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 0.244921,
+          "system_seconds": 0.026818,
+          "minor_faults": 14752,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 161
+        }
+      }
+    },
+    "report": {
+      "commit_batch_columns": 8,
+      "interaction_page_preparation": true,
+      "allocator": {
+        "policy": "smp",
+        "cache_cap_bytes": 0,
+        "stats": {
+          "reused_blocks": 0,
+          "mapped_blocks": 0,
+          "cached_bytes": 0
+        }
+      },
+      "public_ram_sidecar_bytes": 32612038,
+      "public_statement_json_bytes": 11953,
+      "proof_and_public_statement_bytes": 33776807,
+      "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "steps": 4194303,
+      "source_cells": {
+        "fixed": 67168160,
+        "main": 593751776,
+        "interaction": 655329792
+      },
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 20,
+        "binary_log": 20,
+        "shift_log": 20,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 21,
+        "boundary_log": 20,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "native_prepare_ns": 343422166,
+      "provider_source_ns": 943393416,
+      "setup_ns": 358191000,
+      "prove_ns": 13672155541,
+      "same_process_verify_ns": 88095667,
+      "proof_bytes": 1152816,
+      "total_ns": 14765188250,
+      "memory": {
+        "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 857014272,
+        "last_rss_bytes": 1330479104,
+        "sampled_peak_rss_bytes": 11551801344,
+        "process_lifetime_peak_rss_bytes": 11551801344,
+        "samples": 977,
+        "failed_samples": 0
+      }
+    },
+    "process_time_line": "15.47 real        64.93 user         7.13 sys",
+    "observations": "Concurrent/nonisolated functional observation; no matched speedup claim. Build completed and binary hash pinned before launch."
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/binary_native_fill.zig": "4a513369fa96830610d519e34d043e349004747882e1659de7a7bf492f55564b",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "2a264fa41c4507b921081e040b00cfefcb91fbe7365a1440d35e052057183e34",
+    "src/integrations/riscv_cpu/rv64_word16_binary_native_fill_test_root.zig": "3ddd8448350ed913f2c019730004a771486816a0d155aec445d73071d28d7367",
+    "src/integrations/riscv_cpu/word16_execution/binary_native_fill_test.zig": "b50a598225a6ebf145908c507fbc56f2a1562d99a6c8de0c1d58695d316063f7",
+    "build_support/products/riscv_cpu.zig": "94f7754be292298336d09596c7ba20ad7443fb543f66eb6c6eb20285c8663cc9",
+    "build_support/products/catalog.zig": "46dd77deee562e66d971e47f8b6b4853be4fb81b9aeae4180518cc48105a82a5"
+  }
+}

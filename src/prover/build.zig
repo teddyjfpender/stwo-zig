@@ -114,7 +114,7 @@ pub fn build(b: *std.Build) void {
         .step = "test-pcs-blake3-pow",
         .description = "Check BLAKE3 nonce batching against the streaming hash and deterministic pool search",
         .root = "pcs_pow_test_root.zig",
-        .filters = &.{"BLAKE3 PoW"},
+        .filters = &.{ "BLAKE3 PoW", "single-worker scoped PoW" },
     });
     const pcs_revision_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-revision",

@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "status": "counter_qualified_cost_model; no protocol activation",
+  "source_artifacts": {
+    "cost": "/tmp/rv64-ethereum-word16-prefix1-v1/cost.json",
+    "geometry": "/tmp/rv64-ethereum-plan-prefix1-v1.json"
+  },
+  "hasher": "domain-prefixed BLAKE2s; 64-byte block,16 canonical M31 words",
+  "commitment_blowup_log": 1,
+  "facts": [
+    "height-ascending groups absorbed once at native LDE height",
+    "ExpandOps replicates state without hashing",
+    "only finalization and parent layers necessarily scale at maximum tree height",
+    "sparse final-block optimization avoids fixed-tree final state expansion",
+    "fixed keys retain immutable committed data; main table multiplicities remain request-specific"
+  ],
+  "accounting": [
+    {
+      "stage": "fixed",
+      "groups": [
+        {
+          "native_log": 5,
+          "columns": 34,
+          "new_nonfinal_blocks_per_native_lde_row": 3
+        },
+        {
+          "native_log": 8,
+          "columns": 3,
+          "new_nonfinal_blocks_per_native_lde_row": 0
+        },
+        {
+          "native_log": 13,
+          "columns": 3,
+          "new_nonfinal_blocks_per_native_lde_row": 0
+        },
+        {
+          "native_log": 14,
+          "columns": 2,
+          "new_nonfinal_blocks_per_native_lde_row": 0
+        },
+        {
+          "native_log": 16,
+          "columns": 32,
+          "new_nonfinal_blocks_per_native_lde_row": 2
+        },
+        {
+          "native_log": 18,
+          "columns": 3,
+          "new_nonfinal_blocks_per_native_lde_row": 0
+        },
+        {
+          "native_log": 20,
+          "columns": 47,
+          "new_nonfinal_blocks_per_native_lde_row": 3
+        },
+        {
+          "native_log": 22,
+          "columns": 3,
+          "new_nonfinal_blocks_per_native_lde_row": 0
+        }
+      ],
+      "native_cells": 64808768,
+      "columns": 127,
+      "naive_lifted_base_leaf_exposure": 532676608,
+      "streaming_nonfinal_leaf_compressions": 6553792,
+      "streaming_final_leaf_compressions": 8388608,
+      "streaming_parent_payload_compressions": 8388607,
+      "streaming_leaf_and_parent_payload_compressions": 23331007,
+      "flat_rehash_leaf_compressions": 75497472,
+      "bucket_leaf_compressions": 26707200,
+      "bucket_parent_payload_compressions": 11190840,
+      "bucket_total_payload_compressions": 37898040,
+      "nominal70_query_column_values": 8890
+    },
+    {
+      "stage": "main",
+      "groups": [
+        {
+          "native_log": 8,
+          "columns": 1,
+          "new_nonfinal_blocks_per_native_lde_row": 1
+        },
+        {
+          "native_log": 13,
+          "columns": 87,
+          "new_nonfinal_blocks_per_native_lde_row": 5
+        },
+        {
+          "native_log": 14,
+          "columns": 18,
+          "new_nonfinal_blocks_per_native_lde_row": 1
+        },
+        {
+          "native_log": 16,
+          "columns": 20,
+          "new_nonfinal_blocks_per_native_lde_row": 1
+        },
+        {
+          "native_log": 18,
+          "columns": 79,
+          "new_nonfinal_blocks_per_native_lde_row": 5
+        },
+        {
+          "native_log": 20,
+          "columns": 273,
+          "new_nonfinal_blocks_per_native_lde_row": 17
+        },
+        {
+          "native_log": 22,
+          "columns": 53,
+          "new_nonfinal_blocks_per_native_lde_row": 4
+        }
+      ],
+      "native_cells": 531587328,
+      "columns": 531,
+      "naive_lifted_base_leaf_exposure": 2227175424,
+      "streaming_nonfinal_leaf_compressions": 72073728,
+      "streaming_final_leaf_compressions": 8388608,
+      "streaming_parent_payload_compressions": 8388607,
+      "streaming_leaf_and_parent_payload_compressions": 88850943,
+      "flat_rehash_leaf_compressions": 293601280,
+      "bucket_leaf_compressions": 85541888,
+      "bucket_parent_payload_compressions": 11190777,
+      "bucket_total_payload_compressions": 96732665,
+      "nominal70_query_column_values": 37170
+    },
+    {
+      "stage": "interaction",
+      "groups": [
+        {
+          "native_log": 5,
+          "columns": 8,
+          "new_nonfinal_blocks_per_native_lde_row": 1
+        },
+        {
+          "native_log": 8,
+          "columns": 8,
+          "new_nonfinal_blocks_per_native_lde_row": 0
+        },
+        {
+          "native_log": 13,
+          "columns": 200,
+          "new_nonfinal_blocks_per_native_lde_row": 13
+        },
+        {
+          "native_log": 14,
+          "columns": 12,
+          "new_nonfinal_blocks_per_native_lde_row": 1
+        },
+        {
+          "native_log": 16,
+          "columns": 60,
+          "new_nonfinal_blocks_per_native_lde_row": 3
+        },
+        {
+          "native_log": 18,
+          "columns": 96,
+          "new_nonfinal_blocks_per_native_lde_row": 6
+        },
+        {
+          "native_log": 20,
+          "columns": 252,
+          "new_nonfinal_blocks_per_native_lde_row": 16
+        },
+        {
+          "native_log": 22,
+          "columns": 40,
+          "new_nonfinal_blocks_per_native_lde_row": 3
+        }
+      ],
+      "native_cells": 462948608,
+      "columns": 676,
+      "naive_lifted_base_leaf_exposure": 2835349504,
+      "streaming_nonfinal_leaf_compressions": 62505024,
+      "streaming_final_leaf_compressions": 8388608,
+      "streaming_parent_payload_compressions": 8388607,
+      "streaming_leaf_and_parent_payload_compressions": 79282239,
+      "flat_rehash_leaf_compressions": 369098752,
+      "bucket_leaf_compressions": 73827456,
+      "bucket_parent_payload_compressions": 11190840,
+      "bucket_total_payload_compressions": 85018296,
+      "nominal70_query_column_values": 47320
+    }
+  ],
+  "method": {
+    "nonfinal_leaf_blocks": "at each ascending native-height group: (ceil(cumulative_columns/16)-ceil(previous_columns/16))*2^(native_log+1)",
+    "final_leaf_blocks": "2^(maximum_native_log+1)",
+    "parents": "2^(maximum_native_log+1)-1 cached-seed payload hashes; constant seed setup excluded",
+    "bucket_model": "one independently prefixed tree per occupied native height; sum per-bucket leaf finalization and parents",
+    "counter_test": "same exact ordered column histogram with strictly compressed heights2..9; scalar+SIMD+4*four-way backend counts exactly match all nonfinal updates and leaf finalization",
+    "timing_claim": null
+  },
+  "bucket_decision": "REJECT for current workload: modeled compression work increases at every stage, plus roots/opening paths and protocol changes",
+  "protocol_requirements_for_future_buckets": [
+    "core TreeVec supports arbitrary trees, but frontend masks/offsets currently assume fixed/main/inter canonical trees",
+    "need explicit logical-column-to-physical-tree map and component point/domain mask adapters",
+    "keep preprocessed-tree authority and independently expected bucket geometries/keys",
+    "all ordered actual bucket roots must enter sealed stage1 manifest before relation challenges",
+    "bind every physical claim before interactions and constraints",
+    "update proof wire/PCS root inventory/FRI opening tree roster; retain all native polynomial/OODS checks",
+    "new route requires independent receiver and root/missing/duplicate/reorder/opening mutation gates; not hundreds of wrapped STARKs"
+  ],
+  "recommended_next_slice": "owned truth MAIN/INTER transfer removes wide borrowed copies without a transcript change; parent separately instruments actual stage times",
+  "source_sha256": {
+    "src/prover/pcs/tree_builders.zig": "0d7ffa744c1551ad30f7739653887a9b231e0202d5fe8d5f65efebd582fc3583",
+    "src/prover/vcs_lifted/streaming_committer.zig": "c9f155207314b090451127ba36c4ed4011e3be125185172993ee7702395b9abe",
+    "src/prover/vcs_lifted/expand.zig": "297e8e705bd87512a252bcd9b65fe3c6ae0148b3a632504ce35c2acfff5509d2",
+    "src/prover/vcs_lifted/leaves.zig": "1c35bf4534ec362ffc328f2e914f04e3385593c52e3108ca40159e097fbf2806",
+    "src/prover/vcs_lifted/decommit.zig": "d6464389f5588a8ef845fef739a65ee43cd6a116cdc9c3693afc60554c1861bc",
+    "src/prover/vcs_lifted/query_reconstruction.zig": "bc4cecfed9980c849232e7cf9a2dac5dcaf45b5677efdcdaab75ed01a974afca",
+    "src/core/vcs_lifted/blake2_merkle.zig": "5c5da473db0ab9539ff12db3d1f244cab615741f2f96f66af3a5caaf3388e102",
+    "src/integrations/riscv_cpu/word16_global_execution/services/hash_accounting_test.zig": "faba1c9b745f3ce562d0e358d4ac465099cbc4e6f1b43de9ac3a4ca857bbd936"
+  },
+  "logs": {
+    "fast": "/tmp/rv64-word16-native-hash-accounting-focused.log",
+    "safe": "/tmp/rv64-word16-native-hash-accounting-safe-focused.log"
+  }
+}

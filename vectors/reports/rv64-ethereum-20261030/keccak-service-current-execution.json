@@ -1,0 +1,30 @@
+{
+  "schema": "rv64-keccak-service-current-execution-v1",
+  "block": 24628607,
+  "transactions": 66,
+  "execution_verified_output": true,
+  "full_block_proof_verified": false,
+  "instructions": 317796238,
+  "keccak_calls": 32835,
+  "service_ram_word_transitions": 820875,
+  "elf_sha256": "5d432557f3cce8920d103ec2c5e978bbc061524694d87020bb09b4ab0a45bec5",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "service_source": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/keccak_service.rs",
+    "bytes": 2255,
+    "sha256": "726f571cbdbf3cd14527b712007dc3ea27eae344ac6223056b341675ce352933"
+  },
+  "build_report_sha256": "c13525d7f402915323acd4a6e8f2eb6e655aabaa98a750e96dc199814f20d1bd",
+  "census_report_sha256": "771d0063f670f65ea92b56519a57f463ee5637f96286236b7fa9a9b3847c2602",
+  "execution_source_manifest_sha256": "9c9b1d376d2c6816558fafc9ea6bd0bb756d1fdca98506d35fb5ce8a43a01fbd",
+  "source_drift_during_compile_and_run": false,
+  "access_batches": 76,
+  "scope": [
+    "Output and instruction/call counts reproduce the earlier service witness control.",
+    "Keccak host computation remains witness generation; no full CPU/Keccak/RAM proof claim.",
+    "Census uses 2^22-instruction diagnostic intervals; proving batch limit is strictly lower for 24-bit RAM clocks.",
+    "Proving speedup is not inferred from native execution or instruction-count ratios."
+  ],
+  "artifacts": "vectors/reports/interop_artifacts/rv64-keccak-service-current"
+}

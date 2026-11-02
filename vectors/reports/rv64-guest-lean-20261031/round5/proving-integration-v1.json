@@ -1,0 +1,166 @@
+{
+  "schema": "rv64-guest-round5-proving-integration-v1",
+  "guest_commit": "0c1a683e7 (integrated f2c790179)",
+  "qualified_elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+  "qualified_elf_path": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+  "symbols_source": "actual ELF64 SYMTAB; heap_start33648672",
+  "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "control_binary": {
+    "binary_sha256": "5daf50a4a54d4155dbee1ae8a79c5f431c7263f68f90a853f585edd82e7ae520",
+    "mode": "ReleaseFast",
+    "scope": "root-chain process control; no distributed alpha or aggregate proof",
+    "source_manifest_sha256": "e6ec3064cde26f8b7b7e77f8732a70fe51e57637149988810dc78780758d1098"
+  },
+  "independent_existing_oracle": {
+    "engine": "Unicorn2.1.4",
+    "execution_only": true,
+    "archive_native_sha256": "4b615def0cdd8f661f2afac53184b0e2ec62e16a39356921a507d793ea94969d",
+    "archive_oracle_sha256": "4be682010cb76c0c4364f49ec4d447602b6035068adac797d6d6315d999278a2",
+    "all10_semantic_fields_including32registers_match": true,
+    "oracle_declared_original_compared_report_sha256": "e79fa885b271dc6f2b2e24714de94100cf5816137464902b6c02567d8d54235b",
+    "original_raw_report_hash_not_revalidated_in_this_slice": true,
+    "service_counts": {
+      "keccak": 32835,
+      "add": 11496,
+      "double": 9768
+    }
+  },
+  "full_native_capture": {
+    "jobs": 25,
+    "steps": 104253913,
+    "completed": true,
+    "global_chain_accepted": false,
+    "packet_bytes_total": 6283350923,
+    "largest_packet_bytes": 408700025,
+    "largest_packet_index": 24,
+    "encoded_cap_each": 536870912,
+    "decoded_allocation_cap": 536870912,
+    "largest_decode_admission": {
+      "index": 24,
+      "file_bytes": 408700025,
+      "tape_retained_bytes": 187772272,
+      "frontier_owned_bytes": 194032744,
+      "cells": 243938,
+      "steps": 3590641,
+      "division_requests": 0,
+      "multiplication_requests": 9893,
+      "calls": [
+        2095,
+        0,
+        0
+      ],
+      "before": [
+        2067849946,
+        741904671,
+        1617563780,
+        850101415,
+        1669241904,
+        136097040,
+        1467493778,
+        574845907,
+        1825705687
+      ],
+      "after": [
+        1597246056,
+        1494197437,
+        1174685431,
+        1286895669,
+        737591051,
+        48324924,
+        2057573505,
+        2108007572,
+        911054800
+      ],
+      "physical_proof_verified": false,
+      "global_chain_accepted": false
+    },
+    "max_rss_bytes": 1019559936,
+    "observed_seconds": 11.28,
+    "timing_scope": "native+durable jobs+native-root terminal certificate, concurrent pilot; no isolated performance claim"
+  },
+  "proof_pilot": {
+    "steps": 65536,
+    "proof_bytes": 937264,
+    "proof_sha256": "61bbdee04cc1046006829e850e5de422ce178838cb5a52b0a8dd613417526b90",
+    "public_receipt_sha256": "85e6cc52e90ee9a0ecbef738b5eb8f747411a8af08f1a2b0746e4cdf8c761d41",
+    "fresh_receiver": {
+      "status": "authenticated_execution_prefix_verified",
+      "full_block_proof_verified": false,
+      "batches": 1,
+      "instructions": 65536,
+      "calls": [
+        0,
+        0,
+        0
+      ],
+      "final_root": [
+        1423421142,
+        2014840266,
+        942700352,
+        2141262455,
+        450735423,
+        4430139,
+        1479948780,
+        1592605495,
+        1812329328
+      ],
+      "final_pc": 1382572,
+      "final_registers": [
+        0,
+        1382064,
+        33546976,
+        33556480,
+        0,
+        181660,
+        0,
+        73,
+        33547416,
+        1333821,
+        33547416,
+        1333821,
+        8421480,
+        33686848,
+        8423364,
+        201,
+        2,
+        0,
+        8421480,
+        3854,
+        3760,
+        1884,
+        333455,
+        470,
+        182192,
+        471,
+        0,
+        18446744073709551615,
+        1867729716525133270,
+        17870283321406128128,
+        4758343552387779041,
+        4801118677753659392
+      ],
+      "setup_ns": 179178375,
+      "verify_ns": 7796750,
+      "proof_bytes": 937264,
+      "verifier_cache": {
+        "hits": 0,
+        "misses": 1,
+        "entries": 1,
+        "retained_bytes": 23524,
+        "peak_retained_bytes": 23524,
+        "cold_setup_ns": 179178375
+      }
+    },
+    "max_rss_bytes": 1778335744,
+    "observed_seconds": 4.07,
+    "timing_scope": "functional, concurrent native capture; no comparative speed claim"
+  },
+  "old_guest_proof_byte_parity_expected": false,
+  "full_round5_proof_verified": false,
+  "remaining": [
+    "all25 round5 physical proofs+complete independent chain receiver",
+    "isolated full benchmark provenance/measurement",
+    "no silent ELF substitution from mutable build target or rebuild"
+  ]
+}

@@ -1,0 +1,548 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-candidate-isa-costs.v1",
+ "what": "Estimated committed cells per retired candidate Zba/Zbb instruction if admitted, for the execution-only profile ethereum_services_v3_candidate_isa. total = Word16 CPU row (87.5: 3 fixed excluded, 47 main + 40 interaction) + ROM share (2.26) + one family fact (padded). extra = total - 154.81 (calibration.json cpu_cells_per_instruction, which the frozen proxy already charges for each retired instruction). Family width overhead is charged per retired instruction of the whole block when the family is used at all. Estimates, not qualified AIR; derivations below and in candidate-isa-costs.md / isa-extension.md.",
+ "sources": [
+  "src/frontends/riscv/rv64/air/word16_execution/layout.zig (CPU 47 main + 40 interaction)",
+  "src/frontends/riscv/rv64/air/word16_v1/{alu,binary,shift_word,shift_word_table}.zig",
+  "vectors/reports/rv64-word16-execution-20261101/gkr-recursion-cost/roster.json (chip shapes and facts on block 24,628,607)",
+  "autoresearch/guest_efficiency/calibration.json"
+ ],
+ "units": {
+  "proxy_cells_per_instruction": 154.81,
+  "cpu_row_cells": 87.5,
+  "rom_share_cells": 2.26,
+  "bits_per_cell_at_lde": 62
+ },
+ "assumptions": [
+  "One fact per retirement (no dedup credit) except in 'low'.",
+  "No CPU column or interaction is added: candidate ops fit the existing FUNCTION13 (op, A, B|IMM, C) tuple with new op IDs (word16_execution/features.zig, tuples.zig).",
+  "Fixed (preprocessed) tables are excluded, like the calibration."
+ ],
+ "families": {
+  "binary_ext": {
+   "ops": [
+    "andn",
+    "orn",
+    "xnor",
+    "rev8",
+    "sext_b",
+    "sext_h",
+    "zext_h"
+   ],
+   "fact_cells": {
+    "low": 53.0,
+    "nominal": 61.0,
+    "high": 75.0
+   },
+   "width_overhead_cells_per_instruction": {
+    "low": 0.3,
+    "nominal": 0.45,
+    "high": 0.7
+   },
+   "derivation": "Extend the BINARY chip (2 fixed/29 main/24 interaction, 53 cells per fact, 58.2 with padding; roster.json block 24,628,607). andn = a-T, orn = 255-b+T, xnor = 255-(a+b-2T) per byte with T = AND-table output already looked up; rev8 = byte permutation of the looked-up a bytes (B=0, lookups still range-check bytes); sext.b/sext.h = AND with ROM IMM 0x80/0x8000, sign = T/128 of the top byte, C affine; zext.h = existing AND with IMM 0xffff (no new selector). +6 selector columns on every BINARY row: 6 x 7.16M facts x 1.1 padding / 104.25M instructions = 0.45 cells per instruction overall. Fact = 58.2 + ~3 = 61 nominal; low assumes fact dedup (multiplicity) like JALR's AND facts; high allows an extra sign/selection column set."
+  },
+  "zba_chip": {
+   "ops": [
+    "sh1add",
+    "sh2add",
+    "sh3add",
+    "add_uw",
+    "sh1add_uw",
+    "sh2add_uw",
+    "sh3add_uw"
+   ],
+   "fact_cells": {
+    "low": 48.0,
+    "nominal": 60.0,
+    "high": 90.0
+   },
+   "width_overhead_cells_per_instruction": {
+    "low": 0.0,
+    "nominal": 0.0,
+    "high": 1.75
+   },
+   "derivation": "New SHADD chip (keeps ALU width): main A[4], B[4], C[4], carry[4] (carries < 2^4 since A_i*2^k spills <= 3 bits), k one-hot[3], uw flag, active, multiplicity = 22; interaction: C limbs U16 in 2 pairs (8), carries small-range in 2 pairs (8), FUNCTION inverse (4), prefix (4) = 24; 2 fixed. 46-48 cells, x1.1 padding = 53, rounded up to 60 nominal. .uw forms zero A limbs 2..3 (degree 2). slli.uw = sh0 with B=0 and k up to 63 is NOT this chip: it is costed in SHIFT (shift_ext). High = adding the same to the ALU instead (+16 columns on every ALU row: 16 x 10.39M x 1.1 / 104.25M = 1.75 cells/instruction, fact ~103)."
+  },
+  "minmax": {
+   "ops": [
+    "max",
+    "maxu",
+    "min",
+    "minu"
+   ],
+   "fact_cells": {
+    "low": 66.0,
+    "nominal": 75.0,
+    "high": 92.0
+   },
+   "width_overhead_cells_per_instruction": {
+    "low": 0.0,
+    "nominal": 0.0,
+    "high": 0.55
+   },
+   "derivation": "Separate compare-select chip: A[4], B[4], difference[4], borrow[4], sign bits of A/B (2) via low[2] decomposition, signed_less, choose, 4 selectors, active, multiplicity ~ 31 main; difference limbs U16 (2 pairs, 8), sign low limbs (1 pair, 4), FUNCTION (4), prefix (4) = 20 interaction -> ~53 + 2 fixed; C_i = (sum s)B_i + choose(A_i - B_i) is degree 2. x1.1 padding and margin -> 75 nominal. High = inside the ALU (+5 columns on every ALU row = 0.55 cells/instr, fact 86.9+5)."
+  },
+  "shift_ext": {
+   "ops": [
+    "rol",
+    "ror",
+    "rori",
+    "rolw",
+    "rorw",
+    "roriw",
+    "slli_uw"
+   ],
+   "fact_cells": {
+    "low": 100.0,
+    "nominal": 109.0,
+    "high": 125.0
+   },
+   "width_overhead_cells_per_instruction": {
+    "low": 0.2,
+    "nominal": 0.29,
+    "high": 0.45
+   },
+   "derivation": "Extend SHIFT (2/52/28 = 80 cells per fact, 89.2 padded) plus its shift-table share (0.82 cells/instr over 0.053 facts/instr = 15.5 per fact) = 104.7. Rotates reuse the already looked-up left/right pieces with cyclic limb indices (mod 4, mod 2 for w forms with the existing sign path); rori/roriw take IMM; slli.uw = SLL with source limbs 2..3 zeroed. +5 selectors (rol, ror, rolw, rorw, slli.uw; immediates share) on every SHIFT row: 5 x 5.52M x 1.1 / 104.25M = 0.29 cells/instr. Fact 104.7 + 4 -> 109."
+  },
+  "bitcount_chip": {
+   "ops": [
+    "clz",
+    "clzw",
+    "ctz",
+    "ctzw",
+    "cpop",
+    "cpopw",
+    "orc_b"
+   ],
+   "fact_cells": {
+    "low": 55.0,
+    "nominal": 70.0,
+    "high": 120.0
+   },
+   "width_overhead_cells_per_instruction": {
+    "low": 0.0,
+    "nominal": 0.0,
+    "high": 0.0
+   },
+   "derivation": "New BITCOUNT chip with a 2^8-row byte table (byte -> popcount, nonzero, clz8, ctz8; fixed, excluded like other tables): A bytes[8] tied affinely to A limbs; 8 byte queries in 4 pairs (16 interaction) that also range-check the bytes; prefix 'all bytes so far zero' flags from both ends (2 x 8 main) for clz/ctz; 5 selectors + w flag, result, active, multiplicity -> ~34 main + 16 + FUNCTION 4 + prefix 4 = 58, x1.1 -> 64, 70 nominal. orc.b output = 255 x nonzero per byte. High allows a separate per-byte decomposition proof. The least certain family."
+  }
+ },
+ "instructions": {
+  "andn": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "orn": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "xnor": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "rev8": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "sext_b": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "sext_h": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "zext_h": {
+   "family": "binary_ext",
+   "total_cells_per_retired": {
+    "low": 142.8,
+    "nominal": 150.8,
+    "high": 164.8
+   },
+   "extra_cells_per_retired": {
+    "low": -12.0,
+    "nominal": -4.0,
+    "high": 10.0
+   }
+  },
+  "sh1add": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "sh2add": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "sh3add": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "add_uw": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "sh1add_uw": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "sh2add_uw": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "sh3add_uw": {
+   "family": "zba_chip",
+   "total_cells_per_retired": {
+    "low": 137.8,
+    "nominal": 149.8,
+    "high": 179.8
+   },
+   "extra_cells_per_retired": {
+    "low": -17.0,
+    "nominal": -5.0,
+    "high": 25.0
+   }
+  },
+  "slli_uw": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "max": {
+   "family": "minmax",
+   "total_cells_per_retired": {
+    "low": 155.8,
+    "nominal": 164.8,
+    "high": 181.8
+   },
+   "extra_cells_per_retired": {
+    "low": 1.0,
+    "nominal": 10.0,
+    "high": 27.0
+   }
+  },
+  "maxu": {
+   "family": "minmax",
+   "total_cells_per_retired": {
+    "low": 155.8,
+    "nominal": 164.8,
+    "high": 181.8
+   },
+   "extra_cells_per_retired": {
+    "low": 1.0,
+    "nominal": 10.0,
+    "high": 27.0
+   }
+  },
+  "min": {
+   "family": "minmax",
+   "total_cells_per_retired": {
+    "low": 155.8,
+    "nominal": 164.8,
+    "high": 181.8
+   },
+   "extra_cells_per_retired": {
+    "low": 1.0,
+    "nominal": 10.0,
+    "high": 27.0
+   }
+  },
+  "minu": {
+   "family": "minmax",
+   "total_cells_per_retired": {
+    "low": 155.8,
+    "nominal": 164.8,
+    "high": 181.8
+   },
+   "extra_cells_per_retired": {
+    "low": 1.0,
+    "nominal": 10.0,
+    "high": 27.0
+   }
+  },
+  "rol": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "ror": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "rori": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "rolw": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "rorw": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "roriw": {
+   "family": "shift_ext",
+   "total_cells_per_retired": {
+    "low": 189.8,
+    "nominal": 198.8,
+    "high": 214.8
+   },
+   "extra_cells_per_retired": {
+    "low": 35.0,
+    "nominal": 44.0,
+    "high": 60.0
+   }
+  },
+  "clz": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  },
+  "clzw": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  },
+  "ctz": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  },
+  "ctzw": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  },
+  "cpop": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  },
+  "cpopw": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  },
+  "orc_b": {
+   "family": "bitcount_chip",
+   "total_cells_per_retired": {
+    "low": 144.8,
+    "nominal": 159.8,
+    "high": 209.8
+   },
+   "extra_cells_per_retired": {
+    "low": -10.0,
+    "nominal": 5.0,
+    "high": 55.0
+   }
+  }
+ }
+}

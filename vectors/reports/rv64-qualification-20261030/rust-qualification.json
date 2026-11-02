@@ -1,0 +1,103 @@
+{
+  "schema": "rv64-independent-rust-qualification-v1",
+  "upstream_pin": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+  "binary_sha256": "1bd89e6184f8d9f3fcef3d02a30f7c420fdef657a7c1fcb3d5469e25ee3564df",
+  "cargo_lock_sha256": "1f6661718b36f1a4d8e1742cb9fe1c69cf3f6ef3902d57ed471ab7d024824192",
+  "scope": "Dense v2 five-instruction fixture; pinned PCS/FRI with explicit four-way adapter; no witness replay. Other programs and sparse v3 are not qualified.",
+  "valid": {
+    "authority": "Native Stwo a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2 PCS/FRI + fixture-scoped four-way RV64 adapter",
+    "constraint_count": 5513,
+    "decode_ns": [
+      373792,
+      367125,
+      349875,
+      354583,
+      342166,
+      340459,
+      343875
+    ],
+    "independent_setup_ns": 1047791,
+    "initial_json_decode_ns": 398625,
+    "prepared_verify_ns": [
+      740333,
+      722458,
+      726125,
+      715917,
+      707708,
+      711416,
+      712458
+    ],
+    "program_scope": "ADDI/ADDI/SD/LD/ADD qualification fixture",
+    "samples": 7,
+    "stock_top_level_verify": false,
+    "verified": true,
+    "warmups": 1,
+    "witness_available": false
+  },
+  "rejections": [
+    {
+      "kind": "captured_source_forgery",
+      "rejected": true,
+      "reason": "OodsNotMatching"
+    },
+    {
+      "kind": "captured_ram_forgery",
+      "rejected": true,
+      "reason": "OodsNotMatching"
+    },
+    {
+      "kind": "captured_permission_forgery",
+      "rejected": true,
+      "reason": "OodsNotMatching"
+    },
+    {
+      "kind": "unchanged_unaccessed_register_identity",
+      "rejected": true,
+      "reason": "Error: OodsNotMatching"
+    },
+    {
+      "kind": "upper_address_bits",
+      "rejected": true,
+      "reason": "Error: OodsNotMatching"
+    },
+    {
+      "kind": "unsupported_sparse_scope",
+      "rejected": true,
+      "reason": "Error: unsupported qualification program"
+    },
+    {
+      "kind": "root",
+      "rejected": true,
+      "reason": "Error: untrusted preprocessing root"
+    },
+    {
+      "kind": "weakened_config",
+      "rejected": true,
+      "reason": "Error: wrong security configuration"
+    },
+    {
+      "kind": "noncanonical_field",
+      "rejected": true,
+      "reason": "Error: noncanonical M31"
+    },
+    {
+      "kind": "missing_tree",
+      "rejected": true,
+      "reason": "Error: wrong tree count"
+    },
+    {
+      "kind": "changed_path",
+      "rejected": true,
+      "reason": "Error: invalid path/clocks"
+    }
+  ],
+  "adapter_source_sha256": {
+    "tools/stwo-interop-rs/src/rv64_qualification/layout.rs": "f082d932fccffde9e61244593ca154ad219e57e0307bb78aa0d74ef7e8c6e63e",
+    "tools/stwo-interop-rs/src/rv64_qualification/local.rs": "794c78c9cbc894daf1b6b88739cac251a60439fae0b705605496e3d8b51aabec",
+    "tools/stwo-interop-rs/src/rv64_qualification/memory.rs": "800029c8f15892d0df55e1c4beb7c93c4681947cb6de78ecb59e19200d60311c",
+    "tools/stwo-interop-rs/src/rv64_qualification/mod.rs": "6a1915212c63e67ad3152dcb00480ab33388a784574fe8a33ec9f0f55b7273a3",
+    "tools/stwo-interop-rs/src/rv64_qualification/model.rs": "b8a98921d10fb298147b67ff9f5659e01b877956c77e2403a4241c20fc1c2ebf",
+    "tools/stwo-interop-rs/src/rv64_qualification/proof.rs": "476c6f668d187abcfb9a98ed44c07006a77204b7a67b5f688d790551f5807c80",
+    "tools/stwo-interop-rs/src/rv64_qualification/state.rs": "e2c31ffd5a06e63248029bcf92842d0a64dc90faf75477332f9b901ac3622582"
+  }
+}

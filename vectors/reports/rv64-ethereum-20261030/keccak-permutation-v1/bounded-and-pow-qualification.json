@@ -1,0 +1,31 @@
+{
+  "schema": "rv64-keccak-bounded-qualification-v1",
+  "full4n_vs_bounded_proof_bytes_identical": true,
+  "full4n_bounded_sha256": "f4e47f58ddec1fc571b1e1edf3f585a8f09159e7e8632cde8076dead727953ac",
+  "n128_serial_vs_parallel_bytes_identical": true,
+  "n128_sha256": "945ab87ed2b5bb5ff2e187149063f6880e16ea60cda44c7f4f5677a935d87a4c",
+  "workers": [
+    1,
+    3
+  ],
+  "queries": 70,
+  "pow_bits": 26,
+  "permutation_scratch_cells_per_n": {
+    "old_full4n": 18192,
+    "bounded_current_plus_partner": 6152
+  },
+  "bridge_scratch_cells_per_n": {
+    "old_full4n": 480,
+    "bounded_current_plus_partner": 133
+  },
+  "generic_pow_bug": {
+    "source": "src/prover/pcs/proof_of_work.zig",
+    "cause": "A supported one-worker scoped pool entered the BLAKE2s grinder whose worker_count>=2 assertion is an optimizer assumption. ReleaseFast reached uninitialized PowWork (stride0,best_index null) and crashed.",
+    "fix": "Dispatch coordinator-only BLAKE2s to canonical grindWithWorkerCount(bits,1); BLAKE3 to canonical serial grind. Preserve pooled paths at >=2 workers and explicit PoW worker overrides.",
+    "regression": "Both channels, difficulties0/8/12/16, canonical nonce validity and transcript continuation; q70/P26 K native single/multi-worker identical proofs.",
+    "classification": "Generic correctness/resource-policy fix, not a Keccak speedup claim."
+  },
+  "frozen_v1_tool": "vectors/reports/interop_artifacts/rv64-keccak-v1-tools/rv64-keccak-fixture",
+  "frozen_tool_sha256": "4c78ec11209269e69acecd1381544a58c3ad7fcb4db7a5aa788981587dca3ab3",
+  "remaining": "Immutable domain-only preprocessing v2, CPU emitter integration and authenticated RAM hash boundary remain required."
+}

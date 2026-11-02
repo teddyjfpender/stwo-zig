@@ -1,0 +1,8 @@
+test_changed_expected_output_cannot_pass_exact_budget (scripts.tests.test_riscv64_ethereum_oracle.EthereumOracleContractTests.test_changed_expected_output_cannot_pass_exact_budget) ... ok
+test_layout_rejects_overlap_and_stack_drift (scripts.tests.test_riscv64_ethereum_oracle.EthereumOracleContractTests.test_layout_rejects_overlap_and_stack_drift) ... ok
+test_native_budget_exact_boundary_and_negative_counts (scripts.tests.test_riscv64_ethereum_oracle.EthereumOracleContractTests.test_native_budget_exact_boundary_and_negative_counts) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.012s
+
+OK

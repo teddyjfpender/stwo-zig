@@ -1,0 +1,6 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z24rv64_hash_resource_probePKjS0_jPj' for 'sm_120'
+ptxas info    : Function properties for _Z24rv64_hash_resource_probePKjS0_jPj
+    64 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 168 registers, used 0 barriers, 64 bytes cumulative stack size
+ptxas info    : Compile time = 160.989 ms

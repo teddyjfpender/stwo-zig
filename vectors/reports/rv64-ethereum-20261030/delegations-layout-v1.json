@@ -1,0 +1,380 @@
+{
+  "schema": "rv64-delegations-layout-v1",
+  "base_commit": "9aae4fe3f2a32ab5592a9068766533efa20fb398",
+  "scope": "physical organization of existing provider modules; no new accepting execution protocol",
+  "qualified": true,
+  "runtime_or_polynomial_changes": false,
+  "legacy_public_aliases": [
+    "rv64_air.crypto.keccak",
+    "rv64_air.crypto.secp256k1",
+    "rv64_air.crypto.main_storage",
+    "rv64_air.arithmetic.division",
+    "rv64_air.arithmetic.multiplication"
+  ],
+  "mechanical_audit": {
+    "files": [
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/cpu_bus.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/cpu_bus.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/parallel.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/parallel.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/gather.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/gather.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/packed_rows.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/packed_rows.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/tables.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/tables.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/interaction_parallel.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/interaction_parallel.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/quartet_component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/quartet_component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/mod.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/mod.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/trace.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/trace.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/layout.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/layout.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/equations.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/equations.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/batch_policy.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/batch_policy.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/packed_row.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/packed_row.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/interaction.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/interaction.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/bridge/parallel.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/bridge/parallel.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/bridge/packed_rows.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/bridge/packed_rows.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/bridge/trace.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/bridge/trace.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/bridge/layout.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/bridge/layout.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/bridge/equations.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/bridge/equations.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/keccak/bridge/component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/keccak/bridge/component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/packed_domain.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/packed_domain.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/batch.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/batch.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/cpu_bus.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/cpu_bus.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/parallel.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/parallel.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/program.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/program.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/mod.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/mod.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/trace.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/trace.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/layout.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/layout.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/equations.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/equations.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/parallel.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/parallel.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/trace.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/trace.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/layout.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/layout.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/equations.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/equations.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/policy.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/policy.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/cpu.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/cpu.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/cpu_bus.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/cpu_bus.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/provider.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/provider.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/mod.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/mod.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/trace.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/trace.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/layout.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/layout.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/division/component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/division/component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/multiplication/cpu_bus.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/multiplication/cpu_bus.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/multiplication/provider.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/multiplication/provider.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/multiplication/mod.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/multiplication/mod.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/multiplication/trace.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/multiplication/trace.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/multiplication/layout.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/multiplication/layout.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/arithmetic/multiplication/component.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/multiplication/component.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/frontends/riscv/rv64/air/crypto/main_storage.zig",
+        "after": "src/frontends/riscv/rv64/air/delegations/main_storage.zig",
+        "only_import_paths_changed": true
+      }
+    ],
+    "all_body_bytes_unchanged_after_import_normalization": true
+  },
+  "registry": {
+    "geometry": "existing family layout constants",
+    "arithmetic_ids": "raw decoded OPCODES lists; exhaustive u8 namespace regression",
+    "experimental_keccak_quartet": "existing explicitly inactive API retained; excluded from ordinary registry geometry"
+  },
+  "qualification": {
+    "profiles": [
+      "ReleaseSafe",
+      "ReleaseFast"
+    ],
+    "targets": [
+      "test-riscv64-air",
+      "test-riscv64-division",
+      "test-riscv64-multiplication",
+      "test-riscv64-keccak",
+      "test-riscv64-secp",
+      "test-riscv64-keccak-quartet"
+    ],
+    "all_targets_pass": true,
+    "final_registry_geometry_and_alias_guards": {
+      "safe_runtime_tests": 17,
+      "fast_runtime_tests": 17,
+      "named_new_regressions": 2
+    },
+    "proof_byte_parity": "not separately measured; all 51 moved source bodies are byte-identical after import-literal normalization; existing actual proof suites passed",
+    "source_conformance": {
+      "exit": "fails inherited owners outside this slice",
+      "error_count": 96,
+      "changed_owner_errors": 0
+    },
+    "performance": "not measured",
+    "commit_hook": "Existing user-authorized scoped exception for inherited hook failures; source-conformance findings are all outside this slice; explicit focused Safe/Fast gates passed."
+  },
+  "logs_sha256": {
+    "/tmp/rv64-delegations-layout-safe.log": "3d4166d82966f02513a6227f1cd89959d2a1067216def6ff7d179a4d0479bda7",
+    "/tmp/rv64-delegations-layout-safe-summary.log": "9524931dd67ad574bb6c2f475343016035a5463beb330353d86ac9de7688746d",
+    "/tmp/rv64-delegations-layout-fast.log": "21cc4e435e9bc57c271e96e1d288a30e83c62dd1a70dc83cc7f8a9c68ea7873d",
+    "/tmp/rv64-delegations-registry-safe.log": "1826b3cf20a3957dd886ff3cdd8882e57b23ee6d67e7e50715a8760f1b70023f",
+    "/tmp/rv64-delegations-registry-fast.log": "1826b3cf20a3957dd886ff3cdd8882e57b23ee6d67e7e50715a8760f1b70023f",
+    "/tmp/rv64-delegations-layout-conformance.log": "c5296e405bbdf9fcd1fcedd2f31403f001f739b4d9a416bad6cf64f4bb2b7924"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/README.md": "0f0d48030c6f1a6be721b32dd85dfdc85c05f28231a10b35bdfa89d60b890844",
+    "src/frontends/riscv/rv64/air/delegations/division/component.zig": "fdc6e71711ae9929535fcabbab678f2ffb5e870dd11904a801425a604e47b821",
+    "src/frontends/riscv/rv64/air/delegations/division/cpu.zig": "2e383dc8dcc3fc9626450dd448d156d0b095e265e445f76c8b17d5dcd4512ba4",
+    "src/frontends/riscv/rv64/air/delegations/division/cpu_bus.zig": "a2ca74b461e2c6f99af7752b81b87b64e9b1c72d021ad853ebe49204082f249f",
+    "src/frontends/riscv/rv64/air/delegations/division/layout.zig": "3953970797e0d420867688ca3910a1734f91d8be4a0d0978bdeeeedf51d82a96",
+    "src/frontends/riscv/rv64/air/delegations/division/mod.zig": "e5105a57ffe22075f64c46d9035c0d888d422f1fc6e722095d84ccdb62c851b7",
+    "src/frontends/riscv/rv64/air/delegations/division/policy.zig": "51ec8e5fb4cf2247fdf51216fe60a1d1a42cef787a8f0fbbbc843ac1c8ce896c",
+    "src/frontends/riscv/rv64/air/delegations/division/provider.zig": "b036e32cc88d8ec37000e911e1fdfe9b8237da4e79bd413d1a8e642f638daa54",
+    "src/frontends/riscv/rv64/air/delegations/division/trace.zig": "28f6d33708a252a81cc5bbf52fc5bfb72c8071dee9f262e6d1e10b37ad1545be",
+    "src/frontends/riscv/rv64/air/delegations/keccak/batch_policy.zig": "42e184411b37917a1b3338518084bcaa5d40f7fee3a477355e3362bd62bfc983",
+    "src/frontends/riscv/rv64/air/delegations/keccak/bridge/component.zig": "5414f8b57b881d68bd0d93425103090b1ecada1ad091bacd831eab0b36ec809b",
+    "src/frontends/riscv/rv64/air/delegations/keccak/bridge/equations.zig": "a919d8e96353505c4f1cc665cfa9981ced5f2e2d129fc5989a84759e584aaa58",
+    "src/frontends/riscv/rv64/air/delegations/keccak/bridge/layout.zig": "516453c7a18bc039aae84a7b69042f1a75a12e02f4b9f4b6839525788cdfc7e7",
+    "src/frontends/riscv/rv64/air/delegations/keccak/bridge/packed_rows.zig": "6b71ddbafe94eaa84665065c05e4fefaf0eee7751ca2ddf3b3febebba394d503",
+    "src/frontends/riscv/rv64/air/delegations/keccak/bridge/parallel.zig": "967617a717cfaeefb49e78a0060989a6f812d8ad3122a2200e5842946a0e369f",
+    "src/frontends/riscv/rv64/air/delegations/keccak/bridge/trace.zig": "f9a13f68510506920d099e4f3d306dc45d1194a8f04a2ab49f4addabfb6c4692",
+    "src/frontends/riscv/rv64/air/delegations/keccak/component.zig": "6f889bed8c91f677179c063a80fa6438225ea733672e5d507e437c5b187e9a4c",
+    "src/frontends/riscv/rv64/air/delegations/keccak/cpu_bus.zig": "1f10f826e47f523df4e3d662580c3a1ecccae1af80a3ea830abe3a35640a7404",
+    "src/frontends/riscv/rv64/air/delegations/keccak/equations.zig": "9d3eb201ea8f707df27d5744b2f06d12ed0fda6a204fa474bbb1cd4c0a865f95",
+    "src/frontends/riscv/rv64/air/delegations/keccak/gather.zig": "03e786f7cdb6bcb1886d30fefabe35314ab6a74bfaf637e7623b397cbb232c12",
+    "src/frontends/riscv/rv64/air/delegations/keccak/interaction.zig": "aad67eb5829a02dd72d6867d47ee8f96a0e2e45dc4bc23c017fe169149483d8b",
+    "src/frontends/riscv/rv64/air/delegations/keccak/interaction_parallel.zig": "d69c99f2c3cb243a942cceb73557c310f3a91022ae6964dac0ab0503fb349784",
+    "src/frontends/riscv/rv64/air/delegations/keccak/layout.zig": "9341ac23a2667290e94f9eaa6480e0c0f0e030d215eac370f78122fc5f91cf48",
+    "src/frontends/riscv/rv64/air/delegations/keccak/mod.zig": "30cd9c197e4a46dbc55f6af0471c8f351a9bcb39325bf801e11cdb06eeb2a253",
+    "src/frontends/riscv/rv64/air/delegations/keccak/packed_row.zig": "655ea2c1000ca1133f540e95a60d816fea3a4bf118264eff9e951350e6317a2e",
+    "src/frontends/riscv/rv64/air/delegations/keccak/packed_rows.zig": "380a1146ec95ee1ec3dbfe0c9dc2f32a93e0b433a9534ca61a443e2946a2ce43",
+    "src/frontends/riscv/rv64/air/delegations/keccak/parallel.zig": "d2618f3612fbd3e0425d286cbb90ab5b637f3b84af62b604a055b52f81647806",
+    "src/frontends/riscv/rv64/air/delegations/keccak/quartet_component.zig": "f845939c99144b7fed3959b5fd3aa308da243957993d6479f0c001fe7ab3eb19",
+    "src/frontends/riscv/rv64/air/delegations/keccak/tables.zig": "30e5e4c5d70a1f11b5a9948388084b4d55cbce7945a37fea3cfdd56b64f1e889",
+    "src/frontends/riscv/rv64/air/delegations/keccak/trace.zig": "54b73889160b63b487b551ea1c0a034800f397332bd1f441d774d58ba098f4aa",
+    "src/frontends/riscv/rv64/air/delegations/main_storage.zig": "8311ec836539d47aec275cb2664e1cb7935d061e29becf08029ff005ccf669bd",
+    "src/frontends/riscv/rv64/air/delegations/mod.zig": "14c3ada9cc587637097782a567aab331c8b6abeaf549618c0ebaf7f72414e929",
+    "src/frontends/riscv/rv64/air/delegations/multiplication/component.zig": "8a6d4b90659a1e2ba96b648a883d3fb264aec94521f3fdb167d0d9d93a369519",
+    "src/frontends/riscv/rv64/air/delegations/multiplication/cpu_bus.zig": "c926522e919736c7ee6c556aa893fd3c1b30423c4b6e88b6984fcc061ff12b19",
+    "src/frontends/riscv/rv64/air/delegations/multiplication/layout.zig": "d4dc5d6af929a2d62c7f50a9e0bdeaeeec0fcd041aecc0d9274db7ca5dc8ac49",
+    "src/frontends/riscv/rv64/air/delegations/multiplication/mod.zig": "e4d2b844c9ecea5526aad8a4ea1c66623aa0983defe3dd37461486457ed52029",
+    "src/frontends/riscv/rv64/air/delegations/multiplication/provider.zig": "659246052a550288abe5059232e84efa43ed40ac7a767cc0d4e415948bbf77ad",
+    "src/frontends/riscv/rv64/air/delegations/multiplication/trace.zig": "54ab955ac6af30ddff004ba8bf05ce652a47a3cee5437f782ffddb9047c25f89",
+    "src/frontends/riscv/rv64/air/delegations/registry.zig": "7d32752ae7fe760f6022cd42b537d25defee28aae4cc9467a4dadb2ba6ecadfb",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/batch.zig": "f580e4f5e24ec8a1d3a7d4cf6993268eb280c0db0ce28daa5ea67daf62e2b148",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/component.zig": "41bb262eec4580c74852852b1f2b6c3fc0e450063b575dee294013c0bf41ee3c",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/equations.zig": "12d87301ede7c7025e854fd05c4e4c9be9d2f5be22bba067e361cc74f391e874",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/layout.zig": "d11b1bfcb53ea323c1f0b9f2f9e3466ec0f3040869e99cc3edac9b2765bb5cb0",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/parallel.zig": "306333386d4350bc8fdbc6f9c440b93b501cfbaaf454c7239f66d1e3388b6a00",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/bridge/trace.zig": "babc366fad94f629fbfe39c20aa386f1b9eda354b28342112dbb7a0cde710cba",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/component.zig": "1aa65bee32cab15b64f7154960c373b5cd9dfce4ba05cfea5ceb5beac1e0e07d",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/cpu_bus.zig": "d5fd52bc241974757cd8707b6f8c36f4dc2ec8fcedcb2968ab5f360ce4e5e0cc",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/equations.zig": "17217b6f0630c48186f70af69e16047bafecdf74ee8ebd5aeb9f37d005128f3a",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/layout.zig": "a26931d3420dec68e2b2b9bb49d9a74d19dbc8ac1b248a45e1e114e60541af22",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/mod.zig": "7d53859e127911cda1f55936196845ddc274f3400f8bd2116c4da982e3687dd5",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/packed_domain.zig": "aeb2d133fe66b534bd16b9b4a2f27937aca5fa744cfc71fb2fd29cd3ec72fd6e",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/parallel.zig": "03f83b2a12996cc2c361705e30e01858c22486c19c45216a5f10465f17bd414e",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/program.zig": "7b17273c23b647d66d3fc5afd07f77ce35b1a50c0eafdfa9d9c44eafb63c9b4d",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/trace.zig": "72461ead9834eafbd8347d5e154e6520f38ebf1700028d436cdeb17cb7d8bc95",
+    "src/frontends/riscv/rv64/air/delegations/tests/registry_test.zig": "8c1c6aac592d3f71e1dad66d8057e3865408124dd46829c0a08ed6b89697d11d",
+    "src/frontends/riscv/rv64/air/encoding.zig": "c44b96c0b90c209638619a8daeaac7a36b19cefa8e25c7340ff94647ca202636",
+    "src/frontends/riscv/rv64/air/full/component.zig": "38d947b1e4c040e12de28df31f4af58c9ec0b1de4310d015248b2bdf19bb973e",
+    "src/frontends/riscv/rv64/air/full/tests/prepared_view_test.zig": "4eced7fa4fd6ae91742c37886df01f2ec899d1f07b27ed0f94d8e43c93dda1c4",
+    "src/frontends/riscv/rv64/air/memory/borrowed_admission.zig": "cc5e45db4d247283b21be239f59c35a72754b0da0a1f1fd3e4c9dfb1b7dd474f",
+    "src/frontends/riscv/rv64/air/mod.zig": "e3f66e7be5f096836d5778bec6ed7825522dccb5be4a003e590bd47bcf7de06d",
+    "src/frontends/riscv/rv64/air/tests/secp_lane_test.zig": "94230d9f3cb83d575ef580c5470d9d3dd97d134ed79116f7ce1bdf54e2f9e074",
+    "src/frontends/riscv/rv64_air_test_root.zig": "5d2c9112729a3ab850a58039fc014054a2c820987b4084fc0a9bb48c62b9f696",
+    "src/frontends/riscv/rv64_test_inventory.zig": "de64a0ec7d9da785645cb469a7f60fcbf6c51b7b346a9ce478faf2cebea03c3e"
+  }
+}

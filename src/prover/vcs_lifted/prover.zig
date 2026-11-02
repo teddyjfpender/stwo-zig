@@ -29,6 +29,11 @@ pub fn MerkleProverLifted(comptime H: type) type {
         /// (MADV_SEQUENTIAL hint for streaming hash reads). The outer
         /// `layers` array itself is always freed with the caller's allocator.
         layer_allocator: std.mem.Allocator,
+        /// An external stable owner owns mapped node values; this struct still
+        /// owns the outer layer descriptors. Defaults preserve native storage.
+        layer_values_borrowed: bool = false,
+        /// Root-only safe descriptors until the durable owner restores nodes.
+        layers_parked: bool = false,
 
         const Self = @This();
         const LeafOps = leaves_mod.Operations(H);
@@ -71,7 +76,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
         };
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-            for (self.layers) |layer| self.layer_allocator.free(layer);
+            if (!self.layer_values_borrowed) for (self.layers) |layer| self.layer_allocator.free(layer);
             allocator.free(self.layers);
             self.* = undefined;
         }
@@ -481,8 +486,10 @@ pub fn MerkleProverLifted(comptime H: type) type {
         /// `error.InvalidColumnSize`; a lower height is `InvalidTreeHeight`.
         /// On error the tree is unchanged.
         pub fn liftTo(self: *Self, allocator: std.mem.Allocator, lifting_log_size: u32) !void {
+            if (self.layers_parked) return error.InvalidColumnSize;
             const natural = self.maxLogSize();
             if (lifting_log_size == natural) return;
+            if (self.layer_values_borrowed) return error.InvalidColumnSize;
             if (lifting_log_size < natural) return error.InvalidTreeHeight;
             const leaves = self.layers[natural];
             if (leaves.len == 0) return error.InvalidColumnSize;
@@ -556,6 +563,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
         }
 
         pub fn pruneBottomLayers(self: *Self, count: usize) void {
+            if (self.layer_values_borrowed) return;
             const first = self.layers.len - @min(count, self.layers.len - 1);
             for (self.layers[first..]) |*layer| {
                 self.layer_allocator.free(layer.*);
@@ -571,6 +579,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
             query_positions: []const usize,
             columns: []const []const M31,
         ) !DecommitmentResult {
+            if (self.layers_parked) return error.InvalidColumnSize;
             if (self.layers[self.layers.len - 1].len != 0)
                 return decommit_mod.decommit(H, self, allocator, query_positions, columns);
             const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
@@ -593,6 +602,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
             layer_log_size: u32,
             indices: []const u32,
         ) ![]H.Hash {
+            if (self.layers_parked) return error.InvalidColumnSize;
             if (layer_log_size > self.maxLogSize() or self.layers[layer_log_size].len == 0) return error.InvalidColumnSize;
             const layer = self.layers[layer_log_size];
             const out = try allocator.alloc(H.Hash, indices.len);

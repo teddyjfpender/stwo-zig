@@ -1,0 +1,7 @@
+{
+  "implementation_commit": "85d93b080d37b4dcc5716e08c687f88663560323",
+  "binary_sha256": "d7f884453542289005776ead80892e56d5bcab5cdd3d25f2dc688b1d42f36ceb",
+  "independent_receiver_sha256": "02195aee6a1c9fea3deef751bf4088189dcb28b107c6c4d19d7af6c9df406c53",
+  "security_qualified": false,
+  "scope": "CPU-only native block proving; no recursion or GPU qualification"
+}

@@ -1,0 +1,40 @@
+diff --git a/cpp-guest/zisk/evm/fused_dispatch.inl b/cpp-guest/zisk/evm/fused_dispatch.inl
+index 21f4db0..62254bb 100644
+--- a/cpp-guest/zisk/evm/fused_dispatch.inl
++++ b/cpp-guest/zisk/evm/fused_dispatch.inl
+@@ -50,11 +50,19 @@ static_assert(zeg_gas_fixed<OP_PUSH2, 3>());
+ static_assert(zeg_gas_fixed<OP_ISZERO, 3>());
+ static_assert(zeg_gas_fixed<OP_EQ, 3>());
+ static_assert(zeg_gas_fixed<OP_PUSH4, 3>());
++static_assert(zeg_gas_fixed<OP_LT, 3>());
++static_assert(zeg_gas_fixed<OP_GT, 3>());
++static_assert(zeg_gas_fixed<OP_SLT, 3>());
++static_assert(zeg_gas_fixed<OP_SGT, 3>());
+ 
+ // Entry opcodes with a fused fast path; every other opcode pays nothing.
+ template <Opcode Op>
+ constexpr bool zeg_fusable = Op == OP_JUMP || Op == OP_PUSH2 || Op == OP_PUSH4 ||
+-                             Op == OP_ISZERO || Op == OP_EQ;
++                             Op == OP_ISZERO || Op == OP_EQ
++#if defined(ZEG_STWO)
++                             || Op == OP_LT || Op == OP_GT || Op == OP_SLT || Op == OP_SGT
++#endif
++                             ;
+ 
+ // Attempt the fusion for OPCODE; on success re-dispatch directly. Expanded
+ // inside dispatch_cgoto's ON_OPCODE, where position/gas/... are in scope.
+@@ -118,6 +126,14 @@ template <Opcode Op>
+         return a[0] == ((uint64_t{p[1]} << 24) | (uint64_t{p[2]} << 16) |
+                            (uint64_t{p[3]} << 8) | p[4]) &&
+                (a[1] | a[2] | a[3]) == 0;
++    else if constexpr (Op == OP_LT)  // a is the top word: a < b
++        return a < top[-2];
++    else if constexpr (Op == OP_GT)
++        return top[-2] < a;
++    else if constexpr (Op == OP_SLT)
++        return intx::slt(a, top[-2]);
++    else if constexpr (Op == OP_SGT)
++        return intx::slt(top[-2], a);
+     else
+     {
+         const auto& b = top[-2];  // EQ

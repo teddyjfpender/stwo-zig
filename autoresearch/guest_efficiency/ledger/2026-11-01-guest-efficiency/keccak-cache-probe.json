@@ -1,0 +1,24 @@
+{
+ "block": 24628607,
+ "set": "scored",
+ "gas_used": 7372614,
+ "status": "completed",
+ "verified_output": true,
+ "output_matches_expected": true,
+ "execution_profile": "ethereum_services_v2",
+ "instructions": 103523265,
+ "keccak_f_calls": 32109,
+ "secp_add_calls": 11496,
+ "secp_double_calls": 9768,
+ "loads": 19946912,
+ "stores": 12833786,
+ "instructions_per_gas": 14.041595694552841,
+ "diagnostic": {
+  "status": "completed",
+  "stop_error": null,
+  "pc": 20440,
+  "stopped_instruction": null,
+  "elf_sha256": "3ffa2230cc9bcdf4ae79a830d29469de30975a0bf566a80982a1f467726cfcff",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c"
+ }
+}

@@ -1,0 +1,26 @@
+{
+  "scope": "Same first Ethereum shard, matched16worker historical QM31 LogUp control",
+  "retirements": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "profile": "QM31 q70/P26/fold4; nominal96 PCS, not whole-protocol128",
+  "workers": 16,
+  "recycler_cache_cap_bytes": 4294967296,
+  "prove_seconds": 5.252381,
+  "wall_seconds": 7.09,
+  "user_seconds": 38.99,
+  "system_seconds": 3.29,
+  "max_rss_bytes": 11138023424,
+  "fresh_process_accepted": true,
+  "binary_sha256": "ea940df0ba4a5693b9339fab48bbabfa74d6eda8a1212ae5520ab8d8da06759f",
+  "gkr_comparison": {
+    "prove_seconds": 11.3097,
+    "ratio_gkr_over_classic": 2.1532520203694285,
+    "limitations": [
+      "Different fields (QM31 vs OM31); not equally secure128 comparison",
+      "Resident GKR versus coefficient-parked control",
+      "Single shared-host probes, not quiet medians",
+      "No fullblock GKR qualification"
+    ]
+  }
+}

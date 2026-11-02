@@ -1,0 +1,12 @@
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+SPONGE_BINDING_TAMPER fault=target fresh_receiver_rejected=OodsNotMatching
+SPONGE_BINDING_TAMPER fault=eq fresh_receiver_rejected=OodsNotMatching
+SPONGE_BINDING_TAMPER fault=prefix fresh_receiver_rejected=OodsNotMatching
+SPONGE_BINDING_TAMPER fault=main fresh_receiver_rejected=OodsNotMatching
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-services-gkr-local success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 22s MaxRSS:1G
+

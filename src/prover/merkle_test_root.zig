@@ -1,5 +1,6 @@
 //! Merkle tests import the engine through its named package boundary.
 comptime {
+    _ = @import("vcs_lifted/tests/compact_blake_state.zig");
     _ = @import("vcs_lifted/tests/commit_paths.zig");
     _ = @import("vcs_lifted/tests/protocol.zig");
     _ = @import("vcs_lifted/tests/lifted_height.zig");

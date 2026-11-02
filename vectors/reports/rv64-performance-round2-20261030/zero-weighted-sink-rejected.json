@@ -1,0 +1,52 @@
+{
+  "decision": "rejected",
+  "candidate": "Skip exact-zero weighted Sink products while advancing ordered coefficient count",
+  "retained": "Unconditional weighted accumulation",
+  "reason": "No reliable full-job speedup; warmed paired control made the candidate slower. Production evaluation.zig restored from index.",
+  "warmed_pair": [
+    {
+      "variant": "owned",
+      "returncode": 0,
+      "wall_s": 18.058031084015965
+    },
+    {
+      "variant": "zero",
+      "returncode": 0,
+      "wall_s": 19.75559504100238
+    }
+  ],
+  "isolated_first_zero_wall_seconds": 18.303,
+  "runs": [
+    {
+      "name": "zero-ecdsa",
+      "prove_ns": 17351847875,
+      "verified": true,
+      "proof_bytes": 669304,
+      "profile_archive": "/tmp/stwo-rv64-round2/zero-ecdsa.json",
+      "profile_sha256": "4168044cac3b73694d443f3b0cf5463193c89db673ee03483e331b5256d567fa"
+    },
+    {
+      "name": "owned-paired-ecdsa",
+      "prove_ns": 17254253541,
+      "verified": true,
+      "proof_bytes": 669304,
+      "profile_archive": "/tmp/stwo-rv64-round2/owned-paired-ecdsa.json",
+      "profile_sha256": "f6b0765e0c44a1ba011c233050684959ffa71e4b5768bd8c76fa350898ec4db5"
+    },
+    {
+      "name": "zero-paired-ecdsa",
+      "prove_ns": 18913913917,
+      "verified": true,
+      "proof_bytes": 669304,
+      "profile_archive": "/tmp/stwo-rv64-round2/zero-paired-ecdsa.json",
+      "profile_sha256": "1671b018b93a83fa8cebf9b8b54ee09bfbc34bf53749f5106bd29ac4bfe25925"
+    }
+  ],
+  "proof_bytes_equal": true,
+  "proof_sha256": "33fabd550f9ee16fc0efd7f322f542c1e7f44771425861c1ad9ecc7206a731aa",
+  "source_archive": "/tmp/stwo-rv64-round2/zero-sink-candidate.zig",
+  "source_sha256": "87f614125672a08ed5d2fd29beb811115ab4e9db82f26856e72dfb71f0803815",
+  "source_is_ignored_archive": true,
+  "security_parameters_changed": false,
+  "test_coverage_retained": "Zero scale, explicit zero emission, zero runs, collection and global coefficient counts remain covered by weighted_sink_test.zig."
+}

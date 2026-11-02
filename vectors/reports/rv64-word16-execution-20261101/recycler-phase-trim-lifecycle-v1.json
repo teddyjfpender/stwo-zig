@@ -1,0 +1,29 @@
+{
+  "status": "QUALIFIED allocation lifecycle helper; no timing claim",
+  "base_commit": "70b79686f7f7e2e4a4e287a495b41f2f14041325",
+  "api": "LargeBlockRecycler.releaseCached() usize",
+  "semantics": "Detach cached free-list map under recycler mutex, reset cached count, release detached child allocations and metadata outside lock. Live allocation map, pointer ownership and cumulative counters remain valid. Concurrent frees after detach may populate new free lists. deinit remains final-only.",
+  "gates": {
+    "commands": [
+      "zig test src/integrations/riscv_cpu/rv64_large_block_recycler.zig -O ReleaseSafe",
+      "zig test src/integrations/riscv_cpu/rv64_large_block_recycler.zig -O ReleaseFast"
+    ],
+    "actual_tests": 6,
+    "result": "PASS both",
+    "logs": [
+      "/tmp/recycler-trim-safe.log",
+      "/tmp/recycler-trim-fast.log"
+    ],
+    "coverage": [
+      "existing alignment, resize/remap and overflow admission",
+      "exhaustive metadata allocation-failure sweep with live owner during trim",
+      "dirty live blocks survive trim and retain original free/resize custody",
+      "full mismatching capacity bins prevent new-phase reuse until trimmed",
+      "concurrent allocation/free traffic and repeated trim until all worker threads finish"
+    ]
+  },
+  "performance": "No actual prefix performance measurement in this slice. Deterministic map/reuse counters demonstrate the specific full-cache mismatching-bin mechanism only.",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_large_block_recycler.zig": "e903bbce78b7019b3289a3c963402e357f831e4a5aeb0950f1c7e887882111ff"
+  }
+}

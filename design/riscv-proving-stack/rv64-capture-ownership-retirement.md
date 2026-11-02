@@ -1,0 +1,19 @@
+# Capture ownership and ordinary memory-advice retirement
+
+The Ethereum capture does not retain raw compact CPU tapes until block completion. Packet tapes are deinitialized during import; capture records and grouped facts are released; original CPU ownership moves into the worker source. Successful stage-one sealing already retires local CPU metadata. The 104,253,913-step workload has 5,838,219,128 bytes of 56-byte CPU metadata, and these bytes already retire progressively.
+
+One independent duplicate remains: ordinary load/store Advice events outlive their owned LS metadata copies. The full roster has 33,457,230 events of 72 bytes, or 2,408,920,560 bytes. This is a source-derived payload bound, not measured RSS savings. The recycler can retain freed storage within its configured ceiling.
+
+`Options.consume_memory_events` is an explicit destructive operational option, default false. After a CPU worker successfully seals, retires its local metadata and parks MAIN if requested, the coordinator clears and frees only that ordinal's ordinary events using Advice's original allocator. LS construction has already copied and joined event data into owned narrow metadata; global stage two uses that metadata. Keccak/secp call records, public boundary cells, requests and expected endpoints remain live. Each concurrent worker owns a distinct advice slot. Callers selecting consumption must provide exclusive mutable ownership of Advice slots throughout production. A later failure leaves already completed slots empty, with deferred outer cleanup remaining valid.
+
+The quiescent `Capture.Owner.ownership()` snapshot separates Prepared payload from ordinary events, service records and public cells. It counts exact owned slice lengths and explicit capture-list capacities; it does not assert a complete process memory budget.
+
+The focused qualification produces two CPU and three service-truth proofs, compares every physical proof and stage-one byte against the non-consuming baseline, and verifies with independently rebuilt keys. It checks the Prepared payload has retired naturally, service/public advice remains unchanged, early admission failure preserves all inputs, and a later invalid service worker safely cleans up after a prior completed ordinal retired its events. Testing allocators check deferred ownership cleanup. No execution semantics, transcript, proof layout or admission rule changes.
+
+## Completed worker retirement
+
+The coordinator also releases each completed worker immediately after moving its independently owned encoded bytes and physical claims into the result slot. It then clears that optional worker slot so deferred failure cleanup cannot free it twice. This retires the CPU's narrow RAM/bridge advice, child proof/artifact owner and fixed-key lease as soon as that worker completes, rather than waiting for the last worker. Truth workers already release their native source inside `complete`; their remaining wrapper owner is now retired at the same boundary.
+
+The joined `PendingManifest` owns every reconstructed child OODS point, claim array and variable-count array. These are allocated by the numerical verifier, not borrowed from the producer's child proof. The durable stage-one bytes are encoded before stage two begins. Thus later workers retain all required global-manifest and local-binding authority independently of completed workers. Schedule charges remain conservative; this change does not lower any admission bound.
+
+The two-lane physical fixture checks all completed-owner flags, exact proofs and fresh global closure. An allocation-failure fixture uses one allocator consistently from capture through proving, refuses new allocations immediately after the first successful worker retirement, and checks later-stage failure cleanup with the testing allocator. There is no measured full-block peak reduction claim in this qualification.

@@ -1,0 +1,40 @@
+{
+  "scope": "Audit and exact-integer regression only. Existing Ledger already correctly weights rawmod by3^8; no production parameter/authority/identity/acceptance code changed.",
+  "source_base": "cdb0990f452d12dae7d0d4c60a0379fe76d398a9",
+  "actual_findings": {
+    "uniform_bias_bug": false,
+    "existing_bound": "Ledger.requireRawModuloBits uses checked total_degree_weight*6561 against2^(256\u2212bits); bounded-ROM helper reuses it at151bits.",
+    "existing_fail_closed": "WholeProtocolPromotion rejects incomplete flags and always rejects even alltrue flags without a reviewed registry certificate. Existing source bounds report transcript_round_bound_qualified=false.",
+    "test_discovery": "Candidate-only testroot has no public build step. Added explicit candidate test import into existing security-policy root so named tests execute in a normal supported gate.",
+    "independence_gap": "Adaptive rawmod Fiat-Shamir freshness/repeated-query/collision and round-count theorem remains unreviewed; empirical counter parity is not independence evidence."
+  },
+  "regressions": [
+    "Pin sampler degree8/maxpreimages3/raworder2^32",
+    "Exact floor minentropy243; Ledger accepts243-bit single-root budget and rejects244",
+    "Exact density relativeuniform is>1 and<(3/2)^8",
+    "Exact maximum128-bit degreeunion weight passes; nextweight fails while a wronguniform calculation would pass",
+    "Existing policy suite retains always-fail whole128 promotion behavior"
+  ],
+  "gates": [
+    {
+      "command": "zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -Driscv-test-filter='candidate raw modulo exact integer' -j2 --summary all",
+      "result": "PASS8s MaxRSS857M"
+    },
+    {
+      "command": "zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS4s MaxRSS433M"
+    },
+    {
+      "command": "zig build test-riscv64-security-policy -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS4s MaxRSS407M"
+    }
+  ],
+  "unchanged_candidate_identity": "16b0e3bee1f01b1d6a4384d91a8c8cd9953e08d4acd58c4339aa007795b975a7",
+  "conditional_cap_degree_weight": "5447285479618932633766888",
+  "not_claimed": [
+    "uniform actual Blake output theorem",
+    "reviewed adaptive FS reduction",
+    "wholeprotocol128 certificate",
+    "recursive-layer security qualification"
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schema": "rv64-keccak-partial-tail-fix-v1",
+  "status": "pure/native boundary and forced-geometry q70 proofs PASS; actual resumed Ethereum proof remains separately reported",
+  "bug": {
+    "observed_batch": 47,
+    "calls": 1506,
+    "K_log": 15,
+    "native_rows": 32768,
+    "partial_rows": 27,
+    "failure": {
+      "logical_row": 32767,
+      "constraint": 14,
+      "value": "-1"
+    },
+    "cause": "Domain-only fixed phase26 selected output recomposition on an incomplete inactive final slot. Its+1/+2 masks wrapped into active first input rows. Zero padding therefore falsely had to equal that active input.",
+    "admitted_problem_logs": [
+      14,
+      15
+    ],
+    "original_fixed_schedule": "phase=logical%29 selected on every row, including the final partial slot"
+  },
+  "fix": {
+    "source": "src/frontends/riscv/rv64/air/crypto/keccak/trace.zig",
+    "rule": "Enable phase26 only for logical < floor(2^log/29)*29. All other phase bits remain unchanged.",
+    "shared_helper": "phaseEnabled(phase,complete); public pure fixedAt(log,logical) mirrors matrix generation",
+    "preserved": [
+      "phase0 active-prefix terminal/count transition on incomplete tail",
+      "full-slot input/output recomposition",
+      "COMPLETE_SLOT active=0 constraint and inactive state/parity zeros",
+      "all main/interactions, AIR equations, degree bounds, masks, transcript schema, runtime ABI and public count/ID authority"
+    ],
+    "fixed_root_scope": "Only permutation fixed roots at native logs14/15 change in admitted logs5..26; source remains geometry-only, independent of call count/firstID. Given fixed challenges, main/count/interaction recipes are unchanged; changed fixed roots correctly change Fiat-Shamir challenges for these geometries."
+  },
+  "safety": "At an incomplete row COMPLETE_SLOT=0 forces active_A=0; second<=active_A forces active_B=0; padding constraints force all state/parity to zero. Suppression cannot permit an active incomplete slot. The removed equation was solely a false cross-domain output recomposition.",
+  "gates": {
+    "safe_keccak": "PASS",
+    "all_logs": "Pure fixedAt audit covers5..26, complete and partial phase positions, preserved first/slot/complete/header fields; only14/15 differ.",
+    "old_vs_new_native": "C1 with nonzero active input recreates constraint14=-8 atlog14 and=-1 atlog15 with exact old phase26 selector. Corrected rows have all6,102 residuals zero.",
+    "matrix": "Every generated fixed coordinate atlogs14/15 matches pure fixedAt.",
+    "independent_review": "byte_range confirmed phase0 preservation, inactive completeness/padding safety and exact changed-log set",
+    "historical_primitive_SHA": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+    "historical_bridge_SHA": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+    "historical_joined": [
+      {
+        "case": "keccak",
+        "proof_bytes": 2269408,
+        "proof_sha256": "45229b60449f1a1a1c4830302d33e74c601eb982dcfb870511f818ccfecec490",
+        "historical_equal": true,
+        "fresh_process_verified": true,
+        "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/joined/keccak"
+      },
+      {
+        "case": "cyclic",
+        "proof_bytes": 2266976,
+        "proof_sha256": "49d867b2405a734a2581257115ba5d61f91e6b6356aad3a8652d00bdb99b56eb",
+        "historical_equal": true,
+        "fresh_process_verified": true,
+        "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/joined/cyclic"
+      },
+      {
+        "case": "mul",
+        "proof_bytes": 2341472,
+        "proof_sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0",
+        "historical_equal": true,
+        "fresh_process_verified": true,
+        "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/joined/mul"
+      },
+      {
+        "case": "eth-v1",
+        "proof_bytes": 3015640,
+        "proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+        "historical_equal": true,
+        "fresh_process_verified": true,
+        "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/joined/eth-v1"
+      },
+      {
+        "case": "eth-v2",
+        "proof_bytes": 3017800,
+        "proof_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4",
+        "historical_equal": true,
+        "fresh_process_verified": true,
+        "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/joined/eth-v2"
+      }
+    ]
+  },
+  "proofs": [
+    {
+      "calls": 1,
+      "selected_log": 14,
+      "pow_bits": 26,
+      "queries": 70,
+      "prover_workers": 16,
+      "fresh_receiver_workers": 1,
+      "proof_bytes": 1650864,
+      "proof_sha256": "7312a66774512514e9fffd8a9cd115ff17f039159ba0ff7473bfd4e7c94672ab",
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/log14"
+    },
+    {
+      "calls": 1,
+      "selected_log": 15,
+      "pow_bits": 26,
+      "queries": 70,
+      "prover_workers": 16,
+      "fresh_receiver_workers": 1,
+      "proof_bytes": 1676184,
+      "proof_sha256": "07c79ba60acc40227da9e85f7fc4b7a68313c7510cac35cb061c7948e484055a",
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-tail-fix/log15"
+    }
+  ],
+  "commands": [
+    "zig build test-riscv64-keccak -Doptimize=ReleaseSafe",
+    "zig build rv64-keccak-fixture -Doptimize=ReleaseFast",
+    "rv64-keccak-fixture produce-log14 DIR 1 16; verify-log14 DIR 1 1",
+    "rv64-keccak-fixture produce-log15 DIR 1 16; verify-log15 DIR 1 1"
+  ],
+  "limits": [
+    "These are primitive/public-IO controls; they do not claim complete Ethereum execution proof success.",
+    "Old valid controls at unaffected geometries remain compatible. Old fixed roots at affected geometries intentionally differ and require the corrected receiver."
+  ]
+}

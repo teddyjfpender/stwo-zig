@@ -1,0 +1,36 @@
+   Compiling log v0.4.33
+   Compiling tracing-core v0.1.36
+   Compiling regex-syntax v0.8.11
+   Compiling lazy_static v1.5.0
+   Compiling sharded-slab v0.1.7
+   Compiling regex-automata v0.4.16
+   Compiling matchers v0.2.0
+   Compiling tracing v0.1.44
+   Compiling tracing-log v0.2.0
+   Compiling thread_local v1.1.10
+   Compiling nu-ansi-term v0.50.3
+   Compiling tracing-subscriber v0.3.22
+   Compiling utf8parse v0.2.2
+   Compiling anstyle-parse v1.0.0
+   Compiling anstyle v1.0.14
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling colorchoice v1.0.5
+   Compiling anstyle-query v1.1.5
+   Compiling anstream v1.0.0
+   Compiling stwo v2.0.0 (https://github.com/starkware-libs/stwo?rev=a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2#a8fcf4bd)
+   Compiling env_filter v2.0.0
+   Compiling test-log-core v0.2.21
+   Compiling test-log-macros v0.2.21
+   Compiling stwo-constraint-framework v2.0.0 (https://github.com/starkware-libs/stwo?rev=a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2#a8fcf4bd)
+   Compiling env_logger v0.11.11
+   Compiling test-log v0.2.21
+   Compiling stwo-examples v2.0.0 (https://github.com/starkware-libs/stwo?rev=a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2#a8fcf4bd)
+   Compiling stwo-interop-rs v0.1.0 (/private/tmp/stwo-rv64-om-rust-gkr-oracle/tools/stwo-interop-rs)
+    Finished `release` profile [optimized] target(s) in 16.99s
+     Running unittests src/bin/rv64_om_gkr_oracle.rs (/private/tmp/rv64-om-rust-gkr-target/release/deps/rv64_om_gkr_oracle-7e6a64736cdd8d49)
+
+running 2 tests
+test om_gkr::tests::rare_raw_reduction_boundaries ... ok
+test om_gkr::tests::dense_tower_inverse_and_every_high_coordinate ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

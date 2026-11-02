@@ -1,0 +1,26 @@
+{
+  "source": "289ee4aef",
+  "base": "4d9aafacd",
+  "scope": "Witness-only additive helper; optional route and admission integration owned separately",
+  "Safe": "test-riscv64-services-gkr-local PASS",
+  "Fast": "test-riscv64-services-gkr-local PASS",
+  "new_tests": [
+    "exact full16-plane equality after mixed-height8-plane projected retention",
+    "terms3 paddedto4 and single-lane instance; all8 coordinates",
+    "3-worker same-output check",
+    "provider callback failure cleanup",
+    "shape and incorrect eta rejection",
+    "every allocation failure during projected construction and immutable finalization"
+  ],
+  "independent_read_only_review": "AIR peer PASS; no concrete custody/math bug",
+  "payload_contract": "Source32bytes/row retained unchanged; final output64bytes/row newly allocated; both coexist, plus two16byte-per-instance slice-header arrays. No other N-sized planes.",
+  "source_unchanged_on_error": true,
+  "default_changed": false,
+  "transcript_changed": false,
+  "performance_claim": false,
+  "pending_in_separate_integration": [
+    "Child/external reservation and stage2 adoption",
+    "Physical proof byte parity for both engineering profiles",
+    "Actual retained-memory/accounting qualification"
+  ]
+}

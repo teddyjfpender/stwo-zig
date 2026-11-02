@@ -1,0 +1,36 @@
+ptxas info    : 0 bytes gmem, 256 bytes cmem[3]
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript19draw_queries_kernelEPjjmmjjS2_S2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript19draw_queries_kernelEPjjmmjjS2_S2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 0 barriers, 416 bytes cmem[0]
+ptxas info    : Compile time = 31.163 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript18draw_secure_kernelEPjjmmjjS2_S2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript18draw_secure_kernelEPjjmmjjS2_S2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers, 416 bytes cmem[0]
+ptxas info    : Compile time = 32.888 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript17draw_words_kernelEPjjmmS2_S2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript17draw_words_kernelEPjjmmS2_S2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, used 0 barriers, 408 bytes cmem[0]
+ptxas info    : Compile time = 24.199 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript17absorb_pow_kernelEPjjmmPKjjS2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript17absorb_pow_kernelEPjjmmPKjjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 416 bytes cmem[0]
+ptxas info    : Compile time = 79.860 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript21mix_words_pair_kernelEPjjmmPKjjS4_jjS2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript21mix_words_pair_kernelEPjjmmPKjjS4_jjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers, 432 bytes cmem[0]
+ptxas info    : Compile time = 236.098 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript16mix_words_kernelEPjjmmPKjjjS2_S2_' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript16mix_words_kernelEPjjmmPKjjjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers, 416 bytes cmem[0]
+ptxas info    : Compile time = 93.058 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda10transcript17initialize_kernelEPjPKjS2_mj' for 'sm_89'
+ptxas info    : Function properties for _ZN4stwo4cuda10transcript17initialize_kernelEPjPKjS2_mj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 0 barriers, 388 bytes cmem[0]
+ptxas info    : Compile time = 3.648 ms

@@ -1,0 +1,89 @@
+{
+  "schema": "rv64-keccak-quartet-v3-prototype",
+  "status": "Standalone ReleaseSafe/ReleaseFast andq70/P26 durableproof/freshprocessPASS; productionCPUcoordinator remainsTRIPLE",
+  "admission": "Legacy triple_v2 remains default. Experimental quartet_v3 has explicit policy transcript mix before roots, externally expected receiver policy, separate generateForPolicy API and qualification CLI modes only. CPU coordinator does not admit it.",
+  "geometry": {
+    "main": 1923,
+    "fixed": 32,
+    "old_interaction": 2596,
+    "candidate_interaction": 1948,
+    "old_secure_prefixes": 649,
+    "candidate_secure_prefixes": 487,
+    "old_total_columns": 4551,
+    "candidate_total_columns": 3903,
+    "old_constraints": 6102,
+    "candidate_constraints": 5940,
+    "raw_degree": 5,
+    "quotient_domain_proposed": "4n CONFIRMED for this concrete degree5circlecomponent byvalidnativeLDE/STARK/OODS gates; maxlogtrace+2 andsplit2 unchanged",
+    "unchanged_previous_mask_columns": 1607
+  },
+  "cost_model": {
+    "Klog18_native_bytes_saved": 679477248,
+    "Klog19_native_bytes_saved": 1358954496,
+    "current_mask_values_saved": 648,
+    "lookup_queries_and_characteristic_masses": "unchanged; same1920round events and25IO events in native order",
+    "CPU_impact": "None; wholeEthereum source dominated91.6468% byCPU, so isolatedK14.24%column saving is not whole-job14.24% claim."
+  },
+  "authority": "One shared emitForBatch width3/4. Original triple arithmetic branch retained. Factored quartet rational clearing checked against literal generic product oracle. Same tuple algebra/native dictionary/metadata; no permutation replay.",
+  "native_generation": "Shared Prepared.fillRange specializes3/4 and existingtwo-wavejoinedpool correction usespolicybatchcount; no extra wide trace or permutation replay.",
+  "written_gates_not_run": [],
+  "performance": {
+    "measured": false,
+    "claim": "No isolatedruntime/wholejob speed claim; standaloneprofilegeometry only."
+  },
+  "qualified_gates": [
+    "test-riscv64-keccak-quartet ReleaseSafe/Fast5tests PASS",
+    "test-riscv64-keccak ReleaseSafe/Fast32legacytests PASS",
+    "Validnative4nquotient independentlycheckedbyfullQM31OODSreceiver at1/3/8/16poolbudgets",
+    "Explicitwrongpolicyreceiver rejects; rawfifthcoefficient nonzero andsixthdifference zero; arbitraryBase/fullsecurelane parity",
+    "No-pole/OOM/partialprefix+correction failures andsuccessfulretry/serialparallelbytes PASS"
+  ],
+  "proof_artifact": {
+    "directory": "vectors/reports/interop_artifacts/rv64-keccak-quartet-v3",
+    "queries": 70,
+    "pow_bits": 26,
+    "calls": 5,
+    "first_id": 1,
+    "trace_log": 7,
+    "main_released_before_challenges": true,
+    "bytes": 1418680,
+    "sha256": "ccd0112a120361ed4690e218cfedd8048c69ff815bde744a3aa5c363d2b8c299",
+    "fresh_process_quad_receiver": true,
+    "temporary_producer_directory": "/tmp/stwo-rv64-keccak-quartet-v3/quartet-five"
+  },
+  "legacy_controls": {
+    "primitive_bytes": 1621800,
+    "primitive_sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+    "bridge_bytes": 1661832,
+    "bridge_sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+    "exact_old_bytes": true,
+    "fresh_process_legacy_receivers": true
+  },
+  "same_input_control": {
+    "calls": 5,
+    "lanes": 25,
+    "first_id": 1,
+    "log": 7,
+    "source": "inputState(i+2):((i+2+lane+1)*0x9e3779b97f4a7c15 mod2^64)xor lane; LEu64lane encoding",
+    "output_authority": "Freshreceiver std.crypto.core.keccak.KeccakF(1600), not retainedproveroutputs",
+    "input_bytes": 1000,
+    "input_sha256": "ccebd49e17563e6b855f9f8700feb4e82f19b5ed27bffca6a6a3c06587a2e058"
+  },
+  "fixture_cells": {
+    "native_main_old_and_new": 246144,
+    "native_main_bytes_old_and_new": 984576,
+    "K_interaction_cells_old": 332288,
+    "K_interaction_cells_new": 249344,
+    "K_interaction_bytes_saved": 331776,
+    "all_source_bytes_old": 2772480,
+    "all_source_bytes_new": 2440704,
+    "all_source_bytes_saved": 331776
+  },
+  "proof_size_control": {
+    "old_bytes": 1621800,
+    "new_bytes": 1418680,
+    "saved_bytes": 203120,
+    "reduction_percent": 12.52435565421137,
+    "not_a_wholejob_speed_claim": true
+  }
+}

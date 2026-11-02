@@ -1,0 +1,132 @@
+{
+  "base": "f5f942e32",
+  "profile": "stronger-candidate q256/P0 beta2 fold4 CPU0",
+  "binary_sha256": "b11785950d50829ad229fc1efc3ab6e40580d08d26ccddbf193a276c1da2d252",
+  "prove_ns": 16009502542,
+  "phases": [
+    {
+      "phase": "catalog_allocate",
+      "count": 1098,
+      "ns": 11320875
+    },
+    {
+      "phase": "numerator_combine",
+      "count": 1645,
+      "ns": 325043958
+    },
+    {
+      "phase": "numerator_fft",
+      "count": 43,
+      "ns": 375020041
+    },
+    {
+      "phase": "quotient_rows",
+      "count": 16777216,
+      "ns": 1092782542
+    },
+    {
+      "phase": "fri_pack",
+      "count": 16777216,
+      "ns": 75987459
+    },
+    {
+      "phase": "fri_merkle",
+      "count": 16777216,
+      "ns": 78000375
+    },
+    {
+      "phase": "fri_circle_fold",
+      "count": 8388608,
+      "ns": 71280375
+    },
+    {
+      "phase": "fri_line_folds",
+      "count": 8388608,
+      "ns": 57590375
+    },
+    {
+      "phase": "fri_pack",
+      "count": 1048576,
+      "ns": 5067542
+    },
+    {
+      "phase": "fri_merkle",
+      "count": 1048576,
+      "ns": 4742958
+    },
+    {
+      "phase": "fri_line_folds",
+      "count": 1048576,
+      "ns": 6830500
+    },
+    {
+      "phase": "fri_pack",
+      "count": 65536,
+      "ns": 706750
+    },
+    {
+      "phase": "fri_merkle",
+      "count": 65536,
+      "ns": 413833
+    },
+    {
+      "phase": "fri_line_folds",
+      "count": 65536,
+      "ns": 2184083
+    },
+    {
+      "phase": "fri_pack",
+      "count": 4096,
+      "ns": 38708
+    },
+    {
+      "phase": "fri_merkle",
+      "count": 4096,
+      "ns": 117125
+    },
+    {
+      "phase": "fri_line_folds",
+      "count": 4096,
+      "ns": 62083
+    },
+    {
+      "phase": "fri_pack",
+      "count": 256,
+      "ns": 1166
+    },
+    {
+      "phase": "fri_merkle",
+      "count": 256,
+      "ns": 9083
+    },
+    {
+      "phase": "fri_line_folds",
+      "count": 256,
+      "ns": 9417
+    },
+    {
+      "phase": "fri_pack",
+      "count": 16,
+      "ns": 583
+    },
+    {
+      "phase": "fri_merkle",
+      "count": 16,
+      "ns": 2250
+    },
+    {
+      "phase": "fri_line_folds",
+      "count": 16,
+      "ns": 625
+    }
+  ],
+  "all4artifactshaexact": true,
+  "frozenreceiveraccepted": true,
+  "source_conclusion": "No secure-OM FFT fallback: numerator coefficient views use eight M31 planes and scoped pooled packed M31 transforms. Largest remaining CPU0 FRI subphase is quotient_rows.",
+  "caveats": [
+    "One profiling run, not a throughput comparison.",
+    "Intervals across different shard workers cannot be summed into block wall.",
+    "No protocol/query/security/profile change.",
+    "Functional compiles overlapped another agent; profiling run started only after both compilation batches completed."
+  ]
+}

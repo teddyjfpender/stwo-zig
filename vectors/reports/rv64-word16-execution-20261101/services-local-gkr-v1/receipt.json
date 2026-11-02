@@ -1,0 +1,82 @@
+{
+  "schema": "rv64-services-local-gkr-custody-and-role-v1",
+  "base_main": "ff0ce62b7",
+  "source_commit_at_run": "9719607383ee2db2e95a0b34b165ffacb7512916",
+  "native_execution_profile_changed": false,
+  "production_selected": false,
+  "whole_execution_proof": false,
+  "whole_protocol_128_claim": false,
+  "speedup_claim": false,
+  "scope": "Complete services CPU-shard durable metadata query authority; local child GKR custody; original ALU MAIN plus authenticated local-terminal fragment through real OM31 PCS/FRI",
+  "commands": [
+    "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+    "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all"
+  ],
+  "final_direct_fast_exit": 0,
+  "qualified": [
+    "actual K/ADD/DOUBLE two-shard metadata versus physical MAIN fraction parity across every present role",
+    "same metadata fractions after detached owned MAIN backings overwritten",
+    "bounded child lifecycle all allocation failures",
+    "strict root denominator poles including zero weight",
+    "scoped child transcript and receipt tamper rejection",
+    "mixed-height suffix-then-row/lane point framing",
+    "Eq recurrence and cyclic prefix residuals",
+    "all eight role binding projections degree at most three",
+    "actual original ALU MAIN47 plus13 local fractions plus16 OM binding planes in single MAIN span and packed2n domain",
+    "fresh wide core PCS/FRI receiver",
+    "physical binding target, arithmetic-valid changed MAIN multiplicity, Eq and prefix attacks rejected",
+    "actual mixed-height ALUlog5/ALUtaillog6 realPCS/FRI freshreceiver after wide samplerpointfold fix",
+    "bounded canonical eight-coordinate local child binary codec roundtrip preserves canonicalreceipt and freshpending verification",
+    "local child codec malformed/magic/canonicality/trailing/truncation/OOM gates"
+  ],
+  "pending": [
+    "whole-roster physical binding for tables and public register boundary",
+    "bridge original MAIN plus OM global RAM/KIO/Wire joined role wrappers",
+    "separate Keccak/secp truth local GKR profiles",
+    "new stage-one manifest wire and independent complete execution receiver",
+    "circuit whole-role terminal/PCS binding",
+    "complete-block qualification and controlled resource/performance measurement"
+  ],
+  "resource": {
+    "hard_local_gkr_allocator": true,
+    "includes": [
+      "raw N M31/D OM31 arrays",
+      "core cloned and product layers",
+      "proof artifact",
+      "Eq/prefix witness"
+    ],
+    "excludes": [
+      "source metadata",
+      "pool stacks",
+      "PCS scratch",
+      "allocator retained maps",
+      "process RSS"
+    ],
+    "cpu_log22_terms15_lanes16_planned_peak_bytes": 9126805504,
+    "whole_shard_peak_not_measured": true
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/binding.zig": "0a60a2de71df8e3af79204f433d7648c5039ffe808184c399d66644c5748eac9",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/challenges.zig": "854d0908e6627836886029730d7b63626957135052d1e1ba8afc7a4cdb472d56",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig": "1dd6d13ec807870d12c47acecb9a609e0100a68c5689e1da4d7c9791d637c258",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/closure.zig": "cbaea4ea44d07ffe2bcb59dd0087f88b36429406eff25665849f1bd523c29ba8",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/dispatch.zig": "54fc258914608b9d941444190843f2fee9945c9a3ffaa2aee02d0d266efdab61",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fractions.zig": "0a24176f99282b8cdde8e007fa2797ef39e08b854c934b836130408d57e9a372",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/frame.zig": "cc29e39f5c1894b4febaf7c7a7b962f72ab493d66ae7c29058114842d224b549",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/inputs.zig": "f1d8c8ea8ecd3e17548a719ea8c8e29c1300daa3cdd68673a875f50b257b8f39",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/metadata_test.zig": "f1e44ea540051e57f7d5a693a724718be2626bca854b72b6313c0415fdc034f0",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/native_provider.zig": "aca7eac8bc1ee8d1dc740a59976e9a5298e8162946eb18606818ef4a38ebb38f",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/receipt.zig": "a9e886794c2b8ba8d99945153de692aab3ddaaab497c5c7cc8cffdf9313ee337",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/resource.zig": "70c3effad2fbf39709ccd865e152b907abbf18fd03ffe4ab8adf02d0c4acf235",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role.zig": "4312e3ada5b01dbd2970b23b4eb69bde3246197204e20606a1bed732e98de988",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig": "87881fc09c197aad67927a6b7e76ee3e211d4e65a04ef495eb9147667d03e0b8",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_test.zig": "2fa73d61193f9c868a6908a4eb40aa002d8212b359b86c5758e368de7ccc3b88",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/roster.zig": "91862f2cea82eb11257bfe454fda2b8fa92a8dc732c658a82b296094f99dd371",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/tests.zig": "b0f831b878016eaf34eaf74f932617b49415d8eb3da39addbd7d4894bca0213c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/wire.zig": "049765305a6930e8d949116b61f7d7d5d2f448ce7989711eedb267de96336530",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/witness.zig": "739e72cc7a45f97c4fee7d0fb74eb289d84ed6516dde87727bf79e16abc9dac3"
+  },
+  "qualified_base_main": "ff0ce62b7",
+  "mixed_height_core_fix": "669491017",
+  "final_direct_fast_summary": "All 23 tests passed."
+}

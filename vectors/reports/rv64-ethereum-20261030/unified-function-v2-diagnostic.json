@@ -1,0 +1,80 @@
+{
+  "schema": "unified-function-v2-challenge-diagnostic-v1",
+  "scope": "nonaccepting complete-manifest/challenge API, actual small PCS roots, no physical V2 execution acceptance",
+  "protocol": {
+    "new_metadata_tag": 3,
+    "reserved_unsupported_ram_tag": 2,
+    "canonical_policy_authority": "rv64_air.word16_cpu.profile.identity(.alu_binary_v2)",
+    "expected_policy_argument": "must also match canonical policy; incoming arbitrary policy is rejected",
+    "payload": "global_op_id,A4,B_effective4,C4",
+    "global_ids": {
+      "alu": "0..9",
+      "binary": "16..18",
+      "shift": "32..37"
+    },
+    "vector": "one offset and13QM31 coefficients",
+    "local_register_clock_bits": 24,
+    "physical_tree_contract": "all global tuples and weights pre-alpha; full-main or physically authenticated projection schema; later execution needs direct shared-column use or fresh local join"
+  },
+  "accepting_v2_cpu_receiver": false,
+  "accepting_v2_ram_receiver": false,
+  "production_activated": false,
+  "methods": [
+    "deriveUnifiedFunctionV2(expected_policy)",
+    "resumeWorkerUnifiedFunctionV2(a,ordinal,scheme,channel,expected_policy)",
+    "resumeReceiverUnifiedFunctionV2(ordinal,proof,channel,expected_policy)"
+  ],
+  "gates": {
+    "ReleaseSafe": {
+      "passed": true,
+      "tests": 16,
+      "log": "/tmp/rv64-distributed-manifest-safe.log"
+    },
+    "ReleaseFast": {
+      "passed": true,
+      "tests": 16,
+      "log": "/tmp/rv64-distributed-manifest-fast.log"
+    },
+    "test_scope": "old13cases include real V1 q70 facts proofs; new3cases are V2 root/challenge binding only, intentionally invalid shell is never accepted as proof",
+    "v1_actual_execution_regression": {
+      "fresh_process_passed": true,
+      "exact_three_proofs_manifest_boundaries_claims": true,
+      "after_changes": [
+        "canonical scalar_range extraction",
+        "closed ALU_BINARY_V2 diagnostic source",
+        "unified ManifestV2 draft",
+        "central bounded proof decoder"
+      ],
+      "artifacts": "/tmp/stwo-rv64-distributed-execution-post-neutral-v1",
+      "produce_log": "/tmp/rv64-distributed-execution-produce-post-neutral.log",
+      "receive_log": "/tmp/rv64-distributed-execution-receive-post-neutral.log",
+      "proof_sha256": [
+        "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+        "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+        "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+      ]
+    },
+    "named_ReleaseSafe": {
+      "passed": true,
+      "command": "zig build test-riscv64-distributed-functional -Doptimize=ReleaseSafe",
+      "minimum": 16,
+      "log": "/tmp/rv64-unified-v2-named-safe.log"
+    }
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_distributed_v1/types.zig": "c33ff4ae6fc1a8039e5d7ea502d1d576e0bddfb70e5f0f3de4b506dc3e3f433f",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/manifest.zig": "b4a683a15eafe432cddc25c21c0706474356a9a37d9e0568ec3dd7f899c46f67",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/unified_v2_test.zig": "525464b37ff247e179f824f19b9e75959beb5fb10099a972b3cad47e4465b51d",
+    "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig": "ca5c371c5c4fe2784acc0dbf30c9c4825e38c8a40395f11e26321d00373c12de"
+  },
+  "trusted_policy_source": {
+    "path": "src/frontends/riscv/rv64/air/word16_cpu/profile.zig",
+    "sha256": "fb04db37ad79235899a12aa76ab3f5eacda208f8c0e2af58a2c13ad1017ea33f"
+  },
+  "remaining": [
+    "Actual V2 open CPU/provider aggregate proofs and complete physical claim closure",
+    "Global RAM unsupported; epoch16/tick24 and future64-bit schemas require distinct pinned identities despite both arity14",
+    "Whole-stage1 residency admission/spill/reconstruction not implemented; no memory-bounded fanout claim",
+    "No GPU/recursive aggregation or whole-Ethereum activation"
+  ]
+}

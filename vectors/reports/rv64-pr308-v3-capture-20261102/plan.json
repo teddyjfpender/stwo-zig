@@ -1,0 +1,372 @@
+{
+  "core_schema": 7,
+  "scope": "producer advice and bounded geometry only; no proof or acceptance",
+  "total_steps": 26894777,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 17,
+        "binary_tail_log": null,
+        "shift_log": 16,
+        "shift_tail_log": 13,
+        "jalr_log": 16,
+        "division_log": 11,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 18,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 20,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": 15,
+        "add": 11,
+        "double": 10,
+        "sha256": 5,
+        "arith256_mod": 9,
+        "bulk": {
+          "desc": 12,
+          "copy": 16,
+          "set": 18,
+          "ucopy": 18,
+          "cdesc": 8,
+          "cmp": 8,
+          "jdesc": 5,
+          "jscan": 12,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 12,
+          "perm": 15
+        },
+        "ls_dword": 20,
+        "ls_dword_tail": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 16,
+        "binary_log": 16,
+        "binary_tail_log": 12,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 16,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 18,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null,
+        "arith256_mod": 9,
+        "bulk": {
+          "desc": 12,
+          "copy": 16,
+          "set": 16,
+          "ucopy": 12,
+          "cdesc": 5,
+          "cmp": 6,
+          "jdesc": 5,
+          "jscan": 13,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 20,
+        "ls_dword_tail": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 16,
+        "binary_tail_log": 14,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 16,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 18,
+        "ls_tail_log": 13,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 10,
+        "double": 9,
+        "arith256_mod": 9,
+        "bulk": {
+          "desc": 11,
+          "copy": 16,
+          "set": 15,
+          "ucopy": 12,
+          "cdesc": 5,
+          "cmp": 5,
+          "jdesc": 5,
+          "jscan": 13,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 20,
+        "ls_dword_tail": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 16,
+        "binary_log": 16,
+        "binary_tail_log": null,
+        "shift_log": 15,
+        "shift_tail_log": 14,
+        "jalr_log": 16,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 18,
+        "ls_tail_log": 10,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": 12,
+        "add": 12,
+        "double": 11,
+        "arith256_mod": 7,
+        "bulk": {
+          "desc": 11,
+          "copy": 15,
+          "set": 15,
+          "ucopy": 12,
+          "cdesc": 6,
+          "cmp": 7,
+          "jdesc": 5,
+          "jscan": 12,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 6
+        },
+        "ls_dword": 20,
+        "ls_dword_tail": 19
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 16,
+        "binary_log": 16,
+        "binary_tail_log": 14,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 16,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 18,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 12,
+        "double": 11,
+        "arith256_mod": 9,
+        "bulk": {
+          "desc": 12,
+          "copy": 16,
+          "set": 16,
+          "ucopy": 13,
+          "cdesc": 7,
+          "cmp": 8,
+          "jdesc": 5,
+          "jscan": 12,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 5,
+          "perm": 5
+        },
+        "ls_dword": 20,
+        "ls_dword_tail": 18
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 17,
+        "binary_tail_log": 16,
+        "shift_log": 17,
+        "shift_tail_log": null,
+        "jalr_log": 16,
+        "division_log": 8,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 18,
+        "ls_tail_log": 14,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null,
+        "sha256": 5,
+        "arith256_mod": 7,
+        "bulk": {
+          "desc": 14,
+          "copy": 15,
+          "set": 15,
+          "ucopy": 17,
+          "cdesc": 5,
+          "cmp": 6,
+          "jdesc": 5,
+          "jscan": 10,
+          "jtab": 14
+        },
+        "sponge": {
+          "call": 12,
+          "perm": 13
+        },
+        "ls_dword": 20
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 21,
+        "alu_log": 18,
+        "alu_tail_log": null,
+        "binary_log": 14,
+        "binary_tail_log": 12,
+        "shift_log": 15,
+        "shift_tail_log": 14,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 17,
+        "ls_log": 16,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 20,
+        "cpu_fused_tail": true,
+        "cpu_u8_pairs": true
+      },
+      "bridges": {
+        "keccak": null,
+        "add": 16,
+        "double": 15,
+        "sha256": 14,
+        "bulk": {
+          "desc": 8,
+          "copy": 11,
+          "set": 13,
+          "ucopy": 12
+        },
+        "ls_dword": 19,
+        "ls_dword_tail": 18
+      }
+    }
+  ],
+  "truth": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 18078,
+      "logs": [
+        18,
+        21
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 18079,
+      "calls": 11920,
+      "logs": [
+        18,
+        21
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 1,
+      "calls": 10358,
+      "logs": [
+        18,
+        18
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 1,
+      "calls": 9751,
+      "logs": [
+        17,
+        16
+      ]
+    },
+    {
+      "family": "sha256",
+      "first_id": 1,
+      "calls": 2901,
+      "logs": [
+        12,
+        0
+      ]
+    },
+    {
+      "family": "arith256_mod",
+      "first_id": 1,
+      "calls": 319,
+      "logs": [
+        9,
+        0
+      ]
+    }
+  ],
+  "memory_words": 1032216,
+  "capture_ns": 2526735667
+}

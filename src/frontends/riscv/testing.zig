@@ -274,3 +274,5 @@ pub const component_proof = struct {
     pub const relations = @import("air/relation_challenges.zig");
     pub const support = @import("prover/memory_provider_shards/proof_harness.zig");
 };
+
+pub const keccak_tuple_regression = @import("air/guest_precompile/tests/keccakf_lookup_tuple_test.zig");

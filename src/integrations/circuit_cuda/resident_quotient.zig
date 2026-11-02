@@ -303,9 +303,15 @@ fn pow2u32(log: u32) !u32 {
     if (log >= 31) return error.CircuitQuotientSizeOverflow;
     return @as(u32, 1) << @intCast(log);
 }
-fn u32Count(value: usize) !u32 { return std.math.cast(u32, value) orelse error.CircuitQuotientSizeOverflow; }
-fn add(a: usize, b: usize) !usize { return std.math.add(usize, a, b) catch error.CircuitQuotientSizeOverflow; }
-fn addU32(a: u32, b: u32) !u32 { return std.math.add(u32, a, b) catch error.CircuitQuotientSizeOverflow; }
+fn u32Count(value: usize) !u32 {
+    return std.math.cast(u32, value) orelse error.CircuitQuotientSizeOverflow;
+}
+fn add(a: usize, b: usize) !usize {
+    return std.math.add(usize, a, b) catch error.CircuitQuotientSizeOverflow;
+}
+fn addU32(a: u32, b: u32) !u32 {
+    return std.math.add(u32, a, b) catch error.CircuitQuotientSizeOverflow;
+}
 
 test "resident circuit quotient admits all sampled terms and native-height buckets" {
     const allocator = std.testing.allocator;

@@ -1,0 +1,40 @@
+{
+  "schema": "rv64-compact-advice-wire-qualification-v1",
+  "status": "qualified_native_advice_codec_only",
+  "safe_tests": 64,
+  "fast_tests": 64,
+  "new_focused_cases": 3,
+  "source_sha256": {
+    "src/frontends/riscv/rv64/compact_tape_wire.zig": "62619bba17269d174f56e883f8b31f7f1a7683df89e45cdb90181f2a6cba450c",
+    "src/frontends/riscv/rv64/tests/tape_wire_test.zig": "d83e414839ad98f461b6648de0a12720830a587342c9bf79086c4e743edceec3"
+  },
+  "format": {
+    "magic": "RV64TP01",
+    "header_bytes": 48,
+    "step_bytes": 48,
+    "memory_before_bytes": 8,
+    "keccak_call_bytes": 432,
+    "secp_call_bytes": 424,
+    "byte_order": "little endian, explicit widths, no struct padding",
+    "default_byte_budget": 536870912,
+    "max_steps": 4194303,
+    "trailing_data": "rejected; tape must be final packet section"
+  },
+  "qualified": [
+    "all4execution profiles",
+    "64bitPC/RAM/globalclock advice",
+    "used records only; poisoned capacity never serialized",
+    "explicittypedK/secp framing and expectedassociated step/clock/tag/pointer",
+    "budget/reserved/profile preflight before allocator0",
+    "malformed flags, service clock, truncated header/records, trailingbytes reject",
+    "all read-allocation failure points release partially loaded advice",
+    "normalized roundtrip exactwire"
+  ],
+  "scope_limitations": [
+    "Witness advice only; codec does not prove ROM membership, instruction validity, service arithmetic or execution.",
+    "Synthetic crypto sidecars in roundtrip test intentionally test framing only.",
+    "Not a complete portable work packet: authority, native boundaries and prepared frontier need separate versioned sections.",
+    "No process fanout, recursive aggregation or hash-free global RAM claim.",
+    "Big endian explicit fallback is source-supported; qualification ran on little-endianarm64."
+  ]
+}

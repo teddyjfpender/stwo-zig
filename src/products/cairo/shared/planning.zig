@@ -22,7 +22,7 @@ pub fn inspect(allocator: std.mem.Allocator, request: cli.Inspect) !void {
     defer if (default_manifest) |path| allocator.free(path);
     var paths = try profile.load(allocator, request.params orelse default_manifest.?);
     defer paths.deinit();
-    var input = try cairo.adapter.input.readFile(allocator, request.prover_input);
+    var input = try cairo.adapter.input.readFileWithLimits(allocator, request.prover_input, .{ .max_file_bytes = try @import("input_limits.zig").maximumFileBytes(allocator) });
     defer input.deinit(allocator);
     var library = try cairo.air.template_library.Library.readFile(allocator, paths.air_template_library);
     defer library.deinit();

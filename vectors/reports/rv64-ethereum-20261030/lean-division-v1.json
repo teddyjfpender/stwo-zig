@@ -1,0 +1,126 @@
+{
+  "schema": "rv64-lean-one-pcs-qualification-v1",
+  "profile": "division_service_v1",
+  "one_pcs_cpu_rom_range_division_verified": true,
+  "ethereum_block_proof": false,
+  "steps": 65,
+  "division_requests": 4,
+  "queries": 70,
+  "pow_bits": 26,
+  "components": {
+    "cpu_log": 7,
+    "rom_log": 7,
+    "byte_log": 8,
+    "and_log": 16,
+    "shift_log": 11,
+    "division_log": 5
+  },
+  "execution": "DIVW/REMW signed W, DIVU/REMU zero divisor, SD/LD, AND/SRA, ADDI; full64 PC and RAM address",
+  "source_ownership": "CPU+DIV source arenas consumed by one main commitment; cached tuples checked by AIR; all provider main sealed before challenges",
+  "artifacts": [
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/public.json",
+      "bytes": 1678,
+      "sha256": "c1d8d881e91c55473b5224b8de02e0389fd063273d1a8a030eada586d76e83c7"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/claims.json",
+      "bytes": 649,
+      "sha256": "c784801ad19cd34713d5f43c42922cfc5f8d12d7670f1829fe4dfdb85513e667"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/proof.bin",
+      "bytes": 731488,
+      "sha256": "b7f83128a2b0b3bb7588f467faf8a8d0ec01869713e2802400addd4525eabfd0"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/bad-previous-prefix.bin",
+      "bytes": 731488,
+      "sha256": "704ce8129af105ed60276b58c0107bfb3c75152a3c86e2aac673ebdc932da282"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/zig-out/bin/rv64-lean-verify",
+      "bytes": 1248400,
+      "sha256": "e489c4ee4491de67e837a5f443f2a9cdc509bc8ad12ccbc922ed28773445f5a7"
+    }
+  ],
+  "cases": [
+    {
+      "case": "valid",
+      "expected_accept": true,
+      "passed": true,
+      "receiver_exit": 0,
+      "error": null
+    },
+    {
+      "case": "division-count",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64LeanFixedRootMismatch"
+    },
+    {
+      "case": "immutable-program",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64LeanFixedRootMismatch"
+    },
+    {
+      "case": "terminal-register",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64FullStateClosure"
+    },
+    {
+      "case": "terminal-pc",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64FullStateClosure"
+    },
+    {
+      "case": "initial-ram",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64FullStateClosure"
+    },
+    {
+      "case": "terminal-ram",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64FullStateClosure"
+    },
+    {
+      "case": "ram-write-permission",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: Rv64FullStateClosure"
+    },
+    {
+      "case": "division-claim",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: OodsNotMatching"
+    },
+    {
+      "case": "noncanonical-division",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: InvalidRv64LeanClaim"
+    },
+    {
+      "case": "previous-cpu-division-prefix",
+      "expected_accept": false,
+      "passed": true,
+      "receiver_exit": 1,
+      "error": "error: OodsNotMatching"
+    }
+  ]
+}

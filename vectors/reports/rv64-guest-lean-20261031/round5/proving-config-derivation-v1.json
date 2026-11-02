@@ -1,0 +1,29 @@
+{
+  "schema": "rv64-round5-proving-config-derivation-v1",
+  "elf": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+  "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+  "bytes": 3004312,
+  "entry": 1024,
+  "elf_flags": 0,
+  "symbols_from_actual_ELF_SYMTAB": {
+    "input_start": 8388608,
+    "input_end": 12582912,
+    "halt_flag": 12582912,
+    "output_len": 12582916,
+    "output_data": 12582920,
+    "output_end": 16777216,
+    "stack_bottom": 16777216,
+    "stack_top": 33554432,
+    "heap_start": 33648672,
+    "heap_end": 268435456
+  },
+  "terminal_pc": 17308,
+  "terminal_instruction": 111,
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "expected_output_source": "unchanged independently pinned original validator43-byte output",
+  "expected_native_steps": 104253913,
+  "expected_jobs_at_4194303_steps": 25,
+  "old_guest_proof_byte_parity_expected": false,
+  "full_round5_proof_verified": false,
+  "mutable_execution_config_target_path_avoided": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/target/riscv64i-stwo/release/stwo-ethereum-rv64-guest"
+}

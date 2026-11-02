@@ -1,0 +1,69 @@
+RV64 verified batch 0: 4194303 steps, prove 22.558s, verify 0.019s, 1025904 proof bytes
+RV64 verified batch 1: 4194303 steps, prove 17.122s, verify 0.019s, 1031152 proof bytes
+RV64 verified batch 2: 4194303 steps, prove 17.538s, verify 0.019s, 1024464 proof bytes
+RV64 verified batch 3: 4194303 steps, prove 18.729s, verify 0.030s, 2906656 proof bytes
+RV64 verified batch 4: 4194303 steps, prove 21.847s, verify 0.033s, 3359072 proof bytes
+RV64 verified batch 5: 4194303 steps, prove 21.678s, verify 0.034s, 3358976 proof bytes
+RV64 verified batch 6: 4194303 steps, prove 22.126s, verify 0.035s, 3368976 proof bytes
+RV64 verified batch 7: 4194303 steps, prove 21.973s, verify 0.034s, 3356928 proof bytes
+RV64 verified batch 8: 4194303 steps, prove 22.044s, verify 0.034s, 3356096 proof bytes
+RV64 verified batch 9: 4194303 steps, prove 21.806s, verify 0.035s, 3370000 proof bytes
+RV64 verified batch 10: 4194303 steps, prove 21.768s, verify 0.034s, 3361616 proof bytes
+RV64 verified batch 11: 4194303 steps, prove 21.733s, verify 0.034s, 3363232 proof bytes
+RV64 verified batch 12: 4194303 steps, prove 21.871s, verify 0.034s, 3360112 proof bytes
+RV64 verified batch 13: 4194303 steps, prove 22.032s, verify 0.034s, 3361776 proof bytes
+RV64 verified batch 14: 4194303 steps, prove 21.928s, verify 0.034s, 3361968 proof bytes
+RV64 verified batch 15: 4194303 steps, prove 21.932s, verify 0.034s, 3355312 proof bytes
+RV64 verified batch 16: 4194303 steps, prove 21.896s, verify 0.035s, 3368512 proof bytes
+RV64 verified batch 17: 4194303 steps, prove 22.043s, verify 0.035s, 3356576 proof bytes
+RV64 verified batch 18: 4194303 steps, prove 21.587s, verify 0.034s, 3360672 proof bytes
+RV64 verified batch 19: 4194303 steps, prove 21.422s, verify 0.034s, 3361616 proof bytes
+RV64 verified batch 20: 4194303 steps, prove 21.348s, verify 0.033s, 3357824 proof bytes
+RV64 verified batch 21: 4194303 steps, prove 24.367s, verify 0.034s, 3707200 proof bytes
+RV64 verified batch 22: 4194303 steps, prove 26.750s, verify 0.028s, 2564272 proof bytes
+RV64 verified batch 23: 4194303 steps, prove 18.964s, verify 0.019s, 1032656 proof bytes
+RV64 verified batch 24: 4194303 steps, prove 18.779s, verify 0.020s, 1030912 proof bytes
+RV64 verified batch 25: 4194303 steps, prove 18.636s, verify 0.020s, 1026656 proof bytes
+RV64 verified batch 26: 4194303 steps, prove 33.270s, verify 0.030s, 2906080 proof bytes
+RV64 verified batch 27: 4194303 steps, prove 19.096s, verify 0.030s, 2908496 proof bytes
+RV64 verified batch 28: 4194303 steps, prove 18.993s, verify 0.029s, 2908400 proof bytes
+RV64 verified batch 29: 4194303 steps, prove 19.592s, verify 0.034s, 3707888 proof bytes
+RV64 verified batch 30: 4194303 steps, prove 19.131s, verify 0.034s, 3715168 proof bytes
+RV64 verified batch 31: 4194303 steps, prove 18.517s, verify 0.030s, 2905760 proof bytes
+RV64 verified batch 32: 4194303 steps, prove 18.458s, verify 0.030s, 2902976 proof bytes
+RV64 verified batch 33: 4194303 steps, prove 18.591s, verify 0.031s, 2906592 proof bytes
+RV64 verified batch 34: 4194303 steps, prove 18.573s, verify 0.030s, 2910656 proof bytes
+RV64 verified batch 35: 4194303 steps, prove 19.388s, verify 0.034s, 3714848 proof bytes
+RV64 verified batch 36: 4194303 steps, prove 18.824s, verify 0.030s, 2910272 proof bytes
+RV64 verified batch 37: 4194303 steps, prove 18.492s, verify 0.030s, 2912576 proof bytes
+RV64 verified batch 38: 4194303 steps, prove 18.247s, verify 0.030s, 2902256 proof bytes
+RV64 verified batch 39: 4194303 steps, prove 18.578s, verify 0.030s, 2904368 proof bytes
+RV64 verified batch 40: 4194303 steps, prove 19.718s, verify 0.033s, 3710608 proof bytes
+RV64 verified batch 41: 4194303 steps, prove 19.197s, verify 0.034s, 3702352 proof bytes
+RV64 verified batch 42: 4194303 steps, prove 20.428s, verify 0.033s, 3703040 proof bytes
+RV64 verified batch 43: 4194303 steps, prove 19.000s, verify 0.029s, 2903872 proof bytes
+RV64 verified batch 44: 4194303 steps, prove 19.217s, verify 0.034s, 3712352 proof bytes
+RV64 verified batch 45: 4194303 steps, prove 19.408s, verify 0.034s, 3710224 proof bytes
+RV64 verified batch 46: 4194303 steps, prove 18.539s, verify 0.030s, 2902848 proof bytes
+RV64 verified batch 47: 4194303 steps, prove 20.370s, verify 0.030s, 2911424 proof bytes
+RV64 verified batch 48: 4194303 steps, prove 22.233s, verify 0.029s, 2570000 proof bytes
+RV64 verified batch 49: 4194303 steps, prove 22.218s, verify 0.028s, 2552080 proof bytes
+RV64 verified batch 50: 3944338 steps, prove 35.581s, verify 0.027s, 2556704 proof bytes
+     1225.28 real      8724.51 user       840.61 sys
+         36683923456  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           248438873  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 388  voluntary context switches
+            12325605  involuntary context switches
+     103776870505275  instructions retired
+      38346388279555  cycles elapsed
+         36725672536  peak memory footprint

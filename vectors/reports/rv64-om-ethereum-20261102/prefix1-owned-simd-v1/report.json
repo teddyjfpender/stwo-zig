@@ -1,0 +1,51 @@
+{
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "completed_ethereum_block": false,
+  "total_steps": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "output": null,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 17179869184,
+    "disk_bytes": 0,
+    "park_main": false,
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 16,
+      "lane_workers": [
+        16
+      ],
+      "memory_cap_bytes": 51539607552
+    }
+  },
+  "capture_ns": 965396708,
+  "capture_cache_released_bytes": 1319763968,
+  "setup_ns": 514939292,
+  "prove_ns": 10863592708,
+  "same_process_verify_ns": 426798584,
+  "workers": [
+    {
+      "source_ns": 338576292,
+      "seal_native_and_gkr_ns": 3783080791,
+      "main_commit_ns": 981588042,
+      "gkr_ns": 2736925166,
+      "inputs_ns": 192467334,
+      "numerical_ns": 2204716583,
+      "binding_ns": 313655000,
+      "metadata_retire_ns": 3562792,
+      "spill_ns": 42,
+      "restore_ns": 0,
+      "native_complete_ns": 6653559625,
+      "stage1_ns": 4125219917,
+      "stage2_ns": 6653559667,
+      "actual_main_merkle_bytes": 33554400,
+      "stage1_completed": true,
+      "stage2_completed": true
+    }
+  ],
+  "total_before_report_ns": 12796144542,
+  "retained_main": null
+}

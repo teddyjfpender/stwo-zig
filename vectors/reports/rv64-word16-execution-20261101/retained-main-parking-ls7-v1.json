@@ -1,0 +1,411 @@
+{
+  "schema": "rv64-retained-main-parking-ls7-qualification-v1",
+  "base": "fe3b29fc0",
+  "source": "9953655e6",
+  "recovered_source": "8376eaedb",
+  "default_enabled": false,
+  "scope": "Optional producer storage and ownership only; no proof/security change",
+  "current_shape": "LSencoding6 core schema7",
+  "build_provenance": "Binary built fromfe3b29fc0 plus uncommitted parking source subsequently committed9953655e6; docs subsequently extended. Not a clean-commit binary claim.",
+  "binary_sha256": "779c199634af7edb7d01d689de86b4608ad7b9778594eaf4ab28db4fee09ab12",
+  "qualified": true,
+  "tests": {
+    "safe": {
+      "pass": true,
+      "suite": "test-riscv64-word16-retained-parking",
+      "minimum_runtime_tests": 22,
+      "sha256": "1b2a55eb0e56989d4cf1988ae5899200165b252a7ccab546bdd966a1e47f0e36"
+    },
+    "fast": {
+      "pass": true,
+      "suite": "test-riscv64-word16-retained-parking",
+      "minimum_runtime_tests": 22,
+      "sha256": "f1e26ebfbf752a287fab7c4a9b69fb0fd2dc89bd4da6a0ec4eec9841dec58755"
+    }
+  },
+  "prefix_rows": [
+    {
+      "label": "mapped2x8",
+      "prefix_complete_block": false,
+      "steps": 16777212,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "proof_and_public_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 6087016448,
+        "parking_enabled": false
+      },
+      "process": {
+        "wall_seconds": 22.36,
+        "user_seconds": 184.12,
+        "sys_seconds": 9.42,
+        "max_rss_bytes": 22314385408,
+        "minor_faults": 4569513,
+        "major_faults": 371522,
+        "voluntary_switches": 5947,
+        "involuntary_switches": 80492,
+        "instructions_retired": 1961103421488,
+        "cycles_elapsed": 687966458830,
+        "peak_footprint_bytes": 16236890664,
+        "prove_seconds": 17.239648291
+      },
+      "schedule": {
+        "policy": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 0
+        },
+        "stage1": {
+          "span_seconds": 4.177409,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "1": {
+              "indices": [
+                0,
+                3
+              ],
+              "busy_seconds": 4.177336,
+              "admission_wait_seconds": 0.0
+            },
+            "0": {
+              "indices": [
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 4.131877,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        },
+        "stage2": {
+          "span_seconds": 13.046686,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                3,
+                6
+              ],
+              "busy_seconds": 13.046605,
+              "admission_wait_seconds": 0.0
+            },
+            "1": {
+              "indices": [
+                1,
+                2,
+                4,
+                5
+              ],
+              "busy_seconds": 12.907264,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "parked2x8",
+      "prefix_complete_block": false,
+      "steps": 16777212,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "proof_and_public_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 3014344704,
+        "parking_enabled": true
+      },
+      "process": {
+        "wall_seconds": 22.92,
+        "user_seconds": 196.33,
+        "sys_seconds": 11.23,
+        "max_rss_bytes": 18722029568,
+        "minor_faults": 5065780,
+        "major_faults": 0,
+        "voluntary_switches": 496,
+        "involuntary_switches": 77623,
+        "instructions_retired": 1963328313518,
+        "cycles_elapsed": 683921431043,
+        "peak_footprint_bytes": 16236265408,
+        "prove_seconds": 18.284907542
+      },
+      "schedule": {
+        "policy": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 0
+        },
+        "stage1": {
+          "span_seconds": 4.010249,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                3
+              ],
+              "busy_seconds": 4.010162,
+              "admission_wait_seconds": 0.0
+            },
+            "1": {
+              "indices": [
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 3.87544,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        },
+        "stage2": {
+          "span_seconds": 14.258976,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                3
+              ],
+              "busy_seconds": 14.05308,
+              "admission_wait_seconds": 0.0
+            },
+            "1": {
+              "indices": [
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 14.258746,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "parked1x16",
+      "prefix_complete_block": false,
+      "steps": 16777212,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "proof_and_public_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 1593360384,
+        "parking_enabled": true
+      },
+      "process": {
+        "wall_seconds": 31.69,
+        "user_seconds": 187.85,
+        "sys_seconds": 13.2,
+        "max_rss_bytes": 13253492736,
+        "minor_faults": 4769613,
+        "major_faults": 0,
+        "voluntary_switches": 670,
+        "involuntary_switches": 107580,
+        "instructions_retired": 1964314807544,
+        "cycles_elapsed": 706397844042,
+        "peak_footprint_bytes": 12108443384,
+        "prove_seconds": 26.828391833
+      },
+      "schedule": {
+        "policy": {
+          "lanes": 1,
+          "workers_per_lane": 16,
+          "lane_workers": [
+            16
+          ],
+          "memory_cap_bytes": 0
+        },
+        "stage1": {
+          "span_seconds": 6.151827,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 6.151826,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        },
+        "stage2": {
+          "span_seconds": 20.661613,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 20.661612,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "parked2x8cap4G",
+      "prefix_complete_block": false,
+      "steps": 16777212,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "proof_and_public_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 1593360384,
+        "parking_enabled": true
+      },
+      "process": {
+        "wall_seconds": 38.78,
+        "user_seconds": 183.95,
+        "sys_seconds": 8.81,
+        "max_rss_bytes": 13137461248,
+        "minor_faults": 4658687,
+        "major_faults": 0,
+        "voluntary_switches": 486,
+        "involuntary_switches": 67346,
+        "instructions_retired": 1954139387845,
+        "cycles_elapsed": 661439543519,
+        "peak_footprint_bytes": 11992395488,
+        "prove_seconds": 33.151399084
+      },
+      "schedule": {
+        "policy": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 4294967296
+        },
+        "stage1": {
+          "span_seconds": 7.882722,
+          "max_in_flight_estimate_bytes": 6016839680,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 6.16534,
+              "admission_wait_seconds": 1e-06
+            },
+            "1": {
+              "indices": [
+                1
+              ],
+              "busy_seconds": 1.717262,
+              "admission_wait_seconds": 6.165348
+            }
+          }
+        },
+        "stage2": {
+          "span_seconds": 25.248781,
+          "max_in_flight_estimate_bytes": 6016839680,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 19.779084,
+              "admission_wait_seconds": 1e-06
+            },
+            "1": {
+              "indices": [
+                1
+              ],
+              "busy_seconds": 5.46958,
+              "admission_wait_seconds": 19.779055
+            }
+          }
+        }
+      }
+    }
+  ],
+  "accounting": {
+    "storage_limit": "Hard upper limit on live reserved native backing; enforced by Store.reserve",
+    "mapped_bytes": "Exact live retained mapping accounting under mutex, not an enforced RAM limit",
+    "admission_cap": "Soft sum of admitted per-proof estimates; excludes independent caches/retained storage/kernel file cache; an oversized index is allowed alone",
+    "limitation": "Two-lane charged peak footprint essentially unchanged; lowering lanes/admission lowered footprint while increasing wall. No1.5\u20132x host-memory gain claim."
+  },
+  "security": "Uses current nominal96 control. No whole-protocol128-bit qualification.",
+  "performance": "Other compilation work active. Prefix observations only, not controlled wall or full-block memory qualification."
+}

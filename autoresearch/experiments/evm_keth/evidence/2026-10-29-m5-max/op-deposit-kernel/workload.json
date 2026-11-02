@@ -1,0 +1,24 @@
+{
+  "schema": "keth-op-deposit-workload-v1",
+  "transaction_index": 0,
+  "transaction_hash": "0xa4fbf616d19d1ec562ca5e1540fee873dde6ec78ac8a29517c9c9323b1f43965",
+  "block_hash": "0x76efc10040c7097e4ae949b7fc2e829bf7e3b7e227a5d0441eefa198aa6c5e42",
+  "before_root": "0xd954aec495f498ce76bc4e8a3f9e3685682a9ac9e3a42ec339c9c006276585a0",
+  "after_root": "0x2c86e022959e4b661acd217e9f9c4f7586bc5667b9c0a6d1919dbfb6b1765e95",
+  "inputs_sha256": {
+    "block-data/keth-integration-20261029/op-checkpoint-offline-qualified/attempt-1/input.json": "3432fd4643845d6e0541c4bc2bb062333524c6ab1d48e4d76ad30de7e363263f",
+    "block-data/keth-integration-20261029/op-checkpoint-offline-qualified/attempt-1/checkpoints.json": "22e663af11894a9a7a797f8ce7cb6f2b823471246cd2b35f105202aed5a7ed1a",
+    "block-data/keth-integration-20261029/op-checkpoint-offline-qualified/completion.json": "27837b2c9b280aafb2cc90cf1c77960c06dd208c505e06580fa398321b2c0f75",
+    "block-data/keth-integration-20261029/op-checkpoint-offline-qualified/attempt-1/result.json": "ad191cea7591bb140904761d7e2d5cd64610b375a629ee6dd74631a6b76b5bc9",
+    "autoresearch/experiments/evm_keth/evidence/2026-10-29-m5-max/native-reference/optimism-access-list.json": "f616318bbbdfce9297ec890e706a5a7443416041c33bfaa6727af49e17dc9227"
+  },
+  "input_sha256": "f100037c787ccf3b9e7d7315929d1be27272b6946b4ec6bf1c0e582b7fad6243",
+  "expected_output_sha256": "f6a373cd0e43204863b96a4f3a9cd305fd4b06ef6ae5e68d81caa12db0f32f55",
+  "accounts": 280,
+  "storage_slots": 1555,
+  "native_execution_checked": true,
+  "cairo_execution_proved": false,
+  "cairo_mpt_authentication_proved": false,
+  "derivation_proved": false,
+  "pre_transaction_system_calls_proved": false
+}

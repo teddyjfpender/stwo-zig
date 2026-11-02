@@ -8,6 +8,7 @@
 //! listed to make coverage explicit.
 
 test {
+    _ = @import("rv64_test_inventory.zig");
     _ = @import("prover/tests/compact_range_set_test.zig");
     _ = @import("recursion/air/tests/compact_range_provider_test.zig");
     _ = @import("compact_poseidon_authority_test_root.zig");
@@ -670,6 +671,7 @@ test {
     _ = @import("air/guest_precompile/tests/keccakf_authority_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_component_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_interaction_test.zig");
+    _ = @import("air/guest_precompile/tests/keccakf_lookup_tuple_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_multiplicities_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_relations_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_table_component_test.zig");

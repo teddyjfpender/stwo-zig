@@ -1,0 +1,48 @@
+{
+  "schema": "rv64-security-claim-policy-foundation-v1",
+  "base_commit": "e70b35c31",
+  "preserved_recursion_cost_commit": "8da7355cc",
+  "scope": "Additive receiver-owned security-claim accounting. No production proof/transcript or acceptance change.",
+  "whole_protocol_128_achieved": false,
+  "whole_protocol_128_certificate_registry_empty": true,
+  "existing_q70_p26_control_unchanged": true,
+  "gpu_qualified": false,
+  "production_gkr_integrated": false,
+  "tests": [
+    {
+      "command": "zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -j4 --summary all",
+      "exit_code": 0,
+      "minimum_named_tests": 16,
+      "passed": true
+    },
+    {
+      "command": "zig build test-riscv64-security-policy -Doptimize=ReleaseFast -j4 --summary all",
+      "exit_code": 0,
+      "minimum_named_tests": 16,
+      "passed": true
+    },
+    {
+      "command": "zig test src/integrations/riscv_cpu/word16_execution/security_policy_test.zig -O ReleaseFast",
+      "exit_code": 0,
+      "named_tests": 14,
+      "passed": true
+    }
+  ],
+  "zig_version": "0.15.2",
+  "classification": {
+    "native_merkle": "prefixed raw Blake2s256",
+    "native_fs": "raw Blake2s256, rejection-sampled QM31",
+    "recursive_inner_merkle": "plain raw Blake2s256, same authority as root",
+    "recursive_inner_fs": "eight M31-reduced Blake state words; applicable ROM bound unresolved",
+    "recursive_root_fs": "raw Blake2s256",
+    "alternate_poseidon": "width16 rate8 capacity8 digest8 M31; not current RV64 recursion path"
+  },
+  "limitations": [
+    "No reviewed full128 security parameter certificate or concrete ROM estimator",
+    "A reduced FS state ceiling is not a demonstrated whole-protocol attack or mandatory hash migration",
+    "Policy numerical budget validation is bookkeeping only; cannot authorize a certificate",
+    "Equal-security GKR recursion costs remain architectural source models, not an implemented or measured production verifier",
+    "No complete block rerun required: additive module is absent from production prove/verify call graph"
+  ],
+  "review_document": "design/riscv-proving-stack/rv64-whole-protocol-security-policy.md"
+}

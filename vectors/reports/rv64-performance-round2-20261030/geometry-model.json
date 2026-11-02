@@ -1,0 +1,126 @@
+{
+  "schema": "rv64-full-geometry-review-v1",
+  "scope": "Read-only accounting; no layout/AIR/format change proposed or implemented in this round",
+  "workload": {
+    "target": "ecdsa_secp256k1",
+    "steps": 1625938,
+    "rows": 2097152,
+    "admitted_opcodes": 36,
+    "rom_words": 26853
+  },
+  "encoding_columns": {
+    "word_bytes": 108,
+    "word_bits": 96,
+    "boolean_carries": 40,
+    "product_carries": 64,
+    "clock_bytes": 24,
+    "AND_helpers": 8,
+    "shift_helpers": 45,
+    "scalar_auxiliaries": 19,
+    "total": 404
+  },
+  "frame_columns": {
+    "active": 1,
+    "opcode_selectors": 65,
+    "compact_ROM_entry": 41,
+    "next_PC": 8,
+    "total": 115,
+    "forbidden_but_physically_committed_selectors": 29
+  },
+  "CPU": {
+    "main_columns": 519,
+    "interaction_columns": 260,
+    "fixed_columns": 3,
+    "main_and_interaction_cells": 1633681408,
+    "base_cells_including_fixed": 1639972864,
+    "base_bytes_including_fixed": 6559891456,
+    "composition_cells_16_columns": 33554432
+  },
+  "providers": {
+    "rom": {
+      "rows": 32768,
+      "fixed_columns": 43,
+      "main_columns": 1,
+      "interaction_columns": 8,
+      "base_cells": 1703936
+    },
+    "byte": {
+      "rows": 256,
+      "fixed_columns": 3,
+      "main_columns": 1,
+      "interaction_columns": 8,
+      "base_cells": 3072
+    },
+    "and": {
+      "rows": 65536,
+      "fixed_columns": 5,
+      "main_columns": 1,
+      "interaction_columns": 8,
+      "base_cells": 917504
+    },
+    "shift": {
+      "rows": 2048,
+      "fixed_columns": 8,
+      "main_columns": 1,
+      "interaction_columns": 8,
+      "base_cells": 34816
+    }
+  },
+  "all_component_base_cells": 1642632192,
+  "owned_main_arena": {
+    "CPU_cells": 1088421888,
+    "reserved_provider_tail_cells": 100608,
+    "reserved_provider_tail_bytes": 402432,
+    "complete_source_allocation_bytes": 4354089984,
+    "ownership": "One complete main_backing allocation; main is a borrowed CPU prefix; original provider vectors remain request-owned after their small copies enter the tail"
+  },
+  "usage_amplification": {
+    "multiply_retirements": 196505,
+    "shift_retirements": 133423,
+    "signed_load_retirements": 152,
+    "word_operation_retirements": 51,
+    "signed_load_effect": "152 signed loads require all eight memory_before byte MSBs; current full-byte decompositions cost 56 additional main columns versus eight bytes across the full domain",
+    "signed_load_extra_raw_bytes": 469762048
+  },
+  "polynomial_boundary": {
+    "division_constraints": 152,
+    "individually_zero_under_actual_ECDSA_main_projection_with_arbitrary_Frame_selectors": 95,
+    "remaining": 57,
+    "zero_tail_residuals": 94,
+    "live_tail_residuals": 49,
+    "counterexample": "Physical forbidden DIVU selector=1 and projected result byte[0]=7 yields division residual[16]=7; the separate forbidden-selector equation does not make this an arbitrary-point identity",
+    "decision": "Reject all-tail zero pruning; any future specialization must preserve the remaining polynomials for arbitrary actual OODS selector coordinates"
+  },
+  "layout_candidates_deferred": [
+    {
+      "candidate": "Omit forbidden selector columns",
+      "main_columns": 29,
+      "reason": "Requires physical layout/expected-shape changes; not a pure evaluator zero assumption"
+    },
+    {
+      "candidate": "Tighten per-position multiplication carry representation",
+      "main_columns_upper_bound": 18,
+      "reason": "Requires a derived integer-bound projection and fresh geometry qualification; standalone byte batch count unchanged"
+    },
+    {
+      "candidate": "Shared byte/MSB lookup",
+      "main_columns_model_saved_for_10_sign_bytes": 60,
+      "extra_CPU_interaction_columns_model": 20,
+      "reason": "New provider/layout obligations; no measured system win, not adopted"
+    }
+  ],
+  "owned_handoff_review": {
+    "result": "No blocker found in production call path",
+    "checks": [
+      "Allocator identity validated before transfer",
+      "Shape/header allocation failures leave Trace owning its complete arena",
+      "Only original complete backing slice is transferred/freed",
+      "Provider originals are independent request-owned arrays and survive commitment for post-challenge generation",
+      "PCS consuming API owns descriptors/backing on both success and failure",
+      "StageScope failure before PCS submission is guarded by MainCommit.deinit",
+      "Trace clears main/main_backing together while retaining fresh narrow metadata",
+      "Exhaustive allocation-failure, consumed-phase and allocator mismatch tests cover the transition"
+    ]
+  },
+  "tests": "Representation model tests preserve the arbitrary-QM31 division identity mask and a forbidden-selector counterexample; observed geometry counts are report data, not snapshot assertions."
+}

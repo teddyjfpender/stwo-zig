@@ -1,0 +1,45 @@
+{
+  "scope": "First actual Ethereum packet prefix through experimental OM local GKR services lane",
+  "block": 24628607,
+  "retirements": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "completed_ethereum_block": false,
+  "binary_sha256": "70aa84e23c380f1538bd9c4993dbdfe28798a3193f6bac16aca1ec38b7a4c670",
+  "binary_source_base": "e39fa547f plus uncommitted Ethereum adapter/CLI; predates bounded quotient commit a2f6f45e9",
+  "configuration": "Pinned round5 native-jobs request; original ELF/input hashes; no execution packet inputs in fresh receiver",
+  "fresh_process_receiver": true,
+  "tamper": "CPU proof byte altered and transport SHA256 refreshed; independent receiver rejects InvalidBinaryProof",
+  "completion": "Complete-block receiver rejects EthereumTerminalPcMismatch; prefix receiver accepts with no output and completion=false",
+  "proving_seconds": 143.34009725,
+  "wall_seconds": 145.79,
+  "max_rss_bytes": 16431431680,
+  "sample": "Single active sumcheck worker dominated by OM31.mul; other worker-pool threads idle; read-only live sample",
+  "performance_claim": "No speedup. First engineering correctness measurement on shared host. Strong serial GKR bottleneck; not a matched secure LogUp A/B.",
+  "artifacts": {
+    "stage-one.bin": {
+      "bytes": 88400,
+      "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+    },
+    "cpu-0.bin": {
+      "bytes": 679424,
+      "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+    },
+    "cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+    },
+    "bundle.json": {
+      "bytes": 5489,
+      "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a"
+    }
+  },
+  "remaining": [
+    "Parallel/small-big GKR kernel and matched prefix rerun",
+    "Full-block new-route qualification",
+    "Whole-protocol 128-bit audit/candidate wiring",
+    "New-profile recursion and deferred GPU qualification"
+  ]
+}

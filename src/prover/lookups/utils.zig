@@ -230,17 +230,23 @@ pub fn eq(comptime F: type, x: []const F, y: []const F) LookupUtilsError!F {
     return out;
 }
 
+/// Multiply a secure value by a base value using its specialized path.
+pub fn mulBaseFor(comptime S: type, value: S, base: M31) S {
+    if (@hasDecl(S, "mulM31")) return value.mulM31(base);
+    return value.mulBase(base);
+}
+pub fn divBaseFor(comptime S: type, value: S, base: M31) !S {
+    if (@hasDecl(S, "divM31")) return value.divM31(base);
+    return mulBaseFor(S, value, try base.inv());
+}
 /// Computes `eq(0, assignment) * eval0 + eq(1, assignment) * eval1`.
 pub fn foldMleEvals(comptime F: type, assignment: QM31, eval0: F, eval1: F) QM31 {
-    if (F == QM31) {
-        return assignment.mul(eval1.sub(eval0)).add(eval0);
-    }
-    if (F == M31) {
-        // Small-big multiplication: QM31 * M31 uses 4 base-field muls
-        // instead of 9 (Karatsuba) for QM31 * QM31.fromBase(M31).
-        return assignment.mulM31(eval1.sub(eval0)).addM31(eval0);
-    }
-    @compileError("foldMleEvals currently supports M31 and QM31");
+    return foldMleEvalsFor(QM31, F, assignment, eval0, eval1);
+}
+pub fn foldMleEvalsFor(comptime S: type, comptime F: type, assignment: S, eval0: F, eval1: F) S {
+    if (F == S) return assignment.mul(eval1.sub(eval0)).add(eval0);
+    if (F == M31) return mulBaseFor(S, assignment, eval1.sub(eval0)).add(S.fromBase(eval0));
+    @compileError("MLE value must be the base or selected secure field");
 }
 
 /// Represents the reciprocal symbolic form `1/x` used in fraction algebra.

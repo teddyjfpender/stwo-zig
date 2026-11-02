@@ -1,0 +1,22 @@
+{
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "output": null,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "load_and_setup_ns": 1776239208,
+  "verify_ns": 414700625,
+  "fixed_setup": {
+    "limit_bytes": 4294967296,
+    "live_bytes": 318489312,
+    "peak_bytes": 2428528832,
+    "keys": 1,
+    "hits": 0,
+    "seals": 1,
+    "refused": false
+  },
+  "source_validations": 1,
+  "source_coefficient_cells": 62842688
+}

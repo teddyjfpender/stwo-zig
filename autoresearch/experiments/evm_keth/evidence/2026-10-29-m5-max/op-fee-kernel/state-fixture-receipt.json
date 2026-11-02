@@ -1,0 +1,19 @@
+{
+  "schema": "keth-op-state-fixture-v1",
+  "source_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+  "fixture_sha256": "a8d1bdf361ce7b0421e2758061efec917a715a862dd4e46365c1c535014136a9",
+  "access_list_sha256": "f616318bbbdfce9297ec890e706a5a7443416041c33bfaa6727af49e17dc9227",
+  "provenance_sha256": "56092332022b302db35323023f19522f4c08a5fd13bb5b4f15747e2c73b7460c",
+  "qualification_sha256": "b57be168446293a38aa654734aec9ea948ad69bcb15e71e246fdd8d326bf08e1",
+  "block_hash": "0x76efc10040c7097e4ae949b7fc2e829bf7e3b7e227a5d0441eefa198aa6c5e42",
+  "pre_root": "0xf8b6ae5375749f08dd3dd47a6af65e278f16dd10d24df32380473898945ef249",
+  "post_root": "0xa7f55f2b0b5e5e6dc13f6260337edbe97d05f5a3d50932955c0259f8fd1d7432",
+  "accounts": 280,
+  "storage_slots": 1555,
+  "changed_accounts": 57,
+  "changed_storage_slots": 105,
+  "native_execution_reference_checked": true,
+  "point_reads_authenticated": true,
+  "cairo_execution_proved": false,
+  "derivation_proved": false
+}

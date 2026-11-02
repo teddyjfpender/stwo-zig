@@ -1,0 +1,107 @@
+OM_DOMAIN_STAGE log=22 main=47 inter=16 constraints=44 jobs=16 scratch_bytes=330752 prepared_bytes=68848 prep_ns=42665583 fft_ns=335287041 rows_ns=324451250
+OM_DOMAIN_STAGE log=20 main=1 inter=16 constraints=4 jobs=16 scratch_bytes=100352 prepared_bytes=16400 prep_ns=13886167 fft_ns=65445166 rows_ns=37872750
+OM_DOMAIN_STAGE log=5 main=0 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=8224 prep_ns=11791 fft_ns=9126 rows_ns=22249
+OM_DOMAIN_STAGE log=19 main=47 inter=16 constraints=52 jobs=16 scratch_bytes=330752 prepared_bytes=26320 prep_ns=6890666 fft_ns=38073000 rows_ns=30085500
+OM_DOMAIN_STAGE log=19 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=6563375 fft_ns=30164501 rows_ns=26727832
+OM_DOMAIN_STAGE log=19 main=52 inter=16 constraints=30 jobs=16 scratch_bytes=330752 prepared_bytes=36016 prep_ns=6609375 fft_ns=40775541 rows_ns=29383583
+OM_DOMAIN_STAGE log=14 main=17 inter=16 constraints=4 jobs=4 scratch_bytes=82688 prepared_bytes=23088 prep_ns=589291 fft_ns=986208 rows_ns=2036751
+OM_DOMAIN_STAGE log=13 main=87 inter=16 constraints=144 jobs=2 scratch_bytes=41344 prepared_bytes=156688 prep_ns=372917 fft_ns=992708 rows_ns=8453416
+OM_DOMAIN_STAGE log=16 main=16 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=65792 prep_ns=1611209 fft_ns=4123458 rows_ns=5085708
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=2576 prep_ns=1541416 fft_ns=2563625 rows_ns=1740708
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=1552 prep_ns=1573417 fft_ns=2679832 rows_ns=1870001
+OM_DOMAIN_STAGE log=8 main=1 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=1552 prep_ns=25459 fft_ns=58332 rows_ns=71584
+OM_DOMAIN_STAGE log=20 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=11874375 fft_ns=114725791 rows_ns=140442417
+OM_DOMAIN_STAGE log=20 main=14 inter=16 constraints=23 jobs=16 scratch_bytes=64512 prepared_bytes=0 prep_ns=13708 fft_ns=36204000 rows_ns=22081667
+OM_DOMAIN_STAGE log=5 main=14 inter=16 constraints=23 jobs=1 scratch_bytes=4032 prepared_bytes=0 prep_ns=2166 fft_ns=7125 rows_ns=14542
+OM_DOMAIN_STAGE log=16 main=2 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=7200 prep_ns=1519917 fft_ns=2855375 rows_ns=1811918
+OM_DOMAIN_STAGE log=18 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=4559000 fft_ns=25867833 rows_ns=35279042
+OM_DOMAIN_STAGE log=16 main=47 inter=16 constraints=52 jobs=16 scratch_bytes=330752 prepared_bytes=26320 prep_ns=1567041 fft_ns=4505083 rows_ns=3629417
+OM_DOMAIN_STAGE log=18 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=4235375 fft_ns=14637376 rows_ns=13541958
+OM_DOMAIN_STAGE log=18 main=52 inter=16 constraints=30 jobs=16 scratch_bytes=330752 prepared_bytes=36016 prep_ns=4172209 fft_ns=18496624 rows_ns=15436667
+OM_DOMAIN_STAGE log=22 main=47 inter=16 constraints=44 jobs=16 scratch_bytes=330752 prepared_bytes=68848 prep_ns=55638458 fft_ns=328389541 rows_ns=312553458
+OM_DOMAIN_STAGE log=20 main=1 inter=16 constraints=4 jobs=16 scratch_bytes=100352 prepared_bytes=16400 prep_ns=12302792 fft_ns=62698834 rows_ns=52648041
+OM_DOMAIN_STAGE log=5 main=0 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=8224 prep_ns=36833 fft_ns=30042 rows_ns=62916
+OM_DOMAIN_STAGE log=19 main=47 inter=16 constraints=52 jobs=16 scratch_bytes=330752 prepared_bytes=26320 prep_ns=7501709 fft_ns=45666250 rows_ns=46561708
+OM_DOMAIN_STAGE log=20 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=11881958 fft_ns=71757499 rows_ns=64448834
+OM_DOMAIN_STAGE log=20 main=52 inter=16 constraints=30 jobs=16 scratch_bytes=330752 prepared_bytes=36016 prep_ns=11901291 fft_ns=89195708 rows_ns=65731834
+OM_DOMAIN_STAGE log=13 main=17 inter=16 constraints=4 jobs=2 scratch_bytes=41344 prepared_bytes=23088 prep_ns=540000 fft_ns=627042 rows_ns=2024958
+OM_DOMAIN_STAGE log=11 main=87 inter=16 constraints=144 jobs=1 scratch_bytes=20672 prepared_bytes=156688 prep_ns=159667 fft_ns=554458 rows_ns=4292250
+OM_DOMAIN_STAGE log=16 main=16 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=65792 prep_ns=1917250 fft_ns=3253459 rows_ns=7138292
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=2576 prep_ns=2355416 fft_ns=2203833 rows_ns=2692459
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=1552 prep_ns=2074417 fft_ns=2130666 rows_ns=2546001
+OM_DOMAIN_STAGE log=8 main=1 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=1552 prep_ns=18667 fft_ns=44625 rows_ns=66250
+OM_DOMAIN_STAGE log=19 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=7124916 fft_ns=60861333 rows_ns=80565376
+OM_DOMAIN_STAGE log=5 main=14 inter=16 constraints=23 jobs=1 scratch_bytes=4032 prepared_bytes=0 prep_ns=4292 fft_ns=11417 rows_ns=25042
+OM_DOMAIN_STAGE log=5 main=14 inter=16 constraints=23 jobs=1 scratch_bytes=4032 prepared_bytes=0 prep_ns=583 fft_ns=7083 rows_ns=10376
+OM_DOMAIN_STAGE log=16 main=2 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=7200 prep_ns=2259792 fft_ns=2234667 rows_ns=1764083
+OM_DOMAIN_STAGE log=16 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=2111167 fft_ns=7793125 rows_ns=8676875
+OM_DOMAIN_STAGE log=14 main=47 inter=16 constraints=52 jobs=4 scratch_bytes=82688 prepared_bytes=26320 prep_ns=583083 fft_ns=1278167 rows_ns=3496292
+OM_DOMAIN_STAGE log=17 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=2358458 fft_ns=7286000 rows_ns=11279251
+OM_DOMAIN_STAGE log=22 main=47 inter=16 constraints=44 jobs=16 scratch_bytes=330752 prepared_bytes=68848 prep_ns=54422166 fft_ns=328244375 rows_ns=319303375
+OM_DOMAIN_STAGE log=20 main=1 inter=16 constraints=4 jobs=16 scratch_bytes=100352 prepared_bytes=16400 prep_ns=15753042 fft_ns=66560833 rows_ns=48225333
+OM_DOMAIN_STAGE log=5 main=0 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=8224 prep_ns=14875 fft_ns=9125 rows_ns=16500
+OM_DOMAIN_STAGE log=19 main=47 inter=16 constraints=52 jobs=16 scratch_bytes=330752 prepared_bytes=26320 prep_ns=6921916 fft_ns=35618709 rows_ns=33235124
+OM_DOMAIN_STAGE log=20 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=11592959 fft_ns=70202793 rows_ns=64072416
+OM_DOMAIN_STAGE log=20 main=52 inter=16 constraints=30 jobs=16 scratch_bytes=330752 prepared_bytes=36016 prep_ns=11920917 fft_ns=92794166 rows_ns=74171500
+OM_DOMAIN_STAGE log=13 main=17 inter=16 constraints=4 jobs=2 scratch_bytes=41344 prepared_bytes=23088 prep_ns=376125 fft_ns=459458 rows_ns=2002792
+OM_DOMAIN_STAGE log=11 main=87 inter=16 constraints=144 jobs=1 scratch_bytes=20672 prepared_bytes=156688 prep_ns=159792 fft_ns=483708 rows_ns=4092292
+OM_DOMAIN_STAGE log=16 main=16 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=65792 prep_ns=2242750 fft_ns=3603584 rows_ns=6288958
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=2576 prep_ns=2201083 fft_ns=2185376 rows_ns=2432083
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=1552 prep_ns=2127167 fft_ns=1935666 rows_ns=2336000
+OM_DOMAIN_STAGE log=8 main=1 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=1552 prep_ns=25458 fft_ns=50125 rows_ns=81042
+OM_DOMAIN_STAGE log=19 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=6751541 fft_ns=60680542 rows_ns=80446333
+OM_DOMAIN_STAGE log=5 main=14 inter=16 constraints=23 jobs=1 scratch_bytes=4032 prepared_bytes=0 prep_ns=2458 fft_ns=7709 rows_ns=15416
+OM_DOMAIN_STAGE log=5 main=14 inter=16 constraints=23 jobs=1 scratch_bytes=4032 prepared_bytes=0 prep_ns=500 fft_ns=6042 rows_ns=9209
+OM_DOMAIN_STAGE log=16 main=2 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=7200 prep_ns=2153000 fft_ns=2297417 rows_ns=2930125
+OM_DOMAIN_STAGE log=15 main=70 inter=32 constraints=253 jobs=8 scratch_bytes=165376 prepared_bytes=26784 prep_ns=1160125 fft_ns=3740833 rows_ns=8207875
+OM_DOMAIN_STAGE log=17 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=2939334 fft_ns=7142624 rows_ns=11358167
+OM_DOMAIN_STAGE log=22 main=47 inter=16 constraints=44 jobs=16 scratch_bytes=330752 prepared_bytes=68848 prep_ns=54742958 fft_ns=327429709 rows_ns=318796749
+OM_DOMAIN_STAGE log=20 main=1 inter=16 constraints=4 jobs=16 scratch_bytes=100352 prepared_bytes=16400 prep_ns=11241209 fft_ns=63767291 rows_ns=53414292
+OM_DOMAIN_STAGE log=5 main=0 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=8224 prep_ns=15916 fft_ns=8667 rows_ns=16583
+OM_DOMAIN_STAGE log=19 main=47 inter=16 constraints=52 jobs=16 scratch_bytes=330752 prepared_bytes=26320 prep_ns=6727000 fft_ns=34392500 rows_ns=45773041
+OM_DOMAIN_STAGE log=20 main=29 inter=16 constraints=33 jobs=16 scratch_bytes=330752 prepared_bytes=28304 prep_ns=11329833 fft_ns=69000374 rows_ns=66919626
+OM_DOMAIN_STAGE log=19 main=52 inter=16 constraints=30 jobs=16 scratch_bytes=330752 prepared_bytes=36016 prep_ns=6537667 fft_ns=45177792 rows_ns=47656833
+OM_DOMAIN_STAGE log=14 main=17 inter=16 constraints=4 jobs=4 scratch_bytes=82688 prepared_bytes=23088 prep_ns=624333 fft_ns=711666 rows_ns=2113126
+OM_DOMAIN_STAGE log=5 main=78 inter=16 constraints=167 jobs=1 scratch_bytes=20672 prepared_bytes=58784 prep_ns=10250 fft_ns=10667 rows_ns=41125
+OM_DOMAIN_STAGE log=17 main=87 inter=16 constraints=144 jobs=16 scratch_bytes=330752 prepared_bytes=156688 prep_ns=2699791 fft_ns=15328624 rows_ns=25275293
+OM_DOMAIN_STAGE log=16 main=16 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=65792 prep_ns=1688958 fft_ns=3247874 rows_ns=6173042
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=2576 prep_ns=1615833 fft_ns=2196750 rows_ns=2557625
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=1552 prep_ns=1624542 fft_ns=2069542 rows_ns=2090250
+OM_DOMAIN_STAGE log=8 main=1 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=1552 prep_ns=23708 fft_ns=44041 rows_ns=66667
+OM_DOMAIN_STAGE log=19 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=6773541 fft_ns=67148875 rows_ns=78089417
+OM_DOMAIN_STAGE log=5 main=14 inter=16 constraints=23 jobs=1 scratch_bytes=4032 prepared_bytes=0 prep_ns=10459 fft_ns=7874 rows_ns=12625
+OM_DOMAIN_STAGE log=20 main=14 inter=16 constraints=23 jobs=16 scratch_bytes=64512 prepared_bytes=0 prep_ns=6709 fft_ns=40934583 rows_ns=39878333
+OM_DOMAIN_STAGE log=16 main=2 inter=16 constraints=3 jobs=16 scratch_bytes=100352 prepared_bytes=7200 prep_ns=1696666 fft_ns=2234834 rows_ns=2915541
+OM_DOMAIN_STAGE log=18 main=70 inter=32 constraints=253 jobs=16 scratch_bytes=330752 prepared_bytes=26784 prep_ns=4417083 fft_ns=27699792 rows_ns=50990208
+OM_DOMAIN_STAGE log=16 main=47 inter=16 constraints=52 jobs=16 scratch_bytes=330752 prepared_bytes=26320 prep_ns=1669500 fft_ns=4365333 rows_ns=6331416
+OM_DOMAIN_STAGE log=18 main=52 inter=16 constraints=30 jobs=16 scratch_bytes=330752 prepared_bytes=36016 prep_ns=4108833 fft_ns=20974959 rows_ns=28468458
+OM_DOMAIN_STAGE log=14 main=66 inter=48 constraints=142 jobs=4 scratch_bytes=107520 prepared_bytes=74400 prep_ns=700833 fft_ns=2052207 rows_ns=8079501
+OM_DOMAIN_STAGE log=13 main=134 inter=72 constraints=385 jobs=2 scratch_bytes=53760 prepared_bytes=164416 prep_ns=317584 fft_ns=1379125 rows_ns=16304417
+OM_DOMAIN_STAGE log=11 main=134 inter=72 constraints=385 jobs=1 scratch_bytes=26880 prepared_bytes=164416 prep_ns=150292 fft_ns=606791 rows_ns=8320333
+OM_TRUTH_DOMAIN_STAGE kind=keccak log=13 main=1923 inter=5336 constraints=6122 jobs=8 prep_ns=140709 fft_ns=79193333 rows_ns=420934583
+OM_TRUTH_DOMAIN_STAGE kind=chi log=13 main=1 inter=16 constraints=3 jobs=8 prep_ns=51333 fft_ns=677167 rows_ns=588250
+OM_TRUTH_DOMAIN_STAGE kind=xor5 log=10 main=1 inter=16 constraints=3 jobs=1 prep_ns=43208 fft_ns=339375 rows_ns=386834
+OM_TRUTH_DOMAIN_STAGE kind=product log=14 main=319 inter=920 constraints=543 jobs=16 prep_ns=112334 fft_ns=14059125 rows_ns=30534125
+OM_TRUTH_DOMAIN_STAGE kind=linear log=15 main=200 inter=296 constraints=452 jobs=16 prep_ns=220500 fft_ns=13777876 rows_ns=24695624
+OM_TRUTH_DOMAIN_STAGE kind=bytes log=8 main=1 inter=16 constraints=3 jobs=1 prep_ns=10250 fft_ns=33625 rows_ns=45458
+OM_TRUTH_DOMAIN_STAGE kind=product log=14 main=319 inter=920 constraints=543 jobs=16 prep_ns=113542 fft_ns=15780875 rows_ns=39018791
+OM_TRUTH_DOMAIN_STAGE kind=linear log=12 main=200 inter=296 constraints=452 jobs=4 prep_ns=130083 fft_ns=1903626 rows_ns=6159374
+OM_TRUTH_DOMAIN_STAGE kind=bytes log=8 main=1 inter=16 constraints=3 jobs=1 prep_ns=10708 fft_ns=33375 rows_ns=42209
+       42.53 real       323.60 user        22.81 sys
+         26013319168  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             6975982  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  23  voluntary context switches
+              217114  involuntary context switches
+       3996653423918  instructions retired
+       1328858370565  cycles elapsed
+         26025382408  peak memory footprint

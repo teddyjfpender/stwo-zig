@@ -1,0 +1,845 @@
+{
+  "scope": "fresh-process allocator-only probes on identical byte-pinned native proof; cap is free-cache capacity, not process RSS bound",
+  "binary_sha256": "c393098abf40c4d25767f7300db02c7df2013238fb4658bf97d8dedabdca0317",
+  "default_changed": false,
+  "proof_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+  "runs": [
+    {
+      "label": "v7-process",
+      "cap_mib": 0,
+      "artifact_directory": "/tmp/rv64-word16-execution-real-packet0-v7-process",
+      "proof_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+      "report_sha256": "a358a5d80a387beec66bd340bf101a467d98a9dbf133af1f3978f823fcddcf34",
+      "whole_process_time": "vectors/reports/rv64-word16-execution-20261031/stage-accounting/v7-process.time.txt",
+      "allocator": {
+        "policy": "smp"
+      },
+      "pipeline_prove_ns": 13688675958,
+      "memory": {
+        "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 857014272,
+        "last_rss_bytes": 1338916864,
+        "sampled_peak_rss_bytes": 11602247680,
+        "process_lifetime_peak_rss_bytes": 11602247680,
+        "samples": 1142,
+        "failed_samples": 0
+      },
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.293698,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.320027,
+            "system_seconds": 0.109411,
+            "minor_faults": 151589,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 346
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.309628,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.747575,
+            "system_seconds": 0.274655,
+            "minor_faults": 121658,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1513
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 1.981121,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.164313,
+            "system_seconds": 0.767472,
+            "minor_faults": 186567,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 598
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.584791,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.631497,
+            "system_seconds": 0.760567,
+            "minor_faults": 595124,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 7961
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 2.35414,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7.990115,
+            "system_seconds": 17.220906,
+            "minor_faults": 1680728,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 8334
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.598617,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.173643,
+            "system_seconds": 0.806452,
+            "minor_faults": 639403,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 8436
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 6e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 5e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.2e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 6e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.755346,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 16.741657,
+            "system_seconds": 0.455476,
+            "minor_faults": 732485,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5704
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.044151,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.175135,
+            "system_seconds": 0.000401,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 36
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.110638,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.168117,
+            "system_seconds": 0.097317,
+            "minor_faults": 81928,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 452
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 8.4e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6.2e-05,
+            "system_seconds": 2.2e-05,
+            "minor_faults": 19,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.332768,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.646585,
+            "system_seconds": 0.002252,
+            "minor_faults": 234,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 111
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 9.9e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9.9e-05,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.603357,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.420323,
+            "system_seconds": 0.163049,
+            "minor_faults": 133526,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1259
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.007,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.105244,
+            "system_seconds": 0.000552,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 100
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.004193,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002008,
+            "system_seconds": 0.002182,
+            "minor_faults": 169,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.856544,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.051852,
+            "system_seconds": 0.92343,
+            "minor_faults": 685932,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3567
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000211,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000125,
+            "system_seconds": 8.4e-05,
+            "minor_faults": 10,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ]
+    },
+    {
+      "label": "v8-recycler",
+      "cap_mib": 16384,
+      "artifact_directory": "/tmp/rv64-word16-execution-real-packet0-v8-recycler",
+      "proof_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+      "report_sha256": "21023f4281fefb7efd5476c839739057f281ffe4ed23dcf1b04f20f03acba153",
+      "whole_process_time": "vectors/reports/rv64-word16-execution-20261031/stage-accounting/v8-recycler.time.txt",
+      "allocator": {
+        "policy": "large_block_recycler",
+        "cache_cap_bytes": 17179869184,
+        "stats": {
+          "reused_blocks": 2708,
+          "mapped_blocks": 1634,
+          "cached_bytes": 17179869184
+        }
+      },
+      "pipeline_prove_ns": 13650555667,
+      "memory": {
+        "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 872906752,
+        "last_rss_bytes": 18460213248,
+        "sampled_peak_rss_bytes": 24600772608,
+        "process_lifetime_peak_rss_bytes": 24634327040,
+        "samples": 1140,
+        "failed_samples": 0
+      },
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.301339,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.359626,
+            "system_seconds": 0.110408,
+            "minor_faults": 122606,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 484
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.313258,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.77655,
+            "system_seconds": 0.243626,
+            "minor_faults": 99692,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1705
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 2.085133,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.263077,
+            "system_seconds": 0.771439,
+            "minor_faults": 181833,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 849
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.552573,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.885695,
+            "system_seconds": 0.60182,
+            "minor_faults": 278146,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 16370
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 2.324247,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 8.099624,
+            "system_seconds": 15.608908,
+            "minor_faults": 1472413,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 11446
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.501503,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.830133,
+            "system_seconds": 0.26822,
+            "minor_faults": 194377,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6854
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 2e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.3e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7e-06,
+            "system_seconds": 5e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.875805,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 17.592827,
+            "system_seconds": 0.506181,
+            "minor_faults": 548370,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5577
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.053516,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.204106,
+            "system_seconds": 0.003145,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 13
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.106622,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.207971,
+            "system_seconds": 0.110253,
+            "minor_faults": 32772,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 487
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 9.4e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6.6e-05,
+            "system_seconds": 2.7e-05,
+            "minor_faults": 16,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.35832,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.701074,
+            "system_seconds": 0.002766,
+            "minor_faults": 236,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 89
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000107,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9.9e-05,
+            "system_seconds": 7e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.667113,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.531592,
+            "system_seconds": 0.175978,
+            "minor_faults": 66016,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1513
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.00743,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.105651,
+            "system_seconds": 0.000341,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 45
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.003746,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002243,
+            "system_seconds": 0.001505,
+            "minor_faults": 162,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.67514,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.414736,
+            "system_seconds": 0.042905,
+            "minor_faults": 1358,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3865
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000254,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000138,
+            "system_seconds": 0.000116,
+            "minor_faults": 11,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ]
+    },
+    {
+      "label": "v9-recycler4",
+      "cap_mib": 4096,
+      "artifact_directory": "/tmp/rv64-word16-execution-real-packet0-v9-recycler4",
+      "proof_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+      "report_sha256": "8b5825ccda30f371393239ee7a18fdcc3ad03e3082dd9d0770443725e49a6676",
+      "whole_process_time": "vectors/reports/rv64-word16-execution-20261031/stage-accounting/v9-recycler4.time.txt",
+      "allocator": {
+        "policy": "large_block_recycler",
+        "cache_cap_bytes": 4294967296,
+        "stats": {
+          "reused_blocks": 1722,
+          "mapped_blocks": 2620,
+          "cached_bytes": 4294967296
+        }
+      },
+      "pipeline_prove_ns": 13508625417,
+      "memory": {
+        "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 872906752,
+        "last_rss_bytes": 5575917568,
+        "sampled_peak_rss_bytes": 15782084608,
+        "process_lifetime_peak_rss_bytes": 15782084608,
+        "samples": 1130,
+        "failed_samples": 0
+      },
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.28285,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.332861,
+            "system_seconds": 0.1071,
+            "minor_faults": 122604,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 435
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.293213,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.748156,
+            "system_seconds": 0.239055,
+            "minor_faults": 99692,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1463
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 1.979982,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.16208,
+            "system_seconds": 0.722225,
+            "minor_faults": 179181,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 573
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.450129,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.485212,
+            "system_seconds": 0.601725,
+            "minor_faults": 278146,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6185
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 2.378385,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7.949963,
+            "system_seconds": 17.346256,
+            "minor_faults": 1666449,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 10999
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.418683,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.13604,
+            "system_seconds": 0.306868,
+            "minor_faults": 194371,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5602
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 4e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 4e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.2e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 5e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.845137,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 16.926582,
+            "system_seconds": 0.54332,
+            "minor_faults": 699308,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4488
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.043966,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.174983,
+            "system_seconds": 0.000316,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 26
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.114535,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.160884,
+            "system_seconds": 0.120621,
+            "minor_faults": 81926,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 518
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 8.7e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6.2e-05,
+            "system_seconds": 2.1e-05,
+            "minor_faults": 17,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.334988,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.649164,
+            "system_seconds": 0.002515,
+            "minor_faults": 229,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 132
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 9.9e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9.9e-05,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.620379,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.439738,
+            "system_seconds": 0.18237,
+            "minor_faults": 117702,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1486
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.006937,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.108556,
+            "system_seconds": 0.000422,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 88
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.004809,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002149,
+            "system_seconds": 0.002749,
+            "minor_faults": 170,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 2
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.870849,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.219533,
+            "system_seconds": 0.789415,
+            "minor_faults": 602488,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3722
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000163,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000144,
+            "system_seconds": 1.8e-05,
+            "minor_faults": 11,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "One observation per configuration; not statistically qualified speedups.",
+    "The 16GiB probe overlapped a small focused compile; repeat quiet before performance conclusions.",
+    "Recycler retains free mapped pages; higher RSS must be measured and bounded operationally.",
+    "Wide MAIN ownership and interaction page scatter are separate workstreams, not included in these probes."
+  ]
+}

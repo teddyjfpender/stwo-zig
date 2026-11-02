@@ -1,0 +1,19 @@
+{
+  "source_files_sha256": {
+    "op_stack/fastlz_main.cairo": "909c6358d5b5b1d7ffea42bbcbf31e8f406b0d239ab691598fb8cdb64f00a8e9",
+    "op_stack/fees_main.cairo": "a7c69802c0709af83122f62f92a40a18944ffc879e7b6788762a5d869043915a",
+    "op_stack/fastlz.cairo": "4dd6366940606604cfa269907e2911a0c2428b4c4b5f43b907b01bda217ba19c",
+    "op_stack/fees.cairo": "2377e30c249fb491cadff34cd2623038f9a0d9a9073e76b7a10e9340501e552b"
+  },
+  "compiled_cells": 2739,
+  "compiled_sha256": "6a0920116377c365c62d80f700002eb305ddf288657c53ad92fd2a776f54d5e8",
+  "schema": "keth-op-cairo-compile-v1",
+  "keth_source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "elapsed_seconds": 1.7388679580180906,
+  "op_block_execution_proved": false,
+  "op_derivation_proved": false
+}

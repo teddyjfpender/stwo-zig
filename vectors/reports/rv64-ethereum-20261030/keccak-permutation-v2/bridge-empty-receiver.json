@@ -1,0 +1,14 @@
+{
+  "command": [
+    "zig-out/bin/rv64-keccak-fixture",
+    "bridge-verify",
+    "/tmp/stwo-rv64-keccak-bridge-empty-v2",
+    "0",
+    "1"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 22669458,
+  "fresh_process": true,
+  "independently_derived_fixed_root": true,
+  "expected_public_fixture": true
+}

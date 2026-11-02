@@ -1,0 +1,207 @@
+{
+  "scope": "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time",
+  "cpu": [
+    {
+      "columns": [
+        133,
+        597,
+        584
+      ],
+      "native_cells": [
+        59697056,
+        398336704,
+        292030976
+      ],
+      "lifted_leaf_cells": [
+        557842432,
+        2503999488,
+        2449473536
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        131,
+        545,
+        556
+      ],
+      "native_cells": [
+        55566336,
+        355245184,
+        274451200
+      ],
+      "lifted_leaf_cells": [
+        549453824,
+        2285895680,
+        2332033024
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        129,
+        498,
+        524
+      ],
+      "native_cells": [
+        55435264,
+        352181376,
+        272878336
+      ],
+      "lifted_leaf_cells": [
+        541065216,
+        2088763392,
+        2197815296
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        156,
+        980,
+        1224
+      ],
+      "native_cells": [
+        59197440,
+        382385280,
+        310522240
+      ],
+      "lifted_leaf_cells": [
+        654311424,
+        4110417920,
+        5133828096
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    }
+  ],
+  "truth": [
+    {
+      "columns": [
+        46,
+        1925,
+        2604
+      ],
+      "native_cells": [
+        326656,
+        15762432,
+        21303296
+      ],
+      "lifted_leaf_cells": [
+        376832,
+        15769600,
+        21331968
+      ],
+      "max_log": [
+        13,
+        13,
+        13
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        568
+      ],
+      "native_cells": [
+        738048,
+        11780352,
+        12060672
+      ],
+      "lifted_leaf_cells": [
+        1081344,
+        17039360,
+        18612224
+      ],
+      "max_log": [
+        15,
+        15,
+        15
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        568
+      ],
+      "native_cells": [
+        307968,
+        6045952,
+        7014400
+      ],
+      "lifted_leaf_cells": [
+        540672,
+        8519680,
+        9306112
+      ],
+      "max_log": [
+        14,
+        14,
+        14
+      ]
+    }
+  ],
+  "active": [
+    {
+      "retirements": 4194303,
+      "alu_facts": 574440,
+      "binary_facts": 673582,
+      "shift_facts": 743839,
+      "ram_events": 1202034,
+      "keccak_calls": 0,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 535117,
+      "binary_facts": 1147653,
+      "shift_facts": 889226,
+      "ram_events": 572616,
+      "keccak_calls": 0,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 505550,
+      "binary_facts": 1159797,
+      "shift_facts": 899678,
+      "ram_events": 549058,
+      "keccak_calls": 0,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 583016,
+      "binary_facts": 871075,
+      "shift_facts": 722203,
+      "ram_events": 777468,
+      "keccak_calls": 336,
+      "add_calls": 817,
+      "double_calls": 680
+    }
+  ],
+  "memory_words": 750521,
+  "unique_cpu_setups": 4,
+  "unique_keccak_setups": 1,
+  "unique_secp_setups": 2
+}

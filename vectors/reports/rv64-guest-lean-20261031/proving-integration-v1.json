@@ -1,0 +1,117 @@
+{
+  "schema": "rv64-lean-proving-integration-v1",
+  "guest_commit": "fedeb9222 (integrated b14f9ee77)",
+  "qualified_elf_sha256": "691ff478a11991942b42399bc93c6e0d22fbe516f0f9e334c1f4c46decc9e2bb",
+  "rebuilt_c3508_ELF_qualified_by_this_report": false,
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "symbols_source": "actual ELF64 SYMTAB, not old guest config",
+  "new_heap_start": 33647264,
+  "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "oracle_binding": {
+    "oracle": "Unicorn2.1.4",
+    "execution_only": true,
+    "original_native_report_sha256": "2a57c44060ac29411b2708c28592e7dba261a1224438164c2ebc3ba5aa4fe83b",
+    "oracle_compare_sha_matches_original": true,
+    "all10_semantic_fields_and32registers_match_archive_and_oracle": true,
+    "archive_differs_only_by_omitted": [
+      "pc_profile",
+      "access_batches"
+    ]
+  },
+  "full_native_capture": {
+    "jobs": 36,
+    "steps": 149306899,
+    "completed": true,
+    "global_chain_accepted": false,
+    "packet_bytes_total": 8645574008,
+    "largest_packet_bytes": 352256130,
+    "largest_packet_index": 35,
+    "each_encoded_cap": 536870912,
+    "max_rss_bytes": 1024671744,
+    "observed_seconds": 13.26,
+    "timing_scope": "native capture+durable jobs+native-root terminal certificate; concurrent small proof, no isolated speed claim"
+  },
+  "proof_pilot": {
+    "steps": 65536,
+    "proof_bytes": 941328,
+    "proof_sha256": "4b32d1133c9d23acd14da82c353b5aaa8d46873d01e55387135d73e703a1c111",
+    "public_receipt_sha256": "cbad09c698579f11709909859e95c04ecf699f566dc1bc8a657b8c952f2ef2cd",
+    "fresh_receiver": {
+      "status": "authenticated_execution_prefix_verified",
+      "full_block_proof_verified": false,
+      "batches": 1,
+      "instructions": 65536,
+      "calls": [
+        0,
+        0,
+        0
+      ],
+      "final_root": [
+        1743872084,
+        2053580451,
+        1711286219,
+        462113824,
+        2087799887,
+        1925347196,
+        928319201,
+        939817612,
+        1109993784
+      ],
+      "final_pc": 2187292,
+      "final_registers": [
+        0,
+        1429340,
+        33543792,
+        33556480,
+        0,
+        0,
+        8420432,
+        8,
+        33544056,
+        33647024,
+        33681968,
+        8420359,
+        278,
+        33682240,
+        33682048,
+        272,
+        7,
+        56,
+        8,
+        31407,
+        278,
+        33681968,
+        2,
+        2,
+        33647904,
+        2481,
+        33614256,
+        8389230,
+        0,
+        33682056,
+        235,
+        16595
+      ],
+      "setup_ns": 166992875,
+      "verify_ns": 7399625,
+      "proof_bytes": 941328,
+      "verifier_cache": {
+        "hits": 0,
+        "misses": 1,
+        "entries": 1,
+        "retained_bytes": 23524,
+        "peak_retained_bytes": 23524,
+        "cold_setup_ns": 166992875
+      }
+    },
+    "old_ELF_proof_byte_parity_expected": false,
+    "observed_whole_process_max_rss_bytes": 1789001728,
+    "timing_scope": "functional qualification, overlapped native capture; no performance comparison"
+  },
+  "full_lean_proof_verified": false,
+  "remaining": [
+    "all36 lean batch physical proofs and complete fresh chain receiver",
+    "isolated full benchmark provenance/measurement",
+    "independent rebuild c3508 artifact has separate identity and is not silently substituted"
+  ]
+}

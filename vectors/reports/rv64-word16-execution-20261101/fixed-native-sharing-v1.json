@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "status": "qualified fixed-native retained-payload sharing; no fullblock memory claim",
+  "base": "4a4a9e31e92ddb3d6064826e53f02f249f480105",
+  "branch_scope": "CPU50/LS71/Suite-aware; current root CPU47 is not this audit source",
+  "authority": "program and complete material vectors independently generated from pinned pristine Image and declared qualified geometry; actual coefficients hashed AND exact ordered span bytes/logs compared; root/column order unchanged",
+  "config": {
+    "path": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad"
+  },
+  "retained_control_bundle": {
+    "path": "/tmp/rv64-ethereum-full-current-foundation-v1/bundle.json",
+    "sha256": "1eda5e3e7c96406efc57ae71b4f8a59f991f40dd105b1fa2d72c3975c33285dc"
+  },
+  "control_bundle_native_source": "f4f9cc5ab",
+  "tool": {
+    "path": "/tmp/rv64-fixed-native-cache-post-suite-tools-v1/bin/rv64-word16-setup-ownership",
+    "sha256": "4c10f173e40035f76a00bce6a68b015b101540fcdb4e127a9a6cd1ccd5049686",
+    "base": "4a4a9e31e92ddb3d6064826e53f02f249f480105",
+    "build_exit": 0,
+    "build_log": "/tmp/rv64-fixed-native-cache-post-suite-fast.log"
+  },
+  "source_sha256": {
+    "build_support/products/catalog.zig": "bb3e35cbb3854053e57fd143a5d022729c6fd5d4584c3f56b3f91dd8f37c457c",
+    "build_support/products/riscv_cpu.zig": "5ea1f6d90c825c671849491aff4e95c34009808df9fb533b05c20c639abcf6ba",
+    "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig": "ff9439acdf2970219e3f959e3c2cf08b110c4431fda777a3fd4fa99c3cbe7b4f",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "3a9814aff2c68c52de3ae66af3f1932d45ad10695724865fc8370c3d816f11e8",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig": "6efba4b829c1ddefb39d2dc66aaedfbbba146abf303442172bcce113e3061825",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig": "0afa391cd4f1ab46b0ea166f6145d69c0cb21e0c85b1ea040e6c2ebd9251fd06",
+    "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig": "02e358255cc76ef7e7de53e7e3a260f3b91e6f62cc4fbecbb07143bfeccadc05",
+    "src/integrations/riscv_cpu/word16_setup_audit/ownership.zig": "274d314809aad50e80126b121f277c3ca34bc9d4444319e49545941b563db709",
+    "src/integrations/riscv_cpu/rv64_word16_fixed_native_cache_test_root.zig": "325c3ae7b6f59f2356be162c4a1313013ee5b619e7fabb385fd18cc6a1ebd191",
+    "src/integrations/riscv_cpu/word16_execution/fixed_native_cache.zig": "2c669e325be1d9d3cd3dadca47383d27aa0e2cc411cd75ed3e7f0c3c36a52842",
+    "src/integrations/riscv_cpu/word16_execution/fixed_native_cache_test.zig": "c56f3f9870b1cae196709a3951037346c30d85cf9a8f5976c1f55b8ce918faa9"
+  },
+  "same_binary_uncached_control": {
+    "artifact": {
+      "path": "/tmp/rv64-fixed-native-cache-25keys-control-post-suite-v1.json",
+      "sha256": "4656b9d2abf057a97e02ec355cae120e096c957d1e17ba715cd86fbd8833b287"
+    },
+    "time": {
+      "path": "/tmp/rv64-fixed-native-cache-25keys-control-post-suite-v1.time",
+      "sha256": "428b71fc90ce53b7acdcc679535bcef7ef2965b55aec1bb43590f23569cc1c8f"
+    },
+    "process_observation": {
+      "wall_seconds": 13.14,
+      "user_seconds": 45.18,
+      "system_seconds": 10.58,
+      "maximum_rss_bytes": 14210203648,
+      "peak_memory_footprint_bytes": 14220050152
+    },
+    "all30_fixed_roots_exact": true,
+    "cpu_keys": 25,
+    "keccak_truth_keys": 1,
+    "secp_truth_keys": 3,
+    "owned_payload": {
+      "original_fixed": 287344896,
+      "program_metadata": 773785350,
+      "coefficients": 5664172288,
+      "retained_evaluations": 0,
+      "merkle": 923270240,
+      "auxiliary": 39936,
+      "headers": 285728
+    },
+    "owned_payload_total": 7648898438,
+    "cache": null,
+    "uncovered_coefficient_bytes": 0
+  },
+  "same_binary_cached_observation": {
+    "artifact": {
+      "path": "/tmp/rv64-fixed-native-cache-25keys-post-suite-v1.json",
+      "sha256": "b84f41e728e6bfff0d94dfbd2b8df12db57ab219f13caf7a3605114f2b9db7e1"
+    },
+    "time": {
+      "path": "/tmp/rv64-fixed-native-cache-25keys-post-suite-v1.time",
+      "sha256": "6472ff28cb82864438e57f6afb5e047493708cbbd92baf50243efe566f31b2a2"
+    },
+    "process_observation": {
+      "wall_seconds": 15.61,
+      "user_seconds": 47.27,
+      "system_seconds": 11.55,
+      "maximum_rss_bytes": 8885420032,
+      "peak_memory_footprint_bytes": 8889950344
+    },
+    "all30_fixed_roots_exact": true,
+    "cpu_keys": 25,
+    "keccak_truth_keys": 1,
+    "secp_truth_keys": 3,
+    "owned_payload": {
+      "original_fixed": 287344896,
+      "program_metadata": 773785350,
+      "coefficients": 291137920,
+      "retained_evaluations": 0,
+      "merkle": 923270240,
+      "auxiliary": 39936,
+      "headers": 311712
+    },
+    "owned_payload_total": 2275890054,
+    "cache": {
+      "limit_bytes": 1073741824,
+      "retained_bytes": 213719808,
+      "native_backing_bytes": 213693824,
+      "groups": 202,
+      "hits": 3385,
+      "duplicate_native_bytes_released": 5373034368,
+      "observed_individual_owners": 3587,
+      "observed_backing_owners": 0,
+      "observed_spans": 3587,
+      "owner_leases": 26
+    },
+    "uncovered_coefficient_bytes": 0
+  },
+  "measured_requested_payload_reduction_bytes": 5373008384,
+  "native_cpu": {
+    "independently_owned_input_polynomials": 3587,
+    "input_backed_arenas": 0,
+    "unique_retained_groups": 202,
+    "retained_native_bytes": 213693824,
+    "cache_metadata_bytes": 25984,
+    "native_duplicate_bytes_released": 5373034368,
+    "cache_limit_bytes": 1073741824,
+    "useful_hits": 3385
+  },
+  "measurement_scope": [
+    "key-only reconstruction: no Tape/VM/native CPU MAIN/proof construction",
+    "all25CPU+5truth fixedroots matched retained fully accepted control",
+    "retire-original-fixed applied after constructing keys in BOTH observations",
+    "requested payload excludes allocator rounding, trusted Image, execution witnesses, proof data and RSS",
+    "time-l maximumRSS and Darwin peakmemoryfootprint are separate fields",
+    "runs occurred under concurrent engineering; no setup-time or fullblockRSS claim"
+  ],
+  "algorithm_scope": [
+    "post-seal interning: original fixed construction, FFT, LDE/hash work still happens",
+    "actual observed borrowed fixed streaming retains individual polynomial owners, so per-polynomial matching is exercised",
+    "complete backing arenas also supported and tested; any retained evaluation alias leaves its backing private",
+    "both CircleCoefficients.coeffs and compact ColumnEvaluation.coefficient_values repointed together",
+    "original payload allocator and managed budget lease retained; metadata uses cache allocator",
+    "no allocator-context identity comparisons; stateless SMP ptr intentionally undefined",
+    "all fallible work and capacity checks precede ownership change; default no-cache wrappers unchanged",
+    "bounded cache with no eviction/global mutable storage; final key lease may outlive manager handle",
+    "CPU cache only in real audit; truth-native coefficients remain private",
+    "Suite/material/key identity preserved independently; native values may share acrossF1/F4; wrongSuite append rejects"
+  ],
+  "qualification": {
+    "focused_safe14": {
+      "path": "/tmp/rv64-fixed-native-cache-post-suite-safe.log",
+      "sha256": "99c0e3cad3d584c47c4de898900a7773740ad0ceddc0b8849c1c5861088173ae"
+    },
+    "focused_fast14": {
+      "path": "/tmp/rv64-fixed-native-cache-post-suite-fast.log",
+      "sha256": "7899d7fd511afd3d4f7b53b3bdfc3366f0cb6a776ddb716550172bde509b7921"
+    },
+    "actual_runtime_metadata": {
+      "binary": ".zig-cache/products/riscv_cpu/o/23c38d35d12338dd003d354e3ad0565d/test",
+      "runtime_count": 14,
+      "names": [
+        "rv64_word16_fixed_native_cache_test_root.test_0",
+        "word16_execution.fixed_native_cache_test.test.Fixed native cache shares exact independently generated coefficients and roots",
+        "word16_execution.fixed_native_cache_test.test.Fixed native cache capacity misses and disabled mode retain private custody",
+        "word16_execution.fixed_native_cache_test.test.Fixed native coefficient leases outlive cache handles and source Setup owners",
+        "word16_execution.fixed_native_cache_test.test.Fixed native preflight rejects malformed shapes aliases and repeat custody changes",
+        "word16_execution.fixed_native_cache_test.test.Hash collisions never replace exact ordered coefficient equality",
+        "word16_execution.fixed_native_cache_test.test.Every key cache and lease allocation failure tears down exactly once",
+        "word16_execution.fixed_native_cache_test.test.Failed interning is atomic and retry preserves the original root",
+        "word16_execution.fixed_native_cache_test.test.Concurrent independent key owners publish one bounded immutable group set",
+        "word16_execution.fixed_native_cache_test.test.Cached full fixed setup preserves complete q70 proof claims bytes and fresh authority",
+        "word16_execution.fixed_native_cache_test.test.Sparse high64 programs and geometry-specific fixed roots never alias authority",
+        "word16_execution.fixed_native_cache_test.test.Stateless SMP and mixed source allocators retain actual payload custody",
+        "word16_execution.fixed_native_cache_test.test.Complete backing groups preserve uncached aliases and retire only transferred buffers",
+        "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+      ]
+    },
+    "integrated_fast": {
+      "log": {
+        "path": "/tmp/rv64-fixed-native-cache-integrated-fast.log",
+        "sha256": "b5d4dd131aa4b547edae83a9897f332b0db7b20fbdc2002642e4283238494920"
+      },
+      "combined_services_runtime": 21,
+      "coordinator_runtime": 28,
+      "status": "PASS on branch4aCPU50/Suite-aware"
+    },
+    "all_runtime_metadata": {
+      "path": "/tmp/rv64-fixed-native-cache-all-runtime-metadata.json",
+      "sha256": "65ee0ec207fb306391f1d9b92bd84a99ceb561197c7ecd67f3dc19463255e3e4"
+    },
+    "source_conformance": {
+      "runtime": 31,
+      "status": "PASS",
+      "log": {
+        "path": "/tmp/rv64-fixed-native-cache-conformance.log",
+        "sha256": "20428c8415e1732ffdc7891545fd0408080ac456b4c7abd1c67d1f8e5d64cdb1"
+      }
+    },
+    "q70_proof_control": "direct full serialized byte AND claim equality vs independently rebuilt uncached Setup, for bothF1 andF4; fresh setup after original-fixed retirement accepts; no standalone tinyproof hash captured",
+    "cases": [
+      "exact hashes+native spans+roots",
+      "capacity/disabled private custody",
+      "lease beyond cache/setup lifetime",
+      "malformed shape/alias/phase guards",
+      "forced hash collision exact-byte rejection",
+      "exhaustive allocation failures in cache/key/adoption path",
+      "OOM preflight leaves tree/cache unchanged and retries",
+      "concurrent independent owners",
+      "full64 sparse/highestPC+geometry roots",
+      "actual SMP/SMP and mixed allocators",
+      "managed source budget survives original key/caller",
+      "multi-backed native arenas and uncached alias preservation",
+      "F1/F4 native sharing and wrongSuite append rejection"
+    ],
+    "no_op_attempts_excluded": [
+      {
+        "path": "/tmp/rv64-fixed-native-cache-25keys-safe-v1.json",
+        "reason": "invalid stateless allocator ptr comparison caused no useful cache activity; no memory improvement claimed"
+      },
+      {
+        "path": "/tmp/rv64-fixed-native-cache-25keys-fast-v1.time",
+        "reason": "fail-closed audit correctly rejected NativeCacheNotUsed before fix"
+      }
+    ]
+  },
+  "remaining": [
+    "fullblock cached proof/fresh byte parity and peak memory observation after canonical driver adoption",
+    "share773785350B of duplicate Program metadata via independent raw+pc/profile/features checks",
+    "no instruction-count or witness-dependent setup authority introduced"
+  ]
+}

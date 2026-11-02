@@ -1,0 +1,9 @@
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+BALANCED_PROJECTED_CACHE fresh_physical_receiver_rejected=OodsNotMatching cyclic_sum_preserved=true same_main_and_child=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-services-gkr-local success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 20s MaxRSS:1G
+

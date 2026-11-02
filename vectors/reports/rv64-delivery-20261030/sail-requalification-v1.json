@@ -1,0 +1,36 @@
+{
+  "schema": "rv64im-pinned-sail-retirement-v1",
+  "equivalent": true,
+  "sail_revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+  "compiler": "0.20.2",
+  "build_info": "Sail RISC-V release: 0.12\nSail RISC-V git: 8c7f2da\nSail: Sail 0.20.2 (sail @ opam-v2.5.1 0.20.2)\nC++ compiler: AppleClang 21.0.0.21000101\nCLI11: 2.6.2\nELFIO: 3.12\nJSONCONS: 1.8.1\n",
+  "binary_sha256": "5f7c4c71fd99077b1e83e5bb862ce458f4445d1f7952957f828072c3700e0b46",
+  "isa": "rv64im",
+  "configuration_sha256": {
+    "conformance/rv64im-sail-override.json": "bd487311a77dbe677e2aa0c5ab3f8e67b3d2d4e89c45dda903a5202bd13997dc",
+    "conformance/riscv/sail-rv32im-tagged-options.json": "f9d90a5b7c8013fee1915c6138691bd6d3eecf025289af9bc3c7a22a66394b79"
+  },
+  "samples": 64,
+  "vectors": 14815,
+  "setup_instructions": 1170385,
+  "sail_batch_wall_ns": 10010736791,
+  "zig_two_modes_wall_ns": 938255500,
+  "timing_scope": "Sail startup + architectural setup + TCP framing + compared retirements; not proving throughput",
+  "vector_sha256": "cf37f30918b9c5aebe55fbb75b9cacedabdf910945c67acd2b5185250a8108e9",
+  "uncached": {
+    "vectors": 14815,
+    "opcodes": 63,
+    "expected_opcodes": 63,
+    "cached_decode": false,
+    "proof_supported": false
+  },
+  "cached": {
+    "vectors": 14815,
+    "opcodes": 63,
+    "expected_opcodes": 63,
+    "cached_decode": true,
+    "proof_supported": false
+  },
+  "formal_proof": false,
+  "trap_state_qualification": false
+}

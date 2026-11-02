@@ -1,0 +1,13 @@
+{
+  "command": [
+    "zig-out/bin/rv64-secp-fixture",
+    "word-bridge-verify",
+    "/tmp/stwo-rv64-secp-metadata-serial",
+    "add",
+    "22",
+    "1"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 10311083,
+  "fresh_process": true
+}

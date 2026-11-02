@@ -1,0 +1,109 @@
+{
+  "scope": "Complete v3 guest proved by classic QM31 services control; NOT OM31/GKR and NOT128-bit target timing",
+  "profile": {
+    "field": "QM31",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "fold_step": 1,
+    "security": "nominal96-bit PCS control only"
+  },
+  "steps": 26894777,
+  "cpu_proofs": 7,
+  "truth_proofs": 6,
+  "prove_seconds": 37.710786541,
+  "wall_seconds": 42.76,
+  "maximum_rss_bytes": 20892958720,
+  "main_inter_cells": {
+    "cpu": 3693026400,
+    "truth": 1718522880
+  },
+  "total_main_inter_cells": 5411549280,
+  "fresh_complete_receiver_pass": true,
+  "expected43byte_output_match": true,
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 376003,
+      "sha256": "a1518db32e5193d39bd1916d8cf30d6d4536d7aaee0b753dfb685b311aba8f3f"
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 2665312,
+      "sha256": "6965aaf9f88fb254e3d710bbdf18d31dcf32e4b7401a93f35cb203ad8a2ba52c"
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 2254624,
+      "sha256": "a0ff3b09de8d27c2e6c868a1ae86a1d058a7a75bc3e895c8d293adac3ad48397"
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 2535312,
+      "sha256": "df4268fa1c51c75798b5e344707b8b01e37a17c70d548aa121c41359a0542fae"
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 2536560,
+      "sha256": "62f50276c3996885c034cd6c872689167e1092fd6b10d4cee36f4929cc1c7870"
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 2501824,
+      "sha256": "e6e57cfdbee46310533dfdb8604bdbeef23836157a76cd1e6819c01c0cbd2674"
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 2388976,
+      "sha256": "a01df20286a29af84600c45c2116e5a209f65db79a1d826b4a893a2874ac0068"
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 1248664,
+      "sha256": "0898ef47ac46e08eb0d4b16cbe324740495ff15f40a554509aad538a69083c35"
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 1280744,
+      "sha256": "40dc646bc71095c8452750d3e6d4691c71869bd02ce1f95d46cf2d5d2004a93a"
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 1286616,
+      "sha256": "06673332aa5010a58ff8c899ce871b19f02d2ede0152060c4b1d15e573316241"
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 562800,
+      "sha256": "1b2fa575db456fc6cafa2cefa7feeb9df09fbc52486e4879b9f52dc03bfa63c6"
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 531752,
+      "sha256": "8d68acebea1184ae71f2431e36af55250e46a6140ba996345fd0e8dd777dffcd"
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 2352960,
+      "sha256": "741b88663cc1a10d3ab945439613c27483bc9a40119fe412c7305f98d89821e7"
+    },
+    {
+      "name": "truth-5.bin",
+      "bytes": 297780,
+      "sha256": "349fb15497b3b23af30b827bfc04ec9602604598562b80c0f0d04272f2d88083"
+    }
+  ],
+  "source_commit": "7a99dc68d (native binary; later changes are model/docs only)",
+  "limits": [
+    "No v3 GKR proof or128-bit security promotion",
+    "No curve calls on this block",
+    "One observation; no controlled same-security comparison",
+    "No recursion/GPU"
+  ],
+  "producer_binary_sha256": "f72f566637041a72ac04d799fc4270571507d2ed302a6bd4f361ae84efaca3a1"
+}

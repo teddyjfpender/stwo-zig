@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "receipt": "perf-quotient-setup-v1",
+  "item": "ITEM 5: pooled, row-chunked DEEP quotient setup with cached twiddles",
+  "source_base": "87df8e6a5",
+  "branch": "codex/rv64-perf-quotient-setup",
+  "branch_commit": "250c734cba092bd1c28e31dc2ae716adb6a82fea",
+  "workload": {
+    "mode": "produce prefix4",
+    "request": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "proofs": "4 CPU + 3 truth (prefix4 contains only 3 truth proofs, not the full truth set)"
+  },
+  "sequence": "ABBA (baseline, branch, branch, baseline), each run separately under lockf -k /private/tmp/stwo-rv64-perf-heavy.lock",
+  "byte_identity": {
+    "reference": "/private/tmp/stwo-rv64-perf-runs/baseline-prefix4.sha256",
+    "files": "cpu-*.bin, truth-*.bin, bundle.json, cells.bin",
+    "all_runs_identical": true
+  },
+  "runs": [
+    {
+      "label": "A1",
+      "binary": "baseline",
+      "commit": "87df8e6a5",
+      "wall": 26.81,
+      "user": 180.25,
+      "sys": 10.44,
+      "peak_footprint_bytes": 17205069824,
+      "byte_identical": true,
+      "fri_quotient_build_and_commit_sum_s": 7.302,
+      "per_proof_s": [
+        1.83,
+        1.72,
+        1.783,
+        1.846,
+        0.082,
+        0.027,
+        0.014
+      ]
+    },
+    {
+      "label": "B1",
+      "binary": "branch",
+      "commit": "250c734cba092bd1c28e31dc2ae716adb6a82fea",
+      "wall": 25.6,
+      "user": 184.82,
+      "sys": 11.17,
+      "peak_footprint_bytes": 17501243104,
+      "byte_identical": true,
+      "fri_quotient_build_and_commit_sum_s": 3.61,
+      "per_proof_s": [
+        0.85,
+        0.814,
+        0.899,
+        1.016,
+        0.016,
+        0.01,
+        0.005
+      ]
+    },
+    {
+      "label": "B2",
+      "binary": "branch",
+      "commit": "250c734cba092bd1c28e31dc2ae716adb6a82fea",
+      "wall": 24.71,
+      "user": 182.56,
+      "sys": 11.07,
+      "peak_footprint_bytes": 17318807312,
+      "byte_identical": true,
+      "fri_quotient_build_and_commit_sum_s": 3.333,
+      "per_proof_s": [
+        0.807,
+        0.811,
+        0.83,
+        0.854,
+        0.017,
+        0.009,
+        0.005
+      ]
+    },
+    {
+      "label": "A2",
+      "binary": "baseline",
+      "commit": "87df8e6a5",
+      "wall": 25.82,
+      "user": 176.08,
+      "sys": 10.23,
+      "peak_footprint_bytes": 17291773664,
+      "byte_identical": true,
+      "fri_quotient_build_and_commit_sum_s": 6.937,
+      "per_proof_s": [
+        1.729,
+        1.656,
+        1.694,
+        1.751,
+        0.07,
+        0.024,
+        0.013
+      ]
+    }
+  ],
+  "summary": {
+    "baseline_wall_mean_s": 26.315,
+    "branch_wall_mean_s": 25.155,
+    "wall_delta_s": -1.16,
+    "wall_delta_pct": -4.4,
+    "baseline_user_mean_s": 178.165,
+    "branch_user_mean_s": 183.69,
+    "baseline_peak_mean_gb": 17.25,
+    "branch_peak_mean_gb": 17.41,
+    "target_stage": "fri_quotient_build_and_commit (summed over 7 physical proofs)",
+    "target_stage_baseline_mean_s": 7.12,
+    "target_stage_branch_mean_s": 3.472,
+    "target_stage_delta_s": -3.648,
+    "target_stage_delta_pct": -51.2,
+    "a1_a2_wall_spread_pct": 3.8
+  },
+  "conclusion": "Byte-identical in all four runs. The targeted stage fri_quotient_build_and_commit roughly halves (summed 7.12 s -> 3.47 s, about -1.8 s -> -0.85 s per CPU proof). End-to-end prefix4 wall improves by about 1.2 s (26.3 -> 25.2 s, -4.4%), well short of the 6-10 s estimate: on prefix4 the stage only sums to ~7 s, not the 49 s the estimate assumed, and stage time partly overlaps other pipelined work. User CPU rises ~3% (more threads in the pool), peak footprint +~0.16 GB. A1/A2 wall spread is 3.8% (<5%) but the machine may be shared with other jobs, so the 1.2 s wall gain is near the noise floor from n=2 per arm; the stage-level halving is consistent across all proofs. Larger gains are only plausible on full runs with more proofs/truth proofs; not measured here."
+}

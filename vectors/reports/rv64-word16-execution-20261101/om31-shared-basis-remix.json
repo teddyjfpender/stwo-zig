@@ -1,0 +1,37 @@
+{
+  "schema": "rv64-om31-shared-basis-remix-v1",
+  "dependency": "609adbeea",
+  "authority": "core.fields.om31.Quadratic(F,Ops).fromPartialEvals",
+  "gate": "zig build test-riscv64-gkr-circuit test-riscv64-simd-fields -Doptimize={ReleaseSafe,ReleaseFast} -j2 --summary all",
+  "safe": "PASS",
+  "fast": "PASS",
+  "circuit_fixture": {
+    "reference": {
+      "emission_qm31_ops": 54,
+      "full_qm31_ops": 394,
+      "variables": 394,
+      "equality_gates": 2
+    },
+    "shared": {
+      "emission_qm31_ops": 27,
+      "full_qm31_ops": 367,
+      "variables": 367,
+      "equality_gates": 2
+    },
+    "individual_coordinate_mutations_rejected": 64
+  },
+  "coverage": [
+    "native/circuit/packed shared basis order",
+    "16 distinct packed rows vs independent basis-product sum",
+    "reconstruction allocation-failure sweep",
+    "actual varying ALU OM31 STARK and fresh receiver",
+    "actual GKR circuit",
+    "service/global gates",
+    "legacy QM31 SIMD controls"
+  ],
+  "performance_claim": "actual arithmetic gate counts only; no whole-prover timing claim",
+  "production_profile_change": false,
+  "whole_protocol_128_certificate": false,
+  "focused_direct_result": "All 46 tests passed.",
+  "legacy_simd_tests": 7
+}

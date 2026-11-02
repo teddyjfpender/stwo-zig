@@ -1,0 +1,923 @@
+{
+  "scope": "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time",
+  "cpu": [
+    {
+      "columns": [
+        133,
+        597,
+        584
+      ],
+      "native_cells": [
+        62842784,
+        413016768,
+        300419584
+      ],
+      "lifted_leaf_cells": [
+        557842432,
+        2503999488,
+        2449473536
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        131,
+        545,
+        556
+      ],
+      "native_cells": [
+        55566336,
+        355245184,
+        274451200
+      ],
+      "lifted_leaf_cells": [
+        549453824,
+        2285895680,
+        2332033024
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        129,
+        498,
+        524
+      ],
+      "native_cells": [
+        55435264,
+        352181376,
+        272878336
+      ],
+      "lifted_leaf_cells": [
+        541065216,
+        2088763392,
+        2197815296
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        156,
+        980,
+        1224
+      ],
+      "native_cells": [
+        56051808,
+        367705664,
+        302133888
+      ],
+      "lifted_leaf_cells": [
+        654311424,
+        4110417920,
+        5133828096
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        148,
+        762,
+        1096
+      ],
+      "native_cells": [
+        57395200,
+        414139520,
+        389516032
+      ],
+      "lifted_leaf_cells": [
+        620756992,
+        3196059648,
+        4596957184
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        148,
+        762,
+        1096
+      ],
+      "native_cells": [
+        57370624,
+        413869184,
+        389040896
+      ],
+      "lifted_leaf_cells": [
+        620756992,
+        3196059648,
+        4596957184
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        154,
+        910,
+        1188
+      ],
+      "native_cells": [
+        57903296,
+        402683904,
+        352213504
+      ],
+      "lifted_leaf_cells": [
+        645922816,
+        3816816640,
+        4982833152
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        139,
+        663,
+        700
+      ],
+      "native_cells": [
+        55355392,
+        350385280,
+        277416704
+      ],
+      "lifted_leaf_cells": [
+        583008256,
+        2780823552,
+        2936012800
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        140,
+        694,
+        728
+      ],
+      "native_cells": [
+        56305760,
+        361057856,
+        294507136
+      ],
+      "lifted_leaf_cells": [
+        587202560,
+        2910846976,
+        3053453312
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        140,
+        712,
+        736
+      ],
+      "native_cells": [
+        54753664,
+        346471296,
+        265505024
+      ],
+      "lifted_leaf_cells": [
+        587202560,
+        2986344448,
+        3087007744
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        158,
+        1009,
+        1248
+      ],
+      "native_cells": [
+        54570496,
+        344713344,
+        264532736
+      ],
+      "lifted_leaf_cells": [
+        662700032,
+        4232052736,
+        5234491392
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        142,
+        741,
+        760
+      ],
+      "native_cells": [
+        54038016,
+        332423296,
+        251298560
+      ],
+      "lifted_leaf_cells": [
+        595591168,
+        3107979264,
+        3187671040
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        142,
+        741,
+        760
+      ],
+      "native_cells": [
+        54267392,
+        339140736,
+        260408064
+      ],
+      "lifted_leaf_cells": [
+        595591168,
+        3107979264,
+        3187671040
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        140,
+        694,
+        728
+      ],
+      "native_cells": [
+        54529536,
+        345301120,
+        264602368
+      ],
+      "lifted_leaf_cells": [
+        587202560,
+        2910846976,
+        3053453312
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        156,
+        957,
+        1220
+      ],
+      "native_cells": [
+        54361600,
+        341099648,
+        261864192
+      ],
+      "lifted_leaf_cells": [
+        654311424,
+        4013948928,
+        5117050880
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        139,
+        671,
+        728
+      ],
+      "native_cells": [
+        55733760,
+        372826240,
+        275170048
+      ],
+      "lifted_leaf_cells": [
+        583008256,
+        2814377984,
+        3053453312
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        136,
+        613,
+        676
+      ],
+      "native_cells": [
+        54383616,
+        341589120,
+        257456896
+      ],
+      "lifted_leaf_cells": [
+        570425344,
+        2571108352,
+        2835349504
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        135,
+        590,
+        676
+      ],
+      "native_cells": [
+        55563264,
+        369048704,
+        267942656
+      ],
+      "lifted_leaf_cells": [
+        566231040,
+        2474639360,
+        2835349504
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        156,
+        957,
+        1220
+      ],
+      "native_cells": [
+        54727680,
+        350866560,
+        277961472
+      ],
+      "lifted_leaf_cells": [
+        654311424,
+        4013948928,
+        5117050880
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        156,
+        962,
+        1216
+      ],
+      "native_cells": [
+        54653952,
+        347931776,
+        266693376
+      ],
+      "lifted_leaf_cells": [
+        654311424,
+        4034920448,
+        5100273664
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        154,
+        933,
+        1192
+      ],
+      "native_cells": [
+        54824448,
+        350810240,
+        269083392
+      ],
+      "lifted_leaf_cells": [
+        645922816,
+        3913285632,
+        4999610368
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        142,
+        741,
+        760
+      ],
+      "native_cells": [
+        54255104,
+        338821248,
+        260236032
+      ],
+      "lifted_leaf_cells": [
+        595591168,
+        3107979264,
+        3187671040
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        135,
+        572,
+        668
+      ],
+      "native_cells": [
+        56478464,
+        378696320,
+        283330304
+      ],
+      "lifted_leaf_cells": [
+        566231040,
+        2399141888,
+        2801795072
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        139,
+        663,
+        700
+      ],
+      "native_cells": [
+        54773760,
+        338347136,
+        261622528
+      ],
+      "lifted_leaf_cells": [
+        583008256,
+        2780823552,
+        2936012800
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        139,
+        663,
+        700
+      ],
+      "native_cells": [
+        60639136,
+        361579200,
+        269683200
+      ],
+      "lifted_leaf_cells": [
+        583008256,
+        2780823552,
+        2936012800
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    }
+  ],
+  "truth": [
+    {
+      "columns": [
+        46,
+        1925,
+        2604
+      ],
+      "native_cells": [
+        8453120,
+        504112128,
+        680562688
+      ],
+      "lifted_leaf_cells": [
+        12058624,
+        504627200,
+        682622976
+      ],
+      "max_log": [
+        18,
+        18,
+        18
+      ]
+    },
+    {
+      "columns": [
+        46,
+        1925,
+        2604
+      ],
+      "native_cells": [
+        8453120,
+        504112128,
+        680562688
+      ],
+      "lifted_leaf_cells": [
+        12058624,
+        504627200,
+        682622976
+      ],
+      "max_log": [
+        18,
+        18,
+        18
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        568
+      ],
+      "native_cells": [
+        7865088,
+        136052992,
+        146802688
+      ],
+      "lifted_leaf_cells": [
+        8650752,
+        136314880,
+        148897792
+      ],
+      "max_log": [
+        18,
+        18,
+        18
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        568
+      ],
+      "native_cells": [
+        92928,
+        1472768,
+        1509376
+      ],
+      "lifted_leaf_cells": [
+        135168,
+        2129920,
+        2326528
+      ],
+      "max_log": [
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        568
+      ],
+      "native_cells": [
+        2949888,
+        54919424,
+        61868032
+      ],
+      "lifted_leaf_cells": [
+        4325376,
+        68157440,
+        74448896
+      ],
+      "max_log": [
+        17,
+        17,
+        17
+      ]
+    }
+  ],
+  "active": [
+    {
+      "retirements": 4194303,
+      "alu_facts": 574440,
+      "binary_facts": 673582,
+      "shift_facts": 743839,
+      "ram_events": 1202034,
+      "keccak_calls": 0,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 535117,
+      "binary_facts": 1147653,
+      "shift_facts": 889226,
+      "ram_events": 572616,
+      "keccak_calls": 0,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 505550,
+      "binary_facts": 1159797,
+      "shift_facts": 899678,
+      "ram_events": 549058,
+      "keccak_calls": 0,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 583016,
+      "binary_facts": 871075,
+      "shift_facts": 722203,
+      "ram_events": 777468,
+      "keccak_calls": 336,
+      "add_calls": 817,
+      "double_calls": 680
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 911948,
+      "binary_facts": 330512,
+      "shift_facts": 481064,
+      "ram_events": 887141,
+      "keccak_calls": 185,
+      "add_calls": 3753,
+      "double_calls": 3184
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 919132,
+      "binary_facts": 331669,
+      "shift_facts": 486057,
+      "ram_events": 875109,
+      "keccak_calls": 89,
+      "add_calls": 3683,
+      "double_calls": 3152
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 507860,
+      "binary_facts": 365743,
+      "shift_facts": 224360,
+      "ram_events": 1411798,
+      "keccak_calls": 7719,
+      "add_calls": 1482,
+      "double_calls": 1252
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 264950,
+      "binary_facts": 284021,
+      "shift_facts": 74170,
+      "ram_events": 1410423,
+      "keccak_calls": 3496,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 249813,
+      "binary_facts": 349571,
+      "shift_facts": 68165,
+      "ram_events": 1557156,
+      "keccak_calls": 9823,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 353238,
+      "binary_facts": 197359,
+      "shift_facts": 72892,
+      "ram_events": 1327222,
+      "keccak_calls": 55,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 363983,
+      "binary_facts": 146332,
+      "shift_facts": 88201,
+      "ram_events": 1433926,
+      "keccak_calls": 195,
+      "add_calls": 295,
+      "double_calls": 252
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 292687,
+      "binary_facts": 90218,
+      "shift_facts": 39873,
+      "ram_events": 1551020,
+      "keccak_calls": 253,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 345433,
+      "binary_facts": 79730,
+      "shift_facts": 38794,
+      "ram_events": 1532577,
+      "keccak_calls": 218,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 459220,
+      "binary_facts": 77800,
+      "shift_facts": 39812,
+      "ram_events": 1511578,
+      "keccak_calls": 178,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 359142,
+      "binary_facts": 83400,
+      "shift_facts": 55522,
+      "ram_events": 1553284,
+      "keccak_calls": 225,
+      "add_calls": 146,
+      "double_calls": 124
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 299673,
+      "binary_facts": 78047,
+      "shift_facts": 35921,
+      "ram_events": 1578648,
+      "keccak_calls": 283,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 421569,
+      "binary_facts": 56408,
+      "shift_facts": 29577,
+      "ram_events": 1559724,
+      "keccak_calls": 181,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 325750,
+      "binary_facts": 59173,
+      "shift_facts": 30075,
+      "ram_events": 1606233,
+      "keccak_calls": 211,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 392750,
+      "binary_facts": 98229,
+      "shift_facts": 101603,
+      "ram_events": 1499873,
+      "keccak_calls": 235,
+      "add_calls": 586,
+      "double_calls": 504
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 400761,
+      "binary_facts": 97525,
+      "shift_facts": 72248,
+      "ram_events": 1540556,
+      "keccak_calls": 241,
+      "add_calls": 292,
+      "double_calls": 248
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 402643,
+      "binary_facts": 108554,
+      "shift_facts": 90748,
+      "ram_events": 1519906,
+      "keccak_calls": 243,
+      "add_calls": 442,
+      "double_calls": 372
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 369082,
+      "binary_facts": 79297,
+      "shift_facts": 34712,
+      "ram_events": 1538419,
+      "keccak_calls": 213,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 215081,
+      "binary_facts": 136701,
+      "shift_facts": 62065,
+      "ram_events": 1590097,
+      "keccak_calls": 2884,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 157033,
+      "binary_facts": 159292,
+      "shift_facts": 88859,
+      "ram_events": 1547728,
+      "keccak_calls": 3477,
+      "add_calls": 0,
+      "double_calls": 0
+    },
+    {
+      "retirements": 3590641,
+      "alu_facts": 184458,
+      "binary_facts": 93612,
+      "shift_facts": 45814,
+      "ram_events": 1323636,
+      "keccak_calls": 2095,
+      "add_calls": 0,
+      "double_calls": 0
+    }
+  ],
+  "memory_words": 1347207,
+  "unique_cpu_setups": 25,
+  "unique_keccak_setups": 1,
+  "unique_secp_setups": 3
+}

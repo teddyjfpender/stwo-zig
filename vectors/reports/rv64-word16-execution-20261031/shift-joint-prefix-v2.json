@@ -1,0 +1,126 @@
+{
+  "schema": "rv64-shift-joint-prefix-v2-qualification",
+  "base_commit": "b569adff3429d84fea911a4d1f50931e39c600ed",
+  "scope": "Concrete weighted Word16 SHIFT component and closed proof integration. No new wholeblock or recursive acceptance claim.",
+  "geometry": {
+    "fixed": 2,
+    "main": 53,
+    "old_interaction": 48,
+    "interaction": 36,
+    "old_constraints": 43,
+    "constraints": 38,
+    "unchanged_arithmetic_residuals": 27,
+    "unit_SHIFT_queries_per_padded_row": 5,
+    "unit_U16_queries_per_padded_row": 9,
+    "strict_unit_pairs": 7,
+    "function_inverse_start": 28,
+    "joint_prefix_start": 32,
+    "degree": 3,
+    "native_factor": 2,
+    "composition_log_split": 1,
+    "old_current_cells": 103,
+    "new_current_cells": 91,
+    "old_opening_M31_values": 115,
+    "new_opening_M31_values": 95
+  },
+  "pairing": "SHIFT0/1, SHIFT2/3, SHIFT4/U16_0, U16_1/2, U16_3/4, U16_5/6, U16_7/8; strictFUNCTION single",
+  "physical_claim_contract": "Three canonical FS-bound ledger fields. Only SHIFT+range16+function is physically certified by the consumer. Every participating provider/consumer debt must close in the complete caller.",
+  "multiplicity": "Only FUNCTION receives mu. MAIN53, metadata30, constructors/native_fill, positive-function admission, unit5N/9N support counts and MAIN ownership are unchanged. Interaction generation is serial.",
+  "gates": {
+    "Safe": {
+      "word_local_dense_packed": 12,
+      "Circuit_arithmetic_lane": 2,
+      "source": 7,
+      "weighted_source_and_core": 6,
+      "word_q70_proof": 2,
+      "packed_q70_proof": 2,
+      "core_prepared": 14,
+      "shared_K": 9
+    },
+    "Fast": {
+      "word_local_dense_packed": 12,
+      "Circuit_arithmetic_lane": 2,
+      "source": 7,
+      "weighted_source_and_core": 6,
+      "word_q70_proof": 2,
+      "packed_q70_proof": 2,
+      "core_prepared": 14,
+      "shared_K": 9
+    },
+    "all38_arbitrary_QM31_degree3_and_genuine_cubic": true,
+    "first27_arithmetic_exact": true,
+    "scalar_PackedM31_PackedQM31_residual_parity": true,
+    "Circuit_all38_residuals_and_claim_challenge_mutants": true,
+    "valid_inactive_zero_mu_row_strict_FN_pole_only_nonzero_residual": true,
+    "native_1_3_16_constructor_MAIN_and_interaction_equivalence": true,
+    "high_multiplicity_70001": true,
+    "dictionary_poles_late_ledger_retry_OOM_borrowed_input_and_constructor_drain": true,
+    "wrong_result_table_quotient_sign_actual_prover_rejects": true,
+    "four_way_balanced_claim_actual_receiver_rejects": true,
+    "prior_opening_and_noncanonical_claim_rejects": true
+  },
+  "proof": {
+    "encoding_identity": "18881c2bd12d1eb47d6489f0401b26a00b762b6393f5dc378bae5aaaf869bab2",
+    "scope": "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
+    "witness_source": "native-owned",
+    "main_released_before_challenge": true,
+    "retained_payload_bytes_per_row": 30,
+    "proof_bytes": 276832,
+    "proof_sha256": "c09d15cc92211060f377d8dfc2cf1aa682e6a42d65d70332d5b46a0719034b63",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "source_cells": 5378656,
+    "source_bytes": 21514624,
+    "trace_oods_masks": 245,
+    "shift": {
+      "log": 5,
+      "fixed": 2,
+      "main": 53,
+      "interaction": 36
+    },
+    "shift_table": {
+      "log": 16,
+      "fixed": 18,
+      "main": 16,
+      "interaction": 36
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 7,
+    "shift_mass_including_padding": 160,
+    "range_mass_including_padding": 288,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "SafeFast_native_borrowed_scalar_oracle_proof_bytes_exact": true,
+  "fresh_process_receivers": true,
+  "artifact": "vectors/reports/interop_artifacts/rv64-shift-joint-prefix-v2",
+  "costs": {
+    "log20_source_bytes_saved": 50331648,
+    "log20_current_2n_matrix_bytes_saved": 100663296,
+    "do_not_doublecount_previous_openings_as_full_matrix": true
+  },
+  "runtime_performance_measured": false,
+  "logs": [
+    "/tmp/rv64-shift36-dense-safe.log",
+    "/tmp/rv64-shift36-final-safe.log",
+    "/tmp/rv64-shift36-integration-safe.log",
+    "/tmp/rv64-shift36-final-fast.log"
+  ],
+  "optional_DIV_test": "Decoded tree delta contract {3,1136,12,0} and total1151, avoiding unrelated-chip width snapshots; no new global absolute count pins.",
+  "hook": "Prior user-authorized inherited unrelated hook exception; focused tests unchanged."
+}

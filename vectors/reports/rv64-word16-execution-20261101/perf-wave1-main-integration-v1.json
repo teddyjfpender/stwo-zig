@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "kind": "perf_wave1_merged_qualification",
+  "baseline_commit": "eac3b7c076ad876775dc52b09456fb6801c6d741",
+  "integration_branch": "codex/rv64-perf-wave1-integration",
+  "merge_commit": "7fb8fa81b",
+  "test_discovery_fix_commit": "007215b2a",
+  "changes": [
+    "pooled row-chunked DEEP quotient setup",
+    "default half-scratch queued host openings",
+    "batch-inverted parallel secp truth interactions"
+  ],
+  "excluded": [
+    "truths-first ordering",
+    "expansion cleanup with process-wide twiddle cache"
+  ],
+  "test_fix": "Include randomized quotient parity in coefficient storage suite filter and explicitly bind four workers against the independent serial reference.",
+  "checks": {
+    "safe": {
+      "path": "/tmp/rv64-perf-wave1-merged-safe-v1.log",
+      "sha256": "1e5aa819177f40fc8f6eb718740cea41faebe3942a5c4099d8cf3bd00f3a76c4",
+      "summary": "Build Summary: 6/6 steps succeeded\ntest-stwo-prover-coefficient-storage success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 40s MaxRSS:1G\ntest-riscv64-selective-openings success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 8s MaxRSS:529M\ntest-riscv64-secp success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 39s MaxRSS:1G"
+    },
+    "randomized_quotient_safe": {
+      "path": "/tmp/rv64-perf-wave1-quotient-discovery-safe-v1.log",
+      "sha256": "8a05eb7a55cc05e167acbf09d85d2d64ec7a0c04287c35398370dbde983aa423",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-stwo-prover-coefficient-storage success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 42s MaxRSS:1G"
+    },
+    "randomized_quotient_fast": {
+      "path": "/tmp/rv64-perf-wave1-quotient-discovery-fast-v1.log",
+      "sha256": "b47476acfaa92eeff2be282a3328f0530d05d820eac2c7e2c417dc3875210b15",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-stwo-prover-coefficient-storage success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 41s MaxRSS:1G"
+    },
+    "driver_build": {
+      "path": "/tmp/rv64-perf-wave1-merged-build-v1.log",
+      "sha256": "99ba1f3a213edefc54b9cf06252f57cc706cf32b95975d0658fd9c0d026d1c53",
+      "summary": "Build Summary: 2/2 steps succeeded\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G"
+    }
+  },
+  "prefix": {
+    "baseline": "/tmp/rv64-div-product-ethereum-prefix4-v1",
+    "merged": "/tmp/rv64-perf-wave1-main-prefix4-v1",
+    "files": [
+      {
+        "file": "bundle.json",
+        "sha256": "40018106d80ecc6c6ad0e705e00fa66e68b3a31e018358bc0197c0ffad854a1e",
+        "identical": true
+      },
+      {
+        "file": "cells.bin",
+        "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "identical": true
+      },
+      {
+        "file": "cost.json",
+        "sha256": "9af83627f3d7228cf368a1d6fa1f38f5738514c4a06ce31f9c04654ffb9b0703",
+        "identical": true
+      },
+      {
+        "file": "roster.json",
+        "sha256": "7bbc0bf7fc310eb613f5c539845ed8f6a6d31eb5f04d0b52bee4bc70aae58456",
+        "identical": true
+      },
+      {
+        "file": "cpu-0.bin",
+        "sha256": "20db9114b89ec26b7b9e3ffb427520d4ea3e77e5d4be93b44b873037487d1cb0",
+        "identical": true
+      },
+      {
+        "file": "cpu-1.bin",
+        "sha256": "b6ad1a37d133914787ed3ad3ec2fa075965b374b3f2bdacd129673b1abe966e4",
+        "identical": true
+      },
+      {
+        "file": "cpu-2.bin",
+        "sha256": "18d921a3abbd3dee88888e5c1365596189e9acee4830c32d53a824003a0c73db",
+        "identical": true
+      },
+      {
+        "file": "cpu-3.bin",
+        "sha256": "0929be9ecfd95bd06bd6a91bd7c0183ad9af37c3240dcae11f02f9e65489ae7d",
+        "identical": true
+      },
+      {
+        "file": "truth-0.bin",
+        "sha256": "422215db4d8b326b309fd3443e26650a1b5e00186d75cd12f85ff28596516912",
+        "identical": true
+      },
+      {
+        "file": "truth-1.bin",
+        "sha256": "9155661c51a209ad26f4a08e2692462d83a08e7268997835c10e4b5dd06344a7",
+        "identical": true
+      },
+      {
+        "file": "truth-2.bin",
+        "sha256": "f9ea23971f3ef95a55943ad7a45edfc043aec8469611db88bf2248b14a68ee85",
+        "identical": true
+      }
+    ],
+    "all_identical": true
+  },
+  "fresh_receiver": {
+    "core_schema": 5,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "load_and_setup_ns": 3200826333,
+    "verify_ns": 341615709,
+    "fixed_native_cache": {
+      "limit_bytes": 268435456,
+      "retained_bytes": 181229952,
+      "native_backing_bytes": 181214336,
+      "groups": 121,
+      "hits": 428,
+      "duplicate_native_bytes_released": 738370048,
+      "observed_individual_owners": 549,
+      "observed_backing_owners": 0,
+      "observed_spans": 549,
+      "owner_leases": 5
+    },
+    "program_metadata_cache": {
+      "limit_bytes": 67108864,
+      "retained_bytes": 30951766,
+      "payload_bytes": 30951414,
+      "programs": 1,
+      "hits": 4,
+      "metadata_bytes_not_rebuilt": 123805656,
+      "duplicate_metadata_bytes_released": 0,
+      "owner_leases": 6
+    }
+  },
+  "measurement_scope": "Correctness qualification while other workflows were active; no controlled timing or whole-block speedup claim. Prefix comprises 4 CPU and 3 truth proofs, not a completed block.",
+  "hook_exception": "Session-authorized hook exception; unrelated repository-wide baseline conformance failures remain outside this slice."
+}

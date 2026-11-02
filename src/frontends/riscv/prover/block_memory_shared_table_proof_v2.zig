@@ -208,6 +208,10 @@ test "block V2 range shared table proves and freshly verifies one shard" {
 
 const ByteCounter = struct {
     bytes_written: usize = 0,
-    pub fn writeAll(self: *ByteCounter, bytes: []const u8) !void { self.bytes_written += bytes.len; }
-    pub fn writeByte(self: *ByteCounter, _: u8) !void { self.bytes_written += 1; }
+    pub fn writeAll(self: *ByteCounter, bytes: []const u8) !void {
+        self.bytes_written += bytes.len;
+    }
+    pub fn writeByte(self: *ByteCounter, _: u8) !void {
+        self.bytes_written += 1;
+    }
 };

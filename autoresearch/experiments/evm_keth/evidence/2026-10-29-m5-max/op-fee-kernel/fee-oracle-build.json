@@ -1,0 +1,31 @@
+{
+  "schema": "keth-op-reference-build-v1",
+  "target": "fee-oracle",
+  "source": {
+    "repository": "https://github.com/ethereum-optimism/optimism",
+    "revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+    "git_tree": "5b196656c21660e5fd8f5e7adb359d87f820cfd5"
+  },
+  "source_files_sha256": {
+    "op_fee_oracle/main.go": "45fa281a6b31b11cb352863a97553b75eb40c6c6385a4850864884431eeb73af"
+  },
+  "go_version": "1.26.10",
+  "go_mod_sha256": "43c6a2b6bcfca1343d3aab795eb56e0cb20dd1f822dd9b73086bca09c6a59115",
+  "go_sum_sha256": "36dc5dbcca300e068079779583dc7ac521c2fb29112f03ed5efd3f8b6a65f08f",
+  "binary_sha256": "57c8fdb783bc5978c9a59fb9eed5c28e750af9b429ba40c8042ecd4907c7f097",
+  "command": [
+    "mise",
+    "exec",
+    "go@1.26.10",
+    "--",
+    "go",
+    "-C",
+    "/Users/theodorepender/code/cryptography/optimism-op-batch-reference",
+    "build",
+    "-trimpath",
+    "-o",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-fee-oracle-final",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/autoresearch/experiments/evm_keth/op_fee_oracle/main.go"
+  ],
+  "elapsed_seconds": 0.7191644580161665
+}

@@ -1,0 +1,129 @@
+{
+  "schema": "rv64-alu-joint-prefix-v3-qualification",
+  "scope": "Concrete ALU component and closed diagnostic/raw/index/core/shared-K fixture integration; no new wholeblock or recursion acceptance claim",
+  "base_commit": "516717243da380908e7531b0ebe5aa8037bd8c74",
+  "encoding_version": 3,
+  "geometry": {
+    "fixed": 2,
+    "main": 52,
+    "old_interaction": 52,
+    "interaction": 48,
+    "old_constraints": 69,
+    "constraints": 67,
+    "arithmetic_residuals_unchanged": 53,
+    "U16_queries_per_padded_row": 20,
+    "range_pair_inverses": 10,
+    "function_inverse_start": 40,
+    "joint_prefix_start": 44,
+    "previous_M31_values_old": 8,
+    "previous_M31_values_new": 4,
+    "degree": 3,
+    "native_factor": 2,
+    "composition_log_split": 1
+  },
+  "physical_claim_contract": "range16/function fields remain canonical and transcript-bound; ALU authenticates only their sum. Global closures must sum all physical source debts, never treat this component as two independent certificates.",
+  "gates": {
+    "Safe": {
+      "local_source_packed_dense": 24,
+      "Circuit_arithmetic_lane": 2,
+      "parallel_interactions": 4,
+      "standalone_q70_proof": 2,
+      "closed_raw_thin": 14,
+      "closed_indexed": 9,
+      "full_core_prepared": 14,
+      "shared_K": 5
+    },
+    "Fast": {
+      "local_source_packed_dense": 24,
+      "Circuit_arithmetic_lane": 2,
+      "parallel_interactions": 4,
+      "standalone_q70_proof": 2,
+      "closed_raw_thin": 14,
+      "closed_indexed": 9,
+      "full_core_prepared": 14,
+      "shared_K": 5
+    },
+    "genuine_D3_all67_arbitrary_QM31": true,
+    "first53_arithmetic_residuals_exact": true,
+    "scalar_PackedM31_PackedQM31_all_residuals": true,
+    "Circuit_all_claim_and_challenge_wires": true,
+    "zero_multiplicity_FN_pole_rejects_with_other_residuals_zero": true,
+    "four_way_balanced_claim_actual_receiver_rejects": true,
+    "wrong_result_carry_sign_and_SUMzero_actual_prover_rejects": true,
+    "serial_parallel_1_4_16_interactions_exact": true,
+    "constructor_interaction_OOM_and_worker_failure_drain": true,
+    "released_owned_borrowed_MAIN": true
+  },
+  "proof": {
+    "scope": "diagnostic-public-io-alu-u16-one-pcs",
+    "proof_bytes": 261248,
+    "proof_sha256": "5add6b786ded10b96dd59adcf3d0dde43336dc2ed0a43742872dfb31309d2265",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "encoding_identity": "252d0f3e9cbfb838609820e59192f8154e8a908f40ad021d16eeb79b454b40ed",
+    "public_roster_digest": "3deb50aa63a1f15ad7acb664404c2a28a4b1fafd54456a11670d2774bf47f472",
+    "source_cells": 791488,
+    "source_bytes": 3165952,
+    "trace_oods_masks": 182,
+    "alu": {
+      "log": 5,
+      "fixed": 2,
+      "main": 52,
+      "interaction": 48
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 10,
+    "range_mass_including_padding": 640,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "SafeFast_proof_bytes_exact": true,
+  "fresh_process_receivers": true,
+  "artifact": "vectors/reports/interop_artifacts/rv64-alu-joint-prefix-v3",
+  "neutral_helper_regression": {
+    "authority": "providers/scalar_range.affineDenominatorFor; old native method delegates unchanged expression",
+    "BINARY_q70_bytes_exact": true,
+    "BINARY_proof_sha256": "9777c317201e1cdceb91f37f6a05d1a69ffb760040446aa502686202c1e3253f",
+    "fresh_receiver": true
+  },
+  "recovered_integration_bug": {
+    "before": "Both raw cpu_materials and indexed materials had stale hardcoded BINARY42/28, incompatible with canonical42/24; actual constructors failed InvalidThinCpuColumnShape.",
+    "after": "Both derive MAIN/INTER from canonical BINARY constants. No other production BINARY28 hardcodes found by rg.",
+    "no_obsolete28_column_byte_parity_claim": true
+  },
+  "costs": {
+    "current_cells_old": 106,
+    "current_cells_new": 102,
+    "M31_opening_values_old": 114,
+    "M31_opening_values_new": 106,
+    "ALU_log20_source_M31_cells_saved": 4194304,
+    "ALU_log20_source_bytes_saved": 16777216,
+    "ALU_log20_2n_current_matrix_bytes_saved": 33554432,
+    "no_second_full_matrix_claim_for_previous_openings": true,
+    "standalone_source_cells": 791488,
+    "standalone_M31_opening_values": 182
+  },
+  "runtime_performance_measured": false,
+  "logs": [
+    "/tmp/rv64-alu48-last-safe.log",
+    "/tmp/rv64-alu48-roster-safe.log",
+    "/tmp/rv64-alu48-shared-safe.log",
+    "/tmp/rv64-alu48-requalified-fast.log"
+  ],
+  "hook": "Existing user authorization for inherited unrelated repository hook failures applies; focused checks unchanged."
+}

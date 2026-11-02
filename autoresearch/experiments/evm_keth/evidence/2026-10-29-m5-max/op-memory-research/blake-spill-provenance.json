@@ -1,0 +1,7 @@
+{
+  "schema": "keth-blake-spill-fixture-v1",
+  "source": "vectors/cairo/official/all_opcodes.prover_input.json",
+  "source_sha256": "7f94bd5dcf32e7dd69a8a47f42d41830b4fdd3b75846ef9f7694f3164117fcd6",
+  "output_sha256": "3c1531a41d6d025e4a3aa187857927958ca4556fd4511836a21f81312725c842",
+  "logical_memory_values_preserved": true
+}

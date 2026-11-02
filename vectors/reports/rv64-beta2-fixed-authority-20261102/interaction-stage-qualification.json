@@ -1,0 +1,24 @@
+{
+  "scope": "optional interaction_generation CPU global and truth local/global witness generation, before INTER commitment",
+  "null_recorder": "StageScope.begin(null) returns without clock or allocation",
+  "proof_parameters_changed": false,
+  "checks": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "6531b36b18766d5124dcfb6f154c60c1b792824146450e0db88f8e5f58ca2c73"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "cbd4857264f5135b3d5d36b7c3feb4ed4b397cfc9170547b2d3157fa34d5aa4e"
+    }
+  ],
+  "gates": [
+    "recorded CPU normal vs unrecorded unretired physical proof+claims digest parity",
+    "actual CPU recorded generation scope ends before core proving and has no nested commit children",
+    "actual K/ADD truth recorded generation scope ends before core proving",
+    "recorder stage stack empty after complete",
+    "actual default and beta2 fresh physical proofs accepted"
+  ]
+}

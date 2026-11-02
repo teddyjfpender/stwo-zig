@@ -1,0 +1,58 @@
+[
+  {
+    "repository": "ethereum-optimism/optimism",
+    "revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+    "path": "op-node/rollup/derive/l1_block_info.go",
+    "local_file": "l1_block_info.go",
+    "sha256": "fe0698506baa22e077000f43b1dca4932dd2b0a67a7d8579271d431ef368939f"
+  },
+  {
+    "repository": "ethereum-optimism/op-geth",
+    "revision": "a5f1641275442adb466daef5f1be32bd28392daa",
+    "path": "core/types/deposit_tx.go",
+    "local_file": "deposit_tx.go",
+    "sha256": "e98f34eb17ee70a6248306642e48125d10816f0b462dda093ec0a15e1745068a"
+  },
+  {
+    "repository": "ethereum-optimism/op-geth",
+    "revision": "a5f1641275442adb466daef5f1be32bd28392daa",
+    "path": "core/state_transition.go",
+    "local_file": "state_transition.go",
+    "sha256": "61d05336ff5c1e1ab9a9e6459718f785fd00110d74799237fc754c1684f41b01"
+  },
+  {
+    "repository": "ethereum-optimism/superchain-registry",
+    "revision": "fcc7f4bf9fe577531f0e15eba52e3d8d6679f3e9",
+    "path": "superchain/configs/mainnet/op.toml",
+    "local_file": "op.toml",
+    "sha256": "419779a2c50fa240b97d2e783cb356ec718072011d6d86636c9d10b922121c99"
+  },
+  {
+    "repository": "ethereum-optimism/superchain-registry",
+    "revision": "fcc7f4bf9fe577531f0e15eba52e3d8d6679f3e9",
+    "path": "superchain/configs/mainnet/base.toml",
+    "error": "gh: Not Found (HTTP 404)"
+  },
+  {
+    "repository": "ethereum-optimism/superchain-registry",
+    "revision": "fcc7f4bf9fe577531f0e15eba52e3d8d6679f3e9",
+    "path": "superchain/configs/mainnet/ink.toml",
+    "local_file": "ink.toml",
+    "sha256": "ba153752dc1972e52167309f02925f965fdf6556826ca84b276c91b7ddafe3ad"
+  },
+  {
+    "repository": "ethereum-optimism/superchain-registry",
+    "revision": "fcc7f4bf9fe577531f0e15eba52e3d8d6679f3e9",
+    "path": "superchain/configs/mainnet/unichain.toml",
+    "local_file": "unichain.toml",
+    "sha256": "42dbf47504971cd8baadcdd089b1d025bf535f4dfd4ee874291d066dbd1a3658"
+  },
+  {
+    "repository": "ethereum-optimism/superchain-registry",
+    "revision": "5b055be4d294ce43814a44c8839d89b2436dc8aa",
+    "path": "superchain/configs/mainnet/base.toml",
+    "local_file": "base-historical.toml",
+    "sha256": "74f60e7f9e931fb4858883b59b4a096338623a8185ffffc4529c203ffe8403d1",
+    "scope": "historical Base configuration before its removal from the registry"
+  }
+]

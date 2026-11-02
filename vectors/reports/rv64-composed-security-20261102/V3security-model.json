@@ -1,0 +1,257 @@
+{
+  "mode": "explicit-reviewed-v3-roster-under-stated-assumptions",
+  "source_revision": "6423bc59e",
+  "accounting_profile": "rv64-source-derived-services-v3-lookup/v1",
+  "assumption_set": "rv64-native-v3-om31-beta2-q256-p0-fold4-bounded-20261102-v1",
+  "inputs_sha256": {
+    "bundle": "1da861e62cd683a0c87645675a7ad51ad98ea3fddbce1ce77f10d01326edc7f6",
+    "fresh_receiver": "c66414ef08f39aaffa99ace398c5e3bed3c865df104bd8bf034293ea0f64905e",
+    "source_bounds": "4d3922ea3a99e5b7c59b45cf1b35c6b0ef7ce8d436e74a69e577cec83389386a"
+  },
+  "completed_steps": 26894777,
+  "shape": {
+    "native_proofs": 18,
+    "max_trace_log": 22,
+    "max_columns": 7444,
+    "max_constraints": 7751,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 36,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 26
+  },
+  "cpu_proofs": 7,
+  "truth_proofs": 11,
+  "namespace_counts": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+  ],
+  "keccak_policies": [
+    {
+      "calls": 19418,
+      "row_log": 18,
+      "wire_policy_word": 1770517,
+      "policy": "throughput_r27_v1",
+      "rows_per_pair": 27,
+      "clearing_width": 4,
+      "air_degree": 5,
+      "chi_table_log": 21,
+      "xor5_table_log": 16
+    },
+    {
+      "calls": 606,
+      "row_log": 13,
+      "wire_policy_word": 1770517,
+      "policy": "throughput_r27_v1",
+      "rows_per_pair": 27,
+      "clearing_width": 4,
+      "air_degree": 5,
+      "chi_table_log": 21,
+      "xor5_table_log": 16
+    },
+    {
+      "calls": 9708,
+      "row_log": 17,
+      "wire_policy_word": 1770517,
+      "policy": "throughput_r27_v1",
+      "rows_per_pair": 27,
+      "clearing_width": 4,
+      "air_degree": 5,
+      "chi_table_log": 21,
+      "xor5_table_log": 16
+    },
+    {
+      "calls": 266,
+      "row_log": 12,
+      "wire_policy_word": 0,
+      "policy": "triple_v2",
+      "rows_per_pair": 29,
+      "clearing_width": 3,
+      "air_degree": 4,
+      "chi_table_log": 13,
+      "xor5_table_log": 10
+    }
+  ],
+  "new_truth_authorities": [
+    {
+      "family": "add",
+      "calls": 8191,
+      "row_log": 13,
+      "profile": "secp_row_v1",
+      "air_degree": 4,
+      "random_polynomial_compression_degree": 0,
+      "authority": "curves carried-byte RCB equations"
+    },
+    {
+      "family": "add",
+      "calls": 2047,
+      "row_log": 11,
+      "profile": "secp_row_v1",
+      "air_degree": 4,
+      "random_polynomial_compression_degree": 0,
+      "authority": "curves carried-byte RCB equations"
+    },
+    {
+      "family": "add",
+      "calls": 120,
+      "row_log": 8,
+      "profile": "secp_row_v1",
+      "air_degree": 4,
+      "random_polynomial_compression_degree": 0,
+      "authority": "curves carried-byte RCB equations"
+    },
+    {
+      "family": "double",
+      "calls": 8191,
+      "row_log": 13,
+      "profile": "secp_row_v1",
+      "air_degree": 4,
+      "random_polynomial_compression_degree": 0,
+      "authority": "curves carried-byte RCB equations"
+    },
+    {
+      "family": "double",
+      "calls": 1560,
+      "row_log": 11,
+      "profile": "secp_row_v1",
+      "air_degree": 4,
+      "random_polynomial_compression_degree": 0,
+      "authority": "curves carried-byte RCB equations"
+    },
+    {
+      "family": "sha256",
+      "calls": 2901,
+      "row_log": 12,
+      "profile": "sha256",
+      "air_degree": 3,
+      "random_polynomial_compression_degree": 0,
+      "authority": "SHA Boolean/round/feed-forward equations"
+    },
+    {
+      "family": "arith256_mod",
+      "calls": 319,
+      "row_log": 9,
+      "profile": "arith256_mod",
+      "air_degree": 3,
+      "random_polynomial_compression_degree": 0,
+      "authority": "arith256 exact carried 16-bit coefficient equations"
+    }
+  ],
+  "parameters": {
+    "extension_degree": 8,
+    "raw_mod_max_point_mass": "6561/2^256",
+    "blowup_log": 2,
+    "queries": 256,
+    "PoW": 0,
+    "fold_step": 4,
+    "fri_first_word_rate": "1/4",
+    "original_extraction_rho_plus": "17/64",
+    "agreement": "41/64",
+    "theta": "23/64"
+  },
+  "degree_weights": {
+    "joint_cleared_lookup_all_actual_scopes": 1482915616,
+    "conservative_all_physical_poles": 1482915616,
+    "gkr_cubic_sumchecks": 245700,
+    "gkr_instance_and_layer_mix": 6916,
+    "gkr_late_eta_bindings": 252,
+    "legacy_secp_product_random_compression": 0,
+    "composition_mix": 139518,
+    "oods_circle_correspondence": 89920509050880,
+    "deep_batching_common_domain_CA": 11240063631360,
+    "fri_degree15_unique_curve": 36238786560
+  },
+  "conditional_term_bits": {
+    "joint_cleared_lookup_all_actual_scopes": 212.85451063540006,
+    "conservative_all_physical_poles": 212.85451063540006,
+    "gkr_cubic_sumchecks": 225.41376166209386,
+    "gkr_instance_and_layer_mix": 230.56457784058847,
+    "gkr_late_eta_bindings": 235.34302007073083,
+    "legacy_secp_product_random_compression": null,
+    "composition_mix": 226.23020825554957,
+    "oods_circle_correspondence": 196.9665845578419,
+    "deep_batching_common_domain_CA": 199.9665845578419,
+    "fri_degree15_unique_curve": 208.2434843971799
+  },
+  "conditional_algebraic_union_bits": 196.7961005449691,
+  "query_union_bits": 160.29676181632817,
+  "gkr_count_envelope": {
+    "max_instances_per_cpu": 36,
+    "max_variables": 26,
+    "sumcheck_rounds_per_instance_upper_bound": 325,
+    "cubic_sumcheck_degree_total": 245700,
+    "instance_layer_mix_degree_total": 6916,
+    "late_eta_binding_degree_total": 252
+  },
+  "actual_roster_transcript_operation_envelope": 33403,
+  "all_caps_ten_namespace_transcript_operation_envelope": 2749952,
+  "transcript_round_upper_bound": 4194304,
+  "hash_scopes": 26,
+  "hash_collision_coefficient": 79,
+  "conditional_BCS_formula": "(T+2^22)*(sum(degree_weights)*6561/2^256 +18*(41/64)^256) +79*(T^2+1)/2^256",
+  "bounded_work_range": "1 <= TOTAL adversarial RO queries T <= 2^120",
+  "uniform_success_per_query_bits": 129.69250736661115,
+  "work_table": [
+    {
+      "log2_total_adversarial_RO_queries": 0,
+      "unclipped_error_bits": 138.29676147234818,
+      "unclipped_error": 2.3362886204775584e-42,
+      "success_per_query_bits": 138.29676147234818
+    },
+    {
+      "log2_total_adversarial_RO_queries": 64,
+      "unclipped_error_bits": 96.29676178371619,
+      "unclipped_error": 1.027510379861018e-29,
+      "success_per_query_bits": 160.2967617837162
+    },
+    {
+      "log2_total_adversarial_RO_queries": 120,
+      "unclipped_error_bits": 9.696219250936792,
+      "unclipped_error": 0.0012054443366778993,
+      "success_per_query_bits": 129.6962192509368
+    },
+    {
+      "log2_total_adversarial_RO_queries": 121,
+      "unclipped_error_bits": 7.696219251379944,
+      "unclipped_error": 0.004821777345230798,
+      "success_per_query_bits": 128.69621925137994
+    },
+    {
+      "log2_total_adversarial_RO_queries": 122,
+      "unclipped_error_bits": 5.696219251601406,
+      "unclipped_error": 0.019287109377961596,
+      "success_per_query_bits": 127.6962192516014
+    },
+    {
+      "log2_total_adversarial_RO_queries": 124,
+      "unclipped_error_bits": 1.6962192517676158,
+      "unclipped_error": 0.3085937500118464,
+      "success_per_query_bits": 125.69621925176762
+    },
+    {
+      "log2_total_adversarial_RO_queries": 128,
+      "unclipped_error_bits": -6.303780748180543,
+      "unclipped_error": 79.00000000018954,
+      "success_per_query_bits": 121.69621925181946
+    }
+  ],
+  "bounded_engineering_arithmetic_review_complete": true,
+  "independent_security_audit_complete": false,
+  "whole_protocol_128_certified": false,
+  "security_qualified": false,
+  "recursion_included": false,
+  "limitations": [
+    "conditional nonzero rational lookup/source weighting/canonicality and characteristic lemmas",
+    "unique decoding FRI/DEEP/OODS implementation correspondence from prior proof outline must apply to degree<=5 V3 roles",
+    "source AIR integer semantics and range-inheritance premises remain assumptions, not proved by proof acceptance",
+    "adaptive multiscope BCS/ROM correspondence and raw Blake/SHA ideal-hash assumptions",
+    "exact hash constants do not imply unrestricted literal128 per-work security near2^128 queries",
+    "numerical result only for pinned18-proof V3 roster, not arbitrary256-proof inventory",
+    "outer recursion field/profile and composed security excluded"
+  ]
+}

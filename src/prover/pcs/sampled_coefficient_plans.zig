@@ -844,13 +844,21 @@ const CoefficientEvalWork = struct {
         while (true) {
             const start = self.cursor.fetchAdd(width, .monotonic);
             if (start >= self.coefficients.len) return;
-            const end = @min(start + width, self.coefficients.len);
-            prover_circle.poly.CircleCoefficients.evalManyAtPointsWithSubsetProductBases(
-                self.coefficients[start..end],
-                self.point_bases,
-                self.out[start..end],
-            );
+            self.runStart(start);
         }
+    }
+    fn runBatch(raw: *anyopaque, index: usize) void {
+        const self: *const CoefficientEvalWork = @ptrCast(@alignCast(raw));
+        self.runStart(index * @import("stwo_core").fields.m31.PACK_WIDTH);
+    }
+    fn runStart(self: *const CoefficientEvalWork, start: usize) void {
+        const width = @import("stwo_core").fields.m31.PACK_WIDTH;
+        const end = @min(start + width, self.coefficients.len);
+        prover_circle.poly.CircleCoefficients.evalManyAtPointsWithSubsetProductBases(
+            self.coefficients[start..end],
+            self.point_bases,
+            self.out[start..end],
+        );
     }
 };
 
@@ -865,7 +873,11 @@ fn evaluateCoefficientBatchParallel(
     // width-100 tree's final OODS evaluations.
     const min_columns_per_worker: usize = @max(4, m31.PACK_WIDTH);
     const pool = work_pool_mod.getGlobalPool() orelse return false;
-    const worker_count = @min(pool.workerCount(), coefficients.len / min_columns_per_worker);
+    const queue = work_pool_mod.cooperative.current();
+    const worker_count = if (queue) |q|
+        @min(q.threads, (coefficients.len + min_columns_per_worker - 1) / min_columns_per_worker)
+    else
+        @min(pool.workerCount(), coefficients.len / min_columns_per_worker);
     if (worker_count <= 1) return false;
 
     const basis_len = coefficients[0].coeffs.len;
@@ -885,6 +897,12 @@ fn evaluateCoefficientBatchParallel(
     }
 
     var cursor = std.atomic.Value(usize).init(0);
+    if (queue) |q| {
+        var item = CoefficientEvalWork{ .coefficients = coefficients, .out = out, .point_bases = basis_storage, .cursor = &cursor };
+        var batch = work_pool_mod.cooperative.Batch{ .context = &item, .run = CoefficientEvalWork.runBatch, .count = (coefficients.len + m31.PACK_WIDTH - 1) / m31.PACK_WIDTH };
+        q.split(&batch);
+        return true;
+    }
     var work: [work_pool_mod.MAX_WORKERS]CoefficientEvalWork = undefined;
     for (work[0..worker_count]) |*worker| {
         // Claim complete native-width column batches: ceiling-dividing raw

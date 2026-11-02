@@ -1,0 +1,120 @@
+{
+  "scope": "current accepted full block source-layout accounting, not a benchmark or security certificate",
+  "source_snapshot": "85add4adf42cf7b4dd3454aba8010a1c0e94f761",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/fractions.zig": "0a24176f99282b8cdde8e007fa2797ef39e08b854c934b836130408d57e9a372",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/roster.zig": "5b08329f1193664be17d6003d5ec71c7b1f7b5c1f57f4a7b32f1de8934e3f062",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/shape_metadata.zig": "569d80f3318012c5c70824bd01ca91344e1eab2dd3fdbbf9659e20ec52d9ce08",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/global_cpu.zig": "6083b0a0af6b6b4b5ef4265d4748c7806c0964e515aa80400d1f16fb869459ed",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/binding.zig": "52de7ff2a821568bc94bb09e391ba1aea6490ca96e662879e8c08bd6e1d46eca",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_role.zig": "a356c04382ca359ffb80e71d4ae88b13c4935db36349ec609597200845654dbc",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig": "67e70da23e2d6e09cdb1f3589756d56e1300db07dc7270d9b461731ec3de9a6c",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "36af8792f15eaf5ab5337293dd026cdd9d8b28805a81ada563bbb3117645464c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/coordinator_plan_main.zig": "c5cec3feaa0f7e75d19a9697dc0dd32629f3d4ea40e054e52225dd11809534b1"
+  },
+  "bundle_sha256": "ba0979f02a818c4cb7d3afaec6681779d5e80bad833489ad67f564ab89b13325",
+  "plan_output_sha256": "70d67a6236f8bd458716d7744b99439e7729d06741528a2baa15120e71826179",
+  "diagnostic_executable_sha256": "340bdf16c82c9f05c7e06ddbd5549ac67a6e0b165682bc3015c8a87f92949622",
+  "pinned_workload": {
+    "block": 24628607,
+    "guest_steps": 104253913,
+    "gas_used": 7372614,
+    "guest_elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "gas_steps_authority": "vectors/reports/rv64-ethereum-20261101/committed-work-comparison-v1.json",
+    "gas_steps_authority_sha256": "03ef5a81fcbd8409ce91759cb304bf6240cb68ab5c89cacd0c068f69ecce5634",
+    "historical_comparison_cells_reused": false,
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "rom_log": 20,
+    "rom_log_observation": "vectors/reports/rv64-truth-shift-map-20261102/old-produce.stderr: log20 main1 inter16 constraints4; same pinned program authority for every CPU"
+  },
+  "native_M31_cells": {
+    "cpu_main": 9029950720,
+    "cpu_interaction": 3971281408,
+    "cpu_main_interaction": 13001232128,
+    "truth_main": 1200669440,
+    "truth_interaction": 3259756544,
+    "truth_main_interaction": 4460425984,
+    "full_main": 10230620160,
+    "full_interaction": 7231037952,
+    "full_main_interaction": 17461658112,
+    "fixed_per_proof_references": 1424594496
+  },
+  "interaction_split": {
+    "cpu_local_gkr_binding": 3271442944,
+    "truth_local_classic": 3127439360,
+    "cross_shard_classic": 832155648
+  },
+  "global_classic_roles": {
+    "ram_ls": 588775424,
+    "ram_boundary": 67133440,
+    "ram_bridge": 23752704,
+    "kio_bridge": 17793024,
+    "wire_bridge": 2383872,
+    "kio_truth": 109051904,
+    "wire_truth": 23265280
+  },
+  "normalized": {
+    "cpu_only": {
+      "native_cells": 13001232128,
+      "native_cells_per_guest_retirement": 124.70737791875496,
+      "native_payload31_bits_per_gas": 54666.93305359537,
+      "native_storage32_bits_per_gas": 56430.38250693716,
+      "beta1_lde_cells": 26002464256,
+      "beta1_payload31_bits_per_gas": 109333.86610719074,
+      "beta2_lde_cells": 52004928512,
+      "beta2_payload31_bits_per_gas": 218667.73221438148
+    },
+    "truth_only": {
+      "native_cells": 4460425984,
+      "native_cells_per_guest_retirement": 42.78425486053459,
+      "native_payload31_bits_per_gas": 18754.976932740545,
+      "native_storage32_bits_per_gas": 19359.976188635403,
+      "beta1_lde_cells": 8920851968,
+      "beta1_payload31_bits_per_gas": 37509.95386548109,
+      "beta2_lde_cells": 17841703936,
+      "beta2_payload31_bits_per_gas": 75019.90773096218
+    },
+    "full_main_interaction": {
+      "native_cells": 17461658112,
+      "native_cells_per_guest_retirement": 167.49163277928955,
+      "native_payload31_bits_per_gas": 73421.90998633592,
+      "native_storage32_bits_per_gas": 75790.35869557256,
+      "beta1_lde_cells": 34923316224,
+      "beta1_payload31_bits_per_gas": 146843.81997267183,
+      "beta2_lde_cells": 69846632448,
+      "beta2_payload31_bits_per_gas": 293687.63994534366
+    },
+    "full_main_interaction_plus_fixed_references": {
+      "native_cells": 18886252608,
+      "native_cells_per_guest_retirement": 181.1562949008926,
+      "native_payload31_bits_per_gas": 79411.97394139989,
+      "native_storage32_bits_per_gas": 81973.65052015473,
+      "beta1_lde_cells": 37772505216,
+      "beta1_payload31_bits_per_gas": 158823.94788279978,
+      "beta2_lde_cells": 75545010432,
+      "beta2_payload31_bits_per_gas": 317647.89576559956
+    }
+  },
+  "representation_notes": [
+    "native cells are base M31 coordinates, including eight coordinates per OM31 value",
+    "native MAIN+INTER excludes FIXED, composition, FRI, GKR working facts, allocator buffers and proof bytes",
+    "FIXED figure counts per-proof references, not repeated setup/hash work",
+    "31-bit payload is a nominal field-information convention; each stored M31 word occupies32bits",
+    "beta1 and beta2 multiply represented M31 LDE cells by2 and4 respectively; composition domain geometry is independent and not included",
+    "no new guest or private branch used"
+  ],
+  "global_gkr_counterfactual_reference": {
+    "commits": [
+      "1e1ec30bc",
+      "7272b3c0b"
+    ],
+    "separate_authenticated_binding_cells": 716283904,
+    "net_saved_cells": 115871744,
+    "fraction_of_full_main_interaction": 0.006635781279005264,
+    "implemented": false,
+    "measured_speedup": false
+  },
+  "whole_protocol_128": false,
+  "gpu_execution_qualified": false
+}

@@ -1,0 +1,331 @@
+{
+  "schema": 1,
+  "status": "qualified optional unmapped retained MAIN; default mapped behavior preserved; no fullblock peak or controlled timing claim",
+  "base": "d33d6652121798637d34bfc01cf6d83b64c08c94",
+  "source_scope": "schema4 CPU47/BINARY29, native cache256MiB; this isolated branch predates main schema5 and Program ARC activation",
+  "no_protocol_or_air_changes": true,
+  "default_parking_enabled": false,
+  "supported_operating_systems": [
+    "macos",
+    "linux"
+  ],
+  "executed_platform": "macOS Apple Silicon",
+  "config": {
+    "path": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad"
+  },
+  "tool": {
+    "path": "/tmp/rv64-retained-main-parking-tools-v1/bin/rv64-word16-ethereum",
+    "sha256": "9a4d1161778346be8411cadc00122ec4d47f56ee4dc2101f30ab8b82d67ce7d5"
+  },
+  "source_sha256": {
+    "build_support/products/catalog.zig": "73d858eb041175b77cb41e3eeedf7c7c5fdb72e9e7870b183046267b69764e1d",
+    "build_support/products/riscv_cpu.zig": "dcba0690cddeb7fd6786074c702c8aa543aec06ae8d562b5277d49c9755c886d",
+    "src/integrations/riscv_cpu/rv64_word16_retained_parking_test_root.zig": "11cab71fe7984a0b1b900ac932fe833d7c7cc62489622b53d2e968f21fa7ad77",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/main.zig": "10632e861e7d56de7558cdf9f840e4d8b080d27fc78fabccbe5ef919e09e7448",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/options.zig": "9e0eaefcb036f7b20986ae81ff2bf8ee425dcb282cf6cea30563754d8c1b74c4",
+    "src/integrations/riscv_cpu/word16_global_execution/retained_main_parking.zig": "5988692ada7bd8e62341f2c30fa70dba2a93e12be4c1d9925d7ca161bb2444bf",
+    "src/integrations/riscv_cpu/word16_global_execution/retained_main_store.zig": "97e8d57a853a7800e60eb27538e24abe5eeb90587aad371a31b323a8ca60949f",
+    "src/integrations/riscv_cpu/word16_global_execution/retained_parking_test.zig": "f175766d139f2638032d23dd8985ab800649184b1f136c682b1c49b4234c1229",
+    "src/integrations/riscv_cpu/word16_global_execution/services/worker.zig": "382922b46e38a1b8c85fe0390d30f14e1d048bd4a0cb936ad61acecf90289555",
+    "src/integrations/riscv_cpu/word16_global_execution/stage1_worker.zig": "8283362bb89ed8f91810e8f4376873d428de9eab39901cbe8701cf964146a3a5",
+    "src/prover/file_backed_allocator.zig": "b0512cbc2a298be01fd388b622a9fe21d90bc6a64a58966b98a5c024dc29ebb3"
+  },
+  "implementation": [
+    "Core ReservedFile helper is the sole create/exclusive/unlink/physical-reserve/length authority; existing mapped allocator delegates to it.",
+    "Parked spill streams existing coefficient slices directly to FD, syncs, releases original native owners and replaces BOTH compact views with empty slices while retaining logs/root. No initial mapping or second wide native buffer.",
+    "Restore first checks callback then own intrusive registry before interpreting context; exact descriptor identities/count/logs/offsets/root and empty/resident views are validated before read-only mmap and infallible full publish.",
+    "Store is stable-address/move-only after use and outlives trees; actual tree owner allocator/budget lease stays alive for private owner data. Unrelated Scheme shell allocations retain caller lifetime.",
+    "Workers keep the actual Store from successful spill and restore only after INTER commit; metadata-only actualRoots checks work before restoring.",
+    "No MAP_FIXED, witness/VM/Tape replay, commit FFT replay, root or channel mutation. Ordinary downstream composition/sampling FFTs remain.",
+    "Disk lease counters and mapped retained-lease counters are separate. Default Store.init still maps; initParked is opt-in."
+  ],
+  "gates": [
+    {
+      "scope": "parking22+existing mapped storage6",
+      "mode": "ReleaseSafe",
+      "exit": 0,
+      "log": {
+        "path": "/tmp/rv64-retained-parking-final22-safe.log",
+        "sha256": "ca125ddf94a1bf352c26b0f927dced181e02d0cb30a815515daa31b285b915de"
+      }
+    },
+    {
+      "scope": "parking22+CLI build",
+      "mode": "ReleaseFast",
+      "exit": 0,
+      "log": {
+        "path": "/tmp/rv64-retained-parking-final-fast-build.log",
+        "sha256": "fb93bcaeadf9537771dc0e5786ac2de43f36dd9a1334aac5311775cbea45f347"
+      }
+    },
+    {
+      "scope": "old mapped storage6+combined21+terminal10",
+      "mode": "ReleaseFast",
+      "exit": 0,
+      "log": {
+        "path": "/tmp/rv64-retained-parking-controls-fast.log",
+        "sha256": "e86028cf503c0a5c8b305e5eb30da3f6f953cd3c51ba8f0163283701208a6115"
+      }
+    },
+    {
+      "scope": "source-policy unit31",
+      "exit": 0,
+      "log": {
+        "path": "/tmp/rv64-retained-parking-policy-unit.log",
+        "sha256": "35d2fbac54e2b043f01271aa12ea2469c7f8e296b876a40a0ce050b591e838e3"
+      }
+    }
+  ],
+  "runtime_metadata": {
+    "path": "/tmp/rv64-retained-parking-runtime-final.json",
+    "sha256": "710fd5ffc591cc1826423c34d4af390b6628f5506a678119a157ca374e3e01e4"
+  },
+  "runtime_counts": {
+    "parking": 22,
+    "old_storage": 6,
+    "combined": 21,
+    "terminal": 10
+  },
+  "registration_note": "New parking minimum22 measured. Existing terminal minimum9 retained to avoid unrelated main/parser merge conflict; this branch executes10 after adding the operational flag test.",
+  "physical_scope": {
+    "instructions": 16777212,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "functions": "K+ADD+DOUBLE truths plus real CPU shards",
+    "workers": 16,
+    "lanes": 2,
+    "workers_per_lane": 8,
+    "whole_block": false,
+    "security": "unchanged existing q70/P26/F1 configuration"
+  },
+  "commands": {
+    "control": "/usr/bin/time -l TOOL produce CONFIG /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs /tmp/rv64-retained-main-parking-prefix4-mapped-v1 4 --proof-jobs=2 --commit-batch-columns=64",
+    "parked": "/usr/bin/time -l TOOL produce CONFIG /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs /tmp/rv64-retained-main-parking-prefix4-parked-v1 4 --proof-jobs=2 --commit-batch-columns=64 --park-retained-main",
+    "fresh": "/usr/bin/time -l TOOL verify-prefix CONFIG DIRECTORY"
+  },
+  "mapped_control": {
+    "directory": "/tmp/rv64-retained-main-parking-prefix4-mapped-v1",
+    "report": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-mapped-v1/report.json",
+      "sha256": "9677232373b8628cadaea5bc8724ac1387d5df82c6cd8ec9902fe2e7a0dcd597"
+    },
+    "time": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-mapped-v1.time",
+      "sha256": "8e1547f803a50da2b4d0c0bebbbf3c59a3a5c0712e3e4882471e61dd1a566b41"
+    },
+    "process_observation": {
+      "wall_seconds": 40.7,
+      "user_seconds": 214.12,
+      "system_seconds": 12.92,
+      "maximum_rss_bytes": 22647324672,
+      "peak_memory_footprint_bytes": 16421604120,
+      "page_reclaims": 5398072
+    },
+    "producer_exit": 0,
+    "fresh_exit": 0,
+    "fresh": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-mapped-v1.fresh.json",
+      "sha256": "c8a956199c2475e2da40babfd532fa30968f879636e03f7524357c410e8718fe"
+    },
+    "fresh_time": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-mapped-v1.fresh.time",
+      "sha256": "fe0e4991ccc02c14b1c08bd2ab3aada165d38ff96bf5262d9ff61ef3aac21268"
+    },
+    "fresh_process_observation": {
+      "wall_seconds": 4.4,
+      "user_seconds": 11.41,
+      "system_seconds": 0.88,
+      "maximum_rss_bytes": 3061547008,
+      "peak_memory_footprint_bytes": 3061778952,
+      "page_reclaims": 285484
+    },
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "completed_block": false,
+    "memory_words": 750521,
+    "prove_ns": 32967323875,
+    "same_process_verify_ns": 412338584,
+    "total_before_report_ns": 40181815000,
+    "retained_main": {
+      "live_bytes": 0,
+      "peak_reserved_bytes": 6235406336,
+      "total_bytes": 6235406336,
+      "limit_bytes": 137438953472,
+      "live_mapped_bytes": 0,
+      "peak_mapped_bytes": 6235406336,
+      "parking_enabled": false
+    },
+    "fresh_accepted": true,
+    "fresh_completed_block": false
+  },
+  "parked_observation": {
+    "directory": "/tmp/rv64-retained-main-parking-prefix4-parked-v1",
+    "report": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-parked-v1/report.json",
+      "sha256": "d54aaac28d1f44e31bdddf002e190dd203d412d27efb37d36a87692de722bde8"
+    },
+    "time": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-parked-v1.time",
+      "sha256": "670cae26e68dc83f7c9f1cacba4c08714dddcd54d95c363e47f9d85e1860c4c5"
+    },
+    "process_observation": {
+      "wall_seconds": 32.23,
+      "user_seconds": 197.4,
+      "system_seconds": 12.66,
+      "maximum_rss_bytes": 18935676928,
+      "peak_memory_footprint_bytes": 16438854120,
+      "page_reclaims": 6041283
+    },
+    "producer_exit": 0,
+    "fresh_exit": 0,
+    "fresh": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-parked-v1.fresh.json",
+      "sha256": "2ce0ad17bea76af34fb8df5181e92f71f74735f1e7075c330057bf90ac70ec3a"
+    },
+    "fresh_time": {
+      "path": "/tmp/rv64-retained-main-parking-prefix4-parked-v1.fresh.time",
+      "sha256": "557b8ab395065f9c486a8dc4623e9fda7341a81f3fe925ae73aa86d7def57af8"
+    },
+    "fresh_process_observation": {
+      "wall_seconds": 3.39,
+      "user_seconds": 9.31,
+      "system_seconds": 0.73,
+      "maximum_rss_bytes": 3061481472,
+      "peak_memory_footprint_bytes": 3061729800,
+      "page_reclaims": 285455
+    },
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "completed_block": false,
+    "memory_words": 750521,
+    "prove_ns": 24767321625,
+    "same_process_verify_ns": 303733042,
+    "total_before_report_ns": 32178088708,
+    "retained_main": {
+      "live_bytes": 0,
+      "peak_reserved_bytes": 6235406336,
+      "total_bytes": 6235406336,
+      "limit_bytes": 137438953472,
+      "live_mapped_bytes": 0,
+      "peak_mapped_bytes": 3089743872,
+      "parking_enabled": true
+    },
+    "fresh_accepted": true,
+    "fresh_completed_block": false
+  },
+  "parity": {
+    "path": "/tmp/rv64-retained-main-parking-prefix4-parity-v1.json",
+    "sha256": "c64155e1779654ae3bf952007c9f019b124cda6ec3cf605f44e5183730e8e159"
+  },
+  "all_files_byte_exact": [
+    {
+      "file": "bundle.json",
+      "bytes": 129358,
+      "sha256": "b548f3380a7d1bf719f41847ffcf7df8073adcf1f4288c8dccb960fead935836",
+      "exact": true
+    },
+    {
+      "file": "cells.bin",
+      "bytes": 34523982,
+      "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+      "exact": true
+    },
+    {
+      "file": "cost.json",
+      "bytes": 3447,
+      "sha256": "2a4ecb32a5a621a77239a0d379bffed28de70156ba05a6cab00b08c3e3a5ab8d",
+      "exact": true
+    },
+    {
+      "file": "roster.json",
+      "bytes": 32399,
+      "sha256": "c55280b5ceb6f97da22f25f77dc8ecdf5c4b2dc9d3108c9491cc885f7e0fe97a",
+      "exact": true
+    },
+    {
+      "file": "cpu-0.bin",
+      "bytes": 865296,
+      "sha256": "be65a94662965b9237927abb129965d938c90c5e4d20deb8ed963aa9bd0e4854",
+      "exact": true
+    },
+    {
+      "file": "cpu-1.bin",
+      "bytes": 834192,
+      "sha256": "bb070841affc48a9ac1524bd068d8c217096bbe43a07e88b6e7ebc35e7785666",
+      "exact": true
+    },
+    {
+      "file": "cpu-2.bin",
+      "bytes": 818544,
+      "sha256": "5a4c10984704b195aa77feffa9772d387062afd81d29a7394705f13396871dd6",
+      "exact": true
+    },
+    {
+      "file": "cpu-3.bin",
+      "bytes": 1486928,
+      "sha256": "d1a9a312f0c45b3bda38ec7cb5b27e9c305ccfa1759eb297d5b5d7e90f1e2296",
+      "exact": true
+    },
+    {
+      "file": "truth-0.bin",
+      "bytes": 1600236,
+      "sha256": "1f0d20f4b3582422245c8abb5510274beda94bb3931a51563ecaf661e688ee23",
+      "exact": true
+    },
+    {
+      "file": "truth-1.bin",
+      "bytes": 526408,
+      "sha256": "6d98e9108063ce02aa2b7681fb51faaf26e4b5cdccf2ce5661f3915b86f4dbfe",
+      "exact": true
+    },
+    {
+      "file": "truth-2.bin",
+      "bytes": 492480,
+      "sha256": "3a9f282fa4c404f070e304800baf9351d591b82b28b2ee9ad582582bb510816b",
+      "exact": true
+    }
+  ],
+  "producer_flag_in_receiver_rejected": {
+    "error": "ProvingOptionInReceiver",
+    "exit_nonzero": true,
+    "stderr": {
+      "path": "/tmp/rv64-retained-parking-receiver-refusal.stderr",
+      "sha256": "5d0a270abb4d064d428586c4993c84d08b3fc928d9f2ddb4505256b4bf4a73b4"
+    }
+  },
+  "qualification": [
+    "Safe-invalid empty polynomial/column slices before restore; ordinary Scheme polynomial views fail InvalidLength without dereferencing data.",
+    "Foreign callback/context/Store and late log/shape changes reject before mapping; native overlap preflight rejects aliased free ownership.",
+    "Both metadata-allocation failure positions, disk-cap refusal, FD-create failure and FD-length remap failure preserve original/parked owner state and allow exact retry.",
+    "Abandoned parked and mapped trees close unlinked descriptors and release disk/mapping leases; actual descriptor close checked via GETFD/EBADF.",
+    "Source managed allocator lives past its original root handle until detached tree cleanup, with Scheme shell retired first.",
+    "Complete tiny q70 bundles/proof files/claims/public requests/cells match controls at1/2 lanes; fresh independent setups accept. Original Stage1Worker also has full byte parity.",
+    "Real prefix all7 proof files, complete manifest/bundle/cells/roster/cost byte-identical; both separate fresh processes accept.",
+    "No accepting full25/whole-block memory observation in this receipt."
+  ],
+  "measurement_limits": [
+    "Engineering builds and an external expansion-ab producer overlapped; elapsed/user/system observations are not controlled speedup evidence.",
+    "Mapped/parked runs use same frozen binary and sameELF/input/worker settings; physical source-cell and opening costs are identical.",
+    "Darwin memory footprint was essentially unchanged; RSS difference includes clean retained mapping attachment and OS residency effects. Do not attribute all RSS delta to one counter or extrapolate fullblock.",
+    "Kernel clean file cache and bounded allocator caches may retain physical pages after original owner release; parking removes process mappings, not all system memory.",
+    "No Linux runtime claim; Linux path reuses existing fallocate reservation and POSIX mmap implementation."
+  ],
+  "resolved_failure": {
+    "artifact": {
+      "path": "/tmp/rv64-retained-parking-final-safe.log",
+      "sha256": "ee6822a4fadabad917039449bf39e6c956263c4ee885e8fc73bc1e49192b90b1"
+    },
+    "scope": "An overly broad test dropped the Scheme allocator root while unrelated Scheme shell allocations still lived. Corrected test first frees that shell, then proves detached-tree origin lease through restore/deinit. No Scheme/engine lifetime contract changed."
+  },
+  "policy_note": "Scoped zig fmt --check and git diff --check pass; policy unit31 passes. Full repository source conformance has known unrelated baseline ceiling failures and is not claimed here.",
+  "full_source_conformance": {
+    "exit": 1,
+    "log": {
+      "path": "/tmp/rv64-retained-parking-source-conformance.log",
+      "sha256": "877e315692e5aeedd80c0ce97e964ce59ade0e9dd66bf40fb2a0eb03ceed57a4"
+    },
+    "existing_repository_findings": 97,
+    "note": "No findings name the changed production storage/worker/core modules or new parking tests. The product owner already exceeds its ceiling at base; the additive registration is retained. No baseline edits."
+  }
+}

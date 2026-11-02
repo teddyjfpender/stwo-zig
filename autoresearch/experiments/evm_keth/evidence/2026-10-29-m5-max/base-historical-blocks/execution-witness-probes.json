@@ -1,0 +1,116 @@
+[
+  {
+    "endpoint": "https://mainnet.base.org",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x1d97486"
+    ],
+    "start": 1793285027.5783439,
+    "status": "failed",
+    "error": "HTTP Error 401: Unauthorized",
+    "elapsed": 0.4903531074523926
+  },
+  {
+    "endpoint": "https://base.drpc.org",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x1d97486"
+    ],
+    "start": 1793285027.57849,
+    "status": "failed",
+    "error": "HTTP Error 400: Bad Request",
+    "elapsed": 0.2886838912963867
+  },
+  {
+    "endpoint": "https://base.gateway.tenderly.co",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x1d97486"
+    ],
+    "start": 1793285027.578588,
+    "status": "failed",
+    "error": "debug_executionWitness: {'code': -32601, 'message': 'method not found'}",
+    "elapsed": 0.38649582862854004
+  },
+  {
+    "endpoint": "https://mainnet.optimism.io",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x977b291"
+    ],
+    "start": 1793285027.578654,
+    "status": "failed",
+    "error": "HTTP Error 403: Forbidden",
+    "elapsed": 0.3863179683685303
+  },
+  {
+    "endpoint": "https://optimism.drpc.org",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x977b291"
+    ],
+    "start": 1793285027.5788338,
+    "status": "failed",
+    "error": "HTTP Error 400: Bad Request",
+    "elapsed": 0.3475673198699951
+  },
+  {
+    "endpoint": "https://rpc.flashbots.net",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x15914d0"
+    ],
+    "start": 1793285027.867209,
+    "status": "failed",
+    "error": "HTTP Error 403: Forbidden",
+    "elapsed": 0.983273983001709
+  },
+  {
+    "endpoint": "https://eth.drpc.org",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x15914d0"
+    ],
+    "start": 1793285027.92643,
+    "status": "failed",
+    "error": "HTTP Error 400: Bad Request",
+    "elapsed": 0.2511439323425293
+  },
+  {
+    "endpoint": "https://ethereum.publicnode.com",
+    "method": "debug_executionWitness",
+    "params": [
+      "0x15914d0"
+    ],
+    "start": 1793285027.965002,
+    "status": "failed",
+    "error": "debug_executionWitness: {'code': -32601, 'message': 'the method debug_executionWitness does not exist/is not available'}",
+    "elapsed": 0.3152177333831787
+  },
+  {
+    "endpoint": "https://mainnet.optimism.io",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x977b290"
+    ],
+    "start": 1793285027.9651,
+    "status": "failed",
+    "error": "eth_getProof: {'code': -32603, 'message': 'no state found for block number 158839440'}",
+    "elapsed": 0.35675907135009766
+  },
+  {
+    "endpoint": "https://optimism.drpc.org",
+    "method": "eth_getProof",
+    "params": [
+      "0x4200000000000000000000000000000000000015",
+      [],
+      "0x977b290"
+    ],
+    "start": 1793285028.0687308,
+    "status": "observed",
+    "bytes": 7848,
+    "elapsed": 0.3731093406677246
+  }
+]

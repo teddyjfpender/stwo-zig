@@ -1,0 +1,27 @@
+{
+  "schema": "rv64-gkr-owned-fold-v1",
+  "base": "6091851f7",
+  "scope": "internal consumed GKR oracle folding; nonmutatingAPIspreserved",
+  "qualification": {
+    "Safe": "fullownershiptargetPASS; explicitpinned609capture46/46PASS",
+    "Fast": "fullownershiptargetPASS; explicitpinned609capture45/45PASS before onlyfinaloptional-oracleerrorregression",
+    "proof_parity": "Q/OM full4gate mixedheight proofbytes+nextdraw+freshterminalbinding at1/2/4/8workers",
+    "ownership": [
+      "pooled3workerprefix/suffixaliaslaw",
+      "samepointerresizableallocator",
+      "nonresizecopyfallback",
+      "forcedfallbackOOMvalidowner",
+      "allGKRallocationfailurespreserveoriginalcallerN/D",
+      "optionaldestructiveoracleownerrorpropagatesandownerconsumedonce"
+    ]
+  },
+  "resources": {
+    "new_N_buffers": 0,
+    "fastpath": "foldownedprefix thenresize afterjoin",
+    "fallback": "samehalfallocationasold plusprefixcopy; onOOM internalownedcontentmaychange butownerremainsdeinitializable",
+    "caller_inputs": "borrowed andM31lift unchanged",
+    "RSS": "notmeasured; recycleroriginalcapacitymayremainmapped"
+  },
+  "performance": "UNMEASURED; rootprefixA/Bpendingheavylockwindow",
+  "security": "no protocol/field/transcript/admission changes"
+}

@@ -1,0 +1,86 @@
+{
+  "scope": "Independent partial numerical Rust OM GKR agreement, never execution/PCS/starting-state authentication or128certificate.",
+  "source_base": "f3749b4038275e9e016fd6c4fafcbaae7c446bed",
+  "upstream_revision": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+  "rust_toolchain": "nightly-2025-07-14",
+  "rustc": "rustc 1.90.0-nightly (e9182f195 2025-07-13)",
+  "cargo_jobs": 2,
+  "offline": true,
+  "rust_binary_sha256": "48db315dca645287a20c7be38d6a14f066fb85b9d85c22da041bf3161cd6d0d5",
+  "native_exporter_sha256": "dff18034e7385ffc91624c530f12bdf41823be8a65f4dd817368f8200ed2b81f",
+  "gates": {
+    "native_exporter_build": "ReleaseFast PASS35s MaxRSS2G",
+    "rust_build": "Pinned toolchain offline release PASS; newer nightly array_chunks incompatibility avoided without upstream edits.",
+    "rust_unit": "PASS2",
+    "mutation_script": "PASS47 cases:5honest/equivalence,42rejections",
+    "mechanical_source_check": "PASS upstreamrevision/inputhashes/generatedhashes exact",
+    "real_sail_control": "Native completefresh acceptance then independent Rust numerical agreement",
+    "real_sail_candidate": "Native completefresh acceptance then independent Rust numerical agreement"
+  },
+  "native_full_workload": {
+    "steps": 1032240,
+    "sail_cases": 12903,
+    "local_instances": 15,
+    "gkr_layers": 24
+  },
+  "artifact_manifest": {
+    "control": {
+      "rust-gkr-child.json": {
+        "bytes": 190272,
+        "sha256": "4ad46d01c34cf4461340f6284fcb7a32556530b9fd91faef48b194f9b030eacd"
+      },
+      "cpu-0.bin": {
+        "bytes": 569304,
+        "sha256": "000816acb500dcf13087e228031f713d5616a76dd372060b95be9dd9ec6bb011"
+      },
+      "stage-one.bin": {
+        "bytes": 69560,
+        "sha256": "afdbdc602cf73055681e91995f96dd6aa4141754d1743608d01f567490ab1fb8"
+      },
+      "bundle.json": {
+        "bytes": 4679,
+        "sha256": "54b8050f52bcb0e946e4f11c7b894d18aa9a9ae0e819c34bfce4ed8fb7da1742"
+      },
+      "cells.bin": {
+        "bytes": 108,
+        "sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+      }
+    },
+    "candidate": {
+      "rust-gkr-child.json": {
+        "bytes": 190340,
+        "sha256": "efba7cf875c7ced4e3f02c41d6de8e60e9313f4c7f4ec5fdfa65927834741289"
+      },
+      "cpu-0.bin": {
+        "bytes": 1903064,
+        "sha256": "97ef644481613282044821be48547b27b047f45c75093a5c543cf4cebad7be27"
+      },
+      "stage-one.bin": {
+        "bytes": 69560,
+        "sha256": "21b61650bc5fe3278ce3e040d0bc48472d673db8f1c2e25a6e51141d0bb5ff28"
+      },
+      "bundle.json": {
+        "bytes": 4687,
+        "sha256": "74e272c60fce4bd593759094df4f213da13ab4bb86d065913b0db25cdbe417b4"
+      },
+      "cells.bin": {
+        "bytes": 108,
+        "sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+      }
+    }
+  },
+  "remaining_obligations": [
+    "Rust physical PCS/DEEP/FRI/Merkle authentication",
+    "Rust source AIR/globalmemory/IO/statement acceptance",
+    "Production terminal binding and initial transcript authority",
+    "Full adaptive security/outerrecursion review"
+  ],
+  "reported_flags": {
+    "accepting_execution_receiver": false,
+    "physical_pcs_verified": false,
+    "starting_channel_state_authenticated": false,
+    "production_terminal_binding_pending": true,
+    "whole_protocol_128": false
+  },
+  "independent_review": "Core agent source review PASS: OM schoolbook/norm, canonical8coordinates, untrimmedpolynomials, topology/polechecks, public rawchannel counter/reduction and pendingacceptanceflags. No blocker found."
+}

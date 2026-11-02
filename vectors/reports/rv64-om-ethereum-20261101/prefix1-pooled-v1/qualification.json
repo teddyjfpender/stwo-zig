@@ -1,0 +1,45 @@
+{
+  "source_base": "4e149dcb5 with caller-owned CLI phase telemetry",
+  "binary_sha256": "3ce74d17fb8f35bd1cdf7ab3208161b2070fc0f2a0874c784156263d084122d0",
+  "scope": "One real Ethereum CPU shard; same pinned round5 image/input, same geometry and q70/P26/fold4",
+  "retirements": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "scalar_prove_seconds": 143.34009725,
+  "pooled_prove_seconds": 106.309248333,
+  "single_probe_ratio": 1.3483313963523254,
+  "pooled_wall_seconds": 111.11,
+  "pooled_user_seconds": 184.22,
+  "pooled_system_seconds": 7.23,
+  "max_rss_bytes": 16432136192,
+  "fresh_process_accepted": true,
+  "artifacts": {
+    "cpu-0.bin": {
+      "bytes": 679424,
+      "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+      "exact_scalar_parity": true
+    },
+    "stage-one.bin": {
+      "bytes": 88400,
+      "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+      "exact_scalar_parity": true
+    },
+    "bundle.json": {
+      "bytes": 5489,
+      "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+      "exact_scalar_parity": true
+    },
+    "cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "exact_scalar_parity": true
+    }
+  },
+  "attribution": "Integration A/B includes pooled sumcheck/MLE folds, M31 leaf specialization and bounded wide quotient inversion. Not an isolated per-change speed claim. Shared host, single probe, no quiet repeated baseline.",
+  "remaining_bottleneck": "32.51s GKR seal plus 66.30s native completion; live sample sees serial packed composition rows. Wrappers also pass null FFT pool. Domain parallelism remains unqualified.",
+  "limitations": [
+    "Not a net LogUp-vs-GKR speedup",
+    "Not whole-block GKR qualification",
+    "Not whole-protocol128 security or recursion/GPU qualification"
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "schema": "rv64-load-store-domain-simd-v1-qualification",
+  "base_commit": "91ead3521ab5f616c938a095fc1e7ed0dc64d536",
+  "scope": "experimental closed finite-image LS/RAM component domain implementation only",
+  "production_activation": false,
+  "changes": {
+    "domain_lanes": 16,
+    "base_arithmetic": "PackedM31",
+    "secure_lookup_and_accumulation": "PackedQM31",
+    "oods": "unchanged QM31",
+    "shared_authority": "load_store_v1.authority.emitFor",
+    "parallel_helpers": "existing domain_transform and parallel_rows"
+  },
+  "unchanged": {
+    "ls_main": 79,
+    "ls_interaction": 116,
+    "ls_constraints": 280,
+    "degree": 3,
+    "quotient_expansion": 2,
+    "source_cells": 1888960,
+    "oods_masks": 832,
+    "statement": true,
+    "transcript": true,
+    "claims": true,
+    "physical_columns": true,
+    "cpu_or_services_joined": false
+  },
+  "tests": {
+    "release_safe": "PASS 15 runtime tests including root",
+    "release_fast": "PASS 15 runtime tests including root",
+    "prior_safe_fast14": "PASS",
+    "named_tests": 14,
+    "runtime_including_root": 15,
+    "scalar_kernel_oracle": "all three component kinds; arbitrary base coordinates and full-extension challenges/claims; current/prior masks, denominator halves, nonaligned tails, fresh/additive output, invalid input before output mutation",
+    "per_residual_and_degree": "existing PackedBase vs QM31 residual comparison and dense QM31 cubic finite differences retained",
+    "parallel_stack": "four real joined workers, 256 KiB stacks, 16384 LS evaluation rows, all280 residuals, exact serial-packed output",
+    "proof_parallelism": "q70/P26 serial versus four-worker encoded proof and claims exact"
+  },
+  "artifact": {
+    "producer": {
+      "scope": "experimental-closed-load-store-operations-complete-finite-image-policy-terminal",
+      "proof_sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+      "proof_bytes": 433488,
+      "expected_identity": "9289fafce20a836fd383d8808c59cf39d3098af73ff8e84aa9e2d362d2533bc5",
+      "queries": 70,
+      "pow_bits": 26,
+      "max_degree": 3,
+      "quotient_factor": 2,
+      "logs": [
+        6,
+        7,
+        5,
+        5,
+        6,
+        16,
+        8,
+        16
+      ],
+      "fixed": [
+        3,
+        3,
+        34,
+        34,
+        66,
+        3,
+        3,
+        6
+      ],
+      "main": [
+        79,
+        79,
+        23,
+        23,
+        22,
+        1,
+        1,
+        2
+      ],
+      "interaction": [
+        116,
+        116,
+        48,
+        48,
+        8,
+        8,
+        8,
+        8
+      ],
+      "source_cells": 1888960,
+      "oods_masks": 832,
+      "naturally_aligned": true,
+      "crossword_allowed": false,
+      "word_uniform_policy": true,
+      "operations": 49,
+      "u16_queries_including_padding": 7616,
+      "u8_queries_including_padding": 1024,
+      "selection_queries_including_padding": 192,
+      "cpu_bound": false,
+      "services_bound": false,
+      "general_sparse_image": false,
+      "open_loadstore_accepted": false
+    },
+    "fresh_receiver": {
+      "accepted": true,
+      "independently_expected_image_raw_instructions_operands_policy_and_terminal": true,
+      "native_memory_replay": false,
+      "cpu_bound": false,
+      "open_loadstore_accepted": false
+    },
+    "proof_exact_retained_scalar": true,
+    "claims_json_exact_retained_scalar": true,
+    "directory": "/tmp/stwo-rv64-load-store-simd-v1",
+    "tool_sha256": "cb1eccb110d7411c371698a6cb4a2106723d1e9575797d9de3eb3a1401d67288"
+  },
+  "performance": {
+    "measured": false,
+    "speed_claim": false
+  },
+  "conformance": {
+    "diff_check": "PASS",
+    "format_owned_files": "PASS",
+    "checker_unittests": "31 PASS",
+    "whole_tree": "pre-existing baseline failures outside owned files; no owned-file findings"
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "a3778dceae6098b5f53565d1ce3119c61bf8ee186394af657b1e6d89cbe1a05d",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/component.zig": "c636b6cf3c152256ac00d5b7790452ff031dd39104b3a23971714c341f1127b5",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/packed_rows.zig": "e859491079173947d5b7f6ad230c09007d1a6517fe966a544a8f05ab1f50e24d",
+    "src/integrations/riscv_cpu/rv64_load_store_test_root.zig": "ca0ce445b4c80c5f56ac79e4f018d1fe745cb842d7d161e171d144598a7c8156",
+    "src/integrations/riscv_cpu/tests/rv64_load_store_simd_test.zig": "32b67a3fec536b3ca4478f6a08ac1222916b26d3d0091907500c2cdf33b7874b"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-ls-simd-final-safe.log",
+    "fast": "/tmp/rv64-ls-simd-final-fast.log",
+    "tool_build": "/tmp/rv64-ls-simd-final-tool-build.log",
+    "source_conformance": "/tmp/rv64-ls-simd-source-conformance.log",
+    "conformance_tests": "/tmp/rv64-ls-simd-conformance-tests.log"
+  }
+}

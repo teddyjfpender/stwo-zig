@@ -1,0 +1,41 @@
+{
+  "utc": "2026-11-01T18:11:29.543143+00:00",
+  "base_commit": "4e149dcb5",
+  "helper_dependency": "819d57f5a",
+  "changes": [
+    "inherit existing scoped pool for coset FFTs; wrappers previously supplied null",
+    "bounded disjoint packed row partitions after one shared coset expansion",
+    "caller alone updates next_fresh_index once per complete coset",
+    "preallocated heap ScratchOwner under fixed8MiB cap with exhaustive allocation-failure injection",
+    "optional STWO_ZIG_PROFILE_OM_DOMAIN diagnostics split prep/FFT/rows, no default clocks"
+  ],
+  "gates": {
+    "ReleaseSafe": {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "result": "PASS"
+    },
+    "ReleaseFast": {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "result": "PASS"
+    }
+  },
+  "physical_parity": "actual K and ADD/DOUBLE CPU shards compare scalar and4-worker scoped-pool complete proof/claim artifactSHA; allvariants freshly verified",
+  "scratch_tests": [
+    "finite aligned plan",
+    "total_bytes equals actual owned slice",
+    "cap bounded by8MiB",
+    "exhaustive ScratchOwner allocator failures and cleanup"
+  ],
+  "profile_context": {
+    "pooled_gkr_prefix_prove_ns": 106309248333,
+    "native_complete_ns": 66299394250,
+    "sample": "180/181 active samples in serial role_domain native composition, pool helpers idle",
+    "next_required": "matched actual4.19Mprefix A/B after this source; no whole-speedup claim yet"
+  },
+  "limits": [
+    "not an equal-security QM31/OM31 comparison",
+    "no protocol/security/default-route change",
+    "thread stacks and existing FFT/evaluation buffers separately admitted",
+    "hoisted projection optimization separate followup"
+  ]
+}

@@ -1,0 +1,31 @@
+1/30 gkr_stream_source_test_root.test_0...OK
+2/30 lookups.stream_source_test.test.streamed bottom Q OM mixed sizes constants and signed padding match dense proof artifact draw and fresh terminal binding...OK
+3/30 lookups.stream_source_test.test.streamed bottom uses joined three worker callbacks and held lease immutable fallback...OK
+4/30 lookups.stream_source_test.test.streamed bottom releases every owned checkpoint oracle and result on every OOM...OK
+5/30 lookups.stream_source_test.test.streamed bottom rejects callback errors and shape violations without escaping borrowed source...OK
+6/30 lookups.stream_source_test.test.streamed bottom clone materializes independent ownership and zero poles propagate unchanged...OK
+7/30 lookups.gkr_prover.test.gkr prover: grand product prove and verify...OK
+8/30 lookups.gkr_prover.test.gkr prover: logup generic prove and verify...OK
+9/30 lookups.gkr_prover.test.gkr prover: logup singles prove and verify...OK
+10/30 lookups.gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+11/30 lookups.gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+12/30 lookups.gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+13/30 lookups.gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+14/30 lookups.gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+15/30 lookups.mle.test.mle: init validates power-of-two length...OK
+16/30 lookups.mle.test.mle: fix first variable preserves evaluation semantics...OK
+17/30 lookups.mle.test.mle: fix first variable lifts base-field mle...OK
+18/30 lookups.mle.test.mle: evalAtPoint validates dimensions...OK
+19/30 lookups.sumcheck.test.sumcheck: prove and partially verify single mle...OK
+20/30 lookups.sumcheck.test.sumcheck: invalid proof is rejected...OK
+21/30 lookups.utils.test.lookups utils: lagrange interpolation...OK
+22/30 lookups.utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+23/30 lookups.utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+24/30 lookups.utils.test.lookups utils: polynomial arithmetic and normalization...OK
+25/30 lookups.utils.test.lookups utils: horner and random linear combination...OK
+26/30 lookups.utils.test.lookups utils: eq kernel...OK
+27/30 lookups.utils.test.lookups utils: fold mle evals...OK
+28/30 lookups.utils.test.lookups utils: reciprocal arithmetic...OK
+29/30 cooperative_queue.test.cooperative queue: split runs every index once on one thread...OK
+30/30 cooperative_queue.test.cooperative queue: many threads drain nested splits from many items...OK
+All 30 tests passed.

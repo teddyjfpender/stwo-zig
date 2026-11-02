@@ -1,0 +1,42 @@
+{
+  "owned": {
+    "src/frontends/riscv/rv64/air/word16_v1/alu.zig": "b73d567d37c826ccb4ce54d3874a667a77cdde2fdb43c18e1eec12bef84f928d",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig": "4e853a99527e0aa29580ee683cf3b85a1894c102cdff00f116b11a33db3503b6",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_component.zig": "8c8c7be6df79be5f6c28528cff14d2da6664d60f57c3d5ac045970e5b6028a61",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_packed_rows.zig": "c0ade0d67cf44006f8cfc60a85dff8d581faa35c0786a7e43b403c6d32a8d91f",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "72ecf3fcecdd3fac7275515d1b554dcb956f8d705285506f7229f6e2a575cc4b",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_source.zig": "cb57623c0f92c8f7096715912ec734b3593a9672be0f4ab60ed0e867d94cc50a",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_component.zig": "435bc1790121cc2cab636ccf30790f4c1eed166f1ab14ba0371b357aadcbddb3",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_test.zig": "255969a3046772209aa80005f0db6cafcfc90f4bd3d412e5f2e76c38b6eb4f50",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source_test.zig": "59bcb47698d57d750ba2b8e14fefa7e3d6176d0e8e9164a19bcab88562c94c54",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_packed_rows_test.zig": "04a30a8b031f65115a678d855930c67e2cff1e0dc2a4a48eab3e33e3b088d255",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_source_test.zig": "61a5273b32fdfc8f3afa9eff254e08060cf7a9e8e563177b71440fec12b57fb8",
+    "src/frontends/riscv/rv64_word16_alu_test_root.zig": "e545e37be0b09bf89252c2ef3106288895ffb3b781c49700c20da096f2a27ed8",
+    "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig": "6d29ef6732cd34bfa9ec2b7b228fd2618390ad5b12810f5fd8edb471a92f81a6",
+    "src/integrations/riscv_cpu/tests/rv64_word16_alu_proof_test.zig": "1a6c24e59ad8cc74f9547722b305d22b6c2077055d80493cf4ebddc7e6d4d991",
+    "src/integrations/riscv_cpu/word16/alu_fixture.zig": "018493cf2f160f634edc12d85eb6d90709a26e994abb1d0b9cb5fc212c776afb",
+    "src/integrations/riscv_cpu/word16/alu_fixture_trace.zig": "913bb6bcd5bb981c35b1be71b2516adeec8bd00c01fe4d37440f95827d25da08",
+    "src/integrations/riscv_cpu/rv64_word16_alu_fixture_main.zig": "a726f19e0f04e297fb43d6cf9cfd7730ee7163ed0443bd03e7e95b36564b3098",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "295e4a8947d08fea482a8514404063b3f67546bccfa01f194db65d8df81ef802"
+  },
+  "compatibility_aliases": {
+    "src/frontends/riscv/rv64/air/word16_cpu/lookup.zig": "55d83ea911479b1de62991af936e23f2b990c5ef30606967edfd6fec46c918e0",
+    "src/frontends/riscv/rv64/air/word16_cpu/table.zig": "290389d1a42c2dc525ba43ac2899acc98368774331c23fb0d09baa86c6f82638"
+  },
+  "shared_dependencies": {
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "9222cd66618d88aae66d7d649a83aa0a6a46411a67431729d142912e3237406a",
+    "src/frontends/riscv/rv64/air/word16_v1/function_bus.zig": "be69a6e6152260de042fffb9b7ec39c3a5dde17e814029e2b93a7412213ab4b2",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "28983f5ec84743d8807bf47f819806b773bdd3b53a5c188ed288c366136a5de4",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "e4548067bb5019fb345cd752cb4320b054bc090e709351652ba98ac3f18690e4",
+    "src/frontends/riscv/rv64/air/word16_v1/expected_roster.zig": "2c47c28b744b1ad3af8d0233c995108ff382735e46716b3b710ab1ae4589194e",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/air/packed_fields16.zig": "bda65255b53e5bf98da36544d3d821c196efd467e1b2c988faea96a595db66ea",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700"
+  },
+  "registration_changes": [
+    "word16-alu minimum9",
+    "word16-alu-proof minimum1",
+    "rv64-word16-alu-fixture tool",
+    "air.word16_v1.alu_experiment export"
+  ]
+}

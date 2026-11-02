@@ -1,0 +1,195 @@
+{
+  "schema": "rv64-projective-secp256k1-bridge-fixture-v1",
+  "kind": "add",
+  "calls": 3,
+  "cpu_present": false,
+  "authenticated_ram_hash_boundary": false,
+  "known_public_ram_and_call_control": true,
+  "pow_bits": 26,
+  "queries": 70,
+  "proof_bytes": 398704,
+  "proof_sha256": "490fafb845e309595990c8d83593fe4f91c13e40fd404780ffa1f5b6b4f5b303",
+  "pipeline_ns": 412729041,
+  "phase_ns": {
+    "witness": 608667,
+    "fixed_commit": 819750,
+    "main_commit": 2388791,
+    "interactions": 5940375,
+    "interaction_commit": 2274459,
+    "prove": 396919708,
+    "serialize_release": 406833
+  },
+  "stages": {
+    "schema_version": 1,
+    "runtime": "cpu",
+    "example": "rv64-projective-secp256k1-bridge",
+    "stages": [
+      {
+        "id": "secp_coset_fft",
+        "label": "Projective modular quotient coset FFT",
+        "seconds": 0.000235,
+        "children": [
+          {
+            "id": "secp_bridge_fft",
+            "label": "Secp bridge quotient coset FFT",
+            "seconds": 0.000036,
+            "children": null
+          },
+          {
+            "id": "secp_bridge_rows",
+            "label": "Secp bridge quotient constraint rows",
+            "seconds": 0.000266,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.001278,
+            "children": [
+              {
+                "id": "secp_coset_fft",
+                "label": "Projective modular quotient coset FFT",
+                "seconds": 0.000094,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_fft",
+                "label": "Secp bridge quotient coset FFT",
+                "seconds": 0.000013,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_rows",
+                "label": "Secp bridge quotient constraint rows",
+                "seconds": 0.000189,
+                "children": null
+              },
+              {
+                "id": "secp_constraint_rows",
+                "label": "Projective modular quotient rows",
+                "seconds": 0.00139,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_fft",
+                "label": "Secp bridge quotient coset FFT",
+                "seconds": 0.000012,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_rows",
+                "label": "Secp bridge quotient constraint rows",
+                "seconds": 0.000192,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_fft",
+                "label": "Secp bridge quotient coset FFT",
+                "seconds": 0.000012,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_rows",
+                "label": "Secp bridge quotient constraint rows",
+                "seconds": 0.00019,
+                "children": null
+              }
+            ]
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000083,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000585,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000072,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.001365,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000081,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.00058,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.00008,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.00058,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000073,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.001358,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "secp_coset_fft",
+        "label": "Projective modular quotient coset FFT",
+        "seconds": 0.000072,
+        "children": null
+      },
+      {
+        "id": "secp_constraint_rows",
+        "label": "Projective modular quotient rows",
+        "seconds": 0.00126,
+        "children": null
+      }
+    ]
+  },
+  "product_log": 6,
+  "linear_log": 7,
+  "bridge_log": 5,
+  "bridge_columns": 207,
+  "bridge_constraints": 230,
+  "bridge_metadata_byte_queries_per_row": 42,
+  "bridge_coordinate_byte_queries_per_row": 0,
+  "maximum_degree": 4,
+  "source_bytes": 422784,
+  "mask_values": 1359,
+  "process_usage": {
+    "source": "darwin_proc_pid_rusage_v6",
+    "lifetime_peak_physical_footprint_bytes": 7307624,
+    "current_physical_footprint_bytes": 6127976,
+    "process_cpu_ns": 1206409583,
+    "energy_nj": 6856608786,
+    "instructions": 21342959546,
+    "cycles": 4925541274,
+    "unavailable_reason": null
+  }
+}

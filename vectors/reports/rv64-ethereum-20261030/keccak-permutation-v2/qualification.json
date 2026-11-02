@@ -1,0 +1,56 @@
+{
+  "schema": "rv64-keccak-immutable-v2-qualification",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "strict_release_safe_tests": 20,
+  "immutable_setup": "Fixed columns depend only on component geometry; count, first ID, active prefix and IDs are instance/main authority.",
+  "empty_batches": true,
+  "primitive_serial_parallel_proof_bytes_equal": true,
+  "primitive_columns": 4551,
+  "bridge_columns": 122,
+  "artifacts": [
+    {
+      "name": "primitive-serial",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-v2-primitive-serial/proof.bin",
+      "bytes": 1621800,
+      "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+      "fresh_process_receiver": true
+    },
+    {
+      "name": "primitive-parallel",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-v2-primitive-parallel/proof.bin",
+      "bytes": 1621800,
+      "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+      "fresh_process_receiver": true
+    },
+    {
+      "name": "bridge-three",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-v2-bridge-three/proof.bin",
+      "bytes": 1661832,
+      "sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+      "fresh_process_receiver": true
+    },
+    {
+      "name": "bridge-empty",
+      "path": "vectors/reports/interop_artifacts/rv64-keccak-v2-bridge-empty/proof.bin",
+      "bytes": 1658824,
+      "sha256": "92003dbc01fd56ff2ec801d3dc2e9cb1bb37f3d9cc91aa5b912477ce130adad5",
+      "fresh_process_receiver": true
+    }
+  ],
+  "negative_gates": [
+    "same fixed key for counts 0..4 and varying first IDs",
+    "native proof fixed-root reuse across count/ID changes",
+    "active ID span p-3 through p-1 accepted; overflow rejected before allocation",
+    "count mismatch and partial/dummy activation rejected",
+    "combined lookup characteristic budget checked before allocation",
+    "previous-row mask and circular-claim mutations rejected"
+  ],
+  "remaining": [
+    "CPU control/register/call-bus integration",
+    "authenticated RAM hash boundary",
+    "whole-block proof and measured total cost"
+  ]
+}

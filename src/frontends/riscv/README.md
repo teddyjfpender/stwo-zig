@@ -75,6 +75,8 @@ const Claim = riscv.RiscVClaim;
 | Host boundary | `host`, `HostInterface`, `HostRuntime` |
 | AIR, recursion, and witness | `air`, `recursion`, `access_clock`, `infra_trace`, `witness_layout`, `opcode_manifest`, `statement_shape_inspection` |
 | ISA and diagnostics | `isa`, `diagnostics`, `testing` |
+| Bounded RV64 AIR | `rv64_air` — [statement, soundness and qualification boundary](../../../design/riscv-proving-stack/rv64-air.md) |
+| Experimental RV64IM execution | `rv64` — [scope, validation and remaining proof work](rv64/README.md) |
 | Statement ownership | `RiscVClaim`, `owned_statement` |
 | Engine-generic proving | `prover_mod`, `proveRiscVWithEngineAndPublicData`, `proveRiscVWithEngineAndPublicDataWithExecution`, `verifyRiscVWithEngine`, `provePoseidon2WithEngineAndPublicData`, `verifyPoseidon2WithEngine`, `proveAndVerifyElfWithEngine` |
 | Ethereum-profile proving | `proveEthereumWithEngine`, `proveEthereumWithEngineUsingExecution`, `verifyEthereumWithEngine` |
@@ -210,3 +212,10 @@ the reproducible proof entry point is documented in
 - [Universal AIR to Sail refinement plan](../../../soundness/UNIVERSAL_AIR_SAIL_REFINEMENT.md)
 - [CPU integration](../../integrations/riscv_cpu/README.md)
 - [Metal integration](../../integrations/riscv_metal/README.md)
+
+The experimental `rv64_air` namespace also provides the concrete byte/range,
+immutable ROM, independent lookup providers and private control frame used by
+the separate integration [`rv64_full`](../../integrations/riscv_cpu/rv64_full.zig).
+That route makes one native proof for a complete admitted execution; it does
+not assemble bounded execution proofs. `rv64` execution remains usable without
+loading the proof integration. See the [full AIR contract](../../../design/riscv-proving-stack/rv64-air.md).

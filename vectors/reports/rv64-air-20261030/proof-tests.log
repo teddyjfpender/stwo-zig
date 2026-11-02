@@ -1,0 +1,8 @@
+test-riscv64-proof
++- riscv test suite guard
+   +- run test stderr
+RV64_STARK verified=true queries=70 pow_bits=26 bytes=127224 fixed=21 main=643 interaction=36 rows=32 prove_ns=998229833 encode_ns=1456750 setup_ns=677625 verify_ns=43274667 prove_peak_caller_bytes=995370
+RV64_STARK all_opcodes=63 steps=63 verified=true bytes=564576
+RV64_STARK forged_state_custody_rejected=true fresh_decode=true
+RV64_STARK forged_state_custody_rejected=true fresh_decode=true
+RV64_STARK forged_state_custody_rejected=true fresh_decode=true

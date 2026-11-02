@@ -1,0 +1,37 @@
+[
+  {
+    "case": "proof_byte",
+    "exit_code": 1,
+    "error": "error: RootProofRejected"
+  },
+  {
+    "case": "statement_digest_detached",
+    "exit_code": 1,
+    "error": "error: LeafStatementDigestMismatch"
+  },
+  {
+    "case": "leaf_order",
+    "exit_code": 1,
+    "error": "error: LeafOrderMismatch"
+  },
+  {
+    "case": "foreign_topology",
+    "exit_code": 1,
+    "error": "error: LeafCircuitHashMismatch"
+  },
+  {
+    "case": "foreign_layout",
+    "exit_code": 1,
+    "error": "error: LeafLayoutMismatch"
+  },
+  {
+    "case": "zero_steps",
+    "exit_code": 1,
+    "error": "error: InvalidRecursionLeafSteps"
+  },
+  {
+    "case": "oversized_count",
+    "exit_code": 1,
+    "error": "error: InvalidRecursionLeafCount"
+  }
+]

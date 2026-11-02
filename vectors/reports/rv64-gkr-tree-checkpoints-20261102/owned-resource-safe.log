@@ -1,0 +1,19 @@
+test-stwo-prover-gkr-resource
++- run test stderr
+GKR_ADMISSION single vars=1 OM peak=1472 plan=33040; Q peak=1184 plan=32912
+GKR_ADMISSION single vars=2 OM peak=2192 plan=61984; Q peak=1712 plan=61728
+GKR_ADMISSION single vars=8 OM peak=28368 plan=440320; Q peak=15808 plan=423936
+GKR_ADMISSION single vars=14 OM peak=1640960 plan=3272704; Q peak=854160 plan=2224128
+GKR_ADMISSION single vars=16 OM peak=6556272 plan=10235904; Q peak=3410224 plan=6041600
+GKR_ADMISSION mixed vars=16,14,15,12 OM peak=11147352 plan=17997824
+GKR_ADMISSION twelve vars=8 OM peak=322344 plan=1228800
+GKR_PHASE_CURRENT facts=262144 raw=9437184 tree_peak=26216104 full_numerical_peak=26217128 retained_after=9465304
+GKR_CHECKPOINT fieldBytes=16 oldPeak=3986672 checkpointPeak=2934527 ratio=1.359 old_ns=17720083 checkpoint_ns=18004041
+GKR_CHECKPOINT fieldBytes=32 oldPeak=7706304 checkpointPeak=5598015 ratio=1.377 old_ns=24560875 checkpoint_ns=25483292
+GKR_CONSUMED fieldBytes=16 oldPeak=3986672 consumedPeak=2934527 ratio=1.359 old_ns=17648875 consumed_ns=17862875
+GKR_CONSUMED fieldBytes=32 oldPeak=7706304 consumedPeak=5598015 ratio=1.377 old_ns=24403959 consumed_ns=25175500
+
+Build Summary: 2/2 steps succeeded
+test-stwo-prover-gkr-resource success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 20s MaxRSS:963M
+

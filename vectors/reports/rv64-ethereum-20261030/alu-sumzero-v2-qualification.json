@@ -1,0 +1,300 @@
+{
+  "schema": "rv64-alu-sumzero-encoding-v2",
+  "status": "functionally_qualified_in_isolated_worktree",
+  "base_commit": "3a42233752244e64e077b9e5b77ff6fb181f4aa0",
+  "scope": "Experimental ALU encoding replacement; no runtime enum, RAM activation, general CPU profile or recursion changes",
+  "encoding": {
+    "scope": "diagnostic-public-io-alu-u16-one-pcs",
+    "proof_bytes": 264288,
+    "proof_sha256": "c04aac24d7e9d00b362341628cc2476f7a4cffd59f1dc8854f063fdf438b6f3e",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "encoding_identity": "88def88cec69e50c28f6698b62ebea18f8617d8f8bc43e61410eae4aad33f9ea",
+    "public_roster_digest": "3deb50aa63a1f15ad7acb664404c2a28a4b1fafd54456a11670d2774bf47f472",
+    "source_cells": 791616,
+    "source_bytes": 3166464,
+    "trace_oods_masks": 190,
+    "alu": {
+      "log": 5,
+      "fixed": 2,
+      "main": 52,
+      "interaction": 52
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 10,
+    "range_mass_including_padding": 640,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "delta": {
+    "local_main": [
+      59,
+      51
+    ],
+    "main_including_multiplicity": [
+      60,
+      52
+    ],
+    "local_constraints": [
+      64,
+      53
+    ],
+    "full_constraints": [
+      80,
+      69
+    ],
+    "interaction": [
+      52,
+      52
+    ],
+    "u16_queries_per_padded_row": [
+      20,
+      20
+    ],
+    "ALU_masks": [
+      122,
+      114
+    ],
+    "quotient_factor": [
+      2,
+      2
+    ]
+  },
+  "native_cache": {
+    "old_entries": 65536,
+    "new_entries": 262141,
+    "new_max_index": 262140,
+    "old_bytes": 262144,
+    "new_bytes": 1048564,
+    "extra_cache_bytes": 786420,
+    "extra_nonzero_input_scratch_bytes": 786420,
+    "index_type": "u32/usize; never u16",
+    "parallel_fill_and_interaction_ownership_preserved": true
+  },
+  "soundness_contract": "Physical U16 closure bounds each difference limb0..65535, sum0..262140<M31. Only under this contract does zero(sum) mean all limbszero. Signed_less staging retained. No new sum range query.",
+  "strong_adversary": {
+    "canonical_A": 65536,
+    "canonical_B": 1,
+    "forged_difference": [
+      "p-1",
+      1,
+      0,
+      0
+    ],
+    "borrow": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "zero": 1,
+    "inverse": 0,
+    "false_EQ": 1,
+    "ALL_local_residuals_zero": true,
+    "public_consumer_uses_forged_C_so_FUNCTION_closes": true,
+    "actual_closed_q70_rejects_external_U16_debt": true
+  },
+  "gates": {
+    "Safe": [
+      "word16-alu",
+      "word16-alu-proof",
+      "word16-alu-parallel-interaction",
+      "word16-thin-cpu",
+      "word16-index-control",
+      "distributed-functional",
+      "distributed-execution"
+    ],
+    "Fast": [
+      "word16-alu",
+      "word16-alu-proof",
+      "word16-alu-parallel-interaction",
+      "word16-thin-cpu",
+      "word16-index-control",
+      "distributed-functional",
+      "distributed-execution"
+    ],
+    "ALU_runtime_floor": 16,
+    "fresh_q70_receiver": true,
+    "old007f_schema_rejected": "OodsNotMatching",
+    "source_conformance": "no owned changes reported; frozen worktree retains unrelated baseline findings"
+  },
+  "semantic_control": {
+    "frozen_commit": "3a42233752244e64e077b9e5b77ff6fb181f4aa0",
+    "source_recipe_comparisons": {
+      "src/integrations/riscv_cpu/word16/alu_fixture_trace.zig": {
+        "frozen_semantic_recipe_sha256": "79920558c9bce0765f134b6879bf40578a54c3d494eb643812a1d7f016935367",
+        "current_semantic_recipe_sha256": "79920558c9bce0765f134b6879bf40578a54c3d494eb643812a1d7f016935367",
+        "exact_source_recipe_equal": true
+      },
+      "src/frontends/riscv/rv64/air/word16_v1/alu.zig": {
+        "frozen_semantic_recipe_sha256": "68d150c2863880aac09ec1c1998eb95166ec15d023eb68e0573a97303d3b1971",
+        "current_semantic_recipe_sha256": "68d150c2863880aac09ec1c1998eb95166ec15d023eb68e0573a97303d3b1971",
+        "exact_source_recipe_equal": true
+      }
+    },
+    "independent_limb_roster_digest": "3deb50aa63a1f15ad7acb664404c2a28a4b1fafd54456a11670d2774bf47f472",
+    "actual_fixture_roster_digest": "3deb50aa63a1f15ad7acb664404c2a28a4b1fafd54456a11670d2774bf47f472",
+    "facts": [
+      {
+        "op": 0,
+        "a": "0xffffffffffffffff",
+        "b": "0x1",
+        "c": "0x0"
+      },
+      {
+        "op": 1,
+        "a": "0x0",
+        "b": "0x1",
+        "c": "0xffffffffffffffff"
+      },
+      {
+        "op": 2,
+        "a": "0x7fffffff",
+        "b": "0x1",
+        "c": "0xffffffff80000000"
+      },
+      {
+        "op": 3,
+        "a": "0x80000000",
+        "b": "0x1",
+        "c": "0x7fffffff"
+      },
+      {
+        "op": 4,
+        "a": "0x1",
+        "b": "0x0",
+        "c": "0x0"
+      },
+      {
+        "op": 5,
+        "a": "0x8000000000000000",
+        "b": "0x1",
+        "c": "0x0"
+      },
+      {
+        "op": 6,
+        "a": "0xffff0000ffff",
+        "b": "0xffff0000ffff",
+        "c": "0x1"
+      },
+      {
+        "op": 7,
+        "a": "0x1234",
+        "b": "0x1234",
+        "c": "0x0"
+      },
+      {
+        "op": 8,
+        "a": "0x7fffffffffffffff",
+        "b": "0x8000000000000000",
+        "c": "0x1"
+      },
+      {
+        "op": 9,
+        "a": "0x0",
+        "b": "0xffffffffffffffff",
+        "c": "0x0"
+      }
+    ]
+  },
+  "binary_v1_historical_control": {
+    "scope": "experimental-register-only-binary-reset-v1",
+    "instructions": 6,
+    "cpu_shards": 2,
+    "shared_binary_provider": 1,
+    "physical_components": 12,
+    "physical_proofs": 3,
+    "queries_per_proof": 70,
+    "pow_bits_per_proof": 26,
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false,
+    "complete_manifest": "4b850e396443fcde0d09eb34f73d5798565bbefacbc0322276e65e288197f3b0",
+    "actual_function_mass": 6,
+    "conservative_manifest_positive_capacity": 131072,
+    "cpu0_bytes": 276128,
+    "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+    "cpu1_bytes": 261632,
+    "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+    "binary_bytes": 227856,
+    "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+  },
+  "binary_v1_fresh_receiver": {
+    "accepted_register_only_binary_execution": true,
+    "instructions": 6,
+    "cpu_shards": 2,
+    "verified_physical_proofs": 3,
+    "local_reg_rom_u16_u8_closed_each_shard": true,
+    "shared_function_closed": true,
+    "genesis_adjacency_terminal_output_checked": true,
+    "clock_profile": "reset-v1",
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false
+  },
+  "protocol_binding": [
+    "Standalone fixture version2 +central ALU encoding hash",
+    "Raw V2 closed transcript version3 +central hash",
+    "Indexed closed transcript version2 +central hash",
+    "Raw V2 immutable profile/static schema bind central hash",
+    "BINARYv1 hash/transcript branches remain exact"
+  ],
+  "cost_model": {
+    "log21_main_bytes_removed": 67108864,
+    "nineteen_log21_raw_main_bytes_removed": 1275068416,
+    "complete_job_speedup_claim": false,
+    "small_fixture_wire_delta_bytes": 7008,
+    "small_fixture_note": "Wire grew after changed FS/query locations despite8fewercolumns; no wire-size reduction claimed"
+  },
+  "performance": {
+    "status": "unmeasured_in_this_slice",
+    "reason": "No isolated timing window during concurrent clean qualifications; complete holistic profile deferred until all qualified prover improvements land",
+    "candidate_tool": "/tmp/rv64-alu-sumzero-loop",
+    "prepared_benchmark_script": "/tmp/rv64-alu-sumzero-bench.py",
+    "no_speed_claim_from_columns": true
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "794be42a217555b264290754b167f580228f9f676e03d7afce0f93215c5fc19a",
+    "src/frontends/riscv/rv64/air/word16_cpu/profile.zig": "f35ce7782eb48af838ce4b76e8d031e67653fcd691b6ec6b3172341f45fea43a",
+    "src/frontends/riscv/rv64/air/word16_v1/alu.zig": "9cdd475cd00c47d9a9d3b3e3032b4db6d8294f72b20bce67881af702a75aadb5",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig": "18fe052c55972505152fbb3599bb96d71d38a2d721f86c8aa24c3a6e19936462",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "9701b1d38ab33088795a3f3aecd297a7854998283c0f9612f1bcabe8250ad7c3",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source_test.zig": "cea6f5f9d794bc4380a61a76bde9d7923e006e733768276cb0e79ad38a6f7808",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_test.zig": "61d523db2cc8e278bd6e98de8839cc41dad610a9788126a6237a1c743934fe69",
+    "src/integrations/riscv_cpu/rv64_word16_alu_fixture_main.zig": "6dfa5655e647f7c1dcbb02b194efd9e7deefe51bc6112bd70d8eabfdf3240247",
+    "src/integrations/riscv_cpu/tests/rv64_word16_alu_proof_test.zig": "7bc5d78d7bfbef6d1f17bbd3fb960c55be5f0ff0a579b3b5a9430ad6a6665fbe",
+    "src/integrations/riscv_cpu/word16/alu_fixture.zig": "e4809686b185ac06dea847de52f7bcb2884c89dfc41dbaf2103f482608170911",
+    "src/integrations/riscv_cpu/word16/alu_fixture_trace.zig": "83976a0b5b9a07c4dc03a6068d7f5f3c7caf1dfb1550e45437b6c2834f556a9d",
+    "src/integrations/riscv_cpu/word16/cpu_materials.zig": "73e1e776f1c0074bf1d3a7497cbc8f45238f104b1bf9446ad8e9364f7a1deb3a",
+    "src/integrations/riscv_cpu/word16/cpu_protocol.zig": "b5c36a5c3741646b79021e7b995477626739919154beb3bbad966dcb1f9b3b5d",
+    "src/integrations/riscv_cpu/word16_index/protocol.zig": "6009bdae6bdc3443a497ea77614fbe1202817aace09f66ed79f5807fe347e600",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_encoding.zig": "7ee3a6dd43995dbdc145542dd02f07d9027082008f8190deb28c0e7bdfc4211b"
+  },
+  "artifact_files": {
+    "vectors/reports/interop_artifacts/rv64-alu-sumzero-v2/producer.json": "39db21698ae2ae3d8f8a6b560db97b3cfa307ebc9e2b96549edf2afd09a98c34",
+    "vectors/reports/interop_artifacts/rv64-alu-sumzero-v2/receiver.json": "bed6df2fa07c852c72ed5333d0a73402e5ab51d5b93ee011c67db94ed6485b83",
+    "vectors/reports/interop_artifacts/rv64-alu-sumzero-v2/claims.json": "4204eafd8143e53f1b480d02cf955d5c8b81748870c7aeb3ec6fdf1064bc00c0",
+    "vectors/reports/interop_artifacts/rv64-alu-sumzero-v2/proof.bin": "c04aac24d7e9d00b362341628cc2476f7a4cffd59f1dc8854f063fdf438b6f3e"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-alu-sumzero-final-safe-summary.log",
+    "fast": "/tmp/rv64-alu-sumzero-final-fast-summary.log",
+    "source_conformance": "/tmp/rv64-alu-sumzero-source-conformance.log",
+    "old_schema_rejection": "/tmp/rv64-alu-sumzero-old-schema-reject.log"
+  }
+}

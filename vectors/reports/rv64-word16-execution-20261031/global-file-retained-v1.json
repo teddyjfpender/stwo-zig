@@ -1,0 +1,77 @@
+{
+  "scope": "Optional worker-local file storage for already committed compact MAIN coefficients; no protocol change",
+  "base_commit": "ae827a5f0",
+  "qualified_gates": {
+    "ReleaseSafe": 6,
+    "ReleaseFast": 6,
+    "global_execution_regression_ReleaseFast": 15,
+    "invalid_storage_CLI_options": 5,
+    "real_prefix_fresh_receiver": true
+  },
+  "ownership": "All fallible work before transfer; compact coefficient and column views re-point together, old owners released exactly once, existing PCS teardown token owns mapped arena/budget until all readers drain. Foreign borrowed/shared/backend-owned storage rejected.",
+  "storage": {
+    "live_bytes": 0,
+    "peak_reserved_bytes": 4621484032,
+    "total_bytes": 4621484032,
+    "limit_bytes": 8589934592
+  },
+  "real_prefix": {
+    "directory": "/tmp/rv64-global-file-retained-real01-v2",
+    "control": "/tmp/rv64-global-owned-native-real01-v1",
+    "steps": 8388606,
+    "memory_words": 712789,
+    "complete_artifacts_exact": [
+      {
+        "name": "cells.bin",
+        "bytes": 32788310,
+        "sha256": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a"
+      },
+      {
+        "name": "bundle.json",
+        "bytes": 31019,
+        "sha256": "4adec50ab33629005d35ddc82e3b20319794898d528792645f0aec4edba541ef"
+      },
+      {
+        "name": "proof1.bin",
+        "bytes": 1148336,
+        "sha256": "af025cb374deaa26b123ac255a6277511a3b12155195c301c7f7a1af7ed50263"
+      },
+      {
+        "name": "proof0.bin",
+        "bytes": 1140944,
+        "sha256": "359a187b52bc0ba78406860bec803c43fbadaa84ce7e9239410880712a799300"
+      }
+    ],
+    "scratch_directory_empty_after_completion": true,
+    "producer_binary_sha256": "0ccca8d43a40fa12a328eda1be1ba91421861a370583a2e534c784e61107c01e"
+  },
+  "observed_metrics": {
+    "resident_control": {
+      "wall_seconds": 24.95,
+      "user_seconds": 115.09,
+      "system_seconds": 12.86,
+      "maximum_resident_set_size_bytes": 14766456832,
+      "Darwin_reported_peak_memory_footprint_bytes": 14772040016
+    },
+    "file_retained_v1": {
+      "wall_seconds": 27.74,
+      "maximum_resident_set_size_bytes": 14766604288,
+      "Darwin_reported_peak_memory_footprint_bytes": 10150719872
+    },
+    "file_retained_v2": {
+      "wall_seconds": 23.68,
+      "user_seconds": 108.65,
+      "system_seconds": 10.48,
+      "maximum_resident_set_size_bytes": 14766637056,
+      "Darwin_reported_peak_memory_footprint_bytes": 10150670624
+    }
+  },
+  "limits": [
+    "Peak RSS did not decrease. Darwin peak memory footprint is a separate metric; no1.45x RSS claim.",
+    "Exploratory timings overlapped other engineering/proofs; no speedup/p50 inference.",
+    "Transient unlinked mappings are not durable restart checkpoints or remote workers.",
+    "All other source metadata, fixed setup, Merkle data and temporary buffers remain live under their own owners.",
+    "Longer retained-shard memory pressure, full block and services need separate qualification.",
+    "No fresh proof authority is supplied by file mappings or sealed roots; every physical proof and aggregate closure remains mandatory."
+  ]
+}

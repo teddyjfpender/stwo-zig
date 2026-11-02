@@ -1,0 +1,52 @@
+{
+  "scope": "Merged canonical native2n +LS96 +parallel LS/BINARY/SHIFT realpacket0 qualification; plain genesis prefix only",
+  "implementation_commit": "4fcdb0669",
+  "proof_sha256": "6a6e0b669cdb800dba4aa84e40d59abca28f3a908fe0d6064adb39adb459a495",
+  "proof_bytes": 1164896,
+  "steps": 4194303,
+  "memory_words": 708957,
+  "source_cells": {
+    "fixed": 67168160,
+    "main": 593751776,
+    "interaction": 613943808
+  },
+  "public_cells_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+  "CPU_all_fields_and_RAM_all_records_identical_to_control": true,
+  "control": "/tmp/rv64-word16-real0-source-profile-b64",
+  "fresh_receiver": {
+    "scope": "fresh independent genesis-prefix receiver",
+    "physical_proof_verified": true,
+    "global_chain_accepted": false,
+    "receiver_ns": 926197458,
+    "image_ns": 308427500
+  },
+  "observed": {
+    "provider_source_ns": 634162791,
+    "prove_ns": 10838065749,
+    "wall_seconds": 12.34,
+    "user_seconds": 61.99,
+    "system_seconds": 6.73,
+    "max_RSS_bytes": 10983915520
+  },
+  "merged_gates": {
+    "ReleaseFast": [
+      "coordinator20",
+      "global execution15",
+      "sharedKeccak5",
+      "LS nativefill6",
+      "BINARY nativefill5"
+    ],
+    "additional_isolated_SHIFT_nativefill": [
+      "ReleaseSafe5",
+      "ReleaseFast5",
+      "SourceFast7"
+    ],
+    "tool_build": "ReleaseFast separate current CLI build succeeded before artifact run"
+  },
+  "limits": [
+    "Engineering/compilation overlapped: observed timing is not an isolated speedup or p50.",
+    "No service calls occur in this packet; service integration has separate small proof fixtures.",
+    "Boundary ranges are still retained in this artifact; proposed public-tuple elision has its own later qualification.",
+    "No whole block or recursive/GPU acceptance implied."
+  ]
+}

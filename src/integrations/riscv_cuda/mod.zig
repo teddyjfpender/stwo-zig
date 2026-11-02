@@ -10,6 +10,8 @@ const std = @import("std");
 const backend = @import("stwo_cuda_backend");
 const proof_ir = @import("stwo_backend_contracts").proof_program;
 
+pub const rv64 = @import("rv64/mod.zig");
+
 pub const frontend = @import("stwo_riscv_frontend");
 pub const production_ready = false;
 pub const execution_blocker =
@@ -146,4 +148,8 @@ test "RISC-V structural admission rejects missing formal evidence" {
             .lean_refinement = proof_ir.identityDigest("fv1-fv2"),
         },
     ));
+}
+
+test {
+    _ = rv64;
 }

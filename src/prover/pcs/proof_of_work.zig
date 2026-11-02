@@ -27,6 +27,7 @@ pub fn grind(channel: anytype, pow_bits: u32) u64 {
         // the prover pool instead of creating and joining OS threads here.
         if (!std.process.hasEnvVarConstant("STWO_ZIG_POW_WORKERS")) {
             if (work_pool_mod.getGlobalPool()) |pool| {
+                if (pool.workerCount() == 1) return channel.grindWithWorkerCount(pow_bits, 1);
                 return grindBlake2sInPool(channel.*, pow_bits, pool);
             }
         }
@@ -36,6 +37,7 @@ pub fn grind(channel: anytype, pow_bits: u32) u64 {
         if (pow_bits == 0) return 0;
         if (!std.process.hasEnvVarConstant("STWO_ZIG_POW_WORKERS")) {
             if (work_pool_mod.getGlobalPool()) |pool| {
+                if (pool.workerCount() == 1) return channel.grind(pow_bits);
                 return grindBlake3InPool(channel.*, pow_bits, pool);
             }
         }

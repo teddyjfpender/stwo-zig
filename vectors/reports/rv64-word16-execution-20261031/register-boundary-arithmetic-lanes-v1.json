@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "scope": "Register-boundary and canonical scalar-provider arithmetic lanes; no recursive accepting API, recursive proof, gate-count or security claim.",
+  "base_commit": "e55b296a309a428d08e0b6a3db6bfc978d747ffb",
+  "source_sha256": {
+    "build_support/products/catalog.zig": "ff68dc35a987a0a847c4e3c921f12948537c04bb73c253ae3f3890277477ac35",
+    "build_support/products/riscv_recursion.zig": "ad7eaa850eaea415e15df7401e6661133d360a9b277dfc8dcbd19aad227ae2bc",
+    "src/frontends/riscv/rv64/air/mod.zig": "ea9cae68b61d978c42c95cadbe356228916e5cc99795aa5c42f8d351a283b73d",
+    "src/frontends/riscv/rv64/air/word16_cpu/boundary.zig": "05693355d01eea6fb5afa9a2f0abfb441b782f4062bace3c6e836a148d47438b",
+    "src/frontends/riscv/rv64/air/word16_cpu/boundary_component.zig": "610c26cf9c1d1822d53acaf7599cb870b47eec40bc12fbc59af7d82d432d1652",
+    "src/frontends/riscv/rv64/air/word16_cpu/component.zig": "04c8b4d989de0e860dff60c24fc7db99df43e4821570adcbbc0265d0bf1c75ce",
+    "src/frontends/riscv/rv64/air/word16_cpu/lookup.zig": "b02bb945e195f9ab5f6cc6fd4890844a17e6197d34f2a02e7560d89185124333",
+    "src/integrations/riscv_cpu/rv64_register_boundary_lanes_test_root.zig": "2e590ec1cffd46f798c697c08a9a0750e025bfc3b2a568dc2b56fefca562c006",
+    "src/integrations/riscv_cpu/tests/rv64_register_boundary_lanes_test.zig": "022f0eb7cb404f2f0bccd795105e72d8fce347186a66f9a246ae4a5f04e3b67f"
+  },
+  "arithmetic": {
+    "native_Public_Q_alias_unchanged": true,
+    "external_endpoint_inputs": "32 initial Word4 and32 final Word4 plus32 terminal clock wires; initial clocks hard0",
+    "shared_tuple_selector_authority": true,
+    "native_domain_and_source_ownership_unchanged": true,
+    "native_point_callbacks_delegate_shared_adapter": true,
+    "component_kinds": [
+      "boundary",
+      "range16",
+      "range8"
+    ],
+    "boundary_fixed_main_inter": [
+      34,
+      0,
+      8
+    ],
+    "scalar_fixed_main_inter": [
+      3,
+      1,
+      8
+    ],
+    "residuals_each": 3,
+    "boundary_actual_max_degree": 3,
+    "scalar_actual_max_degree": 2,
+    "declared_max_degree": 3,
+    "composition_split": 1,
+    "physical_protocol_identity_changed": false,
+    "host_prepared_Circuit_parameter_constants": false
+  },
+  "focused_suite": {
+    "target": "test-riscv64-register-boundary-lanes",
+    "named_tests": 6,
+    "runtime_guard_floor": 7,
+    "Safe": "PASS",
+    "Fast": "PASS",
+    "cases": [
+      "independent full64 one-hot tuple oracle for all32 register IDs and initial clockreset0",
+      "complete scalar PackedM31 PackedQM31 residual equality",
+      "Circuit endpoint highlimb/x0/terminalclock challenge claim and point mutations rejected",
+      "absolute column offsets and previous mask validation",
+      "complete dense-Q finite differences of all3 residuals with nonzero cubic boundary",
+      "metadata matches original native roster; exhaustive allocation-failure cleanup"
+    ],
+    "logs": [
+      "/tmp/rv64-register-boundary-focused-final-safe.log",
+      "/tmp/rv64-register-boundary-focused-final-fast.log"
+    ]
+  },
+  "existing_gates": [
+    {
+      "mode": "ReleaseSafe",
+      "target": "test-riscv64-word16-execution-coordinator",
+      "result": "PASS",
+      "log": "/tmp/rv64-register-boundary-initial-safe.log"
+    },
+    {
+      "mode": "ReleaseSafe",
+      "target": "test-riscv64-word16-execution-circuit",
+      "result": "PASS",
+      "log": "/tmp/rv64-register-boundary-final-safe.log",
+      "note": "This grouped log predates the final focused-suite source syntax fix; the existing execution-circuit target passed, final focused7 separately passed."
+    },
+    {
+      "mode": "ReleaseFast",
+      "targets": [
+        "test-riscv64-word16-execution-coordinator",
+        "test-riscv64-word16-combined-services"
+      ],
+      "result": "PASS",
+      "log": "/tmp/rv64-register-boundary-final-fast.log"
+    }
+  ],
+  "native_controls": {
+    "ecdsa": {
+      "new_directory": "/tmp/rv64-register-boundary-ecdsa",
+      "control_directory": "/tmp/rv64-cpu47-binary29-ecdsa",
+      "files": {
+        "proof.bin": {
+          "bytes": 749272,
+          "sha256": "e55768c8fc4bb8e2846a43271ff6341d95090e2bdfdbb983e0a2e326cd29ee90",
+          "control_exact": true
+        },
+        "statement.json": {
+          "bytes": 15090,
+          "sha256": "282455914258b649c8f004896dddac6c250a83b462cd654d95958a6a90c04294",
+          "control_exact": true
+        },
+        "cells.bin": {
+          "bytes": 83460,
+          "sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800",
+          "control_exact": true
+        }
+      },
+      "produce_and_fresh": "PASS",
+      "logs": [
+        "/tmp/rv64-register-boundary-ecdsa-produce.log",
+        "/tmp/rv64-register-boundary-ecdsa-fresh.log"
+      ]
+    },
+    "sail": {
+      "new_directory": "/tmp/rv64-register-boundary-sail",
+      "control_directory": "/tmp/rv64-cpu47-binary29-sail",
+      "files": {
+        "proof.bin": {
+          "bytes": 1015440,
+          "sha256": "2eefcfecf8cea8646c3ddf6539b62e7e0e723e78405db5978914da7f1333e499",
+          "control_exact": true
+        },
+        "statement.json": {
+          "bytes": 14797,
+          "sha256": "4300fedb897d36f5de5dae6f79204b2d4c6b5645f52017c3faeab99cccea7f3c",
+          "control_exact": true
+        },
+        "cells.bin": {
+          "bytes": 108,
+          "sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f",
+          "control_exact": true
+        }
+      },
+      "produce_and_fresh": "PASS",
+      "logs": [
+        "/tmp/rv64-register-boundary-sail-produce.log",
+        "/tmp/rv64-register-boundary-sail-fresh.log"
+      ]
+    }
+  },
+  "retained_complete_block": {
+    "directory": "/tmp/rv64-ethereum-full-cpu47-binary29-serial16-v1",
+    "bundle_sha256": "e62baee470b0b52d99c1a02e1b4619922463e08b626be66435397f698d80e462",
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "fresh_complete_native_receiver": "PASS",
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "log": "/tmp/rv64-register-boundary-full30-fresh.log",
+    "whole_block_reproved_for_this_slice": false
+  },
+  "tools": {
+    "rv64-word16-csp": "8115e23afa7b7eaba11b8c629623e18a43e314008019e4dfc735adc10e6585bc",
+    "rv64-word16-sail": "b1c41cc03b9afddad2a49ae33ebd7f116e5a7180d29fb8f975f9a012add610d1",
+    "rv64-word16-ethereum": "762e526870e471cd2449ee7230743df6e19a14a6bb964fb403870b5c87f9c49f"
+  },
+  "source_hygiene": {
+    "fmt_and_diff_check": "PASS",
+    "conformance_errors": 97,
+    "new_errors_against_recorded_baseline": 0,
+    "log": "/tmp/rv64-register-boundary-source-conformance.log"
+  },
+  "remaining": "Outer recursive statement must bind canonical public endpoint/clock and challenge wires, preserve local REG scope/reset and global manifest/debt/image/terminal/adjacency/topology authority. Service bridge and other concrete point owners still need typed adapters.",
+  "performance": "No committed-cell/mask/query changes or speed/RSS claim. All runtime checks are functional, not controlled timing comparisons."
+}

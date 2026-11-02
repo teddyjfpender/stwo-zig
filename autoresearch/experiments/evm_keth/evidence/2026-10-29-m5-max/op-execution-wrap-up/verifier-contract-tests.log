@@ -1,0 +1,18 @@
+/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/compiler/ast/formatting_utils.py:20: ChangedInMarshmallow4Warning: `Field` should not be instantiated. Use `fields.Raw` or  another field subclass instead.
+  marshmallow_field=marshmallow.fields.Field(load_only=True, dump_only=True)
+/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/compiler/ast/expr.py:66: ChangedInMarshmallow4Warning: `Field` should not be instantiated. Use `fields.Raw` or  another field subclass instead.
+  marshmallow_field=marshmallow.fields.Field(load_only=True, dump_only=True)
+/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/compiler/parser.py:40: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/compiler/cairo.ebnf' mode='r' encoding='UTF-8'>
+  GRAMMAR_PARSER = get_grammar_parser(grammar=open(GRAMMER_FILE, "r").read())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/compiler/references.py:89: ChangedInMarshmallow4Warning: `Field` should not be instantiated. Use `fields.Raw` or  another field subclass instead.
+  marshmallow_field=marshmallow.fields.Field(load_only=True, dump_only=True)
+/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/version.py:3: ResourceWarning: unclosed file <_io.TextIOWrapper name='/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/starkware/cairo/lang/VERSION' mode='r' encoding='UTF-8'>
+  __version__ = open(os.path.join(os.path.dirname(__file__), "VERSION")).read().strip()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/Users/theodorepender/code/cryptography/keth-pinned/.venv/lib/python3.10/site-packages/lark/parsers/lalr_interactive_parser.py:26: DeprecationWarning: lexer_state will be removed in subsequent releases. Use lexer_thread instead.
+  warnings.warn("lexer_state will be removed in subsequent releases. Use lexer_thread instead.", DeprecationWarning)
+----------------------------------------------------------------------
+Ran 6 tests in 123.063s
+
+OK

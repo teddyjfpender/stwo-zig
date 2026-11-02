@@ -1,0 +1,254 @@
+//! One CPU witness and one native family routing/grouping pass, before setup.
+//! Program is borrowed. After moving it into Setup, callers MUST transfer via
+//! Sources.fromPrepared, which validates identity and rebinds CPU.program to
+//! the final stable Setup address before any row/interaction access.
+const std = @import("std");
+const front = @import("stwo_riscv_frontend");
+const A = front.rv64_air;
+const B = A.word16_v1;
+const CPU = @import("cpu_source.zig");
+const Program = @import("program.zig").Program;
+const J = @import("jalr_source.zig");
+const Coverage = @import("coverage.zig");
+const G = @import("geometry.zig");
+pub const Binary = @import("binary_dedup.zig");
+pub const Shift = @import("shift_dedup.zig");
+pub const Zbb = B.binary_zbb_source;
+const Execution = front.rv64.execution_profile;
+pub const Options = struct {
+    deduplicate_binary: bool = true,
+    deduplicate_shift: bool = false,
+    /// Legacy wrapper keeps its caller-declared padded JALR geometry.
+    jalr_log: ?u32 = null,
+};
+pub const Prepared = struct {
+    allocator: std.mem.Allocator,
+    program_identity: [32]u8,
+    cpu: ?CPU.Source,
+    jalr: ?J.Source,
+    alu: B.alu_experiment.source.WeightedFacts,
+    binary: Binary.WeightedFacts,
+    shift: []B.operations.ShiftFact,
+    shift_weights: []u32,
+    division: []A.arithmetic.division.trace.Request,
+    multiplication: []A.arithmetic.multiplication.trace.Request,
+    /// Zbb BINARY FUNCTION facts (ids 19..24), deduplicated. Non-empty only for
+    /// a Zbb-profile program on the v3 services route; their provider is the
+    /// services-lane Zbb component (no core role), so core-only routes reject them.
+    zbb: Zbb.Weighted,
+    raw_counts: Coverage.Counts,
+    unique_memory_words: u32,
+    pub fn init(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try capture(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
+    /// Explicit service witness route. Old constructors remain fail-closed;
+    /// acceptance belongs only to the complete Keccak service coordinator.
+    pub fn initForKeccak(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try captureForKeccak(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
+    /// Explicit LE-word secp witness route; acceptance belongs only to the
+    /// complete OWNER/RAM/Wire35 service coordinator, never the old receiver.
+    pub fn initForSecp(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try captureForSecp(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
+    /// Geometry/grouping ready without CPU MAIN. JALR retains its existing
+    /// independently sized witness; this does not claim all providers narrow.
+    pub fn capture(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .none);
+    }
+    pub fn captureForKeccak(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .keccak);
+    }
+    pub fn captureForSecp(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .secp_words);
+    }
+    /// Explicit all-three LE ABI route. Old named service routes preserve
+    /// their narrower whitelists; actual acceptance requires joined proofs.
+    pub fn captureForCombinedServicesLEv2(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        if (tape.execution_profile != .ethereum_services_v2) return error.UnqualifiedWord16ServiceOwners;
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_words);
+    }
+    pub fn initForCombinedServicesLEv2(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try captureForCombinedServicesLEv2(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
+    /// Admitted v3 LE ABI: v2's three families plus SHA-256 compression. The
+    /// v2 route above keeps its exact whitelist; v3 tags need v3 tapes.
+    pub fn captureForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        if (!Execution.isV3(tape.execution_profile)) return error.UnqualifiedWord16ServiceOwners;
+        // A Zbb tape needs a Zbb ROM and a Zbb ROM needs a Zbb tape: the
+        // program profile (bound into the program identity) and the tape agree.
+        if (A.word16_execution.features.zbbProfile(tape.execution_profile) != A.word16_execution.features.zbbProfile(program.profile)) return error.UnqualifiedWord16ServiceOwners;
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_words_v3);
+    }
+    /// Either admitted combined profile, selected by the tape's own profile.
+    pub fn captureForCombinedServices(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return if (Execution.isV3(tape.execution_profile)) captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options) else captureForCombinedServicesLEv2(a, program, public, epoch, cpu_log, tape, options);
+    }
+    pub fn initForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try captureForCombinedServicesV3(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
+    const Service = enum { none, keccak, secp_words, combined_words, combined_words_v3 };
+    fn captureInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, service: Service) !Prepared {
+        var cpu = try CPU.Source.capture(a, program, public, epoch, cpu_log, tape);
+        errdefer cpu.deinit();
+        for (cpu.services.items) |call| {
+            const valid = switch (service) {
+                .none => false,
+                .keccak => call.tag == 0x10001,
+                .secp_words => call.tag == 0x20011 or call.tag == 0x20012,
+                .combined_words => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012,
+                .combined_words_v3 => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30010 or call.tag == 0x30021 or call.tag == 0x30001 or call.tag == 0x30002 or call.tag == 0x30040 or call.tag == 0x30003 or call.tag == 0x30130 or @import("stwo_riscv_frontend").rv64.execution_profile.isCurveTag(call.tag),
+            };
+            if (!valid) return error.UnqualifiedWord16ServiceOwners;
+        }
+        var af: std.ArrayList(B.operations.AluFact) = .empty;
+        defer af.deinit(a);
+        var bf: std.ArrayList(Binary.Fact) = .empty;
+        defer bf.deinit(a);
+        var sf: std.ArrayList(B.operations.ShiftFact) = .empty;
+        defer sf.deinit(a);
+        var jf: std.ArrayList(J.Fact) = .empty;
+        defer jf.deinit(a);
+        var df: std.ArrayList(A.arithmetic.division.trace.Request) = .empty;
+        defer df.deinit(a);
+        var mf: std.ArrayList(A.arithmetic.multiplication.trace.Request) = .empty;
+        defer mf.deinit(a);
+        var zf: std.ArrayList(Zbb.Fact) = .empty;
+        defer zf.deinit(a);
+        const allow_zbb = service == .combined_words_v3 and A.word16_execution.features.zbbProfile(program.profile);
+        for (cpu.functions.items) |f| switch (f.operation) {
+            0...9 => try af.append(a, .{ .op = @enumFromInt(f.operation), .a = f.a, .b = f.b, .c = f.c }),
+            10 => try jf.append(a, .{ .a = f.a, .b = f.b, .c = f.c }),
+            16...18 => try bf.append(a, .{ .op = @enumFromInt(f.operation - 16), .a = f.a, .b = f.b, .c = f.c }),
+            32...37 => try sf.append(a, .{ .op = @enumFromInt(f.operation - 32), .a = f.a, .b = f.b, .c = f.c }),
+            49...52, 57 => try mf.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
+            53...56, 58...61 => try df.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
+            B.binary_zbb.FIRST_ID...B.binary_zbb.FIRST_ID + B.binary_zbb.OPS - 1 => if (allow_zbb) try zf.append(a, .{ .op = @enumFromInt(f.operation - B.binary_zbb.FIRST_ID), .a = f.a, .b = f.b, .c = f.c }) else return error.UnroutedWord16Function,
+            else => return error.UnroutedWord16Function,
+        };
+        const raw_mul_count: u32 = @intCast(mf.items.len);
+        // These are provider obligations, not retired MUL instructions.
+        // The same normalized operands authority is used by the DIV witness.
+        for (df.items) |request| try mf.appendSlice(a, &try A.arithmetic.division.word16_product.witness.support(request));
+        const jalr_log = options.jalr_log orelse try Coverage.minimalLog(@intCast(jf.items.len));
+        var jalr = try J.Source.init(a, jf.items, jalr_log);
+        errdefer jalr.deinit();
+        const extra_alu = try jalr.aluFacts(a);
+        defer a.free(extra_alu);
+        try af.appendSlice(a, extra_alu);
+        const extra_binary = try jalr.binaryFacts(a);
+        defer a.free(extra_binary);
+        try bf.appendSlice(a, extra_binary);
+        var alu = try B.alu_experiment.source.deduplicate(a, af.items);
+        errdefer alu.deinit();
+        var binary = try Binary.collect(a, bf.items, options.deduplicate_binary);
+        errdefer binary.deinit();
+        var zbb = try Zbb.collect(a, zf.items);
+        errdefer zbb.deinit();
+        var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
+        defer words.deinit(a);
+        for (cpu.memory.items) |record| try words.put(a, record.effect.address.toInt() & ~@as(u64, 7), {});
+        const raw_shift_count: u32 = @intCast(sf.items.len);
+        const grouped_shift = if (options.deduplicate_shift) try Shift.collect(a, sf.items, true) else null;
+        const shift = if (grouped_shift) |value| value.facts else try sf.toOwnedSlice(a);
+        errdefer a.free(shift);
+        const shift_weights: []u32 = if (grouped_shift) |value| value.weights else &.{};
+        errdefer a.free(shift_weights);
+        const division = try df.toOwnedSlice(a);
+        errdefer a.free(division);
+        const multiplication = try mf.toOwnedSlice(a);
+        // Every provider fact is now independently owned. Avoid retaining a
+        // second copy until all execution shards have sealed their MAIN.
+        cpu.releaseFunctionFacts();
+        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .zbb = zbb, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
+    }
+    pub fn geometry(self: *const Prepared) !G.Geometry {
+        const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
+        return .{ .cpu_log = cpu.log_size, .alu_log = try Coverage.minimalLog(@intCast(self.alu.facts.len)), .binary_log = try Coverage.minimalLog(@intCast(self.binary.facts.len)), .shift_log = try Coverage.minimalLog(@intCast(self.shift.len)), .jalr_log = (self.jalr orelse return error.PreparedExecutionConsumed).log_size, .division_log = try Coverage.minimalLog(@intCast(self.division.len)), .multiplication_log = try Coverage.minimalMultiplicationLog(@intCast(self.multiplication.len)), .ls_log = try Coverage.minimalPrefixLog(self.raw_counts.memory), .boundary_log = try Coverage.minimalPrefixLog(self.unique_memory_words) };
+    }
+    /// Explicit optional physical class. Ordinary geometry() keeps the legacy
+    /// present provider and exact historical proof bytes by default.
+    pub fn geometryOmittingEmptyDivision(self: *const Prepared) !G.Geometry {
+        var result = try self.geometry();
+        result.omit_empty_division = self.division.len == 0;
+        return result;
+    }
+    /// Validate/rebind before projection. A projection failure leaves the CPU
+    /// and grouped facts here for retry; no ownership moves on this barrier.
+    pub fn ensureCpuMain(self: *Prepared, program: *const Program, expected_cpu_log: u32) !void {
+        if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;
+        const cpu = if (self.cpu) |*value| value else return error.PreparedExecutionConsumed;
+        if (cpu.log_size != expected_cpu_log) return error.PreparedGeometryMismatch;
+        // Compact decode changes AUIPC/JAL facts; layouts cannot be rebound.
+        if (cpu.compact != program.compact) return error.PreparedGeometryMismatch;
+        cpu.program = program;
+        if (cpu.main_projection_closed) {
+            if (cpu.main.len == 0) return error.ExecutionMainUnavailable;
+        } else try cpu.materializeMain();
+    }
+    pub fn takeCpu(self: *Prepared, program: *const Program, expected_cpu_log: u32) !CPU.Source {
+        if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;
+        var cpu = self.cpu orelse return error.PreparedExecutionConsumed;
+        if (cpu.log_size != expected_cpu_log) return error.PreparedGeometryMismatch;
+        // Compact decode changes AUIPC/JAL facts; layouts cannot be rebound.
+        if (cpu.compact != program.compact) return error.PreparedGeometryMismatch;
+        cpu.program = program;
+        self.cpu = null;
+        return cpu;
+    }
+    pub fn takeJalr(self: *Prepared, expected_log: u32) !J.Source {
+        const value = self.jalr orelse return error.PreparedExecutionConsumed;
+        if (value.log_size != expected_log) return error.PreparedGeometryMismatch;
+        self.jalr = null;
+        return value;
+    }
+    /// Providers have copied their narrow metadata; discard temporary grouping
+    /// arrays immediately, while retaining census fields for telemetry.
+    pub fn releaseFacts(self: *Prepared) void {
+        self.allocator.free(self.alu.facts);
+        self.allocator.free(self.alu.weights);
+        self.alu.facts = &.{};
+        self.alu.weights = &.{};
+        self.allocator.free(self.binary.facts);
+        self.allocator.free(self.binary.weights);
+        self.binary.facts = &.{};
+        self.binary.weights = &.{};
+        self.allocator.free(self.shift);
+        self.allocator.free(self.shift_weights);
+        self.allocator.free(self.division);
+        self.allocator.free(self.multiplication);
+        self.shift = &.{};
+        self.shift_weights = &.{};
+        self.division = &.{};
+        self.multiplication = &.{};
+        // `zbb` is consumed by the services-lane Zbb provider, built after the
+        // core sources release their facts; it is freed by deinit.
+    }
+    pub fn deinit(self: *Prepared) void {
+        if (self.cpu) |*value| value.deinit();
+        if (self.jalr) |*value| value.deinit();
+        self.alu.deinit();
+        self.binary.deinit();
+        self.allocator.free(self.shift);
+        self.allocator.free(self.shift_weights);
+        self.allocator.free(self.division);
+        self.allocator.free(self.multiplication);
+        self.zbb.deinit();
+        self.* = undefined;
+    }
+};

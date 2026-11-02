@@ -1,0 +1,32 @@
+{
+  "upstream": "https://github.com/starkware-libs/stwo",
+  "revision": "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2",
+  "scope": "Numerical verifier only; no upstreamOM support or full PCS/execution acceptance claim.",
+  "files": [
+    {
+      "file": "gkr_verifier.rs",
+      "upstream_sha256": "9b275b6ce45a9ecf1c8f7cf353099f11b890489219ef92d6a14ed9e6ef7042d9",
+      "lifted_sha256": "7bf5d19dbd31d93045753b90493dc6115706757859db9f8ac718fca216d2e33d",
+      "adaptations": [
+        "Imports point to pinned stwo primitives and local OM SecureField/channel; remove cfg(test)module only."
+      ]
+    },
+    {
+      "file": "utils.rs",
+      "upstream_sha256": "ed8244fa89155061b44ed4b3dfb082f14ce18e92ef96a2a876594b9bdb5a2417",
+      "lifted_sha256": "e577d2ea625a328fa87093c2e87b50db60c379cbca1a8f1d83ad2460c5da7ea6",
+      "adaptations": [
+        "Imports point to pinned stwo primitives and local OM SecureField/channel; remove cfg(test)module only.",
+        "Expose exact coefficientVec to bounded decoder; never use trimming new() for transcript witness."
+      ]
+    },
+    {
+      "file": "sumcheck.rs",
+      "upstream_sha256": "2ea1be25235bf1009e71e4e55e91599bae3858dc97e46acb153bd5b60b590119",
+      "lifted_sha256": "871859512fcb305a1015cc5ff8837f612f9f35e72b85edd8dd2a721c6d12998b",
+      "adaptations": [
+        "Retain unchanged verification function, proof/error types andMAX_DEGREE; omit prover-only prefix andtests."
+      ]
+    }
+  ]
+}

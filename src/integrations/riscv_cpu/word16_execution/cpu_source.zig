@@ -1,0 +1,240 @@
+//! One pass over narrow captured advice; no interpreter or bulk Retirement copy.
+//! The original matrix may be released after sealing. Owned56-byte metadata
+//! retains exactly the register values/clocks, dynamic target and ROM row.
+const std = @import("std");
+const core = @import("stwo_core");
+const engine = @import("stwo_prover_engine");
+const front = @import("stwo_riscv_frontend");
+const X = front.rv64_air.word16_execution;
+const L = X.layout;
+const M = core.fields.m31.M31;
+const Q = core.fields.qm31.QM31;
+const Program = @import("program.zig").Program;
+const Tape = front.rv64.compact_tape.Tape;
+const Projection = front.rv64_air.word16_cpu.native_projection;
+pub const FunctionFact = struct { operation: u8, a: u64, b: u64, c: u64 };
+pub const MemoryRecord = struct {
+    opcode: front.rv64.decode.Opcode,
+    a: u64,
+    immediate: u64,
+    b: u64,
+    c: u64,
+    epoch: u16,
+    tick: u24,
+    effect: front.rv64.machine.MemoryEffect,
+};
+pub const ServiceRecord = struct { pointer: u64, tag: u64, epoch: u16, tick: u24 };
+pub const Metadata = struct { values: [5]u64, clocks: [3]u32, rom_row: u32 };
+comptime {
+    std.debug.assert(@sizeOf(Metadata) == 56);
+}
+pub const Source = struct {
+    allocator: std.mem.Allocator,
+    program: *const Program,
+    public: X.types.Boundary,
+    epoch: u16,
+    log_size: u32,
+    metadata: []Metadata,
+    main: []M = &.{},
+    /// Sticky after successful projection or explicit retirement. A cleared
+    /// MAIN never authorizes a second wide projection from the same capture.
+    main_projection_closed: bool = false,
+    interaction: []M = &.{},
+    /// Opt-in fused-tail interaction encoding (Geometry.cpu_fused_tail).
+    fused_tail: bool = false,
+    /// Opt-in byte-pair lookups (Geometry.cpu_u8_pairs, implies fused_tail).
+    u8_pairs: bool = false,
+    /// Compact decode MAIN (Geometry.cpu_compact_decode). Fixed at capture
+    /// from Program.compact: it changes the AUIPC/JAL FUNCTION facts, so a
+    /// capture can only be bound to a program owner of the same layout.
+    compact: bool = false,
+    rom_counts: []u64,
+    counts16: []u64,
+    counts8: []u64,
+    capture_records_retired: bool = false,
+    functions: std.ArrayList(FunctionFact) = .empty,
+    memory: std.ArrayList(MemoryRecord) = .empty,
+    services: std.ArrayList(ServiceRecord) = .empty,
+    /// Compatibility wrapper: one capture followed by one wide projection.
+    pub fn init(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
+        var result = try capture(a, program, public, epoch, log_size, tape);
+        errdefer result.deinit();
+        try result.materializeMain();
+        return result;
+    }
+    /// Validates/restores Tape once and retains only narrow advice and facts.
+    /// Neither MAIN nor its range histograms are constructed in this phase.
+    pub fn capture(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
+        _ = try X.types.inputs(public, epoch, log_size);
+        if (tape.len != public.steps or tape.initial_pc != public.initial_pc) return error.InvalidExecutionAdvice;
+        const metadata = try a.alloc(Metadata, public.steps);
+        errdefer a.free(metadata);
+        const rom_counts = try a.alloc(u64, program.size());
+        errdefer a.free(rom_counts);
+        const counts16 = try a.alloc(u64, 65536);
+        errdefer a.free(counts16);
+        const counts8 = try a.alloc(u64, 256);
+        errdefer a.free(counts8);
+        @memset(rom_counts, 0);
+        @memset(counts16, 0);
+        @memset(counts8, 0);
+        var functions: std.ArrayList(FunctionFact) = .empty;
+        errdefer functions.deinit(a);
+        var memory: std.ArrayList(MemoryRecord) = .empty;
+        errdefer memory.deinit(a);
+        var services: std.ArrayList(ServiceRecord) = .empty;
+        errdefer services.deinit(a);
+        var registers = public.initial_registers;
+        var clocks: [32]u32 = @splat(0);
+        var pc = public.initial_pc;
+        const stride: u32 = L.ramStride(log_size);
+        for (metadata, 0..) |*meta, index| {
+            const word = try program.lookup(pc);
+            const entry = program.entries[word];
+            if (!entry.valid or (program.compact and !entry.compactValid())) return error.UnadmittedExecutionInstruction;
+            const record = try tape.restore(index, .{ .raw = entry.raw, .instruction = entry.instruction }, .local);
+            const effects = front.rv64.execution_profile.effects(.ethereum_services_v2, entry.instruction.opcode);
+            const jump = entry.instruction.opcode == .JAL or entry.dynamic_next;
+            if (record.clock != index + 1 or record.pc.toInt() != pc or record.instruction != entry.raw or record.opcode != entry.instruction.opcode or record.rs1 != entry.ids[0] or record.rs2 != entry.ids[1] or record.rd != entry.ids[2] or record.lhs.toInt() != registers[entry.ids[0]] or record.rhs.toInt() != registers[entry.ids[1]] or record.previous_rd.toInt() != (if (effects.writes_rd) registers[entry.ids[2]] else 0) or record.writes_rd != (effects.writes_rd and entry.ids[2] != 0) or record.immediate.toInt() != @as(u64, @bitCast(entry.instruction.imm))) return error.InvalidExecutionAdvice;
+            if ((!entry.branch and record.branch_taken != jump) or (entry.branch and record.result.toInt() != 0)) return error.InvalidExecutionAdvice;
+            const next = record.next_pc.toInt();
+            if (next & 3 != 0 or (!entry.dynamic_next and next != entry.staticNext(entry.branch and record.branch_taken))) return error.InvalidExecutionAdvice;
+            if (program.compact and !X.features.compactPcAdmitted(next)) return error.InvalidExecutionAdvice;
+            const c = if (entry.branch) @intFromBool(record.branch_taken) else record.result.toInt();
+            const rom_row = try program.factIndex(word, entry.branch and record.branch_taken);
+            meta.* = .{ .values = .{ record.lhs.toInt(), record.rhs.toInt(), c, record.previous_rd.toInt(), next }, .clocks = undefined, .rom_row = @intCast(rom_row) };
+            for (entry.ids, 0..) |id, slot| {
+                meta.clocks[slot] = if (id == 0) 0 else clocks[id];
+                if (id != 0) clocks[id] = @intCast(4 * index + slot + 1);
+            }
+            rom_counts[L.physical(rom_row, program.log_size)] += 1;
+            if (entry.function) {
+                if (record.memory != null) return error.InvalidExecutionAdvice;
+                // Compact decode folds AUIPC/JAL to ADD(0, pc+imm) / ADD(0, pc+4).
+                const fact_a = if (entry.use_pc and !program.compact) pc else meta.values[0];
+                const fact_b = if (!entry.use_immediate) meta.values[1] else if (program.compact) entry.compactB() else entry.immediate;
+                try functions.append(a, .{ .operation = entry.operation, .a = fact_a, .b = fact_b, .c = if (entry.dynamic_next) next else c });
+            } else if (entry.instruction.opcode == .ECALL) {
+                if (record.memory != null or c != 0) return error.InvalidExecutionAdvice;
+                try services.append(a, .{ .pointer = meta.values[0], .tag = meta.values[1], .epoch = epoch, .tick = @intCast(stride * (index + 1)) });
+            } else {
+                const effect = record.memory orelse return error.MissingExecutionMemory;
+                try memory.append(a, .{ .opcode = entry.instruction.opcode, .a = meta.values[0], .immediate = entry.immediate, .b = meta.values[1], .c = c, .epoch = epoch, .tick = @intCast(stride * (index + 1)), .effect = effect });
+            }
+            if (effects.writes_rd and entry.ids[2] != 0) registers[entry.ids[2]] = record.result.toInt();
+            pc = next;
+        }
+        if (pc != public.final_pc or !std.mem.eql(u64, &registers, &public.final_registers) or !std.mem.eql(u32, &clocks, &public.register_clocks)) return error.InvalidExecutionBoundary;
+        if (program.compact) try X.types.validateCompactInputs(try X.types.inputs(public, epoch, log_size), log_size);
+        return .{ .allocator = a, .program = program, .compact = program.compact, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
+    }
+    /// A failed allocation/projection leaves the capture reusable: MAIN stays
+    /// empty, range histograms stay zero, metadata/facts/ROM counts stay owned.
+    /// No Tape access or instruction replay occurs here.
+    pub fn materializeMain(self: *Source) !void {
+        if (self.main_projection_closed or self.main.len != 0) return error.ExecutionMainProjectionClosed;
+        _ = try X.types.inputs(self.public, self.epoch, self.log_size);
+        if (self.metadata.len != self.public.steps) return error.InvalidExecutionSourcePhase;
+        if (self.compact != self.program.compact) return error.InvalidCpuCompactGeometry;
+        @memset(self.counts16, 0);
+        @memset(self.counts8, 0);
+        errdefer {
+            @memset(self.counts16, 0);
+            @memset(self.counts8, 0);
+        }
+        const main = try self.allocator.alloc(M, L.mainCount(self.compact) * self.size());
+        errdefer self.allocator.free(main);
+        var staged = self.*;
+        staged.main = main;
+        // Total captured rows and all allocations/submissions are admitted
+        // before writes. Only this provisional matrix may be discarded.
+        try Projection.fill(self.allocator, self.log_size, .{ .context = &staged, .rows = fill }, self.counts16, self.counts8, engine.work_pool.currentScopedPool());
+        self.main = main;
+        self.main_projection_closed = true;
+    }
+    fn fill(ctx: *const anyopaque, start: usize, end: usize, counts16: []u64, counts8: []u64) void {
+        const self: *const Source = @ptrCast(@alignCast(ctx));
+        const n = self.size();
+        const wide = L.wideClock(self.log_size);
+        for (start..end) |physical| {
+            const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.log_size), self.log_size);
+            const values = self.row(logical) catch unreachable; // prevalidated framing.
+            for (values[0..L.mainCount(self.compact)], 0..) |value, column| self.main[column * n + physical] = value;
+            const gap16: usize = if (self.compact) L.compact.gap16 else L.main.gap16;
+            const gap8: usize = if (self.compact) L.compact.gap8 else L.main.gap8;
+            for (0..3) |slot| {
+                counts16[values[gap16 + slot].v] += 1;
+                // Wide clock: gap8 < 2^9 is queried as the U16 value 128*gap8.
+                if (wide) counts16[L.WIDE_GAP_SCALE * values[gap8 + slot].v] += 1 else counts8[values[gap8 + slot].v] += 1;
+            }
+        }
+    }
+    pub fn row(self: *const Source, logical: usize) !X.row.Main {
+        if (self.metadata.len != self.public.steps) return error.InvalidExecutionSourcePhase;
+        if (logical >= self.size()) return error.InvalidExecutionRow;
+        if (self.compact != self.program.compact) return error.InvalidCpuCompactGeometry;
+        if (logical >= self.metadata.len) return if (self.compact) X.row.compact.padding(@intCast(logical), self.public.final_pc) else X.row.padding(@intCast(logical), self.public.final_pc);
+        const meta = self.metadata[logical];
+        const entry = self.program.entries[self.program.row_to_entry[meta.rom_row]];
+        if (self.compact) return X.row.compact.active(entry, @intCast(logical), meta.values[4], .{ .a = meta.values[0], .b = meta.values[1], .c = meta.values[2], .previous_rd = meta.values[3] }, meta.clocks);
+        return X.row.active(entry, @intCast(logical), meta.values[4], .{ .a = meta.values[0], .b = meta.values[1], .c = meta.values[2], .previous_rd = meta.values[3] }, meta.clocks);
+    }
+    pub fn size(self: *const Source) usize {
+        return @as(usize, 1) << @intCast(self.log_size);
+    }
+    pub fn releaseMain(self: *Source) void {
+        self.main_projection_closed = true;
+        self.allocator.free(self.main);
+        self.main = &.{};
+    }
+    pub fn takeMainForCommit(self: *Source) ![]M {
+        if (self.main.len == 0) return error.ExecutionMainUnavailable;
+        const main = self.main;
+        self.main = &.{};
+        self.main_projection_closed = true;
+        return main;
+    }
+    /// Grouped provider facts have copied these values; CPU projection and
+    /// interactions read only metadata and the authenticated ROM entries.
+    pub fn releaseFunctionFacts(self: *Source) void {
+        self.functions.deinit(self.allocator);
+        self.functions = .empty;
+    }
+    /// Only after chronological RAM/service advice has copied all records.
+    /// A caller must then supply owned prepared memory to build this source.
+    pub fn releaseCaptureRecords(self: *Source) void {
+        self.memory.deinit(self.allocator);
+        self.memory = .empty;
+        self.services.deinit(self.allocator);
+        self.services = .empty;
+        self.capture_records_retired = true;
+    }
+    pub fn releaseFacts(self: *Source) void {
+        self.releaseFunctionFacts();
+        self.releaseCaptureRecords();
+    }
+    pub fn deinit(self: *Source) void {
+        self.releaseMain();
+        self.releaseFacts();
+        self.allocator.free(self.interaction);
+        self.allocator.free(self.metadata);
+        self.allocator.free(self.rom_counts);
+        self.allocator.free(self.counts16);
+        self.allocator.free(self.counts8);
+        self.* = undefined;
+    }
+    pub fn columns(self: *const Source, a: std.mem.Allocator, tree: u2) ![]engine.pcs.ColumnEvaluation {
+        const data = switch (tree) {
+            1 => self.main,
+            2 => self.interaction,
+            else => return error.InvalidExecutionTree,
+        };
+        if (data.len == 0) return error.InvalidExecutionSourcePhase;
+        const result = try a.alloc(engine.pcs.ColumnEvaluation, data.len / self.size());
+        for (result, 0..) |*c, i| c.* = .{ .log_size = self.log_size, .values = data[i * self.size() ..][0..self.size()] };
+        return result;
+    }
+    pub fn generate(self: *Source, ch: X.types.Challenges, dictionaries: @import("cpu_interaction.zig").Dictionaries) !Q {
+        return @import("cpu_interaction.zig").generate(self, ch, dictionaries, engine.work_pool.currentScopedPool());
+    }
+};

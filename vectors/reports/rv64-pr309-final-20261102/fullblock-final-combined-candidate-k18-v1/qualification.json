@@ -1,0 +1,374 @@
+{
+  "scope": "Complete pinned block, stronger beta2/q256/P0/fold4 engineering candidate, source80/deferred K18,2x8workers. Combined packed OM FRI, owned zero-top dyadic LDE and blocked DEEP finalization; security/profile/transcript/geometry unchanged.",
+  "runtime_source_snapshot": "85d93b080d37b4dcc5716e08c687f88663560323",
+  "binary_sha256": "d7f884453542289005776ead80892e56d5bcab5cdd3d25f2dc688b1d42f36ceb",
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "park_main": true,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8,
+        8
+      ],
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 2,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 2147483648,
+      "max_inflight_wire_bytes": 1073741824
+    },
+    "recycler_cache_bytes": 1073741824,
+    "defer_local_binding": true
+  },
+  "prove_seconds": 292.261257875,
+  "wall_seconds": 331.38,
+  "process_user_seconds": 3511.24,
+  "process_system_seconds": 219.91,
+  "maximum_rss_bytes": 39998881792,
+  "peak_footprint_bytes": 37729684880,
+  "stage1_seconds": 114.556022333,
+  "stage2_seconds": 177.510314,
+  "summed_stage_seconds": {
+    "streaming_commit_prepare": 131.19547899999998,
+    "streaming_transform": 78.76034600000023,
+    "streaming_leaf_hash": 52.403320000000036,
+    "merkle_commit": 10.604950000000002,
+    "binding_finalize": 7.274436,
+    "interaction_generation": 16.008742,
+    "draw_random_coeff": 0.000452,
+    "composition_trace_extract": 0.0008769999999999996,
+    "composition_evaluation": 128.50914300000002,
+    "composition_interpolate_and_split": 6.783051999999998,
+    "composition_commit": 13.200441999999999,
+    "oods_point_and_mask_points": 0.008308,
+    "sampled_value_evaluation": 8.439787999999998,
+    "sampled_value_channel_mix": 0.009930999999999999,
+    "fri_quotient_build_and_commit": 66.430711,
+    "proof_of_work": 0.00048100000000000004,
+    "fri_decommit": 2.7062049999999997,
+    "trace_decommit": 26.177117000000003,
+    "constraint_check_and_assembly": 0.06788599999999999
+  },
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "load_and_setup_ns": 32946470542,
+    "verify_ns": 1411953208,
+    "fixed_setup": {
+      "limit_bytes": 12884901888,
+      "live_bytes": 2000763768,
+      "peak_bytes": 4240096296,
+      "keys": 29,
+      "hits": 0,
+      "seals": 29,
+      "refused": false,
+      "native_coefficients": {
+        "limit_bytes": 12884901888,
+        "retained_bytes": 279786496,
+        "native_backing_bytes": 279745920,
+        "groups": 316,
+        "hits": 3416,
+        "duplicate_native_bytes_released": 5384819584,
+        "observed_individual_owners": 3732,
+        "observed_backing_owners": 0,
+        "observed_spans": 3732,
+        "owner_leases": 30
+      }
+    },
+    "source_validations": 29,
+    "source_coefficient_cells": 1416141376,
+    "source_shape": {
+      "native_proofs": 30,
+      "max_trace_log": 22,
+      "max_columns": 7371,
+      "max_constraints": 6128,
+      "max_samples_per_column": 5,
+      "max_air_degree": 5,
+      "max_local_instances": 22,
+      "max_tuple_arity": 35,
+      "max_gkr_variables": 26
+    },
+    "source_lookup_only_conditional_degrees": {
+      "tuple_collision": 1242334912920526656,
+      "rational_identity": 3804538944,
+      "local_rational_identity": 3705519680,
+      "global_rational_identity": 99019264,
+      "poles": 3804538944
+    },
+    "receiver_budget": {
+      "live_bytes": 4302173231,
+      "peak_live_bytes": 6541505959,
+      "host_live_bytes": 4302173231,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 6541505959,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    },
+    "receiver_recycler_cache_cap_bytes": 4294967296,
+    "receiver_worker_stack_upper_bound_bytes": 16777216
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 135807,
+      "sha256": "548a59ef4a46cf90155ebc306ec88d736f4d909a31a85fdd8742206b88d3635d",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 2286160,
+      "sha256": "c8da4f87e3bad7a92f5fb7fcc6461fca8e41076d8ae4e94d623aab0b3b8e3a4b",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 2217184,
+      "sha256": "bb88ab203a3663a8afa5b56a1353d143471fabee12ca106c34a11d8127a6d474",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 2982392,
+      "sha256": "5e4d25da1a045ecf6d1f0ccf00adf5e0b5c5988abb01021beda0d5b2c4493016",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-11.bin",
+      "bytes": 2526872,
+      "sha256": "5691e1dca5e28c86a9514d555ffe70278ebc7323404f2be91cc83dd21d006db4",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-12.bin",
+      "bytes": 2528440,
+      "sha256": "a89ff31e00774cf05c1ae1c1e38776df9d9459fb2cb224b278c6463444888970",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-13.bin",
+      "bytes": 2462544,
+      "sha256": "0c7301d062dd141f4ae1a0c379dc87f4d5b240842951475169530ed4a3e914e0",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-14.bin",
+      "bytes": 2913576,
+      "sha256": "ece4d902f81b670e9844d1af58ef7619771a4706425c7efd26625ff5a9319703",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-15.bin",
+      "bytes": 2428624,
+      "sha256": "f6a54e9b79ef469d819f8a1e6de70e54365e70fb5e841d78259d54053616d813",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-16.bin",
+      "bytes": 2338472,
+      "sha256": "072479332926bd0673f7a2bcc6f3a44501735cba2275faef5ada503ec933491b",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-17.bin",
+      "bytes": 2297224,
+      "sha256": "ab5258b40704bdcadec3544cab6ac6925a888b751d84063d49fe5ceaac6a7599",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-18.bin",
+      "bytes": 2918184,
+      "sha256": "86e772ef4b2ec3e1ae5784dfe9ee02810f2e9b50dc47461df129dfe60e3b1fef",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-19.bin",
+      "bytes": 2912368,
+      "sha256": "0b64461146070397e2889e0d8f2b52cb0b6b62e34c437597a6ee87a6583da957",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 2157272,
+      "sha256": "6ce500a772c0879168f68dd663cb6f857de5581d6fa1be86fa63ab99c7a0db48",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-20.bin",
+      "bytes": 2861912,
+      "sha256": "404e193f1a70c1f1ffa080f6be0a4e14ee0ae2304c12ec104c59fb83e4e45e5f",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-21.bin",
+      "bytes": 2522744,
+      "sha256": "fe9f7e1d1a8eebb19fd9f18a2078c2cb4c4ca92acb3e91591ec67d8d9be9b672",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-22.bin",
+      "bytes": 2262584,
+      "sha256": "e20295a37050c3ebce48705f4d0953496f95c106f0572a3fa8130d304cede405",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-23.bin",
+      "bytes": 2431216,
+      "sha256": "6a384333be03f4a58dcfe022e1a1e3d1d41ab5e0db5b71790e4304c4c6eead8b",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-24.bin",
+      "bytes": 2420496,
+      "sha256": "0c8cd147afa1979220e2ceed9b2c7e4b3946f3d7fea13e56ee672092783586d6",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 2944352,
+      "sha256": "64b73166c41990baf750967a034bff2f79165905336a5a92b3706f66f5ade33b",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 2627792,
+      "sha256": "850add301a92ef1ae6246ad99fcbabc480f7b66a9fe3ca15b53857a2337e726f",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 2628304,
+      "sha256": "59643fecaf171c32123e564a735221c31a2af5bc5902a2c0df05e75e69258a32",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 2839488,
+      "sha256": "60d319d2df47027362ada8a6eeabc2285ebcfbcccf7ebc62634ddfb0121302a8",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 2425936,
+      "sha256": "7948f7f4387a73b347577ab59cd07038129c29281eff6d86f14faf7e488549ec",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 2454416,
+      "sha256": "89f163bbf7a39e8d835292b41b198de1d8b59c795a1c60dda32e8587e315b5f1",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 2476864,
+      "sha256": "eeed43701a5019047addf424d2d5e828dd5d77e8e2467161b33214ae93c0d9ef",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 2240420,
+      "sha256": "218b0e3e60ab6970b7c0856415270cbeb626620df1c74e99e3d695f026f28b41",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 8822672,
+      "sha256": "67856720e5495024f0c301f1bba76ca6678c5848e63d25d874ab296c5de91444",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 8812432,
+      "sha256": "707ad79184d7e6523a8014974f5d414717c897d2b0c4479e4e87f80016e340c0",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 2699904,
+      "sha256": "b2d6836b87e5a4e53c8728c60c74b310c67d3ae18cc1f33b5a66a5c9349f3184",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 2215944,
+      "sha256": "95c8b3bdee8392587a05a65804431c964518ac211d8761d7c493cc156c7faba8",
+      "matches_prior_same_profile_geometry": true
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 2605888,
+      "sha256": "597f69b513541109315e47eef429d3c86eb63c1324c263fdbf92bb33581efd58",
+      "matches_prior_same_profile_geometry": true
+    }
+  ],
+  "limitations": [
+    "Nested/concurrent worker sums are not wall time",
+    "One final combined-source observation; unchanged controls measured separately at305.846s and314.144s",
+    "Conditional security analysis only; no certified whole-protocol128 or current accepting OM/GKR recursive root",
+    "GPUexecutiondeferred"
+  ]
+}

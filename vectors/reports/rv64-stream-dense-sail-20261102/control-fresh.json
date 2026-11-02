@@ -1,0 +1,30 @@
+{
+  "verification": {
+    "accepted": true,
+    "completed": true,
+    "security_qualified": false,
+    "candidate": false,
+    "steps": 1032240,
+    "expected_cpu_and_ram_endpoint_bound": true,
+    "fresh_process": true,
+    "wrong_endpoint_rejected": true,
+    "verify_ns": 352043917
+  },
+  "requested_budget": {
+    "live_bytes": 8370949,
+    "peak_live_bytes": 698465740,
+    "host_live_bytes": 8370949,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 698465740,
+    "peak_external_bytes": 0,
+    "limit": 51539607552,
+    "exceeded": false
+  },
+  "recycler_cache_cap_bytes": 4294967296,
+  "recycler": {
+    "reused_blocks": 62,
+    "mapped_blocks": 133,
+    "cached_bytes": 896663552
+  },
+  "security_qualified": false
+}

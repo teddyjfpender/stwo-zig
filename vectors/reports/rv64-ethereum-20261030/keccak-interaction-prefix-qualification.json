@@ -1,0 +1,49 @@
+{
+  "schema": "rv64-keccak-interaction-prefix-waves-v1",
+  "status": "Safe functional/failure gates PASS; whole-job performance and production-profile artifact parity pending",
+  "sources": [
+    "src/frontends/riscv/rv64/air/crypto/keccak/interaction.zig",
+    "src/frontends/riscv/rv64/air/crypto/keccak/interaction_parallel.zig",
+    "src/integrations/riscv_cpu/rv64_keccak_sources.zig"
+  ],
+  "public_API": "generateWithOptions(trace,ch,.{pool,recorder}); existing generate delegates to currentScopedPool/null recorder; pool=null uses serial authority. Sources.Trace exposes corresponding generateWithOptions.",
+  "algorithm": [
+    "Validate source metadata and worker-stack contract before allocation. Build the same9216-entry inverse dictionary after the main root/challenges.",
+    "Acquire one existing WorkPool lease. Each bounded contiguous logical chunk computes relative prefixes into disjoint positions of the private FINAL output buffer using the same extracted per-row tuple/inverse/event recipe as serial.",
+    "Join the entire prefix wave and inspect errors. Scan chunk totals in stable logical order to obtain offsets and final claim.",
+    "A second joined wave owns disjoint secure-column groups. A256-physical-row stack tile derives inverse placement and logical chunk IDs once, then adds the corresponding four offset limbs column-wise.",
+    "Publish interaction only after both waves and all error checks succeed. Every error drains helpers, releases the lease, frees private output, and leaves trace.interaction empty for retry."
+  ],
+  "memory": {
+    "wide_output_extra_copies": 0,
+    "heap_scratch_delta": 0,
+    "dictionary_bytes_unchanged": 294912,
+    "coordination": "Bounded MAX_WORKERS prefix/correction contexts and QM31 offsets on coordinator stack.",
+    "correction_stack_bytes_per_worker": 4096,
+    "prefix_worker_stack_requirement": "256KiB ReleaseSafe/Fast;1MiB Debug.",
+    "log18_extra_correction_traffic_model_bytes": 5444206592,
+    "traffic_note": "Additional full read+write of the existing2.536GiB interaction matrix; native prefix production still writes it once. This may lose on small/low-query cases; no speed claim without whole-job measurement."
+  },
+  "protocol": "Exact unchanged committed cells, masks, degree4 polynomial authority, tuple encodings, lookup masses, challenge/claim transcript and proof format. No extra permutation/tuple/inverse replay.",
+  "stages": [
+    "keccak_interaction_dictionary",
+    "keccak_interaction_prefix",
+    "keccak_interaction_correction"
+  ],
+  "qualification": {
+    "command": "zig build test-riscv64-keccak -Doptimize=ReleaseSafe",
+    "result": "PASS",
+    "cases": "Old independent serial oracle all-row bytes/claims for C0/1/2/3/5/11, high canonical firstIDs, empty/even/odd/padding, uneven logical/physical chunk boundaries, budgets1/3/8/16 (actual16 atlog10).",
+    "metadata_lifecycle": "generate after main released; no wide main reconstruction or retained interaction index tape.",
+    "failures": [
+      "Exhaustive dictionary/output allocation failures with reusable pool.",
+      "Unavailable full lease and undersized worker stack leave interaction unpublished.",
+      "Injected prefix submissions fail before/after partial enqueue; joined cleanup and retry.",
+      "Injected correction submissions and worker correction errors; joined cleanup, full-lease reacquisition and exact serial retry.",
+      "Active helper IO poles and malformed active tuple failures never publish output."
+    ],
+    "native_proof": "Existing unit-profile primitive proofs and point verification, including exact tiled/untiled serialized proof hashes across1/3/8/16 workers, pass with new automatic scoped-pool recipe. q12/P0 is not a production security claim."
+  },
+  "performance": null,
+  "production_artifact_parity": null
+}

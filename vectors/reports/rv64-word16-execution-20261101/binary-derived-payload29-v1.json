@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "scope": "BINARY encodingv3 exact payload projection: no committed FUNCTION payload copy, no new canonicality assumption",
+  "source_base": "67091aac91655e81647d96925f5b885738e0ac39",
+  "widths": {
+    "main_before": 42,
+    "main_after": 29,
+    "interaction": 24,
+    "residuals_before": 50,
+    "residuals_after": 37,
+    "max_degree": 3,
+    "composition_split": 1
+  },
+  "projection": {
+    "opcode_and_AB": "affine in selectors and bytes",
+    "C": "quadratic in selectors and bytes",
+    "function_inverse": "strict single; pairing with another denominator forbidden",
+    "logical_diagnostic_residuals": 42,
+    "physical_local_residuals": 29,
+    "and_queries_per_physical_row": 8,
+    "metadata_bytes_per_row": 46
+  },
+  "tests": {
+    "ReleaseSafe": [
+      "chips8 dense full-extension degree and arbitrary packed halo parity",
+      "binary-source13 including arbitrary-Q/packed projection",
+      "binary-native-fill11",
+      "binary-proof2 actual q70 false facts/cross-family/packed alias rejection",
+      "weighted-binary4",
+      "global-execution18"
+    ],
+    "ReleaseFast": [
+      "chips8",
+      "binary-source13",
+      "binary-native-fill11",
+      "binary-proof2",
+      "weighted-binary4",
+      "execution-circuit",
+      "distributed-functional16",
+      "distributed-execution10"
+    ],
+    "source_conformance": {
+      "baseline_errors": 97,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "independent": {
+    "ecdsa": {
+      "fresh": {
+        "pcs_config": {
+          "pow_bits": 26,
+          "fri_config": {
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70,
+            "fold_step": 1
+          },
+          "lifting_log_size": null
+        },
+        "workers": 8,
+        "build_mode": "ReleaseFast",
+        "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+        "physical_proof_verified": true,
+        "steps": 1625938,
+        "proof_bytes": 752568,
+        "receiver_ns": 171833250
+      },
+      "complete_cpu_and_ram_exact": true,
+      "semantic_control": "/tmp/rv64-cpu-clock47-ecdsa",
+      "proof_sha256": "eeeec7385d6ce6c44afcc924602cd2f7bbd1ad5debec4749ea7249722b6bb982"
+    },
+    "sail": {
+      "fresh": {
+        "pcs_config": {
+          "pow_bits": 26,
+          "fri_config": {
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70,
+            "fold_step": 1
+          },
+          "lifting_log_size": null
+        },
+        "workers": 8,
+        "build_mode": "ReleaseFast",
+        "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+        "physical_proof_verified": true,
+        "steps": 1032240,
+        "proof_bytes": 1026096,
+        "receiver_ns": 368343417
+      },
+      "complete_cpu_and_ram_exact": true,
+      "semantic_control": "/tmp/rv64-cpu-clock47-sail",
+      "proof_sha256": "e5325fa292ae72295de91e5807f6b023a57f014e550315ff6691e2769cf067bd"
+    }
+  },
+  "prefix": {
+    "artifacts": "/tmp/rv64-binary29-prefix4-v1",
+    "fresh": {
+      "core_schema": 4,
+      "accepted": true,
+      "completed_ethereum_block": false,
+      "output": null,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "load_and_setup_ns": 2418403375,
+      "verify_ns": 279099625
+    },
+    "all4_requests_and_complete_ram_exact": true,
+    "semantic_control": "/tmp/rv64-cpu-clock47-prefix4-v1",
+    "speedup_or_rss_claim": false
+  },
+  "tools_sha256": {
+    "csp": "3abeea89924c2b6cf583c1e76937a9716a96221c49d251879c8f73cade46d484",
+    "sail": "6e1d1380187f484b77fff29c971b5de19b3c3e8e93f559fde10d38f1f7128b10",
+    "ethereum": "f9a45a9f1685a734908b19659e9c01fb99405d0b3f97976bc9461db041fc82c8"
+  },
+  "whole_block_geometry_model": {
+    "source": "/tmp/rv64-ethereum-full-current-foundation-v1/roster.json",
+    "padded_binary_rows_including_tails": 7856128,
+    "main_cells_removed": 102129664,
+    "summed_uncommitted_main_bytes_removed": 408518656,
+    "full_new_layout_block_run_pending": true,
+    "peak_memory_improvement_not_inferred": true
+  },
+  "limits": [
+    "Deliberate transcript change, encodingv3 mixed before challenges",
+    "Native aliases and semantic FUNCTION13 remain unchanged, old physical proof bytes intentionally change",
+    "Production CPU in isolated branch remains50; joined CPU47 requalification follows merge",
+    "No whole-protocol128-bit security claim or Word16 recursive acceptance claim"
+  ]
+}

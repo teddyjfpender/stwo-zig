@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-zig-keth-smoke-pie-v1",
+  "source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "source_path": "cairo/tests/programs/fibonacci.cairo",
+  "source_sha256": "7abfa3feefc785008c0ddd177b05fa5a884cec31f9a77760e43e479ddf3c17e5",
+  "python": "3.10.22",
+  "cairo_lang": "0.13.5",
+  "arguments": [
+    1,
+    1,
+    10
+  ],
+  "expected_output": [
+    144
+  ],
+  "pie_sha256": "da62230a68c24961bd834b6ca54154d8f03963a5148905358624e03fde181d20",
+  "scope": "keth-fibonacci-pie-transport-only"
+}

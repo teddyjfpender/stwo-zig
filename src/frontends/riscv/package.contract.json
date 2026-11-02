@@ -49,6 +49,8 @@
     "runWithHost",
     "runWithInput",
     "runner",
+    "rv64",
+    "rv64_air",
     "statement_shape_inspection",
     "testing",
     "verifyEthereumWithEngine",

@@ -1,0 +1,155 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-exact-prefix-receipt.v1",
+ "date": "2026-11-02",
+ "what": "Word16 4-packet prefix proof of block 24,628,607 with the evmone v3 zbb_binary client under ethereum_services_v3_zbb on the merged head (PR head 67cffcaad + Zbb): v3 default layout incl. fused2 pairs, r27 Keccak truth, secp row truth, Zbb BINARY component; produced and freshly verified.",
+ "code": {
+  "branch": "codex/rv64-ge-zbb2",
+  "merge_commit": "186db35d4",
+  "binaries_sha256": {
+   "rv64-ethereum-proof": "ed00c582c2c85c741a9e7a67372c3e66197898dfe337d3eae319dae650b32272",
+   "rv64-word16-ethereum": "f7c0c542c2a32579c7c1200f3504f932ec3b0ea3f347969c220df60612ae027f"
+  }
+ },
+ "client": {
+  "build": "build.py --profile v3 --isa zbb_binary --isa-audit rv64-isa-audit (default v3 set)",
+  "elf_sha256": "f84d95c20a7b74caef17b196d1e11256e1c7ded2955326b049ce3deb4dc7a1c8",
+  "rev8_sites": 744,
+  "other_bitmanip": 0,
+  "terminal_pc": 490032
+ },
+ "request": {
+  "input_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "execution_profile": "ethereum_services_v3_zbb",
+  "batch_steps": 4194303,
+  "max_batches": 4
+ },
+ "native_prepare": {
+  "collected_batches": 4,
+  "instructions": 16777212,
+  "packet_sha256": [
+   "839d42d9a3c02c71600e2d4ae2c5efc68ad9b73401e22b9de1cb9d823e67cc2c",
+   "3a5db1c2a5e54f8c4cbec369321dd226f64a09b157a131ee80308ed626246ab1",
+   "640c3d5b1df5e67269a7bcaf2c8b453c0a39b7908e30a7139532abdf0dda7fff",
+   "eddba31140c594a15ed07847ed8d55147f8f32dc41eeb30bf1172f2feb0d4fe9"
+  ]
+ },
+ "produce": {
+  "memguard_gb": 16,
+  "prove_ns": 34312077500,
+  "setup_ns": 2410389167,
+  "same_process_verify_ns": 328025542,
+  "max_rss_bytes": 17117855744,
+  "cpu_proofs": 4,
+  "truth_proofs": 10
+ },
+ "verify_prefix": {
+  "fresh_accepted": true
+ },
+ "adversarial_real_bundle": {
+  "v3_request": "UnadmittedZbbBinaryComponent"
+ },
+ "cells": {
+  "convention": "native cells (fixed + MAIN + INTERACTION) as in cost.json; main_interaction excludes fixed",
+  "cpu_proofs_native": 2335470688,
+  "cpu_proofs_main_interaction": 2205393152,
+  "truth_proofs_native": 831954816,
+  "truth_proofs_main_interaction": 776727328,
+  "zbb_component": {
+   "per_proof": [
+    {
+     "log": 12,
+     "active_rows": 2645,
+     "columns": [
+      2,
+      32,
+      24
+     ],
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    },
+    {
+     "log": 13,
+     "active_rows": 4102,
+     "columns": [
+      2,
+      32,
+      24
+     ],
+     "native_cells": [
+      16384,
+      262144,
+      196608
+     ]
+    },
+    {
+     "log": 12,
+     "active_rows": 3674,
+     "columns": [
+      2,
+      32,
+      24
+     ],
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    },
+    {
+     "log": 12,
+     "active_rows": 3586,
+     "columns": [
+      2,
+      32,
+      24
+     ],
+     "native_cells": [
+      8192,
+      131072,
+      98304
+     ]
+    }
+   ],
+   "native_total": 1187840,
+   "main_interaction_total": 1146880,
+   "main_interaction_per_instruction": 0.06835939129814894
+  }
+ },
+ "vs_plain_v3_prefix": {
+  "reference": "~/Coding/ge-cache/final2/prefix4/cost.json (evmone v3 RV64IM client 6f2f8842, same input, 4 x 4,194,303 steps)",
+  "cpu_proofs_native": {
+   "v3": 2282308512,
+   "v3_zbb": 2335470688,
+   "delta": 53162176
+  },
+  "truth_proofs_native": {
+   "v3": 825610624,
+   "v3_zbb": 831954816
+  },
+  "note": "Equal step counts but not equal work: the zbb client needs fewer instructions for the block (basket, this head: 24,134,280 vs 25,837,408 for the v3 RV64IM build e713bc52), so its 16.78 M-step prefix covers ~69.5% of the block and reaches later, LD/SD- and MUL-heavier code (ls_dword_tail +45.6 M, ls_tail +12.9 M, multiplication +12.5 M cells) while ALU/BINARY/SHIFT cells drop (-29.9 M). Per-prefix cells therefore do not measure the Zbb saving; the basket's committed bits/gas does."
+ },
+ "basket": {
+  "executor_sha256_prefix": "c07852845e51f979",
+  "set": "all",
+  "v3": {
+   "elf": "e713bc5295234ec88d09850a5cb823be2b255dd1766eaa8cab47ec8986c5fbfc",
+   "scored_instr_per_gas": 3.130023801238801,
+   "scored_bits_per_gas": 33695.394597325794,
+   "promotable": true
+  },
+  "v3_zbb": {
+   "elf": "f84d95c20a7b74caef17b196d1e11256e1c7ded2955326b049ce3deb4dc7a1c8",
+   "scored_instr_per_gas": 2.934248313418029,
+   "scored_bits_per_gas": 32187.44336049941,
+   "promotable": true
+  },
+  "block_24628607_instructions": {
+   "v3": 25837408,
+   "v3_zbb": 24134280
+  }
+ },
+ "power": "machine shared with other agents; timings indicative"
+}

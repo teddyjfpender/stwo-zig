@@ -19,6 +19,7 @@
     "air_eval",
     "builder",
     "common",
+    "native_verifier",
     "stark_verifier",
     "statements",
     "witness"

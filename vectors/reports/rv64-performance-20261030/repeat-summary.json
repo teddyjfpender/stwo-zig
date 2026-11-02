@@ -1,0 +1,39 @@
+{
+  "schema": "rv64-prover-repeat-summary-v1",
+  "complete": true,
+  "source_sha256": "dba0f20911088f4787ea0c9e607863a8e0cadea3554569a3ee86d131fedd17ad",
+  "rows": [
+    {
+      "target": "keccak",
+      "version": "baseline",
+      "samples": 5,
+      "median_seconds": 0.543470042,
+      "min_seconds": 0.53770125,
+      "max_seconds": 0.562939958
+    },
+    {
+      "target": "keccak",
+      "version": "optimized",
+      "samples": 5,
+      "median_seconds": 0.27839325,
+      "min_seconds": 0.273882708,
+      "max_seconds": 0.284743958
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "version": "baseline",
+      "samples": 1,
+      "median_seconds": 76.247593375,
+      "min_seconds": 76.247593375,
+      "max_seconds": 76.247593375
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "version": "optimized",
+      "samples": 3,
+      "median_seconds": 21.119455209,
+      "min_seconds": 21.074808541,
+      "max_seconds": 21.241263
+    }
+  ]
+}

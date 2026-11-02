@@ -1,0 +1,238 @@
+{
+  "standalone_commit": "495178053",
+  "scope": "Common incrementalcompactPCS raw prefixed/plainBLAKE2s statearray. LegacyStreaming.init andcomplete-set bounded/sparse APIs retainfullHrepresentation fromstart. No protocol/profile/guest/circuit change.",
+  "layout": {
+    "old_leaf_state_bytes": 136,
+    "new_leaf_state_bytes": 96,
+    "row_specific": "h8u32 + complete64bytependingblock",
+    "shared": "t0,t1,buf_len,finalized,capturedBackendSelection onceperheight/updatewave",
+    "wave_rule": "Allhelpersreadimmutableoldmetadata; row0alonecapturesupdatedmetadata; publishafterjoin. No globalmode redraw/no dummycompressions.",
+    "tail": "Existingbounded4H/perheightcache usesreadonlyget(index)source; no full[]Hmaterialization andno232B/leaf transitionalpeak. Perheightcachekeepsitsownfullcapturedcontext.",
+    "selection": "OnlyexplicitincrementalTreeBuilderconstructor; genericPoseidon/BLAKE3/M31-outputhashers remainlegacy. Nativeconstructor complete-set call must selectlegacybeforeallocation; initializednative transition rejectsratherthanwideningallstates."
+  },
+  "gates": [
+    {
+      "command": "zig build test-stwo-prover-merkle -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS12s MaxRSS747M"
+    },
+    {
+      "command": "sameReleaseFast",
+      "result": "PASS11s MaxRSS719M"
+    },
+    {
+      "command": "zig build test-stwo-prover-coefficient-storage -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS28s MaxRSS1G"
+    },
+    {
+      "command": "sameReleaseFast",
+      "result": "PASS27s MaxRSS1G"
+    },
+    {
+      "command": "zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS33s MaxRSS2G"
+    }
+  ],
+  "coverage": [
+    "RawH+independentstdBlake2soracle acrossprefixed/plainprotocols",
+    "Mixedheights1\u21923\u21927\u219214, arbitrarypartialcolumnbatches,1/4workerpools andcapturedscalar/SIMD/auto despitechangingglobaldefault",
+    "Full64Bfinalpendingblockretained atcriticalboundary",
+    "Splitbatch1/16/17/64/65 rawscalarHcompressioncounts EXACT20plain/24prefixed; noextracompressions",
+    "Nativeincremental andmixedheightboundedtail allMerklelayersmatchrawauthority",
+    "Allallocationfailures/growthretry/streamtailabort cleanup",
+    "GenericcompactPCS coefficients,quotients,openings andfailurecustody tests",
+    "Real4.19Mstep resident16Ethereum prefix all4durableSHAexact+freshreceiveraccepted"
+  ],
+  "prefix_probe": {
+    "scope": "Singlematchedsharedhostprobe, notABBA or isolatedcausalspeedclaim; sameq70p26fold4nominalcontrol,no128certificate",
+    "baseline_report": {
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "security_qualified": false,
+      "completed_ethereum_block": false,
+      "total_steps": 4194303,
+      "cpu_proofs": 1,
+      "truth_proofs": 0,
+      "output": null,
+      "resources": {
+        "gkr_bytes": 34359738368,
+        "global_bytes": 8589934592,
+        "retained_frontend_bytes": 17179869184,
+        "disk_bytes": 0,
+        "park_main": false,
+        "schedule": {
+          "lanes": 1,
+          "workers_per_lane": 16,
+          "lane_workers": [
+            16
+          ],
+          "memory_cap_bytes": 51539607552
+        }
+      },
+      "capture_ns": 965396708,
+      "capture_cache_released_bytes": 1319763968,
+      "setup_ns": 514939292,
+      "prove_ns": 10863592708,
+      "same_process_verify_ns": 426798584,
+      "workers": [
+        {
+          "source_ns": 338576292,
+          "seal_native_and_gkr_ns": 3783080791,
+          "main_commit_ns": 981588042,
+          "gkr_ns": 2736925166,
+          "inputs_ns": 192467334,
+          "numerical_ns": 2204716583,
+          "binding_ns": 313655000,
+          "metadata_retire_ns": 3562792,
+          "spill_ns": 42,
+          "restore_ns": 0,
+          "native_complete_ns": 6653559625,
+          "stage1_ns": 4125219917,
+          "stage2_ns": 6653559667,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "total_before_report_ns": 12796144542,
+      "retained_main": null
+    },
+    "candidate_report": {
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "security_qualified": false,
+      "completed_ethereum_block": false,
+      "total_steps": 4194303,
+      "cpu_proofs": 1,
+      "truth_proofs": 0,
+      "output": null,
+      "resources": {
+        "gkr_bytes": 34359738368,
+        "global_bytes": 8589934592,
+        "retained_frontend_bytes": 17179869184,
+        "disk_bytes": 0,
+        "park_main": false,
+        "schedule": {
+          "lanes": 1,
+          "workers_per_lane": 16,
+          "lane_workers": [
+            16
+          ],
+          "memory_cap_bytes": 51539607552
+        }
+      },
+      "capture_ns": 954177333,
+      "capture_cache_released_bytes": 1319763968,
+      "setup_ns": 475097542,
+      "prove_ns": 9424112417,
+      "same_process_verify_ns": 392930959,
+      "workers": [
+        {
+          "source_ns": 316889584,
+          "seal_native_and_gkr_ns": 3498358875,
+          "main_commit_ns": 890145125,
+          "gkr_ns": 2545226125,
+          "inputs_ns": 186436875,
+          "numerical_ns": 2041924875,
+          "binding_ns": 294767125,
+          "metadata_retire_ns": 3504833,
+          "spill_ns": 42,
+          "restore_ns": 42,
+          "native_complete_ns": 5526415833,
+          "stage1_ns": 3818753334,
+          "stage2_ns": 5526415917,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "total_before_report_ns": 11264540333,
+      "retained_main": null
+    },
+    "baseline_process": {
+      "real_s": 12.83,
+      "user_s": 81.2,
+      "system_s": 7.19,
+      "minor_faults": 2059036,
+      "rss_bytes": 18607030272
+    },
+    "candidate_process": {
+      "real_s": 11.71,
+      "user_s": 78.03,
+      "system_s": 5.84,
+      "minor_faults": 1997496,
+      "rss_bytes": 18260475904
+    },
+    "baseline_stages_s": {
+      "streaming_commit_prepare": 1.309159,
+      "streaming_transform": 0.9478370000000002,
+      "streaming_leaf_hash": 0.36061099999999996,
+      "merkle_commit": 0.130079,
+      "draw_random_coeff": 1.7e-05,
+      "composition_trace_extract": 3.1e-05,
+      "composition_evaluation": 2.684485,
+      "composition_interpolate_and_split": 0.18807,
+      "composition_commit": 0.120236,
+      "oods_point_and_mask_points": 0.000127,
+      "sampled_value_evaluation": 0.135385,
+      "sampled_value_channel_mix": 0.000172,
+      "fri_quotient_build_and_commit": 1.459528,
+      "proof_of_work": 0.110846,
+      "fri_decommit": 0.321035,
+      "trace_decommit": 0.340414,
+      "constraint_check_and_assembly": 0.002328
+    },
+    "candidate_stages_s": {
+      "streaming_commit_prepare": 1.1895999999999998,
+      "streaming_transform": 0.840214,
+      "streaming_leaf_hash": 0.348737,
+      "merkle_commit": 0.112803,
+      "interaction_generation": 0.065722,
+      "draw_random_coeff": 1.9e-05,
+      "composition_trace_extract": 2.6e-05,
+      "composition_evaluation": 2.421776,
+      "composition_interpolate_and_split": 0.173888,
+      "composition_commit": 0.103245,
+      "oods_point_and_mask_points": 0.000109,
+      "sampled_value_evaluation": 0.129526,
+      "sampled_value_channel_mix": 0.000155,
+      "fri_quotient_build_and_commit": 1.357373,
+      "proof_of_work": 0.105365,
+      "fri_decommit": 0.293099,
+      "trace_decommit": 0.307882,
+      "constraint_check_and_assembly": 0.002012
+    },
+    "fresh": {
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "security_qualified": false,
+      "accepted": true,
+      "completed_ethereum_block": false,
+      "output": null,
+      "cpu_proofs": 1,
+      "truth_proofs": 0,
+      "load_and_setup_ns": 918823542,
+      "verify_ns": 389303375
+    },
+    "artifacts": {
+      "cpu-0.bin": {
+        "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "identical": true
+      },
+      "stage-one.bin": {
+        "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "identical": true
+      },
+      "bundle.json": {
+        "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "identical": true
+      },
+      "cells.bin": {
+        "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "identical": true
+      }
+    }
+  },
+  "limitations": [
+    "Prove10.8636\u21929.4241s observed13.25%; processwall12.83\u219211.71s. Otherstagesalsofaster, so do not attributeall gain tostatecompression.",
+    "Leafhash0.3606\u21920.3487s (~3%) whileRSSfalls346.6MB andsysCPU7.19\u21925.84s; reductionconsistentwith~335.5MBsavedstatepayloadat2^23leaves but sharedhostnoise remains.",
+    "No wholeblock speedup measured; current sourcefactorstillneedsroot fullintegration qualification.",
+    "No GPU run/build/provisioning or wholeprotocol128securityclaim."
+  ]
+}

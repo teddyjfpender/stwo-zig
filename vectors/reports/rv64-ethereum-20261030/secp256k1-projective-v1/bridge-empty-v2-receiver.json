@@ -1,0 +1,17 @@
+{
+  "command": [
+    "zig-out/bin/rv64-secp-fixture",
+    "word-bridge-verify",
+    "/tmp/stwo-rv64-secp-bridge-empty-v2",
+    "add",
+    "0",
+    "1"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 9184250,
+  "fresh_process": true,
+  "independent_fixed_root": true,
+  "known_public_ram_and_call_control": true,
+  "cpu_present": false,
+  "authenticated_ram_hash_boundary": false
+}

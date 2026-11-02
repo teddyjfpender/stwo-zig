@@ -1,0 +1,310 @@
+{
+  "schema": "rv64-immutable-contiguous-lookup-v1",
+  "scope": "native thin/index metadata cache only; current Full Ethereum ROM already has checkedcontiguous fastpath",
+  "elf": {
+    "sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "executable_PT_LOAD_runs": 1,
+    "start": 1024,
+    "bytes": 2160588,
+    "word_count": 540147
+  },
+  "decision": "reuse existing checkedaligneddelta semantics withone independentlyderived immutablebool; noallocatedmultirun plan",
+  "implementation": [
+    "derivecontiguous oncefromoriginal fullu64 word addresses, checked+4 prevents wrap",
+    "checkedpc>=first,pc aligned,fullu64delta/4<actualwordcount beforecast",
+    "exactfull64 sparsebinarysearch fallbackunchanged",
+    "bothpaths checkimmutable admittedmask before decodedcache access",
+    "fixedcolumns/rawprogram identity/transcript/wireunchanged"
+  ],
+  "microbenchmark": {
+    "implementation": "standalone C-O3 native mapping-only model; noVM/decoded-cache load/wide matrices",
+    "source": "vectors/reports/rv64-ethereum-20261030/pc-lookup-micro-v1.c.txt",
+    "source_sha256": "c46311387fd9a604122bd92a66595aa4cfd2d88ccbe1756d332221bb27673ad7",
+    "command": "clang -O3 -std=c11 -Wall -Wextra -x c pc-lookup-micro-v1.c.txt -o /tmp/rv64-pc-lookup-bench",
+    "method": "threeacceptedpackets; fullold/directindex equalitycheck onallPCs beforetiming; fouralternatedwarmrepeats perarm; noexclusivewhole-hostreservation",
+    "exclusions": [
+      "noISA/validity decode measured; commonadmission tested separately",
+      "currentFull Setupalreadyfast so this is NOTcurrentEthereum speedup",
+      "notwholeCPUmetadata/prover/receiver benchmark"
+    ],
+    "summary": [
+      {
+        "job": 0,
+        "steps": 4194303,
+        "accepted_packet_content_digest": "b2a20fcafe3124b0ca7ff1bc57e0efcb7c5d5865b5df82145060a55ad35bed46",
+        "median_ns": {
+          "binary_search": 72958500,
+          "checked_contiguous": 2204500
+        }
+      },
+      {
+        "job": 12,
+        "steps": 4194303,
+        "accepted_packet_content_digest": "7be4ac2a60e38b36e08a048a05e53f1d5e252f737a69e6a367310d41975a230a",
+        "median_ns": {
+          "binary_search": 73759500,
+          "checked_contiguous": 2151000
+        }
+      },
+      {
+        "job": 24,
+        "steps": 3590641,
+        "accepted_packet_content_digest": "c32662fe1890c2ef3eed6f1824915c2f06eed7d0748acc340b8f4f4d0573dd7d",
+        "median_ns": {
+          "binary_search": 61513500,
+          "checked_contiguous": 1802500
+        }
+      }
+    ],
+    "raw_measurements": [
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 0,
+        "ns": 72932000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 0,
+        "ns": 2315000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 1,
+        "ns": 2211000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 1,
+        "ns": 73070000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 2,
+        "ns": 72985000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 2,
+        "ns": 2198000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 3,
+        "ns": 2142000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 3,
+        "ns": 72913000,
+        "checksum": 1854801920618
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 0,
+        "ns": 72504000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 0,
+        "ns": 2183000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 1,
+        "ns": 2097000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 1,
+        "ns": 73886000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 2,
+        "ns": 74008000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 2,
+        "ns": 2327000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "checked_contiguous",
+        "repeat": 3,
+        "ns": 2119000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000012.work",
+        "steps": 4194303,
+        "method": "binary_search",
+        "repeat": 3,
+        "ns": 73633000,
+        "checksum": 1784537567090
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "binary_search",
+        "repeat": 0,
+        "ns": 62274000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "checked_contiguous",
+        "repeat": 0,
+        "ns": 1772000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "checked_contiguous",
+        "repeat": 1,
+        "ns": 1739000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "binary_search",
+        "repeat": 1,
+        "ns": 61555000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "binary_search",
+        "repeat": 2,
+        "ns": 61472000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "checked_contiguous",
+        "repeat": 2,
+        "ns": 1833000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "checked_contiguous",
+        "repeat": 3,
+        "ns": 2115000,
+        "checksum": 1589308964143
+      },
+      {
+        "file": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000024.work",
+        "steps": 3590641,
+        "method": "binary_search",
+        "repeat": 3,
+        "ns": 61392000,
+        "checksum": 1589308964143
+      }
+    ]
+  },
+  "memory": {
+    "new_allocations": 0,
+    "plan": "onebool perowner andborrowedview; alignmentmayaddpadding",
+    "rejected_run_plan_worst_sparse_bytes_at540147words": 8642352
+  },
+  "qualification": {
+    "lookupSafe": 4,
+    "lookupFast": 4,
+    "actual_testserver_metadata": 4,
+    "indexAuthoritySafeFast": 7,
+    "nativeProjectionSafeFast": 3,
+    "indexPhysicalSafeFast": 9,
+    "total_per_mode": 23,
+    "guards": [
+      "densebase0/high64/maxu64\u22127",
+      "sparsefull64 low48alias rejection",
+      "misaligned/pastend/belowbase/reversewrap",
+      "invalidbothpaths withEMPTYdecoded slice:rejectbeforecacheaccess",
+      "allsetupallocationfailures"
+    ],
+    "fresh_V1_receiver": "PASS",
+    "historical_proofs": {
+      "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+      "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+      "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161",
+      "complete_manifest": "4b850e396443fcde0d09eb34f73d5798565bbefacbc0322276e65e288197f3b0"
+    }
+  },
+  "logs": [
+    "/tmp/rv64-contiguous-lookup-safe-final.log",
+    "/tmp/rv64-contiguous-lookup-index9-safe.log",
+    "/tmp/rv64-contiguous-lookup-fast-final.log",
+    "/tmp/rv64-contiguous-lookup-v1-tool.log"
+  ],
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/rom.zig",
+      "sha256": "66fa6c17ecfdca8f7f4ae537ea4ecfa57f6de41a24148c05027218ee8a5e2440"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/authority.zig",
+      "sha256": "3fd276e1ab69bc862e6043429b69a4eaec2a21d8332c365d57fb49fc76c6303a"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/rom_lookup_test.zig",
+      "sha256": "214cf85cceb303d888af2c88ed0962404ed62fa89a8034bd3b535b5f689f1e18"
+    },
+    {
+      "path": "src/frontends/riscv/rv64_rom_lookup_test_root.zig",
+      "sha256": "2e0ff1fdb1f6ff7aa247f4475a47fdc8f19e6ffdadc70182dcf81eac091e9aee"
+    }
+  ],
+  "selective_metadata_hunks": [
+    "riscv_cpu.zig word16-rom-lookup minimum4 only",
+    "catalog.zig correspondingnewtarget only"
+  ]
+}

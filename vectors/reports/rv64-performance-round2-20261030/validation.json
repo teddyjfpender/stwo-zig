@@ -1,0 +1,34 @@
+{
+  "schema": "rv64-performance-round2-validation-v1",
+  "complete_native_csp_cases": 17,
+  "fresh_receiver_cases": 17,
+  "exact_statement_claim_proof_parity": true,
+  "release_safe_passed": [
+    "test-riscv64-air",
+    "test-riscv64-parallel",
+    "test-riscv64-providers",
+    "test-riscv64-full-proof",
+    "test-riscv64-full-capture",
+    "test-riscv64-coset",
+    "test-riscv64-proof",
+    "test-riscv64-execution",
+    "test-riscv64-pcs-owned",
+    "test-riscv64-pcs-commit"
+  ],
+  "python_tests_passed": 17,
+  "source_conformance": {
+    "passed": false,
+    "pre_existing_errors": 96,
+    "changed_path_errors": 0
+  },
+  "limits": [
+    "Native proofs only; no complete Rust verifier qualification",
+    "No Ethereum/OP runtime qualification",
+    "Whole-job peak unchanged; composition dominates"
+  ],
+  "rejected_production_candidates": [
+    "dynamic row scheduling",
+    "weighted Sink exact-zero skip",
+    "division whole-tail omission"
+  ]
+}

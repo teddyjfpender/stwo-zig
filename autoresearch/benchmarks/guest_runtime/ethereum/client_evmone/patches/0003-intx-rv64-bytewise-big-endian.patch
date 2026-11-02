@@ -1,0 +1,136 @@
+diff --git a/include/intx/intx.hpp b/include/intx/intx.hpp
+index 2096746..e6bd36a 100644
+--- a/include/intx/intx.hpp
++++ b/include/intx/intx.hpp
+@@ -1743,6 +1743,58 @@ constexpr T to_big_endian(const T& x) noexcept
+     }
+ }
+ 
++#if defined(__riscv) && !defined(__riscv_zbb)
++// stwo RV64IM guest: without Zbb a 64-bit byte swap costs ~32 instructions and
++// an unaligned 8-byte memcpy ~22 more, while assembling a big-endian word from
++// bytes directly costs ~29 (and storing one ~15), so the big-endian
++// conversions below go byte-wise instead of memcpy + bswap.
++#define INTX_BE_BYTEWISE 1
++namespace be_bytes
++{
++inline uint64_t load64(const uint8_t* p) noexcept
++{
++    return (uint64_t{p[0]} << 56) | (uint64_t{p[1]} << 48) | (uint64_t{p[2]} << 40) |
++           (uint64_t{p[3]} << 32) | (uint64_t{p[4]} << 24) | (uint64_t{p[5]} << 16) |
++           (uint64_t{p[6]} << 8) | uint64_t{p[7]};
++}
++inline void store64(uint8_t* p, uint64_t v) noexcept
++{
++    p[0] = static_cast<uint8_t>(v >> 56);
++    p[1] = static_cast<uint8_t>(v >> 48);
++    p[2] = static_cast<uint8_t>(v >> 40);
++    p[3] = static_cast<uint8_t>(v >> 32);
++    p[4] = static_cast<uint8_t>(v >> 24);
++    p[5] = static_cast<uint8_t>(v >> 16);
++    p[6] = static_cast<uint8_t>(v >> 8);
++    p[7] = static_cast<uint8_t>(v);
++}
++template <typename T>
++inline T load(const uint8_t* src) noexcept
++{
++    if constexpr (std::is_same_v<T, uint64_t>)
++        return load64(src);
++    else
++    {
++        T x;
++        for (size_t i = 0; i < T::num_words; ++i)
++            x[T::num_words - 1 - i] = load64(src + 8 * i);
++        return x;
++    }
++}
++template <typename T>
++inline void store(uint8_t* dst, const T& x) noexcept
++{
++    if constexpr (std::is_same_v<T, uint64_t>)
++        store64(dst, x);
++    else
++        for (size_t i = 0; i < T::num_words; ++i)
++            store64(dst + 8 * i, x[T::num_words - 1 - i]);
++}
++template <typename T>
++inline constexpr bool supported = std::is_same_v<T, uint64_t> || requires { T::num_words; };
++}  // namespace be_bytes
++#endif
++
+ namespace le  // Conversions to/from LE bytes.
+ {
+ template <typename T, unsigned M>
+@@ -1791,6 +1843,10 @@ inline T load(const uint8_t (&src)[M]) noexcept
+ {
+     static_assert(M <= sizeof(T),
+         "the size of source bytes must not exceed the size of the destination uint");
++#ifdef INTX_BE_BYTEWISE
++    if constexpr (M == sizeof(T) && be_bytes::supported<T>)
++        return be_bytes::load<T>(src);
++#endif
+     T x{};
+     std::memcpy(&as_bytes(x)[sizeof(T) - M], src, M);
+     x = to_big_endian(x);
+@@ -1822,6 +1878,13 @@ inline IntT load(const T& t) noexcept
+ template <typename T>
+ inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
+ {
++#ifdef INTX_BE_BYTEWISE
++    if constexpr (be_bytes::supported<T>)
++    {
++        be_bytes::store<T>(dst, x);
++        return;
++    }
++#endif
+     const auto d = to_big_endian(x);
+     std::memcpy(dst, &d, sizeof(d));
+ }
+@@ -1851,6 +1914,11 @@ template <unsigned M, unsigned N>
+ inline void trunc(uint8_t (&dst)[M], const uint<N>& x) noexcept
+ {
+     static_assert(M < N / 8, "destination must be smaller than the source value");
++#ifdef INTX_BE_BYTEWISE
++    for (unsigned i = 0; i < M; ++i)
++        dst[M - 1 - i] = static_cast<uint8_t>(x[i / 8] >> (8 * (i % 8)));
++    return;
++#endif
+     const auto d = to_big_endian(x);
+     std::memcpy(dst, &as_bytes(d)[sizeof(d) - M], M);
+ }
+@@ -1886,6 +1954,10 @@ namespace unsafe
+ template <typename IntT>
+ inline IntT load(const uint8_t* src) noexcept
+ {
++#ifdef INTX_BE_BYTEWISE
++    if constexpr (be_bytes::supported<IntT>)
++        return be_bytes::load<IntT>(src);
++#endif
+     // Align bytes.
+     // TODO: Using memcpy() directly triggers this optimization bug in GCC:
+     //   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+@@ -1900,6 +1972,13 @@ inline IntT load(const uint8_t* src) noexcept
+ template <typename T>
+ inline void store(uint8_t* dst, const T& x) noexcept
+ {
++#ifdef INTX_BE_BYTEWISE
++    if constexpr (be_bytes::supported<T>)
++    {
++        be_bytes::store<T>(dst, x);
++        return;
++    }
++#endif
+     const auto d = to_big_endian(x);
+     std::memcpy(dst, &d, sizeof(d));
+ }
+@@ -1907,6 +1986,10 @@ inline void store(uint8_t* dst, const T& x) noexcept
+ /// Specialization for uint256.
+ inline void store(uint8_t* dst, const uint256& x) noexcept
+ {
++#ifdef INTX_BE_BYTEWISE
++    be_bytes::store<uint256>(dst, x);
++    return;
++#endif
+     // Store byte-swapped words in primitive temporaries. This helps with memory aliasing
+     // and GCC bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+     // TODO: Use std::byte instead of uint8_t.

@@ -1,0 +1,27 @@
+{
+  "schema": "keth-rpc-observation-v1",
+  "status": "observed",
+  "endpoint": "https://mainnet.unichain.org",
+  "requested_chain_id": 130,
+  "requested_block": "finalized",
+  "started_at": "2026-10-29T13:17:08.284161+00:00",
+  "scope": "RPC observation; not an execution witness or consensus proof",
+  "files": {
+    "chain.json": "5fdc422530243a8fa699f4c899f8b22ef926159896ee444b6a9a296efbba256c",
+    "block.json": "5fbbdb9b68a1025ec80a1bd9329dd199b397a58033c71a555575b15b083f6485",
+    "parent.json": "b55d9121789e15c473f9daf27adcc88dcc15232df3e23e554b3db8d3a645b877"
+  },
+  "block_number": 62529693,
+  "block_hash": "0x83e784dec34f68ddd027a5c0e5edaca95169507ec113b9d23154cd2c1be738d4",
+  "gas_used": 799080,
+  "transactions": 12,
+  "transaction_types": {
+    "0x2": 11,
+    "0x7e": 1
+  },
+  "deposit_transactions": 1,
+  "first_transaction_is_deposit": true,
+  "cairo_proof_verified": false,
+  "op_stack_execution_proved": false,
+  "finished_at": "2026-10-29T13:17:10.352039+00:00"
+}

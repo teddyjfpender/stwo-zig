@@ -465,7 +465,7 @@ fn checkHybrid(a: std.mem.Allocator) !void {
 
 test "coefficient storage hybrid bounded quotients preserve raw columns and parallel output parity" {
     var pool: @import("../work_pool.zig").WorkPool = undefined;
-    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3 });
     defer pool.deinit();
     var binding = try @import("../work_pool.zig").ScopedPoolBinding.init(&pool);
     defer binding.deinit();
@@ -522,4 +522,210 @@ fn checkSpilledTail(a: std.mem.Allocator) !void {
 test "coefficient storage sparse terminal columns spill a full hash block without final-height state" {
     try checkSpilledTail(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, checkSpilledTail, .{});
+}
+
+fn checkMultiBackingStream(a: std.mem.Allocator) !void {
+    const Blake = core.vcs_lifted.blake2_merkle;
+    const Backend = struct {
+        pub const combined_base_in_place = true;
+        // All bounded batches must use borrowed-backing preparation, including
+        // their final singleton below this ordinary combined-path threshold.
+        pub const combined_commit_min_columns: usize = 65;
+        pub const MerkleTree = @import("owned_source_admission_test.zig").Backend.MerkleTree;
+        pub const commitMerkle = @import("owned_source_admission_test.zig").Backend.commitMerkle;
+        pub const interpolateAndEvaluateCircleBuffers = @import("owned_source_admission_test.zig").Backend.interpolateAndEvaluateCircleBuffers;
+    };
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Backend, Blake.Blake2sPlainMerkleHasher, Blake.Blake2sMerkleChannel);
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+    var baseline = try Scheme.init(a, config);
+    defer baseline.deinit(a);
+    var compact = try Scheme.init(a, config);
+    defer compact.deinit(a);
+    baseline.setCompactPolynomialStorage(4);
+    compact.setCompactPolynomialStorage(4);
+    const count = 17;
+    const columns = try a.alloc(Column, count);
+    var columns_live = true;
+    defer if (columns_live) a.free(columns);
+    const buffers = try a.alloc([]M, 3);
+    var initialized: usize = 0;
+    var buffers_live = true;
+    defer if (buffers_live) {
+        for (buffers[0..initialized]) |buffer| a.free(buffer);
+        a.free(buffers);
+    };
+    var sizes = [_]usize{ 7, 11, 13 };
+    for (0..count) |i| sizes[i % 3] += @as(usize, 1) << @intCast(3 + i % 3);
+    for (&sizes, 0..) |*size, i| {
+        buffers[i] = try a.alloc(M, size.*);
+        initialized += 1;
+    }
+    const original_buffers = buffers[0..3].*;
+    var positions = [_]usize{ 7, 11, 13 };
+    var pointers: [count][*]M = undefined;
+    for (columns, 0..) |*column, i| {
+        const log: u32 = @intCast(3 + i % 3);
+        const n = @as(usize, 1) << @intCast(log);
+        const data = buffers[i % 3][positions[i % 3]..][0..n];
+        positions[i % 3] += n;
+        pointers[i] = data.ptr;
+        for (data, 0..) |*value, row| value.* = M.fromU64(3 + i * 37 + row * row);
+        column.* = .{ .log_size = log, .values = data };
+    }
+    var expected_channel = core.channel.blake2s.Blake2sChannel{};
+    var actual_channel = expected_channel;
+    try baseline.commitBorrowedStreamingWithRecorder(a, columns, 8, null, &expected_channel);
+    columns_live = false;
+    buffers_live = false;
+    try compact.commitOwnedStreamingWithRecorderAndBacking(a, columns, buffers, 8, null, &actual_channel);
+    try std.testing.expectEqualSlices(u8, &expected_channel.digestBytes(), &actual_channel.digestBytes());
+    const tree = &compact.trees.items[0];
+    try std.testing.expectEqual(@as(usize, 3), tree.coefficient_backing_buffers.?.len);
+    for (tree.coefficient_backing_buffers.?, original_buffers) |actual, expected|
+        try std.testing.expectEqual(expected.ptr, actual.ptr);
+    for (tree.coefficients.?, pointers) |coefficient, pointer|
+        try std.testing.expectEqual(pointer, coefficient.coefficients().ptr);
+    const queries = [_]usize{ 0, 61, 7, 16, 7 };
+    var expected = try baseline.trees.items[0].decommit(a, &queries);
+    defer expected.deinit(a);
+    var actual = try tree.decommit(a, &queries);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected, actual);
+}
+
+test "coefficient storage multiple source backings retain original allocations and drain all OOM paths" {
+    try checkMultiBackingStream(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkMultiBackingStream, .{});
+}
+
+/// Column-serial reference for the pooled combined setup: column-outer,
+/// contribution-inner scaling with one serial batched FFT and one freshly
+/// computed twiddle tree per coefficient-basis view.
+fn referenceCombinedViews(
+    a: std.mem.Allocator,
+    flat_columns: []const Column,
+    indices: []const usize,
+    ranges: []const @import("quotient_row_executor.zig").ColumnContributionRange,
+    contributions: []const @import("quotient_row_executor.zig").ColumnContribution,
+    lifting_log_size: u32,
+) ![]@import("quotient_row_executor.zig").CombinedContributionView {
+    const View = @import("quotient_row_executor.zig").CombinedContributionView;
+    const twiddles = @import("../poly/twiddles.zig");
+    var views = std.ArrayList(View).empty;
+    errdefer {
+        for (views.items) |view| view.deinitCoordinates(a);
+        views.deinit(a);
+    }
+    var basis = std.ArrayList(bool).empty;
+    defer basis.deinit(a);
+    for (indices, ranges) |column_index, range| {
+        const column = flat_columns[column_index];
+        const source = column.coefficient_values orelse column.values;
+        const size = @as(usize, 1) << @intCast(column.log_size);
+        const coefficient_basis = column.coefficient_values != null;
+        for (contributions[range.start..][0..range.len]) |contribution| {
+            var found: ?usize = null;
+            for (views.items, basis.items, 0..) |view, b, i| {
+                if (view.batch_index == contribution.batch_index and view.coordinates[0].len == size and b == coefficient_basis) {
+                    found = i;
+                    break;
+                }
+            }
+            const created = found == null;
+            if (created) {
+                var coordinates: [4][]M = undefined;
+                for (&coordinates) |*coordinate| coordinate.* = try a.alloc(M, size);
+                try views.append(a, .{
+                    .coordinates = coordinates,
+                    .batch_index = contribution.batch_index,
+                    .shift_amt = @intCast(lifting_log_size - column.log_size + 1),
+                    .is_direct = column.log_size == lifting_log_size,
+                });
+                try basis.append(a, coefficient_basis);
+                found = views.items.len - 1;
+            }
+            const coefficients = contribution.value_coeff.toM31Array();
+            const view = views.items[found.?];
+            for (0..4) |coord| {
+                if (created) @memset(view.coordinates[coord], M.zero());
+                for (view.coordinates[coord][0..source.len], source) |*target, value| target.* = target.add(value.mul(coefficients[coord]));
+            }
+        }
+    }
+    for (views.items, basis.items) |view, coefficient_basis| {
+        if (!coefficient_basis) continue;
+        const log: u32 = @intCast(std.math.log2_int(usize, view.coordinates[0].len));
+        const domain = poly.CanonicCoset.new(log).circleDomain();
+        var transform = try twiddles.precomputeM31(a, domain.half_coset);
+        defer twiddles.deinitM31(a, &transform);
+        const borrowed = twiddles.TwiddleTree([]const M){ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles };
+        try poly.poly.evaluateBuffersWithTwiddles(&view.coordinates, domain, borrowed);
+    }
+    return views.toOwnedSlice(a);
+}
+
+test "coefficient storage pooled combined quotient setup matches column-serial reference on random columns" {
+    const a = std.testing.allocator;
+    var pool: @import("../work_pool.zig").WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try @import("../work_pool.zig").ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const Executor = @import("quotient_row_executor.zig");
+    var prng = std.Random.DefaultPrng.init(0x5eed_9017);
+    const random = prng.random();
+    const lifting_log_size: u32 = 13;
+    // log size, coefficient length (0 = evaluation basis).
+    const shapes = [_][2]u32{
+        .{ 13, 1 << 12 }, .{ 12, 1 << 11 }, .{ 13, 1 << 12 }, .{ 12, 0 },
+        .{ 13, 1 << 10 }, .{ 3, 1 << 2 },   .{ 3, 0 },        .{ 12, 2 },
+        .{ 11, 1 << 11 }, .{ 13, 0 },       .{ 12, 1 << 11 }, .{ 13, 1 << 12 },
+    };
+    var columns: [shapes.len]Column = undefined;
+    var storage: [shapes.len][]M = undefined;
+    var initialized: usize = 0;
+    defer for (storage[0..initialized]) |values| a.free(values);
+    for (shapes, &columns, &storage) |shape, *column, *values| {
+        const len: usize = if (shape[1] == 0) @as(usize, 1) << @intCast(shape[0]) else shape[1];
+        values.* = try a.alloc(M, len);
+        initialized += 1;
+        for (values.*) |*value| value.* = M.fromCanonical(random.uintLessThan(u32, 0x7fff_ffff));
+        column.* = if (shape[1] == 0)
+            .{ .log_size = shape[0], .values = values.* }
+        else
+            .{ .log_size = shape[0], .values = &.{}, .coefficient_values = values.* };
+    }
+    var indices: [shapes.len]usize = undefined;
+    var ranges: [shapes.len]Executor.ColumnContributionRange = undefined;
+    var contributions = std.ArrayList(Executor.ColumnContribution).empty;
+    defer contributions.deinit(a);
+    for (&indices, &ranges, 0..) |*index, *range, i| {
+        index.* = i;
+        range.* = .{ .start = contributions.items.len, .len = 0 };
+        for (0..4) |batch| {
+            if ((i + batch) % 3 == 2) continue;
+            try contributions.append(a, .{ .batch_index = batch, .value_coeff = Q.fromU32Unchecked(
+                random.uintLessThan(u32, 0x7fff_ffff),
+                random.uintLessThan(u32, 0x7fff_ffff),
+                random.uintLessThan(u32, 0x7fff_ffff),
+                random.uintLessThan(u32, 0x7fff_ffff),
+            ) });
+            range.len += 1;
+        }
+    }
+    const nonzero = [_]bool{true} ** shapes.len;
+    var actual = try planning.buildCombinedContributionPlan(a, &columns, &indices, &ranges, contributions.items, &nonzero, lifting_log_size);
+    defer actual.deinit(a);
+    const expected = try referenceCombinedViews(a, &columns, &indices, &ranges, contributions.items, lifting_log_size);
+    defer {
+        for (expected) |view| view.deinitCoordinates(a);
+        a.free(expected);
+    }
+    try std.testing.expectEqual(expected.len, actual.views.len);
+    for (expected, actual.views) |want, got| {
+        try std.testing.expectEqual(want.batch_index, got.batch_index);
+        try std.testing.expectEqual(want.shift_amt, got.shift_amt);
+        try std.testing.expectEqual(want.is_direct, got.is_direct);
+        for (want.coordinates, got.coordinates) |w, g| try std.testing.expectEqualSlices(M, w, g);
+    }
 }

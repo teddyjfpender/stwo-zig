@@ -1,0 +1,37 @@
+# Host (native) build of the Rust RV64 guest's validation core for EEST tier 1:
+# the same stateless-validator-reth revision and the same [patch] set as
+# benchmarks/guest_runtime/ethereum/rv64/services (profile
+# ethereum-services-v2-lean), without the RV64-only service features (Keccak and
+# secp256k1 ECALLs, aligned memory functions), which only exist in the guest.
+[package]
+name = "stwo-eest-rust-host"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+alloy-consensus = { version = "=2.4.1", default-features = false, features = ["crypto-backend", "k256"] }
+alloy-primitives = { version = "=1.6.1", default-features = false, features = ["map-foldhash"] }
+critical-section = { version = "1.2", features = ["std"] }
+k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
+ecdsa = { version = "=0.16.9", default-features = false, features = ["stwo-skip-redundant-recovery-verify"] }
+revm-precompile = { version = "=42.0.1", default-features = false }
+sha2 = { version = "=0.10.9", default-features = false }
+revm-interpreter = { version = "=42.0.0", default-features = false }
+stateless-validator-reth = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491" }
+
+[profile.release]
+opt-level = 3
+debug = false
+
+[patch.crates-io]
+k256 = { path = "../../../benchmarks/guest_runtime/ethereum/rv64/vendor/k256" }
+ecdsa = { path = "../../../benchmarks/guest_runtime/ethereum/rv64/vendor/ecdsa" }
+revm-interpreter = { path = "../../../benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter" }
+revm-bytecode = { path = "../../../benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode" }
+sha2 = { path = "../../../benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64" }
+
+[patch."https://github.com/paradigmxyz/stateless.git"]
+zeth-mpt = { path = "../../../benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt" }

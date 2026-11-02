@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "kind": "segment_size_feasibility_analysis",
+  "status": "analysis only; no prover/AIR change, no proof produced; projections are models calibrated on one baseline, not measurements",
+  "source_commit": "9dba9705d",
+  "design_note": "design/riscv-proving-stack/rv64-segment-size-analysis.md",
+  "evidence": {
+    "baseline_receipt": {"path": "vectors/reports/rv64-word16-execution-20261101/optimization-current-baseline-v1.json", "sha256": "e4bf062559b8d464652ab8dc7ccca258670fb7941c95fd9a82f8b9ff119c0080", "source_commit": "259f49ff8", "runs": 3},
+    "baseline_artifacts_read_only": {
+      "roster.json": "3e60060777030f45ea3bea6579e498df0117515bd43cfae84d0ed949f8ad22e8",
+      "cost.json": "1227d1845a6399dab7f168ee0cd89f8ee2e22bebe49523c02966bd2232e2a817",
+      "schedule.json": "21f92d5f7d808c5df366808df062977e43880bda139feace1da09247d431428c",
+      "directory": "/tmp/rv64-opt-current-baseline-v1/runs/baseline-2x8-r0"
+    },
+    "recursion_shape": {"path": "vectors/reports/rv64-word16-execution-20261031/word16-recursion-readiness-shape-v1.json", "sha256": "d912ae87b51fe8263d6a56ebc5d324b0c781dd904965200e4faeb78a55373cbb", "note": "CPU50 shape; proportions only"},
+    "kernel_timing": {
+      "commit": {"path": "vectors/reports/rv64-word16-execution-20261101/commit-kernel-timing-v1.json", "sha256": "6ad82fdee8e2a573be306cc146bdefb1746d70cbd2e75aa3f9795d7281809236"},
+      "composition": {"path": "vectors/reports/rv64-word16-execution-20261101/composition-kernel-timing-v1.json", "sha256": "79806d037b38336225162c95a1ee2f2d64fcd087b19be23442ab4cfa618f6dbb"}
+    },
+    "zisk_source": "read-only external checkout (pil/zisk.pil, pil/config.pil, state-machines/main/pil/main.pil), treated as data"
+  },
+  "baseline": {
+    "total_steps": 104253913, "batch_steps": 4194303, "cpu_proofs": 25, "truth_proofs": 5,
+    "wall_seconds_median": 156.99, "prove_seconds_median": 135.64, "setup_seconds": 11.0,
+    "peak_footprint_bytes_median": 28502566344, "max_rss_bytes_median": 48383639552,
+    "retained_main_total_bytes": 40922791936, "end_of_run_footprint_bytes": 6690000000,
+    "wall_spread_over_median": 0.0754,
+    "cpu_proof_bytes_total": 24522672, "cpu_proof_bytes_mean": 980907, "cpu_proof_bytes_min": 796800, "cpu_proof_bytes_max": 1183824, "truth_proof_bytes_total": 5179000,
+    "cpu_lane_seconds_total_median": 218.9, "truth_lane_seconds_total_median": 49.4,
+    "per_cpu_proof_constant_lane_seconds": {"proof_of_work": 0.185, "trace_decommit": 0.473, "fri_decommit_and_misc": 0.009, "total": 0.667},
+    "fft_share_of_cpu_lane_seconds": 0.378,
+    "table_share": {"committed_cells": 0.0219, "fixed_cells": 0.6381},
+    "per_key_fixed_cells": {"table": 35700000, "segment_proportional": 19700000},
+    "lane_tail_seconds": {"stage1": 0.8, "stage2": 1.2},
+    "stage2_footprint_release_per_cpu_proof_bytes": 550000000,
+    "inflight_transient_per_lane_bytes_estimate": 3300000000
+  },
+  "hard_limits": [
+    {"limit": "batch_steps < 2^22", "at": "src/integrations/riscv_cpu/rv64_ethereum_request.zig:120", "lift": "constant"},
+    {"limit": "compact tape MAX_STEPS 2^22-1", "at": "src/frontends/riscv/rv64/compact_tape.zig:14", "lift": "constant"},
+    {"limit": "boundary capture max_steps < 2^22", "at": "src/frontends/riscv/rv64/boundary_capture.zig:18", "lift": "constant"},
+    {"limit": "prefix budget < 2^22", "at": "src/integrations/riscv_cpu/word16_global_execution/protocol.zig:106; src/integrations/riscv_cpu/word16_execution/execution.zig:21-23", "lift": "constant"},
+    {"limit": "minimalLog/minimalPrefixLog < 2^22", "at": "src/integrations/riscv_cpu/word16_execution/coverage.zig:44-58", "lift": "constant"},
+    {"limit": "CPU MAX_LOG 22", "at": "src/frontends/riscv/rv64/air/word16_execution/layout.zig:50; row.zig:12,37; types.zig:14", "lift": "constant, gated by clocks"},
+    {"limit": "geometry roles <= 22 (multiplication <= 23)", "at": "src/integrations/riscv_cpu/word16_execution/geometry.zig:39-42,55,59,188,192; air/delegations/multiplication/degree3_layout.zig:16", "lift": "constant"},
+    {"limit": "planner ladder full <= 22 (two instances)", "at": "src/integrations/riscv_cpu/word16_global_execution/ethereum/plan.zig:9-19", "at_2^23": "fits (LS max 3,165,957 -> log22)", "at_2^24": "LS 6,206,386 -> log23 rejected", "lift": "constant + third instance or log23 head"},
+    {"limit": "LS count < 2^22 per proof", "at": "word16_execution/memory/statement.zig:42; memory/collector.zig:24; memory/global_manifest.zig:65-66; air/memory/load_store_v2/source.zig:52", "at_2^24": "rejected", "lift": "constant"},
+    {"limit": "keccak/secp CPU bus steps < 2^22", "at": "air/delegations/keccak/cpu_bus.zig:22,65; air/delegations/secp256k1/cpu_bus.zig:27,100", "lift": "constant"},
+    {"limit": "register tick 4*row+slot+1 and gap16+65536*gap8 with U8 high limb (24-bit)", "at": "air/word16_execution/row.zig:21-25; tuples.zig:6-13; layout.zig:45; README.md", "at_2^23": "needs 9-bit high limb", "at_2^24": "needs 10-bit", "lift": "AIR + identity + recursion verifier; short soundness re-argument (sum < 2^27 << p)"},
+    {"limit": "OWNER/RAM epoch16/tick24, LS after-tick lo16+65536*hi8, RAM gap/carry highs U8", "at": "air/word16_execution/tuples.zig:52-61; air/memory/load_store_v2/equations.zig:75; load_store_v2/layout.zig:24-25; air/memory/closed_ram/equations.zig:136-139; closed_ram/layout.zig:1,25,41; closed_ram/types.zig:5,7", "lift": "AIR (option A widen, option B per-window epochs)"},
+    {"limit": "bridge tick u24 and U8 tick-high lookups", "at": "air/delegations/keccak/word16_bridge/types.zig:8, lookup.zig:24-25; air/delegations/secp256k1/word16_bridge/types.zig:9, source.zig:45", "lift": "AIR"},
+    {"limit": "native tick < 2^24 guards", "at": "word16_execution/cells_wire.zig:66; air/memory/openings.zig:22; air/memory/batch.zig:45; air/memory/cell_air.zig:206", "lift": "constant (wire field already 4 bytes)"},
+    {"limit": "soundness clauses", "at": "air/encoding.zig:224-225; design/riscv-proving-stack/rv64-state-range-review.md:25,204", "lift": "re-argue"}
+  ],
+  "non_binding": {
+    "epoch16": "word16_execution/types.zig:14; protocol.zig:117 (epoch=index+1); fewer segments help",
+    "logup_masses": "geometry.zig:44-49; function_bus.zig:21-28; range16 mass at cpu_log24 with max ladders ~0.33e9 < p; binding only ~2^27 rows",
+    "global_ram_mass": "protocol.zig:131-138; ~70M, segment-independent",
+    "pcs_twiddles": "geometry.zig:160 (log<=30); pcs/quotient_domain_walk.zig:34 (31); poly/twiddle_tower.zig (per-domain, circle order 2^31)",
+    "resource_admission_MAX_LOG_ROWS_22": "src/prover/native/resource_admission.zig:5, generic prove CLI only",
+    "truth_proofs": "segment-independent (keccak/shared/roster.zig:117 log<=21)",
+    "lifted_committer": "height = max column LDE; hasher-state replication 136 B/leaf (vcs_lifted/expand.zig:1-9): 1.14/2.3/4.6 GB at height 23/24/25; block total ~constant",
+    "wire_limits": "services/wire.zig:15"
+  },
+  "projections": {
+    "2^22": {"cpu_proofs": 25, "last_segment_steps": 3590641, "last_cpu_log": 22, "padded_cpu_rows": 104857600},
+    "2^23": {
+      "batch_steps": 8388607, "cpu_proofs": 13, "last_segment_steps": 3590629, "last_cpu_log": 22, "padded_cpu_rows": 104857600,
+      "cpu_lane_seconds": {"constant_saved": -8.0, "table_saved": -2.7, "fft_growth": 3.7, "decommit_depth": 0.4, "net": -6.7},
+      "prove_wall_delta_seconds_2lanes": -3.3, "setup_seconds": 7.6, "tail_delta_seconds": [1, 4],
+      "net_wall_delta_fraction": [-0.04, -0.02],
+      "cpu_proof_bytes": [13300000, 15700000], "bundle_proof_bytes": [18500000, 20900000],
+      "recursion": {"leaves": 18, "reductions": 17, "binary_fold_depth": 5, "raw_leaf_compressions_growth": 0.053, "cpu_work_seconds_estimate": 332},
+      "memory": {"lanes": 2, "peak_footprint_bytes_model": 35000000000, "range": [35000000000, 45000000000], "fits_64GB": true, "retained_main_file_backed_bytes": 40900000000},
+      "per_proof_latency_seconds_cpu": 17
+    },
+    "2^24": {
+      "batch_steps": 16777215, "cpu_proofs": 7, "last_segment_steps": 3590623, "last_cpu_log": 22, "padded_cpu_rows": 104857600,
+      "cpu_lane_seconds": {"constant_saved": -12.0, "table_saved": -4.1, "fft_growth": 7.4, "decommit_depth": 0.4, "net": -8.3},
+      "prove_wall_delta_seconds_2lanes": -4.2, "setup_seconds": 5.9, "tail_delta_seconds": [3, 8],
+      "cpu_proof_bytes": [7400000, 8600000], "bundle_proof_bytes": [12600000, 13800000],
+      "recursion": {"leaves": 12, "reductions": 11, "binary_fold_depth": 4, "raw_leaf_compressions_growth": 0.108, "cpu_work_seconds_estimate": 218},
+      "memory": {"one_lane_peak_footprint_bytes_model": 35000000000, "one_lane_range": [35000000000, 45000000000], "two_lane_range": [48000000000, 65000000000], "fits_64GB_one_lane": true, "fits_64GB_two_lanes": false},
+      "extra_blockers": ["LS ladder log23 (plan.zig:11)", "LS count < 2^22 (memory/statement.zig:42)"],
+      "per_proof_latency_seconds_cpu": 35
+    }
+  },
+  "zisk": {
+    "main": "Main(N: 2**22, lanes_x_row: 4) => 2^24 steps/segment (pil/zisk.pil:91; main.pil:31-35)",
+    "timestamps": "global step, mem_step = 1 + 4*step + slot in 64-bit field; MAIN_STEP_BITS 36, REG_STEP_BITS 38 (main.pil:114-117,242; pil/config.pil:1-4)",
+    "register_order": "delta range_check(mem_step - prev - 1) in [0, 2^24) (main.pil:11,404-406); strict -1 excludes self-cycles (main.pil:296-310)",
+    "clock_cap_avoidance": "register reload (flush) windows of <= 2^22 steps decouple delta bound from segment size (main.pil:596-642); segment id range check (main.pil:703)",
+    "mapping": "our per-batch register boundary = a flush window tied to the proof; decouple via per-window epochs (option B) since M31 cannot carry global timestamps"
+  },
+  "recommendation": {
+    "test_after_lane_sweep": "2^23 only",
+    "minimal_changes": ["step/row/geometry guard constants (1.1)", "option A: 9- or 10-bit clock high-limb range for CPU gap8 x3, LS tick/gap highs, closed RAM T_U8{11,13,26}/B_U8{11}, Keccak/secp bridge tick highs; u24->u32 types; identity bumps", "soundness note superseding the 2^24 clause", "recursion verifier later"],
+    "arms": ["A current schema 2^22 (control)", "B new schema 2^22", "C new schema 2^23 (2x8)", "optional D new schema 2^24 (1x16) after LS ladder support"],
+    "runs_per_arm": 3, "order": "ABBA",
+    "acceptance": ["fresh completed-block receiver accepted", "identical 43-byte output", "total_steps 104253913, 13 CPU + 5 truth proofs", "final PC/registers and RAM terminal values/rights semantically equal", "negative tests for high limb >= 2^9, gap >= 2^25, forged predecessor"],
+    "metrics": ["wall", "prove", "setup", "per-stage lane seconds", "native and lifted cells", "proof bytes", "peak footprint", "max RSS", "major faults", "lane tails", "per-proof latency"],
+    "decision_rule": "adopt for CPU throughput only if C beats B by more than the 7.5% spread; otherwise adopt only for recursion/proof-size priorities, keeping 2^22 as GPU pipelining granule"
+  },
+  "verification_required": "soundness re-argument for clock widening, mass bounds and FRI/union-bound remarks need review before any schema change"
+}

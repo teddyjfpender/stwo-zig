@@ -10,6 +10,7 @@ pub const air = @import("air/mod.zig");
 pub const channel = @import("channel/mod.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const pcs = @import("pcs/mod.zig");
+pub const file_backed_allocator = @import("file_backed_allocator.zig");
 pub const poly = @import("poly/mod.zig");
 pub const secure_column = @import("secure_column.zig");
 pub const session = @import("session.zig");
@@ -30,6 +31,7 @@ pub const measurement = @import("measurement/mod.zig");
 pub const execution = @import("execution/mod.zig");
 
 test {
+    _ = @import("tests/pcs/proof_of_work_single_worker_test.zig");
     _ = @import("vcs_lifted/blake2_stream4.zig");
     _ = @import("tests/fri_work_test.zig");
     _ = @import("tests/work_pool_test.zig");

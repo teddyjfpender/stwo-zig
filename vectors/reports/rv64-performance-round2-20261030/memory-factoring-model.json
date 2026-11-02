@@ -1,0 +1,27 @@
+{
+  "kind": "universal polynomial common-subexpression factoring",
+  "assumptions": "No selector/row/opcode validity assumptions; arbitrary QM31",
+  "ordered_memory_residuals": 154,
+  "low_load": "L[w,i] = sum_{0<=o<=8-w} selector[o] * before[o+i]",
+  "signed_upper_load": "F[w] = 255 * sum_{0<=o<=8-w} selector[o] * signbit[o+w-1]",
+  "store": "E[w,i] = before[i] * sum_valid(selector) + sum_covering(selector[o] * (source[i-o] - before[i]))",
+  "width8_store": "E[8,i] = selector[0] * source[i]",
+  "unchanged": [
+    "constraint order",
+    "constraint count",
+    "maximum degree",
+    "committed columns",
+    "opening masks",
+    "transcript",
+    "FRI/security parameters"
+  ],
+  "reference": "src/frontends/riscv/rv64/air/tests/memory_reference.zig",
+  "parity_test": "src/frontends/riscv/rv64/air/tests/memory_factoring_test.zig",
+  "derivation_archive": "/tmp/stwo-rv64-round2/memory-polynomial-derivation.txt",
+  "actual_static_scheduler_seconds": {
+    "baseline_rows": 10.211,
+    "factored_rows": 8.424,
+    "baseline_composition": 12.584,
+    "factored_composition": 10.575
+  }
+}

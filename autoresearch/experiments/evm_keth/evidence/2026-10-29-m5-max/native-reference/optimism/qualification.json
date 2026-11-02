@@ -1,0 +1,88 @@
+{
+  "schema": "keth-op-reference-qualification-v1",
+  "status": "qualified",
+  "input_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+  "binary_sha256": "53be5cf572b8cf4f41caf48d8dea321bdbf66087f86eacbd5350e052cf574473",
+  "block_hash": "0x76efc10040c7097e4ae949b7fc2e829bf7e3b7e227a5d0441eefa198aa6c5e42",
+  "block_number": 158839441,
+  "native_execution_only": true,
+  "cairo_execution_proved": false,
+  "derivation_proved": false,
+  "trials": [
+    {
+      "name": "trial-1",
+      "elapsed_seconds": 0.5979510829783976,
+      "returncode": 0,
+      "input_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+      "result_sha256": "3d5e04ab59a68f2705176175e604e28a4b5a77f106bd568348d18bdf3a01f0d1",
+      "execution_seconds": 0.019896625,
+      "offline_execution_checked": true,
+      "error": null
+    },
+    {
+      "name": "trial-2",
+      "elapsed_seconds": 0.05433787498623133,
+      "returncode": 0,
+      "input_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+      "result_sha256": "330e346742659e16bd53a6993a2e16b9c19cd9ae1125a0af503cec1adc34d23d",
+      "execution_seconds": 0.017666084,
+      "offline_execution_checked": true,
+      "error": null
+    },
+    {
+      "name": "trial-3",
+      "elapsed_seconds": 0.054573999979766086,
+      "returncode": 0,
+      "input_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+      "result_sha256": "0e4d11749e866db416da95f5372bfa5f3f31916d398534b9eebbe6ac8b03b2ad",
+      "execution_seconds": 0.017407042,
+      "offline_execution_checked": true,
+      "error": null
+    }
+  ],
+  "negative_checks": [
+    {
+      "name": "missing_state",
+      "elapsed_seconds": 0.02774845898966305,
+      "returncode": 1,
+      "input_sha256": "91267acb590f329093873db2477e9a3d0bfe08b71fd20dda069ad45c140f5911",
+      "result_sha256": "7c084b8dfd3d554c7116b0d3fd52b361c2514b18ad6c403a5513ccf3a06d783f",
+      "execution_seconds": null,
+      "offline_execution_checked": false,
+      "error": "missing trie node f8b6ae5375749f08dd3dd47a6af65e278f16dd10d24df32380473898945ef249 (path ) state 0xf8b6ae5375749f08dd3dd47a6af65e278f16dd10d24df32380473898945ef249 is not available, not found"
+    },
+    {
+      "name": "missing_code",
+      "elapsed_seconds": 0.03416454201214947,
+      "returncode": 1,
+      "input_sha256": "e3396b15c27b6c12f8f40eeaac0c50def89307c9106b55c0bc23900b23ebc0be",
+      "result_sha256": "3bb67c7350a146088dc98d23815ec638c51a7486c0e1c3ce2afa257b3a90949a",
+      "execution_seconds": 0.001076792,
+      "offline_execution_checked": false,
+      "error": "witness read: code is not found f57acd40259872606d76197ef052f3d35588dadf919ee1f0e3cb9b62d3f4b02c"
+    },
+    {
+      "name": "withdrawal_root",
+      "elapsed_seconds": 0.058806875022128224,
+      "returncode": 1,
+      "input_sha256": "bb58d7a2d5093d4fa84afd99410353c589442a79dbdd961f8806560e4ed08469",
+      "result_sha256": "499816b386a8715dee107537bb4a8cc0075f4516068dfa3a74506a39900fd5e9",
+      "execution_seconds": 0.016356417,
+      "offline_execution_checked": false,
+      "error": "reference state validation: invalid withdrawals hash (remote: 0x0000000000000000000000000000000000000000000000000000000000000000 local: 0xd8f5ff7d07fba92e0b278e150ac9cc1598af4636926b188b79e26122c267db02) dberr: %!w(<nil>)"
+    },
+    {
+      "name": "requests_hash",
+      "elapsed_seconds": 0.05910308298189193,
+      "returncode": 1,
+      "input_sha256": "a3d5fd27bc8d53d6c53f94e84edd44e9a75d9d3f1f00e98c6052105ee66d4897",
+      "result_sha256": "9fc9bfd6bc8863e4aef58446ad54f476ea16f906a0ea390c13529365e9c69311",
+      "execution_seconds": 0.016423958,
+      "offline_execution_checked": false,
+      "error": "reference state validation: invalid requests hash (remote: 0000000000000000000000000000000000000000000000000000000000000000 local: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)"
+    }
+  ],
+  "native_execution_median_seconds": 0.017666084,
+  "native_execution_min_seconds": 0.017407042,
+  "native_execution_max_seconds": 0.019896625
+}

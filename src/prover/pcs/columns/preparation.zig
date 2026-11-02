@@ -218,6 +218,23 @@ pub fn prepareColumnsBorrowingArenaForBackend(
     return prepareColumnsWithArenaOwnership(B, allocator, owned_columns, log_blowup_factor, .always, twiddle_source, recorder, source_arena, .borrow, if (recorder) |active| active.workCaptureRecorder() else null);
 }
 
+/// CPU in-place preparation borrowing several externally owned allocations.
+/// Only descriptor storage transfers; the caller retains every backing until
+/// all batches finish. Other backends keep their existing preparation paths.
+pub fn prepareColumnsBorrowingBackingsForBackend(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    twiddle_source: *TwiddleSource,
+    recorder: ?*stage_profile.Recorder,
+) !PreparedCommitmentColumns {
+    if (comptime !(@hasDecl(B, "combined_base_in_place") and B.combined_base_in_place))
+        return error.UnsupportedTraceBacking;
+    if (log_blowup_factor == 0) return error.UnsupportedTraceBacking;
+    return prepareColumnsWithArenaOwnership(B, allocator, owned_columns, log_blowup_factor, .always, twiddle_source, recorder, null, .borrow, if (recorder) |active| active.workCaptureRecorder() else null);
+}
+
 fn prepareColumnsWithArenaOwnership(
     comptime B: type,
     allocator: std.mem.Allocator,
@@ -684,7 +701,7 @@ fn prepareColumnsCombinedForBackend(
                 coefficients[column_index] = if (base_in_place) blk: {
                     // An adopted arena owns the whole allocation; its subcolumns
                     // must never acquire independent allocator custody.
-                    const coefficient = if (source_arena != null)
+                    const coefficient = if (source_arena != null or arena_ownership == .borrow)
                         try prover_circle.CircleCoefficients.initBorrowed(base)
                     else
                         try prover_circle.CircleCoefficients.initOwned(base);
@@ -704,7 +721,7 @@ fn prepareColumnsCombinedForBackend(
                     }
                 }
                 publishPendingCacheStores(allocator, &pending_cache_stores);
-                if (source_arena == null) for (group.indices.items) |index| {
+                if (source_arena == null and arena_ownership != .borrow) for (group.indices.items) |index| {
                     allocator.free(owned_columns[index].values);
                     // The caller still owns unconsumed descriptors on failure.
                     owned_columns[index].values = &.{};
@@ -741,7 +758,7 @@ fn prepareColumnsCombinedForBackend(
     // The caller retains an adopted source arena until all fallible work is
     // complete. Bounded epochs may have retired individual source columns;
     // their empty descriptors preserve the caller's error cleanup custody.
-    if (source_arena == null) {
+    if (source_arena == null and arena_ownership != .borrow) {
         for (owned_columns) |column| if (column.values.len != 0) allocator.free(column.values);
     }
     allocator.free(owned_columns);

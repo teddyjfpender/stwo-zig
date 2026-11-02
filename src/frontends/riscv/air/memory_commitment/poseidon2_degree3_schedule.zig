@@ -6,6 +6,7 @@ const WIDTH = matrix.WIDTH;
 
 fn base(comptime S: type, word: u32) S {
     if (S == M31) return M31.fromCanonical(word);
+    if (@hasDecl(S, "fromBaseScalar")) return S.fromBaseScalar(M31.fromCanonical(word));
     return S.fromBase(M31.fromCanonical(word));
 }
 

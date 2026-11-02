@@ -1,0 +1,255 @@
+{
+  "schema": "rv64-ls-canonical-range-induction-v3-qualification",
+  "base": "0751982fd0b737e00a37217fcc710d12a702cc24",
+  "status": "qualified isolated slice; not production-landed by this receipt",
+  "scope": "Closed Word16 CPU/REG/ROM/OWNER/RAM canonicality induction. No accepting bare LS/open-RAM API; no changes to load_store_v1 or recursion.",
+  "encoding": {
+    "main": 79,
+    "interaction": 48,
+    "previous_interaction_masks": 8,
+    "constraints": 261,
+    "degree": 3,
+    "native_quotient_factor": 2,
+    "composition_log_split": 1,
+    "metadata_bytes": 82,
+    "u16_queries_per_padded_row": 12,
+    "u8_queries_per_padded_row": 4,
+    "local_affine_fractions": 18,
+    "strict_local_pairs": 9,
+    "ram_columns": 8,
+    "local_prefix_columns": 4
+  },
+  "retained_query_columns": {
+    "u16": [
+      12,
+      18,
+      19,
+      20,
+      21,
+      24,
+      25,
+      40,
+      41,
+      42,
+      43,
+      68
+    ],
+    "u8": [
+      13,
+      26,
+      73,
+      74
+    ]
+  },
+  "previous_encoding": {
+    "main": 79,
+    "interaction": 96,
+    "constraints": 273,
+    "u16_queries_per_padded_row": 35,
+    "u8_queries_per_padded_row": 5
+  },
+  "cost": {
+    "saved_M31_source_cells_per_padded_LS_row": 48,
+    "saved_M31_source_bytes_per_padded_LS_row": 192,
+    "saved_current_native_2n_matrix_bytes_per_trace_row": 384,
+    "oods_samples_saved_per_LS_component": 48,
+    "previous_mask_count_unchanged": true,
+    "whole_job_speedup": "unmeasured",
+    "ECDSA_dual_557056_rows_saved_source_cells": 26738688,
+    "stage1_MAIN_backing_saved_bytes": 0,
+    "peak_memory_claim": "none; capture/Stage1 MAIN floor is unchanged"
+  },
+  "security_premises": [
+    "all advice and multiplicity columns committed before FS challenges",
+    "complete typed physical proof/claim closure and characteristic-mass admission",
+    "unit Boolean RAM events",
+    "canonical independently expected unique INIT and image/policy authority",
+    "retained ranged after value and load C write anchors",
+    "retained bounded epoch/tick gaps and after low/high clock limbs",
+    "closed canonical REG and immutable ROM plus all OWNER19 limbs",
+    "initial/terminal RAM physical claims separately anchored to public tuples"
+  ],
+  "actual_false_prover_cases": [
+    "compensated unused upper SH store-B limbs",
+    "noncanonical RAM before-clock limb",
+    "compensated RAM read/write and load-C limbs",
+    "future epoch predecessor",
+    "reversed tick predecessor",
+    "orphan two-event RAM cycle"
+  ],
+  "false_prover_gate": "Each uses actual false MAIN commitment and interactions, obtains a valid q70/P26 physical full-PCS proof accepted by a fresh polynomial verifier, and requires error.UnclosedExecutionRelations from fresh closed receiver.",
+  "legacy_control": {
+    "proof_bytes": 433488,
+    "sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+    "fresh_receiver": true,
+    "dir": "/tmp/rv64-ls48-legacy-control"
+  },
+  "combined_services": {
+    "fresh_process_receiver": true,
+    "producer_workers": 1,
+    "receiver_workers": 16,
+    "proofs": 5,
+    "scope": "two CPU shards with K/ADD/DOUBLE truth; independently expected fixture image and final CPU values",
+    "dir": "/tmp/rv64-ls48-combined-artifact",
+    "artifacts": {
+      "bundle.json": {
+        "bytes": 67272,
+        "sha256": "dcc28ccafe8a616b3c11b63d213f56f518f944abf87e891b1f52e3d298a1d15c"
+      },
+      "cells.bin": {
+        "bytes": 1166,
+        "sha256": "c4162b246a36d660bea83c219f6bde1cf157f3b26221abbba944734d46662556"
+      },
+      "cpu-0.bin": {
+        "bytes": 957184,
+        "sha256": "08d7223d82b651e9a7fd70a2862659b1c15e2bfcab86d02fa99ffc6ac5ca4015"
+      },
+      "cpu-1.bin": {
+        "bytes": 1133056,
+        "sha256": "e0a2d1709fc8fa3eb7854f69bee106e1b9f241dbfac748ecd5ce6cb6a9a29a2e"
+      },
+      "truth-0.bin": {
+        "bytes": 1624344,
+        "sha256": "0638a8f85070dc3150c4cc6d53d1f3b527a07cefb6a41b6c9e3ddb9a4629892b"
+      },
+      "truth-1.bin": {
+        "bytes": 353260,
+        "sha256": "4896f7a6e45b356697c21f8c4901aca08a835a560cd0c68c19ef98c35d43b994"
+      },
+      "truth-2.bin": {
+        "bytes": 353888,
+        "sha256": "077a229a4a9c5c46ca071e5794b2077a4cc385f81ede74104c47294c804267d8"
+      }
+    },
+    "cells_match_old_qualification_sha256": true
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "f35e4f91e634fa220c87ea70a91dcc0c42c7d14b8631d4ef0620cafb6cc7ba48",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/equations.zig": "59012dce18c524b7640c735fbd1e01e5c39bddab9ead0ba6eaf077bb88946df8",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/types.zig": "0cdee29a75dcb4a105c8f2bb9f721fa6b92cd654db0f3a25ee29e0bcccf04665",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/encoding.zig": "0f715ffdad1fcc122afeab3b1b47e7007d3281ae6c02e018d57c1f18a9d23a42",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/equations.zig": "71f91651b785407d292e32f6850279ec2498386f06b65296e0c466e34527848b",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/interaction.zig": "4f78da9d65ecc4198917fb0750bcd35a06845b9cba9c9fb3b5daf55c983ca290",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/layout.zig": "ad8f107c8bddd04a8139781ee28d60e5babcfa316c200f1a654731b5009a31c2",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/local_lookup.zig": "d8b698ead6a6eba342b8e7eaef6ee5bbe2f66f7398b3ec76d432e6e20b1e4d89",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/native_fill.zig": "350dbfd7d3d8d812663bdb65bb6b6cdb997f539f19bed0f4bc04a62925691577",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/source.zig": "6a0300d65a9840eaeb22bf6e7eac8cbcb1b3deaeb1799b98509241f1a8448c2f",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/types.zig": "fc3519de3f1aeed3eee512b91e55ead5f42c79fab29c7f4beb73f25027abcbea",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "a936c92d59a5fa51f7726235b92c0f994d32bb8c6fd159dd0ec938b7ecd18c05",
+    "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig": "d8bb9d8fbd7a97470f90c410887725a2be7efcb44c3b2047b12df5cb8b0d70fc",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_circuit_test.zig": "bdb9867bb7f1221956be21e2ed2ec3a0cca68bb73779c3799677c72115a22265",
+    "src/integrations/riscv_cpu/word16_execution/ls_ladder_test.zig": "f2b5e267c3b24e614941c0e90d49614e3850636eb8a3ab49bbbcc96a352da15e",
+    "src/integrations/riscv_cpu/word16_execution/memory/boundary_anchor_test.zig": "335733c16e6cff011732b99a29692944dcd280d7483e6d4ca1f0aa786d960daa",
+    "src/integrations/riscv_cpu/word16_execution/memory/native_test.zig": "8eae354caef63b197a5dda679e1c4091960f6332eb298ed24dffbbbcc3d07260",
+    "src/integrations/riscv_cpu/word16_execution/memory/parallel_test.zig": "a7283fa51f91a2d7e1471c3207b0da5a58113d157791b159d748f265624cf307",
+    "src/integrations/riscv_cpu/word16_execution/provider_ladder_test.zig": "1e2b81aa09071f37202fd6f2b9a8f5f4d3eebd8fe5ca271ad1650eb23b1a468a",
+    "src/integrations/riscv_cpu/word16_execution/memory/range_induction_proof_test.zig": "1dc47a5a604e0b694d535eee03f1296add522cfe3ede5791a0c85b66292ed7c8",
+    "src/integrations/riscv_cpu/word16_execution/memory/range_induction_test.zig": "1ea00c5c97c010c4580a90b694020bb894ac331d1d355a918917f13e21913506"
+  },
+  "source_conformance": {
+    "reported_preexisting_violations": 97,
+    "evidence": "96 reported source files exactly equal HEAD; only other reported file is build_support/products/riscv_cpu.zig, unchanged 511-line size (only test minimum changes). No new violation in modified AIR/tests. git diff --check passes."
+  },
+  "actual_S4_geometry_model": {
+    "bundle_sha256": "8047218c74f2c465c92895a67f1857335c27e430104496ced4489dbf4bbe8c1f",
+    "cost_sha256": "23fa964c2b3ae98ec198175b8aa53945de5380c60f7c032ac8211873b5d50c55",
+    "cpu_proofs": 25,
+    "ls_components": 45,
+    "padded_ls_rows": 36798464,
+    "saved_source_M31_cells": 1766326272,
+    "saved_aggregate_source_bytes": 7065305088,
+    "saved_fraction_all_MAIN_INTER_cells": 0.0777672141447831,
+    "largest_single_proof_saved_ls_source_bytes": 402653184,
+    "saved_Q_oods_samples": 2160,
+    "saved_U16_queries": 846364672,
+    "saved_U8_queries": 36798464,
+    "scope": "exact geometry-derived source-volume model; not peak RSS, timing, FRI-domain or whole-system speedup"
+  },
+  "security_configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "nominal_bits": 96,
+    "whole_protocol_bits_established": false
+  },
+  "gates": [
+    {
+      "target": "test-riscv64-word16-memory",
+      "minimum_runtime_tests": 32,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-execution-circuit",
+      "minimum_runtime_tests": 5,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-global-execution",
+      "minimum_runtime_tests": 15,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-combined-services",
+      "minimum_runtime_tests": 11,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-ls-ladder",
+      "minimum_runtime_tests": 9,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-provider-ladder",
+      "minimum_runtime_tests": 10,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-ls-native-fill",
+      "minimum_runtime_tests": 6,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    }
+  ],
+  "oracle_requalification": {
+    "CSP_ECDSA_positive": {
+      "steps": 1625938,
+      "proof_bytes": 1130472,
+      "proof_sha256": "592c8532357e7a4ae9614598c7056ea8f99f2aca768a5b80188374e23a2a3ea5",
+      "cells_sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800",
+      "all_CPU_public_fields_exact_old_qualification": true,
+      "complete_RAM_cells_exact_old_qualification": true,
+      "fresh_independently_expected_receiver": "PASS",
+      "producer_dir": "/tmp/rv64-ls48-ecdsa-positive",
+      "old_control_dir": "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0",
+      "trusted_config": "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+      "config_sha256": "23cdaf1b9e03c16fab1a097e02730e87af0f17ec5ba82f556fae413446c42e21",
+      "performance_comparison": "none; functional runs were not isolated"
+    },
+    "Sail_all63_retiring_opcodes": {
+      "steps": 1032240,
+      "proof_bytes": 1037024,
+      "proof_sha256": "ec5d7e087761b4c332e36cd42f800f4913d2c9ebd3e3e1ef7c916e3b151ee625",
+      "cells_sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f",
+      "all_CPU_public_fields_exact_old_qualification": true,
+      "complete_RAM_cells_exact_old_qualification": true,
+      "fresh_independently_expected_receiver": "PASS",
+      "producer_dir": "/tmp/rv64-ls48-sail",
+      "old_control_dir": "/tmp/rv64-word16-sail-workload-v2/proof-schema3-fast",
+      "trusted_config": "/tmp/rv64-word16-sail-workload-v2/config.json",
+      "config_sha256": "094efa4f2884c6e160db6c5d7a9fba55255a5b1363e23576a55bac59373aa020",
+      "performance_comparison": "none; functional runs were not isolated",
+      "fresh_receiver_RVFI_file_absent": true
+    }
+  },
+  "tools": {
+    "rv64-word16-combined-services-fixture": "c60b9ef2f290e58e706b72023cd0ce0cf3541f3ef8b675ca608ade8ebd088ebf",
+    "rv64-load-store-fixture": "d343c945a4db6adea636051b79cdf268c5b0c9dff0b1d3821b859b593dfd5821",
+    "rv64-word16-csp": "99026226325eccbd302d042a2b2aa0e2d23673ca6b230bf8dddf41e47be3172c",
+    "rv64-word16-sail": "0632b77d85e00cfb5082d90ff9105fbc8ad799cfcd93a24146d3b07f24f32740"
+  }
+}

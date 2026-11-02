@@ -1,0 +1,9 @@
+1/7 rv64_om31_security_candidate_test_root.test_0...OK
+2/7 word16_execution.om31_security_candidate_test.test.candidate pins receiver configuration sampler and scope identity...OK
+3/7 word16_execution.om31_security_candidate_test.test.candidate conditional complete-native ledger fits admitted cap but is never certificate...OM31_SECURITY_CANDIDATE identity=16b0e3bee1f01b1d6a4384d91a8c8cd9953e08d4acd58c4339aa007795b975a7 conditional_weight=5447285479618932633766888
+OK
+4/7 word16_execution.om31_security_candidate_test.test.candidate rejects characteristic wrap geometry and oversized source scope...OK
+5/7 word16_execution.om31_security_candidate_test.test.candidate binds receiver facts to native raw transcript before dependent challenges...OK
+6/7 word16_execution.om31_security_candidate_test.test.candidate local relation roster matches production raw fraction authority...OK
+7/7 word16_execution.om31_security_candidate_test.test.candidate arithmetic rejects arbitrary overflowing budget values...OK
+All 7 tests passed.

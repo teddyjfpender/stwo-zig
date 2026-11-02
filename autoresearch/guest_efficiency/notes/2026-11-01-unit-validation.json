@@ -1,0 +1,179 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-unit-validation.v1",
+ "suites": {
+  "revm-bytecode": {
+   "ok": true,
+   "returncode": 0,
+   "command": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "/workspace/scratch/528dc4b732ca/guest-cache/unit-validation/crates/revm-bytecode/Cargo.toml",
+    "--lib",
+    "--offline"
+   ],
+   "source_sha256": {
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/bytecode/mod.rs": "5d873094667783a41918009066620c843f0eb58f41ae6d62ceaeb4cd4e5789ec",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/bytecode/serde_impl.rs": "6302dc273ef9c9018f1614728fed91d613e406e75814f33ed1363c1715f9774d",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/decode_errors.rs": "1eb9fa9d1cf95fcb82105fa1ec94c395c68d0d63a03e8deda73ebbaf46570af9",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/eip7702.rs": "53b9fc7a77ca99979964e3cee94becfd7c2e0edabea177557b58e1cfb11404e7",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/iter.rs": "d65a86386f69b4237fa627801335016e75d3e92230d38b49b78eb51562529643",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/legacy/analysis.rs": "e888a99edafd474c90d9b44adda897e406982075dd151219e3ef5e69d6e85dba",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/legacy/jump_map.rs": "459c4923e33007758d856bca086594a2f71fb207bc010e2d2c82e80091760dbb",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/legacy.rs": "aafdabb662968409a2d2c37ad0f4519797415e89a339e76b987599746fcd531f",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/lib.rs": "71ec1e806702901a447f2fee46de619569e5618d981593db939b74e9f429d655",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/opcode/parse.rs": "50ad6bb71034d083b190120c95c99ba06f4102c42474b1acf194d022bedd86f2",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/opcode.rs": "275d2d7f6de0d6d7d96f18a64631cae008ea5cd0d235a1613e8854df79fe4937",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-bytecode/src/utils.rs": "116fecc147fd9c87ba738c4d437b8681ff94eb2647c374a5e68f0e905c6107b9"
+   },
+   "log_sha256": "f1147ff3d08de0cd817362e6a39d996d8635d8b51b965c7e867dc84b728752a0",
+   "test_results": [
+    "test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+   ]
+  },
+  "revm-interpreter": {
+   "ok": true,
+   "returncode": 0,
+   "command": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "/workspace/scratch/528dc4b732ca/guest-cache/unit-validation/crates/revm-interpreter/Cargo.toml",
+    "--lib",
+    "--offline"
+   ],
+   "source_sha256": {
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/gas.rs": "59ec9d26a566769dd875a4127322640c04b6236ce60456d2d60315a4e689d73c",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instruction_context.rs": "b2ea4e4e7a397be0ab8f452f4b513235dcd163938c5a7f90cadfc1f041bc6beb",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instruction_result.rs": "0d3ef34b0eb8aef319ded38a52d8b57fdd8fe46132a586625477e3d53f99d0a3",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/arithmetic.rs": "6d1b8873f1d7d108a51834c111d863fa00535e7b71543e79c83d788863d42fea",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/bitwise.rs": "b747b15db87b5a794a6d202a934d33b3fa4cf71b469ca0ca67d994b6d226a451",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/block_info.rs": "1b5a74eee8ddfa70f2b6b41d7faaae25fdfa4a3b09f65e1a4a2b9f2827afd02f",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/contract/call_helpers.rs": "79ce1ed7274226104180e472f8132bf9fcb9d3a2f8b66b716a1494c34d8fbb27",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/contract.rs": "e5dfd63d3d808eabc2235228e2e9e43200793cd7cfc3d9da3d0f23da6a4bd0f7",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/control.rs": "e3674d2312f1f26ce1b6f1cfd311c86ca19724918c9c05796c32a7802b4dcb5a",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/host.rs": "62881c90c4f11495900f41fa302ae4f72399926d7445c16b344e2724ea6f84ba",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/i256.rs": "b24db9bd95a0104c64512a947a010f899f4794a52d76535e3c78756b51e594df",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/macros.rs": "8375af5ece33ae0279875c288e42b47c09885fa75a7b9e1a523d1a1ed6c66445",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/memory.rs": "f869372dc4c5c58c4d5c9630961b563c6287d79177fe1fa8a3e565bf607720f5",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/stack.rs": "0c01fed37e12a093626508a5ee19568c480251b670818e8117c968511b54be03",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/system.rs": "6992e45f3eff86016a10c59807b664aaf96915afce2b9961eabd07426fc86f91",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/tx_info.rs": "63ab91f52ebe5eb6b2eb0b3f9d4318b5412f684923b25f6bc4d7d24020bfa853",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions/utility.rs": "6ede8760389aa474260466e3a4ceb03608dfe7b22ad02ad9d77030eef8969e68",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/instructions.rs": "515f0b04d3e1c0adad047e8cae6a502ecede7f6c0e63a87d81b906df8c4e4ef2",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/ext_bytecode/serde.rs": "29c6ca9797f7d9fc8eb642e45d80ee5279578b475b83b529dbe07d997bdf1afe",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/ext_bytecode.rs": "89daa067579bfb86c3d84642debf191044dce92a1cefa37b08c6401f5c320218",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/fusion_tests.rs": "0876419cf741a28991643582ed68aeec743c27db8f7e687a7b1c2c86ca450a87",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/input.rs": "9ad1bc7401a2b61208a3c3549098dc83cd9742906889e82a723ac2dddedfa7ea",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/return_data.rs": "149a51d575cd3224797a03bde19319e1091a94d7fcb198da5130f80d72a5cb82",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/runtime_flags.rs": "41ad1d5ac513e9c7a86324b320494e9ce012664624d212b47d94835295ecf78f",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/shared_memory.rs": "f6359694463e3621cc2fe07e8e9f2e4e77d2ca4711e009587ec774956e248aa8",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter/stack.rs": "e67a2e78dbe4bbccca6c27b5066efa0a11aba84b7ddcd546df251dbefa819c8f",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter.rs": "86ae6c0317e52c5a5bb1cc1fc9be531d9af19f784f5712adf64029480ce80101",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter_action/call_inputs.rs": "d8d453ba3b3cf9a19be0cf9d0df2cfbdc01f4a44a934698ab8727c8d5e70b9ac",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter_action/call_outcome.rs": "32ee9b05b972ed7cc8d2fed6144faf455389392b09909603d956e1b33821a224",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter_action/create_inputs.rs": "4e69b238ac2c316d98a871dd882d0b89d2ab3291191284758f3ba79f8bbe14f3",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter_action/create_outcome.rs": "0fc72ed70c5b5d8879f3edf6b02dedfd39d6c04c161336816d34f3282bbe6c58",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter_action.rs": "2329f8932ececa8be1e086ccb62c13d522038edddb6dd170007b47acb9a6daf7",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/interpreter_types.rs": "a1ef7bb4ce7cebe90697f51450876ee48ea56e2239ec1e7f5dc8348f0491e49e",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/lib.rs": "bab4ebf0c3b5950be428de8d0c59bccfd0abd6a3a3d8aff7269da9f08cddab95",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/revm-interpreter/src/macros.rs": "c9421437127689a6082a9c9bed025ebb05884f9f7b77b75bd11ee0e8d5effec6"
+   },
+   "log_sha256": "303ae33f6140900cfa2b6d3dd30da5858be84f023bdabe60cda367088f0bbcd5",
+   "test_results": [
+    "test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s"
+   ]
+  },
+  "zeth-mpt": {
+   "ok": true,
+   "returncode": 0,
+   "command": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "/workspace/scratch/528dc4b732ca/guest-cache/unit-validation/crates/zeth-mpt/Cargo.toml",
+    "--lib",
+    "--offline"
+   ],
+   "source_sha256": {
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/lib.rs": "fe87429a911b4a1a4d3e9c7a7efc83d8bea72139d4fd3553f051b6ca65d8f40b",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/children.rs": "c3409b67787df6ace4a7db0f2808a6b4a1373a1f63f6421db5193aa63eb7992d",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/memoize.rs": "3ed05e3c3c95a99dbfd693ff4b1fbc582355ea22c1046b3395b589c1646c72d9",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/mod.rs": "fab7ec17904a7250a648b676fa673e7124f72072d4fb874ba60657c5a41224d0",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/nibbles.rs": "a3949eb4ebbf70c7c690e3a1eae5341465457a1581bb087f0c1b31a6293046da",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/node.rs": "48037bc1544446735c9ac55070506eb6e484489aeb63cc17fd5cc49199bdab9c",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/orphan.rs": "2dfbfa8f69fb18289ad7784d5599e668b2e4500ca8be0ace27c04b360af6e663",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/rkyv.rs": "d8ee01e18ed79828d42e064b0a12250e94e82004ecf533eefec1ba6b2387d856",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/rlp.rs": "639887ec51a463a0726b013d3cd0c62df608a730991616ed6f04fa662df223f9",
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/zeth-mpt/src/mpt/serde.rs": "ecf347e5a7162b09dc5f09a80ba6073d93ed1f80bfb757a8f458e7028dff4bad"
+   },
+   "log_sha256": "c595addf311f356ec8677e7b9cf58c561491eea255502d0ac9ba637048755957",
+   "test_results": [
+    "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.86s"
+   ]
+  },
+  "mem": {
+   "ok": true,
+   "returncode": 0,
+   "command": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "test",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "/workspace/scratch/528dc4b732ca/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem/Cargo.toml",
+    "--offline"
+   ],
+   "source_sha256": {
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem/src/lib.rs": "30bba05cc63e981f6e66414d8ccf69f33d1fc14537dc970d1117bbb5f7b479ab"
+   },
+   "log_sha256": "92acbe5d36e665aeba8c26db49d83f5aa7ae6b3f0cc55fb3612d1bf9503dd0f4",
+   "test_results": [
+    "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+   ]
+  },
+  "sha256": {
+   "ok": true,
+   "returncode": 0,
+   "command": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "test",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "/workspace/scratch/528dc4b732ca/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64/Cargo.toml",
+    "--offline"
+   ],
+   "source_sha256": {
+    "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/sha2-rv64/src/lib.rs": "e00be44426fba37b6a29871bcaa6d11808ff2fe46185d3e19a8297949c8690b3"
+   },
+   "log_sha256": "6c09633bed198fdfaa20c027a7aed9a23e50deb3d962186686232d504c775536",
+   "test_results": [
+    "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+   ]
+  }
+ },
+ "ok": true,
+ "harness": {
+  "tests": 32,
+  "ok": true,
+  "log_sha256": "14a83dbef90af56bc0b74e6b595258d35c890204f42ae326b937ef1ccfa80907",
+  "sources_sha256": {
+   "bench.py": "fac43a35c12cab5f9038375090ac4b3b362c62040763d29a2168afda37995383",
+   "test_bench.py": "024191c8690293b75c70dde7bbafef5f1364f2f59a247307de7b0f440f1412e8",
+   "calibration.json": "9165d2a25312234c6b3d4d5e73449f195925163386f66d8b618216c40e050dff",
+   "scope.json": "5a7aeaa860c3854c42517fa48cb6b198b9efbd81f370ae0703d1c8ccf28b3932",
+   "targets.json": "32a6c90b330376416fd2d3a8f299eb3dba0e345a7ebcd3e5ae999ec049840d08"
+  }
+ }
+}

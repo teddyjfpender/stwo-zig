@@ -1,0 +1,118 @@
+{
+  "schema": "rv64-foundations-paired-execution-v1",
+  "proof_supported": false,
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "optimize": "ReleaseFast",
+  "baseline_snapshot_sha256": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/benchmark.zig": "c901d901f8dc3662af7a15ca24b80111066a07a918c8d266cc9f2fdb0802bc5c",
+    "src/frontends/riscv/rv64/build.zig": "f9bb1f9b405384fa84a5ba56cc2606fb94057941fafae0c223019ef62536c921",
+    "src/frontends/riscv/rv64/csp_benchmark.zig": "defb1cd073e400a6b287db1fb76ae38a6d26c5d90cbb7f93a4a875c4a2155e78",
+    "src/frontends/riscv/rv64/decode.zig": "01ee555d073c9e1f0c6958797e61417b219f806c5882e735bc6badfb01d549a8",
+    "src/frontends/riscv/rv64/decode_cache.zig": "08ffe1569b2f3dcdb13efbc3b96189f282ecb2d0874a756d58bcae0eebb74924",
+    "src/frontends/riscv/rv64/diagnostic.zig": "f4a809c2dfc39783dd0258e2799c6c9764a5676dc22dae3ce55cda9a440da3eb",
+    "src/frontends/riscv/rv64/elf.zig": "ffc6a9bc8449d954a9d86ea93a25d1c55f6e57837c16fed758ba9b8b78d9fa85",
+    "src/frontends/riscv/rv64/foundations_test.zig": "bbf5c2084d94feb95a51fff5a53179e4125e3a1458be5bad50156a370ad8ea41",
+    "src/frontends/riscv/rv64/machine.zig": "4591075904a19e04b4893d44e1b24ead19a0d76b5f7e90e028e38e5097e50352",
+    "src/frontends/riscv/rv64/mappings.zig": "a142baa60946b8a53f27ae31bb85b1966a91324b17097b0691e7c423b7c85e09",
+    "src/frontends/riscv/rv64/memory.zig": "651280049bf85cffd1d140bb2b97ca5fa8ccdf685431c564cdd589fc070a3147",
+    "src/frontends/riscv/rv64/memory_types.zig": "d7d60e84dca17f7eaa8ba0a139f2985e58162ff14bfed7f651d8114b15fb0f3d",
+    "src/frontends/riscv/rv64/mod.zig": "77d91e6249c11e3491293173dab20576f861a2ea44abb3249daeacdf62619c12",
+    "src/frontends/riscv/rv64/pages.zig": "7e2ed48820f9cc8220c03c4dae9542646cbf119bfa9a1bcf24f2047783729a89",
+    "src/frontends/riscv/rv64/retirement.zig": "ff86c7bbce53d55e4aa2697f927e912872e400c9095e88637d686f8cbcd5d3ff",
+    "src/frontends/riscv/rv64/session.zig": "8eab827074bb671a3f51ae8ab051056662a70ade4836599681bf492ca279db48",
+    "src/frontends/riscv/rv64/tests.zig": "1ffc2464d664bdd5a945ba75fef9239cfebdce1e8cc7020147eca6094aa1fee8",
+    "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05"
+  },
+  "conditions": "local host, randomized paired order, no quiet-host or proving qualification",
+  "rows": [
+    {
+      "workload": "execution",
+      "operations": 10000000,
+      "checksum": 2000000,
+      "samples_ns": {
+        "baseline": [
+          104089375,
+          110673750,
+          101619458,
+          102405500,
+          101555459,
+          111632042,
+          102856708
+        ],
+        "candidate": [
+          41217750,
+          40594333,
+          43458791,
+          42785125,
+          42401292,
+          42496000,
+          41666666
+        ]
+      },
+      "baseline_median_ns": 102856708,
+      "candidate_median_ns": 42401292,
+      "speedup": 2.425791836720447
+    },
+    {
+      "workload": "memory",
+      "operations": 4000000,
+      "checksum": 1999487065536,
+      "samples_ns": {
+        "baseline": [
+          377372625,
+          433734625,
+          432941375,
+          371231958,
+          339307791,
+          335125084,
+          335768542
+        ],
+        "candidate": [
+          25766541,
+          31317125,
+          30042375,
+          31535750,
+          27433875,
+          25413333,
+          25282542
+        ]
+      },
+      "baseline_median_ns": 371231958,
+      "candidate_median_ns": 27433875,
+      "speedup": 13.53188195251309
+    },
+    {
+      "workload": "bulk",
+      "operations": 4194304,
+      "checksum": 5425512962855750474,
+      "samples_ns": {
+        "baseline": [
+          5481250,
+          5402583,
+          5357875,
+          6274583,
+          5439833,
+          5291458,
+          5408667
+        ],
+        "candidate": [
+          1491791,
+          1359041,
+          1337750,
+          1397709,
+          1262542,
+          1253500,
+          1278291
+        ]
+      },
+      "baseline_median_ns": 5408667,
+      "candidate_median_ns": 1337750,
+      "speedup": 4.043107456550177
+    }
+  ],
+  "binary_sha256": {
+    "baseline": "e302aaf02947e08b68c771b3dcb109717fa1638f1b02a97f18e3a8e9c3d8e803",
+    "candidate": "f44fb44206941f2911867b6e7a0ed6739a4d3a06832edc59ace02606dd2087a7"
+  }
+}

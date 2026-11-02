@@ -1,0 +1,57 @@
+{
+  "source_commit": "e08df876e",
+  "depends_on": "53e75e036 plus current parent main OM PCS/manifest source",
+  "selected_by_production": false,
+  "security": "Whole-protocol128 certification remains open; tests use explicit inexpensive fixture PCS configuration",
+  "tests": {
+    "ReleaseSafe": "PASS22",
+    "ReleaseFast": "PASS22",
+    "real_physical_proofs": [
+      "Keccak2calls/log5 withchi13/xor5_10 providers",
+      "secpADD1call with independently sized product/linear/BYTE providers"
+    ],
+    "adversarial": [
+      "changed high OM coordinate of pure global claim rejected by fresh physical receiver",
+      "unclosed local claims rejected",
+      "MAIN root mismatch rejected",
+      "repeated complete rejected",
+      "K local characteristic overflow rejected",
+      "witness budget rejects before allocation or source ownership transfer"
+    ]
+  },
+  "layout": {
+    "physical_claims": [
+      "local_permutation_or_product",
+      "local_chi_or_linear",
+      "local_xor5_or_byte",
+      "pure_global_KIO_or_productWire",
+      "zero_or_linearWire"
+    ],
+    "Keccak": {
+      "local_interaction_columns": 5128,
+      "global_interaction_columns": 208,
+      "composition_log_split": 2,
+      "max_constraint_degree": 5
+    },
+    "secp": {
+      "local_packing": 2,
+      "global_single_inverse_terms": 3,
+      "composition_log_split": 1,
+      "max_constraint_degree": 3
+    }
+  },
+  "ownership": [
+    "init consumes source only on success",
+    "owned MAIN handoff",
+    "bounded scratch admission before allocation",
+    "owned interaction handoff",
+    "proof consumes scheme; receiver consumes decoded proof",
+    "source metadata retired after successful proof encoding"
+  ],
+  "remaining": [
+    "parent whole-execution coordinator/receiver and complete roster global closure",
+    "whole-protocol128 proof-system budget and outerrecursion",
+    "production-size resource/performance qualification",
+    "GPU qualification explicitly deferred"
+  ]
+}

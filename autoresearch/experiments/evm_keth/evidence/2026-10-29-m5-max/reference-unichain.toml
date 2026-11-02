@@ -1,0 +1,52 @@
+name = "Unichain"
+public_rpc = "https://mainnet.unichain.org"
+sequencer_rpc = "https://mainnet-sequencer.unichain.org"
+explorer = "https://explorer.unichain.org"
+governed_by_optimism = true
+superchain_time = 0
+data_availability_type = "eth-da"
+chain_id = 130
+batch_inbox_addr = "0xFf00000000000000000000000000000000000130"
+block_time = 1
+seq_window_size = 3600
+max_sequencer_drift = 600
+
+[hardforks]
+  canyon_time = 0 # Thu 1 Jan 1970 00:00:00 UTC
+  delta_time = 0 # Thu 1 Jan 1970 00:00:00 UTC
+  ecotone_time = 0 # Thu 1 Jan 1970 00:00:00 UTC
+  fjord_time = 0 # Thu 1 Jan 1970 00:00:00 UTC
+  granite_time = 0 # Thu 1 Jan 1970 00:00:00 UTC
+  holocene_time = 1736445601 # Thu 9 Jan 2025 18:00:01 UTC
+  isthmus_time = 1746806401 # Fri 9 May 2025 16:00:01 UTC
+  jovian_time = 1764691201 # Tue 2 Dec 2025 16:00:01 UTC
+  karst_time = 1783526401 # Wed 8 Jul 2026 16:00:01 UTC
+  keep_karst_upgrade_gas = true
+
+[optimism]
+  eip1559_elasticity = 6
+  eip1559_denominator = 50
+  eip1559_denominator_canyon = 250
+
+[genesis]
+  l2_time = 1730748359
+  [genesis.l1]
+    hash = "0x8c799ed21bd97471f76ba48ea54b30f8169c7e4e4a22acfba06951b571e0f4b6"
+    number = 21116363
+  [genesis.l2]
+    hash = "0x3425162ddf41a0a1f0106d67b71828c9a9577e6ddeb94e4f33d2cde1fdc3befe"
+    number = 0
+  [genesis.system_config]
+    batcherAddress = "0x2F60A5184c63ca94f82a27100643DbAbe4F3f7Fd"
+    overhead = "0x0000000000000000000000000000000000000000000000000000000000000000"
+    scalar = "0x010000000000000000000000000000000000000000000000000dbba0000007d0"
+    gasLimit = 30000000
+
+[roles]
+  ProxyAdminOwner = "0x5a0Aae59D09fccBdDb6C6CcEB07B7279367C3d2A"
+
+[addresses]
+  L1StandardBridgeProxy = "0x81014F44b0a345033bB2b3B21C7a1A308B35fEeA"
+  OptimismPortalProxy = "0x0bd48f6B86a26D3a217d0Fa6FfE2B491B956A7a2"
+  SystemConfigProxy = "0xc407398d063f942feBbcC6F80a156b47F3f1BDA6"
+  DisputeGameFactoryProxy = "0x2F12d621a16e2d3285929C9996f478508951dFe4"

@@ -258,7 +258,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 .retain_coefficients = scheme.coefficient_retention_policy == .always,
                 .compact_committer = if (compact_supported and
                     (B.MerkleTree(H) == MerkleProver or native_compact) and scheme.compact_polynomial_storage)
-                    CompactCommitter.init(allocator)
+                    if (comptime !native_compact and @hasDecl(CompactCommitter, "initCompactBlake")) CompactCommitter.initCompactBlake(allocator) else CompactCommitter.init(allocator)
                 else
                     null,
             };
@@ -337,22 +337,28 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             original_indices: []const usize,
             recorder: ?*stage_profile.Recorder,
         ) !void {
-            return self.addColumnsIndexed(owned_batch, original_indices, recorder, null);
+            return self.addColumnsIndexed(owned_batch, original_indices, recorder, null, false);
         }
 
         /// The stream, rather than each batch, retains the shared source arena.
         pub fn addColumnsBorrowingArenaIndexed(self: *Self, owned_batch: []ColumnEvaluation, original_indices: []const usize, recorder: ?*stage_profile.Recorder, arena: []M31) !void {
-            return self.addColumnsIndexed(owned_batch, original_indices, recorder, arena);
+            return self.addColumnsIndexed(owned_batch, original_indices, recorder, arena, false);
         }
 
-        fn freeBatch(self: *Self, batch: []ColumnEvaluation, arena: ?[]M31) void {
-            if (arena != null) self.allocator.free(batch) else column_storage.freeOwnedColumnEvaluations(self.allocator, batch);
+        /// The stream retains multiple allocations while batches borrow only
+        /// their in-place coefficient slices. No fabricated contiguous arena.
+        pub fn addColumnsBorrowingBackingsIndexed(self: *Self, owned_batch: []ColumnEvaluation, original_indices: []const usize, recorder: ?*stage_profile.Recorder) !void {
+            return self.addColumnsIndexed(owned_batch, original_indices, recorder, null, true);
         }
 
-        fn addColumnsIndexed(self: *Self, owned_batch: []ColumnEvaluation, original_indices: []const usize, recorder: ?*stage_profile.Recorder, arena: ?[]M31) !void {
+        fn freeBatch(self: *Self, batch: []ColumnEvaluation, arena: ?[]M31, borrow_backings: bool) void {
+            if (arena != null or borrow_backings) self.allocator.free(batch) else column_storage.freeOwnedColumnEvaluations(self.allocator, batch);
+        }
+
+        fn addColumnsIndexed(self: *Self, owned_batch: []ColumnEvaluation, original_indices: []const usize, recorder: ?*stage_profile.Recorder, arena: ?[]M31, borrow_backings: bool) !void {
             std.debug.assert(owned_batch.len == original_indices.len);
             if (self.compact_failed) {
-                self.freeBatch(owned_batch, arena);
+                self.freeBatch(owned_batch, arena, borrow_backings);
                 return error.IncrementalCommitmentFailed;
             }
             errdefer if (self.compact_committer != null) {
@@ -366,7 +372,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             if (self.retained_column_allocator != null and
                 (self.commitment_scheme.coefficient_retention_policy != .never or owned_batch.len > 64))
             {
-                self.freeBatch(owned_batch, arena);
+                self.freeBatch(owned_batch, arena, borrow_backings);
                 return error.UnsupportedRetainedColumnStorage;
             }
 
@@ -380,7 +386,20 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             // Follow the same ownership convention as commitOwnedWithRecorder:
             // on error from prepareColumnsForCommitOwned the caller cleans up
             // the input; on success the result owns the data.
-            var prepared = (if (arena) |source| column_preparation.prepareColumnsBorrowingArenaForBackend(
+            var transform_stage = stage_profile.StageScope.begin(recorder, "streaming_transform", "Streaming batch interpolate and extend") catch |err| {
+                self.freeBatch(owned_batch, arena, borrow_backings);
+                return err;
+            };
+            var transform_stage_open = true;
+            defer if (transform_stage_open) transform_stage.end();
+            var prepared = (if (borrow_backings) column_preparation.prepareColumnsBorrowingBackingsForBackend(
+                B,
+                self.allocator,
+                owned_batch,
+                log_blowup,
+                &self.commitment_scheme.twiddle_source,
+                recorder,
+            ) else if (arena) |source| column_preparation.prepareColumnsBorrowingArenaForBackend(
                 B,
                 self.allocator,
                 owned_batch,
@@ -398,12 +417,16 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 recorder,
                 null,
             )) catch |err| {
-                self.freeBatch(owned_batch, arena);
+                self.freeBatch(owned_batch, arena, borrow_backings);
                 return err;
             };
             errdefer prepared.deinit(self.allocator);
+            transform_stage.end();
+            transform_stage_open = false;
 
             if (self.compact_committer) |*committer| {
+                var hash_stage = try stage_profile.StageScope.begin(recorder, "streaming_leaf_hash", "Streaming batch leaf hashing and compaction");
+                defer hash_stage.end();
                 if (prepared.columns.len > compact_max_columns - self.compact_column_count)
                     return error.CompactMerkleLeafTooWide;
                 const references = try self.allocator.alloc(MerkleProver.ColumnRef, prepared.columns.len);
@@ -456,7 +479,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             // storage still relocates independent LDE allocations.
             const preserve_lde = self.compact_committer == null and self.retained_column_allocator == null and
                 !std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_LDE");
-            if (arena == null and std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_COEFFICIENTS"))
+            if (arena == null and !borrow_backings and std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_COEFFICIENTS"))
                 try prepared.detachBacking(self.allocator)
             else if (!preserve_lde)
                 try prepared.detachColumnBacking(self.allocator);

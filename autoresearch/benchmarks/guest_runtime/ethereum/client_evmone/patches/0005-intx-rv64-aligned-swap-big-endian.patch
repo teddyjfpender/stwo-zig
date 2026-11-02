@@ -1,0 +1,93 @@
+diff --git a/include/intx/intx.hpp b/include/intx/intx.hpp
+index e6bd36a..ef2293b 100644
+--- a/include/intx/intx.hpp
++++ b/include/intx/intx.hpp
+@@ -1768,27 +1768,84 @@ inline void store64(uint8_t* p, uint64_t v) noexcept
+     p[6] = static_cast<uint8_t>(v >> 8);
+     p[7] = static_cast<uint8_t>(v);
+ }
++// Byte swap with masks the compiler cannot see through: given constant masks
++// LLVM recognises the pattern as bswap and re-expands it (~32 instructions on
++// RV64IM); with masks loaded from a mutable global it stays 13 instructions
++// per word, and the two masks cost three instructions to fetch (lui + 2 ld)
++// instead of eight to materialise.
++struct swap_masks
++{
++    uint64_t m8;
++    uint64_t m16;
++};
++inline swap_masks g_swap_masks{0x00FF00FF00FF00FF, 0x0000FFFF0000FFFF};
++[[gnu::always_inline]] inline uint64_t bswap64(uint64_t x, swap_masks m) noexcept
++{
++    x = (x << 32) | (x >> 32);
++    x = ((x & m.m16) << 16) | ((x >> 16) & m.m16);
++    x = ((x & m.m8) << 8) | ((x >> 8) & m.m8);
++    return x;
++}
++[[gnu::always_inline]] inline bool aligned8(const void* p) noexcept
++{
++    return (reinterpret_cast<uintptr_t>(p) & 7) == 0;
++}
+ template <typename T>
+-inline T load(const uint8_t* src) noexcept
++[[gnu::noinline]] T load_bytewise(const uint8_t* src) noexcept
++{
++    T x;
++    for (size_t i = 0; i < T::num_words; ++i)
++        x[T::num_words - 1 - i] = load64(src + 8 * i);
++    return x;
++}
++template <typename T>
++[[gnu::noinline]] void store_bytewise(uint8_t* dst, const T& x) noexcept
++{
++    for (size_t i = 0; i < T::num_words; ++i)
++        store64(dst + 8 * i, x[T::num_words - 1 - i]);
++}
++template <typename T>
++[[gnu::always_inline]] inline T load(const uint8_t* src) noexcept
+ {
+     if constexpr (std::is_same_v<T, uint64_t>)
+         return load64(src);
+     else
+     {
++        if (!aligned8(src)) [[unlikely]]
++            return load_bytewise<T>(src);
++        // Aligned words + mask swap: ~14 instructions per word against ~22 byte-wise.
++        const auto m = g_swap_masks;
++        const auto* a = static_cast<const uint8_t*>(__builtin_assume_aligned(src, 8));
++        uint64_t r[T::num_words];
++        for (size_t i = 0; i < T::num_words; ++i)
++        {
++            uint64_t w;
++            std::memcpy(&w, a + 8 * i, 8);
++            r[T::num_words - 1 - i] = bswap64(w, m);
++        }
+         T x;
+         for (size_t i = 0; i < T::num_words; ++i)
+-            x[T::num_words - 1 - i] = load64(src + 8 * i);
++            x[i] = r[i];
+         return x;
+     }
+ }
+ template <typename T>
+-inline void store(uint8_t* dst, const T& x) noexcept
++[[gnu::always_inline]] inline void store(uint8_t* dst, const T& x) noexcept
+ {
+     if constexpr (std::is_same_v<T, uint64_t>)
+         store64(dst, x);
+     else
++    {
++        if (!aligned8(dst)) [[unlikely]]
++            return store_bytewise<T>(dst, x);
++        const auto m = g_swap_masks;
++        auto* a = static_cast<uint8_t*>(__builtin_assume_aligned(dst, 8));
+         for (size_t i = 0; i < T::num_words; ++i)
+-            store64(dst + 8 * i, x[T::num_words - 1 - i]);
++        {
++            const uint64_t w = bswap64(x[T::num_words - 1 - i], m);
++            std::memcpy(a + 8 * i, &w, 8);
++        }
++    }
+ }
+ template <typename T>
+ inline constexpr bool supported = std::is_same_v<T, uint64_t> || requires { T::num_words; };

@@ -1,0 +1,24 @@
+{
+  "schema": "keth-op-deposit-evidence-v1",
+  "parent_integration_revision": "93979cf7a",
+  "uncompressed_proof_sha256": "aa01ba4b6761aef49c1e6545ef69bcd34a79273e93f0b2cfeeffabd24af50c6e",
+  "retained_proof_sha256": "bddd6e38ee0dd7dc8ce297f786ba468e13391f4a08c03f311537fcc1894f0fec",
+  "checkpoint_raw_sha256": "22e663af11894a9a7a797f8ce7cb6f2b823471246cd2b35f105202aed5a7ed1a",
+  "benchmark_scope": "one real call deposit with the full supplied block access view; compilation/tracing/conversion/official verification measured separately",
+  "claims": {
+    "deposit_execution_kernel_proved": true,
+    "full_op_block_proved": false,
+    "cairo_mpt_authentication_proved": false,
+    "derivation_proved": false,
+    "pre_transaction_system_calls_proved": false,
+    "all_evm_reads_covered_by_public_view_proved": false
+  },
+  "limitations": [
+    "Call deposits only; contract creation is refused.",
+    "Generic pinned Keth Prague EVM, not general OP precompile/fork compatibility.",
+    "Supplied state view is hash-bound; in-Cairo MPT membership and complete EVM-read coverage remain unfinished.",
+    "Initial view currently omits account storage-root metadata; block state/public statement integration remains unfinished."
+  ],
+  "reference_result_sha256": "22bec4bad4dd52c0be2f47e8314a0873cdd173bbc5ea3b93f2622e52d6c56e2a",
+  "reference_binary_sha256": "a057487265273fa46460998959d82b85e897418e40a2efc8051beb16b2fc5210"
+}

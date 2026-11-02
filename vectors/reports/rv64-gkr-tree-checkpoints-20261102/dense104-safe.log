@@ -1,0 +1,12 @@
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+DENSE104_CAP copies=false rowlog=12 terms=15 requested_peak=13111104 original_capacity_peak=13112672 plan=15024128
+DENSE104_CAP copies=false rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6578000 plan=8060928
+DENSE104_CAP copies=true rowlog=12 terms=15 requested_peak=13111104 original_capacity_peak=13111408 plan=15024128
+DENSE104_CAP copies=true rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6576256 plan=8060928
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-services-gkr-local success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 47s MaxRSS:2G
+

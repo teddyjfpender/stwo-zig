@@ -1,0 +1,120 @@
+{
+  "schema": "word16-binary-native-weighted-source-v1",
+  "status": "qualified optional source witness choice; no CPU path/default activation",
+  "baseline": "6a6bc36b4254914fcda11ebe2d8f017e5c33edfb isolated frozen weighted-ALU control before independent SUM-zero merge",
+  "unchanged_protocol": {
+    "AIR": true,
+    "MAIN42_INTER28": true,
+    "degree3_2n": true,
+    "transcript_of_existing_default_paths": true,
+    "verifier": true,
+    "new_ISA_profile": false
+  },
+  "existing_authority": "binary_lookup.emitFor already constrains inactive*multiplicity=0 and FUNCTION contribution -multiplicity; AND queries remain8 per physical row, including padding, regardless of weight.",
+  "API": [
+    "Source.initWeighted(a,facts,weights,log)",
+    "Source.initWeightedWithMainBuffers(a,facts,weights,log,buffers)",
+    "existing init/borrowed constructor remain unit weights; shared filler",
+    "Metadata42->46B via two u16 weight words; weights/facts copied before return, survive MAIN release/adoption",
+    "canonical weights including zero, native sum<p, shape/fact/alias validation and corruption ledger; no acceptance reliance on private fact_count/function_mass"
+  ],
+  "qualification": {
+    "ReleaseSafe": {
+      "source_runtime": 9,
+      "closed_proof_runtime": 4
+    },
+    "ReleaseFast": {
+      "source_runtime": 9,
+      "closed_proof_runtime": 4
+    },
+    "actual_runtime_metadata": "/tmp/rv64-weighted-binary-runtime-metadata.json",
+    "native": [
+      "Full-u32 70000/zero/13 weighted main and all28 interactions/claims equal scalar QM31 equation oracle",
+      "All52 scalar row residuals zero for weighted witness",
+      "Borrowed/owned source equal, main transfer/free/detach+overwrite and destroyed inputs preserve outputs",
+      "AND mass256 unweighted for32 physical rows",
+      "Invalid/mismatched weights, characteristic mass, aliases reject before borrowed writes",
+      "Exhaustive allocation failure constructor/generation cleanup",
+      "Strict function/padding poles and corrupt weight ledger publish nothing, retain metadata and retry"
+    ],
+    "physical": [
+      "Known public31 Boolean consumers bind13 payload coordinates and weight via domain-only34-column row selectors",
+      "Three truth facts AND/OR/XOR weighted7/11/13, actual fixed/main roots all sealed before challenge",
+      "Physical wrong multiplicity and missing fact reject ConstraintsNotSatisfied",
+      "Opposite signed AND claim edits preserve summed closure but actual prover rejects",
+      "Fresh receiver rejects balanced FUNCTION claim edits and noncanonical QM31 coordinate",
+      "Owned/borrowed main release before challenge gives identical complete binary proof"
+    ]
+  },
+  "durable_fixture": {
+    "producer": {
+      "scope": "known-public31FUNCTION-to3weighted-BINARY-andcanonicalAND-onePCS; no CPU/RAM claim",
+      "positive_function_queries": 31,
+      "AND_queries": 256,
+      "expected_roster_digest": "ca1cacb78f80b0e054e86b730d42709798200dd21138ce76ed4144bb030cd21d",
+      "proof_sha256": "de632eb1086a42090882040ad3e978be5d75a83a9ccb09fbc4b15973673e0d72",
+      "proof_bytes": 255680,
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96,
+      "main_released_before_challenge": true,
+      "source_cells": 921600,
+      "source_bytes": 3686400,
+      "trace_oods_masks": 158
+    },
+    "owned_directory": "vectors/reports/interop_artifacts/rv64-weighted-binary-owned-v1",
+    "borrowed_directory": "vectors/reports/interop_artifacts/rv64-weighted-binary-borrowed-v1",
+    "fresh_independent_process_receivers": "PASS both owned and borrowed",
+    "identical_owned_borrowed_proof_bytes": true,
+    "expected_authority": "Receiver derives same31 known queries from pinned3 facts with public repetition7/11/13; no incoming expected roster/native count accepted.",
+    "immutable_fixed_root": "geometry/table only; public roster digest mixed before roots/challenges",
+    "main_release_scope": "BINARY42-column main only; tiny public consumer main and one-column AND multiplicities retain ordinary lifecycle.",
+    "scope": "public function truth/membership diagnostic, NOT CPU/register/RAM/whole Ethereum execution",
+    "proof_shape_guard": "Exactly4 PCS commitments (fixed/main/interactions/composition). Initial extra defensive guard incorrectly expected3; fresh-process probe found it, final Safe/Fast4 and receiver gates pass with4."
+  },
+  "cost": {
+    "source_cells": 921600,
+    "source_bytes": 3686400,
+    "trace_oods_samples": 158,
+    "max_degree": 3,
+    "global_quotient_points": 131072,
+    "BINARY": {
+      "log": 5,
+      "fixed": 2,
+      "main": 42,
+      "interaction": 28,
+      "metadata_bytes_per_row": 46,
+      "AND_queries": 256
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "AND": {
+      "log": 16,
+      "fixed": 5,
+      "main": 1,
+      "interaction": 8
+    },
+    "no_cell_or_timing_win_claim_for_tiny_control": "Both31 unit facts and3 weighted facts fit minimum32-row geometry. This qualifies weighting/ownership; larger declared domain reductions need joined CPU proof and complete cost measurement."
+  },
+  "default_compatibility": {
+    "fresh_independent_aggregate_receiver": "PASS",
+    "cpu0": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+    "cpu1": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+    "binary": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161",
+    "all_three_prior_bytes_exact": true,
+    "artifacts": "vectors/reports/interop_artifacts/rv64-weighted-binary-default-compat-v1"
+  },
+  "source_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "f641b29cc8bc0f9c13977ffd419b64d07dab0b558bd2b7608e81af0911a1d28c",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source_test.zig": "013460794d2adb06bba7762c2428800c3034135e30632f822e162b3837c764d5",
+    "src/integrations/riscv_cpu/word16/weighted_binary_fixture.zig": "7450c18eae228a07c57c88fc9b532c604b2664c00ecfae4fd00d3f07e2019ebb",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_binary_main.zig": "45de78b190866b1b57e1a7f7d0fccef072636462d1de21217e6304461cf653e5",
+    "src/integrations/riscv_cpu/tests/rv64_word16_weighted_binary_test.zig": "df1adb24b2e3cdac5a1b2581b1acf706630f2169760d585bd8d70814078beeee",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig": "9a4bcae6eb973c43a66e84d4e55d27cf270e329e1cf66765920208c4eeb41717"
+  }
+}

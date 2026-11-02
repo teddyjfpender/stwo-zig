@@ -1,0 +1,962 @@
+{
+  "schema": "keth-legacy-converter-qualification-v1",
+  "status": "qualified-byte-identical",
+  "source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "manifest_sha256": "2c4b1c56af08bf21458568dc24f83454f921623c87c2a9d09876a157d86549d7",
+  "converter_sha256": "13d99536daecdb0b0159f3e15caf2c61395372889eb1b905295d7e90a277f9d9",
+  "segments": [
+    {
+      "name": "init",
+      "input_sha256": "92ad276a5c9a535812eb5986f342d96f4c5e5dc6f95603599a40f5f22b0cc163",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 1061720542,
+        "user_ns": 57056000,
+        "system_ns": 7919000,
+        "max_process_tree_rss_bytes": 74629120,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 367198167,
+        "user_ns": 322745000,
+        "system_ns": 30355000,
+        "max_process_tree_rss_bytes": 333512704,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_0_1",
+      "input_sha256": "e8536e9397ec7afd66326bef01be37f38f7a6f20188e4ca75021f52c0044930c",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 604550084,
+        "user_ns": 521645000,
+        "system_ns": 59750000,
+        "max_process_tree_rss_bytes": 761970688,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 3099601583,
+        "user_ns": 2891020000,
+        "system_ns": 168297000,
+        "max_process_tree_rss_bytes": 3205513216,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_1_1",
+      "input_sha256": "92e28a5ed47d0f907a62a56857f00ccad503f2375bc1ea7fec2b537cfa131f8c",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 336211417,
+        "user_ns": 292767000,
+        "system_ns": 37724000,
+        "max_process_tree_rss_bytes": 441139200,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1744477625,
+        "user_ns": 1618049000,
+        "system_ns": 96398000,
+        "max_process_tree_rss_bytes": 1827291136,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_2_1",
+      "input_sha256": "9c24b3f918a2f6c75456f6c3079d22989137cc118b1b141044bb3034190104f4",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 579516125,
+        "user_ns": 498662000,
+        "system_ns": 64675000,
+        "max_process_tree_rss_bytes": 737476608,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2927379708,
+        "user_ns": 2740310000,
+        "system_ns": 165764000,
+        "max_process_tree_rss_bytes": 3087843328,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_3_1",
+      "input_sha256": "8e5d6dc0345f10a946fca4e914c6d0e2d65400ac443b2f43aeb1dc8688bec9cd",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 360646500,
+        "user_ns": 309288000,
+        "system_ns": 37983000,
+        "max_process_tree_rss_bytes": 462241792,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1844652375,
+        "user_ns": 1715564000,
+        "system_ns": 104559000,
+        "max_process_tree_rss_bytes": 1926086656,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_4_1",
+      "input_sha256": "05abe920d57c5764059a15e0e1df55a0575bf8137e90aecc6035dfbcb8765cb5",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 131213375,
+        "user_ns": 105179000,
+        "system_ns": 13708000,
+        "max_process_tree_rss_bytes": 164003840,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 636288166,
+        "user_ns": 567476000,
+        "system_ns": 42843000,
+        "max_process_tree_rss_bytes": 670875648,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_5_1",
+      "input_sha256": "f2a6e6c01079fcf2101c59c7825709d820c8833fb52b4a9bccf5b239d5bf6acc",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 140207500,
+        "user_ns": 113449000,
+        "system_ns": 14355000,
+        "max_process_tree_rss_bytes": 175390720,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 681316750,
+        "user_ns": 612818000,
+        "system_ns": 44116000,
+        "max_process_tree_rss_bytes": 720388096,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_6_1",
+      "input_sha256": "244896f3f9e5a3033a0ceeb592abcca02ce2a6461984a473783886c7036101c9",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 180382250,
+        "user_ns": 151042000,
+        "system_ns": 19306000,
+        "max_process_tree_rss_bytes": 229654528,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 933631042,
+        "user_ns": 845248000,
+        "system_ns": 65993000,
+        "max_process_tree_rss_bytes": 950288384,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_7_1",
+      "input_sha256": "9f3618da47bd5e26c221ecb738cf40f9b2bba9da06161c215c75e01a0bcfb185",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 279339541,
+        "user_ns": 241079000,
+        "system_ns": 25118000,
+        "max_process_tree_rss_bytes": 360824832,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1404108459,
+        "user_ns": 1290175000,
+        "system_ns": 84596000,
+        "max_process_tree_rss_bytes": 1498660864,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_8_1",
+      "input_sha256": "6b0efc1597466bd296a9328fb0d9caf6b0b25c66c6d2d11dedd7514aa76f00f2",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 199642708,
+        "user_ns": 169998000,
+        "system_ns": 17366000,
+        "max_process_tree_rss_bytes": 255115264,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 993694459,
+        "user_ns": 908916000,
+        "system_ns": 66864000,
+        "max_process_tree_rss_bytes": 1057406976,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_9_1",
+      "input_sha256": "0f34d594ff79415830d825de8ca16c788f9d70f5dbd3fc74ca1f1ae8a0c0f3ac",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 228756291,
+        "user_ns": 197381000,
+        "system_ns": 20566000,
+        "max_process_tree_rss_bytes": 296206336,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1162825375,
+        "user_ns": 1062813000,
+        "system_ns": 71132000,
+        "max_process_tree_rss_bytes": 1233911808,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_10_1",
+      "input_sha256": "959835291f8a17c71e30cdeb671ee0a7af9a4cd977b95d5916631394161ae899",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 213060000,
+        "user_ns": 181615000,
+        "system_ns": 18420000,
+        "max_process_tree_rss_bytes": 273645568,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1075806875,
+        "user_ns": 982542000,
+        "system_ns": 69171000,
+        "max_process_tree_rss_bytes": 1138688000,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_11_1",
+      "input_sha256": "e3b4b54df663be49eead7cd5f15645ba183bbb745ee11c2e8a13b2999b89c635",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 211870250,
+        "user_ns": 183162000,
+        "system_ns": 19659000,
+        "max_process_tree_rss_bytes": 273350656,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1066868792,
+        "user_ns": 978267000,
+        "system_ns": 67139000,
+        "max_process_tree_rss_bytes": 1137754112,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_12_1",
+      "input_sha256": "6823fdac047829924f1410b9822d8b86027723d70d1bfbefcc8766be2c331ae0",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 255511875,
+        "user_ns": 219256000,
+        "system_ns": 22088000,
+        "max_process_tree_rss_bytes": 328974336,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1287939625,
+        "user_ns": 1187464000,
+        "system_ns": 76359000,
+        "max_process_tree_rss_bytes": 1367343104,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_13_1",
+      "input_sha256": "92342975cc427a0c4a861ecf558bc871f918109c9ddbb4c74070476a66587f16",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 236183417,
+        "user_ns": 204843000,
+        "system_ns": 20254000,
+        "max_process_tree_rss_bytes": 303857664,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1204115125,
+        "user_ns": 1102633000,
+        "system_ns": 69034000,
+        "max_process_tree_rss_bytes": 1273839616,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_14_1",
+      "input_sha256": "3875cc047fc9aae5c0840f5213827645381da08a4337af1b5cc3f90383abd410",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 211822083,
+        "user_ns": 181415000,
+        "system_ns": 18078000,
+        "max_process_tree_rss_bytes": 270073856,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1065243333,
+        "user_ns": 977099000,
+        "system_ns": 61921000,
+        "max_process_tree_rss_bytes": 1131839488,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_15_1",
+      "input_sha256": "f367edf8f5ea57d94fbd82d88c7bcdbee601646c0adfef87f7e4aa4d149a8fa6",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 224010166,
+        "user_ns": 191289000,
+        "system_ns": 19237000,
+        "max_process_tree_rss_bytes": 285835264,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1124658292,
+        "user_ns": 1032276000,
+        "system_ns": 69180000,
+        "max_process_tree_rss_bytes": 1194737664,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_16_1",
+      "input_sha256": "3e6fe0f461185951e7ebfa8ba86d506091369b57ac0ff07ed8f226ab9036aa51",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 224452167,
+        "user_ns": 192719000,
+        "system_ns": 18929000,
+        "max_process_tree_rss_bytes": 286474240,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1202328333,
+        "user_ns": 1105807000,
+        "system_ns": 73703000,
+        "max_process_tree_rss_bytes": 1202847744,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_17_1",
+      "input_sha256": "68e13e801bfe4a42979ceaf8a9a78c845c662a1eb8dac724dc1c43503762ae46",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 297010208,
+        "user_ns": 259177000,
+        "system_ns": 24882000,
+        "max_process_tree_rss_bytes": 384778240,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1524965792,
+        "user_ns": 1416509000,
+        "system_ns": 82637000,
+        "max_process_tree_rss_bytes": 1611628544,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_18_1",
+      "input_sha256": "926a7c7cf98606f8545f34f7f60f821dca6dad18dd67d59227eb36a385f0d4b7",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 308467042,
+        "user_ns": 268239000,
+        "system_ns": 26807000,
+        "max_process_tree_rss_bytes": 397492224,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1562865333,
+        "user_ns": 1439388000,
+        "system_ns": 90316000,
+        "max_process_tree_rss_bytes": 1666744320,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_19_1",
+      "input_sha256": "727dc74c23a0480d25d0ce4fdb99a3dcc9f1619ae81c2383cd34a111693c86a8",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 292437292,
+        "user_ns": 257591000,
+        "system_ns": 25031000,
+        "max_process_tree_rss_bytes": 380813312,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1506513417,
+        "user_ns": 1400442000,
+        "system_ns": 81818000,
+        "max_process_tree_rss_bytes": 1599930368,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_20_1",
+      "input_sha256": "79229957abaa7c211425fa70d8d2276e11e1d5d223dbac30f183a5ac047a1613",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 317457708,
+        "user_ns": 282769000,
+        "system_ns": 29181000,
+        "max_process_tree_rss_bytes": 418217984,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1656625333,
+        "user_ns": 1533475000,
+        "system_ns": 98315000,
+        "max_process_tree_rss_bytes": 1752727552,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_21_1",
+      "input_sha256": "564f7b179ba4824b3a85188c4a4797c0f374f7ac805eefcf7793093248bae7c7",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 394320791,
+        "user_ns": 348725000,
+        "system_ns": 35691000,
+        "max_process_tree_rss_bytes": 510689280,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2007774125,
+        "user_ns": 1866903000,
+        "system_ns": 101911000,
+        "max_process_tree_rss_bytes": 2149695488,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_22_1",
+      "input_sha256": "0ddfec6804eafdb14477a0fb2d7916c2b33a397c66e08f0be8196ab0849b66af",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 320660250,
+        "user_ns": 282649000,
+        "system_ns": 28399000,
+        "max_process_tree_rss_bytes": 416104448,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1640959750,
+        "user_ns": 1520627000,
+        "system_ns": 89347000,
+        "max_process_tree_rss_bytes": 1749286912,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_23_1",
+      "input_sha256": "d60cd65570b69f27cec1e9d3371412c3714e0d01ee7a0f4efd448cd0a69ea647",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 286004125,
+        "user_ns": 249170000,
+        "system_ns": 24759000,
+        "max_process_tree_rss_bytes": 365330432,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1445143208,
+        "user_ns": 1332628000,
+        "system_ns": 87997000,
+        "max_process_tree_rss_bytes": 1543569408,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_24_1",
+      "input_sha256": "7709e3f0a405d77a0b6e7529ae872491160644b7d73d341672c9039cda8ff71d",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 325787583,
+        "user_ns": 285813000,
+        "system_ns": 26858000,
+        "max_process_tree_rss_bytes": 419233792,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1641956000,
+        "user_ns": 1521090000,
+        "system_ns": 92723000,
+        "max_process_tree_rss_bytes": 1762967552,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "body_25_1",
+      "input_sha256": "d65a9a0f35d14a0d84e227784a27d939c06775523f196370aff762d24ef82957",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 309087041,
+        "user_ns": 270439000,
+        "system_ns": 25517000,
+        "max_process_tree_rss_bytes": 396034048,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1555903750,
+        "user_ns": 1444240000,
+        "system_ns": 85958000,
+        "max_process_tree_rss_bytes": 1668087808,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "teardown",
+      "input_sha256": "30df9a57e2b596c8bd69a10f9f61214cc84d017ee7b310c22b6ab177cce555b5",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 1037606333,
+        "user_ns": 930318000,
+        "system_ns": 93767000,
+        "max_process_tree_rss_bytes": 1445330944,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 5585926750,
+        "user_ns": 5272155000,
+        "system_ns": 273996000,
+        "max_process_tree_rss_bytes": 6042828800,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_0",
+      "input_sha256": "bfc09365b5ff35c9cab285e1d69d8d7490a836963d5783046f4b1ea99585e8bd",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 578312291,
+        "user_ns": 500082000,
+        "system_ns": 59153000,
+        "max_process_tree_rss_bytes": 809943040,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 3168969250,
+        "user_ns": 2946493000,
+        "system_ns": 192923000,
+        "max_process_tree_rss_bytes": 3254632448,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_1",
+      "input_sha256": "52d25f0bbeea3882c2b236ed825e8cbaec3b3973ade1640ee32e526f08a5479f",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 198612458,
+        "user_ns": 162575000,
+        "system_ns": 20687000,
+        "max_process_tree_rss_bytes": 263241728,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1052737000,
+        "user_ns": 957349000,
+        "system_ns": 73590000,
+        "max_process_tree_rss_bytes": 1065566208,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_2",
+      "input_sha256": "724692a7e817a24aa494b08a4dd4f25d0d13f99fe0dc2503431627d41f84ddaa",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 389433792,
+        "user_ns": 336182000,
+        "system_ns": 39350000,
+        "max_process_tree_rss_bytes": 544997376,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2112903542,
+        "user_ns": 1961642000,
+        "system_ns": 116853000,
+        "max_process_tree_rss_bytes": 2189950976,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_3",
+      "input_sha256": "42a536c23dbd395bfc052987a108087a4fcaca00ea3d6c0cb72fdbc5d329aa09",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 440653417,
+        "user_ns": 385381000,
+        "system_ns": 40053000,
+        "max_process_tree_rss_bytes": 630390784,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2474934916,
+        "user_ns": 2314397000,
+        "system_ns": 133075000,
+        "max_process_tree_rss_bytes": 2521268224,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_4",
+      "input_sha256": "92ff7135ca2841a4d0fdf900b2c7de209e1a750875f129b30eb30a4f38993cce",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 201105416,
+        "user_ns": 161548000,
+        "system_ns": 20127000,
+        "max_process_tree_rss_bytes": 263471104,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1079613750,
+        "user_ns": 985600000,
+        "system_ns": 69234000,
+        "max_process_tree_rss_bytes": 1065566208,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_5",
+      "input_sha256": "fc6a1efd410e9a9e23e172948df5011f0ff143464f9795f2dc3599acd68626dd",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 328021667,
+        "user_ns": 284991000,
+        "system_ns": 30313000,
+        "max_process_tree_rss_bytes": 415154176,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1604215958,
+        "user_ns": 1477225000,
+        "system_ns": 91031000,
+        "max_process_tree_rss_bytes": 1652490240,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_6",
+      "input_sha256": "2c8a2af05912c757504ae12ce92b4a4faa41e554a374658f0eb90d5763f7105a",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 162563208,
+        "user_ns": 138533000,
+        "system_ns": 18151000,
+        "max_process_tree_rss_bytes": 226738176,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 911400292,
+        "user_ns": 825651000,
+        "system_ns": 57212000,
+        "max_process_tree_rss_bytes": 915554304,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_7",
+      "input_sha256": "2369872fa7c4e3b5fd082a065f32f243b89835bbd129a9339d280b60577bfe39",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 688736750,
+        "user_ns": 603476000,
+        "system_ns": 64567000,
+        "max_process_tree_rss_bytes": 981057536,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 3791527708,
+        "user_ns": 3557136000,
+        "system_ns": 194058000,
+        "max_process_tree_rss_bytes": 3952590848,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_8",
+      "input_sha256": "c2bbc44c00bf07476cb592e3c6ae43a3d299a7dba0858c81e3ead83173d85245",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 543297916,
+        "user_ns": 471702000,
+        "system_ns": 51839000,
+        "max_process_tree_rss_bytes": 768049152,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2931635000,
+        "user_ns": 2746133000,
+        "system_ns": 155400000,
+        "max_process_tree_rss_bytes": 3084763136,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_9",
+      "input_sha256": "065b9fa39c521c091143cade28785daf87d34b3fc651ce008dc65558e457c1f3",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 494757916,
+        "user_ns": 428438000,
+        "system_ns": 46371000,
+        "max_process_tree_rss_bytes": 698269696,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2694376541,
+        "user_ns": 2518627000,
+        "system_ns": 142049000,
+        "max_process_tree_rss_bytes": 2801664000,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_10",
+      "input_sha256": "890a529efd505fe67fcf45e1e744a36b92dd091bb999fa26560f1565d3fa5bdb",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 327585250,
+        "user_ns": 276697000,
+        "system_ns": 31412000,
+        "max_process_tree_rss_bytes": 453443584,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1768389917,
+        "user_ns": 1640409000,
+        "system_ns": 94567000,
+        "max_process_tree_rss_bytes": 1819934720,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_11",
+      "input_sha256": "9883ee1e74b2f8d60ccb28e03f6d58ac083d36367a27ece865fba32eca32f8b6",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 498365958,
+        "user_ns": 436111000,
+        "system_ns": 50252000,
+        "max_process_tree_rss_bytes": 717062144,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2751948042,
+        "user_ns": 2577866000,
+        "system_ns": 143756000,
+        "max_process_tree_rss_bytes": 2878504960,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_12",
+      "input_sha256": "809c699470fab35f9c418786a83bf6aad6ca65632a00377f63faa6d1b118a37e",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 283832041,
+        "user_ns": 241385000,
+        "system_ns": 28417000,
+        "max_process_tree_rss_bytes": 396312576,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1578143416,
+        "user_ns": 1450346000,
+        "system_ns": 87207000,
+        "max_process_tree_rss_bytes": 1587691520,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_13",
+      "input_sha256": "d7fc9263b8ad0e3998c6b330f99ddc74febfeb867731eff6678aa272dc7fdbf7",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 495260667,
+        "user_ns": 432821000,
+        "system_ns": 46385000,
+        "max_process_tree_rss_bytes": 707395584,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 2720567334,
+        "user_ns": 2544001000,
+        "system_ns": 145494000,
+        "max_process_tree_rss_bytes": 2839756800,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_14",
+      "input_sha256": "53bb62f323611b5b0c8cfa754f5d229529cef7d16ae1782bff4f0aac330684c2",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 65956083,
+        "user_ns": 46674000,
+        "system_ns": 7002000,
+        "max_process_tree_rss_bytes": 72925184,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 313192792,
+        "user_ns": 268385000,
+        "system_ns": 22653000,
+        "max_process_tree_rss_bytes": 301432832,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "mpt_diff_15",
+      "input_sha256": "4d1c25d9f1e81699d2bc1d1341f1aa8fd5e46af4b2b0a5ef235c593c48e92a86",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 301338375,
+        "user_ns": 254900000,
+        "system_ns": 31899000,
+        "max_process_tree_rss_bytes": 413368320,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 1610858584,
+        "user_ns": 1485049000,
+        "system_ns": 99831000,
+        "max_process_tree_rss_bytes": 1656356864,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "name": "aggregator",
+      "input_sha256": "67800a85e6500b51656f03ee2e5207bcbe3369b638591f65e548e1f947d54006",
+      "byte_identical": true,
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 21089334,
+        "user_ns": 8335000,
+        "system_ns": 2244000,
+        "max_process_tree_rss_bytes": 14696448,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "reference_conversion_process": {
+        "exit_code": 0,
+        "wall_ns": 86147583,
+        "user_ns": 61117000,
+        "system_ns": 9808000,
+        "max_process_tree_rss_bytes": 65519616,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    }
+  ],
+  "proof_input_count": 45,
+  "total_wall_ns": 15586857203,
+  "peak_rss_bytes": 1445330944,
+  "elapsed_wall_ns": 23068105958
+}

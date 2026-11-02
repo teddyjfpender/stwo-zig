@@ -420,9 +420,12 @@ test "BLAKE3 child report validation rejects legacy and mixed receipts" {
     report.transcript_state_blake2s = null;
     report.transcript_receipt = .{ .suite = "blake3", .version = 2, .digest = "ab" ** 32 };
     const expected = ProveReportExpectation{
-        .schema = proveSchemaForSuite(false, true), .blake3 = true,
-        .release_status = "staged", .experimental = true,
-        .implementation_commit = "commit", .implementation_dirty = false,
+        .schema = proveSchemaForSuite(false, true),
+        .blake3 = true,
+        .release_status = "staged",
+        .experimental = true,
+        .implementation_commit = "commit",
+        .implementation_dirty = false,
         .executable_sha256 = [_]u8{0} ** 32,
     };
     const result = try validateProveReport(&report, expected);

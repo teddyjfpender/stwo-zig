@@ -1,0 +1,130 @@
+{
+  "schema": "rv64-committed-interaction-retirement-v1",
+  "scope": "Source matrices retire only after successful interaction commitment. PCS storage and all transcript-bound physical claims remain. No AIR/transcript/geometry change. Retained round-one guest jobs, not round-five benchmark.",
+  "root_source_sha256": {
+    "src/integrations/riscv_cpu/rv64_authenticated_prover.zig": "ad4d7c5f317df0f3aefb316ac14e150cadb2fe475e6a614c3e5e138c54570025",
+    "src/integrations/riscv_cpu/rv64_full_trace.zig": "328b1eb6d1a8f6608169d0e8e4419349ba6f8cae98efb16d86bc078725bb3d52",
+    "src/integrations/riscv_cpu/rv64_full.zig": "423b9ab5ba0529f4583ecac8122046078f38dc5c5ea5f5f3846f70728a0ad56f",
+    "src/integrations/riscv_cpu/rv64_lean.zig": "c877d57a0c43acb8315b34b2004c64394291ed947406864634621d6e2ffb5250",
+    "src/integrations/riscv_cpu/rv64_service_proving_sources.zig": "3732442995df5a4b3ae31bcf59f3023bcfe160194e3d0d39aea90f0c4227f553",
+    "src/integrations/riscv_cpu/rv64_keccak_cpu.zig": "e7c82f900e32017adb92955cc0801149973482f4bc732947f18d2cebdf78b52c",
+    "src/integrations/riscv_cpu/tests/rv64_borrowed_services_test.zig": "b65b8b58b7355cc53fc6a20a81f800476839d1a6c3155d64b9f08fa5025bca8d"
+  },
+  "binary_sha256": "94dbf99ed35241fc448c978390c5808542446b7195973de6f4b1cd9bab73f83a",
+  "tests": {
+    "ReleaseSafe": true,
+    "ReleaseFast": true,
+    "minimum_total_each": 22,
+    "targets": [
+      "test-riscv64-borrowed-services",
+      "test-riscv64-ethereum-chain",
+      "test-riscv64-keccak-cpu"
+    ],
+    "logs": {
+      "/tmp/stwo-rv64-all-interaction-release-safe-retry.log": "fae3e71a0ca1e9c7a62b89307178ade6a7c33b30091ea40cfdf21593c718ef6a",
+      "/tmp/stwo-rv64-all-interaction-release-fast.log": "fae3e71a0ca1e9c7a62b89307178ade6a7c33b30091ea40cfdf21593c718ef6a"
+    }
+  },
+  "retained_batches": [
+    {
+      "batch": 1,
+      "before_peak_rss_bytes": 22782214144,
+      "after_peak_rss_bytes": 20260503552,
+      "reduction_bytes": 2521710592,
+      "reduction_percent": 11.068768716073745,
+      "before_prove_ns": 17608047916,
+      "after_prove_ns": 17161821000,
+      "exact_control_proof_and_receipt": true,
+      "packet_sha256": "4796de23629f6c74dee70f80df0cf64751580f6ce5a462ad44487f43b67bdd9a",
+      "proof_sha256": "8093d25fdf3ed169a758205d546a3c9de01c89e29398c7009d7b05f60495115d",
+      "raw_result": "/tmp/stwo-rv64-delivery/interaction-release-qualification-v1/worker1.json"
+    },
+    {
+      "batch": 35,
+      "before_peak_rss_bytes": 35473358848,
+      "after_peak_rss_bytes": 32113901568,
+      "reduction_bytes": 3359457280,
+      "reduction_percent": 9.470367027816446,
+      "before_prove_ns": 38181843250,
+      "after_prove_ns": 35283475667,
+      "exact_control_proof_and_receipt": true,
+      "packet_sha256": "d8cfc982c9faf569bbd929acc73bc51ffe0cb493dbc0bbdc6725a21539a7fc99",
+      "proof_sha256": "d77bf2794a97b884708fc8e7a9d8027e3cbdf184136805019b7bd97e00cacd01",
+      "raw_result": "/tmp/stwo-rv64-delivery/interaction-release-qualification-v1/worker35.json"
+    }
+  ],
+  "fresh_receiver": {
+    "status": "ethereum_execution_proof_verified",
+    "full_block_proof_verified": true,
+    "batches": 36,
+    "instructions": 149306899,
+    "calls": [
+      32835,
+      11496,
+      9768
+    ],
+    "final_root": [
+      1471861096,
+      1565708764,
+      341702358,
+      1159491414,
+      1969024367,
+      1814643422,
+      36420427,
+      126197738,
+      384636415
+    ],
+    "final_pc": 17308,
+    "final_registers": [
+      0,
+      17292,
+      33547472,
+      33556480,
+      0,
+      2533359616,
+      2186596,
+      23552,
+      1,
+      43,
+      12583820,
+      12583824,
+      0,
+      12582963,
+      20,
+      40,
+      35233360,
+      257,
+      36575008,
+      33554016,
+      24,
+      33647360,
+      33553992,
+      6,
+      24,
+      33549560,
+      20,
+      33551672,
+      7274496,
+      2181038080,
+      805306368,
+      0
+    ],
+    "setup_ns": 11224514459,
+    "verify_ns": 638216962,
+    "proof_bytes": 100582942,
+    "verifier_cache": {
+      "hits": 4,
+      "misses": 32,
+      "entries": 8,
+      "retained_bytes": 356488,
+      "peak_retained_bytes": 391296,
+      "cold_setup_ns": 11224514459
+    }
+  },
+  "receiver_scope": "All36 original round-one batch proofs plus terminal; newly produced proofs replace indices1 and35. Every other proof is a read-only hardlink to the accepted control.",
+  "limitations": [
+    "Single retained observations, no full-block performance remeasurement.",
+    "Peak remains above16GB; this is duplicate-storage retirement, not the narrow CPU redesign.",
+    "Qualification binary predates integration of user commit0dd656ab9 recycler; combined path has separate gates."
+  ]
+}

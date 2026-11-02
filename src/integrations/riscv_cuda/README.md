@@ -68,6 +68,8 @@ defer prepared.deinit(allocator);
 
 ## Dependencies
 
+- `stwo_core` supplies native OM31 arithmetic and transcript types.
+- `stwo_prover_engine` supplies the native sumcheck verifier and LogUp gate authority.
 - `stwo_backend_contracts` supplies the backend-neutral proof-program schema.
 - `stwo_cuda_backend` supplies provider-bound plans and admission receipts.
 - `stwo_riscv_frontend` owns RV32IM execution and AIR semantics.
@@ -112,3 +114,51 @@ frontend-specific AOT catalogue and independent proof parity evidence.
 - [`../../backends/cuda/README.md`](../../backends/cuda/README.md)
 - [`../riscv_metal/README.md`](../riscv_metal/README.md)
 - [`package.contract.json`](package.contract.json)
+
+## RV64 resident numerical engine (PR310 base)
+
+The additive `rv64` export provides a device-only OM31/GKR numerical lane,
+exact arena planning and bounded scheduling for 2 or 4 independent devices.
+It does not enable full Ethereum CUDA proof dispatch. The existing RV32
+admission contract above is unchanged. Full v3 GKR, the RV64 witness providers,
+full-block transcript wiring, OM31 PCS/DEEP/FRI and recursive proof integration remain gates.
+
+`rv64.resident.NativeCommands` uses the existing CUDA context and its selected
+lane. Device slices carry context ownership and allocation generations. Inputs,
+Eq tables, fraction trees, folds and reductions stay resident. Invalid device
+coordinates/poles set a sticky verdict; enqueue failure poisons the command
+owner. No CPU fallback or host staging is provided by this interface.
+
+`rv64.scheduler.Scheduler` is a single-coordinator credit ledger. Each selected
+device worker must own its context/thread and observe completion before
+retiring a ticket. The scheduler charges per-device input/retained/scratch bytes
+and limits simultaneous lanes; it neither sums VRAM into a fictitious pool nor
+assumes peer access. `rv64.plan.Plan` bounds numerical buffers only: reserve
+PCS, witness, driver and future graph memory separately from observed free VRAM.
+
+Run the host and native-Zig numerical gates:
+
+```sh
+zig build test test-rv64-numerical --build-file src/integrations/riscv_cuda/build.zig -Doptimize=ReleaseSafe -j2
+zig build test test-rv64-numerical --build-file src/integrations/riscv_cuda/build.zig -Doptimize=ReleaseFast -j2
+python3 tests/cuda/rv64/independent_field.py
+```
+
+Real-driver compile, multi-GPU parity, sanitizer and timing instructions live in
+[`tests/cuda/rv64/README.md`](../../../tests/cuda/rv64/README.md). The numerical
+harness is deliberately labelled separately from a verified complete block.
+Review [`rv64-cuda-resident.md`](../../../design/riscv-proving-stack/rv64-cuda-resident.md)
+for the ownership contract, cost hypothesis and remaining proof integration.
+
+The resident single-oracle sumcheck controller now connects reductions to cubic
+correction, trimmed polynomial absorption and raw eight-coordinate challenges
+without host feedback. Its two fold banks and transcript state are checked as
+a disjoint reservation before the first launch. `rv64.assembly.verifyReadback`
+invokes the existing native sumcheck verifier and LogUp gate on compact proof
+records after completion. This is numerical acceptance; physical source binding
+and the complete Ethereum proof/recursive root remain required separately.
+
+The optional split secure-sum kernel exposes more blocks with a smaller
+register footprint. The combined implementation remains the default until
+real-device timing selects a winner. These APIs do not assert optimal GPU
+utilization from compiler statistics alone.

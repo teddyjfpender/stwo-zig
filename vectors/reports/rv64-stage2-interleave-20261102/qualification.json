@@ -1,0 +1,87 @@
+{
+  "source_commit": "7245488f8",
+  "scope": "Opt-inoperationalexecutionpermutation. No AIR/statement/challenge/manifest/proofbytechange. Defaultnaturalorder retained.",
+  "validation": "Bounded512Bstackbitmap validatescompletebijection up to4096tasks beforeallocation/thread/callback. Coordinator validatesbeforePreparedownershipconsumption; driver checksactualCPU+truthproofcountbeforekeyconstruction.",
+  "index_authority": "Atomicclaimposition maps tooriginalordinal; callbacks/estimates/errors/results/traces andmanifest useoriginalordinal. Stage1naturalorder and globalmanifestbarrier unchanged.",
+  "resource_ownership": "Bothcontrol/candidate std.json.Parsed owners outlive copiedoperationalorders throughcapture/produce/report. Defaultemptyorder omittedfromJSONserialization; explicitlyselectedorder appearsnumericarray.",
+  "gates": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS",
+      "elapsed": "1m",
+      "max_rss": "2G"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS",
+      "elapsed": "1m",
+      "max_rss": "1G"
+    },
+    {
+      "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -Driscv-test-filter='task permutation' -j2 --summary all",
+      "result": "PASS6s"
+    },
+    {
+      "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseFast -Driscv-test-filter='task permutation' -j2 --summary all",
+      "result": "PASS4s"
+    },
+    {
+      "command": "zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS46s"
+    },
+    {
+      "case": "Actual CLIduplicateorder [0,0]",
+      "result": "exit1 InvalidServiceOrder beforeoutputdirectorycreation"
+    },
+    {
+      "case": "Actual CLIvalidpermutationwrongproofcount [1,0] foroneCPU prefix",
+      "result": "exit1 InvalidServiceOrder beforeoutputdirectorycreation/keyconstruction"
+    }
+  ],
+  "coverage": [
+    "Complete5physicalproof twoCPU+K/ADD/DOUBLE reordered[2,0,3,1,4] versusnatural singlelane: allproofbytes/claims/manifest exact; independentfreshkeys receiver accepts",
+    "Originalindex trace/estimateassociation andexactlyonce underfourlanes+memoryadmission",
+    "Duplicate/outofrange/wronglength/oversizedpermutation rejectedbeforefailingallocator orcallback",
+    "Orderedserialfailure andconcurrenttwo-lanefailurejoin beforereturn; callerpoolbinding preserved",
+    "Invalidcoordinatororder leavescapturedCPUsunconsumed",
+    "Resourcesparse+selectedorder array serialization; defaultcontrolschemaomitsfield andcandidatebudgetcannotselectsecurityprotocol"
+  ],
+  "candidate_policy": {
+    "order": [
+      25,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      26,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      27,
+      28,
+      29
+    ],
+    "cap_bytes": 27917287424,
+    "reason": "434/435stage2pairsfit; onlytwoKtruthpair28.388GiBblocked, maxCPU+K25.280fits. EarlyKinterleavedwithCPU mayhidewideprooftail; capalonecanincreasewallifitjustserializesKtail.",
+    "caveat": "26GiB is concurrencygate. Largeststage1estimate27.378GiB admitsalone byexistingdocumentedoversizedfallback. Capture/setup/cache/PCSscratch are excludedfromtaskcap."
+  },
+  "remaining": "Root matchedfullblock runtime/peakRSS/artifactSHA+freshcomplete receiver. No wallgain orwhole128claim inferredfromschedulerfixtures."
+}

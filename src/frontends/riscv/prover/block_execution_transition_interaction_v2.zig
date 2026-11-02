@@ -88,7 +88,7 @@ fn write(columns: *[COLUMN_COUNT][]M, secure_index: usize, row: usize, value: Q)
 }
 pub fn read(columns: *const [COLUMN_COUNT][]M, secure_index: usize, row: usize) Q {
     return Q.fromM31Array(.{
-        columns[secure_index * 4][row], columns[secure_index * 4 + 1][row],
+        columns[secure_index * 4][row],     columns[secure_index * 4 + 1][row],
         columns[secure_index * 4 + 2][row], columns[secure_index * 4 + 3][row],
     });
 }

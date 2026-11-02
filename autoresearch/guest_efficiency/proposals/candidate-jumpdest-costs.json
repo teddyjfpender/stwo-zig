@@ -1,0 +1,11 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-candidate-costs.v1",
+ "what": "Estimated prover cells for the execution-only jumpdest_bitmap candidate (tag 0x0003_0040), same shape as calibration.json candidate_services. Excludes the ECALL instruction and the guest's packet set-up (charged per instruction). Derivation: jumpdest-bitmap.md section 'Cost model'. Layout tier (raw MAIN+INTER) x 1/ln 2 padding, as the bulk-memory entries.",
+ "candidate_services": {
+  "jumpdest_bitmap": {
+   "cells_per_call": 28400, "cells_per_byte": 11.8,
+   "range": {"cells_per_call": [250, 60000], "cells_per_byte": [8, 25]},
+   "derivation": "Body kind jscan: one row per 64 code bytes (8 code words, one bitmap word): MAIN 288 (header 7, code address 4+3 carries, bitmap address 4+3, 8 valid bits, 8 x (6 clock + 1 W bit) for the code reads, 64 bytes, 65 push counters, 64 JUMPDEST bits, write before-value 4 + clock 6) + INTER 232 (109 fractions: 64 table lookups, 18 RAM14, 27 U16 -> 55 QM31 inverse slots x 4 + 3 prefixes x 4) = 520 raw cells / 64 bytes = 8.13, x 1/ln 2 = 11.7 -> 11.8 per byte. Per call: descriptor jdesc like bulk desc (48 MAIN + 64 INTER = 112) x 1/ln 2 = 162, plus the transition table jtab (2^14 rows: 33 counter states x 256 bytes = 8,448 entries, MAIN 1 multiplicity + INTER 16 = 17 cells x 16,384 = 278,528 cells per CPU proof that issues a call) amortized over the basket: 1.84e9 instructions / ~4.2e6 per CPU proof = ~438 proofs, x 278,528 / 4,365 calls = 27,950 per call; 162 + 27,950 -> 28,400 (0.28 cells/gas, the table dominates the per-call term). Range: per byte 8 (no padding) to 25 (one row per code word with in-row bitmap accumulation); per call 250 (table in a shared proof) to 60,000 (table in every CPU proof of a 2^21-instruction segment)."
+  }
+ }
+}

@@ -1,0 +1,63 @@
+{
+  "base_commit": "a55c90e2fb7a4dd446a61512a33558a9a4fecadb",
+  "scope": "OM31 wide lazy DEEP quotient row scheduling only; shared aggregate setup unchanged",
+  "source_files": [
+    "src/prover/pcs/quotient_field.zig",
+    "src/prover/pcs/quotients/coefficient_groups.zig"
+  ],
+  "protocol_changes": false,
+  "security_parameter_changes": false,
+  "qualification": [
+    {
+      "command": "zig build test-native-cpu-om31 -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "cc8a08050c680ca6058ed4ca1e8bc25366e0f41be2e756ef6da3bcc796404068",
+      "parity_records": [
+        "OM31_COMPACT_PARITY fold=1 mixed=false bytes=3316 sha256=03c64ec71b75c65a2e92e220b04f3806fcfdb46971508ac8f29f8454c2ad8740",
+        "OM31_COMPACT_PARITY fold=1 mixed=true bytes=6364 sha256=54c341b146884f635e6348b7b4fbd3d90d10af961b2407f8490a668486d4217e",
+        "OM31_COMPACT_PARITY fold=4 mixed=false bytes=3328 sha256=83016e84e4548885f2c5f954108ebf82781c8885340600216e240d11a46da60d",
+        "OM31_COMPACT_PARITY fold=4 mixed=true bytes=7780 sha256=49df38de8d0c030b643ae41073cc426d2708588d9348b6c25b6a2e08586b8e48",
+        "OM31_HYBRID_PARITY fold=1 bytes=6364 sha256=54c341b146884f635e6348b7b4fbd3d90d10af961b2407f8490a668486d4217e",
+        "OM31_HYBRID_PARITY fold=4 bytes=7780 sha256=49df38de8d0c030b643ae41073cc426d2708588d9348b6c25b6a2e08586b8e48"
+      ]
+    },
+    {
+      "command": "zig build test-native-cpu-om31 -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "44eefce9bfadb4564bddd95ea03c81c14756db73cafc2810831ff094cc53989c",
+      "parity_records": [
+        "OM31_COMPACT_PARITY fold=1 mixed=false bytes=3316 sha256=03c64ec71b75c65a2e92e220b04f3806fcfdb46971508ac8f29f8454c2ad8740",
+        "OM31_COMPACT_PARITY fold=1 mixed=true bytes=6364 sha256=54c341b146884f635e6348b7b4fbd3d90d10af961b2407f8490a668486d4217e",
+        "OM31_COMPACT_PARITY fold=4 mixed=false bytes=3328 sha256=83016e84e4548885f2c5f954108ebf82781c8885340600216e240d11a46da60d",
+        "OM31_COMPACT_PARITY fold=4 mixed=true bytes=7780 sha256=49df38de8d0c030b643ae41073cc426d2708588d9348b6c25b6a2e08586b8e48",
+        "OM31_HYBRID_PARITY fold=1 bytes=6364 sha256=54c341b146884f635e6348b7b4fbd3d90d10af961b2407f8490a668486d4217e",
+        "OM31_HYBRID_PARITY fold=4 bytes=7780 sha256=49df38de8d0c030b643ae41073cc426d2708588d9348b6c25b6a2e08586b8e48"
+      ]
+    }
+  ],
+  "limits": {
+    "max_shards": 16,
+    "extra_row_scratch_byte_cap": 8388608,
+    "tile_rows": 1024,
+    "minimum_rows_per_shard": 4096
+  },
+  "performance": {
+    "parent_measured_before_stage_seconds": 8.71,
+    "parent_baseline": "/tmp/stwo-rv64-om-ethereum-prefix1-packed-all-v1/physical-0000.stages.json",
+    "parent_historical_q_stage_seconds": 0.795598,
+    "historical_q_is_not_same_security_profile": true,
+    "after_real_prefix_pending": true,
+    "no_speedup_claim": true
+  },
+  "independent_review": "recover_gkr_wave2: PASS (ownership, disjoint output, global geometry, checked helper budget, join/error/OOM cleanup)",
+  "gates": [
+    "actual nonzero 16384-row scalar/4-worker coordinate-byte parity",
+    "full worker-lease saturation deterministic scalar fallback",
+    "zero numerator does not omit denominator pole",
+    "all per-shard workspace and inverse tile allocation failures",
+    "exact scalar scratch cap remains admitted under scoped pool",
+    "preexisting 1024+1024+5 partial chunk and no-batches cases",
+    "actual OM uniform/mixed/hybrid fold1/fold4 durable bytes unchanged and decoded fresh receiver",
+    "retained legacy QM31 prove/receiver tests"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "keth-owner-requested-interruption-v1",
+  "reason": "User requested wrap-up and state-of-play report; preserve completed proofs and stop incomplete qualification.",
+  "utc": "2026-10-30T06:29:04.632114+00:00",
+  "workflow_pid": 53379,
+  "terminated_product_pids": [
+    57969
+  ],
+  "completed_phases": [
+    "0-phase-0",
+    "0-phase-1",
+    "0-phase-2",
+    "1-phase-0",
+    "1-phase-1",
+    "1-phase-2",
+    "2-phase-0",
+    "2-phase-1",
+    "2-phase-2",
+    "system-phase-0",
+    "system-phase-1",
+    "system-phase-2"
+  ],
+  "complete_block_certificate": false
+}

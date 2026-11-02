@@ -1,0 +1,698 @@
+{
+  "scope": "producer capture diagnostic only; no proof or acceptance",
+  "security_qualified": false,
+  "total_steps": 104253913,
+  "final_pc": 17308,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": 16,
+        "binary_log": 19,
+        "binary_tail_log": 18,
+        "shift_log": 19,
+        "shift_tail_log": 18,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 13,
+        "ls_log": 20,
+        "ls_tail_log": 18,
+        "boundary_log": 5,
+        "initial_log": 21,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": 14,
+        "binary_log": 20,
+        "binary_tail_log": 17,
+        "shift_log": 20,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 11,
+        "ls_log": 19,
+        "ls_tail_log": 16,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 20,
+        "binary_tail_log": 17,
+        "shift_log": 20,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 11,
+        "ls_log": 19,
+        "ls_tail_log": 15,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": 16,
+        "binary_log": 20,
+        "binary_tail_log": null,
+        "shift_log": 19,
+        "shift_tail_log": 18,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 17,
+        "ls_log": 19,
+        "ls_tail_log": 18,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 14,
+        "add": 13,
+        "double": 11
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 20,
+        "alu_tail_log": null,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "shift_log": 19,
+        "shift_tail_log": null,
+        "jalr_log": 15,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 19,
+        "ls_log": 20,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 15,
+        "double": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 20,
+        "alu_tail_log": null,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "shift_log": 19,
+        "shift_tail_log": null,
+        "jalr_log": 15,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 19,
+        "ls_log": 20,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 12,
+        "add": 15,
+        "double": 14
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "shift_log": 18,
+        "shift_tail_log": null,
+        "jalr_log": 15,
+        "division_log": 6,
+        "omit_empty_division": false,
+        "multiplication_log": 18,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 18,
+        "add": 14,
+        "double": 12
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 12,
+        "binary_log": 18,
+        "binary_tail_log": 15,
+        "shift_log": 16,
+        "shift_tail_log": 14,
+        "jalr_log": 16,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 17,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": null,
+        "binary_log": 18,
+        "binary_tail_log": 17,
+        "shift_log": 16,
+        "shift_tail_log": 12,
+        "jalr_log": 16,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 18,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 18,
+        "binary_tail_log": null,
+        "shift_log": 16,
+        "shift_tail_log": 13,
+        "jalr_log": 16,
+        "division_log": 7,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 11,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 17,
+        "binary_tail_log": 14,
+        "shift_log": 16,
+        "shift_tail_log": 15,
+        "jalr_log": 15,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 11,
+        "double": 10
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 15,
+        "binary_log": 16,
+        "binary_tail_log": 15,
+        "shift_log": 15,
+        "shift_tail_log": 13,
+        "jalr_log": 15,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 15,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 16,
+        "binary_tail_log": 14,
+        "shift_log": 15,
+        "shift_tail_log": 13,
+        "jalr_log": 14,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 16,
+        "binary_tail_log": 14,
+        "shift_log": 15,
+        "shift_tail_log": 13,
+        "jalr_log": 14,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 16,
+        "binary_tail_log": 15,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 10,
+        "double": 9
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 16,
+        "binary_log": 16,
+        "binary_tail_log": 14,
+        "shift_log": 15,
+        "shift_tail_log": 12,
+        "jalr_log": 15,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 21,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 16,
+        "binary_tail_log": null,
+        "shift_log": 15,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 15,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 16,
+        "binary_log": 16,
+        "binary_tail_log": null,
+        "shift_log": 15,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 15,
+        "ls_log": 21,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 16,
+        "binary_tail_log": 15,
+        "shift_log": 17,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 17,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 12,
+        "double": 11
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 16,
+        "binary_tail_log": 15,
+        "shift_log": 16,
+        "shift_tail_log": 13,
+        "jalr_log": 14,
+        "division_log": 10,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 11,
+        "double": 10
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 17,
+        "binary_tail_log": null,
+        "shift_log": 16,
+        "shift_tail_log": 15,
+        "jalr_log": 15,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": 12,
+        "double": 11
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": 17,
+        "binary_log": 16,
+        "binary_tail_log": 14,
+        "shift_log": 15,
+        "shift_tail_log": 11,
+        "jalr_log": 14,
+        "division_log": 9,
+        "omit_empty_division": false,
+        "multiplication_log": 16,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 13,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 18,
+        "alu_tail_log": null,
+        "binary_log": 17,
+        "binary_tail_log": 13,
+        "shift_log": 16,
+        "shift_tail_log": null,
+        "jalr_log": 16,
+        "division_log": 8,
+        "omit_empty_division": false,
+        "multiplication_log": 15,
+        "ls_log": 21,
+        "ls_tail_log": null,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 17,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 17,
+        "alu_tail_log": 15,
+        "binary_log": 17,
+        "binary_tail_log": 15,
+        "shift_log": 16,
+        "shift_tail_log": 15,
+        "jalr_log": 16,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 14,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 5
+      },
+      "bridges": {
+        "keccak": 17,
+        "add": null,
+        "double": null
+      }
+    },
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 17,
+        "alu_tail_log": 16,
+        "binary_log": 16,
+        "binary_tail_log": 15,
+        "shift_log": 15,
+        "shift_tail_log": 14,
+        "jalr_log": 17,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 14,
+        "ls_log": 20,
+        "ls_tail_log": 19,
+        "boundary_log": 5,
+        "initial_log": 5,
+        "terminal_log": 21
+      },
+      "bridges": {
+        "keccak": 16,
+        "add": null,
+        "double": null
+      }
+    }
+  ],
+  "truths": [
+    {
+      "family": "keccak",
+      "first_id": 1,
+      "calls": 18078,
+      "logs": [
+        18,
+        0
+      ]
+    },
+    {
+      "family": "keccak",
+      "first_id": 18079,
+      "calls": 14757,
+      "logs": [
+        18,
+        0
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 1,
+      "calls": 11397,
+      "logs": [
+        18,
+        18
+      ]
+    },
+    {
+      "family": "add",
+      "first_id": 11398,
+      "calls": 99,
+      "logs": [
+        11,
+        12
+      ]
+    },
+    {
+      "family": "double",
+      "first_id": 1,
+      "calls": 9768,
+      "logs": [
+        17,
+        16
+      ]
+    }
+  ],
+  "memory_words": 1347207,
+  "capture_options": {
+    "max_inflight_packets": 1,
+    "packet_heap_bytes": 1073741824,
+    "max_inflight_packet_heap_bytes": 2147483648,
+    "max_inflight_wire_bytes": 1073741824
+  },
+  "capture_selection": {
+    "max_inflight_packets": 1,
+    "max_worker_shards": 1,
+    "decoded_packet_heap_limit_bytes": null,
+    "max_reserved_decoded_packet_heap_bytes": 0,
+    "max_single_packet_decoded_heap_bytes": 0
+  },
+  "packet_import_ns": 8543146458,
+  "image_and_import_ns": 8983071667,
+  "captured_values_sha256": "5787e5eea84faecd37f234f2210f435cbddb634d58bc511162bcb77ef4d0ead9",
+  "diagnostic_digest_ns": 24021448083
+}

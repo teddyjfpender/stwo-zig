@@ -11,6 +11,7 @@ const quotients = @import("stwo_core").pcs.quotients;
 const pcs_utils = @import("stwo_core").pcs.utils;
 const column_geometry = @import("../quotient_column_geometry.zig");
 const row_executor = @import("../quotient_row_executor.zig");
+const combined_setup = @import("combined_setup.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
@@ -345,6 +346,8 @@ pub fn buildCombinedContributionPlanForBackend(
     const native_fold = comptime B != void and @hasDecl(B, "foldCoefficientContributions");
     var fold_jobs = std.ArrayList(CoefficientFoldJob).empty;
     defer fold_jobs.deinit(allocator);
+    var members = std.ArrayList(combined_setup.Member).empty;
+    defer members.deinit(allocator);
     var views = std.ArrayList(CombinedContributionView).empty;
     defer views.deinit(allocator);
     errdefer for (views.items) |view| {
@@ -365,11 +368,11 @@ pub fn buildCombinedContributionPlanForBackend(
         const log_shift = lifting_log_size - column.log_size;
         if (log_shift >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
         const shift_amt: std.math.Log2Int(usize) = @intCast(log_shift + 1);
+        if (source.len > size) return QuotientOpsError.ShapeMismatch;
 
         const column_contributions = contributions[contribution_range.start .. contribution_range.start + contribution_range.len];
         for (column_contributions) |contribution| {
             var view_index: ?usize = null;
-            var created = false;
             for (views.items, 0..) |view, i| {
                 if (view.batch_index == contribution.batch_index and
                     view.coordinates[0].len == size and coefficient_groups.items[i] == coefficient_basis)
@@ -392,7 +395,7 @@ pub fn buildCombinedContributionPlanForBackend(
                     coordinates[coord] = try allocator.alloc(M31, size);
                     initialized += 1;
                 }
-                try coefficient_groups.append(allocator, coefficient_basis);
+                try coefficient_groups.ensureUnusedCapacity(allocator, 1);
                 try views.append(allocator, .{
                     .coordinates = coordinates,
                     .coordinate_backing = backing,
@@ -400,52 +403,41 @@ pub fn buildCombinedContributionPlanForBackend(
                     .shift_amt = shift_amt,
                     .is_direct = column.log_size == lifting_log_size,
                 });
+                coefficient_groups.appendAssumeCapacity(coefficient_basis);
                 view_index = views.items.len - 1;
-                created = true;
             }
 
             const coeffs = contribution.value_coeff.toM31Array();
-            const view = &views.items[view_index.?];
             if (native_fold and coefficient_basis) {
-                try fold_jobs.append(allocator, .{ .source = source, .coordinates = view.coordinates, .coefficients = coeffs });
+                try fold_jobs.append(allocator, .{ .source = source, .coordinates = views.items[view_index.?].coordinates, .coefficients = coeffs });
                 continue;
             }
-            inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
-                if (created) {
-                    @memset(view.coordinates[coord][source.len..], M31.zero());
-                    scaleColumn(
-                        view.coordinates[coord][0..source.len],
-                        source,
-                        coeffs[coord],
-                    );
-                } else {
-                    addScaledColumn(
-                        view.coordinates[coord][0..source.len],
-                        source,
-                        coeffs[coord],
-                    );
-                }
-            }
+            try members.append(allocator, .{ .source = source, .coefficients = coeffs, .view_index = view_index.? });
         }
     }
+
+    // Row-chunked, pooled combination: every chunk of a source column is read
+    // once and accumulated into each of its sample-batch accumulators. Field
+    // addition is exact, so values match the column-serial reference.
+    try combined_setup.combine(allocator, views.items, members.items);
 
     if (native_fold and fold_jobs.items.len != 0) try B.foldCoefficientContributions(allocator, fold_jobs.items);
 
     // Fold in the native basis first: four FFTs per (sample, domain) group,
     // instead of materializing an LDE for every committed column.
-    const poly = @import("../../poly/circle/mod.zig");
-    const twiddles = @import("../../poly/twiddles.zig");
-    for (views.items, coefficient_groups.items) |view, coefficient_basis| {
-        if (!coefficient_basis) continue;
-        const log: u32 = @intCast(std.math.log2_int(usize, view.coordinates[0].len));
-        const domain = poly.CanonicCoset.new(log).circleDomain();
-        var transform = try twiddles.precomputeM31(allocator, domain.half_coset);
-        defer twiddles.deinitM31(allocator, &transform);
-        const borrowed = twiddles.TwiddleTree([]const M31){ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles };
-        if (comptime B != void and @hasDecl(B, "evaluateCircleBuffers")) {
+    if (comptime B != void and @hasDecl(B, "evaluateCircleBuffers")) {
+        const poly = @import("../../poly/circle/mod.zig");
+        const twiddles = @import("../../poly/twiddles.zig");
+        for (views.items, coefficient_groups.items) |view, coefficient_basis| {
+            if (!coefficient_basis) continue;
+            const log: u32 = @intCast(std.math.log2_int(usize, view.coordinates[0].len));
+            const domain = poly.CanonicCoset.new(log).circleDomain();
+            var transform = try twiddles.precomputeM31(allocator, domain.half_coset);
+            defer twiddles.deinitM31(allocator, &transform);
+            const borrowed = twiddles.TwiddleTree([]const M31){ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles };
             _ = try B.evaluateCircleBuffers(allocator, &view.coordinates, domain, borrowed);
-        } else try poly.poly.evaluateBuffersWithTwiddles(&view.coordinates, domain, borrowed);
-    }
+        }
+    } else try combined_setup.evaluateCoefficientViews(allocator, views.items, coefficient_groups.items);
     return .{ .views = try views.toOwnedSlice(allocator) };
 }
 

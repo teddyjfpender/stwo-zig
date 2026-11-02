@@ -1,0 +1,17 @@
+{
+  "source_commit": "f15ac0541",
+  "binary_sha256": "f77e7a92d1b639046f858c22db87f021e4fdc7768d46d4177433eb4b7d4fb33c",
+  "command": [
+    "zig-out/bin/rv64-word16-ethereum-gkr",
+    "verify-candidate",
+    "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+    "12884901888"
+  ],
+  "env": {
+    "STWO_ZIG_PCS_TIMING": "1"
+  },
+  "security_qualified": false,
+  "controlled_speedup_claim": false,
+  "returncode": 0
+}

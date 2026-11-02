@@ -1,0 +1,96 @@
+{
+  "schema": "keth-op-blob-characterization-v1",
+  "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+  "transaction_index": 15,
+  "transaction_hash": "0xde4edf4f7d27981d86b57420bd9b9f294f73b2ca5d2513a723bdddf407392341",
+  "trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+  "reference_revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+  "blobs": [
+    {
+      "versioned_hash": "0x013b12ac8b6d47b7b7eafe5f658eab2b67ce711ae99d9f3e77a1c7c081f7b02b",
+      "blob_sha256": "7bcfd9c0c7afcb43413d78fd4d828d21b7b75faebde005b65ec7293eb5baa889",
+      "metadata_sha256": "a63337afb43353e2ade09fe67b9dbf693bd83ea9c73c356bab22cd8ad4e7e86c",
+      "kzg_verified": true
+    },
+    {
+      "versioned_hash": "0x01c959f88715dd6e908840a49b69d99b7d574145861b366235ed496630e1d4a9",
+      "blob_sha256": "cb24d348a6f0d01edd492ecfb2eecef7fce85ba2bdf4af278b243749a17d04cb",
+      "metadata_sha256": "1bf74cc0e10f1117ed87f7860307d888f99acd4021318d117199cb0a12f2f22b",
+      "kzg_verified": true
+    },
+    {
+      "versioned_hash": "0x019db2322fced824d52d13daada17bf731b1aae563e8148757ac46fe7a97aede",
+      "blob_sha256": "3049a9e405da6a3017ab80e1d7dc2fc7bbcffb3d30bfda39d9e8a92798876ce5",
+      "metadata_sha256": "60ff5b6916208e8e96d9d78869fc63a72cd2e2240e553fcd9568e85738e823f9",
+      "kzg_verified": true
+    }
+  ],
+  "channels": [
+    {
+      "channel": "da764bb3740bb5ea12a9ea3d1ff27ff0",
+      "frame_count": 3,
+      "compression": "brotli",
+      "compressed_bytes": 372931,
+      "uncompressed_bytes": 1515746,
+      "uncompressed_sha256": "08f48730251a52c407e2b7a6ba44af287cdd14eb24cce8c98c9adbf741f6f72e",
+      "batches": [
+        {
+          "type": "span",
+          "relative_timestamp": 62056716,
+          "last_l1_origin_number": 22615229,
+          "parent_check": "a1deef7941a9061a48210501c166cdd701c955a4",
+          "l1_origin_check": "70ea4f3ef748dab2e0fff81bf3fbf2752e9aacac",
+          "block_count": 4,
+          "block_transaction_counts": [
+            195,
+            185,
+            200,
+            194
+          ],
+          "sequencer_transactions": 774,
+          "transaction_section_bytes": 445858
+        },
+        {
+          "type": "span",
+          "relative_timestamp": 62056724,
+          "last_l1_origin_number": 22615229,
+          "parent_check": "14655ed5bf40e304143f3b198dd963a5f6ef3238",
+          "l1_origin_check": "70ea4f3ef748dab2e0fff81bf3fbf2752e9aacac",
+          "block_count": 4,
+          "block_transaction_counts": [
+            209,
+            245,
+            224,
+            170
+          ],
+          "sequencer_transactions": 848,
+          "transaction_section_bytes": 506220
+        },
+        {
+          "type": "span",
+          "relative_timestamp": 62056732,
+          "last_l1_origin_number": 22615230,
+          "parent_check": "b3db42beaaec2e1f5b689684efcdeb029d01c954",
+          "l1_origin_check": "71797b8c5291846ba30c9db6c1de5cbd8f5032d8",
+          "block_count": 4,
+          "block_transaction_counts": [
+            213,
+            197,
+            228,
+            177
+          ],
+          "sequencer_transactions": 815,
+          "transaction_section_bytes": 563479
+        }
+      ],
+      "encoded_l2_blocks": 12,
+      "encoded_sequencer_transactions": 2437
+    }
+  ],
+  "scope": "host KZG verification, framing and encoded batch metadata",
+  "transaction_bodies_decoded": false,
+  "batch_authorization_verified": false,
+  "derivation_validated": false,
+  "derivation_proved": false,
+  "l2_execution_proved": false
+}

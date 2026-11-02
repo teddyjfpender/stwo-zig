@@ -1,0 +1,58 @@
+{
+  "schema": "rv64-om31-service-global-authorities-v1",
+  "dependencies": [
+    "1e5b798c4"
+  ],
+  "qualification": "shared MAIN service arithmetic and standalone wide global LogUp kernels; not integrated block route",
+  "safe": "PASS",
+  "fast": "PASS",
+  "focused_direct_result": "All 44 tests passed.",
+  "legacy_native_q_gates": [
+    "test-riscv64-secp",
+    "test-riscv64-word16-secp-bridge",
+    "test-riscv64-word16-keccak-bridge",
+    "test-riscv64-keccak"
+  ],
+  "legacy_proof_byte_parity": "not measured in this slice; source preserves residual order and native proof suites freshly pass",
+  "service_direct_counts": {
+    "keccak_bridge": 133,
+    "secp_add_bridge": 373,
+    "secp_double_bridge": 373,
+    "secp_product": 426,
+    "secp_linear": 413,
+    "keccak_truth_strict_boundary": 5453
+  },
+  "wide_global_kernels": [
+    "strictsingles + jointprefix",
+    "linearstrictpairs + jointprefix",
+    "clearedpair + strictpoleinverse"
+  ],
+  "degree_gates": "actual original LS RAM/KIO truth/Wire truth/Wire bridge tuple and weight projections; third difference nonzero, fourth zero",
+  "negative_gates": [
+    "zero-weight poles",
+    "high-coordinate inverse corruption",
+    "high-coordinate prefix corruption",
+    "altered public claim",
+    "wrong8-coordinate physical width"
+  ],
+  "kio_truth_cost": {
+    "singles": {
+      "columns": 208,
+      "samples": 216,
+      "physical_claims": 1
+    },
+    "cleared_pairs": {
+      "columns": 208,
+      "samples": 312,
+      "physical_claims": 13
+    }
+  },
+  "open_gates": [
+    "composedrole physical8-coordinate witnesses",
+    "manifest-derived globalchallenge and everyphysicalclaim transcriptbinding",
+    "localGKR authentication and separate truthrosters",
+    "fullwideblock/freshreceiver",
+    "whole-protocol128 budget"
+  ],
+  "performance_claim": null
+}

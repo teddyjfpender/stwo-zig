@@ -1,0 +1,8 @@
+{
+  "exit_code": 2,
+  "wall_ns": 646139333,
+  "user_ns": 1417000,
+  "system_ns": 2680000,
+  "max_process_tree_rss_bytes": 2785280,
+  "rss_is_simultaneous_process_tree_sum": false
+}

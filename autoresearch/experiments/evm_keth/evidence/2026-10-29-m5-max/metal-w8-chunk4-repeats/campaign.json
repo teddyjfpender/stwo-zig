@@ -1,0 +1,387 @@
+{
+  "schema": "keth-complete-bundle-campaign-v1",
+  "status": "qualified-complete-bundle-campaign",
+  "requested_complete_trials": 3,
+  "trials": [
+    {
+      "index": 1,
+      "status": "qualified",
+      "bundle": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/metal-w8-chunk4-repeats/trial-1",
+      "manifest_sha256": "12762d2c9553abe58602b1fa40f5d444f1354b335820a1b7bac9ed7102bf6cfa",
+      "proof_count": 26,
+      "summary": {
+        "schema": "keth-block-bundle-summary-v1",
+        "status": "qualified-segmented-keth-block-workload",
+        "workload": {
+          "block_number": 22615247,
+          "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+          "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+          "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+          "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+          "gas_used": 1331413,
+          "transactions": 26,
+          "withdrawals": 16,
+          "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+          "fixture_bytes": 2078954
+        },
+        "complete_bundle_samples": 1,
+        "proof_count": 26,
+        "workers": 8,
+        "host": {
+          "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "witness_transport": ".cpi",
+        "elapsed_wall_ns": 156443374500,
+        "native_trace_wall_ns": 66803956124,
+        "witness_conversion_wall_ns": 10997704127,
+        "product_wall_ns": 58666244913,
+        "prove_ns": 55613464958,
+        "official_verification_wall_ns": 1722964207,
+        "cairo_opcode_transitions": 79818960,
+        "peak_product_rss_bytes": 13669449728,
+        "peak_product_physical_footprint_bytes": 16800541976,
+        "physical_footprint_scope": "Darwin product process lifetime peak including Metal memory; excludes adapter children",
+        "peak_trace_rss_bytes": 5707907072,
+        "peak_conversion_rss_bytes": 2066169856,
+        "address_space_policy": {
+          "requested_gib": 0,
+          "enforced": false,
+          "scope": "per-process virtual address space; inherited by children",
+          "platform": "darwin"
+        },
+        "proof_json_bytes": 154046205,
+        "compressed_proof_bytes": 41264915,
+        "roles": {
+          "init": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 273354,
+            "product_wall_ns": 880237583,
+            "prove_ns": 788857417,
+            "official_verification_wall_ns": 114761250,
+            "peak_product_rss_bytes": 1757200384
+          },
+          "body": {
+            "proof_count": 7,
+            "cairo_opcode_transitions": 33087359,
+            "product_wall_ns": 17354345332,
+            "prove_ns": 16267840083,
+            "official_verification_wall_ns": 862573917,
+            "peak_product_rss_bytes": 13669449728
+          },
+          "teardown": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 8233229,
+            "product_wall_ns": 5027775208,
+            "prove_ns": 4805344333,
+            "official_verification_wall_ns": 116514542,
+            "peak_product_rss_bytes": 11877564416
+          },
+          "mpt_diff": {
+            "proof_count": 16,
+            "cairo_opcode_transitions": 38212026,
+            "product_wall_ns": 34756247165,
+            "prove_ns": 33144550958,
+            "official_verification_wall_ns": 597762748,
+            "peak_product_rss_bytes": 8726740992
+          },
+          "aggregator": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 12992,
+            "product_wall_ns": 647639625,
+            "prove_ns": 606872167,
+            "official_verification_wall_ns": 31351750,
+            "peak_product_rss_bytes": 1471496192
+          }
+        },
+        "claims": {
+          "op_stack_validity_proof": false,
+          "kona_derivation_proved": false,
+          "ethereum_block_statement_bound": false,
+          "l1_verifier_compatible": false
+        },
+        "notes": [
+          "Compilation excluded; serial segments; fresh bundle cache retained across segments.",
+          "Product time includes loading, proving, Zig verification and publication.",
+          "RSS is wait4 per-process/descendant peak, normalized to bytes, not simultaneous parent-child sum.",
+          "Darwin physical footprint includes Metal allocations and is reported separately from RSS.",
+          "Consistency proof is not recursive aggregation; every child independently verifies."
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "status": "qualified",
+      "bundle": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/metal-w8-chunk4-repeats/trial-2",
+      "manifest_sha256": "80f6962e625be510a37649d298fd3049a8b158a2b1c1eeca8ddfa2cf93fbeed9",
+      "proof_count": 26,
+      "summary": {
+        "schema": "keth-block-bundle-summary-v1",
+        "status": "qualified-segmented-keth-block-workload",
+        "workload": {
+          "block_number": 22615247,
+          "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+          "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+          "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+          "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+          "gas_used": 1331413,
+          "transactions": 26,
+          "withdrawals": 16,
+          "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+          "fixture_bytes": 2078954
+        },
+        "complete_bundle_samples": 1,
+        "proof_count": 26,
+        "workers": 8,
+        "host": {
+          "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "witness_transport": ".cpi",
+        "elapsed_wall_ns": 158331321458,
+        "native_trace_wall_ns": 67368610873,
+        "witness_conversion_wall_ns": 11072628748,
+        "product_wall_ns": 59609445709,
+        "prove_ns": 56435645874,
+        "official_verification_wall_ns": 1762296630,
+        "cairo_opcode_transitions": 79818960,
+        "peak_product_rss_bytes": 13669400576,
+        "peak_product_physical_footprint_bytes": 16800574408,
+        "physical_footprint_scope": "Darwin product process lifetime peak including Metal memory; excludes adapter children",
+        "peak_trace_rss_bytes": 5716639744,
+        "peak_conversion_rss_bytes": 2066202624,
+        "address_space_policy": {
+          "requested_gib": 0,
+          "enforced": false,
+          "scope": "per-process virtual address space; inherited by children",
+          "platform": "darwin"
+        },
+        "proof_json_bytes": 154046205,
+        "compressed_proof_bytes": 41264915,
+        "roles": {
+          "init": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 273354,
+            "product_wall_ns": 880147500,
+            "prove_ns": 784687875,
+            "official_verification_wall_ns": 117553834,
+            "peak_product_rss_bytes": 1757380608
+          },
+          "body": {
+            "proof_count": 7,
+            "cairo_opcode_transitions": 33087359,
+            "product_wall_ns": 17880717541,
+            "prove_ns": 16709412917,
+            "official_verification_wall_ns": 877523626,
+            "peak_product_rss_bytes": 13669400576
+          },
+          "teardown": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 8233229,
+            "product_wall_ns": 5091534667,
+            "prove_ns": 4879045791,
+            "official_verification_wall_ns": 116324167,
+            "peak_product_rss_bytes": 11877335040
+          },
+          "mpt_diff": {
+            "proof_count": 16,
+            "cairo_opcode_transitions": 38212026,
+            "product_wall_ns": 35097265209,
+            "prove_ns": 33449585874,
+            "official_verification_wall_ns": 623325003,
+            "peak_product_rss_bytes": 8726511616
+          },
+          "aggregator": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 12992,
+            "product_wall_ns": 659780792,
+            "prove_ns": 612913417,
+            "official_verification_wall_ns": 27570000,
+            "peak_product_rss_bytes": 1471004672
+          }
+        },
+        "claims": {
+          "op_stack_validity_proof": false,
+          "kona_derivation_proved": false,
+          "ethereum_block_statement_bound": false,
+          "l1_verifier_compatible": false
+        },
+        "notes": [
+          "Compilation excluded; serial segments; fresh bundle cache retained across segments.",
+          "Product time includes loading, proving, Zig verification and publication.",
+          "RSS is wait4 per-process/descendant peak, normalized to bytes, not simultaneous parent-child sum.",
+          "Darwin physical footprint includes Metal allocations and is reported separately from RSS.",
+          "Consistency proof is not recursive aggregation; every child independently verifies."
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "status": "qualified",
+      "bundle": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/metal-w8-chunk4-repeats/trial-3",
+      "manifest_sha256": "412e3d3a3bbbb27d39d536d30afc5f2ac379ecea25e1fd2764055aef60bb687d",
+      "proof_count": 26,
+      "summary": {
+        "schema": "keth-block-bundle-summary-v1",
+        "status": "qualified-segmented-keth-block-workload",
+        "workload": {
+          "block_number": 22615247,
+          "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+          "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+          "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+          "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+          "gas_used": 1331413,
+          "transactions": 26,
+          "withdrawals": 16,
+          "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+          "fixture_bytes": 2078954
+        },
+        "complete_bundle_samples": 1,
+        "proof_count": 26,
+        "workers": 8,
+        "host": {
+          "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "witness_transport": ".cpi",
+        "elapsed_wall_ns": 158173355333,
+        "native_trace_wall_ns": 67441001205,
+        "witness_conversion_wall_ns": 11103160211,
+        "product_wall_ns": 59316296501,
+        "prove_ns": 56224143337,
+        "official_verification_wall_ns": 1736047790,
+        "cairo_opcode_transitions": 79818960,
+        "peak_product_rss_bytes": 13669335040,
+        "peak_product_physical_footprint_bytes": 17012075680,
+        "physical_footprint_scope": "Darwin product process lifetime peak including Metal memory; excludes adapter children",
+        "peak_trace_rss_bytes": 5693194240,
+        "peak_conversion_rss_bytes": 2066169856,
+        "address_space_policy": {
+          "requested_gib": 0,
+          "enforced": false,
+          "scope": "per-process virtual address space; inherited by children",
+          "platform": "darwin"
+        },
+        "proof_json_bytes": 154046205,
+        "compressed_proof_bytes": 41264915,
+        "roles": {
+          "init": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 273354,
+            "product_wall_ns": 877682416,
+            "prove_ns": 778690417,
+            "official_verification_wall_ns": 115288000,
+            "peak_product_rss_bytes": 1757413376
+          },
+          "body": {
+            "proof_count": 7,
+            "cairo_opcode_transitions": 33087359,
+            "product_wall_ns": 17762645707,
+            "prove_ns": 16623570001,
+            "official_verification_wall_ns": 866450250,
+            "peak_product_rss_bytes": 13669335040
+          },
+          "teardown": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 8233229,
+            "product_wall_ns": 5138373375,
+            "prove_ns": 4898819583,
+            "official_verification_wall_ns": 118016167,
+            "peak_product_rss_bytes": 11877449728
+          },
+          "mpt_diff": {
+            "proof_count": 16,
+            "cairo_opcode_transitions": 38212026,
+            "product_wall_ns": 34893508169,
+            "prove_ns": 33325075002,
+            "official_verification_wall_ns": 602539206,
+            "peak_product_rss_bytes": 8726642688
+          },
+          "aggregator": {
+            "proof_count": 1,
+            "cairo_opcode_transitions": 12992,
+            "product_wall_ns": 644086834,
+            "prove_ns": 597988334,
+            "official_verification_wall_ns": 33754167,
+            "peak_product_rss_bytes": 1471086592
+          }
+        },
+        "claims": {
+          "op_stack_validity_proof": false,
+          "kona_derivation_proved": false,
+          "ethereum_block_statement_bound": false,
+          "l1_verifier_compatible": false
+        },
+        "notes": [
+          "Compilation excluded; serial segments; fresh bundle cache retained across segments.",
+          "Product time includes loading, proving, Zig verification and publication.",
+          "RSS is wait4 per-process/descendant peak, normalized to bytes, not simultaneous parent-child sum.",
+          "Darwin physical footprint includes Metal allocations and is reported separately from RSS.",
+          "Consistency proof is not recursive aggregation; every child independently verifies."
+        ]
+      }
+    }
+  ],
+  "claims": {
+    "op_stack_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  },
+  "cache_policy": "fresh preprocessed cache per bundle; inherited Metal disk archive; all trials recorded",
+  "workload_fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+  "product_sha256": "f9bff28cc6836a7a37197f4485337b1fbadeeb73a2fa44455bf54c61abe87471",
+  "oracle_sha256": "62b87e805661a2445840575117081872fae2fbc72ca7518ebc8a364193a3c624",
+  "workers": 8,
+  "chunk_size": 4,
+  "statistics": {
+    "elapsed_wall_ns": {
+      "samples": [
+        156443374500,
+        158331321458,
+        158173355333
+      ],
+      "median": 158173355333,
+      "minimum": 156443374500,
+      "maximum": 158331321458,
+      "sample_stdev": 1047388076.3925998
+    },
+    "prove_ns": {
+      "samples": [
+        55613464958,
+        56435645874,
+        56224143337
+      ],
+      "median": 56224143337,
+      "minimum": 55613464958,
+      "maximum": 56435645874,
+      "sample_stdev": 426935370.66908675
+    },
+    "native_trace_wall_ns": {
+      "samples": [
+        66803956124,
+        67368610873,
+        67441001205
+      ],
+      "median": 67368610873,
+      "minimum": 66803956124,
+      "maximum": 67441001205,
+      "sample_stdev": 348784026.04898155
+    },
+    "witness_conversion_wall_ns": {
+      "samples": [
+        10997704127,
+        11072628748,
+        11103160211
+      ],
+      "median": 11072628748,
+      "minimum": 10997704127,
+      "maximum": 11103160211,
+      "sample_stdev": 54263024.116380066
+    }
+  },
+  "elapsed_wall_ns_including_reverification": 495097621291
+}

@@ -53,6 +53,7 @@ pub const source_closure = product_policy.SourceClosure{
         "src/interop/output_transaction.zig",
         "src/interop/postcard.zig",
         "src/interop/proof_wire/mod.zig",
+        "src/interop/proof_wire/family.zig",
         "src/interop/riscv_artifact.zig",
         "src/products/riscv_cpu/capabilities.zig",
     },

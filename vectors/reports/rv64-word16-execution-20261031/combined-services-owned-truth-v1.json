@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "status": "qualified",
+  "base": "164cb190e",
+  "api": [
+    "services.roster.TruthSource.takeMain() -> core Commit",
+    "services.roster.TruthSource.takeInteraction() -> core Commit"
+  ],
+  "scope": "owned original-buffer handoff only; execution callsites remain borrowed until separately wired",
+  "ownership": [
+    "three original buffers each; no wide witness reconstruction or copy",
+    "metadata/roles/phase/exact lengths/allocators/disjoint current buffers and fixed/opposite-phase spans validated before allocation",
+    "all descriptors and small BYTE metadata allocation precede detach",
+    "secp BYTE256 multiplicities retained in1024-byte private copy; K packed metadata/table multiplicities unchanged",
+    "PCS consumes returned bundle on every path; source deinit retains only remaining native metadata"
+  ],
+  "cost": {
+    "eligible_K_truth_MAIN_original_bytes_log18": 2016448512,
+    "eligible_K_truth_INTER_original_bytes_log18": 2722250752,
+    "secp_MAIN_original_bytes_formula": "4*(319*2^productLog+200*2^linearLog+256)",
+    "secp_INTER_original_bytes_formula": "4*(384*2^productLog+176*2^linearLog+2048)",
+    "extra_retained_secp_metadata_bytes": 1024,
+    "interpretation": "bytes handed to consuming PCS, not measured RSS reduction; in-place coefficient adoption depends on qualified PCS policy/alignment",
+    "timing_claim": null
+  },
+  "qualification": {
+    "commands": [
+      "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe",
+      "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseFast"
+    ],
+    "actual_runtime_after_slices": 13,
+    "checks": [
+      "each K/ADD/DOUBLE actual truth proof uses owned MAIN+INTER and mapped compact MAIN",
+      "each encoded truth proof exactly matches existing borrowed control within complete five-proof manifest",
+      "full independently expected receiver accepts each replacement proof",
+      "MAIN all-allocation-failure cleanup",
+      "INTER both allocation failure positions preserve original pointers and retry succeeds",
+      "borrowed MAIN refusal/alias refusal/double-take and missingINTER phase refusal"
+    ],
+    "logs": {
+      "safe": "/tmp/rv64-word16-owned-truth-safe.log",
+      "fast": "/tmp/rv64-word16-owned-truth-fast.log"
+    },
+    "preparatory_full_safe_fast": "PASS13",
+    "final_source_focused_safe": "PASS3",
+    "final_source_focused_fast": "PASS3",
+    "final_source_logs": {
+      "safe": "/tmp/rv64-word16-owned-truth-final-safe.log",
+      "fast": "/tmp/rv64-word16-owned-truth-final-fast.log"
+    }
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig": "3c6b8ed0dc44d825aa092210a152193e15f1b06b0a0917dd0994f79c119f07c5",
+    "src/integrations/riscv_cpu/word16_global_execution/services/owned_truth_test.zig": "544af02e8fb3a320cbb1a9aba501575e3ab33a3434d407cd9e38b7aad9dd98b0"
+  }
+}

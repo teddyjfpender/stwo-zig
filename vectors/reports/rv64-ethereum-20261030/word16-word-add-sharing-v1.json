@@ -1,0 +1,19 @@
+{
+  "scope": "pure Word16 carry residual shared by ALU and future effective-address circuitry; no new execution profile",
+  "identity": "a+b+carry_in\u2212sum\u221265536*carry_out",
+  "integer_bound": "With canonical U16 a,b,sum and Boolean carries the residual lies in [-131071,131071], strictly inside the M31 characteristic. Callers still enforce these bounds.",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/word_add.zig": "bb8ed7b9f734b5f4b8be0da074f800c118b9cbeef97e1e84f7ef1b85ccf40053",
+    "src/frontends/riscv/rv64/air/word16_v1/alu.zig": "2f0843008477c02942e5eb54d666ad9c63ad16ad721228c3e4dc28faab797203"
+  },
+  "qualification": {
+    "safe_q70_alu_and_full_coset_regressions_passed": true,
+    "safe_log": "/tmp/stwo-rv64-shared-transform-regression-safe.log",
+    "fresh_separate_receiver_passed": true,
+    "proof_bytes": 257280,
+    "proof_sha256": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+    "proof_bytes_equal_pre_extraction_artifact": true,
+    "artifact_directory": "vectors/reports/interop_artifacts/rv64-word-add-v1"
+  },
+  "performance_claim": false
+}

@@ -1,0 +1,27 @@
+{
+  "pr308_head": "2490495dd16a35a2961cd113870a0a490ff36018",
+  "pr309_head": "f521aa1c1dc992d4e6224b54feca9fc25c48dc6a",
+  "common_ancestor": "4d9aafacdc1ff7348aa5267d51c67e2b7e020c24",
+  "isolated_merge": "3b11d94d79df5074c3407fb8a1bb22cd2617e7dc",
+  "compatibility_fix": "06f1c3ee6",
+  "integration_branch": "codex/rv64-pr308-integration-review",
+  "textual_conflicts": 0,
+  "additional_paths": 477,
+  "shared_edited_paths": 6,
+  "services_gkr_test_pass_before_and_after_fix": true,
+  "gkr_driver_build_pass_before_and_after_fix": true,
+  "initial_complete_v2_receiver": "InvalidSumcheck",
+  "cause": "Two appended false geometry flags entered reflected binary GKR statement hashing despite JSON omission",
+  "fix": "Freeze original16 v2 geometry fields and their hash order",
+  "fixed_complete_v2_receiver_accepted": true,
+  "v3_gkr_supported": false,
+  "production_branch_source_merged": false,
+  "fixed_receiver_binary_sha256": "a872c5ef69f06823e4477a63014e831c45de0773818be3d59b0d124ebd83eb13",
+  "limits": [
+    "PR308 is still moving",
+    "No new-guest GKR proof made",
+    "No new performance claim",
+    "Existing30-proof security budget does not cover changed guest/services",
+    "No new producer proof-byte parity run; old proof acceptance checked independently"
+  ]
+}

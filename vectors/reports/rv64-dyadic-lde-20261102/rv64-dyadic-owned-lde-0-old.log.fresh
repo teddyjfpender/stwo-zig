@@ -1,0 +1,64 @@
+{
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "output": null,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "load_and_setup_ns": 1710799959,
+  "verify_ns": 406420291,
+  "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 243790440,
+    "peak_bytes": 2428528968,
+    "keys": 1,
+    "hits": 0,
+    "seals": 1,
+    "refused": false,
+    "native_coefficients": {
+      "limit_bytes": 12884901888,
+      "retained_bytes": 176671872,
+      "native_backing_bytes": 176659456,
+      "groups": 96,
+      "hits": 37,
+      "duplicate_native_bytes_released": 74711296,
+      "observed_individual_owners": 133,
+      "observed_backing_owners": 0,
+      "observed_spans": 133,
+      "owner_leases": 2
+    }
+  },
+  "source_validations": 1,
+  "source_coefficient_cells": 62842688,
+  "source_shape": {
+    "native_proofs": 1,
+    "max_trace_log": 22,
+    "max_columns": 1098,
+    "max_constraints": 996,
+    "max_samples_per_column": 2,
+    "max_air_degree": 3,
+    "max_local_instances": 18,
+    "max_tuple_arity": 30,
+    "max_gkr_variables": 26
+  },
+  "source_lookup_only_conditional_degrees": {
+    "tuple_collision": 3754566493896384,
+    "rational_identity": 107340096,
+    "local_rational_identity": 102621504,
+    "global_rational_identity": 4718592,
+    "poles": 107340096
+  },
+  "receiver_budget": {
+    "live_bytes": 1142138391,
+    "peak_live_bytes": 3326877119,
+    "host_live_bytes": 1142138391,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 3326877119,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "receiver_recycler_cache_cap_bytes": 4294967296,
+  "receiver_worker_stack_upper_bound_bytes": 16777216
+}

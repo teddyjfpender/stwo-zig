@@ -1,0 +1,25 @@
+{
+  "source_files_sha256": {
+    "op_stack/fastlz_main.cairo": "909c6358d5b5b1d7ffea42bbcbf31e8f406b0d239ab691598fb8cdb64f00a8e9",
+    "op_stack/state_view.cairo": "37c1f389f295f84e591bf4432bce464f369ca6d6371d13ef35bd75d7c9151fb5",
+    "op_stack/access_coverage.cairo": "8e5a1f408451884dee754bde9aedd03bf52d255bac690739734000a43154931c",
+    "op_stack/fees_main.cairo": "a7c69802c0709af83122f62f92a40a18944ffc879e7b6788762a5d869043915a",
+    "op_stack/deposit_main.cairo": "927f5fca00807c884bc6a2897e1fe9c6f822b7db3f4f3dbbdfa2fd3b3b7f0b27",
+    "op_stack/deposit_harness.cairo": "d0ebead6e4ef8aec927789f85d38f4c200f84eaf1299dcd417bcb765cc1df697",
+    "op_stack/fastlz.cairo": "4dd6366940606604cfa269907e2911a0c2428b4c4b5f43b907b01bda217ba19c",
+    "op_stack/deposit_types.cairo": "8a624d8a8f0e74aacaa4218afbecff6529c574f7943ea853b8255b12c3fbfd30",
+    "op_stack/deposit_execution.cairo": "8f80823bca6208112ed80d3d8d260210d15e7ac5ff2a8a9b6feb3d092547c258",
+    "op_stack/fees.cairo": "2377e30c249fb491cadff34cd2623038f9a0d9a9073e76b7a10e9340501e552b"
+  },
+  "compiled_cells": 173440,
+  "compiled_sha256": "096208d1fd7f2bb884fc94b1dc156452597783dc6702ff5c5f052592d07f502b",
+  "schema": "keth-op-cairo-compile-v1",
+  "keth_source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "elapsed_seconds": 40.23215970900492,
+  "op_block_execution_proved": false,
+  "op_derivation_proved": false
+}

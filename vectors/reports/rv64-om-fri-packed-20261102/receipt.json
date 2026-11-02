@@ -1,0 +1,104 @@
+{
+  "scope": "concrete OM CPU FRI implementation +single matched stronger-candidate CPU0 pair; no full-block speed claim yet",
+  "base": "19331ac86",
+  "arithmetic": "original core coordinate walk and inverse-butterfly+alpha laws; unchanged config/transcript/query schedule",
+  "cap_bytes": 134217728,
+  "candidate_first_line_rows": 8388608,
+  "candidate_first_line_scratch_bytes": 134217728,
+  "all8_artifact_hashes_exact": true,
+  "both_frozen_receivers_accepted": true,
+  "reviewed_root_manifest": "8ce5fb0a7",
+  "changed_paths_in_rv32_declared_production_or_proof_source_lists": {
+    "src/core/fri/folding_family.zig": [],
+    "src/core/fri_family.zig": [],
+    "src/prover/fri_commit_ops_family.zig": [],
+    "src/prover/fri_packing_family.zig": [],
+    "src/prover/pcs/scheme_family.zig": []
+  },
+  "final_guarded_cli_sha256": "c4a5de848bde684c7914e48c9e5cab45f2785f606486de42825f457aff0848c6",
+  "pair_precedes_domain_guard_only": true,
+  "runs": [
+    {
+      "kind": "baseline",
+      "binary_sha256": "02195aee6a1c9fea3deef751bf4088189dcb28b107c6c4d19d7af6c9df406c53",
+      "start_unix": 1793594541.7846541,
+      "end_unix": 1793594563.8401449,
+      "out": "/tmp/stwo-rv64-om-fri-cpu0-baseline-v1",
+      "log": "/tmp/rv64-om-fri-cpu0-baseline.log",
+      "prove_ns": 17245077583,
+      "hashes": {
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8"
+      },
+      "fresh": true,
+      "stage_seconds": {
+        "streaming_commit_prepare": 3.762084999999999,
+        "streaming_transform": 2.1972919999999996,
+        "streaming_leaf_hash": 1.5641250000000007,
+        "merkle_commit": 0.31369199999999997,
+        "binding_finalize": 0.273374,
+        "interaction_generation": 0.107955,
+        "draw_random_coeff": 1e-05,
+        "composition_trace_extract": 1.8e-05,
+        "composition_evaluation": 2.471557,
+        "composition_interpolate_and_split": 0.194006,
+        "composition_commit": 0.441068,
+        "oods_point_and_mask_points": 9.1e-05,
+        "sampled_value_evaluation": 0.216204,
+        "sampled_value_channel_mix": 0.000142,
+        "fri_quotient_build_and_commit": 3.094349,
+        "proof_of_work": 1e-05,
+        "fri_decommit": 0.581063,
+        "trace_decommit": 0.713465,
+        "constraint_check_and_assembly": 0.001991
+      },
+      "rss_bytes": 12104450048
+    },
+    {
+      "kind": "packed",
+      "binary_sha256": "3355c7f306d9b0e58eec5f07ff65f5e54293c8c8e488b21082ee335e8124f065",
+      "start_unix": 1793594563.840408,
+      "end_unix": 1793594585.43387,
+      "out": "/tmp/stwo-rv64-om-fri-cpu0-packed-v1",
+      "log": "/tmp/rv64-om-fri-cpu0-packed.log",
+      "prove_ns": 16060892584,
+      "hashes": {
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8"
+      },
+      "fresh": true,
+      "stage_seconds": {
+        "streaming_commit_prepare": 3.8590969999999993,
+        "streaming_transform": 2.2668119999999994,
+        "streaming_leaf_hash": 1.5915790000000007,
+        "merkle_commit": 0.319399,
+        "binding_finalize": 0.278707,
+        "interaction_generation": 0.106752,
+        "draw_random_coeff": 1.3e-05,
+        "composition_trace_extract": 2.7e-05,
+        "composition_evaluation": 2.534689,
+        "composition_interpolate_and_split": 0.192394,
+        "composition_commit": 0.451821,
+        "oods_point_and_mask_points": 0.000105,
+        "sampled_value_evaluation": 0.222892,
+        "sampled_value_channel_mix": 0.000145,
+        "fri_quotient_build_and_commit": 2.119895,
+        "proof_of_work": 1.1e-05,
+        "fri_decommit": 0.084071,
+        "trace_decommit": 0.709624,
+        "constraint_check_and_assembly": 0.001967
+      },
+      "rss_bytes": 12104531968
+    }
+  ],
+  "caveats": [
+    "Single CPU0 pair; no controlled full-block throughput claim.",
+    "Full-block candidate K18 baseline305.846s has summed worker intervals; cannot sum overlapping phase times into wall.",
+    "Newhalf-line scratch is bounded128MiB; freed before finalresize fallback. Allallocations remainunder callerallocator, requestedpayload != RSS.",
+    "QM31 dispatch unchanged; core coordinate walk exposure is outside declared RV32 Lean source custody; not a composed128security certificate."
+  ]
+}

@@ -1,0 +1,7 @@
+src/frontends/riscv/rv64/candidate_isa.zig
+src/front  (1.8s)
+v/rv64/ethereum_contract.zig
+src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_worker_test.zig
+src/integrations/riscv_cpu/word16_global_execution/services/wire.zig
+src/integrations/riscv_cpu/tests/rv64_v3_services_recursion_test.zig
+src/prover/poly/circle/poly.zig

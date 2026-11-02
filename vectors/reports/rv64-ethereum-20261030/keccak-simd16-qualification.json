@@ -1,0 +1,57 @@
+{
+  "schema": "rv64-keccak-simd16-v1",
+  "status": "Safe and Fast functional parity PASS; both q70/P26 historical K proof controls exact and fresh-process verified; joined hashes and measured whole-job performance tracked separately",
+  "source": [
+    "src/frontends/riscv/rv64/air/crypto/keccak/equations.zig",
+    "src/frontends/riscv/rv64/air/crypto/keccak/component.zig",
+    "src/frontends/riscv/rv64/air/crypto/keccak/parallel.zig",
+    "src/frontends/riscv/rv64/air/crypto/keccak/packed_rows.zig"
+  ],
+  "architecture": {
+    "logical_lanes": 16,
+    "local_field": "PackedBase uses existing native M31 vector packs; global core PACK_WIDTH unchanged",
+    "lookup_field": "PackedSecure QM31 for all FS challenges, four-coordinate interaction fields, mixed lookup denominators and prefix residuals",
+    "inputs": "Column-contiguous current M31 loads; bounded per-lane halo gather through existing circle index authority; no scalar QM31 promotion or dense secure inflation",
+    "authority": "Scalar Q wrappers and packed Base/Secure execute the same emitFor polynomial authority and tuple algebra; tableResidual delegates tableResidualFor",
+    "fixed_polynomials": "All phase selectors, first/complete/index columns and committed active/header polys evaluated at LDE points; no native-phase skipping",
+    "protocol": "Unchanged degree4, masks, fixed schedule/root, source geometry, row/residual order, transcript, claims, lookup masses and proof wire",
+    "scratch": "One explicitly selected heap union per worker, existing structured lease and deferred drain; allocation maximum remains old845440 bytes, packed member touches701312 bytes. No per-packet allocation."
+  },
+  "gates": {
+    "command": "zig build test-riscv64-keccak -Doptimize=ReleaseSafe",
+    "result": "PASS",
+    "scalar_residual_oracle": "Every6102 permutation residual plus chi/xor table residuals for16 arbitrary Base-valued rows AND16 arbitrary full-extension-valued OODS rows. Phase/header/active inputs deliberately arbitrary.",
+    "domain_oracle": "Exact arbitrary-polynomial scalar quotient equality over all4cosets; additive repeated passes and1/3/8/16 actual workers. Three-worker boundaries create partial packets.",
+    "proof_oracle": "Exact serialized native primitive proof digest and independent point verification at1/3/8/16workers vs explicit scalar untiled path; q12/P0 unit profile only.",
+    "failure_paths": "Worker scratch allocation failure, unavailable lease, malformed predecessor shape before submission; all inherited K padding/empty/highID/metadata/pole/tail regressions pass.",
+    "release_fast": "PASS: zig build test-riscv64-keccak -Doptimize=ReleaseFast, including arbitrary Base and full-extension residual oracles"
+  },
+  "performance": {
+    "measured": false,
+    "claim": "No K SIMD whole-job speed claim before matched retained-batch benchmark."
+  },
+  "historical_proof_controls": [
+    {
+      "case": "primitive-five",
+      "calls": 5,
+      "workers": 16,
+      "fresh_verifier_workers": 1,
+      "proof_bytes": 1621800,
+      "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+      "exact_historical_bytes": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-simd16/primitive-five"
+    },
+    {
+      "case": "bridge",
+      "calls": 3,
+      "workers": 16,
+      "fresh_verifier_workers": 1,
+      "proof_bytes": 1661832,
+      "sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+      "exact_historical_bytes": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-simd16/bridge"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "rv64-keccak-primitive-fresh-process-v1",
+  "verified": true,
+  "cpu_ram_bridge": false,
+  "process_wall_ns": 18846916,
+  "proof_sha256": "f4e47f58ddec1fc571b1e1edf3f585a8f09159e7e8632cde8076dead727953ac",
+  "expected_io": "Three fixed independently generated test inputs; outputs recomputed by std.crypto.core.keccak.KeccakF(1600), not read from producer state.",
+  "fixed_root": "Receiver derives call geometry and canonical chi/xor5 tables independently.",
+  "command": "zig-out/bin/rv64-keccak-fixture verify vectors/reports/interop_artifacts/rv64-keccak-permutation-v1",
+  "artifact_directory": "vectors/reports/interop_artifacts/rv64-keccak-permutation-v1",
+  "regenerate": "zig build rv64-keccak-fixture -Doptimize=ReleaseFast && zig-out/bin/rv64-keccak-fixture produce vectors/reports/interop_artifacts/rv64-keccak-permutation-v1"
+}

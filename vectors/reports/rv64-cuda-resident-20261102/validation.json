@@ -1,0 +1,161 @@
+{
+  "schema": "rv64-cuda-resident-qualification-v1",
+  "base_pr": 310,
+  "base_commit": "a7f484e34c266bf1a7d220d96502701794fa6d7c",
+  "scope": "resident OM31 lookup/GKR numerical kernels, custody and fleet credit ledger",
+  "host": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "python": "3.12.14"
+  },
+  "zig_version": "0.15.2",
+  "cuda_compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Tue_Sep_01_08:45:21_PDT_2026\nCuda compilation tools, release 13.4, V13.4.92\nBuild cuda_13.4.r13.4/compiler.38855100_0",
+  "cuda_flags": [
+    "-O3",
+    "-std=c++17",
+    "-Xptxas=-v"
+  ],
+  "compiled_architectures": [
+    "sm_89",
+    "sm_120"
+  ],
+  "hardware_harness_linked": true,
+  "focused_tests": {
+    "ReleaseSafe": {
+      "passed": 13
+    },
+    "ReleaseFast": {
+      "passed": 13
+    },
+    "independent_field": {
+      "schema": "rv64-cuda-independent-field-v1",
+      "cases": 4196,
+      "passed": true,
+      "device_execution": false
+    },
+    "custody_host_boundary": "pass",
+    "focused_package_contract": "pass"
+  },
+  "device_run": {
+    "returncode": 77,
+    "stdout": "",
+    "stderr": "SKIP: NVIDIA device/driver unavailable\n"
+  },
+  "device_numerical_parity": false,
+  "device_sanitizer_run": false,
+  "hardware_performance_measured": false,
+  "complete_block_proof": false,
+  "pinned_rust_protocol_oracle_run": false,
+  "gpu_resident_execution_scope": "numerical launch interfaces only; actual RV64 witness and full proof orchestration pending",
+  "broad_ci": "blocked by six pre-existing base formatting failures; package workspace also stops on inherited proof_wire unsorted api_surface",
+  "source_files": [
+    {
+      "path": "src/backends/cuda/native/common/provider_compat.cuh",
+      "sha256": "535a7099e74ebebb68a149e2939c4e6c7db0bce1f8988d3329ebaf649e1cbf05"
+    },
+    {
+      "path": "src/backends/cuda/native/oods/field.cuh",
+      "sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+    },
+    {
+      "path": "src/backends/cuda/native/runtime/context.cu",
+      "sha256": "64be59734e33026270cd951ea7e02c1e915384f6b976dee0aa126f86ca546cd6"
+    },
+    {
+      "path": "src/backends/cuda/native/runtime/context_options.h",
+      "sha256": "5e7b8044792f82febf6cb75d14a5505a959e6e3a266e4caa524a910a17a63aca"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/custody.cuh",
+      "sha256": "1888cb276ba0aac2ba8c13a327abfb1de85c90087a92359b05663a408dd9fbfd"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.cu",
+      "sha256": "e2ad03b8ac1ac687ee781e430462de2daa32ab2e20adb89dfe7d0453e5a459cc"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/gkr.h",
+      "sha256": "da976491fc671dc30882a744f0b088f29e67ca87516bf5b03ebb2c2566a7e158"
+    },
+    {
+      "path": "src/backends/cuda/native/rv64/om31.cuh",
+      "sha256": "aa703df677f738dafddca019267fe52a9b54dde6c266d4331fa2371179c8f13b"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/build.zig",
+      "sha256": "2b6dd90418326add21fe1bb0b4719d18a8c7bb612192c4ad59c2ccaf87dea9b8"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/build.zig.zon",
+      "sha256": "ed5a92493b4b7327c655611b467c87bdc58f6612d21fef7b88fa5459aae9f894"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/abi.zig",
+      "sha256": "1a533be6cbe5d74b3f0dc8eb4f6e0eb58f34fd43d4a78454dbc2a530c395e607"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/mod.zig",
+      "sha256": "3c47d54a99ceffc7281a0b8558aabdab6e3d28da59d0f7d662f4a234652c7d9c"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/plan.zig",
+      "sha256": "5dda46dfb9c68b47c03165be46fcd447dbcbb2e983e2e73f44f0dd0867a49b9d"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/resident.zig",
+      "sha256": "b84c16c7cd3048184a040bffc95973b0cafe5b22dcac609792dcf8b84eb9d61b"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/scheduler.zig",
+      "sha256": "40d345ed6e61fce679c26145d79406feab33e8e686c45c999d9472d58923230e"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/numerical_test.zig",
+      "sha256": "becbdfb772638621bbf45115bdcf944ac8482e3267be931402b93feaae605cdd"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/plan_test.zig",
+      "sha256": "2ca6653bc587edb2b2efb2e22cc2dffc13465a9d907f5bafe5e475a2b21953c8"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/resident_test.zig",
+      "sha256": "82fd5a5b782b623259ceb97f2fde5c7e51f5989bc89e1ffa56a16693b4ad542d"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/rv64/tests/scheduler_test.zig",
+      "sha256": "a4cee38df838fa37a0c7236a3912ac7f1936f4753a3b02e8cd18a4b8eedf4d03"
+    },
+    {
+      "path": "tests/cuda/rv64/README.md",
+      "sha256": "c342cf8f6bf7e85e41e528c66fa9331f00ebc1e3139c756166ed8ddd7893d882"
+    },
+    {
+      "path": "tests/cuda/rv64/custody_test.cpp",
+      "sha256": "ed0878ede8beda847ce37db00876958867b3d34b991af45d0dda370579e19634"
+    },
+    {
+      "path": "tests/cuda/rv64/host_include/cuda_runtime_api.h",
+      "sha256": "3d4f71ea7bd03956c9c041048bd13e457c74436c7ed125a78a0cc6f4c834d436"
+    },
+    {
+      "path": "tests/cuda/rv64/independent_field.py",
+      "sha256": "7352b54edaa9d2f7eff8813aa63ef459570115424ee3ead09f416858b1afb0d2"
+    },
+    {
+      "path": "tests/cuda/rv64/numerical_bridge.cpp",
+      "sha256": "7f5b6b8015c88f6829c12814c2efffd0e63d20aa379b1eb5f75542b8c21a0d21"
+    },
+    {
+      "path": "tests/cuda/rv64/resident_smoke.cu",
+      "sha256": "274134b63e07579949320e2a5deafef352bce024f06d04087bd82b5709a6652f"
+    }
+  ],
+  "security_parameters_changed": false,
+  "production_admission_enabled": false,
+  "compiler_reports_no_spills": true,
+  "source_conformance": {
+    "whole_repository": "fails on inherited unrelated findings",
+    "touched_file_findings": 0,
+    "unit_tests_passed": 31
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema": "rv64-secp-main-lifetime-qualification",
+  "strict_release_safe_tests": 29,
+  "artifacts": [
+    {
+      "name": "add",
+      "path": "vectors/reports/interop_artifacts/rv64-secp-metadata-add/proof.bin",
+      "bytes": 355392,
+      "sha256": "1a83e6557493e55f1c1563baae40737820cc3ec9f1205dfdf93e1ef8013aecfc"
+    },
+    {
+      "name": "serial",
+      "path": "vectors/reports/interop_artifacts/rv64-secp-metadata-serial/proof.bin",
+      "bytes": 446536,
+      "sha256": "887f1ce76f64a9795f3668201412d5cf3a69e3abdbc2c161d9e4674ba1cabf3f"
+    },
+    {
+      "name": "parallel",
+      "path": "vectors/reports/interop_artifacts/rv64-secp-metadata-parallel/proof.bin",
+      "bytes": 446536,
+      "sha256": "887f1ce76f64a9795f3668201412d5cf3a69e3abdbc2c161d9e4674ba1cabf3f"
+    }
+  ],
+  "proof_bytes_equal_previous_qualified_proofs": true,
+  "serial_parallel_equal": true,
+  "raw_main_released_after_commit_before_challenges": true,
+  "retained_metadata": {
+    "product_bytes_per_active_row": 284,
+    "linear_bytes_per_active_row": 128,
+    "bridge_bytes_per_call": 528,
+    "add_unpadded_bytes_per_call": 8016,
+    "double_unpadded_bytes_per_call": 4988
+  },
+  "gates": [
+    "all BYTE/wire inputs and bridge rows exactly match original main",
+    "entire adopted main arena destroyed before interaction generation",
+    "all three claims/interaction matrices equal retained-main path",
+    "allocation failures and late publication rollback",
+    "metadata released after complete interaction publication"
+  ],
+  "scope": "Allocation/lifetime improvement; does not establish whole-prover peak or speedup before coordinator adoption.",
+  "unchanged": [
+    "direct arithmetic authority",
+    "degree4 bound",
+    "component widths, masks, roots and proof protocol"
+  ],
+  "remaining": [
+    "Production owned-ragged main adoption",
+    "Whole CPU/crypto/private-RAM end-to-end proof and measurements"
+  ]
+}

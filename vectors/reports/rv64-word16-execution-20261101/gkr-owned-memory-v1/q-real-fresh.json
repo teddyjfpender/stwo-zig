@@ -1,0 +1,22 @@
+{
+  "accepted": true,
+  "protocol": "WGKR-LS-RANGE-v0",
+  "variant": "gkr",
+  "statement": {
+    "ls_log": 20,
+    "tail_log": 18,
+    "hi_log": 16,
+    "lo_log": 8
+  },
+  "proof_bytes": 381800,
+  "verify_wall_ns": 7997083,
+  "report": {
+    "gkr_ns": 256000,
+    "stark_ns": 4673875,
+    "total_ns": 7908417,
+    "gkr_mix_calls": 368,
+    "gkr_mixed_felts": 1380,
+    "gkr_draws": 348,
+    "gkr_blake_compressions": 1038
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "rv64-services-gkr-manifest-tables-v1",
+  "base": "8e1520585",
+  "production_selected": false,
+  "execution_acceptance": false,
+  "whole_protocol_128_claim": false,
+  "speedup_claim": false,
+  "profile": "RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V1",
+  "commands": [
+    "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe -j2 --summary all",
+    "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast -j2 --summary all"
+  ],
+  "qualification": {
+    "safe_exit": 0,
+    "fast_exit": 0,
+    "suite_guard_minimum": 33,
+    "physical_fragments": [
+      "existing varying original ALU MAIN+local binding, including mixed heights",
+      "ROM original invalid-row multiplicity guard+local binding",
+      "U8 table multiplicity+local binding",
+      "public REG immutable selectors+validated native endpoints+local binding"
+    ],
+    "adversarial": [
+      "arithmetic-valid changed MAIN multiplicity",
+      "Eq/prefix/terminal target changes",
+      "changed public final register",
+      "missing/reordered/unadmitted local children",
+      "substituted local MAIN/FIXED/statement/roster/receipt",
+      "changed classic truth root changes every global namespace",
+      "cross-global-relation cancellation",
+      "absent relation debt cancelled by another worker",
+      "all partial manifest child verification allocation failures"
+    ],
+    "table_projection_parity": "all seven table roles, sixteen distinct packed rows, all eight OM31 coordinates; same original arithmetic residuals and padding terms",
+    "memory": "bounded one-MAIN expansion; no global cache; capacities per trusted component type; owned pending child cleanup"
+  },
+  "authority_requirements": [
+    "Expected roster/statements/FIXED roots/global presence masks come from independently admitted receiver setup.",
+    "Every pending MAIN root must match the later freshly verified physical proof.",
+    "Per-role physical claims must be individually transcript-bound and absent fields rejected before worker sums.",
+    "All native proofs, terminal bindings, global closures, coverage and execution endpoints must verify before acceptance."
+  ],
+  "pending": [
+    "whole services CPU assembly and OM global bridges",
+    "classic OM truth proof assembly",
+    "full execution wire/fresh-process receiver",
+    "whole block qualification and controlled resource/time measurement",
+    "whole-protocol security review and outer recursion"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest.zig": "4e1a5b95569dbb0eced1f476717bf65581ec61eca43ee3d04121148cd0c7105a",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/manifest_test.zig": "825b99e19c20e8897b5a042d95c95d56e3f041d5aa5ed573f47f12c8db5657a9",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role.zig": "422b82bcc08dc9d423d871c1a8748f4c77fb1048b222ea00caf2236eb74c8f29",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_domain.zig": "2af6ed9f392978245a484b1449def3402a344e68eff6718dbab8720d045c150d",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_geometry.zig": "ae242ec0623fd2e48754697c710c4394eee61f1ce7e0632bc12f91d29b4bb88a",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_oods.zig": "cf90218b83116f34106c0c2d78cec7b7cda89402ac06f1ba6bedec1c66443460",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/table_role.zig": "bcee187d52d4d086f8f105cacb9b966ce208aae94ac08b23bf9bd4223a23281b",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/table_role_test.zig": "2dcb892f647a4ed894591a0c54a6c65f5a09c535fbd44daedb160bd2c7af95d3"
+  }
+}

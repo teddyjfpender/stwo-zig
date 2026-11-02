@@ -1,0 +1,79 @@
+{
+  "schema": "rv64-main-arena-qualification-v1",
+  "scope": "concrete combined-main arena and PCS ownership; K/secp borrowed constructors qualified separately",
+  "source": "src/integrations/riscv_cpu/rv64_main_arena.zig",
+  "allocation": {
+    "field": "M31",
+    "allocations": 1,
+    "physical_order": "descending native log size, then canonical Role enum order",
+    "canonical_columns": "Role enum order independent of physical placement",
+    "alignment_bytes": 64,
+    "retained_owner": "original allocator-returned slice, including at most 15 alignment words",
+    "matrix_initialization": "borrowed role matrices initialized once by each builder, including padding; explicit markInitialized required",
+    "coefficient_storage": "existing source_trace_arena backend adopts original allocation and retains native coefficients in place"
+  },
+  "qualified_shapes": {
+    "native_log_sizes": [
+      4,
+      5,
+      6,
+      8
+    ],
+    "total_columns": [
+      10,
+      64,
+      65,
+      127,
+      128
+    ],
+    "roles": [
+      "cpu",
+      "rom",
+      "bytes",
+      "secp_add_product",
+      "ram_poseidon",
+      "ram_policy"
+    ]
+  },
+  "gates": [
+    "duplicate/missing/invalid roles and geometry",
+    "checked cell, byte, header and offset arithmetic",
+    "64-byte interior alignment and stable contiguous same-height groups",
+    "incomplete initialization, repeated initialization, repeated transfer and allocator mismatch guards",
+    "exact original backing pointer/length custody",
+    "owned versus borrowed exact Merkle roots, explicit openings, transcript and serialized PCS proof bytes",
+    "independently decoded PCS proof verifies against expected native log sizes and points",
+    "retained coefficient pointer equals original native column pointer",
+    "exhaustive allocation failures through arena construction, descriptor transfer, PCS commit and full PCS proof"
+  ],
+  "integration_plan": [
+    "Admit complete public geometry and aggregate lookup masses before allocating; derive explicit Spec for every present role.",
+    "Add explicit borrowed-main constructors sharing existing row-fill authorities; keep owned constructors available. Do not emulate allocation using a fake allocator.",
+    "CPU, count tables, DIV/MUL, K, secp and RAM fill their role slices directly, including padding; general allocator retains only narrow interaction metadata.",
+    "Builders mark each completed role initialized; canonical headers preserve existing component offsets and all independent native heights.",
+    "Detach borrowed builder main references before takeForCommit; one descriptor and one original backing allocation transfer to the consuming PCS commit on success and error.",
+    "Draw lookup challenges after all main roots seal, then generate interactions solely from retained narrow metadata. Preserve existing native-height prefix hashing reuse."
+  ],
+  "limits": [
+    "No whole-block proof or production arena integration claim.",
+    "No memory or timing improvement claimed without a complete joined-batch measurement.",
+    "PCS-only proof fixtures establish storage equivalence, not CPU or cryptographic AIR correctness."
+  ],
+  "fri_oom_fix": {
+    "files": [
+      "src/prover/pcs/scheme.zig",
+      "src/prover/fri.zig",
+      "src/prover/fri_decommit.zig"
+    ],
+    "original_failure": "full proof allocation failure 364/955: initial drawQueries allocation after FRI inner commitment leaked retained FRI layers",
+    "fix": "explicit ownership until consuming decommit handoff; cleanup of partially transferred helper arrays and inner proofs",
+    "successful_path": "no arithmetic, transcript, protocol parameters or proof format changes"
+  },
+  "test_command": "zig build test-riscv64-main-arena -Doptimize=ReleaseSafe",
+  "result": "PASS",
+  "tests": {
+    "meaningful": 6,
+    "runner_total_including_import_root": 7,
+    "full_proof_allocator_sites_swept": 955
+  }
+}

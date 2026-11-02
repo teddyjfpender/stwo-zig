@@ -1,0 +1,32 @@
+[
+  {
+    "original_path": "autoresearch/experiments/evm_keth/op_reference/main.go",
+    "retained_file": "main.go.txt",
+    "sha256": "0fc10326b60ae73c07414b61eae0c488ec4e8f7c624426e5db8e913f4b27b90c"
+  },
+  {
+    "original_path": "autoresearch/experiments/evm_keth/assemble_op_reference.py",
+    "retained_file": "assemble_op_reference.py.txt",
+    "sha256": "d81c584a561eb154a160491897dd4466511fc7c9fc894fafb0fbec7eabb44f06"
+  },
+  {
+    "original_path": "autoresearch/experiments/evm_keth/collect_state_witness.py",
+    "retained_file": "collect_state_witness.py.txt",
+    "sha256": "dd2b55d765c1b8ec0fb94101bea4ad4ebac5219e7b99c2b7cb4bd8fdf298ed05"
+  },
+  {
+    "original_path": "autoresearch/experiments/evm_keth/state_proofs.py",
+    "retained_file": "state_proofs.py.txt",
+    "sha256": "e30548da73372a91ca51c1d78be7385c8983d1ad4cfc72b22e12de3addb86113"
+  },
+  {
+    "original_path": "autoresearch/experiments/evm_keth/witness_nodes.py",
+    "retained_file": "witness_nodes.py.txt",
+    "sha256": "d8cbdcf2070eacd506a6ad36151eabd7ecba2244ee81307c318330f821f3fcd6"
+  },
+  {
+    "original_path": "autoresearch/experiments/evm_keth/qualify_op_reference.py",
+    "retained_file": "qualify_op_reference.py.txt",
+    "sha256": "bfa7c8ed503cc73ac456d17e9ef38c891670116dabfcbdfa8bc7e3f007b46353"
+  }
+]

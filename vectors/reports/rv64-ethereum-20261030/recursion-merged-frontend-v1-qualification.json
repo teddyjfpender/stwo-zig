@@ -1,0 +1,730 @@
+{
+  "schema": "rv64-recursion-merged-frontend-qualification-v1",
+  "worktree": "/private/tmp/stwo-rv64-recursion-integrate-v1",
+  "base_commit": "262cf7ae664fba8dd310b8a2f82e35d17110bb1e",
+  "user_recursion_commit": "154a60c58",
+  "scope": "Read-only native frontend/point/SIMD compatibility qualification; recursion leaf/fold/hardening qualification is parent-owned",
+  "safe": {
+    "targets": [
+      "test-riscv64-point-evaluation",
+      "test-riscv64-simd-fields",
+      "test-riscv64-full-proof",
+      "test-riscv64-program-proof"
+    ],
+    "exit_code": 0,
+    "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/safe-focused.log",
+    "actual_runtime_counts": {
+      "test-riscv64-point-evaluation": [
+        4
+      ],
+      "test-riscv64-simd-fields": [
+        7
+      ],
+      "test-riscv64-full-proof": [
+        5
+      ],
+      "test-riscv64-program-proof": [
+        4
+      ]
+    }
+  },
+  "fast": {
+    "target_count": 32,
+    "all_exit0": true,
+    "records": [
+      {
+        "target": "test-riscv64-point-evaluation",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-point-evaluation",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 47046616542,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-point-evaluation.log"
+      },
+      {
+        "target": "test-riscv64-air",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-air",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 106561977625,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-air.log"
+      },
+      {
+        "target": "test-riscv64-execution",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-execution",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 10689247166,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-execution.log"
+      },
+      {
+        "target": "test-riscv64-full-proof",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-full-proof",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 92212914250,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-full-proof.log"
+      },
+      {
+        "target": "test-riscv64-program",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-program",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 7045307041,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-program.log"
+      },
+      {
+        "target": "test-riscv64-program-proof",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-program-proof",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 15087374208,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-program-proof.log"
+      },
+      {
+        "target": "test-riscv64-simd-fields",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-simd-fields",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 10313552334,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-simd-fields.log"
+      },
+      {
+        "target": "test-riscv64-parallel",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-parallel",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 29257584750,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-parallel.log"
+      },
+      {
+        "target": "test-riscv64-coset",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-coset",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 4730046208,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-coset.log"
+      },
+      {
+        "target": "test-riscv64-full-capture",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-full-capture",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 31276949375,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-full-capture.log"
+      },
+      {
+        "target": "test-riscv64-multiplication",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-multiplication",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 16676729000,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-multiplication.log"
+      },
+      {
+        "target": "test-riscv64-keccak-cpu",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-keccak-cpu",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 120076674417,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-keccak-cpu.log"
+      },
+      {
+        "target": "test-riscv64-ethereum-chain",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-ethereum-chain",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 110165698458,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-ethereum-chain.log"
+      },
+      {
+        "target": "test-riscv64-division",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-division",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 20306353417,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-division.log"
+      },
+      {
+        "target": "test-riscv64-authenticated-execution",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-authenticated-execution",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 209042406125,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-authenticated-execution.log"
+      },
+      {
+        "target": "test-riscv64-ram",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-ram",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 207751093750,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-ram.log"
+      },
+      {
+        "target": "test-riscv64-providers",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-providers",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 65589850125,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-providers.log"
+      },
+      {
+        "target": "test-riscv64-main-arena",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-main-arena",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 50027491916,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-main-arena.log"
+      },
+      {
+        "target": "test-riscv64-secp",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-secp",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 24553642875,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-secp.log"
+      },
+      {
+        "target": "test-riscv64-keccak",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-keccak",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 50762908333,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-keccak.log"
+      },
+      {
+        "target": "test-riscv64-keccak-quartet",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-keccak-quartet",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 38039395542,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-keccak-quartet.log"
+      },
+      {
+        "target": "test-riscv64-poseidon-simd",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-poseidon-simd",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 18319361750,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-poseidon-simd.log"
+      },
+      {
+        "target": "test-riscv64-borrowed-services",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-borrowed-services",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 71332962333,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-borrowed-services.log"
+      },
+      {
+        "target": "test-riscv64-lean-proof",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-lean-proof",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 60139579333,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-lean-proof.log"
+      },
+      {
+        "target": "test-riscv64-verifier-cache",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-verifier-cache",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 77891815667,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-verifier-cache.log"
+      },
+      {
+        "target": "test-riscv64-cpu-degree-diagnostic",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-cpu-degree-diagnostic",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 13156169875,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-cpu-degree-diagnostic.log"
+      },
+      {
+        "target": "test-riscv64-pcs-commit",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-pcs-commit",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 8192316375,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-pcs-commit.log"
+      },
+      {
+        "target": "test-riscv64-pcs-owned",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-pcs-owned",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 12301633000,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-pcs-owned.log"
+      },
+      {
+        "target": "test-riscv64-work-packet",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-work-packet",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 7774142166,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-work-packet.log"
+      },
+      {
+        "target": "test-riscv64-ethereum-packet-control",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-ethereum-packet-control",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 100287439208,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-ethereum-packet-control.log"
+      },
+      {
+        "target": "test-riscv64-closed-ram",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-closed-ram",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 52299053708,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-closed-ram.log"
+      },
+      {
+        "target": "test-riscv64-closed-load-store",
+        "command": [
+          "zig",
+          "build",
+          "test-riscv64-closed-load-store",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ],
+        "exit_code": 0,
+        "elapsed_ns": 56596797125,
+        "log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-closed-load-store.log"
+      }
+    ],
+    "runtime_metadata": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/runtime-metadata.json",
+    "note": "Explicit recorded32 native frontend suites; not asserted identical to an unavailable earlieruser32 list. Floors andactualmetadata reported pertarget."
+  },
+  "fresh_retained_round5": {
+    "command": [
+      "/tmp/stwo-rv64-recursion-merged-frontend-tools-v1/bin/rv64-ethereum-proof",
+      "verify",
+      "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/request.json"
+    ],
+    "tool_sha256": "b255b699c90f707494b186d80091bd3fe192043197f5f187320bd7e770d19250",
+    "tool_build_exit0": true,
+    "tool_build_log": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/ethereum-tool-build.log",
+    "receiver_exit0": true,
+    "report_sha256": "02afb94f9b25b52d7a0b50f6e9b460fde7ecc8675d903b4538f39ef18f15a7cf",
+    "report": {
+      "status": "ethereum_execution_proof_verified",
+      "full_block_proof_verified": true,
+      "batches": 25,
+      "instructions": 104253913,
+      "calls": [
+        32835,
+        11496,
+        9768
+      ],
+      "final_root": [
+        1597246056,
+        1494197437,
+        1174685431,
+        1286895669,
+        737591051,
+        48324924,
+        2057573505,
+        2108007572,
+        911054800
+      ],
+      "final_pc": 17308,
+      "final_registers": [
+        0,
+        17292,
+        33547472,
+        33556480,
+        0,
+        3499525697743889699,
+        202,
+        23552,
+        1,
+        43,
+        12583820,
+        12583824,
+        2155912,
+        12582962,
+        33614976,
+        256,
+        3266721893277905514,
+        11339828202021680933,
+        36576416,
+        33554016,
+        24,
+        33648768,
+        33553992,
+        6,
+        24,
+        33549560,
+        20,
+        33551672,
+        7274496,
+        2181038080,
+        805306368,
+        0
+      ],
+      "setup_ns": 10616340706,
+      "verify_ns": 763077380,
+      "proof_bytes": 72851424,
+      "verifier_cache": {
+        "hits": 2,
+        "misses": 23,
+        "entries": 8,
+        "retained_bytes": 361072,
+        "peak_retained_bytes": 380768,
+        "cold_setup_ns": 10616340706
+      }
+    },
+    "os_resources_text": "       12.54 real        52.95 user         4.78 sys\n          6090145792  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n             1107030  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                  68  voluntary context switches\n              207934  involuntary context switches\n        441801749246  instructions retired\n        189878673865  cycles elapsed\n          6090380064  peak memory footprint\n",
+    "scope": "All25 existingnativebatchproofs plus terminal independentlyverified; noVMexecution/reproving andno claimthatall25were recursivelywrapped bythisqualification"
+  },
+  "source_provenance": {
+    "no_source_edits_by_qualification_agent": true,
+    "staged_diff_sha256": "c473833768ebd37eb29f0a91c73132d6548dbd454a9ebf22fc31ff3bfe731f92",
+    "before_pins_file": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/source-before.json",
+    "before_pins_sha256": "a4bb694a5c2bcd988cd5e9ceed422db64e125bcddda879c8856ce3bc498f94cb",
+    "after_pins_file": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/source-after.json",
+    "after_pins_sha256": "e9a9977df3d875f90cd283b7c86cc21a09dbdfc07f3767c9f589e29fea0001d8",
+    "merged_changed_source_pins": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/merged-changed-source-pins.json",
+    "merged_changed_source_pins_sha256": "2e2e30cca70deecab9ea97066ad22350c4c7a0dd6f95fa371232ae4172700359",
+    "concurrent_changes": [
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_cpu/profile.zig",
+        "before": "fb04db37ad79235899a12aa76ab3f5eacda208f8c0e2af58a2c13ad1017ea33f",
+        "after": "f35ce7782eb48af838ce4b76e8d031e67653fcd691b6ec6b3172341f45fea43a"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/alu.zig",
+        "before": "2f0843008477c02942e5eb54d666ad9c63ad16ad721228c3e4dc28faab797203",
+        "after": "9cdd475cd00c47d9a9d3b3e3032b4db6d8294f72b20bce67881af702a75aadb5"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/alu_encoding.zig",
+        "before": null,
+        "after": "7ee3a6dd43995dbdc145542dd02f07d9027082008f8190deb28c0e7bdfc4211b"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig",
+        "before": "4e853a99527e0aa29580ee683cf3b85a1894c102cdff00f116b11a33db3503b6",
+        "after": "18fe052c55972505152fbb3599bb96d71d38a2d721f86c8aa24c3a6e19936462"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig",
+        "before": "2f49c99ffac6f67cf0efd5e01e6ecdb8e6d2056e2a4e6feeebaf90191cc6b44d",
+        "after": "d38b0c5de439c4b525bc05b466275b67a42ba3f38e612f91667a96bdc3b10804"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/alu_source_test.zig",
+        "before": "989efc5e49cc434f588d3585b86cc24fccedb17a23c70a35ffc2a4d058f3e50e",
+        "after": "c2a3b22af0f768d93fe41fb23b5664b161ac2c54cd844638226543e5673aede6"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/alu_test.zig",
+        "before": "255969a3046772209aa80005f0db6cafcfc90f4bd3d412e5f2e76c38b6eb4f50",
+        "after": "61d523db2cc8e278bd6e98de8839cc41dad610a9788126a6237a1c743934fe69"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig",
+        "before": "28983f5ec84743d8807bf47f819806b773bdd3b53a5c188ed288c366136a5de4",
+        "after": "f641b29cc8bc0f9c13977ffd419b64d07dab0b558bd2b7608e81af0911a1d28c"
+      },
+      {
+        "path": "src/frontends/riscv/rv64/air/word16_v1/binary_source_test.zig",
+        "before": "7a20bb80d94ad54c1e716738979b1fb39ff884bfe99f60f19615190deafbcada",
+        "after": "013460794d2adb06bba7762c2428800c3034135e30632f822e162b3837c764d5"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig",
+        "before": "cb2744ed5ec41c997b6816f3f605f2fe38bf3b4d9eee453210376d1f0b3e07f5",
+        "after": "02027667c6c828090bd9a8964ce0f2ff63a7a581f598c561f66e32dec5101fff"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/layout_digest.zig",
+        "before": null,
+        "after": "40041b2a0cfe872078948df59cb83e0ea01eecd721b444667c8d3b47d913e09e"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/leaf_wrap.zig",
+        "before": "a1073585616078817879edfc82aa95b00c40df5bb84a7a20082e744561ad501b",
+        "after": "69c12e263f804a57023d5edea2b95e622406fb3481cff29b0d7bb83ce15c9356"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/native_fixed_root.zig",
+        "before": null,
+        "after": "3d3e7cf8492cb210d92f5dd7d4e38102e47c9ad85a20c608468d41e2c8d9c75d"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/root_admission.zig",
+        "before": "13cdc2dd53e4c1643e3063e6bcb1a48bc7b693a417e34126c2f44104cf54bbef",
+        "after": "6d656b0e1f25a7d955ed111b1dae3a649b6c9ef9913f7afa105eb63d84cb6b86"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/root_admission_test.zig",
+        "before": null,
+        "after": "102a41a40162a38f50a84dc8081661999566eefc7517dbf3bf3ad970a0be302f"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion/transcript_walk.zig",
+        "before": "51f32a9bc7deea803a97920c7683b95fbd7d3bbbf72a8b6dbf2346e7326fc7db",
+        "after": "5bed1f3017ec90531e8539b1e50272f9fb7e723c42c03dbe6a80d497f340c2c8"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_recursion_main.zig",
+        "before": "54167a8333320538ffc74b3f07b4c770d0ddeca2085775ca5ad291d2847d45e3",
+        "after": "b39002175375d858ba1e80a85bce4c16de9d347376c437acba71c24000016102"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_word16_alu_fixture_main.zig",
+        "before": "a726f19e0f04e297fb43d6cf9cfd7730ee7163ed0443bd03e7e95b36564b3098",
+        "after": "6dfa5655e647f7c1dcbb02b194efd9e7deefe51bc6112bd70d8eabfdf3240247"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_word16_weighted_binary_main.zig",
+        "before": null,
+        "after": "45de78b190866b1b57e1a7f7d0fccef072636462d1de21217e6304461cf653e5"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig",
+        "before": null,
+        "after": "9a4bcae6eb973c43a66e84d4e55d27cf270e329e1cf66765920208c4eeb41717"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/tests/rv64_word16_alu_proof_test.zig",
+        "before": "1a6c24e59ad8cc74f9547722b305d22b6c2077055d80493cf4ebddc7e6d4d991",
+        "after": "7bc5d78d7bfbef6d1f17bbd3fb960c55be5f0ff0a579b3b5a9430ad6a6665fbe"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/tests/rv64_word16_weighted_binary_test.zig",
+        "before": null,
+        "after": "df1adb24b2e3cdac5a1b2581b1acf706630f2169760d585bd8d70814078beeee"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/word16/alu_fixture.zig",
+        "before": "018493cf2f160f634edc12d85eb6d90709a26e994abb1d0b9cb5fc212c776afb",
+        "after": "e4809686b185ac06dea847de52f7bcb2884c89dfc41dbaf2103f482608170911"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/word16/alu_fixture_trace.zig",
+        "before": "913bb6bcd5bb981c35b1be71b2516adeec8bd00c01fe4d37440f95827d25da08",
+        "after": "83976a0b5b9a07c4dc03a6068d7f5f3c7caf1dfb1550e45437b6c2834f556a9d"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/word16/cpu_materials.zig",
+        "before": "ca89738f422c679b6a2b7e7d5923e557f486c958d76e568a8af642544d7bcc53",
+        "after": "73e1e776f1c0074bf1d3a7497cbc8f45238f104b1bf9446ad8e9364f7a1deb3a"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/word16/cpu_protocol.zig",
+        "before": "2d613efea05cfc919fac7bbf1b199c3b79e54b5bb1cb4507f8df7c7fcda7e5c0",
+        "after": "b5c36a5c3741646b79021e7b995477626739919154beb3bbad966dcb1f9b3b5d"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/word16/weighted_binary_fixture.zig",
+        "before": null,
+        "after": "7450c18eae228a07c57c88fc9b532c604b2664c00ecfae4fd00d3f07e2019ebb"
+      },
+      {
+        "path": "src/integrations/riscv_cpu/word16_index/protocol.zig",
+        "before": "61daab0c4ce808939215c31e9dc893aa9ce1c2be63dd7bec0c9b2e85ac9e390e",
+        "after": "6009bdae6bdc3443a497ea77614fbe1202817aace09f66ed79f5807fe347e600"
+      }
+    ],
+    "change_scope": "Parent-approvedSUM-zero/weighted-BINARY experimentalWord16 delta and recursion-onlyhardening; unchangedlegacycode testedhere. Parentownscombinedchangedthin/recursionhardening gates."
+  },
+  "limitations": [
+    "Functional gates under concurrent user/parent workloads; no performance comparison",
+    "Runtime metadata queriedwithouttest execution fromcompiledSafe/Fastbinaries; actualcounts mayexceedregisteredfloors",
+    "Receiver toolbuiltbefore laterexperimentalWord16/recursion-onlyhardening changes; allrelevantlegacynativefrontendcode remainsunchanged bythosechanges",
+    "No newfullWord16implementation; userrequestedpause aftermerge"
+  ],
+  "files": [
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/safe-focused.log",
+      "sha256": "7961c35808b0030fd45cc297bf0ddb5e52fae1c1edad1f8648a30a4aa584d95e"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fast-progress.json",
+      "sha256": "5947f75c26ee141e3860f6674346c60223042d10c5db7bfa209c4e7c4adc2620"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/runtime-metadata.json",
+      "sha256": "b0cec45fb348de125325a4fb1ab1ecccc4f6a6de53bedfffa42ca2ad98494f1f"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fresh-round5.json",
+      "sha256": "02afb94f9b25b52d7a0b50f6e9b460fde7ecc8675d903b4538f39ef18f15a7cf"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/fresh-round5.time.txt",
+      "sha256": "b13689635cc2a50cc482573c3f7a824f0de5308a4c82b814bfe75e8053bde814"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/source-before.json",
+      "sha256": "a4bb694a5c2bcd988cd5e9ceed422db64e125bcddda879c8856ce3bc498f94cb"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/source-after.json",
+      "sha256": "e9a9977df3d875f90cd283b7c86cc21a09dbdfc07f3767c9f589e29fea0001d8"
+    },
+    {
+      "path": "/tmp/stwo-rv64-recursion-frontend-qualification-v1/merged-changed-source-pins.json",
+      "sha256": "2e2e30cca70deecab9ea97066ad22350c4c7a0dd6f95fa371232ae4172700359"
+    }
+  ]
+}

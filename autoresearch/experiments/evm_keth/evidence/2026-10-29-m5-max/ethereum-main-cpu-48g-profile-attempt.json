@@ -1,0 +1,64 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v2",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "831274064124724777516cf6be38fe5b9e453e91c54748a1242e162eff94ad3d",
+  "oracle_sha256": "62b87e805661a2445840575117081872fae2fbc72ca7518ebc8a364193a3c624",
+  "workload": {
+    "kind": "prove",
+    "path": "block-data/keth-integration-20261029/ethereum-main-direct-inspection/main.cpi",
+    "sha256": "4f21afe5b22979bc0075c117af4b22350b01bafc8db4176ea4c25df42fba4ce7"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "controlled_environment": {
+    "STWO_ZIG_WORKERS": "8",
+    "STWO_CAIRO_PREPROCESSED_CACHE_DIR": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/ethereum-main-cpu-48g-profile/cache",
+    "STWO_CAIRO_PROFILE_ARENAS": "1"
+  },
+  "status": "failed",
+  "trials": [
+    {
+      "index": 1,
+      "status": "failed",
+      "phase": "product",
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/zig-out/bin/stwo-cairo-cpu",
+        "prove",
+        "--prover-input",
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/ethereum-main-direct-inspection/main.cpi",
+        "--proof",
+        "block-data/keth-integration-20261029/ethereum-main-cpu-48g-profile/trial-1.proof.json",
+        "--report-out",
+        "block-data/keth-integration-20261029/ethereum-main-cpu-48g-profile/trial-1.report.json",
+        "--stage-profile-out",
+        "block-data/keth-integration-20261029/ethereum-main-cpu-48g-profile/trial-1.stages.json",
+        "--verify"
+      ],
+      "process": {
+        "exit_code": -9,
+        "wall_ns": 6895978500,
+        "user_ns": 38271593000,
+        "system_ns": 6373085000,
+        "max_process_tree_rss_bytes": 40115617792,
+        "rss_is_simultaneous_process_tree_sum": false,
+        "footprint_watchdog": {
+          "source": "darwin_proc_pid_rusage_v6",
+          "limit_bytes": 51539607552,
+          "maximum_observed_bytes": 51587968560,
+          "samples": 490,
+          "termination_reason": "product physical footprint exceeded explicit limit",
+          "scope": "product process; not simultaneous process-tree or host memory"
+        }
+      },
+      "error": "product exited -9; see block-data/keth-integration-20261029/ethereum-main-cpu-48g-profile/trial-1.product.log",
+      "error_type": "RuntimeError"
+    }
+  ]
+}

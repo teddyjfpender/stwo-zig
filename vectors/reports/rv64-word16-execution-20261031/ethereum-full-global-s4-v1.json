@@ -1,0 +1,433 @@
+{
+  "schema": 1,
+  "scope": "complete pinned Ethereum execution block under native Word16 global-memory protocol; all30physicalSTARKs freshverified; NO recursion or GPU qualification",
+  "block": 24628607,
+  "core_schema": 4,
+  "driver_binary_sha256": "1d9fdfe679252c8832ee7fe02dae0bc6aefd943c7d92fa2a169ab2d1fa8fa2ab",
+  "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "report": {
+    "core_schema": 4,
+    "completed_ethereum_block": true,
+    "total_steps": 104253913,
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "memory_words": 1347207,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "capture_ns": 9623697334,
+    "setup_ns": 12037403833,
+    "prove_ns": 290744120750,
+    "same_process_verify_ns": 616776125,
+    "publish_before_report_ns": 58564958,
+    "total_before_report_ns": 313080920084,
+    "retained_main": {
+      "live_bytes": 0,
+      "peak_reserved_bytes": 45605601280,
+      "total_bytes": 45605601280,
+      "limit_bytes": 137438953472
+    }
+  },
+  "fresh_receiver": {
+    "core_schema": 4,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "load_and_setup_ns": 11146633167,
+    "verify_ns": 552308667
+  },
+  "functional_observations": {
+    "wall_seconds": 313.61,
+    "user_seconds": 1443.79,
+    "system_seconds": 176.2,
+    "maximum_resident_bytes": 38667534336,
+    "darwin_peak_memory_footprint_bytes": 40708601760,
+    "fresh_wall_seconds": 11.78,
+    "fresh_maximum_resident_bytes": 14995079168,
+    "qualification": "concurrent engineering run, NOT controlled p50 or a matched speedup comparison"
+  },
+  "native_cells": {
+    "cpu": [
+      1396682048,
+      10200657152,
+      9740361984
+    ],
+    "truth": [
+      27814144,
+      1200669440,
+      1571305472
+    ]
+  },
+  "total_native_cells": 24137490240,
+  "total_native_cells_per_retirement": 231.5259882859265,
+  "proof_bytes": 36647820,
+  "stage_totals": {
+    "source_construction": {
+      "cpu_seconds": 11.589196999999999,
+      "truth_seconds": 22.739444,
+      "user_seconds": 82.34873,
+      "system_seconds": 40.794067
+    },
+    "main_commit": {
+      "cpu_seconds": 36.64248400000001,
+      "truth_seconds": 2.302625,
+      "user_seconds": 224.502448,
+      "system_seconds": 43.91833299999999
+    },
+    "retained_main_spill": {
+      "cpu_seconds": 10.268705999999998,
+      "truth_seconds": 1.5708989999999998,
+      "user_seconds": 1.6760279999999999,
+      "system_seconds": 6.286468999999999
+    },
+    "interaction_generation": {
+      "cpu_seconds": 25.117448,
+      "truth_seconds": 13.396896,
+      "user_seconds": 152.03926200000004,
+      "system_seconds": 6.766495000000001
+    },
+    "interaction_commit": {
+      "cpu_seconds": 26.928713999999996,
+      "truth_seconds": 2.803491,
+      "user_seconds": 221.17570599999996,
+      "system_seconds": 22.29642
+    },
+    "draw_random_coeff": {
+      "cpu_seconds": 3.2000000000000005e-05,
+      "truth_seconds": 5.999999999999999e-06,
+      "user_seconds": 2.0000000000000005e-05,
+      "system_seconds": 1.1000000000000001e-05
+    },
+    "composition_trace_extract": {
+      "cpu_seconds": 0.000604,
+      "truth_seconds": 0.000107,
+      "user_seconds": 0.00024900000000000004,
+      "system_seconds": 0.0004330000000000001
+    },
+    "composition_evaluation": {
+      "cpu_seconds": 49.658696000000006,
+      "truth_seconds": 12.144561,
+      "user_seconds": 460.0413339999999,
+      "system_seconds": 21.929423999999997
+    },
+    "composition_interpolate_and_split": {
+      "cpu_seconds": 0.7729630000000002,
+      "truth_seconds": 0.012060999999999999,
+      "user_seconds": 2.7445180000000007,
+      "system_seconds": 0.302052
+    },
+    "composition_commit": {
+      "cpu_seconds": 2.873617,
+      "truth_seconds": 0.027105999999999998,
+      "user_seconds": 24.148827999999998,
+      "system_seconds": 3.622359
+    },
+    "oods_point_and_mask_points": {
+      "cpu_seconds": 0.0036510000000000006,
+      "truth_seconds": 0.0010980000000000002,
+      "user_seconds": 0.003920000000000001,
+      "system_seconds": 0.0007900000000000001
+    },
+    "sampled_value_evaluation": {
+      "cpu_seconds": 6.317577999999999,
+      "truth_seconds": 2.486886,
+      "user_seconds": 16.178893,
+      "system_seconds": 0.5688319999999999
+    },
+    "sampled_value_channel_mix": {
+      "cpu_seconds": 0.0034459999999999994,
+      "truth_seconds": 0.001235,
+      "user_seconds": 0.0046040000000000005,
+      "system_seconds": 4.0999999999999994e-05
+    },
+    "fri_quotient_build_and_commit": {
+      "cpu_seconds": 36.15989999999999,
+      "truth_seconds": 4.157795,
+      "user_seconds": 95.32475,
+      "system_seconds": 6.3861040000000004
+    },
+    "proof_of_work": {
+      "cpu_seconds": 2.63431,
+      "truth_seconds": 0.40759,
+      "user_seconds": 43.93405099999999,
+      "system_seconds": 0.07007600000000001
+    },
+    "fri_decommit": {
+      "cpu_seconds": 0.23106500000000002,
+      "truth_seconds": 0.004601,
+      "user_seconds": 0.071872,
+      "system_seconds": 0.16368200000000002
+    },
+    "trace_decommit": {
+      "cpu_seconds": 17.337466000000003,
+      "truth_seconds": 0.6470929999999999,
+      "user_seconds": 65.118493,
+      "system_seconds": 8.251826
+    },
+    "constraint_check_and_assembly": {
+      "cpu_seconds": 0.005337000000000001,
+      "truth_seconds": 0.0010800000000000002,
+      "user_seconds": 0.005808000000000001,
+      "system_seconds": 0.00055
+    }
+  },
+  "files": {
+    "cpu-0.bin": {
+      "bytes": 927280,
+      "sha256": "828f698d671c5208fbf39a8bbef18990c0b1a2f808b824194d6fd8a006eb8311"
+    },
+    "cpu-1.bin": {
+      "bytes": 901312,
+      "sha256": "b6615fff101e0d06b504b68549f5dca3270bcf62e983721104dca0194a247031"
+    },
+    "cpu-10.bin": {
+      "bytes": 1575168,
+      "sha256": "7544459d6d4dcdaedecaf0c3b4799d8c15414d67f4fd316c8d5b0c28d1999c8f"
+    },
+    "cpu-11.bin": {
+      "bytes": 1325200,
+      "sha256": "37f3ca8eaaeb132ca7e687a02a45998d67236badfad33100480e08c737c3bb1d"
+    },
+    "cpu-12.bin": {
+      "bytes": 1332224,
+      "sha256": "eaed1c38463c464e9bcba79c193a230d70117c184289952403a24650ea93ad7d"
+    },
+    "cpu-13.bin": {
+      "bytes": 1301504,
+      "sha256": "d251e4c64da4e76ce6c27b3104d836c9ab70a488462c8a0381a110c7d2077c92"
+    },
+    "cpu-14.bin": {
+      "bytes": 1530928,
+      "sha256": "5faab940bfecca6c9e0e7ef3429fa9f415c2895195849a4b60a2a31d5477d95d"
+    },
+    "cpu-15.bin": {
+      "bytes": 1281520,
+      "sha256": "3d60c8fc915abaab5be94b59fecaaccdd164e415c866b0e51c8494b4aeae4cf1"
+    },
+    "cpu-16.bin": {
+      "bytes": 1251024,
+      "sha256": "44a68b690689d152bee0661e641bc51836c54c76eabbecb50334fe98d2bc3a49"
+    },
+    "cpu-17.bin": {
+      "bytes": 1229536,
+      "sha256": "9a8d18edc89ccd3628bdca50ce4d9c4e7adf68ec8e373719dc56519885860b84"
+    },
+    "cpu-18.bin": {
+      "bytes": 1538672,
+      "sha256": "c8199b22d412b5ad48abe24fcb480f75e89effe5ed346be7bfd84ac2e4107d21"
+    },
+    "cpu-19.bin": {
+      "bytes": 1528096,
+      "sha256": "0c97410fa5d99f7a571e579af0121bebe7cba9a50396958f3ef30a4a9307b176"
+    },
+    "cpu-2.bin": {
+      "bytes": 862784,
+      "sha256": "3bdb84f83c389895592024b2d3f65339135cda8e255cf2fdf2794bdad67dc256"
+    },
+    "cpu-20.bin": {
+      "bytes": 1512464,
+      "sha256": "37e4e894b7f3fd4c8e0f1f6e71947162135a743a590b4318ef93be85e5906b2f"
+    },
+    "cpu-21.bin": {
+      "bytes": 1330576,
+      "sha256": "3d6d71eb7561d1abb8428ee3c66494042aa3cef25001d76a8c9bd650248f126a"
+    },
+    "cpu-22.bin": {
+      "bytes": 1228816,
+      "sha256": "a09edb9cb36b0b2e14c5d02343136c139d8107654343909624cec584fa022ba0"
+    },
+    "cpu-23.bin": {
+      "bytes": 978368,
+      "sha256": "13079204f2c302f1bcb13a4780e38af36015a76932a36a8ca1b89dccf3163c7f"
+    },
+    "cpu-24.bin": {
+      "bytes": 976256,
+      "sha256": "b5b8f35d4273def281e49ed8989d5b053af999e7989ed312cea19ef276ea0bf5"
+    },
+    "cpu-3.bin": {
+      "bytes": 1556992,
+      "sha256": "273535c58ac76008833256f28432818831076132a8dc39b87a310020b891ed94"
+    },
+    "cpu-4.bin": {
+      "bytes": 1106912,
+      "sha256": "7ac596a9f919fe4d36d6568c6e3cdfd5c5ef11d06e323f1482e96ec506002f63"
+    },
+    "cpu-5.bin": {
+      "bytes": 1108624,
+      "sha256": "d302f799559fdf58401de04ee077c3588b8c5db12d90e256959849833301f7b8"
+    },
+    "cpu-6.bin": {
+      "bytes": 1502144,
+      "sha256": "867241ed3b82a273e7fe73f4c31e3d436125b2e03158a09bb21eae7b466d2511"
+    },
+    "cpu-7.bin": {
+      "bytes": 978800,
+      "sha256": "35f9c21765b14ffb193649e08818a2d72ba81e2d89acec597b88711e11ca3d01"
+    },
+    "cpu-8.bin": {
+      "bytes": 1295968,
+      "sha256": "2a7cf375c75433b5ab66a25db0ecb5b091c9212d152fc7e235ce1b2882c92f09"
+    },
+    "cpu-9.bin": {
+      "bytes": 1313376,
+      "sha256": "ff956e0385843526c4aab9c164e67a8e9f4d08b62a3fafed3d4f4e9a1d856b8c"
+    },
+    "truth-0.bin": {
+      "bytes": 1776768,
+      "sha256": "10c62da8b390d437bd0cd8b20bff3561a76b550bb78786b0184a7d1c362f8e37"
+    },
+    "truth-1.bin": {
+      "bytes": 1747460,
+      "sha256": "092a9a48f4a16072dfe9bf6bba85048ff04ec73c64e49111abbb0b52b3922870"
+    },
+    "truth-2.bin": {
+      "bytes": 612336,
+      "sha256": "bafee5a139d8ea30e883874e65d522edd0695eb8be8336b08442bb877c4bf045"
+    },
+    "truth-3.bin": {
+      "bytes": 445584,
+      "sha256": "b7b2b33b93df624ad75505b094a6dd291bd95e8f79c821d1e592c03bf1748b20"
+    },
+    "truth-4.bin": {
+      "bytes": 591128,
+      "sha256": "f30bb40cbda1b7354698bbdf1607804ea0c0486df7db449abe91c1e65de53154"
+    },
+    "bundle.json": {
+      "bytes": 758267,
+      "sha256": "8047218c74f2c465c92895a67f1857335c27e430104496ced4489dbf4bbe8c1f"
+    },
+    "cells.bin": {
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b"
+    },
+    "cost.json": {
+      "bytes": 15809,
+      "sha256": "23fa964c2b3ae98ec198175b8aa53945de5380c60f7c032ac8211873b5d50c55"
+    }
+  },
+  "source_sha256": {
+    "word16_global_execution/ethereum/main.zig": "615111bfd2f97bb94b15b54b33705fd6c2401c216b611217c3ca1baa18cfb56e",
+    "word16_global_execution/ethereum/capture.zig": "318258e33426a3429560ba6142f393ddb21908278ea601ed85cc34f024692442",
+    "word16_global_execution/ethereum/plan.zig": "aa89f6e3ea8e1dc84288f98c6900078a3390af703c960a9b66aa131ee9529965",
+    "word16_global_execution/ethereum/keys.zig": "9ec0f950a3a0bfa827ad0371e51dd7924654b51556addb70e388617f03c1f36a",
+    "word16_global_execution/ethereum/receiver.zig": "38bfbc137893b60868899bd9164a2c58112c798651f0551a7c6706070f867d47",
+    "word16_global_execution/ethereum/terminal.zig": "9f54faf3691c020c5ec4182ab8adbef7109e2aeb89a1dfb452329a1b3dd2f21d",
+    "word16_global_execution/ethereum/telemetry.zig": "533c8f185ddc0460b783b2784b90f755a0c8d6dbe1085245f13e1d8283ad22e9",
+    "word16_global_execution/ethereum/observations.zig": "4181d748df6011ea274eb3264154feb8db5d2c8927bbdb239db2106da02d2126",
+    "word16_global_execution/services/execution.zig": "1c8591f5df3fc0d1cf75489757d97308efafd8a92b4c77505b5d3d7721ca98fe",
+    "word16_global_execution/services/roster.zig": "3c6b8ed0dc44d825aa092210a152193e15f1b06b0a0917dd0994f79c119f07c5",
+    "word16_global_execution/services/air_components.zig": "bad3feb4797ad1dd71ce90f0b7cfea7e380ddc6ebaa5c24c54a325aad86f310c",
+    "word16_global_execution/services/profiling.zig": "0ec14597154e36bfdff9024721429bbc2cae5c15ebecfee01f7deed4aa9639c4",
+    "word16_global_execution/services/protocol.zig": "17e0d72279331cddf85056872fa9b5e7088c167287b005d740901de6356df676",
+    "word16_global_execution/services/wire.zig": "34725d0b5cbb2978517cbd0ba4bdc2f50be259b96b8691f8bbd383aeef3d8cc0",
+    "word16_execution/sources.zig": "d02f905277a1077bec6988bea08b2d8b610ab86fd6690697c1cbcedea24c460f",
+    "word16_execution/protocol.zig": "39f3fc7fc9fcd143179164856472784c0ce34e8d8eaf66b50e30eba5b3108ff1",
+    "word16_execution/geometry.zig": "348f932266a338c50f2505525599f0a6fbf3d1c4a374186bb368f7ba964e73f9",
+    "word16_execution/components.zig": "0190a538497b6c7025569ea1e802ea24b3fcceb6f91b2495f769c9ca5fbc5b8b",
+    "word16_execution/prepared.zig": "4476e9228da1d34f8763c14ef1de1ef092622326894e0f9041ef08a1b316c105"
+  },
+  "security": {
+    "pow_bits": 26,
+    "queries": 70,
+    "log_blowup": 1,
+    "fold_step": 1,
+    "description": "nominal96 parameter budget; no whole-protocol128-bit security claim"
+  },
+  "remaining": [
+    "controlled matched timing and memory comparisons",
+    "1.5\u20132x whole-block memory target not demonstrated",
+    "new-lane recursive root qualification",
+    "GPU",
+    "formal whole-protocol security budget"
+  ],
+  "artifact_directory": "/tmp/rv64-ethereum-word16-full-s4-owned-v1"
+}

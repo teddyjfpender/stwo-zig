@@ -1,0 +1,43 @@
+{
+ "schema": "rv64-commit-recycler-probe-v1",
+ "block": 24628607,
+ "batches": 2,
+ "guest_elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+ "baseline": {
+  "real_seconds": 49.95,
+  "user_seconds": 345.42,
+  "sys_seconds": 30.74,
+  "max_rss_bytes": 28990701568.0,
+  "page_reclaims": 9669435.0
+ },
+ "recycler": {
+  "real_seconds": 46.88,
+  "user_seconds": 342.78,
+  "sys_seconds": 8.06,
+  "max_rss_bytes": 34066726912.0,
+  "page_reclaims": 3634320.0
+ },
+ "proof_bytes_identical": true,
+ "per_batch": {
+  "run1": [
+   {
+    "prove_seconds": 23.86,
+    "total_after_native_seconds": 29.559
+   },
+   {
+    "prove_seconds": 17.812,
+    "total_after_native_seconds": 19.573
+   }
+  ],
+  "run5": [
+   {
+    "prove_seconds": 22.005,
+    "total_after_native_seconds": 27.516
+   },
+   {
+    "prove_seconds": 16.151,
+    "total_after_native_seconds": 17.925
+   }
+  ]
+ }
+}

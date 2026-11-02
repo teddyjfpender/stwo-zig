@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "source_commit": "63ab7e2c6",
+  "source_base": "f3749b4038275e9e016fd6c4fafcbaae7c446bed",
+  "binary_sha256": "8485530e4689c1273c9408e6814c69800401f3dd367339e7079f9b3c32e03e9a",
+  "scope": "OM q70 CPU0 ordinary prefix; operational storage policy only, production default unchanged",
+  "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+  "config_sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad",
+  "resource_json": "/tmp/rv64-om-ethereum-prefix-resident16-resources.json",
+  "resource_sha256": "4c92e61b9767a5b18bcff62068d2b69fd010e152eac34d20063456718b1770cc",
+  "sequence": [
+    "dense",
+    "stride2",
+    "stride2",
+    "dense"
+  ],
+  "controlled_profile": {
+    "field": "OM31",
+    "q": 70,
+    "pow": 26,
+    "blowup": 1,
+    "fold": 4,
+    "workers": 16,
+    "lanes": 1,
+    "resident_main": true
+  },
+  "quiet_host": false,
+  "shared_heavy_lock": "/private/tmp/stwo-rv64-perf-heavy.lock",
+  "all_four_artifacts_byte_identical": true,
+  "all_fresh_independent_receivers_accepted": true,
+  "means": {
+    "dense": {
+      "prove_ns": 8729842416.5,
+      "numerical_requested_peak_bytes": 12615738224,
+      "peak_rss_bytes": 18259427328,
+      "wall_seconds": 10.945
+    },
+    "stride2": {
+      "prove_ns": 9414027250.5,
+      "numerical_requested_peak_bytes": 8847246298,
+      "peak_rss_bytes": 15164702720,
+      "wall_seconds": 11.350000000000001
+    }
+  },
+  "numerical_peak_reduction_factor": 1.4259508325038834,
+  "rss_reduction_factor": 1.2040742021219129,
+  "prove_time_ratio": 1.0783731024407548,
+  "interpretation": "Owned inputs plus metadata-only binding do NOT further reduce numerical peak beyond borrowed stride2. Dense versus owned stride2 memory/time are measured here; no default promotion or wholeprover1.5x claim. Backend fold dependency81f30b1a6 is included on both paths.",
+  "runs": [
+    {
+      "index": 0,
+      "kind": "dense",
+      "prove_ns": 8556365250,
+      "worker": {
+        "source_ns": 330379875,
+        "seal_native_and_gkr_ns": 3211305708,
+        "main_commit_ns": 939270042,
+        "gkr_ns": 2208328625,
+        "inputs_ns": 190715916,
+        "numerical_ns": 1691412584,
+        "binding_ns": 302611333,
+        "metadata_retire_ns": 2379125,
+        "spill_ns": 42,
+        "restore_ns": 83,
+        "native_complete_ns": 4930394292,
+        "stage1_ns": 3544064791,
+        "stage2_ns": 4930394417,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 12615738224,
+      "including_binding_requested_peak_bytes": 12615738224,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 18259427328,
+      "wall_seconds": 11.02,
+      "user_seconds": 73.89,
+      "sys_seconds": 5.64,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    },
+    {
+      "index": 1,
+      "kind": "stride2",
+      "prove_ns": 9460328709,
+      "worker": {
+        "source_ns": 341088542,
+        "seal_native_and_gkr_ns": 3845997125,
+        "main_commit_ns": 998913041,
+        "gkr_ns": 2783514167,
+        "inputs_ns": 199698334,
+        "numerical_ns": 2235423666,
+        "binding_ns": 348276500,
+        "metadata_retire_ns": 1669625,
+        "spill_ns": 41,
+        "restore_ns": 0,
+        "native_complete_ns": 5189978250,
+        "stage1_ns": 4188755333,
+        "stage2_ns": 5189978292,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 8847246298,
+      "including_binding_requested_peak_bytes": 8847246298,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 15164702720,
+      "wall_seconds": 11.39,
+      "user_seconds": 82.85,
+      "sys_seconds": 4.83,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    },
+    {
+      "index": 2,
+      "kind": "stride2",
+      "prove_ns": 9367725792,
+      "worker": {
+        "source_ns": 334393625,
+        "seal_native_and_gkr_ns": 3778700292,
+        "main_commit_ns": 969854958,
+        "gkr_ns": 2745230792,
+        "inputs_ns": 192645375,
+        "numerical_ns": 2200879334,
+        "binding_ns": 351619625,
+        "metadata_retire_ns": 1798333,
+        "spill_ns": 42,
+        "restore_ns": 0,
+        "native_complete_ns": 5169429292,
+        "stage1_ns": 4114892334,
+        "stage2_ns": 5169429375,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 8847246298,
+      "including_binding_requested_peak_bytes": 8847246298,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 15164702720,
+      "wall_seconds": 11.31,
+      "user_seconds": 84.0,
+      "sys_seconds": 4.83,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    },
+    {
+      "index": 3,
+      "kind": "dense",
+      "prove_ns": 8903319583,
+      "worker": {
+        "source_ns": 342674042,
+        "seal_native_and_gkr_ns": 3306057667,
+        "main_commit_ns": 981247375,
+        "gkr_ns": 2258593417,
+        "inputs_ns": 192562709,
+        "numerical_ns": 1728561708,
+        "binding_ns": 312906750,
+        "metadata_retire_ns": 2870750,
+        "spill_ns": 41,
+        "restore_ns": 42,
+        "native_complete_ns": 5165941333,
+        "stage1_ns": 3651602584,
+        "stage2_ns": 5165941417,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 12615738224,
+      "including_binding_requested_peak_bytes": 12615738224,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 18259427328,
+      "wall_seconds": 10.87,
+      "user_seconds": 77.17,
+      "sys_seconds": 5.38,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    }
+  ],
+  "also_byte_identical_to_pre_owned_stride2_runs": true,
+  "actual_numerical_peak_unchanged_by_owned_replay": true
+}

@@ -1,0 +1,86 @@
+{
+  "scope": "LS merged local interaction encoding-v2; separate physical RAM14 debt, no owner-range elision",
+  "source_base": "8d4bf43ac",
+  "layout": {
+    "main": 79,
+    "old_interaction": 116,
+    "interaction": 96,
+    "old_residuals": 281,
+    "residuals": 273,
+    "degree": 3,
+    "native_domain_factor": 2,
+    "local_affine_fractions": 42,
+    "local_strict_pair_inverses": 21,
+    "local_prefixes": 1,
+    "separate_RAM_prefixes": 1,
+    "logical_claim_fields": 5,
+    "authenticated_local_claim": "owner + range16 + range8 + selection",
+    "previous_interaction_values": 8,
+    "old_previous_interaction_values": 20
+  },
+  "packet0_source_savings": {
+    "LS_log": 21,
+    "base_interaction_cells": 41943040,
+    "raw_bytes": 167772160,
+    "native2n_column_point_values": 83886080,
+    "native2n_point_bytes": 335544320,
+    "current_plus_previous_openings_removed": 32,
+    "cells_per_retirement": 10.00000238418636
+  },
+  "gates": {
+    "ReleaseSafe": [
+      "memory16 including all16 arbitrary base-field lanes/fullQM31 scalar residual parity and denseQM31 cubic checks",
+      "legacy closed load/store15"
+    ],
+    "ReleaseFast": [
+      "memory16",
+      "execution coordinator20 including actual balanced LS RAM/OWNER false-prover attempt after MAIN seal",
+      "global execution15",
+      "Keccak bridge13"
+    ],
+    "native_reference": "All five claims equal independently generated V1 claims with same challenges; RAM columns exact, all21 pair inverses and combined centered prefix independently projected from legacy matrices/dictionaries",
+    "ownership": "serial and1/4/16 multichunk interaction matrices exact after MAIN retirement, partial wave submission drains, poles and allocation failures retain metadata for retry",
+    "claim_attack": "RAM+=1 OWNER-=1 preserves ledger total but actual polynomial prover rejects; redistributing OWNER/R16 with fixed local sum is intentionally equivalent",
+    "old_encoding_rejected": "fresh new receiver rejects old packet0 encoding",
+    "legacy_v1_control": {
+      "proof_sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+      "proof_bytes": 433488,
+      "fresh_receiver": true
+    }
+  },
+  "real_packet": {
+    "directory": "/tmp/rv64-ls-merged-packet0-v1",
+    "proof_sha256": "71e0b1a5674d5167d22a7aac699075fb138722cef7121c583f1f3f01fd23c6ff",
+    "proof_bytes": 1136016,
+    "CPU_all_public_fields_identical_to_control": true,
+    "RAM_records_byte_identical_to_control": true,
+    "memory_words": 708957,
+    "cells_bin_bytes": 32612038,
+    "cells_bin_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "control_directory": "/tmp/rv64-word16-real0-source-profile-b64",
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 965210625,
+      "image_ns": 330772250
+    },
+    "source_cells": {
+      "fixed": 67168160,
+      "main": 593751776,
+      "interaction": 613386752
+    },
+    "observed_prove_ns": 14122207500,
+    "observed_whole_process_wall_seconds": 15.82,
+    "observed_user_seconds": 63.65,
+    "observed_system_seconds": 7.2,
+    "observed_max_RSS_bytes": 11048747008
+  },
+  "limits": [
+    "Real run overlapped engineering/tests; no paired wall-time or speedup claim.",
+    "This encoding changes the transcript and physical proof bytes; only CPU/RAM statement semantics and same-challenge native claims are compared.",
+    "No owner limb range lookup is removed. No range-induction elision or cross-service extension qualified by this slice.",
+    "Standalone V1 LS protocol remains byte-identical. Native2n core and parallel LS constructor are separate subsequently merged slices.",
+    "No full Ethereum block, recursive aggregate, GPU or whole-protocol128-bit security claim."
+  ]
+}

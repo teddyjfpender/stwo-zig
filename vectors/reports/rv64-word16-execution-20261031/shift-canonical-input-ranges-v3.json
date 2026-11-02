@@ -1,0 +1,283 @@
+{
+  "schema": "rv64-shift-canonical-input-ranges-v3-qualification",
+  "base": "80e7b1c374f13014c8af28b9d27f3b9836f2a1b8",
+  "scope": "Concrete SHIFT28 under closed canonical REG/ROM FUNCTION input authority, or independently expected u64 diagnostic facts; no new accepting open verifier or recursion receiver",
+  "status": "qualified isolated slice",
+  "layout": {
+    "fixed": 2,
+    "main": 53,
+    "interaction": 28,
+    "local_arithmetic_constraints": 27,
+    "complete_constraints": 36,
+    "table_queries_per_padded_row": 5,
+    "range16_queries_per_padded_row": 5,
+    "strict_unit_pairs": 5,
+    "function_inverse_columns": 4,
+    "joint_prefix_columns": 4,
+    "previous_prefix_samples": 4,
+    "metadata_bytes": 30,
+    "degree": 3,
+    "native_quotient_factor": 2,
+    "composition_log_split": 1
+  },
+  "prior": {
+    "interaction": 36,
+    "complete_constraints": 38,
+    "range16_queries": 9,
+    "metadata_bytes": 30
+  },
+  "retained_queries": [
+    "quotient",
+    "64*quotient",
+    "2*A1-sign31*65536",
+    "2*A3-sign63*65536",
+    "2*C1-signC31*65536"
+  ],
+  "removed_queries": [
+    "payload B[0..4]"
+  ],
+  "security_configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "nominal_config_bits": 96,
+    "whole_protocol_bits_established": false
+  },
+  "canonicality": [
+    "SHIFT table authenticates A limbs; output chunks/fills and W sign anchor independently prove canonical C",
+    "retained quotient and 64*quotient memberships bound count decomposition without field wrap",
+    "full FUNCTION13 binds all B limbs to canonical REG/ROM or independently expected u64 facts",
+    "only joint SHIFT+range16+FUNCTION total is physically authenticated; ledger shares are not independent certificates",
+    "stateful OWNER and RAM weights remain Boolean/unit; pure FUNCTION alone carries multiplicity"
+  ],
+  "cost_model": {
+    "retained_roster": "/tmp/rv64-ethereum-word16-full-s4-owned-v1/bundle.json",
+    "physical_components": 40,
+    "padded_shift_rows": 6146048,
+    "saved_interaction_cells": 49168384,
+    "saved_summed_source_bytes": 196673536,
+    "saved_u16_queries": 24584192,
+    "saved_q_opening_samples": 320,
+    "main_change": 0,
+    "metadata_change": 0,
+    "runtime_or_peak_claim": false
+  },
+  "manual_proof_document": "design/riscv-proving-stack/rv64-shift-canonical-input-ranges.md",
+  "gates": [
+    {
+      "target": "test-riscv64-word16-shift-word",
+      "runtime_floor": 15,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-shift-source",
+      "runtime_floor": 7,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-shift-native-fill",
+      "runtime_floor": 5,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-shift-weighted",
+      "runtime_floor": 6,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-shift-word-proof",
+      "runtime_floor": 2,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-shift-packed-proof",
+      "runtime_floor": 2,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-shift-merged-circuit",
+      "runtime_floor": 2,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-execution-coordinator",
+      "runtime_floor": 23,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-global-execution",
+      "runtime_floor": 15,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-combined-services",
+      "runtime_floor": 11,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-provider-ladder",
+      "runtime_floor": 10,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    }
+  ],
+  "attack_gate": {
+    "test": "valid physical SHIFT proof with unqueried B high coordinates fails closed CPU FUNCTION authority",
+    "actual_fresh_physical_proof": "ACCEPT",
+    "actual_fresh_closed_cpu_receiver": "UnclosedExecutionRelations",
+    "shift_and_range_debts_unchanged": true,
+    "native_advice_validation_not_acceptance_authority": true
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "02e810b308918a0bd39dbc7d6750652aeb1e03d278dcaa7aea9877ea600d2d50",
+    "design/riscv-proving-stack/rv64-shift-canonical-input-ranges.md": "15692618ea48d778c14349340d07b4bf2e896f5abb7f61182ff04e34cb20499b",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word.zig": "395ee2bc2cfc87a21d81b5ddcb1078e384c59ee9738cc0ab0ab57330300297b7",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_encoding.zig": "e3e45eb50205f0434fafd3b7070003626e74fbbf0b02299c72192e1e2228f43d",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_lookup.zig": "32574d6a4e87c365d2cedb8d56cc255e892e9418a3339f8887aade84f8c07c42",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_merged_test.zig": "300cce75e377a98c98a8254a7f493d4de86e080916ab816f2a61fbaefbd492ea",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_native_fill.zig": "4ccae135535b5c43ad3aef15776d7d4028dfeb0c4a3146277971f1d12f36aac2",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source.zig": "d074ee5a82cc23b0850a7484d6ec4482556d6a700e15d3da7fcadb456e74a4d0",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source_test.zig": "ecdfe2b74aa922b9a17e4f2920c51bf0b233173ba22ab222058d7cc9e8ff77dc",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_test.zig": "fc090608a73a767224bd37ce781bbaf88fbc231bb5275e1e72f3af803b9fa9b4",
+    "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig": "cfa95b46860f9aea240c8a3c323f312e48264b3fc27ca37575d6d27ea5dfd943",
+    "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig": "8166f0cec93ef06176f35cc119e805c33a4f2dab9c0613c80ee153f7a37c1204",
+    "src/integrations/riscv_cpu/rv64_word16_shift_word_fixture_main.zig": "f2222218b635d478990fea53299b3ffc6ecedad886e1a0cd67054e100cf20bf6",
+    "src/integrations/riscv_cpu/tests/rv64_shift_merged_circuit_test.zig": "f73bb88c0ba7e2ba11a862375d1b813b6dda9c7822a3f4f0ce3596419c0ed8e5",
+    "src/integrations/riscv_cpu/word16/shift_word_fixture.zig": "36eb58130245c40e1aa38fe7b3b7f78799e52708ca2dc7916452c3db22d0a4d4",
+    "src/integrations/riscv_cpu/word16/shift_word_fixture_trace.zig": "7f4bd5940b458df58242ec9fee8ac361d047fb12864e8b23010061af1e0de29b",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture.zig": "c2a34bde57064dff439b2ed426b3361315ae2d6104aa206c714599f098edc016",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture_trace.zig": "4d866a6eba5099eb462fe13736d3f8eaf8755fac3f409195e40da87ac2b38c29",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "2dfcb028b85369c654357a3565749d576070e49d5ac95e5955c85e96ff8c1595",
+    "src/integrations/riscv_cpu/word16_execution/provider_ladder_test.zig": "8b96a7e89851455f8ca2819256fe5d00ef0a9123d2cf591998328b6eecdba9ea",
+    "src/integrations/riscv_cpu/word16_execution/shift_read_induction_proof_test.zig": "4bc354c0a3999970005d9f50e9d381ca12a73bb3b094eea7b9fe2eb80de7d7fb"
+  },
+  "legacy_byte_shift_control": {
+    "artifact": "/tmp/rv64-shift28-byte-control",
+    "proof_bytes": 284128,
+    "proof_sha256": "c15aeeb9258eaf39d100990982265146dd8113ae4c23fb6024f1ec581cc0407c",
+    "historical_reference": "vectors/reports/rv64-ethereum-20261030/word16-shift-byte-d3-v1-qualification.json",
+    "fresh_receiver": "PASS",
+    "layout_unchanged": true
+  },
+  "encoding": "9a7aade72e02efe73aba6b9f74312e6fa50a4deb094f93f24e5e54826d05351b",
+  "durable_packed_fixture": {
+    "artifact": "/tmp/rv64-shift28-packed-native",
+    "encoding_identity": "9a7aade72e02efe73aba6b9f74312e6fa50a4deb094f93f24e5e54826d05351b",
+    "scope": "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
+    "witness_source": "native-owned",
+    "main_released_before_challenge": true,
+    "retained_payload_bytes_per_row": 30,
+    "proof_bytes": 279632,
+    "proof_sha256": "80fa87c89b3c521db47aec5bd5be9d4b2a775c5d46062b1b4fd2f541956f591a",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "source_cells": 5378400,
+    "source_bytes": 21513600,
+    "trace_oods_masks": 237,
+    "shift": {
+      "log": 5,
+      "fixed": 2,
+      "main": 53,
+      "interaction": 28
+    },
+    "shift_table": {
+      "log": 16,
+      "fixed": 18,
+      "main": 16,
+      "interaction": 36
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 7,
+    "shift_mass_including_padding": 160,
+    "range_mass_including_padding": 160,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false,
+    "native_owned_borrowed_scalar_oracle_proof_bytes_exact": true,
+    "fresh_receiver": "PASS"
+  },
+  "independent_workloads": [
+    {
+      "name": "ecdsa",
+      "scope": "independently expected complete CSP32 software ECDSA input/ELF/output",
+      "steps": 1625938,
+      "artifact": "/tmp/rv64-shift28-ecdsa",
+      "proof_bytes": 1115720,
+      "proof_sha256": "b8170a0fb6d4791c02b56918d0b23b9fd13c6cfc0467492e4ddc38dc09722161",
+      "fresh_receiver": "PASS",
+      "complete_cpu_statement_exact_to_alu32_control": true,
+      "complete_ram_cells_bytes_exact_to_alu32_control": true,
+      "cells_sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800"
+    },
+    {
+      "name": "sail",
+      "scope": "independently pinned Sail oracle; every retirement compared; all63 ordinary retiring opcodes; fresh receiver has no RVFI input",
+      "steps": 1032240,
+      "artifact": "/tmp/rv64-shift28-sail",
+      "proof_bytes": 1031264,
+      "proof_sha256": "516d96eef8c8c85dae9b4268c9f33a8c3e8400406b4fc9760ba3a6fd52bb77e7",
+      "fresh_receiver": "PASS",
+      "complete_cpu_statement_exact_to_alu32_control": true,
+      "complete_ram_cells_bytes_exact_to_alu32_control": true,
+      "cells_sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+    }
+  ],
+  "combined_services": {
+    "artifact": "/tmp/rv64-shift28-combined",
+    "proofs": 5,
+    "producer_workers": 1,
+    "fresh_receiver_workers": 16,
+    "fresh_receiver": "PASS",
+    "cells_sha256": "c4162b246a36d660bea83c219f6bde1cf157f3b26221abbba944734d46662556",
+    "cpu_and_truth_proof_sha256": {
+      "cpu-0.bin": "b05ce7f707ef770d09fe7e112e26aecaa29d38689b133a9d9183714143943865",
+      "cpu-1.bin": "f62d9bf8bd668b113f9d83748144977105347c6947212c69ebdaf9694c0c8a58",
+      "truth-0.bin": "11c1fbb102427063fcb20da64c2713b387980193ab98c54079217a9c067cb081",
+      "truth-1.bin": "77d5e55cc40788597eeb99ef7d90c2a6253273eaa22f348e8e4884c93e3aba00",
+      "truth-2.bin": "36ce237e1f2df213bb70cacea04289d87d0d18097c1cacf040be8dcac5939942"
+    }
+  },
+  "logs": "/tmp/stwo-rv64-delivery/shift-canonical-input-ranges-v3",
+  "limitations": [
+    "No new accepting open verifier. Removed B memberships require closed FUNCTION/REG/ROM or independently expected canonical u64 facts.",
+    "No full Ethereum block reproved for this isolated slice; retained-roster cost model only.",
+    "No runtime or peak RSS improvement established.",
+    "No new independent Rust PCS verification or recursion qualification claimed.",
+    "No native scalar production fallback introduced; same generic residual authority serves scalar test oracle, packed-base/secure domain and Circuit wires."
+  ],
+  "source_conformance": {
+    "new_violations": 0,
+    "preexisting_reported_violations": 97,
+    "diff_check": "PASS",
+    "unrelated_baseline_cleanup": false
+  },
+  "final_mass_authority_rerun": {
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "target": "test-riscv64-word16-provider-ladder",
+    "canonical_constants": "ALU RANGE_QUERIES; SHIFT RANGE_QUERIES and TABLE_QUERIES"
+  }
+}

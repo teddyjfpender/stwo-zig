@@ -1,0 +1,10 @@
+{
+  "scope": "Relocate unchanged circuit conformance authority outside oracle-generated official fixture inventory",
+  "pin_sha256": "7c6523bca8fdc465b978c7d883a0047cb39c1be4a66cce4d07f8c95c59286fc0",
+  "old_path": "vectors/circuit/official/starkware_surface_pin.txt",
+  "new_path": "conformance/circuit/starkware_surface_pin.txt",
+  "validation": "zig test src/frontends/circuit/starkware_surface_pin_test_root.zig -O ReleaseSafe:1/1PASS",
+  "surface_digest_changed": false,
+  "proof_or_protocol_changed": false,
+  "remaining_ci_issue": "Inherited oracle source digest/artifact inventory drift remains; full CI not claimed green."
+}

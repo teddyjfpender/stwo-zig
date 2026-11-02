@@ -1,0 +1,742 @@
+{
+  "scope": "real-prefix adversarial receiver plus synthetic ABI terminal tests",
+  "ethereum_block_proof": false,
+  "verifier": {
+    "bytes": 4317712,
+    "sha256": "f640d922e60677f70296ec68bf312de68c7f3cb10f47d225b9fb3cee7f38da92"
+  },
+  "batch_budget_checked": true,
+  "real_config_sha256": "27fae446c2298956df288d638d7cfa7df8bd6e8637524bce0f282f2cdea4ddc1",
+  "real_prefix_artifacts": {
+    "summary.json": {
+      "bytes": 930,
+      "sha256": "9ad120a18e75a23869baa960a6bbbb00dec3631a3b7b2200db6790630e6fb299"
+    },
+    "batch-000000.proof": {
+      "bytes": 1312656,
+      "sha256": "16b3aa887e8a5f66d342d4d91c074acd5898d7658e6d84663e7cc44a7f7995b9"
+    },
+    "batch-000000.json": {
+      "bytes": 54265,
+      "sha256": "4296dd67163f25b9f2c32ca2f74de2992e1f173f65323681c08b973d9b3ee649"
+    }
+  },
+  "synthetic_producer": {
+    "exit_code": 0,
+    "wall_ns": 10209418750,
+    "receiver": {
+      "schema": "rv64-ethereum-authenticated-execution-v1",
+      "completed": true,
+      "full_block_proof_verified": false,
+      "fresh_process_receiver_required": true,
+      "verified_batches": 1,
+      "instructions": 5,
+      "calls": [
+        0,
+        0,
+        0
+      ],
+      "initial_root": [
+        571441935,
+        1931507375,
+        1872822652,
+        1614991679,
+        1306544142,
+        1359630346,
+        913217215,
+        1758171572,
+        1716500372
+      ],
+      "final_root": [
+        245227248,
+        851222474,
+        1668451522,
+        40605227,
+        1492438494,
+        1002423035,
+        1758722281,
+        477336562,
+        1122487923
+      ],
+      "initial_pc": 4096,
+      "final_pc": 4116,
+      "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+      "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+      "proof_bytes": 873581,
+      "immutable_setup_ns": 858125,
+      "terminal_ns": 5568668041,
+      "total_ns": 10198035667,
+      "recursive_aggregation": false,
+      "resumed": false,
+      "resume_ns": 0,
+      "workers": 1
+    },
+    "error": null
+  },
+  "cases": [
+    {
+      "case": "real-valid-prefix",
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 1004651417,
+      "receiver": {
+        "status": "authenticated_execution_prefix_verified",
+        "full_block_proof_verified": false,
+        "batches": 1,
+        "instructions": 65536,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "final_root": [
+          1502352530,
+          364355436,
+          1359195591,
+          962531076,
+          1824467654,
+          914745454,
+          1429599103,
+          1638779884,
+          593832607
+        ],
+        "final_pc": 2193052,
+        "final_registers": [
+          0,
+          1435860,
+          33543792,
+          33556480,
+          0,
+          0,
+          8420432,
+          8,
+          33544056,
+          33647152,
+          33682096,
+          8420359,
+          278,
+          33682368,
+          33682176,
+          272,
+          7,
+          56,
+          8,
+          31407,
+          278,
+          33682096,
+          2,
+          2,
+          33648032,
+          2481,
+          33614384,
+          8389230,
+          0,
+          33682184,
+          235,
+          16595
+        ],
+        "setup_ns": 300130834,
+        "verify_ns": 25387541,
+        "proof_bytes": 1312656
+      },
+      "error": null
+    },
+    {
+      "case": "receiver-batch-budget",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 686445625,
+      "receiver": null,
+      "error": "error: EthereumBatchResourceLimit"
+    },
+    {
+      "case": "schema",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 687921833,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchReceipt"
+    },
+    {
+      "case": "out-of-order-index",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 687302958,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchAdjacency"
+    },
+    {
+      "case": "coverage-gap",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 683758917,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchAdjacency"
+    },
+    {
+      "case": "initial-root",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 685608042,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchAdjacency"
+    },
+    {
+      "case": "initial-pc-high64",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 687590416,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchAdjacency"
+    },
+    {
+      "case": "initial-register",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 689644625,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchAdjacency"
+    },
+    {
+      "case": "final-root",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 1014939083,
+      "receiver": null,
+      "error": "error: UnbalancedPrivateRamGraph"
+    },
+    {
+      "case": "keccak-id-gap",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 685391541,
+      "receiver": null,
+      "error": "error: InvalidEthereumServiceCoverage"
+    },
+    {
+      "case": "add-id-gap",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 747662584,
+      "receiver": null,
+      "error": "error: InvalidEthereumServiceCoverage"
+    },
+    {
+      "case": "double-id-gap",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 768554583,
+      "receiver": null,
+      "error": "error: InvalidEthereumServiceCoverage"
+    },
+    {
+      "case": "producer-rom-injection",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 832565958,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchReceipt"
+    },
+    {
+      "case": "unknown-field",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 890564542,
+      "receiver": null,
+      "error": "error: UnknownField"
+    },
+    {
+      "case": "proof-digest",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 855058333,
+      "receiver": null,
+      "error": "error: EthereumInputIdentityMismatch"
+    },
+    {
+      "case": "duplicated-reordered-batch",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 1255972541,
+      "receiver": null,
+      "error": "error: InvalidEthereumBatchAdjacency"
+    },
+    {
+      "case": "balanced-cpu-cell-state",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 1315165625,
+      "receiver": null,
+      "error": "error: OodsNotMatching"
+    },
+    {
+      "case": "truncated-wire-with-valid-digest",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 1295527291,
+      "receiver": null,
+      "error": "error: InvalidBinaryProof"
+    },
+    {
+      "case": "fake-completed-real-prefix",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 1318764209,
+      "receiver": null,
+      "error": "error: InvalidEthereumTerminalPc"
+    },
+    {
+      "case": "synthetic-abi-complete-only",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 24943167,
+      "receiver": {
+        "status": "ethereum_execution_proof_verified",
+        "full_block_proof_verified": true,
+        "batches": 1,
+        "instructions": 5,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "final_root": [
+          245227248,
+          851222474,
+          1668451522,
+          40605227,
+          1492438494,
+          1002423035,
+          1758722281,
+          477336562,
+          1122487923
+        ],
+        "final_pc": 4116,
+        "final_registers": [
+          0,
+          272629760,
+          43,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "setup_ns": 913292,
+        "verify_ns": 13446500,
+        "proof_bytes": 873581
+      },
+      "error": null
+    },
+    {
+      "case": "synthetic-missing-terminal",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 17392125,
+      "receiver": null,
+      "error": "error: FileNotFound"
+    },
+    {
+      "case": "synthetic-corrupt-terminal",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 23058625,
+      "receiver": null,
+      "error": "error: EndOfStream"
+    },
+    {
+      "case": "synthetic-wrong-output",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 19025833,
+      "receiver": null,
+      "error": "error: UnbalancedPrivateRamGraph"
+    },
+    {
+      "case": "synthetic-wrong-input-pin",
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 8618375,
+      "receiver": null,
+      "error": "error: EthereumInputIdentityMismatch"
+    },
+    {
+      "case": "synthetic-resume-prefix-producer",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 864761541,
+      "receiver": {
+        "schema": "rv64-ethereum-authenticated-execution-v1",
+        "completed": false,
+        "full_block_proof_verified": false,
+        "fresh_process_receiver_required": true,
+        "verified_batches": 1,
+        "instructions": 2,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "initial_root": [
+          571441935,
+          1931507375,
+          1872822652,
+          1614991679,
+          1306544142,
+          1359630346,
+          913217215,
+          1758171572,
+          1716500372
+        ],
+        "final_root": [
+          571441935,
+          1931507375,
+          1872822652,
+          1614991679,
+          1306544142,
+          1359630346,
+          913217215,
+          1758171572,
+          1716500372
+        ],
+        "initial_pc": 4096,
+        "final_pc": 4104,
+        "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+        "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+        "proof_bytes": 172768,
+        "immutable_setup_ns": 711667,
+        "terminal_ns": 0,
+        "total_ns": 844954208,
+        "recursive_aggregation": false,
+        "resumed": false,
+        "resume_ns": 0,
+        "workers": 1
+      },
+      "error": null
+    },
+    {
+      "case": "synthetic-resume-prefix-receiver",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 16161333,
+      "receiver": {
+        "status": "authenticated_execution_prefix_verified",
+        "full_block_proof_verified": false,
+        "batches": 1,
+        "instructions": 2,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "final_root": [
+          571441935,
+          1931507375,
+          1872822652,
+          1614991679,
+          1306544142,
+          1359630346,
+          913217215,
+          1758171572,
+          1716500372
+        ],
+        "final_pc": 4104,
+        "final_registers": [
+          0,
+          272629760,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "setup_ns": 572084,
+        "verify_ns": 2634958,
+        "proof_bytes": 172768
+      },
+      "error": null
+    },
+    {
+      "case": "synthetic-resume-continue",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 9788841625,
+      "receiver": {
+        "schema": "rv64-ethereum-authenticated-execution-v1",
+        "completed": true,
+        "full_block_proof_verified": false,
+        "fresh_process_receiver_required": true,
+        "verified_batches": 3,
+        "instructions": 5,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "initial_root": [
+          571441935,
+          1931507375,
+          1872822652,
+          1614991679,
+          1306544142,
+          1359630346,
+          913217215,
+          1758171572,
+          1716500372
+        ],
+        "final_root": [
+          245227248,
+          851222474,
+          1668451522,
+          40605227,
+          1492438494,
+          1002423035,
+          1758722281,
+          477336562,
+          1122487923
+        ],
+        "initial_pc": 4096,
+        "final_pc": 4116,
+        "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+        "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+        "proof_bytes": 1579381,
+        "immutable_setup_ns": 699959,
+        "terminal_ns": 5749784250,
+        "total_ns": 9777355584,
+        "recursive_aggregation": false,
+        "resumed": true,
+        "resume_ns": 4886875,
+        "workers": 1
+      },
+      "error": null
+    },
+    {
+      "case": "synthetic-resume-complete-receiver",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 33020833,
+      "receiver": {
+        "status": "ethereum_execution_proof_verified",
+        "full_block_proof_verified": true,
+        "batches": 3,
+        "instructions": 5,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "final_root": [
+          245227248,
+          851222474,
+          1668451522,
+          40605227,
+          1492438494,
+          1002423035,
+          1758722281,
+          477336562,
+          1122487923
+        ],
+        "final_pc": 4116,
+        "final_registers": [
+          0,
+          272629760,
+          43,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "setup_ns": 1910959,
+        "verify_ns": 20428417,
+        "proof_bytes": 1579381
+      },
+      "error": null
+    },
+    {
+      "case": "synthetic-resume-single-pass",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "exit_code": 0,
+      "wall_ns": 9560054708,
+      "receiver": {
+        "schema": "rv64-ethereum-authenticated-execution-v1",
+        "completed": true,
+        "full_block_proof_verified": false,
+        "fresh_process_receiver_required": true,
+        "verified_batches": 3,
+        "instructions": 5,
+        "calls": [
+          0,
+          0,
+          0
+        ],
+        "initial_root": [
+          571441935,
+          1931507375,
+          1872822652,
+          1614991679,
+          1306544142,
+          1359630346,
+          913217215,
+          1758171572,
+          1716500372
+        ],
+        "final_root": [
+          245227248,
+          851222474,
+          1668451522,
+          40605227,
+          1492438494,
+          1002423035,
+          1758722281,
+          477336562,
+          1122487923
+        ],
+        "initial_pc": 4096,
+        "final_pc": 4116,
+        "elf_sha256": "254aa0cc47987625c274e05dd3e3a6437b1496094ac9a7335f0610606e98cc44",
+        "input_sha256": "146e3e7b7c83e3c047555fbe98fa59d96e5749cb3dc882e71fc906baa750abad",
+        "proof_bytes": 1579381,
+        "immutable_setup_ns": 637500,
+        "terminal_ns": 4828578583,
+        "total_ns": 9550780875,
+        "recursive_aggregation": false,
+        "resumed": false,
+        "resume_ns": 0,
+        "workers": 1
+      },
+      "error": null
+    },
+    {
+      "case": "synthetic-resume-already-complete",
+      "ethereum_block_proof": false,
+      "rejected": true,
+      "exit_code": 1,
+      "wall_ns": 24673792,
+      "receiver": null,
+      "error": "error: EthereumPrefixAlreadyAtTerminal"
+    },
+    {
+      "case": "synthetic-retained-batch-reprove",
+      "ethereum_block_proof": false,
+      "rejected": false,
+      "receipt": {
+        "schema": "rv64-ethereum-retained-batch-reprove-v1",
+        "baseline_complete_chain_verified": true,
+        "full_block_reproved": false,
+        "target_batch": 1,
+        "proof_bytes_equal": true,
+        "proof_sha256": "5b9b8ac30401d9e7735c73ecb8e5fb144f5450d3e32b24f948ea77f86d90a33a",
+        "baseline_receiver_ns": 19865000,
+        "native_prefix_replay_ns": 1008916,
+        "metrics": {
+          "index": 1,
+          "first_step": 2,
+          "instructions": 2,
+          "ram_cells": 1,
+          "keccak_calls": 0,
+          "secp_add_calls": 0,
+          "secp_double_calls": 0,
+          "source_cells": {
+            "fixed": 5904,
+            "main": 342944,
+            "interaction": 29760
+          },
+          "proof_bytes": 542880,
+          "native_ns": 1500,
+          "openings_ns": 26625,
+          "ram_witness_ns": 1334416,
+          "setup_ns": 686375,
+          "cpu_witness_ns": 114500,
+          "prove_ns": 2037096375,
+          "receiver_setup_ns": 536084,
+          "encode_ns": 715958,
+          "verify_ns": 4720000,
+          "write_ns": 935000,
+          "cache_publish_ns": 3083,
+          "total_after_native_ns": 2046168458,
+          "shared_main_arena_adopted": true
+        }
+      }
+    }
+  ]
+}

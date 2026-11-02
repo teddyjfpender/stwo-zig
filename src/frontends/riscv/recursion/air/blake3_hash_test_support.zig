@@ -37,4 +37,3 @@ fn closedExtra(comptime Extra: type, rows: *const witness.Rows, routes: []const 
     while (values.next()) |value| if (!value.isZero()) return false;
     return true;
 }
-

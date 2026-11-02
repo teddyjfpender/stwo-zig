@@ -1,0 +1,191 @@
+{
+  "schema": "rv64-keccak-primitive-fixture-v1",
+  "cpu_ram_bridge": false,
+  "calls": 5,
+  "first_call_id": 1,
+  "pow_bits": 26,
+  "queries": 70,
+  "proof_bytes": 1619416,
+  "proof_sha256": "945ab87ed2b5bb5ff2e187149063f6880e16ea60cda44c7f4f5677a935d87a4c",
+  "prove_pipeline_ns": 538220042,
+  "phase_ns": {
+    "witness": 3635875,
+    "fixed_commit": 2200708,
+    "main_commit": 34038250,
+    "interactions": 27415833,
+    "interaction_commit": 35499959,
+    "prove": 434210541,
+    "serialize_release": 1218875
+  },
+  "stages": {
+    "schema_version": 1,
+    "runtime": "cpu",
+    "example": "rv64-keccak-primitive",
+    "stages": [
+      {
+        "id": "keccak_coset_fft",
+        "label": "Keccak quotient coset FFT",
+        "seconds": 7.4e-05,
+        "children": [
+          {
+            "id": "keccak_coset_fft",
+            "label": "Keccak quotient coset FFT",
+            "seconds": 0.000553,
+            "children": [
+              {
+                "id": "keccak_coset_fft",
+                "label": "Keccak quotient coset FFT",
+                "seconds": 0.000892,
+                "children": null
+              },
+              {
+                "id": "keccak_constraint_rows",
+                "label": "Keccak quotient constraint rows",
+                "seconds": 4.2e-05,
+                "children": null
+              },
+              {
+                "id": "keccak_coset_fft",
+                "label": "Keccak quotient coset FFT",
+                "seconds": 6.1e-05,
+                "children": null
+              },
+              {
+                "id": "keccak_constraint_rows",
+                "label": "Keccak quotient constraint rows",
+                "seconds": 3.9e-05,
+                "children": null
+              },
+              {
+                "id": "keccak_coset_fft",
+                "label": "Keccak quotient coset FFT",
+                "seconds": 5.8e-05,
+                "children": null
+              },
+              {
+                "id": "keccak_constraint_rows",
+                "label": "Keccak quotient constraint rows",
+                "seconds": 3.8e-05,
+                "children": null
+              },
+              {
+                "id": "keccak_coset_fft",
+                "label": "Keccak quotient coset FFT",
+                "seconds": 5.8e-05,
+                "children": null
+              },
+              {
+                "id": "keccak_constraint_rows",
+                "label": "Keccak quotient constraint rows",
+                "seconds": 3.5e-05,
+                "children": null
+              }
+            ]
+          },
+          {
+            "id": "keccak_constraint_rows",
+            "label": "Keccak quotient constraint rows",
+            "seconds": 0.000294,
+            "children": null
+          },
+          {
+            "id": "keccak_coset_fft",
+            "label": "Keccak quotient coset FFT",
+            "seconds": 0.000215,
+            "children": null
+          },
+          {
+            "id": "keccak_constraint_rows",
+            "label": "Keccak quotient constraint rows",
+            "seconds": 0.013627,
+            "children": null
+          },
+          {
+            "id": "keccak_constraint_rows",
+            "label": "Keccak quotient constraint rows",
+            "seconds": 0.00029,
+            "children": null
+          },
+          {
+            "id": "keccak_coset_fft",
+            "label": "Keccak quotient coset FFT",
+            "seconds": 0.000215,
+            "children": null
+          },
+          {
+            "id": "keccak_constraint_rows",
+            "label": "Keccak quotient constraint rows",
+            "seconds": 0.000292,
+            "children": null
+          },
+          {
+            "id": "keccak_coset_fft",
+            "label": "Keccak quotient coset FFT",
+            "seconds": 0.00022,
+            "children": null
+          },
+          {
+            "id": "keccak_constraint_rows",
+            "label": "Keccak quotient constraint rows",
+            "seconds": 0.00029,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "keccak_coset_fft",
+        "label": "Keccak quotient coset FFT",
+        "seconds": 0.000663,
+        "children": null
+      },
+      {
+        "id": "keccak_constraint_rows",
+        "label": "Keccak quotient constraint rows",
+        "seconds": 0.013478,
+        "children": null
+      },
+      {
+        "id": "keccak_coset_fft",
+        "label": "Keccak quotient coset FFT",
+        "seconds": 0.000661,
+        "children": null
+      },
+      {
+        "id": "keccak_constraint_rows",
+        "label": "Keccak quotient constraint rows",
+        "seconds": 0.013471,
+        "children": null
+      },
+      {
+        "id": "keccak_coset_fft",
+        "label": "Keccak quotient coset FFT",
+        "seconds": 0.000652,
+        "children": null
+      },
+      {
+        "id": "keccak_constraint_rows",
+        "label": "Keccak quotient constraint rows",
+        "seconds": 0.013466,
+        "children": null
+      }
+    ]
+  },
+  "permutation_log": 7,
+  "permutation_columns": 4548,
+  "permutation_mask_values": 10952,
+  "permutation_constraints": 6089,
+  "maximum_degree": 4,
+  "source_bytes": 2770944,
+  "process_usage": {
+    "source": "darwin_proc_pid_rusage_v6",
+    "lifetime_peak_physical_footprint_bytes": 27017600,
+    "current_physical_footprint_bytes": 18317696,
+    "process_cpu_ns": 1422702750,
+    "energy_nj": 8316892777,
+    "instructions": 24450089045,
+    "cycles": 5975590878,
+    "unavailable_reason": null
+  },
+  "artifact_directory": "vectors/reports/interop_artifacts/rv64-keccak-n128-parallel-v1",
+  "historical_setup": "v1 fixed columns depend on request call count/first ID; not the immutable setup revision."
+}

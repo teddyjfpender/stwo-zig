@@ -1,0 +1,64 @@
+{
+  "utc": "2026-11-01T17:22:21.405451+00:00",
+  "base_commit": "00cf8981dd77d05c210fcca16c81fad3199a69ed",
+  "profile": {
+    "scope": "core actual OM31 half-field denominator stage only, shared host, scalar-first micro",
+    "rows": 65536,
+    "batches": 8,
+    "tile_rows": 1024,
+    "scratch_bytes": 270336,
+    "samples": [
+      {
+        "scalar_ns": 34804209,
+        "batched_ns": 9057875
+      },
+      {
+        "scalar_ns": 33666667,
+        "batched_ns": 9038583
+      },
+      {
+        "scalar_ns": 34469750,
+        "batched_ns": 8959083
+      }
+    ],
+    "median_scalar_ns": 34469750,
+    "median_batched_ns": 9038583,
+    "ratio_of_medians": 3.81362321948031
+  },
+  "qualification": {
+    "command": "zig build test-native-cpu-om31 -Doptimize=<ReleaseSafe|ReleaseFast> --summary all",
+    "both_pass": true,
+    "durable_capture_records_before_and_after": [
+      "OM31_COMPACT_PARITY fold=1 mixed=false bytes=3316 sha256=03c64ec71b75c65a2e92e220b04f3806fcfdb46971508ac8f29f8454c2ad8740",
+      "OM31_COMPACT_PARITY fold=1 mixed=true bytes=6364 sha256=54c341b146884f635e6348b7b4fbd3d90d10af961b2407f8490a668486d4217e",
+      "OM31_COMPACT_PARITY fold=4 mixed=false bytes=3328 sha256=83016e84e4548885f2c5f954108ebf82781c8885340600216e240d11a46da60d",
+      "OM31_COMPACT_PARITY fold=4 mixed=true bytes=7780 sha256=49df38de8d0c030b643ae41073cc426d2708588d9348b6c25b6a2e08586b8e48",
+      "OM31_HYBRID_PARITY fold=1 bytes=6364 sha256=54c341b146884f635e6348b7b4fbd3d90d10af961b2407f8490a668486d4217e",
+      "OM31_HYBRID_PARITY fold=4 bytes=7780 sha256=49df38de8d0c030b643ae41073cc426d2708588d9348b6c25b6a2e08586b8e48"
+    ],
+    "coverage": [
+      "actual uniform/mixed/hybrid full OM STARKs fold1/fold4 durable byte parity and decoded fresh receiver",
+      "full compact pipeline all allocation failures",
+      "1024+1024+5 row partial tiling",
+      "zero numerator does not omit a denominator pole",
+      "no sampled batches returns zero without inverse scratch",
+      "exact/undersized per-proof scratch cap checked before large group allocations",
+      "existing default Q prove/fresh receiver tests"
+    ]
+  },
+  "legacy_q_control": {
+    "proof_bytes": 381800,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "fresh_accepted": true,
+    "receiver_binary": "/private/tmp/stwo-rv64-om31-fri/zig-out/bin/rv64-logup-gkr-prototype",
+    "provenance": "existing qualified historical receiver binary; Q provider dispatch and source unchanged; current-source Q proof/receiver tests separately pass",
+    "statement": "historical LS20/tail18,U16log16,U8log8,not current LS7"
+  },
+  "limits": [
+    "no complete quotient/full-block speedup claim",
+    "micro measurements are shared-host, fixed scalar-first order, not a quiet full-block A/B",
+    "resource scratch counts requested heap payload, not total RSS or small metadata/stack overhead",
+    "no global cache or source LDE retention added",
+    "no new security or GPU qualification claimed"
+  ]
+}

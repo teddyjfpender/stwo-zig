@@ -1,0 +1,91 @@
+{
+  "scope": "Scalable public boundary canonicality from separately anchored RAM14 tuples; four strict U16 address gaps remain",
+  "source_base": "1efae0558",
+  "layout": {
+    "main": 23,
+    "old_interaction": 48,
+    "interaction": 20,
+    "old_residuals": 54,
+    "residuals": 47,
+    "degree": 3,
+    "native_factor": 2,
+    "U16_queries_per_physical_row": 4,
+    "U8_queries_per_physical_row": 0,
+    "boundary_range8_claim": "forced zero in AIR and closed/global claim guards",
+    "RAM_claim": "separately authenticated and compared to expectedClaim in every accepting receiver"
+  },
+  "packet0_savings": {
+    "boundary_logs": [
+      20,
+      20
+    ],
+    "committed_base_cells": 58720256,
+    "raw_bytes": 234881024,
+    "native2n_point_values": 117440512,
+    "native2n_point_bytes": 469762048,
+    "current_and_previous_openings": 64
+  },
+  "gates": {
+    "ReleaseSafe": [
+      "memory18",
+      "coordinator20",
+      "two-PCS global boundary diagnostic4"
+    ],
+    "ReleaseFast": [
+      "memory18",
+      "coordinator20",
+      "sharedKeccak5",
+      "global execution15 after updating the physical range ledger expectation from14N/1N to4N/0N"
+    ],
+    "independent_review": "Another agent checked every receiver anchor, typed public projection, degree/padding/gap arithmetic, masks and dictionary index map; diagnostic old48-column coupling corrected to authoritative20-column offsets/schema",
+    "strong_adversarial": "Actual full17-role polynomial proof and global claim closure accept balanced noncanonical private boundary tuples; fresh full receiver rejects expected RAM14 claim mismatch; replacing both claims with public expected values preserves closure but breaks proof/transcript verification",
+    "legacy_control": {
+      "sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+      "proof_bytes": 433488,
+      "fresh_receiver": true
+    }
+  },
+  "real_packet": {
+    "directory": "/tmp/rv64-boundary-public-real0-v1",
+    "producer_binary_sha256": "084948964347463d8abecf5902e382f03103eec076341be493b9929163b160bd",
+    "proof_sha256": "b3b7b6d08f71af7fc5ebfb0ce9b76ad22e21db8b2cc02d83c0ff8f3392da870f",
+    "proof_bytes": 1146400,
+    "steps": 4194303,
+    "memory_words": 708957,
+    "cells_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "CPU_all_public_fields_and_RAM_all_records_identical": true,
+    "control": "/tmp/rv64-main-2n-ls96-unitshift-real0-v1",
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 895715375,
+      "image_ns": 293365500
+    },
+    "source_cells": {
+      "fixed": 67168160,
+      "main": 593751776,
+      "interaction": 555223552
+    },
+    "decoded_sample_values_per_tree": [
+      127,
+      1605,
+      696,
+      8
+    ],
+    "observed": {
+      "wall_seconds": 11.45,
+      "user_seconds": 57.73,
+      "system_seconds": 5.85,
+      "peak_RSS_bytes": 10748985344,
+      "prove_ns": 9980255208,
+      "provider_source_ns": 566380584
+    }
+  },
+  "limits": [
+    "Observed timings overlapped engineering/compilation, not isolated speedup or p50.",
+    "The real artifact predates the additional fail-fast global U8 guard; all physical equations and the closed receiver zero-claim guard are identical. Later merged qualification checks current guards.",
+    "Public tuple canonicality depends on typed statement validation and separately anchored boundary claims; a bare component/global debt sum is insufficient.",
+    "No ordinary LS operand-range elision, full Ethereum block, recursion/GPU or whole-protocol128-bit security claim."
+  ]
+}

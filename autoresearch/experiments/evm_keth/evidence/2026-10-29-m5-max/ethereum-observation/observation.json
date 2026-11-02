@@ -1,0 +1,29 @@
+{
+  "schema": "keth-rpc-observation-v1",
+  "status": "observed",
+  "endpoint": "https://rpc.flashbots.net",
+  "requested_chain_id": 1,
+  "requested_block": "0x15914cf",
+  "started_at": "2026-10-29T13:06:34.812621+00:00",
+  "scope": "RPC observation; not an execution witness or consensus proof",
+  "files": {
+    "chain.json": "06ecd3ab7cc4fc828d3be0b1c8d0d996b4f80ad26e8f1b93d9c124a5cea844f3",
+    "block.json": "609b20a11e7056a0b42a3b6c0b203ebb9747bf926dd129abf781f8224b24c7d0",
+    "parent.json": "f5bbb44da34ff74a569401f1f96ae883c2d214a3e0625611471d33fefe71cd79"
+  },
+  "block_number": 22615247,
+  "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+  "gas_used": 1331413,
+  "transactions": 26,
+  "transaction_types": {
+    "0x0": 2,
+    "0x1": 1,
+    "0x2": 22,
+    "0x3": 1
+  },
+  "deposit_transactions": 0,
+  "first_transaction_is_deposit": false,
+  "cairo_proof_verified": false,
+  "op_stack_execution_proved": false,
+  "finished_at": "2026-10-29T13:06:37.119901+00:00"
+}

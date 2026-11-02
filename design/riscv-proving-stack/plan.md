@@ -1,5 +1,13 @@
 # Bounded RISC-V proving-stack reset
 
+The separate [bounded RV64 AIR](rv64-air.md) now has genuine native proof and
+fresh-verifier tests, compact physical projection and reusable immutable setup.
+It does not establish full CSP/OP proving or recursive continuation.
+
+The separate [RV64 frontend milestone](rv64-frontend.md) adds experimental
+execution support without changing the RV32 proof contract or qualifying a
+new proving product.
+
 ## Outcome
 
 Make native RISC-V proving cost explainable and its complete-proof development
@@ -239,3 +247,14 @@ load/store axis to separate repeated history from distinct memory openings. The
 execution-only `--check-workload` gate catches fixture mistakes before proving.
 The original failing input is retained; large Ethereum production stays deferred
 until these small costs and boundaries are understood.
+
+
+The experimental RV64 full-execution route now qualifies all 17 software CSP
+cases as one proof per execution, including ECDSA at 1,625,938 retirements.
+It uses program-only ROM setup, a private control frame, byte/range lookups,
+independently sized providers, compact PCS retention and bounded parallel coset
+evaluation. Every provider closes in the same PCS/composition/FRI transaction.
+Serial/parallel statement, claim and proof bytes match on all cases. See
+`rv64-air.md` and the pinned `csp-full-comparison.json` measurements. This does
+not promote the experimental profile into an OP guest ABI or full Rust proof
+qualification, and does not alter the released RV32 pipeline's admission.

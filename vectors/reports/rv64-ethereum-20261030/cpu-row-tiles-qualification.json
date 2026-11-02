@@ -1,0 +1,69 @@
+{
+  "schema": "rv64-cpu-row-tiles-v1",
+  "status": "functional qualification PASS; performance retention pending complete-job comparison",
+  "implementation": {
+    "source": "src/frontends/riscv/rv64/air/full/parallel.zig",
+    "tile_rows": 4096,
+    "admission": "Dynamic only when coset_size / admitted_workers >=4096. Small cosets retain original static partitions; one-worker serial path unchanged.",
+    "queue": "one 128-byte-aligned atomic next-row cursor per coset, relaxed fetchAdd claims, final tile clamped to coset size",
+    "resources": "same existing WorkPool lease, at most W-1 helper jobs plus coordinator, same one bounded W-element Scratch allocation; no added threads, queue jobs or per-row allocations",
+    "arithmetic": "same Component.emitInflated authority and per-row coefficient order; one writer for each output row, no cross-row field reduction",
+    "lifetime": "all helpers and closure slots drain before contexts, queue or coset scratch may be released, including partial submission failure"
+  },
+  "gates": {
+    "safe_parallel": "PASS",
+    "worker_counts": [
+      1,
+      3,
+      8,
+      16
+    ],
+    "domain": "arbitrary native polynomial coefficients, all four cosets, predecessor masks crossing tile boundaries, repeated additive passes and scratch reuse; exact secure quotient values versus serial",
+    "real_4096_coverage": {
+      "sizes": [
+        0,
+        1,
+        4095,
+        4096,
+        4097,
+        16397
+      ],
+      "workers": 16,
+      "result": "each row exactly once, contiguous bounded claims, correct tail, excess workers safe"
+    },
+    "failures": [
+      "lease reservation leaves output unchanged",
+      "injected failure after one helper submission drains all prior work and releases full lease",
+      "undersized worker stack rejects before tasks publish"
+    ],
+    "native_proof": {
+      "command": "zig build test-riscv64-providers -Doptimize=ReleaseSafe",
+      "CPU_log": 10,
+      "queries": 12,
+      "pow_bits": 0,
+      "worker_counts": [
+        1,
+        3,
+        8,
+        16
+      ],
+      "comparison": "exact serialized proof bytes versus independent full4n reference; receiving verifier rebuilds expected geometry and fixed root",
+      "test_only_tiles": 64,
+      "admission_assertion": "each multiworker proof exercises at least four dynamic waves; test binding absent from production builds"
+    },
+    "commands": [
+      "zig build test-riscv64-parallel -Doptimize=ReleaseSafe",
+      "zig build test-riscv64-providers -Doptimize=ReleaseSafe"
+    ]
+  },
+  "controls": {
+    "static_source_snapshot": "/tmp/stwo-rv64-prepared-frame/static-parallel-before-4096.zig",
+    "prior_experiment": "Earlier adaptive2048-row ECDSA prototype did not reliably improve and was rejected. This fixed4096-row heterogeneous-core ETH candidate requires a new complete-job comparison.",
+    "current_full_block": "running frozen static-scheduler binary; source prototype does not alter that process"
+  },
+  "limits": [
+    "No measured speedup or production retention claim yet.",
+    "Test-only64-row scheduling exercises the same implementation on modest domains; real4096 queue coverage is separately tested.",
+    "No equation, degree, opening, security-parameter or proof-format changes."
+  ]
+}

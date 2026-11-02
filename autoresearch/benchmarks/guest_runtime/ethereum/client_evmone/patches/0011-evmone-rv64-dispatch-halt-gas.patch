@@ -1,0 +1,18 @@
+diff --git a/lib/evmone/baseline_execution.cpp b/lib/evmone/baseline_execution.cpp
+index 9817e8e..51bf21c 100644
+--- a/lib/evmone/baseline_execution.cpp
++++ b/lib/evmone/baseline_execution.cpp
+@@ -160,6 +160,13 @@ template <Opcode Op>
+         status != EVMC_SUCCESS)
+     {
+         state.status = status;
++#if defined(__riscv)
++        // An exceptional halt consumes all gas (make_execution_result zeroes it), so the
++        // value returned here is never used. Returning a constant keeps the register
++        // allocator from computing the decremented gas into the return register on every
++        // handler and copying it back (one `mv` per executed opcode).
++        gas = 0;
++#endif
+         return {nullptr, pos.stack_end};
+     }
+     const auto new_pos = invoke(instr::core::impl<Op>, pos, gas, state);

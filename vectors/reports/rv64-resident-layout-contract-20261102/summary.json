@@ -1,0 +1,174 @@
+{
+  "scope": "Source-derived buffer/owner contracts, NOT GPU qualification or total device memory admission. Byte fields are authoritative; human summaries GiB=2^30.",
+  "source_base": "c5aef678e",
+  "input": "vectors/reports/rv64-om-gkr-fullnode-coordinator-20261101/qualified-legacy-roster.json",
+  "profiles": {
+    "beta1": {
+      "all_worker_compact_manifest_barrier_bytes": 58786484880,
+      "all_worker_full_lde_manifest_barrier_bytes": 153214358160,
+      "binding_bytes": 13085771776,
+      "max_compact_gkr_seal": 27865951136,
+      "max_compact_inter_commit": 13696956152,
+      "max_compact_composition_coset": 15586948824,
+      "largest_cpu_example": {
+        "index": 4,
+        "fixed_separate_full_resident_bytes": 1225613280,
+        "compact": {
+          "streaming_column_cap": 64,
+          "progressive_state_bytes_per_leaf_upper": 112,
+          "retained_main_bytes": 1690112480,
+          "retained_inter_bytes": 697325536,
+          "retained_composition_bytes": 301989856,
+          "role_coset_shared_current_previous_upper_bytes": 1107296256,
+          "deep_secure_aggregate_bytes": 268435456,
+          "main_commit_separate_buffers": 8102310816,
+          "local_gkr_seal_with_retained_main": 27865951136,
+          "sealed_manifest_barrier": 2371373472,
+          "inter_commit_separate_buffers": 7811936640,
+          "composition_one_coset": 4161821024,
+          "composition_commit_separate_buffers": 5302671712,
+          "deep_and_fri_upper": 6544185696
+        }
+      },
+      "keccak_example": {
+        "index": 25,
+        "columns_by_tree": [
+          46,
+          1925,
+          5368,
+          32
+        ],
+        "fixed_separate_full_resident_bytes": 134991840,
+        "compact": {
+          "streaming_column_cap": 64,
+          "progressive_state_bytes_per_leaf_upper": 112,
+          "retained_main_bytes": 2050002912,
+          "retained_inter_bytes": 5629345760,
+          "retained_composition_bytes": 67108832,
+          "role_coset_shared_current_previous_upper_bytes": 7645167616,
+          "deep_secure_aggregate_bytes": 16777216,
+          "main_commit_separate_buffers": 4488267544,
+          "local_gkr_seal_with_retained_main": 2211772184,
+          "sealed_manifest_barrier": 2211772184,
+          "inter_commit_separate_buffers": 13696956152,
+          "composition_one_coset": 15586948824,
+          "composition_commit_separate_buffers": 8101164760,
+          "deep_and_fri_upper": 8143107800
+        },
+        "full_lde_phases": {
+          "main_commit_separate_buffers": 8261117720,
+          "local_gkr_seal_with_retained_main": 6244669208,
+          "sealed_manifest_barrier": 6244669208,
+          "inter_commit_separate_buffers": 28661389048,
+          "composition_separate_buffers": 23233369816,
+          "opening_fri_full_retention_upper": 23300478680
+        },
+        "lifted_leaf_base_words_per_query": 7371,
+        "oods_samples_bounds": [
+          13806,
+          13806
+        ],
+        "oods_samples_exact": 13806
+      }
+    },
+    "beta2": {
+      "all_worker_compact_manifest_barrier_bytes": 59554566800,
+      "all_worker_full_lde_manifest_barrier_bytes": 248599057040,
+      "binding_bytes": 13085771776,
+      "max_compact_gkr_seal": 27899505568,
+      "max_compact_inter_commit": 13894088440,
+      "max_compact_composition_coset": 15498868440,
+      "largest_cpu_example": {
+        "index": 4,
+        "fixed_separate_full_resident_bytes": 2221645792,
+        "compact": {
+          "streaming_column_cap": 64,
+          "progressive_state_bytes_per_leaf_upper": 112,
+          "retained_main_bytes": 1723666912,
+          "retained_inter_bytes": 730879968,
+          "retained_composition_bytes": 335544288,
+          "role_coset_shared_current_previous_upper_bytes": 1107296256,
+          "deep_secure_aggregate_bytes": 536870912,
+          "main_commit_separate_buffers": 11726189472,
+          "local_gkr_seal_with_retained_main": 27899505568,
+          "sealed_manifest_barrier": 2404927904,
+          "inter_commit_separate_buffers": 11469369728,
+          "composition_one_coset": 4262484320,
+          "composition_commit_separate_buffers": 7383046496,
+          "deep_and_fri_upper": 10402945376
+        }
+      },
+      "keccak_example": {
+        "index": 25,
+        "columns_by_tree": [
+          46,
+          1925,
+          5368,
+          32
+        ],
+        "fixed_separate_full_resident_bytes": 236171232,
+        "compact": {
+          "streaming_column_cap": 64,
+          "progressive_state_bytes_per_leaf_upper": 112,
+          "retained_main_bytes": 2020642784,
+          "retained_inter_bytes": 5599985632,
+          "retained_composition_bytes": 37748704,
+          "role_coset_shared_current_previous_upper_bytes": 7645167616,
+          "deep_secure_aggregate_bytes": 33554432,
+          "main_commit_separate_buffers": 4714759960,
+          "local_gkr_seal_with_retained_main": 2182412056,
+          "sealed_manifest_barrier": 2182412056,
+          "inter_commit_separate_buffers": 13894088440,
+          "composition_one_coset": 15498868440,
+          "composition_commit_separate_buffers": 8201828056,
+          "deep_and_fri_upper": 8289908440
+        },
+        "full_lde_phases": {
+          "main_commit_separate_buffers": 12327569176,
+          "local_gkr_seal_with_retained_main": 10311120664,
+          "sealed_manifest_barrier": 10311120664,
+          "inter_commit_separate_buffers": 43952977656,
+          "composition_separate_buffers": 38625621720,
+          "opening_fri_full_retention_upper": 38793393880
+        },
+        "lifted_leaf_base_words_per_query": 7371,
+        "oods_samples_bounds": [
+          13806,
+          13806
+        ],
+        "oods_samples_exact": 13806
+      }
+    }
+  },
+  "ownership_contract": [
+    "FIXED commitment/coefficient/LDE data is immutable per independent setup identity, separately admitted/cachebounded; per-worker reports must not be blindly summed as unique FIXED ownership.",
+    "Compact target retains only M31 coefficients plus CPU-style pruned top Merkle nodes across manifest barrier. LDE is ephemeral64columncommit tile, released after hashing; no crossphase expansion cache.",
+    "Every CPU localGKR role owns16 baseplanes:8Eq+8prefix. Entire block binding12.187GiB persists across barrier until INTER ownership transfer.",
+    "INTER generation source/raw arrays may coexist with nativecoefficients until owned streaming commitment releases them; contract reserves both.",
+    "Composition retains one role/coset basefield matrix. Current/previous and next2 masks address this same matrix; no duplicate mask plane and no retained4nLDE. SecureOM accumulator and composition chunks counted separately.",
+    "DEEP retains one secure8-coordinate aggregate and bounded column expansion tile; FRI layers/fullnodes use conservativegeometric upperbound. Extra denominator/queryworkspaces require additional explicit reservation.",
+    "Current CPU compact node rule prunes4bottomlevels for committedlog>=20; actual GPU pruning/sparse opening semantics remain unsupported until ported and qualified. This is a target contract, not claimofimplementeddeviceallocation."
+  ],
+  "qualification": {
+    "full_original_contract_suite_safe": "PASS56s",
+    "full_original_contract_suite_fast": "PASS50s",
+    "final_compact_budget_filtered_safe": "PASS3s, explicitrootimport and discoveryguard",
+    "final_compact_budget_filtered_fast": "PASS4s, explicitrootimport and discoveryguard",
+    "diagnostic_cli_release_fast": "PASS2s; ran full30worker roster atbeta1 andbeta2 without witness/key/GPU allocation",
+    "tests": "eightcoordinate32B field accounting;16/32compositioncolumns;beta changesLDE notcoefs;Kbeta2log18tile256MiB; full/compact budgetnegative andgeometryoverflow rejection"
+  },
+  "limitations": [
+    "Compact GPU path not implemented. No GPU build, device allocation, provisioning or qualification performed.",
+    "Known represented phases exclude independent FIXED, remaining local source-query/capture metadata, runtime/AOT, extra PCS scratch and other admittedworkers. Budgetfit is necessary only, never sufficient for device acceptance.",
+    "No perGPU queue mapping/peak guarantee follows from aggregate54.7GiB on4\u00d732GiB; live numericalGKR tasks must coexist with previously sealedcompactworkers.",
+    "Beta2 is candidategeometry only; no wholeprotocol128-bit certification. Querycount/security budget not frozen by memoryplan.",
+    "Recursive exposure reports liftedM31leafwidth and secureOODSmaskbounds; it is not exact proof bytes/circuitgates. OM31uses8coordinates and existingQM31 wrappers cannot be assumed qualified.",
+    "SingleGPUor4GPUthroughput projections require actual kernels, allocation telemetry, transfer accounting, realproof and freshreceiver; none inferred from CPU cells."
+  ],
+  "pure_metadata_followup": {
+    "source_base": "8bfd2d95d",
+    "physical_bytes_unchanged": true,
+    "keccak_exact_oods_samples": 13806,
+    "scope": "Masksandcosetdimensions sourcedfromsamepure metadata asrealcomponents; nozero-claimcomponent constructed."
+  }
+}

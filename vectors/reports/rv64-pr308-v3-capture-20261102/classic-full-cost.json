@@ -1,0 +1,550 @@
+{
+  "scope": "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time",
+  "cpu": [
+    {
+      "columns": [
+        215,
+        3616,
+        3440
+      ],
+      "native_cells": [
+        34760448,
+        379610400,
+        280731648
+      ],
+      "lifted_leaf_cells": [
+        901775360,
+        15166603264,
+        14428405760
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        188,
+        3121,
+        2672
+      ],
+      "native_cells": [
+        29656640,
+        303686880,
+        221005184
+      ],
+      "lifted_leaf_cells": [
+        788529152,
+        13090422784,
+        11207180288
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        207,
+        3459,
+        3192
+      ],
+      "native_cells": [
+        29744608,
+        307016064,
+        223115008
+      ],
+      "lifted_leaf_cells": [
+        868220928,
+        14508097536,
+        13388218368
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        207,
+        3482,
+        3196
+      ],
+      "native_cells": [
+        30212032,
+        310146016,
+        225731328
+      ],
+      "lifted_leaf_cells": [
+        868220928,
+        14604566528,
+        13404995584
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        204,
+        3389,
+        3160
+      ],
+      "native_cells": [
+        29731232,
+        303937536,
+        222111232
+      ],
+      "lifted_leaf_cells": [
+        855638016,
+        14214496256,
+        13254000640
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        196,
+        3286,
+        2920
+      ],
+      "native_cells": [
+        29666688,
+        318946880,
+        232971392
+      ],
+      "lifted_leaf_cells": [
+        822083584,
+        13782482944,
+        12247367680
+      ],
+      "max_log": [
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "columns": [
+        170,
+        1130,
+        1484
+      ],
+      "native_cells": [
+        24531616,
+        193186496,
+        170830336
+      ],
+      "lifted_leaf_cells": [
+        356515840,
+        2369781760,
+        3112173568
+      ],
+      "max_log": [
+        21,
+        21,
+        21
+      ]
+    }
+  ],
+  "truth": [
+    {
+      "columns": [
+        46,
+        1925,
+        616
+      ],
+      "native_cells": [
+        23527424,
+        506265600,
+        168034304
+      ],
+      "lifted_leaf_cells": [
+        96468992,
+        4037017600,
+        1291845632
+      ],
+      "max_log": [
+        21,
+        21,
+        21
+      ]
+    },
+    {
+      "columns": [
+        46,
+        1925,
+        616
+      ],
+      "native_cells": [
+        23527424,
+        506265600,
+        168034304
+      ],
+      "lifted_leaf_cells": [
+        96468992,
+        4037017600,
+        1291845632
+      ],
+      "max_log": [
+        21,
+        21,
+        21
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        400
+      ],
+      "native_cells": [
+        7865088,
+        136052992,
+        102762496
+      ],
+      "lifted_leaf_cells": [
+        8650752,
+        136314880,
+        104857600
+      ],
+      "max_log": [
+        18,
+        18,
+        18
+      ]
+    },
+    {
+      "columns": [
+        33,
+        520,
+        400
+      ],
+      "native_cells": [
+        2949888,
+        54919424,
+        45352960
+      ],
+      "lifted_leaf_cells": [
+        4325376,
+        68157440,
+        52428800
+      ],
+      "max_log": [
+        17,
+        17,
+        17
+      ]
+    },
+    {
+      "columns": [
+        3,
+        7409,
+        8
+      ],
+      "native_cells": [
+        12288,
+        30347264,
+        32768
+      ],
+      "lifted_leaf_cells": [
+        12288,
+        30347264,
+        32768
+      ],
+      "max_log": [
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "columns": [
+        4,
+        401,
+        488
+      ],
+      "native_cells": [
+        2048,
+        205312,
+        249856
+      ],
+      "lifted_leaf_cells": [
+        2048,
+        205312,
+        249856
+      ],
+      "max_log": [
+        9,
+        9,
+        9
+      ]
+    }
+  ],
+  "active": [
+    {
+      "retirements": 4194303,
+      "alu_facts": 339675,
+      "binary_facts": 100749,
+      "shift_facts": 71507,
+      "ram_events": 1542861,
+      "keccak_calls": 779,
+      "add_calls": 273,
+      "double_calls": 251,
+      "sha256_calls": 1,
+      "arith256_mod_calls": 52,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 2937,
+        "copy_words": 64189,
+        "set_words": 171295,
+        "ucopy_rows": 159139,
+        "cmp_calls": 151,
+        "cmp_words": 236,
+        "jump_calls": 16,
+        "jump_rows": 3353
+      },
+      "sponge": {
+        "calls": 3680,
+        "perms": 20954,
+        "first_id": 0
+      }
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 317332,
+      "binary_facts": 69288,
+      "shift_facts": 55104,
+      "ram_events": 1538383,
+      "keccak_calls": 180,
+      "add_calls": 0,
+      "double_calls": 0,
+      "sha256_calls": 0,
+      "arith256_mod_calls": 67,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 2267,
+        "copy_words": 47953,
+        "set_words": 40143,
+        "ucopy_rows": 2117,
+        "cmp_calls": 18,
+        "cmp_words": 36,
+        "jump_calls": 24,
+        "jump_rows": 4933
+      },
+      "sponge": {
+        "calls": 1,
+        "perms": 2,
+        "first_id": 0
+      }
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 333045,
+      "binary_facts": 74810,
+      "shift_facts": 54104,
+      "ram_events": 1574761,
+      "keccak_calls": 257,
+      "add_calls": 136,
+      "double_calls": 125,
+      "sha256_calls": 0,
+      "arith256_mod_calls": 91,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 1955,
+        "copy_words": 51332,
+        "set_words": 20425,
+        "ucopy_rows": 2734,
+        "cmp_calls": 8,
+        "cmp_words": 16,
+        "jump_calls": 27,
+        "jump_rows": 5314
+      },
+      "sponge": {
+        "calls": 15,
+        "perms": 22,
+        "first_id": 0
+      }
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 315206,
+      "binary_facts": 55168,
+      "shift_facts": 41484,
+      "ram_events": 1585256,
+      "keccak_calls": 154,
+      "add_calls": 671,
+      "double_calls": 625,
+      "sha256_calls": 0,
+      "arith256_mod_calls": 22,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 1651,
+        "copy_words": 31346,
+        "set_words": 18197,
+        "ucopy_rows": 3303,
+        "cmp_calls": 43,
+        "cmp_words": 86,
+        "jump_calls": 15,
+        "jump_rows": 2245
+      },
+      "sponge": {
+        "calls": 21,
+        "perms": 37,
+        "first_id": 0
+      }
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 324337,
+      "binary_facts": 78302,
+      "shift_facts": 54336,
+      "ram_events": 1553883,
+      "keccak_calls": 269,
+      "add_calls": 523,
+      "double_calls": 500,
+      "sha256_calls": 0,
+      "arith256_mod_calls": 62,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 2762,
+        "copy_words": 45793,
+        "set_words": 37745,
+        "ucopy_rows": 4151,
+        "cmp_calls": 71,
+        "cmp_words": 142,
+        "jump_calls": 26,
+        "jump_rows": 4018
+      },
+      "sponge": {
+        "calls": 17,
+        "perms": 29,
+        "first_id": 0
+      }
+    },
+    {
+      "retirements": 4194303,
+      "alu_facts": 345503,
+      "binary_facts": 182034,
+      "shift_facts": 99296,
+      "ram_events": 1292603,
+      "keccak_calls": 310,
+      "add_calls": 0,
+      "double_calls": 0,
+      "sha256_calls": 2,
+      "arith256_mod_calls": 25,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 8395,
+        "copy_words": 23632,
+        "set_words": 18944,
+        "ucopy_rows": 105641,
+        "cmp_calls": 19,
+        "cmp_words": 40,
+        "jump_calls": 6,
+        "jump_rows": 942
+      },
+      "sponge": {
+        "calls": 2173,
+        "perms": 7005,
+        "first_id": 0
+      }
+    },
+    {
+      "retirements": 1728959,
+      "alu_facts": 232859,
+      "binary_facts": 20048,
+      "shift_facts": 46914,
+      "ram_events": 801606,
+      "keccak_calls": 0,
+      "add_calls": 8755,
+      "double_calls": 8250,
+      "sha256_calls": 2898,
+      "arith256_mod_calls": 0,
+      "curve_calls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "bulk": {
+        "calls": 198,
+        "copy_words": 1610,
+        "set_words": 4296,
+        "ucopy_rows": 2846
+      },
+      "sponge": {
+        "calls": 0,
+        "perms": 0,
+        "first_id": 0
+      }
+    }
+  ],
+  "memory_words": 1032216,
+  "unique_cpu_setups": 7,
+  "unique_keccak_setups": 1,
+  "unique_secp_setups": 2,
+  "unique_sha256_setups": 1,
+  "unique_arith256_setups": 1,
+  "unique_curve_setups": 0
+}

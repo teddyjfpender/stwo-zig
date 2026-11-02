@@ -1,0 +1,57 @@
+{
+  "kind": "functional-cpu-services-om-gkr-worker",
+  "utc": "2026-11-01T16:36:32.376898+00:00",
+  "base_commit": "d60b08dec13c95ccc24ff2cb01a593918439eea2",
+  "source_sha256": {
+    "cpu_worker.zig": "aa4533c4b1165cb7e206ed2c10c5a19e16cfb6b9988d16aa39be690749dcbdbb",
+    "cpu_worker_test.zig": "d7e36bace1a942d52e59f0f9e05762579bfd255f45e2678fb853e2f15b2e58de"
+  },
+  "gates": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "result": "PASS",
+      "suite_tests": 49,
+      "reported_build_max_rss": "1G"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "result": "PASS",
+      "suite_tests": 49,
+      "reported_build_max_rss": "1G"
+    }
+  ],
+  "actual_physical_cases": [
+    "CPU+Keccak bridge shard",
+    "CPU+ADD+DOUBLE bridges shard"
+  ],
+  "lifecycle": [
+    "local metadata retired twice idempotently after child",
+    "compact MAIN parked unmapped then restored with same root",
+    "stage-two complete after retirement and restored MAIN",
+    "fresh binary physical proof receiver",
+    "stage-one first allocation OutOfMemory then teardown",
+    "stage-two first allocation OutOfMemory then retry and fresh acceptance"
+  ],
+  "mutations_rejected": [
+    "eighth-coordinate public RAM claim",
+    "request statement",
+    "physical MAIN root",
+    "short physical claim vector",
+    "pending manifest event mass",
+    "seal and complete phase replay"
+  ],
+  "control_config": {
+    "pow_bits": 0,
+    "log_blowup_factor": 1,
+    "queries": 12,
+    "gkr_cap_bytes": 2147483648,
+    "global_cap_bytes": 67108864
+  },
+  "scope_limits": [
+    "not a complete execution acceptance test",
+    "no full-block memory bound or speedup claimed",
+    "not exhaustive full-worker allocator failure sweep",
+    "no production 128-bit security claim",
+    "legacy Q protocol unchanged"
+  ]
+}

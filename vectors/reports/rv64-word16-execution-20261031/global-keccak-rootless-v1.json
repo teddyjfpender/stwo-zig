@@ -1,0 +1,70 @@
+{
+  "status": "qualified protocol-preserving setup ownership slice",
+  "parent_commit": "8824c4d53",
+  "merged_foundation": "4cfb24500",
+  "scope": "same actual two-shard CPU/K/global-RAM four-instruction prefix; no new protocol activation",
+  "change": "Rootless Old.Materials plus ONE combined fixed tree replaces Old.Setup plus combined fixed tree. Same transcript/admission bodies exposed through concrete material wrappers; original APIs delegate unchanged. No equation, claim, domain, mask, fixed/main root or proof-wire change.",
+  "gates": {
+    "safe": [
+      "K bridge/service10 runtime PASS",
+      "existing global no-service execution15 runtime PASS"
+    ],
+    "fast": [
+      "K bridge/service10 runtime PASS",
+      "existing global no-service execution15 runtime PASS"
+    ],
+    "transcript": "old mix/begin setup wrappers exactly match rootless material wrappers",
+    "adversaries": "all prior actual false-output and fabricated predecessor proof attacks retained",
+    "fresh_process": "independent rootless setup receiver PASS",
+    "parity": "both serialized proofs and complete public metadata EXACT vs frozen merged BINARY24 pre-rootless executable"
+  },
+  "artifacts": {
+    "metadata.json": {
+      "bytes": 49119,
+      "sha256": "16de58a5b4afd514adb4643e374fb942f9409be8f9fa704beb8423ae06b01562"
+    },
+    "proof1.bin": {
+      "bytes": 2471264,
+      "sha256": "ae17d513ed8d5e18fb1e30fbd8f659c5e2a1297eaa429d501c57d6250b22f907"
+    },
+    "proof0.bin": {
+      "bytes": 2470240,
+      "sha256": "23de3f79607f78223719c13936ad7c18873b7007b55e6cf06ba02dbc561382de"
+    }
+  },
+  "artifact_directory": "interop_artifacts/rv64-word16-global-keccak-rootless-v1",
+  "tool": {
+    "sha256": "ebd88c6e045a870ffc861ec0abb79477c624d5cf7208c29776063d07903c815e"
+  },
+  "observations": {
+    "rootless-verify": {
+      "wall_s": 0.07,
+      "peak_rss_bytes": 77447168
+    },
+    "rootless-produce": {
+      "wall_s": 1.59,
+      "peak_rss_bytes": 288587776
+    },
+    "binary24-produce": {
+      "wall_s": 1.25,
+      "peak_rss_bytes": 325189632
+    },
+    "binary24-verify": {
+      "wall_s": 0.1,
+      "peak_rss_bytes": 110411776
+    }
+  },
+  "observation_scope": "single tiny diagnostic fixture runs with concurrent functional work; not a throughput improvement claim. Structural unused-tree deletion is exact; no real-packet peak extrapolation asserted.",
+  "security": "unchanged q70/P26/blowup1 nominal configuration96; whole-protocol bits not established",
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "f20f54ad566c96285f3fd9248e064e88eddcdfef43da9581e171c485916f5732",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "194aac17ab6ca5a408c104f361845c74f9d030431976790123125328cb471fa2",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/README.md": "20083b4fe0546f214a0bfe36e831d8277e47ad7b1fe5cfc763074d16b78d9cbe",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution.zig": "e29312a29088a517495a72d4252a1a73ba1e688b7eee662f025fd1dd1cd6a3bb",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution_test.zig": "3f6601cbcdd55512a2ad03659a93b70f7c9c13c8f1fa31b130f265b0f8b89873",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/fixture.zig": "868d970dc95c552d7837c3fd9780bd2014e32fb04b5a7ff14a993ffd4ece1565",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/fixture_main.zig": "5ace1d68aa54dd826ec5518f2ca1a5d8cc3008f3b559dbdd8084241d0fb7a463",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/roster.zig": "890a2b979141e63e0989061ba1fef1375cb08ab84dd4e9996786ddcf890c44cd",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "dd575dfaab688ce3f33cb860268b2d5a5f5b59aa79d35e107df02289b9cae1de"
+  }
+}

@@ -1,0 +1,683 @@
+{
+  "status": "qualified inactive diagnostic circuits and actual standalone proofs; no CPU production activation",
+  "variant_selection": "Choose packed Word16 for the next reusable SOURCE based on actual local capacities, physically closed proof and complete cost; retain BYTE as the smaller-constant control and naive Word16 as a falsified layout control. No runtime kernel policy.",
+  "scope": "Three same-input seven-fact controls in onePCS each: SHIFT+independently expected committed public consumer+typedSHIFTtable+U16. CPU/register/RAM not bound.",
+  "common_workload": {
+    "facts": [
+      [
+        0,
+        1,
+        1,
+        2
+      ],
+      [
+        1,
+        9223372036854775808,
+        63,
+        1
+      ],
+      [
+        2,
+        9223372036854775808,
+        32,
+        18446744071562067968
+      ],
+      [
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        18446744071562067968,
+        31,
+        1
+      ],
+      [
+        5,
+        2147483648,
+        63,
+        18446744073709551615
+      ],
+      [
+        0,
+        1,
+        0,
+        1
+      ]
+    ],
+    "fact_fields": [
+      "family_local_shift_opcode",
+      "a_u64",
+      "b_u64",
+      "c_u64"
+    ],
+    "public_consumer_roster_digest": "14ff1e061b4257586b56518932020c0a65bc044d239fe16c704e8034c911c1b3",
+    "physical_shift_log": 5,
+    "public_consumer_log": 5,
+    "padding_rows": 25,
+    "function_positive_mass": 7
+  },
+  "actual_artifacts": {
+    "byte": {
+      "artifact_directory": "vectors/reports/interop_artifacts/rv64-shift-quiet-byte-v1",
+      "producer": {
+        "scope": "diagnostic-public-io-byte-shift-table-u16-one-pcs",
+        "proof_bytes": 284128,
+        "proof_sha256": "c15aeeb9258eaf39d100990982265146dd8113ae4c23fb6024f1ec581cc0407c",
+        "queries": 70,
+        "pow_bits": 26,
+        "log_blowup": 1,
+        "nominal_config_bits": 96,
+        "source_cells": 827744,
+        "source_bytes": 3310976,
+        "trace_oods_masks": 256,
+        "shift": {
+          "log": 5,
+          "fixed": 2,
+          "main": 89,
+          "interaction": 56
+        },
+        "shift_table": {
+          "log": 11,
+          "fixed": 8,
+          "main": 1,
+          "interaction": 8
+        },
+        "public_consumer": {
+          "log": 5,
+          "fixed": 34,
+          "main": 14,
+          "interaction": 8
+        },
+        "u16": {
+          "log": 16,
+          "fixed": 3,
+          "main": 1,
+          "interaction": 8
+        },
+        "positive_function_mass": 7,
+        "shift_mass_including_padding": 288,
+        "range_mass_including_padding": 288,
+        "max_degree": 3,
+        "quotient_factor": 2,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "fresh_process_receiver": {
+        "accepted": true,
+        "independently_expected_roster_and_fixed_root": true,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "cold_process_observation": {
+        "produce": {
+          "wall_seconds_rounded": 0.87,
+          "user_seconds_rounded": 0.45,
+          "system_seconds_rounded": 0.03,
+          "maximum_rss_bytes": 77545472
+        },
+        "verify": {
+          "wall_seconds_rounded": 0.01,
+          "user_seconds_rounded": 0.02,
+          "system_seconds_rounded": 0.0,
+          "maximum_rss_bytes": 18972672
+        }
+      },
+      "coordinator_stage_seconds": {
+        "witness.prepare": 0.001029,
+        "table.setup": 8.7e-05,
+        "table.main": 1e-05,
+        "commit.fixed": 0.007605,
+        "commit.main": 0.006237,
+        "interaction.prepare": 0.005127,
+        "table.interaction": 0.000334,
+        "range.interaction": 0.004698,
+        "consumer.interaction": 8.1e-05,
+        "commit.interaction": 0.004731,
+        "draw_random_coeff": 1e-06,
+        "composition_trace_extract": 2e-06,
+        "composition_evaluation": 0.004047,
+        "composition_interpolate_and_split": 0.000376,
+        "composition_commit": 0.002309,
+        "oods_point_and_mask_points": 5.1e-05,
+        "sampled_value_evaluation": 0.001102,
+        "sampled_value_channel_mix": 1.6e-05,
+        "fri_quotient_build_and_commit": 0.006789,
+        "proof_of_work": 0.014132,
+        "fri_decommit": 0.000496,
+        "trace_decommit": 0.000145,
+        "constraint_check_and_assembly": 2.9e-05,
+        "wire.encode": 0.00015
+      },
+      "profile_sha256": "6ea6a7e30954fb54a8bb04d3f2551f00090b15f7d9b949290351b7eef3aab42f"
+    },
+    "naive-word": {
+      "artifact_directory": "vectors/reports/interop_artifacts/rv64-shift-quiet-naive-word-v1",
+      "producer": {
+        "scope": "diagnostic-public-io-word16-shift-table-u16-one-pcs",
+        "proof_bytes": 412096,
+        "proof_sha256": "fcb602d5d26768d2eef98d4560bb6a381c1030e0e2449bc07392cd151cdbbf86",
+        "queries": 70,
+        "pow_bits": 26,
+        "log_blowup": 1,
+        "nominal_config_bits": 96,
+        "source_cells": 18617312,
+        "source_bytes": 74469248,
+        "trace_oods_masks": 212,
+        "shift": {
+          "log": 5,
+          "fixed": 2,
+          "main": 53,
+          "interaction": 48
+        },
+        "shift_table": {
+          "log": 20,
+          "fixed": 8,
+          "main": 1,
+          "interaction": 8
+        },
+        "public_consumer": {
+          "log": 5,
+          "fixed": 34,
+          "main": 14,
+          "interaction": 8
+        },
+        "u16": {
+          "log": 16,
+          "fixed": 3,
+          "main": 1,
+          "interaction": 8
+        },
+        "positive_function_mass": 7,
+        "shift_mass_including_padding": 160,
+        "range_mass_including_padding": 288,
+        "max_degree": 3,
+        "quotient_factor": 2,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "fresh_process_receiver": {
+        "accepted": true,
+        "independently_expected_roster_and_fixed_root": true,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "cold_process_observation": {
+        "produce": {
+          "wall_seconds_rounded": 0.94,
+          "user_seconds_rounded": 4.42,
+          "system_seconds_rounded": 0.18,
+          "maximum_rss_bytes": 627851264
+        },
+        "verify": {
+          "wall_seconds_rounded": 0.1,
+          "user_seconds_rounded": 0.44,
+          "system_seconds_rounded": 0.03,
+          "maximum_rss_bytes": 294436864
+        }
+      },
+      "coordinator_stage_seconds": {
+        "witness.prepare": 0.046065,
+        "table.setup": 0.038672,
+        "table.main": 0.00524,
+        "commit.fixed": 0.055186,
+        "commit.main": 0.039666,
+        "interaction.prepare": 0.050659,
+        "table.interaction": 0.048014,
+        "range.interaction": 0.002565,
+        "consumer.interaction": 5.7e-05,
+        "commit.interaction": 0.048131,
+        "draw_random_coeff": 1e-06,
+        "composition_trace_extract": 4e-06,
+        "composition_evaluation": 0.054331,
+        "composition_interpolate_and_split": 0.004803,
+        "composition_commit": 0.023053,
+        "oods_point_and_mask_points": 3.4e-05,
+        "sampled_value_evaluation": 0.007277,
+        "sampled_value_channel_mix": 9e-06,
+        "fri_quotient_build_and_commit": 0.068806,
+        "proof_of_work": 0.121471,
+        "fri_decommit": 0.003101,
+        "trace_decommit": 0.00219,
+        "constraint_check_and_assembly": 3.2e-05,
+        "wire.encode": 0.000187
+      },
+      "profile_sha256": "3da439aa24cdfc75164483a644c30a7d7cf028d581209f11a983ccfabc186ee6"
+    },
+    "packed-word": {
+      "artifact_directory": "vectors/reports/interop_artifacts/rv64-shift-quiet-packed-word-v1",
+      "producer": {
+        "scope": "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
+        "proof_bytes": 277888,
+        "proof_sha256": "efbb06c017d57f3aa9e77a11e95aa10ba58ad2e7f554c1b996e1ac200de13c73",
+        "queries": 70,
+        "pow_bits": 26,
+        "log_blowup": 1,
+        "nominal_config_bits": 96,
+        "source_cells": 5379040,
+        "source_bytes": 21516160,
+        "trace_oods_masks": 265,
+        "shift": {
+          "log": 5,
+          "fixed": 2,
+          "main": 53,
+          "interaction": 48
+        },
+        "shift_table": {
+          "log": 16,
+          "fixed": 18,
+          "main": 16,
+          "interaction": 36
+        },
+        "public_consumer": {
+          "log": 5,
+          "fixed": 34,
+          "main": 14,
+          "interaction": 8
+        },
+        "u16": {
+          "log": 16,
+          "fixed": 3,
+          "main": 1,
+          "interaction": 8
+        },
+        "positive_function_mass": 7,
+        "shift_mass_including_padding": 160,
+        "range_mass_including_padding": 288,
+        "max_degree": 3,
+        "quotient_factor": 2,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "fresh_process_receiver": {
+        "accepted": true,
+        "independently_expected_roster_and_fixed_root": true,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "cold_process_observation": {
+        "produce": {
+          "wall_seconds_rounded": 0.15,
+          "user_seconds_rounded": 1.37,
+          "system_seconds_rounded": 0.05,
+          "maximum_rss_bytes": 155762688
+        },
+        "verify": {
+          "wall_seconds_rounded": 0.02,
+          "user_seconds_rounded": 0.04,
+          "system_seconds_rounded": 0.0,
+          "maximum_rss_bytes": 41697280
+        }
+      },
+      "coordinator_stage_seconds": {
+        "witness.prepare": 0.009753,
+        "table.setup": 0.004378,
+        "table.main": 0.004404,
+        "commit.fixed": 0.004467,
+        "commit.main": 0.004619,
+        "interaction.prepare": 0.026089,
+        "table.interaction": 0.023424,
+        "range.interaction": 0.002618,
+        "consumer.interaction": 4.3e-05,
+        "commit.interaction": 0.005999,
+        "draw_random_coeff": 1e-06,
+        "composition_trace_extract": 5e-06,
+        "composition_evaluation": 0.019098,
+        "composition_interpolate_and_split": 0.000262,
+        "composition_commit": 0.001758,
+        "oods_point_and_mask_points": 3.1e-05,
+        "sampled_value_evaluation": 0.001097,
+        "sampled_value_channel_mix": 1e-05,
+        "fri_quotient_build_and_commit": 0.006218,
+        "proof_of_work": 0.063665,
+        "fri_decommit": 0.000446,
+        "trace_decommit": 0.000159,
+        "constraint_check_and_assembly": 2e-05,
+        "wire.encode": 0.000128
+      },
+      "profile_sha256": "a6c93354d4b4f7110b79c488f4626df46948e412094779935bf5a30b3b6d31e3"
+    }
+  },
+  "gates": {
+    "byte_local_safe_fast": 5,
+    "byte_q70_proof_safe_fast": 1,
+    "word_local_safe_fast": 6,
+    "word_q70_proof_safe_fast": 1,
+    "packed_table_local_safe_fast": 3,
+    "packed_word_q70_proof_safe_fast": 1,
+    "final_packed_safe_log": "/tmp/rv64-shift-packed-safe-qualified.log",
+    "final_fast_log": "/tmp/rv64-shift-compare-fast.log",
+    "recorded_unrecorded_binary_equal": true,
+    "all_three_separate_process_receivers": true,
+    "byte_historical_c15a_exact": true,
+    "naive_word_historical_fcb6_exact": true,
+    "actual_runtime_metadata": {
+      "packed-proof": {
+        "binary": ".zig-cache/products/riscv_cpu/o/e2063fbfeb4fed221554757ac0b1fd62/test",
+        "runtime_count": 2,
+        "names": [
+          "rv64_word16_shift_word_packed_proof_test_root.test_0",
+          "tests.rv64_word16_shift_word_packed_proof_test.test.inactive packed-table Word16 SHIFT D3 proves strict table U16 and FUNCTION closures with real modular-alias attacks"
+        ]
+      },
+      "packed-table": {
+        "binary": ".zig-cache/products/riscv_cpu/o/f289616baf413f5ebc3cbb3cb0bcfb5d/test",
+        "runtime_count": 6,
+        "names": [
+          "rv64_word16_shift_packed_table_test_root.test_0",
+          "rv64.air.word16_v1.shift_word_packed_table_test.test.packed Word16 immutable quotient columns derive every one of the million semantic facts",
+          "rv64.air.word16_v1.shift_word_packed_table_test.test.packed Word16 prepared affine denominators and weighted D3 residuals agree for arbitrary secure coordinates",
+          "rv64.air.word16_v1.shift_word_packed_table_test.test.packed Word16 source publishes no inverse output on allocation or pole failure and all native residuals close",
+          "rv64.air.providers.tables.test.canonical AND and shift tables enumerate exact byte semantics",
+          "rv64.air.providers.tables.test.typed providers constrain every inverse and reset and terminal prefix"
+        ]
+      },
+      "word-proof": {
+        "binary": ".zig-cache/products/riscv_cpu/o/efe9b2360991de07f44e66bba370a414/test",
+        "runtime_count": 2,
+        "names": [
+          "rv64_word16_shift_word_proof_test_root.test_0",
+          "tests.rv64_word16_shift_word_proof_test.test.inactive Word16 SHIFT D3 proves strict table U16 and FUNCTION closures with real modular-alias attacks"
+        ]
+      },
+      "word-local": {
+        "binary": ".zig-cache/products/riscv_cpu/o/299cd733913c15cd70711149fba6a765/test",
+        "runtime_count": 9,
+        "names": [
+          "rv64_word16_shift_word_test_root.test_0",
+          "rv64.air.word16_v1.shift_word_test.test.SHIFT Word16 authority all six modes amounts and ignored high bits have canonical lookup interfaces",
+          "rv64.air.word16_v1.shift_word_test.test.SHIFT direct quotient and sign ranges close genuine locally zero modular aliases",
+          "rv64.air.word16_v1.shift_word_test.test.SHIFT every dense secure residual is cubic and identical across sixteen base and secure lanes",
+          "rv64.air.word16_v1.shift_word_test.test.SHIFT complete paired-table range and function polynomial preserves all43 secure SIMD residuals",
+          "rv64.air.word16_v1.shift_word_test.test.Word16 fixed table enumerates both directions without a direction-index duplicate or modular integer overflow",
+          "rv64.air.word16_v1.shift_word_packed_rows_test.test.SHIFT16 SIMD complete row kernel matches scalar halos nonaligned tails and additive output",
+          "rv64.air.providers.tables.test.canonical AND and shift tables enumerate exact byte semantics",
+          "rv64.air.providers.tables.test.typed providers constrain every inverse and reset and terminal prefix"
+        ]
+      },
+      "byte-proof": {
+        "binary": ".zig-cache/products/riscv_cpu/o/ac707392cb62f0ded3953a07323d614b/test",
+        "runtime_count": 2,
+        "names": [
+          "rv64_word16_shift_proof_test_root.test_0",
+          "tests.rv64_word16_shift_proof_test.test.inactive byte SHIFT D3 proves strict table U16 and FUNCTION closures with real modular-alias attacks"
+        ]
+      },
+      "byte-local": {
+        "binary": ".zig-cache/products/riscv_cpu/o/b0158666a8f390643d125d7f2b077443/test",
+        "runtime_count": 8,
+        "names": [
+          "rv64_word16_shift_test_root.test_0",
+          "rv64.air.word16_v1.shift_byte_test.test.SHIFT byte authority all six modes amounts and ignored high bits have canonical lookup interfaces",
+          "rv64.air.word16_v1.shift_byte_test.test.SHIFT direct quotient and sign ranges close genuine locally zero modular aliases",
+          "rv64.air.word16_v1.shift_byte_test.test.SHIFT every dense secure residual is cubic and identical across sixteen base and secure lanes",
+          "rv64.air.word16_v1.shift_byte_test.test.SHIFT complete paired-table range and function polynomial preserves all61 secure SIMD residuals",
+          "rv64.air.word16_v1.shift_byte_packed_rows_test.test.SHIFT16 SIMD complete row kernel matches scalar halos nonaligned tails and additive output",
+          "rv64.air.providers.tables.test.canonical AND and shift tables enumerate exact byte semantics",
+          "rv64.air.providers.tables.test.typed providers constrain every inverse and reset and terminal prefix"
+        ]
+      }
+    },
+    "count_interpretation": "Named own tests and anonymous roots/imported Tables tests are distinct. Registration floors use actual runtime metadata counts, not grep counts.",
+    "runtime_counts_safe_fast": {
+      "byte_local": 8,
+      "byte_proof": 2,
+      "word_local": 9,
+      "word_proof": 2,
+      "packed_table": 6,
+      "packed_proof": 2
+    }
+  },
+  "packed_table_authority": {
+    "semantic_identity": "same six-coordinate Word16 relation as naive Word16; BYTE relation distinct (different carry radix)",
+    "semantic_facts": 1048576,
+    "physical_rows": 65536,
+    "fixed_columns": 18,
+    "fixed_meaning": "x,x>>1,...,x>>15,first,last; independent receiver-derived immutable key",
+    "tuple_derivation": "r0:(x,0,x,0,x,0). r>0: carryL=q[16\u2212r]; lowL=x*2^r\u221265536*carryL; lowR=q[r]; carryR=(x\u22122^r*lowR)*2^(16\u2212r). All affine in fixed coordinates.",
+    "main_columns": 16,
+    "main_meaning": "one precommitted multiplicity for every within-word shift0..15",
+    "interaction_columns": 36,
+    "interaction_meaning": "eight strict pair inverseQ (32M31) and one cyclic prefixQ (4M31)",
+    "constraints": 10,
+    "degree": 3,
+    "quotient_factor": 2,
+    "trace_secure_masks": 74,
+    "denominator_evaluations": 1048576,
+    "pair_products_inverted": 524288,
+    "dictionary_entries": 1048576,
+    "dictionary_bytes": 16777216,
+    "fixed_bytes": 4718592,
+    "main_bytes": 4194304,
+    "interaction_bytes": 9437184,
+    "native_cells": 4587520,
+    "naive_word_native_cells": 17825792,
+    "cell_reduction_vs_naive_fraction": 0.7426470588235294,
+    "sharing_scope": "One table with combined precommitted counts may serve multiple Word16 SHIFT components within ONE proof. Across separate proofs, only immutable values/key cache can be reused for free; sharing variable counts/interactions requires global typed challenge, complete inventory and all-claim closure, not implemented."
+  },
+  "soundness_gates": [
+    "every semantic tuple independently crosschecked against full-width u64 left/right reference",
+    "prepared affine denominator equals full6-tuple denominator for arbitraryQM31 and base/secure SIMD coordinates",
+    "all ordered weighted residuals agree acrossQ/PackedBase/PackedSecure; dense cubic degree test; strictproducts for all16 facts even zero weights",
+    "all65536 native provider rows and cyclic terminal zero checked",
+    "exhaustive allocator failure and pole failure leave both output/dictionary unpublished; retry valid",
+    "wrongC, falsefixedtablefact with adjustedC, quotient modularalias, false Wsign extension all reject actual q70 prover with ConstraintsNotSatisfied",
+    "consumer and provider previous-prefix sampled values reject",
+    "balanced physical claim \u00b1delta retains algebraic closure but rejects OodsNotMatching",
+    "noncanonical rawM31 claim rejected before verifier field arithmetic",
+    "private coordinator-only recorder produces identical proof bytes; no shared mutable recorder passed to AIR components"
+  ],
+  "range_integer_contract": [
+    "all input limbs or bytes authenticated by typed complete shift tuples",
+    "B4 U16 plus direct quotient and scaled64*quotient bounds; without direct bound q=64^-1 gives genuine wrong SLL result locallyzero",
+    "sign projections rely on already canonical input/derived-output chunks:2*limb\u221265536*sign (Word16) or512*byte\u221265536*sign (BYTE)",
+    "left/right chunk outputs combine disjoint bits at common amount, proving canonical C; W signextends authenticated bit31",
+    "native left microshift maximum65535<<15=2147450880 < M31 modulus; no16bit\u00d716bit convolution claim"
+  ],
+  "transcript_contract": [
+    "complete diagnostic geometry/config/public-roster digest before fixed/main roots",
+    "all payloads, functionweights, and table/range multiplicities in actual main PCS commitment before challenge draw",
+    "typed BYTE and Word16 table semantics distinct; packed/naiveWord16 share semantic truth but have distinct physicalshape/version/expectedfixedroot",
+    "all six canonical physical claims close every family and bind before interaction root",
+    "no caller-chosen alpha; production complete execution Manifest/CPU/RAM routing remains separate qualification"
+  ],
+  "actual_capacity_model": {
+    "census_scope": "Root exact25packet opcode census, totalmatchesnative104253913; counts only source-capacity model, not a new full-VM proof benchmark",
+    "census_directory": "/tmp/stwo-rv64-delivery/round5-opcode-census-v1",
+    "shift_counts": [
+      995056,
+      1227493,
+      1261585,
+      1016209,
+      670100,
+      673419,
+      523453,
+      282574,
+      204043,
+      245635,
+      368903,
+      383736,
+      411758,
+      336726,
+      442651,
+      400069,
+      374618,
+      418338,
+      496601,
+      427833,
+      417895,
+      358189,
+      348521,
+      282211,
+      148176
+    ],
+    "total_shifts": 12715792,
+    "padded_shift_rows_per_cpu_shard": [
+      1048576,
+      2097152,
+      2097152,
+      1048576,
+      1048576,
+      1048576,
+      524288,
+      524288,
+      262144,
+      262144,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      524288,
+      262144
+    ],
+    "sum_dyadic_padded_rows": 17563648,
+    "fixed_log20_units_per_cpu_shard_total": 27,
+    "global_log20_units_total": 13,
+    "global_packing_requires": "actual aggregate protocol and independent typed/function claim closure; not activated",
+    "positive_word_micro_queries_at_dyadic_padding": 87818240,
+    "positive_byte_micro_queries_at_dyadic_padding": 158072832,
+    "positive_shift_u16_queries_at_dyadic_padding": 158072832,
+    "incremental_chip_plus_perproof_table_cells": {
+      "byte": 2582726656,
+      "naive_word": 2254700544,
+      "packed_word": 1923743744
+    },
+    "model_excludes_common_costs": "CPU,ROM,REG,RAM,crypto and existing shared U16 are NOT included in these incremental sourcecell totals. One U16 per25physicalproofs adds19660800cells identically; wholeproof LDE/coefficient/Merkle/FRI/lifetime costs not inferred from cells.",
+    "packed_word_byte_native_crossover_rows": 103470.54545454546,
+    "all_actual_local_counts_exceed_crossover": true,
+    "global_domain": "PackedWordtablelog16 and BYTEtablelog11 are both belowactualSHIFTlog18..21 and CPUlog22; D3 gives2n without changing globalmax between those candidates. NaiveWordtablelog20 raises tinyfixture domain; actualCPUlog22 masks that globalmax penalty only."
+  },
+  "timing_interpretation": [
+    "One quiet ordered fresh-process pass, no in-process immutable cache. Not a sustained performance claim or a fullCPU benchmark.",
+    "ProofOfWork uses different deterministic transcripts/nonces across representations and dominates several tiny totals; do not infer speedup from totalwall.",
+    "Outer process wall includes startup/cleanup/unprofiled gaps; coordinator stage sums are not a fullwall decomposition. Rawtime and stageJSON retained underignored artifact directories.",
+    "Packed proof is277888B vsBYTE284128B; fewerbytes does not remove higher small-case setup/RSS or larger dictionary.",
+    "On actual capacities, sourcearea favorsPackedWord but native Source+large actual wholemixed proof benchmark must qualify efficiency before production activation."
+  ],
+  "limitations": [
+    "new reusable narrow SHIFT source lifecycle is next work, not included in this frozen slice",
+    "current diagnostic consumer generation uses scalarQ witnesses; actual accepting domain kernels are16lane base/secure SIMD, not scalarQ",
+    "no global typedSHIFTtable aggregate receiver",
+    "no CPU SHIFT integration or production profile activation",
+    "no recursion circuit/native-cache shortcut claim",
+    "q70/P26/blowup1 reports96nominal config bits, not128bit whole-protocol budget"
+  ],
+  "owned_source_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte.zig": "12ab33c84f1b116db02802a1448e3857fbc30a4baee65bc9c50d6be6d0ada928",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_component.zig": "9a311f13bfeb6fb62f133394b58505e41eeb7fff6ea232a9b1caef54938f8798",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_lookup.zig": "bf212a8e4969539f2c4f669c5ff60140e0009b11578889763d5fa179439e8a2c",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_packed_rows.zig": "9a97ea81c16506b73c4dc719083ae7fa5ba50727b85c1712342a0a21555cbb44",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_packed_rows_test.zig": "64d829ef268fb88e72c05d9711ea0651b26588ade9093f8e7c5226f2a621690a",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_table_component.zig": "38902188f5baacb99e14bf130ec04d36ba92f6d2671d8cd864ba67c845866eaf",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_byte_test.zig": "2eb0a3eba3e3abf89211ec3cd1d67038bdb894316d4e89aba9e082786ddb2aef",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_chunk_arithmetic.zig": "5bf1a56f0640a4099fb192b4615dee2e5334747d3edcc642b643c6f3da1ab434",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_lookup_pair.zig": "ad5528f1e3ccadc9034a8f5eecb5b4f32d24f8384e6b6e1574a01a8e1109c8eb",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word.zig": "79f90ce022103d9f2c858f35225ca35e1370ff4b4efbeaaf4439b4419e7c0405",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_component.zig": "d1d2bff64935d9979da28a267d64ef4fa11dd8fe2dcfc14df02d4e679c15df80",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_lookup.zig": "afb97afeaeab13ec6450b738dfd959683c276c16b1c4fdf05100556864a8ed28",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_rows.zig": "82b2ffeb3ce57a03ee7b178b87fc14787794968c25868bf3cc1c3a2454e122b7",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_rows_test.zig": "f2c7197e065c46a54d0a1fd58079288e0c4b9d502afefe65daea48b117fcd333",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table.zig": "752b7b587b4d253ab7d9e23fa4856a72b7593043d7912285b60f6afcd5346592",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table_component.zig": "5b8b5083661c1f8cf71194e2236a491a006630ddf0098de9cf19592b4f062c40",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table_test.zig": "5b88844ee4882211fc396f3283480b567d52fd111de5d74cd493278fa058a997",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_table.zig": "ad5eb29974a6059340d5b19edb74f1fa50a5e8d889e95b7a258a3a54b4b4975f",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_table_component.zig": "7b490b80048664f8ebcd9c9c85bd9edfa0883b163b5bf727d087029a768a9416",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_test.zig": "e32aa148e9fb49edd1a33fc24972f9493b2e4c616ee0e221835b0f0fb3ac7e85",
+    "src/frontends/riscv/rv64_word16_shift_packed_table_test_root.zig": "9180688b750be3e884a02a917d817bb6ccc8bcc073d919cf35bf78daaa176a66",
+    "src/frontends/riscv/rv64_word16_shift_test_root.zig": "9efcc333c7af22d0a79e38ef2eb8d5a9135af74bcc1c8aff54cf44659f9069e1",
+    "src/frontends/riscv/rv64_word16_shift_word_test_root.zig": "12cc5bdbb73866583a1e6f5d1d4a1048a3d526be0ff550c2ed0869504113f807",
+    "src/integrations/riscv_cpu/rv64_word16_shift_fixture_main.zig": "669ba1e3b06d322a6f311e8cc3a1ef030e8f773a5ed73001454a2f7a0c1f74c2",
+    "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig": "c0c1d2792955a084ae511e2842378bda0c34eafaa749bddf3a0e2f8af91afb90",
+    "src/integrations/riscv_cpu/rv64_word16_shift_proof_test_root.zig": "8b6286fc55e688e38dc4f196f426bf2b6cc0ae4a6097fb40dcf0a53478373f3c",
+    "src/integrations/riscv_cpu/rv64_word16_shift_word_fixture_main.zig": "83911e765f1adc142ea2a501800035beea696da9d4b4096c81e02e48f20efa2f",
+    "src/integrations/riscv_cpu/rv64_word16_shift_word_packed_proof_test_root.zig": "189565d5d3e9d992ab35a13d60fd92948ac350e910dba5ca99bb4c0cf4a2612f",
+    "src/integrations/riscv_cpu/rv64_word16_shift_word_proof_test_root.zig": "877119bc9accff37220587ce08dfb25e680859527edf44d0f57f24e582e9d2b2",
+    "src/integrations/riscv_cpu/tests/rv64_word16_shift_proof_test.zig": "da19339f5b226cf35f4ad51edbbbd8e3a64ef5118ef46e7521f5a70be4baa5ea",
+    "src/integrations/riscv_cpu/tests/rv64_word16_shift_word_packed_proof_test.zig": "b285bb317a178679068d448effed45fdf5655e6023925c688486d3f293cda5bb",
+    "src/integrations/riscv_cpu/tests/rv64_word16_shift_word_proof_test.zig": "18bd22a8c441db4ad4ad3f78a1e5bc0dc2af9e8edb58084a1af4386188dad77b",
+    "src/integrations/riscv_cpu/word16/fixture_profile.zig": "e54a68e5880d8c2878e808033b9e8ed8fe2f3b1eef9cda2321d5d1b3ffa0a330",
+    "src/integrations/riscv_cpu/word16/shift_fixture.zig": "1a45027655f04c0eb32f97c99a093443fe670c882825828d23fd52c94c08f16e",
+    "src/integrations/riscv_cpu/word16/shift_fixture_trace.zig": "b782e93431c56193023e5c86d814a05f0409a662172ccddbe9de8d99135cbf91",
+    "src/integrations/riscv_cpu/word16/shift_word_fixture.zig": "6cb78ee23dd7ea690fe723a463272a387398f211425eaa569e65810f0ed9cb8d",
+    "src/integrations/riscv_cpu/word16/shift_word_fixture_trace.zig": "299fc07db22d84e8b306c56a425131eb1dbf1d072fc7c2bff8f01437d2f49eee",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture.zig": "650c3d63fddc18050c1bd84ab005b506e6ff6e861f45ba73d83f23747ea12fb6",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture_trace.zig": "c7e82ca4dcaa111fc58ed2e093548290b5aeb0d85ea981b6d0541e064808e8a8"
+  },
+  "shared_dependency_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "c68530b20c7a795bfea0dc71c645e341b8aff19694a83bc9609e0f5bfef56368",
+    "src/frontends/riscv/rv64/air/word16_v1/function_bus.zig": "be69a6e6152260de042fffb9b7ec39c3a5dde17e814029e2b93a7412213ab4b2",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_source.zig": "cb57623c0f92c8f7096715912ec734b3593a9672be0f4ab60ed0e867d94cc50a",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_component.zig": "435bc1790121cc2cab636ccf30790f4c1eed166f1ab14ba0371b357aadcbddb3",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "e4548067bb5019fb345cd752cb4320b054bc090e709351652ba98ac3f18690e4",
+    "src/frontends/riscv/rv64/air/word16_v1/expected_roster.zig": "2c47c28b744b1ad3af8d0233c995108ff382735e46716b3b710ab1ae4589194e",
+    "src/frontends/riscv/rv64/air/providers/tables.zig": "d25b3b9487dd22fb81325d2812d93fa65c29909e77f12298427fb480ad4e4c28",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "295e4a8947d08fea482a8514404063b3f67546bccfa01f194db65d8df81ef802",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/air/packed_fields16.zig": "bda65255b53e5bf98da36544d3d821c196efd467e1b2c988faea96a595db66ea",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700"
+  },
+  "clean_selective_integration": {
+    "snapshot_commit": "7ba2d417e213f6eff04fce539e952af504d18f81",
+    "safe_six_suites_and_three_tools_passed": true,
+    "safe_log": "/tmp/stwo-rv64-clean-shift-safe.log",
+    "shared_dependency_hashes_match_frozen_pins": true,
+    "all_three_proof_hashes_exact": true,
+    "receipts": {
+      "byte": {
+        "directory": "/tmp/stwo-rv64-clean-shift-byte-receipt-v1",
+        "proof_bytes": 284128,
+        "proof_sha256": "c15aeeb9258eaf39d100990982265146dd8113ae4c23fb6024f1ec581cc0407c",
+        "fresh_receiver": {
+          "accepted": true,
+          "independently_expected_roster_and_fixed_root": true,
+          "cpu_bound": false,
+          "ram_bound": false
+        }
+      },
+      "word": {
+        "directory": "/tmp/stwo-rv64-clean-shift-word-receipt-v1",
+        "proof_bytes": 412096,
+        "proof_sha256": "fcb602d5d26768d2eef98d4560bb6a381c1030e0e2449bc07392cd151cdbbf86",
+        "fresh_receiver": {
+          "accepted": true,
+          "independently_expected_roster_and_fixed_root": true,
+          "cpu_bound": false,
+          "ram_bound": false
+        }
+      },
+      "packed": {
+        "directory": "/tmp/stwo-rv64-clean-shift-packed-receipt-v1",
+        "proof_bytes": 277888,
+        "proof_sha256": "efbb06c017d57f3aa9e77a11e95aa10ba58ad2e7f554c1b996e1ac200de13c73",
+        "fresh_receiver": {
+          "accepted": true,
+          "independently_expected_roster_and_fixed_root": true,
+          "cpu_bound": false,
+          "ram_bound": false
+        }
+      }
+    },
+    "actual_runtime_minima": [
+      8,
+      2,
+      9,
+      2,
+      6,
+      2
+    ],
+    "release_fast_six_suites_passed": true,
+    "fast_log": "/tmp/stwo-rv64-clean-shift-fast.log",
+    "commit_hook_exception": "Previously authorized scoped hook exception for inherited repository-wide conformance failures; selective source and proof gates passed."
+  }
+}

@@ -18,7 +18,7 @@ pub fn emit(a: std.mem.Allocator, admission: plans.Admission, source: ?*const Wi
     // value is taken from witness main columns.
     for (plan.programs, 0..) |statement, i| {
         var values: [4]u32 = undefined;
-        for (&values, plan.program_leaves[try plan.programLeafOffset(i) ..][0..4]) |*value, leaf| value.* = leaf.value;
+        for (&values, plan.program_leaves[try plan.programLeafOffset(i)..][0..4]) |*value, leaf| value.* = leaf.value;
         try sink.append(program, &.{try program.fixedRow(statement.address, statement.multiplicity, values)});
     }
     // Publish only admitted word lookup boundaries. Complete root projections

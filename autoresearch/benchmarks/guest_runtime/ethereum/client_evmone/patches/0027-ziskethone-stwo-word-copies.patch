@@ -1,0 +1,152 @@
+diff -ru a/cpp-guest/src/accounts.cpp b/cpp-guest/src/accounts.cpp
+--- a/cpp-guest/src/accounts.cpp	2026-11-02 01:06:03
++++ b/cpp-guest/src/accounts.cpp	2026-11-02 01:06:03
+@@ -1,4 +1,5 @@
+ #include "zeg/accounts.hpp"
++#include "zeg/zisk_dma.hpp"
+ 
+ #include <cstdio>
+ 
+@@ -28,10 +29,11 @@
+     // stwo: rows are appended lazily, so the count is unknown up front; each
+     // record gets its own (never freed) allocation and View pointers stay valid.
+     uint8_t* rec = static_cast<uint8_t*>(::operator new(kRecordSize));
+-    std::memcpy(rec + View::kAddressOffset,  address.bytes,   sizeof(address.bytes));
+-    std::memcpy(rec + View::kBalanceOffset,  balance.bytes,   sizeof(balance.bytes));
++    // stwo: word copies when both sides are 8-aligned (zisk_dma.hpp).
++    zeg::zisk::zisk_xmemcpy<sizeof(address.bytes)>(rec + View::kAddressOffset, address.bytes);
++    zeg::zisk::zisk_xmemcpy<sizeof(balance.bytes)>(rec + View::kBalanceOffset, balance.bytes);
+     std::memcpy(rec + View::kNonceOffset,    &nonce,          sizeof(nonce));
+-    std::memcpy(rec + View::kCodeHashOffset, code_hash.bytes, sizeof(code_hash.bytes));
++    zeg::zisk::zisk_xmemcpy<sizeof(code_hash.bytes)>(rec + View::kCodeHashOffset, code_hash.bytes);
+     originals_.push_back(View{rec});
+     mods_.push_back(Mods{});
+     leaf_.push_back(LeafCache{});
+@@ -131,7 +133,10 @@
+     const size_t i = index_of(addr);
+     mark_touched_at(i, tx_idx);
+     if (bal_) bal_->access_account(i);
+-    return mods_[i].code_hash_dirty ? mods_[i].code_hash : originals_[i].code_hash();
++    const evmc::bytes32& src = mods_[i].code_hash_dirty ? mods_[i].code_hash : originals_[i].code_hash();
++    evmc::bytes32 r;
++    zeg::zisk::zisk_xmemcpy<32>(r.bytes, src.bytes);  // stwo: word copy, not a memcpy call
++    return r;
+ }
+ 
+ const evmc::address& Accounts::address_at(size_t idx) const noexcept {
+@@ -139,7 +144,10 @@
+ }
+ 
+ evmc::uint256be Accounts::balance_at(size_t idx) const noexcept {
+-    return mods_[idx].balance_dirty ? mods_[idx].balance : originals_[idx].balance();
++    const evmc::bytes32& src = mods_[idx].balance_dirty ? mods_[idx].balance : originals_[idx].balance();
++    evmc::bytes32 r;
++    zeg::zisk::zisk_xmemcpy<32>(r.bytes, src.bytes);  // stwo: word copy, not a memcpy call
++    return r;
+ }
+ 
+ uint64_t Accounts::nonce_at(size_t idx) const noexcept {
+@@ -147,7 +155,10 @@
+ }
+ 
+ evmc::bytes32 Accounts::code_hash_at(size_t idx) const noexcept {
+-    return mods_[idx].code_hash_dirty ? mods_[idx].code_hash : originals_[idx].code_hash();
++    const evmc::bytes32& src = mods_[idx].code_hash_dirty ? mods_[idx].code_hash : originals_[idx].code_hash();
++    evmc::bytes32 r;
++    zeg::zisk::zisk_xmemcpy<32>(r.bytes, src.bytes);  // stwo: word copy, not a memcpy call
++    return r;
+ }
+ 
+ const evmc::uint256be& Accounts::balance_orig_at(size_t idx) const noexcept {
+@@ -184,7 +195,7 @@
+                               uint64_t tx_idx) {
+     if (bal_) bal_before_write(idx);
+     auto& m = mods_[idx];
+-    m.balance       = v;
++    zeg::zisk::zisk_xmemcpy<32>(m.balance.bytes, v.bytes);  // stwo: m.balance = v as words
+     m.balance_dirty = true;
+     m.last_tx_idx   = tx_idx;
+ }
+@@ -201,7 +212,7 @@
+                                 uint64_t tx_idx) {
+     if (bal_) bal_before_write(idx);
+     auto& m = mods_[idx];
+-    m.code_hash       = v;
++    zeg::zisk::zisk_xmemcpy<32>(m.code_hash.bytes, v.bytes);  // stwo: as words
+     m.code_hash_dirty = true;
+     m.last_tx_idx     = tx_idx;
+ }
+diff -ru a/cpp-guest/src/ssz.cpp b/cpp-guest/src/ssz.cpp
+--- a/cpp-guest/src/ssz.cpp	2026-11-02 01:05:53
++++ b/cpp-guest/src/ssz.cpp	2026-11-02 01:06:03
+@@ -7,6 +7,7 @@
+ 
+ #include "zeg/fatal.hpp"
+ #include "zeg/sha256.hpp"
++#include "zeg/zisk_dma.hpp"
+ 
+ namespace zeg::ssz {
+ 
+@@ -33,9 +34,9 @@
+ }  // namespace
+ 
+ Chunk hash(const Chunk& a, const Chunk& b) noexcept {
+-    uint8_t buf[64];
+-    std::memcpy(buf, a.bytes, 32);
+-    std::memcpy(buf + 32, b.bytes, 32);
++    alignas(8) uint8_t buf[64];  // stwo: word copies when the chunks are 8-aligned
++    zeg::zisk::zisk_xmemcpy<32>(buf, a.bytes);
++    zeg::zisk::zisk_xmemcpy<32>(buf + 32, b.bytes);
+     return sha256_bytes32(buf, sizeof(buf));
+ }
+ 
+@@ -60,7 +61,10 @@
+         const std::size_t half = (n + 1) / 2;
+         for (std::size_t i = 0; i < half; ++i) {
+             const Chunk& right = 2 * i + 1 < n ? level[2 * i + 1] : zero_hash(d);
+-            level[i] = hash(level[2 * i], right);
++            // stwo: the digest lands in an 8-aligned local, then word-copies
++            // into the (heap, 8-aligned) level instead of a memcpy call.
++            alignas(8) const Chunk h = hash(level[2 * i], right);
++            zeg::zisk::zisk_xmemcpy<32>(level[i].bytes, h.bytes);
+         }
+         n = half;
+     }
+diff -ru a/cpp-guest/src/storages.cpp b/cpp-guest/src/storages.cpp
+--- a/cpp-guest/src/storages.cpp	2026-11-02 01:06:03
++++ b/cpp-guest/src/storages.cpp	2026-11-02 01:06:03
+@@ -23,9 +23,10 @@
+                         const evmc::bytes32& value) {
+     const size_t idx = originals_.size();
+     uint8_t* rec = static_cast<uint8_t*>(::operator new(kRecordSize));  // stwo: lazy rows
+-    std::memcpy(rec + View::kAddressOffset,  address.bytes,  sizeof(address.bytes));
+-    std::memcpy(rec + View::kPositionOffset, position.bytes, sizeof(position.bytes));
+-    std::memcpy(rec + View::kValueOffset,    value.bytes,    sizeof(value.bytes));
++    // stwo: word copies when both sides are 8-aligned (zisk_dma.hpp).
++    zeg::zisk::zisk_xmemcpy<sizeof(address.bytes)>(rec + View::kAddressOffset, address.bytes);
++    zeg::zisk::zisk_xmemcpy<sizeof(position.bytes)>(rec + View::kPositionOffset, position.bytes);
++    zeg::zisk::zisk_xmemcpy<sizeof(value.bytes)>(rec + View::kValueOffset, value.bytes);
+     originals_.push_back(View{rec});
+     mods_.push_back(Mods{});
+     leaf_.push_back(LeafCache{});
+@@ -129,7 +130,7 @@
+ 
+ void Storages::set_value_at(size_t idx, const evmc::bytes32& v, uint64_t tx_idx) {
+     auto& m = mods_[idx];
+-    m.value       = v;
++    zeg::zisk::zisk_xmemcpy<32>(m.value.bytes, v.bytes);  // stwo: m.value = v as words
+     m.dirty       = true;
+     m.last_tx_idx = tx_idx;
+ }
+@@ -171,7 +172,10 @@
+ }
+ 
+ evmc::bytes32 Storages::value_at(size_t idx) const noexcept {
+-    return mods_[idx].dirty ? mods_[idx].value : originals_[idx].value();
++    const evmc::bytes32& src = mods_[idx].dirty ? mods_[idx].value : originals_[idx].value();
++    evmc::bytes32 r;
++    zeg::zisk::zisk_xmemcpy<32>(r.bytes, src.bytes);  // stwo: word copy, not a memcpy call
++    return r;
+ }
+ 
+ const evmc::bytes32& Storages::value_orig_at(size_t idx) const noexcept {

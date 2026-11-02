@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "source_commit": "efe66efe9",
+  "source_base": "f3749b4038275e9e016fd6c4fafcbaae7c446bed",
+  "binary_sha256": "bca000c2c45f47f4d29e2315f3bd7b802f20c322a1d69c5cf0c7697b802fc8c8",
+  "scope": "OM q70 CPU0 ordinary prefix; operational storage policy only, production default unchanged",
+  "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+  "config_sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad",
+  "resource_json": "/tmp/rv64-om-ethereum-prefix-resident16-resources.json",
+  "resource_sha256": "4c92e61b9767a5b18bcff62068d2b69fd010e152eac34d20063456718b1770cc",
+  "sequence": [
+    "dense",
+    "stride2",
+    "stride2",
+    "dense"
+  ],
+  "controlled_profile": {
+    "field": "OM31",
+    "q": 70,
+    "pow": 26,
+    "blowup": 1,
+    "fold": 4,
+    "workers": 16,
+    "lanes": 1,
+    "resident_main": true
+  },
+  "quiet_host": false,
+  "shared_heavy_lock": "/private/tmp/stwo-rv64-perf-heavy.lock",
+  "all_four_artifacts_byte_identical": true,
+  "all_fresh_independent_receivers_accepted": true,
+  "means": {
+    "dense": {
+      "prove_ns": 8480881312.5,
+      "numerical_requested_peak_bytes": 12615738224,
+      "peak_rss_bytes": 18259484672,
+      "wall_seconds": 10.635
+    },
+    "stride2": {
+      "prove_ns": 8886751166,
+      "numerical_requested_peak_bytes": 8847246298,
+      "peak_rss_bytes": 15232327680,
+      "wall_seconds": 10.75
+    }
+  },
+  "numerical_peak_reduction_factor": 1.4259508325038834,
+  "rss_reduction_factor": 1.1987323970173416,
+  "prove_time_ratio": 1.0478570373224994,
+  "interpretation": "Numerical requested allocation peak improves1.426x, wholeprocess RSS1.199x; no wholeprover1.5x claim. Recomputing missing levels costs ~23percent more numerical time, total ~4.8percent slower within prior7.5percent hostspread. Default NOT promoted.",
+  "runs": [
+    {
+      "index": 0,
+      "kind": "dense",
+      "prove_ns": 8349653792,
+      "worker": {
+        "source_ns": 328733792,
+        "seal_native_and_gkr_ns": 3185619000,
+        "main_commit_ns": 904343083,
+        "gkr_ns": 2219324542,
+        "inputs_ns": 191505666,
+        "numerical_ns": 1708867375,
+        "binding_ns": 296313417,
+        "metadata_retire_ns": 2426167,
+        "spill_ns": 41,
+        "restore_ns": 83,
+        "native_complete_ns": 4725688584,
+        "stage1_ns": 3516779042,
+        "stage2_ns": 4725688708,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 12615738224,
+      "including_binding_requested_peak_bytes": 12615738224,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 18259492864,
+      "wall_seconds": 10.76,
+      "user_seconds": 71.25,
+      "sys_seconds": 5.02,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    },
+    {
+      "index": 1,
+      "kind": "stride2",
+      "prove_ns": 8788763416,
+      "worker": {
+        "source_ns": 319260792,
+        "seal_native_and_gkr_ns": 3565906500,
+        "main_commit_ns": 898520292,
+        "gkr_ns": 2604314000,
+        "inputs_ns": 186186333,
+        "numerical_ns": 2099772792,
+        "binding_ns": 296545458,
+        "metadata_retire_ns": 2224958,
+        "spill_ns": 42,
+        "restore_ns": 0,
+        "native_complete_ns": 4820601500,
+        "stage1_ns": 3887392333,
+        "stage2_ns": 4820601500,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 8847246298,
+      "including_binding_requested_peak_bytes": 8847246298,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 15232319488,
+      "wall_seconds": 10.63,
+      "user_seconds": 78.6,
+      "sys_seconds": 5.2,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    },
+    {
+      "index": 2,
+      "kind": "stride2",
+      "prove_ns": 8984738916,
+      "worker": {
+        "source_ns": 325546125,
+        "seal_native_and_gkr_ns": 3661324958,
+        "main_commit_ns": 929600875,
+        "gkr_ns": 2668557709,
+        "inputs_ns": 195572958,
+        "numerical_ns": 2145995667,
+        "binding_ns": 303141875,
+        "metadata_retire_ns": 2459709,
+        "spill_ns": 41,
+        "restore_ns": 83,
+        "native_complete_ns": 4913600917,
+        "stage1_ns": 3989330833,
+        "stage2_ns": 4913601000,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 8847246298,
+      "including_binding_requested_peak_bytes": 8847246298,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 15232335872,
+      "wall_seconds": 10.87,
+      "user_seconds": 79.93,
+      "sys_seconds": 5.37,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    },
+    {
+      "index": 3,
+      "kind": "dense",
+      "prove_ns": 8612108833,
+      "worker": {
+        "source_ns": 326662750,
+        "seal_native_and_gkr_ns": 3246947833,
+        "main_commit_ns": 935568625,
+        "gkr_ns": 2248298042,
+        "inputs_ns": 187530583,
+        "numerical_ns": 1735365959,
+        "binding_ns": 301904958,
+        "metadata_retire_ns": 2502209,
+        "spill_ns": 41,
+        "restore_ns": 83,
+        "native_complete_ns": 4955568250,
+        "stage1_ns": 3576112833,
+        "stage2_ns": 4955568333,
+        "actual_main_merkle_bytes": 33554400,
+        "stage1_completed": true,
+        "stage2_completed": true
+      },
+      "numerical_requested_peak_bytes": 12615738224,
+      "including_binding_requested_peak_bytes": 12615738224,
+      "raw_input_bytes": 4541656320,
+      "peak_rss_bytes": 18259476480,
+      "wall_seconds": 10.51,
+      "user_seconds": 74.2,
+      "sys_seconds": 5.41,
+      "durable_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "schema": "rv64-projective-secp256k1-qualification-v1",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "source_control": {
+    "crate": "k256",
+    "version": "0.13.4",
+    "projective_rs_sha256": "e0cc8da5b6103334cb1722fdbaf1b5d6ee924a29f713de324321f07c1f501b7b",
+    "formulas": "RCB2015 Algorithm7 ADD and9 DOUBLE, homogeneous X/Z,Y/Z"
+  },
+  "strict_release_safe_tests": 12,
+  "artifacts": [
+    {
+      "name": "add-serial",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-add-serial-v1/proof.bin",
+      "proof_bytes": 355392,
+      "sha256": "1a83e6557493e55f1c1563baae40737820cc3ec9f1205dfdf93e1ef8013aecfc"
+    },
+    {
+      "name": "add-parallel",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-add-parallel-v1/proof.bin",
+      "proof_bytes": 355392,
+      "sha256": "1a83e6557493e55f1c1563baae40737820cc3ec9f1205dfdf93e1ef8013aecfc"
+    },
+    {
+      "name": "double",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-double-v1/proof.bin",
+      "proof_bytes": 335824,
+      "sha256": "f0cea702bbd545b9b6a0e152f134c3c3bf1cd72c8e54b49fc2d4c224f95c6921"
+    },
+    {
+      "name": "empty",
+      "proof_path": "vectors/reports/interop_artifacts/rv64-secp-empty-v1/proof.bin",
+      "proof_bytes": 361684,
+      "sha256": "6d5f0a72443f696f0f7938edb27ada884895f6821d9c66fc2ab571209f2ee909"
+    }
+  ],
+  "parallel_serial_exact_proof_bytes": true,
+  "implementation": {
+    "product_columns": {
+      "fixed": 15,
+      "main": 319,
+      "interaction": 384
+    },
+    "linear_columns": {
+      "fixed": 15,
+      "main": 200,
+      "interaction": 176
+    },
+    "add_rows": {
+      "product": 16,
+      "linear": 23
+    },
+    "double_rows": {
+      "product": 13,
+      "linear": 6
+    },
+    "maximum_degree": 4,
+    "immutable_setup": "program topology and provider geometry only; count and IDs constrained in main",
+    "witness": "single operation walk directly into independently sized final matrices"
+  },
+  "gates": [
+    "independent standard secp points with arbitrary homogeneous rescaling",
+    "identity, inverse and arbitrary raw256 inputs",
+    "dense arbitrary-QM31 all-residual degree4 bound",
+    "locally valid alternate modular witness fails typed-wire closure",
+    "public count/ID/tail/claim and final predecessor mutations",
+    "global shared BYTE characteristic admission",
+    "all allocation failures and unpublished inverse failure",
+    "empty roster proof"
+  ],
+  "remaining": [
+    "coordinate RAM bridge native proof",
+    "CPU control/register/call coverage",
+    "authenticated RAM hash boundaries",
+    "whole-block proof and measured lowering costs"
+  ]
+}

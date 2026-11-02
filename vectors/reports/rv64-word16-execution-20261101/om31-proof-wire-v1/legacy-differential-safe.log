@@ -1,0 +1,19 @@
+1/17 legacy_parity_test_temp.test.historical QM31 binary and JSON wire stay byte-identical to pre-refactor codec...LEGACY_WIRE_EXACT json=1458 binary=396
+OK
+2/17 mod.test.api signature: proof wire codecs preserve owned byte and proof results...OK
+3/17 mod.test.proof wire binary decoder rejects truncation and wrong versions...OK
+4/17 mod.test_0...OK
+5/17 legacy_codec_test_temp.test.api signature: proof wire codecs preserve owned byte and proof results...OK
+6/17 legacy_codec_test_temp.test.proof wire binary decoder rejects truncation and wrong versions...OK
+7/17 legacy_codec_test_temp.test_0...OK
+8/17 bounded_count_test.test.binary proof rejects unsupported counts at every nested vector before allocation...OK
+9/17 bounded_count_test.test.binary proof count bounds preserve nested canonical bytes and all decode OOM cleanup...OK
+10/17 bounded_count_test.test.binary proof every truncated prefix and appended byte reject with balanced cleanup...OK
+11/17 bounded_count_test.test.binary proof invalid FRI polynomial length rejects before coefficient allocation...OK
+12/17 bounded_count_test.test.JSON and typed proof wire reject invalid FRI polynomial lengths without assertion...OK
+13/17 wide_test.test.OM31 wire preserves all8 coordinates nested empty siblings and exact JSON binary bytes...OK
+14/17 wide_test.test.OM31 binary wire every truncated prefix trailing byte and wrong field reject...OK
+15/17 wide_test.test.OM31 typed and JSON decode reject every noncanonical coordinate with owned cleanup...OK
+16/17 wide_test.test.OM31 JSON requires explicit matching field profile...OK
+17/17 wide_test.test.OM31 binary decoder validates every sampled coordinate after field-specific count bounds...OK
+All 17 tests passed.

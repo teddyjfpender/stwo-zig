@@ -1,0 +1,38 @@
+[
+  {
+    "status": "partial_failure",
+    "candidate_accounts": 279,
+    "candidate_storage_slots": 1552,
+    "verified_accounts": 262,
+    "failed_accounts": 17,
+    "elapsed_seconds": 570.0673775000032,
+    "requests_per_second": 1.0,
+    "collector_sha256": "7578d66b74713601fe57771a77bd466e926b5ad83fac7bfa6049944ff3037f58",
+    "directory": "optimism-state-witness-paced",
+    "reused_accounts": 44
+  },
+  {
+    "status": "partial_failure",
+    "candidate_accounts": 280,
+    "candidate_storage_slots": 1555,
+    "verified_accounts": 279,
+    "failed_accounts": 1,
+    "elapsed_seconds": 50.18793708298472,
+    "requests_per_second": 1.0,
+    "collector_sha256": "dd2b55d765c1b8ec0fb94101bea4ad4ebac5219e7b99c2b7cb4bd8fdf298ed05",
+    "directory": "optimism-state-witness-complete",
+    "reused_accounts": 260
+  },
+  {
+    "status": "verified_candidate_accesses",
+    "candidate_accounts": 280,
+    "candidate_storage_slots": 1555,
+    "verified_accounts": 280,
+    "failed_accounts": 0,
+    "elapsed_seconds": 13.55733362500905,
+    "requests_per_second": 1.0,
+    "collector_sha256": "dd2b55d765c1b8ec0fb94101bea4ad4ebac5219e7b99c2b7cb4bd8fdf298ed05",
+    "directory": "optimism-state-witness-qualified",
+    "reused_accounts": 279
+  }
+]

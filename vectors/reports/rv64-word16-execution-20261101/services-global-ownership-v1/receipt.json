@@ -1,0 +1,43 @@
+{
+  "schema": "rv64-services-global-authority-and-owned-binding-v1",
+  "source_base": "e6ce312d8",
+  "production_selected": false,
+  "complete_execution_proof": false,
+  "whole_protocol_128_claim": false,
+  "speedup_claim": false,
+  "gates": {
+    "services-gkr-local-ReleaseSafe": "PASS",
+    "services-gkr-local-ReleaseFast": "PASS",
+    "legacy-word16-memory-ReleaseSafe": "PASS55"
+  },
+  "qualified": [
+    "RAM/KIO/Wire original CPU/LS/INIT/TERM/K/add/double tuple and signed-weight authority",
+    "actual global residual degree at most3",
+    "strict poles for inactive rows",
+    "global prefix-only predecessor mask layout",
+    "receiver absent-claim rejection and deterministic physicalslot shape",
+    "stable hard cap with external reservation for parent-owned binding planes",
+    "failure-atomic no-copy owned-binding transfer",
+    "every allocation failure including owned transfer cleanup"
+  ],
+  "global_column_widths": {
+    "ls": 16,
+    "initial": 16,
+    "terminal": 16,
+    "keccak_bridge": 32,
+    "secp_bridge": 56
+  },
+  "pending": [
+    "physical global role wrappers",
+    "complete CPU-shard receiver and worker assembly",
+    "full execution/recursion/security qualification"
+  ],
+  "source_sha256": {
+    "child.zig": "91d2dc4a591f9febd86b87994b9bf4b380a9cc084683440b9ed1d72366744d5e",
+    "resource.zig": "62071c07dc894561c3f8f744b8252d6143910771979f082ca328fa0340dc70c4",
+    "witness.zig": "d444a74dffa12dc35e3b5e5524afc46e4240033b170597e950dc26843cfffc4f",
+    "global_cpu.zig": "6083b0a0af6b6b4b5ef4265d4748c7806c0964e515aa80400d1f16fb869459ed",
+    "global_cpu_test.zig": "9b0d0151ad49a7ab0c39e202efd0f6ae91be6fb88116de7d60c65fd9c8353013",
+    "tests.zig": "64583bcf3a74f394ef734f7e09a720c058125c10cc6930d02b41e00486a7c854"
+  }
+}

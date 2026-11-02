@@ -1,0 +1,45 @@
+{
+  "base_commit": "a55c90e2f plus opt-in native-profile plumbing",
+  "binary_sha256": "ac482bd14c0cbfc4ca5f1e3f460fa46e67372d28746c732beb10fbcbd5f80020",
+  "scope": "Same real 4194303-step Ethereum CPU shard; OM31 q70/P26/fold4; one 8-worker lane",
+  "prove_seconds": 52.21570025,
+  "wall_seconds": 54.96,
+  "user_seconds": 110.15,
+  "system_seconds": 6.11,
+  "max_rss_bytes": 16432136192,
+  "gkr_seconds": 5.435084417,
+  "gkr_inputs_seconds": 0.33312525,
+  "gkr_numerical_seconds": 4.281724583,
+  "gkr_binding_seconds": 0.792572875,
+  "native_complete_seconds": 40.731041458,
+  "native_sampling_seconds": 25.613208,
+  "native_fri_quotient_seconds": 8.710017,
+  "native_composition_seconds": 3.673404,
+  "native_pow_seconds": 0.117752,
+  "fresh_process_accepted": true,
+  "artifacts": {
+    "cpu-0.bin": {
+      "bytes": 679424,
+      "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+      "scalar_parity": true
+    },
+    "stage-one.bin": {
+      "bytes": 88400,
+      "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+      "scalar_parity": true
+    },
+    "bundle.json": {
+      "bytes": 5489,
+      "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+      "scalar_parity": true
+    },
+    "cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "scalar_parity": true
+    }
+  },
+  "interpretation": "Major reduction from scalar143.34s and initially pooled106.31s, but still substantially slower than historical QM31 LogUp8.57s. Shared-host single probes, not matched security or quiet repeated performance qualification.",
+  "remaining": "Primary wide PCS bottlenecks are scalar sampled-value fallback and serial quotient rows; source patches separately qualified, not in this measurement.",
+  "security": "Both control and experiment use nominal96-bit PCS parameters; neither whole-protocol128 qualified."
+}

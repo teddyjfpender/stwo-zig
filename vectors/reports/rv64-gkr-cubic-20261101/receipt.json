@@ -1,0 +1,62 @@
+{
+  "schema": "rv64-gkr-fixed-cubic-v1",
+  "base_commit": "3798dac7d",
+  "original_reference_commit": "171de6ab8",
+  "scope": "ForField(Q/OM) GKR corrected cubic; no proof/transcript/security change",
+  "algebra": {
+    "basis": "r0 + delta*t + A*t*(t-1) + C*t*(t-1)*(t-2)",
+    "A": "(r2-2*r1+r0)/2",
+    "C": "-(r0+delta*b+A*b*(b-1))/(b*(b-1)*(b-2))",
+    "inversions_in_interpolation": {
+      "old": 12,
+      "new": 1
+    },
+    "complete_correction_inversions": {
+      "old": 14,
+      "new": 3
+    },
+    "allocation": "one four-coefficient owned polynomial, canonical trailing-zero trimming"
+  },
+  "qualification": {
+    "Safe": "targetPASS and explicitoldsource38/38PASS",
+    "Fast": "targetPASS and explicitoldsource38/38PASS",
+    "poles": [
+      "b0/1/2 reject withzero numerators",
+      "y0/1/half/third reject withoutresampling"
+    ],
+    "numerical": "genericLagrange exactcoefficient parity atdense andzero/linear/quadraticcases, Q+OM",
+    "OOM": "newfixedcubic allallocationfailures plus inheritedcompleteGKR ownershipfailure suite"
+  },
+  "capture_harness_correction": {
+    "old": "implicit root-baseline lookup resolvesZigtestrunner, notcaptureroot; prechangeclaiminvalid",
+    "new": "exerciseWithBaseline takes explicitreferencetype frompinnedgitarchive",
+    "fullproofs": "Q+OM mixed-height all4gate types, 1/2/4/8workers, fullserializedproof+nextdraw exact andfreshterminalbinding"
+  },
+  "shared_host_fast_fixture_ns": {
+    "Q": {
+      "old1": 101237875,
+      "new1": 24222250,
+      "new4": 21769667
+    },
+    "OM": {
+      "old1": 151640542,
+      "new1": 42145125,
+      "new4": 34429125
+    }
+  },
+  "shared_host_interpolation_100iterations_ns": {
+    "Q": {
+      "generic": 13688793,
+      "fixed": 200037
+    },
+    "OM": {
+      "generic": 14014249,
+      "fixed": 215832
+    }
+  },
+  "limitations": [
+    "Combinedpacked+cubic fixturetimings, notwholeblock/GPUqualification",
+    "Rustupstreamutils has samegeneric12inversions; thisis algebraoptimization, notportbug",
+    "No phase/security/profile change"
+  ]
+}

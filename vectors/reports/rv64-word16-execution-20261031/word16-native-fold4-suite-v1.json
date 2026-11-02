@@ -1,0 +1,1319 @@
+{
+  "schema": 1,
+  "scope": "Optional receiver-authoritative native Word16 FRI fold4 suite; production fold1 remains unchanged. Native only; no recursive/Rust/whole-block fold4 qualification.",
+  "base_commit": "7fc525530812f98b24aeb4ca83028fdf9fedf478",
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "b5236fbf371ee901a53d70f96df4119966db8103af545b83f9d80e2fcbf0751c",
+    "src/integrations/riscv_cpu/rv64_word16_csp_main.zig": "797d563d81e87be8a6fbac41dafc0e4d9420fe759b9ecd12106da5da601e9049",
+    "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig": "a85e2c6113d09d988fa64b04538dabb346858465de14dcefdf374069c721ca21",
+    "src/integrations/riscv_cpu/rv64_word16_sail_main.zig": "29e5b44c190d8ab9fbdd315a4dcbce5d401690ef3a02b02eba044fd2da80f906",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "540e96d655feac593a5cc4823a7a0d830628e8e1a59ca48c369e09af2c63e684",
+    "src/integrations/riscv_cpu/word16_execution/pcs_metrics.zig": "79480c976a6f5b695b1b95db2623cf9b83e73914e2adf5d85b8b0da4938bc9c9",
+    "src/integrations/riscv_cpu/word16_execution/pcs_suite.zig": "cc8d9d920fe20e1000c5293a7613550de24459e4f5a55923ffb6ac6ab0ccf8b9",
+    "src/integrations/riscv_cpu/word16_execution/pcs_suite_test.zig": "d6c67706f4564fe1be55198754cde1d23b2a5025a56a7fd3743334d129803d1c",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "59eee9807ac15059a790a598dcd226044c7e6a9dbb42c6592dfacb0eade02352",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "3486636d1a8bdcc239e4c94ee3eba56decbcb086dca69fa4c4fcf0be58387bb3",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig": "0baefd29d2c5afd6722089b524a0c8a20039609963866031cd2305403c8a59ff",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/main.zig": "d8d180d44487724ebd9adec36f9ce74c2106913f8925253e91801c840fd92e5a",
+    "src/integrations/riscv_cpu/word16_global_execution/execution.zig": "7db78bc1876caa3ef67c47d3a1dc8d1c6dbfc8efeb0835c08378f818435b3bd1",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig": "43ac404f4b87c93529fb9d7d5de5f6ff608997588238d39dffb52859abb74ad0",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/protocol.zig": "4030982150c52818e1be853edf61a94962beaf3d35cdcaafff5c5610b9e1aef3",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/roster.zig": "2b85830e8a7724eb98e92054a39a459c4f22ba8517e739df4fa520e312db17ea",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "ce94bc52b9c6ceb785f6a7a6fb9dc771b14b9f24f8e459e5329d5cd1a4a0cb4a",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/protocol.zig": "b5b817249d6a43d3ada03c942af9a3addea28fb55a8d430602115cd59b9fd135",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/roster.zig": "11f82f04c2aea9139557a443b9080a8f543939f03d6655dd929d061b2b008b11",
+    "src/integrations/riscv_cpu/word16_global_execution/services/execution.zig": "7c2d52d5da88df0c0b40fdac10da55266f925dfe38742eb3a3708419790f4b8e",
+    "src/integrations/riscv_cpu/word16_global_execution/services/fixture.zig": "b30c9301b0114e629e24c32a9d87785bc6a7566337bb495739155eb231c09e3f",
+    "src/integrations/riscv_cpu/word16_global_execution/services/protocol.zig": "4ca411cc1184477d016870a0a8cbb88742067f71d137bab0a9b774c72cd09111",
+    "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig": "d3ef8f1562a31ef27bc6d6e2a7ba7674f1df740ee7b674579b010c8f6b1a066b",
+    "src/integrations/riscv_cpu/word16_global_execution/services/worker.zig": "c58a132857565127dee3d48f50808806b847df2998706cf7ab5a4bc00c6b8f50",
+    "src/integrations/riscv_cpu/word16_global_execution/stage1_worker.zig": "6da9a1b087df2e444ba95799c88af524598066fc20f62f022d8829a240fb6dd6",
+    "src/integrations/riscv_cpu/word16_qualification/csp_execution.zig": "f19ec73b5648af5346f7fb6ed99d8a19ec4357a8e3f01685820df143ce6bfe38",
+    "src/integrations/riscv_cpu/word16_qualification/sail_execution.zig": "aaface0c4b09ad9dfe7f459de818332894c308f9d278e6815f4ec857205dbda4"
+  },
+  "suites": {
+    "production": {
+      "queries": 70,
+      "pow_bits": 26,
+      "fold_step": 1,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "lifting_log_size": null
+    },
+    "experiment": {
+      "queries": 70,
+      "pow_bits": 26,
+      "fold_step": 4,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "lifting_log_size": null
+    }
+  },
+  "authority": {
+    "trusted_suite_in_immutable_materials_and_keys": true,
+    "proof_or_bundle_selected_suite": false,
+    "mixed_cpu_truth_suites_rejected_before_stage1": true,
+    "config_bound_before_roots": true,
+    "production_default_prelude_unchanged": true,
+    "physical_claims_bound_before_constraint_coefficients": true,
+    "existing_native_fri_reused": true,
+    "air_merkle_hasher_and_domain_separation_unchanged": true
+  },
+  "functional_gates": [
+    {
+      "mode": "ReleaseSafe",
+      "targets": [
+        "test-riscv64-word16-execution-coordinator",
+        "test-riscv64-word16-keccak-shared",
+        "test-riscv64-word16-secp-bridge"
+      ],
+      "result": "PASS",
+      "log": "/tmp/rv64-fold4-rebased-safe.log"
+    },
+    {
+      "mode": "ReleaseFast",
+      "targets": [
+        "test-riscv64-word16-execution-coordinator",
+        "test-riscv64-word16-keccak-shared"
+      ],
+      "result": "PASS",
+      "log": "/tmp/rv64-fold4-rebased-fast.log"
+    },
+    {
+      "mode": "ReleaseSafe and ReleaseFast initial same-source canonical core/global/services",
+      "result": "PASS",
+      "logs": [
+        "/tmp/rv64-fold4-suite-safe.log",
+        "/tmp/rv64-fold4-suite-fast.log"
+      ],
+      "note": "Initial Safe geometry-only historical K mock failed due misplaced suite admission; guard moved to actual admission, final historical K Safe/Fast passed."
+    }
+  ],
+  "new_tests": [
+    "invalid suite before allocation",
+    "actual q70 fold1/fold4 fresh and cross rejection",
+    "no-pool vs16-worker exact fold4 proof",
+    "actual FRI-root and config-relabel forgeries",
+    "actual five-proof CPU K ADD DOUBLE fold4 plus production control and mixed-suite rejection"
+  ],
+  "compatibility": {
+    "clean_7fc_csp_sail_default_proofs_exact": true,
+    "frozen_f4f9_prefix4_all7_proofs_bundle_cells_cost_exact": true,
+    "frozen_f4f9_full30_proof_default_F1_fresh_receiver": "PASS",
+    "frozen_ethereum_cli_sha256": "2328de049f447af1cf1dfbc03db79d06530b4ceebf84ef3f3802b5f73e84af32",
+    "full30_artifact": "/tmp/rv64-ethereum-full-current-foundation-v1",
+    "full30_log": "/tmp/rv64-fold4-f1-frozen-full30-fresh.log"
+  },
+  "semantic_parity": {
+    "csp": {
+      "complete_cpu_public_fields_and_geometry_equal": true,
+      "full_memory_cells_including_rights_and_clocks_equal": true,
+      "cells_sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800",
+      "all_four_quiet_run_proofs_statements_cells_exact_with_functional_references": true
+    },
+    "sail": {
+      "complete_cpu_public_fields_and_geometry_equal": true,
+      "full_memory_cells_including_rights_and_clocks_equal": true,
+      "cells_sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f",
+      "all_four_quiet_run_proofs_statements_cells_exact_with_functional_references": true
+    },
+    "prefix4": {
+      "complete_cpu_public_fields_and_geometry_equal": true,
+      "full_memory_cells_including_rights_and_clocks_equal": true,
+      "cells_sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+      "all_four_quiet_run_proofs_statements_cells_exact_with_functional_references": true
+    }
+  },
+  "artifacts": {
+    "csp": {
+      "f1": {
+        "directory": "/tmp/rv64-fold4-final-csp-f1",
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "bytes": 754504,
+            "sha256": "05cee28aae428413acc0924f689a57cffc8e7423c22898347c5bf52f3598bc0e"
+          }
+        ]
+      },
+      "f4": {
+        "directory": "/tmp/rv64-fold4-final-csp-f4",
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "bytes": 612608,
+            "sha256": "8792b1f92fd3498c746add963a846cdca1f31417f7d41dd8642a93f6bb76251f"
+          }
+        ]
+      }
+    },
+    "sail": {
+      "f1": {
+        "directory": "/tmp/rv64-fold4-final-sail-f1",
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "bytes": 1036000,
+            "sha256": "4df99a48fbc9b3b9cfb3ba14f98d9038d6e24fb09912029bf77c3b17e0400b34"
+          }
+        ]
+      },
+      "f4": {
+        "directory": "/tmp/rv64-fold4-final-sail-f4",
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "bytes": 902600,
+            "sha256": "af768855644962caa889542daabed4e4c37625995db860b6fa2d43dd65179017"
+          }
+        ]
+      }
+    },
+    "prefix4": {
+      "f1": {
+        "directory": "/tmp/rv64-fold4-prefix4-functional-f1",
+        "proofs": [
+          {
+            "file": "cpu-0.bin",
+            "bytes": 877200,
+            "sha256": "bbcda2aac2a9992d82634f093cd775c2128d4a5222ecfd0fd2ecd658f1a37e94"
+          },
+          {
+            "file": "cpu-1.bin",
+            "bytes": 861648,
+            "sha256": "1c20d4f83d0a593990b19eacd3d54bd30c91ce5fc3d1a8c1dfc4bbb7a2482265"
+          },
+          {
+            "file": "cpu-2.bin",
+            "bytes": 823376,
+            "sha256": "80e3d504016f354f5853ab9b1088d23ea5947350b4d7637e7d29b657f0988ee2"
+          },
+          {
+            "file": "cpu-3.bin",
+            "bytes": 1490048,
+            "sha256": "fcf50b7d2a672306e446aac38e44f7b8907a45cab995a66aef8c976ef397f467"
+          },
+          {
+            "file": "truth-0.bin",
+            "bytes": 1620408,
+            "sha256": "25c809cf4a802ea5289a2b1a4e335f8b1fdba4890d8e5cb0c7c574ae2ad4ba0a"
+          },
+          {
+            "file": "truth-1.bin",
+            "bytes": 523992,
+            "sha256": "6cfa9ab7b8f8a7aa73ec95350761e0c66117dac8524fe0aaf49f18bcf0e3e88f"
+          },
+          {
+            "file": "truth-2.bin",
+            "bytes": 497472,
+            "sha256": "5bbed735ed16b689aa8a6ad196ff69fb1e100e6e6ae9df842c241d9a8c7f1630"
+          }
+        ]
+      },
+      "f4": {
+        "directory": "/tmp/rv64-fold4-prefix4-functional-f4",
+        "proofs": [
+          {
+            "file": "cpu-0.bin",
+            "bytes": 707584,
+            "sha256": "4066f7c0190f37bdde5bba01cffff4b015f0640f2bf3286648abc3191571885a"
+          },
+          {
+            "file": "cpu-1.bin",
+            "bytes": 675072,
+            "sha256": "9ca77fe4b73232dea937c19f9d6a0ea62897fbfae1ea3e88fbf6a2c9fe143976"
+          },
+          {
+            "file": "cpu-2.bin",
+            "bytes": 652544,
+            "sha256": "5d8c5a871634f96f7bdc56b0574617b8fdc4fa59c67dd87022d4a3ad6d055a02"
+          },
+          {
+            "file": "cpu-3.bin",
+            "bytes": 1320720,
+            "sha256": "6210a26d8a729e9bf695267628629a5527c467701d4969b5a7f3ac8ad71e5200"
+          },
+          {
+            "file": "truth-0.bin",
+            "bytes": 1592816,
+            "sha256": "10510e5988d357b956b9354aa1ac1e11c7c088ff1faaf8903afd9b38d84adfef"
+          },
+          {
+            "file": "truth-1.bin",
+            "bytes": 473328,
+            "sha256": "99bfbef0fbcfe647e4ed39d3c932ceceb107ea0bb60da660e7799ce0540792c2"
+          },
+          {
+            "file": "truth-2.bin",
+            "bytes": 459120,
+            "sha256": "ff03d2797619e4e559b91c972e3a91447f5d05aca242db84dd81ff8dd330822b"
+          }
+        ]
+      }
+    }
+  },
+  "serialized_work": {
+    "csp": {
+      "f1": {
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 754504,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1305,
+            "pcs_queried_m31": 84210,
+            "pcs_hash_witnesses": 4172,
+            "fri_inner_layers": 20,
+            "fri_witness_qm31": 1043,
+            "fri_hash_witnesses": 7371,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          }
+        ],
+        "sum": {
+          "proof_bytes": 754504,
+          "pcs_commitment_roots": 4,
+          "pcs_sampled_qm31": 1305,
+          "pcs_queried_m31": 84210,
+          "pcs_hash_witnesses": 4172,
+          "fri_inner_layers": 20,
+          "fri_witness_qm31": 1043,
+          "fri_hash_witnesses": 7371,
+          "last_layer_qm31": 1
+        },
+        "each_proof": {
+          "fold_step": 1,
+          "queries": 70,
+          "pow_bits": 26
+        }
+      },
+      "f4": {
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 612608,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1305,
+            "pcs_queried_m31": 84210,
+            "pcs_hash_witnesses": 4240,
+            "fri_inner_layers": 5,
+            "fri_witness_qm31": 3774,
+            "fri_hash_witnesses": 1522,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          }
+        ],
+        "sum": {
+          "proof_bytes": 612608,
+          "pcs_commitment_roots": 4,
+          "pcs_sampled_qm31": 1305,
+          "pcs_queried_m31": 84210,
+          "pcs_hash_witnesses": 4240,
+          "fri_inner_layers": 5,
+          "fri_witness_qm31": 3774,
+          "fri_hash_witnesses": 1522,
+          "last_layer_qm31": 1
+        },
+        "each_proof": {
+          "fold_step": 4,
+          "queries": 70,
+          "pow_bits": 26
+        }
+      }
+    },
+    "sail": {
+      "f1": {
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 1036000,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 2325,
+            "pcs_queried_m31": 155890,
+            "pcs_hash_witnesses": 3980,
+            "fri_inner_layers": 19,
+            "fri_witness_qm31": 995,
+            "fri_hash_witnesses": 6659,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          }
+        ],
+        "sum": {
+          "proof_bytes": 1036000,
+          "pcs_commitment_roots": 4,
+          "pcs_sampled_qm31": 2325,
+          "pcs_queried_m31": 155890,
+          "pcs_hash_witnesses": 3980,
+          "fri_inner_layers": 19,
+          "fri_witness_qm31": 995,
+          "fri_hash_witnesses": 6659,
+          "last_layer_qm31": 1
+        },
+        "each_proof": {
+          "fold_step": 1,
+          "queries": 70,
+          "pow_bits": 26
+        }
+      },
+      "f4": {
+        "proofs": [
+          {
+            "file": "proof.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 902600,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 2325,
+            "pcs_queried_m31": 155890,
+            "pcs_hash_witnesses": 3948,
+            "fri_inner_layers": 4,
+            "fri_witness_qm31": 3487,
+            "fri_hash_witnesses": 1295,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          }
+        ],
+        "sum": {
+          "proof_bytes": 902600,
+          "pcs_commitment_roots": 4,
+          "pcs_sampled_qm31": 2325,
+          "pcs_queried_m31": 155890,
+          "pcs_hash_witnesses": 3948,
+          "fri_inner_layers": 4,
+          "fri_witness_qm31": 3487,
+          "fri_hash_witnesses": 1295,
+          "last_layer_qm31": 1
+        },
+        "each_proof": {
+          "fold_step": 4,
+          "queries": 70,
+          "pow_bits": 26
+        }
+      }
+    },
+    "prefix4": {
+      "f1": {
+        "proofs": [
+          {
+            "file": "cpu-0.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 877200,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1554,
+            "pcs_queried_m31": 100800,
+            "pcs_hash_witnesses": 4496,
+            "fri_inner_layers": 21,
+            "fri_witness_qm31": 1124,
+            "fri_hash_witnesses": 8582,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "cpu-1.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 861648,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1467,
+            "pcs_queried_m31": 94990,
+            "pcs_hash_witnesses": 4564,
+            "fri_inner_layers": 21,
+            "fri_witness_qm31": 1141,
+            "fri_hash_witnesses": 8810,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "cpu-2.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 823376,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1377,
+            "pcs_queried_m31": 88970,
+            "pcs_hash_witnesses": 4484,
+            "fri_inner_layers": 21,
+            "fri_witness_qm31": 1121,
+            "fri_hash_witnesses": 8523,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "cpu-3.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 1490048,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 3682,
+            "pcs_queried_m31": 243460,
+            "pcs_hash_witnesses": 4436,
+            "fri_inner_layers": 21,
+            "fri_witness_qm31": 1109,
+            "fri_hash_witnesses": 8395,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "truth-0.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 1620408,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 11006,
+            "pcs_queried_m31": 321370,
+            "pcs_hash_witnesses": 1964,
+            "fri_inner_layers": 12,
+            "fri_witness_qm31": 491,
+            "fri_hash_witnesses": 1582,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "truth-1.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 523992,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1153,
+            "pcs_queried_m31": 79590,
+            "pcs_hash_witnesses": 2548,
+            "fri_inner_layers": 14,
+            "fri_witness_qm31": 637,
+            "fri_hash_witnesses": 2672,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "truth-2.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 497472,
+            "fold_step": 1,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1153,
+            "pcs_queried_m31": 79590,
+            "pcs_hash_witnesses": 2288,
+            "fri_inner_layers": 13,
+            "fri_witness_qm31": 572,
+            "fri_hash_witnesses": 2137,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          }
+        ],
+        "sum": {
+          "proof_bytes": 6694144,
+          "pcs_commitment_roots": 28,
+          "pcs_sampled_qm31": 21392,
+          "pcs_queried_m31": 1008770,
+          "pcs_hash_witnesses": 24780,
+          "fri_inner_layers": 123,
+          "fri_witness_qm31": 6195,
+          "fri_hash_witnesses": 40701,
+          "last_layer_qm31": 7
+        },
+        "each_proof": {
+          "fold_step": 1,
+          "queries": 70,
+          "pow_bits": 26
+        }
+      },
+      "f4": {
+        "proofs": [
+          {
+            "file": "cpu-0.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 707584,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1554,
+            "pcs_queried_m31": 100800,
+            "pcs_hash_witnesses": 4540,
+            "fri_inner_layers": 5,
+            "fri_witness_qm31": 4093,
+            "fri_hash_witnesses": 1773,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "cpu-1.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 675072,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1467,
+            "pcs_queried_m31": 94990,
+            "pcs_hash_witnesses": 4436,
+            "fri_inner_layers": 5,
+            "fri_witness_qm31": 3958,
+            "fri_hash_witnesses": 1719,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "cpu-2.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 652544,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1377,
+            "pcs_queried_m31": 88970,
+            "pcs_hash_witnesses": 4496,
+            "fri_inner_layers": 5,
+            "fri_witness_qm31": 4018,
+            "fri_hash_witnesses": 1744,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "cpu-3.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 1320720,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 3682,
+            "pcs_queried_m31": 243460,
+            "pcs_hash_witnesses": 4428,
+            "fri_inner_layers": 5,
+            "fri_witness_qm31": 3958,
+            "fri_hash_witnesses": 1707,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "truth-0.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 1592816,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 11006,
+            "pcs_queried_m31": 321370,
+            "pcs_hash_witnesses": 1912,
+            "fri_inner_layers": 3,
+            "fri_witness_qm31": 1599,
+            "fri_hash_witnesses": 229,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "truth-1.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 473328,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1153,
+            "pcs_queried_m31": 79590,
+            "pcs_hash_witnesses": 2484,
+            "fri_inner_layers": 3,
+            "fri_witness_qm31": 2076,
+            "fri_hash_witnesses": 447,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          },
+          {
+            "file": "truth-2.bin",
+            "scope": "serialized native PCS/FRI work counts; not acceptance or a security estimate",
+            "physical_proof_verified": false,
+            "proof_bytes": 459120,
+            "fold_step": 4,
+            "queries": 70,
+            "pow_bits": 26,
+            "pcs_commitment_roots": 4,
+            "pcs_sampled_qm31": 1153,
+            "pcs_queried_m31": 79590,
+            "pcs_hash_witnesses": 2236,
+            "fri_inner_layers": 3,
+            "fri_witness_qm31": 1918,
+            "fri_hash_witnesses": 330,
+            "last_layer_qm31": 1,
+            "receiver_hash_operations_measured": false
+          }
+        ],
+        "sum": {
+          "proof_bytes": 5881184,
+          "pcs_commitment_roots": 28,
+          "pcs_sampled_qm31": 21392,
+          "pcs_queried_m31": 1008770,
+          "pcs_hash_witnesses": 24532,
+          "fri_inner_layers": 29,
+          "fri_witness_qm31": 21620,
+          "fri_hash_witnesses": 7949,
+          "last_layer_qm31": 7
+        },
+        "each_proof": {
+          "fold_step": 4,
+          "queries": 70,
+          "pow_bits": 26
+        }
+      }
+    }
+  },
+  "cli_cross_suite": [
+    {
+      "mode": "verify-prefix",
+      "artifact": "/tmp/rv64-fold4-prefix4-functional-f4",
+      "returncode": 1,
+      "stderr": "error: GlobalExecutionInventoryMismatch\n"
+    },
+    {
+      "mode": "verify-prefix-fold4",
+      "artifact": "/tmp/rv64-fold4-prefix4-functional-f1",
+      "returncode": 1,
+      "stderr": "error: GlobalExecutionInventoryMismatch\n"
+    }
+  ],
+  "quiet_measurements": {
+    "prefix4": {
+      "runs": [
+        {
+          "ordinal": 0,
+          "suite": "f1",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "produce",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-0-f1",
+            "4",
+            "--proof-jobs=1",
+            "--commit-batch-columns=64"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "verify-prefix",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-0-f1"
+          ],
+          "wall_ns": 30484154792,
+          "receiver_wall_ns": 2506565334,
+          "max_rss_bytes_darwin": 19157893120,
+          "artifact": "/tmp/rv64-fold4-quiet-prefix4-abba/run-0-f1",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 4.571598000000001,
+            "proof_of_work": 0.354828,
+            "fri_decommit": 0.018281999999999996,
+            "trace_decommit": 2.185391
+          },
+          "fresh_receiver_details": {
+            "core_schema": 4,
+            "accepted": true,
+            "completed_ethereum_block": false,
+            "output": null,
+            "cpu_proofs": 4,
+            "truth_proofs": 3,
+            "load_and_setup_ns": 2208744833,
+            "verify_ns": 259550750
+          }
+        },
+        {
+          "ordinal": 1,
+          "suite": "f4",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "produce-fold4",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-1-f4",
+            "4",
+            "--proof-jobs=1",
+            "--commit-batch-columns=64"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "verify-prefix-fold4",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-1-f4"
+          ],
+          "wall_ns": 32075121584,
+          "receiver_wall_ns": 2520249833,
+          "max_rss_bytes_darwin": 19157876736,
+          "artifact": "/tmp/rv64-fold4-quiet-prefix4-abba/run-1-f4",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 4.823339000000001,
+            "proof_of_work": 0.367952,
+            "fri_decommit": 0.45568200000000003,
+            "trace_decommit": 2.230413
+          },
+          "fresh_receiver_details": {
+            "core_schema": 4,
+            "accepted": true,
+            "completed_ethereum_block": false,
+            "output": null,
+            "cpu_proofs": 4,
+            "truth_proofs": 3,
+            "load_and_setup_ns": 2233145416,
+            "verify_ns": 244434000
+          }
+        },
+        {
+          "ordinal": 2,
+          "suite": "f4",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "produce-fold4",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-2-f4",
+            "4",
+            "--proof-jobs=1",
+            "--commit-batch-columns=64"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "verify-prefix-fold4",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-2-f4"
+          ],
+          "wall_ns": 32581274250,
+          "receiver_wall_ns": 2523582375,
+          "max_rss_bytes_darwin": 19157876736,
+          "artifact": "/tmp/rv64-fold4-quiet-prefix4-abba/run-2-f4",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 4.878799,
+            "proof_of_work": 0.362726,
+            "fri_decommit": 0.469563,
+            "trace_decommit": 2.271989
+          },
+          "fresh_receiver_details": {
+            "core_schema": 4,
+            "accepted": true,
+            "completed_ethereum_block": false,
+            "output": null,
+            "cpu_proofs": 4,
+            "truth_proofs": 3,
+            "load_and_setup_ns": 2230109583,
+            "verify_ns": 251020459
+          }
+        },
+        {
+          "ordinal": 3,
+          "suite": "f1",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "produce",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-3-f1",
+            "4",
+            "--proof-jobs=1",
+            "--commit-batch-columns=64"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-ethereum",
+            "verify-prefix",
+            "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+            "/tmp/rv64-fold4-quiet-prefix4-abba/run-3-f1"
+          ],
+          "wall_ns": 32673476917,
+          "receiver_wall_ns": 2589590667,
+          "max_rss_bytes_darwin": 19157860352,
+          "artifact": "/tmp/rv64-fold4-quiet-prefix4-abba/run-3-f1",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 4.877891999999999,
+            "proof_of_work": 0.37064800000000003,
+            "fri_decommit": 0.020841000000000002,
+            "trace_decommit": 2.3891760000000004
+          },
+          "fresh_receiver_details": {
+            "core_schema": 4,
+            "accepted": true,
+            "completed_ethereum_block": false,
+            "output": null,
+            "cpu_proofs": 4,
+            "truth_proofs": 3,
+            "load_and_setup_ns": 2279735291,
+            "verify_ns": 267707000
+          }
+        }
+      ],
+      "means": {
+        "f1": {
+          "wall_ns": 31578815854.5,
+          "receiver_wall_ns": 2548078000.5,
+          "max_rss_bytes_darwin": 19157876736,
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 4.724745,
+            "proof_of_work": 0.362738,
+            "fri_decommit": 0.0195615,
+            "trace_decommit": 2.2872835
+          }
+        },
+        "f4": {
+          "wall_ns": 32328197917,
+          "receiver_wall_ns": 2521916104,
+          "max_rss_bytes_darwin": 19157876736,
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 4.851069000000001,
+            "proof_of_work": 0.36533899999999997,
+            "fri_decommit": 0.46262250000000005,
+            "trace_decommit": 2.251201
+          }
+        }
+      },
+      "fold4_over_fold1_wall": 1.0237305308075133
+    },
+    "csp": {
+      "runs": [
+        {
+          "ordinal": 0,
+          "suite": "f1",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--prove",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-0-f1"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--verify",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-0-f1"
+          ],
+          "wall_ns": 5329714000,
+          "receiver_wall_ns": 190954500,
+          "max_rss_bytes_darwin": 3524902912,
+          "artifact": "/tmp/rv64-fold4-quiet-csp-abba/run-0-f1",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 0.712699,
+            "proof_of_work": 0.010974,
+            "fri_decommit": 0.003565,
+            "trace_decommit": 0.309087
+          },
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+            "physical_proof_verified": true,
+            "steps": 1625938,
+            "proof_bytes": 754504,
+            "receiver_ns": 179244500
+          }
+        },
+        {
+          "ordinal": 1,
+          "suite": "f4",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--prove-fold4",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-1-f4"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--verify-fold4",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-1-f4"
+          ],
+          "wall_ns": 5389953500,
+          "receiver_wall_ns": 194209500,
+          "max_rss_bytes_darwin": 3524935680,
+          "artifact": "/tmp/rv64-fold4-quiet-csp-abba/run-1-f4",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 0.66209,
+            "proof_of_work": 0.137702,
+            "fri_decommit": 0.06324,
+            "trace_decommit": 0.307925
+          },
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+            "physical_proof_verified": true,
+            "steps": 1625938,
+            "proof_bytes": 612608,
+            "receiver_ns": 173925708
+          }
+        },
+        {
+          "ordinal": 2,
+          "suite": "f4",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--prove-fold4",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-2-f4"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--verify-fold4",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-2-f4"
+          ],
+          "wall_ns": 5540057125,
+          "receiver_wall_ns": 192779542,
+          "max_rss_bytes_darwin": 3524902912,
+          "artifact": "/tmp/rv64-fold4-quiet-csp-abba/run-2-f4",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 0.693215,
+            "proof_of_work": 0.139653,
+            "fri_decommit": 0.061309,
+            "trace_decommit": 0.30206
+          },
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+            "physical_proof_verified": true,
+            "steps": 1625938,
+            "proof_bytes": 612608,
+            "receiver_ns": 171500542
+          }
+        },
+        {
+          "ordinal": 3,
+          "suite": "f1",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--prove",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-3-f1"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-csp",
+            "--verify",
+            "/tmp/rv64-word16-csp-all17-schema3-final/ecdsa_secp256k1-32-0.json",
+            "/tmp/rv64-fold4-quiet-csp-abba/run-3-f1"
+          ],
+          "wall_ns": 5269456292,
+          "receiver_wall_ns": 194319458,
+          "max_rss_bytes_darwin": 3524919296,
+          "artifact": "/tmp/rv64-fold4-quiet-csp-abba/run-3-f1",
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 0.728858,
+            "proof_of_work": 0.01112,
+            "fri_decommit": 0.003254,
+            "trace_decommit": 0.30501
+          },
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+            "physical_proof_verified": true,
+            "steps": 1625938,
+            "proof_bytes": 754504,
+            "receiver_ns": 172913708
+          }
+        }
+      ],
+      "means": {
+        "f1": {
+          "wall_ns": 5299585146,
+          "receiver_wall_ns": 192636979,
+          "max_rss_bytes_darwin": 3524911104,
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 0.7207785,
+            "proof_of_work": 0.011047,
+            "fri_decommit": 0.0034095,
+            "trace_decommit": 0.3070485
+          }
+        },
+        "f4": {
+          "wall_ns": 5465005312.5,
+          "receiver_wall_ns": 193494521,
+          "max_rss_bytes_darwin": 3524919296,
+          "prover_stage_seconds": {
+            "fri_quotient_build_and_commit": 0.6776525,
+            "proof_of_work": 0.1386775,
+            "fri_decommit": 0.0622745,
+            "trace_decommit": 0.3049925
+          }
+        }
+      },
+      "fold4_over_fold1_wall": 1.0312137954090341
+    },
+    "sail": {
+      "runs": [
+        {
+          "ordinal": 0,
+          "suite": "f1",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--prove",
+            "/tmp/rv64-word16-sail-workload-v2/config.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-0-f1"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--verify",
+            "/tmp/rv64-word16-sail-workload-v2/config-no-rvfi.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-0-f1"
+          ],
+          "wall_ns": 2930937917,
+          "receiver_wall_ns": 403601792,
+          "max_rss_bytes_darwin": 2287747072,
+          "artifact": "/tmp/rv64-fold4-quiet-sail-abba/run-0-f1",
+          "prover_stage_seconds": {},
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+            "physical_proof_verified": true,
+            "steps": 1032240,
+            "proof_bytes": 1036000,
+            "receiver_ns": 374985667
+          }
+        },
+        {
+          "ordinal": 1,
+          "suite": "f4",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--prove-fold4",
+            "/tmp/rv64-word16-sail-workload-v2/config.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-1-f4"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--verify-fold4",
+            "/tmp/rv64-word16-sail-workload-v2/config-no-rvfi.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-1-f4"
+          ],
+          "wall_ns": 2828015750,
+          "receiver_wall_ns": 396717667,
+          "max_rss_bytes_darwin": 2287583232,
+          "artifact": "/tmp/rv64-fold4-quiet-sail-abba/run-1-f4",
+          "prover_stage_seconds": {},
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+            "physical_proof_verified": true,
+            "steps": 1032240,
+            "proof_bytes": 902600,
+            "receiver_ns": 369067084
+          }
+        },
+        {
+          "ordinal": 2,
+          "suite": "f4",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--prove-fold4",
+            "/tmp/rv64-word16-sail-workload-v2/config.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-2-f4"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--verify-fold4",
+            "/tmp/rv64-word16-sail-workload-v2/config-no-rvfi.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-2-f4"
+          ],
+          "wall_ns": 2868789792,
+          "receiver_wall_ns": 391867208,
+          "max_rss_bytes_darwin": 2286288896,
+          "artifact": "/tmp/rv64-fold4-quiet-sail-abba/run-2-f4",
+          "prover_stage_seconds": {},
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+            "physical_proof_verified": true,
+            "steps": 1032240,
+            "proof_bytes": 902600,
+            "receiver_ns": 364389083
+          }
+        },
+        {
+          "ordinal": 3,
+          "suite": "f1",
+          "command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--prove",
+            "/tmp/rv64-word16-sail-workload-v2/config.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-3-f1"
+          ],
+          "fresh_command": [
+            "/tmp/rv64-fold4-final-tools/bin/rv64-word16-sail",
+            "--verify",
+            "/tmp/rv64-word16-sail-workload-v2/config-no-rvfi.json",
+            "/tmp/rv64-fold4-quiet-sail-abba/run-3-f1"
+          ],
+          "wall_ns": 2906664209,
+          "receiver_wall_ns": 399676834,
+          "max_rss_bytes_darwin": 2286288896,
+          "artifact": "/tmp/rv64-fold4-quiet-sail-abba/run-3-f1",
+          "prover_stage_seconds": {},
+          "fresh_receiver_details": {
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "workers": 8,
+            "build_mode": "ReleaseFast",
+            "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+            "physical_proof_verified": true,
+            "steps": 1032240,
+            "proof_bytes": 1036000,
+            "receiver_ns": 371864459
+          }
+        }
+      ],
+      "means": {
+        "f1": {
+          "wall_ns": 2918801063,
+          "receiver_wall_ns": 401639313,
+          "max_rss_bytes_darwin": 2287017984,
+          "prover_stage_seconds": {}
+        },
+        "f4": {
+          "wall_ns": 2848402771,
+          "receiver_wall_ns": 394292437.5,
+          "max_rss_bytes_darwin": 2286936064,
+          "prover_stage_seconds": {}
+        }
+      },
+      "fold4_over_fold1_wall": 0.9758810927910094
+    }
+  },
+  "measurement_scope": {
+    "order": "F1,F4,F4,F1, each followed by separate fresh receiver",
+    "host": "macOS Darwin maximum resident set size bytes from /usr/bin/time -l",
+    "quiet_release": "Explicit root all-idle release; no compiler/prover activity from other agents; one SIGSTOP root test process retained about177MB",
+    "prefix4": "4 CPU +3 truth proofs; prefix only, not complete block; --proof-jobs=1 --commit-batch-columns=64",
+    "csp": "complete independently pinned ECDSA; automatic empty DIV omission identical both suites",
+    "sail": "continuous all63 ordinary retiring opcodes; independently pinned expected ELF and endpoints; no RVFI required in fresh process",
+    "sample_count_per_suite_per_workload": 2,
+    "receiver_seconds_include_process_startup_and_setup": true,
+    "receiver_hash_operation_counts_measured": false,
+    "no_general_native_speed_or_RSS_claim": true
+  },
+  "conclusion": "Proof sizes shrink; no consistent native wall or memory improvement. F1 remains production default. Prefix4 FRI decommit grows despite fewer rounds/hash witnesses; transport/recursion cost is a separate future investigation.",
+  "security_limits": [
+    "Same q70/PoW26 knobs do not establish unchanged FRI soundness after larger folding arity.",
+    "QM31 cardinality is below2^124; no whole-protocol128-bit claim.",
+    "Lookup/OODS/multi-instance error accounting remains separate.",
+    "No Merkle-hasher change, recursive verification, independent Rust verification or full Ethereum block Fold4 claim."
+  ]
+}

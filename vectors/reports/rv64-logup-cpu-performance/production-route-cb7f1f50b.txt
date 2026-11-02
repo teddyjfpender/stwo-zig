@@ -1,0 +1,14 @@
+# rv64-logup-kernel-bench, ReleaseFast, head cb7f1f50b + cherry-picked logup branch.
+# reference = engine gkr_prover.proveBatch (PR #309 packed kernels; scoped WorkPool when threads>1)
+# fast      = engine gkr_prover_fast.proveBatch (private std.Thread.Pool when threads>1)
+# Host: BATTERY power (39%, discharging), load1 1.7-2.1. reps 3, median.
+cfg                         reference_ms  fast_ms   fast/ref  sha256 equal
+om31 14 1T                   2.37          2.75      1.16      yes b99ac4df
+om31 16 1T                   9.42          9.30      0.99      yes b8b7f5b8
+om31 18 1T                  32.87         36.40      1.11      yes 13cc365e
+om31 20 1T                 130.49        146.67      1.12      yes 2acb43cb
+om31 20 4T                  45.64         46.32      1.01      yes 2acb43cb
+om31 20 8T                  33.94         32.77      0.97      yes 2acb43cb
+om31 18 8T                  13.28         13.32      1.00      yes 13cc365e
+gkr 20 singles 1T (QM31)    41.71         43.11      1.03      yes 9972c912
+gkr 20 generic 1T (QM31)    50.79         53.92      1.06      yes 05bfc96e

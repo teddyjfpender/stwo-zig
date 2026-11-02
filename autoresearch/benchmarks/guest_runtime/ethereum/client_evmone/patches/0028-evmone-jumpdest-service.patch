@@ -1,0 +1,84 @@
+diff --git a/lib/evmone/baseline_analysis.cpp b/lib/evmone/baseline_analysis.cpp
+index c8fef9e..b3715d1 100644
+--- a/lib/evmone/baseline_analysis.cpp
++++ b/lib/evmone/baseline_analysis.cpp
+@@ -10,6 +10,11 @@
+ #include <evm/jump_dest_bitmap.hpp>  // zeg::evm::jump_dest_bitmap (CSR 0x81C)
+ #endif
+ 
++#if defined(CANDIDATE_JUMPDEST) || defined(ADMITTED_JUMPDEST)
++#include "services.hpp"  // stwo::jumpdest_bitmap (service 0x0003_0040)
++#define STWO_JUMPDEST_SERVICE 1
++#endif
++
+ namespace evmone::baseline
+ {
+ static_assert(std::is_move_constructible_v<CodeAnalysis>);
+@@ -95,6 +100,31 @@ void analyze_jumpdests_sentinel(BitsetSpan map, uint8_t* padded, size_t code_siz
+     std::fill_n(padded + code_size, PADDING, uint8_t{0});
+ }
+ 
++#if defined(STWO_JUMPDEST_SERVICE)
++/// stwo: the whole walk is one jumpdest_bitmap service call on the padded copy. The
++/// service works on whole code words: it analyzes the code size rounded up to 8, whose
++/// extra bytes are the copy's zero padding (never JUMPDESTs; they can only touch bits
++/// at or past the code size, which check_jumpdest never reads), and writes
++/// ceil(size/64) bitmap words in BitsetSpan's layout (the extra bitset word of a size
++/// that is a multiple of 64 stays zero from the fill). The padded copy must be 64-byte
++/// aligned (analyze_into aligns it inside the slot; the heap path of analyze_legacy
++/// usually is not and keeps the sentinel scan), the bitset is word_type aligned, and
++/// the code words end before the bitset, so the service's rules hold. An empty code
++/// (no bitmap word) needs no call.
++void analyze_jumpdests_service(BitsetSpan map, uint8_t* padded, size_t code_size) noexcept
++{
++    if (code_size == 0)
++        return;
++    if (((reinterpret_cast<uintptr_t>(map.m_array) & 7) | (reinterpret_cast<uintptr_t>(padded) & 63)) != 0)
++        [[unlikely]]
++    {
++        analyze_jumpdests_sentinel(map, padded, code_size);
++        return;
++    }
++    stwo::jumpdest_bitmap(map.m_array, padded, (code_size + 7) & ~size_t{7});
++}
++#endif
++
+ #if defined(ZEG_JUMPDEST_PRECOMPILE)
+ void analyze_jumpdests(BitsetSpan map, bytes_view code) noexcept
+ {
+@@ -150,6 +180,8 @@ CodeAnalysis analyze_legacy(bytes_view code)
+     // Contract bytecode itself points straight into the private input buffer at
+     // whatever offset the witness put it, so its alignment is not guaranteed.
+     analyze_jumpdests(jumpdest_bitset, bytes_view{storage.get(), code.size()});
++#elif defined(STWO_JUMPDEST_SERVICE)
++    analyze_jumpdests_service(jumpdest_bitset, storage.get(), code.size());
+ #elif defined(__riscv)
+     analyze_jumpdests_sentinel(jumpdest_bitset, storage.get(), code.size());
+ #else
+@@ -174,6 +206,17 @@ CodeAnalysis analyze_into_impl(bytes_view code, uint8_t* buffer, size_t capacity
+     const auto bitset_words = (code.size() + (BitsetSpan::WORD_BITS)) / BitsetSpan::WORD_BITS;
+     const auto total_size = aligned_code_size + bitset_words * sizeof(BitsetSpan::word_type);
+ 
++#if defined(STWO_JUMPDEST_SERVICE)
++    // The jumpdest service needs the padded code 64-byte aligned; the slot reserves
++    // 56 bytes for this (ziskethone evmc2_evmone.cpp, patch 0029).
++    {
++        const auto skip = (64 - (reinterpret_cast<uintptr_t>(buffer) & 63)) & 63;
++        if (skip > capacity)
++            __builtin_trap();
++        buffer += skip;
++        capacity -= skip;
++    }
++#endif
+     if (total_size > capacity)
+         __builtin_trap();  // can't happen: slots are sized to the fork's max analysis
+ 
+@@ -186,6 +229,8 @@ CodeAnalysis analyze_into_impl(bytes_view code, uint8_t* buffer, size_t capacity
+     const BitsetSpan jumpdest_bitset{bitset_storage};
+ #if defined(ZEG_JUMPDEST_PRECOMPILE)
+     analyze_jumpdests(jumpdest_bitset, bytes_view{storage, code.size()});
++#elif defined(STWO_JUMPDEST_SERVICE)
++    analyze_jumpdests_service(jumpdest_bitset, storage, code.size());
+ #elif defined(__riscv)
+     analyze_jumpdests_sentinel(jumpdest_bitset, storage, code.size());
+ #else

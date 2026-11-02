@@ -10,7 +10,9 @@
   "dependencies": {
     "stwo_backend_contracts": "../../backend",
     "stwo_cuda_backend": "../../backends/cuda",
-    "stwo_riscv_frontend": "../../frontends/riscv"
+    "stwo_riscv_frontend": "../../frontends/riscv",
+    "stwo_core": "../../core",
+    "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [],
   "api_surface": [
@@ -20,7 +22,8 @@
     "execution_blocker",
     "frontend",
     "production_ready",
-    "requireExecution"
+    "requireExecution",
+    "rv64"
   ],
   "api_contract": {
     "signature_tests": [

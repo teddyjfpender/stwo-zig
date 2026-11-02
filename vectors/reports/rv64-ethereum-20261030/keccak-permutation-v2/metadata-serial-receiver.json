@@ -1,0 +1,12 @@
+{
+  "command": [
+    "zig-out/bin/rv64-keccak-fixture",
+    "verify",
+    "/tmp/stwo-rv64-keccak-metadata-serial",
+    "5",
+    "1"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 20730958,
+  "fresh_process": true
+}

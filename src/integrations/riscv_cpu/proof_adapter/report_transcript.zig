@@ -34,8 +34,10 @@ test "report transcript admits one canonical suite and rejects ambiguous fields"
     try std.testing.expectError(error.InvalidTranscriptSuite, decode("ab" ** 32, modern, true));
     try std.testing.expectError(error.InvalidTranscriptSuite, decode(null, modern, false));
     try std.testing.expectError(error.InvalidTranscriptSuite, decode("ab" ** 32, null, true));
-    var wrong = modern; wrong.version = 1;
+    var wrong = modern;
+    wrong.version = 1;
     try std.testing.expectError(error.InvalidTranscriptSuite, decode(null, wrong, true));
-    wrong = modern; wrong.digest = "AB" ** 32;
+    wrong = modern;
+    wrong.digest = "AB" ** 32;
     try std.testing.expectError(error.InvalidTranscriptStateDigest, decode(null, wrong, true));
 }

@@ -1,0 +1,17 @@
+{
+  "qualification": "additive numerical GKR ownership; not full production or GPU qualification",
+  "base": "eddd33db85dbd12c883eab88632a8994a3bcaffa",
+  "tests": {
+    "ReleaseSafe": 30,
+    "ReleaseFast": 30,
+    "q_prototype_fast": 22,
+    "q_circuit_fast": 9
+  },
+  "real_q_proof_sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+  "real_q_fixture_byte_exact": true,
+  "fresh_terminal_binding": true,
+  "resource_metric": "requested allocator-live bytes; includes caller N/D, tree, Eq, oracles, proof/artifact; excludes production MAIN, binding witness, PCS, recursion, allocator overhead and RSS",
+  "production_admission": "No resource estimate lowered; hard allocator remains authoritative. Old136B/fact model is not an upper bound for old implementation.100B/fact is dominant single multiplicity tree/working-plane model only, not total bound.",
+  "speedup_claim": null,
+  "shared_host": true
+}

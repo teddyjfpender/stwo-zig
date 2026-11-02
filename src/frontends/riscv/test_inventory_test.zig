@@ -15,7 +15,7 @@ const std = @import("std");
 
 /// The inventory's own text, embedded so the membership check needs no working
 /// directory even though the tree walk does.
-const INVENTORY = @embedFile("test_inventory.zig");
+const INVENTORY = @embedFile("test_inventory.zig") ++ @embedFile("rv64_test_inventory.zig");
 
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{

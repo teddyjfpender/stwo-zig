@@ -729,3 +729,29 @@ test "prover pcs: shared-point barycentric dots use the scoped worker pool" {
     defer binding.deinit();
     try expectSharedPointsMatchReference(std.testing.allocator);
 }
+
+test "sampled primary scheduling counts compact coefficients instead of released LDE values" {
+    const allocator = std.testing.allocator;
+    const Column = @import("stwo_prover_api").ColumnEvaluation;
+    const Poly = prover_circle.CircleCoefficients;
+    const Tree = struct { columns: []const Column, coefficients: ?[]const Poly };
+    const values = try allocator.alloc(M31, 1 << 12);
+    defer allocator.free(values);
+    @memset(values, M31.one());
+    const fixed_poly = [_]Poly{try Poly.initBorrowed(values[0..32])};
+    const main_poly = [_]Poly{try Poly.initBorrowed(values)};
+    const compact = [_]Column{.{ .log_size = 12, .values = &.{} }};
+    const fixed = [_]Column{.{ .log_size = 5, .values = values[0..32] }};
+    const trees = [_]Tree{
+        .{ .columns = &fixed, .coefficients = &fixed_poly },
+        .{ .columns = &compact, .coefficients = &main_poly },
+    };
+    var sample = [_]CirclePointQM31{circle.SECURE_FIELD_CIRCLE_GEN.mul(37)};
+    var fixed_points = [_][]CirclePointQM31{&sample};
+    var main_points = [_][]CirclePointQM31{&sample};
+    var points = [_][][]CirclePointQM31{ &fixed_points, &main_points };
+    try std.testing.expectEqual(@as(usize, 0), owner.testing.largestTreeIndexForStorage(&trees, &points, false));
+    try std.testing.expectEqual(@as(usize, 1), owner.testing.largestTreeIndexForStorage(&trees, &points, true));
+    main_points[0] = &.{}; // unsampled coefficients must not steal the pool
+    try std.testing.expectEqual(@as(usize, 0), owner.testing.largestTreeIndexForStorage(&trees, &points, true));
+}

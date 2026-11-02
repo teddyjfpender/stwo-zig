@@ -1,0 +1,28 @@
+{
+  "schema": "keth-rpc-observation-v1",
+  "status": "observed",
+  "endpoint": "https://mainnet.optimism.io",
+  "requested_chain_id": 10,
+  "requested_block": "0x977b291",
+  "started_at": "2026-10-29T13:06:34.815185+00:00",
+  "scope": "RPC observation; not an execution witness or consensus proof",
+  "files": {
+    "chain.json": "65e74c545612617124e82d067f3e5c6060d2eac7137e77df8ac4da5c459b0261",
+    "block.json": "a9b9d0cf52c59b7862695f8c5d53b0761b2b37f3846783c49a5eb2793d6dccda",
+    "parent.json": "1180901b6c019f8dfaf403fcea0640ed6d874d7b8836ab508d8d85d50c99b4da"
+  },
+  "block_number": 158839441,
+  "block_hash": "0x76efc10040c7097e4ae949b7fc2e829bf7e3b7e227a5d0441eefa198aa6c5e42",
+  "gas_used": 13920542,
+  "transactions": 35,
+  "transaction_types": {
+    "0x0": 1,
+    "0x2": 33,
+    "0x7e": 1
+  },
+  "deposit_transactions": 1,
+  "first_transaction_is_deposit": true,
+  "cairo_proof_verified": false,
+  "op_stack_execution_proved": false,
+  "finished_at": "2026-10-29T13:06:36.088107+00:00"
+}

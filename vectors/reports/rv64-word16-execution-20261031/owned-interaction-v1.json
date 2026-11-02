@@ -1,0 +1,31 @@
+{
+  "scope": "Adopt all17 existing INTER allocations; no value copies, no AIR/transcript/geometry change",
+  "base_commit": "b4adc692a218e69e24e83829b189993bc12bd3a7",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/interaction_ownership.zig": "ca170f5a69a5dc839cca729ec04fd35fc81cba62ac417891a3fce2c845dd84f3",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "54ba21ce7b724eba9e2aa65715679f4954645574d236d648f17aab985268359a",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "6fbefd440ec247f8ca4765db7d069ac7c2791d07c941c7f19fc69581600de7e4",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "168bb878ba97a1143c7be19f8f040cd01186734c38a1a049c7d809ce6e1c354e"
+  },
+  "qualification": {
+    "prepared_safe_runtime10": "PASS",
+    "prepared_fast_runtime10": "PASS",
+    "coordinator_safe_runtime20": "PASS",
+    "coordinator_fast_runtime20": "PASS"
+  },
+  "proof_parity": "Whole proof bytes and all33 physical claims equal fully borrowed, ownedMAIN+borrowedINTER, ownedboth8, ownedboth64. Independently rebuilt receiver passes.",
+  "ownership_tests": "All17 original INTER buffers/column pointers; both pre-transfer allocation failures preserve owners/claims; repeated transfer and pre-generation transfer reject.",
+  "operational_options": {
+    "api": "Execution.provePreparedWithOptions(a,setup,admission,owned_source,recorder,options)",
+    "defaults": {
+      "main_batch_columns": 8,
+      "interaction_batch_columns": 8
+    },
+    "admitted_caps": "1..256; not transcript inputs"
+  },
+  "logs": [
+    "/tmp/rv64-owned-inter-execution-safe.log",
+    "/tmp/rv64-owned-inter-prepared-fast.log",
+    "/tmp/rv64-owned-inter-coordinator-fast.log"
+  ]
+}

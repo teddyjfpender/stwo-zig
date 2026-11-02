@@ -1,0 +1,81 @@
+{
+  "schema": "rv64-word16-parallel-interaction-v1",
+  "status": "Safe/Fast functional qualification; no performance measurement",
+  "authority": "same4096-row denominator/batch-inverse/local contribution filler shared by explicit serial and bounded parallel paths",
+  "algorithm": [
+    "phase1 joined independent logical chunks write disjoint physical positions and five local prefixes",
+    "serial80-byte-per-chunk summary scan derives prefix-before minus final claim",
+    "phase2 joined contiguous physical ranges add constants to20 prefix coordinate columns",
+    "publish interaction owner only after both waves finish successfully"
+  ],
+  "resource": {
+    "chunk_rows": 4096,
+    "scratch_per_worker_raw_bytes": 1179648,
+    "scratch_per_worker_cached_bytes": 1048576,
+    "scratch16_workers_raw_bytes": 18874368,
+    "scratch16_workers_cached_bytes": 16777216,
+    "summaries_at_2pow22_bytes": 81920,
+    "worker_count": "min(explicit pool workers,logical chunks); no new pool or nested lease",
+    "stack_guard_optimized_bytes": 262144,
+    "stack_guard_debug_bytes": 1048576
+  },
+  "gates": {
+    "ReleaseSafe": 4,
+    "ReleaseFast": 4,
+    "actual_testserver_runtime_count": 4,
+    "native_active_rows": 16388,
+    "cpu_domain_rows": 65536,
+    "workers": [
+      1,
+      4,
+      16
+    ],
+    "matrix_parity": "all56 M31 columns and allfive QM31 claims exact against explicit serial uncached authority, raw and cached paths",
+    "proof_parity": "complete raw-PC and indexed-PC q70 proof bytes exact at1/4/16workers; expected receivers pass",
+    "negative": [
+      "strict poles at logical0,4096,8192,lastpadding row in raw/cached paths",
+      "helper submission failure before0/after1 successful submission in both waves drains and preserves source",
+      "every provisional allocation failure unwinds; source retry succeeds",
+      "invalid zero cached padding inverse",
+      "insufficient actual worker stack even1worker",
+      "already published interaction phase rejected"
+    ]
+  },
+  "scope": [
+    "no protocol/schema/column/claim change",
+    "raw and indexed cached-ROM wrappers select existing scoped pool; explicit generate/generateWithRomCache remain serial references",
+    "dictionary and source are read only; original CPUmain and native metadata are never mutated",
+    "no Ethereum whole-job performance or memory improvement claimed"
+  ],
+  "logs": [
+    "/tmp/rv64-word16-parallel-interaction-safe-final.log",
+    "/tmp/rv64-word16-parallel-interaction-fast-final.log"
+  ],
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/interaction.zig",
+      "sha256": "34f16fae13cf87e952ae6299695ba4c411d250543f82b2a9bed749ec885d0eb3"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/trace.zig",
+      "sha256": "b509036c732579bb55cd0775babe6d0a44b4021be3651530491230d0ecfb8ab5"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/trace.zig",
+      "sha256": "0880c3a4abeef824408d0ef7b75736285f1f1ad60cee6308e8165f3b7173f3e1"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_parallel_interaction_test.zig",
+      "sha256": "bbd0e4d84f7f80355c9f6628a4a9472cc04157c0ca4022334dfc75ee960927f0"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_word16_parallel_interaction_test_root.zig",
+      "sha256": "f1952c0dde4f4c250176bd1da52bc5660dd128879583d6dbbeefc7cd81a23898"
+    }
+  ],
+  "selective_metadata_hunks": [
+    "air/mod.zig word16_cpu.interaction export only",
+    "riscv_cpu.zig word16-parallel-interaction root minimum4 only",
+    "catalog.zig corresponding target only"
+  ]
+}

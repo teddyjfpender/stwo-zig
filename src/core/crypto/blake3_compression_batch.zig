@@ -7,7 +7,9 @@ pub const LANES = 4;
 const V = @Vector(LANES, u32);
 const Ops = struct {
     pub const Word = V;
-    pub fn add(_: *Ops, a: V, b: V) !V { return a +% b; }
+    pub fn add(_: *Ops, a: V, b: V) !V {
+        return a +% b;
+    }
     pub fn xorRotate(_: *Ops, a: V, b: V, comptime rotation: u5) !V {
         const word = a ^ b;
         const left: u5 = @intCast(32 - @as(u6, rotation));

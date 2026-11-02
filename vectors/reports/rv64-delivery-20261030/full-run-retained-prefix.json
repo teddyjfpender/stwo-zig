@@ -1,0 +1,37 @@
+{
+  "schema": "rv64-retained-ethereum-prefix-v1",
+  "whole_block_verified": false,
+  "status": "Frozen complete-run attempt rejected at batch47 ConstraintsNotSatisfied; durable batches0..46 accepted by independent fresh-process receiver",
+  "accepted_prefix": {
+    "status": "authenticated_execution_prefix_verified",
+    "full_block_proof_verified": false,
+    "batches": 47,
+    "instructions": 197132241,
+    "calls": [
+      24335,
+      24960,
+      19968
+    ],
+    "final_root": [
+      1418383919,
+      1459752994,
+      51639851,
+      1366418887,
+      1462825872,
+      474225768,
+      463714971,
+      1076645781,
+      416203868
+    ],
+    "setup_ns": 18036631079,
+    "verify_ns": 1313420379,
+    "proof_bytes": 140944032
+  },
+  "failed_attempt_wall_s": 2447.67,
+  "failed_attempt_peak_rss_bytes": 40847081472,
+  "timing_scope": "Includes concurrent engineering and failed next batch, not isolated successful full-block benchmark",
+  "successful_batch_proving_s": 2229.539865918,
+  "successful_batch_total_after_native_s": 2381.549900254,
+  "proof_bytes": 140944032,
+  "next": "Independently verify accepted prefix, replay to its exact RAM/PC/register/counter state, isolate failed batch, fix constraints and rerun remainder"
+}

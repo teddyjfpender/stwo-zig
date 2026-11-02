@@ -1,0 +1,9 @@
+{
+  "schema": "keth-prover-rss-guard-v1",
+  "rss_limit_bytes": 8000000000,
+  "sample_interval_seconds": 0.002,
+  "peak_sampled_rss_bytes": 8001433600,
+  "terminated": true,
+  "samples": 10382,
+  "virtual_address_limit_bytes": 12884901888
+}

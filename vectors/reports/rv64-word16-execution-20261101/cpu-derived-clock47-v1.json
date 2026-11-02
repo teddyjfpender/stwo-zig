@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "scope": "Exact affine elimination of three register predecessor-clock MAIN copies and their equality residuals; independently authenticated closed REG remains mandatory",
+  "source_base": "7fc525530812f98b24aeb4ca83028fdf9fedf478",
+  "feature_domain": "full64.v3",
+  "widths": {
+    "fixed": 3,
+    "main": 47,
+    "interaction": 40,
+    "residuals": 52,
+    "max_degree": 3,
+    "composition_split": 1
+  },
+  "identity": "previous_clock=4*row+slot-gap16-65536*gap8",
+  "tests": {
+    "ReleaseSafe": [
+      "execution19",
+      "source7",
+      "execution-circuit",
+      "coordinator25"
+    ],
+    "ReleaseFast": [
+      "execution19",
+      "source7",
+      "execution-circuit",
+      "coordinator25",
+      "combined-services21"
+    ],
+    "actual_q70_field_wrapped_clock_physical_proof_verified": true,
+    "same_forged_proof_pristine_closed_receiver_rejects": "UnclosedExecutionRelations",
+    "only_unclosed_debt_verified": "REG predecessor; all adjusted range provider claims close",
+    "all97_source_conformance_errors_identical_to_baseline": true
+  },
+  "tools_sha256": {
+    "csp": "7b577b7287158954ed6405e723e4af1d46e6df04d0891d0ba44f7d5180dfc2d7",
+    "sail": "055934169db4ee3b9de412c6463243efaea018886e997d423c48b0386d3817c9",
+    "ethereum": "ceba3d31b9a8ec3eb7551167d3c0fb8b5716ddbc6d06dc8553e8b5bf1bc8f3bc"
+  },
+  "independent": {
+    "ecdsa": {
+      "fresh": {
+        "pcs_config": {
+          "pow_bits": 26,
+          "fri_config": {
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70,
+            "fold_step": 1
+          },
+          "lifting_log_size": null
+        },
+        "workers": 8,
+        "build_mode": "ReleaseFast",
+        "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+        "physical_proof_verified": true,
+        "steps": 1625938,
+        "proof_bytes": 753000,
+        "receiver_ns": 187374000
+      },
+      "cpu_statement_exact": true,
+      "complete_ram_values_clocks_permissions_exact": true,
+      "semantic_control": "/tmp/rv64-cpu-zero50-ecdsa",
+      "proof_sha256": "5884917a97fc94352eb4136b9290dc6dae60ec857d577d87843d1d6453e7f3b7"
+    },
+    "sail": {
+      "fresh": {
+        "pcs_config": {
+          "pow_bits": 26,
+          "fri_config": {
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70,
+            "fold_step": 1
+          },
+          "lifting_log_size": null
+        },
+        "workers": 8,
+        "build_mode": "ReleaseFast",
+        "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+        "physical_proof_verified": true,
+        "steps": 1032240,
+        "proof_bytes": 1020784,
+        "receiver_ns": 381931458
+      },
+      "cpu_statement_exact": true,
+      "complete_ram_values_clocks_permissions_exact": true,
+      "semantic_control": "/tmp/rv64-cpu-zero50-sail",
+      "proof_sha256": "55c7dfa8d918497f58eeece5b0797976944d279d2bdd2502070b2fd9718cc7bf"
+    }
+  },
+  "prefix": {
+    "artifacts": "/tmp/rv64-cpu-clock47-prefix4-v1",
+    "fresh": {
+      "core_schema": 4,
+      "accepted": true,
+      "completed_ethereum_block": false,
+      "output": null,
+      "cpu_proofs": 4,
+      "truth_proofs": 3,
+      "load_and_setup_ns": 2487968583,
+      "verify_ns": 283128500
+    },
+    "all4_requests_and_complete_ram_exact": true,
+    "semantic_control": "/tmp/rv64-cpu-zero50-prefix4-v1",
+    "proof_bytes": 6666096,
+    "engineering_observation_only": {
+      "wall_seconds": 27.43,
+      "user_seconds": 189.37,
+      "system_seconds": 11.62,
+      "max_rss_bytes": 23735451648,
+      "darwin_peak_physical_footprint_bytes": 17292135960,
+      "concurrent_engineering": true,
+      "speedup_claim": false
+    }
+  },
+  "whole_block_geometry_model": {
+    "reference": "/tmp/rv64-ethereum-full-current-foundation-v1/roster.json",
+    "padded_cpu_rows": 104857600,
+    "main_cells_removed": 314572800,
+    "summed_uncommitted_main_bytes_removed": 1258291200,
+    "full_new_layout_block_run_pending": true,
+    "peak_memory_improvement_not_inferred": true
+  },
+  "unchanged": [
+    "full64 PC and ISA",
+    "ECALL profile tags and packet layouts",
+    "physical REG tuples and unit weights",
+    "local register boundary authority",
+    "gap16 and gap8 range lookups",
+    "native RAM tuple and manifest protocol",
+    "24-bit local clock cap"
+  ],
+  "limits": [
+    "Deliberate transcript change; old proof bytes are not v3 parity fixtures",
+    "No whole-protocol128-bit security claim",
+    "Word16 recursion and GPU qualification remain open"
+  ]
+}

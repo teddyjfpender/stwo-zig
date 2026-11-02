@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "scope": "real 16777212-step Ethereum execution prefix; four CPU and three K/ADD/DOUBLE truth STARKs, complete global RAM; NOT a completed block, recursion or GPU qualification",
+  "core_schema": 3,
+  "block": 24628607,
+  "driver_binary_sha256": "70a958e1665a5f172a13a51dda85893ca3db7d918d56c1b735a69592cbf88d4b",
+  "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "report": {
+    "completed_ethereum_block": false,
+    "total_steps": 16777212,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "memory_words": 750521,
+    "output": null,
+    "capture_ns": 2135184500,
+    "setup_ns": 1614760750,
+    "prove_ns": 35854436416,
+    "same_process_verify_ns": 288760917,
+    "retained_main": {
+      "live_bytes": 0,
+      "peak_reserved_bytes": 7719927808,
+      "total_bytes": 7719927808,
+      "limit_bytes": 137438953472
+    }
+  },
+  "fresh_receiver": {
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "load_and_setup_ns": 2121994791,
+    "verify_ns": 259941792
+  },
+  "exact_resident_mapped_profile_parity": true,
+  "files": {
+    "bundle.json": {
+      "bytes": 117164,
+      "sha256": "44867453f40595674c9641ec73f24e7a3a34a5ac0321737c0d812de3601d4f32"
+    },
+    "cells.bin": {
+      "bytes": 34523982,
+      "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d"
+    },
+    "cpu-0.bin": {
+      "bytes": 846192,
+      "sha256": "1fa6ed81dfffae4318835cf4ec062fb8a551ed114273b502553d71e122a73b2c"
+    },
+    "cpu-1.bin": {
+      "bytes": 841840,
+      "sha256": "8ec5718748074387d7e25cdc30dba2761e8bbad6ba5b7b0f8e4a443bccff7683"
+    },
+    "cpu-2.bin": {
+      "bytes": 848128,
+      "sha256": "3ce3ba53d18a856205f8664a022d12844aae3c915d546c67d55b7f11fd85fbba"
+    },
+    "cpu-3.bin": {
+      "bytes": 1482224,
+      "sha256": "be5b524d428c728e9e10626a52c899e704069c8c0d52b9ba058f19c123a836a7"
+    },
+    "truth-0.bin": {
+      "bytes": 1617128,
+      "sha256": "91e6c47990d69dec576200eef4cecb33cecdca1a38a7c12936021cb73d43deba"
+    },
+    "truth-1.bin": {
+      "bytes": 521288,
+      "sha256": "fc83714153a019074dc1b7d5f685f469b1cc95091da9b47da36e93b77d845165"
+    },
+    "truth-2.bin": {
+      "bytes": 498752,
+      "sha256": "725fb64d646085268cbec4c52542fcb3d86e94ccf74b15f99b99c1246fa2cdbd"
+    }
+  },
+  "functional_run_observations": {
+    "wall_seconds": 40.27,
+    "user_seconds": 193.65,
+    "system_seconds": 12.13,
+    "maximum_resident_bytes": 22264840192,
+    "darwin_peak_memory_footprint_bytes": 15478244440,
+    "timing_qualification": "concurrent engineering run, not a controlled benchmark or speedup claim"
+  },
+  "full_block_advice_only": {
+    "steps": 104253913,
+    "cpu_shards": 25,
+    "truth_shards": 5,
+    "memory_words": 1347207,
+    "wall_seconds": 10.16,
+    "maximum_resident_bytes": 21585068032,
+    "proved": false
+  },
+  "tests": {
+    "receiver_fast": true,
+    "receiver_safe": true,
+    "combined_profiled_fast": 11,
+    "profile_usage_safe": 2
+  },
+  "remaining": [
+    "full-block proof and fresh completed receiver",
+    "new schema4 integration",
+    "controlled timings",
+    "new-lane recursive root",
+    "GPU",
+    "whole-protocol security analysis"
+  ],
+  "retained_artifacts": "/tmp/rv64-ethereum-word16-prefix4-mapped-profile-v1"
+}

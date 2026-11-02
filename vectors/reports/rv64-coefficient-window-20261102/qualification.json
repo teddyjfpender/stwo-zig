@@ -1,0 +1,871 @@
+{
+  "runs": [
+    {
+      "index": 0,
+      "variant": "full_scratch_queue",
+      "binary_sha256": "8291c3f0459bf6f418c7b42f5e12cf8950d9c0fb0f2a124501696eeffbe92f7f",
+      "report": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 946573833,
+        "packet_import_ns": 501144167,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 1290535209,
+        "prove_ns": 12873968125,
+        "same_process_verify_ns": 410048334,
+        "workers": [
+          {
+            "source_ns": 321753416,
+            "seal_native_and_gkr_ns": 4233876084,
+            "main_commit_ns": 1951134542,
+            "gkr_ns": 2222826375,
+            "inputs_ns": 178423250,
+            "numerical_ns": 1726102042,
+            "binding_ns": 297836833,
+            "metadata_retire_ns": 3398083,
+            "spill_ns": 42,
+            "restore_ns": 41,
+            "native_complete_ns": 8237534500,
+            "stage1_ns": 4559027750,
+            "stage2_ns": 8237534541,
+            "actual_main_merkle_bytes": 67108832,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 15544349875,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.85439,
+        "fri_quotient_build_and_commit": 2.36813,
+        "trace_decommit": 1.758189
+      },
+      "artifact_sha256": {
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 1710614083,
+        "verify_ns": 407288125,
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 243790440,
+          "peak_bytes": 2428528968,
+          "keys": 1,
+          "hits": 0,
+          "seals": 1,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 176671872,
+            "native_backing_bytes": 176659456,
+            "groups": 96,
+            "hits": 37,
+            "duplicate_native_bytes_released": 74711296,
+            "observed_individual_owners": 133,
+            "observed_backing_owners": 0,
+            "observed_spans": 133,
+            "owner_leases": 2
+          }
+        },
+        "source_validations": 1,
+        "source_coefficient_cells": 62842688,
+        "source_shape": {
+          "native_proofs": 1,
+          "max_trace_log": 22,
+          "max_columns": 1098,
+          "max_constraints": 996,
+          "max_samples_per_column": 2,
+          "max_air_degree": 3,
+          "max_local_instances": 18,
+          "max_tuple_arity": 30,
+          "max_gkr_variables": 26
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 3754566493896384,
+          "rational_identity": 107340096,
+          "local_rational_identity": 102621504,
+          "global_rational_identity": 4718592,
+          "poles": 107340096
+        },
+        "receiver_budget": {
+          "live_bytes": 1142138391,
+          "peak_live_bytes": 3326877119,
+          "host_live_bytes": 1142138391,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 3326877119,
+          "peak_external_bytes": 0,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 16777216
+      }
+    },
+    {
+      "index": 1,
+      "variant": "coefficient_windows",
+      "binary_sha256": "385626fec1163168db52d8dadcca1b5aab61969f27f8363602e5ef187ed2d139",
+      "report": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 925631375,
+        "packet_import_ns": 509529500,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 1271311458,
+        "prove_ns": 11806224917,
+        "same_process_verify_ns": 419651666,
+        "workers": [
+          {
+            "source_ns": 318927042,
+            "seal_native_and_gkr_ns": 4183211333,
+            "main_commit_ns": 1941825625,
+            "gkr_ns": 2177423083,
+            "inputs_ns": 177812000,
+            "numerical_ns": 1684196958,
+            "binding_ns": 294944917,
+            "metadata_retire_ns": 3486542,
+            "spill_ns": 42,
+            "restore_ns": 41,
+            "native_complete_ns": 7219416792,
+            "stage1_ns": 4505624959,
+            "stage2_ns": 7219416833,
+            "actual_main_merkle_bytes": 67108832,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 14449658667,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.850735,
+        "fri_quotient_build_and_commit": 2.403141,
+        "trace_decommit": 0.716775
+      },
+      "artifact_sha256": {
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 1703602500,
+        "verify_ns": 411521250,
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 243790440,
+          "peak_bytes": 2428528968,
+          "keys": 1,
+          "hits": 0,
+          "seals": 1,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 176671872,
+            "native_backing_bytes": 176659456,
+            "groups": 96,
+            "hits": 37,
+            "duplicate_native_bytes_released": 74711296,
+            "observed_individual_owners": 133,
+            "observed_backing_owners": 0,
+            "observed_spans": 133,
+            "owner_leases": 2
+          }
+        },
+        "source_validations": 1,
+        "source_coefficient_cells": 62842688,
+        "source_shape": {
+          "native_proofs": 1,
+          "max_trace_log": 22,
+          "max_columns": 1098,
+          "max_constraints": 996,
+          "max_samples_per_column": 2,
+          "max_air_degree": 3,
+          "max_local_instances": 18,
+          "max_tuple_arity": 30,
+          "max_gkr_variables": 26
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 3754566493896384,
+          "rational_identity": 107340096,
+          "local_rational_identity": 102621504,
+          "global_rational_identity": 4718592,
+          "poles": 107340096
+        },
+        "receiver_budget": {
+          "live_bytes": 1142138391,
+          "peak_live_bytes": 3326877119,
+          "host_live_bytes": 1142138391,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 3326877119,
+          "peak_external_bytes": 0,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 16777216
+      }
+    },
+    {
+      "index": 2,
+      "variant": "coefficient_windows",
+      "binary_sha256": "385626fec1163168db52d8dadcca1b5aab61969f27f8363602e5ef187ed2d139",
+      "report": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 942165375,
+        "packet_import_ns": 521887209,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 1288732292,
+        "prove_ns": 12035710667,
+        "same_process_verify_ns": 419038916,
+        "workers": [
+          {
+            "source_ns": 327797375,
+            "seal_native_and_gkr_ns": 4252992375,
+            "main_commit_ns": 1978067875,
+            "gkr_ns": 2210871209,
+            "inputs_ns": 174530250,
+            "numerical_ns": 1716803791,
+            "binding_ns": 298175084,
+            "metadata_retire_ns": 3523792,
+            "spill_ns": 42,
+            "restore_ns": 0,
+            "native_complete_ns": 7369638250,
+            "stage1_ns": 4584313625,
+            "stage2_ns": 7369638250,
+            "actual_main_merkle_bytes": 67108832,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 14712733750,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.888129,
+        "fri_quotient_build_and_commit": 2.446545,
+        "trace_decommit": 0.722348
+      },
+      "artifact_sha256": {
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 1743648833,
+        "verify_ns": 412213833,
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 243790440,
+          "peak_bytes": 2428528968,
+          "keys": 1,
+          "hits": 0,
+          "seals": 1,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 176671872,
+            "native_backing_bytes": 176659456,
+            "groups": 96,
+            "hits": 37,
+            "duplicate_native_bytes_released": 74711296,
+            "observed_individual_owners": 133,
+            "observed_backing_owners": 0,
+            "observed_spans": 133,
+            "owner_leases": 2
+          }
+        },
+        "source_validations": 1,
+        "source_coefficient_cells": 62842688,
+        "source_shape": {
+          "native_proofs": 1,
+          "max_trace_log": 22,
+          "max_columns": 1098,
+          "max_constraints": 996,
+          "max_samples_per_column": 2,
+          "max_air_degree": 3,
+          "max_local_instances": 18,
+          "max_tuple_arity": 30,
+          "max_gkr_variables": 26
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 3754566493896384,
+          "rational_identity": 107340096,
+          "local_rational_identity": 102621504,
+          "global_rational_identity": 4718592,
+          "poles": 107340096
+        },
+        "receiver_budget": {
+          "live_bytes": 1142138391,
+          "peak_live_bytes": 3326877119,
+          "host_live_bytes": 1142138391,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 3326877119,
+          "peak_external_bytes": 0,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 16777216
+      }
+    },
+    {
+      "index": 3,
+      "variant": "full_scratch_queue",
+      "binary_sha256": "8291c3f0459bf6f418c7b42f5e12cf8950d9c0fb0f2a124501696eeffbe92f7f",
+      "report": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 945006458,
+        "packet_import_ns": 521066417,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 1305395125,
+        "prove_ns": 13516433750,
+        "same_process_verify_ns": 422514208,
+        "workers": [
+          {
+            "source_ns": 333908708,
+            "seal_native_and_gkr_ns": 4422386375,
+            "main_commit_ns": 2048267667,
+            "gkr_ns": 2310404542,
+            "inputs_ns": 181123625,
+            "numerical_ns": 1805303667,
+            "binding_ns": 302166750,
+            "metadata_retire_ns": 3762375,
+            "spill_ns": 42,
+            "restore_ns": 42,
+            "native_complete_ns": 8675202083,
+            "stage1_ns": 4760057542,
+            "stage2_ns": 8675202125,
+            "actual_main_merkle_bytes": 67108832,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 16218672916,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.957484,
+        "fri_quotient_build_and_commit": 2.47309,
+        "trace_decommit": 1.891014
+      },
+      "artifact_sha256": {
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 1766601291,
+        "verify_ns": 420305375,
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 243790440,
+          "peak_bytes": 2428528968,
+          "keys": 1,
+          "hits": 0,
+          "seals": 1,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 176671872,
+            "native_backing_bytes": 176659456,
+            "groups": 96,
+            "hits": 37,
+            "duplicate_native_bytes_released": 74711296,
+            "observed_individual_owners": 133,
+            "observed_backing_owners": 0,
+            "observed_spans": 133,
+            "owner_leases": 2
+          }
+        },
+        "source_validations": 1,
+        "source_coefficient_cells": 62842688,
+        "source_shape": {
+          "native_proofs": 1,
+          "max_trace_log": 22,
+          "max_columns": 1098,
+          "max_constraints": 996,
+          "max_samples_per_column": 2,
+          "max_air_degree": 3,
+          "max_local_instances": 18,
+          "max_tuple_arity": 30,
+          "max_gkr_variables": 26
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 3754566493896384,
+          "rational_identity": 107340096,
+          "local_rational_identity": 102621504,
+          "global_rational_identity": 4718592,
+          "poles": 107340096
+        },
+        "receiver_budget": {
+          "live_bytes": 1142138391,
+          "peak_live_bytes": 3326877119,
+          "host_live_bytes": 1142138391,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 3326877119,
+          "peak_external_bytes": 0,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 16777216
+      }
+    },
+    {
+      "index": 4,
+      "variant": "full_scratch_queue",
+      "binary_sha256": "8291c3f0459bf6f418c7b42f5e12cf8950d9c0fb0f2a124501696eeffbe92f7f",
+      "report": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 952994708,
+        "packet_import_ns": 526976541,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 1327179500,
+        "prove_ns": 13494845209,
+        "same_process_verify_ns": 419815000,
+        "workers": [
+          {
+            "source_ns": 326831750,
+            "seal_native_and_gkr_ns": 4389101500,
+            "main_commit_ns": 2076303750,
+            "gkr_ns": 2249396417,
+            "inputs_ns": 180403250,
+            "numerical_ns": 1739431083,
+            "binding_ns": 306432375,
+            "metadata_retire_ns": 3812625,
+            "spill_ns": 41,
+            "restore_ns": 0,
+            "native_complete_ns": 8693708542,
+            "stage1_ns": 4719745958,
+            "stage2_ns": 8693708583,
+            "actual_main_merkle_bytes": 67108832,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 16222218500,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.943464,
+        "fri_quotient_build_and_commit": 2.490648,
+        "trace_decommit": 1.899428
+      },
+      "artifact_sha256": {
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 1760897542,
+        "verify_ns": 413550208,
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 243790440,
+          "peak_bytes": 2428528968,
+          "keys": 1,
+          "hits": 0,
+          "seals": 1,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 176671872,
+            "native_backing_bytes": 176659456,
+            "groups": 96,
+            "hits": 37,
+            "duplicate_native_bytes_released": 74711296,
+            "observed_individual_owners": 133,
+            "observed_backing_owners": 0,
+            "observed_spans": 133,
+            "owner_leases": 2
+          }
+        },
+        "source_validations": 1,
+        "source_coefficient_cells": 62842688,
+        "source_shape": {
+          "native_proofs": 1,
+          "max_trace_log": 22,
+          "max_columns": 1098,
+          "max_constraints": 996,
+          "max_samples_per_column": 2,
+          "max_air_degree": 3,
+          "max_local_instances": 18,
+          "max_tuple_arity": 30,
+          "max_gkr_variables": 26
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 3754566493896384,
+          "rational_identity": 107340096,
+          "local_rational_identity": 102621504,
+          "global_rational_identity": 4718592,
+          "poles": 107340096
+        },
+        "receiver_budget": {
+          "live_bytes": 1142138391,
+          "peak_live_bytes": 3326877119,
+          "host_live_bytes": 1142138391,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 3326877119,
+          "peak_external_bytes": 0,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 16777216
+      }
+    },
+    {
+      "index": 5,
+      "variant": "coefficient_windows",
+      "binary_sha256": "385626fec1163168db52d8dadcca1b5aab61969f27f8363602e5ef187ed2d139",
+      "report": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "completed_ethereum_block": false,
+        "total_steps": 4194303,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "output": null,
+        "resources": {
+          "gkr_bytes": 34359738368,
+          "global_bytes": 8589934592,
+          "retained_frontend_bytes": 17179869184,
+          "disk_bytes": 0,
+          "park_main": false,
+          "schedule": {
+            "lanes": 1,
+            "workers_per_lane": 16,
+            "lane_workers": [
+              16
+            ],
+            "memory_cap_bytes": 51539607552
+          }
+        },
+        "capture_ns": 971646250,
+        "packet_import_ns": 543302500,
+        "capture_selection": {
+          "max_inflight_packets": 1,
+          "max_worker_shards": 1,
+          "decoded_packet_heap_limit_bytes": null,
+          "max_reserved_decoded_packet_heap_bytes": 0,
+          "max_single_packet_decoded_heap_bytes": 0
+        },
+        "capture_cache_released_bytes": 1319763968,
+        "setup_ns": 1370064666,
+        "prove_ns": 12459394042,
+        "same_process_verify_ns": 427557625,
+        "workers": [
+          {
+            "source_ns": 330379291,
+            "seal_native_and_gkr_ns": 4405618000,
+            "main_commit_ns": 2063227250,
+            "gkr_ns": 2278322250,
+            "inputs_ns": 183578375,
+            "numerical_ns": 1764540583,
+            "binding_ns": 307416250,
+            "metadata_retire_ns": 3825709,
+            "spill_ns": 125,
+            "restore_ns": 0,
+            "native_complete_ns": 7637386625,
+            "stage1_ns": 4739823166,
+            "stage2_ns": 7637386667,
+            "actual_main_merkle_bytes": 67108832,
+            "stage1_completed": true,
+            "stage2_completed": true
+          }
+        ],
+        "total_before_report_ns": 15256548333,
+        "retained_main": null
+      },
+      "top_level_stages": {
+        "composition_evaluation": 1.971171,
+        "fri_quotient_build_and_commit": 2.50726,
+        "trace_decommit": 0.75711
+      },
+      "artifact_sha256": {
+        "cpu-0.bin": "2fe1d73c3a699c51ff328dc1144d90ed0581d33330fd1b75de7c808129f06625",
+        "stage-one.bin": "4647731df8df573125eb3a1c9a316e44024940358a3832a521ca3c4a69747c87",
+        "bundle.json": "a2364681401b6131f2d9ba6ea34a9e71abb070e261408684f3dbc54403a22fb8",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 1800511458,
+        "verify_ns": 413050209,
+        "fixed_setup": {
+          "limit_bytes": 4294967296,
+          "live_bytes": 243790440,
+          "peak_bytes": 2428528968,
+          "keys": 1,
+          "hits": 0,
+          "seals": 1,
+          "refused": false,
+          "native_coefficients": {
+            "limit_bytes": 4294967296,
+            "retained_bytes": 176671872,
+            "native_backing_bytes": 176659456,
+            "groups": 96,
+            "hits": 37,
+            "duplicate_native_bytes_released": 74711296,
+            "observed_individual_owners": 133,
+            "observed_backing_owners": 0,
+            "observed_spans": 133,
+            "owner_leases": 2
+          }
+        },
+        "source_validations": 1,
+        "source_coefficient_cells": 62842688,
+        "source_shape": {
+          "native_proofs": 1,
+          "max_trace_log": 22,
+          "max_columns": 1098,
+          "max_constraints": 996,
+          "max_samples_per_column": 2,
+          "max_air_degree": 3,
+          "max_local_instances": 18,
+          "max_tuple_arity": 30,
+          "max_gkr_variables": 26
+        },
+        "source_lookup_only_conditional_degrees": {
+          "tuple_collision": 3754566493896384,
+          "rational_identity": 107340096,
+          "local_rational_identity": 102621504,
+          "global_rational_identity": 4718592,
+          "poles": 107340096
+        },
+        "receiver_budget": {
+          "live_bytes": 1142138391,
+          "peak_live_bytes": 3326877119,
+          "host_live_bytes": 1142138391,
+          "external_live_bytes": 0,
+          "peak_host_bytes": 3326877119,
+          "peak_external_bytes": 0,
+          "limit": 34359738368,
+          "exceeded": false
+        },
+        "receiver_recycler_cache_cap_bytes": 4294967296,
+        "receiver_worker_stack_upper_bound_bytes": 16777216
+      }
+    }
+  ],
+  "medians": {
+    "full_scratch_queue": {
+      "prove_seconds": 13.494845209,
+      "quotient_seconds": 2.47309,
+      "opening_seconds": 1.891014
+    },
+    "coefficient_windows": {
+      "prove_seconds": 12.035710667,
+      "quotient_seconds": 2.446545,
+      "opening_seconds": 0.722348
+    }
+  },
+  "all_artifacts_identical": true,
+  "all_fresh_accepted": true,
+  "security_qualified": false,
+  "scope": "Same4.19M-step prefix beta2/q256/P0/fold4/16workers. Clean57fb907a8 baseline versus same source plus four coefficient-window patch files; identical parameters and workload. Shared-host observations; no GPU or whole-protocol128 certificate.",
+  "review": "Independent source review accepted zero-top duplication/global twiddle indexing/bounds/alias/order and same scratch authority; suggested highest-stage assertion added.",
+  "first_probe": {
+    "prove_seconds": 11.77163325,
+    "trace_decommit_seconds": 0.702402,
+    "all4_match_earlier_candidate": true,
+    "fresh_accepted": true
+  },
+  "scratch_example": {
+    "cpu_log": 22,
+    "blowup_log": 2,
+    "old_worker_bytes": 67108864,
+    "new_worker_bytes": 16777216,
+    "shared_scratch_target_bytes": 134217728,
+    "old_workers_at16": 2,
+    "new_workers_at16": 8
+  },
+  "source_change": "Four files: transforms, radix8, coefficient_opening and independent selective-opening tests. Same57fb907a8 base on both binaries; no parameter or transcript change."
+}

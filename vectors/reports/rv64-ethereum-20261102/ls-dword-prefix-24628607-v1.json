@@ -1,0 +1,70 @@
+{
+ "schema": "stwo.rv64.ls-dword-prefix-cells.v1",
+ "date": "2026-11-02",
+ "block": 24628607,
+ "scope": "4-packet prefix, 16,777,212 instructions, evmone v3 client (sha, arith, mem, umem, keccak, jumpdest, bn, bls)",
+ "layouts": {
+  "before": "historical CPU + LS32 (code 2f80736fe)",
+  "after": "historical CPU interaction + LS-D64 head/tail ladder (Ethereum v3 default; fused tail and U8 pairs opt-in)"
+ },
+ "cpu_native_cells_per_proof": {
+  "before": [
+   [
+    34711296,
+    419030304,
+    319004672
+   ],
+   [
+    29656640,
+    344253664,
+    259802496
+   ],
+   [
+    31292896,
+    383709568,
+    278427392
+   ],
+   [
+    34141024,
+    391797280,
+    282321408
+   ]
+  ],
+  "after": [
+   [
+    34760448,
+    379544864,
+    314286080
+   ],
+   [
+    29656640,
+    303621344,
+    254559616
+   ],
+   [
+    29744608,
+    306950528,
+    256669440
+   ],
+   [
+    33357664,
+    324760096,
+    267674112
+   ]
+  ]
+ },
+ "cpu_native_cells_total": {
+  "before": 2808148640,
+  "after": 2535585440,
+  "delta": -272563200,
+  "delta_percent": -9.706,
+  "delta_cells_per_instruction": -16.246
+ },
+ "prove": {
+  "wall_s": 44.61,
+  "max_rss_bytes": 16338534400,
+  "power": "battery (indicative timing only)"
+ },
+ "verify_prefix": "accepted (fresh process)",
+ "note": "native_cells = [fixed, main, interaction]. The fused-tail/U8-pair layout fails on a real block with InvalidCombinedRangePhase (services roster merges into the classic AND/range tables) and is opt-in until fixed."
+}

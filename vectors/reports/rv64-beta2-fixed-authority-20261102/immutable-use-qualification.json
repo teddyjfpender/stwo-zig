@@ -1,0 +1,26 @@
+{
+  "scope": "validate immutable source once per distinct sealed identity, then bounded exact provenance checks",
+  "constant_use_does_not_detect_stale_root_body_mutation": true,
+  "producer_metadata_cannot_supply_source": true,
+  "explicit_full_revalidation": "Binding.revalidateSource / WideFixedKey.requireSource",
+  "checks": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "cbc29ffca1c2b197afc8a3add5d18bf4429135ac26212432249dca91480a0781"
+    }
+  ],
+  "gates": [
+    "actual source-body @constCast fault explicit revalidation rejects",
+    "candidate cache coefficient copy unchanged after source body mutation",
+    "whole candidate produced during fault fresh-verifies under independently reconstructed original authority",
+    "different reconstructed equivalent keys reuse one validated source identity, no pointer identity shortcut",
+    "source_validations and logical source_coefficient_cells counters",
+    "complete candidate/fresh/mutation/OOM and default control gates retained"
+  ]
+}

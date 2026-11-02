@@ -1,0 +1,52 @@
+diff --git a/lib/evmone/baseline_analysis.cpp b/lib/evmone/baseline_analysis.cpp
+index b3ace7f..c8fef9e 100644
+--- a/lib/evmone/baseline_analysis.cpp
++++ b/lib/evmone/baseline_analysis.cpp
+@@ -58,28 +58,39 @@ void analyze_jumpdests_sentinel(BitsetSpan map, uint8_t* padded, size_t code_siz
+ {
+     static constexpr size_t PADDING = 32 + 1;
+     std::fill_n(padded + code_size, PADDING, uint8_t{OP_JUMPDEST});
+-    // `p` points one past the current opcode; positions are taken against begin + 1 so
+-    // the loop keeps no copy of the opcode's own address.
+-    const auto* const begin1 = padded + 1;
++    // Unrolled by four: a plain opcode costs lb + bge (the add is shared by four), and the
++    // rare cases re-enter at the opcode that stopped the run.
+     const auto* p = padded;
+     while (true)
+     {
+-        const auto op = static_cast<int8_t>(*p);
+-        ++p;
+-        if (op < static_cast<int8_t>(OP_JUMPDEST)) [[likely]]
++        const uint8_t* q;
++        if (static_cast<int8_t>(p[0]) >= static_cast<int8_t>(OP_JUMPDEST)) [[unlikely]]
++            q = p;
++        else if (static_cast<int8_t>(p[1]) >= static_cast<int8_t>(OP_JUMPDEST)) [[unlikely]]
++            q = p + 1;
++        else if (static_cast<int8_t>(p[2]) >= static_cast<int8_t>(OP_JUMPDEST)) [[unlikely]]
++            q = p + 2;
++        else if (static_cast<int8_t>(p[3]) >= static_cast<int8_t>(OP_JUMPDEST)) [[unlikely]]
++            q = p + 3;
++        else
++        {
++            p += 4;
+             continue;
++        }
++        const auto op = static_cast<int8_t>(*q);
+         if (op >= static_cast<int8_t>(OP_PUSH1))
+         {
+-            p += op - (OP_PUSH1 - 1);  // Skip PUSH data.
++            p = q + (op - (OP_PUSH1 - 2));  // Skip the opcode and its PUSH data.
+             continue;
+         }
+         if (op == static_cast<int8_t>(OP_JUMPDEST))
+         {
+-            const auto pos = static_cast<size_t>(p - begin1);
++            const auto pos = static_cast<size_t>(q - padded);
+             if (pos >= code_size)
+                 break;
+             map.set(pos);
+         }
++        p = q + 1;
+     }
+     std::fill_n(padded + code_size, PADDING, uint8_t{0});
+ }

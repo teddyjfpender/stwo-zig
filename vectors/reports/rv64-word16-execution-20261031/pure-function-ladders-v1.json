@@ -1,0 +1,803 @@
+{
+  "schema_version": 1,
+  "written_utc": "2026-10-31T22:17:22.441115+00:00",
+  "scope": "Opt-in independently sized ALU/BINARY/SHIFT tails inside one complete full CPU PCS; real genesis prefix and local/global/service physical fixtures. No new full Ethereum block acceptance or global FUNCTION packing.",
+  "base_commit": "d25286de01d4c5badd8cf3cacb221c29f3be58df",
+  "core_schema": 4,
+  "ledger": {
+    "claim_count": 45,
+    "ls_tail_offset": 33,
+    "alu_tail_offset": 38,
+    "binary_tail_offset": 40,
+    "shift_tail_offset": 42,
+    "omitted_fields_forced_zero": true,
+    "ram_claim": "LS head + LS tail + INIT + TERM only",
+    "present_field_semantics": "Each existing component authenticates its physical merged aggregate; additive fields are not newly independent per-relation totals."
+  },
+  "geometry": {
+    "appended_roles": {
+      "alu_tail": 18,
+      "binary_tail": 19,
+      "shift_tail": 20
+    },
+    "default_tail_logs": null,
+    "producer_split": "head=min(T,2^head_log); tail=T-head; present native tail 0<tail<=2^tail_log; whole-family canonical multiplicity/mass validated before CPU/JALR transfer",
+    "receiver_authority": "Pure unordered truth providers have no public unique-fact prefix/count. Native partition is not coverage authority; present fact truth and the full CPU FUNCTION closure are physically proved. A present empty truth instance is sound but rejected as wasteful by the native planner.",
+    "fixed_key": "program + complete role geometry only; counts, grouping, weights and public endpoints are not fixed columns",
+    "native_domains": "degree3 / native2n / split1 unchanged; degree4 service joins use the existing weighted quotient override symmetrically"
+  },
+  "custody": {
+    "main_once": true,
+    "narrow_arrays_sliced_before_materialization": true,
+    "no_larger_wide_then_compress": true,
+    "no_tape_reexecution": true,
+    "owned_borrowed_same_class_proof_bytes_exact": true,
+    "absent_private_extra_owner_retained": true,
+    "early_invalid_weights": "Prepared retains CPU/JALR before transfer; caller deinit remains required. Correcting weights and retrying transfers successfully. Existing family-specific errors preserved."
+  },
+  "physical_lookup_mass": "ALU20 U16/N, BINARY8 AND/N, SHIFT5 semantic +9 U16/N, including every physical padding row; FUNCTION alone uses fact multiplicity. Full merged range/table masses <p admitted before key allocation.",
+  "qualification": {
+    "safe": [
+      "provider10",
+      "Prepared14",
+      "combined-services9 on final d252 base; LS12 on schema4 e230 base"
+    ],
+    "fast": [
+      "provider10",
+      "Prepared14",
+      "coordinator20",
+      "combined-services9 on final d252 base; global15/sharedK9/Secp10/optionalDIV6 on schema4 e230 base"
+    ],
+    "runtime_metadata": {
+      "rv64_word16_execution_prepared_test_root": {
+        "runtime_count": 14,
+        "test_names": [
+          "rv64_word16_execution_prepared_test_root.test_0",
+          "word16_execution.prepared_test.test.Prepared groups exact full words and operation IDs in stable order with bounded allocation ownership",
+          "word16_execution.prepared_test.test.One CPU witness chooses grouped geometry then rebinds moved Program and fresh-verifies actual weighted proof",
+          "word16_execution.prepared_test.test.Legacy wrappers and caller-prepared unit BINARY retain identical full proof bytes at raw geometry",
+          "word16_execution.prepared_test.test.Prepared transfer rejects mismatched setup before move and all allocation failures preserve single owners",
+          "word16_execution.prepared_test.test.Wrong grouped multiplicity remains rejected by actual closed CPU debt and invalid weight ownership stays balanced",
+          "word16_execution.prepared_test.test.Joined sources retire CPU fact lists while LS boundaries and immutable row reconstruction survive",
+          "word16_execution.prepared_test.test.MAIN ownership transfers original wide matrices only after every fallible allocation",
+          "word16_execution.prepared_test.test.INTER ownership moves every original allocation after both allocation failures and preserves physical claims",
+          "word16_execution.prepared_test.test.Prepared capture groups without CPU MAIN then projects once after Tape destruction with exact proof and retry",
+          "word16_execution.prepared_test.test.Capture keeps Keccak service ownership opt-in and rejects other service tags",
+          "word16_execution.prepared_test.test.Constructor and admission profiling preserves proof bytes and records separate memory validation",
+          "word16_execution.prepared_test.test.Constructor recorder allocation failures preserve pre-transfer owners and clean post-transfer owners exactly once",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_execution_coordinator_test_root": {
+        "runtime_count": 20,
+        "test_names": [
+          "rv64_word16_execution_coordinator_test_root.test_0",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "tests.rv64_word16_execution_program_test.test.full execution program derives all immutable edges and binds invalid raw words",
+          "tests.rv64_word16_execution_program_test.test.full program reuses admitted immutable decoded authority without copying raw arrays",
+          "tests.rv64_word16_execution_program_test.test.full program lookup preserves sparse high64 aliases wrapping and branch alignment",
+          "tests.rv64_word16_execution_program_test.test.full program owner unwinds every allocation failure",
+          "tests.rv64_word16_execution_program_test.test.full execution immutable material roster matches all physical fixed columns",
+          "tests.rv64_word16_execution_program_test.test.full execution complete fixed key leases preserve root and fresh transcript",
+          "tests.rv64_word16_execution_program_test.test.full execution concrete component roster matches every immutable physical shape",
+          "tests.rv64_word16_execution_image_test.test.pristine expected image retains pinned ELF input and zero memory without Poseidon cache",
+          "tests.rv64_word16_execution_image_test.test.pristine image pin terminal and all allocation failures reject without native execution",
+          "tests.rv64_word16_execution_image_test.test.new execution packet path reads tape without legacy graph and rejects corruption",
+          "tests.rv64_word16_execution_image_test.test.full execution mixed native fixture directly seals tape with pristine image intact",
+          "tests.rv64_word16_execution_image_test.test.full execution mixed native program closes seventeen physical chips and verifies fresh",
+          "tests.rv64_word16_execution_image_test.test.execution receiver binds independently configured prefix budgets before fixed setup",
+          "tests.rv64_word16_execution_image_test.test.execution memory count preflight rejects overcapacity before sidecar allocation",
+          "tests.rv64_word16_execution_image_test.test.joined execution proofs are exact with serial and1 4 16worker multichunk LS prefixes",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_provider_ladder_test_root": {
+        "runtime_count": 10,
+        "test_names": [
+          "rv64_word16_provider_ladder_test_root.test_0",
+          "word16_execution.provider_ladder_test.test.pure provider partition permits full head and rejects missing or overflowing tail before allocations",
+          "word16_execution.provider_ladder_test.test.one PCS all three pure function tails closes actual native loop and independent receiver",
+          "word16_execution.provider_ladder_test.test.tail physical histograms include padding and native fact weights preserve whole family mass",
+          "word16_execution.provider_ladder_test.test.balanced tail claims missing roster and omitted ghosts rejected by physical verifier",
+          "word16_execution.provider_ladder_test.test.owned MAIN INTER handoff of every function tail equals borrowed proof and omitted extra owner stays owned",
+          "word16_execution.provider_ladder_test.test.tail constructor exhaustive allocation failures preserve captured facts and failed whole span admission precedes transfer",
+          "word16_execution.provider_ladder_test.test.actual false prover cannot alter a committed function tail truth row after narrow metadata capture",
+          "word16_execution.provider_ladder_test.test.actual two shard global execution closes all function tails and rejects balanced cross-shard tail debt",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_combined_services_test_root": {
+        "runtime_count": 9,
+        "test_names": [
+          "rv64_word16_combined_services_test_root.test_0",
+          "word16_global_execution.services.wire_test.test.Combined compact transport preserves all physical proofs and cleans every read allocation failure",
+          "word16_global_execution.services.execution_test.test.One CPU proof per shard joins K ADD DOUBLE shared RAM and independently sized truths",
+          "word16_global_execution.services.execution_test.test.Actual valid mixed local proofs reject cross family RAM reset and false K or secp output",
+          "word16_global_execution.services.execution_test.test.Combined receiver rejects free absent debts missing roots and wrong typed spans",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure"
+        ]
+      },
+      "rv64_word16_secp_bridge_test_root": {
+        "runtime_count": 10,
+        "test_names": [
+          "rv64_word16_secp_bridge_test_root.test_0",
+          "word16_global_execution.secp.bridge_test.test.Secp coordinate bridge native RAM permissions owner tags and exact Wire35 bytes",
+          "word16_global_execution.secp.bridge_test.test.Secp bridge borrowed MAIN release retains exact interactions for empty odd and padded calls",
+          "word16_global_execution.secp.bridge_test.test.Secp coordinate bridge authority preserves every packed native residual and dense arbitrary QM31 cubic bound",
+          "word16_global_execution.secp.bridge_test.test.Secp bridge allocation failures strict wire poles and retry retain packet metadata",
+          "word16_global_execution.secp.execution_test.test.Actual CPU SD ADD ADDI DOUBLE join independently sized RCB truth and global RAM proofs",
+          "word16_global_execution.secp.execution_test.test.Actual valid local secp proofs reject false output and fabricated cross epoch predecessor",
+          "word16_global_execution.secp.execution_test.test.Actual CPU owner debt rejects substituted pointer and substituted service kind",
+          "word16_global_execution.secp.execution_test.test.Secp receiver binds complete expected roots typed roles and every physical claim",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_global_execution_test_root": {
+        "runtime_count": 15,
+        "test_names": [
+          "rv64_word16_global_execution_test_root.test_0",
+          "word16_global_execution.wire_test.test.global wire v2 streams beyond full cell blocks and rejects tampering headers truncation overwrite",
+          "word16_global_execution.wire_test.test.global wire read cleans every allocation failure",
+          "word16_global_execution.wire_test.test.actual two CPU proof transport preserves bytes and physical claims reject tampering",
+          "word16_global_execution.worker_test.test.Owned worker seals MAIN before root-only manifest and rejects context changes before FS resume",
+          "word16_global_execution.worker_test.test.Worker failed seal publishes no descriptor and drains single-owner allocation failures",
+          "word16_global_execution.adversarial_test.test.global execution binds actual stage1 roots physical claims and complete ordered inventory",
+          "word16_global_execution.adversarial_test.test.global execution independently admits genesis policy program budget epoch and continuation",
+          "word16_global_execution.adversarial_test.test.real locally valid load-to-x0 fork proofs fail only global RAM closure",
+          "word16_global_execution.execution_test.test.Actual two CPU shards share RAM across store load with one trusted INIT and final TEARDOWN",
+          "word16_global_execution.execution_test.test.Independent INIT TERM domains physically prove cross shard RAM and default geometry keys stay exact",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_optional_arithmetic_test_root": {
+        "runtime_count": 6,
+        "test_names": [
+          "rv64_word16_optional_arithmetic_test_root.test_0",
+          "word16_execution.optional_division_test.test.Empty DIV shape removes all fixed main interaction and component samples while legacy class remains default",
+          "word16_execution.optional_division_test.test.Omitted DIV proves fresh with exact semantics, canonical zero claim and owned-buffer custody",
+          "word16_execution.optional_division_test.test.Omitted unused DIV retains its allocation owner through every setup constructor and MAIN handoff allocation failure",
+          "word16_execution.optional_division_test.test.A physically valid unserved false DIV fragment cannot become a complete execution proof or cancel through placeholder",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_keccak_shared_test_root": {
+        "runtime_count": 9,
+        "test_names": [
+          "rv64_word16_keccak_shared_test_root.test_0",
+          "word16_global_execution.keccak.shared.execution_test.test.Two actual CPU RAM shards join one independent execution wide K truth proof",
+          "word16_global_execution.keccak.shared.execution_test.test.Physically valid false K output and false cross shard genesis reject shared truth closure",
+          "word16_global_execution.keccak.shared.execution_test.test.Shared truth requires every physical root role call span and claim binding",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded K truth roster joins four actual proofs with fresh independent keys",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded truth admission rejects duplicate overlapping missing and gapped spans before proofs",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded truth receiver rejects missing duplicated swapped roots spans and physical claims",
+          "word16_global_execution.keccak.shared.bounded_test.test.Four physical proofs reject valid false K output and reset predecessor across bounded truths",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_ls_ladder_test_root": {
+        "runtime_count": 12,
+        "test_names": [
+          "rv64_word16_ls_ladder_test_root.test_0",
+          "word16_execution.ls_ladder_test.test.LS ladder deterministic padding capacities and absent physical role and ledger admission",
+          "word16_execution.ls_ladder_test.test.One PCS two LS instances native loop closes all claims and retained histograms include all padding",
+          "word16_execution.ls_ladder_test.test.LS tail missing span count and balanced cross-instance or omitted claims reject in real receiver",
+          "word16_execution.ls_ladder_test.test.LS ladder native construction allocation errors retain inputs and owned MAIN INTER handoffs are exact",
+          "word16_execution.ls_ladder_test.test.LS ladder actual two shard global RAM proof shares both LS debts and rejects balanced tail forks",
+          "word16_execution.ls_ladder_test.test.LS ladder Keccak CPU bridge one PCS and shared truth protocols fresh verify canonical extended ledgers",
+          "word16_execution.ls_ladder_test.test.LS ladder Secp ADD DOUBLE shared RAM receiver derives extended canonical base claims",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      "rv64_word16_global_memory_test_root": {
+        "runtime_count": 4,
+        "test_names": [
+          "rv64_word16_global_memory_test_root.test_0",
+          "word16_execution.memory.global_manifest_test.test.Complete stage1 manifest fresh-verifies both physical boundary proofs before global RAM closure",
+          "word16_execution.memory.global_manifest_test.test.Global exact inventory epoch coverage adjacency and characteristic admission precede allocation",
+          "word16_execution.memory.global_manifest_test.test.Global manifest owns expected inventory with balanced exhaustive allocation failure cleanup"
+        ]
+      }
+    },
+    "logs": [
+      {
+        "path": "/tmp/rv64-provider-ladder-d252-final-safe.log",
+        "bytes": 393,
+        "sha256": "7037e4709c22966d2207742b5f320ef4aa375bfd6659c809a157716b665706f9"
+      },
+      {
+        "path": "/tmp/rv64-provider-ladder-current-final-fast.log",
+        "bytes": 517,
+        "sha256": "c551feeaba8fecf8bd45540e37ac5b4d950f6139c86f504b5bfc2fb490ab1130"
+      },
+      {
+        "path": "/tmp/rv64-provider-ladder-final-safe.log",
+        "bytes": 265,
+        "sha256": "069781e3488151f05dc8f78bd6d41d278702dff1b1375ea6699c0847e971e92f"
+      },
+      {
+        "path": "/tmp/rv64-provider-ladder-final-runtime-metadata.jsonl",
+        "bytes": 39252,
+        "sha256": "965c8b14a3c2795ddff9ecce99e357f819a3a4bb3d60699e4ef3db1b521bdbbd"
+      }
+    ],
+    "additional_regression_log": {
+      "path": "/tmp/rv64-provider-ladder-final-regressions-fast.log",
+      "note": "Six controls passed; old Prepared14 ownership assertion subsequently updated with repair/retry, and final Safe/Fast14 both passed."
+    },
+    "meaningful_negatives": [
+      "whole-family >=p multiplicity before slicing",
+      "full-head capacity and missing/overflowing tails",
+      "omitted balanced ghost fields",
+      "missing physical roster",
+      "balanced cross-instance and cross-shard claims",
+      "actual false tail MAIN rows require ConstraintsNotSatisfied for all three families",
+      "exhaustive tail-constructor allocation failures retain inputs",
+      "native count changes reuse immutable fixed key",
+      "durable absent BINARY tail claim rejected before missing RAM/proof sidecars"
+    ],
+    "scoped_checks": {
+      "zig_fmt": "PASS",
+      "git_diff_check": "PASS",
+      "source_conformance_unit31": {
+        "path": "/tmp/rv64-provider-ladder-final-conformance.log",
+        "bytes": 130,
+        "sha256": "db468cb7fba689d30e3d70eff7acd8f06c8b0e2af343ea446bf76bc4cfdfdeaf"
+      }
+    },
+    "durable_negative": {
+      "path": "/tmp/rv64-provider-ladder-ghost-v1.error",
+      "bytes": 37,
+      "sha256": "657c45897b65e672ef8b00f25008439ea9c86f36cdfbee65740f1b53ab5dfd37"
+    },
+    "duplicate_flag_negative": {
+      "path": "/tmp/rv64-provider-ladder-duplicate.error",
+      "bytes": 34,
+      "sha256": "571ca9219172de9b84683999e8cf5474e69eb7ba9fddfa5c32bdf68f7d2cd8f6"
+    }
+  },
+  "real_packet": {
+    "configuration": {
+      "path": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+      "bytes": 1161,
+      "sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad"
+    },
+    "elf": {
+      "path": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+      "bytes": 3004312,
+      "sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e"
+    },
+    "packet": {
+      "path": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+      "bytes": 343445435,
+      "sha256": "8945564a2701d302e0c2eba366f44e9701c32deef751aca84abfa0d88585ed7b"
+    },
+    "steps": 4194303,
+    "shared_operational_flags": [
+      "--recycler-cap-mib=0",
+      "--commit-batch-columns=64",
+      "--deduplicate-shift",
+      "--ls-ladder=20,18"
+    ],
+    "candidate_extra_flags": [
+      "--alu-ladder=19,16",
+      "--binary-ladder=19,18",
+      "--shift-ladder=19,18"
+    ],
+    "workers": 16,
+    "producer": {
+      "path": "/tmp/rv64-provider-ladder-schema4-bin",
+      "bytes": 4038720,
+      "sha256": "67aab509746cd0d95cde1ffe5953e18f5910d44f46fecec0f47c8c2586a22f2f"
+    },
+    "final_receiver": {
+      "path": "/tmp/rv64-provider-ladder-schema4-final-reader-bin",
+      "bytes": 4038720,
+      "sha256": "1e172f33a9cbafab9e5e4ff6e1a245be597da4d64c1343cb39a15291f1ad3aa9"
+    },
+    "producer_source_note": "Producer based e230 schema4 draft. Final d252 source adds compatible authority metadata/combined services and preserves family-specific preflight error names; valid witness/transcript equations unchanged. Final rebuilt independent receiver accepts both proofs.",
+    "single": {
+      "directory": "/tmp/rv64-provider-ladder-real0-single-v1",
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 20,
+        "alu_tail_log": null,
+        "binary_log": 20,
+        "binary_tail_log": null,
+        "shift_log": 20,
+        "shift_tail_log": null,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 20,
+        "ls_tail_log": 18,
+        "boundary_log": 20,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "unique_facts": {
+        "alu": 574440,
+        "binary": 673582,
+        "shift": 743839
+      },
+      "source_cells": {
+        "fixed": 64808864,
+        "main": 531623648,
+        "interaction": 462948864
+      },
+      "source_cells_total": 1059381376,
+      "sampled_values_per_tree": [
+        130,
+        1685,
+        772,
+        8
+      ],
+      "sampled_values_total": 2595,
+      "physical_components": 18,
+      "declared_evaluation_points": 24167040,
+      "metrics": {
+        "commit_batch_columns": 64,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "smp",
+          "cache_cap_bytes": 0,
+          "stats": {
+            "reused_blocks": 0,
+            "mapped_blocks": 0,
+            "cached_bytes": 0
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 15552,
+        "proof_and_public_statement_bytes": 33818502,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 64808864,
+          "main": 531623648,
+          "interaction": 462948864
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "alu_tail_log": null,
+          "binary_log": 20,
+          "binary_tail_log": null,
+          "shift_log": 20,
+          "shift_tail_log": null,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 20,
+          "ls_tail_log": 18,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 402119750,
+        "provider_source_ns": 594588250,
+        "setup_ns": 437627083,
+        "prove_ns": 9639572251,
+        "same_process_verify_ns": 84166334,
+        "proof_bytes": 1190912,
+        "total_ns": 10777426667,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857030656,
+          "last_rss_bytes": 1312096256,
+          "sampled_peak_rss_bytes": 9010397184,
+          "process_lifetime_peak_rss_bytes": 9010397184,
+          "samples": 688,
+          "failed_samples": 0
+        }
+      },
+      "time_l": {
+        "wall_seconds": 11.2,
+        "user_seconds": 53.65,
+        "system_seconds": 6.5,
+        "maximum_rss_bytes": 9010397184,
+        "darwin_peak_memory_footprint_bytes": 9012600536
+      },
+      "final_fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 967636042,
+        "image_ns": 309982958
+      },
+      "final_fresh_time_l": {
+        "wall_seconds": 1.37,
+        "user_seconds": 2.63,
+        "system_seconds": 0.38,
+        "maximum_rss_bytes": 1889468416,
+        "darwin_peak_memory_footprint_bytes": 1889454000
+      },
+      "pins": [
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1/proof.bin",
+          "bytes": 1190912,
+          "sha256": "69849bb8c13512edd519d57abfd9107b413b274c0c6b4b100ea41b03e4203e77"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1/statement.json",
+          "bytes": 15552,
+          "sha256": "5e719896267f5c9154d64b22611f6bbe9224613e1b9a32b0a44121a5273fd328"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1/cells.bin",
+          "bytes": 32612038,
+          "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1/planning.json",
+          "bytes": 8641,
+          "sha256": "9e1a7f36b66ca92e8640db5b0b9bd8a7136fe0afeb802a9bd922cad1849a90ae"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1/stages.json",
+          "bytes": 164039,
+          "sha256": "22c56c9642c7c57b52894fa4a7f4a89b0c7691d05d1de911ff8b871aaf5cf61f"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1.stdout.json",
+          "bytes": 1770,
+          "sha256": "cb175a8ed2a05b1d7424343cf675edb23e692081f6226be637cacdf7ee167111"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1.time",
+          "bytes": 777,
+          "sha256": "627a134228657494e6b331c59f19307630280cbc461e3ae11af39d1947ef34d5"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1.fresh.json",
+          "bytes": 181,
+          "sha256": "17ca4b3b065d1290ef527d2beb2f625da5c24e7a11a77a47912b52dc03483ffe"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1.fresh.time",
+          "bytes": 777,
+          "sha256": "454403332269afda3dac08b3bc3c869fde38459b7ed2acce163bf2a09e149c40"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1.final-reader.json",
+          "bytes": 181,
+          "sha256": "98e0e93c38512d903cf48902d5700c30905dea4b6c0c3ad1c93bc1ddb57a36c3"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-single-v1.final-reader.time",
+          "bytes": 777,
+          "sha256": "2ff0ae1da15d32b7f34a838e47b2903f94fc40191b561a3e3fa9e19a5d0ec156"
+        }
+      ]
+    },
+    "tails": {
+      "directory": "/tmp/rv64-provider-ladder-real0-three-v1",
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": 16,
+        "binary_log": 19,
+        "binary_tail_log": 18,
+        "shift_log": 19,
+        "shift_tail_log": 18,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 20,
+        "ls_tail_log": 18,
+        "boundary_log": 20,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "unique_facts": {
+        "alu": 574440,
+        "binary": 673582,
+        "shift": 743839
+      },
+      "source_cells": {
+        "fixed": 62842784,
+        "main": 482864864,
+        "interaction": 425200128
+      },
+      "source_cells_total": 970907776,
+      "sampled_values_per_tree": [
+        136,
+        1832,
+        892,
+        8
+      ],
+      "sampled_values_total": 2868,
+      "physical_components": 21,
+      "declared_evaluation_points": 22200960,
+      "metrics": {
+        "commit_batch_columns": 64,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "smp",
+          "cache_cap_bytes": 0,
+          "stats": {
+            "reused_blocks": 0,
+            "mapped_blocks": 0,
+            "cached_bytes": 0
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 15783,
+        "proof_and_public_statement_bytes": 33894973,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 62842784,
+          "main": 482864864,
+          "interaction": 425200128
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 19,
+          "alu_tail_log": 16,
+          "binary_log": 19,
+          "binary_tail_log": 18,
+          "shift_log": 19,
+          "shift_tail_log": 18,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 20,
+          "ls_tail_log": 18,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 419212125,
+        "provider_source_ns": 572336083,
+        "setup_ns": 382736583,
+        "prove_ns": 8958372625,
+        "same_process_verify_ns": 90433167,
+        "proof_bytes": 1267152,
+        "total_ns": 10055311083,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857047040,
+          "last_rss_bytes": 1296826368,
+          "sampled_peak_rss_bytes": 8633532416,
+          "process_lifetime_peak_rss_bytes": 8633532416,
+          "samples": 653,
+          "failed_samples": 0
+        }
+      },
+      "time_l": {
+        "wall_seconds": 10.07,
+        "user_seconds": 49.54,
+        "system_seconds": 6.15,
+        "maximum_rss_bytes": 8633532416,
+        "darwin_peak_memory_footprint_bytes": 8635670136
+      },
+      "final_fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 887132709,
+        "image_ns": 305783459
+      },
+      "final_fresh_time_l": {
+        "wall_seconds": 0.89,
+        "user_seconds": 2.32,
+        "system_seconds": 0.49,
+        "maximum_rss_bytes": 1880637440,
+        "darwin_peak_memory_footprint_bytes": 1880623024
+      },
+      "pins": [
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1/proof.bin",
+          "bytes": 1267152,
+          "sha256": "f77309391889f16082da9035a6aaea8069a91ddf3c766297ff303c85f3baf0e6"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1/statement.json",
+          "bytes": 15783,
+          "sha256": "86ad492da9a6f157e5ee12cf8004d8153eaec7e75cfa27114ff9c166619c83cb"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1/cells.bin",
+          "bytes": 32612038,
+          "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1/planning.json",
+          "bytes": 8647,
+          "sha256": "146e8cce8e7067d9ce99b38947dbc505f9f8e61b8d82e0def95cbc9bae1d7130"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1/stages.json",
+          "bytes": 163642,
+          "sha256": "0cf24d06678961412cad97fc77e1dbc2ae0d93b4b76859397617653f80cf695a"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1.stdout.json",
+          "bytes": 1764,
+          "sha256": "cb8db0bef94824d449c0c2da88d729d086b72f01896e05fd98f33058d94e3502"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1.time",
+          "bytes": 777,
+          "sha256": "1b1cec024d6a2bb95045fcf668f17c5b7e167a21c843eefbe30d51148f7f1cfd"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1.fresh.json",
+          "bytes": 181,
+          "sha256": "e32f1b9d81384e05fd9c9bae64bc9f6e5d7cc9df41271421d3a6de536ce60a21"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1.fresh.time",
+          "bytes": 777,
+          "sha256": "a91198fe18f3fe66a187b2a754405fd332acd863fbea24609f84812c7e2dfbb7"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1.final-reader.json",
+          "bytes": 181,
+          "sha256": "4f6b7f2641b36924f99cfb2b36420d4550ebd22fa4056c9acc48365158ef0711"
+        },
+        {
+          "path": "/tmp/rv64-provider-ladder-real0-three-v1.final-reader.time",
+          "bytes": 777,
+          "sha256": "e87e369e575dcfa18838a24a8250fc798ad10accbced95afc8f8cacc16575c6a"
+        }
+      ]
+    },
+    "semantic_fields_exact": true,
+    "ram_sidecar_bytes_exact": true,
+    "family_rows": [
+      {
+        "family": "alu",
+        "unique_facts": 574440,
+        "head_active": 524288,
+        "tail_active": 50152,
+        "tail_padding": 15384,
+        "physical_rows_before": 1048576,
+        "physical_rows_after": 589824,
+        "removed_padding_rows": 458752,
+        "widths_fixed_main_inter": [
+          2,
+          52,
+          48
+        ],
+        "removed_cells": 46792704,
+        "function_batch_inverse_calls_model": {
+          "before": 256,
+          "after": 144
+        }
+      },
+      {
+        "family": "binary",
+        "unique_facts": 673582,
+        "head_active": 524288,
+        "tail_active": 149294,
+        "tail_padding": 112850,
+        "physical_rows_before": 1048576,
+        "physical_rows_after": 786432,
+        "removed_padding_rows": 262144,
+        "widths_fixed_main_inter": [
+          2,
+          42,
+          24
+        ],
+        "removed_cells": 17825792,
+        "function_batch_inverse_calls_model": {
+          "before": 256,
+          "after": 192
+        }
+      },
+      {
+        "family": "shift",
+        "unique_facts": 743839,
+        "head_active": 524288,
+        "tail_active": 219551,
+        "tail_padding": 42593,
+        "physical_rows_before": 1048576,
+        "physical_rows_after": 786432,
+        "removed_padding_rows": 262144,
+        "widths_fixed_main_inter": [
+          2,
+          53,
+          36
+        ],
+        "removed_cells": 23855104,
+        "function_batch_inverse_calls_model": {
+          "before": 256,
+          "after": 192
+        }
+      }
+    ],
+    "delta": {
+      "source_cells_removed": 88473600,
+      "fixed_cells_removed": 1966080,
+      "main_cells_removed": 48758784,
+      "interaction_cells_removed": 37748736,
+      "declared_component_evaluation_points_removed": 1966080,
+      "sampled_values_per_tree_added": [
+        6,
+        147,
+        120,
+        0
+      ],
+      "sampled_values_total_added": 273,
+      "proof_bytes_added": 76240,
+      "commitment_tree_count_unchanged": 4
+    },
+    "accounting_limits": [
+      "Cells are exact logical committed source area including fixed; not measured touches, FFT operations, or a runtime prediction.",
+      "Native FUNCTION inversion chunks use4096 rows: model256 per family before and144/192/192 after; not hardware inversion profiling.",
+      "BINARY builds a65536-entry AND inverse dictionary per instance; ALU repeats its native difference inverse cache and range-dictionary validation; SHIFT repeats shared-dictionary validation/count dot. These are additional instance costs.",
+      "Extra components add prefix/mask/Merkle opening costs. OODS273 and proof+76240B are measured from actual wire.",
+      "Timings and maxRSS are separate-process observations during concurrent engineering, not uncontended matched speedup evidence. Darwin memory footprint is separately named, never substituted for RSS.",
+      "Both are complete accepting genesis-prefix physical proofs; global_chain_accepted=false and no completed-block claim."
+    ]
+  },
+  "compatibility": "One canonical schema4/bundle4 replaces3; schema3 physical proof bytes intentionally incompatible. Same-schema owned/borrowed custody remains byte exact. No runtime profile enum or default tail planner switch.",
+  "source_sha256": {
+    "build_support/products/catalog.zig": "4b681e2680faec8ffe61539a99363d5f977bd89098199f74cbfe47bd0581c125",
+    "build_support/products/riscv_cpu.zig": "e20f34be7a8970ce4f2d728405a39f193b2df65d424fa92df8387ec608562fb7",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "415a93a1d1536d693b9c64d8c98122cdbde0ea3ac065607c31519b47fb102812",
+    "src/integrations/riscv_cpu/rv64_word16_provider_ladder_test_root.zig": "2ca5dbf0c1bc0e5bf389b199cac80b236b69c061635d45be78ae8f608985bf5d",
+    "src/integrations/riscv_cpu/word16_execution/components.zig": "0190a538497b6c7025569ea1e802ea24b3fcceb6f91b2495f769c9ca5fbc5b8b",
+    "src/integrations/riscv_cpu/word16_execution/driver.zig": "bb719204f43268ccc27fbc301f80edb1af2444d75c31026a1590f01bb6d11bb1",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "31dfbc183e14cc45c16cff3da6baa02eaadbf136c6a3def9a37761cc3cf67659",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "348f932266a338c50f2505525599f0a6fbf3d1c4a374186bb368f7ba964e73f9",
+    "src/integrations/riscv_cpu/word16_execution/interaction_ownership.zig": "d87ea645c9f3695110c9472f255b14651e22628da6feb6355ee020725c3430b5",
+    "src/integrations/riscv_cpu/word16_execution/ls_ladder_test.zig": "9c8f8b94b8a005bfe461f6a6b98c05598673c5d680923d8b11512e42c581a40a",
+    "src/integrations/riscv_cpu/word16_execution/main_ownership.zig": "444b9a424497781867fc81ac6a4bfe610aab24972045fd61d0a95dc0cad89602",
+    "src/integrations/riscv_cpu/word16_execution/native_diagnostic.zig": "a81eae034de96d93a768ca4047a056d8ceeaec3e3ddf9dff3e7181458d654628",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "f7a18b353736f8654930266834c5964c32ec46de06c1d9223d3a52347f720492",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "39f3fc7fc9fcd143179164856472784c0ce34e8d8eaf66b50e30eba5b3108ff1",
+    "src/integrations/riscv_cpu/word16_execution/provider_ladder_test.zig": "62cf6f3fa73498f3ec6acd8e4315a5a42959a0d1d30565b173ca2816521fc4d3",
+    "src/integrations/riscv_cpu/word16_execution/provider_tails.zig": "0f431f985ad19ae37f0be1f436c65a4555c9213ddd6a5ede8d42c2b5b62c470b",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "63ddcf6712787145d9440a9d4c3ced6c476c7b8a70673d367988832e131cb826",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "26d80656111c01130e068aef78216e2c6acf1142c2b090c60b72847cf8aac872",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "4476e9228da1d34f8763c14ef1de1ef092622326894e0f9041ef08a1b316c105",
+    "src/integrations/riscv_cpu/word16_execution/cpu_source.zig": "f12d4b72284a99453a630dfe0607338f42addde4482b953c23bf1d5432516260",
+    "src/integrations/riscv_cpu/word16_execution/expected_image.zig": "36af0468eeb8343d76984dbfc809baaad26c99704bf132754fc94b46354ea091",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "de35c57d58335b231aa787abacbd0f795ce8d23018a78c8e12448c1202bc503f",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig": "3a980e9548a07e63956b6bc119c5c9989f29d09258215e8c2f0c458585c8c536",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_component.zig": "f41903114c6d9c8eeed3ac60b669ce90ea31f1aafd2a10785ee5c3f631ab613e",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "2a264fa41c4507b921081e040b00cfefcb91fbe7365a1440d35e052057183e34",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_lookup.zig": "e9d647d785ac09e6816fcbd9999c0989bf9d07f12365a7b26ad5f758e2015957",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "3ae7ee283bbc986d5130baf609aeec7ef78d1bada8fa1378495458f06f54936c",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source.zig": "68c2124e45be7e5f32fb54e1bfb9bd826293f64efcfe04acd598e8267f4e36f7",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_lookup.zig": "d5c61a8685ad0b2c00140b0243cb387127d41f4c845f431e2dc776bdd7aa9ec6",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_component.zig": "c7f271710a920fe7dc1a4cd86d813b19fb2cd6000d8befe60a41b1e61b49d44a"
+  },
+  "sample_inspector": {
+    "path": "/tmp/rv64-optional-proof-samples",
+    "bytes": 89304,
+    "sha256": "f80ee4186066763074f2e85aed690b22747e59de75dbf2ef380eb62f5d820ed4"
+  },
+  "sample_inspector_source": {
+    "path": "/tmp/rv64-optional-proof-samples.zig",
+    "bytes": 863,
+    "sha256": "c17f75694782bc2b36ec04a7e53d90bdc7f9033057b7c25fdaf928d36edeb4f9"
+  }
+}

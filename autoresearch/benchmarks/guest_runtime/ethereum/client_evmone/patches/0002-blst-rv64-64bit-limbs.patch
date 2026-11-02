@@ -1,0 +1,43 @@
+diff --git a/src/no_asm.h b/src/no_asm.h
+index 80bbba5..1ac5dd2 100644
+--- a/src/no_asm.h
++++ b/src/no_asm.h
+@@ -6,6 +6,8 @@
+ 
+ #if LIMB_T_BITS==32
+ typedef unsigned long long llimb_t;
++#elif defined(__SIZEOF_INT128__)
++typedef unsigned __int128 llimb_t;
+ #endif
+ 
+ #if !defined(__STDC_VERSION__) || __STDC_VERSION__<199901 || defined(__STDC_NO_VLA__)
+@@ -1103,7 +1105,10 @@ limb_t div_3_limbs(const limb_t div_top[2], limb_t d_lo, limb_t d_hi)
+ static limb_t quot_rem_n(limb_t *div_rem, const limb_t *divisor,
+                                           limb_t quotient, size_t n)
+ {
+-    __builtin_assume(n != 0 && n%2 == 0);
++    /* stwo: quot_rem_64 passes n == NLIMBS(64), which is 1 with 64-bit
++     * limbs; an "n is even" assumption is then undefined behaviour (the
++     * loops are miscompiled past the 2-limb VLA). Only n != 0 holds. */
++    __builtin_assume(n != 0);
+     llimb_t limbx;
+     limb_t tmp[n+1], carry, mask, borrow;
+     size_t i;
+diff --git a/src/vect.h b/src/vect.h
+index 6b48d63..150af2c 100644
+--- a/src/vect.h
++++ b/src/vect.h
+@@ -18,6 +18,13 @@ typedef unsigned long long limb_t;
+ typedef unsigned __int64 limb_t;
+ # define LIMB_T_BITS    64
+ 
++#elif defined(__BLST_NO_ASM__) && defined(__riscv) && __riscv_xlen == 64 && \
++      defined(__SIZEOF_INT128__)
++/* stwo RV64IM guest: no assembly, but MUL/MULHU make 64x64->128-bit
++ * products cheap, so use 64-bit limbs with an __int128 double-limb. */
++typedef unsigned long long limb_t;
++# define LIMB_T_BITS    64
++
+ #elif defined(__BLST_NO_ASM__) || defined(__wasm64__)
+ typedef unsigned int limb_t;
+ # define LIMB_T_BITS    32

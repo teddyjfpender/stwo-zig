@@ -1,0 +1,19 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-candidate-costs.v1",
+ "what": "Estimated prover cells per call and per byte for execution-only candidate services, same shape as calibration.json candidate_services. Excludes the ECALL instruction itself and the guest's packet set-up instructions, which the CPU coefficient already charges. Derivations: candidate-service-costs.md.",
+ "units": {"ram_transition_cells": 96, "word16_bridge_cells_per_word_keccak": 182, "word16_bridge_cells_per_coordinate_secp": 378, "padding_and_margin_factor": 1.3},
+ "candidate_services": {
+  "memcpy": {"cells_per_call": 1500, "cells_per_byte": 40, "range": {"cells_per_call": [1000, 2500], "cells_per_byte": [28, 55]},
+             "derivation": "DMA body row per 8 dst bytes: ~40 main (dst/src address limbs, tick, 8 realignment bytes, dst-before limbs) + 20 interaction (src RAM read, dst RAM write, 4 paired byte range checks, continuation) = 60, plus two closed_ram transitions 2x(28+68)=192 -> 252/8 = 31.5 cells/byte, x1.3 = 41 -> 40. Per call: 3 packet words via word16 bridge+RAM (3x190), head/tail partial-word rows (2x(120+96)), descriptor/CPU link ~100 -> ~1100 x1.3 -> 1500."},
+  "memset": {"cells_per_call": 1300, "cells_per_byte": 20, "range": {"cells_per_call": [900, 2000], "cells_per_byte": [13, 28]},
+             "derivation": "Row per 8 dst bytes: ~13 main (address limbs, tick, before limbs, count) + 8 interaction (RAM write + continuation) = 21, plus one closed_ram transition 96 -> 117/8 = 14.6/byte x1.3 = 19 -> 20. Per call: 3 packet words (570), head/tail rows (2x156), descriptor 100 -> ~980 x1.3 -> 1300."},
+  "memcmp": {"cells_per_call": 2000, "cells_per_byte": 45, "range": {"cells_per_call": [1300, 3000], "cells_per_byte": [30, 60]},
+             "derivation": "Row per 8 examined bytes: ~23 main (two addresses, tick, two 4-limb values, count) + 12 interaction (two RAM reads, continuation) = 35, plus two closed_ram transitions 192 -> 28.4/byte x1.3 = 37; unaligned operands add byte realignment columns -> 45. bytes = examined bytes (first difference + 1, or len). Per call: 4 packet words read + 1 written (5x190), first-difference row with byte one-hot and lt lookup (~100), head/tail (300), descriptor (100) -> ~1450 x1.3 -> 2000."},
+  "sha256_compress": {"cells_per_call": 18000, "cells_per_byte": 0, "range": {"cells_per_call": [12000, 26000], "cells_per_byte": [0, 0]},
+             "derivation": "Truth AIR after ZisK Sha256f (102 bit columns x 72 rows) rebuilt for M31: per round row a/e/w as 96 bit columns + 6 half-word carries (32-bit sums split into 16-bit halves) + 3 control = 105 main, 3 carry range-check pairs = 16 interaction; 72 rows x 121 = 8712. IO to bridge ~600. Bridge: 12 words read + 4 written via Keccak-style word16 bridge (66+116=182/word) plus closed_ram transition (96) = 16x278 = 4448. Total 13760 x1.3 -> 18000 (0.25 of a Keccak-f call)."},
+  "arith256": {"cells_per_call": 6000, "cells_per_byte": 0, "range": {"cells_per_call": [4000, 9000], "cells_per_byte": [0, 0]},
+             "derivation": "One truth row like the secp product row (319 main + 384 interaction = 703: byte limbs, 63 convolution carries, byte range checks) computing a*b+c = hi*2^256 + lo. Bridge: 5 coordinates via secp-style word16 bridge (134+244 = 378 each) = 1890; RAM: 12 reads + 8 writes = 20x96 = 1920. Total 4513 x1.3 -> 6000."},
+  "arith256_mod": {"cells_per_call": 6500, "cells_per_byte": 0, "range": {"cells_per_call": [4500, 10000], "cells_per_byte": [0, 0]},
+             "derivation": "Truth row a*b+c = q*m + r with a 512-bit quotient, r < m borrow chain and an m = 0 flag: ~450 main + ~650 interaction = 1100. Bridge 5 coordinates (a, b, c, m read; r written) = 1890; RAM 16 reads + 4 writes = 20x96 = 1920. Total 4910 x1.3 -> 6500."}
+ }
+}

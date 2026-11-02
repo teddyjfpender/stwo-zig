@@ -1,0 +1,273 @@
+{
+  "schema": "om31-additive-cost-v1",
+  "whole_protocol_128": false,
+  "production_protocol_changed": false,
+  "rows": 65536,
+  "repetitions": 12,
+  "warmups": 1,
+  "native_simd_rows": 4,
+  "grouped_rows": 16,
+  "scope": "isolated native primitives and satisfied circuit arithmetic graphs; not whole prover/recursion timing",
+  "scalar_recurrence_ns": {
+    "qm31": 1133097,
+    "om31": 2273333
+  },
+  "packed_constant_secure_coefficient_times_base_ns": {
+    "qm31": 34979,
+    "om31": 69826
+  },
+  "scaled_batch_inverse_ns": {
+    "qm31_optimized_owned": 289281,
+    "om31_bounded_norm_scratch": 2088896
+  },
+  "batch_active_bytes_per_element": {
+    "qm31_owned": 36,
+    "om31_non_destructive_candidate": 100
+  },
+  "secure_bytes": {
+    "qm31": 16,
+    "om31": 32
+  },
+  "checksums": [
+    [
+      {
+        "v": 951581918
+      },
+      {
+        "v": 1645892975
+      },
+      {
+        "v": 748815828
+      },
+      {
+        "v": 2027088296
+      }
+    ],
+    [
+      {
+        "v": 2069210317
+      },
+      {
+        "v": 1393691205
+      },
+      {
+        "v": 643685515
+      },
+      {
+        "v": 551901953
+      },
+      {
+        "v": 1810884384
+      },
+      {
+        "v": 1936933688
+      },
+      {
+        "v": 294539515
+      },
+      {
+        "v": 623075447
+      }
+    ]
+  ],
+  "circuit": {
+    "qm31_multiply": {
+      "arithmetic": {
+        "eq": 0,
+        "qm31_ops": 1,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "gates": {
+        "eq": 1,
+        "qm31_ops": 296,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "stats": {
+        "equals": 1,
+        "add": 276,
+        "sub": 1,
+        "mul": 19,
+        "inv": 0,
+        "div": 0,
+        "pointwise_mul": 0,
+        "guess": 2,
+        "blake_updates": 0,
+        "permutation_inputs": 0,
+        "outputs": 1,
+        "triple_xor": 0,
+        "m31_to_u32": 0
+      },
+      "variables": 296,
+      "valid": true
+    },
+    "om31_multiply": {
+      "arithmetic": {
+        "eq": 0,
+        "qm31_ops": 9,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "gates": {
+        "eq": 2,
+        "qm31_ops": 333,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "stats": {
+        "equals": 2,
+        "add": 295,
+        "sub": 3,
+        "mul": 35,
+        "inv": 0,
+        "div": 0,
+        "pointwise_mul": 0,
+        "guess": 4,
+        "blake_updates": 0,
+        "permutation_inputs": 0,
+        "outputs": 1,
+        "triple_xor": 0,
+        "m31_to_u32": 0
+      },
+      "variables": 333,
+      "valid": true
+    },
+    "qm31_secure_by_base": {
+      "arithmetic": {
+        "eq": 0,
+        "qm31_ops": 1,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "gates": {
+        "eq": 1,
+        "qm31_ops": 296,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "stats": {
+        "equals": 1,
+        "add": 275,
+        "sub": 1,
+        "mul": 19,
+        "inv": 0,
+        "div": 0,
+        "pointwise_mul": 1,
+        "guess": 2,
+        "blake_updates": 0,
+        "permutation_inputs": 0,
+        "outputs": 1,
+        "triple_xor": 0,
+        "m31_to_u32": 0
+      },
+      "variables": 296,
+      "valid": true
+    },
+    "om31_secure_by_base": {
+      "arithmetic": {
+        "eq": 0,
+        "qm31_ops": 2,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "gates": {
+        "eq": 2,
+        "qm31_ops": 328,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "stats": {
+        "equals": 2,
+        "add": 291,
+        "sub": 1,
+        "mul": 35,
+        "inv": 0,
+        "div": 0,
+        "pointwise_mul": 1,
+        "guess": 3,
+        "blake_updates": 0,
+        "permutation_inputs": 0,
+        "outputs": 1,
+        "triple_xor": 0,
+        "m31_to_u32": 0
+      },
+      "variables": 328,
+      "valid": true
+    },
+    "qm31_inverse": {
+      "arithmetic": {
+        "eq": 1,
+        "qm31_ops": 1,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "gates": {
+        "eq": 2,
+        "qm31_ops": 296,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "stats": {
+        "equals": 2,
+        "add": 276,
+        "sub": 1,
+        "mul": 19,
+        "inv": 1,
+        "div": 0,
+        "pointwise_mul": 0,
+        "guess": 2,
+        "blake_updates": 0,
+        "permutation_inputs": 0,
+        "outputs": 1,
+        "triple_xor": 0,
+        "m31_to_u32": 0
+      },
+      "variables": 296,
+      "valid": true
+    },
+    "om31_inverse": {
+      "arithmetic": {
+        "eq": 1,
+        "qm31_ops": 8,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "gates": {
+        "eq": 3,
+        "qm31_ops": 334,
+        "m31_to_u32": 0,
+        "triple_xor": 0,
+        "blake_g_gate": 0
+      },
+      "stats": {
+        "equals": 3,
+        "add": 292,
+        "sub": 3,
+        "mul": 39,
+        "inv": 1,
+        "div": 0,
+        "pointwise_mul": 0,
+        "guess": 3,
+        "blake_updates": 0,
+        "permutation_inputs": 0,
+        "outputs": 1,
+        "triple_xor": 0,
+        "m31_to_u32": 0
+      },
+      "variables": 334,
+      "valid": true
+    }
+  }
+}

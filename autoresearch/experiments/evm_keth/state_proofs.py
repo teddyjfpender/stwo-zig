@@ -1,0 +1,122 @@
+"""Strict host MPT membership/non-membership checks for retained RPC witnesses.
+
+These checks bind reads to an explicitly supplied root. They neither establish
+chain consensus nor add constraints to Keth's Cairo programs.
+"""
+from __future__ import annotations
+
+import rlp
+from eth_hash.auto import keccak
+
+if __package__:
+    from .op_encoding import hex_bytes, quantity
+else:
+    from op_encoding import hex_bytes, quantity
+
+EMPTY_ROOT = keccak(rlp.encode(b''))
+EMPTY_CODE_HASH = keccak(b'')
+
+
+def nibbles(raw: bytes) -> list[int]:
+    return [half for byte in raw for half in (byte >> 4, byte & 15)]
+
+
+def lookup(root: bytes, key: bytes, proof: list[bytes]) -> bytes | None:
+    return lookup_nodes(root, key, {keccak(raw): raw for raw in proof})
+
+
+def lookup_nodes(root: bytes, key: bytes, nodes: dict[bytes, bytes]) -> bytes | None:
+    """Lookup in a shared witness DB, verifying each retrieved node hash."""
+    if len(root) != 32 or len(key) != 32:
+        raise ValueError('expected 32-byte trie root and secure path')
+    if root == EMPTY_ROOT:
+        return None
+    path, reference = nibbles(key), root
+    for depth in range(65):
+        if isinstance(reference, list):
+            if len(rlp.encode(reference)) >= 32:
+                raise ValueError('oversized inline trie child')
+            node = reference
+        elif isinstance(reference, bytes) and len(reference) == 32:
+            if reference not in nodes:
+                raise ValueError('incomplete trie proof')
+            raw = nodes[reference]
+            if keccak(raw) != reference:
+                raise ValueError('trie database node hash mismatch')
+            if depth and len(raw) < 32:
+                raise ValueError('hashed trie child should be inline')
+            node = rlp.decode(raw, strict=True)
+        else:
+            raise ValueError('invalid trie child reference')
+        if not isinstance(node, list):
+            raise ValueError('expected RLP trie node list')
+        if len(node) == 17:
+            if not isinstance(node[16], bytes):
+                raise ValueError('invalid branch value')
+            if not path:
+                return node[16] or None
+            reference, path = node[path[0]], path[1:]
+            if reference == b'':
+                return None
+            continue
+        if len(node) != 2 or not isinstance(node[0], bytes) or not node[0]:
+            raise ValueError('invalid compact trie node')
+        compact = nibbles(node[0])
+        flag = compact[0]
+        if flag > 3 or (flag % 2 == 0 and compact[1] != 0):
+            raise ValueError('invalid hex-prefix encoding')
+        segment = compact[1:] if flag % 2 else compact[2:]
+        leaf = flag >= 2
+        if not leaf and not segment:
+            raise ValueError('empty extension path')
+        if path[:len(segment)] != segment:
+            return None
+        path = path[len(segment):]
+        if leaf:
+            if not isinstance(node[1], bytes) or not node[1]:
+                raise ValueError('invalid leaf value')
+            return node[1] if not path else None
+        reference = node[1]
+    raise ValueError('trie path exceeds secure key length')
+
+
+def integer(raw: bytes) -> int:
+    if not isinstance(raw, bytes) or len(raw) > 32 or raw[:1] == b'\0':
+        raise ValueError('noncanonical trie integer')
+    return int.from_bytes(raw, 'big')
+
+
+def verify_account(state_root: str, address: str, response: dict, code: str | None = None) -> dict:
+    if hex_bytes(address, 20) != hex_bytes(response['address'], 20):
+        raise ValueError('account proof address mismatch')
+    value = lookup(hex_bytes(state_root, 32), keccak(hex_bytes(address, 20)),
+                   [hex_bytes(node) for node in response['accountProof']])
+    if value is None:
+        nonce, balance, storage_root, code_hash = 0, 0, EMPTY_ROOT, EMPTY_CODE_HASH
+    else:
+        account = rlp.decode(value, strict=True)
+        if not isinstance(account, list) or len(account) != 4:
+            raise ValueError('invalid account leaf')
+        nonce, balance = map(integer, account[:2])
+        storage_root, code_hash = account[2:]
+        if len(storage_root) != 32 or len(code_hash) != 32:
+            raise ValueError('invalid account roots')
+    if (quantity(response['nonce'], 64) != nonce or quantity(response['balance']) != balance
+            or hex_bytes(response['storageHash'], 32) != storage_root
+            or hex_bytes(response['codeHash'], 32) != code_hash):
+        raise ValueError('account proof fields do not match root')
+    if code is not None and keccak(hex_bytes(code)) != code_hash:
+        raise ValueError('code does not match proven code hash')
+    seen = set()
+    for item in response['storageProof']:
+        key = quantity(item['key'])
+        if key in seen:
+            raise ValueError('duplicate storage proof key')
+        seen.add(key)
+        leaf = lookup(storage_root, keccak(key.to_bytes(32, 'big')),
+                      [hex_bytes(node) for node in item['proof']])
+        observed = 0 if leaf is None else integer(rlp.decode(leaf, strict=True))
+        if observed != quantity(item['value']):
+            raise ValueError('storage proof value mismatch')
+    return dict(address=address, exists=value is not None, storage_slots=len(seen),
+                code_checked=code is not None, root=state_root)

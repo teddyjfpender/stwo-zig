@@ -1,0 +1,635 @@
+{
+  "coefficient_commit_paths": {
+    "expanded": 29
+  },
+  "coefficient_commits": [
+    {
+      "path": "expanded",
+      "columns": 133,
+      "setup_ns": 41,
+      "extension_ns": 232546375,
+      "retention_ns": 8251917,
+      "merkle_ns": 424401667,
+      "append_join_ns": 20375,
+      "column_payload_bytes": 1005484544,
+      "coefficient_payload_bytes": 251371136,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 131,
+      "setup_ns": 0,
+      "extension_ns": 171488167,
+      "retention_ns": 7765917,
+      "merkle_ns": 420085750,
+      "append_join_ns": 18291,
+      "column_payload_bytes": 889061376,
+      "coefficient_payload_bytes": 222265344,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 129,
+      "setup_ns": 42,
+      "extension_ns": 171611125,
+      "retention_ns": 3374083,
+      "merkle_ns": 422443750,
+      "append_join_ns": 19375,
+      "column_payload_bytes": 886964224,
+      "coefficient_payload_bytes": 221741056,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 156,
+      "setup_ns": 42,
+      "extension_ns": 175236166,
+      "retention_ns": 4445167,
+      "merkle_ns": 481475750,
+      "append_join_ns": 31750,
+      "column_payload_bytes": 896828928,
+      "coefficient_payload_bytes": 224207232,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 148,
+      "setup_ns": 42,
+      "extension_ns": 173971458,
+      "retention_ns": 4719417,
+      "merkle_ns": 461804083,
+      "append_join_ns": 29167,
+      "column_payload_bytes": 918323200,
+      "coefficient_payload_bytes": 229580800,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 148,
+      "setup_ns": 0,
+      "extension_ns": 178604375,
+      "retention_ns": 3793792,
+      "merkle_ns": 475031000,
+      "append_join_ns": 30167,
+      "column_payload_bytes": 917929984,
+      "coefficient_payload_bytes": 229482496,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 154,
+      "setup_ns": 0,
+      "extension_ns": 176776458,
+      "retention_ns": 5172375,
+      "merkle_ns": 468378125,
+      "append_join_ns": 31375,
+      "column_payload_bytes": 926452736,
+      "coefficient_payload_bytes": 231613184,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 139,
+      "setup_ns": 42,
+      "extension_ns": 176928750,
+      "retention_ns": 3553166,
+      "merkle_ns": 425753417,
+      "append_join_ns": 16917,
+      "column_payload_bytes": 885686272,
+      "coefficient_payload_bytes": 221421568,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 140,
+      "setup_ns": 0,
+      "extension_ns": 172961417,
+      "retention_ns": 3501583,
+      "merkle_ns": 430194000,
+      "append_join_ns": 18667,
+      "column_payload_bytes": 900892160,
+      "coefficient_payload_bytes": 225223040,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 140,
+      "setup_ns": 0,
+      "extension_ns": 173543584,
+      "retention_ns": 3266125,
+      "merkle_ns": 428133875,
+      "append_join_ns": 19791,
+      "column_payload_bytes": 876058624,
+      "coefficient_payload_bytes": 219014656,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 158,
+      "setup_ns": 0,
+      "extension_ns": 154532708,
+      "retention_ns": 3421542,
+      "merkle_ns": 466670416,
+      "append_join_ns": 29375,
+      "column_payload_bytes": 873127936,
+      "coefficient_payload_bytes": 218281984,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 142,
+      "setup_ns": 0,
+      "extension_ns": 174599333,
+      "retention_ns": 3306458,
+      "merkle_ns": 427699875,
+      "append_join_ns": 29959,
+      "column_payload_bytes": 864608256,
+      "coefficient_payload_bytes": 216152064,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 142,
+      "setup_ns": 42,
+      "extension_ns": 177955917,
+      "retention_ns": 3346083,
+      "merkle_ns": 433044917,
+      "append_join_ns": 28958,
+      "column_payload_bytes": 868278272,
+      "coefficient_payload_bytes": 217069568,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 140,
+      "setup_ns": 42,
+      "extension_ns": 172016792,
+      "retention_ns": 3308000,
+      "merkle_ns": 432438333,
+      "append_join_ns": 34125,
+      "column_payload_bytes": 872472576,
+      "coefficient_payload_bytes": 218118144,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 156,
+      "setup_ns": 0,
+      "extension_ns": 173234334,
+      "retention_ns": 3332958,
+      "merkle_ns": 468321708,
+      "append_join_ns": 27875,
+      "column_payload_bytes": 869785600,
+      "coefficient_payload_bytes": 217446400,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 139,
+      "setup_ns": 0,
+      "extension_ns": 203918625,
+      "retention_ns": 3318750,
+      "merkle_ns": 428938625,
+      "append_join_ns": 40083,
+      "column_payload_bytes": 891740160,
+      "coefficient_payload_bytes": 222935040,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 136,
+      "setup_ns": 0,
+      "extension_ns": 175472291,
+      "retention_ns": 4130584,
+      "merkle_ns": 431906458,
+      "append_join_ns": 29208,
+      "column_payload_bytes": 870137856,
+      "coefficient_payload_bytes": 217534464,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 135,
+      "setup_ns": 0,
+      "extension_ns": 200353667,
+      "retention_ns": 3366000,
+      "merkle_ns": 430894958,
+      "append_join_ns": 33292,
+      "column_payload_bytes": 889012224,
+      "coefficient_payload_bytes": 222253056,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 156,
+      "setup_ns": 41,
+      "extension_ns": 180502667,
+      "retention_ns": 4471250,
+      "merkle_ns": 470701708,
+      "append_join_ns": 58625,
+      "column_payload_bytes": 875642880,
+      "coefficient_payload_bytes": 218910720,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 156,
+      "setup_ns": 41,
+      "extension_ns": 174403125,
+      "retention_ns": 3433084,
+      "merkle_ns": 473356875,
+      "append_join_ns": 62500,
+      "column_payload_bytes": 874463232,
+      "coefficient_payload_bytes": 218615808,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 154,
+      "setup_ns": 0,
+      "extension_ns": 177813209,
+      "retention_ns": 3574750,
+      "merkle_ns": 474917125,
+      "append_join_ns": 46125,
+      "column_payload_bytes": 877191168,
+      "coefficient_payload_bytes": 219297792,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 142,
+      "setup_ns": 0,
+      "extension_ns": 181907125,
+      "retention_ns": 3919292,
+      "merkle_ns": 429663500,
+      "append_join_ns": 32291,
+      "column_payload_bytes": 868081664,
+      "coefficient_payload_bytes": 217020416,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 135,
+      "setup_ns": 0,
+      "extension_ns": 205251334,
+      "retention_ns": 3622750,
+      "merkle_ns": 432370000,
+      "append_join_ns": 16916,
+      "column_payload_bytes": 903655424,
+      "coefficient_payload_bytes": 225913856,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 139,
+      "setup_ns": 0,
+      "extension_ns": 178103500,
+      "retention_ns": 4424458,
+      "merkle_ns": 437674209,
+      "append_join_ns": 9416,
+      "column_payload_bytes": 876380160,
+      "coefficient_payload_bytes": 219095040,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 139,
+      "setup_ns": 0,
+      "extension_ns": 217080709,
+      "retention_ns": 6294916,
+      "merkle_ns": 436974500,
+      "append_join_ns": 8500,
+      "column_payload_bytes": 970226176,
+      "coefficient_payload_bytes": 242556544,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 46,
+      "setup_ns": 0,
+      "extension_ns": 11823625,
+      "retention_ns": 616875,
+      "merkle_ns": 11897833,
+      "append_join_ns": 29417,
+      "column_payload_bytes": 135249920,
+      "coefficient_payload_bytes": 33812480,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 33,
+      "setup_ns": 0,
+      "extension_ns": 11031209,
+      "retention_ns": 1242375,
+      "merkle_ns": 12607125,
+      "append_join_ns": 2958,
+      "column_payload_bytes": 125841408,
+      "coefficient_payload_bytes": 31460352,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 33,
+      "setup_ns": 42,
+      "extension_ns": 379292,
+      "retention_ns": 21375,
+      "merkle_ns": 302250,
+      "append_join_ns": 20875,
+      "column_payload_bytes": 1486848,
+      "coefficient_payload_bytes": 371712,
+      "payload_is_allocator_live": "false"
+    },
+    {
+      "path": "expanded",
+      "columns": 33,
+      "setup_ns": 0,
+      "extension_ns": 6204792,
+      "retention_ns": 268917,
+      "merkle_ns": 5601333,
+      "append_join_ns": 2958,
+      "column_payload_bytes": 47198208,
+      "coefficient_payload_bytes": 11799552,
+      "payload_is_allocator_live": "false"
+    }
+  ],
+  "cache_acquires": [
+    {
+      "path": "seal",
+      "columns": 133,
+      "blowup": 2,
+      "identity_ns": 77030291,
+      "lookup_and_control_ns": 1250,
+      "seal_ns": 743904000,
+      "total_ns": 820935583
+    },
+    {
+      "path": "seal",
+      "columns": 131,
+      "blowup": 2,
+      "identity_ns": 68015333,
+      "lookup_and_control_ns": 1834,
+      "seal_ns": 672374166,
+      "total_ns": 740391333
+    },
+    {
+      "path": "seal",
+      "columns": 129,
+      "blowup": 2,
+      "identity_ns": 67926625,
+      "lookup_and_control_ns": 1500,
+      "seal_ns": 670394125,
+      "total_ns": 738322292
+    },
+    {
+      "path": "seal",
+      "columns": 156,
+      "blowup": 2,
+      "identity_ns": 68776542,
+      "lookup_and_control_ns": 1041,
+      "seal_ns": 735145959,
+      "total_ns": 803923542
+    },
+    {
+      "path": "seal",
+      "columns": 148,
+      "blowup": 2,
+      "identity_ns": 70541166,
+      "lookup_and_control_ns": 1459,
+      "seal_ns": 716240666,
+      "total_ns": 786783291
+    },
+    {
+      "path": "seal",
+      "columns": 148,
+      "blowup": 2,
+      "identity_ns": 70475666,
+      "lookup_and_control_ns": 1125,
+      "seal_ns": 733530459,
+      "total_ns": 804007291
+    },
+    {
+      "path": "seal",
+      "columns": 154,
+      "blowup": 2,
+      "identity_ns": 71142041,
+      "lookup_and_control_ns": 1459,
+      "seal_ns": 726586750,
+      "total_ns": 797730291
+    },
+    {
+      "path": "seal",
+      "columns": 139,
+      "blowup": 2,
+      "identity_ns": 67822416,
+      "lookup_and_control_ns": 1292,
+      "seal_ns": 679293833,
+      "total_ns": 747117541
+    },
+    {
+      "path": "seal",
+      "columns": 140,
+      "blowup": 2,
+      "identity_ns": 69081042,
+      "lookup_and_control_ns": 42,
+      "seal_ns": 680778416,
+      "total_ns": 749859542
+    },
+    {
+      "path": "seal",
+      "columns": 140,
+      "blowup": 2,
+      "identity_ns": 67100250,
+      "lookup_and_control_ns": 1500,
+      "seal_ns": 677092542,
+      "total_ns": 744194334
+    },
+    {
+      "path": "seal",
+      "columns": 158,
+      "blowup": 2,
+      "identity_ns": 66897333,
+      "lookup_and_control_ns": 1375,
+      "seal_ns": 696716375,
+      "total_ns": 763615083
+    },
+    {
+      "path": "seal",
+      "columns": 142,
+      "blowup": 2,
+      "identity_ns": 66236625,
+      "lookup_and_control_ns": 1500,
+      "seal_ns": 676673834,
+      "total_ns": 742911959
+    },
+    {
+      "path": "seal",
+      "columns": 142,
+      "blowup": 2,
+      "identity_ns": 66742291,
+      "lookup_and_control_ns": 2459,
+      "seal_ns": 686218291,
+      "total_ns": 752963041
+    },
+    {
+      "path": "seal",
+      "columns": 140,
+      "blowup": 2,
+      "identity_ns": 66772583,
+      "lookup_and_control_ns": 2542,
+      "seal_ns": 679747291,
+      "total_ns": 746522458
+    },
+    {
+      "path": "seal",
+      "columns": 156,
+      "blowup": 2,
+      "identity_ns": 66687333,
+      "lookup_and_control_ns": 1292,
+      "seal_ns": 716493708,
+      "total_ns": 783182375
+    },
+    {
+      "path": "seal",
+      "columns": 139,
+      "blowup": 2,
+      "identity_ns": 68259167,
+      "lookup_and_control_ns": 1708,
+      "seal_ns": 709658250,
+      "total_ns": 777919125
+    },
+    {
+      "path": "seal",
+      "columns": 136,
+      "blowup": 2,
+      "identity_ns": 66636500,
+      "lookup_and_control_ns": 84,
+      "seal_ns": 683693458,
+      "total_ns": 750330084
+    },
+    {
+      "path": "seal",
+      "columns": 135,
+      "blowup": 2,
+      "identity_ns": 68056667,
+      "lookup_and_control_ns": 1000,
+      "seal_ns": 708076958,
+      "total_ns": 776134667
+    },
+    {
+      "path": "seal",
+      "columns": 156,
+      "blowup": 2,
+      "identity_ns": 67039292,
+      "lookup_and_control_ns": 1417,
+      "seal_ns": 728183458,
+      "total_ns": 795224209
+    },
+    {
+      "path": "seal",
+      "columns": 156,
+      "blowup": 2,
+      "identity_ns": 67044583,
+      "lookup_and_control_ns": 1042,
+      "seal_ns": 723280083,
+      "total_ns": 790325750
+    },
+    {
+      "path": "seal",
+      "columns": 154,
+      "blowup": 2,
+      "identity_ns": 67297416,
+      "lookup_and_control_ns": 1875,
+      "seal_ns": 730359959,
+      "total_ns": 797659291
+    },
+    {
+      "path": "seal",
+      "columns": 142,
+      "blowup": 2,
+      "identity_ns": 66684500,
+      "lookup_and_control_ns": 1875,
+      "seal_ns": 686876292,
+      "total_ns": 753562709
+    },
+    {
+      "path": "seal",
+      "columns": 135,
+      "blowup": 2,
+      "identity_ns": 68990333,
+      "lookup_and_control_ns": 709,
+      "seal_ns": 715469833,
+      "total_ns": 784460875
+    },
+    {
+      "path": "seal",
+      "columns": 139,
+      "blowup": 2,
+      "identity_ns": 67249833,
+      "lookup_and_control_ns": 1292,
+      "seal_ns": 694491375,
+      "total_ns": 761742500
+    },
+    {
+      "path": "seal",
+      "columns": 139,
+      "blowup": 2,
+      "identity_ns": 76245333,
+      "lookup_and_control_ns": 1125,
+      "seal_ns": 740321834,
+      "total_ns": 816568292
+    },
+    {
+      "path": "seal",
+      "columns": 46,
+      "blowup": 2,
+      "identity_ns": 10386708,
+      "lookup_and_control_ns": 42,
+      "seal_ns": 35762916,
+      "total_ns": 46149666
+    },
+    {
+      "path": "seal",
+      "columns": 33,
+      "blowup": 2,
+      "identity_ns": 10428584,
+      "lookup_and_control_ns": 2750,
+      "seal_ns": 35315916,
+      "total_ns": 45747334
+    },
+    {
+      "path": "seal",
+      "columns": 33,
+      "blowup": 2,
+      "identity_ns": 123084,
+      "lookup_and_control_ns": 458,
+      "seal_ns": 878750,
+      "total_ns": 1002334
+    },
+    {
+      "path": "seal",
+      "columns": 33,
+      "blowup": 2,
+      "identity_ns": 3799125,
+      "lookup_and_control_ns": 42,
+      "seal_ns": 15987375,
+      "total_ns": 19786584
+    }
+  ],
+  "commit_totals_ns": {
+    "setup_ns": 417,
+    "extension_ns": 4580252129,
+    "retention_ns": 107263959,
+    "merkle_ns": 11143683165,
+    "append_join_ns": 779331
+  },
+  "cache_totals_ns": {
+    "identity_ns": 1739488662,
+    "lookup_and_control_ns": 37089,
+    "seal_ns": 17699546872,
+    "total_ns": 19439073376
+  },
+  "overall_setup_ns": 31360452417,
+  "proof_verify_ns": 1438513708,
+  "unattributed_original_keys_image_and_preflight_ns": 11921379041,
+  "semantics": "diagnostic inclusive scopes; no controlled speedup claim; original key/image/preflight residual not separately attributed"
+}

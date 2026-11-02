@@ -1,0 +1,39 @@
+{
+  "scope": "Complete pinned round5 Ethereum block24,628,607 through OM31 localGKR CPU and classicOM service truths; no new security/recursion/GPU claim",
+  "source_commit": "6091851f7406b40d2f16ea906578f4c2b1904caf",
+  "binary_sha256": "bb795a6edcce725b00ed4659ceb631bfc6dc1c6a83c6126a6c27f6918db286bf",
+  "steps": 104253913,
+  "cpu_proofs": 25,
+  "truth_proofs": 5,
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "same_process_accepted": true,
+  "fresh_process_accepted": true,
+  "terminal_output_hex": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "prove_seconds": 620.821692792,
+  "process_wall_seconds": 642.94,
+  "user_seconds": 2958.1,
+  "system_seconds": 250.15,
+  "max_rss_bytes": 34322579456,
+  "peak_footprint_bytes": 37960529232,
+  "minor_faults": 65069040,
+  "major_faults": 2413068,
+  "worker_seconds_sum": {
+    "source_ns": 15.800383831,
+    "main_commit_ns": 26.446964795,
+    "gkr_ns": 91.372101831,
+    "inputs_ns": 4.818273539,
+    "numerical_ns": 72.533468877,
+    "binding_ns": 13.16536771,
+    "spill_ns": 53.417429125,
+    "restore_ns": 66.06584925,
+    "native_complete_ns": 367.268885461
+  },
+  "interpretation": "Complete-block correctness milestone, not performance success:621s proving. Frozen baseline excludes newer ownedfold,packedbinding,packedDEEPfinalizer,parkingv3 and beta2candidate. Serialstage1barrier andone16workerlane; spill+restore119.48s. Concurrent focused compilation duringqualification means not quiet controlledperformance evidence.",
+  "next_measurements": [
+    "Same-shard newkernels exact artifactparity andfreshreceiver",
+    "Fullblock parkingv3 +phase-specificstage2admission A/B; full30proofartifactparity",
+    "MatchedOMclassic control; classicQM31control remains separate",
+    "Candidatebeta2usableauthority qualification remains separate from128certificate"
+  ]
+}

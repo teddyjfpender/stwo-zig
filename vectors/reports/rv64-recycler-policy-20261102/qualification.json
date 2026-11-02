@@ -1,0 +1,31 @@
+{
+  "scope": "Operational producer cache-cap qualification; unchanged4GiB default and receiver cap",
+  "selected_cache_bytes": 1073741824,
+  "prove_seconds": 8.260926791,
+  "process_wall_seconds": 10.49,
+  "maximum_rss_bytes": 16388210688,
+  "artifacts": {
+    "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+    "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+    "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+    "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+  },
+  "all_match_prior_accepted_prefix": true,
+  "fresh": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 1,
+    "truth_proofs": 0,
+    "load_and_setup_ns": 883190750,
+    "verify_ns": 374242334
+  },
+  "security_qualified": false,
+  "limitations": [
+    "Single actual1GiBprobe, not a matched4GiB speed/memory comparison",
+    "Requested live bytes, retained allocator capacity and RSS remain separate",
+    "No protocol/profile/statement change; nondefault cap appears only in operational report"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "rv64-om31-main-only-prover-v1",
+  "qualification": "actual original ALU MAIN STARK arithmetic fragment, not closed execution or whole-protocol128 claim",
+  "dependencies": ["5074bc821", "982ed27b0", "806a88b00", "f541fd909"],
+  "gate": "zig build test-riscv64-gkr-circuit -Doptimize={ReleaseSafe,ReleaseFast} -j2 --summary all",
+  "safe": "PASS",
+  "fast": "PASS",
+  "tests": 39,
+  "actual_proof": {"role": "alu", "log_size": 5, "main_columns": 47, "direct_constraints": 49, "physical_interaction_columns": 0, "extension_coordinates": 8, "varying_valid_rows": 32, "fresh_receiver": "PASS", "main_and_composition_high_half_nonzero": true},
+  "negative_gates": ["high-half sampled opening mutation", "invalid arithmetic trace"],
+  "domain": "existing bounded2n M31 coset authority; packedM31 residuals by packedOM31 weights, exactly8 coordinate outputs",
+  "open_gates": ["localGKR authenticated range and function closure", "service bridges/truths and wide globalclassic closure", "complete wide execution route", "whole-protocol128 budget"],
+  "performance_claim": null
+}

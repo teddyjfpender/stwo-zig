@@ -1,0 +1,87 @@
+{
+  "semantics_match": [
+    "add",
+    "sub",
+    "slt",
+    "sltu",
+    "xor",
+    "or",
+    "and",
+    "addi",
+    "slti",
+    "sltiu",
+    "xori",
+    "ori",
+    "andi",
+    "beq",
+    "bne",
+    "blt",
+    "bge",
+    "bltu",
+    "bgeu",
+    "jal",
+    "jalr",
+    "lui",
+    "auipc",
+    "fence"
+  ],
+  "semantic_diff": [],
+  "base_stale_paths": {
+    "src/core/fields/m31.zig": {
+      "packaged": "6f6393f878cdf4e5474163dc3ddc8e8f758180f603482f1e275185fac5e8b4cd",
+      "base": "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73",
+      "current": "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73",
+      "local_rv64_base_caeb185_sha256": "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73"
+    },
+    "src/frontends/riscv/air/extract/model.zig": {
+      "packaged": "3229ac2f1b1add8a785faff734e09d71b9a16d1bb3f2c7e9a7fc8c597609a78b",
+      "base": "cd2174e0d94e4175ef65f2394762189ca15c7ad90c03eb24c304eabb07329ffe",
+      "current": "cd2174e0d94e4175ef65f2394762189ca15c7ad90c03eb24c304eabb07329ffe",
+      "local_rv64_base_caeb185_sha256": "cd2174e0d94e4175ef65f2394762189ca15c7ad90c03eb24c304eabb07329ffe"
+    },
+    "src/frontends/riscv/air/extract/symbolic.zig": {
+      "packaged": "a09ddf9ba200f7e9c80d2b7d287690202d795907feae6ec1cfec394f06f157ab",
+      "base": "c8f54255347ad49034d88f5299ab5e51c5cc3dfab89b3f84e2326e223e43ccce",
+      "current": "c8f54255347ad49034d88f5299ab5e51c5cc3dfab89b3f84e2326e223e43ccce",
+      "local_rv64_base_caeb185_sha256": "c8f54255347ad49034d88f5299ab5e51c5cc3dfab89b3f84e2326e223e43ccce"
+    },
+    "src/frontends/riscv/air/lookups/opcode_entries.zig": {
+      "packaged": "48e2ff887540579cd3eabf20ac1b129541f7bb64bdeee5618f0fba3611daace1",
+      "base": "4f424e6ac7bc93f96b06d7ecd1d9073974db9dc15a766ed7956a09bcdf370df4",
+      "current": "4f424e6ac7bc93f96b06d7ecd1d9073974db9dc15a766ed7956a09bcdf370df4",
+      "local_rv64_base_caeb185_sha256": "4f424e6ac7bc93f96b06d7ecd1d9073974db9dc15a766ed7956a09bcdf370df4"
+    },
+    "src/frontends/riscv/air/semantic_eval.zig": {
+      "packaged": "bcbc11cb58194617fdd6024f0e2f9a117d66595b34a1597f5cf5a73f5b74253f",
+      "base": "a919b3b3f2b2e1a91d09e74821815b5c2551e069fbb6e41c18afbbd0c28ada78",
+      "current": "a919b3b3f2b2e1a91d09e74821815b5c2551e069fbb6e41c18afbbd0c28ada78",
+      "local_rv64_base_caeb185_sha256": "a919b3b3f2b2e1a91d09e74821815b5c2551e069fbb6e41c18afbbd0c28ada78"
+    },
+    "src/frontends/riscv/air/semantics/mod.zig": {
+      "packaged": "4bd420979d00ac86aea0a7f4f80d6bae0bbfe1bf769a802fc9ff4d9bdca14124",
+      "base": "d027827483bc0cb80fb43b04232ac33f2868b3556e799a0892afdfd80eb4d4e8",
+      "current": "d027827483bc0cb80fb43b04232ac33f2868b3556e799a0892afdfd80eb4d4e8",
+      "local_rv64_base_caeb185_sha256": "d027827483bc0cb80fb43b04232ac33f2868b3556e799a0892afdfd80eb4d4e8"
+    },
+    "src/frontends/riscv/runner/trace.zig": {
+      "packaged": "82a3533a27d9323d91f50a7e6eb5d86c5eb8c78a23c45489cfbfb4e2a082bf79",
+      "base": "535c3ea41cdad1197e9143af938785066f1c96a10b11c163885e16750769c043",
+      "current": "535c3ea41cdad1197e9143af938785066f1c96a10b11c163885e16750769c043",
+      "local_rv64_base_caeb185_sha256": "535c3ea41cdad1197e9143af938785066f1c96a10b11c163885e16750769c043"
+    }
+  },
+  "introduced_stale_paths": {
+    "src/core/fields/qm31.zig": {
+      "packaged": "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
+      "base": "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
+      "current": "916275ccc46e2b9d13c1d591a405dfa071018634ef652b053ee8e5414ba3c71e",
+      "local_rv64_base_caeb185_sha256": "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931"
+    },
+    "src/frontends/riscv/air/lookups/entry.zig": {
+      "packaged": "550d5ca13ce830fe968f6bb250b165019c06b46dae074c4b22fb1456a8c72564",
+      "base": "550d5ca13ce830fe968f6bb250b165019c06b46dae074c4b22fb1456a8c72564",
+      "current": "925623683f3b962b429aebcc172ba9b11e1f6b0528135652afc2ee80ec7265a8",
+      "local_rv64_base_caeb185_sha256": "925623683f3b962b429aebcc172ba9b11e1f6b0528135652afc2ee80ec7265a8"
+    }
+  }
+}

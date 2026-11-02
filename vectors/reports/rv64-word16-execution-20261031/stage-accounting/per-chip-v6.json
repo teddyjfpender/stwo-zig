@@ -1,0 +1,868 @@
+{
+  "scope": "Read-only accounting of qualified batch0 at HEADbe56af69f; not a performance optimization or universal RSS model",
+  "basis": {
+    "new_report": "/tmp/rv64-word16-execution-real-packet0-v6-boundary/report.json",
+    "new_planning": "/tmp/rv64-word16-execution-real-packet0-v6-boundary/planning.json",
+    "legacy_metrics": "/tmp/rv64-word16-paired-legacy-v1.stdout.json",
+    "new_report_sha256": "9e96ae578ecc21c1a749ea0f4da16f460da3d59a6534e522f86e181432cadd63",
+    "source_geometry": "src/integrations/riscv_cpu/word16_execution/geometry.zig"
+  },
+  "corrections": [
+    "CPU is53MAIN/40INTER, not46/56",
+    "Packed SHIFT table is65536physicalrows and18FIXED/16MAIN/36INTER, totaling4587520M31cells (18350080B,17.5MiB), not42Mcells",
+    "Sixteen shifts/input pack1048576semanticfacts; dictionary/inversion work still seessemanticfacts",
+    "ALU574440 and BINARY673582 distinctfacts already used; BINARY remainslog20",
+    "native2n D3 source evaluations are not all resampled atglobal4n; only weighted secure quotient vectors are extended/lifted"
+  ],
+  "new_per_chip": [
+    {
+      "role": "cpu",
+      "trace_log": 22,
+      "physical_rows": 4194304,
+      "widths_fixed_main_inter": [
+        3,
+        53,
+        40
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        12582912,
+        222298112,
+        167772160
+      ],
+      "active_truth_or_event_rows": 4194303,
+      "padding_rows": 1,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "REG_enabled_capacity": 12582912,
+        "REG_enabled_actual": null,
+        "FUNCTION_positive_actual": 2992269,
+        "OWNER_positive_actual": 1202034,
+        "ROM_positive_actual": 4194303,
+        "U16_unconditional": 12582912,
+        "U8_unconditional": 12582912
+      },
+      "native_evaluation_log": 23,
+      "native_evaluation_rows": 8388608,
+      "nominal_dense_column_point_values": 805306368,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 24,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 96,
+      "extra_previous_samples_main_inter": [
+        5,
+        4
+      ],
+      "total_OODS_Q_samples": 105
+    },
+    {
+      "role": "rom",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        32,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        33554432,
+        1048576,
+        8388608
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "ROM canonical/valid row count not measured",
+      "semantic_fixed_facts": null,
+      "queries": {},
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 85983232,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 41,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 45
+    },
+    {
+      "role": "boundary",
+      "trace_log": 5,
+      "physical_rows": 32,
+      "widths_fixed_main_inter": [
+        34,
+        0,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        1088,
+        0,
+        256
+      ],
+      "active_truth_or_event_rows": 32,
+      "padding_rows": 0,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {},
+      "native_evaluation_log": 6,
+      "native_evaluation_rows": 64,
+      "nominal_dense_column_point_values": 2688,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 7,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 42,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 46
+    },
+    {
+      "role": "alu",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        2,
+        52,
+        52
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        2097152,
+        54525952,
+        54525952
+      ],
+      "active_truth_or_event_rows": 574440,
+      "padding_rows": 474136,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_weight_sum": 1135463,
+        "U16_unconditional": 20971520
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 222298112,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 106,
+      "extra_previous_samples_main_inter": [
+        0,
+        8
+      ],
+      "total_OODS_Q_samples": 114
+    },
+    {
+      "role": "binary",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        2,
+        42,
+        28
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        2097152,
+        44040192,
+        29360128
+      ],
+      "active_truth_or_event_rows": 673582,
+      "padding_rows": 374994,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_weight_sum": 866612,
+        "AND_unconditional": 8388608
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 150994944,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 72,
+      "extra_previous_samples_main_inter": [
+        0,
+        8
+      ],
+      "total_OODS_Q_samples": 80
+    },
+    {
+      "role": "shift",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        2,
+        53,
+        48
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        2097152,
+        55574528,
+        50331648
+      ],
+      "active_truth_or_event_rows": 995056,
+      "padding_rows": 53520,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_weight_sum": 995056,
+        "SHIFT_unconditional": 5242880,
+        "U16_unconditional": 9437184
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 216006656,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 103,
+      "extra_previous_samples_main_inter": [
+        0,
+        12
+      ],
+      "total_OODS_Q_samples": 115
+    },
+    {
+      "role": "jalr",
+      "trace_log": 14,
+      "physical_rows": 16384,
+      "widths_fixed_main_inter": [
+        2,
+        18,
+        12
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        32768,
+        294912,
+        196608
+      ],
+      "active_truth_or_event_rows": 9913,
+      "padding_rows": 6471,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_requests": 9913,
+        "FUNCTION_positive_ADD_AND": 19826
+      },
+      "native_evaluation_log": 15,
+      "native_evaluation_rows": 32768,
+      "nominal_dense_column_point_values": 1048576,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 16,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 32,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 36
+    },
+    {
+      "role": "division",
+      "trace_log": 5,
+      "physical_rows": 32,
+      "widths_fixed_main_inter": [
+        3,
+        1135,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        96,
+        36320,
+        256
+      ],
+      "active_truth_or_event_rows": 0,
+      "padding_rows": 32,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_actual": 0
+      },
+      "native_evaluation_log": 7,
+      "native_evaluation_rows": 128,
+      "nominal_dense_column_point_values": 146688,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 7,
+      "weighted_secure_polynomial_extension_logs": 0,
+      "current_scalar_column_samples": 1146,
+      "extra_previous_samples_main_inter": [
+        1,
+        4
+      ],
+      "total_OODS_Q_samples": 1151
+    },
+    {
+      "role": "multiplication",
+      "trace_log": 13,
+      "physical_rows": 8192,
+      "widths_fixed_main_inter": [
+        3,
+        87,
+        132
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        24576,
+        712704,
+        1081344
+      ],
+      "active_truth_or_event_rows": 5051,
+      "padding_rows": 3141,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_actual": 5051,
+        "BYTE_unconditional": 786432
+      },
+      "native_evaluation_log": 15,
+      "native_evaluation_rows": 32768,
+      "nominal_dense_column_point_values": 7274496,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 15,
+      "weighted_secure_polynomial_extension_logs": 0,
+      "current_scalar_column_samples": 222,
+      "extra_previous_samples_main_inter": [
+        1,
+        4
+      ],
+      "total_OODS_Q_samples": 227
+    },
+    {
+      "role": "shift_table",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        18,
+        16,
+        36
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        1179648,
+        1048576,
+        2359296
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 1048576,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 9175040,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 70,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 74
+    },
+    {
+      "role": "and_table",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        5,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        327680,
+        65536,
+        524288
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 65536,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 1835008,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 14,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 18
+    },
+    {
+      "role": "range16",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        3,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        196608,
+        65536,
+        524288
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 65536,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 1572864,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 12,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 16
+    },
+    {
+      "role": "range8",
+      "trace_log": 8,
+      "physical_rows": 256,
+      "widths_fixed_main_inter": [
+        3,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        768,
+        256,
+        2048
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 256,
+      "queries": {},
+      "native_evaluation_log": 9,
+      "native_evaluation_rows": 512,
+      "nominal_dense_column_point_values": 6144,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 10,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 12,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 16
+    },
+    {
+      "role": "ls",
+      "trace_log": 21,
+      "physical_rows": 2097152,
+      "widths_fixed_main_inter": [
+        3,
+        79,
+        116
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        6291456,
+        165675008,
+        243269632
+      ],
+      "active_truth_or_event_rows": 1202034,
+      "padding_rows": 895118,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "RAM_signed_absolute": 2404068,
+        "OWNER_negative": 1202034,
+        "U16_unconditional": 73400320,
+        "U8_unconditional": 10485760,
+        "SELECTION_unconditional": 2097152
+      },
+      "native_evaluation_log": 22,
+      "native_evaluation_rows": 4194304,
+      "nominal_dense_column_point_values": 830472192,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 23,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 198,
+      "extra_previous_samples_main_inter": [
+        1,
+        20
+      ],
+      "total_OODS_Q_samples": 219
+    },
+    {
+      "role": "initial",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        3,
+        23,
+        48
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        3145728,
+        24117248,
+        50331648
+      ],
+      "active_truth_or_event_rows": 708957,
+      "padding_rows": 339619,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "RAM_negative": 708957,
+        "U16_unconditional": 14680064,
+        "U8_unconditional": 1048576
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 155189248,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 74,
+      "extra_previous_samples_main_inter": [
+        5,
+        12
+      ],
+      "total_OODS_Q_samples": 91
+    },
+    {
+      "role": "terminal",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        3,
+        23,
+        48
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        3145728,
+        24117248,
+        50331648
+      ],
+      "active_truth_or_event_rows": 708957,
+      "padding_rows": 339619,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "RAM_positive": 708957,
+        "U16_unconditional": 14680064,
+        "U8_unconditional": 1048576
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 155189248,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 74,
+      "extra_previous_samples_main_inter": [
+        5,
+        12
+      ],
+      "total_OODS_Q_samples": 91
+    },
+    {
+      "role": "selection",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        6,
+        2,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        393216,
+        131072,
+        524288
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 131072,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 2097152,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 16,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 20
+    }
+  ],
+  "aggregate": {
+    "legacy_source_cells": {
+      "fixed": 59287536,
+      "main": 2001831312,
+      "interaction": 712893184
+    },
+    "new_v6_source_cells": {
+      "fixed": 67168160,
+      "main": 593751776,
+      "interaction": 659524096
+    },
+    "delta_legacy_minus_new": {
+      "fixed": -7880624,
+      "main": 1408079536,
+      "interaction": 53369088
+    },
+    "OODSmasks_by_tree": [
+      127,
+      1605,
+      732
+    ],
+    "total_component_OODS_Q_samples": 2464,
+    "component_OODS_value_bytes": 39424,
+    "composition_base_columns_additional": 16,
+    "note": "Counts are logical scalar-column sample points before any proof-wire dedup; exclude FRI/Merkle openings. DIV0 role alone1151samples although36672sourcecells."
+  },
+  "lookup_masses": {
+    "U16": 145752064,
+    "U8_BYTE": 25952256,
+    "AND": 8388608,
+    "WORD_SHIFT": 5242880,
+    "SELECTION": 2097152,
+    "FUNCTION_positive_actual_CPU_plus_JALR_helpers": 3012095,
+    "FUNCTION_negative_actual_truths_plus_JALR": 3012095,
+    "note": "Range and table requests include physicalpadding, never multiplied by reusablefact\u03bc. Actual REG enable count and nonzero tablebin counts not measured. Global scalar-range sharing must independently admit sum across allworkers belowM31."
+  },
+  "hash_trees": [
+    {
+      "tree": "fixed",
+      "columns": 127,
+      "native_LDE_payload_M31_words": 134336320,
+      "native_LDE_payload_bytes": 537345280,
+      "conceptual_all_columns_at_max_leaf_words": 1065353216,
+      "conceptual_all_columns_at_max_leaf_bytes": 4261412864,
+      "max_leaf_log": 23,
+      "leaf_finalizations_if_built": 8388608,
+      "parent_hashes_if_built": 8388607,
+      "nonfinal_BLAKE2s_lane_blocks_shape_model": 6553792,
+      "groups": [
+        {
+          "native_LDE_log": 6,
+          "columns": 37,
+          "cumulative_columns": 37,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 192
+        },
+        {
+          "native_LDE_log": 9,
+          "columns": 3,
+          "cumulative_columns": 40,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 14,
+          "columns": 3,
+          "cumulative_columns": 43,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 15,
+          "columns": 2,
+          "cumulative_columns": 45,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 17,
+          "columns": 32,
+          "cumulative_columns": 77,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 262144
+        },
+        {
+          "native_LDE_log": 21,
+          "columns": 44,
+          "cumulative_columns": 121,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 6291456
+        },
+        {
+          "native_LDE_log": 22,
+          "columns": 3,
+          "cumulative_columns": 124,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 23,
+          "columns": 3,
+          "cumulative_columns": 127,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        }
+      ],
+      "per_request_status": "retained immutable key tree; appendFixed clones/shared owner rather than rehashing"
+    },
+    {
+      "tree": "main",
+      "columns": 1587,
+      "native_LDE_payload_M31_words": 1187503552,
+      "native_LDE_payload_bytes": 4750014208,
+      "conceptual_all_columns_at_max_leaf_words": 13312720896,
+      "conceptual_all_columns_at_max_leaf_bytes": 53250883584,
+      "max_leaf_log": 23,
+      "leaf_finalizations_if_built": 8388608,
+      "parent_hashes_if_built": 8388607,
+      "nonfinal_BLAKE2s_lane_blocks_shape_model": 79958464,
+      "groups": [
+        {
+          "native_LDE_log": 6,
+          "columns": 1135,
+          "cumulative_columns": 1135,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 4544
+        },
+        {
+          "native_LDE_log": 9,
+          "columns": 1,
+          "cumulative_columns": 1136,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 14,
+          "columns": 87,
+          "cumulative_columns": 1223,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 98304
+        },
+        {
+          "native_LDE_log": 15,
+          "columns": 18,
+          "cumulative_columns": 1241,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 32768
+        },
+        {
+          "native_LDE_log": 17,
+          "columns": 20,
+          "cumulative_columns": 1261,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 131072
+        },
+        {
+          "native_LDE_log": 21,
+          "columns": 194,
+          "cumulative_columns": 1455,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 25165824
+        },
+        {
+          "native_LDE_log": 22,
+          "columns": 79,
+          "cumulative_columns": 1534,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 20971520
+        },
+        {
+          "native_LDE_log": 23,
+          "columns": 53,
+          "cumulative_columns": 1587,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 33554432
+        }
+      ],
+      "per_request_status": "request-dependent MAIN weights/values or FS interactions; rebuild required"
+    },
+    {
+      "tree": "interaction",
+      "columns": 616,
+      "native_LDE_payload_M31_words": 1319048192,
+      "native_LDE_payload_bytes": 5276192768,
+      "conceptual_all_columns_at_max_leaf_words": 5167382528,
+      "conceptual_all_columns_at_max_leaf_bytes": 20669530112,
+      "max_leaf_log": 23,
+      "leaf_finalizations_if_built": 8388608,
+      "parent_hashes_if_built": 8388607,
+      "nonfinal_BLAKE2s_lane_blocks_shape_model": 84574784,
+      "groups": [
+        {
+          "native_LDE_log": 6,
+          "columns": 16,
+          "cumulative_columns": 16,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 64
+        },
+        {
+          "native_LDE_log": 9,
+          "columns": 8,
+          "cumulative_columns": 24,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 512
+        },
+        {
+          "native_LDE_log": 14,
+          "columns": 132,
+          "cumulative_columns": 156,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 131072
+        },
+        {
+          "native_LDE_log": 15,
+          "columns": 12,
+          "cumulative_columns": 168,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 32768
+        },
+        {
+          "native_LDE_log": 17,
+          "columns": 60,
+          "cumulative_columns": 228,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 524288
+        },
+        {
+          "native_LDE_log": 21,
+          "columns": 232,
+          "cumulative_columns": 460,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 29360128
+        },
+        {
+          "native_LDE_log": 22,
+          "columns": 116,
+          "cumulative_columns": 576,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 29360128
+        },
+        {
+          "native_LDE_log": 23,
+          "columns": 40,
+          "cumulative_columns": 616,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 25165824
+        }
+      ],
+      "per_request_status": "request-dependent MAIN weights/values or FS interactions; rebuild required"
+    }
+  ],
+  "hash_implementation": {
+    "actual_suite": "Blake2sPrefixedMerkleHasher(domain_prefixed64), output32B",
+    "hasher_state_bytes": 136,
+    "sizeof_basis": "native zigtest queried prefixed andplain @sizeOf, both136",
+    "maximum_hasher_state_layer_bytes": 1140850688,
+    "leaf_hash_layer_bytes": 268435456,
+    "all_parent_hash_layers_bytes_ideal": 268435424,
+    "payload_loop": "StreamingCommitter.addColumns groupsascendinglog, LeafOps.updateHashers atnativeheight; ExpandOps.expandHashers purestatecopies, nohashing",
+    "sparse_tail": "V6fixed compactprefix canstopafter121cols atLDElog21; LSfixed3(log22)+CPUfixed3(log23) tailvaluesreadatmaxlog23. Thisreplays12582912M31wordreads (~50MB) but0extra nonfinalblocks:6wordsfitremaining7wordsterminalblock. MAIN53 andINTER40 highestgroups exceedtail15, sonotthatpath.",
+    "compression_model": "Shape-derived scalar-lane BLAKE2block count, NOT measured runtime/hardware calls. Forprefixed incrementalstate F(k)=ceil(k/16) nonfinalblocks afterkcolumns, chargegroup2^L*(F(k_after)-F(k_before)); finaloneblock/maxleaf; seededparentonepayloadblock/parent. SIMD4/8 changeshardwarecall count; backendcaches/tail policy mustbeverified.",
+    "plain_vs_prefixed": "Plainhasno64Bdomainprefix; sameascendingnativeprefixreuse. Genericboundedprefix variants mayreplaytail; reusedboundedprefix andBLAKE2sparse tail differ. Do nottransfer theprefixed count toplain/Poseidon.",
+    "source_files": [
+      "src/prover/pcs/tree_builders.zig",
+      "src/prover/vcs_lifted/streaming_committer.zig",
+      "src/prover/vcs_lifted/expand.zig",
+      "src/prover/vcs_lifted/leaves.zig",
+      "src/prover/vcs_lifted/layers.zig",
+      "src/core/vcs_lifted/blake2_merkle.zig"
+    ]
+  },
+  "composition": {
+    "global_bound_log": 24,
+    "global_weighted_domain_points": 16777216,
+    "split": 2,
+    "composition_trace_base_log": 22,
+    "composition_commitment_LDE_log": 23,
+    "composition_base_columns": 16,
+    "composition_leaf_payload_words": 134217728,
+    "behavior": "D3 native2n weighted secure quotient buckets groupbyheight; one polynomialextension log beforecanonical lift tocommon4n. DIV/MUL retainnative4n. Notcolumnwise fullCPU4n scans.",
+    "note": "Nominal dense matrices are cumulative logical work, not live allocation or actualtransform counters; retained LDE reuse can avoidrecovery. Sourcecell reductions do not directlypredict proofsize/openingcost or peakRSS."
+  },
+  "diagnostic_findings": [
+    "LS islargestINTER source243269632cells; CPU167772160; INIT+TERM100663296",
+    "EmptyDIV role smallnative32rows yet1151of2464OODSmasks; do notoptimize byassumingitsunconstrainedcolumns constant withoutqualifiedroster/canonicality authority",
+    "PackedSHIFTtable is small; SHIFTconsumer53+48 atlog20 dominatesits4.59Mtotal provider",
+    "FixedROM33554432cells dominateshalfkey; immutablekey/tree reuse differs fromrequest multiplicity regeneration",
+    "Leaf representation/opening width does dependallcolumns; actualincremental hashcompression doesnot payallcolumns\u00d7highestheight"
+  ]
+}

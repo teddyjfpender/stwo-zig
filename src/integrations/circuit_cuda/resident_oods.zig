@@ -227,8 +227,12 @@ fn pow2(log: u32) !usize {
     return @as(usize, 1) << @intCast(log);
 }
 
-fn add(a: usize, b: usize) !usize { return std.math.add(usize, a, b) catch error.CircuitOodsSizeOverflow; }
-fn mul(a: usize, b: usize) !usize { return std.math.mul(usize, a, b) catch error.CircuitOodsSizeOverflow; }
+fn add(a: usize, b: usize) !usize {
+    return std.math.add(usize, a, b) catch error.CircuitOodsSizeOverflow;
+}
+fn mul(a: usize, b: usize) !usize {
+    return std.math.mul(usize, a, b) catch error.CircuitOodsSizeOverflow;
+}
 
 test "circuit OODS samples every preprocessed column in canonical mask order" {
     const allocator = std.testing.allocator;

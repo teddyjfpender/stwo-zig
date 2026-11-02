@@ -45,6 +45,7 @@ pub const CommitmentOptions = struct {
     proof_of_work: type = void,
 };
 pub const CpuBackend = configured(.{});
+pub const Om31FriBackend = @import("om31_fri.zig").Backend;
 
 /// Product-owned commitment scheduling using the same CPU implementation.
 /// Other frontends retain their existing defaults; qualification can override
@@ -84,17 +85,16 @@ pub fn configured(comptime options: CommitmentOptions) type {
         pub const adopts_source_trace_arena = options.source_trace_arena;
         pub const reuses_constant_merkle_parents = true;
         pub const lazy_merkle_reuses_constant_parents = false;
-        /// The combined CPU LDE elides the degenerate first forward layer only for
-        /// an exact 2x extension. This declaration lets cold logical-work
+        /// The combined CPU LDE elides all leading zero-child forward layers
+        /// for a dyadic extension. This declaration lets cold logical-work
         /// accounting describe the implementation without entering FFT kernels.
         pub fn combinedCircleLdeSkippedForwardLayers(
             base_log_size: u32,
             extended_log_size: u32,
         ) u32 {
-            return if (extended_log_size > 2 and
-                extended_log_size > base_log_size and
-                extended_log_size - base_log_size == 1)
-                1
+            return if (extended_log_size > 2 and base_log_size >= 1 and
+                extended_log_size > base_log_size)
+                extended_log_size - base_log_size
             else
                 0;
         }
@@ -297,6 +297,10 @@ pub fn configured(comptime options: CommitmentOptions) type {
             const BaseTwiddles = @TypeOf(base_twiddles);
             const ExtendedDomain = @TypeOf(extended_domain);
             const ExtendedTwiddles = @TypeOf(extended_twiddles);
+            // Per-job timing is collected into disjoint job records and emitted
+            // only after the pool joins. No shared recorder enters worker callbacks.
+            const timing_enabled = std.process.hasEnvVarConstant("STWO_ZIG_PCS_KERNEL_TIMING");
+            var joined_timer: ?std.time.Timer = if (timing_enabled) std.time.Timer.start() catch null else null;
             const Job = struct {
                 base: []M31,
                 extended: []M31,
@@ -306,8 +310,12 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 extended_twiddles: ExtendedTwiddles,
                 err: ?anyerror = null,
                 row_pool: ?*prover.work_pool.WorkPool = null,
+                timing_enabled: bool = false,
+                interpolation_ns: u64 = 0,
+                extension_ns: u64 = 0,
 
                 fn run(job: *@This()) void {
+                    var timer: ?std.time.Timer = if (job.timing_enabled) std.time.Timer.start() catch null else null;
                     var base_batch = [_][]M31{job.base};
                     prover.poly.circle.poly.interpolateBuffersWithTwiddlesWithPool(
                         &base_batch,
@@ -318,6 +326,13 @@ pub fn configured(comptime options: CommitmentOptions) type {
                         job.err = err;
                         return;
                     };
+                    if (timer) |*clock| {
+                        job.interpolation_ns = clock.read();
+                        clock.reset();
+                    }
+                    defer if (timer) |*clock| {
+                        job.extension_ns = clock.read();
+                    };
                     @memcpy(job.extended[0..job.base.len], job.base);
                     var extended_batch = [_][]M31{job.extended};
                     const exact_double = job.extended.len % 2 == 0 and
@@ -325,6 +340,20 @@ pub fn configured(comptime options: CommitmentOptions) type {
                     if (exact_double) {
                         prover.poly.circle.poly.evaluateExtensionBuffersWithTwiddlesWithPool(
                             &extended_batch,
+                            job.extended_domain,
+                            job.extended_twiddles,
+                            job.row_pool,
+                        ) catch |err| {
+                            job.err = err;
+                        };
+                        return;
+                    }
+                    if (job.base_domain.logSize() >= 1 and
+                        job.extended_domain.logSize() > job.base_domain.logSize())
+                    {
+                        prover.poly.circle.poly.evaluateDyadicExtensionBuffersWithTwiddlesWithPool(
+                            &extended_batch,
+                            job.base_domain.logSize(),
                             job.extended_domain,
                             job.extended_twiddles,
                             job.row_pool,
@@ -350,6 +379,7 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 if (source.ptr != base.ptr) @memcpy(base, source);
                 job.* = .{
                     .base = base,
+                    .timing_enabled = timing_enabled,
                     .extended = extended,
                     .base_domain = base_domain,
                     .base_twiddles = base_twiddles,
@@ -375,6 +405,20 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 for (jobs) |*job| Job.run(job);
             }
             for (jobs) |job| if (job.err) |err| return err;
+            if (joined_timer) |*clock| {
+                var interpolation_ns: u128 = 0;
+                var extension_ns: u128 = 0;
+                for (jobs) |job| {
+                    interpolation_ns += job.interpolation_ns;
+                    extension_ns += job.extension_ns;
+                }
+                // Job intervals overlap. Extension includes the coefficient copy
+                // and zero fill; joined time also includes setup and allocation.
+                std.debug.print("pcs_kernel columns={d} base_log={d} extended_log={d} interpolation_job_ns={d} extension_job_ns={d} joined_ns={d}\n", .{
+                    jobs.len,         base_domain.logSize(), extended_domain.logSize(),
+                    interpolation_ns, extension_ns,          clock.read(),
+                });
+            }
             return .{
                 .interpolation = .{
                     .log_size = base_domain.logSize(),
@@ -731,7 +775,7 @@ fn expectCombinedCircleLdeMatchesSeparate(
     var actual_extended_batch_a = [_][]M31{actual_extended_a};
     var actual_extended_batch_b = [_][]M31{actual_extended_b};
     var no_transform_buffer: [0]M31 = .{};
-    _ = try CpuBackend.interpolateAndEvaluateCircleBuffers(
+    const receipt_a = try CpuBackend.interpolateAndEvaluateCircleBuffers(
         allocator,
         &source_batch,
         &actual_base_batch_a,
@@ -744,7 +788,7 @@ fn expectCombinedCircleLdeMatchesSeparate(
         extended_domain,
         extended_twiddle_view,
     );
-    _ = try CpuBackend.interpolateAndEvaluateCircleBuffers(
+    const receipt_b = try CpuBackend.interpolateAndEvaluateCircleBuffers(
         allocator,
         &source_batch,
         &actual_base_batch_b,
@@ -758,6 +802,11 @@ fn expectCombinedCircleLdeMatchesSeparate(
         extended_twiddle_view,
     );
 
+    try receipt_a.validate();
+    try receipt_b.validate();
+    const expected_skip = if (extended_log_size > 2 and base_log_size >= 1) extended_log_size - base_log_size else 0;
+    try std.testing.expectEqual(expected_skip, receipt_a.forward.skipped_layers);
+    try std.testing.expectEqual(expected_skip, receipt_b.forward.skipped_layers);
     try std.testing.expectEqualSlices(M31, expected_base, actual_base_a);
     try std.testing.expectEqualSlices(M31, expected_base, actual_base_b);
     try std.testing.expectEqualSlices(M31, expected_extended, actual_extended_a);
@@ -768,6 +817,9 @@ test "cpu_scalar: combined circle LDE is canonical for 2x and wider extension" {
     const allocator = std.testing.allocator;
     try expectCombinedCircleLdeMatchesSeparate(allocator, 4, 5);
     try expectCombinedCircleLdeMatchesSeparate(allocator, 4, 6);
+    try expectCombinedCircleLdeMatchesSeparate(allocator, 4, 7);
+    try expectCombinedCircleLdeMatchesSeparate(allocator, 1, 3);
+    try std.testing.checkAllAllocationFailures(allocator, expectCombinedCircleLdeMatchesSeparate, .{ @as(u32, 4), @as(u32, 6) });
 }
 
 test {

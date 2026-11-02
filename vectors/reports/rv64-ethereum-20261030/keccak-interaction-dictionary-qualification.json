@@ -1,0 +1,105 @@
+{
+  "schema": "rv64-keccak-interaction-dictionary-v1",
+  "status": "functional and historical proof parity PASS; no performance measurement yet",
+  "source": "src/frontends/riscv/rv64/air/crypto/keccak/interaction.zig",
+  "algorithm": [
+    "After all main commitments seal and challenges are drawn, enumerate existing qualified chi8192 and xor51024 table tuples and batch-invert their9,216 denominators using existing core.fields.batchInverseInPlace(QM31).",
+    "For each active native round, derive the same native tuple with shared pure tuple_algebra(M31), use existing tables.index validation, and accumulate its cached inverse in the unchanged event order.",
+    "Skip denominator work for zero-weight native rows; still write every old prefix slot including all padding.",
+    "For each active input/output row, generate25 denominators through unchanged equations.ioTuple and batch-invert them.",
+    "Publish trace.interaction only after the complete result succeeds; allocation, zero-pole and tuple failures release private storage and leave output unpublished."
+  ],
+  "geometry": "Unchanged fixed/main/interaction columns, masks, degree, lookup masses, transcript, claims and proof format. No permutation replay or retained per-lookup index tape.",
+  "dictionary_scratch_bytes": 294912,
+  "batch26_source_model": {
+    "calls": 9845,
+    "native_log": 18,
+    "old_scalar_inverse_calls": 509870080,
+    "new_scalar_inverse_calls": 19691,
+    "remaining_active_chi_xor_dictionary_lookups": 226851840,
+    "prefix_M31_stores_unchanged": 680525824,
+    "model_only": "Core Montgomery batch inversion uses one scalar inverse per dictionary/IO batch. This is an operation-count model, not measured speedup."
+  },
+  "gates": {
+    "safe_keccak": "PASS",
+    "safe_joined_cpu": "PASS",
+    "old_recipe_oracle": "exact all-row interaction bytes and claims for C0/1/2/3/5, odd/even/padding, first IDs near M31 limit",
+    "allocation_failures": "PASS including generate after main release",
+    "zero_poles": "dictionary and active IO failures leave interaction unpublished; valid retry succeeds",
+    "malformed_tuple": "native preflight rejects; separate retained malicious old recipe still fails unchanged AIR lookup residuals",
+    "commands": [
+      "zig build test-riscv64-keccak -Doptimize=ReleaseSafe",
+      "zig build test-riscv64-keccak-cpu -Doptimize=ReleaseSafe"
+    ]
+  },
+  "proof_controls": [
+    {
+      "case": "primitive",
+      "proof_bytes": 1621800,
+      "proof_sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/primitive",
+      "historical_receipt": "keccak-permutation-v2/qualification.json"
+    },
+    {
+      "case": "bridge",
+      "proof_bytes": 1661832,
+      "proof_sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/bridge",
+      "historical_receipt": "keccak-permutation-v2/qualification.json"
+    },
+    {
+      "case": "keccak",
+      "proof_bytes": 2269408,
+      "proof_sha256": "45229b60449f1a1a1c4830302d33e74c601eb982dcfb870511f818ccfecec490",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/joined/keccak",
+      "historical_receipt": "keccak-cpu-v1.json"
+    },
+    {
+      "case": "cyclic",
+      "proof_bytes": 2266976,
+      "proof_sha256": "49d867b2405a734a2581257115ba5d61f91e6b6356aad3a8652d00bdb99b56eb",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/joined/cyclic",
+      "historical_receipt": "keccak-cpu-cyclic-v2.json"
+    },
+    {
+      "case": "mul",
+      "proof_bytes": 2341472,
+      "proof_sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/joined/mul",
+      "historical_receipt": "mul-cpu-v3.json"
+    },
+    {
+      "case": "eth-v1",
+      "proof_bytes": 3015640,
+      "proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/joined/eth-v1",
+      "historical_receipt": "ethereum-cpu-secp-v1.json"
+    },
+    {
+      "case": "eth-v2",
+      "proof_bytes": 3017800,
+      "proof_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4",
+      "historical_SHA_equal": true,
+      "fresh_process_verified": true,
+      "artifact_directory": "/tmp/stwo-rv64-keccak-dictionary/joined/eth-v2",
+      "historical_receipt": "ethereum-cpu-secp-v2.json"
+    }
+  ],
+  "limits": [
+    "No whole-block completion claim; retained baseline stopped on batch47 before this change.",
+    "No elapsed-time or peak-memory gain claimed without complete-batch measurement.",
+    "Dictionary tuple checks are a witness-generation guard; unchanged committed AIR remains mathematical authority."
+  ]
+}

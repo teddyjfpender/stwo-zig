@@ -16,7 +16,9 @@ pub const Rows = struct {
     private_rows: std.ArrayList(private.Row) = .empty,
     bridge_rows: std.ArrayList(bridge.Row) = .empty,
 
-    pub fn init(a: std.mem.Allocator) Rows { return .{ .allocator = a }; }
+    pub fn init(a: std.mem.Allocator) Rows {
+        return .{ .allocator = a };
+    }
     pub fn deinit(self: *Rows) void {
         self.g_rows.deinit(self.allocator);
         self.xor_rows.deinit(self.allocator);

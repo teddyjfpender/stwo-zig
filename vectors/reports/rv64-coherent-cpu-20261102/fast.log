@@ -1,0 +1,46 @@
+test-stwo-prover-gkr-resource
++- run test stderr
+GKR_ADMISSION single vars=1 OM peak=1512 plan=33040; Q peak=1224 plan=32912
+GKR_ADMISSION single vars=2 OM peak=2232 plan=61984; Q peak=1752 plan=61728
+GKR_ADMISSION single vars=8 OM peak=28408 plan=440320; Q peak=15848 plan=423936
+GKR_ADMISSION single vars=14 OM peak=1641000 plan=3272704; Q peak=854200 plan=2224128
+GKR_ADMISSION single vars=16 OM peak=6556312 plan=10235904; Q peak=3410224 plan=6041600
+GKR_ADMISSION mixed vars=16,14,15,12 OM peak=11147512 plan=17997824
+GKR_ADMISSION twelve vars=8 OM peak=322528 plan=1228800
+GKR_PHASE_CURRENT facts=262144 raw=9437184 tree_peak=26216104 full_numerical_peak=26217168 retained_after=9465304
+GKR_CHECKPOINT fieldBytes=16 oldPeak=3986792 checkpointPeak=2920415 ratio=1.365 old_ns=17047917 checkpoint_ns=16254709
+GKR_CHECKPOINT fieldBytes=32 oldPeak=7706424 checkpointPeak=5568735 ratio=1.384 old_ns=22896125 checkpoint_ns=23844584
+GKR_CONSUMED fieldBytes=16 oldPeak=3986792 consumedPeak=2399631 ratio=1.661 old_ns=17062625 consumed_ns=17219583
+GKR_CONSUMED fieldBytes=32 oldPeak=7706424 consumedPeak=4527871 ratio=1.702 old_ns=22926125 consumed_ns=23754708
+test-riscv64-truth-parallel
++- riscv test suite guard
+   +- run test stderr
+TRUTH_DOMAIN_CAPTURE bundle_sha256=eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386 proofs=5 fresh_global_closed=true
+test-riscv64-services-gkr-local
++- riscv test suite guard
+   +- run test stderr
+PRODUCTION_CAP streamed=false copies=false rowlog=12 terms=15 requested_peak=13111184 original_capacity_peak=13112752 plan=15024128
+PRODUCTION_CAP streamed=false copies=false rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6578000 plan=8060928
+PRODUCTION_CAP streamed=false copies=true rowlog=12 terms=15 requested_peak=13111184 original_capacity_peak=13111488 plan=15024128
+PRODUCTION_CAP streamed=false copies=true rowlog=15 terms=1 requested_peak=6575952 original_capacity_peak=6576256 plan=8060928
+PRODUCTION_CAP streamed=true copies=false rowlog=12 terms=15 requested_peak=4745506 original_capacity_peak=4750290 plan=10305536
+PRODUCTION_CAP streamed=true copies=false rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4218848 plan=5701632
+PRODUCTION_CAP streamed=true copies=true rowlog=12 terms=15 requested_peak=5269666 original_capacity_peak=5269970 plan=10305536
+PRODUCTION_CAP streamed=true copies=true rowlog=15 terms=1 requested_peak=4216800 original_capacity_peak=4217104 plan=5701632
+STREAM68_MIXED instances=12 requested_peak=9494274 original_capacity_peak=11944450 plan=25303296
+STREAM68_EQUAL instances=16 requested_peak=2225424 original_capacity_peak=2225728 plan=6053888
+
+Build Summary: 12/12 steps succeeded
+test-native-cpu-gkr-rows success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 14s MaxRSS:909M
+test-stwo-prover-gkr-resource success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 22s MaxRSS:1G
+test-riscv64-services-gkr-local success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 51s MaxRSS:2G
+test-riscv64-truth-parallel success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 40s MaxRSS:2G
+rv64-word16-ethereum-gkr success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 36s MaxRSS:2G
+rv64-om-retention-plan success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2s MaxRSS:391M
+

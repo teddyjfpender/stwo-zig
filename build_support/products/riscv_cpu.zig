@@ -10,7 +10,7 @@ const riscv_refinement = @import("riscv_refinement.zig");
 const riscv_poseidon2_pair = @import("riscv_poseidon2_pair.zig");
 const sail_oracle_tests = @import("riscv_sail_oracle_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
-const executables = @import("riscv_cpu_executables.zig");
+pub const executables = @import("riscv_cpu_executables.zig");
 const product = executables.product;
 const source_closure = riscv_cpu_policy.source_closure;
 pub const Context = executables.Context;
@@ -37,6 +37,227 @@ pub const descriptor = product_policy.Descriptor{
     .source_closure = source_closure,
 };
 pub fn addProduct(context: Context) void {
+    inline for (.{
+        .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 23 },
+        .{ "om-classic-control", "src/integrations/riscv_cpu/rv64_om_classic_control_test_root.zig", 1 },
+        .{ "services-gkr-local", "src/integrations/riscv_cpu/rv64_services_gkr_local_test_root.zig", 40 },
+        .{ "logup-gkr-prototype", "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_test_root.zig", 22 },
+        .{ "selective-openings", "src/integrations/riscv_cpu/rv64_selective_opening_test_root.zig", 7 },
+        .{ "word16-program-metadata", "src/integrations/riscv_cpu/rv64_word16_program_metadata_test_root.zig", 13 },
+        .{ "word16-fixed-native-cache", "src/integrations/riscv_cpu/rv64_word16_fixed_native_cache_test_root.zig", 14 },
+        .{ "word16-division-product", "src/frontends/riscv/rv64_word16_division_product_test_root.zig", 20 },
+        .{ "word16-setup-audit", "src/integrations/riscv_cpu/rv64_word16_setup_audit_test_root.zig", 10 },
+        .{ "word16-csp", "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig", 9 },
+        .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
+        .{ "classic-witness", "src/integrations/riscv_cpu/rv64_classic_witness_test_root.zig", 8 },
+        .{ "truth-parallel", "src/integrations/riscv_cpu/rv64_truth_parallel_test_root.zig", 8 },
+        .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 28 },
+        .{ "main-merkle-parking", "src/integrations/riscv_cpu/rv64_main_merkle_parking_test_root.zig", 17 },
+        .{ "wide-fixed-setup", "src/integrations/riscv_cpu/rv64_wide_fixed_setup_test_root.zig", 6 },
+        .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 8 },
+        .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
+        .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 8 },
+        .{ "full-capture", "src/integrations/riscv_cpu/rv64_full_capture_test_root.zig", 9 },
+        .{ "full-proof", "src/integrations/riscv_cpu/rv64_full_proof_test_root.zig", 3 },
+        .{ "multiplication", "src/integrations/riscv_cpu/delegations/multiplication/test_root.zig", 6 },
+        .{ "keccak-cpu", "src/integrations/riscv_cpu/delegations/keccak/cpu_test_root.zig", 11 },
+        .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 12 },
+        .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 16 },
+        .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
+        .{ "word16-optional-division", "src/integrations/riscv_cpu/rv64_word16_optional_arithmetic_test_root.zig", 6 },
+        .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 14 },
+        .{ "word16-combined-services", "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig", 24 },
+        .{ "word16-bulk-memory", "src/frontends/riscv/rv64_word16_bulk_memory_test_root.zig", 2 },
+        .{ "word16-bulk-services", "src/integrations/riscv_cpu/rv64_word16_bulk_services_test_root.zig", 3 },
+        .{ "word16-jumpdest-services", "src/integrations/riscv_cpu/rv64_word16_jumpdest_services_test_root.zig", 3 },
+        .{ "word16-v3-services", "src/integrations/riscv_cpu/rv64_word16_v3_services_test_root.zig", 2 },
+        .{ "word16-secp-bridge", "src/integrations/riscv_cpu/rv64_word16_secp_bridge_test_root.zig", 11 },
+        .{ "word16-arith256-bridge", "src/integrations/riscv_cpu/rv64_word16_arith256_bridge_test_root.zig", 3 },
+        .{ "word16-arith256-services", "src/integrations/riscv_cpu/rv64_word16_arith256_services_test_root.zig", 3 },
+        .{ "word16-curves-services", "src/integrations/riscv_cpu/rv64_word16_curves_services_test_root.zig", 3 },
+        .{ "word16-keccak-shared", "src/integrations/riscv_cpu/rv64_word16_keccak_shared_test_root.zig", 9 },
+        .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 13 },
+        .{ "word16-retained-parking", "src/integrations/riscv_cpu/rv64_word16_retained_parking_test_root.zig", 27 },
+        .{ "word16-retained-storage", "src/integrations/riscv_cpu/rv64_word16_retained_storage_test_root.zig", 6 },
+        .{ "word16-ethereum-terminal", "src/integrations/riscv_cpu/rv64_word16_ethereum_terminal_test_root.zig", 12 },
+        .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 18 },
+        .{ "word16-shift-weighted", "src/integrations/riscv_cpu/rv64_word16_shift_weighted_test_root.zig", 6 },
+        .{ "word16-shift-native-fill", "src/integrations/riscv_cpu/rv64_word16_shift_native_fill_test_root.zig", 5 },
+        .{ "word16-binary-native-fill", "src/integrations/riscv_cpu/rv64_word16_binary_native_fill_test_root.zig", 11 },
+        .{ "word16-provider-ladder", "src/integrations/riscv_cpu/rv64_word16_provider_ladder_test_root.zig", 10 },
+        .{ "word16-ls-ladder", "src/integrations/riscv_cpu/rv64_word16_ls_ladder_test_root.zig", 9 },
+        .{ "word16-ls-native-fill", "src/integrations/riscv_cpu/rv64_word16_ls_native_fill_test_root.zig", 6 },
+        .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 55 },
+        .{ "multiplication-degree3", "src/integrations/riscv_cpu/delegations/multiplication/degree3_test_root.zig", 10 },
+        .{ "division-degree3", "src/integrations/riscv_cpu/delegations/division/degree3_test_root.zig", 9 },
+        .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 8 },
+        .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
+        .{ "gkr-public-aux", "src/integrations/riscv_cpu/rv64_gkr_public_aux_test_root.zig", 3 },
+        .{ "capture-prefetch", "src/integrations/riscv_cpu/rv64_capture_prefetch_test_root.zig", 7 },
+        .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 2 },
+        .{ "closed-load-store", "src/integrations/riscv_cpu/rv64_load_store_test_root.zig", 15 },
+        .{ "closed-ram", "src/integrations/riscv_cpu/rv64_closed_ram_test_root.zig", 11 },
+        .{ "word16-shift", "src/frontends/riscv/rv64_word16_shift_test_root.zig", 8 },
+        .{ "word16-shift-proof", "src/integrations/riscv_cpu/rv64_word16_shift_proof_test_root.zig", 2 },
+        .{ "word16-shift-word", "src/frontends/riscv/rv64_word16_shift_word_test_root.zig", 15 },
+        .{ "word16-shift-word-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_proof_test_root.zig", 2 },
+        .{ "word16-shift-packed-table", "src/frontends/riscv/rv64_word16_shift_packed_table_test_root.zig", 6 },
+        .{ "word16-shift-source", "src/frontends/riscv/rv64_word16_shift_source_test_root.zig", 7 },
+        .{ "word16-shift-packed-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_packed_proof_test_root.zig", 2 },
+        .{ "word16-index-authority", "src/frontends/riscv/rv64_index_control_test_root.zig", 7 },
+        .{ "word16-parallel-interaction", "src/integrations/riscv_cpu/rv64_word16_parallel_interaction_test_root.zig", 5 },
+        .{ "word16-index-control", "src/integrations/riscv_cpu/rv64_word16_index_control_test_root.zig", 9 },
+        .{ "word16-alu-parallel-interaction", "src/frontends/riscv/rv64_alu_parallel_interaction_test_root.zig", 4 },
+        .{ "word16-rom-lookup", "src/frontends/riscv/rv64_rom_lookup_test_root.zig", 4 },
+        .{ "word16-native-projection", "src/integrations/riscv_cpu/rv64_word16_native_projection_test_root.zig", 3 },
+        .{ "work-packet", "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig", 11 },
+        .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
+        .{ "word16-weighted-binary", "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig", 4 },
+        .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 13 },
+        .{ "word16-weighted-alu", "src/integrations/riscv_cpu/rv64_word16_weighted_alu_test_root.zig", 4 },
+        .{ "word16-execution", "src/integrations/riscv_cpu/rv64_word16_execution_test_root.zig", 25 },
+        .{ "word16-execution-source", "src/integrations/riscv_cpu/rv64_word16_execution_source_test_root.zig", 7 },
+        .{ "word16-execution-coordinator", "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig", 40 },
+        .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 29 },
+        .{ "word16-alu-proof", "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig", 2 },
+        .{ "word16-thin-cpu", "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig", 14 },
+        .{ "distributed-execution", "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig", 10 },
+        .{ "ethereum-chip-plan", "src/integrations/riscv_cpu/rv64_ethereum_chip_plan_test_root.zig", 8 },
+        .{ "verifier-cache", "src/integrations/riscv_cpu/rv64_verifier_cache_test_root.zig", 3 },
+        .{ "point-evaluation", "src/integrations/riscv_cpu/rv64_point_evaluation_test_root.zig", 3 },
+        .{ "cpu-degree-diagnostic", "src/integrations/riscv_cpu/rv64_cpu_degree_diagnostic_test_root.zig", 2 },
+        .{ "borrowed-services", "src/integrations/riscv_cpu/delegations/common/borrowed_test_root.zig", 4 },
+        .{ "lean-proof", "src/integrations/riscv_cpu/rv64_lean_test_root.zig", 3 },
+        .{ "division", "src/integrations/riscv_cpu/delegations/division/test_root.zig", 10 },
+        .{ "authenticated-execution", "src/integrations/riscv_cpu/rv64_authenticated_test_root.zig", 1 },
+        .{ "ram", "src/integrations/riscv_cpu/rv64_ram_test_root.zig", 1 },
+        .{ "program-proof", "src/integrations/riscv_cpu/rv64_program_proof_test_root.zig", 3 },
+        .{ "providers", "src/integrations/riscv_cpu/rv64_providers_test_root.zig", 8 },
+        .{ "main-arena", "src/integrations/riscv_cpu/rv64_main_arena_test_root.zig", 12 },
+        .{ "secp", "src/integrations/riscv_cpu/delegations/secp256k1/test_root.zig", 32 },
+        .{ "sha256-truth", "src/frontends/riscv/rv64_sha256_truth_test_root.zig", 7 },
+        .{ "keccak-sponge", "src/frontends/riscv/rv64_keccak_sponge_test_root.zig", 10 },
+        .{ "ls-dword", "src/frontends/riscv/rv64_ls_dword_test_root.zig", 10 },
+        .{ "word16-sponge-services", "src/integrations/riscv_cpu/rv64_word16_sponge_services_test_root.zig", 3 },
+        .{ "word16-ls-dword-services", "src/integrations/riscv_cpu/rv64_word16_ls_dword_services_test_root.zig", 3 },
+        .{ "word16-zbb-services", "src/integrations/riscv_cpu/rv64_word16_zbb_services_test_root.zig", 4 },
+        .{ "arith256-truth", "src/frontends/riscv/rv64_arith256_truth_test_root.zig", 8 },
+        .{ "curves-truth", "src/frontends/riscv/rv64_curves_truth_test_root.zig", 14 },
+        .{ "keccak", "src/integrations/riscv_cpu/delegations/keccak/test_root.zig", 54 },
+        .{ "keccak-pair2n", "src/integrations/riscv_cpu/delegations/keccak/pair2n_test_root.zig", 12 },
+        .{ "keccak-quartet", "src/integrations/riscv_cpu/delegations/keccak/quartet_test_root.zig", 6 },
+        .{ "keccak-throughput", "src/integrations/riscv_cpu/rv64_keccak_throughput_test_root.zig", 9 },
+        .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
+        .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
+        .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
+        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 1 },
+        .{ "composition-ir", "src/integrations/riscv_cpu/rv64_composition_ir_test_root.zig", 1 },
+        .{ "composition-ir-services", "src/integrations/riscv_cpu/rv64_composition_ir_services_test_root.zig", 1 },
+        .{ "composition-ir-truths", "src/integrations/riscv_cpu/rv64_composition_ir_truths_test_root.zig", 1 },
+        .{ "composition-ir-honest", "src/integrations/riscv_cpu/rv64_composition_ir_honest_test_root.zig", 1 },
+    }) |suite| {
+        context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
+            .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),
+            .minimum = suite[2],
+        }}));
+    }
+    context.b.step("test-riscv64-proof", "Prove and verify authenticated RV64 execution").dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/integrations/riscv_cpu/rv64_proof_test_root.zig", &.{}),
+        .minimum = 9,
+    }}));
+    context.b.step("test-riscv64-air", "Test RV64 constraint authority").dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64_air_test_root.zig", &.{}),
+        .minimum = 35,
+    }}));
+    const rv64_execution = context.b.step("test-riscv64-execution", "Test experimental RV64IM execution without proof admission");
+    rv64_execution.dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64_execution_test_root.zig", &.{}),
+        .minimum = 67,
+    }}));
+    // Compile standalone tools without injected proof modules: execution must
+    // stay usable independently of the frontend AIR/prover dependency graph.
+    for ([_][]const u8{ "diagnostic", "csp_benchmark", "benchmark", "ethereum_execution" }) |tool| {
+        const executable = context.b.addExecutable(.{
+            .name = context.b.fmt("rv64-{s}-compile-check", .{tool}),
+            .root_module = graph.create(context.b, .{
+                .product = product,
+                .root_source_file = context.b.fmt("src/frontends/riscv/rv64/{s}.zig", .{tool}),
+                .target = context.target,
+                .optimize = context.optimize,
+            }),
+        });
+        rv64_execution.dependOn(&executable.step);
+    }
+    const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-om-classic-control", .source = "src/integrations/riscv_cpu/rv64_om_classic_control_main.zig" },
+        .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
+        .{ .name = "rv64-word16-ethereum-gkr", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_gkr_main.zig" },
+        .{ .name = "rv64-logup-gkr-prototype", .source = "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig" },
+        .{ .name = "rv64-logup-kernel-bench", .source = "src/integrations/riscv_cpu/rv64_logup_kernel_bench_main.zig" },
+        .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
+        .{ .name = "rv64-om-sail-qualification", .source = "src/integrations/riscv_cpu/rv64_om_sail_qualification_main.zig" },
+        .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
+        .{ .name = "rv64-word16-setup-ownership", .source = "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig" },
+        .{ .name = "rv64-composition-ir-stats", .source = "src/integrations/riscv_cpu/rv64_composition_ir_stats_main.zig" },
+        .{ .name = "rv64-word16-csp", .source = "src/integrations/riscv_cpu/rv64_word16_csp_main.zig" },
+        .{ .name = "rv64-word16-global-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_secp_fixture_main.zig" },
+        .{ .name = "rv64-word16-shared-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shared_keccak_fixture_main.zig" },
+        .{ .name = "rv64-word16-global-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_keccak_fixture_main.zig" },
+        .{ .name = "rv64-word16-global-execution", .source = "src/integrations/riscv_cpu/rv64_word16_global_execution_main.zig" },
+        .{ .name = "rv64-word16-execution-benchmark", .source = "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig" },
+        .{ .name = "rv64-load-store-fixture", .source = "src/integrations/riscv_cpu/rv64_load_store_fixture_main.zig" },
+        .{ .name = "rv64-closed-ram-fixture", .source = "src/integrations/riscv_cpu/rv64_closed_ram_fixture_main.zig" },
+        .{ .name = "rv64-word16-shift-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_fixture_main.zig" },
+        .{ .name = "rv64-word16-shift-word-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_word_fixture_main.zig" },
+        .{ .name = "rv64-word16-shift-packed-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig" },
+        .{ .name = "rv64-function-census", .source = "src/integrations/riscv_cpu/rv64_function_census_main.zig" },
+        .{ .name = "rv64-word16-weighted-alu", .source = "src/integrations/riscv_cpu/rv64_word16_weighted_alu_main.zig" },
+        .{ .name = "rv64-word16-weighted-binary", .source = "src/integrations/riscv_cpu/rv64_word16_weighted_binary_main.zig" },
+        .{ .name = "rv64-word16-loop", .source = "src/integrations/riscv_cpu/rv64_word16_loop_main.zig" },
+        .{ .name = "rv64-om-retention-plan", .source = "src/integrations/riscv_cpu/rv64_om_retention_plan_main.zig" },
+        .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/delegations/secp256k1/fixture_main.zig" },
+        .{ .name = "rv64-keccak-pair2n-fixture", .source = "src/integrations/riscv_cpu/delegations/keccak/pair2n_main.zig" },
+        .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/delegations/keccak/fixture_main.zig" },
+        .{ .name = "rv64-keccak-source-profile", .source = "src/integrations/riscv_cpu/delegations/keccak/source_profile_main.zig" },
+        .{ .name = "rv64-distributed-execution-fixture", .source = "src/integrations/riscv_cpu/rv64_distributed_execution_fixture_main.zig" },
+        .{ .name = "rv64-distributed-functional-fixture", .source = "src/integrations/riscv_cpu/rv64_distributed_functional_fixture_main.zig" },
+        .{ .name = "rv64-word16-binary-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_binary_fixture_main.zig" },
+        .{ .name = "rv64-word16-alu-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_alu_fixture_main.zig" },
+        .{ .name = "rv64-qualification", .source = "src/integrations/riscv_cpu/rv64_qualification_main.zig" },
+        .{ .name = "rv64-csp-windows", .source = "src/integrations/riscv_cpu/rv64_csp_windows_main.zig" },
+        .{ .name = "rv64-window-verify", .source = "src/integrations/riscv_cpu/rv64_window_verify_main.zig" },
+        .{ .name = "rv64-csp-full", .source = "src/integrations/riscv_cpu/rv64_csp_full_main.zig" },
+        .{ .name = "rv64-multiplication-verify", .source = "src/integrations/riscv_cpu/delegations/multiplication/verify_main.zig" },
+        .{ .name = "rv64-keccak-cpu-verify", .source = "src/integrations/riscv_cpu/delegations/keccak/verify_main.zig" },
+        .{ .name = "rv64-lean-verify", .source = "src/integrations/riscv_cpu/rv64_lean_verify_main.zig" },
+        .{ .name = "rv64-multiplication-degree3-fixture", .source = "src/integrations/riscv_cpu/delegations/multiplication/degree3_main.zig" },
+        .{ .name = "rv64-division-degree3-fixture", .source = "src/integrations/riscv_cpu/delegations/division/degree3_main.zig" },
+        .{ .name = "rv64-division-verify", .source = "src/integrations/riscv_cpu/delegations/division/verify_main.zig" },
+        .{ .name = "rv64-ethereum-reprove", .source = "src/integrations/riscv_cpu/rv64_ethereum_reprove_main.zig" },
+        .{ .name = "rv64-ethereum-proof", .source = "src/integrations/riscv_cpu/rv64_ethereum_proof_main.zig" },
+        .{ .name = "rv64-ram-cost", .source = "src/integrations/riscv_cpu/rv64_ram_cost_main.zig" },
+        .{ .name = "rv64-ram-receipt", .source = "src/integrations/riscv_cpu/rv64_ram_receipt_main.zig" },
+        .{ .name = "rv64-full-verify", .source = "src/integrations/riscv_cpu/rv64_full_verify_main.zig" },
+        .{ .name = "rv64-quotient-benchmark", .source = "src/frontends/riscv/rv64_quotient_benchmark_main.zig" },
+        .{ .name = "pcs-commit-profile", .source = "src/integrations/riscv_cpu/pcs_commit_profile_main.zig" },
+        .{ .name = "pcs-owned-profile", .source = "src/integrations/riscv_cpu/pcs_owned_profile_main.zig" },
+    };
+    for (tools) |tool| {
+        const entry = @import("riscv_delegation_entry.zig").select(tool.source, .cli);
+        const tool_root = graph.create(context.b, .{
+            .product = product,
+            .root_source_file = if (entry) |value| value.root else tool.source,
+            .target = context.target,
+            .optimize = context.optimize,
+        });
+        if (entry) |value| @import("riscv_delegation_entry.zig").bind(context.b, tool_root, value);
+        context.protocol.addImports(tool_root);
+        _ = graph.addProofWireImport(context.b, context.protocol, product, context.target, context.optimize, tool_root);
+        @import("../graph/integrations.zig").addRiscVCpuStack(context.b, context.protocol, product, context.target, context.optimize, tool_root);
+        const executable = context.b.addExecutable(.{ .name = tool.name, .root_module = tool_root });
+        const install = context.b.addInstallArtifact(executable, .{});
+        context.b.step(tool.name, "Build proof qualification and performance diagnostics").dependOn(&install.step);
+    }
     descriptor.validate() catch |err| std.debug.panic(
         "invalid RISC-V CPU descriptor: {s}",
         .{@errorName(err)},

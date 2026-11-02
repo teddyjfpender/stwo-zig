@@ -1,0 +1,312 @@
+Analysis of sampling rv64-word16-ethereum-gkr (pid 33156) every 10 milliseconds
+Process:         rv64-word16-ethereum-gkr [33156]
+Path:            /private/tmp/*/rv64-word16-ethereum-gkr
+Load Address:    0x100ec8000
+Identifier:      rv64-word16-ethereum-gkr
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  time [33154]
+Target Type:     live task
+
+Date/Time:       2026-11-01 21:25:54.503 +0400
+Launch Time:     2026-11-01 21:24:54.302 +0400
+OS Version:      macOS 26.7.2 (25G332)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         9.6G
+Physical footprint (peak):  15.3G
+Idle exit:                  untracked
+----
+
+Call graph:
+    181 Thread_13852768   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 181 start  (in dyld) + 6992  [0x184ef14e4]
+    +   181 main  (in rv64-word16-ethereum-gkr) + 124  [0x100f56ab0]
+    +     181 word16_global_execution.ethereum.gkr_main.main  (in rv64-word16-ethereum-gkr) + 42064  [0x100f53004]
+    +       181 word16_global_execution.services.gkr_local.coordinator.produce  (in rv64-word16-ethereum-gkr) + 13632  [0x100f426c4]
+    +         181 _pthread_join  (in libsystem_pthread.dylib) + 616  [0x1852bf114]
+    +           181 __ulock_wait  (in libsystem_kernel.dylib) + 8  [0x18527aaf8]
+    181 Thread_13852769
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852770
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852771
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852772
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852773
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852774
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852775
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852776
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852777
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852778
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852779
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852780
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852781
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852782
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13852783
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853243
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_32051.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 976  [0x100f9f818]
+    +       181 word16_global_execution.services.gkr_local.coordinator.Run.stageOne  (in rv64-word16-ethereum-gkr) + 16024  [0x100f3299c]
+    +         181 lookups.gkr_prover_field.ForField(fields.om31.OM31).proveBatch__anon_30649  (in rv64-word16-ethereum-gkr) + 7092  [0x100f83668]
+    +           28 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 13832  [0x10101dde4]
+    +           ! 24 lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr) + 320  [0x101005e90]
+    +           ! : 24 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 1020,368,...  [0x100f00cd4,0x100f00a48,...]
+    +           ! 2 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 3100  [0x100f014f4]
+    +           ! 2 lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr) + 356  [0x101005eb4]
+    +           19 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3852  [0x10101b6e8]
+    +           ! 17 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 404,584,...  [0x100f00a6c,0x100f00b20,...]
+    +           ! 2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3852  [0x10101b6e8]
+    +           !   2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3852,3944  [0x10101b6e8,0x10101b744]
+    +           18 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5532  [0x10101bd78]
+    +           ! 15 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 1584,556,...  [0x100f00f08,0x100f00b04,...]
+    +           ! 3 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5532  [0x10101bd78]
+    +           !   3 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 4288,4364,...  [0x10101b89c,0x10101b8e8,...]
+    +           15 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5412  [0x10101bd00]
+    +           ! 15 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 912,1584,...  [0x100f00c68,0x100f00f08,...]
+    +           12 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 13760  [0x10101dd9c]
+    +           ! 7 lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr) + 320  [0x101005e90]
+    +           ! : 7 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 28,1036,...  [0x100f008f4,0x100f00ce4,...]
+    +           ! 3 lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr) + 356  [0x101005eb4]
+    +           ! 2 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 3100  [0x100f014f4]
+    +           11 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3712  [0x10101b65c]
+    +           ! 11 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 428,728,...  [0x100f00a84,0x100f00bb0,...]
+    +           11 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3788  [0x10101b6a8]
+    +           ! 11 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 344,668,...  [0x100f00a30,0x100f00b74,...]
+    +           10 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 14632  [0x10101e104]
+    +           ! 7 lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr) + 320  [0x101005e90]
+    +           ! : 7 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 940,1020,...  [0x100f00c84,0x100f00cd4,...]
+    +           ! 3 lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr) + 356,364  [0x101005eb4,0x101005ebc]
+    +           7 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3600  [0x10101b5ec]
+    +           ! 7 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 856,956,...  [0x100f00c30,0x100f00c94,...]
+    +           7 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5112  [0x10101bbd4]
+    +           ! 5 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 40,2400,...  [0x100f00900,0x100f01238,...]
+    +           ! 2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5112  [0x10101bbd4]
+    +           !   2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5112,5140  [0x10101bbd4,0x10101bbf0]
+    +           7 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5300  [0x10101bc90]
+    +           ! 7 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 612,440,...  [0x100f00b3c,0x100f00a90,...]
+    +           5 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 3100  [0x100f014f4]
+    +           5 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5236  [0x10101bc50]
+    +           ! 5 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 1940,556,...  [0x100f0106c,0x100f00b04,...]
+    +           5 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5468  [0x10101bd38]
+    +           ! 5 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 1792,2092,...  [0x100f00fd8,0x100f01104,...]
+    +           4 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5016  [0x10101bb74]
+    +           ! 4 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 100,144,...  [0x100f0093c,0x100f00968,...]
+    +           4 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 5344  [0x10101bcbc]
+    +           ! 4 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 28,1020,...  [0x100f008f4,0x100f00cd4,...]
+    +           3 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3344  [0x10101b4ec]
+    +           ! 3 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 428,1348,...  [0x100f00a84,0x100f00e1c,...]
+    +           3 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3644  [0x10101b618]
+    +           ! 3 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 1464,2612,...  [0x100f00e90,0x100f0130c,...]
+    +           2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3276  [0x10101b4a8]
+    +           ! 2 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 116,2936  [0x100f0094c,0x100f01450]
+    +           2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3508  [0x10101b590]
+    +           ! 2 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 24,2900  [0x100f008f0,0x100f0142c]
+    +           2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 13616  [0x10101dd0c]
+    +           ! 2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 13616  [0x10101dd0c]
+    +           !   2 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 14556  [0x10101e0b8]
+    +           1 lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr) + 3248  [0x10101b48c]
+    +             1 fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 2936  [0x100f01450]
+    181 Thread_13853244
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853245
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853246
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853247
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853248
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853249
+    + 181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+    +   181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+    +     181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+    +       181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+    +         181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+    +           181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+    181 Thread_13853250
+      181 thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+        181 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+          181 Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+            181 Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+              181 Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+                181 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x185286c98]
+
+Total number in stack (recursive counted multiple, when >=5):
+        23       _pthread_start  (in libsystem_pthread.dylib) + 136  [0x1852bcc58]
+        23       fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr) + 0  [0x100f008d8]
+        23       thread_start  (in libsystem_pthread.dylib) + 8  [0x1852b7c1c]
+        22       Thread.Condition.FutexImpl.wait  (in rv64-word16-ethereum-gkr) + 80  [0x101067d00]
+        22       Thread.Futex.Deadline.wait  (in rv64-word16-ethereum-gkr) + 52  [0x101035400]
+        22       Thread.PosixThreadImpl.spawn__anon_20058.Instance.entryFn  (in rv64-word16-ethereum-gkr) + 184  [0x100f57050]
+        22       __ulock_wait2  (in libsystem_kernel.dylib) + 0  [0x185286c90]
+
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait2  (in libsystem_kernel.dylib)        3982
+        __ulock_wait  (in libsystem_kernel.dylib)        181
+        fields.om31.OM31.mul  (in rv64-word16-ethereum-gkr)        164
+        lookups.sumcheck_field.ForField(fields.om31.OM31).proveBatchImpl__anon_53528  (in rv64-word16-ethereum-gkr)        9
+        lookups.mle.MleFor(fields.om31.OM31,fields.om31.OM31).fixFirstVariable  (in rv64-word16-ethereum-gkr)        8
+
+Binary Images:
+       0x100ec8000 -        0x10113890f +rv64-word16-ethereum-gkr (0) <FC667788-53DC-387D-A325-49FF7062267C> /tmp/*/rv64-word16-ethereum-gkr
+       0x184e48000 -        0x184e9ab4b  libobjc.A.dylib (951.7) <74772A34-83D8-3B3B-82A0-B5678E177C8D> /usr/lib/libobjc.A.dylib
+       0x184e9b000 -        0x184ed0115  libdyld.dylib (1387.2) <41529082-1172-3CFC-8ADF-A682ABE693F8> /usr/lib/system/libdyld.dylib
+       0x184ed1000 -        0x184f84523  dyld (1.0.0 - 1387.2) <57F4E7E7-A497-38BB-A3D2-A459C622460B> /usr/lib/dyld
+       0x184f85000 -        0x184f88228  libsystem_blocks.dylib (96) <974D6EDA-1213-3D11-B95D-267A66BADDCF> /usr/lib/system/libsystem_blocks.dylib
+       0x184f89000 -        0x184fdd55f  libxpc.dylib (3102.160.5.700.1) <4E6ADFFF-C2F0-3404-B820-46F7AE2554FF> /usr/lib/system/libxpc.dylib
+       0x184fde000 -        0x184ffea1f  libsystem_trace.dylib (1861.160.4.700.1) <CFC3D51E-6886-3520-9DCB-C11E276E416D> /usr/lib/system/libsystem_trace.dylib
+       0x184fff000 -        0x1850ad6b7  libcorecrypto.dylib (1922.160.10.700.1) <1AB30A65-3FE6-3A5A-9078-796D9D590B7C> /usr/lib/system/libcorecrypto.dylib
+       0x1850ae000 -        0x1850fe257  libsystem_malloc.dylib (812.160.5) <8CF02A42-BC33-38BF-B14A-FA9B13B3CA3F> /usr/lib/system/libsystem_malloc.dylib
+       0x1850ff000 -        0x18514623f  libdispatch.dylib (1542.160.2) <7202DA41-6AF6-3268-9EA3-00013AF42D10> /usr/lib/system/libdispatch.dylib
+       0x185147000 -        0x185149ffb  libsystem_featureflags.dylib (103) <2E4939D0-6A88-38BC-B0A3-612870FBC436> /usr/lib/system/libsystem_featureflags.dylib
+       0x18514a000 -        0x1851cb1e7  libsystem_c.dylib (1752.160.4) <8CA64BC9-6B11-3685-84AE-F0AF4247B0C8> /usr/lib/system/libsystem_c.dylib
+       0x1851cc000 -        0x18525cae7  libc++.1.dylib (2100.43) <04D82867-1CBD-3AC4-B744-B27DCD09692F> /usr/lib/libc++.1.dylib
+       0x18525d000 -        0x18527775f  libc++abi.dylib (2100.43) <45F8930E-87C7-3EE1-9638-31B9F476CF68> /usr/lib/libc++abi.dylib
+       0x185278000 -        0x1852b52f7  libsystem_kernel.dylib (12377.161.15.701.48) <ABE830C7-CBE9-3FEC-8F6D-97E5C691BD54> /usr/lib/system/libsystem_kernel.dylib
+       0x1852b6000 -        0x1852c2b3b  libsystem_pthread.dylib (539.100.4) <275D7230-23C1-32EF-B22B-14F61E30AA89> /usr/lib/system/libsystem_pthread.dylib
+       0x1852c3000 -        0x1852cb963  libsystem_platform.dylib (375.120.2) <8BC876D3-95BB-3D23-B7CB-0948531E49EB> /usr/lib/system/libsystem_platform.dylib
+       0x1852cc000 -        0x1852fb6eb  libsystem_info.dylib (600) <309040CE-F9D3-3BC0-8464-C9F9C96B2F90> /usr/lib/system/libsystem_info.dylib
+       0x1892a3000 -        0x1892ace5f  libsystem_darwin.dylib (1752.160.4) <51EF635C-A89E-336B-8409-4E44C2443F55> /usr/lib/system/libsystem_darwin.dylib
+       0x18970c000 -        0x18971e1b6  libsystem_notify.dylib (348.160.3) <455CFD7F-6F0F-3F8B-83CC-C0B5172E4A00> /usr/lib/system/libsystem_notify.dylib
+       0x18b9e1000 -        0x18b9fbf7b  libsystem_networkextension.dylib (2226.161.1.700.2) <76849D08-8FBB-3D8A-A1C5-23FE8D7EDD7D> /usr/lib/system/libsystem_networkextension.dylib
+       0x18ba7e000 -        0x18ba95fdf  libsystem_asl.dylib (406) <C2379107-E507-325E-BADE-A9E32156D38A> /usr/lib/system/libsystem_asl.dylib
+       0x18d63b000 -        0x18d643387  libsystem_symptoms.dylib (2169.160.3.701.1) <23506ADC-641A-348A-BBEF-590787FD73FC> /usr/lib/system/libsystem_symptoms.dylib
+       0x1918e0000 -        0x191918373  libsystem_containermanager.dylib (725.160.3.701.2) <FEB99D23-5EDA-3471-9982-D5EABEB0444B> /usr/lib/system/libsystem_containermanager.dylib
+       0x192cf4000 -        0x192cf85d7  libsystem_configuration.dylib (1405.160.3.702.2) <2B64BA6F-6B26-3743-A977-D485645E6408> /usr/lib/system/libsystem_configuration.dylib
+       0x192cf9000 -        0x192cff99f  libsystem_sandbox.dylib (2680.160.6.701.1) <48D7EC25-49F3-3557-B08C-58CBF6A9495B> /usr/lib/system/libsystem_sandbox.dylib
+       0x194354000 -        0x1943571db  libquarantine.dylib (196.160.2.701.3) <DA61E1C2-CAC1-3573-84F7-C90BB204A615> /usr/lib/system/libquarantine.dylib
+       0x194af3000 -        0x194af9d03  libsystem_coreservices.dylib (191.5.1) <65440E1E-5462-330D-B538-F16B45F4275C> /usr/lib/system/libsystem_coreservices.dylib
+       0x195082000 -        0x1950bfa77  libsystem_m.dylib (3312.100.1) <9BFFB8D5-AB8F-3396-AF0F-98A8A4BFBD42> /usr/lib/system/libsystem_m.dylib
+       0x1950c1000 -        0x1950c4527  libmacho.dylib (1387.2) <A482169A-B97C-30E5-8A3A-2E98DFBA74E7> /usr/lib/system/libmacho.dylib
+       0x1950de000 -        0x1950eb3a7  libcommonCrypto.dylib (600035) <3F3A9815-0AB5-378D-BDF9-9981EE44AB03> /usr/lib/system/libcommonCrypto.dylib
+       0x1950ec000 -        0x1950f5ca3  libunwind.dylib (2100.2) <EF950883-F36C-3B59-9960-8FAD4BDD66D5> /usr/lib/system/libunwind.dylib
+       0x1950fe000 -        0x195108d2b  libcopyfile.dylib (240.160.2.703.1) <8AB5AFDF-C952-3E66-8BE7-F1B22AE7B1E0> /usr/lib/system/libcopyfile.dylib
+       0x195109000 -        0x19510c987  libcompiler_rt.dylib (103.3) <C6F39A7B-4194-3C96-B35C-E1007EA16736> /usr/lib/system/libcompiler_rt.dylib
+       0x19510d000 -        0x19511178b  libsystem_collections.dylib (1752.160.4) <40857856-B232-32C2-B91D-7D13B3D889C4> /usr/lib/system/libsystem_collections.dylib
+       0x195112000 -        0x1951154cf  libsystem_secinit.dylib (168.100.7) <FC9F3012-C4B8-3EE4-A6EC-90E2738A46BB> /usr/lib/system/libsystem_secinit.dylib
+       0x195116000 -        0x195118bf7  libremovefile.dylib (85.100.6) <332434B4-C80C-36C1-8C0B-4813EEE16F55> /usr/lib/system/libremovefile.dylib
+       0x195119000 -        0x195119f27  libkeymgr.dylib (31) <7DC4E9CC-C237-3F67-846F-2CCCFAB9000C> /usr/lib/system/libkeymgr.dylib
+       0x19511a000 -        0x195122e3f  libsystem_dnssd.dylib (2881.160.4.703.1) <E0DAC488-6562-3A27-929E-20BEFC6A11E4> /usr/lib/system/libsystem_dnssd.dylib
+       0x195123000 -        0x19512809b  libcache.dylib (95) <D4FAC022-C551-3A65-8EF1-8285532030C7> /usr/lib/system/libcache.dylib
+       0x195129000 -        0x19512ace3  libSystem.B.dylib (1356) <8A197E38-519D-32D1-9011-49E892FA320D> /usr/lib/libSystem.B.dylib
+       0x288e2a000 -        0x288e31349  libRosetta.dylib (367.9) <81C8280C-CB3A-3F3D-82C9-38C2C1E176FB> /usr/lib/libRosetta.dylib
+       0x28aa3f000 -        0x28aa42a4b  libsystem_darwindirectory.dylib (122) <27786CEA-2A9E-38F0-8949-D3CB8CCF1DE1> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x28aa43000 -        0x28aa4d39b  libsystem_eligibility.dylib (319.160.17) <B0F822FD-F94D-3C30-BCDE-FDA9C93DB5F1> /usr/lib/system/libsystem_eligibility.dylib
+       0x28aa4e000 -        0x28aa5588b  libsystem_sanitizers.dylib (26.1) <35C9CE3E-7ABA-3872-AF41-429F4CA3B51D> /usr/lib/system/libsystem_sanitizers.dylib
+       0x28aa56000 -        0x28aa56bbf  libsystem_trial.dylib (474.2.18.2.1) <698A199E-73E6-3D12-AB87-C8E100BEA52E> /usr/lib/system/libsystem_trial.dylib

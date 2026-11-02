@@ -1,0 +1,30 @@
+{
+  "schema": "rv64-failed-batch47-diagnosis-v1",
+  "ethereum_block_proof_verified": false,
+  "retained_verified_prefix": {
+    "batches": 47,
+    "instructions": 197132241
+  },
+  "failure": {
+    "batch": 47,
+    "start_step": 197132241,
+    "end_step": 201326544,
+    "component": "Keccak permutation",
+    "logical_row": 32767,
+    "residual_index": 14,
+    "residual_m31": 2147483646,
+    "log_size": 15,
+    "source": "/tmp/stwo-rv64-delivery/failed47-crypto-diagnostic.stderr"
+  },
+  "exclusions": {
+    "cpu_native_rows": 4194304,
+    "cpu_residuals_per_row": 1006,
+    "ram_caller_families": 8,
+    "division_native_rows": "all256;224activeDIVU",
+    "multiplication_native_rows": "all32768;30882active",
+    "native_checks": "all clean; native satisfaction alone is not an AIR proof"
+  },
+  "cause": "2^15 mod29=27: final incomplete padding group contains phase26. Ungated output recomposition reads +1/+2 cyclic neighbors from first active group. Same defect atlog14 with remainder28.",
+  "proposed_fix": "Derive fixed phase26 output selector only for COMPLETE_SLOT, preserve phase0 header and all other schedule fields. No AIR polynomial/degree/schema change.",
+  "fix_qualification": "in progress; require adversarial tail schedules, log14/log15 proofs+freshreceivers and actual4m resumedbatch."
+}

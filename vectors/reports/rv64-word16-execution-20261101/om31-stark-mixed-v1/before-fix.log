@@ -1,0 +1,4 @@
+1/1 om31_stark_test.test.OM31 STARK mixed log5 log6 MAIN baseline folds samples per column...FAIL (InvalidLastLayerDegree)
+0 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/9177dd6faa522cdf00fb4d7a78235009/root --seed=0x74194e01

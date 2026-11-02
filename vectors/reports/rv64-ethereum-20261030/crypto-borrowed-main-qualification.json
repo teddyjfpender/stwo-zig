@@ -1,0 +1,49 @@
+{
+  "schema": "rv64-crypto-borrowed-main-v1",
+  "scope": "explicit borrowed native-height K and secp main constructors; existing owned defaults unchanged",
+  "APIs": {
+    "K": "Trace.initWithMainBuffers(a,calls,first_id,klog,blog,MainBuffers{permutation,chi,xor5,bridge})",
+    "secp": "Trace.initPreparedWithMainBuffers(a,materials,calls,first_id,format,MainBuffers{product,linear,bridge})",
+    "secp_context": "Trace.initPreparedWithMainBuffers(a,materials,calls[2],metadata,profile,[2]?Source.MainBuffers)"
+  },
+  "ownership": {
+    "row_fillers": "Owned and borrowed entry points delegate the identical row-filling implementation. The caller initializes only each assigned matrix, including padding; no whole-arena zeroing.",
+    "main": "owns_main=false for borrowed, true by default for backward-compatible owned APIs. No allocator emulation.",
+    "takeMain": "rejects borrowed storage without detaching or freeing any caller allocation",
+    "releaseMain": "prevalidates shape and metadata, clears borrowed views without freeing; owned paths retain ordinary frees",
+    "metadata": "Narrow lookup metadata remains independent of main storage and may generate interactions after the original arena dies. Metadata is released after interaction publication."
+  },
+  "admission": [
+    "exact native matrix lengths and geometry checked before allocation or fill",
+    "pairwise overlap checked across all role slices",
+    "input call/coordinate/count and borrowed fixed aliases rejected",
+    "two-kind context prevalidates both complete groups and cross-kind disjointness before any writes",
+    "phase guards retained for incomplete metadata and repeated main release"
+  ],
+  "gates": {
+    "safe_main_arena": "PASS including final all-fixed preflight",
+    "K": "3 sequential calls at cross-page pointer, complete main/fixed/claim/interaction parity versus owned after arena death",
+    "secp": "ADD and DOUBLE, BE v1 and LE words v2, independently sized log8/log7/log6 product/linear/bridge; counts/main/claim/interaction parity after arena death",
+    "context": "two-kind aggregate count and claim parity; cross-kind aliases reject before allocation/writes",
+    "OOM": "exhaustive construction and post-release interaction allocation failures for K and secp retain caller allocation ownership",
+    "invalid_buffers": "wrong lengths, overlapping roles, fixed aliases reject under fail-at-first-allocation allocator; all sentinel words unchanged",
+    "joined_borrowed_proof": {
+      "result": "PASS",
+      "command": "zig build test-riscv64-borrowed-services -Doptimize=ReleaseSafe",
+      "source": "src/integrations/riscv_cpu/tests/rv64_borrowed_services_test.zig",
+      "test": "CPU DIV MUL Keccak secp one ragged backing commits identical real proof and rejects role aliases",
+      "config": "unchanged air.protocol.config(): q70 / PoW26",
+      "storage": "one MainArena; consuming PCS commitOwnedWithRecorderAndBacking; borrowed source views cleared before lookup challenges",
+      "comparison": "exact serialized byte equality against ordinary owned-streamed control",
+      "receiver": "fresh independently constructed PreparedSetup verifies decoded proof with expected public statement",
+      "artifact_SHA": "No standalone artifact hash captured by this test; byte equality is asserted directly."
+    }
+  },
+  "proof_status": "PASS actual joined CPU+DIV+MUL+Keccak+secp Ethereum words-v2 fixture in one adopted ragged main allocation; serialized proof bytes equal the owned-streamed control; independently rebuilt expected-statement receiver verifies decoded proof.",
+  "limits": [
+    "No whole-block proof or measured memory improvement claimed from these source constructors alone.",
+    "Complete proof batch allocation/PCS/FFT peaks remain independently measured by the outer coordinator."
+  ],
+  "test_command": "zig build test-riscv64-main-arena -Doptimize=ReleaseSafe",
+  "source_status": "stable and joined borrowed proof qualified"
+}

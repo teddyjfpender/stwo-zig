@@ -1,0 +1,3087 @@
+{
+  "schema": "rv64-private-ram-layout-model-v2",
+  "status": "prototype; private transition STARK qualification and CPU/K integration pending",
+  "source_census_sha256": "d5aabe6844fa0f30871a92b5986c0ba52a567b73283c99f6fd344be7176240a3",
+  "source_instructions": 317796238,
+  "source_batches": 76,
+  "value_limbs": 4,
+  "source_bytes_per_field": 4,
+  "include_main_and_interaction": true,
+  "include_fixed_keys": false,
+  "include_fft_lde_or_pcs": false,
+  "no_proof_seconds_prediction": true,
+  "boundary_model": "Conservative: count every touched chunk as common, PLUS at most three edge chunks per batch with a word certificate for every cell. Actual boundary access census did not retain addresses; these edge terms are bounds, not measured counts.",
+  "row_widths": {
+    "chunk": 40,
+    "cell": 87,
+    "leaf": 94,
+    "node": 147,
+    "side": 41,
+    "permit": 102,
+    "poseidon": 311
+  },
+  "geometries": [
+    {
+      "chunk_bytes": 512,
+      "total_permutations": 6490266,
+      "provider_padded_rows_total": 9568256,
+      "encoded_field_cells_upper_total": 4189717312,
+      "peak_encoded_source_bytes_upper": 3738974784,
+      "batches": [
+        {
+          "first_step": 0,
+          "end_step": 4194304,
+          "unrounded_permutations": 708118,
+          "provider_rows": 1048576,
+          "encoded_field_cells_upper": 467360528,
+          "parts": {
+            "chunk_caller": 41943040,
+            "common_cell_table_upper": 91226112,
+            "leaf_header": 1540096,
+            "internal_node_caller": 4816896,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 1671168,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 326107136,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 4194304,
+          "end_step": 8388608,
+          "unrounded_permutations": 8170,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 8388608,
+          "end_step": 12582912,
+          "unrounded_permutations": 10852,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7362960,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 24064,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 26112,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 12582912,
+          "end_step": 16777216,
+          "unrounded_permutations": 23044,
+          "provider_rows": 32768,
+          "encoded_field_cells_upper": 14664592,
+          "parts": {
+            "chunk_caller": 1310720,
+            "common_cell_table_upper": 2850816,
+            "leaf_header": 48128,
+            "internal_node_caller": 150528,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 10190848,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 16777216,
+          "end_step": 20971520,
+          "unrounded_permutations": 62232,
+          "provider_rows": 65536,
+          "encoded_field_cells_upper": 29267856,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 5701632,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 20381696,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 20971520,
+          "end_step": 25165824,
+          "unrounded_permutations": 5470,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 25165824,
+          "end_step": 29360128,
+          "unrounded_permutations": 5480,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 29360128,
+          "end_step": 33554432,
+          "unrounded_permutations": 5536,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 33554432,
+          "end_step": 37748736,
+          "unrounded_permutations": 5930,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 37748736,
+          "end_step": 41943040,
+          "unrounded_permutations": 6118,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 41943040,
+          "end_step": 46137344,
+          "unrounded_permutations": 5754,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 46137344,
+          "end_step": 50331648,
+          "unrounded_permutations": 5934,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 50331648,
+          "end_step": 54525952,
+          "unrounded_permutations": 5854,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 54525952,
+          "end_step": 58720256,
+          "unrounded_permutations": 5390,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 58720256,
+          "end_step": 62914560,
+          "unrounded_permutations": 6294,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 62914560,
+          "end_step": 67108864,
+          "unrounded_permutations": 5674,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 67108864,
+          "end_step": 71303168,
+          "unrounded_permutations": 5718,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 71303168,
+          "end_step": 75497472,
+          "unrounded_permutations": 5218,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3585936,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 75497472,
+          "end_step": 79691776,
+          "unrounded_permutations": 5244,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3585936,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 79691776,
+          "end_step": 83886080,
+          "unrounded_permutations": 5572,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 83886080,
+          "end_step": 88080384,
+          "unrounded_permutations": 6436,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 88080384,
+          "end_step": 92274688,
+          "unrounded_permutations": 7160,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 92274688,
+          "end_step": 96468992,
+          "unrounded_permutations": 5804,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 96468992,
+          "end_step": 100663296,
+          "unrounded_permutations": 6014,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 100663296,
+          "end_step": 104857600,
+          "unrounded_permutations": 5250,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3211792,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 356352,
+            "leaf_header": 6016,
+            "internal_node_caller": 75264,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 104857600,
+          "end_step": 109051904,
+          "unrounded_permutations": 5718,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 109051904,
+          "end_step": 113246208,
+          "unrounded_permutations": 5290,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3585936,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 113246208,
+          "end_step": 117440512,
+          "unrounded_permutations": 5462,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 117440512,
+          "end_step": 121634816,
+          "unrounded_permutations": 5158,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3217040,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 356352,
+            "leaf_header": 6016,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 121634816,
+          "end_step": 125829120,
+          "unrounded_permutations": 5680,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 125829120,
+          "end_step": 130023424,
+          "unrounded_permutations": 5546,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 130023424,
+          "end_step": 134217728,
+          "unrounded_permutations": 5240,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3217040,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 356352,
+            "leaf_header": 6016,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 134217728,
+          "end_step": 138412032,
+          "unrounded_permutations": 4838,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3585936,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 138412032,
+          "end_step": 142606336,
+          "unrounded_permutations": 5000,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3585936,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 142606336,
+          "end_step": 146800640,
+          "unrounded_permutations": 5456,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 146800640,
+          "end_step": 150994944,
+          "unrounded_permutations": 4988,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3211792,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 356352,
+            "leaf_header": 6016,
+            "internal_node_caller": 75264,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 150994944,
+          "end_step": 155189248,
+          "unrounded_permutations": 5554,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 155189248,
+          "end_step": 159383552,
+          "unrounded_permutations": 6360,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 159383552,
+          "end_step": 163577856,
+          "unrounded_permutations": 5264,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3217040,
+          "parts": {
+            "chunk_caller": 163840,
+            "common_cell_table_upper": 356352,
+            "leaf_header": 6016,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 163577856,
+          "end_step": 167772160,
+          "unrounded_permutations": 5544,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 167772160,
+          "end_step": 171966464,
+          "unrounded_permutations": 5458,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 171966464,
+          "end_step": 176160768,
+          "unrounded_permutations": 6208,
+          "provider_rows": 8192,
+          "encoded_field_cells_upper": 3749776,
+          "parts": {
+            "chunk_caller": 327680,
+            "common_cell_table_upper": 712704,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 2547712,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 176160768,
+          "end_step": 180355072,
+          "unrounded_permutations": 75074,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 58474384,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 180355072,
+          "end_step": 184549376,
+          "unrounded_permutations": 150048,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 116295824,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 602112,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 184549376,
+          "end_step": 188743680,
+          "unrounded_permutations": 180318,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 116960912,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 188743680,
+          "end_step": 192937984,
+          "unrounded_permutations": 182172,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 116960912,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 192937984,
+          "end_step": 197132288,
+          "unrounded_permutations": 181586,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 116960912,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 197132288,
+          "end_step": 201326592,
+          "unrounded_permutations": 266778,
+          "provider_rows": 524288,
+          "encoded_field_cells_upper": 222097040,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 770048,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 835584,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 163053568,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 201326592,
+          "end_step": 205520896,
+          "unrounded_permutations": 189236,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 116960912,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 205520896,
+          "end_step": 209715200,
+          "unrounded_permutations": 186254,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 116960912,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 209715200,
+          "end_step": 213909504,
+          "unrounded_permutations": 83616,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 58547856,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 213909504,
+          "end_step": 218103808,
+          "unrounded_permutations": 71900,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 55926416,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 218103808,
+          "end_step": 222298112,
+          "unrounded_permutations": 133740,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 99913360,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 222298112,
+          "end_step": 226492416,
+          "unrounded_permutations": 102120,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 59149968,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 226492416,
+          "end_step": 230686720,
+          "unrounded_permutations": 117508,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 59149968,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 230686720,
+          "end_step": 234881024,
+          "unrounded_permutations": 131356,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 99913360,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 234881024,
+          "end_step": 239075328,
+          "unrounded_permutations": 96216,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 58547856,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 239075328,
+          "end_step": 243269632,
+          "unrounded_permutations": 86034,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 58547856,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 243269632,
+          "end_step": 247463936,
+          "unrounded_permutations": 133634,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 99913360,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 247463936,
+          "end_step": 251658240,
+          "unrounded_permutations": 118564,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 59149968,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 251658240,
+          "end_step": 255852544,
+          "unrounded_permutations": 91700,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 58547856,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 255852544,
+          "end_step": 260046848,
+          "unrounded_permutations": 113574,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 59149968,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 260046848,
+          "end_step": 264241152,
+          "unrounded_permutations": 57080,
+          "provider_rows": 65536,
+          "encoded_field_cells_upper": 29642384,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 5701632,
+            "leaf_header": 96256,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 20381696,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 264241152,
+          "end_step": 268435456,
+          "unrounded_permutations": 64000,
+          "provider_rows": 65536,
+          "encoded_field_cells_upper": 29642384,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 5701632,
+            "leaf_header": 96256,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 20381696,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 268435456,
+          "end_step": 272629760,
+          "unrounded_permutations": 20314,
+          "provider_rows": 32768,
+          "encoded_field_cells_upper": 14170256,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 2850816,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 10190848,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 272629760,
+          "end_step": 276824064,
+          "unrounded_permutations": 21260,
+          "provider_rows": 32768,
+          "encoded_field_cells_upper": 14825616,
+          "parts": {
+            "chunk_caller": 1310720,
+            "common_cell_table_upper": 2850816,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 10190848,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 276824064,
+          "end_step": 281018368,
+          "unrounded_permutations": 76348,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 55926416,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 281018368,
+          "end_step": 285212672,
+          "unrounded_permutations": 116870,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 59149968,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 285212672,
+          "end_step": 289406976,
+          "unrounded_permutations": 90366,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 59149968,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 289406976,
+          "end_step": 293601280,
+          "unrounded_permutations": 28646,
+          "provider_rows": 32768,
+          "encoded_field_cells_upper": 14846608,
+          "parts": {
+            "chunk_caller": 1310720,
+            "common_cell_table_upper": 2850816,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 10190848,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 293601280,
+          "end_step": 297795584,
+          "unrounded_permutations": 83090,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 58547856,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 297795584,
+          "end_step": 301989888,
+          "unrounded_permutations": 131830,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 99913360,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 192512,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 301989888,
+          "end_step": 306184192,
+          "unrounded_permutations": 169012,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 117044880,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 167936,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 306184192,
+          "end_step": 310378496,
+          "unrounded_permutations": 254904,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 118165136,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 2408448,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 310378496,
+          "end_step": 314572800,
+          "unrounded_permutations": 224488,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 118165136,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 385024,
+            "internal_node_caller": 2408448,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 314572800,
+          "end_step": 317796238,
+          "unrounded_permutations": 1439600,
+          "provider_rows": 2097152,
+          "encoded_field_cells_upper": 934743696,
+          "parts": {
+            "chunk_caller": 83886080,
+            "common_cell_table_upper": 182452224,
+            "leaf_header": 3080192,
+            "internal_node_caller": 9633792,
+            "before_side_caller": 83968,
+            "common_policy_certificates_upper": 3342336,
+            "boundary_cell_table_upper": 22272,
+            "boundary_policy_certificates_upper": 26112,
+            "poseidon_provider": 652214272,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        }
+      ]
+    },
+    {
+      "chunk_bytes": 4096,
+      "total_permutations": 9023704,
+      "provider_padded_rows_total": 12550144,
+      "encoded_field_cells_upper_total": 5831330880,
+      "peak_encoded_source_bytes_upper": 3683880512,
+      "batches": [
+        {
+          "first_step": 0,
+          "end_step": 4194304,
+          "unrounded_permutations": 631084,
+          "provider_rows": 1048576,
+          "encoded_field_cells_upper": 460674576,
+          "parts": {
+            "chunk_caller": 41943040,
+            "common_cell_table_upper": 91226112,
+            "leaf_header": 192512,
+            "internal_node_caller": 602112,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 208896,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 326107136,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 4194304,
+          "end_step": 8388608,
+          "unrounded_permutations": 14348,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 8388608,
+          "end_step": 12582912,
+          "unrounded_permutations": 17316,
+          "provider_rows": 32768,
+          "encoded_field_cells_upper": 14797328,
+          "parts": {
+            "chunk_caller": 1310720,
+            "common_cell_table_upper": 2850816,
+            "leaf_header": 6016,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 10190848,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 12582912,
+          "end_step": 16777216,
+          "unrounded_permutations": 32152,
+          "provider_rows": 32768,
+          "encoded_field_cells_upper": 14797328,
+          "parts": {
+            "chunk_caller": 1310720,
+            "common_cell_table_upper": 2850816,
+            "leaf_header": 6016,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 6528,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 10190848,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 16777216,
+          "end_step": 20971520,
+          "unrounded_permutations": 67516,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 57929744,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 24064,
+            "internal_node_caller": 75264,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 26112,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 20971520,
+          "end_step": 25165824,
+          "unrounded_permutations": 10172,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 25165824,
+          "end_step": 29360128,
+          "unrounded_permutations": 10474,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 29360128,
+          "end_step": 33554432,
+          "unrounded_permutations": 11110,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 33554432,
+          "end_step": 37748736,
+          "unrounded_permutations": 12004,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 37748736,
+          "end_step": 41943040,
+          "unrounded_permutations": 12302,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 41943040,
+          "end_step": 46137344,
+          "unrounded_permutations": 11118,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 46137344,
+          "end_step": 50331648,
+          "unrounded_permutations": 12004,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 50331648,
+          "end_step": 54525952,
+          "unrounded_permutations": 11722,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 54525952,
+          "end_step": 58720256,
+          "unrounded_permutations": 9874,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 58720256,
+          "end_step": 62914560,
+          "unrounded_permutations": 13812,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 62914560,
+          "end_step": 67108864,
+          "unrounded_permutations": 11416,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 67108864,
+          "end_step": 71303168,
+          "unrounded_permutations": 10812,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 71303168,
+          "end_step": 75497472,
+          "unrounded_permutations": 9862,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 75497472,
+          "end_step": 79691776,
+          "unrounded_permutations": 10776,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 79691776,
+          "end_step": 83886080,
+          "unrounded_permutations": 10506,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 83886080,
+          "end_step": 88080384,
+          "unrounded_permutations": 11702,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 88080384,
+          "end_step": 92274688,
+          "unrounded_permutations": 13200,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 92274688,
+          "end_step": 96468992,
+          "unrounded_permutations": 11992,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 96468992,
+          "end_step": 100663296,
+          "unrounded_permutations": 12012,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 100663296,
+          "end_step": 104857600,
+          "unrounded_permutations": 8944,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 104857600,
+          "end_step": 109051904,
+          "unrounded_permutations": 11094,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 109051904,
+          "end_step": 113246208,
+          "unrounded_permutations": 9850,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 113246208,
+          "end_step": 117440512,
+          "unrounded_permutations": 9858,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 117440512,
+          "end_step": 121634816,
+          "unrounded_permutations": 9870,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 121634816,
+          "end_step": 125829120,
+          "unrounded_permutations": 11086,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 125829120,
+          "end_step": 130023424,
+          "unrounded_permutations": 11086,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 130023424,
+          "end_step": 134217728,
+          "unrounded_permutations": 9556,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 134217728,
+          "end_step": 138412032,
+          "unrounded_permutations": 10446,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 138412032,
+          "end_step": 142606336,
+          "unrounded_permutations": 9564,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 142606336,
+          "end_step": 146800640,
+          "unrounded_permutations": 10462,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 146800640,
+          "end_step": 150994944,
+          "unrounded_permutations": 9540,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 150994944,
+          "end_step": 155189248,
+          "unrounded_permutations": 10800,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 155189248,
+          "end_step": 159383552,
+          "unrounded_permutations": 11984,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 159383552,
+          "end_step": 163577856,
+          "unrounded_permutations": 9866,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 163577856,
+          "end_step": 167772160,
+          "unrounded_permutations": 11694,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 167772160,
+          "end_step": 171966464,
+          "unrounded_permutations": 9850,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 171966464,
+          "end_step": 176160768,
+          "unrounded_permutations": 12552,
+          "provider_rows": 16384,
+          "encoded_field_cells_upper": 7614864,
+          "parts": {
+            "chunk_caller": 655360,
+            "common_cell_table_upper": 1425408,
+            "leaf_header": 3008,
+            "internal_node_caller": 37632,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 3264,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 5095424,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 176160768,
+          "end_step": 180355072,
+          "unrounded_permutations": 80632,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 57929744,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 11403264,
+            "leaf_header": 24064,
+            "internal_node_caller": 75264,
+            "before_side_caller": 5248,
+            "common_policy_certificates_upper": 26112,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 180355072,
+          "end_step": 184549376,
+          "unrounded_permutations": 145418,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115469968,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 150528,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 184549376,
+          "end_step": 188743680,
+          "unrounded_permutations": 219216,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138376848,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 150528,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 188743680,
+          "end_step": 192937984,
+          "unrounded_permutations": 224032,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138527376,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 192937984,
+          "end_step": 197132288,
+          "unrounded_permutations": 221600,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138376848,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 150528,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 197132288,
+          "end_step": 201326592,
+          "unrounded_permutations": 314298,
+          "provider_rows": 524288,
+          "encoded_field_cells_upper": 230550416,
+          "parts": {
+            "chunk_caller": 20971520,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 163053568,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 201326592,
+          "end_step": 205520896,
+          "unrounded_permutations": 241820,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138537872,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 205520896,
+          "end_step": 209715200,
+          "unrounded_permutations": 240656,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138537872,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 209715200,
+          "end_step": 213909504,
+          "unrounded_permutations": 140684,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115480464,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 150528,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 213909504,
+          "end_step": 218103808,
+          "unrounded_permutations": 129362,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 69474192,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 150528,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 218103808,
+          "end_step": 222298112,
+          "unrounded_permutations": 205404,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138537872,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 222298112,
+          "end_step": 226492416,
+          "unrounded_permutations": 184252,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115630992,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 226492416,
+          "end_step": 230686720,
+          "unrounded_permutations": 193590,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115630992,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 230686720,
+          "end_step": 234881024,
+          "unrounded_permutations": 216570,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138537872,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 234881024,
+          "end_step": 239075328,
+          "unrounded_permutations": 167230,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115630992,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 239075328,
+          "end_step": 243269632,
+          "unrounded_permutations": 162704,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115630992,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 243269632,
+          "end_step": 247463936,
+          "unrounded_permutations": 227570,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138558864,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 247463936,
+          "end_step": 251658240,
+          "unrounded_permutations": 210358,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138558864,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 251658240,
+          "end_step": 255852544,
+          "unrounded_permutations": 171292,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115651984,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 255852544,
+          "end_step": 260046848,
+          "unrounded_permutations": 209608,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115651984,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 260046848,
+          "end_step": 264241152,
+          "unrounded_permutations": 112732,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 69474192,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 150528,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 264241152,
+          "end_step": 268435456,
+          "unrounded_permutations": 127590,
+          "provider_rows": 131072,
+          "encoded_field_cells_upper": 69624720,
+          "parts": {
+            "chunk_caller": 5242880,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 40763392,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 268435456,
+          "end_step": 272629760,
+          "unrounded_permutations": 41444,
+          "provider_rows": 65536,
+          "encoded_field_cells_upper": 29205136,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 5701632,
+            "leaf_header": 12032,
+            "internal_node_caller": 75264,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 20381696,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 272629760,
+          "end_step": 276824064,
+          "unrounded_permutations": 44158,
+          "provider_rows": 65536,
+          "encoded_field_cells_upper": 29280400,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 5701632,
+            "leaf_header": 12032,
+            "internal_node_caller": 150528,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 20381696,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 276824064,
+          "end_step": 281018368,
+          "unrounded_permutations": 141994,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115630992,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 281018368,
+          "end_step": 285212672,
+          "unrounded_permutations": 214292,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138558864,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 285212672,
+          "end_step": 289406976,
+          "unrounded_permutations": 187666,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115651984,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 289406976,
+          "end_step": 293601280,
+          "unrounded_permutations": 58182,
+          "provider_rows": 65536,
+          "encoded_field_cells_upper": 29280400,
+          "parts": {
+            "chunk_caller": 2621440,
+            "common_cell_table_upper": 5701632,
+            "leaf_header": 12032,
+            "internal_node_caller": 150528,
+            "before_side_caller": 10496,
+            "common_policy_certificates_upper": 13056,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 20381696,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 293601280,
+          "end_step": 297795584,
+          "unrounded_permutations": 166604,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 115651984,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 22806528,
+            "leaf_header": 48128,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 52224,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 297795584,
+          "end_step": 301989888,
+          "unrounded_permutations": 221046,
+          "provider_rows": 262144,
+          "encoded_field_cells_upper": 138558864,
+          "parts": {
+            "chunk_caller": 10485760,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 301056,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 81526784,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 301989888,
+          "end_step": 306184192,
+          "unrounded_permutations": 311128,
+          "provider_rows": 524288,
+          "encoded_field_cells_upper": 230872464,
+          "parts": {
+            "chunk_caller": 20971520,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 602112,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 163053568,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 306184192,
+          "end_step": 310378496,
+          "unrounded_permutations": 489436,
+          "provider_rows": 524288,
+          "encoded_field_cells_upper": 230872464,
+          "parts": {
+            "chunk_caller": 20971520,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 602112,
+            "before_side_caller": 41984,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 163053568,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 310378496,
+          "end_step": 314572800,
+          "unrounded_permutations": 387108,
+          "provider_rows": 524288,
+          "encoded_field_cells_upper": 230851472,
+          "parts": {
+            "chunk_caller": 20971520,
+            "common_cell_table_upper": 45613056,
+            "leaf_header": 96256,
+            "internal_node_caller": 602112,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 104448,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 163053568,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        },
+        {
+          "first_step": 314572800,
+          "end_step": 317796238,
+          "unrounded_permutations": 1446640,
+          "provider_rows": 2097152,
+          "encoded_field_cells_upper": 920970128,
+          "parts": {
+            "chunk_caller": 83886080,
+            "common_cell_table_upper": 182452224,
+            "leaf_header": 385024,
+            "internal_node_caller": 1204224,
+            "before_side_caller": 20992,
+            "common_policy_certificates_upper": 417792,
+            "boundary_cell_table_upper": 178176,
+            "boundary_policy_certificates_upper": 208896,
+            "poseidon_provider": 652214272,
+            "byte_provider": 2304,
+            "policy_rom": 144
+          }
+        }
+      ]
+    }
+  ],
+  "source_execution_profile": "keccak_service_v1",
+  "source_elf_sha256": "bb99665c9b0322fb68eebac0439ef04fa72d60e525c17caf1f940d9fd79ca8e0",
+  "source_input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "applies_to_guest": "Measured Keccak-service guest census only; rerun for any changed guest or native service profile."
+}

@@ -1,0 +1,85 @@
+{
+  "schema": "rv64-prover-baseline-stage-analysis-v1",
+  "scope": "Complete software ECDSA valid CSP proof; observational stage recorder; unchanged security and exact old proof bytes. One local run.",
+  "baseline_staged_tree": "873d8d6a41e96b702707b307b134f21837acc2eb",
+  "baseline_binary_sha256": "9df0af14222c6e523d3d9bad3530f4608e9c791393ecee085370e6dbbd1735f8",
+  "instructions": 1625938,
+  "capture_seconds": 0.062021708,
+  "setup_seconds": 0.107657667,
+  "physical_witness_seconds": 9.455893833,
+  "prove_seconds": 68.556592208,
+  "top_level_stages": [
+    {
+      "id": "fixed_commit",
+      "seconds": 0.082904
+    },
+    {
+      "id": "main_commit",
+      "seconds": 2.432482
+    },
+    {
+      "id": "interaction_generation",
+      "seconds": 24.886827
+    },
+    {
+      "id": "provider_interaction_generation",
+      "seconds": 0.037043
+    },
+    {
+      "id": "interaction_commit",
+      "seconds": 1.366442
+    },
+    {
+      "id": "draw_random_coeff",
+      "seconds": 0
+    },
+    {
+      "id": "composition_trace_extract",
+      "seconds": 1.1e-05
+    },
+    {
+      "id": "composition_evaluation",
+      "seconds": 36.762868
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "seconds": 0.029248
+    },
+    {
+      "id": "composition_commit",
+      "seconds": 0.062682
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "seconds": 4.8e-05
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "seconds": 0.520054
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "seconds": 4.1e-05
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "seconds": 1.246398
+    },
+    {
+      "id": "proof_of_work",
+      "seconds": 0.099694
+    },
+    {
+      "id": "fri_decommit",
+      "seconds": 0.004024
+    },
+    {
+      "id": "trace_decommit",
+      "seconds": 0.932473
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "seconds": 9.5e-05
+    }
+  ]
+}

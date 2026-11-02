@@ -1,0 +1,64 @@
+diff --git a/lib/evmone/baseline_analysis.cpp b/lib/evmone/baseline_analysis.cpp
+index 48cb079..b3ace7f 100644
+--- a/lib/evmone/baseline_analysis.cpp
++++ b/lib/evmone/baseline_analysis.cpp
+@@ -49,6 +49,41 @@ void analyze_jumpdests_sw(BitsetSpan map, bytes_view code) noexcept
+     }
+ }
+ 
++/// stwo RV64IM: sentinel scan over the padded copy. The 33 padding bytes after the code are
++/// set to JUMPDEST for the scan (and zeroed again after): a PUSH at the end of the code skips
++/// at most 32 bytes, so every path out of the code lands on a sentinel, and the bounds test
++/// moves off the hot path into the rare JUMPDEST branch. A non-PUSH, non-JUMPDEST opcode
++/// (signed byte < 0x5b: 0x00-0x5a and 0x80-0xff) costs three instructions: lb, addi, blt.
++void analyze_jumpdests_sentinel(BitsetSpan map, uint8_t* padded, size_t code_size) noexcept
++{
++    static constexpr size_t PADDING = 32 + 1;
++    std::fill_n(padded + code_size, PADDING, uint8_t{OP_JUMPDEST});
++    // `p` points one past the current opcode; positions are taken against begin + 1 so
++    // the loop keeps no copy of the opcode's own address.
++    const auto* const begin1 = padded + 1;
++    const auto* p = padded;
++    while (true)
++    {
++        const auto op = static_cast<int8_t>(*p);
++        ++p;
++        if (op < static_cast<int8_t>(OP_JUMPDEST)) [[likely]]
++            continue;
++        if (op >= static_cast<int8_t>(OP_PUSH1))
++        {
++            p += op - (OP_PUSH1 - 1);  // Skip PUSH data.
++            continue;
++        }
++        if (op == static_cast<int8_t>(OP_JUMPDEST))
++        {
++            const auto pos = static_cast<size_t>(p - begin1);
++            if (pos >= code_size)
++                break;
++            map.set(pos);
++        }
++    }
++    std::fill_n(padded + code_size, PADDING, uint8_t{0});
++}
++
+ #if defined(ZEG_JUMPDEST_PRECOMPILE)
+ void analyze_jumpdests(BitsetSpan map, bytes_view code) noexcept
+ {
+@@ -104,6 +139,8 @@ CodeAnalysis analyze_legacy(bytes_view code)
+     // Contract bytecode itself points straight into the private input buffer at
+     // whatever offset the witness put it, so its alignment is not guaranteed.
+     analyze_jumpdests(jumpdest_bitset, bytes_view{storage.get(), code.size()});
++#elif defined(__riscv)
++    analyze_jumpdests_sentinel(jumpdest_bitset, storage.get(), code.size());
+ #else
+     analyze_jumpdests_sw(jumpdest_bitset, code);
+ #endif
+@@ -138,6 +175,8 @@ CodeAnalysis analyze_into_impl(bytes_view code, uint8_t* buffer, size_t capacity
+     const BitsetSpan jumpdest_bitset{bitset_storage};
+ #if defined(ZEG_JUMPDEST_PRECOMPILE)
+     analyze_jumpdests(jumpdest_bitset, bytes_view{storage, code.size()});
++#elif defined(__riscv)
++    analyze_jumpdests_sentinel(jumpdest_bitset, storage, code.size());
+ #else
+     analyze_jumpdests_sw(jumpdest_bitset, code);
+ #endif

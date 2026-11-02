@@ -1,0 +1,443 @@
+{
+  "status": "QUALIFIED same-layout native source optimization",
+  "base_commit": "cebf28f6c479f55be9bae2cf9ab16807e6d3881c",
+  "behavior": "Build unchanged paired permutation witness once into existing488-byte PackedRow metadata, then render consecutive16 physical rows per column. Padding is written directly; no full MAIN zero pass. Every legacy source column, tuple, lookup count and physical claim remains unchanged.",
+  "resource_contract": {
+    "staging_bytes_per_worker": 7808,
+    "production_min_rows_per_worker": 4096,
+    "test_dispatch_min_rows_per_worker": 16,
+    "optimized_min_worker_stack_bytes": 262144,
+    "scheduling": "One existing-pool lease/wave, private stack metadata tile, complete drain on every submitted path; busy scoped pool falls back to serial. No threads/pools or heap MAIN copies added.",
+    "ownership": "Existing owned and borrowed constructors share row fill. Full shape/input alias preflight remains; renderer additionally rejects metadata/output aliases before writes. All failure cleanup waits for helpers."
+  },
+  "geometry": {
+    "fixed": 32,
+    "main": 1923,
+    "interaction_triple": 2596,
+    "quotient_domain": "unchanged4n",
+    "cells_and_masks": "unchanged",
+    "packed_row_bytes": 488,
+    "pair2n": "inactive namespace unchanged; no new degree or protocol policy"
+  },
+  "qualification": {
+    "Safe": "PASS51runtime",
+    "Fast": "PASS51runtime",
+    "target": "test-riscv64-keccak",
+    "metadata_minimum": 51,
+    "logs": [
+      "/tmp/rv64-keccak-source-tile-safe-final.log",
+      "/tmp/rv64-keccak-source-tile-fast-final.log"
+    ],
+    "coverage": [
+      "empty/odd/even/high call IDs/padding; whole MAIN vs retained logical-scatter oracle and independent standard input/output permutation",
+      "poisoned output overwritten completely",
+      "actual1/3/8/16worker tiny source waves and busy-pool serial fallback",
+      "partial submission failure drains and leaves lease reusable; constructor allocation-failure sweep",
+      "metadata/output alias and insufficient worker stack reject",
+      "existing native/OODS/SIMD/halo/interactions/poles/metadata retirement and native proof gates"
+    ],
+    "artifacts": [
+      {
+        "name": "primitive-w1",
+        "proof_bytes": 1621800,
+        "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-source-tile-q70/primitive-w1/proof.bin"
+      },
+      {
+        "name": "primitive-w16",
+        "proof_bytes": 1621800,
+        "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-source-tile-q70/primitive-w16/proof.bin"
+      },
+      {
+        "name": "quartet",
+        "proof_bytes": 1418680,
+        "sha256": "ccd0112a120361ed4690e218cfedd8048c69ff815bde744a3aa5c363d2b8c299",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-source-tile-q70/quartet/proof.bin"
+      },
+      {
+        "name": "bridge",
+        "proof_bytes": 1661832,
+        "sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-source-tile-q70/bridge/proof.bin"
+      }
+    ],
+    "security": "Existing q70/P26 parameters unchanged; no stronger whole-protocol security claim."
+  },
+  "measurement_interpretation": {
+    "scope": "Native construction plus lookup-count generation only, seeded inputs at actual largest18078-call log18 truth geometry. Cold fresh processes, two observations per mode, balancedL1/T1/T16/T16/T1/L1. Team CPU work paused. Not actual Ethereum call-state corpus, not complete proving/full-block timing.",
+    "mean_source_seconds": [
+      10.1127468335,
+      4.9394243125
+    ],
+    "source_change_percent": -51.156452407792784,
+    "main_native_bytes": 2016411648,
+    "rss": "Actual observed source-only peak essentially unchanged at2.183GB. Matrix bytes are not an RSS estimate.",
+    "remaining_cost": "Unchanged serial Counts.fromTrace ~3.95s now dominates (~80% of tiled16 source). No getter or counting math changed.",
+    "profiling_caveat": "Legacy optional profiler timestamps interleaved native packing/scatter; candidate timestamps separate phases. Clock overhead not subtracted. Hash cost measured separately (~0.65s); included only in process wall. No full-job extrapolation."
+  },
+  "measurement": {
+    "scope": "Cold fresh-process native source construction/counts for seeded near-full18078-call log18 K truth geometry; no PCS/proof/full-execution timing",
+    "compiler": "0.15.2",
+    "optimization": "ReleaseFast",
+    "host": {
+      "system": "Darwin",
+      "node": "TMWM-JJC4N61YF7",
+      "release": "25.6.0",
+      "version": "Darwin Kernel Version 25.6.0: Mon Oct 12 00:41:41 PDT 2026; root:xnu-12377.161.15.701.48~2/RELEASE_ARM64_T6050",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "binaries": {
+      "legacy": {
+        "path": "/tmp/rv64-keccak-source-legacy-native-tools/bin/rv64-keccak-source-profile",
+        "sha256": "90b878570af548e9021fd808f12e13df25dd5422b3374133ff5ea895f0d2f0a4"
+      },
+      "tile": {
+        "path": "/tmp/rv64-keccak-source-tile-native-tools/bin/rv64-keccak-source-profile",
+        "sha256": "10458cff8023ac2007624a9c16d4dae4e0f574a535d5a5074823d202ac832c14"
+      }
+    },
+    "all_MAIN_and_counts_hashes_identical": true,
+    "observations": [
+      {
+        "index": 0,
+        "kind": "legacy",
+        "workers_requested": 1,
+        "start_utc": "2026-11-01T00:22:53.394079+00:00",
+        "wall_s": 10.92,
+        "user_s": 10.4,
+        "sys_s": 0.12,
+        "peak_rss_bytes": 2183495680,
+        "minor_faults": 133450,
+        "major_faults": 0,
+        "source_s": 9.866722042,
+        "hash_s": 0.647466291,
+        "raw": {
+          "scope": "native source construction only; seeded inputs, no proof/time extrapolation",
+          "calls": 18078,
+          "workers": 1,
+          "log_size": 18,
+          "main_bytes": 2016411648,
+          "metadata_bytes": 127919928,
+          "trace_ns": 5937959542,
+          "counts_ns": 3928762500,
+          "source_ns": 9866722042,
+          "hash_ns": 647466291,
+          "profile": {
+            "fixed_ns": 8548625,
+            "metadata_ns": 1002651889,
+            "zero_ns": 93845917,
+            "render_ns": 4832893569
+          },
+          "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+          "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9"
+        }
+      },
+      {
+        "index": 1,
+        "kind": "tile",
+        "workers_requested": 1,
+        "start_utc": "2026-11-01T00:23:04.324698+00:00",
+        "wall_s": 6.39,
+        "user_s": 5.89,
+        "sys_s": 0.1,
+        "peak_rss_bytes": 2183446528,
+        "minor_faults": 133447,
+        "major_faults": 0,
+        "source_s": 5.338801667,
+        "hash_s": 0.647826167,
+        "raw": {
+          "scope": "native source construction only; seeded inputs, no proof/time extrapolation",
+          "calls": 18078,
+          "workers": 1,
+          "log_size": 18,
+          "main_bytes": 2016411648,
+          "metadata_bytes": 127919928,
+          "trace_ns": 1396964250,
+          "counts_ns": 3941837417,
+          "source_ns": 5338801667,
+          "hash_ns": 647826167,
+          "profile": {
+            "fixed_ns": 8597834,
+            "metadata_ns": 932054083,
+            "zero_ns": 0,
+            "render_ns": 456291208,
+            "render_workers": 1
+          },
+          "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+          "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9"
+        }
+      },
+      {
+        "index": 2,
+        "kind": "tile",
+        "workers_requested": 16,
+        "start_utc": "2026-11-01T00:23:10.731733+00:00",
+        "wall_s": 5.62,
+        "user_s": 6.09,
+        "sys_s": 0.47,
+        "peak_rss_bytes": 2183774208,
+        "minor_faults": 133485,
+        "major_faults": 0,
+        "source_s": 4.944781459,
+        "hash_s": 0.652622333,
+        "raw": {
+          "scope": "native source construction only; seeded inputs, no proof/time extrapolation",
+          "calls": 18078,
+          "workers": 16,
+          "log_size": 18,
+          "main_bytes": 2016411648,
+          "metadata_bytes": 127919928,
+          "trace_ns": 981458500,
+          "counts_ns": 3963322959,
+          "source_ns": 4944781459,
+          "hash_ns": 652622333,
+          "profile": {
+            "fixed_ns": 3691709,
+            "metadata_ns": 904515083,
+            "zero_ns": 0,
+            "render_ns": 73240417,
+            "render_workers": 16
+          },
+          "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+          "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9"
+        }
+      },
+      {
+        "index": 3,
+        "kind": "tile",
+        "workers_requested": 16,
+        "start_utc": "2026-11-01T00:23:16.365286+00:00",
+        "wall_s": 5.63,
+        "user_s": 6.11,
+        "sys_s": 0.43,
+        "peak_rss_bytes": 2183888896,
+        "minor_faults": 133485,
+        "major_faults": 0,
+        "source_s": 4.934067166,
+        "hash_s": 0.675842167,
+        "raw": {
+          "scope": "native source construction only; seeded inputs, no proof/time extrapolation",
+          "calls": 18078,
+          "workers": 16,
+          "log_size": 18,
+          "main_bytes": 2016411648,
+          "metadata_bytes": 127919928,
+          "trace_ns": 984913750,
+          "counts_ns": 3949153416,
+          "source_ns": 4934067166,
+          "hash_ns": 675842167,
+          "profile": {
+            "fixed_ns": 3686125,
+            "metadata_ns": 909757083,
+            "zero_ns": 0,
+            "render_ns": 71455792,
+            "render_workers": 16
+          },
+          "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+          "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9"
+        }
+      },
+      {
+        "index": 4,
+        "kind": "tile",
+        "workers_requested": 1,
+        "start_utc": "2026-11-01T00:23:22.011783+00:00",
+        "wall_s": 6.05,
+        "user_s": 5.93,
+        "sys_s": 0.09,
+        "peak_rss_bytes": 2183446528,
+        "minor_faults": 133447,
+        "major_faults": 0,
+        "source_s": 5.377588167,
+        "hash_s": 0.647831042,
+        "raw": {
+          "scope": "native source construction only; seeded inputs, no proof/time extrapolation",
+          "calls": 18078,
+          "workers": 1,
+          "log_size": 18,
+          "main_bytes": 2016411648,
+          "metadata_bytes": 127919928,
+          "trace_ns": 1391648375,
+          "counts_ns": 3985939792,
+          "source_ns": 5377588167,
+          "hash_ns": 647831042,
+          "profile": {
+            "fixed_ns": 3749417,
+            "metadata_ns": 935647167,
+            "zero_ns": 0,
+            "render_ns": 452240334,
+            "render_workers": 1
+          },
+          "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+          "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9"
+        }
+      },
+      {
+        "index": 5,
+        "kind": "legacy",
+        "workers_requested": 1,
+        "start_utc": "2026-11-01T00:23:28.073059+00:00",
+        "wall_s": 11.03,
+        "user_s": 10.9,
+        "sys_s": 0.11,
+        "peak_rss_bytes": 2183495680,
+        "minor_faults": 133450,
+        "major_faults": 0,
+        "source_s": 10.358771625,
+        "hash_s": 0.645365709,
+        "raw": {
+          "scope": "native source construction only; seeded inputs, no proof/time extrapolation",
+          "calls": 18078,
+          "workers": 1,
+          "log_size": 18,
+          "main_bytes": 2016411648,
+          "metadata_bytes": 127919928,
+          "trace_ns": 6426861625,
+          "counts_ns": 3931910000,
+          "source_ns": 10358771625,
+          "hash_ns": 645365709,
+          "profile": {
+            "fixed_ns": 3645791,
+            "metadata_ns": 992744225,
+            "zero_ns": 75376916,
+            "render_ns": 5355085817
+          },
+          "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+          "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9"
+        }
+      }
+    ],
+    "summary": {
+      "legacy1": {
+        "source_s": {
+          "mean": 10.1127468335,
+          "min": 9.866722042,
+          "max": 10.358771625
+        },
+        "hash_s": {
+          "mean": 0.646416,
+          "min": 0.645365709,
+          "max": 0.647466291
+        },
+        "wall_s": {
+          "mean": 10.975,
+          "min": 10.92,
+          "max": 11.03
+        },
+        "user_s": {
+          "mean": 10.65,
+          "min": 10.4,
+          "max": 10.9
+        },
+        "sys_s": {
+          "mean": 0.11499999999999999,
+          "min": 0.11,
+          "max": 0.12
+        },
+        "peak_rss_bytes": {
+          "mean": 2183495680,
+          "min": 2183495680,
+          "max": 2183495680
+        },
+        "minor_faults": {
+          "mean": 133450,
+          "min": 133450,
+          "max": 133450
+        }
+      },
+      "tile1": {
+        "source_s": {
+          "mean": 5.3581949170000005,
+          "min": 5.338801667,
+          "max": 5.377588167
+        },
+        "hash_s": {
+          "mean": 0.6478286044999999,
+          "min": 0.647826167,
+          "max": 0.647831042
+        },
+        "wall_s": {
+          "mean": 6.22,
+          "min": 6.05,
+          "max": 6.39
+        },
+        "user_s": {
+          "mean": 5.91,
+          "min": 5.89,
+          "max": 5.93
+        },
+        "sys_s": {
+          "mean": 0.095,
+          "min": 0.09,
+          "max": 0.1
+        },
+        "peak_rss_bytes": {
+          "mean": 2183446528,
+          "min": 2183446528,
+          "max": 2183446528
+        },
+        "minor_faults": {
+          "mean": 133447,
+          "min": 133447,
+          "max": 133447
+        }
+      },
+      "tile16": {
+        "source_s": {
+          "mean": 4.9394243125,
+          "min": 4.934067166,
+          "max": 4.944781459
+        },
+        "hash_s": {
+          "mean": 0.66423225,
+          "min": 0.652622333,
+          "max": 0.675842167
+        },
+        "wall_s": {
+          "mean": 5.625,
+          "min": 5.62,
+          "max": 5.63
+        },
+        "user_s": {
+          "mean": 6.1,
+          "min": 6.09,
+          "max": 6.11
+        },
+        "sys_s": {
+          "mean": 0.44999999999999996,
+          "min": 0.43,
+          "max": 0.47
+        },
+        "peak_rss_bytes": {
+          "mean": 2183831552,
+          "min": 2183774208,
+          "max": 2183888896
+        },
+        "minor_faults": {
+          "mean": 133485,
+          "min": 133485,
+          "max": 133485
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "build_support/products/catalog.zig": "4f63ab8643bc316f251b1d0fc40f53659eb1f8ff5afef27bc93bb35682de9765",
+    "build_support/products/riscv_cpu.zig": "27c85b1928d96277ef75dbe6858a9fd2144ac313ab50dd2e1151e02553531e5c",
+    "build_support/products/riscv_delegation_entry.zig": "b48c13971342e53a5fe67b603bd79ed8efa6dea1cdf728f4436413ee291716b0",
+    "src/frontends/riscv/rv64/air/delegations/keccak/packed_row.zig": "1875ed38ce7ee23112395ea2fa0500da63efd12905509c8fc948abdc6554d224",
+    "src/frontends/riscv/rv64/air/delegations/keccak/trace.zig": "40791dda2de768e35f128d446970ff83e215391fee4401cc9099fb1719199419",
+    "src/frontends/riscv/rv64/air/delegations/keccak/source_render.zig": "6faf491948a11c7eedc36aac0c6a351094ec699e112e927e776d942e446f9da9",
+    "src/integrations/riscv_cpu/delegation_main.zig": "e55afde6542f02c91da1c9196dabe550c6f73fd4f8134d693f287162bd3ff933",
+    "src/integrations/riscv_cpu/delegations/keccak/test_root.zig": "2621757fac88b508637e5a6725db745bc93ecf9b40a21f1ddcde9bbc7788c8cc",
+    "src/integrations/riscv_cpu/delegations/keccak/source_profile.zig": "a5a8f44aa849f25eee2f95a93d5df707e441b32a81a5d673cfa941db770a6530",
+    "src/integrations/riscv_cpu/delegations/keccak/source_profile_main.zig": "7850817f4258198fe5ed01b8160c9ee865c989282bf46d31007cc22198eaefd0",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_source_tile_test.zig": "ada9b4b892e7691b3a443a47a096039d1442b5b46abfa5fb00456ed821d0db6d"
+  }
+}

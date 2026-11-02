@@ -1,0 +1,2929 @@
+{
+  "schema_version": 1,
+  "runtime": "rv64",
+  "example": "ethereum_batch",
+  "stages": [
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000039,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000034,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000004,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000015,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000014,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000028,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000026,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000002,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000064,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000043,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000021,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000047,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000023,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000023,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.0003,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000237,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000063,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000193,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000084,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000109,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000602,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000453,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000148,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000269,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000126,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000142,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.016378,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.013219,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.003158,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.015769,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.009395,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006372,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.010691,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.009088,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.001601,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.016382,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.009565,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006816,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.058655,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.055629,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.003025,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.064549,
+      "children": null
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000251,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000234,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000015,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000273,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000204,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000069,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000301,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000203,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000097,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000356,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000209,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000146,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000395,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000201,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000192,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000427,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000188,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000239,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00056,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000257,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000302,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000883,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000463,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00042,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000902,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000461,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000439,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000875,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00046,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000414,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000875,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000453,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000422,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000905,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000454,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000447,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.069358,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.0526,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.016756,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.062941,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036978,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025954,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063339,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036778,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.02656,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043511,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036751,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006759,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.062023,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036586,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025436,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043523,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036716,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006805,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.061937,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036804,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025131,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063892,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036913,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026979,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043441,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036683,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006754,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.062241,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036416,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025823,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.066823,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.039798,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.027025,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043661,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036906,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006754,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.06402,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037628,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026391,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043343,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036886,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006455,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063444,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037407,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026034,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063368,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037252,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026115,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043698,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036948,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00675,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.06358,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036897,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026682,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.062357,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036755,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025601,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.04402,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037112,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006908,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063587,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036919,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026666,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043831,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037075,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006754,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063646,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037475,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026168,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063788,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.03717,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026617,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043753,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036976,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006776,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063694,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037369,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026302,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.064208,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036927,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.02728,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043813,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037014,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006799,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.062925,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036582,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026342,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043952,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037188,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006762,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063683,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.03696,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026722,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.064332,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037118,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.027213,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043611,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036814,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006795,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.06361,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.038012,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025597,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.062865,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036902,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025961,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.043656,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.036924,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00673,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.063489,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037144,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026344,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.044159,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.037299,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006858,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.052985,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.026745,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026237,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.062631,
+      "children": null
+    },
+    {
+      "id": "authenticated_interaction",
+      "label": "Generate all shared physical interactions",
+      "seconds": 1.839039,
+      "children": [
+        {
+          "id": "cpu_interaction",
+          "label": "Generate CPU physical interactions",
+          "seconds": 1.03399,
+          "children": null
+        },
+        {
+          "id": "arithmetic_interaction",
+          "label": "Generate arithmetic callers and multiplication provider",
+          "seconds": 0.430504,
+          "children": null
+        },
+        {
+          "id": "secp_interaction",
+          "label": "Generate secp callers and providers",
+          "seconds": 0.064528,
+          "children": null
+        },
+        {
+          "id": "division_provider_interaction",
+          "label": "Generate division provider interactions",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "keccak_interaction",
+          "label": "Generate Keccak permutation, tables and RAM bridge",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "range_rom_interaction",
+          "label": "Generate shared BYTE, ROM, AND and SHIFT providers",
+          "seconds": 0.286059,
+          "children": null
+        },
+        {
+          "id": "ram_interaction",
+          "label": "Generate private RAM callers, hash and policy providers",
+          "seconds": 0.023816,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000036,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00003,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000005,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000013,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000012,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000047,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000044,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000003,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000039,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000037,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000014,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000012,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000021,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00002,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000035,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000028,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000007,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000027,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000026,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000028,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000022,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000006,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00002,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000018,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000025,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000019,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000006,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000017,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000016,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00002,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000014,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000006,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000035,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000023,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000012,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000049,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000021,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000028,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000026,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00002,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000005,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000052,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000025,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000027,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000026,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000022,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000004,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000044,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00002,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000023,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000026,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000022,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000004,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000047,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000021,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000026,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000029,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000025,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000004,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000049,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00002,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000028,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000029,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000024,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000005,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000046,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000019,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000027,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000076,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000044,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000032,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000084,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000027,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000056,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000051,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000031,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000019,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00009,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000033,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000057,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000053,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000034,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000018,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000137,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000047,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00009,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00007,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000045,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000025,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000108,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000033,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000075,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000086,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000037,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000048,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000171,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000066,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000105,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000088,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000059,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000029,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00019,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000084,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000106,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000103,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000073,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00003,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000159,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000058,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.0001,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000113,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000067,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000046,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000153,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000057,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000096,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.0001,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000077,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000023,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000156,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000062,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000094,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00007,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000038,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000032,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000118,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000043,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000075,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000081,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000048,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000032,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000122,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000044,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000078,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000279,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000154,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000125,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000298,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000172,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000125,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000195,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000142,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000051,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000262,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00013,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000132,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000177,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00013,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000047,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000263,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00013,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000133,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000181,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000135,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000045,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000269,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.00013,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000139,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000176,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000129,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000047,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.000271,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000131,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00014,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.00073,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.000484,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.000246,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.016788,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.008983,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.007804,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.042911,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029596,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.013314,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.056278,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030832,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025444,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036222,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029731,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.00649,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.055537,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.02972,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025815,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036492,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029935,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006555,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.055314,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029957,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025355,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036479,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029897,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006581,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.055449,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030081,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025366,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036681,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030121,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006558,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.057689,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029791,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.027896,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036654,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030081,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006572,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.055714,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030184,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025529,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.037128,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030533,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006594,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.057007,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030301,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026706,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036275,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029705,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006569,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.056118,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029956,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.026161,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.036192,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.029646,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006545,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.055379,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.030057,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.025319,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "streaming_commit_prepare",
+      "label": "Prepare streaming column batch for commit",
+      "seconds": 0.021389,
+      "children": [
+        {
+          "id": "streaming_transform",
+          "label": "Streaming batch interpolate and extend",
+          "seconds": 0.015345,
+          "children": null
+        },
+        {
+          "id": "streaming_leaf_hash",
+          "label": "Streaming batch leaf hashing and compaction",
+          "seconds": 0.006042,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.071552,
+      "children": null
+    },
+    {
+      "id": "draw_random_coeff",
+      "label": "Draw random coefficient",
+      "seconds": 0.000001,
+      "children": null
+    },
+    {
+      "id": "composition_trace_extract",
+      "label": "Composition trace extract",
+      "seconds": 0.000013,
+      "children": null
+    },
+    {
+      "id": "composition_evaluation",
+      "label": "Composition evaluation",
+      "seconds": 6.480489,
+      "children": null
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "label": "Composition interpolate and split",
+      "seconds": 0.058842,
+      "children": null
+    },
+    {
+      "id": "composition_commit",
+      "label": "Composition commit",
+      "seconds": 0.096228,
+      "children": null
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "label": "OODS point and mask points",
+      "seconds": 0.000099,
+      "children": null
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "label": "Sampled-value evaluation",
+      "seconds": 0.734228,
+      "children": null
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "label": "Sampled-value channel mix",
+      "seconds": 0.000099,
+      "children": null
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "label": "FRI quotient build + commit (lazy)",
+      "seconds": 1.996365,
+      "children": null
+    },
+    {
+      "id": "proof_of_work",
+      "label": "Proof of work",
+      "seconds": 0.055118,
+      "children": null
+    },
+    {
+      "id": "fri_decommit",
+      "label": "FRI decommit",
+      "seconds": 0.003345,
+      "children": null
+    },
+    {
+      "id": "trace_decommit",
+      "label": "Trace decommit",
+      "seconds": 1.412227,
+      "children": null
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "label": "Constraint check and assembly",
+      "seconds": 0.000171,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 1.421166,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.663242,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 0.648784,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.670059,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 0.788486,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.674395,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 0.672837,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.681405,
+      "children": null
+    }
+  ],
+  "memory": {
+    "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+    "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+    "target_bytes": 16000000000,
+    "interval_ns": 10000000,
+    "baseline_rss_bytes": 17094279168,
+    "last_rss_bytes": 17664360448,
+    "sampled_peak_rss_bytes": 33968406528,
+    "process_lifetime_peak_rss_bytes": 34068578304,
+    "samples": 1470,
+    "failed_samples": 0
+  }
+}

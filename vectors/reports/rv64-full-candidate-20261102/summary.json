@@ -1,0 +1,56 @@
+{
+  "producer_wall_seconds": 502.9,
+  "producer_peak_rss_bytes": 44055216128,
+  "producer_peak_footprint_bytes": 46505079040,
+  "fresh_wall_seconds": 32.77,
+  "fresh_peak_rss_bytes": 12815564800,
+  "fresh_peak_footprint_bytes": 12820047424,
+  "swap_growth_bytes": 0,
+  "expected_output_hex": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "proof_files": 30,
+  "durable_proof_bytes": 89022256,
+  "workers": {
+    "cpu": {
+      "source_ns": 7629601623,
+      "main_commit_ns": 55255049628,
+      "gkr_ns": 70279929789,
+      "inputs_ns": 4300419667,
+      "numerical_ns": 57634470250,
+      "binding_ns": 7565618499,
+      "metadata_retire_ns": 66791041,
+      "spill_ns": 10370529208,
+      "restore_ns": 9214673830,
+      "native_complete_ns": 253231320169,
+      "stage1_ns": 143723844834,
+      "stage2_ns": 262445995998
+    },
+    "truth": {
+      "source_ns": 5910025250,
+      "main_commit_ns": 2471682499,
+      "gkr_ns": 0,
+      "inputs_ns": 0,
+      "numerical_ns": 0,
+      "binding_ns": 0,
+      "metadata_retire_ns": 0,
+      "spill_ns": 1262612750,
+      "restore_ns": 552539584,
+      "native_complete_ns": 46051019625,
+      "stage1_ns": 9644320666,
+      "stage2_ns": 46603559709
+    },
+    "total": {
+      "source_ns": 13539626873,
+      "main_commit_ns": 57726732127,
+      "gkr_ns": 70279929789,
+      "inputs_ns": 4300419667,
+      "numerical_ns": 57634470250,
+      "binding_ns": 7565618499,
+      "metadata_retire_ns": 66791041,
+      "spill_ns": 11633141958,
+      "restore_ns": 9767213414,
+      "native_complete_ns": 299282339794,
+      "stage1_ns": 153368165500,
+      "stage2_ns": 309049555707
+    }
+  }
+}

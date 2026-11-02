@@ -1,0 +1,86 @@
+{
+  "scope": "pure declared-shape final-run preflight; no proof/build/throughput qualification",
+  "reviewed_root_source": "adeccbf24ec4a0a81fb9379af7316ea5c3f60bd4",
+  "frozen_environment": {
+    "STWO_ZIG_GKR_TREE_CHECKPOINTS": "2",
+    "STWO_ZIG_GKR_STREAM_BOTTOM": "1"
+  },
+  "candidate_max_proofs": 256,
+  "natural_stage2_order": true,
+  "observed_policy_review": "coordinator sets caller pointer from one frozen read; CLI passes stack variable and emits it after produce; no second getenv",
+  "limits_exclusions": "payload notRSS; immutable setup/cache/capture/PCS/allocator/kernel owners separate",
+  "modes": {
+    "q70-k18": {
+      "resource_sha256": "35b30bb3f60c2a4dc26edbe3487b6d9e1be5bae55e2b035c7ed0fe241308a3fd",
+      "cpu_workers": 25,
+      "truth_workers": 5,
+      "worker_cap": 32,
+      "fully_parked_frontend_bytes": 17053814560,
+      "fully_parked_disk_upper_bytes": 54462529536,
+      "host_streaming_disk_bytes": 41879617536,
+      "max_gkr_peak_bytes": 13044675840,
+      "max_global_output_bytes": 5595791360,
+      "maximum_adjacent_cpu_stage1_bytes": 32695595520,
+      "maximum_truth_stage2_task_bytes": 15240863744,
+      "policy": {
+        "checkpointed": true,
+        "tight_admission": true,
+        "stream_bottom": true
+      }
+    },
+    "q70-k16": {
+      "resource_sha256": "bf43e123a70648da5c1f896456871e40777bcc48fab38736bc5677a89ec3da52",
+      "cpu_workers": 25,
+      "truth_workers": 11,
+      "worker_cap": 64,
+      "fully_parked_frontend_bytes": 17063088352,
+      "fully_parked_disk_upper_bytes": 54206578688,
+      "host_streaming_disk_bytes": 41623666688,
+      "max_gkr_peak_bytes": 13044675840,
+      "max_global_output_bytes": 1399390208,
+      "maximum_adjacent_cpu_stage1_bytes": 32695595520,
+      "maximum_truth_stage2_task_bytes": 9681176604,
+      "policy": {
+        "checkpointed": true,
+        "tight_admission": true,
+        "stream_bottom": true
+      }
+    },
+    "candidate-k18": {
+      "resource_sha256": "e98440883db0f66dc614f2ccd6d0934528befd9b55ca5c42a212b4f440037d45",
+      "cpu_workers": 25,
+      "truth_workers": 5,
+      "worker_cap": 32,
+      "fully_parked_frontend_bytes": 17053815040,
+      "fully_parked_disk_upper_bytes": 68002267136,
+      "host_streaming_disk_bytes": 42647699456,
+      "max_gkr_peak_bytes": 13044675840,
+      "max_global_output_bytes": 5595791360,
+      "maximum_adjacent_cpu_stage1_bytes": 32893926384,
+      "maximum_truth_stage2_task_bytes": 15240863744,
+      "policy": {
+        "checkpointed": true,
+        "tight_admission": true,
+        "stream_bottom": true
+      }
+    },
+    "candidate-k16": {
+      "resource_sha256": "d3db71a09d8fb78f9192b0c4f2dad42bbf2d5b3fbe81ec09112ed344b2110aa5",
+      "cpu_workers": 25,
+      "truth_workers": 11,
+      "worker_cap": 64,
+      "fully_parked_frontend_bytes": 17063088928,
+      "fully_parked_disk_upper_bytes": 67742121984,
+      "host_streaming_disk_bytes": 42513383424,
+      "max_gkr_peak_bytes": 13044675840,
+      "max_global_output_bytes": 1399390208,
+      "maximum_adjacent_cpu_stage1_bytes": 32893926384,
+      "maximum_truth_stage2_task_bytes": 9681176604,
+      "policy": {
+        "checkpointed": true,
+        "tight_admission": true,
+        "stream_bottom": true
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "utc": "2026-11-01T18:23:33.928244+00:00",
+  "base_commit": "c47b902b6",
+  "change": "precompute laneWeight times namespace public coefficients once; preserve original OODS authority",
+  "max_prepared_heap_bytes": 1048576,
+  "checks": [
+    "all9relation namespaces,19random native extension OODS rows andpacked rows",
+    "numerator denominator combined projection equality to original includingpadded lanes",
+    "bounded prepared owner exhaustive allocation failures",
+    "fullactualK andADD/DOUBLE physical CPU proof/freshreceiver gates",
+    "scalar/pooled completephysicalartifact parity with prepared evaluation"
+  ],
+  "commands": {
+    "ReleaseSafe": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all PASS",
+    "ReleaseFast": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all PASS"
+  },
+  "pending": "real4.19Mprefix performance and oldphysicalartifactbytecomparison atparentdriver",
+  "security": "same polynomial,degree,statement,field/transcript; no new security claim"
+}

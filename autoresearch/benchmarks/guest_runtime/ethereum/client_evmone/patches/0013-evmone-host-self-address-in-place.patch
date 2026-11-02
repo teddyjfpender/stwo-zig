@@ -1,0 +1,96 @@
+diff --git a/evmc/include/evmc/evmc.hpp b/evmc/include/evmc/evmc.hpp
+index 08da50a..02d4982 100644
+--- a/evmc/include/evmc/evmc.hpp
++++ b/evmc/include/evmc/evmc.hpp
+@@ -528,6 +528,11 @@ public:
+       : host{&interface}, context{ctx}
+     {}
+ 
++    /// stwo: the raw Host interface and context, for calls that pass C-struct
++    /// arguments in place (no evmc::address temporaries).
++    const evmc_host_interface* raw_interface() const noexcept { return host; }
++    evmc_host_context* raw_context() const noexcept { return context; }
++
+     bool account_exists(const address& address) const noexcept final
+     {
+         return host->account_exists(context, &address);
+diff --git a/lib/evmone/instructions.hpp b/lib/evmone/instructions.hpp
+index 9e44161..40f4d93 100644
+--- a/lib/evmone/instructions.hpp
++++ b/lib/evmone/instructions.hpp
+@@ -68,6 +68,13 @@ struct Result
+ struct TermResult : Result
+ {};
+ 
++/// stwo RV64IM: call the Host's C interface with the frame's own address in place.
++/// The C++ wrappers take `const evmc::address&`, so passing msg->recipient (an
++/// evmc_address) copied its 20 unaligned bytes into a temporary, byte by byte, on
++/// every SLOAD/SSTORE/TLOAD/TSTORE/LOG (~55 instructions each time).
++#define STWO_HOST_SELF(state, fn, ...) \
++    (state).host.raw_interface()->fn((state).host.raw_context(), &(state).msg->recipient, __VA_ARGS__)
++
+ 
+ /// Swap two values.
+ constexpr void fast_swap(uint256& x, uint256& y) noexcept
+@@ -1123,7 +1130,7 @@ inline void tload(StackTop stack, ExecutionState& state) noexcept
+ {
+     auto& x = stack.top();
+     const auto key = intx::be::store<evmc::bytes32>(x);
+-    const auto value = state.host.get_transient_storage(state.msg->recipient, key);
++    const auto value = STWO_HOST_SELF(state, get_transient_storage, &key);
+     x = intx::be::load<uint256>(value);
+ }
+ 
+@@ -1134,7 +1141,7 @@ inline Result tstore(StackTop stack, int64_t gas_left, ExecutionState& state) no
+ 
+     const auto key = intx::be::store<evmc::bytes32>(stack.pop());
+     const auto value = intx::be::store<evmc::bytes32>(stack.pop());
+-    state.host.set_transient_storage(state.msg->recipient, key, value);
++    STWO_HOST_SELF(state, set_transient_storage, &key, &value);
+     return {EVMC_SUCCESS, gas_left};
+ }
+ 
+@@ -1342,7 +1349,7 @@ inline Result log(StackTop stack, int64_t gas_left, ExecutionState& state) noexc
+     }
+ 
+     const auto data = s != 0 ? &state.memory[o] : nullptr;
+-    state.host.emit_log(state.msg->recipient, data, s, topics.data(), NumTopics);
++    STWO_HOST_SELF(state, emit_log, data, s, topics.data(), NumTopics);
+     return {EVMC_SUCCESS, gas_left};
+ }
+ 
+diff --git a/lib/evmone/instructions_storage.cpp b/lib/evmone/instructions_storage.cpp
+index c831547..4ee9cb8 100644
+--- a/lib/evmone/instructions_storage.cpp
++++ b/lib/evmone/instructions_storage.cpp
+@@ -108,7 +108,7 @@ Result sload(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+     const auto key = intx::be::store<evmc::bytes32>(x);
+ 
+     if (state.rev >= EVMC_BERLIN &&
+-        state.host.access_storage(state.msg->recipient, key) == EVMC_ACCESS_COLD)
++        STWO_HOST_SELF(state, access_storage, &key) == EVMC_ACCESS_COLD)
+     {
+         // The warm storage access cost is already applied (from the cost table).
+         // Here we need to apply additional cold storage access cost.
+@@ -116,7 +116,7 @@ Result sload(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+             return {EVMC_OUT_OF_GAS, gas_left};
+     }
+ 
+-    x = intx::be::load<uint256>(state.host.get_storage(state.msg->recipient, key));
++    x = intx::be::load<uint256>(STWO_HOST_SELF(state, get_storage, &key));
+ 
+     return {EVMC_SUCCESS, gas_left};
+ }
+@@ -134,10 +134,10 @@ Result sstore(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+ 
+     const auto gas_cost_cold =
+         (state.rev >= EVMC_BERLIN &&
+-            state.host.access_storage(state.msg->recipient, key) == EVMC_ACCESS_COLD) ?
++            STWO_HOST_SELF(state, access_storage, &key) == EVMC_ACCESS_COLD) ?
+             STORAGE_COST_SPEC[state.rev].cold :
+             0;
+-    const auto status = state.host.set_storage(state.msg->recipient, key, value);
++    const auto status = STWO_HOST_SELF(state, set_storage, &key, &value);
+ 
+     const auto [gas_cost_warm, gas_refund] = SSTORE_COSTS[state.rev][status];
+     const auto gas_cost = gas_cost_warm + gas_cost_cold;

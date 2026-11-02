@@ -1,0 +1,311 @@
+//! Rootless immutable program/geometry materials. The complete joined roster
+//! owns ONE final fixed commitment; constructing materials commits no tree.
+const std = @import("std");
+const core = @import("stwo_core");
+const engine = @import("stwo_prover_engine");
+const air = @import("stwo_riscv_frontend").rv64_air;
+const W = air.word16_cpu;
+const B = air.word16_v1;
+const Full = @import("../rv64_full.zig");
+pub const Program = @import("program.zig").Program;
+pub const G = @import("geometry.zig");
+pub const Geometry = G.Geometry;
+pub const Role = G.Role;
+pub const Shape = G.Shape;
+const M = core.fields.m31.M31;
+const Column = engine.pcs.ColumnEvaluation;
+pub const Suite = @import("pcs_suite.zig").Suite;
+pub const NativeCache = @import("fixed_native_cache.zig");
+pub const ProgramMetadata = @import("program_metadata.zig");
+pub const ImmutableCaches = struct { native: ?*const NativeCache.Cache = null, program: ?*const ProgramMetadata.Cache = null };
+pub const Materials = struct {
+    suite: Suite = Suite.production(),
+    allocator: std.mem.Allocator,
+    geometry: Geometry,
+    fixed_retired: bool = false,
+    program: Program,
+    cpu_fixed: []M,
+    boundary_fixed: []M,
+    alu_fixed: []M,
+    alu_tail_fixed: []M,
+    binary_fixed: []M,
+    binary_tail_fixed: []M,
+    shift_fixed: []M,
+    shift_tail_fixed: []M,
+    jalr_fixed: []M,
+    division_fixed: []M,
+    multiplication_fixed: []M,
+    range16_fixed: []M,
+    range8_fixed: []M,
+    ls_fixed: []M,
+    ls_tail_fixed: []M,
+    memory_boundary_fixed: []M,
+    memory_terminal_fixed: ?[]M = null,
+    selection_fixed: []M,
+    shift_table: B.shift_word_packed_experiment.table.Setup,
+    and_table: air.providers.tables.Setup,
+    pub fn init(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry) !Materials {
+        return initWithSuite(a, expected, geometry, Suite.production());
+    }
+    pub fn initWithSuite(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry, suite: Suite) !Materials {
+        return initWithSuiteAndProfile(a, expected, geometry, suite, air.word16_execution.features.PROFILE);
+    }
+    /// Program ROM decoded under an explicit execution profile (bound into
+    /// the program identity); e.g. ethereum_services_v3_zbb admits Zbb BINARY.
+    pub fn initWithSuiteAndProfile(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry, suite: Suite, profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) !Materials {
+        try suite.validate();
+        try geometry.validate();
+        var program = try Program.initWithProfile(a, expected, profile);
+        errdefer program.deinit();
+        return fromProgram(a, program, geometry, suite);
+    }
+    pub fn initWithAuthority(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry) !Materials {
+        return initWithAuthorityAndSuite(a, authority, geometry, Suite.production());
+    }
+    pub fn initWithAuthorityAndSuite(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite) !Materials {
+        return initWithAuthorityAndSuiteAndMetadataCache(a, authority, geometry, suite, null);
+    }
+    pub fn initWithAuthorityAndSuiteAndMetadataCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, cache: ?*const ProgramMetadata.Cache) !Materials {
+        try suite.validate();
+        try geometry.validate();
+        var program = if (cache) |owner| try Program.initWithAuthorityAndMetadataCache(a, authority, owner) else try Program.initWithAuthority(a, authority);
+        errdefer program.deinit();
+        return fromProgram(a, program, geometry, suite);
+    }
+    fn fromProgram(a: std.mem.Allocator, program: Program, geometry: Geometry, suite: Suite) !Materials {
+        if (program.compact and !geometry.cpu_compact_decode) return error.InvalidCpuCompactGeometry;
+        const cpu = try W.fixed.cpu(a, geometry.cpu_log);
+        errdefer a.free(cpu);
+        const boundary = try W.fixed.boundary(a);
+        errdefer a.free(boundary);
+        const alu = try B.alu_experiment.source.fixedForLog(a, geometry.alu_log);
+        errdefer a.free(alu);
+        const alu_tail = if (geometry.alu_tail_log) |log| try B.alu_experiment.source.fixedForLog(a, log) else try a.alloc(M, 0);
+        errdefer a.free(alu_tail);
+        const binary = try B.binary_source.fixedForLog(a, geometry.binary_log);
+        errdefer a.free(binary);
+        const binary_tail = if (geometry.binary_tail_log) |log| try B.binary_source.fixedForLog(a, log) else try a.alloc(M, 0);
+        errdefer a.free(binary_tail);
+        const shift = try B.shift_word_packed_experiment.source.fixedForLog(a, geometry.shift_log);
+        errdefer a.free(shift);
+        const shift_tail = if (geometry.shift_tail_log) |log| try B.shift_word_packed_experiment.source.fixedForLog(a, log) else try a.alloc(M, 0);
+        errdefer a.free(shift_tail);
+        const jalr = try B.binary_source.fixedForLog(a, geometry.jalr_log);
+        errdefer a.free(jalr);
+        const division: []M = if (geometry.omit_empty_division) &.{} else try air.arithmetic.division.word16_product.source.fixedColumnsForLog(a, geometry.division_log);
+        errdefer a.free(division);
+        const multiplication = try air.arithmetic.multiplication.trace.fixedColumnsForLog(a, geometry.multiplication_log);
+        errdefer a.free(multiplication);
+        const range16 = try W.fixed.range(a, 16);
+        errdefer a.free(range16);
+        const range8 = try W.fixed.range(a, 8);
+        errdefer a.free(range8);
+        const ls = try air.memory.load_store_v2.source.fixed(a, geometry.ls_log);
+        errdefer a.free(ls);
+        const ls_tail = if (geometry.ls_tail_log) |log| try air.memory.load_store_v2.source.fixed(a, log) else try a.alloc(M, 0);
+        errdefer a.free(ls_tail);
+        const memory_boundary = try air.memory.load_store_v2.source.fixed(a, geometry.initialLog());
+        errdefer a.free(memory_boundary);
+        const memory_terminal = if (geometry.initialLog() != geometry.terminalLog()) try air.memory.load_store_v2.source.fixed(a, geometry.terminalLog()) else null;
+        errdefer if (memory_terminal) |data| a.free(data);
+        const selection = try selectionFixed(a);
+        errdefer a.free(selection);
+        var shifts = try B.shift_word_packed_experiment.table.Setup.init(a);
+        errdefer shifts.deinit();
+        var and_ = try air.providers.tables.Setup.init(a, .byte_and);
+        errdefer and_.deinit();
+        // Last fallible step: on failure the caller's program copy is intact
+        // (makeCompact allocates the compact ROM before freeing the legacy one).
+        var bound = program;
+        if (geometry.cpu_compact_decode) try bound.makeCompact();
+        return .{ .allocator = a, .suite = suite, .geometry = geometry, .program = bound, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
+    }
+    /// Retire only original matrices not used by native request generators.
+    /// All phase/shape checks precede mutation; the sealed key stays unchanged.
+    pub fn releaseFixedWitness(self: *Materials) !void {
+        if (self.fixed_retired) return error.ExecutionFixedWitnessRetired;
+        try self.program.validateFixedWitness();
+        const columns = try self.fixedColumns(self.allocator);
+        self.allocator.free(columns);
+        try self.program.releaseFixedWitness();
+        inline for (.{ "cpu_fixed", "alu_fixed", "alu_tail_fixed", "binary_fixed", "binary_tail_fixed", "shift_fixed", "shift_tail_fixed", "jalr_fixed", "division_fixed", "multiplication_fixed", "ls_fixed", "ls_tail_fixed", "memory_boundary_fixed" }) |name| {
+            self.allocator.free(@field(self, name));
+            @field(self, name) = &.{};
+        }
+        if (self.memory_terminal_fixed) |data| self.allocator.free(data);
+        self.memory_terminal_fixed = null;
+        self.fixed_retired = true;
+    }
+    pub fn deinit(self: *Materials) void {
+        if (self.memory_terminal_fixed) |data| self.allocator.free(data);
+        self.and_table.deinit();
+        self.shift_table.deinit();
+        for ([_][]M{ self.cpu_fixed, self.boundary_fixed, self.alu_fixed, self.alu_tail_fixed, self.binary_fixed, self.binary_tail_fixed, self.shift_fixed, self.shift_tail_fixed, self.jalr_fixed, self.division_fixed, self.multiplication_fixed, self.range16_fixed, self.range8_fixed, self.ls_fixed, self.ls_tail_fixed, self.memory_boundary_fixed, self.selection_fixed }) |fixed| self.allocator.free(fixed);
+        self.program.deinit();
+        self.* = undefined;
+    }
+    pub fn shapes(self: *const Materials) [G.ROLE_COUNT]Shape {
+        return G.shapes(&self.program, self.geometry);
+    }
+    pub fn shape(self: *const Materials, role: Role) Shape {
+        return self.shapes()[@intFromEnum(role)];
+    }
+    pub fn logs(self: *const Materials, a: std.mem.Allocator, tree: usize) ![]u32 {
+        if (tree > 2) return error.InvalidExecutionTree;
+        const actual = self.shapes();
+        var count: usize = 0;
+        for (actual) |s| count += s.widths[tree];
+        const out = try a.alloc(u32, count);
+        for (actual) |s| @memset(out[s.offsets[tree]..][0..s.widths[tree]], s.log);
+        return out;
+    }
+    pub fn fixedColumns(self: *const Materials, a: std.mem.Allocator) ![]Column {
+        if (self.fixed_retired or self.program.fixed_retired) return error.ExecutionFixedWitnessRetired;
+        const actual = self.shapes();
+        var count: usize = 0;
+        for (actual) |s| count += s.widths[0];
+        const out = try a.alloc(Column, count);
+        errdefer a.free(out);
+        for (actual) |s| {
+            if (s.widths[0] == 0) continue;
+            const data: []const M = switch (s.role) {
+                .cpu => self.cpu_fixed,
+                .rom => self.program.fixed,
+                .boundary => self.boundary_fixed,
+                .alu => self.alu_fixed,
+                .alu_tail => self.alu_tail_fixed,
+                .binary => self.binary_fixed,
+                .binary_tail => self.binary_tail_fixed,
+                .shift => self.shift_fixed,
+                .shift_tail => self.shift_tail_fixed,
+                .jalr => self.jalr_fixed,
+                .division => self.division_fixed,
+                .multiplication => self.multiplication_fixed,
+                .shift_table => self.shift_table.fixed,
+                .and_table => self.and_table.fixed,
+                .range16 => self.range16_fixed,
+                .range8 => self.range8_fixed,
+                .ls => self.ls_fixed,
+                .ls_tail => self.ls_tail_fixed,
+                .initial => self.memory_boundary_fixed,
+                .terminal => self.memory_terminal_fixed orelse self.memory_boundary_fixed,
+                .selection => self.selection_fixed,
+            };
+            try @import("../word16/cpu_materials.zig").fillColumns(out[s.offsets[0]..][0..s.widths[0]], data, s.log);
+        }
+        return out;
+    }
+};
+
+fn selectionFixed(a: std.mem.Allocator) ![]M {
+    const n = 1 << 16;
+    const out = try a.alloc(M, 6 * n);
+    @memset(out, M.zero());
+    for (0..n) |i| {
+        const pos = air.memory.closed_ram.trace.physical(i, 16);
+        for (air.memory.load_store_v1.selection.fixedFact(i), 0..) |v, c| out[c * n + pos] = M.fromCanonical(v);
+    }
+    out[4 * n + air.memory.closed_ram.trace.physical(0, 16)] = M.one();
+    out[5 * n + air.memory.closed_ram.trace.physical(n - 1, 16)] = M.one();
+    return out;
+}
+
+pub const T = @import("../rv64_distributed_v1/manifest.zig").T;
+/// Complete immutable physical-roster fixed-key owner. Request counts, RAM
+/// boundary contents, register endpoints and epoch never enter these columns.
+pub const Setup = struct {
+    materials: Materials,
+    fixed_root: T.CommitmentRoot,
+    fixed_tree: T.Scheme.CommittedTree,
+    pub fn init(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry) !Setup {
+        return initWithSuite(a, program, geometry, Suite.production());
+    }
+    pub fn initWithSuite(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, suite: Suite) !Setup {
+        var materials = try Materials.initWithSuite(a, program, geometry, suite);
+        errdefer materials.deinit();
+        return seal(a, materials);
+    }
+    /// Consumes the already decoded program on success AND failure.
+    pub fn initOwnedProgram(a: std.mem.Allocator, program: Program, geometry: Geometry) !Setup {
+        return initOwnedProgramWithSuite(a, program, geometry, Suite.production());
+    }
+    pub fn initOwnedProgramWithSuite(a: std.mem.Allocator, program: Program, geometry: Geometry, suite: Suite) !Setup {
+        suite.validate() catch |err| {
+            var owned = program;
+            owned.deinit();
+            return err;
+        };
+        geometry.validate() catch |err| {
+            var owned = program;
+            owned.deinit();
+            return err;
+        };
+        var materials = Materials.fromProgram(a, program, geometry, suite) catch |err| {
+            var owned = program;
+            owned.deinit();
+            return err;
+        };
+        errdefer materials.deinit();
+        return seal(a, materials);
+    }
+    pub fn initWithAuthority(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry) !Setup {
+        return initWithAuthorityAndSuite(a, authority, geometry, Suite.production());
+    }
+    pub fn initWithAuthorityAndSuite(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite) !Setup {
+        var materials = try Materials.initWithAuthorityAndSuite(a, authority, geometry, suite);
+        errdefer materials.deinit();
+        return seal(a, materials);
+    }
+    pub fn initWithAuthorityAndNativeCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, cache: *const NativeCache.Cache) !Setup {
+        return initWithAuthorityAndSuiteAndNativeCache(a, authority, geometry, Suite.production(), cache);
+    }
+    pub fn initWithAuthorityAndSuiteAndNativeCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, cache: *const NativeCache.Cache) !Setup {
+        return initWithAuthorityAndSuiteAndCaches(a, authority, geometry, suite, .{ .native = cache });
+    }
+    pub fn initWithAuthorityAndSuiteAndCaches(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, caches: ImmutableCaches) !Setup {
+        var materials = try Materials.initWithAuthorityAndSuiteAndMetadataCache(a, authority, geometry, suite, caches.program);
+        errdefer materials.deinit();
+        return sealWithCache(a, materials, caches.native);
+    }
+    pub fn initWithNativeCache(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, cache: *const NativeCache.Cache) !Setup {
+        return initWithSuiteAndNativeCache(a, program, geometry, Suite.production(), cache);
+    }
+    pub fn initWithSuiteAndNativeCache(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, suite: Suite, cache: *const NativeCache.Cache) !Setup {
+        var materials = try Materials.initWithSuite(a, program, geometry, suite);
+        errdefer materials.deinit();
+        return sealWithCache(a, materials, cache);
+    }
+    fn seal(a: std.mem.Allocator, materials: Materials) !Setup {
+        return sealWithCache(a, materials, null);
+    }
+    fn sealWithCache(a: std.mem.Allocator, materials: Materials, cache: ?*const NativeCache.Cache) !Setup {
+        const columns = try materials.fixedColumns(a);
+        defer a.free(columns);
+        var scheme = try T.Scheme.init(a, materials.suite.config());
+        defer scheme.deinit(a);
+        scheme.setCompactPolynomialStorage(5);
+        var channel = T.P.Channel{};
+        try scheme.commitBorrowedStreaming(a, columns, 8, &channel);
+        var roots = try scheme.roots(a);
+        defer roots.deinit(a);
+        if (cache) |owner| _ = try owner.internTree(a, &scheme.trees.items[0]);
+        try scheme.trees.items[0].share(a);
+        return .{ .materials = materials, .fixed_root = .{ .value = roots.items[0] }, .fixed_tree = scheme.trees.pop().? };
+    }
+    /// A separate request transcript receives a retained immutable tree lease.
+    /// The setup allocator must outlive all leases; no request channel is cached.
+    pub fn appendFixed(self: *const Setup, a: std.mem.Allocator, scheme: *T.Scheme, channel: *T.P.Channel) !void {
+        if (scheme.trees.items.len != 0 or scheme.pending_commit != null or !std.meta.eql(scheme.config, self.materials.suite.config())) return error.InvalidExecutionFixedPhase;
+        var lease = self.fixed_tree.retainShared();
+        errdefer lease.deinit(self.materials.allocator);
+        try scheme.appendCommittedTree(a, lease, channel);
+    }
+    pub fn releaseFixedWitness(self: *Setup) !void {
+        try self.materials.releaseFixedWitness();
+    }
+    pub fn deinit(self: *Setup) void {
+        self.fixed_tree.deinit(self.materials.allocator);
+        self.materials.deinit();
+        self.* = undefined;
+    }
+};

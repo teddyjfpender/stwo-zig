@@ -1,0 +1,85 @@
+{
+  "schema": "rv64-packed-control-legacy-parity-v1",
+  "time_utc": "2026-10-31T01:07:03.390644+00:00",
+  "status": "PASS",
+  "selected_control_policy": "bytes_v1",
+  "legacy_proof_bytes_unchanged": true,
+  "fresh_adversarial_cases": 148,
+  "additional_legacy_json_cases": 5,
+  "proof_suite": {
+    "fri_queries": 70,
+    "pow_bits": 26
+  },
+  "cases": [
+    {
+      "name": "keccak",
+      "proof_bytes": 2269408,
+      "proof_sha256": "45229b60449f1a1a1c4830302d33e74c601eb982dcfb870511f818ccfecec490",
+      "historical_proof_sha256": "45229b60449f1a1a1c4830302d33e74c601eb982dcfb870511f818ccfecec490",
+      "byte_equal_to_history": true,
+      "fresh_receiver_cases": 24,
+      "old_json_without_control_field_verified": true,
+      "receiver_report": "vectors/reports/interop_artifacts/rv64-packed-control-legacy/keccak-receiver.json"
+    },
+    {
+      "name": "cyclic",
+      "proof_bytes": 2266976,
+      "proof_sha256": "49d867b2405a734a2581257115ba5d61f91e6b6356aad3a8652d00bdb99b56eb",
+      "historical_proof_sha256": "49d867b2405a734a2581257115ba5d61f91e6b6356aad3a8652d00bdb99b56eb",
+      "byte_equal_to_history": true,
+      "fresh_receiver_cases": 24,
+      "old_json_without_control_field_verified": true,
+      "receiver_report": "vectors/reports/interop_artifacts/rv64-packed-control-legacy/cyclic-receiver.json"
+    },
+    {
+      "name": "mul",
+      "proof_bytes": 2341472,
+      "proof_sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0",
+      "historical_proof_sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0",
+      "byte_equal_to_history": true,
+      "fresh_receiver_cases": 32,
+      "old_json_without_control_field_verified": true,
+      "receiver_report": "vectors/reports/interop_artifacts/rv64-packed-control-legacy/mul-receiver.json"
+    },
+    {
+      "name": "eth-v1",
+      "proof_bytes": 3015640,
+      "proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+      "historical_proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+      "byte_equal_to_history": true,
+      "fresh_receiver_cases": 34,
+      "old_json_without_control_field_verified": true,
+      "receiver_report": "vectors/reports/interop_artifacts/rv64-packed-control-legacy/eth-v1-receiver.json"
+    },
+    {
+      "name": "eth-v2",
+      "proof_bytes": 3017800,
+      "proof_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4",
+      "historical_proof_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4",
+      "byte_equal_to_history": true,
+      "fresh_receiver_cases": 34,
+      "old_json_without_control_field_verified": true,
+      "receiver_report": "vectors/reports/interop_artifacts/rv64-packed-control-legacy/eth-v2-receiver.json"
+    }
+  ],
+  "receiver": {
+    "sha256": "85de3bb163c2241bb6dfe4535430de50c02b91cf9ce0439282a5ba8fbdb65c4f",
+    "archive": "vectors/reports/interop_artifacts/rv64-packed-control-legacy/rv64-keccak-cpu-verify"
+  },
+  "gates": {
+    "air_ReleaseSafe": "PASS including packed arithmetic 3tests",
+    "full_CPU_degree_ReleaseSafe": {
+      "bytes_v1_all64": 994,
+      "limbs24_v2_all64": 934,
+      "bytes_v1_actual52": 1006,
+      "limbs24_v2_actual52": 946,
+      "degree_above_four_violations": 0
+    },
+    "joined_CPU_ReleaseSafe": "PASS"
+  },
+  "limits": [
+    "This receipt qualifies preservation of five historical bytes_v1 controls, not a limbs24_v2 physical proof.",
+    "Packed arithmetic/frame dense-degree and adversarial native tests are separate from physical PCS receiver qualification.",
+    "No packed-control whole-block performance or proof claim is made here."
+  ]
+}

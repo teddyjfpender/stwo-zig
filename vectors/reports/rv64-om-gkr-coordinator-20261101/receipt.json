@@ -1,0 +1,64 @@
+{
+  "source_commit": "ef53c5907",
+  "core_dependencies": [
+    "d5037079b ownership correction",
+    "16c5af89e rigorous GKR resource bound"
+  ],
+  "cpu_dependency": "45a8c5ffc after d60b08dec (parent equivalents de137ccbd + later followup)",
+  "receiver_dependency": {
+    "file": "services/gkr_local/execution.zig",
+    "sha256": "eea953d4def7ec78d67bd714ec72067d2b730e388d630e14e36ddd5f98ef78ae",
+    "owner": "parent root; file not included in coordinator source commit"
+  },
+  "tests": {
+    "ReleaseSafe": "PASS26",
+    "ReleaseFast": "PASS26",
+    "test_floor": 26
+  },
+  "whole_execution": {
+    "retirements": 7,
+    "CPU_shards": 2,
+    "truths": [
+      "Keccak",
+      "secpADD",
+      "secpDOUBLE"
+    ],
+    "physical_proofs": 5,
+    "accepted_fresh_receiver": true,
+    "independently_rebuilt_all_setup_keys": true,
+    "typed_global_closures": [
+      "RAM",
+      "KIO",
+      "Wire"
+    ],
+    "ordered_stage_one_manifest": true,
+    "CPU_local_metadata_retired_immediately_after_seal": true
+  },
+  "adversarial": [
+    "changed independently expected endpoint rejected",
+    "mutated pure global claim rejected",
+    "swapped CPU proofs rejected",
+    "malformed stage-one manifest rejected",
+    "missing truth proof rejected",
+    "inventory cap and retained-owner cap reject before prepared CPU consumption"
+  ],
+  "degree_gates": {
+    "actual_joined_keccak_emitter": "sixth finite difference zero, fifth nonzero",
+    "actual_joined_secp_product_and_linear": "fourth finite difference zero, third nonzero",
+    "coordinates": "dense8-coordinate challenges and independently varying fixed/MAIN/INTER/shift variables"
+  },
+  "limits": {
+    "hard_max_workers": 8,
+    "default_retained_frontend_cap_bytes": 536870912,
+    "fixture_explicit_CPU_local_GKR_cap_bytes": 2147483648,
+    "total_RSS_claim": false,
+    "512MiB_GKR_qualification": false
+  },
+  "legacy_route_change": "Mechanical extraction of original CPU memory/bridge/range-merge source body into one shared buildCpuSource helper; old pipeline delegates with identical arguments. No old protocol/default selected differently.",
+  "remaining": [
+    "full25CPUblock route deliberately refused until parking/binding lifetime qualification",
+    "production-size performance measurement",
+    "whole-protocol128 certification and outerrecursion",
+    "GPU execution explicitly deferred"
+  ]
+}

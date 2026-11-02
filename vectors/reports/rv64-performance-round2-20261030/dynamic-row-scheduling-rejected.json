@@ -1,0 +1,68 @@
+{
+  "decision": "rejected",
+  "candidate": "Bounded atomic row-tile scheduling on the existing pool",
+  "retained": "Static contiguous worker ranges",
+  "reason": "No repeatable speedup: first wall pair equal; warmed alternating pair made dynamic scheduling slower. Atomic counter machinery was removed.",
+  "reported_wall_seconds": {
+    "first_pair": {
+      "static": 19.512,
+      "dynamic": 19.494
+    },
+    "warmed_pair": {
+      "static": 19.083,
+      "dynamic": 20.126
+    }
+  },
+  "runs": [
+    {
+      "variant": "static",
+      "repeat": false,
+      "prove_ns": 17694540833,
+      "witness_ns": 643805625,
+      "row_seconds": 8.424312,
+      "composition_seconds": 10.575212,
+      "verified": true,
+      "profile_archive": "/tmp/stwo-rv64-round2/memory-ecdsa.json",
+      "profile_sha256": "1cdbd061641b85af0a56f44ebf9f4fbeae5c7dabc251b7ac5e7f2616b4fbe5b1"
+    },
+    {
+      "variant": "dynamic",
+      "repeat": false,
+      "prove_ns": 17767926042,
+      "witness_ns": 645176833,
+      "row_seconds": 8.3874,
+      "composition_seconds": 10.55548,
+      "verified": true,
+      "profile_archive": "/tmp/stwo-rv64-round2/dynamic-ecdsa.json",
+      "profile_sha256": "1e877ceb80813c8715f0051c3e1c4090cbca4cd20349a664033b0bbba5096f1e"
+    },
+    {
+      "variant": "static",
+      "repeat": true,
+      "prove_ns": 18237344708,
+      "witness_ns": 653194167,
+      "row_seconds": 8.71379,
+      "composition_seconds": 10.912329,
+      "verified": true,
+      "profile_archive": "/tmp/stwo-rv64-round2/memory-ecdsa-repeat.json",
+      "profile_sha256": "3a4adcb42e5efd8fcc973f857507242c5ae1eba838f4ff406fefb32578305c03"
+    },
+    {
+      "variant": "dynamic",
+      "repeat": true,
+      "prove_ns": 19268505875,
+      "witness_ns": 670304834,
+      "row_seconds": 9.339378,
+      "composition_seconds": 11.671563,
+      "verified": true,
+      "profile_archive": "/tmp/stwo-rv64-round2/dynamic-ecdsa-repeat.json",
+      "profile_sha256": "854a9a1ae63e06f53e7eff6df77ce0ffe8635c2657f86403210f5efe5182f716"
+    }
+  ],
+  "proof_bytes_equal": true,
+  "proof_sha256": "33fabd550f9ee16fc0efd7f322f542c1e7f44771425861c1ad9ecc7206a731aa",
+  "source_archive": "/tmp/stwo-rv64-round2/parallel-dynamic-candidate.zig",
+  "source_sha256": "5809b10e895c835d01d140b32fbfc932cfb94273d1bfdea3ce41585987eea548",
+  "security_parameters_changed": false,
+  "notes": "Both variants use universal memory expectation factoring. Source and raw profiles are retained in the ignored local experiment archive; only this decision summary is tracked."
+}

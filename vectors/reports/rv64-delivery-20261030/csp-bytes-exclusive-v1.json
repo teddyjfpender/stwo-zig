@@ -1,0 +1,4136 @@
+{
+  "schema": "rv64-csp-full-single-shot-proofs-v1",
+  "complete": true,
+  "whole_guest_proof": true,
+  "profile_only": false,
+  "profile_stages": true,
+  "control_policy": "bytes_v1",
+  "all_selected_profiled": false,
+  "selected_cases": 17,
+  "execution_report_sha256": "cc90cc1276bbe91a93a4d792018b9d9f91f407d035485a2dea236c2b830c5b3b",
+  "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "driver_sha256": "d42ee99c6fc36cbe9edb81c74a08b27593d52890e38cd5b99669d2f486efe5d8",
+  "binary_sha256": "5063e6943ae1c9f545a259713afa383dd821d6e26c97e1d45961bf9b2d05e72e",
+  "verifier_binary_sha256": "a4cc35d66fe1554f341ee4a09157c7dd6f14d94a686e4321be6670191b1c381b",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "memory_limit_bytes": 51539607552,
+  "timeout_seconds": 7200,
+  "verify_timeout_seconds": 1800,
+  "scope": "One guest capture and one STARK per selected complete execution; separate fresh-process receiver verification. Profile-only never establishes a proof.",
+  "cases": [
+    {
+      "target": "keccak",
+      "size": 128,
+      "negative": false,
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "expected_instructions": 8721,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "c3a1c4194d8561e4ac40ac427de842b0b07dc74b21fe56e90e38588cb0f21749",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.0044,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001737,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.011732,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001598,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.019006,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.005916,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.016103,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002043,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.08426,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.005291,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.023211,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.002758,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.015906,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.002498,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.014726,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.002255,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.015331,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000507,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.001971,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.003089,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.6e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.019436,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.035265,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000521,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.014278,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 8721,
+        "rows": 16384,
+        "main_columns": 484,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 49217536,
+        "rom_words": 1930,
+        "ram_cells": 259,
+        "capture_ns": 308000,
+        "setup_ns": 7195666,
+        "witness_ns": 19857125,
+        "prove_ns": 219952834,
+        "encode_decode_ns": 860541,
+        "verify_ns": 4842292,
+        "proof_bytes": 472112,
+        "oods_samples": 907,
+        "queried_base_values": 60340,
+        "authenticated_hashes": 2832,
+        "peak_caller_bytes": 161257511,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 264567542,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "b6d6083fc41d58c4e9659dbabbbab86e757d7e39bb8fcf18be49c9825daa8adb",
+        "claims.json": "b8e00b922af5f810e5c632cc8bf1762d36f6b7e1c4f71c91c2d121bd0684ef4b",
+        "proof.bin": "1633e561bdba5250c68cb1ae15cbbb1579b2132346d05beee89d30ad1738347f"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 389625,
+        "independent_setup_ns": 6106208,
+        "verify_ns": 4822167,
+        "proof_bytes": 472112
+      },
+      "verify_process_ns": 22087750
+    },
+    {
+      "target": "sha256",
+      "size": 128,
+      "negative": false,
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "expected_instructions": 14035,
+      "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+      "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "cadfa2ef08dfebdaf65f220e744e1469c356c964b575adf0d1602bae02b619ad",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.005946,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.00177,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.014012,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.00204,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.019274,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.007702,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.017568,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002255,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 5e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.092318,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.005767,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.025624,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.002984,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.017055,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.003108,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.016261,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.002307,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.015384,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000528,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.002001,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 4.8e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.003448,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 3.9e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.018888,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.02949,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000452,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.014777,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.2e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 14035,
+        "rows": 16384,
+        "main_columns": 512,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 50790400,
+        "rom_words": 4892,
+        "ram_cells": 239,
+        "capture_ns": 467875,
+        "setup_ns": 9067708,
+        "witness_ns": 30098042,
+        "prove_ns": 230156958,
+        "encode_decode_ns": 824917,
+        "verify_ns": 4747958,
+        "proof_bytes": 466832,
+        "oods_samples": 931,
+        "queried_base_values": 62020,
+        "authenticated_hashes": 2688,
+        "peak_caller_bytes": 176222887,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 287416875,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "8f0eefb362128c4c34ba34b41ab636678f765c3c9ae578e78d523ca9adc55848",
+        "claims.json": "7fa8a169c8eda9d567bb9ae0d63e6e57ce4560218bf030af8f4a28a9bf4187dd",
+        "proof.bin": "e4bd6789a1971c31c9316d65154aa6e2780e8e97d556501f763dc5a9d02fa9f1"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 559667,
+        "independent_setup_ns": 8603167,
+        "verify_ns": 4748750,
+        "proof_bytes": 466832
+      },
+      "verify_process_ns": 24490667
+    },
+    {
+      "target": "keccak",
+      "size": 256,
+      "negative": false,
+      "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+      "expected_instructions": 16671,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "ecd0a81a7a1a4b52eb055234c2eff9bbcab9353b24fef62988a675b37ceb0f1d",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.004988,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002166,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.020439,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002022,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.028964,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006245,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.025325,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002735,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.170192,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.011244,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.045361,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.005099,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.030707,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.005376,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.030759,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.006224,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.032341,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000544,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.001955,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.00791,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 3.9e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.026269,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.094138,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000485,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.017832,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.3e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 16671,
+        "rows": 32768,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 99352576,
+        "rom_words": 1930,
+        "ram_cells": 292,
+        "capture_ns": 477916,
+        "setup_ns": 6873417,
+        "witness_ns": 33646417,
+        "prove_ns": 409458125,
+        "encode_decode_ns": 753750,
+        "verify_ns": 4767166,
+        "proof_bytes": 467520,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 2760,
+        "peak_caller_bytes": 264610742,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 468423458,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "05bcfa397594d5009d9d095e6b3d99789b0ba0d8ad000c41c9e03ef974e5315e",
+        "claims.json": "099c9f36925c8582b238ac5b6dca1988600f91fc586fba0d0dc28fa5861dbf96",
+        "proof.bin": "f457415ad7861abd4c7fdfb355ded022dbfd2df8cac41ca7b1b664e980ac1505"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 419375,
+        "independent_setup_ns": 6819667,
+        "verify_ns": 4809917,
+        "proof_bytes": 467520
+      },
+      "verify_process_ns": 23674834
+    },
+    {
+      "target": "sha256",
+      "size": 256,
+      "negative": false,
+      "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+      "expected_instructions": 22941,
+      "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+      "expected_output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "a9e9880ea288ad0f86d4cfc4f210888fd2e2653d52335d11bfe09bd7b78dcaf4",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.005954,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001833,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.02248,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001735,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.035049,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.00772,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.025295,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002403,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 8e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.182122,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.011767,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.056227,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.004879,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.030898,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.006542,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.030433,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.006393,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.031556,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.00053,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.001977,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.006657,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.4e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.026989,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.140666,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000582,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.018045,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.3e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 22941,
+        "rows": 32768,
+        "main_columns": 512,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 101580800,
+        "rom_words": 4892,
+        "ram_cells": 271,
+        "capture_ns": 697125,
+        "setup_ns": 9894959,
+        "witness_ns": 49549833,
+        "prove_ns": 478530708,
+        "encode_decode_ns": 840417,
+        "verify_ns": 4837667,
+        "proof_bytes": 475536,
+        "oods_samples": 931,
+        "queried_base_values": 62020,
+        "authenticated_hashes": 2792,
+        "peak_caller_bytes": 280950695,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 558637250,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "7d74ae378c333024797830c0e5483a41d6170e34c3787ffaf8a7d440503ed1a9",
+        "claims.json": "58150bcbfe3e4498d0eb0e0a508f00b476013d5676ae5d148bb4fb38d758f83f",
+        "proof.bin": "4e03768d7af358ce22824053cf9754c4163fd9388356ae8364d1947e84fdb9ab"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 555708,
+        "independent_setup_ns": 8945000,
+        "verify_ns": 4921667,
+        "proof_bytes": 475536
+      },
+      "verify_process_ns": 24850291
+    },
+    {
+      "target": "keccak",
+      "size": 512,
+      "negative": false,
+      "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+      "expected_instructions": 32501,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "b2e81cc79d030ffc7d2a9273733d9817a7767129eabe7d980898796a548e5224",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.004803,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001795,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.020179,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.00187,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.044566,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.00595,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.024027,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002163,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.174514,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.011012,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.047797,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.005414,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.031507,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.008021,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.031027,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.005519,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.031149,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000541,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.00201,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5.3e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.006388,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 3.9e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.025638,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.056668,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000515,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.017553,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000102,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 32501,
+        "rows": 32768,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 99352576,
+        "rom_words": 1930,
+        "ram_cells": 356,
+        "capture_ns": 836375,
+        "setup_ns": 6833291,
+        "witness_ns": 62902917,
+        "prove_ns": 387652500,
+        "encode_decode_ns": 888208,
+        "verify_ns": 5139750,
+        "proof_bytes": 473536,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 2824,
+        "peak_caller_bytes": 264613302,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 476142417,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "739131008cccea4f4732ca1b83fe52b4484eb231b8bd1de1613497de7e3be29b",
+        "claims.json": "8fac352a17319f34e9133287898a8736ed8ddea2d1f0ed7ef5636c50148fe67f",
+        "proof.bin": "91e6f68ce40ab6e1f12586da5f5f823a53275240645e140b2a6fc74e5ee69ef0"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 443125,
+        "independent_setup_ns": 6775292,
+        "verify_ns": 4982250,
+        "proof_bytes": 473536
+      },
+      "verify_process_ns": 24537792
+    },
+    {
+      "target": "sha256",
+      "size": 512,
+      "negative": false,
+      "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+      "expected_instructions": 40753,
+      "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+      "expected_output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "ad24d6a0241c172ba7f1d82d9f03ff6f99a2899020d840bff9a8bef924eeefc1",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.006271,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002003,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.0415,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001772,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.048194,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.007896,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.042207,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.00193,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 8e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.320685,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.024263,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.066379,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.012664,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.062069,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.012866,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.063256,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.012976,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.062025,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000543,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.001996,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 4.5e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.013441,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.1e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.038611,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.06806,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000591,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.025503,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.7e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 40753,
+        "rows": 65536,
+        "main_columns": 512,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 203161600,
+        "rom_words": 4892,
+        "ram_cells": 335,
+        "capture_ns": 1119708,
+        "setup_ns": 9745375,
+        "witness_ns": 53814125,
+        "prove_ns": 621271500,
+        "encode_decode_ns": 982584,
+        "verify_ns": 5080000,
+        "proof_bytes": 484160,
+        "oods_samples": 931,
+        "queried_base_values": 62020,
+        "authenticated_hashes": 2884,
+        "peak_caller_bytes": 487832695,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 703610375,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "47c0b49d1873d3063f0509b781083af180d5e11a72a66b94f69581a32fb648ac",
+        "claims.json": "e6581f468864fa2e24d8ca64e96f92bd160ad77e9563afca124b00cac4002c21",
+        "proof.bin": "6f1c3803c4f826a4a8b2044963d0ef9a381246b919aa32c28ad2a89458a721c6"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 557209,
+        "independent_setup_ns": 9535916,
+        "verify_ns": 5067000,
+        "proof_bytes": 484160
+      },
+      "verify_process_ns": 24492959
+    },
+    {
+      "target": "keccak",
+      "size": 1024,
+      "negative": false,
+      "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+      "expected_instructions": 64161,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "6b3e0b1f935546280e22a8ddf5668d69939bb16c57e90dd7b99d832187beefc2",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.004822,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001836,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.03707,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001783,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.045549,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006272,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.042924,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.001829,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 6e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.330597,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.024623,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.068301,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.014287,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.07101,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.013163,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.062189,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.011552,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.061707,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000542,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.002048,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 4.3e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.013597,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.5e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.038378,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.043022,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000507,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.025264,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.7e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 64161,
+        "rows": 65536,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 198705152,
+        "rom_words": 1930,
+        "ram_cells": 484,
+        "capture_ns": 1607833,
+        "setup_ns": 7275250,
+        "witness_ns": 64067792,
+        "prove_ns": 596467458,
+        "encode_decode_ns": 5684167,
+        "verify_ns": 5267917,
+        "proof_bytes": 473600,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 2824,
+        "peak_caller_bytes": 469483958,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 692158625,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "766bf3871b09bd9ad76f691f64fd1c69fcea0ab8854455e9a67a62c1e9735026",
+        "claims.json": "d319c6b2c46074896acef9a7bcf1e634719a6a90a39b73693f842cb73a03b312",
+        "proof.bin": "826f3a2bf4451e3d5d091de18b45758212a023432d2853d13ab7697be4879101"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 462500,
+        "independent_setup_ns": 7040625,
+        "verify_ns": 5266625,
+        "proof_bytes": 473600
+      },
+      "verify_process_ns": 25361708
+    },
+    {
+      "target": "sha256",
+      "size": 1024,
+      "negative": false,
+      "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+      "expected_instructions": 76377,
+      "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+      "expected_output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "4d15ab17f27b2d54161c8af1e839270012c6d4b0c7695ee425ec42bb6d1d35bd",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.008791,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002713,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.082066,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002765,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.05942,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.007695,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.079789,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002876,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 6e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.686926,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.045057,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.138614,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.023041,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.140967,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.026941,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.138783,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.023423,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.141534,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001556,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.00386,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 3.7e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.026849,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.3e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.077853,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.177219,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.001324,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.042177,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.5e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 76377,
+        "rows": 131072,
+        "main_columns": 512,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 406323200,
+        "rom_words": 4892,
+        "ram_cells": 463,
+        "capture_ns": 2023250,
+        "setup_ns": 13465709,
+        "witness_ns": 53812541,
+        "prove_ns": 1265109667,
+        "encode_decode_ns": 892167,
+        "verify_ns": 5464750,
+        "proof_bytes": 503048,
+        "oods_samples": 931,
+        "queried_base_values": 62020,
+        "authenticated_hashes": 3020,
+        "peak_caller_bytes": 933745487,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 1353052792,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "08174f14acb243d4acbe45caccb7f23556f2fd1aba6ef7a3f38dd68f4471e349",
+        "claims.json": "ec3fde3df8c3a96a5d2eb3dd51af428744478a87c7766256d03b6ed848ca211e",
+        "proof.bin": "d09480b8a6eab4620a7520965f37585e936714268a84dc3bd3da98df6f2d6b5d"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 616291,
+        "independent_setup_ns": 12192417,
+        "verify_ns": 5260958,
+        "proof_bytes": 503048
+      },
+      "verify_process_ns": 27328917
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 2,
+      "negative": false,
+      "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+      "expected_instructions": 81898,
+      "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+      "expected_output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "b4dcd92a2c34118ea80948ceca5741d8bcd03b8fecc63d2436823901dc4d7546",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.008054,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.003346,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.076932,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002956,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.054449,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006127,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.077743,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.003154,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 8e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.689515,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.049377,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.138483,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.022328,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.139756,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.02436,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.142098,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.023013,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.141894,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001157,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.004046,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5.3e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.026707,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.078,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.033104,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000697,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.041932,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.6e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 81898,
+        "rows": 131072,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 397410304,
+        "rom_words": 2016,
+        "ram_cells": 59,
+        "capture_ns": 1735584,
+        "setup_ns": 10726125,
+        "witness_ns": 52109333,
+        "prove_ns": 1107987583,
+        "encode_decode_ns": 896917,
+        "verify_ns": 5148958,
+        "proof_bytes": 498584,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 3036,
+        "peak_caller_bytes": 904600582,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 1190776167,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "b6228d389711c3655da03c211b385ea255b3c3e2e5aec2ed0fc5a65cd8a8dd1d",
+        "claims.json": "c9917f81697ab62c4463a5ead0da27090b8c691363023dc192b92e50a85dc4ce",
+        "proof.bin": "744a4c2ad249471e605107c7c36e55e46e246d1390dd92792f03452cae6809a1"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 380708,
+        "independent_setup_ns": 10467375,
+        "verify_ns": 5152958,
+        "proof_bytes": 498584
+      },
+      "verify_process_ns": 25098584
+    },
+    {
+      "target": "keccak",
+      "size": 2048,
+      "negative": false,
+      "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+      "expected_instructions": 127510,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "bdd8990fa8533c9b0747cc27e28c659f895eda6a1ec60cb2e767970a8fe40cbf",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.007952,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.003245,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.078346,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.002727,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.061008,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006413,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.080302,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.00323,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 7e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.686174,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.04524,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.139654,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.02206,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.1409,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.025826,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.13928,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.022425,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.142851,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001204,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.003787,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 4.9e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.02671,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.1e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.079844,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.017329,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000621,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.042064,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.4e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 127510,
+        "rows": 131072,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 397410304,
+        "rom_words": 1930,
+        "ram_cells": 740,
+        "capture_ns": 3155209,
+        "setup_ns": 10977958,
+        "witness_ns": 74348500,
+        "prove_ns": 1101709583,
+        "encode_decode_ns": 896375,
+        "verify_ns": 5868667,
+        "proof_bytes": 500616,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 3040,
+        "peak_caller_bytes": 904570718,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 1209132708,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "31d869f5b06a4f66541bd135b79da730fd9aa840f8758e9ccbb524982a9946fb",
+        "claims.json": "9fd21041137e376a8c6bfc7b7bb85905268a16febc3f7797844fa7c3fe1cc6f0",
+        "proof.bin": "9d610107b094f973c81033e21350fc76ea24f77e4ab827fd92a2192f3892542d"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 526458,
+        "independent_setup_ns": 10379792,
+        "verify_ns": 5622458,
+        "proof_bytes": 500616
+      },
+      "verify_process_ns": 25737500
+    },
+    {
+      "target": "sha256",
+      "size": 2048,
+      "negative": false,
+      "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+      "expected_instructions": 147625,
+      "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+      "expected_output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "9c0c2809f59f1a2f746ff0d9eee09cc0b7ce3e185e604c33975c1da374d78422",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.013445,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.0044,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.160792,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.004428,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.101874,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.007689,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.156887,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.006564,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 7e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.317668,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.0845,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.26545,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.046015,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.266283,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.053631,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.270247,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.045612,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.270627,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.002499,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.007854,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 4.7e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.054647,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.150174,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.038,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.001081,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.077254,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.5e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 147625,
+        "rows": 262144,
+        "main_columns": 512,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 812646400,
+        "rom_words": 4892,
+        "ram_cells": 719,
+        "capture_ns": 3860416,
+        "setup_ns": 19836959,
+        "witness_ns": 88820875,
+        "prove_ns": 2107739166,
+        "encode_decode_ns": 979209,
+        "verify_ns": 6456791,
+        "proof_bytes": 549696,
+        "oods_samples": 931,
+        "queried_base_values": 62020,
+        "authenticated_hashes": 3416,
+        "peak_caller_bytes": 1826094631,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 2239003500,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "c94313ffd1348b0998a7e09bdc040cb660980a1c37a7340de470bc1a03b17aa5",
+        "claims.json": "f50a2451c5c9ee6f9eb0ddf1d965aec7c06a56b5811b0d87bbf18a5a39518cae",
+        "proof.bin": "3f714cb789cbcfd5ee7ae135f262ab559765a7635d115cfe864cf0a1ace5a230"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 682417,
+        "independent_setup_ns": 19722375,
+        "verify_ns": 6454667,
+        "proof_bytes": 549696
+      },
+      "verify_process_ns": 36225500
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 4,
+      "negative": false,
+      "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+      "expected_instructions": 163666,
+      "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+      "expected_output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "7fb9c618215e68d524ff82f83edc3fb48b181379b4cf7d77b3801ecafbdec95a",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.012824,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.004763,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.154108,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.004679,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.080208,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006365,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.150502,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.004773,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 9e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.312636,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.078581,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.264594,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.046603,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.269997,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.05126,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.271041,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.044811,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.2721,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.002638,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.008041,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5.6e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.05626,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.3e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.156553,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.31697,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.00193,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.075802,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.2e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 163666,
+        "rows": 262144,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 794820608,
+        "rom_words": 2016,
+        "ram_cells": 60,
+        "capture_ns": 3552583,
+        "setup_ns": 17577375,
+        "witness_ns": 91536959,
+        "prove_ns": 2351507166,
+        "encode_decode_ns": 830250,
+        "verify_ns": 5305875,
+        "proof_bytes": 541648,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 3392,
+        "peak_caller_bytes": 1778589446,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 2482697584,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "0d7f3fd47e13b5ab1195c4e74fcf68cf0848cdbdbf29ee49073f697d342c2df4",
+        "claims.json": "030a27d5bedf121e829fbbf7eb8b03b268b213841dbbc9ea3793598773514551",
+        "proof.bin": "7aca1ea15b96b0b5a15ef8fdf233a44ddd8d6c803c38759890ab70f69ddcba35"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 363417,
+        "independent_setup_ns": 16810417,
+        "verify_ns": 5289500,
+        "proof_bytes": 541648
+      },
+      "verify_process_ns": 31613584
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 8,
+      "negative": false,
+      "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+      "expected_instructions": 327202,
+      "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+      "expected_output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "e01c78d7f6852f94881deda49b11d71e2f9151cdd49f9667eaccf0bf43e410d3",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.023339,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.009115,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.302548,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.008493,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.139051,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006525,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.30393,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.009367,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 5e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 2.686624,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.168203,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.534492,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.10741,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.549282,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.111293,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.539598,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.101962,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.550897,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.005122,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.016129,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5.6e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.108815,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.1e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.293635,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.103206,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002211,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.185353,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.5e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 327202,
+        "rows": 524288,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 1589641216,
+        "rom_words": 2016,
+        "ram_cells": 62,
+        "capture_ns": 6855750,
+        "setup_ns": 28903875,
+        "witness_ns": 140907459,
+        "prove_ns": 4203696208,
+        "encode_decode_ns": 900958,
+        "verify_ns": 5830584,
+        "proof_bytes": 572216,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 3608,
+        "peak_caller_bytes": 3337822766,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 4399688042,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "a34849191498861cb96c41b02b1740aac64e1fc21e286653a52e47560a2f0037",
+        "claims.json": "2f797e6006ad195e10adfb83d081837c2df309a0b9ba904d08920667378e3c24",
+        "proof.bin": "6d5e10d04e75ca4d678bec08b3dc22517a3416013fd710c620cb9409823d2cbe"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 397083,
+        "independent_setup_ns": 31239417,
+        "verify_ns": 5862458,
+        "proof_bytes": 572216
+      },
+      "verify_process_ns": 43701459
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 12,
+      "negative": false,
+      "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+      "expected_instructions": 490738,
+      "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+      "expected_output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "638040877e10385f5826deab4ed9163d9996ec458c3abf7b80e70885789b8149",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.024353,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.008825,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.306278,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.008432,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.148779,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006783,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.30484,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.008705,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 5e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 2.713138,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.167977,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.544215,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.104143,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.548286,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.108342,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.55562,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.101114,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 0.558057,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.005577,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.015209,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 5.5e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.110045,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.3e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.302366,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.074353,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.001823,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.186835,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.6e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 490738,
+        "rows": 524288,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 1589641216,
+        "rom_words": 2016,
+        "ram_cells": 64,
+        "capture_ns": 10141625,
+        "setup_ns": 28066166,
+        "witness_ns": 174385209,
+        "prove_ns": 4228345833,
+        "encode_decode_ns": 924042,
+        "verify_ns": 6099458,
+        "proof_bytes": 577752,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 3656,
+        "peak_caller_bytes": 3337822846,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 4454332209,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "a43ce494680e1dac95d6f6867d73183e28b83ded5744f4c9e271a357f9ce4cad",
+        "claims.json": "f0fbb903173631b0531d4f23e0a64192f013a93fca49ce93d592bac7d72ece89",
+        "proof.bin": "c59a0fda9ce9b1387db0ab7f36510120ca80ac7d957dbc57222654681d9a2e08"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 386291,
+        "independent_setup_ns": 29422584,
+        "verify_ns": 5901291,
+        "proof_bytes": 577752
+      },
+      "verify_process_ns": 47725625
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 16,
+      "negative": false,
+      "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+      "expected_instructions": 654274,
+      "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+      "expected_output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "d4fc02aeeae841b9b1a9dab222775788f960c43925bc64f6d1fd2a1bb5411f4e",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.040506,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.016396,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 0.637608,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.01957,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.289922,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.006544,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 0.936571,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.015249,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 5e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 5.474808,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.328806,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 1.089891,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.198185,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 1.11518,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.222215,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 1.124513,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.204194,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 1.143717,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.012334,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.035804,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 6.4e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.21653,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 3.9e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.581491,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.041344,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002535,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.369698,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.7e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 654274,
+        "rows": 1048576,
+        "main_columns": 491,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 3179282432,
+        "rom_words": 2016,
+        "ram_cells": 66,
+        "capture_ns": 14246417,
+        "setup_ns": 54337833,
+        "witness_ns": 271333625,
+        "prove_ns": 8695956667,
+        "encode_decode_ns": 943291,
+        "verify_ns": 6334542,
+        "proof_bytes": 618576,
+        "oods_samples": 914,
+        "queried_base_values": 60830,
+        "authenticated_hashes": 3956,
+        "peak_caller_bytes": 6645032358,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 9054978000,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "7d5b5dd8a4d0d3521e61cd4ee9a27e6bddaa8412ea7b5e0786389f6667230e7b",
+        "claims.json": "3d39cb68befe59f3272c90ce6be95d21c4a419811fe95d96b667ed430369479b",
+        "proof.bin": "13fce65f1feb3edeee291a7fbf56b6f5384c4a54a3d496553f393811b3b196ae"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 403000,
+        "independent_setup_ns": 59682125,
+        "verify_ns": 6392583,
+        "proof_bytes": 618576
+      },
+      "verify_process_ns": 73200500
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "size": 32,
+      "negative": false,
+      "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+      "expected_instructions": 1625938,
+      "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+      "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "382deb1df9091734f3bd01f0361ec7c26f88282a95789edb032d33d60dafd647",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.084057,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.039452,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 1.616545,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.039061,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.609157,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.013291,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 1.540169,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.032588,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 11.637577,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.702662,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.316743,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.439875,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.347293,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.487773,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.377423,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.438628,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.416306,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.027273,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.062169,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 6e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.537976,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 1.27713,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.117489,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.003996,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.916619,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 9.5e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 1625938,
+        "rows": 2097152,
+        "main_columns": 519,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 6559891456,
+        "rom_words": 26853,
+        "ram_cells": 1814,
+        "capture_ns": 44079334,
+        "setup_ns": 116659625,
+        "witness_ns": 647536291,
+        "prove_ns": 18544504209,
+        "encode_decode_ns": 1037875,
+        "verify_ns": 9297166,
+        "proof_bytes": 669304,
+        "oods_samples": 938,
+        "queried_base_values": 62510,
+        "authenticated_hashes": 4236,
+        "peak_caller_bytes": 13721057734,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 19370101709,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "0bcabedec61510691b1dc36b4ffa362bd1ed023335d7cce4a5b1e989d7227473",
+        "claims.json": "28f0c56efb468a0d00cb82eb207693353f7666a5ba1526ae3b6aad42cd5645d9",
+        "proof.bin": "33fabd550f9ee16fc0efd7f322f542c1e7f44771425861c1ad9ecc7206a731aa"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 2053750,
+        "independent_setup_ns": 109776459,
+        "verify_ns": 8961958,
+        "proof_bytes": 669304
+      },
+      "verify_process_ns": 134526375
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "size": 32,
+      "negative": true,
+      "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+      "expected_instructions": 1627849,
+      "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+      "expected_output": "0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "0df838d913ce6d34e895b187b1fe42248a7ec8894308acad54d44d3a9fd23120",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "stage_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "rv64-full",
+          "stages": [
+            {
+              "id": "fixed_commit",
+              "label": "fixed_commit",
+              "seconds": 0.079034,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.033637,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "main_commit",
+              "label": "Main commitment with source ownership",
+              "seconds": 1.603693,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.032354,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "interaction_generation",
+              "label": "CPU interaction generation",
+              "seconds": 0.664438,
+              "children": null
+            },
+            {
+              "id": "provider_interaction_generation",
+              "label": "Provider interaction generation",
+              "seconds": 0.012926,
+              "children": null
+            },
+            {
+              "id": "interaction_commit",
+              "label": "interaction_commit",
+              "seconds": 1.533217,
+              "children": [
+                {
+                  "id": "merkle_commit",
+                  "label": "Merkle commit",
+                  "seconds": 0.028695,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 11.474021,
+              "children": [
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.715131,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.285618,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.429034,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.318995,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.481418,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.337187,
+                  "children": null
+                },
+                {
+                  "id": "cpu_coset_fft",
+                  "label": "CPU quotient coset FFT",
+                  "seconds": 0.435087,
+                  "children": null
+                },
+                {
+                  "id": "cpu_constraint_rows",
+                  "label": "CPU quotient constraint rows",
+                  "seconds": 2.361124,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.031737,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.071121,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 6.4e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.522574,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 4.2e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 1.262317,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.159746,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.004655,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.929112,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 9.5e-05,
+              "children": null
+            }
+          ]
+        },
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 1627849,
+        "rows": 2097152,
+        "main_columns": 519,
+        "interaction_columns": 260,
+        "cpu_base_bytes": 6559891456,
+        "rom_words": 26853,
+        "ram_cells": 1814,
+        "capture_ns": 45096875,
+        "setup_ns": 131242833,
+        "witness_ns": 640725625,
+        "prove_ns": 18450320417,
+        "encode_decode_ns": 979375,
+        "verify_ns": 9175250,
+        "proof_bytes": 662744,
+        "oods_samples": 938,
+        "queried_base_values": 62510,
+        "authenticated_hashes": 4196,
+        "peak_caller_bytes": 13721057734,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 19290449542,
+      "independent_statement_binding": true,
+      "artifact_sha256": {
+        "statement.json": "7dc400cb7eed6c15919220bcd58d53c3a494a8b8927ad9dceaea1e942df9994f",
+        "claims.json": "c4553e6089860ff5f8dbe42dac4c90cb7d9acbf2e231912d8fb1301d552549fa",
+        "proof.bin": "4c231e5b766d8063d6c526b46eca4d126b7a59eac4c5919039aa00ea4fb3a5b9"
+      },
+      "fresh_process": {
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 2049375,
+        "independent_setup_ns": 135512750,
+        "verify_ns": 8879167,
+        "proof_bytes": 662744
+      },
+      "verify_process_ns": 154377959
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+OM_DEEP_PHASE phase=catalog_allocate count=1098 ns=11000000
+OM_DEEP_PHASE phase=numerator_combine count=1645 ns=319191041
+OM_DEEP_PHASE phase=numerator_fft count=43 ns=365186000
+OM_DEEP_ROWS rows=2097152 points_ns=14577323 inverse_ns=366390115 finalize_ns=637273755
+OM_DEEP_ROWS rows=2097152 points_ns=14571379 inverse_ns=368139219 finalize_ns=640134162
+OM_DEEP_ROWS rows=2097152 points_ns=14608481 inverse_ns=368874003 finalize_ns=641904056
+OM_DEEP_ROWS rows=2097152 points_ns=14577015 inverse_ns=369544780 finalize_ns=643256087
+OM_DEEP_ROWS rows=2097152 points_ns=14621913 inverse_ns=370099099 finalize_ns=644371833
+OM_DEEP_ROWS rows=2097152 points_ns=14563284 inverse_ns=369904829 finalize_ns=645298234
+OM_DEEP_ROWS rows=2097152 points_ns=14617086 inverse_ns=370320544 finalize_ns=644858882
+OM_DEEP_ROWS rows=2097152 points_ns=14592551 inverse_ns=372701429 finalize_ns=650402886
+OM_DEEP_PHASE phase=quotient_rows count=16777216 ns=1037798042
+OM_DEEP_PHASE phase=fri_pack count=16777216 ns=73516084
+OM_DEEP_PHASE phase=fri_merkle count=16777216 ns=75869542
+OM_DEEP_PHASE phase=fri_circle_fold count=8388608 ns=70811291
+OM_DEEP_PHASE phase=fri_line_folds count=8388608 ns=58322542
+OM_DEEP_PHASE phase=fri_pack count=1048576 ns=5077625
+OM_DEEP_PHASE phase=fri_merkle count=1048576 ns=4782625
+OM_DEEP_PHASE phase=fri_line_folds count=1048576 ns=6665792
+OM_DEEP_PHASE phase=fri_pack count=65536 ns=715042
+OM_DEEP_PHASE phase=fri_merkle count=65536 ns=328916
+OM_DEEP_PHASE phase=fri_line_folds count=65536 ns=2179042
+OM_DEEP_PHASE phase=fri_pack count=4096 ns=39417
+OM_DEEP_PHASE phase=fri_merkle count=4096 ns=119459
+OM_DEEP_PHASE phase=fri_line_folds count=4096 ns=60083
+OM_DEEP_PHASE phase=fri_pack count=256 ns=11708
+OM_DEEP_PHASE phase=fri_merkle count=256 ns=9042
+OM_DEEP_PHASE phase=fri_line_folds count=256 ns=5834
+OM_DEEP_PHASE phase=fri_pack count=16 ns=583
+OM_DEEP_PHASE phase=fri_merkle count=16 ns=2250
+OM_DEEP_PHASE phase=fri_line_folds count=16 ns=791
+       18.97 real        98.70 user         5.83 sys
+         12104482816  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3410239  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                6627  voluntary context switches
+               32782  involuntary context switches
+       1450574458734  instructions retired
+        443949266183  cycles elapsed
+         12108899928  peak memory footprint

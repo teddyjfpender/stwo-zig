@@ -1,0 +1,827 @@
+{
+  "schema": "rv64-post-service-recovery-census-v1",
+  "reports": [
+    {
+      "pins": {
+        "build-report.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2/build-report.json",
+          "bytes": 5272,
+          "sha256": "d285c5c97e938bdab8d65050497212af006b6b5e81329a481a7c2aac618668e1"
+        },
+        "execution-config.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2/execution-config.json",
+          "bytes": 944,
+          "sha256": "0f616b6d6ed8ff9e55518ecc6010ecc67482f7b2f5bab597cc308db8d552fd1e"
+        },
+        "execution.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2/execution.json",
+          "bytes": 1402025,
+          "sha256": "94b75100ba915eb944c4a6eee8bb4f3f4c519202b6049a645556109e40dd1602"
+        },
+        "function-profile.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2/function-profile.json",
+          "bytes": 208851,
+          "sha256": "50d736e1a3db72aed066602da84dd54f25167b57d0872e87210447ceae572dc0"
+        },
+        "ethereum-rv64-services-v2.elf": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2/ethereum-rv64-services-v2.elf",
+          "bytes": 3036384,
+          "sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc"
+        }
+      },
+      "toolchain": "nightly-2026-08-08",
+      "isa": "RV64IM",
+      "abi": "lp64",
+      "build_time": null,
+      "build_time_note": "The pinned build reports contain no authenticated build timestamp; filesystem modification times are not build provenance.",
+      "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+      "elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+      "instructions": 213659488,
+      "output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+      "accounting": {
+        "function_instructions": 213659482,
+        "unknown_instructions": 6,
+        "retired_padding_instructions": 0,
+        "total": 213659488
+      },
+      "symbol_policy": "Half-open nonzero STT_FUNC ranges; shortest range, highest start, lexical alias; zero-size symbols infer no range",
+      "source_pins": {
+        "guest_source": {
+          "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/main.rs",
+          "bytes": 2440,
+          "sha256": "ddf53803ee4b0d4e29db4fcd1603d190411dcbc8789b874d5410c7441420b849"
+        },
+        "lockfile": {
+          "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.lock",
+          "bytes": 83719,
+          "sha256": "bf39a7f57946b93475b733f1adf1099f04dfb24e39ab4d45d42705628edc9289"
+        },
+        "secp_service_sources": [
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/Cargo.toml",
+            "bytes": 4400,
+            "sha256": "90eb2ec807fb8a94e781f3241042a178eb454dc696c1255f220cf826ad927713"
+          },
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective.rs",
+            "bytes": 29535,
+            "sha256": "ad2f394f69c07aec6e4bd7b8d710f2d898148113ed7afacd6fd2cfb49354adae"
+          },
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective/stwo_service.rs",
+            "bytes": 2537,
+            "sha256": "e6a98485fcc9be5268946fa40d61a935f7aa48e1681a8303a121ecfe59267986"
+          },
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs",
+            "bytes": 27155,
+            "sha256": "49fce60be683cc9ba76398b32c0af1e961db13b8aed5b2bd4033621434f42e26"
+          }
+        ],
+        "secp_upstream_sources": {
+          "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256-source.json",
+          "bytes": 3918,
+          "sha256": "cd6c25a5fceaff4421bd6dc468e861f10aad2f447fd2473e7e78ec52dcf52d90"
+        }
+      },
+      "top_self_functions": [
+        {
+          "name": "_RNvNtCsecYu37q7d9S_17compiler_builtins3mem6memcpy",
+          "start": 2192752,
+          "end": 2193280,
+          "instructions": 39954655,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 18.700154799584656,
+          "entry_pc_retirements": 328351
+        },
+        {
+          "name": "_RNvNtNtNtCs3qfboG6m08j_4k25610arithmetic10projective12stwo_service6encode",
+          "start": 354520,
+          "end": 355680,
+          "instructions": 20267520,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 9.485897485629096,
+          "entry_pc_retirements": 69888
+        },
+        {
+          "name": "_RNvMs_NtNtCs3qfboG6m08j_4k25610arithmetic3mulNtB4_11LookupTable6select",
+          "start": 356312,
+          "end": 357164,
+          "instructions": 16494192,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 7.719850007316315,
+          "entry_pc_retirements": 20592
+        },
+        {
+          "name": "_RNvMNtNtCs3qfboG6m08j_4k25610arithmetic5fieldNtB2_12FieldElement6square",
+          "start": 340712,
+          "end": 341624,
+          "instructions": 13569192,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 6.350849254117842,
+          "entry_pc_retirements": 59514
+        },
+        {
+          "name": "_RNvNtCsFqC16DLCLR_4sha26sha25611compress256",
+          "start": 1309528,
+          "end": 1325724,
+          "instructions": 11221056,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "sha256",
+            "sha2"
+          ],
+          "self_percent": 5.251840723310167,
+          "entry_pc_retirements": 2772
+        },
+        {
+          "name": "_RNvNtNtCs3qfboG6m08j_4k25610arithmetic3mul7lincomb",
+          "start": 343644,
+          "end": 353744,
+          "instructions": 9632532,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 4.508356773746458,
+          "entry_pc_retirements": 156
+        },
+        {
+          "name": "_RNvYINtNtCs81eV2OD3yH1_12revm_handler15mainnet_handler14MainnetHandlerINtNtCs7uPobXBcjuu_12revm_context3evm3EvmINtNtB1b_7context7ContextNtNtB1b_5block8BlockEnvNtNtB1b_2tx5TxEnvNtNtB1b_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEENtNtCsiQ55HuYfRvJ_14revm_inspector4noop13NoOpInspectorINtNtB7_12instructions15EthInstructionsNtNtCs2onWqmk3NgD_16revm_interpreter11interpreter14EthInterpreterB1L_ENtNtCsgAirDJAeCI3_9alloy_evm11precompiles14PrecompilesMapNtNtB7_5frame8EthFrameEINtNtCs6TiYRrBwPbJ_22revm_context_interface6result8EVMErrorINtNtCsePTy51kuKEh_23revm_database_interface3bal16EvmDatabaseErrorNtNtB51_5error14WitnessDbErrorEEB9e_ENtNtB7_7handler7Handler9executionCsG5rslEJfDU_24stateless_validator_reth",
+          "start": 1797460,
+          "end": 1802880,
+          "instructions": 8653701,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 4.0502301493861115,
+          "entry_pc_retirements": 70
+        },
+        {
+          "name": "_RNvXs_NtNtCsgp0Sy1ICK7h_8zeth_mpt3mpt3rlpINtNtB6_4node4NodeNtNtB6_7memoize5CacheENtNtCs5hAoIhlbReg_9alloy_rlp6decode9Decodable6decodeCsfOiuNktbBrD_5tries",
+          "start": 2166556,
+          "end": 2171744,
+          "instructions": 8513634,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 3.9846739687029484,
+          "entry_pc_retirements": 41509
+        },
+        {
+          "name": "_RNvMNtNtCs3qfboG6m08j_4k25610arithmetic6scalarNtB2_6Scalar3mul",
+          "start": 342284,
+          "end": 343644,
+          "instructions": 8115120,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 3.798155689673842,
+          "entry_pc_retirements": 23868
+        },
+        {
+          "name": "native_keccak256",
+          "start": 17316,
+          "end": 17988,
+          "instructions": 7122372,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "keccak",
+            "k256"
+          ],
+          "self_percent": 3.333515429934944,
+          "entry_pc_retirements": 7990
+        },
+        {
+          "name": "_RNvNtNtCs2l3SWHLzI1K_13revm_bytecode6legacy8analysis14analyze_legacy",
+          "start": 555020,
+          "end": 556388,
+          "instructions": 6847110,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 3.2046833323872796,
+          "entry_pc_retirements": 115
+        },
+        {
+          "name": "_RINvMNtNtCsgp0Sy1ICK7h_8zeth_mpt3mpt3rlpINtNtB5_4node4NodeNtNtB5_7memoize5CacheE15resolve_digestsNtNtCsa2TehGqnaDN_16alloy_primitives6bytes_5BytesECsfOiuNktbBrD_5tries",
+          "start": 2155320,
+          "end": 2156884,
+          "instructions": 5761084,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 2.6963857556374937,
+          "entry_pc_retirements": 41591
+        },
+        {
+          "name": "_RNvXs0_NtCs3qfboG6m08j_4k2565ecdsaNtNtNtB7_10arithmetic6affine11AffinePointINtNtCsiqM8jTmc2Sd_5ecdsa6hazmat15VerifyPrimitiveNtB7_9Secp256k1E16verify_prehashed",
+          "start": 357796,
+          "end": 363996,
+          "instructions": 5445017,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "k256",
+            "p256"
+          ],
+          "self_percent": 2.548455512539654,
+          "entry_pc_retirements": 78
+        },
+        {
+          "name": "_RINvCsgc2hZQ9yYDZ_6subtle9black_boxhECs9mDEa6D1RiM_13crypto_bigint",
+          "start": 316600,
+          "end": 316620,
+          "instructions": 3930235,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.839485359058803,
+          "entry_pc_retirements": 786047
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions5stack4swapKj1_NtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB1K_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2063040,
+          "end": 2063628,
+          "instructions": 2819380,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.3195669550607554,
+          "entry_pc_retirements": 19444
+        },
+        {
+          "name": "memcmp",
+          "start": 2196404,
+          "end": 2196452,
+          "instructions": 2417475,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.1314615712268299,
+          "entry_pc_retirements": 18592
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions6memory5mloadNtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1I_5block8BlockEnvNtNtB1I_2tx5TxEnvNtNtB1I_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2040328,
+          "end": 2041284,
+          "instructions": 2170130,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.0156955912952483,
+          "entry_pc_retirements": 9558
+        },
+        {
+          "name": "memset",
+          "start": 2196468,
+          "end": 2196620,
+          "instructions": 1964703,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 0.919548679251726,
+          "entry_pc_retirements": 25114
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions5stack4swapKj2_NtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB1K_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2063628,
+          "end": 2064216,
+          "instructions": 1559040,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 0.7296844219714689,
+          "entry_pc_retirements": 10752
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions6memory6mstoreNtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1J_5block8BlockEnvNtNtB1J_2tx5TxEnvNtNtB1J_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2041284,
+          "end": 2041804,
+          "instructions": 1437184,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 0.6726516165759978,
+          "entry_pc_retirements": 11840
+        }
+      ],
+      "scope": "Execution census only. Profile proof_verified=false is the profile-generation-time flag; this report does not independently verify any later full-block proof.",
+      "recovery_entry_symbols": [
+        {
+          "name": "_RNvNtNtCs3qfboG6m08j_4k25610arithmetic3mul7lincomb",
+          "start": 343644,
+          "end": 353744,
+          "instructions": 9632532,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "entry_pc_retirements": 156
+        },
+        {
+          "name": "_RNvXs0_NtCs3qfboG6m08j_4k2565ecdsaNtNtNtB7_10arithmetic6affine11AffinePointINtNtCsiqM8jTmc2Sd_5ecdsa6hazmat15VerifyPrimitiveNtB7_9Secp256k1E16verify_prehashed",
+          "start": 357796,
+          "end": 363996,
+          "instructions": 5445017,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "k256",
+            "p256"
+          ],
+          "entry_pc_retirements": 78
+        },
+        {
+          "name": "_RNvNtCs7SHaQhapZAm_9stateless13recover_block25verify_and_compute_sender",
+          "start": 1346572,
+          "end": 1403228,
+          "instructions": 101414,
+          "group": "other",
+          "matched_name_tokens": [],
+          "entry_pc_retirements": 66
+        },
+        {
+          "name": "_RNvNtNtCsgpZVVXGDkpZ_15alloy_consensus6crypto9secp256k124recover_signer_unchecked",
+          "start": 71488,
+          "end": 75776,
+          "instructions": 62634,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "p256"
+          ],
+          "entry_pc_retirements": 66
+        },
+        {
+          "name": "_RNvYNtNtCs2pOovdow6wa_15revm_precompile9interface13DefaultCryptoNtB4_6Crypto19secp256k1_ecrecoverB6_",
+          "start": 668016,
+          "end": 673440,
+          "instructions": 13584,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "p256"
+          ],
+          "entry_pc_retirements": 12
+        },
+        {
+          "name": "_RNvNtCs2pOovdow6wa_15revm_precompile9secp256k120ecrecover_precompile",
+          "start": 1269468,
+          "end": 1270684,
+          "instructions": 3856,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "p256"
+          ],
+          "entry_pc_retirements": 12
+        }
+      ]
+    },
+    {
+      "pins": {
+        "build-report.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2-inline/build-report.json",
+          "bytes": 5279,
+          "sha256": "5a26822f2f45161a56464ae7058db74501d380f44209cb3a102a9f85a2618148"
+        },
+        "execution-config.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2-inline/execution-config.json",
+          "bytes": 867,
+          "sha256": "87914bfd5706aec2346cae0c25876fa6d795b15167b432c0811e19b3f45901e9"
+        },
+        "execution.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2-inline/execution.json",
+          "bytes": 2247253,
+          "sha256": "2c61a8f24ebfa7697053a7ebdda0dcd817f0ac503d0d8965c0ee095766b54912"
+        },
+        "function-profile.json": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2-inline/function-profile.json",
+          "bytes": 208871,
+          "sha256": "66d503da83aa362b957f7ad321a7cc398439974fdc6af0c9a08e1b1a2770d8ca"
+        },
+        "ethereum-rv64-services-v2.elf": {
+          "path": "/tmp/stwo-rv64-ethereum-services-v2-inline/ethereum-rv64-services-v2.elf",
+          "bytes": 3035920,
+          "sha256": "6db903f0a311882fa25c02dbdb7eea4bdbfd5fa3c6535377021edbf84a39c5cb"
+        }
+      },
+      "toolchain": "nightly-2026-08-08",
+      "isa": "RV64IM",
+      "abi": "lp64",
+      "build_time": null,
+      "build_time_note": "The pinned build reports contain no authenticated build timestamp; filesystem modification times are not build provenance.",
+      "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+      "elf_sha256": "6db903f0a311882fa25c02dbdb7eea4bdbfd5fa3c6535377021edbf84a39c5cb",
+      "instructions": 212188252,
+      "output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+      "accounting": {
+        "function_instructions": 212188246,
+        "unknown_instructions": 6,
+        "retired_padding_instructions": 0,
+        "total": 212188252
+      },
+      "symbol_policy": "Half-open nonzero STT_FUNC ranges; shortest range, highest start, lexical alias; zero-size symbols infer no range",
+      "source_pins": {
+        "guest_source": {
+          "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/main.rs",
+          "bytes": 2440,
+          "sha256": "ddf53803ee4b0d4e29db4fcd1603d190411dcbc8789b874d5410c7441420b849"
+        },
+        "lockfile": {
+          "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.lock",
+          "bytes": 83719,
+          "sha256": "bf39a7f57946b93475b733f1adf1099f04dfb24e39ab4d45d42705628edc9289"
+        },
+        "secp_service_sources": [
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/Cargo.toml",
+            "bytes": 4400,
+            "sha256": "90eb2ec807fb8a94e781f3241042a178eb454dc696c1255f220cf826ad927713"
+          },
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective.rs",
+            "bytes": 29535,
+            "sha256": "ad2f394f69c07aec6e4bd7b8d710f2d898148113ed7afacd6fd2cfb49354adae"
+          },
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective/stwo_service.rs",
+            "bytes": 2873,
+            "sha256": "2a060dd57856985ec217b2fe38b7a6b01d88b3c253c25822c8f5f6e8448a4cc5"
+          },
+          {
+            "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs",
+            "bytes": 27199,
+            "sha256": "d7b82541f34fb938302526e90a3ac9113d9b83df96370a112af29e63643ebea9"
+          }
+        ],
+        "secp_upstream_sources": {
+          "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256-source.json",
+          "bytes": 3918,
+          "sha256": "cd6c25a5fceaff4421bd6dc468e861f10aad2f447fd2473e7e78ec52dcf52d90"
+        }
+      },
+      "top_self_functions": [
+        {
+          "name": "_RNvNtCsecYu37q7d9S_17compiler_builtins3mem6memcpy",
+          "start": 2191868,
+          "end": 2192396,
+          "instructions": 40768351,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 19.213293203433338,
+          "entry_pc_retirements": 348319
+        },
+        {
+          "name": "_RNvMNtNtCs3qfboG6m08j_4k25610arithmetic10projectiveNtB2_15ProjectivePoint3add",
+          "start": 350980,
+          "end": 353724,
+          "instructions": 16748160,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 7.893066577503075,
+          "entry_pc_retirements": 24960
+        },
+        {
+          "name": "_RNvMs_NtNtCs3qfboG6m08j_4k25610arithmetic3mulNtB4_11LookupTable6select",
+          "start": 356060,
+          "end": 356912,
+          "instructions": 16494192,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 7.773376633499955,
+          "entry_pc_retirements": 20592
+        },
+        {
+          "name": "_RNvMNtNtCs3qfboG6m08j_4k25610arithmetic5fieldNtB2_12FieldElement6square",
+          "start": 340712,
+          "end": 341624,
+          "instructions": 13569192,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 6.394883728058611,
+          "entry_pc_retirements": 59514
+        },
+        {
+          "name": "_RNvNtCsFqC16DLCLR_4sha26sha25611compress256",
+          "start": 1308644,
+          "end": 1324840,
+          "instructions": 11221056,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "sha256",
+            "sha2"
+          ],
+          "self_percent": 5.2882550726700925,
+          "entry_pc_retirements": 2772
+        },
+        {
+          "name": "_RNvYINtNtCs81eV2OD3yH1_12revm_handler15mainnet_handler14MainnetHandlerINtNtCs7uPobXBcjuu_12revm_context3evm3EvmINtNtB1b_7context7ContextNtNtB1b_5block8BlockEnvNtNtB1b_2tx5TxEnvNtNtB1b_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEENtNtCsiQ55HuYfRvJ_14revm_inspector4noop13NoOpInspectorINtNtB7_12instructions15EthInstructionsNtNtCs2onWqmk3NgD_16revm_interpreter11interpreter14EthInterpreterB1L_ENtNtCsgAirDJAeCI3_9alloy_evm11precompiles14PrecompilesMapNtNtB7_5frame8EthFrameEINtNtCs6TiYRrBwPbJ_22revm_context_interface6result8EVMErrorINtNtCsePTy51kuKEh_23revm_database_interface3bal16EvmDatabaseErrorNtNtB51_5error14WitnessDbErrorEEB9e_ENtNtB7_7handler7Handler9executionCsG5rslEJfDU_24stateless_validator_reth",
+          "start": 1796576,
+          "end": 1801996,
+          "instructions": 8653701,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 4.078312968995098,
+          "entry_pc_retirements": 70
+        },
+        {
+          "name": "_RNvXs_NtNtCsgp0Sy1ICK7h_8zeth_mpt3mpt3rlpINtNtB6_4node4NodeNtNtB6_7memoize5CacheENtNtCs5hAoIhlbReg_9alloy_rlp6decode9Decodable6decodeCsfOiuNktbBrD_5tries",
+          "start": 2165672,
+          "end": 2170860,
+          "instructions": 8513634,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 4.012302245649302,
+          "entry_pc_retirements": 41509
+        },
+        {
+          "name": "_RNvNtNtNtCs3qfboG6m08j_4k25610arithmetic10projective12stwo_service6double",
+          "start": 354356,
+          "end": 356060,
+          "instructions": 8206848,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 3.8677202543711044,
+          "entry_pc_retirements": 19968
+        },
+        {
+          "name": "_RNvMNtNtCs3qfboG6m08j_4k25610arithmetic6scalarNtB2_6Scalar3mul",
+          "start": 342284,
+          "end": 343644,
+          "instructions": 8115120,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 3.824490716856464,
+          "entry_pc_retirements": 23868
+        },
+        {
+          "name": "native_keccak256",
+          "start": 17316,
+          "end": 17988,
+          "instructions": 7122372,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "keccak",
+            "k256"
+          ],
+          "self_percent": 3.3566288109107942,
+          "entry_pc_retirements": 7990
+        },
+        {
+          "name": "_RNvNtNtCs2l3SWHLzI1K_13revm_bytecode6legacy8analysis14analyze_legacy",
+          "start": 554136,
+          "end": 555504,
+          "instructions": 6847110,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 3.226903438556061,
+          "entry_pc_retirements": 115
+        },
+        {
+          "name": "_RINvMNtNtCsgp0Sy1ICK7h_8zeth_mpt3mpt3rlpINtNtB5_4node4NodeNtNtB5_7memoize5CacheE15resolve_digestsNtNtCsa2TehGqnaDN_16alloy_primitives6bytes_5BytesECsfOiuNktbBrD_5tries",
+          "start": 2154436,
+          "end": 2156000,
+          "instructions": 5761084,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 2.715081511675774,
+          "entry_pc_retirements": 41591
+        },
+        {
+          "name": "_RNvXs0_NtCs3qfboG6m08j_4k2565ecdsaNtNtNtB7_10arithmetic6affine11AffinePointINtNtCsiqM8jTmc2Sd_5ecdsa6hazmat15VerifyPrimitiveNtB7_9Secp256k1E16verify_prehashed",
+          "start": 356912,
+          "end": 363112,
+          "instructions": 5445017,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "k256",
+            "p256"
+          ],
+          "self_percent": 2.5661255741906013,
+          "entry_pc_retirements": 78
+        },
+        {
+          "name": "_RINvCsgc2hZQ9yYDZ_6subtle9black_boxhECs9mDEa6D1RiM_13crypto_bigint",
+          "start": 316600,
+          "end": 316620,
+          "instructions": 3930235,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.8522396800742766,
+          "entry_pc_retirements": 786047
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions5stack4swapKj1_NtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB1K_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2062156,
+          "end": 2062744,
+          "instructions": 2819380,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.3287163513652018,
+          "entry_pc_retirements": 19444
+        },
+        {
+          "name": "_RNvNtNtCs3qfboG6m08j_4k25610arithmetic3mul7lincomb",
+          "start": 343644,
+          "end": 350204,
+          "instructions": 2709408,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "self_percent": 1.2768887883576137,
+          "entry_pc_retirements": 156
+        },
+        {
+          "name": "memcmp",
+          "start": 2195520,
+          "end": 2195568,
+          "instructions": 2417475,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.1393067133613033,
+          "entry_pc_retirements": 18592
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions6memory5mloadNtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1I_5block8BlockEnvNtNtB1I_2tx5TxEnvNtNtB1I_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2039444,
+          "end": 2040400,
+          "instructions": 2170130,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 1.0227380543198028,
+          "entry_pc_retirements": 9558
+        },
+        {
+          "name": "memset",
+          "start": 2195584,
+          "end": 2195736,
+          "instructions": 1964703,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 0.9259244946322476,
+          "entry_pc_retirements": 25114
+        },
+        {
+          "name": "_RINvNtNtCs2onWqmk3NgD_16revm_interpreter12instructions5stack4swapKj2_NtNtB6_11interpreter14EthInterpreterINtNtCs7uPobXBcjuu_12revm_context7context7ContextNtNtB1K_5block8BlockEnvNtNtB1K_2tx5TxEnvNtNtB1K_3cfg6CfgEnvQINtNtNtCsdquHrNZ4HJz_13revm_database6states5state5StateINtNtCs7SHaQhapZAm_9stateless10witness_db15WitnessDatabaseNtNtCsfOiuNktbBrD_5tries4zeth11SparseStateEEEECsG5rslEJfDU_24stateless_validator_reth",
+          "start": 2062744,
+          "end": 2063332,
+          "instructions": 1559040,
+          "group": "other",
+          "matched_name_tokens": [],
+          "self_percent": 0.734743787794623,
+          "entry_pc_retirements": 10752
+        }
+      ],
+      "scope": "Execution census only. Profile proof_verified=false is the profile-generation-time flag; this report does not independently verify any later full-block proof.",
+      "recovery_entry_symbols": [
+        {
+          "name": "_RNvXs0_NtCs3qfboG6m08j_4k2565ecdsaNtNtNtB7_10arithmetic6affine11AffinePointINtNtCsiqM8jTmc2Sd_5ecdsa6hazmat15VerifyPrimitiveNtB7_9Secp256k1E16verify_prehashed",
+          "start": 356912,
+          "end": 363112,
+          "instructions": 5445017,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "k256",
+            "p256"
+          ],
+          "entry_pc_retirements": 78
+        },
+        {
+          "name": "_RNvNtNtCs3qfboG6m08j_4k25610arithmetic3mul7lincomb",
+          "start": 343644,
+          "end": 350204,
+          "instructions": 2709408,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "k256"
+          ],
+          "entry_pc_retirements": 156
+        },
+        {
+          "name": "_RNvNtCs7SHaQhapZAm_9stateless13recover_block25verify_and_compute_sender",
+          "start": 1345688,
+          "end": 1402344,
+          "instructions": 101414,
+          "group": "other",
+          "matched_name_tokens": [],
+          "entry_pc_retirements": 66
+        },
+        {
+          "name": "_RNvNtNtCsgpZVVXGDkpZ_15alloy_consensus6crypto9secp256k124recover_signer_unchecked",
+          "start": 71488,
+          "end": 75776,
+          "instructions": 62634,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "p256"
+          ],
+          "entry_pc_retirements": 66
+        },
+        {
+          "name": "_RNvYNtNtCs2pOovdow6wa_15revm_precompile9interface13DefaultCryptoNtB4_6Crypto19secp256k1_ecrecoverB6_",
+          "start": 667132,
+          "end": 672556,
+          "instructions": 13584,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "p256"
+          ],
+          "entry_pc_retirements": 12
+        },
+        {
+          "name": "_RNvNtCs2pOovdow6wa_15revm_precompile9secp256k120ecrecover_precompile",
+          "start": 1268584,
+          "end": 1269800,
+          "instructions": 3856,
+          "group": "crypto",
+          "matched_name_tokens": [
+            "secp256k1",
+            "p256"
+          ],
+          "entry_pc_retirements": 12
+        }
+      ]
+    }
+  ],
+  "common_entry_pc_census": {
+    "transaction_sender_recoveries": 66,
+    "evm_ecrecover_precompile_calls": 12,
+    "verify_prehashed_entries": 78,
+    "lincomb_entries": 156,
+    "lookup_table_select_entries": 20592,
+    "group_add_calls": 24960,
+    "group_double_calls": 19968,
+    "keccak_calls": 32835
+  },
+  "interpretation": [
+    "Entry-PC retirement counts are exact histogram values, not an inferred general call graph. Pinned recovery source performs recovery lincomb then verify_prehashed lincomb, explaining156=2*(66+12).",
+    "Function instructions are mutually exclusive self-attributions. Caller totals are not inclusive. Inlining changes attribution, so9.63m\u21922.71m lincomb self instructions is not a6.92m algorithmic saving.",
+    "Inline total falls by1,471,236 instructions (0.68859%); service call counts/output remain unchanged. No independent full-proof claim for the inline ELF.",
+    "All memcpy self instructions must not be assigned to signature recovery without callsite attribution."
+  ],
+  "next_hook": {
+    "status": "Design only; no implementation or proof qualification.",
+    "minimal_abi": "Versioned canonical recovery input message32/r32/s32/parity1; output status plus uncompressed public-key x||y64. Keep Ethereum input128 padding, gas, v27/28, fork-sensitive low-s and address hashing in unchanged guest wrappers first.",
+    "success_relation": "Canonical1<=r,s<n; z=msg modn; finite curve point R with x=r and y parity; finite recovered Q satisfying [s]R=[z]G+[r]Q. Existing pinned successful-recovery authority already records this parity-bound transaction, but requires review of all caller closures.",
+    "failure_relation": "Current successful-recovery authority does not prove arbitrary status=false. Do not permit a free failure witness. Retain guest-checked malformed scalar/parity cases initially; non-square R or recovered-identity failures need explicit algebraic certificates or remain on the software path.",
+    "reuse": "Existing shared modular arithmetic supports p and n, but the joined RV64 group program is p-only. Reuse its product/linear/BYTE and point authorities after typed scalar-n/GLV/recovery caller closure is actually wired. Existing Keccak provider may bind pubkey64/address if its I/O is joined, never trust a host hash.",
+    "semantic_boundaries": [
+      "Ethereum caller permits recovery parity0/1 only: R.x=r, not generic recid2/3 r+n.",
+      "Transaction low-s is fork-dependent; EVM precompile normalizes high-s with parity flip. Preserve distinctions.",
+      "Invalid EVM precompile returns empty output, not a successful zero address. Preserve gas and right-pad/truncate rules.",
+      "Expected transaction pubkey/address comparison and parity remain bound to canonical input. ECDSA verification alone does not establish recovery parity."
+    ],
+    "required_gates": [
+      "All scalar/order and field boundary inputs, both parities, high-s normalization, nonresidueR, identityQ, malformedv, input padding, zero address vs failure.",
+      "Actual same-PCS CPU/RAM/BYTE/scalar/point/recovery/Keccak typed claims and global cardinality closure; source and count-independent immutable keys.",
+      "Independent host outputs and original real-block66tx+12precompile census, followed by complete fresh-process proof verification."
+    ],
+    "initial_totality_strategy": "Recover-or-DEFER: false means no recovery result is asserted and the pinned guest must execute its original fully constrained software fallback. It must never mean input invalid or authorize EVM empty output. Success is algebraically proved and binds output; DEFER output bytes are ignored/zeroed and cannot bypass fallback control. This explicitly typed nondeterministic advice avoids an unproved nonsquare-failure oracle.",
+    "scalar_equivalence_note": "Success equivalence must be reviewed against the pinned recovery routine, including its explicit verify_prehashed call. A bare elliptic relation must not silently bypass high-s/curve/error semantics required by the caller.",
+    "initial_low_s_contract": "For a hook replacing pinned k256 recover_from_prehash plus its explicit verify_prehashed, success should additionally require low-s (s<=n/2), or prove exactly the caller normalization/parity flip. Pinned verify_prehashed rejects high-s. Existing Ethereum wrappers normalize high-s and flip parity before recovery, while transaction fork checks remain separate. A high-s raw hook input may DEFER to the unchanged routine; it must not silently return a success that the original helper would reject."
+  },
+  "reviewed_pinned_primary_source_files": [
+    {
+      "path": "/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/recovery.rs",
+      "bytes": 11785,
+      "sha256": "41141f9f4ffbd155c5167fbe749299496077c55e6b64ed83f65ced1372205623"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/hazmat.rs",
+      "bytes": 11281,
+      "sha256": "230f3b337e826188825f76eb26ffc2fa19ce8b2bd45cc7b80f87c34f33cfe13d"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/alloy-consensus-2.4.1/src/crypto.rs",
+      "bytes": 24461,
+      "sha256": "6ceb73b9570c235542c4df8ca6de51239434c64977aa8fc1d3667f920a4a9adf"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/revm-precompile-42.0.1/src/secp256k1.rs",
+      "bytes": 2661,
+      "sha256": "f0750a99aa07c5de27725fded8f3723a126dfc3058bb192dd93282eed8662bdd"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/revm-precompile-42.0.1/src/secp256k1/k256.rs",
+      "bytes": 1050,
+      "sha256": "dcc781a2724c2b1e1a7e7c0f3835f13bc6ae7e135fff7062a8ffe752cdd173e2"
+    }
+  ]
+}

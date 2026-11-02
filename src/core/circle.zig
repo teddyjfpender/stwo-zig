@@ -89,6 +89,10 @@ pub fn CirclePoint(comptime F: type) type {
             return .{ .x = self.x, .y = self.y.neg() };
         }
 
+        pub inline fn quadraticConjugate(self: Self) Self {
+            return .{ .x = self.x.quadraticConjugate(), .y = self.y.quadraticConjugate() };
+        }
+
         pub inline fn complexConjugate(self: Self) Self {
             return .{
                 .x = self.x.complexConjugate(),
@@ -169,16 +173,24 @@ pub fn secureFieldPointFromRandomSeed(t: QM31) CirclePointQM31 {
 /// of -1; callers admitting untrusted values must reject those seeds rather
 /// than inherit the transcript fast path's unreachable assertion.
 pub fn secureFieldPointFromRandomSeedChecked(t: QM31) QM31.Error!CirclePointQM31 {
-    const t_square = t.square();
-    const one_plus_t_square_inv = try t_square.add(QM31.one()).inv();
+    return secureFieldPointFromRandomSeedCheckedFor(QM31, t);
+}
 
-    const x = QM31.one().sub(t_square).mul(one_plus_t_square_inv);
-    const y = t.add(t).mul(one_plus_t_square_inv);
-    return .{ .x = x, .y = y };
+pub fn secureFieldPointFromRandomSeedCheckedFor(comptime F: type, t: F) !CirclePoint(F) {
+    const t_square = t.square();
+    const denominator_inverse = try t_square.add(F.one()).inv();
+    return .{
+        .x = F.one().sub(t_square).mul(denominator_inverse),
+        .y = t.add(t).mul(denominator_inverse),
+    };
 }
 
 pub fn randomSecureFieldPoint(channel: anytype) CirclePointQM31 {
     return secureFieldPointFromRandomSeed(channel.drawSecureFelt());
+}
+
+pub fn randomSecureFieldPointFor(comptime F: type, channel: anytype) !CirclePoint(F) {
+    return secureFieldPointFromRandomSeedCheckedFor(F, channel.drawSecureFelt());
 }
 
 /// Backwards-compatible alias for the M31 generator.

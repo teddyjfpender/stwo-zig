@@ -1,0 +1,74 @@
+{
+  "decision": "deferred; no production source promotion",
+  "source_baseline": "664f8adc3",
+  "source_experiment": "665f8a10c",
+  "focused_tests_and_matched_micro": "b6b93ca91",
+  "actual_pair_receipt": "5ef209c5c",
+  "ReleaseSafe_focused_tests": 3,
+  "ReleaseFast_focused_tests": 3,
+  "exact_artifacts": true,
+  "fresh_receivers": true,
+  "actual_runs": [
+    {
+      "variant": "baseline",
+      "binary_sha256": "0e78cbbce06715a5ebccfcfce7859b55d7ca60ebcab61d80ffc0a59a467adbb3",
+      "prove_seconds": 8.489411375,
+      "top_level_stages": {
+        "composition_evaluation": 1.77142,
+        "fri_quotient_build_and_commit": 1.251686,
+        "trace_decommit": 0.317282
+      },
+      "artifact_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 951961041,
+        "verify_ns": 411867375
+      }
+    },
+    {
+      "variant": "dot4",
+      "binary_sha256": "20efa941eb5c65636385d788cb90498606e388005716435cbc5ae0f655dd7397",
+      "prove_seconds": 8.536041667,
+      "top_level_stages": {
+        "composition_evaluation": 1.800194,
+        "fri_quotient_build_and_commit": 1.233252,
+        "trace_decommit": 0.32332
+      },
+      "artifact_sha256": {
+        "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+        "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+        "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514"
+      },
+      "fresh": {
+        "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+        "security_qualified": false,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 1,
+        "truth_proofs": 0,
+        "load_and_setup_ns": 963359291,
+        "verify_ns": 419172625
+      }
+    }
+  ],
+  "timing_scope": "One clean shared-host same-source CPU0 pair; not a causal statistical estimate",
+  "excluded_samples": [
+    "Initial micro bound only candidate pool; independent old module TLS allowed different baseline worker count. Excluded.",
+    "Initial CPU0 pair overlapped own pre-push tests. Excluded and rerun after terminating only own hook process tree."
+  ],
+  "whole_proof_speedup_established": false,
+  "production_files_changed": false
+}

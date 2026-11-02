@@ -1,0 +1,106 @@
+{
+  "schema": "stwo.rv64.ethereum-software-build.v1",
+  "toolchain": "nightly-2026-08-08",
+  "isa": "RV64IM",
+  "abi": "lp64",
+  "execution_profile": "ethereum-services-v2-lean",
+  "guest": {
+    "path": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+    "bytes": 3004312,
+    "sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e"
+  },
+  "guest_source": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/main.rs",
+    "bytes": 2647,
+    "sha256": "ae1ceb6f31cdcd17f42dbcae57894a24686f0eba2a503373ae099c52cf33ab43"
+  },
+  "build_script": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.py",
+    "bytes": 10084,
+    "sha256": "e3c29399bef0118adbaec51c3dabac3e51f0f19c8f176b42d1d680b1460e7b58"
+  },
+  "runtime_sources": [
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/single_thread_atomics.rs",
+      "bytes": 2681,
+      "sha256": "4f078b5ddebdc992c1dd5653d4333dcabff2ec239a38ce80ac1a3832d72f4749"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.toml",
+      "bytes": 1790,
+      "sha256": "8f72b11b510b6874a77b1bbe6f8c4b57451429478977a0415381affe35788258"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/linker.ld",
+      "bytes": 1356,
+      "sha256": "13bb0def76a8ea7c04aa73cddd17cf179e2cdb244ff1463f89b7f5f2df45bd07"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.rs",
+      "bytes": 64,
+      "sha256": "732085bb626aebe3dd4a9a9d14b80ec1e6eaee0be42a3d6bfd4f3caa76880ff8"
+    }
+  ],
+  "allocator_source": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs",
+    "bytes": 4895,
+    "sha256": "1c3b7f05be7ae5c0c1a682c78d0b3e6fe3ca293e91e5c611d57b0fca62272551"
+  },
+  "target": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/riscv64i-stwo.json",
+    "bytes": 542,
+    "sha256": "2416b0a8b7a9ae4d614d0c5f848e478488fc6f41d49624fa36ca4de0f2f8adfb"
+  },
+  "lockfile": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.lock",
+    "bytes": 83226,
+    "sha256": "420890a55633b07570be42b6d3cc04d5cb39168853ebdb68303fba2b0ef8f623"
+  },
+  "host_validation_verified": false,
+  "rv64_execution_verified": false,
+  "full_block_proof_verified": false,
+  "service_source": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/keccak_service.rs",
+    "bytes": 5456,
+    "sha256": "673ca3b1b63492d7a2bfe19aed08db54371ca213d7ad57c208fe935ecfe5774e"
+  },
+  "secp_service_sources": [
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/Cargo.toml",
+      "bytes": 4584,
+      "sha256": "dba0b4af759f6a53482abe8916c839bb81d670fd2840a5dd5711a0c0bcf4cd63"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective.rs",
+      "bytes": 29618,
+      "sha256": "c5c7cf5a992f4a8463f2bc39acb47dfd20079f673adb0cc8c5e56aa4e363b7e7"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective/stwo_service.rs",
+      "bytes": 5360,
+      "sha256": "c98a48b283f5a15f3232f2c932af15bcf98e8740e3733722ea87a83f459ea2ef"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs",
+      "bytes": 27917,
+      "sha256": "56a54a41b2639934c021d25743c51b05a78cf116809a9cc1ff5a93fd55099163"
+    }
+  ],
+  "secp_upstream_sources": {
+    "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256-source.json",
+    "bytes": 3918,
+    "sha256": "cd6c25a5fceaff4421bd6dc468e861f10aad2f447fd2473e7e78ec52dcf52d90"
+  },
+  "service_abi_sources": [
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/service_abi/Cargo.toml",
+      "bytes": 119,
+      "sha256": "86978c6d2019f11f5da3970644da1a472afd6de66f17e46fa9c56fb9e61c1efa"
+    },
+    {
+      "path": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/service_abi/src/lib.rs",
+      "bytes": 2194,
+      "sha256": "c19c6c609e45b3c55de152694fc0bd4bc98824ddd8c74fb9fbc5d42d55608a19"
+    }
+  ]
+}

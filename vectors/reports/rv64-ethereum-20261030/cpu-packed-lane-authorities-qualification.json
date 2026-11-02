@@ -1,0 +1,39 @@
+{
+  "schema": "rv64-mixed-packed-authorities-v1",
+  "status": "Assigned authority tests and independent CPU SIMD integration audit PASS; whole-proof/performance qualification delegated to root",
+  "sources": [
+    "src/frontends/riscv/rv64/air/relations.zig",
+    "src/frontends/riscv/rv64/air/state_cyclic.zig",
+    "src/frontends/riscv/rv64/air/state_cyclic_denominators.zig",
+    "src/frontends/riscv/rv64/air/range/cpu.zig",
+    "src/frontends/riscv/rv64/air/range/table_cpu.zig",
+    "src/frontends/riscv/rv64/air/program/compact.zig",
+    "src/frontends/riscv/rv64/air/program/packed_control.zig",
+    "src/frontends/riscv/rv64/air/full/frame.zig",
+    "src/frontends/riscv/rv64/air/full/packed_frame.zig"
+  ],
+  "representation": [
+    "Local tuple/frame equations consume16-row PackedBase values, implemented as a fixed array of existing native M31 vectors. Global core packing width is unchanged.",
+    "FS coefficients, inverse/prefix values and mixed LogUp arithmetic use PackedSecure. Secure-times-base products use E.mulBaseFor; no dense secure logical view or scalar QM31 promotion.",
+    "Physical interaction coordinates reconstruct directly as packed secure coordinates on the base domain; arbitrary extension-valued coordinates use the full i/u/iu basis.",
+    "Existing Q APIs delegate to the same For implementations, preserving one polynomial body and original residual order."
+  ],
+  "gates": {
+    "command": "zig build test-riscv64-air -Doptimize=ReleaseSafe",
+    "result": "PASS",
+    "test": "src/frontends/riscv/rv64/air/tests/mixed_lane_test.zig",
+    "coverage": "Every frame/ROM denominator/inflation, inverse-state, cyclic-state, BYTE/AND/SHIFT residual and count compared to16independent scalar rows. Both arbitrary base-domain values and arbitrary full-extension/OODS values covered; inactive/Boolean assumptions are not used.",
+    "existing_legacy_air_tests": "PASS"
+  },
+  "independent_integration_review": [
+    "Full dispatcher residual and optional-service order preserved.",
+    "DIV/MUL/K/secp typed headers retain signs/tags/counters/first-last seams and unmasked timestamps.",
+    "Packed domain loads current columns contiguously, gathers only declared predecessor masks via existing index authority, and stores only active tail-lane count.",
+    "Fresh-index ownership remains serial; multiworker additive output uses independent row ranges and null cursors, with no field reduction reordering.",
+    "One union-selected heap scratch perworker; joined lease/wave cleanup precedes scratch release on all submission errors.",
+    "Existing max-main/interaction and12/36previous-mask guards cover admitted profiles."
+  ],
+  "protocol_delta": "No committed geometry, masks, degree, challenges, claims or transcript change.",
+  "performance": null,
+  "telemetry_requirement": "Only new private per-component recorder profiles are eligible for timing attribution; shared-recorder historical hierarchy was invalid."
+}

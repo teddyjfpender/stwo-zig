@@ -1,0 +1,959 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-candidate-isa-results.v1",
+ "date": "2026-11-01",
+ "branch": "codex/rv64-guest-candidate-isa",
+ "execution_profile": "ethereum_services_v3_candidate_isa",
+ "set": "all (12 scored + 3 holdout)",
+ "executor": "bench.py build-exec from this branch (candidate_isa.zig)",
+ "service_costs": "proposals/candidate-service-costs.json (nominal)",
+ "isa_costs": "proposals/candidate-isa-costs.json (low/nominal/high)",
+ "zisk_ziskethone_blocks": [
+  26235156,
+  26235159,
+  26235168
+ ],
+ "variants": {
+  "evmone-im": {
+   "client": "evmone (candidate services mem,sha,arith + adapter + Keccak memo)",
+   "isa": "rv64im",
+   "elf_sha256": "2a14110e5cd7ef4d9c85fdac046fb18b5df8ba1c8096bdd4ce2c5371519b6e72",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 5.653214736587511,
+      "committed_bits_per_gas": 78848.7156314364,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "holdout": {
+      "instructions_per_gas": 4.844355660064499,
+      "committed_bits_per_gas": 67064.23099177198,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "all": {
+      "instructions_per_gas": 5.493538070934254,
+      "committed_bits_per_gas": 76522.34350022115,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 5.653214736587511,
+      "committed_bits_per_gas": 78848.7156314364,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "holdout": {
+      "instructions_per_gas": 4.844355660064499,
+      "committed_bits_per_gas": 67064.23099177198,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "all": {
+      "instructions_per_gas": 5.493538070934254,
+      "committed_bits_per_gas": 76522.34350022115,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 5.653214736587511,
+      "committed_bits_per_gas": 78848.7156314364,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "holdout": {
+      "instructions_per_gas": 4.844355660064499,
+      "committed_bits_per_gas": 67064.23099177198,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "all": {
+      "instructions_per_gas": 5.493538070934254,
+      "committed_bits_per_gas": 76522.34350022115,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     }
+    }
+   },
+   "candidate_isa_retired": {},
+   "static_candidate_ops": {
+    "text_instructions": 204204,
+    "candidate_total": 0,
+    "by_op": {}
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 1.8619951148219271,
+    "witness_trie_mpt": 0.8248745158603447,
+    "state_tables_host": 0.5694628622265544,
+    "precompile_bls_kzg": 0.4604299226753968,
+    "keccak_glue": 0.43187653423210537,
+    "precompile_bn254": 0.2995925292775109,
+    "evm_jumpdest_analysis": 0.29886894679227666,
+    "mem_alloc": 0.26307391175182776,
+    "secp_ecdsa_glue": 0.22175766235297678,
+    "other": 0.1789504423287844,
+    "ssz_statement_sha256": 0.06350028529580583,
+    "input_ssz": 0.019154636087884296,
+    "unattributed": 7.072308587446077e-07
+   },
+   "ziskethone_blocks": {
+    "evm_interpreter": 2.0051643037943943,
+    "precompile_bls_kzg": 1.3093871079243427,
+    "witness_trie_mpt": 0.796914192787063,
+    "precompile_bn254": 0.7628655392916668,
+    "state_tables_host": 0.5529841650843255,
+    "keccak_glue": 0.4174004339817171,
+    "evm_jumpdest_analysis": 0.28475865035318976,
+    "mem_alloc": 0.2623562535891955,
+    "secp_ecdsa_glue": 0.21648046258512155,
+    "other": 0.18920197543602432,
+    "ssz_statement_sha256": 0.06615780232249445,
+    "input_ssz": 0.018447250474079538,
+    "unattributed": 6.824054714880758e-07
+   },
+   "ziskethone_blocks_instructions_per_gas": 6.882118820029086
+  },
+  "evmone-zba": {
+   "client": "evmone (candidate services mem,sha,arith + adapter + Keccak memo)",
+   "isa": "rv64im_zba",
+   "elf_sha256": "788c44a1ac07fd7dad4ca3382eb5557a558ef1edda58850cbe34d516c69aecbf",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 5.579590667815211,
+      "committed_bits_per_gas": 78101.21868687849,
+      "candidate_isa_extra_bits_per_gas": -8.924202459070555
+     },
+     "holdout": {
+      "instructions_per_gas": 4.778208654635726,
+      "committed_bits_per_gas": 66389.13639813307,
+      "candidate_isa_extra_bits_per_gas": -11.529322175194553
+     },
+     "all": {
+      "instructions_per_gas": 5.421390047344885,
+      "committed_bits_per_gas": 75789.13948544019,
+      "candidate_isa_extra_bits_per_gas": -9.438478483129495
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 5.579590667815211,
+      "committed_bits_per_gas": 78191.68325027531,
+      "candidate_isa_extra_bits_per_gas": 81.54036093775402
+     },
+     "holdout": {
+      "instructions_per_gas": 4.778208654635726,
+      "committed_bits_per_gas": 66469.26896100976,
+      "candidate_isa_extra_bits_per_gas": 68.60324070149434
+     },
+     "all": {
+      "instructions_per_gas": 5.421390047344885,
+      "committed_bits_per_gas": 75877.56441122836,
+      "candidate_isa_extra_bits_per_gas": 78.98644730503426
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 5.579590667815211,
+      "committed_bits_per_gas": 79026.94169845666,
+      "candidate_isa_extra_bits_per_gas": 916.7988091191038
+     },
+     "holdout": {
+      "instructions_per_gas": 4.778208654635726,
+      "committed_bits_per_gas": 67191.23030135156,
+      "candidate_isa_extra_bits_per_gas": 790.5645810433106
+     },
+     "all": {
+      "instructions_per_gas": 5.421390047344885,
+      "committed_bits_per_gas": 76690.45690601552,
+      "candidate_isa_extra_bits_per_gas": 891.8789420922026
+     }
+    }
+   },
+   "candidate_isa_retired": {
+    "sh3add": 29706566,
+    "sh1add": 1467525,
+    "add_uw": 1042013,
+    "sh2add": 213595,
+    "slli_uw": 112312,
+    "sh2add_uw": 25819
+   },
+   "static_candidate_ops": {
+    "text_instructions": 202655,
+    "candidate_total": 1671,
+    "by_op": {
+     "add.uw": 25,
+     "sh1add": 558,
+     "sh2add": 72,
+     "sh2add.uw": 1,
+     "sh3add": 914,
+     "slli.uw": 6,
+     "zext.w": 95
+    }
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 1.8091495789831125,
+    "witness_trie_mpt": 0.8232202400167757,
+    "state_tables_host": 0.5659163733815844,
+    "precompile_bls_kzg": 0.45821435249949094,
+    "keccak_glue": 0.4302612122152007,
+    "precompile_bn254": 0.29943106959504817,
+    "evm_jumpdest_analysis": 0.29570916055498153,
+    "mem_alloc": 0.2611738832881431,
+    "secp_ecdsa_glue": 0.21861345091081535,
+    "other": 0.17872762419508792,
+    "ssz_statement_sha256": 0.06349944559948466,
+    "input_ssz": 0.01747294887430143,
+    "unattributed": 7.072308587446077e-07
+   }
+  },
+  "evmone-zbb": {
+   "client": "evmone (candidate services mem,sha,arith + adapter + Keccak memo)",
+   "isa": "rv64im_zbb",
+   "elf_sha256": "c8f1efea85be99c6a3cfa18bbc39159d7d2a354a20b6811b8caff095e7310414",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 5.414439241969022,
+      "committed_bits_per_gas": 76601.67284236701,
+      "candidate_isa_extra_bits_per_gas": 152.66442030987358
+     },
+     "holdout": {
+      "instructions_per_gas": 4.637976479960274,
+      "committed_bits_per_gas": 65120.50741853162,
+      "candidate_isa_extra_bits_per_gas": 130.547639556641
+     },
+     "all": {
+      "instructions_per_gas": 5.261157924567686,
+      "committed_bits_per_gas": 74335.17888080812,
+      "candidate_isa_extra_bits_per_gas": 148.2983522169728
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 5.414439241969022,
+      "committed_bits_per_gas": 76704.08723902666,
+      "candidate_isa_extra_bits_per_gas": 255.0788169695208
+     },
+     "holdout": {
+      "instructions_per_gas": 4.637976479960274,
+      "committed_bits_per_gas": 65208.322000655644,
+      "candidate_isa_extra_bits_per_gas": 218.3622216806724
+     },
+     "all": {
+      "instructions_per_gas": 5.261157924567686,
+      "committed_bits_per_gas": 74434.71113177408,
+      "candidate_isa_extra_bits_per_gas": 247.83060318292976
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 5.414439241969022,
+      "committed_bits_per_gas": 77077.6427332585,
+      "candidate_isa_extra_bits_per_gas": 628.6343112013533
+     },
+     "holdout": {
+      "instructions_per_gas": 4.637976479960274,
+      "committed_bits_per_gas": 65528.472263331554,
+      "candidate_isa_extra_bits_per_gas": 538.5124843565816
+     },
+     "all": {
+      "instructions_per_gas": 5.261157924567686,
+      "committed_bits_per_gas": 74797.7239127561,
+      "candidate_isa_extra_bits_per_gas": 610.8433841649501
+     }
+    }
+   },
+   "candidate_isa_retired": {
+    "rev8": 8700807,
+    "andn": 2114802,
+    "orn": 821165,
+    "cpop": 804661,
+    "maxu": 580333,
+    "clz": 306654,
+    "minu": 258954,
+    "orc_b": 208925,
+    "min": 103077,
+    "sext_b": 34511,
+    "max": 9293,
+    "ctz": 738,
+    "roriw": 30,
+    "xnor": 10,
+    "rori": 2
+   },
+   "static_candidate_ops": {
+    "text_instructions": 194870,
+    "candidate_total": 3168,
+    "by_op": {
+     "andn": 1236,
+     "clz": 62,
+     "clzw": 8,
+     "cpop": 78,
+     "ctz": 7,
+     "max": 11,
+     "maxu": 126,
+     "min": 65,
+     "minu": 60,
+     "orc.b": 1,
+     "orn": 254,
+     "rev8": 901,
+     "rori": 34,
+     "roriw": 310,
+     "sext.b": 14,
+     "xnor": 1
+    }
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 1.7101079614398966,
+    "witness_trie_mpt": 0.8175226782050401,
+    "state_tables_host": 0.5156366082333298,
+    "precompile_bls_kzg": 0.45754171084268225,
+    "keccak_glue": 0.43117028900620835,
+    "evm_jumpdest_analysis": 0.29885160953293943,
+    "precompile_bn254": 0.2978058530816531,
+    "mem_alloc": 0.25846095693988547,
+    "secp_ecdsa_glue": 0.22175762867531684,
+    "other": 0.16973139845717297,
+    "ssz_statement_sha256": 0.06342312079617347,
+    "input_ssz": 0.01914740212652914,
+    "unattributed": 7.072308587446077e-07
+   }
+  },
+  "evmone-zba_zbb": {
+   "client": "evmone (candidate services mem,sha,arith + adapter + Keccak memo)",
+   "isa": "rv64im_zba_zbb",
+   "elf_sha256": "4e089e636df8fd62ee5443f76148e86724f7d688c4a311486b7514830de29986",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 5.34287119986324,
+      "committed_bits_per_gas": 75802.50885306118,
+      "candidate_isa_extra_bits_per_gas": 71.4477814580228
+     },
+     "holdout": {
+      "instructions_per_gas": 4.573380947394623,
+      "committed_bits_per_gas": 64398.850567043,
+      "candidate_isa_extra_bits_per_gas": 56.89218774476946
+     },
+     "all": {
+      "instructions_per_gas": 5.190966323806161,
+      "committed_bits_per_gas": 73551.31555596933,
+      "candidate_isa_extra_bits_per_gas": 68.57436538568713
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 5.34287119986324,
+      "committed_bits_per_gas": 75960.08645046718,
+      "candidate_isa_extra_bits_per_gas": 229.02537886401757
+     },
+     "holdout": {
+      "instructions_per_gas": 4.573380947394623,
+      "committed_bits_per_gas": 64536.59262834962,
+      "candidate_isa_extra_bits_per_gas": 194.6342490513924
+     },
+     "all": {
+      "instructions_per_gas": 5.190966323806161,
+      "committed_bits_per_gas": 73704.97742521238,
+      "candidate_isa_extra_bits_per_gas": 222.23623462873977
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 5.34287119986324,
+      "committed_bits_per_gas": 77075.63481669227,
+      "candidate_isa_extra_bits_per_gas": 1344.5737450891002
+     },
+     "holdout": {
+      "instructions_per_gas": 4.573380947394623,
+      "committed_bits_per_gas": 65498.58310211078,
+      "candidate_isa_extra_bits_per_gas": 1156.6247228125487
+     },
+     "all": {
+      "instructions_per_gas": 5.190966323806161,
+      "committed_bits_per_gas": 74790.21196673664,
+      "candidate_isa_extra_bits_per_gas": 1307.4707761530078
+     }
+    }
+   },
+   "candidate_isa_retired": {
+    "sh3add": 29077906,
+    "rev8": 8700807,
+    "andn": 2114802,
+    "sh1add": 1467716,
+    "orn": 821165,
+    "cpop": 804661,
+    "add_uw": 761485,
+    "maxu": 580333,
+    "clz": 306654,
+    "minu": 258954,
+    "sh2add": 213595,
+    "orc_b": 208925,
+    "slli_uw": 112312,
+    "min": 103077,
+    "sext_b": 34511,
+    "sh2add_uw": 25819,
+    "max": 9293,
+    "ctz": 738,
+    "roriw": 30,
+    "xnor": 10,
+    "rori": 2
+   },
+   "static_candidate_ops": {
+    "text_instructions": 193420,
+    "candidate_total": 4786,
+    "by_op": {
+     "add.uw": 12,
+     "andn": 1236,
+     "clz": 62,
+     "clzw": 8,
+     "cpop": 78,
+     "ctz": 7,
+     "max": 11,
+     "maxu": 126,
+     "min": 65,
+     "minu": 60,
+     "orc.b": 1,
+     "orn": 254,
+     "rev8": 901,
+     "rori": 34,
+     "roriw": 310,
+     "sext.b": 14,
+     "sh1add": 563,
+     "sh2add": 74,
+     "sh2add.uw": 1,
+     "sh3add": 903,
+     "slli.uw": 6,
+     "xnor": 1,
+     "zext.w": 59
+    }
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 1.6593327575007295,
+    "witness_trie_mpt": 0.8157409458896615,
+    "state_tables_host": 0.5120797825919354,
+    "precompile_bls_kzg": 0.45535142136350487,
+    "keccak_glue": 0.4295549669893037,
+    "precompile_bn254": 0.2976443933991903,
+    "evm_jumpdest_analysis": 0.2956918232956443,
+    "mem_alloc": 0.2565609284762008,
+    "secp_ecdsa_glue": 0.21861341723315542,
+    "other": 0.1695085803234765,
+    "ssz_statement_sha256": 0.06342228109985229,
+    "input_ssz": 0.017464318412647416,
+    "unattributed": 7.072308587446077e-07
+   },
+   "ziskethone_blocks": {
+    "evm_interpreter": 1.7940817659752393,
+    "precompile_bls_kzg": 1.2996937440066791,
+    "witness_trie_mpt": 0.7883046620674488,
+    "precompile_bn254": 0.7579852136599075,
+    "state_tables_host": 0.49706715668145524,
+    "keccak_glue": 0.415186418172722,
+    "evm_jumpdest_analysis": 0.28173680727978023,
+    "mem_alloc": 0.2559827922903216,
+    "secp_ecdsa_glue": 0.21341829259789694,
+    "other": 0.17989690023163765,
+    "ssz_statement_sha256": 0.06607747344985071,
+    "input_ssz": 0.016822822160617257,
+    "unattributed": 6.824054714880758e-07
+   },
+   "ziskethone_blocks_instructions_per_gas": 6.566254730979028
+  },
+  "rust-im": {
+   "client": "Rust reth guest (keccak-service, secp-lean, candidate-services)",
+   "isa": "rv64im",
+   "elf_sha256": "28b332776d930c47ffa31537103d382048112dbaa5a0233297550616358182d8",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 9.824986380089863,
+      "committed_bits_per_gas": 125990.20396255727,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "holdout": {
+      "instructions_per_gas": 8.306814219168325,
+      "committed_bits_per_gas": 106677.87790125229,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "all": {
+      "instructions_per_gas": 9.525284397903285,
+      "committed_bits_per_gas": 122177.76256085663,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 9.824986380089863,
+      "committed_bits_per_gas": 125990.20396255727,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "holdout": {
+      "instructions_per_gas": 8.306814219168325,
+      "committed_bits_per_gas": 106677.87790125229,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "all": {
+      "instructions_per_gas": 9.525284397903285,
+      "committed_bits_per_gas": 122177.76256085663,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 9.824986380089863,
+      "committed_bits_per_gas": 125990.20396255727,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "holdout": {
+      "instructions_per_gas": 8.306814219168325,
+      "committed_bits_per_gas": 106677.87790125229,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     },
+     "all": {
+      "instructions_per_gas": 9.525284397903285,
+      "committed_bits_per_gas": 122177.76256085663,
+      "candidate_isa_extra_bits_per_gas": 0.0
+     }
+    }
+   },
+   "candidate_isa_retired": {},
+   "static_candidate_ops": {
+    "text_instructions": 534290,
+    "candidate_total": 0,
+    "by_op": {}
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 3.6771166926224508,
+    "mpt_rlp": 1.8234155120698186,
+    "secp_ecdsa_glue": 1.7212153072140015,
+    "other_crypto": 1.130181122474026,
+    "mem_alloc": 0.49213997880467286,
+    "keccak_glue": 0.35923851640684773,
+    "ssz_input": 0.16177969881336787,
+    "other": 0.1220260771195018,
+    "ssz_statement_sha256": 0.038171290312638856,
+    "unattributed": 2.0206595964131648e-07
+   }
+  },
+  "rust-zba": {
+   "client": "Rust reth guest (keccak-service, secp-lean, candidate-services)",
+   "isa": "rv64im_zba",
+   "elf_sha256": "105af544ed6616376a24392408b081ddb4081389d00eb128209cc7fe2cbd107a",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 9.674614549199926,
+      "committed_bits_per_gas": 124408.25226493723,
+      "candidate_isa_extra_bits_per_gas": -73.50331910000254
+     },
+     "holdout": {
+      "instructions_per_gas": 8.170906981948608,
+      "committed_bits_per_gas": 105241.41144772577,
+      "candidate_isa_extra_bits_per_gas": -72.08332572903842
+     },
+     "all": {
+      "instructions_per_gas": 9.377768018790212,
+      "committed_bits_per_gas": 120624.53106846497,
+      "candidate_isa_extra_bits_per_gas": -73.22299856790201
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 9.674614549199926,
+      "committed_bits_per_gas": 124605.60327317838,
+      "candidate_isa_extra_bits_per_gas": 123.84768914115372
+     },
+     "holdout": {
+      "instructions_per_gas": 8.170906981948608,
+      "committed_bits_per_gas": 105415.1445293143,
+      "candidate_isa_extra_bits_per_gas": 101.64975585949608
+     },
+     "all": {
+      "instructions_per_gas": 9.377768018790212,
+      "committed_bits_per_gas": 120817.21966778103,
+      "candidate_isa_extra_bits_per_gas": 119.46560074814832
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 9.674614549199926,
+      "committed_bits_per_gas": 126155.20251365178,
+      "candidate_isa_extra_bits_per_gas": 1673.4469296145526
+     },
+     "holdout": {
+      "instructions_per_gas": 8.170906981948608,
+      "committed_bits_per_gas": 106741.5335117845,
+      "candidate_isa_extra_bits_per_gas": 1428.0387383296877
+     },
+     "all": {
+      "instructions_per_gas": 9.377768018790212,
+      "committed_bits_per_gas": 122322.7550276947,
+      "candidate_isa_extra_bits_per_gas": 1625.0009606618275
+     }
+    }
+   },
+   "candidate_isa_retired": {
+    "sh1add": 39272660,
+    "sh3add": 35333018,
+    "add_uw": 3123664,
+    "sh2add": 1236327,
+    "slli_uw": 106861
+   },
+   "static_candidate_ops": {
+    "text_instructions": 528004,
+    "candidate_total": 8200,
+    "by_op": {
+     "add.uw": 308,
+     "sh1add": 2264,
+     "sh1add.uw": 2,
+     "sh2add": 752,
+     "sh3add": 4756,
+     "sh3add.uw": 1,
+     "slli.uw": 29,
+     "zext.w": 88
+    }
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 3.585052073643873,
+    "mpt_rlp": 1.8214041564882582,
+    "secp_ecdsa_glue": 1.684795710989252,
+    "other_crypto": 1.120220498775708,
+    "mem_alloc": 0.48813970818895897,
+    "keccak_glue": 0.35767010287988515,
+    "ssz_input": 0.16143921767137226,
+    "other": 0.12087725131255704,
+    "ssz_statement_sha256": 0.03816909677438808,
+    "unattributed": 2.0206595964131648e-07
+   }
+  },
+  "rust-zbb": {
+   "client": "Rust reth guest (keccak-service, secp-lean, candidate-services)",
+   "isa": "rv64im_zbb",
+   "elf_sha256": "4c16e86f874829db9289ea1e2812e353931a24d939569d7f55220cf7bc9aead2",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 9.432869112712543,
+      "committed_bits_per_gas": 122338.09775499662,
+      "candidate_isa_extra_bits_per_gas": 281.5226640261527
+     },
+     "holdout": {
+      "instructions_per_gas": 7.982281705641373,
+      "committed_bits_per_gas": 103648.14042025077,
+      "candidate_isa_extra_bits_per_gas": 226.81046740702988
+     },
+     "all": {
+      "instructions_per_gas": 9.146509019684473,
+      "committed_bits_per_gas": 118648.51800614534,
+      "candidate_isa_extra_bits_per_gas": 270.72194313387945
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 9.432869112712543,
+      "committed_bits_per_gas": 122515.93445815562,
+      "candidate_isa_extra_bits_per_gas": 459.3593671851518
+     },
+     "holdout": {
+      "instructions_per_gas": 7.982281705641373,
+      "committed_bits_per_gas": 103793.5633059348,
+      "candidate_isa_extra_bits_per_gas": 372.2333530910645
+     },
+     "all": {
+      "instructions_per_gas": 9.146509019684473,
+      "committed_bits_per_gas": 118819.95590579738,
+      "candidate_isa_extra_bits_per_gas": 442.159842785914
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 9.432869112712543,
+      "committed_bits_per_gas": 123167.30740795602,
+      "candidate_isa_extra_bits_per_gas": 1110.7323169855565
+     },
+     "holdout": {
+      "instructions_per_gas": 7.982281705641373,
+      "committed_bits_per_gas": 104335.70093729964,
+      "candidate_isa_extra_bits_per_gas": 914.3709844559073
+     },
+     "all": {
+      "instructions_per_gas": 9.146509019684473,
+      "committed_bits_per_gas": 119449.7647390222,
+      "candidate_isa_extra_bits_per_gas": 1071.9686760107336
+     }
+    }
+   },
+   "candidate_isa_retired": {
+    "rev8": 8992163,
+    "maxu": 4845784,
+    "andn": 3602951,
+    "minu": 2042867,
+    "ctz": 1585234,
+    "clz": 848133,
+    "sext_b": 441832,
+    "roriw": 362880,
+    "orn": 40106,
+    "cpop": 26847,
+    "zext_h": 18401,
+    "rori": 7292,
+    "max": 4592,
+    "cpopw": 1080
+   },
+   "static_candidate_ops": {
+    "text_instructions": 479236,
+    "candidate_total": 5013,
+    "by_op": {
+     "andn": 441,
+     "clz": 933,
+     "clzw": 1,
+     "cpop": 21,
+     "cpopw": 10,
+     "ctz": 399,
+     "max": 3,
+     "maxu": 1132,
+     "minu": 284,
+     "orn": 121,
+     "rev8": 646,
+     "rori": 68,
+     "roriw": 894,
+     "sext.b": 15,
+     "zext.h": 45
+    }
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 3.4685070716024793,
+    "mpt_rlp": 1.7238100833504795,
+    "secp_ecdsa_glue": 1.7088157900411822,
+    "other_crypto": 1.129792980707683,
+    "mem_alloc": 0.4830570577893624,
+    "keccak_glue": 0.34430182985746693,
+    "ssz_input": 0.1465429218621464,
+    "other": 0.10600668972588018,
+    "ssz_statement_sha256": 0.03567439268183372,
+    "unattributed": 2.0206595964131648e-07
+   }
+  },
+  "rust-zba_zbb": {
+   "client": "Rust reth guest (keccak-service, secp-lean, candidate-services)",
+   "isa": "rv64im_zba_zbb",
+   "elf_sha256": "76cce44f999a240cd38f202060a957009d83ef17147faa2c5fff5889b65a3c3b",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "low": {
+     "scored": {
+      "instructions_per_gas": 9.28184253585145,
+      "committed_bits_per_gas": 120620.26609091177,
+      "candidate_isa_extra_bits_per_gas": 78.78482110933099
+     },
+     "holdout": {
+      "instructions_per_gas": 7.8473990216810074,
+      "committed_bits_per_gas": 102124.52535285347,
+      "candidate_isa_extra_bits_per_gas": 55.7765588102314
+     },
+     "all": {
+      "instructions_per_gas": 8.998669404636471,
+      "committed_bits_per_gas": 116969.02659127532,
+      "candidate_isa_extra_bits_per_gas": 74.24276587000742
+     }
+    },
+    "nominal": {
+     "scored": {
+      "instructions_per_gas": 9.28184253585145,
+      "committed_bits_per_gas": 120935.74165203245,
+      "candidate_isa_extra_bits_per_gas": 394.2603822300135
+     },
+     "holdout": {
+      "instructions_per_gas": 7.8473990216810074,
+      "committed_bits_per_gas": 102397.86593199006,
+      "candidate_isa_extra_bits_per_gas": 329.11713794682817
+     },
+     "all": {
+      "instructions_per_gas": 8.998669404636471,
+      "committed_bits_per_gas": 117276.18429626277,
+      "candidate_isa_extra_bits_per_gas": 381.40047085745596
+     }
+    },
+    "high": {
+     "scored": {
+      "instructions_per_gas": 9.28184253585145,
+      "committed_bits_per_gas": 122980.17641699614,
+      "candidate_isa_extra_bits_per_gas": 2438.6951471937055
+     },
+     "holdout": {
+      "instructions_per_gas": 7.8473990216810074,
+      "committed_bits_per_gas": 104143.07837155451,
+      "candidate_isa_extra_bits_per_gas": 2074.329577511283
+     },
+     "all": {
+      "instructions_per_gas": 8.998669404636471,
+      "committed_bits_per_gas": 119261.54965767331,
+      "candidate_isa_extra_bits_per_gas": 2366.765832268
+     }
+    }
+   },
+   "candidate_isa_retired": {
+    "sh1add": 39265001,
+    "sh3add": 35318208,
+    "rev8": 8992163,
+    "maxu": 4845781,
+    "andn": 3587890,
+    "add_uw": 2665975,
+    "minu": 2042867,
+    "ctz": 1585714,
+    "sh2add": 1236545,
+    "clz": 848133,
+    "sext_b": 441832,
+    "roriw": 362880,
+    "slli_uw": 65905,
+    "orn": 40106,
+    "cpop": 26847,
+    "zext_h": 18401,
+    "rori": 7292,
+    "max": 4592,
+    "cpopw": 1080
+   },
+   "static_candidate_ops": {
+    "text_instructions": 473348,
+    "candidate_total": 13231,
+    "by_op": {
+     "add.uw": 308,
+     "andn": 450,
+     "clz": 933,
+     "clzw": 1,
+     "cpop": 21,
+     "cpopw": 10,
+     "ctz": 399,
+     "max": 3,
+     "maxu": 1132,
+     "minu": 284,
+     "orn": 121,
+     "rev8": 646,
+     "rori": 68,
+     "roriw": 894,
+     "sext.b": 15,
+     "sh1add": 2249,
+     "sh1add.uw": 2,
+     "sh2add": 753,
+     "sh3add": 4816,
+     "sh3add.uw": 1,
+     "slli.uw": 12,
+     "zext.h": 45,
+     "zext.w": 68
+    }
+   },
+   "buckets_per_gas_all": {
+    "evm_interpreter": 3.3773494795680072,
+    "mpt_rlp": 1.720414861082897,
+    "secp_ecdsa_glue": 1.6724481315035926,
+    "other_crypto": 1.1197699231181906,
+    "mem_alloc": 0.479078720310979,
+    "keccak_glue": 0.3432020679107004,
+    "ssz_input": 0.14592281510966715,
+    "other": 0.10481100482289461,
+    "ssz_statement_sha256": 0.035672199143582946,
+    "unattributed": 2.0206595964131648e-07
+   }
+  }
+ },
+ "idioms_rv64im": {
+  "evmone-im": {
+   "elf": "client-evmone-candidate.elf",
+   "static_sites": {
+    "shadd": 496,
+    "sext_bh": 10,
+    "zextw": 73,
+    "andn": 318,
+    "rot64": 20,
+    "rot32": 2,
+    "bswap": 25
+   },
+   "static_saved_instructions": {
+    "shadd": 496,
+    "sext_bh": 10,
+    "zextw": 73,
+    "andn": 318,
+    "rot64": 40,
+    "rot32": 4,
+    "bswap": 975
+   },
+   "dynamic_executions_all": {
+    "shadd": 24512832,
+    "sext_bh": 28450,
+    "zextw": 943483,
+    "andn": 2232153,
+    "rot64": 0,
+    "rot32": 30,
+    "bswap": 31315
+   },
+   "dynamic_saved_all": {
+    "shadd": 24512832,
+    "sext_bh": 28450,
+    "zextw": 943483,
+    "andn": 2232153,
+    "rot64": 0,
+    "rot32": 60,
+    "bswap": 1221285
+   },
+   "dynamic_saved_fraction": 0.011826901206358544
+  },
+  "rust-im": {
+   "elf": "rust-im.elf",
+   "static_sites": {
+    "shadd": 2018,
+    "andn": 427,
+    "zexth": 18,
+    "sext_bh": 10,
+    "rot64": 42,
+    "xnor": 95,
+    "zextw": 82,
+    "bswap": 72
+   },
+   "static_saved_instructions": {
+    "shadd": 2018,
+    "andn": 427,
+    "zexth": 18,
+    "sext_bh": 10,
+    "rot64": 84,
+    "xnor": 95,
+    "zextw": 82,
+    "bswap": 2808
+   },
+   "dynamic_executions_all": {
+    "shadd": 33244379,
+    "andn": 3058317,
+    "zexth": 36468,
+    "sext_bh": 372206,
+    "rot64": 7280,
+    "xnor": 2915107,
+    "zextw": 442851,
+    "bswap": 110022
+   },
+   "dynamic_saved_all": {
+    "shadd": 33244379,
+    "andn": 3058317,
+    "zexth": 36468,
+    "sext_bh": 372206,
+    "rot64": 14560,
+    "xnor": 2915107,
+    "zextw": 442851,
+    "bswap": 4290858
+   },
+   "dynamic_saved_fraction": 0.010459443472019016
+  }
+ },
+ "negative_check": {
+  "what": "rust-zbb ELF under plain ethereum_services_v3_candidate (no candidate ISA), holdout blocks 24647140, 24697073, 25229951",
+  "result": "all three trap IllegalInstruction after 27 instructions at word 0x0ad57733 (maxu a4,a0,a3): the admitted decoder is unchanged and only the _isa profile executes candidate encodings"
+ }
+}

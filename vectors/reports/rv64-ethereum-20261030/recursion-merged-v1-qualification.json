@@ -1,0 +1,108 @@
+{
+  "schema": "rv64-recursion-merged-v1-qualification",
+  "user_commit": "154a60c58a7d46024e0f581a09302e6946ff6dc5",
+  "frontend_head_composed": "ad7240fed23353afc4d6fd8d5905195bb741f5d1",
+  "scope": "Experimental legacy native-protocol RV64 batch recursion; two/four real-batch execution prefixes, native receiver adjacency; not a complete Ethereum terminal proof, new Word16 frontend, in-circuit adjacency, device prover or globally hash-free RAM activation.",
+  "status": "qualified merged source and hardened receiver; all named checks passed",
+  "hardening": {
+    "scope": "RV64 recursion integration hardening; no core recursion edits",
+    "source_sha256": {
+      "src/integrations/riscv_cpu/rv64_recursion_main.zig": "b39002175375d858ba1e80a85bce4c16de9d347376c437acba71c24000016102",
+      "src/integrations/riscv_cpu/rv64_recursion/fold_root.zig": "02027667c6c828090bd9a8964ce0f2ff63a7a581f598c561f66e32dec5101fff",
+      "src/integrations/riscv_cpu/rv64_recursion/leaf_wrap.zig": "69c12e263f804a57023d5edea2b95e622406fb3481cff29b0d7bb83ce15c9356",
+      "src/integrations/riscv_cpu/rv64_recursion/transcript_walk.zig": "5bed1f3017ec90531e8539b1e50272f9fb7e723c42c03dbe6a80d497f340c2c8",
+      "src/integrations/riscv_cpu/rv64_recursion/root_admission.zig": "6d656b0e1f25a7d955ed111b1dae3a649b6c9ef9913f7afa105eb63d84cb6b86",
+      "src/integrations/riscv_cpu/rv64_recursion/root_admission_test.zig": "102a41a40162a38f50a84dc8081661999566eefc7517dbf3bf3ad970a0be302f",
+      "src/integrations/riscv_cpu/rv64_recursion/layout_digest.zig": "40041b2a0cfe872078948df59cb83e0ea01eecd721b444667c8d3b47d913e09e",
+      "src/integrations/riscv_cpu/rv64_recursion/native_fixed_root.zig": "3d3e7cf8492cb210d92f5dd7d4e38102e47c9ad85a20c608468d41e2c8d9c75d",
+      "design/riscv-proving-stack/rv64-recursion-root-admission-review.md": "f00c07691de7122f86c76fd0b874dea21e95ed3a4972455d7f34182cda1c53ec"
+    },
+    "fixes": [
+      "independently trusted per-position topology",
+      "packed leaf digest equals public statement digest",
+      "canonical topology at every internal node",
+      "trusted topology paired with independently recomputed public layout digest",
+      "in-circuit native fixed root bound to receiver key by8 full-u32 equalities",
+      "full native Public admission including root canonicality and no-RAM unchanged roots"
+    ],
+    "safe_log": "/tmp/rv64-recursion-complete-admission-safe.log",
+    "fast_log": "/tmp/rv64-recursion-final-admission-fast.log",
+    "new_named_tests": 7,
+    "actual_fresh_wrap_fold_receiver": "PASS two and four newly generated changed-topology leaves/root pipelines, plus latest receiver with full native public admission",
+    "new_zero_step_guard": "reject before log2 and before setup",
+    "safe_status": "PASS recursion/circuit/tool6/6",
+    "fast_status": "PASS recursion/circuit4/4"
+  },
+  "qualification": {
+    "native_verifier_safe_fast_actual_runtime_count": 154,
+    "native_verifier_metadata": "/tmp/stwo-rv64-native-verifier-runtime-metadata-v1.json",
+    "legacy_safe_targets": 4,
+    "legacy_fast_targets": 32,
+    "composed_experimental_word16_fast_targets": 7,
+    "latest_25_batch_native_receiver_with_terminal": "PASS",
+    "root_mutations": 7,
+    "all_mutations_rejected_without_crash": true,
+    "full_new_Word16_integration_started": false
+  },
+  "real_root_runs": [
+    {
+      "leaves": 2,
+      "expected_native_steps": 8388606,
+      "prefix_only": true,
+      "fold_reductions": 1,
+      "fold_layers": 1,
+      "root_proof_bytes": 545896,
+      "root_proof_sha256": "b6514bf9110a554d2bb88538cd7a36d389f6a1c83c9ecfe00ccdc218cbe58505",
+      "root_output_digest": [
+        1957433604,
+        4097935955,
+        2588068611,
+        532880014,
+        2499406692,
+        4102496313,
+        230532912,
+        2934622030
+      ],
+      "directory": "/tmp/stwo-rv64-recursion-final-two-v1",
+      "latest_fresh_receiver_accepted": true,
+      "receiver_log": "root accepted: proof verified, 2 leaf digests recomputed, 2 statements chained to pc 0x13c3fc after 8388606 steps; root 1174 ms, chain 1344 ms",
+      "expected_topologies": "recursion-merged-2-batch-trusted-topologies-v1.json",
+      "first_two_native_proofs_identical_between_probe_configs": true
+    },
+    {
+      "leaves": 4,
+      "expected_native_steps": 16777212,
+      "prefix_only": true,
+      "fold_reductions": 3,
+      "fold_layers": 2,
+      "root_proof_bytes": 545896,
+      "root_proof_sha256": "8acfb4883b91f54f701b65e7ec86e770886eab38be4e94b4c3ffeb957943d199",
+      "root_output_digest": [
+        3966881586,
+        2014056299,
+        2471879321,
+        1707692194,
+        1546671771,
+        3876288582,
+        2055544307,
+        1108256490
+      ],
+      "directory": "/tmp/stwo-rv64-recursion-final-four-v1",
+      "latest_fresh_receiver_accepted": true,
+      "receiver_log": "root accepted: proof verified, 4 leaf digests recomputed, 4 statements chained to pc 0x20e3c4 after 16777212 steps; root 1183 ms, chain 2049 ms",
+      "expected_topologies": "recursion-merged-4-batch-trusted-topologies-v1.json",
+      "first_two_native_proofs_identical_between_probe_configs": true
+    }
+  ],
+  "artifacts": {
+    "recursion-merged-frontend-v1-qualification.json": "b9401704bea75effc4727b9173f599c3bc34d1a9a7cf47f84b3e717b808c21e2",
+    "recursion-merged-runtime-metadata-v1.json": "b0cec45fb348de125325a4fb1ab1ecccc4f6a6de53bedfffa42ca2ad98494f1f",
+    "recursion-merged-composed-word16-v1.json": "bf83e9d4f7b22b80d8220484a1181b957282318b3ededdcdc27077399ce0aff1",
+    "recursion-merged-mutations-v1.json": "c3acd45ecad57543ac66ae5dcc165877ad707b0e308dfaa46320297b246a672e",
+    "recursion-merged-2-batch-trusted-topologies-v1.json": "689fbae92d6ed5e6746a726dffcef83f5c1778b5a09c4844aae175efe0c88ba4",
+    "recursion-merged-4-batch-trusted-topologies-v1.json": "feeb103df1e1d4ca7e785e2043f3d3f1b6a6dce0b77c55fcc791c64c92075f90"
+  },
+  "hook_exception": "Previously authorized one-command exception for inherited repository-wide conformance failures; selected source formatted and diff-checked, without persistent hook config changes.",
+  "performance_caveat": "Concurrent CPU observations, no isolated speedup claim; root proof is545896B for both measured prefix lengths. Trusted manifests here were produced by independently verified native proofs and the receiver-key-derived wrapper; arbitrary producer metadata is not admission authority.",
+  "final_tool_sha256": "ac9f5160f63b72d33a79ce9598e2a5d056938f553b1e998d6c95f1a9474f4594"
+}

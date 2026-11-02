@@ -1,0 +1,16 @@
+{
+  "scope": "resident guard negative test; not a benchmark",
+  "passed": true,
+  "driver_exit": 1,
+  "product_exit": -15,
+  "guard": {
+    "schema": "keth-prover-rss-guard-v2",
+    "rss_limit_bytes": 1,
+    "sample_interval_seconds": 0.002,
+    "virtual_address_limit_bytes": 34359738368,
+    "peak_sampled_rss_bytes": 2236416,
+    "samples": 1,
+    "terminated": true,
+    "pid_namespace_mapping": "NSpid innermost; process bound with pidfd"
+  }
+}

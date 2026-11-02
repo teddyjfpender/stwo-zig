@@ -1,0 +1,235 @@
+{
+  "schema": "rv64-closed-ram-foundation-v1",
+  "status": "qualified_experimental_closed_finite_image_only",
+  "scope": {
+    "actual_stark": true,
+    "one_pcs_components": 7,
+    "independent_expected_operations": true,
+    "complete_finite_image_and_policy": true,
+    "terminal_values_times_and_rights": true,
+    "cpu_bound": false,
+    "services_bound": false,
+    "general_sparse_image": false,
+    "distributed_inventory": false,
+    "open_ram_accepted": false,
+    "production_profile": false
+  },
+  "configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "max_per_residual_degree": 3,
+    "quotient_factor": 2,
+    "schema": "space,address4u16,epoch16,tick16,tick8,value4u16,readable,writable"
+  },
+  "roster": {
+    "logs": [
+      5,
+      6,
+      5,
+      5,
+      5,
+      16,
+      8
+    ],
+    "fixed": [
+      3,
+      3,
+      34,
+      34,
+      34,
+      3,
+      3
+    ],
+    "main": [
+      28,
+      28,
+      23,
+      23,
+      14,
+      1,
+      1
+    ],
+    "interaction": [
+      68,
+      68,
+      48,
+      48,
+      8,
+      8,
+      8
+    ],
+    "active_rows": [
+      4,
+      5,
+      4,
+      4,
+      9,
+      0,
+      0
+    ],
+    "residuals": [
+      72,
+      72,
+      51,
+      51,
+      18,
+      3,
+      3
+    ]
+  },
+  "source_cost": {
+    "fixed_cells": 200928,
+    "main_cells": 70400,
+    "interaction_cells": 536192,
+    "total_field_cells": 807520,
+    "raw_bytes": 3230080,
+    "oods_masks": 566,
+    "performance_prediction": false
+  },
+  "positive_query_mass": {
+    "ram": 13,
+    "owner": 9,
+    "u16_including_padding": 2624,
+    "u8_including_padding": 352,
+    "all_below_characteristic": true
+  },
+  "gates": {
+    "release_safe_tests": 11,
+    "release_fast_tests": 11,
+    "dense_qm31_each_residual_degree3": true,
+    "packed_base_secure_lookup_lane_parity": true,
+    "native_rows_all_residuals": true,
+    "four_distinct_physical_claim_closures": true,
+    "all_source_allocation_failures": true,
+    "strict_pole_transactional_retry": true,
+    "registered_build_target": "test-riscv64-closed-ram",
+    "source_conformance": "no owned-file findings; full workspace has unrelated findings",
+    "registered_build_target_passed": true
+  },
+  "actual_malicious_proof_attempts_rejected": [
+    "future_before",
+    "duplicate_init",
+    "orphan_write",
+    "readonly_write",
+    "bad_image",
+    "noncanonical",
+    "padding",
+    "owner_weight",
+    "owner_origin",
+    "locally_valid_init_fork",
+    "range_count"
+  ],
+  "receiver_mutants_rejected": [
+    "balanced_ram_claims",
+    "unused_claim_tail",
+    "initial_image",
+    "terminal_output",
+    "split_counts",
+    "actual_pcs_root"
+  ],
+  "strong_ledger_gate": "INIT fork and wrong owner each pass ALL native per-table residuals with actual claims but cannot close their respective joint physical RAM/OWNER relation",
+  "artifact": {
+    "scope": "experimental-closed-expected-ram-operations-complete-finite-image-policy-terminal",
+    "proof_sha256": "1141f98a46c1e281a3d4cb0060d5e51d37862722bb81e4f37e8aa8b64b937583",
+    "proof_bytes": 365312,
+    "expected_identity": "c71845bd289b941b766b2fe9ed588e0f7a9ffae36be282e4df8a60bb8e735a7b",
+    "queries": 70,
+    "pow_bits": 26,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "logs": [
+      5,
+      6,
+      5,
+      5,
+      5,
+      16,
+      8
+    ],
+    "main": [
+      28,
+      28,
+      23,
+      23,
+      14,
+      1,
+      1
+    ],
+    "interaction": [
+      68,
+      68,
+      48,
+      48,
+      8,
+      8,
+      8
+    ],
+    "source_cells": 807520,
+    "cpu_bound": false,
+    "services_bound": false,
+    "general_sparse_image": false,
+    "open_ram_accepted": false
+  },
+  "fresh_process_receiver": {
+    "accepted": true,
+    "independently_expected_image_operations_policy_and_terminal": true,
+    "cpu_bound": false,
+    "open_ram_accepted": false
+  },
+  "artifact_files": {
+    "vectors/reports/interop_artifacts/rv64-closed-ram-v1/claims.json": "a84550772c985947f89379b39100cc272b1c1e21b9487d4cc40c87298cdf0ebd",
+    "vectors/reports/interop_artifacts/rv64-closed-ram-v1/producer.json": "5ea5e7738a874f98aaf140baa129bed727487253c272767a5a1e75701802dd04",
+    "vectors/reports/interop_artifacts/rv64-closed-ram-v1/proof.bin": "1141f98a46c1e281a3d4cb0060d5e51d37862722bb81e4f37e8aa8b64b937583",
+    "vectors/reports/interop_artifacts/rv64-closed-ram-v1/receiver.json": "9dccaab708f567eb21df76f0c252bd943d0febdb20ca344baaf3aeed6d0b4932"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/memory/closed_ram/component.zig": "767e8ee8cd2b645d830df6d333b114e308bad01bead8f2393f737d252ff9dfc8",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/equations.zig": "81dcd1f1d84f5211e7e3c799fa59b2109bb5782bc452c03394941c2d5c9e502c",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/layout.zig": "1cf2e7a2be3906c1c3907374298f13afd0be47a2172c6bb6df97c047ae046e08",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/mod.zig": "0e8c0a7b356e4367422dd6ce37131330f81d3319744c833b9ab23df24c755f96",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/trace.zig": "428f8aaabb33dbf38d15a745df2766f7e8f8745fa9a5fc9501f64c2427185c07",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/types.zig": "874d3caad7e50f687284ad7d347ae7e369d4b06322171195c763386fb05255dc",
+    "src/integrations/riscv_cpu/rv64_closed_ram.zig": "0088e98468f1b7856c354e482906c218e67adcad13f18d58a59f53523d59c7cd",
+    "src/integrations/riscv_cpu/rv64_closed_ram_fixture.zig": "bd15c2de6ced65267c885274b55d155aef0c5ccf536a32e8b104d2e2faa4b671",
+    "src/integrations/riscv_cpu/rv64_closed_ram_fixture_main.zig": "98313142eb6528139b4348f2629a3f6e91ce22393bb4962bb495d63464029c84",
+    "src/integrations/riscv_cpu/rv64_closed_ram_public.zig": "88f87e2b07d77beb7ede0f15f151e0b01d4a3572a117fa13710a1272720e1b3b",
+    "src/integrations/riscv_cpu/rv64_closed_ram_test_root.zig": "4cbe89799dc154f39732691a7f9b3463c1df689fbb4ee26e630e168ad54c57ee",
+    "src/integrations/riscv_cpu/tests/rv64_closed_ram_algebra_test.zig": "1f7681a85cedddf9e38441c056d5c6976436668696cd5ac8ea2b7ad0db3415b6",
+    "src/integrations/riscv_cpu/tests/rv64_closed_ram_attacks_test.zig": "ea3b894ac32bed268a299a6d5d1de2e07346a01195c0653993f1c70c06875def",
+    "src/integrations/riscv_cpu/tests/rv64_closed_ram_test.zig": "9aac0d9e2698fcc67c06f46d2b564ba54056b02dea16fdf764075aa61b634b5c"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-closed-ram-safe.log",
+    "fast": "/tmp/rv64-closed-ram-fast.log",
+    "target": "/tmp/rv64-closed-ram-build-target-final.log",
+    "source_conformance": "/tmp/rv64-closed-ram-source-conformance.log"
+  },
+  "remaining": [
+    "CPU/service operation-owner joins",
+    "general sparse expected initialization proof",
+    "full distributed manifest and shared challenge closure",
+    "whole-block proof qualification"
+  ],
+  "tool": {
+    "path": "/tmp/rv64-closed-ram-fixture",
+    "sha256": "864b7d879f433f544cf3229c187a4ce2f528723bea887dce89a74904a761394d"
+  },
+  "dependencies_sha256": {
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700",
+    "src/frontends/riscv/rv64/air/witness.zig": "3c0804abbca28fa5d5730e6a0c609e4abab48699c09d33d0a7befc2d683d449d",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "295e4a8947d08fea482a8514404063b3f67546bccfa01f194db65d8df81ef802"
+  },
+  "workspace_base_commit": "e0ed82507de01688134a21820aceb01e63d7f88d",
+  "clean_staged_integration": {
+    "snapshot_commit": "6f9cfcb022d27e5c7ad51d0821bcd31495406233",
+    "release_safe_target_and_tool_passed": true,
+    "release_safe_log": "/tmp/stwo-rv64-clean-closed-ram-safe.log",
+    "fresh_process_artifact_directory": "/tmp/stwo-rv64-clean-closed-ram-receipt-v1",
+    "fresh_proof_hash_identical": true,
+    "review": "Independent arithmetic/order/permission/closure source review found no concrete defect within finite expected-operation scope; all source dependencies exist in selective checkout.",
+    "release_fast_target_passed": true,
+    "release_fast_log": "/tmp/stwo-rv64-clean-closed-ram-fast.log"
+  }
+}

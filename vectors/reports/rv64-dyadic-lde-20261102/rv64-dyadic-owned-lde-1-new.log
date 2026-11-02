@@ -1,0 +1,103 @@
+pcs_kernel columns=1 base_log=8 extended_log=10 interpolation_job_ns=1375 extension_job_ns=3333 joined_ns=5500
+pcs_kernel columns=63 base_log=13 extended_log=15 interpolation_job_ns=922790 extension_job_ns=4258246 joined_ns=814125
+pcs_kernel columns=24 base_log=13 extended_log=15 interpolation_job_ns=309082 extension_job_ns=1666459 joined_ns=319792
+pcs_kernel columns=17 base_log=14 extended_log=16 interpolation_job_ns=466709 extension_job_ns=2625958 joined_ns=518750
+pcs_kernel columns=23 base_log=16 extended_log=18 interpolation_job_ns=2791875 extension_job_ns=15382666 joined_ns=2890917
+pcs_kernel columns=44 base_log=16 extended_log=18 interpolation_job_ns=5999914 extension_job_ns=27651253 joined_ns=5168542
+pcs_kernel columns=20 base_log=18 extended_log=20 interpolation_job_ns=10955042 extension_job_ns=61121374 joined_ns=10512875
+pcs_kernel columns=51 base_log=18 extended_log=20 interpolation_job_ns=26736836 extension_job_ns=140475585 joined_ns=24188583
+pcs_kernel columns=51 base_log=18 extended_log=20 interpolation_job_ns=31058165 extension_job_ns=135915956 joined_ns=24521875
+pcs_kernel columns=29 base_log=18 extended_log=20 interpolation_job_ns=18330751 extension_job_ns=81275418 joined_ns=14345500
+pcs_kernel columns=11 base_log=19 extended_log=21 interpolation_job_ns=13086834 extension_job_ns=71200500 joined_ns=14233625
+pcs_kernel columns=25 base_log=19 extended_log=21 interpolation_job_ns=30125959 extension_job_ns=151240958 joined_ns=28723333
+pcs_kernel columns=25 base_log=19 extended_log=21 interpolation_job_ns=30608041 extension_job_ns=150715416 joined_ns=28485250
+pcs_kernel columns=25 base_log=19 extended_log=21 interpolation_job_ns=33315874 extension_job_ns=152768502 joined_ns=29537417
+pcs_kernel columns=25 base_log=19 extended_log=21 interpolation_job_ns=32480958 extension_job_ns=150024084 joined_ns=28470083
+pcs_kernel columns=17 base_log=19 extended_log=21 interpolation_job_ns=22353415 extension_job_ns=104686455 joined_ns=21242042
+pcs_kernel columns=4 base_log=20 extended_log=22 interpolation_job_ns=9392750 extension_job_ns=45479834 joined_ns=13812166
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=29729165 extension_job_ns=154908167 joined_ns=29888292
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=30227084 extension_job_ns=154039417 joined_ns=29784292
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=30843792 extension_job_ns=156637501 joined_ns=30287084
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=30143707 extension_job_ns=155227543 joined_ns=30118875
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=30363335 extension_job_ns=157619998 joined_ns=30242541
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=30621500 extension_job_ns=153614000 joined_ns=30102625
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=31063958 extension_job_ns=155399124 joined_ns=30191625
+pcs_kernel columns=11 base_log=20 extended_log=22 interpolation_job_ns=27923918 extension_job_ns=141460542 joined_ns=28794041
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=30963792 extension_job_ns=140691208 joined_ns=58401541
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=30610959 extension_job_ns=148389541 joined_ns=60136958
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=32410418 extension_job_ns=144039792 joined_ns=59443750
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31815584 extension_job_ns=142652751 joined_ns=58467125
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=32641375 extension_job_ns=146857917 joined_ns=60192667
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=30860165 extension_job_ns=147697125 joined_ns=59901459
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=32490751 extension_job_ns=144436792 joined_ns=59724584
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=32244666 extension_job_ns=144710210 joined_ns=59193792
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31793292 extension_job_ns=144227499 joined_ns=59374125
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=33043750 extension_job_ns=152517541 joined_ns=62858625
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31787167 extension_job_ns=144962917 joined_ns=59377375
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=33091708 extension_job_ns=143105917 joined_ns=59288167
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31045708 extension_job_ns=146757667 joined_ns=60099875
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31986501 extension_job_ns=144477499 joined_ns=59324667
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31610501 extension_job_ns=142004167 joined_ns=59396500
+pcs_kernel columns=2 base_log=22 extended_log=24 interpolation_job_ns=19794458 extension_job_ns=92582251 joined_ns=56804708
+pcs_kernel columns=16 base_log=5 extended_log=7 interpolation_job_ns=5377 extension_job_ns=12045 joined_ns=88209
+pcs_kernel columns=16 base_log=8 extended_log=10 interpolation_job_ns=8875 extension_job_ns=36832 joined_ns=41875
+pcs_kernel columns=16 base_log=13 extended_log=15 interpolation_job_ns=350080 extension_job_ns=1949501 joined_ns=363917
+pcs_kernel columns=16 base_log=14 extended_log=16 interpolation_job_ns=492251 extension_job_ns=3184791 joined_ns=586333
+pcs_kernel columns=64 base_log=16 extended_log=18 interpolation_job_ns=8367627 extension_job_ns=46948294 joined_ns=8069666
+pcs_kernel columns=16 base_log=16 extended_log=18 interpolation_job_ns=2100082 extension_job_ns=12170837 joined_ns=2177208
+pcs_kernel columns=47 base_log=18 extended_log=20 interpolation_job_ns=27524000 extension_job_ns=131205212 joined_ns=23752958
+pcs_kernel columns=17 base_log=18 extended_log=20 interpolation_job_ns=10377585 extension_job_ns=51514997 joined_ns=9098375
+pcs_kernel columns=17 base_log=19 extended_log=21 interpolation_job_ns=22985835 extension_job_ns=111429291 joined_ns=19577792
+pcs_kernel columns=25 base_log=19 extended_log=21 interpolation_job_ns=34592251 extension_job_ns=165109580 joined_ns=28492958
+pcs_kernel columns=6 base_log=19 extended_log=21 interpolation_job_ns=8128918 extension_job_ns=36684040 joined_ns=8858625
+pcs_kernel columns=9 base_log=20 extended_log=22 interpolation_job_ns=25118416 extension_job_ns=115591002 joined_ns=27418333
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=33900415 extension_job_ns=162877333 joined_ns=32478042
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=33227375 extension_job_ns=152447044 joined_ns=29483750
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=31618585 extension_job_ns=152488417 joined_ns=29186375
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=31510250 extension_job_ns=153103209 joined_ns=29957958
+pcs_kernel columns=12 base_log=20 extended_log=22 interpolation_job_ns=32416583 extension_job_ns=152240001 joined_ns=30192250
+pcs_kernel columns=11 base_log=20 extended_log=22 interpolation_job_ns=30752707 extension_job_ns=128245418 joined_ns=27870667
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=32474333 extension_job_ns=144899916 joined_ns=59631041
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=33271749 extension_job_ns=148916667 joined_ns=61429125
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=31743043 extension_job_ns=144513625 joined_ns=59123625
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=32955626 extension_job_ns=149778791 joined_ns=62263208
+pcs_kernel columns=3 base_log=22 extended_log=24 interpolation_job_ns=33037833 extension_job_ns=144489583 joined_ns=59690958
+pcs_kernel columns=1 base_log=22 extended_log=24 interpolation_job_ns=10651000 extension_job_ns=45068917 joined_ns=55720291
+OM_DOMAIN_STAGE log=22 main=47 inter=16 constraints=44 jobs=8 scratch_bytes=165376 prepared_bytes=68848 prep_ns=58437000 fft_ns=389515625 rows_ns=511688333
+OM_DOMAIN_STAGE log=20 main=1 inter=16 constraints=4 jobs=8 scratch_bytes=50176 prepared_bytes=16400 prep_ns=14299542 fft_ns=76079083 rows_ns=53487042
+OM_DOMAIN_STAGE log=5 main=0 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=8224 prep_ns=13458 fft_ns=8250 rows_ns=21709
+OM_DOMAIN_STAGE log=19 main=47 inter=16 constraints=52 jobs=8 scratch_bytes=165376 prepared_bytes=26320 prep_ns=7310000 fft_ns=44489375 rows_ns=46326458
+OM_DOMAIN_STAGE log=19 main=29 inter=16 constraints=33 jobs=8 scratch_bytes=165376 prepared_bytes=28304 prep_ns=6838375 fft_ns=34321375 rows_ns=42111584
+OM_DOMAIN_STAGE log=19 main=52 inter=16 constraints=30 jobs=8 scratch_bytes=165376 prepared_bytes=36016 prep_ns=6771042 fft_ns=47108791 rows_ns=48032501
+OM_DOMAIN_STAGE log=14 main=17 inter=16 constraints=4 jobs=4 scratch_bytes=82688 prepared_bytes=23088 prep_ns=461792 fft_ns=975917 rows_ns=1574416
+OM_DOMAIN_STAGE log=13 main=87 inter=16 constraints=144 jobs=2 scratch_bytes=41344 prepared_bytes=156688 prep_ns=301125 fft_ns=1118834 rows_ns=6292291
+OM_DOMAIN_STAGE log=16 main=16 inter=16 constraints=3 jobs=8 scratch_bytes=50176 prepared_bytes=65792 prep_ns=1565917 fft_ns=4538875 rows_ns=6538666
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=8 scratch_bytes=50176 prepared_bytes=2576 prep_ns=1413209 fft_ns=2876624 rows_ns=2890626
+OM_DOMAIN_STAGE log=16 main=1 inter=16 constraints=3 jobs=8 scratch_bytes=50176 prepared_bytes=1552 prep_ns=1391125 fft_ns=2644499 rows_ns=2523584
+OM_DOMAIN_STAGE log=8 main=1 inter=16 constraints=3 jobs=1 scratch_bytes=6272 prepared_bytes=1552 prep_ns=21500 fft_ns=37042 rows_ns=55833
+OM_DOMAIN_STAGE log=20 main=70 inter=32 constraints=253 jobs=8 scratch_bytes=165376 prepared_bytes=26784 prep_ns=11795125 fft_ns=133467250 rows_ns=228378459
+OM_DOMAIN_STAGE log=20 main=14 inter=16 constraints=23 jobs=8 scratch_bytes=32256 prepared_bytes=0 prep_ns=17459 fft_ns=48667958 rows_ns=38739375
+OM_DOMAIN_STAGE log=20 main=14 inter=16 constraints=23 jobs=8 scratch_bytes=32256 prepared_bytes=0 prep_ns=4916 fft_ns=48594250 rows_ns=39028959
+OM_DOMAIN_STAGE log=16 main=2 inter=16 constraints=3 jobs=8 scratch_bytes=50176 prepared_bytes=7200 prep_ns=1569292 fft_ns=2809000 rows_ns=2893041
+OM_DOMAIN_STAGE log=18 main=70 inter=32 constraints=253 jobs=8 scratch_bytes=165376 prepared_bytes=26784 prep_ns=4886042 fft_ns=31886459 rows_ns=57838083
+OM_DOMAIN_STAGE log=16 main=47 inter=16 constraints=52 jobs=8 scratch_bytes=165376 prepared_bytes=26320 prep_ns=1666875 fft_ns=5453334 rows_ns=6414333
+OM_DOMAIN_STAGE log=18 main=29 inter=16 constraints=33 jobs=8 scratch_bytes=165376 prepared_bytes=28304 prep_ns=4299375 fft_ns=16985666 rows_ns=23051250
+OM_DOMAIN_STAGE log=18 main=52 inter=16 constraints=30 jobs=8 scratch_bytes=165376 prepared_bytes=36016 prep_ns=4250875 fft_ns=22643625 rows_ns=26132708
+       19.40 real       101.25 user         5.94 sys
+         12104531968  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3414224  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                6633  voluntary context switches
+               32705  involuntary context switches
+       1439675001222  instructions retired
+        442917159599  cycles elapsed
+         12108916312  peak memory footprint

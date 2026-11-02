@@ -1,0 +1,530 @@
+{
+ "schema": "stwo.rv64.eest-guests.v1",
+ "clients_run": [
+  "evmone"
+ ],
+ "evmone_guest_profile": {
+  "build": "v3",
+  "execution_profile": "ethereum_services_v3"
+ },
+ "date": "2026-11-02",
+ "fixtures": {
+  "release": "tests@v21.0.2",
+  "url": "https://github.com/ethereum/execution-specs/releases/download/tests%40v21.0.2/fixtures.tar.gz",
+  "bytes": 939189561,
+  "sha256": "e2fa7ea2ea516459f9ab92284b2927892f318f4e1f78ca802cb05a6c3b479ed9",
+  "in_scope_dirs": [
+   "for_prague",
+   "for_osaka",
+   "for_bpo1",
+   "for_bpo2",
+   "for_praguetoosakaattime15k",
+   "for_osakatobpo1attime15k",
+   "for_bpo1tobpo2attime15k",
+   "for_cancuntopragueattime15k"
+  ],
+  "formats": [
+   "blockchain_tests",
+   "blockchain_tests_engine"
+  ],
+  "fixture_files": 4723,
+  "tests": 34561,
+  "blocks": 78573
+ },
+ "route": "reth replay (stateless@a134a621 workspace, ef-tests flow) -> per-block canonical-mode witness; payload request from the engine fixture; invalid blocks get a full parent-state witness",
+ "stateless_revision": {
+  "url": "https://github.com/paradigmxyz/stateless.git",
+  "commit": "a134a621bad7229ff7f980e42dfca8e22d101491"
+ },
+ "artifacts": {
+  "gen": {
+   "path": "target/release/stwo-eest-witness-gen",
+   "sha256": "08e7c212905e6fdea94eebfd7f70ef5a0523597a05d2b04876a1660548d85b41"
+  },
+  "evmone_host": {
+   "path": "evmone/client-evmone-host-eest",
+   "sha256": "70f95a610753f4c73606a068c43ee684b12ea84575fe82117763f41cd2c53aba"
+  },
+  "evmone_elf": {
+   "path": "evmone/client-evmone-v3-eest.elf",
+   "sha256": "d8f06115c866e91575f4228cc1d060cc85b93fd260945ff2cb057f216b8b7425"
+  },
+  "exec": {
+   "path": "exec/bin/rv64-ethereum-execution",
+   "sha256": "fc685a6f5010f38eb07dae31671c4a5abc1299c266e2ce1ec9cd6e46d8d03de4"
+  }
+ },
+ "clients": {
+  "evmone": "client_evmone, EEST variant (build.py --eest: fork/blob schedule from schema id); guest build.py --profile v3",
+  "rust": "stateless-validator-reth a134a621 with the ethereum-services-v2-lean [patch] set (host: no RV64 services; guest: production ELF, unchanged)"
+ },
+ "conversion": {
+  "status": {
+   "input": 40838,
+   "out_of_scope": 416,
+   "na": 32
+  },
+  "out_of_scope": {
+   "Cancun block": 416
+  },
+  "not_applicable": {
+   "neg na:request_types_not_ascending": 12,
+   "neg na:empty_request": 4,
+   "neg na:unknown_request_type_3": 6,
+   "neg na:empty_request_data": 4,
+   "neg na:unknown_request_type_169": 4,
+   "neg na:npr_partial_requests": 2
+  },
+  "generator_failures": [],
+  "generator_failure_count": 0,
+  "upstream_reference_validator": {
+   "pos_match": 37287,
+   "neg_rejected": 3539,
+   "neg_ACCEPTED": 4,
+   "pos_MISMATCH": 8
+  }
+ },
+ "tiers": {
+  "host": {
+   "evmone": {
+    "totals": {
+     "PASS": 37295,
+     "PASS_NEG": 3543,
+     "OUT_OF_SCOPE": 416,
+     "NA_NEG": 32
+    },
+    "by_dir_fork": {
+     "for_bpo1tobpo2attime15k|BPO1": {
+      "PASS": 275
+     },
+     "for_bpo1tobpo2attime15k|BPO2": {
+      "PASS": 179,
+      "PASS_NEG": 1
+     },
+     "for_bpo1|BPO1": {
+      "PASS": 210,
+      "PASS_NEG": 88
+     },
+     "for_bpo2|BPO2": {
+      "PASS_NEG": 88,
+      "PASS": 210
+     },
+     "for_cancuntopragueattime15k|Cancun": {
+      "OUT_OF_SCOPE": 416
+     },
+     "for_cancuntopragueattime15k|Prague": {
+      "PASS": 425,
+      "PASS_NEG": 5
+     },
+     "for_osakatobpo1attime15k|BPO1": {
+      "PASS": 177,
+      "PASS_NEG": 1
+     },
+     "for_osakatobpo1attime15k|Osaka": {
+      "PASS": 275
+     },
+     "for_osaka|Osaka": {
+      "PASS": 18183,
+      "PASS_NEG": 1676,
+      "NA_NEG": 16
+     },
+     "for_praguetoosakaattime15k|Osaka": {
+      "PASS_NEG": 7,
+      "PASS": 59
+     },
+     "for_praguetoosakaattime15k|Prague": {
+      "PASS": 64,
+      "PASS_NEG": 2
+     },
+     "for_prague|Prague": {
+      "PASS": 17238,
+      "PASS_NEG": 1675,
+      "NA_NEG": 16
+     }
+    }
+   }
+  },
+  "guest": {
+   "evmone": {
+    "totals": {
+     "PASS": 37294,
+     "PASS_NEG": 3543,
+     "OUT_OF_SCOPE": 416,
+     "NA_NEG": 32,
+     "FAIL": 1
+    },
+    "by_dir_fork": {
+     "for_bpo1tobpo2attime15k|BPO1": {
+      "PASS": 275
+     },
+     "for_bpo1tobpo2attime15k|BPO2": {
+      "PASS": 179,
+      "PASS_NEG": 1
+     },
+     "for_bpo1|BPO1": {
+      "PASS": 210,
+      "PASS_NEG": 88
+     },
+     "for_bpo2|BPO2": {
+      "PASS_NEG": 88,
+      "PASS": 210
+     },
+     "for_cancuntopragueattime15k|Cancun": {
+      "OUT_OF_SCOPE": 416
+     },
+     "for_cancuntopragueattime15k|Prague": {
+      "PASS": 425,
+      "PASS_NEG": 5
+     },
+     "for_osakatobpo1attime15k|BPO1": {
+      "PASS": 177,
+      "PASS_NEG": 1
+     },
+     "for_osakatobpo1attime15k|Osaka": {
+      "PASS": 275
+     },
+     "for_osaka|Osaka": {
+      "PASS": 18183,
+      "PASS_NEG": 1676,
+      "NA_NEG": 16
+     },
+     "for_praguetoosakaattime15k|Osaka": {
+      "PASS_NEG": 7,
+      "PASS": 59
+     },
+     "for_praguetoosakaattime15k|Prague": {
+      "PASS": 64,
+      "PASS_NEG": 2
+     },
+     "for_prague|Prague": {
+      "PASS": 17237,
+      "PASS_NEG": 1675,
+      "NA_NEG": 16,
+      "FAIL": 1
+     }
+    }
+   }
+  }
+ },
+ "full_state_witness_control": {
+  "host": {
+   "evmone": {
+    "PASS": 37287
+   }
+  },
+  "guest": {
+   "evmone": {
+    "PASS": 37286,
+    "FAIL": 1
+   }
+  }
+ },
+ "evmone_host_invalid_block_reject_reasons": {
+  "excess_blob_gas mismatch: header's claimed value doesn't match the formula applied to the ": 1054,
+  "tx gas_limit below intrinsic gas": 1047,
+  "tx sender balance below upfront cost": 727,
+  "payload integer field mismatch": 200,
+  "block blob gas exceeds max": 152,
+  "requests_hash mismatch (invalid block requests)": 54,
+  "tx gas_limit exceeds block gas available": 42,
+  "Transactions: invalid y_parity": 32,
+  "tx sender has code": 30,
+  "DepositEvent field has wrong offset": 22,
+  "DepositEvent field has wrong size": 20,
+  "blob versioned hash has wrong version": 18,
+  "tx gas_limit exceeds cap": 13,
+  "tx fee cap below base fee": 10,
+  "blob tx exceeds blob count limit": 10,
+  "tx chain_id mismatch": 10,
+  "tx nonce mismatch": 8,
+  "Transactions: sender recovery failed": 8,
+  "blob / set-code tx cannot create a contract": 6,
+  "withdrawal system contract call failed (invalid block)": 6,
+  "block hash mismatch": 6,
+  "tx init code exceeds size limit": 6,
+  "payload > bytes": 6,
+  "consolidation system contract call failed (invalid block)": 6,
+  "tx nonce at maximum": 6,
+  "expected RLP string": 6,
+  "gas_limit below the minimum": 6,
+  "tx max_priority_fee_per_gas above max_fee_per_gas": 4,
+  "tx max_fee_per_blob_gas below blob base fee": 4,
+  "DepositEvent has wrong size": 4,
+  "Transactions: signature s is not low-s": 4,
+  "blob tx without blobs": 4,
+  "base_fee_per_gas mismatch: header's claimed value doesn't match the formula applied to the": 2,
+  "set-code tx with empty authorization list": 2,
+  "block RLP size exceeds limit": 2,
+  "withdrawal system contract empty (invalid block)": 2,
+  "Transactions: invalid legacy signature v": 2,
+  "consolidation system contract empty (invalid block)": 2
+ },
+ "guest_instructions_total": {
+  "evmone": 79082947100
+ },
+ "failures": [
+  {
+   "tier": "guest",
+   "client": "evmone",
+   "category": "CONTROL_FAIL",
+   "fixture": "for_prague/ported_static/stStaticCall/static_call1_mb1024_calldepth/static_call1_mb1024_calldepth.json",
+   "test": "tests/ported_static/stStaticCall/test_static_call1_mb1024_calldepth.py::test_static_call1_mb1024_calldepth[fork_Prague-blockchain_test_from_state_test-d1]",
+   "block": 1,
+   "input": "0001-001-fw.ssz",
+   "result": {
+    "instructions": 568225,
+    "keccak_calls": 14,
+    "reason": "IllegalInstruction",
+    "secp_calls": 0,
+    "verdict": "reject"
+   }
+  },
+  {
+   "tier": "guest",
+   "client": "evmone",
+   "category": "FAIL",
+   "fixture": "for_prague/ported_static/stStaticCall/static_call1_mb1024_calldepth/static_call1_mb1024_calldepth.json",
+   "test": "tests/ported_static/stStaticCall/test_static_call1_mb1024_calldepth.py::test_static_call1_mb1024_calldepth[fork_Prague-blockchain_test_from_state_test-d1]",
+   "block": 1,
+   "fork": "Prague",
+   "negative": false,
+   "expect_exception": null,
+   "input": "0001-001.ssz",
+   "input_sha256": "0bf3f63568843a21f52883f64cbf42f411cb58e01d2145f6ab89a5f1334a0af6",
+   "result": {
+    "instructions": 560035,
+    "keccak_calls": 12,
+    "reason": "IllegalInstruction",
+    "secp_calls": 0,
+    "verdict": "reject"
+   }
+  }
+ ],
+ "client_disagreements": [],
+ "seconds": {
+  "convert": "238.0",
+  "host": "161.7",
+  "guest": "765.6"
+ },
+ "failure_classification": {
+  "schema": "stwo.rv64.eest-failure-classification.v2",
+  "note": "Hand classification of every failure group seen in the tests@v21.0.2 runs. v1 = 2026-11-01 receipt (admitted v2 evmone client); v2 = 2026-11-02 re-run of the evmone v3 client only (rust not re-run, its groups carry over from v1). 'status_v2' gives each group's state in the v2 run; the receipt embeds this file.",
+  "groups": [
+   {
+    "client": "rust",
+    "category": "FAIL_NEG",
+    "blocks": 4,
+    "tests": "for_cancuntopragueattime15k/prague/{eip7002_el_triggerable_withdrawals,eip7251_consolidations}/contract_deployment/system_contract_deployment.json [deploy_after_fork-*]",
+    "expect_exception": "BlockException.SYSTEM_CONTRACT_EMPTY",
+    "classification": "real consensus bug in the Rust client's dependency (stateless-validator-reth a134a621 on reth 3d270d93)",
+    "detail": "The first Prague block runs while the EIP-7002 (or EIP-7251) predeploy has no code. The EIPs make such a block invalid; reth executes the empty system call and accepts it. Upstream stateless-validator-reth (reference_output) and reth's own stateful replay accept it too. evmone rejects ('withdrawal system contract empty'). Not reachable on mainnet, where both predeploys have code, but it is a spec soundness gap. The RV64 guest also completes with success on all 4 (tier 2 FAIL_NEG).",
+    "action": "report upstream (paradigmxyz/stateless, reth); not fixed here",
+    "status_v2": "not re-run in v2 (rust client unchanged); v1 result stands"
+   },
+   {
+    "client": "rust",
+    "category": "FAIL",
+    "blocks": 8,
+    "tests": "for_{prague,osaka}/prague/eip7685_general_purpose_el_requests/multi_type_requests/withdrawals_credited_before_request_system_call.json (all 4 cases each)",
+    "classification": "real consensus bug in the Rust client's dependency (reth 3d270d93 / revm 42)",
+    "detail": "Valid blocks whose withdrawals credit an account that the EIP-7002/7251 request system call then reads. reth's stateful replay gets a different state root (so the generator had no reth witness and used a full parent-state witness), and every stateless-validator-reth build (upstream workspace with its revm git patch, the crates.io host validator, and our lean-profile host) rejects. evmone reproduces the fixture's block hash and request root exactly. Mainnet-reachable in principle (a withdrawal to an address the request contract reads). The RV64 guest (production lean ELF) traps on the same 8 blocks.",
+    "action": "report upstream; not fixed here",
+    "status_v2": "not re-run in v2 (rust client unchanged); v1 result stands"
+   },
+   {
+    "client": "evmone",
+    "category": "FAIL",
+    "blocks": "199 host, 226 guest",
+    "tests": "94 ported_static fixture files (stEIP1559, stStaticCall, stQuadraticComplexityTest, stRandom*, ...)",
+    "classification": "client limitation, unreachable on mainnet",
+    "detail": "Genesis gas limits of 2^52..2^63-1. glue/stwo_client.cpp pre-sizes the account and storage tables from the gas limit (gas_limit/2400 rows); the reserve throws bad_alloc on the host and cannot fit the guest heap. Mainnet gas limits move by at most 1/1024 per block (~60M today). On RV64 the same sizing exhausts the 212 MiB guest heap ('out of memory') already at a 500M gas limit: 82 eip7685 blocks of 'for_*/prague/eip7685_general_purpose_el_requests' (gas limit 500,000,000) fail only on the guest, plus 27 more blocks with gas limits from 1.5e9 up. 500M is ~8x today's mainnet limit, so this is a forward-looking liveness limit, not a current mainnet failure.",
+    "action": "closed; static_call1_mb1024_calldepth kept as a resource limit",
+    "status_v2": "fixed (row_reserve from min(gas_used, 60M) with on-demand growth, commit 365f1b165 lineage): every block of the group passes on host and RV64 v3 guest, except stStaticCall/static_call1_mb1024_calldepth block 1 on the guest: ~1024 frames x 1 MB EVM memory, host peak RSS 600 MB > the 212 MiB guest heap, stwo_guest_abort -> IllegalInstruction after 560k instructions (the Rust guest fails it too). Genuine guest resource limit on a synthetic block (gas limit 2^63-1)."
+   },
+   {
+    "client": "evmone",
+    "category": "FAIL",
+    "blocks": 1,
+    "tests": "for_prague/prague/eip7702_set_code_tx/set_code_txs/set_code_max_depth_call_stack.json",
+    "classification": "client resource bug",
+    "detail": "A delegation chain called to the 1024 call-depth limit grows the native build past 38 GB RSS (killed at 4 GiB by the runner); the guest exhausts its heap. Valid block; reth and the Rust guest accept it.",
+    "action": "closed",
+    "status_v2": "fixed by the table-sizing fix (the 1e14 gas limit drove a ~4e10-row reserve, not per-frame growth); passes host and RV64 v3 guest"
+   },
+   {
+    "client": "evmone",
+    "category": "FAIL (fixed during this run)",
+    "blocks": 1110,
+    "tests": "every block that installs an EIP-7702 delegation and later calls the delegated account (eip7702_set_code_tx, eip7623, eip7939 clz_from_set_code)",
+    "classification": "real client bug (witness dependence), fixed",
+    "detail": "ziskethone registers the 0xef0100||address designator code only when a block access list exists (Amsterdam). Its own input generator supplies created code; a canonical EIP-8025 witness carries only pre-state code, so Contracts::index_of aborted. The mainnet basket passed because its witnesses (legacy mode) include created codes.",
+    "action": "fixed: client_evmone/patches/0005-ziskethone-7702-delegation-code.patch (register the designator like CREATE output)",
+    "status_v2": "still fixed (passes host and RV64 v3 guest)"
+   },
+   {
+    "client": "evmone",
+    "category": "FAIL (fixed during this run)",
+    "blocks": 1,
+    "tests": "for_osaka/mpt/storage_trie_structure/replace_child_within_branch_slot.json",
+    "classification": "real client bug (witness dependence), fixed",
+    "detail": "Post-state trie updates were applied in row order, so a deletion could collapse a branch before an insertion into it and then need a sibling node the canonical witness omits ('state key not in witness'). The full-state-witness control passed.",
+    "action": "fixed: glue/stwo_client.cpp applies inserts/updates before deletions in the storage and account tries",
+    "status_v2": "still fixed (passes host and RV64 v3 guest)"
+   },
+   {
+    "client": "evmone",
+    "category": "FAIL (guest only)",
+    "blocks": 40,
+    "tests": "for_{prague,osaka}/prague/eip2537_bls_12_381_precompiles: bls12_g2mul (all cases, incl. one_times_inf, call types) and single-pair bls12_g2msm",
+    "classification": "real RV64 client bug (memory corruption in the G2 scalar-multiplication path), mainnet-reachable",
+    "detail": "The guest traps with UnmappedAddress in memcpy (copy_forward) with a garbage source pointer (0xd201000000010000) after ~2.5M instructions. The native host build passes every case; it links blst's assembly, while the guest compiles blst portable C (__BLST_NO_ASM__) with patch 0002 (64-bit limbs, __int128). G1 operations, pairings and maps pass on the guest. BLS12-381 precompiles are live on mainnet since Prague: a block calling G2MUL/G2MSM would make this guest fail (liveness, not soundness).",
+    "action": "closed",
+    "status_v2": "fixed (patch 0002: quot_rem_64 calls quot_rem_n with n=1 under __builtin_assume(n%2==0), UB with 64-bit limbs; weakened to n!=0; host test tests/blst_portable.c). All eip2537 blocks pass on the RV64 v3 guest."
+   },
+   {
+    "client": "evmone",
+    "category": "ERROR (guest only)",
+    "blocks": 4,
+    "tests": "eip2537 bls12_g1msm valid_gas_g1msm, bls12_g2msm valid_gas_g2msm, valid_multi_inf, invalid_multi_inf",
+    "classification": "execution budget (10^10 RV64 instructions) exceeded",
+    "detail": "Gas-heavy BLS MSM blocks on software blst; not a verdict.",
+    "action": "closed",
+    "status_v2": "resolved: all 4 blocks (and their -fw controls) now complete with the exact output within the 10^10 budget on the v3 guest (BLS12-381 Fp2 + arith384_mont services, blst fixed-limb Montgomery 0026): valid_gas_g1msm 3,042,931,148 instr (59,123,867 gas, 51.5 instr/gas), valid_gas_g2msm 2,980,648,038 (109,598,580 gas, 27.2), valid_multi_inf 2,001,530,871 (112,686,854 gas, 17.8), invalid_multi_inf 1,997,312,852 (118,240,806 gas, 16.9)."
+   },
+   {
+    "client": "rust",
+    "category": "FAIL/ERROR (guest only)",
+    "blocks": 3,
+    "tests": "ported_static stStaticCall/static_call1_mb1024_calldepth, stQuadraticComplexityTest/call1_mb1024_calldepth (heap trap), stQuadraticComplexityTest/call50000_sha256 (10^10 step limit)",
+    "classification": "guest resource limits on synthetic blocks (gas limit 2^63-1, 139M-1.1G gas used)",
+    "detail": "The host build passes all three.",
+    "action": "none",
+    "status_v2": "not re-run in v2 (rust client unchanged); v1 result stands"
+   }
+  ],
+  "not_applicable": {
+   "NA_NEG": "32 invalid blocks whose engine payload cannot be expressed as SSZ ExecutionRequestsElectraFulu (request types out of order, unknown types 3 and 169, an empty request, a partial request record). The CL could not build these payloads; nothing to reject.",
+   "OUT_OF_SCOPE": "416 Cancun blocks of CancunToPragueAtTime15k (both clients accept only the ElectraFulu request shape)."
+  }
+ },
+ "measured_client": {
+  "branch": "codex/rv64-guest-efficiency @ 2490495dd (codex/rv64-ge-client3 had not landed)",
+  "patches": "client_evmone patches 0001-0029 (0024 parked in wip/, not applied); guest build.py --profile v3 --eest with the default v3 set sha,arith,mem,umem,keccak,jumpdest,bn,bls",
+  "executor": "rv64-ethereum-execution built from the same head (bench.py build-exec), execution_profile ethereum_services_v3, max_steps 10^10; execution only, no proving"
+ },
+ "comparison_with_v1": {
+  "v1_receipt": "vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json (admitted v2 evmone client, ethereum_services_v2)",
+  "conversion_identical": true,
+  "evmone_v1": {
+   "host": {
+    "PASS": 37095,
+    "FAIL": 200,
+    "PASS_NEG": 3543,
+    "OUT_OF_SCOPE": 416,
+    "NA_NEG": 32
+   },
+   "guest": {
+    "PASS": 36942,
+    "FAIL": 349,
+    "PASS_NEG": 3543,
+    "OUT_OF_SCOPE": 416,
+    "NA_NEG": 32,
+    "ERROR": 4
+   }
+  },
+  "evmone_v2": {
+   "host": {
+    "PASS": 37295,
+    "PASS_NEG": 3543,
+    "OUT_OF_SCOPE": 416,
+    "NA_NEG": 32
+   },
+   "guest": {
+    "PASS": 37294,
+    "PASS_NEG": 3543,
+    "OUT_OF_SCOPE": 416,
+    "NA_NEG": 32,
+    "FAIL": 1
+   }
+  },
+  "regressions": [],
+  "note": "No block that passed (or was rejected) in v1 fails in v2. Every v1 evmone failure is resolved except stStaticCall/static_call1_mb1024_calldepth block 1 on the guest (heap limit, see failure_classification). The 4 v1 guest ERRORs (BLS MSM over 10^10 steps) now complete with exact output in 2.0-3.0e9 instructions. guest_instructions_total is not comparable with v1 (v1 includes step-limited and early-trap runs)."
+ },
+ "bls_msm_step_budget": {
+  "note": "handover item 4: the 4 v1 step-limit blocks, v3 guest, exact output",
+  "blocks": [
+   {
+    "test": "valid_gas_g1msm precompile_address_12 exact_gas",
+    "gas_used": 59123867,
+    "instructions": 3042931148,
+    "instr_per_gas": 51.47
+   },
+   {
+    "test": "valid_gas_g2msm precompile_address_14 exact_gas",
+    "gas_used": 109598580,
+    "instructions": 2980648038,
+    "instr_per_gas": 27.2
+   },
+   {
+    "test": "valid_multi_inf",
+    "gas_used": 112686854,
+    "instructions": 2001530871,
+    "instr_per_gas": 17.76
+   },
+   {
+    "test": "invalid_multi_inf (valid block)",
+    "gas_used": 118240806,
+    "instructions": 1997312852,
+    "instr_per_gas": 16.89
+   }
+  ]
+ },
+ "forward_check_client3": {
+  "branch": "origin/codex/rv64-ge-client3 @ 98006b4e7 (patch 0030 deferred gas checks + secp fe_mul/sc_mul on arith256_mod), not merged; same inputs, executor and cache",
+  "artifacts": {
+   "evmone_host": {
+    "path": "evmone/client-evmone-host-eest",
+    "sha256": "72d532a88c7719deefcb8196570fbc4e02dadce4912717f3062e54da02baf0d7"
+   },
+   "evmone_elf": {
+    "path": "evmone/client-evmone-v3-eest.elf",
+    "sha256": "9887ebe015d526070933c70fe4d3a8a2c7416e32fe71697bcfc25488b6733c46"
+   }
+  },
+  "tiers": {
+   "host": {
+    "PASS": 37295,
+    "PASS_NEG": 3543,
+    "OUT_OF_SCOPE": 416,
+    "NA_NEG": 32
+   },
+   "guest": {
+    "PASS": 37294,
+    "PASS_NEG": 3543,
+    "OUT_OF_SCOPE": 416,
+    "NA_NEG": 32,
+    "FAIL": 1
+   }
+  },
+  "full_state_witness_control": {
+   "host": {
+    "evmone": {
+     "PASS": 37287
+    }
+   },
+   "guest": {
+    "evmone": {
+     "PASS": 37286,
+     "FAIL": 1
+    }
+   }
+  },
+  "verdict_or_output_differences_vs_head": 0,
+  "guest_instructions_all_78125_runs": {
+   "head": 155590952067,
+   "client3": 148648595174,
+   "delta": "-4.46%"
+  },
+  "host_tests": "build.py --eest --host --tests: mem_fuzz, secp differential (RV64IM and v3-arith), trie, keccak_copy, jumpdest, blst portable==asm, xlat difffuzz 0 mismatches"
+ }
+}

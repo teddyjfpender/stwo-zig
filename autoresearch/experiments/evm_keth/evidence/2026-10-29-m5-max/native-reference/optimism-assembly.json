@@ -1,0 +1,34 @@
+{
+  "schema": "keth-op-reference-input-v1",
+  "input_sha256": "5d4474b21caf65d203ac19ff7b314ce9adf5910ce8a74647de2115ec0a8705b7",
+  "collection_sha256": "7456501eaacb24eed4f644a89548d731feffbb78c3123721140ab43133693bf8",
+  "block_hash": "0x76efc10040c7097e4ae949b7fc2e829bf7e3b7e227a5d0441eefa198aa6c5e42",
+  "candidate_accounts": 280,
+  "candidate_storage_slots": 1555,
+  "trie_nodes": 7062,
+  "trie_node_bytes": 2229915,
+  "compressed_sibling_recovery": {
+    "method": "hash-matched-compact-path-suffixes-v1",
+    "supplied_nodes": 7050,
+    "recovered_nodes": 12,
+    "recovered_node_hashes": [
+      "0x0fbe21b779084f4ab03ac67b0520bac4945c3743c060381d13e7c5a661af0d7f",
+      "0x4768480eedb5b030f901bf8605f76e584fcd578bffcb83835a3cf520886522eb",
+      "0x4a20fad20e8ae086717ec17e26b0f6e005b7f42d5020fa18a333f543ae7b6384",
+      "0x4c68cb1cc7cf6866d57d94c3b3d3316513522e0bd0fb8e4c28f91b8845071e0d",
+      "0x70013c115d2284c4838d53525ecadf608bfc227ddc79802c88a2d1aa78e42bb9",
+      "0x7d83f64a6c32849494f8776488b002705895796b45284b6141b6bb183f132289",
+      "0xb68b3c10be3931a775c58ff549f65b7bba8925070b3833101e3630b0c46a5f80",
+      "0xcaee524f9302d05557b06b4c3b651f35161dd28b54021cd9361391f2d5962ffc",
+      "0xcb55c08cab2c1a30983bd05812c3aba673d3f0ef3d082afcb29b3b637932cdd4",
+      "0xd4a190310454a76d1a28593f649712be955d1edc2fe093b94e56ffee8e2e4176",
+      "0xe9a19e54042c1e637c393a288f53cf2516cf638c9a7d17cd8567a27e9b34bdf5",
+      "0xeafbec1b50582d63d0aef03855ef2d119c7428ce91722b60a35ad93cf420f9c7"
+    ]
+  },
+  "codes": 171,
+  "code_bytes": 1474649,
+  "execution_witness_complete": false,
+  "offline_reference_execution_passed": false,
+  "cairo_execution_proved": false
+}

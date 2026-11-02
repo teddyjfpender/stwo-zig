@@ -1,0 +1,24 @@
+{
+  "base": "7517d4205",
+  "binary_sha256": "3ed1ca1f372ba320394817bcb09dedde18f226f970264d3085f8743d3209faae",
+  "verification_command": [
+    "zig-out/bin/rv64-word16-ethereum-gkr",
+    "verify-prefix-candidate",
+    "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "/tmp/stwo-rv64-om-ethereum-prefix1-candidate-v1",
+    "4294967296"
+  ],
+  "low_cap_argument": "1048576",
+  "actual_result": "fresh candidate prefix accepted; full Ethereum block false; separate1MiB cap typedOutOfMemory withoutpanic",
+  "qualification": [
+    "ReleaseSafe local options/source guard suite PASS",
+    "ReleaseSafe/ReleaseFast actualfiveproofcandidate fresh setup/cache/receiver shared8GiB PASS; partiallegacykey1MiB caplivebytesreturnzero",
+    "ReleaseFast CLIbuild PASS"
+  ],
+  "measurement_scope": "uncontrolled fresh verification observation, no speedup/throughput claim",
+  "security_qualified": false,
+  "rss_bound": false,
+  "receiver_default_requested_bytes": 34359738368,
+  "recycler_free_cache_cap_bytes": 4294967296,
+  "hooks": "authorized exception for repository-wide pre-existing hook failures"
+}

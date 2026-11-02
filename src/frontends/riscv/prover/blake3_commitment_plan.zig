@@ -82,7 +82,7 @@ pub const Plan = struct {
         for (self.programs, 0..) |item, i| {
             try item.validate();
             if (self.program_schedule == .sparse_active and item.multiplicity == 0) return error.InactiveSparseProgramRow;
-            for (self.program_leaves[try self.programLeafOffset(i) ..][0..4], 0..) |leaf, limb| {
+            for (self.program_leaves[try self.programLeafOffset(i)..][0..4], 0..) |leaf, limb| {
                 if (leaf.index != item.address + @as(u32, @intCast(limb))) return error.InvalidProgramPreprocessing;
             }
             if (item.namespace < namespace_end) return error.InvalidCommitmentSchedule;
@@ -194,7 +194,7 @@ test "block-v3 sparse program plan authenticates full image and selected address
     var sparse = try Plan.initSparse(a, roots, &.{}, &program_rows, &leaves);
     defer sparse.deinit();
     try std.testing.expectEqual(@as(usize, 4), try sparse.programLeafOffset(0));
-    try std.testing.expectEqualSlices(tree.Leaf, leaves[4..8], sparse.program_leaves[try sparse.programLeafOffset(0) ..][0..4]);
+    try std.testing.expectEqualSlices(tree.Leaf, leaves[4..8], sparse.program_leaves[try sparse.programLeafOffset(0)..][0..4]);
     const sparse_id = try sparse.identity();
     const full_rows = [_]program.Statement{
         .{ .namespace = 100, .address = 0, .multiplicity = 0, .root = root },

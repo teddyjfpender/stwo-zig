@@ -1,0 +1,41 @@
+OM_DEEP_PHASE phase=catalog_allocate count=1098 ns=11320875
+OM_DEEP_PHASE phase=numerator_combine count=1645 ns=325043958
+OM_DEEP_PHASE phase=numerator_fft count=43 ns=375020041
+OM_DEEP_PHASE phase=quotient_rows count=16777216 ns=1092782542
+OM_DEEP_PHASE phase=fri_pack count=16777216 ns=75987459
+OM_DEEP_PHASE phase=fri_merkle count=16777216 ns=78000375
+OM_DEEP_PHASE phase=fri_circle_fold count=8388608 ns=71280375
+OM_DEEP_PHASE phase=fri_line_folds count=8388608 ns=57590375
+OM_DEEP_PHASE phase=fri_pack count=1048576 ns=5067542
+OM_DEEP_PHASE phase=fri_merkle count=1048576 ns=4742958
+OM_DEEP_PHASE phase=fri_line_folds count=1048576 ns=6830500
+OM_DEEP_PHASE phase=fri_pack count=65536 ns=706750
+OM_DEEP_PHASE phase=fri_merkle count=65536 ns=413833
+OM_DEEP_PHASE phase=fri_line_folds count=65536 ns=2184083
+OM_DEEP_PHASE phase=fri_pack count=4096 ns=38708
+OM_DEEP_PHASE phase=fri_merkle count=4096 ns=117125
+OM_DEEP_PHASE phase=fri_line_folds count=4096 ns=62083
+OM_DEEP_PHASE phase=fri_pack count=256 ns=1166
+OM_DEEP_PHASE phase=fri_merkle count=256 ns=9083
+OM_DEEP_PHASE phase=fri_line_folds count=256 ns=9417
+OM_DEEP_PHASE phase=fri_pack count=16 ns=583
+OM_DEEP_PHASE phase=fri_merkle count=16 ns=2250
+OM_DEEP_PHASE phase=fri_line_folds count=16 ns=625
+       19.15 real       100.37 user         6.05 sys
+         12104482816  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3407108  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                6633  voluntary context switches
+               38487  involuntary context switches
+       1451567458025  instructions retired
+        447400356350  cycles elapsed
+         12108916312  peak memory footprint

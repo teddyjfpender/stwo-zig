@@ -3,6 +3,15 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 pub const LogupError = error{ ZeroDenominator, StepClockCycle, OutOfMemory };
 
+/// Optional structural trait: local packed base tuples combine into a secure
+/// relation field. Scalar and symbolic callers keep their original field.
+pub fn SecureFor(comptime S: type) type {
+    return if (@hasDecl(S, "SecureField")) S.SecureField else S;
+}
+pub fn liftFor(comptime S: type, value: S) SecureFor(S) {
+    return if (@hasDecl(S, "toSecure")) value.toSecure() else value;
+}
+
 pub fn RowPairFor(comptime S: type) type {
     return struct {
         n1: S,

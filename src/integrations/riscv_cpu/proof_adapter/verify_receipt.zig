@@ -110,11 +110,16 @@ test "verification receipt is one canonical JSON object" {
 test "versioned verifier receipt preserves legacy and rejects suite relabeling" {
     const allocator = std.testing.allocator;
     var input = Input{
-        .artifact_kind = "stwo_riscv_proof", .artifact_schema_version = 4,
-        .release_status = "not_release_gated", .security_policy = "secure",
-        .statement_sha256 = [_]u8{1} ** 32, .proof_bytes = 17,
-        .proof_sha256 = [_]u8{2} ** 32, .transcript_state_blake2s = [_]u8{3} ** 32,
-        .implementation_commit = "12" ** 20, .implementation_dirty = false,
+        .artifact_kind = "stwo_riscv_proof",
+        .artifact_schema_version = 4,
+        .release_status = "not_release_gated",
+        .security_policy = "secure",
+        .statement_sha256 = [_]u8{1} ** 32,
+        .proof_bytes = 17,
+        .proof_sha256 = [_]u8{2} ** 32,
+        .transcript_state_blake2s = [_]u8{3} ** 32,
+        .implementation_commit = "12" ** 20,
+        .implementation_dirty = false,
         .executable_sha256 = [_]u8{4} ** 32,
     };
     const Receipt = struct { suite: enum { blake2s, blake3, unknown }, version: u16, digest: [32]u8 };

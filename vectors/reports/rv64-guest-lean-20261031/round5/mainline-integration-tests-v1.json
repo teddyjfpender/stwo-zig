@@ -1,0 +1,37 @@
+{
+  "schema": "rv64-guest-rounds2-through5-mainline-integration-v1",
+  "original_to_mainline": {
+    "2da5bbdba": "4e66e7073",
+    "cc0dbb417": "45f03e3b4",
+    "35ab58666": "10adde567",
+    "0c1a683e7": "f2c790179"
+  },
+  "exact_final_source_and_report_blobs": 104,
+  "README_policy": "Mainline round1 full-proof benchmark and histogram interpretation retained alongside all user rounds.",
+  "host_tests": {
+    "total_passed": 116,
+    "memory": 5,
+    "secp_recovery_and_inverse": 6,
+    "Keccak_sponge": 1,
+    "vendored_bytecode": 45,
+    "vendored_interpreter": 42,
+    "vendored_MPT": 17,
+    "library_test_scope": "Default-feature host library tests in a temporary workspace containing exact copied vendored sources; not a new guest build or an all-feature qualification."
+  },
+  "logs_sha256": {
+    "/tmp/stwo-rv64-round5-mem-tests.log": "07cc5f59dc91d7d139470c2df39171ac6a04219a936e2158cf4ea050ac2fc2b9",
+    "/tmp/stwo-rv64-round5-secp-tests.log": "621c5edb05b0758f51898a7adf529f6bd9fef6579e5777e100c973d00a6f3db4",
+    "/tmp/stwo-rv64-round5-sponge-tests.log": "3b4a621f83573eb4628040202e561c9ad3168770108029eab03e81e1184b0aac",
+    "/tmp/stwo-rv64-round5-library-tests.log": "2890c77afc1dc7cd87de16c2eef4dc08732aeb0aff262feb40e1d5581452c703"
+  },
+  "pinned_round5": {
+    "ELF_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "instructions": 104253913,
+    "heap_start": 33648672,
+    "ABI_profile": "ethereum_services_v2",
+    "full_proof_benchmark_available": false
+  },
+  "scope": "All completedguestcommitsintegrated. The910.62s completeblockbenchmarkbelongs toround1(149306899instructions), notround5.",
+  "source_branch_uncommitted_work": "Not cherry-picked or modified.",
+  "hook_exception": "Previously documented inherited source-conformance and unavailable unrelated MetalAOT hook requirements; scoped commit/push exception used."
+}

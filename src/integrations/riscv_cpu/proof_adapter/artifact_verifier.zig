@@ -26,7 +26,8 @@ pub fn verify(
         .blake3
     else if (comptime Engine.Hasher == suites.Blake2s.Hasher and Engine.Channel == suites.Blake2s.Channel and Engine.MerkleChannel == suites.Blake2s.MerkleChannel)
         .blake2s
-    else return error.UnsupportedProofSuite;
+    else
+        return error.UnsupportedProofSuite;
     try artifact_mod.requireProofSuite(artifact, expected_suite);
 
     try artifact_mod.validateForPolicy(artifact, switch (requested_policy) {

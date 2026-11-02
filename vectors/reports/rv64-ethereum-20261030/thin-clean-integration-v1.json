@@ -1,0 +1,55 @@
+{
+  "schema": "rv64-thin-closed-and-shared-provider-clean-integration-v1",
+  "qualified_tree": "30d8f80f75a09ad0538dcf03e6fa6a2b986c4745",
+  "qualification_checkout": "/private/tmp/stwo-rv64-qualified-thin-v1",
+  "build": "ReleaseFast",
+  "targets_passed": [
+    "test-riscv64-word16-binary-source",
+    "test-riscv64-word16-thin-cpu",
+    "test-riscv64-distributed-execution",
+    "rv64-distributed-execution-fixture"
+  ],
+  "test_minimums": {
+    "binary_source": 3,
+    "thin_cpu": 9,
+    "distributed_execution": 10
+  },
+  "build_log_sha256": "598dfd6defe4e42375de0cbaf8a12b81747b5c0f93e53cb490b158f5bb0a6c0a",
+  "fresh_producer": {
+    "scope": "experimental-register-only-binary-reset-v1",
+    "instructions": 6,
+    "cpu_shards": 2,
+    "shared_binary_provider": 1,
+    "physical_components": 12,
+    "physical_proofs": 3,
+    "queries_per_proof": 70,
+    "pow_bits_per_proof": 26,
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false,
+    "complete_manifest": "4b850e396443fcde0d09eb34f73d5798565bbefacbc0322276e65e288197f3b0",
+    "actual_function_mass": 6,
+    "conservative_manifest_positive_capacity": 131072,
+    "cpu0_bytes": 276128,
+    "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+    "cpu1_bytes": 261632,
+    "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+    "binary_bytes": 227856,
+    "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+  },
+  "fresh_receiver": {
+    "accepted_register_only_binary_execution": true,
+    "instructions": 6,
+    "cpu_shards": 2,
+    "verified_physical_proofs": 3,
+    "local_reg_rom_u16_u8_closed_each_shard": true,
+    "shared_function_closed": true,
+    "genesis_adjacency_terminal_output_checked": true,
+    "clock_profile": "reset-v1",
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false
+  },
+  "scope": "Clean isolated checkout contains only staged qualified source and its dependencies; no untracked experimental source is available. Register-only AND/OR/XOR profile, not RAM/general RV64/Ethereum or recursive aggregation.",
+  "performance_claim": false
+}

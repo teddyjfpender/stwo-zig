@@ -1,0 +1,50 @@
+{
+  "schema": "rv64-prover-performance-validation-v1",
+  "complete": true,
+  "baseline_staged_tree": "873d8d6a41e96b702707b307b134f21837acc2eb",
+  "complete_cases": 17,
+  "all_statement_claim_and_proof_bytes_identical": true,
+  "unchanged_controls": [
+    "ELF/input/output",
+    "instruction counts",
+    "rows/main/interaction columns",
+    "18-worker pool",
+    "ReleaseFast",
+    "70 FRI queries",
+    "26 PoW bits"
+  ],
+  "release_safe_gates": [
+    "test-riscv64-air",
+    "test-riscv64-coset",
+    "test-riscv64-parallel",
+    "test-riscv64-full-capture",
+    "test-riscv64-full-proof",
+    "test-riscv64-providers",
+    "test-riscv64-proof",
+    "test-riscv64-execution"
+  ],
+  "diagnostic_builds": [
+    "rv64-quotient-benchmark",
+    "pcs-commit-profile"
+  ],
+  "python_tests_passed": 17,
+  "checked_invariants": [
+    "arbitrary-QM31 polynomial/weight/zero-run parity",
+    "serial/parallel FFT and witness parity",
+    "initial/final state and provider closure",
+    "metadata after main retirement",
+    "allocation and worker-failure cleanup",
+    "worker stack guards",
+    "malformed claims and program/opcode/geometry substitution",
+    "fresh receiver preprocessing authority"
+  ],
+  "source_conformance": {
+    "status": "pre-existing unrelated failures",
+    "failure_entries": 96,
+    "changed_failure_paths": []
+  },
+  "commit_status": "local changes staged after qualification; existing repository hook failures are not bypassed",
+  "compact_artifacts": "vectors/reports/interop_artifacts/rv64-performance-20261030",
+  "final_prover_sha256": "414609be1e09367b8b3c99b3f9bc58cf40a3e66c5be0b40123e02c460719ea95",
+  "final_verifier_sha256": "ef8b62b2e5513cf85ca0d6aa01cb8d7d467f794b7ed704859c1ee12e45e0ecd3"
+}

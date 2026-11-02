@@ -1,0 +1,331 @@
+{
+  "scope": "Actual complete pinned block24628607,104253913steps,25CPU+5truth, explicitstreamedcheckpoint2/68B plan, q70/P26/fold4. Currentsource combined memory/kernel changes; NOT a CPU speedup.",
+  "source_code": "adeccbf24 with observed CLI f41db7285; frozen coherent Fast snapshot described by ../.. sibling rv64-coherent-cpu-20261102/qualification.json",
+  "binary_sha256": "2eaf3b3ab6a179a580bd738a4f2472ba3f11de639c1e0338c6ae8711f8b4b09b",
+  "environment": {
+    "STWO_ZIG_GKR_TREE_CHECKPOINTS": "2",
+    "STWO_ZIG_GKR_STREAM_BOTTOM": "1",
+    "STWO_ZIG_PROFILE_OM_DOMAIN": "1"
+  },
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "park_main": true,
+    "schedule": {
+      "lanes": 2,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8,
+        8
+      ],
+      "memory_cap_bytes": 38654705664
+    },
+    "capture_options": {
+      "max_inflight_packets": 2,
+      "packet_heap_bytes": 1073741824,
+      "max_inflight_packet_heap_bytes": 2147483648,
+      "max_inflight_wire_bytes": 1073741824
+    },
+    "recycler_cache_bytes": 1073741824
+  },
+  "gkr_tree_policy": {
+    "checkpointed": true,
+    "tight_admission": true,
+    "stream_bottom": true
+  },
+  "security_qualified": false,
+  "prove_seconds": 257.121871167,
+  "wall_seconds": 276.77,
+  "process_user_seconds": 2910.58,
+  "process_system_seconds": 148.24,
+  "maximum_rss_bytes": 38049054720,
+  "peak_footprint_bytes": 33978645808,
+  "stage1_seconds": 116.357473375,
+  "stage2_seconds": 140.574056375,
+  "summed_numerical_seconds": 140.549498121,
+  "per_cpu_numerical_requested_peak_bytes": [
+    2691389018,
+    2684481324,
+    2684476696,
+    2987811879,
+    4831972766,
+    4831972581,
+    3554061913,
+    2684491512,
+    2808850971,
+    2684489559,
+    2684502995,
+    2684493568,
+    2684493753,
+    2684488716,
+    2684498004,
+    2684488193,
+    2684480399,
+    2684479876,
+    2684499299,
+    2684498004,
+    2684494493,
+    2684493383,
+    2684480719,
+    2684490648,
+    2684490278
+  ],
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "load_and_setup_ns": 11498538708,
+    "verify_ns": 893346709
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 135813,
+      "sha256": "ba0979f02a818c4cb7d3afaec6681779d5e80bad833489ad67f564ab89b13325",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 691584,
+      "sha256": "8783288e9c17c34bfc5b342a927984d03661d3327b9b3fc9e3a1fbfdf5a81506",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 665760,
+      "sha256": "5d8cc4f5de1d7a8100ad49cc79adb743d0ccb0bec0a9ea3e89dfd29cf37e6802",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 902656,
+      "sha256": "77620f35f1555807be22e2c5322350c1caf45c7727cae294814a4e8e7699f396",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-11.bin",
+      "bytes": 761984,
+      "sha256": "2f121b123cc4078bd8d3b0c3a5d59b3d7597f784484ac60ac28f493b3de1bf25",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-12.bin",
+      "bytes": 762944,
+      "sha256": "3ae68d60dd1a6b152eabd8bbaa6cfd37b7edf39668933cafbe037d37da0f173e",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-13.bin",
+      "bytes": 739808,
+      "sha256": "a4645e4da55b849790a874cad9af07bedfe3f6e88a0005467b140295545d10dc",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-14.bin",
+      "bytes": 877824,
+      "sha256": "d37cceb3dcc1d0eab4b6679e467e6f1b3e7958d23b75e50439d2257517a70011",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-15.bin",
+      "bytes": 724704,
+      "sha256": "2431922b461d5fb94ab27e811a6465053073e7fa1df52723666d4eb2a5bb6f7b",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-16.bin",
+      "bytes": 698720,
+      "sha256": "6434334ece6a1879dc0528c497fd56a889af0029bd5f69298478f839b2dcb13c",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-17.bin",
+      "bytes": 683488,
+      "sha256": "1fe10fb9680760326604eef8e73d8fe9aef4b9759c41de64d09dfdbef4bebcf9",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-18.bin",
+      "bytes": 880800,
+      "sha256": "24398814d16246a0667a89cbde794529abc59f89a908d143bb6e28ac1bf79b58",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-19.bin",
+      "bytes": 879808,
+      "sha256": "45fbe21016b11eaa2874c9e4f546476100c07c475892aa7fc6503f332c9fa769",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 647648,
+      "sha256": "d55bf9dc8dc109d5566e2e9f733302d536c80e47eb638a0c6cb7dbe846960b57",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-20.bin",
+      "bytes": 867776,
+      "sha256": "25d340cc428706e49ccedda544a0feae6fd4b9f70a5fc809ee8d54119222eb59",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-21.bin",
+      "bytes": 750016,
+      "sha256": "c8c8456672aff117f3b734149195e47dcd382315419ae632fc63e7ee5d584df6",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-22.bin",
+      "bytes": 680416,
+      "sha256": "ee142e72c52eec7f00b827feac0ccf222ab596dfd6a529cc481b4262699eb723",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-23.bin",
+      "bytes": 726208,
+      "sha256": "2a7d24a0e0ffeb8dda25e61db469c14a46c7a1aae9e6b68baf1c2b68a477f518",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-24.bin",
+      "bytes": 727680,
+      "sha256": "f68848c2b01f536fbc5527584800e948bae2749fd4fc76135359b848f6f85421",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 884352,
+      "sha256": "2078affe97fea3c9fb6d115a67bf0a4cb5761ae6f8877bffe5c95d7e001cc494",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 780192,
+      "sha256": "e9c003ae3fd03e21ae0f1606ab3f104107e47d5d93097f609521c0b77ec40f0e",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 792608,
+      "sha256": "7d8519d2b4fdd26eb6cb8ab9d283b45c29ac8b61760d6bf914f0f5aeb0228ffa",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 855904,
+      "sha256": "af55b5d3cc4adaa467f5c389badf9938afdd12c831451da36b4089b4bd162516",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 726432,
+      "sha256": "5b98282ab3fe77d6b34aa406aba1eaae996017a221b54afaac9dba373db0d5eb",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 741184,
+      "sha256": "5a63e3ca6d4005be899b09a2351dca1a1bcabd0a9f6c3ee930e4c6c4dc1a2518",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 743360,
+      "sha256": "e71015e3c0c7639114db63c85181fe476bbd619acabc3be3fb85b0aa35285aad",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 2240420,
+      "sha256": "de11c2812ce2f90303f0742151c7b832ea822361018d93d32b68d183687d338e",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 2803192,
+      "sha256": "75822d87c352e8a4f6182131ce3ead4710b656387da31056f9ee36cc8f8e86d4",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 2792792,
+      "sha256": "15fd24e72554eee33e367c0df065b593aff325a439009fdf1797ac1e7f700aa8",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 810584,
+      "sha256": "f9c08abd754c0925a5c48b9755984d4003e926883b57c00c64d6bd48ec0ab26b",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 685032,
+      "sha256": "c41731717a696709c4749bc754dd9fa43c7593b1942e3b37a08e65030c25fb72",
+      "matches_previous_accepted": true
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 784760,
+      "sha256": "bc16541cc6bbf8d8082b3dc40a2461c066626cbf6e0daf7968df0f25e310120f",
+      "matches_previous_accepted": true
+    }
+  ],
+  "interpretation": "257.12s versus242.44s previousdense104; lowermemorybutcheckpointrecomputationmoreCPUwork. Remainsopt-in; no wholeprover1.5\u20132xmemoryclaim. Next architecture separates streamed inputs from dense upper tree storage."
+}

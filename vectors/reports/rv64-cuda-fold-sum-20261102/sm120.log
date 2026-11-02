@@ -1,0 +1,86 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv649sum_firstILb0EEEv13StwoRv64PlaneS3_jS3_PKjS3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv649sum_firstILb0EEEv13StwoRv64PlaneS3_jS3_PKjS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, used 1 barriers, 256 bytes smem
+ptxas info    : Compile time = 456.340 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv649sum_firstILb1EEEv13StwoRv64PlaneS3_jS3_PKjS3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv649sum_firstILb1EEEv13StwoRv64PlaneS3_jS3_PKjS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 1 barriers, 256 bytes smem
+ptxas info    : Compile time = 249.645 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414eq_tile_kernelILj1EEEvPKjjj13StwoRv64Plane' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414eq_tile_kernelILj1EEEvPKjjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers
+ptxas info    : Compile time = 50.597 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414eq_tile_kernelILj2EEEvPKjjj13StwoRv64Plane' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414eq_tile_kernelILj2EEEvPKjjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 72 registers, used 0 barriers
+ptxas info    : Compile time = 192.794 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414eq_tile_kernelILj3EEEvPKjjj13StwoRv64Plane' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414eq_tile_kernelILj3EEEvPKjjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 96 registers, used 0 barriers
+ptxas info    : Compile time = 479.209 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414eq_tile_kernelILj4EEEvPKjjj13StwoRv64Plane' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414eq_tile_kernelILj4EEEvPKjjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, used 0 barriers
+ptxas info    : Compile time = 1175.751 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb0ELj2EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb0ELj2EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 84 registers, used 0 barriers
+ptxas info    : Compile time = 308.698 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb0ELj1EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb0ELj1EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 66 registers, used 0 barriers
+ptxas info    : Compile time = 91.545 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb1ELj2EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb1ELj2EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 76 registers, used 0 barriers
+ptxas info    : Compile time = 165.924 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv645layerILb1ELj1EEEv13StwoRv64PlaneS3_jS3_S3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv645layerILb1ELj1EEEv13StwoRv64PlaneS3_jS3_S3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers
+ptxas info    : Compile time = 30.193 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410sum_reduceE13StwoRv64PlanejS2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410sum_reduceE13StwoRv64PlanejS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 256 bytes smem
+ptxas info    : Compile time = 33.347 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6416sum_secure_splitE13StwoRv64PlaneS2_jS2_PKjS2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6416sum_secure_splitE13StwoRv64PlaneS2_jS2_PKjS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 80 registers, used 1 barriers, 128 bytes smem
+ptxas info    : Compile time = 300.551 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414fold_sum_firstE13StwoRv64PlaneS2_jPKjS2_S2_S2_S4_S2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414fold_sum_firstE13StwoRv64PlaneS2_jPKjS2_S2_S2_S4_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, used 1 barriers, 256 bytes smem
+ptxas info    : Compile time = 914.828 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv649eq_expandEPKjjj13StwoRv64Plane' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv649eq_expandEPKjjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers
+ptxas info    : Compile time = 49.278 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv647eq_seedEPKjj13StwoRv64Plane' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv647eq_seedEPKjj13StwoRv64Plane
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 36 registers, used 0 barriers
+ptxas info    : Compile time = 4.797 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6410fold_layerE13StwoRv64PlaneS2_jPKjS2_S2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6410fold_layerE13StwoRv64PlaneS2_jPKjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers
+ptxas info    : Compile time = 57.871 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv647projectE13StwoRv64PlaneS2_S2_jjPKjS2_S2_Pj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv647projectE13StwoRv64PlaneS2_S2_jjPKjS2_S2_Pj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 0 barriers
+ptxas info    : Compile time = 12.811 ms

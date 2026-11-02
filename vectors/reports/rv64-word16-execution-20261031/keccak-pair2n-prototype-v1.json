@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "status": "qualified_standalone_inactive_prototype",
+  "activation": "standalone explicit component only; default and shared services unchanged",
+  "base": "dd2880d17",
+  "layout": {
+    "fixed": 32,
+    "main": 1925,
+    "interaction": 3896,
+    "constraints": 7404,
+    "degree": 3,
+    "native_domain": "2n",
+    "composition_split": 1,
+    "round_inverse_pairs": 960,
+    "io_inverse_pairs": 13,
+    "secure_prefixes": 1,
+    "extra_main_boolean_enables": 2,
+    "previous_mask_columns": 1607,
+    "pure_relation": "same Keccak permutation IO11; native public call span/header authority unchanged"
+  },
+  "algebra": {
+    "boundary_bit_gate_equivalence": "new-old=boundary*(1-v)*padding_residual; unchanged padding_residual=(1-active)*v",
+    "strict_enabled_pair": "I*d0*d1=e, I*(1-e)=0, e*(e-1)=0; e bound to original selector",
+    "prefix": "sum signed I*(d0+d1); last IO dummy1 has zero numerator weight; circular FIRST claim binds whole sum",
+    "degree_gate": "symbolic upper-bound propagation over every independent fixed/main/shifted/inter polynomial input; maximum3 reached; actual native2n PCS/OODS proof passes",
+    "table_authority": "existing cleared-prefix chi/xor equations unchanged; native generator refuses dictionary poles; whole lookup bad-challenge/union budget remains separate"
+  },
+  "cost_model": {
+    "legacy_current_main_inter_fixed": [
+      1923,
+      2596,
+      32
+    ],
+    "legacy_point_column_area_per_n": 18204,
+    "prototype_point_column_area_per_n": 11706,
+    "point_column_area_reduction_percent": 35.69545154911009,
+    "legacy_n_coset_scratch_m31_cells_per_n": 6158,
+    "prototype_n_coset_scratch_m31_cells_per_n": 7460,
+    "scratch_increase_percent": 21.143228320883402,
+    "legacy_scratch_bytes_log18": 6457131008,
+    "prototype_scratch_bytes_log18": 7822376960,
+    "scratch_increase_bytes_log18": 1365245952,
+    "inter_source_increase_bytes_log18": 1363148800,
+    "not_a_peak_reduction": true,
+    "table_source_and_opening_cost_included": true
+  },
+  "actual_same_c5_control": {
+    "calls": 5,
+    "first_id": 1,
+    "log": 7,
+    "input_sha256": "ccebd49e17563e6b855f9f8700feb4e82f19b5ed27bffca6a6a3c06587a2e058",
+    "legacy_triple_bytes": 1621800,
+    "legacy_triple_sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+    "prototype_bytes": 2017448,
+    "prototype_sha256": "a3cfd418ea8997e9817029b6070610cd4332c2aa071a6ed7a01cd5326fb26a9b",
+    "proof_increase_bytes": 395648,
+    "proof_increase_percent": 24.395609816253547,
+    "fresh_independent_expected_receiver_workers": [
+      1,
+      16
+    ],
+    "all_worker_artifacts_identical": true,
+    "artifact_directory": "interop_artifacts/rv64-keccak-pair2n-v1",
+    "security": {
+      "queries": 70,
+      "pow_bits": 26,
+      "blowup_log": 1,
+      "nominal_config_bits": 96,
+      "whole_protocol_bits_established": false
+    },
+    "fixture_tool_sha256": "e55e9afe5bddc78f3792320c9f5edfa7d813099e321003d8775ac53b6330da48"
+  },
+  "legacy_regression": "newly rebuilt legacy five-call producer/fresh receiver exact historical64793 proof bytes after shared direct-body extraction and tuple M31 support",
+  "log17_control": {
+    "current_full_run_calls": 32835,
+    "legacy_log18_spans": [
+      18078,
+      14757
+    ],
+    "candidate_log17_spans": [
+      9038,
+      9038,
+      9038,
+      5721
+    ],
+    "padded_permutation_rows_both": 524288,
+    "active_pair_count_both": 16418,
+    "semantics": "already qualified bounded roster; no new arithmetic/layout needed",
+    "tradeoff": "per-proof source/coset peak half; twice proofs/openings and small duplicate table phases; no measured whole-job claim"
+  },
+  "actual_full_s4_context": {
+    "source_seconds_K25_K26": 19.47803,
+    "main_commit_seconds": 1.914499,
+    "main_spill_seconds": 1.382774,
+    "interaction_generation_seconds": 2.087863,
+    "interaction_commit_seconds": 2.437669,
+    "composition_seconds": 11.026646,
+    "sampled_evaluation_seconds": 2.370346,
+    "fri_quotient_seconds": 3.838187,
+    "full_prove_seconds": 290.74412075,
+    "basis": "read-only actual /tmp/rv64-ethereum-word16-full-s4-owned-v1 physical0025/0026 stages and report; no new experiment"
+  },
+  "decision": "KEEP INACTIVE; more source/peak/openings and serial prototype generation. No net throughput win established; prioritize protocol-preserving batching/selected openings.",
+  "qualification": {
+    "native": "empty/odd/even/padded rows all zero and exact triple total claim",
+    "algebra": "independent symbolic degree propagation max3",
+    "lanes": "Safe packed-base and arbitrary packed-secure every-residual scalar parity",
+    "circuit": "Safe/Fast actual Circuit point adapter honest and challenge/claim/nonempty mutants",
+    "false_provers": "suppressed active query enable fails actual proving; valid-local foreign-IO proof physically verifies then independent expected-IO receiver rejects",
+    "poles": "active zero denominators fail before publication; retry succeeds; disabled inverse ghost term rejected",
+    "parallel_oom": "Safe/Fast actual N1024 selects1/3/8/16 row workers; complete proof bytes equal and fresh receiver passes; released-MAIN all allocation failures clean",
+    "native_runtime_count": 12,
+    "circuit_runtime_count": 3,
+    "runtime_count_basis": "queried Zig --listen test_metadata from final Safe/Fast binaries",
+    "logs": {
+      "safe": "/tmp/rv64-keccak-pair2n-workers-safe.log",
+      "fast": "/tmp/rv64-keccak-pair2n-workers-fast.log",
+      "safe_minimum12": "/tmp/rv64-keccak-pair2n-minimum-safe.log",
+      "circuit_safe": "/tmp/rv64-keccak-pair2n-circuit-safe.log",
+      "circuit_fast": "/tmp/rv64-keccak-pair2n-circuit-fast.log"
+    }
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/parallel.zig": "5b80d0f362dba0a4c815201c7b0566c226d61c937d23639c8d28793de332e97a",
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/mod.zig": "f91ef3f186fdffc2b21eacf066b0fe6813f660c4c636c80b3506bd5f3c32dfc8",
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/trace.zig": "90d1cd47f0d52c98bf24665f1fdf9425ebdb7f36833be6e1022702b2c9d417ae",
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/layout.zig": "c3223b404f879766559d4d17806d7d2331d8d58e75387e4344f0051be2b0a2a0",
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/equations.zig": "cfb3ee4c9d60e182587891c1703cba53c156c6a61be95ae824e898c3d1425386",
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/component.zig": "3b5e911db56824f48cc688bd71f4f6b746201901e4b3c9555030b7a94136c4a0",
+    "src/frontends/riscv/rv64/air/delegations/keccak/pair2n/interaction.zig": "be73360fae594371e6205b1ac9956ed83cf1027da9208f0e4b5bc2ea4815f3af",
+    "src/frontends/riscv/rv64/air/delegations/keccak/equations.zig": "838182840d45ff8f93bf4fc6c72592e2b2effd595d138a48ede85fd77c4f9c37",
+    "src/frontends/riscv/rv64/air/delegations/keccak/packed_rows.zig": "8f35a228d93c981e75dc5f4e39a416be19e8a948d49e5d3f08ff9e6a0690d5b4",
+    "src/integrations/riscv_cpu/delegations/keccak/pair2n_fixture.zig": "4e41a1a51d567e64fb79df2cc1e34e76a58c9e9c17c14cac8032c197e6b15cc3",
+    "src/integrations/riscv_cpu/delegations/keccak/pair2n_main.zig": "81f2e592190729cd2e60d705a8edfc403fdb8737486b9cce4f6dfe511aac983c",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_pair2n_test.zig": "1cd428200d2442092147999eca32875dcd0f4a210c16e432e2712d7c95103b8e",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_pair2n_lane_test.zig": "b3ac6486945faa38614771f8a65555b38957d88a4b832ec0d9a4188082de0e94",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_pair2n_circuit_test.zig": "4858f7a768a8e5710b01a7b4b2096524a4b4dbd6037d853c32b77524866310e2"
+  }
+}

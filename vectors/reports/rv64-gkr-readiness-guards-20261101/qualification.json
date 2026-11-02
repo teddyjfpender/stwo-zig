@@ -1,0 +1,40 @@
+{
+  "base_commit": "6091851f7406b40d2f16ea906578f4c2b1904caf",
+  "scope": "shared supported native OM profile admission; no candidate promotion/GPU/security claim",
+  "control_unchanged": {
+    "beta": 1,
+    "queries": 70,
+    "pow": 26,
+    "fold": 4
+  },
+  "fixed_admission": "beta2 deliberately still refused by actual workers until typed immutable authority integration",
+  "checks": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "f24b088203cc5fb60c09746afd2e985b71ba08131bcb4e42a6e12f7bd7961575"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "09111c19d52d2cac9605c95d95154d9cc2010bae7b4bacd594db89b3a7ebab38"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "40f36a8bb0873232589969905f93b856299278ccc0f70a07dd484da6077dafbf"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    }
+  ],
+  "gates": [
+    "configuration boundary matrix worker/execution authority identical",
+    "P33+ and beta2 refused before source ownership transfer/allocation",
+    "actual CPU and K/secp physical proofs accepted with unchanged valid profile",
+    "fresh worker receiver refuses invalid profile before decoder allocations",
+    "configuration validation does not change parameters or transcript"
+  ]
+}

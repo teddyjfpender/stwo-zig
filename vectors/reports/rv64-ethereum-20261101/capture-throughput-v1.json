@@ -1,0 +1,74 @@
+{
+  "schema": "rv64-capture-throughput-v1",
+  "scope": "Measurement only. Execution, record mode, native job production and Word16 Ethereum capture (plan mode) on the pinned round-five complete block. No proof produced, no source edits.",
+  "source_commit": "9dba9705d",
+  "host": { "machine": "Apple M5 Max", "logical_cpus": 18, "memory_bytes": 68719476736, "os": "macOS 26.7.2" },
+  "workload": {
+    "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "instructions": 104253913,
+    "segments": 25,
+    "segment_steps": 4194303,
+    "loads": 20423827,
+    "stores": 13033403,
+    "keccak_calls": 32835,
+    "secp_add_calls": 11496,
+    "secp_double_calls": 9768,
+    "ram_boundary_touched_cells_summed_over_segments": 2666553,
+    "ram_boundary_peak_cells_per_segment": 708957,
+    "global_memory_words_init_teardown": 1347207,
+    "job_packet_bytes_total": 6283350923
+  },
+  "binaries_sha256": {
+    "rv64-word16-ethereum": "fee92ad4c5b90cfac1e7ded9f969b6502c278b3b9ef8eeddbb8dfead849d91ba",
+    "rv64-ethereum-proof": "865bf9c0d66b8bebb02897a82047c2ee1b0c3272f229ea0171db77f98aa70af8",
+    "rv64-ethereum-execution": "df936c93bef1cee4db768c9947fb38dd42f0e8c9e4e87b690ae7c7b933a6b753"
+  },
+  "build": "zig 0.15.2 -Doptimize=ReleaseFast; rv64-ethereum-execution built from src/frontends/riscv/rv64/build.zig",
+  "execution_only": {
+    "tool": "rv64-ethereum-execution <config> (single thread, ethereum_services_v2, output verified)",
+    "pure": { "execution_ns": [2576665375, 2577572708], "mhz": 40.45, "max_rss_bytes": 25755648 },
+    "with_compact_tape_48B": { "execution_ns": [3768805292, 2966099292], "mhz_best": 35.15, "note": "first run noisy", "max_rss_bytes": 247431168 },
+    "with_tape_and_ram_boundary_capture": { "execution_ns": [3372986541, 3384263417], "mhz": 30.86, "max_rss_bytes": 290504704 }
+  },
+  "native_job_production": {
+    "command": "rv64-ethereum-proof nativeprepare <request with scratch output_directory>",
+    "runs": 1,
+    "wall_seconds": 12.96,
+    "user_seconds": 10.13,
+    "system_seconds": 0.78,
+    "mhz_end_to_end": 8.04,
+    "max_rss_bytes": 1519812608,
+    "packet_bytes_total": 6283350923,
+    "note": "execution + 48B tape + RAM boundary capture + RAM openings/frontier + fsynced packet writes. Total packet bytes match the reference jobs exactly; packet digests differ because the request identity covers the output directory (not investigated further)."
+  },
+  "capture_plan_mode": {
+    "command": "lockf -k /private/tmp/stwo-rv64-perf-heavy.lock /usr/bin/time -l rv64-word16-ethereum plan /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs <out> 0",
+    "capture_ns": [9296891917, 9046188000, 9157824792],
+    "capture_ns_median": 9157824792,
+    "capture_mhz_median": 11.38,
+    "wall_seconds": [10.19, 9.12, 9.24],
+    "user_seconds": [8.13, 8.04, 8.02],
+    "system_seconds": [1.16, 1.05, 1.14],
+    "max_rss_bytes": [12262899712, 12262899712, 12262899712],
+    "peak_footprint_bytes": [12268086536, 12268053720, 12268053720],
+    "threads_busy": 1,
+    "note": "capture_ns covers image load, program setup and the serial packet loop (main.zig timer). The first run started with a warmer/colder page cache than later runs. Prior receipts on the same block at 259f49ff8: 8.80-9.21 s (optimization-current-baseline-v1.json)."
+  },
+  "capture_profile": {
+    "method": "/usr/bin/sample at 1 ms on one plan run (12 s window, sampler overhead included); main-thread samples attributed by the nearest named frame",
+    "main_thread_samples_in_main": 6764,
+    "worker_threads": "idle (futex wait) for the whole capture",
+    "shares": {
+      "packet_read_digest_admission_decode": { "samples": 2517, "share": 0.372, "detail": "SHA-256 content digest over the packet, ROM admission walk (decode.effects 275), file read syscalls 285, tape decode/memmove ~300" },
+      "cpu_replay_and_fact_routing": { "samples": 3179, "share": 0.470, "detail": "Prepared.captureInternal + CPU.Source.capture: tape restore/validate, metadata, ROM counts, fact routing; BINARY dedup hash map ~380, wyhash ~170, decode.effects ~205, memmove ~185, ShiftFact appends ~45" },
+      "ram_and_service_ledger": { "samples": 590, "share": 0.087, "detail": "collector.get / State hash map getOrPut ~290, LS validate ~120, image word rights ~45, inlined collector.one" },
+      "program_setup": { "samples": 107, "share": 0.016 },
+      "other": { "share": 0.055 }
+    }
+  },
+  "comparison_public_claims_unverified": {
+    "zkDTVM": "claimed static binary translation RV32 to x86-64, ~3 GHz execute, ~700 MHz record mode producing GPU-native records (as briefed; not reproduced here)",
+    "ZisK": "x86-64 AOT assembly emulator; minimal trace per 2^18-step chunk (core/src/zisk_definitions.rs CHUNK_SIZE_BITS=18); source prints runtime MHz but states no figure"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "Full64 CPU main53 to50 through affine zero-register flags; same64bit ISA semantics, deliberate feature domainfull64.v2 and new transcript",
+  "driver_sha256": "fb5f2af13e165658df100e129c7aa0137c04c2de095afe7911a13486481b15ea",
+  "prefix_artifacts": "/tmp/rv64-cpu-zero50-prefix4-v1",
+  "prefix_fresh": {
+    "core_schema": 4,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "load_and_setup_ns": 2946142291,
+    "verify_ns": 340649959
+  },
+  "prefix_semantic_parity": {
+    "all4cpu_requests": true,
+    "ram_cells": true,
+    "control": "/tmp/rv64-roster-prefix4-v1"
+  },
+  "widths": {
+    "fixed": 3,
+    "main": 50,
+    "interaction": 40,
+    "residuals": 55,
+    "max_degree": 3
+  },
+  "tests": {
+    "safe_local18_source7_circuit": true,
+    "fast_local18_source7_circuit": true,
+    "safe_coordinator24": true,
+    "fast_coordinator24": true,
+    "safe_global15_combined21": true,
+    "actual_valid_physical_forged_enable_accepted_then_pristine_closed_receiver_rejects": true
+  },
+  "independent": {
+    "ecdsa": {
+      "fresh": {
+        "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+        "physical_proof_verified": true,
+        "steps": 1625938,
+        "proof_bytes": 1113672,
+        "receiver_ns": 216966959
+      },
+      "cpu_statement_and_ram_exact": true,
+      "control": "/tmp/rv64-shift28-ecdsa",
+      "proof_sha256": "3f5280fe654582762f7df5f631480d25d235983a582c5642c9c11d5949e66826"
+    },
+    "sail": {
+      "fresh": {
+        "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+        "physical_proof_verified": true,
+        "steps": 1032240,
+        "proof_bytes": 1029376,
+        "receiver_ns": 389851834
+      },
+      "cpu_statement_and_ram_exact": true,
+      "control": "/tmp/rv64-shift28-sail",
+      "proof_sha256": "8ffd30d7c699688ecf607ffa45ac7044f52776a52bb048c49691f57a7ac69cf5"
+    }
+  },
+  "whole_block_geometry_model": {
+    "source_geometry": "/tmp/rv64-ethereum-full-ls48-concurrent-v1/bundle.json",
+    "padded_cpu_rows": 104857600,
+    "main_cells_removed": 314572800,
+    "summed_source_bytes_removed": 1258291200,
+    "qualification": "exact geometry model, not peak RSS or measured time"
+  },
+  "performance_claim": null
+}
