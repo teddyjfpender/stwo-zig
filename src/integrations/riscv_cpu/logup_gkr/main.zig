@@ -149,7 +149,8 @@ fn capture(a: std.mem.Allocator, request_path: []const u8, jobs_path: []const u8
         defer jobs.close();
         var captured = try Capture.init(a, &image, &program, config.value, jobs, 1);
         defer captured.deinit();
-        const decl = try Plan.cpus(a, &captured);
+        // Only LS geometry is read here; the CPU interaction layout is irrelevant.
+        const decl = try Plan.cpus(a, &captured, .{});
         defer a.free(decl);
         const g = decl[0].geometry;
         const events = captured.advice.events[0];

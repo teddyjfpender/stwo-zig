@@ -81,7 +81,7 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    const cpu_declarations = try Plan.cpus(a, &captured);
+    const cpu_declarations = try Plan.cpus(a, &captured, Plan.CpuLayout.forProfile(config.value.execution_profile));
     defer a.free(cpu_declarations);
     const truth_declarations = try Plan.truthsForProfile(a, &captured, config.value.execution_profile == .ethereum_services_v3);
     defer a.free(truth_declarations);
@@ -124,7 +124,16 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     // The Zbb BINARY component exists only under ethereum_services_v3_zbb
     // (its ROM decodes the Zbb subset); every other request rejects it.
     if (config.execution_profile != .ethereum_services_v3_zbb) for (cpus) |d| if (d.bridges.zbb != null) return error.UnadmittedZbbBinaryComponent;
-    if (@import("stwo_riscv_frontend").rv64.execution_profile.isV3(config.execution_profile)) return;
+    if (config.execution_profile == .ethereum_services_v3) return;
+    // v3_zbb is the v3 roster with the historical CPU AIR: the fused-tail
+    // layout has not been proved together with the Zbb ROM, so it fails closed.
+    if (config.execution_profile == .ethereum_services_v3_zbb) {
+        for (cpus) |d| if (d.geometry.cpu_fused_tail) return error.UnadmittedFusedTailCpuLayout;
+        return;
+    }
+    // The fused-tail CPU layout is admitted only on the v3 route. A v2
+    // receiver keeps the historical CPU AIR and fails closed on any other.
+    for (cpus) |d| if (d.geometry.cpu_fused_tail) return error.UnadmittedFusedTailCpuLayout;
     // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
     for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
