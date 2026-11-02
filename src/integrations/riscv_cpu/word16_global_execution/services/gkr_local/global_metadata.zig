@@ -161,8 +161,14 @@ pub const Provider = struct {
                     fixed[3] = O.fromBase(M.fromCanonical(@intCast(lane)));
                     try G.queriesFor(O, self.origin, &fixed, &lift(row), &sink);
                 },
-                .add, .double => {
-                    const src = (if (family == .add) self.source.add else self.source.double) orelse return error.MissingLocalGkrBridge;
+                else => {
+                    const src = (switch (family) {
+                        .add => self.source.add,
+                        .double => self.source.double,
+                        .sha256 => self.source.sha256,
+                        .arith256_mod => self.source.arith256_mod,
+                        else => self.source.curves[@intFromEnum(family) - @import("../types.zig").FIRST_CURVE],
+                    }) orelse return error.MissingLocalGkrBridge;
                     if (src.log_size != self.log_size) return error.InvalidWideGlobalMetadata;
                     const coords = A.crypto.secp256k1.word16_bridge.types.coordinates(src.kind);
                     const coord = logical % coords;
@@ -170,12 +176,10 @@ pub const Provider = struct {
                     const row = A.crypto.secp256k1.word16_bridge.source.nativeRow(src.kind, if (index < src.calls.len) src.calls[index] else null, coord, src.first_id + @as(u32, @intCast(index)));
                     var fixed: [8]O = @splat(O.zero());
                     fixed[3] = O.fromBase(M.fromCanonical(@intCast(coord)));
-                    fixed[6] = O.fromBase(M.fromCanonical(@intFromBool(coord < 3)));
-                    fixed[7] = O.fromBase(M.fromCanonical(if (coord < 3) A.crypto.secp256k1.program.get(if (family == .add) .add else .double).outputs[coord] else 0));
+                    fixed[6] = O.fromBase(M.fromCanonical(@intFromBool(A.crypto.secp256k1.word16_bridge.types.isWritten(src.kind, coord))));
+                    fixed[7] = O.fromBase(M.fromCanonical(if (A.crypto.secp256k1.word16_bridge.types.isWritten(src.kind, coord)) A.crypto.secp256k1.word16_bridge.types.outputWire(src.kind, coord) else 0));
                     try G.queriesFor(O, self.origin, &fixed, &lift(row), &sink);
                 },
-                // Outside the v2 scope (see v2_scope.zig); admission rejects earlier.
-                else => return error.GkrV3ServiceUnsupported,
             },
         }
         if (sink.invalid or sink.ram_count != l.ram_queries or sink.other_count != l.other_queries) return error.InvalidWideGlobalMetadata;

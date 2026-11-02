@@ -24,7 +24,7 @@ pub const Plan = struct {
     claim_count: usize,
     binding_count: usize,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup) !Plan {
-        try @import("bulk_scope.zig").setup(setup);
+        try @import("service_scope.zig").setup(setup);
         var slots = std.ArrayList(Slot).empty;
         errdefer slots.deinit(a);
         var inter: usize = 0;
@@ -53,6 +53,20 @@ pub const Plan = struct {
             claims = try std.math.add(usize, claims, Global.claimCount(origin));
             bindings += 1;
         };
+        for (@import("../types.zig").sponge_kinds) |kind| if (setup.bridges.sponge.at(kind)) |log| {
+            const origin = Frame.Origin{ .sponge = kind };
+            try slots.append(a, .{ .origin = origin, .log = log, .fixed_offset = setup.spongeOffset(kind, 0), .main_offset = setup.spongeOffset(kind, 1), .inter_offset = inter, .binding_index = bindings, .claim_offset = claims });
+            inter = try std.math.add(usize, inter, 16 + Global.layout(origin).width());
+            claims = try std.math.add(usize, claims, Global.claimCount(origin));
+            bindings += 1;
+        };
+        for (0..@import("../types.zig").DWORD_INSTANCES) |i| if (setup.bridges.dwordLog(i)) |log| {
+            const origin = Frame.Origin{ .dword = @intCast(i) };
+            try slots.append(a, .{ .origin = origin, .log = log, .fixed_offset = setup.dwordOffset(i, 0), .main_offset = setup.dwordOffset(i, 1), .inter_offset = inter, .binding_index = bindings, .claim_offset = claims });
+            inter = try std.math.add(usize, inter, 16 + Global.layout(origin).width());
+            claims = try std.math.add(usize, claims, Global.claimCount(origin));
+            bindings += 1;
+        };
         return .{ .allocator = a, .slots = try slots.toOwnedSlice(a), .inter_columns = inter, .claim_count = claims, .binding_count = bindings };
     }
     pub fn deinit(self: *Plan) void {
@@ -68,11 +82,12 @@ pub const Plan = struct {
         return out;
     }
 };
-pub const Item = union(enum) { arithmetic: Role.Component, table: Table.Component, boundary: Boundary.Component, service: Service.Component, bulk: @import("bulk_role.zig").Component };
+pub const Item = union(enum) { arithmetic: Role.Component, table: Table.Component, boundary: Boundary.Component, service: Service.Component, bulk: @import("bulk_role.zig").Component, sponge: @import("sponge_role.zig").Component, dword: @import("dword_role.zig").Component };
 pub const Set = struct {
     allocator: std.mem.Allocator,
     items: []Item,
-    pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: [3]u32, plan: *const Plan, pending: *const @import("child.zig").Pending, shared: Manifest.Shared, values: []const O) !Set {
+    pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, first_ids: anytype, plan: *const Plan, pending: *const @import("child.zig").Pending, shared: Manifest.Shared, values: []const O) !Set {
+        const ids = @import("cpu_worker.zig").firstVector(first_ids);
         if (values.len != plan.claim_count or pending.artifact.claims_to_verify_by_instance.len != plan.binding_count) return error.InvalidWideCpuClaims;
         try setup.materials.geometry.validate();
         try @import("../../../word16_execution/protocol.zig").validateArithmeticRequests(setup.materials.geometry, request.base);
@@ -84,6 +99,17 @@ pub const Set = struct {
         for (items, plan.slots) |*item, slot| {
             const nclaims = Global.claimCount(slot.origin);
             const claims = try Global.claimsFromVector(O, slot.origin, values[slot.claim_offset..][0..nclaims]);
+            if (slot.origin == .sponge) {
+                item.* = .{ .sponge = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.sponge.rows(slot.origin.sponge), .first_id = request.sponge.first_id, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                try item.sponge.validate();
+                continue;
+            }
+            if (slot.origin == .dword) {
+                const counts = try @import("../types.zig").dwordCounts(setup.bridges, request.ls_dword);
+                item.* = .{ .dword = .{ .data = try @import("dword_role.zig").Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = counts[slot.origin.dword], .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                try item.dword.validate();
+                continue;
+            }
             if (slot.origin == .bulk) {
                 item.* = .{ .bulk = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .rows = request.bulk.rows(slot.origin.bulk), .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.bulk.validate();
@@ -92,7 +118,7 @@ pub const Set = struct {
             if (slot.origin == .bridge) {
                 const family = slot.origin.bridge;
                 const index = @intFromEnum(family);
-                item.* = .{ .service = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .span = .{ .calls = request.calls[index], .first_id = first_ids[index] }, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
+                item.* = .{ .service = .{ .data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?), .span = .{ .calls = request.calls[index], .first_id = ids[index] }, .offsets = .{ slot.fixed_offset, slot.main_offset }, .inter_offset = slot.inter_offset, .shared = shared, .claims = claims } };
                 try item.service.validate();
                 continue;
             }
@@ -102,7 +128,8 @@ pub const Set = struct {
                 try item.boundary.validate();
                 continue;
             }
-            const data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?);
+            var data = try Role.Data.init(instances[slot.binding_index.?], pending, slot.binding_index.?);
+            data.cpu_u8_pairs = setup.materials.geometry.cpu_u8_pairs;
             switch (role) {
                 .rom, .boundary, .range16, .range8, .and_table, .shift_table, .selection => {
                     const kind = try Table.kindForRole(role);

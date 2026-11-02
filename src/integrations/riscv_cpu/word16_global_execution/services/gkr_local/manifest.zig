@@ -14,8 +14,9 @@ const Frame = @import("frame.zig");
 const Proof = @import("stwo_prover_engine").lookups.gkr_verifier.ForField(O).GkrBatchProof;
 pub const MAX_WORKERS = 65535;
 pub const PROFILE = "RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V1";
+pub const V3_PROFILE = "RV64-SERVICES-CPU-GKR-TRUTH-CLASSIC-OM31-V3";
 pub const BULK_PROFILE = "RV64-SERVICES-CPU-GKR-BULK-OM31-V3-1";
-pub const Kind = enum(u32) { cpu, keccak, secp_add, secp_double };
+pub const Kind = enum(u32) { cpu, keccak, secp_add, secp_double, delegation };
 pub const Relations = struct {
     ram: bool,
     kio: bool,
@@ -81,10 +82,14 @@ fn canonical(value: O) !void {
 pub fn validateRoster(expected: []const ExpectedWorker) !void {
     if (expected.len == 0 or expected.len > MAX_WORKERS or expected[0].kind != .cpu) return error.GlobalGkrManifestRoster;
     var previous: u32 = 0;
+    var has_delegation = false;
+    for (expected) |worker| has_delegation = has_delegation or worker.kind == .delegation;
+    var seen_truth = false;
     var mass = Mass{ .ram = 0, .kio = 0, .wire = 0 };
     for (expected, 0..) |worker, i| {
-        if (worker.ordinal != i or @intFromEnum(worker.kind) < previous) return error.GlobalGkrManifestOrdinal;
+        if (worker.ordinal != i or (!has_delegation and @intFromEnum(worker.kind) < previous) or (seen_truth and worker.kind == .cpu)) return error.GlobalGkrManifestOrdinal;
         previous = @intFromEnum(worker.kind);
+        seen_truth = seen_truth or worker.kind != .cpu;
         const mask = worker.global_relations;
         inline for (.{ "ram", "kio", "wire" }) |name| {
             const bound = @field(worker.mass, name);
@@ -96,7 +101,7 @@ pub fn validateRoster(expected: []const ExpectedWorker) !void {
         switch (worker.kind) {
             .cpu => if (!mask.ram) return error.GlobalGkrRelationRoster,
             .keccak => if (mask.ram or !mask.kio or mask.wire) return error.GlobalGkrRelationRoster,
-            .secp_add, .secp_double => if (mask.ram or mask.kio or !mask.wire) return error.GlobalGkrRelationRoster,
+            .secp_add, .secp_double, .delegation => if (mask.ram or mask.kio or !mask.wire) return error.GlobalGkrRelationRoster,
         }
         if (worker.kind == .cpu) {
             const instances = worker.local_instances orelse return error.MissingGlobalGkrLocalChild;

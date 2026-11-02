@@ -22,6 +22,7 @@ fn rows(log: u32) !usize {
     return @as(usize, 1) << @intCast(log);
 }
 pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, global_limit: usize) !Plan {
+    if (@import("execution.zig").extendedTruth(truth)) return @import("truth_v3_retention.zig").forTruth(a, truth, config, global_limit);
     try @import("v2_scope.zig").truth(truth);
     _ = try Worker.truthMass(truth);
     const roles = try @import("truth_components.zig").shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));

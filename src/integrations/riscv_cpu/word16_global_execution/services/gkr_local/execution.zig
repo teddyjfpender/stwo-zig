@@ -14,7 +14,11 @@ const Frame = @import("frame.zig");
 const Roster = @import("roster.zig");
 const CPU = @import("cpu_worker.zig");
 const Truth = @import("truth_worker.zig");
-const Scope = @import("bulk_scope.zig");
+const Scope = @import("service_scope.zig");
+const V3 = @import("truth_v3_worker.zig");
+pub fn extendedTruth(t: R.Truth) bool {
+    return t != .keccak and t != .secp;
+}
 const FixedSet = @import("fixed_authority_set.zig").Set;
 
 /// Entirely receiver-derived context. Instances and first IDs are constructed
@@ -24,7 +28,7 @@ pub const Inventory = struct {
     execution_identity: [32]u8,
     workers: []Manifest.ExpectedWorker,
     instances: [][]Frame.Instance,
-    first_ids: [][3]u32,
+    first_ids: [][@import("../types.zig").FAMILIES]u32,
     pub fn deinit(self: *Inventory) void {
         const a = self.allocator;
         for (self.instances) |instances| a.free(instances);
@@ -64,9 +68,9 @@ pub const Inventory = struct {
         errdefer a.free(instances);
         var done: usize = 0;
         errdefer for (instances[0..done]) |values| a.free(values);
-        const first_ids = try a.alloc([3]u32, setups.len);
+        const first_ids = try a.alloc([@import("../types.zig").FAMILIES]u32, setups.len);
         errdefer a.free(first_ids);
-        var next: [3]u64 = @splat(1);
+        var next: [@import("../types.zig").FAMILIES]u64 = @splat(1);
         for (setups, requests, 0..) |setup, request, i| {
             for (next, &first_ids[i]) |id, *out| out.* = std.math.cast(u32, id) orelse return error.GlobalGkrManifestOrdinal;
             instances[i] = try Roster.fromSetup(a, setup);
@@ -78,15 +82,15 @@ pub const Inventory = struct {
                 .statement = CPU.cpuStatementWithAuthority(setup, request, first_ids[i], config, binding),
                 .fixed = if (binding) |authority| authority.root() else setup.key.root,
                 .local_instances = instances[i],
-                .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null, .wire = setup.bridges.add != null or setup.bridges.double != null },
+                .global_relations = .{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = CPU.wirePresent(setup.bridges) },
                 .mass = try CPU.cpuMass(request),
             };
-            for (&next, request.calls[0..3]) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
+            for (&next, request.calls) |*id, calls| id.* = try std.math.add(u64, id.*, calls);
         }
         const base_identity = executionIdentity(config, expected);
         const identity = if (fixed) |authority| authority.executionIdentity(base_identity) else base_identity;
         for (truths, 0..) |truth, i| {
-            const kind: Manifest.Kind = switch (truth.family()) {
+            const kind: Manifest.Kind = if (extendedTruth(truth)) .delegation else switch (truth.family()) {
                 .keccak => .keccak,
                 .add => .secp_add,
                 .double => .secp_double,
@@ -96,11 +100,11 @@ pub const Inventory = struct {
             workers[setups.len + i] = .{
                 .kind = kind,
                 .ordinal = @intCast(setups.len + i),
-                .statement = try Truth.truthStatementWithAuthority(truth, config, identity, binding),
+                .statement = if (extendedTruth(truth)) try V3.truthStatementWithAuthority(truth, config, identity, binding) else try Truth.truthStatementWithAuthority(truth, config, identity, binding),
                 .fixed = if (binding) |authority| authority.root() else truth.key().root,
                 .local_instances = null,
                 .global_relations = .{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak },
-                .mass = try Truth.truthMass(truth),
+                .mass = if (extendedTruth(truth)) try V3.truthMass(truth) else try Truth.truthMass(truth),
             };
         }
         try Manifest.validateRoster(workers);
@@ -190,7 +194,7 @@ pub fn verifyWithAuthorityAndLimits(a: std.mem.Allocator, setups: []const *const
     }
     for (truths, truth_proofs, 0..) |truth, *proof, i| {
         const ordinal = setups.len + i;
-        verified_claims[ordinal] = try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null);
+        verified_claims[ordinal] = if (extendedTruth(truth)) try V3.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null) else try Truth.verifyTruthWithAuthority(a, truth, inventory.workers[ordinal], &pending, ordinal, config, proof, if (fixed) |authority| authority.at(ordinal) else null);
     }
     try pending.checkGlobalClosure(verified_claims);
     return .{ .completed = true, .total_steps = expected.total_steps, .physical_proofs = inventory.workers.len, .execution_identity = inventory.execution_identity, .manifest_identity = pending.digest };

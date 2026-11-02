@@ -28,7 +28,7 @@ pub const Globals = struct {
     }
 };
 pub fn cpu(request: Request) !Globals {
-    try @import("bulk_scope.zig").request(request);
+    try @import("service_scope.zig").request(request);
     var out = Globals{};
     out.ram.positive = try std.math.add(u64, request.base.memory.ls_count, request.base.memory.terminal.len);
     out.ram.negative = try std.math.add(u64, request.base.memory.ls_count, request.base.memory.initial.len);
@@ -46,6 +46,24 @@ pub fn cpu(request: Request) !Globals {
         out.wire.positive = try std.math.add(u64, out.wire.positive, try std.math.mul(u64, calls, program.inputs));
         out.wire.negative = try std.math.add(u64, out.wire.negative, try std.math.mul(u64, calls, program.outputs.len));
     }
+    for (@import("std").enums.values(@import("../types.zig").Family)) |family| {
+        if (@intFromEnum(family) < 3) continue;
+        const calls = request.calls[@intFromEnum(family)];
+        const kind = @import("../types.zig").bridgeKind(family);
+        const ram = try std.math.mul(u64, calls, 4 * A.crypto.secp256k1.word16_bridge.types.coordinates(kind));
+        out.ram.positive = try std.math.add(u64, out.ram.positive, ram);
+        out.ram.negative = try std.math.add(u64, out.ram.negative, ram);
+        out.wire.positive = try std.math.add(u64, out.wire.positive, try std.math.mul(u64, calls, A.crypto.secp256k1.word16_bridge.types.coordinates(kind)));
+        out.wire.negative = try std.math.add(u64, out.wire.negative, try std.math.mul(u64, calls, A.crypto.secp256k1.word16_bridge.types.written(kind)));
+    }
+    out.ram.positive = try std.math.add(u64, out.ram.positive, request.ls_dword);
+    out.ram.negative = try std.math.add(u64, out.ram.negative, request.ls_dword);
+    const sponge_ram = try std.math.add(u64, try std.math.mul(u64, request.sponge.calls, 29), try std.math.mul(u64, request.sponge.perms, 18));
+    out.ram.positive = try std.math.add(u64, out.ram.positive, sponge_ram);
+    out.ram.negative = try std.math.add(u64, out.ram.negative, sponge_ram);
+    const sponge_io = try std.math.mul(u64, try std.math.add(u64, request.sponge.calls, request.sponge.perms), 50);
+    out.kio.positive = try std.math.add(u64, out.kio.positive, sponge_io);
+    out.kio.negative = try std.math.add(u64, out.kio.negative, sponge_io);
     const bulk = request.bulk.ram();
     if (bulk % 2 != 0) return error.GlobalBulkMassAuthorityMismatch;
     out.ram.positive = try std.math.add(u64, out.ram.positive, bulk / 2);
@@ -54,8 +72,19 @@ pub fn cpu(request: Request) !Globals {
 }
 pub fn truth(d: Declaration) !Globals {
     var out = Globals{};
+    if (d.family != .keccak and (@intFromEnum(d.family) >= 3 or d.logs[1] == 0)) {
+        _ = try @import("truth_v3_catalog.zig").descriptorForDeclaration(d);
+        const kind = @import("../types.zig").bridgeKind(d.family);
+        out.wire.positive = try std.math.mul(u64, d.calls, A.crypto.secp256k1.word16_bridge.types.written(kind));
+        out.wire.negative = try std.math.mul(u64, d.calls, A.crypto.secp256k1.word16_bridge.types.coordinates(kind));
+        return out;
+    }
     switch (d.family) {
-        .keccak => out.kio.positive = (try A.crypto.keccak.layout.admitRoster(&.{d.calls}, &.{})).io,
+        .keccak => {
+            const policy = try @import("truth_profile.zig").fromDeclaration(d);
+            try A.crypto.keccak.layout.validateGeometryFor(policy.geometry(), d.calls, d.first_id, d.logs[0]);
+            out.kio.positive = try std.math.mul(u64, d.calls, 2 * A.crypto.keccak.layout.IO_LANES);
+        },
         .add, .double => {
             const S = A.crypto.secp256k1;
             const program = S.program.get(if (d.family == .add) .add else .double);

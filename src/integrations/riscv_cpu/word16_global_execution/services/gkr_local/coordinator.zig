@@ -126,7 +126,7 @@ pub fn requestView(native: []const *Native, advice: *const Advice, i: usize) !P.
     const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
     return .{ .calls = Pipeline.adviceCalls(advice, i), .bulk = advice.bulk[i].counts(), .sponge = advice.sponge[i].counts(), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == native.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
 }
-fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Advice) ![]P.Request {
+fn requestsFrom(a: std.mem.Allocator, setups: []const *const R.CpuSetup, native: []const *Native, advice: *const Advice) ![]P.Request {
     const requests = try a.alloc(P.Request, native.len);
     errdefer a.free(requests);
     var done: usize = 0;
@@ -136,6 +136,7 @@ fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Ad
     };
     for (requests, 0..) |*r, i| {
         var request = try requestView(native, advice, i);
+        try routeDword(&request, setups[i].bridges, advice.events[i]);
         const initial = try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.initial);
         errdefer a.free(initial);
         const terminal = try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.terminal);
@@ -144,14 +145,16 @@ fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Ad
         r.* = request;
         done += 1;
         // Faithful counts first (requestView), then fail closed on any v3 advice.
-        try @import("bulk_scope.zig").request(r.*);
+        try @import("service_scope.zig").request(r.*);
     }
+    try assignSpongeIds(requests);
     return requests;
 }
 
 const Worker = union(enum) {
     cpu: CPU.CpuWorker,
     truth: Truth.TruthWorker,
+    delegation: @import("truth_v3_worker.zig").NativeTruthWorker,
     fn deinit(self: *Worker, a: std.mem.Allocator) void {
         switch (self.*) {
             inline else => |*v| v.deinit(a),
@@ -191,7 +194,7 @@ const Run = struct {
             timing.?.stage1_ns = clock.read();
         };
         if (index < self.setups.len) {
-            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, @import("bulk_scope.zig").widenFirstIds(self.inventory.first_ids[index]), false, null);
+            var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
@@ -233,17 +236,25 @@ const Run = struct {
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
-            const worker = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null);
-            owned = false;
-            self.workers[index] = .{ .truth = worker };
-            self.workers[index].?.truth.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
-            self.stages[index] = try self.workers[index].?.truth.seal(self.a);
-            if (timer) |*clock| {
-                timing.?.seal_native_and_gkr_ns = clock.lap();
-                timing.?.main_commit_ns = timing.?.seal_native_and_gkr_ns;
-                timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.truth.scheme);
+            if (Execution.extendedTruth(truth)) {
+                self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+            } else {
+                self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
             }
-            if (self.options.retained_store) |store| _ = try self.workers[index].?.truth.spillMain(store);
+            owned = false;
+            switch (self.workers[index].?) {
+                inline .truth, .delegation => |*worker| {
+                    worker.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
+                    self.stages[index] = try worker.seal(self.a);
+                    if (timer) |*clock| {
+                        timing.?.seal_native_and_gkr_ns = clock.lap();
+                        timing.?.main_commit_ns = timing.?.seal_native_and_gkr_ns;
+                        timing.?.actual_main_merkle_bytes = try mainNodes(&worker.scheme);
+                    }
+                    if (self.options.retained_store) |store| _ = try worker.spillMain(store);
+                },
+                else => unreachable,
+            }
         }
         if (timer) |*clock| timing.?.spill_ns = clock.lap();
         if (index < self.setups.len and self.options.consume_memory_events) {
@@ -266,7 +277,7 @@ const Run = struct {
             .cpu => |*v| {
                 _ = try v.restoreMain(store);
             },
-            .truth => |*v| {
+            inline .truth, .delegation => |*v| {
                 _ = try v.restoreMain(store);
             },
         };
@@ -280,7 +291,7 @@ const Run = struct {
                 }
                 break :blk Result{ .cpu = encoded };
             },
-            .truth => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
+            inline .truth, .delegation => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
         };
         if (timer) |*clock| timing.?.native_complete_ns = clock.lap();
         // Encoded bytes/claims are detached owners. The joined manifest owns its
@@ -319,7 +330,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     @memset(options.stage1_trace, .{});
     @memset(options.stage2_trace, .{});
     if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len or native.len != advice.sha256.len or native.len != advice.arith256_mod.len or native.len != advice.curves.len or native.len != advice.bulk.len or native.len != advice.sponge.len) return error.InvalidCombinedInventory;
-    const requests = try requestsFrom(a, native, advice);
+    const requests = try requestsFrom(a, setups, native, advice);
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
@@ -521,3 +532,20 @@ const HybridFailureAllocator = struct {
         self.child.rawFree(memory, alignment, ra);
     }
 };
+
+/// Shared declaration routing for producer preflight and actual source building.
+pub fn routeDword(request: *P.Request, logs: @import("../types.zig").Logs, events: []const A.memory.load_store_v2.native.Event) !void {
+    if (logs.ls_dword != null) {
+        request.ls_dword = Pipeline.dwordCount(events);
+        if (request.ls_dword > request.base.memory.ls_count) return error.InvalidCombinedServiceCount;
+        request.base.memory.ls_count -= request.ls_dword;
+    }
+}
+pub fn assignSpongeIds(requests: []P.Request) !void {
+    var next: u64 = 1;
+    for (requests) |r| next = try std.math.add(u64, next, r.calls[0]);
+    for (requests) |*r| if (r.sponge.any()) {
+        r.sponge.first_id = std.math.cast(u32, next) orelse return error.CombinedLookupMassExceeded;
+        next = try std.math.add(u64, next, r.sponge.perms);
+    };
+}

@@ -451,4 +451,12 @@ test {
 test {
     _ = @import("dword_role_test.zig");
 }
-test { _ = @import("sponge_role_test.zig"); }
+test {
+    _ = @import("sponge_role_test.zig");
+}
+test {
+    _ = @import("truth_v3_test.zig");
+}
+test {
+    _ = @import("v3_execution_test.zig");
+}

@@ -51,7 +51,7 @@ fn bridgeCounts(kind: Types.Family) Counts {
     const fixed = [_]M{M.zero()} ** 34;
     const main = [_]M{M.zero()} ** 134;
     var sink = Counter{};
-    if (kind == .keccak) Fns.keccakBridgeFor(M, &fixed, &main, &sink) else Fns.secpBridgeFor(M, if (kind == .add) .add else .double, &fixed, &main, &sink);
+    if (kind == .keccak) Fns.keccakBridgeFor(M, &fixed, &main, &sink) else Fns.secpBridgeFor(M, Types.bridgeKind(kind), &fixed, &main, &sink);
     return sink.counts;
 }
 pub const CORE: [Geometry.ROLE_COUNT]Counts = blk: {
@@ -87,4 +87,30 @@ pub const BULK: [Types.bulk_kinds.len]Counts = blk: {
     var out: [Types.bulk_kinds.len]Counts = undefined;
     for (Types.bulk_kinds, &out) |kind, *counts_value| counts_value.* = bulkCounts(kind);
     break :blk out;
+};
+
+fn pairedCounts(comptime cpu: bool) Counts {
+    var sink = Counter{};
+    const fixed = [_]M{M.zero()} ** 64;
+    const main = [_]M{M.zero()} ** 256;
+    if (cpu) Fns.cpuModeFor(M, &fixed, &main, M.zero(), true, &sink) else Fns.andTableModeFor(M, &fixed, &main, true, &sink);
+    return sink.counts;
+}
+pub const PAIRED_CPU = pairedCounts(true);
+pub const PAIRED_AND = pairedCounts(false);
+pub const DWORD = blk: {
+    var sink = Counter{};
+    @import("dword_projection.zig").emitLocalFor(M, &([_]M{M.zero()} ** A.memory.load_store_dword.layout.MAIN), &sink);
+    break :blk sink.counts;
+};
+pub const SPONGE = blk: {
+    @setEvalBranchQuota(2000000);
+    const B = A.crypto.keccak_sponge;
+    var result: [2]Counts = undefined;
+    for (Types.sponge_kinds, &result) |kind, *out| {
+        var sink = Counter{};
+        @import("sponge_projection.zig").emitLocalFor(M, kind, &([_]M{M.zero()} ** B.layout.FIXED), &([_]M{M.zero()} ** B.layout.main(kind)), 1, &sink);
+        out.* = sink.counts;
+    }
+    break :blk result;
 };

@@ -66,20 +66,20 @@ pub const Component = struct {
     pub fn validate(self: *const @This()) !void {
         if (self.data.instance.origin != .bridge or self.data.point.n != self.data.instance.row_log or self.offsets[0] != self.data.instance.fixed_offset or self.offsets[1] != self.data.instance.main_offset) return error.LocalGkrRoleMismatch;
         const family = self.data.instance.origin.bridge;
-        try @import("v2_scope.zig").family(family);
+        _ = @import("../types.zig").bridgeKind(family);
         const log = self.data.instance.row_log;
         const terms: usize = @import("roster.zig").bridgeTerms(family);
         if (self.data.instance.terms != terms or self.data.lane_count != @as(usize, 1) << @intCast(try self.data.instance.laneLog())) return error.LocalGkrRoleMismatch;
-        if (family == .keccak) _ = try K.types.validateGeometry(self.span.calls, self.span.first_id, log) else _ = try S.types.validateGeometry(if (family == .add) .add else .double, self.span.calls, self.span.first_id, log);
+        if (family == .keccak) _ = try K.types.validateGeometry(self.span.calls, self.span.first_id, log) else _ = try S.types.validateGeometry(@import("../types.zig").bridgeKind(family), self.span.calls, self.span.first_id, log);
         try Global.validateClaims(self.data.instance.origin, self.claims);
     }
     pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
         const family = self.data.instance.origin.bridge;
-        if (family == .keccak) K.equations.emitMainFor(F, fixed, main, previous, self.span, sink) else S.equations.emitMainFor(F, if (family == .add) .add else .double, fixed, main, previous, self.span, sink);
+        if (family == .keccak) K.equations.emitMainFor(F, fixed, main, previous, self.span, sink) else S.equations.emitMainFor(F, @import("../types.zig").bridgeKind(family), fixed, main, previous, self.span, sink);
     }
     pub fn emitLocalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, projection: anytype) void {
         const family = self.data.instance.origin.bridge;
-        if (family == .keccak) Fractions.keccakBridgeFor(F, fixed, main, projection) else Fractions.secpBridgeFor(F, if (family == .add) .add else .double, fixed, main, projection);
+        if (family == .keccak) Fractions.keccakBridgeFor(F, fixed, main, projection) else Fractions.secpBridgeFor(F, @import("../types.zig").bridgeKind(family), fixed, main, projection);
     }
     pub fn emitGlobalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
         try Global.emitFor(F, self.data.instance.origin, self.shared, self.claims, fixed, main, current[16..], previous[16..], sink);

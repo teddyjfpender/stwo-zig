@@ -69,7 +69,7 @@ fn finish(a: std.mem.Allocator, parts: []Part) !Report {
 }
 pub fn cpu(a: std.mem.Allocator, program_log: u32, declaration: Wire.CpuDeclaration) !Report {
     // Only the qualified worker scope can supply fixed provenance here.
-    try @import("bulk_scope.zig").declaration(declaration);
+    try @import("service_scope.zig").declaration(declaration);
     try declaration.geometry.validate();
     var list: std.ArrayList(Part) = .empty;
     defer list.deinit(a);
@@ -86,24 +86,33 @@ pub fn cpu(a: std.mem.Allocator, program_log: u32, declaration: Wire.CpuDeclarat
     }
     for (std.enums.values(Types.Family)) |family| if (declaration.bridges.at(family)) |log| {
         const used = (try Meta.forOrigin(.{ .bridge = family })).widths[0];
-        const name: []const u8 = switch (family) {
-            .keccak => "keccak_bridge",
-            .add => "add_bridge",
-            .double => "double_bridge",
-            // Rejected by the v2 scope admission above.
-            else => return error.GkrV3ServiceUnsupported,
-        };
+        const name: []const u8 = @tagName(family);
         try list.append(a, try part(name, if (family == .keccak) .geometry_schedule else .provider_program_schedule, log, Types.widths(family)[0], used));
     };
     inline for (Types.bulk_kinds) |kind| if (declaration.bridges.bulk.at(kind)) |log| {
         const width = (try Meta.forOrigin(.{ .bulk = kind })).widths[0];
         try list.append(a, try part(@tagName(kind), if (kind == .jtab) .universal_table else .geometry_schedule, log, width, width));
     };
+    for (Types.sponge_kinds) |kind| if (declaration.bridges.sponge.at(kind)) |log| {
+        const width = (try Meta.forOrigin(.{ .sponge = kind })).widths[0];
+        try list.append(a, try part(@tagName(kind), .geometry_schedule, log, width, width));
+    };
+    for (0..Types.DWORD_INSTANCES) |i| if (declaration.bridges.dwordLog(i)) |log| {
+        const width = (try Meta.forOrigin(.{ .dword = @intCast(i) })).widths[0];
+        try list.append(a, try part(if (i == 0) "dword" else "dword_tail", .geometry_schedule, log, width, width));
+    };
     const parts = try list.toOwnedSlice(a);
     errdefer a.free(parts);
     return finish(a, parts);
 }
 pub fn truth(a: std.mem.Allocator, declaration: Wire.TruthDeclaration) !Report {
+    if (declaration.family != .keccak and (@intFromEnum(declaration.family) >= 3 or declaration.logs[1] == 0)) {
+        const d = try @import("truth_v3_catalog.zig").descriptorForDeclaration(declaration);
+        const parts = try a.alloc(Part, 1);
+        errdefer a.free(parts);
+        parts[0] = try part(@tagName(declaration.family), .provider_program_schedule, d.log_size, d.widths()[0], d.widths()[0]);
+        return finish(a, parts);
+    }
     const shapes = try Truth.shapesForDeclaration(declaration);
     const parts = try a.alloc(Part, shapes.len);
     errdefer a.free(parts);

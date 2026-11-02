@@ -1,7 +1,7 @@
 //! Receiver-derived native shape and source-support bounds. Weighted valid
 //! provider support is DISTINCT from ordinary negative integer mass. This
 //! engineering preflight is not a reviewed whole-protocol security certificate.
-const Scope = @import("bulk_scope.zig");
+const Scope = @import("service_scope.zig");
 const std = @import("std");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
@@ -120,15 +120,20 @@ fn emptyCpu() CpuScope {
     var out: CpuScope = .{ .relations = undefined };
     for (std.enums.values(F.Relation), &out.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .model = switch (relation) {
         .register, .owner => .unit_consistency,
-        .rom, .function, .range16, .range8, .and_, .shift, .selection => .unit_membership_valid_support,
+        .rom, .function, .range16, .range8, .and_, .shift, .selection, .byte_pair => .unit_membership_valid_support,
     } };
     return out;
 }
 fn addCpuRole(scope: *CpuScope, origin: Frame.Origin, log: u32) !void {
+    return addCpuRoleMode(scope, origin, log, false);
+}
+fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool) !void {
     const count = try rows(log);
     const fractions = switch (origin) {
         .bulk => |kind| Q.BULK[@intFromEnum(kind)],
-        .core => |kind| Q.CORE[@intFromEnum(kind)],
+        .dword => Q.DWORD,
+        .sponge => |kind| Q.SPONGE[@intFromEnum(kind)],
+        .core => |kind| if (pairs and kind == .cpu) Q.PAIRED_CPU else if (pairs and kind == .and_table) Q.PAIRED_AND else Q.CORE[@intFromEnum(kind)],
         .bridge => |kind| Q.BRIDGES[@intFromEnum(kind)],
     };
     for (std.enums.values(F.Relation), fractions, &scope.relations) |relation, queries, *bound| {
@@ -153,6 +158,9 @@ fn addCpuRole(scope: *CpuScope, origin: Frame.Origin, log: u32) !void {
             bound.unit_negative_mass = try plus(bound.unit_negative_mass, try times(count, signs[1]));
             if (kind == .jscan) scope.owner_table.unit_consumer_mass = try plus(scope.owner_table.unit_consumer_mass, try times(count, 64));
             if (kind == .jtab) scope.owner_table.valid_provider_support = try plus(scope.owner_table.valid_provider_support, A.crypto.bulk_memory.types.TABLE_ENTRIES);
+        } else if (relation == .owner and origin == .sponge) {
+            if (origin.sponge == .call) bound.unit_positive_mass = try plus(bound.unit_positive_mass, count);
+            bound.unit_negative_mass = try plus(bound.unit_negative_mass, count);
         } else if (relation == .owner) {
             if (origin == .core and origin.core == .cpu) bound.unit_positive_mass = try plus(bound.unit_positive_mass, slots) else bound.unit_negative_mass = try plus(bound.unit_negative_mass, slots);
         } else {
@@ -197,7 +205,7 @@ fn globalSlots(slots: *[3]u64, origin: Frame.Origin, log: u32) !void {
     const n = try rows(log);
     slots[0] = try plus(slots[0], try times(n, layout.ram_queries));
     if (layout.other_queries != 0) {
-        const index: usize = if (origin.bridge == .keccak) 1 else 2;
+        const index: usize = if (Global.isKio(origin)) 1 else 2;
         slots[index] = try plus(slots[index], try times(n, layout.other_queries));
     }
 }
@@ -237,12 +245,20 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             if (!part.present()) continue;
             const origin = Frame.Origin{ .core = part.role };
             var descriptor = try Meta.forOrigin(origin);
+            if (declaration.geometry.cpu_u8_pairs) switch (part.role) {
+                .cpu => descriptor.local_terms = 14,
+                .and_table => {
+                    descriptor.local_terms = 2;
+                    descriptor.widths[1] = 2;
+                },
+                else => {},
+            };
             if (descriptor.widths[0] > part.widths[0] or descriptor.widths[1] != part.widths[1]) return error.CandidateSourceRoleLayoutMismatch;
             // Source keys retain legacy fixed columns, including columns no
             // longer read by MAIN-only roles. Count their commitment cost too.
             descriptor.widths[0] = part.widths[0];
             try includeRole(&shape, origin, part.log, descriptor, &columns, &constraints, &instances);
-            try addCpuRole(scope, origin, part.log);
+            try addCpuRoleMode(scope, origin, part.log, declaration.geometry.cpu_u8_pairs);
             try globalSlots(&global_slots, origin, part.log);
         }
         const first = try P.firstIds(requests, ordinal);
@@ -250,7 +266,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             const optional = declaration.bridges.at(family);
             if ((optional != null) != (calls != 0)) return error.InvalidCombinedBridgePresence;
             if (optional) |log| {
-                if (family == .keccak) _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(calls, first_id, log) else _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(if (family == .add) .add else .double, calls, first_id, log);
+                if (family == .keccak) _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(calls, first_id, log) else _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(Types.bridgeKind(family), calls, first_id, log);
                 const origin = Frame.Origin{ .bridge = family };
                 try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
                 try addCpuRole(scope, origin, log);
@@ -269,6 +285,21 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
                 try globalSlots(&global_slots, origin, log);
             }
         }
+        for (Types.sponge_kinds) |kind| if (declaration.bridges.sponge.at(kind)) |log| {
+            _ = try A.crypto.keccak_sponge.types.validateGeometry(kind, request.sponge.rows(kind), log);
+            const origin = Frame.Origin{ .sponge = kind };
+            try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
+            try addCpuRole(scope, origin, log);
+            try globalSlots(&global_slots, origin, log);
+        };
+        const dword_counts = try Types.dwordCounts(declaration.bridges, request.ls_dword);
+        for (0..Types.DWORD_INSTANCES) |i| if (declaration.bridges.dwordLog(i)) |log| {
+            if (dword_counts[i] >= try rows(log)) return error.CandidateSourceCountExceeded;
+            const origin = Frame.Origin{ .dword = @intCast(i) };
+            try includeRole(&shape, origin, log, try Meta.forOrigin(origin), &columns, &constraints, &instances);
+            try addCpuRole(scope, origin, log);
+            try globalSlots(&global_slots, origin, log);
+        };
         try scope.owner_table.validate();
         if (scope.owner_table.unit_consumer_mass != 0 and scope.owner_table.valid_provider_support != A.crypto.bulk_memory.types.TABLE_ENTRIES) return error.CandidateSourceRelationShape;
         try finishProof(&shape, columns, constraints, instances, 1);
@@ -282,6 +313,30 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
     for (truth, truths) |declaration, *scope| {
         try Scope.truthDeclaration(declaration);
         if (declaration.calls == 0) return error.InvalidCombinedTruthSpan;
+        if (declaration.family != .keccak and (@intFromEnum(declaration.family) >= 3 or declaration.logs[1] == 0)) {
+            const Cat = @import("truth_v3_catalog.zig");
+            const descriptor = try Cat.descriptorForDeclaration(declaration);
+            const counts = try Cat.lookupCountsForDeclaration(declaration);
+            for (std.enums.values(TF.Relation), &scope.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .consumer_sign = if (relation == .byte) .positive else .negative };
+            const bytes = &scope.relations[@intFromEnum(TF.Relation.byte)];
+            bytes.unit_consumer_mass = counts.byte_unit_consumers;
+            bytes.valid_provider_support = counts.byte_provider_support;
+            bytes.denominator_slots = counts.byte_denominator_slots;
+            for (scope.relations) |bound| {
+                try bound.validate();
+                try degrees.add(bound);
+            }
+            var cols: usize = 0;
+            for (descriptor.widths()) |width| cols = try std.math.add(usize, cols, width);
+            shape.max_trace_log = @max(shape.max_trace_log, descriptor.log_size);
+            shape.max_air_degree = @max(shape.max_air_degree, descriptor.maxDegree());
+            shape.max_samples_per_column = @max(shape.max_samples_per_column, descriptor.maxSamples());
+            shape.max_tuple_arity = @max(shape.max_tuple_arity, 35);
+            try finishProof(&shape, cols, descriptor.nConstraints(), 0, if (descriptor.maxDegree() > 3) 2 else 1);
+            global_slots[2] = try plus(global_slots[2], counts.wire_denominator_slots);
+            try global.add(try Mass.truth(declaration));
+            continue;
+        }
         const descriptors = try Truth.shapesForDeclaration(declaration);
         var columns: usize = 0;
         var constraints: usize = 0;

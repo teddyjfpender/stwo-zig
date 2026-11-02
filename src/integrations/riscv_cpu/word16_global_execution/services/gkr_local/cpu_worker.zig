@@ -52,7 +52,13 @@ fn hashValue(h: *std.crypto.hash.blake2.Blake2s256, value: anytype) void {
         else => @compileError("unsupported statement value"),
     }
 }
-pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32, config: W.PcsConfig) [32]u8 {
+pub fn firstVector(first: anytype) [@import("../types.zig").FAMILIES]u32 {
+    comptime if (first.len != 3 and first.len != @import("../types.zig").FAMILIES) @compileError("first IDs must be the frozen v2 prefix or the complete service vector");
+    var out: [@import("../types.zig").FAMILIES]u32 = @splat(1);
+    inline for (0..first.len) |i| out[i] = first[i];
+    return out;
+}
+pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype, config: W.PcsConfig) [32]u8 {
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
     h.update(Manifest.PROFILE);
     hashValue(&h, setup.materials.program.identity);
@@ -65,8 +71,21 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32,
     // the exact pre-v3 statement encoding, so v2 GKR statements stay byte-identical.
     hashValue(&h, struct { keccak: ?u32, add: ?u32, double: ?u32 }{ .keccak = setup.bridges.keccak, .add = setup.bridges.add, .double = setup.bridges.double });
     hashValue(&h, struct { base: @TypeOf(request.base), calls: [3]u32 }{ .base = request.base, .calls = request.calls[0..3].* });
-    hashValue(&h, first);
+    const ids = firstVector(first);
+    hashValue(&h, ids[0..3].*);
     hashValue(&h, config);
+    var extra = false;
+    for (request.calls[3..]) |count| extra = extra or count != 0;
+    if (extra or setup.materials.geometry.cpu_fused_tail or setup.materials.geometry.cpu_u8_pairs or setup.bridges.sponge.any() or setup.bridges.ls_dword != null or setup.bridges.ls_dword_tail != null or request.sponge.any() or request.ls_dword != 0) {
+        h.update("RV64-SERVICES-GKR-V3-STATEMENT-1");
+        hashValue(&h, setup.materials.geometry.cpu_fused_tail);
+        hashValue(&h, setup.materials.geometry.cpu_u8_pairs);
+        hashValue(&h, setup.bridges);
+        hashValue(&h, request.calls);
+        hashValue(&h, request.sponge);
+        hashValue(&h, request.ls_dword);
+        hashValue(&h, ids);
+    }
     if (setup.bridges.bulk.any() or request.bulk.any()) {
         h.update("RV64-BULK-GKR-V3-STATEMENT-1");
         hashValue(&h, setup.bridges.bulk);
@@ -76,7 +95,7 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32,
     h.final(&out);
     return out;
 }
-pub fn cpuStatementWithAuthority(setup: *const R.CpuSetup, request: P.Request, first: [3]u32, config: W.PcsConfig, fixed: ?*const Fixed.Binding) [32]u8 {
+pub fn cpuStatementWithAuthority(setup: *const R.CpuSetup, request: P.Request, first: anytype, config: W.PcsConfig, fixed: ?*const Fixed.Binding) [32]u8 {
     const base = cpuStatement(setup, request, first, config);
     return if (fixed) |binding| binding.statement(base) else base;
 }
@@ -84,7 +103,11 @@ pub fn cpuMass(request: P.Request) !Manifest.Mass {
     return (try @import("mass_authority.zig").cpu(request)).absolute();
 }
 
-fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, config: W.PcsConfig, fixed: ?*const Fixed.Binding) !void {
+pub fn wirePresent(logs: @import("../types.zig").Logs) bool {
+    for (@import("std").enums.values(@import("../types.zig").Family)) |family| if (family != .keccak and logs.at(family) != null) return true;
+    return false;
+}
+fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, config: W.PcsConfig, fixed: ?*const Fixed.Binding) !void {
     if (fixed) |binding| try binding.require(&setup.key, config) else try W.validateConfig(config);
     const root = if (fixed) |binding| binding.root() else setup.key.root;
     if (expected.kind != .cpu or !std.mem.eql(u8, &expected.fixed, &root) or !std.mem.eql(u8, &expected.statement, &cpuStatementWithAuthority(setup, request, first, config, fixed))) return error.WideCpuStatementMismatch;
@@ -94,7 +117,7 @@ fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, 
     if (roster.len != admitted.len) return error.WideCpuRosterMismatch;
     for (roster, admitted) |x, y| if (!std.meta.eql(x, y)) return error.WideCpuRosterMismatch;
     if (!std.meta.eql(expected.mass, try cpuMass(request))) return error.WideCpuMassMismatch;
-    const presence = Manifest.Relations{ .ram = true, .kio = setup.bridges.keccak != null, .wire = setup.bridges.add != null or setup.bridges.double != null };
+    const presence = Manifest.Relations{ .ram = true, .kio = setup.bridges.keccak != null or setup.bridges.sponge.any(), .wire = wirePresent(setup.bridges) };
     if (!std.meta.eql(expected.global_relations, presence)) return error.WideCpuRelationMismatch;
 }
 fn checkManifest(expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize) !void {
@@ -136,7 +159,7 @@ pub const CpuWorker = struct {
     source: R.Sources,
     expected: Manifest.ExpectedWorker,
     instances: []Frame.Instance,
-    first: [3]u32,
+    first: [@import("../types.zig").FAMILIES]u32,
     config: W.PcsConfig,
     plan: Components.Plan,
     scheme: W.Scheme,
@@ -152,10 +175,10 @@ pub const CpuWorker = struct {
     local_metadata_retired: bool = false,
     seal_timing: ?*SealTiming = null,
     fixed_authority: ?Fixed.Binding = null,
-    pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize) !CpuWorker {
+    pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: anytype, gkr_budget: usize) !CpuWorker {
         return initWithAuthority(a, setup, request, source, expected, config, first, gkr_budget, null);
     }
-    pub fn initWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize, fixed: ?*const Fixed.Binding) !CpuWorker {
+    pub fn initWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: anytype, gkr_budget: usize, fixed: ?*const Fixed.Binding) !CpuWorker {
         try validate(a, setup, request, expected, first, config, fixed);
         const instances = try @import("roster.zig").fromSetup(a, setup);
         errdefer a.free(instances);
@@ -166,7 +189,7 @@ pub const CpuWorker = struct {
         scheme.setCompactPolynomialStorage(1);
         var own_expected = expected;
         own_expected.local_instances = instances;
-        return .{ .allocator = a, .setup = setup, .request = request, .source = source, .expected = own_expected, .instances = instances, .first = first, .config = config, .plan = plan, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null, .gkr_budget = gkr_budget };
+        return .{ .allocator = a, .setup = setup, .request = request, .source = source, .expected = own_expected, .instances = instances, .first = firstVector(first), .config = config, .plan = plan, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null, .gkr_budget = gkr_budget };
     }
     /// Local fractions and a durable full binding OR terminal projection exist.
     /// Their MAIN authentication remains pending until physical verification.
@@ -197,6 +220,13 @@ pub const CpuWorker = struct {
         if (self.source.add) |*bridge| releaseBridgeLocals(bridge);
         if (self.source.double) |*bridge| releaseBridgeLocals(bridge);
         for (&self.source.bulk) |*bulk| if (bulk.*) |*src| @import("bulk_metadata.zig").retireLocal(src);
+        if (self.source.sha256) |*bridge| releaseBridgeLocals(bridge);
+        if (self.source.arith256_mod) |*bridge| releaseBridgeLocals(bridge);
+        for (&self.source.curves) |*bridge| if (bridge.*) |*v| releaseBridgeLocals(v);
+        for (&self.source.sponge) |*sponge_source| if (sponge_source.*) |*v| @import("sponge_metadata.zig").retireLocal(v);
+        for (&self.source.ls_dword) |*dword_source| if (dword_source.*) |*v| {
+            inline for (.{ "fixed", "counts16", "counts8" }) |field| releaseSlice(v.allocator, &@field(v, field));
+        };
         self.local_metadata_retired = true;
     }
     /// Stage-one barrier ownership seam. The field-neutral retained store owns
@@ -264,7 +294,7 @@ pub const CpuWorker = struct {
             const n = Global.claimCount(slot.origin);
             if (n == 0) continue;
             const provider = Metadata.Provider{ .source = &self.source, .origin = slot.origin, .log_size = slot.log, .shared = pending.shared };
-            w.* = try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
+            w.* = if (slot.origin == .sponge) try Classic.Witness.initTruth(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
             const bytes = try std.math.mul(usize, w.*.?.data.len, @sizeOf(M));
             if (bytes > remaining) return error.WideCpuGlobalBudget;
             remaining -= bytes;
@@ -331,6 +361,15 @@ pub const CpuWorker = struct {
             if (self.source.add) |*source| source.deinit();
             if (self.source.double) |*source| source.deinit();
             for (&self.source.bulk) |*bulk| if (bulk.*) |*src| src.deinit();
+            if (self.source.sha256) |*source| source.deinit();
+            if (self.source.arith256_mod) |*source| source.deinit();
+            for (&self.source.curves) |*source| if (source.*) |*v| v.deinit();
+            for (&self.source.sponge) |*source| if (source.*) |*v| v.deinit();
+            if (self.source.sponge_plan) |plan| {
+                plan.deinit(self.allocator);
+                self.allocator.destroy(plan);
+            }
+            for (&self.source.ls_dword) |*source| if (source.*) |*v| v.deinit();
         } else self.source.deinit();
         if (self.owns_scheme) self.scheme.deinit(a);
         self.plan.deinit();
@@ -339,10 +378,10 @@ pub const CpuWorker = struct {
         self.* = undefined;
     }
 };
-pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded) !Manifest.Claims {
+pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded) !Manifest.Claims {
     return verifyCpuWithAuthority(a, setup, request, expected, first, pending, index, config, encoded, null);
 }
-pub fn verifyCpuWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
+pub fn verifyCpuWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: anytype, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
     try validate(a, setup, request, expected, first, config, fixed);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();

@@ -40,7 +40,7 @@ pub fn bridgeTerms(family: @import("../types.zig").Family) u32 {
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
     // Qualified v2 bridges and bulk on the historical CPU layout (fused-tail / byte-pair
     // CPU layouts fail closed with UnsupportedFusedTailInLocalGkr).
-    try @import("bulk_scope.zig").setup(setup);
+    try @import("service_scope.zig").setup(setup);
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {

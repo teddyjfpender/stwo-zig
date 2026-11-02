@@ -335,7 +335,7 @@ pub fn secpRcbCells(kind: A.crypto.secp256k1.program.Kind, calls_total: u32) !u6
     }
     return cells;
 }
-fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
+pub fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, options: KeccakTruthOptions, max_log: u32) ![]W.TruthDeclaration {
     var total: [3]u32 = @splat(0);
     for (captured.advice.keccak, captured.advice.secp) |k, s| {
         total[0] = try std.math.add(u32, total[0], @intCast(k.len));

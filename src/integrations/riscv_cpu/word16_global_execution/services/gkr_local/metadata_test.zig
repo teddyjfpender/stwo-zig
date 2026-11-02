@@ -95,12 +95,15 @@ test "actual K ADD DOUBLE metadata equals physical MAIN fractions and survives o
     }
 }
 
-test "local GKR roster fails closed on the fused-tail CPU layout it does not implement" {
+test "full service GKR retains MAIN authority under fused-tail while legacy profile stays closed" {
     var captured = try F.Captured.init(a);
     defer captured.deinit();
     var g = try captured.native[0].geometry();
     g.cpu_fused_tail = true;
     var setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, g, .{ .keccak = 5 });
     defer setup.deinit();
-    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, @import("roster.zig").fromSetup(a, &setup));
+    const instances = try @import("roster.zig").fromSetup(a, &setup);
+    defer a.free(instances);
+    try std.testing.expectEqual(@as(u32, 15), instances[0].terms);
+    try std.testing.expectError(error.UnsupportedFusedTailInLocalGkr, @import("v2_scope.zig").geometry(g));
 }

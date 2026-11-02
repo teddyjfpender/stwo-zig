@@ -221,10 +221,10 @@ pub fn main() !void {
     try program.releaseFixedWitness();
     const capture_cache_released = recycler.releaseCached();
     // The OM GKR route and its capture diagnostics are v2-only; reject v3 advice here.
-    try @import("../services/gkr_local/v2_scope.zig").advice(&captured.advice);
-    const cpu = try Plan.cpus(a, &captured, .{});
+    try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
+    const cpu = try Plan.cpus(a, &captured, Plan.CpuLayout.forProfile(request.value.execution_profile));
     defer a.free(cpu);
-    const truths = try Plan.truthsWithKeccakMaxLog(a, &captured, if (resources) |limits| limits.keccak_max_log else 18);
+    const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3 }, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
     if (capture_only) {
         const digest_start = timer.read();
@@ -241,7 +241,11 @@ pub fn main() !void {
         _ = try SourceBounds.validateInventory(cpu.len, truths.len);
         const requests = try a.alloc(P.Request, captured.native.items.len);
         defer a.free(requests);
-        for (requests, 0..) |*value, i| value.* = try C.requestView(captured.native.items, &captured.advice, i);
+        for (requests, 0..) |*value, i| {
+            value.* = try C.requestView(captured.native.items, &captured.advice, i);
+            try C.routeDword(value, cpu[i].bridges, captured.advice.events[i]);
+        }
+        try C.assignSpongeIds(requests);
         source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
     }
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);

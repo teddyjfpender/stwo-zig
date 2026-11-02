@@ -45,7 +45,7 @@ pub const Pending = struct {
 pub fn verifyPending(a: std.mem.Allocator, scope: Receipt.Scope, instances: []const Frame.Instance, proof: *const GV.GkrBatchProof, expected_digest: [32]u8) !Pending {
     if (instances.len == 0 or instances.len > Receipt.MAX_INSTANCES) return error.LocalGkrReceiptShape;
     var ch = begin(scope, instances);
-    const challenges = Challenges.draw(&ch);
+    const challenges = Challenges.drawForInstances(&ch, instances);
     const gates = try a.alloc(GV.Gate, instances.len);
     defer a.free(gates);
     @memset(gates, .LogUp);
@@ -159,7 +159,7 @@ pub const Unbound = struct {
         self.* = .{ .parent_allocator = a, .budget = Budget.init(a, if (policy.tight_admission) plan.peak_bytes else limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
-        const challenges = Challenges.draw(&ch);
+        const challenges = Challenges.drawForInstances(&ch, instances);
         var clock: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
         if (timing) |output| output.* = .{};
         var inputs = if (policy.stream_bottom) Inputs{ .allocator = bounded, .layers = &.{} } else try Inputs.init(bounded, instances, &challenges, provider);

@@ -73,7 +73,7 @@ pub fn forCpuWithSourceStorage(a: std.mem.Allocator, setup: *const R.CpuSetup, r
     return forCpuPolicy(a, setup, request, config, gkr_limit, global_limit, checkpointed, true, true);
 }
 fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool, streamed: bool) !RetentionPlan {
-    try @import("bulk_scope.zig").request(request);
+    try @import("service_scope.zig").request(request);
     const instances = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
     const numerical = if (streamed) try @import("resource.zig").Plan.forInstancesWithSourceStorage(instances, gkr_limit, checkpointed) else try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);
@@ -102,6 +102,11 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
     for (plan.slots) |slot| {
         const n = try rows(slot.log);
         switch (slot.origin) {
+            .dword => {
+                out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(n, @sizeOf(A.memory.load_store_dword.source.Metadata)));
+                out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try add(try mul(n, 3 * 4), (65536 + 256) * @sizeOf(u64)));
+            },
+            .sponge => |kind| out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try @import("sponge_metadata.zig").localUpperBound(kind, slot.log)),
             .bulk => |kind| {
                 out.global_metadata_bytes = try add(out.global_metadata_bytes, try @import("bulk_metadata.zig").requestUpperBound(request.bulk, kind));
                 out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, try @import("bulk_metadata.zig").localUpperBound(request.bulk, kind, slot.log));
@@ -120,6 +125,13 @@ fn forCpuPolicy(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Reque
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(layout.width(), n), 4));
         const terms = (layout.ram_queries + 1) / 2 + (layout.other_queries + 1) / 2;
         out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(slot.log, terms));
+    }
+    if (setup.materials.geometry.cpu_u8_pairs) out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, 2 * 65536 * @sizeOf(u32));
+    if (setup.bridges.sponge.any()) {
+        const durable = try @import("sponge_metadata.zig").requestUpperBound(request.sponge);
+        out.global_metadata_bytes = try add(out.global_metadata_bytes, durable);
+        const construction = try @import("sponge_metadata.zig").sourceAllocationUpperBound(request.sponge);
+        out.bulk_local_metadata_bytes = try add(out.bulk_local_metadata_bytes, construction - durable);
     }
     out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(try add(request.base.memory.initial.len, request.base.memory.terminal.len), @sizeOf(A.memory.closed_ram.types.Cell)));
     if (try add(out.global_output_bytes, out.global_scratch_bytes) > global_limit) return error.ClassicWitnessBudgetExceeded;

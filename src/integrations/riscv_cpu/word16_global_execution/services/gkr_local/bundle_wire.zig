@@ -15,7 +15,7 @@ const Manifest = @import("manifest.zig");
 const StageWire = @import("manifest_wire.zig");
 const Cells = @import("../../../word16_execution/cells_wire.zig");
 const Receipt = @import("../../../rv64_ethereum_batch_receipt.zig");
-const Scope = @import("bulk_scope.zig");
+const Scope = @import("service_scope.zig");
 pub const Limits = Legacy.Limits;
 pub const CpuDeclaration = Legacy.CpuDeclaration;
 pub const TruthDeclaration = Legacy.TruthDeclaration;
@@ -78,10 +78,28 @@ fn claimCount(declaration: CpuDeclaration) usize {
     inline for (@import("../types.zig").bulk_kinds) |kind| if (declaration.bridges.bulk.at(kind) != null) {
         n += Global.claimCount(.{ .bulk = kind });
     };
+    for (@import("../types.zig").sponge_kinds) |kind| if (declaration.bridges.sponge.at(kind) != null) {
+        n += Global.claimCount(.{ .sponge = kind });
+    };
+    for (0..@import("../types.zig").DWORD_INSTANCES) |i| if (declaration.bridges.dwordLog(i) != null) {
+        n += Global.claimCount(.{ .dword = @intCast(i) });
+    };
     return n;
 }
 fn hasBulk(cpus: []const Cpu) bool {
     for (cpus) |cpu| if (cpu.declaration.bridges.bulk.any() or cpu.request.bulk.any()) return true;
+    return false;
+}
+fn extendedDeclaration(d: TruthDeclaration) bool {
+    return d.family != .keccak and (@intFromEnum(d.family) >= 3 or d.logs[1] == 0);
+}
+fn hasV3(cpus: []const Cpu, truths: []const Truth) bool {
+    for (cpus) |cpu| {
+        const b = cpu.declaration.bridges;
+        if (cpu.declaration.geometry.cpu_u8_pairs or cpu.declaration.geometry.cpu_fused_tail or b.sponge.any() or b.ls_dword != null or b.ls_dword_tail != null or cpu.request.sponge.any() or cpu.request.ls_dword != 0) return true;
+        for (@import("../types.zig").V3) |family| if (b.at(family) != null or cpu.request.all()[@intFromEnum(family)] != 0) return true;
+    }
+    for (truths) |t| if (extendedDeclaration(t.declaration) or (t.declaration.family == .keccak and t.declaration.logs[1] != 0)) return true;
     return false;
 }
 fn canonical(values: []const [8]u32) !void {
@@ -96,7 +114,9 @@ pub fn validate(metadata: Metadata, limits: Limits) !void {
             try @import("v2_scope.zig").declaration(cpu.declaration);
             try @import("v2_scope.zig").calls(cpu.request.all(), cpu.request.bulk, cpu.request.sponge, cpu.request.ls_dword);
         }
-    } else if (!std.mem.eql(u8, metadata.profile, Manifest.BULK_PROFILE) or !hasBulk(metadata.cpus)) return error.WideBundleProfile;
+    } else if (std.mem.eql(u8, metadata.profile, Manifest.BULK_PROFILE)) {
+        if (!hasBulk(metadata.cpus) or hasV3(metadata.cpus, metadata.truths)) return error.WideBundleProfile;
+    } else if (!std.mem.eql(u8, metadata.profile, Manifest.V3_PROFILE) or !hasV3(metadata.cpus, metadata.truths)) return error.WideBundleProfile;
     // Reject unsupported families/layouts before shared declaration preflight.
     for (metadata.cpus) |cpu| {
         try Scope.declaration(cpu.declaration);
@@ -112,7 +132,7 @@ pub fn validate(metadata: Metadata, limits: Limits) !void {
         total = try std.math.add(u64, total, cpu.proof.bytes);
     }
     for (metadata.truths) |truth| {
-        if (truth.claims.len != 5) return error.InvalidWideTruthClaims;
+        if (truth.claims.len != (if (extendedDeclaration(truth.declaration)) @as(usize, 1) else 5)) return error.InvalidWideTruthClaims;
         try canonical(truth.claims);
         total = try std.math.add(u64, total, truth.proof.bytes);
     }
@@ -154,7 +174,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     }
     const tt = try scratch.alloc(Truth, truths.len);
     for (truths, bundle.truths, tt) |truth, proof, *out| out.* = .{ .declaration = TruthDeclaration.from(truth), .claims = try toWire(scratch, proof.claims), .proof = fileInfo(proof.bytes) };
-    var metadata = Metadata{ .profile = if (hasBulk(cpus)) Manifest.BULK_PROFILE else Manifest.PROFILE, .cpus = cpus, .truths = tt, .stage_one = fileInfo(bundle.stage_one_bytes), .memory_words = @intCast(initial.len), .cells_sha256 = @splat(0) };
+    var metadata = Metadata{ .profile = if (hasV3(cpus, tt)) Manifest.V3_PROFILE else if (hasBulk(cpus)) Manifest.BULK_PROFILE else Manifest.PROFILE, .cpus = cpus, .truths = tt, .stage_one = fileInfo(bundle.stage_one_bytes), .memory_words = @intCast(initial.len), .cells_sha256 = @splat(0) };
     try validate(metadata, .{});
     try Cells.write(dir, initial, terminal);
     metadata.cells_sha256 = try hashCells(dir, metadata.memory_words);
