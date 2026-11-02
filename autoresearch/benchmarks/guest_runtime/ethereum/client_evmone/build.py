@@ -16,7 +16,10 @@ ModArith and 256-bit odd-modulus modexp, and aligned memcpy/memset with inline
 head/tail and software fallback for overlap or mismatched alignment
 (`--v3-set` selects a subset of sha, arith, mem for ablations; add `keccak`
 for the admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`; add `umem`
-for the UNVERIFIED unaligned-source memcpy and memcmp routing, not yet proved).
+for the UNVERIFIED unaligned-source memcpy and memcmp routing, not yet proved;
+add `bn` (needs `arith`) for the admitted BN254 G1 add/double and Fq2 services
+behind ecAdd/ecMul/ecPairing, and `bls` for the admitted BLS12-381 Fp2 and
+384-bit Montgomery (arith384_mont) services behind blst: EIP-2537 and KZG).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
@@ -309,7 +312,8 @@ def main(argv=None):
                          "(SHA-256, arith256_mod, aligned bulk memory); candidate = execution-only")
     ap.add_argument("--v3-set", default="sha,arith,mem",
                     help="admitted v3 service groups for --profile v3 (sha, arith, mem, keccak = Keccak-256 sponge, "
-                         "umem = UNVERIFIED unaligned-source memcpy and memcmp routing, needs mem)")
+                         "umem = UNVERIFIED unaligned-source memcpy and memcmp routing, needs mem, "
+                         "bn = BN254 G1/Fq2 [needs arith], bls = BLS12-381 Fp2 + arith384_mont)")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
                     help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
@@ -351,8 +355,10 @@ def main(argv=None):
 
     v3_groups = a.v3_set.split(",")
     for svc in v3_groups:
-        if svc not in ("sha", "arith", "mem", "keccak", "umem"):
+        if svc not in ("sha", "arith", "mem", "keccak", "umem", "bn", "bls"):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
+    if "bn" in v3_groups and "arith" not in v3_groups:
+        raise SystemExit("v3 service group 'bn' needs 'arith' (plain-form Fq)")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")
     v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha"] else "v3-" + "-".join(v3_groups)

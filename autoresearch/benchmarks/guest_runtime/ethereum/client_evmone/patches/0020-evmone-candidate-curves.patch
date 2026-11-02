@@ -6,7 +6,7 @@ index 3affffb..9b2e149 100644
  // SPDX-License-Identifier: Apache-2.0
  
  #include "bn254.hpp"
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +// stwo candidate profile: affine G1 arithmetic on the execution-only
 +// bn254_g1_add/double services (client_evmone glue/curves_stwo.cpp).
 +// Coordinates are plain little-endian limbs; inf != 0 marks the point at infinity.
@@ -20,7 +20,7 @@ index 3affffb..9b2e149 100644
  
      if (c == 0)
          return {};
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +    {
 +        uint64_t in[8], k[4], out[8];
 +        int inf = 0;
@@ -45,7 +45,7 @@ index 3affffb..9b2e149 100644
      const auto pr = msm(k1.value, p, k2.value, q);
      return ecc::to_affine(pr);
  }
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +AffinePoint add(const AffinePoint& p, const AffinePoint& q) noexcept
 +{
 +    if (p == 0)
@@ -77,7 +77,7 @@ index 11f3302..c395443 100644
  /// Computes [c]P for a point in affine coordinate on the bn254 curve,
  AffinePoint mul(const AffinePoint& pt, const uint256& c) noexcept;
  
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +/// P + Q for validated points (stwo candidate bn254_g1_add/double services).
 +AffinePoint add(const AffinePoint& p, const AffinePoint& q) noexcept;
 +#endif
@@ -93,9 +93,9 @@ index f3953b6..8afaeb9 100644
  #include "../../ecc.hpp"
  #include "../field_template.hpp"
  
-+#if defined(CANDIDATE_BN)
-+#if !defined(CANDIDATE_ARITH)
-+#error "CANDIDATE_BN needs CANDIDATE_ARITH: the Fq2 service takes plain (non-Montgomery) values"
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
++#if !defined(CANDIDATE_ARITH) && !defined(ADMITTED_ARITH)
++#error "CANDIDATE_BN/ADMITTED_BN need the arith group: the Fq2 service takes plain (non-Montgomery) values"
 +#endif
 +// stwo candidate profile: Fq2 products on the execution-only bn254_fp2_mul
 +// service (client_evmone glue/curves_stwo.cpp); r may alias a or b.
@@ -109,7 +109,7 @@ index f3953b6..8afaeb9 100644
  /// Multiplies two Fq^2 field elements
  constexpr Fq2 multiply(const Fq2& a, const Fq2& b) noexcept
  {
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +    static_assert(sizeof(Fq2) == 8 * sizeof(uint64_t));
 +    if (!std::is_constant_evaluated())
 +    {
@@ -126,7 +126,7 @@ index f3953b6..8afaeb9 100644
  /// Squares an Fq^2 field element.
  constexpr Fq2 sqr(const Fq2& a) noexcept
  {
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +    if (!std::is_constant_evaluated())
 +    {
 +        Fq2 r;
@@ -146,7 +146,7 @@ index 136bd62..2f78363 100644
      if (!validate(*p) || !validate(*q)) [[unlikely]]
          return {EVMC_PRECOMPILE_FAILURE, 0};
  
-+#if defined(CANDIDATE_BN)
++#if defined(CANDIDATE_BN) || defined(ADMITTED_BN)
 +    const auto res = crypto::bn254::add(*p, *q);
 +#else
      const auto res = crypto::ecc::add_affine(*p, *q);

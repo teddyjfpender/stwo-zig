@@ -214,7 +214,7 @@ class Admitted(unittest.TestCase):
 
 class AdmittedScheme(unittest.TestCase):
     def test_every_admitted_service_has_measured_cost_and_report_fields(self):
-        self.assertEqual(set(CAL["admitted_services"]), set(bench.ADMITTED_REPORT_FIELDS))
+        self.assertEqual(set(CAL["admitted_services"]), set(bench.ADMITTED_REPORT_FIELDS) | set(bench.ADMITTED_CURVE_OPS))
         for name, cost in CAL["admitted_services"].items():
             self.assertGreater(cost["cells_per_call"], 0, name)
             self.assertIn("derivation", cost, name)
@@ -227,6 +227,20 @@ class AdmittedScheme(unittest.TestCase):
                                                         "arith256_mod": {"calls": 2, "bytes": 0},
                                                         "memcpy": {"calls": 1, "bytes": 64}})
         self.assertIsNone(bench.admitted_usage({"sha256_calls": 0}))
+
+    def test_curve_usage_from_report_and_cost(self):
+        report = {"sha256_calls": 0, "curve_calls": [5, 0, 7, 0, 11, 0, 0]}
+        use = bench.admitted_usage(report)
+        self.assertEqual(use, {"bn254_g1_add": {"calls": 5, "bytes": 0}, "bn254_fp2_mul": {"calls": 7, "bytes": 0},
+                               "arith384_mont": {"calls": 11, "bytes": 0}})
+        self.assertIsNone(bench.admitted_usage({"curve_calls": [0] * 7}))
+        with self.assertRaises(ValueError):
+            bench.admitted_usage({"curve_calls": [1, 2]})
+        c = CAL["coefficients"]
+        t = CAL["admitted_services"]
+        cells = 5 * t["bn254_g1_add"]["cells_per_call"] + 7 * t["bn254_fp2_mul"]["cells_per_call"] + 11 * t["arith384_mont"]["cells_per_call"]
+        delta = bench.committed_bits(CAL, 10, 0, 0, 0, None, use) - bench.committed_bits(CAL, 10, 0, 0, 0)
+        self.assertAlmostEqual(delta, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
 
     def test_all_three_services_cost_additively(self):
         c = CAL["coefficients"]
