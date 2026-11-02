@@ -69,6 +69,7 @@ pub fn run(a: std.mem.Allocator, config: Request.Config) !Summary {
     var calls: [3]u64 = @splat(0);
     var sha256_calls: u64 = 0;
     var arith256_calls: u64 = 0;
+    var curve_calls: [rv.ethereum_services.curves.COUNT]u64 = @splat(0);
     var completed = false;
     while (!completed and (config.max_batches == 0 or batches < config.max_batches)) {
         const ids = [_]u32{ @intCast(calls[0] + 1), @intCast(calls[1] + 1), @intCast(calls[2] + 1) };
@@ -76,6 +77,7 @@ pub fn run(a: std.mem.Allocator, config: Request.Config) !Summary {
         batch.state_policy = config.state_policy;
         batch.sha256_first = @intCast(sha256_calls + 1);
         batch.arith256_first = @intCast(arith256_calls + 1);
+        for (&batch.curve_first, curve_calls) |*first, total| first.* = @intCast(total + 1);
         while (tape.len < tape.storage.len) {
             try Native.captureNext(&session, &tape, &capture, &batch);
             if (cpu.pc == config.terminal_pc) {
@@ -106,6 +108,7 @@ pub fn run(a: std.mem.Allocator, config: Request.Config) !Summary {
         for (&calls, batch.calls) |*total, count| total.* += count;
         sha256_calls += batch.sha256_calls;
         arith256_calls += batch.arith256_calls;
+        for (&curve_calls, batch.curve_calls) |*total, count| total.* += count;
         batches += 1;
         // Both packet and frontier publication are durable before reuse.
         try capture.clearRetainingCapacity();

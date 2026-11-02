@@ -262,3 +262,75 @@ test "v3 tape extension is present exactly when arith256_mod records exist (SHA-
     defer loaded.deinit();
     try std.testing.expectEqual(@as(usize, 0), loaded.arith256_mod_calls.items.len);
 }
+
+fn appendCurves(tape: *T.Tape, pointer: u64) !void {
+    const C = rv.ethereum_services.curves;
+    const ops = [_]C.Op{ .bn254_fp2_mul, .arith384_mont, .bls12_381_g1_double, .bn254_fp2_mul };
+    var ids: [C.COUNT]u64 = @splat(0);
+    for (ops) |op| {
+        var before: [C.MAX_WORDS]u64 = @splat(0);
+        for (before[0..C.words(op)], 0..) |*w, i| w.* = 0x0123456789abcdef +% i *% 0x9e3779b97f4a7c15;
+        switch (op) {
+            .arith384_mont => before[12] |= 1,
+            // x, y < p: small canonical values with y != 0.
+            .bls12_381_g1_double => for (before[0..12], 0..) |*w, i| {
+                w.* = if (i % 6 == 0) 7 + i else 0;
+            },
+            else => {},
+        }
+        ids[C.index(op)] += 1;
+        const after = try C.execute(op, before[0..C.words(op)]);
+        try tape.appendCurve(.{ .op = op, .call_id = 40 + ids[C.index(op)], .clock = tape.initial_clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = before, .after = after });
+    }
+}
+
+test "v3 tape curve records round-trip after arith256_mod records; curve-only extension; forged records reject" {
+    var tape = try fixture(.ethereum_services_v3);
+    defer tape.deinit();
+    try appendCurves(&tape, (1 << 48) + 8192);
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const file = try temp.dir.createFile("tape", .{ .read = true });
+    defer file.close();
+    try W.write(file, &tape);
+    try std.testing.expectEqual(try W.encodedBytes(&tape), try file.getEndPos());
+    const bytes = try temp.dir.readFileAlloc(a, "tape", 32768);
+    defer a.free(bytes);
+    try file.seekTo(0);
+    var loaded = try W.readTail(a, file, .{});
+    defer loaded.deinit();
+    try std.testing.expectEqual(tape.curve_calls.items.len, loaded.curve_calls.items.len);
+    for (tape.curve_calls.items, loaded.curve_calls.items) |x, y| try std.testing.expect(std.meta.eql(x, y));
+    try std.testing.expectEqual(tape.arith256_mod_calls.items.len, loaded.arith256_mod_calls.items.len);
+    // Extension: [arith count, curve count], arith records, then 424-byte curve records.
+    const curve_bytes = tape.curve_calls.items.len * 424;
+    const ext = bytes.len - curve_bytes - tape.arith256_mod_calls.items.len * 352 - 8;
+    try std.testing.expectEqual(@as(u32, @intCast(tape.curve_calls.items.len)), std.mem.readInt(u32, bytes[ext + 4 ..][0..4], .little));
+    const first = bytes.len - curve_bytes;
+    var changed = try a.dupe(u8, bytes);
+    defer a.free(changed);
+    changed[first] = 12; // no such op
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    changed[first + 232 + 8 * 9] ^= 1; // a read-only word (bn254_fp2_mul b0) changed by the call
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, file, .{}));
+    @memcpy(changed, bytes);
+    changed[first + 32] |= 8; // pointer no longer 32-byte aligned
+    try replace(file, changed);
+    try std.testing.expectError(error.InvalidTapeWireService, W.readTail(a, file, .{}));
+    // Curve-only extension (no arith256_mod records) is canonical and round-trips.
+    var curve_only = try fixture(.ethereum_services_v3);
+    defer curve_only.deinit();
+    curve_only.arith256_mod_calls.clearRetainingCapacity();
+    try appendCurves(&curve_only, (1 << 48) + 8192);
+    try file.seekTo(0);
+    try file.setEndPos(0);
+    try W.write(file, &curve_only);
+    try file.seekTo(0);
+    var reloaded = try W.readTail(a, file, .{});
+    defer reloaded.deinit();
+    try std.testing.expectEqual(@as(usize, 0), reloaded.arith256_mod_calls.items.len);
+    try std.testing.expectEqual(curve_only.curve_calls.items.len, reloaded.curve_calls.items.len);
+}

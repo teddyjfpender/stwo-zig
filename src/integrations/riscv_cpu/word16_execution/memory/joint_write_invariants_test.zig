@@ -249,3 +249,11 @@ test "LS-D64 writer case: unit OWNER/RAM coupling, CPU tick, LD after = before a
     };
 }
 const M = core.fields.m31.M31;
+
+test "LS32 curve/field producers (kinds 5..11) retain byte anchors zero register C and continuation clock equality" {
+    // Case C7 of design/riscv-proving-stack/rv64-curve-services.md: every
+    // curve after-limb is recomposed from 32 U8-ranged AFTER bytes of the
+    // shared Word16 bridge (independent anchor), ECALL C stays zero and the
+    // tick is the OWNER-bound continuation tick.
+    inline for (.{ .bn254_g1_add, .bn254_g1_double, .bn254_fp2_mul, .bls12_381_fp2_mul, .arith384_mont, .bls12_381_g1_add, .bls12_381_g1_double }) |kind| try compareBridge(S, kind);
+}

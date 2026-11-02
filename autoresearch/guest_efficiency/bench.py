@@ -91,6 +91,10 @@ ADMITTED_REPORT_FIELDS = {
     "keccak_sponge": ("keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations"),
     "jumpdest_bitmap": ("jumpdest_calls", "jumpdest_bytes"),
 }
+# Admitted v3 curve/field services: the execution report's `curve_calls` is one
+# call count per op in curves.Op order (Wire35 kinds 5..11).
+ADMITTED_CURVE_OPS = ("bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul",
+                      "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double")
 
 
 def admitted_usage(report: dict) -> dict | None:
@@ -102,6 +106,12 @@ def admitted_usage(report: dict) -> dict | None:
             out[name] = {"calls": calls, "bytes": int(report.get(bytes_key) or 0) if bytes_key else 0}
             if perms_key:
                 out[name]["permutations"] = int(report.get(perms_key[0]) or 0)
+    curve = report.get("curve_calls") or []
+    if len(curve) not in (0, len(ADMITTED_CURVE_OPS)):
+        raise ValueError(f"curve_calls has {len(curve)} entries, expected {len(ADMITTED_CURVE_OPS)}")
+    for name, calls in zip(ADMITTED_CURVE_OPS, curve):
+        if int(calls):
+            out[name] = {"calls": int(calls), "bytes": 0}
     return out or None
 
 
@@ -460,7 +470,7 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
                 "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes",
                 "bulk_memcpy_unaligned_calls", "bulk_memcpy_unaligned_bytes", "bulk_memcmp_calls", "bulk_memcmp_bytes",
                 "keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations",
-                "jumpdest_calls", "jumpdest_bytes", "verified_output")
+                "jumpdest_calls", "jumpdest_bytes", "curve_calls", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     if ls_histogram:

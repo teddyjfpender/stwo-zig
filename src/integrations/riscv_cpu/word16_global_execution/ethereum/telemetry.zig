@@ -4,6 +4,7 @@ const std = @import("std");
 const Keys = @import("keys.zig").Owner;
 const Capture = @import("capture.zig").Owner;
 const Driver = @import("../../word16_execution/driver.zig");
+const T = @import("../services/types.zig");
 pub const Cost = struct {
     columns: [3]u64 = @splat(0),
     native_cells: [3]u64 = @splat(0),
@@ -44,11 +45,11 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
             try measure(logs, cost, tree);
         }
     }
-    const Active = struct { retirements: u32, alu_facts: usize, binary_facts: usize, shift_facts: usize, ram_events: usize, keccak_calls: usize, add_calls: usize, double_calls: usize, sha256_calls: usize, arith256_mod_calls: usize, bulk: @import("../services/types.zig").BulkCounts, sponge: @import("../services/types.zig").SpongeCounts };
+    const Active = struct { retirements: u32, alu_facts: usize, binary_facts: usize, shift_facts: usize, ram_events: usize, keccak_calls: usize, add_calls: usize, double_calls: usize, sha256_calls: usize, arith256_mod_calls: usize, curve_calls: [T.CURVES]usize, bulk: @import("../services/types.zig").BulkCounts, sponge: @import("../services/types.zig").SpongeCounts };
     const active = try a.alloc(Active, captured.native.items.len);
     defer a.free(active);
-    for (captured.native.items, active, 0..) |n, *out, i| out.* = .{ .retirements = (n.cpu orelse return error.PreparedExecutionConsumed).public.steps, .alu_facts = n.alu.facts.len, .binary_facts = n.binary.facts.len, .shift_facts = n.shift.len, .ram_events = captured.advice.events[i].len, .keccak_calls = captured.advice.keccak[i].len, .add_calls = captured.advice.secp[i][0].len, .double_calls = captured.advice.secp[i][1].len, .sha256_calls = captured.advice.sha256[i].len, .arith256_mod_calls = captured.advice.arith256_mod[i].len, .bulk = captured.advice.bulk[i].counts(), .sponge = captured.advice.sponge[i].counts() };
-    try Driver.writeJson(a, dir, "cost.json", .{ .scope = "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time", .cpu = cpu, .truth = truth, .active = active, .memory_words = captured.advice.initial.len, .unique_cpu_setups = keys.cpu_owners.items.len, .unique_keccak_setups = keys.keccak_owners.items.len, .unique_secp_setups = keys.secp_owners.items.len, .unique_sha256_setups = keys.sha256_owners.items.len, .unique_arith256_setups = keys.arith256_owners.items.len });
+    for (captured.native.items, active, 0..) |n, *out, i| out.* = .{ .retirements = (n.cpu orelse return error.PreparedExecutionConsumed).public.steps, .alu_facts = n.alu.facts.len, .binary_facts = n.binary.facts.len, .shift_facts = n.shift.len, .ram_events = captured.advice.events[i].len, .keccak_calls = captured.advice.keccak[i].len, .add_calls = captured.advice.secp[i][0].len, .double_calls = captured.advice.secp[i][1].len, .sha256_calls = captured.advice.sha256[i].len, .arith256_mod_calls = captured.advice.arith256_mod[i].len, .curve_calls = curveCounts(&captured.advice, i), .bulk = captured.advice.bulk[i].counts(), .sponge = captured.advice.sponge[i].counts() };
+    try Driver.writeJson(a, dir, "cost.json", .{ .scope = "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time", .cpu = cpu, .truth = truth, .active = active, .memory_words = captured.advice.initial.len, .unique_cpu_setups = keys.cpu_owners.items.len, .unique_keccak_setups = keys.keccak_owners.items.len, .unique_secp_setups = keys.secp_owners.items.len, .unique_sha256_setups = keys.sha256_owners.items.len, .unique_arith256_setups = keys.arith256_owners.items.len, .unique_curve_setups = keys.curve_owners.items.len });
     const Roles = @import("role_cost.zig");
     const roles = try a.alloc([Roles.COUNT]Roles.Row, keys.cpus.len);
     defer a.free(roles);
@@ -70,4 +71,9 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
         }
     }
     try Driver.writeJson(a, dir, "roster.json", .{ .schema = 1, .scope = "CPU and service-bridge native component cells; padding includes required inactive guard rows; only known active physical row counts are reported; fixed dictionary occupancy is null; truth proofs remain separately counted in cost.json", .cpu = roles });
+}
+fn curveCounts(advice: anytype, i: usize) [T.CURVES]usize {
+    var out: [T.CURVES]usize = undefined;
+    for (&out, advice.curves[i]) |*n, calls| n.* = calls.len;
+    return out;
 }

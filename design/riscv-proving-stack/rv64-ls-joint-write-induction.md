@@ -461,6 +461,18 @@ owned plan of the two sponge sources, not a component.
   clock being canonical (P1, INIT) and on the OWNER-bound CPU epoch. This is
   P2 as stated, listed here because the bulk and secp bridges range the same
   columns.
+* **Curve/field writers (`curves[7]`, bridge kinds 5..11).** Detailed in case
+  C7 of [rv64-curve-services.md](rv64-curve-services.md) section 4. The packet
+  is INLINE and 32-byte aligned (no pointer indirection), so every RAM word a
+  curve call touches is a bridge coordinate row at `a0 + 32 c`; the outputs
+  overwrite the leading `curves.writtenCoords` coordinates (BN254 G1 add and
+  Fq2 mul 2 of 4, BN254 G1 double 2 of 2, BLS Fp2 mul and G1 add 3 of 6, BLS
+  G1 double 3 of 3, arith384_mont 2 of 5: the 48-byte r spans coordinates
+  0..1), and every other coordinate has `write = 0` (`after = before`, edge to
+  a strictly earlier token). Written limbs are case (a): the 32 AFTER bytes of
+  every bridge row are U8, independent of the truth AIR's own canonicity
+  checks. No new edge kind; the evmone v3 client (`--v3-set ...,bn,bls`)
+  only changes which kinds occur, not the equations.
 * **Zero-length calls.** A memcmp descriptor proves `len / 8 != 0` (inverse
   column) and an unaligned-copy lead row is never the whole run: a zero-word
   run cannot reach `remaining = 1`, and a memcmp run that never reaches it could

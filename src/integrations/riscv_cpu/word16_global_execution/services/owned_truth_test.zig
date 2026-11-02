@@ -16,8 +16,7 @@ fn generate(src: *R.TruthSource, ch: P.TruthDraw) ![3]G.Q {
         .secp => |*s| .{ try s.batch.product.generateInteraction(ch.secp), try s.batch.linear.generateInteraction(ch.secp), try s.bytes.generateInteraction(ch.secp.bytes) },
         .sha256 => |*s| .{ try s.source.generateInteraction(ch.sha256), G.Q.zero(), G.Q.zero() },
         .arith256_mod => |*s| .{ try s.source.generateInteraction(ch.arith256_mod), G.Q.zero(), G.Q.zero() },
-        // The services fixture has no curve truths (TODO curves track).
-        .curve => unreachable,
+        .curve => |*s| .{ try s.generateInteraction(ch.curve), G.Q.zero(), G.Q.zero() },
     };
 }
 fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
@@ -34,7 +33,9 @@ fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
         },
         .sha256 => |*v| v.source.allocator = allocator,
         .arith256_mod => |*v| v.source.allocator = allocator,
-        .curve => unreachable,
+        .curve => |*v| switch (v.*) {
+            inline else => |*part| part.allocator = allocator,
+        },
     }
 }
 fn proveMode(c: *const F.Case, advice: *const @import("collector.zig").Advice, index: usize, store: *@import("../retained_main_store.zig").Store, owned: bool) ![]u8 {
@@ -171,7 +172,13 @@ test "Truth ownership transfer allocation failure borrowed phase and aliased buf
                 try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
                 s.source.owns_main = true;
             },
-            .curve => unreachable,
+            .curve => |*v| switch (v.*) {
+                inline else => |*part| {
+                    part.owns_main = false;
+                    try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
+                    part.owns_main = true;
+                },
+            },
         }
         const main = try src.takeMain();
         defer main.deinit(a);

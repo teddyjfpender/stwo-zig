@@ -7,6 +7,42 @@ scores down. All branches are pushed to `origin`. Read with
 [CONTEXT.md](CONTEXT.md) (prover cost model, ABIs) and [README.md](README.md)
 (harness contract).
 
+## Session 2 (2026-11-02): what landed, what is open
+
+Scores (provable v3 client, scored set, all 15 blocks exact, all guards):
+**3.283 instr/gas, 46,463 committed bits/gas** at PR head `2f80736fe`, from
+4.778 / 67,192 at the start of the session. Full table and the route to
+~2 / ~20,000 in [PATH-TO-BIG-JUMP.md](PATH-TO-BIG-JUMP.md).
+
+Delivered and verified (each merged into `codex/rv64-guest-efficiency`):
+the six paused tracks except recursion-v3 (client EEST fixes and pass 2;
+unaligned memcpy/memcmp with the joint write-induction argument in
+`design/riscv-proving-stack/rv64-ls-joint-write-induction.md` section 11;
+Keccak sponge; BN254/BLS12-381; interpreter pass 2 re-measured, still a
+negative result, parked) plus three new tracks: throughput Keccak-f truth,
+JUMPDEST service, and PR #309 merged (OM GKR route v2-only, fails closed on
+every v3 kind).
+
+Delivered on branches, integration in progress (`codex/rv64-ge-final`):
+CPU fused-tail + byte-pair queries (`codex/rv64-ge-cells-fused-tail`) and
+LS-D64 (`codex/rv64-ge-ls64`), both default on v3, adversarially reviewed as
+sound; est. -8.2 and -11.0 cells/instruction. Zbb BINARY subset
+(`codex/rv64-ge-zbb`) is opt-in: the Ethereum driver cannot prove v3_zbb
+blocks yet (needs a Zbb-aware native batch/packet authority).
+LogUp/GKR CPU speed (`codex/rv64-ge-logup`): packed fused GKR prover,
+2.3-3.4x per thread, byte-identical; not yet reconciled with PR #309's own
+packed GKR kernels.
+
+Open items:
+- Exact complete-block costs for the new services and CPU layouts (proxy uses
+  fixture geometry); prefix-proof receipt in progress on `codex/rv64-ge-measure`.
+- EEST re-run on the final client (needs ~10 GB of inputs; this host was disk-bound).
+- Recursion for all v3 services and layouts (`codex/rv64-guest-prover-recursion-v3`, paused).
+- GKR (OM route) support for v3 families; extend GKR to the global relations.
+- `logup_columns.build` serial last-column prefix sum.
+
+Session-2 branches: `codex/rv64-ge-{interp,bulk,sponge,keccak-tput,jumpdest,curves,base-merge,cells-fused-tail,ls64,zbb,logup,final,measure,docs}`.
+
 ## Where the scores are (scored set, 12 blocks; exact outputs on all 15)
 
 | Variant | instr/gas | committed bits/gas | Status |

@@ -11,6 +11,7 @@ const TapeWire = rv.compact_tape_wire;
 const EXTENSION_FLAG: u32 = 1 << 31;
 const EXTENSION_BYTES = 8;
 const ARITH256_RECORD = 32 + 160 + 160;
+const CURVE_RECORD = 8 + 32 + 192 + 192;
 pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void {
     if (steps == 0 or steps > limits.steps or steps >= 1 << 22) return error.WorkPacketResourceLimit;
     const graph_start = try std.math.add(usize, H.BYTES, try h.bodyBytes());
@@ -44,7 +45,7 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     var tape: [TapeWire.HEADER_BYTES]u8 = undefined;
     try IO.exact(file, &tape);
     // The formerly reserved word is the v3 SHA-256 record count (zero below
-    // v3); its bit 31 announces the v3 extension (arith256_mod records) that
+    // v3); its bit 31 announces the v3 extension (arith256_mod and curve records) that
     // follows the SHA-256 records (compact_tape_wire.zig).
     const v3 = get32(tape[8..12]) == @intFromEnum(@import("stwo_riscv_frontend").rv64.execution_profile.Profile.ethereum_services_v3);
     const sha_word = get32(tape[28..32]);
@@ -57,21 +58,25 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     if (memory > steps or keccak > steps or secp > steps - keccak or sha256 > steps - keccak - secp) return error.WorkPacketResourceLimit;
     const base_tape = try std.math.add(usize, TapeWire.HEADER_BYTES, try sumWidths(&.{ steps, memory, keccak, secp, sha256 }, &.{ 48, 8, 432, 424, 224 }));
     var arith: usize = 0;
+    var curves: usize = 0;
     if (extended) {
-        if (h.tape_bytes < base_tape + EXTENSION_BYTES + ARITH256_RECORD or (h.tape_bytes - base_tape - EXTENSION_BYTES) % ARITH256_RECORD != 0) return error.InvalidWorkPacketSection;
-        arith = (h.tape_bytes - base_tape - EXTENSION_BYTES) / ARITH256_RECORD;
-        if (arith > steps - keccak - secp - sha256) return error.WorkPacketResourceLimit;
+        // Extension: u32 arith256_mod count, u32 curve count (at least one
+        // nonzero), then the arith256_mod records, then the curve records.
+        if (h.tape_bytes < base_tape + EXTENSION_BYTES) return error.InvalidWorkPacketSection;
         var extension: [EXTENSION_BYTES]u8 = undefined;
         try file.seekTo(try std.math.add(usize, tape_start, base_tape));
         try IO.exact(file, &extension);
-        if (get32(extension[0..4]) != arith or get32(extension[4..8]) != 0) return error.InvalidWorkPacketSection;
+        arith = get32(extension[0..4]);
+        curves = get32(extension[4..8]);
+        if (arith == 0 and curves == 0) return error.InvalidWorkPacketSection;
+        if (arith > steps - keccak - secp - sha256 or curves > steps - keccak - secp - sha256 - arith) return error.WorkPacketResourceLimit;
     }
-    const encoded_tape = if (extended) try std.math.add(usize, base_tape, EXTENSION_BYTES + arith * ARITH256_RECORD) else base_tape;
+    const encoded_tape = if (extended) try std.math.add(usize, base_tape, EXTENSION_BYTES + try sumWidths(&.{ arith, curves }, &.{ ARITH256_RECORD, CURVE_RECORD })) else base_tape;
     if (encoded_tape != h.tape_bytes) return error.InvalidWorkPacketSection;
     // Tape's sparse ordinary-memory ArrayList uses geometric growth; service
     // arrays use precise capacity. No unused native execution capacity is read.
     const memory_capacity: usize = if (memory == 0) 0 else @max(8, try std.math.mul(usize, memory, 2));
-    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp, sha256, arith }, &.{ 48, 8, 432, 424, 224, @sizeOf(rv.ethereum_services.Arith256ModCall) });
+    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp, sha256, arith, curves }, &.{ 48, 8, 432, 424, 224, @sizeOf(rv.ethereum_services.Arith256ModCall), @sizeOf(rv.ethereum_services.CurveCall) });
     const peak = try std.math.add(usize, try std.math.add(usize, base, graph_bytes), @max(graph_temporary, tape_bytes));
     if (try std.math.add(usize, peak, 512 * 1024) > limits.allocation_bytes) return error.WorkPacketResourceLimit;
 }

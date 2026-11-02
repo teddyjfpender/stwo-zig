@@ -7,6 +7,8 @@ const K = @import("../keccak/shared/roster.zig");
 const S = @import("../secp/roster.zig");
 const H = @import("../sha256/roster.zig");
 const Ar = @import("../arith256/roster.zig");
+const Cv = @import("../curves/roster.zig");
+const Types = @import("../services/types.zig");
 const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
@@ -20,6 +22,8 @@ pub const Owner = struct {
     secp_owners: std.ArrayList(*S.TruthSetup) = .{},
     sha256_owners: std.ArrayList(*H.TruthSetup) = .{},
     arith256_owners: std.ArrayList(*Ar.TruthSetup) = .{},
+    /// Curve/field truth keys depend only on (op, log).
+    curve_owners: std.ArrayList(*Cv.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
         return initPolicy(a, image, cpu, truth, false, Suite.production(), .{});
     }
@@ -139,9 +143,24 @@ pub const Owner = struct {
                 }
                 out.* = .{ .arith256_mod = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
             },
-            // Curve/field truth families (5..11) are not wired into the
-            // Ethereum work-packet route yet (TODO curves track).
-            else => return error.UnsupportedServicesTruthFamily,
+            .bn254_g1_add, .bn254_g1_double, .bn254_fp2_mul, .bls12_381_fp2_mul, .arith384_mont, .bls12_381_g1_add, .bls12_381_g1_double => {
+                if (d.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+                const op = Types.curveOp(d.family).?;
+                var found: ?*const Cv.TruthSetup = null;
+                for (self.curve_owners.items) |s| if (s.op == op and s.log == d.logs[0]) {
+                    found = s;
+                    break;
+                };
+                if (found == null) {
+                    try self.curve_owners.ensureUnusedCapacity(a, 1);
+                    const s = try a.create(Cv.TruthSetup);
+                    errdefer a.destroy(s);
+                    s.* = try Cv.TruthSetup.initWithSuite(a, op, d.logs[0], suite);
+                    self.curve_owners.appendAssumeCapacity(s);
+                    found = s;
+                }
+                out.* = .{ .curve = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
+            },
         };
         return self;
     }
@@ -169,6 +188,11 @@ pub const Owner = struct {
             a.destroy(s);
         }
         self.arith256_owners.deinit(a);
+        for (self.curve_owners.items) |s| {
+            s.deinit();
+            a.destroy(s);
+        }
+        self.curve_owners.deinit(a);
         self.cpu_owners.deinit(a);
         self.keccak_owners.deinit(a);
         self.secp_owners.deinit(a);
