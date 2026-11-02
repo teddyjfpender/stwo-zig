@@ -1,5 +1,6 @@
-//! Eq and N+eta*D prefix witness in16 column-major base planes. Constructed
-//! before raw GKR inputs are released; no second metadata replay or FFT.
+//! Eq and N+eta*D prefix witness in16 column-major base planes. Optional
+//! deferred storage owns only eight unweighted projection planes; immutable
+//! metadata replay and finalization share the original tuple/prefix authority.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
