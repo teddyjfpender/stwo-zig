@@ -32,6 +32,15 @@ pub const Options = struct {
     /// job packets concurrently (consumed in index order). 1 = serial reader.
     capture_inflight: u8 = 1,
     capture_inflight_set: bool = false,
+    /// Producer planning only: Keccak truths that take the throughput tables
+    /// keep the triple batching (`throughput_v1`) instead of the v3 default
+    /// quartet batching (`throughput_quartet_v1`). The profile word is
+    /// published and transcript-bound; the receiver admits either.
+    keccak_throughput_v1: bool = false,
+    /// Producer planning only: throughput Keccak truths keep the 29-row slot
+    /// (`throughput_quartet_v1`) instead of the v3 default 27-row slot
+    /// (`throughput_r27_v1`). Published and transcript-bound like the others.
+    keccak_pair29: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -97,6 +106,12 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--no-compact-decode")) {
                 if (out.compact_decode or out.no_compact_decode) return error.DuplicateOperationalOption;
                 out.no_compact_decode = true;
+            } else if (std.mem.eql(u8, arg, "--keccak-throughput-v1")) {
+                if (out.keccak_throughput_v1) return error.DuplicateOperationalOption;
+                out.keccak_throughput_v1 = true;
+            } else if (std.mem.eql(u8, arg, "--keccak-pair29")) {
+                if (out.keccak_pair29) return error.DuplicateOperationalOption;
+                out.keccak_pair29 = true;
             } else if (std.mem.eql(u8, arg, "--keep-fixed-witness")) {
                 if (out.keep_fixed_witness) return error.DuplicateOperationalOption;
                 out.keep_fixed_witness = true;
@@ -131,7 +146,7 @@ pub const Options = struct {
         return .{ .max_inflight_packets = self.capture_inflight, .packet_heap_bytes = D.packet_heap_bytes, .max_inflight_packet_heap_bytes = n * D.packet_heap_bytes, .max_inflight_wire_bytes = n * D.max_inflight_wire_bytes };
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.compact_decode or self.no_compact_decode or self.capture_inflight_set;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.compact_decode or self.no_compact_decode or self.capture_inflight_set or self.keccak_throughput_v1 or self.keccak_pair29;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {
@@ -237,5 +252,25 @@ test "Retained MAIN prefetch has an explicit bounded producer-only cap and is of
         try std.testing.expectError(error.InvalidRetainedMainPrefetchCap, Options.parse(&one));
     }
     var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--prefetch-retained-main-bytes=0"), @constCast("--prefetch-retained-main-bytes=0") };
+    try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
+}
+
+test "keccak throughput-v1 truth fallback is an explicit producer-only planning option" {
+    var defaults = [_][:0]u8{ @constCast("tool"), @constCast("produce") };
+    try std.testing.expect(!(try Options.parse(&defaults)).keccak_throughput_v1);
+    var enabled = [_][:0]u8{ @constCast("tool"), @constCast("produce"), @constCast("--keccak-throughput-v1") };
+    const options = try Options.parse(&enabled);
+    try std.testing.expect(options.keccak_throughput_v1 and options.producerOnly());
+    try std.testing.expectEqual(@as(usize, 2), options.count);
+    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--keccak-throughput-v1"), @constCast("--keccak-throughput-v1") };
+    try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
+}
+test "keccak pair29 truth slot fallback is an explicit producer-only planning option" {
+    var defaults = [_][:0]u8{ @constCast("tool"), @constCast("produce") };
+    try std.testing.expect(!(try Options.parse(&defaults)).keccak_pair29);
+    var enabled = [_][:0]u8{ @constCast("tool"), @constCast("produce"), @constCast("--keccak-pair29") };
+    const options = try Options.parse(&enabled);
+    try std.testing.expect(options.keccak_pair29 and options.producerOnly() and !options.keccak_throughput_v1);
+    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--keccak-pair29"), @constCast("--keccak-pair29") };
     try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
 }

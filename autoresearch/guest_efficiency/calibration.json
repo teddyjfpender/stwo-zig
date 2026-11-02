@@ -19,12 +19,12 @@
   "bits_per_cell_at_lde": 62,
   "cpu_cells_per_instruction": 154.81355455694023,
   "keccak_cells_per_call": 72159.27004720572,
-  "keccak_cells_per_call_v3": 38015.85704712977,
+  "keccak_cells_per_call_v3": 33987.01058744695,
   "secp_cells_per_call": 18934.597441685477,
   "composition_fraction": 0.045135955755284445,
   "cpu_cells_per_instruction_v3": 116.99338269075935,
   "secp_cells_per_call_v3": 4430.731379144642,
-  "v3_measured_note": "MEASURED MAIN+INTERACTION cells on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix). cpu_cells_per_instruction_v3 = 151.088 measured with the LS32 layout minus 16.110 (LS-D64 default, same prefix, MAIN+INTERACTION delta -270,280,704 cells). secp and keccak v3 values measured on the same prefix. Used only for ethereum_services_v3 rows; v2/baseline keep the frozen coefficients. Updated after the fused-tail + U8-pair CPU layouts became the v3 default again (codex/rv64-ge-fused-fix 9c5367210): same 4-packet prefix, CPU native cells -133,955,584 exactly (4 x (-8*2^22 + 2^16)), -7.984 cells/instruction; 134.978 -> 126.993. secp_cells_per_call_v3 20,370.02 -> 4,430.73 after the secp row truth became the v3 default (codex/rv64-ge-secp 68a0bf90b): 9,220,352 row-truth cells for 1,080 ADD + 1,001 DOUBLE calls on the same freshly verified 4-packet prefix. Updated after the compact decode CPU MAIN became the v3 default (codex/rv64-ge-decode): same 4-packet prefix, fresh verify-prefix, CPU native cells -167,772,160 exactly (4 x (-10*2^22)), -10.000 cells/instruction; 126.993 -> 116.993."
+  "v3_measured_note": "MEASURED MAIN+INTERACTION cells on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix). cpu_cells_per_instruction_v3 = 151.088 measured with the LS32 layout minus 16.110 (LS-D64 default, same prefix, MAIN+INTERACTION delta -270,280,704 cells). secp and keccak v3 values measured on the same prefix. Used only for ethereum_services_v3 rows; v2/baseline keep the frozen coefficients. Updated after the fused-tail + U8-pair CPU layouts became the v3 default again (codex/rv64-ge-fused-fix 9c5367210): same 4-packet prefix, CPU native cells -133,955,584 exactly (4 x (-8*2^22 + 2^16)), -7.984 cells/instruction; 134.978 -> 126.993. secp_cells_per_call_v3 20,370.02 -> 4,430.73 after the secp row truth became the v3 default (codex/rv64-ge-secp 68a0bf90b): 9,220,352 row-truth cells for 1,080 ADD + 1,001 DOUBLE calls on the same freshly verified 4-packet prefix. keccak_cells_per_call_v3 38015.86 -> 33987.01 (throughput_r27_v1 + split planner, codex/rv64-ge-keccak2 c58f443b1: 760,799,232 truth cells over 22,385 IDs on the same prefix); the sponge per-permutation cost moves by the same delta. Updated after the compact decode CPU MAIN became the v3 default (codex/rv64-ge-decode): same 4-packet prefix, fresh verify-prefix, CPU native cells -167,772,160 exactly (4 x (-10*2^22)), -10.000 cells/instruction; 126.993 -> 116.993."
  },
  "frozen": true,
  "caveats": [
@@ -116,7 +116,7 @@
   "keccak_sponge": {
    "cells_per_call": 1211.2477804681193,
    "cells_per_byte": 0.0,
-   "cells_per_permutation": 40615.916813962984,
+   "cells_per_permutation": 36587.070354280164,
    "status": "MEASURED on vectors/reports/rv64-ethereum-20261102/evmone-v3-final-prefix-24628607-v1.json and ls-dword-prefix-24628607-v1.json (4-packet prefix of block 24,628,607, 16,777,212 instructions, fresh verify-prefix) (supersedes the earlier estimate; previous derivation kept below)",
    "derivation": "4,731 sponge calls, 19,562 permutations (2,499,833 bytes). call rows: logs 12/5/5/11 over the four sponge shards = 6,208 rows x (MAIN 694 + INTER 380) = 6,667,392 cells / 4,731 calls = 1,409.3 per call (nominal 1,074). perm rows: logs 14/5/7/13 = 24,736 rows x (973 + 688) = 41,086,496 / 19,562 = 2,100.3 per permutation (nominal 1,661). Each permutation also takes one Keccak-f truth ID: costed at the frozen keccak_cells_per_call (72,159.3, same truth AIR); this block's own truth measured 70,533.8 per ID (2^18 + 2^16 rows x 4,519 / 20,994 IDs). cells_per_permutation = 2,100.3 + 72,159.3. The per-call Word16 Keccak-f bridge rows that sponge permutations no longer need stay inside the frozen CPU coefficient. design/riscv-proving-stack/rv64-keccak-sponge-service.md section 6. Throughput-v1 Keccak-f truth (v3 default, 2026-11-02): each permutation's truth ID costed at keccak_cells_per_call_v3 = 41,072.0 instead of 72,159.3, so cells_per_permutation = 2,100.3 + 41,072.0 (was 74259.6)."
   },

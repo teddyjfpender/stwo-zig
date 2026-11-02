@@ -134,6 +134,129 @@ test "v3 Keccak sponge throughput adversarial: wrong permutation input fails IO1
     try std.testing.expectError(error.UnclosedCombinedKeccakIo, E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle));
 }
 
+test "v3 Keccak sponge with the throughput-quartet Keccak-f truth: fresh keys and wire verify; throughput-v1 and compact receivers reject" {
+    var c = try F.Case.initPolicy(a, .none, false, .throughput_quartet_v1);
+    defer c.deinit();
+    const keys = c.keys();
+    var buffer: [2]R.Truth = undefined;
+    try E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle);
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try W.write(a, tmp.dir, &keys, c.truths(&buffer), &c.bundle);
+    var loaded = try W.read(a, tmp.dir, .{ .max_cpus = 2, .max_truths = 1, .max_total_steps = F.STEPS });
+    defer loaded.deinit(a);
+    // The wire names the profile: 21 | 4 << 8.
+    try std.testing.expectEqual(W.KECCAK_THROUGHPUT_QUARTET_WORD, loaded.truth_declarations[0].logs[1]);
+    try std.testing.expectEqual(KR.TruthSetup.Policy.throughput_quartet_v1, try W.keccakPolicy(loaded.truth_declarations[0].logs[1]));
+    var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[0].geometry, F.BRIDGES[0]);
+    defer s0.deinit();
+    var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[1].geometry, F.BRIDGES[1]);
+    defer s1.deinit();
+    const suite = @import("../keccak/shared/key.zig").Key.Suite.production();
+    var kq = try KR.TruthSetup.initPolicy(a, F.KECCAK_LOG, suite, .throughput_quartet_v1);
+    defer kq.deinit();
+    const fresh = [_]R.Truth{.{ .keccak = .{ .setup = &kq, .first_id = 1, .calls = F.KECCAK_IDS } }};
+    try E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle);
+    // A throughput-v1 receiver has the SAME fixed root (same tables and
+    // geometry); only the transcript identity and the interaction width
+    // differ, and it must still refuse the quartet truth proof.
+    var kt = try KR.TruthSetup.initPolicy(a, F.KECCAK_LOG, suite, .throughput_v1);
+    defer kt.deinit();
+    try std.testing.expectEqualSlices(u8, &kt.key.root, &kq.key.root);
+    const t1 = [_]R.Truth{.{ .keccak = .{ .setup = &kt, .first_id = 1, .calls = F.KECCAK_IDS } }};
+    try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &t1, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    var compact = try KR.TruthSetup.init(a, F.KECCAK_LOG);
+    defer compact.deinit();
+    const wrong = [_]R.Truth{.{ .keccak = .{ .setup = &compact, .first_id = 1, .calls = F.KECCAK_IDS } }};
+    try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &wrong, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    // A tampered truth claim no longer balances IO11.
+    loaded.bundle.truths[0].claims[1] = loaded.bundle.truths[0].claims[1].add(G.Q.one());
+    try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    loaded.bundle.truths[0].claims[1] = loaded.bundle.truths[0].claims[1].sub(G.Q.one());
+    try E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle);
+    // A relabelled wire word (quartet proof declared as throughput-v1) is
+    // rebuilt as a throughput-v1 key by the receiver and rejected.
+    try std.testing.expectEqual(KR.TruthSetup.Policy.throughput_v1, try W.keccakPolicy(21));
+    // Exact committed cells: (1923 + 456) per row + both throughput tables.
+    var cells: [2]u64 = @splat(0);
+    for ([_]*const KR.TruthSetup{ &kt, &kq }, &cells) |setup, *out| for (1..3) |tree| {
+        const logs = try setup.logs(a, tree);
+        defer a.free(logs);
+        for (logs) |l| out.* += @as(u64, 1) << @intCast(l);
+    };
+    try std.testing.expectEqual(@as(u64, (1923 + 608) * 128 + 5 * ((1 << 21) + (1 << 16))), cells[0]);
+    try std.testing.expectEqual(@as(u64, (1923 + 456) * 128 + 5 * ((1 << 21) + (1 << 16))), cells[1]);
+}
+
+test "v3 Keccak sponge throughput-quartet adversarial: wrong permutation input fails IO11, forged and stale messages fail RAM" {
+    const cases = [_]struct { m: F.Case.Mutation, err: anyerror }{
+        .{ .m = .wrong_truth_input, .err = error.UnclosedCombinedKeccakIo },
+        .{ .m = .forged_message, .err = error.UnclosedCombinedRam },
+        .{ .m = .stale_message, .err = error.UnclosedCombinedRam },
+    };
+    for (cases) |case| {
+        var c = try F.Case.initPolicy(a, case.m, false, .throughput_quartet_v1);
+        defer c.deinit();
+        const keys = c.keys();
+        var buffer: [2]R.Truth = undefined;
+        try std.testing.expectError(case.err, E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle));
+    }
+}
+
+test "v3 Keccak sponge with the 27-row throughput Keccak-f truth: fresh keys and wire verify; pair29 receivers reject; adversarial IO/RAM" {
+    var c = try F.Case.initPolicy(a, .none, false, .throughput_r27_v1);
+    defer c.deinit();
+    const keys = c.keys();
+    var buffer: [2]R.Truth = undefined;
+    try E.verify(a, &keys, c.truths(&buffer), c.expected(), &c.bundle);
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try W.write(a, tmp.dir, &keys, c.truths(&buffer), &c.bundle);
+    var loaded = try W.read(a, tmp.dir, .{ .max_cpus = 2, .max_truths = 1, .max_total_steps = F.STEPS });
+    defer loaded.deinit(a);
+    try std.testing.expectEqual(W.KECCAK_THROUGHPUT_R27_WORD, loaded.truth_declarations[0].logs[1]);
+    try std.testing.expectEqual(KR.TruthSetup.Policy.throughput_r27_v1, try W.keccakPolicy(loaded.truth_declarations[0].logs[1]));
+    var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[0].geometry, F.BRIDGES[0]);
+    defer s0.deinit();
+    var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, loaded.cpu_declarations[1].geometry, F.BRIDGES[1]);
+    defer s1.deinit();
+    const suite = @import("../keccak/shared/key.zig").Key.Suite.production();
+    var kr = try KR.TruthSetup.initPolicy(a, F.KECCAK_LOG, suite, .throughput_r27_v1);
+    defer kr.deinit();
+    const fresh = [_]R.Truth{.{ .keccak = .{ .setup = &kr, .first_id = 1, .calls = F.KECCAK_IDS } }};
+    try E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle);
+    // pair29 quartet / throughput-v1 receivers: different fixed geometry.
+    for ([_]KR.TruthSetup.Policy{ .throughput_quartet_v1, .throughput_v1, .triple_v2 }) |other| {
+        var ko = try KR.TruthSetup.initPolicy(a, F.KECCAK_LOG, suite, other);
+        defer ko.deinit();
+        try std.testing.expect(!std.mem.eql(u8, &ko.key.root, &kr.key.root));
+        const wrong = [_]R.Truth{.{ .keccak = .{ .setup = &ko, .first_id = 1, .calls = F.KECCAK_IDS } }};
+        try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &wrong, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    }
+    loaded.bundle.truths[0].claims[1] = loaded.bundle.truths[0].claims[1].add(G.Q.one());
+    try std.testing.expect(std.meta.isError(E.verify(a, &.{ &s0, &s1 }, &fresh, F.expectedFor(s0.materials.program.identity, c.loaded), &loaded.bundle)));
+    // Exact committed cells: (1923 + 480) per row + both throughput tables.
+    var cells: u64 = 0;
+    for (1..3) |tree| {
+        const logs = try kr.logs(a, tree);
+        defer a.free(logs);
+        for (logs) |l| cells += @as(u64, 1) << @intCast(l);
+    }
+    try std.testing.expectEqual(@as(u64, (1923 + 480) * 128 + 5 * ((1 << 21) + (1 << 16))), cells);
+    const cases = [_]struct { m: F.Case.Mutation, err: anyerror }{
+        .{ .m = .wrong_truth_input, .err = error.UnclosedCombinedKeccakIo },
+        .{ .m = .forged_message, .err = error.UnclosedCombinedRam },
+        .{ .m = .stale_message, .err = error.UnclosedCombinedRam },
+    };
+    for (cases) |case| {
+        var bad = try F.Case.initPolicy(a, case.m, false, .throughput_r27_v1);
+        defer bad.deinit();
+        const bad_keys = bad.keys();
+        var bad_buffer: [2]R.Truth = undefined;
+        try std.testing.expectError(case.err, E.verify(a, &bad_keys, bad.truths(&bad_buffer), bad.expected(), &bad.bundle));
+    }
+}
+
 // Regression (real-block InvalidCombinedRangePhase): the v3 Ethereum route's
 // fused-tail + byte-pair CPU layout puts a second (byte-pair) multiplicity
 // column on the log-16 AND table, and the sponge permutation bridge's byte-AND

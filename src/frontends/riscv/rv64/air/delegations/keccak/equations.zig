@@ -128,6 +128,8 @@ pub fn emitForPolicy(comptime F: type, policy: BatchPolicy, row: RowFor(F), inte
         .triple_v2 => emitForBatch(F, 3, row, interaction, previous_final, claim, ch, public, sink),
         .quartet_v3 => emitForBatch(F, 4, row, interaction, previous_final, claim, ch, public, sink),
         .throughput_v1 => emitThroughputFor(F, row, interaction, previous_final, claim, ch, public, sink),
+        .throughput_quartet_v1 => emitThroughputQuartetFor(F, row, interaction, previous_final, claim, ch, public, sink),
+        .throughput_r27_v1 => emitThroughputR27For(F, row, interaction, previous_final, claim, ch, public, sink),
     }
 }
 /// Multiplication by a small canonical constant in lane F (M31 natively).
@@ -168,6 +170,137 @@ pub fn emitThroughputFor(comptime F: type, row: RowFor(F), interaction: []const 
         sink.emit(clearTripleFor(F, d, c, delta));
     }
     emitIoTriplesFor(F, row, interaction, policy.roundBatches(), ch, sink);
+}
+/// Throughput-quartet-v1: the throughput-v1 MAIN, direct equations, tuples
+/// and tables; the 427 round queries are cleared four per degree-five batch
+/// (106 full batches + one batch of three queries and one dummy entry with
+/// denominator one and weight zero), then the IO lanes four per batch.
+/// Degree: delta * d0 d1 d2 d3 is 1 + 4; c * (triple products) is 2 + 3.
+pub fn emitThroughputQuartetFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
+    const policy = BatchPolicy.throughput_quartet_v1;
+    emitDirectFor(F, row, public, sink, true);
+    emitRoundQuartetsFor(F, policy, row, interaction, previous_final, claim, ch, sink);
+    emitIoQuartetsFor(F, row, interaction, policy.roundBatches(), ch, sink);
+}
+/// Constant c of lane F (M31 natively).
+fn constantFor(comptime F: type, value: u32) F {
+    return if (F == M) M.fromCanonical(value) else V.qFor(F, value);
+}
+/// 1/8 in M31: 8 * 2^28 = 2^31 = p + 1.
+pub const INV8: u32 = 1 << 28;
+/// 27-row slot IO entry `entry` (0..49) on the current row. Entries 0..24 are
+/// group A (call A, lane = entry): bits 1 - v of a complemented plane row.
+/// Entries 25..49 are group B (call B = BASE_ID + 1, lane = entry - 25): bits
+/// (v + s[-1] - 1) / 8, the b digit of the packed state next to a plane
+/// (v0 after the input plane; v24 before the output plane). Direction is the
+/// output-plane selector fixed[27] in both groups. Every element is affine
+/// in the committed columns, so IO denominators stay linear.
+pub fn ioTupleR27For(comptime F: type, row: RowFor(F), entry: usize) [L.IO_ARITY]F {
+    const group_b = entry >= L.IO_LANES;
+    const lane = entry % L.IO_LANES;
+    var tuple: [L.IO_ARITY]F = undefined;
+    tuple[0] = if (group_b) row.main[L.BASE_ID].add(F.one()) else row.main[L.BASE_ID];
+    tuple[1] = row.fixed[27];
+    tuple[2] = constantFor(F, @intCast(lane));
+    for (0..8) |byte| {
+        var value = F.zero();
+        for (0..8) |bit| {
+            const cell = 64 * lane + 8 * byte + bit;
+            const digit = if (group_b) row.main[cell].add(row.state_minus_one[cell]).sub(F.one()) else F.one().sub(row.main[cell]);
+            value = value.add(digit.mul(constantFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
+        }
+        tuple[3 + byte] = if (group_b) value.mul(constantFor(F, INV8)) else value;
+    }
+    return tuple;
+}
+/// Weight of IO entry `entry`: group A on the two plane rows of an active
+/// slot, group B on the v0 row and the output-plane row of a slot with B.
+pub fn ioActiveR27For(comptime F: type, row: RowFor(F), entry: usize) F {
+    if (entry < L.IO_LANES) return row.main[L.ACTIVE_A].mul(row.fixed[0].add(row.fixed[27]));
+    return row.main[L.ACTIVE_B].mul(row.fixed[2].add(row.fixed[27]));
+}
+/// Direct equations of the 27-row slot. Header, booleanity of the two plane
+/// rows, parity-zero and padding equations are those of `emitDirectFor`; the
+/// pair29 unpack equations v0 = a + 8b / v24 = a' + 8b' are replaced by one
+/// per cell: on the v0 row and on the output-plane row (fixed[2] + fixed[27]),
+/// active * t * (t - 8) = 0 with t = v + s[-1] - 1. With the plane bit p
+/// boolean (complement of call A's bit) this forces the packed neighbour to
+/// 1 - p + 8b with b in {0,1}: call A's bit is 1 - p and call B's bit is b.
+/// Degree: fixed * active * t^2 = 4.
+pub fn emitDirectR27For(comptime F: type, row: RowFor(F), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
+    const active = row.main[L.ACTIVE_A];
+    const second = row.main[L.ACTIVE_B];
+    const id = row.main[L.BASE_ID];
+    const previous_active = row.previous_header[0];
+    const previous_second = row.previous_header[1];
+    const previous_id = row.previous_header[2];
+    const phase_first = row.fixed[0];
+    const continuation = F.one().sub(phase_first);
+    const first_id = V.firstIdFor(F, public);
+    const last_id = V.lastIdFor(F, public);
+    sink.emit(active.mul(active.sub(F.one())));
+    sink.emit(second.mul(second.sub(F.one())));
+    sink.emit(second.mul(F.one().sub(active)));
+    sink.emit(F.one().sub(row.fixed[L.COMPLETE_SLOT]).mul(active));
+    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.nonemptyFor(F, public))));
+    sink.emit(continuation.mul(active.sub(previous_active)));
+    sink.emit(continuation.mul(second.sub(previous_second)));
+    sink.emit(continuation.mul(id.sub(previous_id)));
+    sink.emit(phase_first.sub(row.fixed[L.FIRST]).mul(F.one().sub(previous_active)).mul(active));
+    sink.emit(phase_first.mul(active).mul(previous_active.sub(previous_second)));
+    sink.emit(phase_first.sub(row.fixed[L.FIRST]).mul(previous_active.sub(active)).mul(previous_id.add(previous_second).sub(last_id)));
+    sink.emit(active.mul(id.sub(first_id).sub(row.fixed[L.SLOT_INDEX].mul(V.qFor(F, 2)))));
+    sink.emit(F.one().sub(active).mul(id));
+    const planes = row.fixed[0].add(row.fixed[27]);
+    const plane_gate = planes.mul(active);
+    const unpack_gate = row.fixed[2].add(row.fixed[27]).mul(active);
+    const eight = V.qFor(F, 8);
+    for (0..L.STATE) |i| {
+        const v = row.main[i];
+        sink.emit(plane_gate.mul(v.mul(F.one().sub(v))));
+        const t = v.add(row.state_minus_one[i]).sub(F.one());
+        sink.emit(unpack_gate.mul(t.mul(t.sub(eight))));
+    }
+    const parity_zero = planes.add(row.fixed[26]);
+    for (row.main[L.STATE..L.ACTIVE_A]) |v| sink.emit(parity_zero.mul(v));
+    const padding = F.one().sub(active);
+    for (row.main[0..L.ACTIVE_A]) |v| sink.emit(padding.mul(v));
+}
+/// Throughput-r27-v1: 27-row slot direct equations, the throughput round
+/// queries four per batch (as throughput-quartet-v1), then the 50 IO entries
+/// (group A, group B) four per batch: 13 batches, the last with two dummies.
+pub fn emitThroughputR27For(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
+    const policy = BatchPolicy.throughput_r27_v1;
+    emitDirectR27For(F, row, public, sink);
+    emitRoundQuartetsFor(F, policy, row, interaction, previous_final, claim, ch, sink);
+    for (0..policy.ioBatches()) |local| {
+        const batch = policy.roundBatches() + local;
+        var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var c: [4]F = @splat(F.zero());
+        for (0..4) |i| if (4 * local + i < policy.ioLookups()) {
+            d[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleR27For(F, row, 4 * local + i), true);
+            c[i] = ioActiveR27For(F, row, 4 * local + i);
+        };
+        sink.emit(clearQuartetFor(F, false, d, c, interaction[batch].sub(interaction[batch - 1])));
+    }
+}
+/// Throughput round queries four per batch (shared by both quartet throughput
+/// profiles): 106 full batches and one of three queries plus a dummy.
+fn emitRoundQuartetsFor(comptime F: type, comptime policy: BatchPolicy, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), sink: anytype) void {
+    const coefficient = roundActiveFor(F, row).neg();
+    for (0..policy.roundBatches()) |batch| {
+        var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var c: [4]F = @splat(F.zero());
+        var full = true;
+        for (0..4) |i| {
+            if (4 * batch + i < policy.lookups()) {
+                d[i] = throughputDenominatorFor(F, row, ch, 4 * batch + i);
+                c[i] = coefficient;
+            } else full = false;
+        }
+        const delta = interaction[batch].sub(if (batch == 0) previous_final else interaction[batch - 1]).add(if (batch == 0) V.mulBaseFor(F, V.splatFor(F, claim), row.fixed[L.FIRST]) else V.SecureFor(F).zero());
+        sink.emit(if (full) clearQuartetFor(F, true, d, c, delta) else clearQuartetFor(F, false, d, c, delta));
+    }
 }
 /// One triple polynomial with per-entry weights (dummy entries: d = 1, c = 0).
 pub fn clearTripleFor(comptime F: type, d: [3]V.SecureFor(F), c: [3]F, delta: V.SecureFor(F)) V.SecureFor(F) {
@@ -210,16 +343,21 @@ pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), int
             const delta = interaction[batch].sub(if (batch == 0) previous_final else interaction[batch - 1]).add(if (batch == 0) V.mulBaseFor(F, V.splatFor(F, claim), row.fixed[L.FIRST]) else V.SecureFor(F).zero());
             sink.emit(clearQuartetFor(F, true, d, @splat(coefficient), delta));
         }
-        for (0..(L.IO_LANES + 3) / 4) |local| {
-            const batch = L.LOOKUPS / 4 + local;
-            var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
-            var c: [4]F = @splat(F.zero());
-            for (0..4) |i| if (4 * local + i < L.IO_LANES) {
-                d[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleFor(F, row, 4 * local + i), true);
-                c[i] = ioActiveFor(F, row);
-            };
-            sink.emit(clearQuartetFor(F, false, d, c, interaction[batch].sub(interaction[batch - 1])));
-        }
+        emitIoQuartetsFor(F, row, interaction, L.LOOKUPS / 4, ch, sink);
+    }
+}
+/// IO11 lanes four per degree-five batch after `first` round batches (shared
+/// by quartet-v3 and throughput-quartet-v1). Dummy entries: d = 1, c = 0.
+fn emitIoQuartetsFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), first: usize, ch: ChallengesFor(V.ConstFor(F)), sink: anytype) void {
+    for (0..(L.IO_LANES + 3) / 4) |local| {
+        const batch = first + local;
+        var d: [4]V.SecureFor(F) = @splat(V.SecureFor(F).one());
+        var c: [4]F = @splat(F.zero());
+        for (0..4) |i| if (4 * local + i < L.IO_LANES) {
+            d[i] = V.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTupleFor(F, row, 4 * local + i), true);
+            c[i] = ioActiveFor(F, row);
+        };
+        sink.emit(clearQuartetFor(F, false, d, c, interaction[batch].sub(interaction[batch - 1])));
     }
 }
 

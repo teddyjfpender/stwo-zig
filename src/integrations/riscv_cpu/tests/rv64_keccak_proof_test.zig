@@ -61,9 +61,9 @@ pub const Fixture = struct {
         return initWithPolicy(a, inputs, first_id, log, .triple_v2);
     }
     pub fn initWithPolicy(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32, policy: K.equations.BatchPolicy) !Fixture {
-        var trace = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
+        var trace = try K.trace.Trace.initWithLogGeometry(a, inputs, first_id, log, policy.geometry());
         errdefer trace.deinit();
-        if (policy == .throughput_v1) {
+        if (policy.throughputTables()) {
             var counts = try K.throughput_counts.Counts.fromTrace(a, &trace);
             defer counts.deinit();
             var chi = try K.tables.Trace.initPolicy(a, .chi, policy, counts.chi);
@@ -154,7 +154,7 @@ fn produceAndVerifyPublicWithStorage(a: std.mem.Allocator, tamper: bool, count: 
 }
 fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, artifact: ?[]const u8, first_id: u32, selected_log: u32, release_main: bool, policy: K.equations.BatchPolicy) ![32]u8 {
     const interaction_count = policy.interactionCount();
-    try L.validateGeometry(count, first_id, selected_log);
+    try L.validateGeometryFor(policy.geometry(), count, first_id, selected_log);
     var timer = try std.time.Timer.start();
     var phase = try std.time.Timer.start();
     var recorder = engine.stage_profile.Recorder.init(a, "cpu", "rv64-keccak-primitive");
@@ -252,6 +252,8 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
                 .triple_v2 => "rv64-keccak-primitive-fixture-v2",
                 .quartet_v3 => "rv64-keccak-primitive-fixture-v3-quartet",
                 .throughput_v1 => "rv64-keccak-primitive-fixture-throughput-v1",
+                .throughput_quartet_v1 => "rv64-keccak-primitive-fixture-throughput-quartet-v1",
+                .throughput_r27_v1 => "rv64-keccak-primitive-fixture-throughput-r27-v1",
             },
             .cpu_ram_bridge = false,
             .main_released_before_challenges = release_main,
@@ -280,6 +282,13 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
     try verifyEncodedPolicy(a, encoded, inputs, claims, config, tamper, first_id, selected_log, policy);
     if (comptime @import("builtin").is_test) if (policy != .triple_v2 and !tamper) {
         if (verifyEncodedPolicy(a, encoded, inputs, claims, config, false, first_id, selected_log, .triple_v2)) |_| return error.ExpectedLookupPolicyRejection else |_| {}
+        // Same tables, other batch width: the throughput-v1 receiver must
+        // reject a quartet proof (transcript identity and column count differ).
+        if (policy == .throughput_quartet_v1 or policy == .throughput_r27_v1) if (verifyEncodedPolicy(a, encoded, inputs, claims, config, false, first_id, selected_log, .throughput_v1)) |_| return error.ExpectedLookupPolicyRejection else |_| {};
+        // Same tables and batch width, other slot geometry: the pair29
+        // quartet receiver must reject a 27-row proof (and vice versa).
+        if (policy == .throughput_r27_v1) if (verifyEncodedPolicy(a, encoded, inputs, claims, config, false, first_id, selected_log, .throughput_quartet_v1)) |_| return error.ExpectedLookupPolicyRejection else |_| {};
+        if (policy == .throughput_quartet_v1) if (verifyEncodedPolicy(a, encoded, inputs, claims, config, false, first_id, selected_log, .throughput_r27_v1)) |_| return error.ExpectedLookupPolicyRejection else |_| {};
     };
     return fixed_root;
 }
@@ -293,7 +302,7 @@ fn fillLogsPolicy(logs: []u32, permutation: usize, log: u32, table: usize, polic
 }
 /// Quartet keeps the compact tables through its own adapter; throughput owns them.
 fn tablePolicy(policy: K.equations.BatchPolicy) K.equations.BatchPolicy {
-    return if (policy == .throughput_v1) .throughput_v1 else .triple_v2;
+    return if (policy.throughputTables()) policy else .triple_v2;
 }
 fn verifyEncoded(a: std.mem.Allocator, encoded: []const u8, inputs: []const K.trace.State, claims: Claims, config: core.pcs.PcsConfig, tamper: bool, first_id: u32, selected_log: u32) !void {
     return verifyEncodedPolicy(a, encoded, inputs, claims, config, tamper, first_id, selected_log, .triple_v2);
@@ -301,7 +310,7 @@ fn verifyEncoded(a: std.mem.Allocator, encoded: []const u8, inputs: []const K.tr
 fn verifyEncodedPolicy(a: std.mem.Allocator, encoded: []const u8, inputs: []const K.trace.State, claims: Claims, config: core.pcs.PcsConfig, tamper: bool, first_id: u32, selected_log: u32, policy: K.equations.BatchPolicy) !void {
     const interaction_count = policy.interactionCount();
     const count = inputs.len;
-    try L.validateGeometry(count, first_id, selected_log);
+    try L.validateGeometryFor(policy.geometry(), count, first_id, selected_log);
     const claim = claims.permutation;
     const chi_claim = claims.chi;
     const xor_claim = claims.xor5;
@@ -313,7 +322,7 @@ fn verifyEncodedPolicy(a: std.mem.Allocator, encoded: []const u8, inputs: []cons
     defer if (owns_proof) proof.deinit(a);
     // Only public geometry and canonical fixed table semantics survive. No
     // producer trace, counts, interaction or permutation witness is reused.
-    const geometry = try K.trace.fixedColumnsForLog(a, selected_log);
+    const geometry = try K.trace.fixedColumnsForLogGeometry(a, selected_log, policy.geometry());
     defer a.free(geometry);
     const tables = tablePolicy(policy);
     const zero_chi = try a.alloc(u64, @as(usize, 1) << @intCast(tables.tableLog(.chi)));
@@ -602,6 +611,12 @@ pub fn verifyQuartetArtifact(a: std.mem.Allocator, directory: []const u8, count:
 pub const throughput_testing = if (@import("builtin").is_test) struct {
     pub fn prove(a: std.mem.Allocator, count: usize, first_id: u32, log: u32, tamper: bool) ![32]u8 {
         return produceAndVerifyPolicy(a, tamper, count, null, first_id, log, true, .throughput_v1);
+    }
+    pub fn proveQuartet(a: std.mem.Allocator, count: usize, first_id: u32, log: u32, tamper: bool) ![32]u8 {
+        return produceAndVerifyPolicy(a, tamper, count, null, first_id, log, true, .throughput_quartet_v1);
+    }
+    pub fn proveR27(a: std.mem.Allocator, count: usize, first_id: u32, log: u32, tamper: bool) ![32]u8 {
+        return produceAndVerifyPolicy(a, tamper, count, null, first_id, log, true, .throughput_r27_v1);
     }
 } else struct {};
 pub const quartet_testing = if (@import("builtin").is_test) struct {
