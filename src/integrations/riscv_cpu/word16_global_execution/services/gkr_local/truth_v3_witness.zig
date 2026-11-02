@@ -22,6 +22,8 @@ pub const Witness = struct {
         s.* = undefined;
     }
     pub fn take(s: *@This(), a: std.mem.Allocator) !@import("../../../word16_execution/main_ownership.zig").Commit {
+        if (!A.memory.ownership.same(a, s.allocator)) return error.V3TruthAllocatorMismatch;
+        if (s.data.len != try std.math.mul(usize, s.width, @as(usize, 1) << @intCast(s.log))) return error.InvalidV3TruthWitnessPhase;
         const cols = try a.alloc(engine.pcs.ColumnEvaluation, s.width);
         errdefer a.free(cols);
         const backings = try a.alloc([]M, 1);
@@ -41,7 +43,7 @@ fn typed(comptime T: type, a: std.mem.Allocator, s: anytype, wire: Wire, bytes: 
     const width = 8 * (T.byte_batches + T.wire_batches);
     const count = try std.math.mul(usize, width, n);
     const output = try std.math.mul(usize, count, @sizeOf(M));
-    const scratch = @sizeOf(T.N.Row) + 256 * @sizeOf(O);
+    const scratch = @sizeOf(T.N.Row) + 256 * @sizeOf(O) + width * @sizeOf(engine.pcs.ColumnEvaluation) + @sizeOf([]M) + @sizeOf(O);
     if (try std.math.add(usize, output, scratch) > budget) return error.V3TruthBudgetExceeded;
     const out = try a.alloc(M, count);
     errdefer a.free(out);

@@ -131,8 +131,6 @@ pub const Component = struct {
                 if (T.bytes == 0) T.Eq.emitInteraction(F, &c.v, span, c.owner.claim, c.owner.wire, c.sink) else T.Eq.emitInteraction(F, &c.v, span, c.owner.claim, .{ .bytes = c.owner.bytes, .wire = c.owner.wire }, c.sink);
             }
         }{ .owner = s, .v = .{ .f = fixed_values, .m = main_values, .i = current, .p = previous, .pa = F.zero() }, .sink = sink };
-        // Original activity uses previous MAIN; domain passes it through emitMainFor below.
-        ctx.v.pa = if (main_values.len > 0) main_values[0] else F.zero();
         try C.visit(s.truth, &ctx);
     }
     pub fn traceLogDegreeBounds(s: *const @This(), a: std.mem.Allocator) !Air.TraceLogDegreeBounds {

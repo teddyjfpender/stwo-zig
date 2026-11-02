@@ -120,3 +120,44 @@ test "V3 secp ADD DOUBLE physical OM 4n proofs and fresh receivers" {
         try runV3(.{ .secp_row = .{ .setup = &setup, .first_id = 1, .calls = 1 } }, .{ .secp_row = @unionInit(HR.TruthSource, @tagName(op), source) });
     }
 }
+fn witnessAllocationCase(a: std.mem.Allocator, source: *const R.TruthSource, wire: A.crypto.sha256.equations.WireFor(core.fields.om31.OM31), bytes: core.fields.om31.OM31) !void {
+    var w = try @import("truth_v3_witness.zig").generate(a, source, wire, bytes, 256 << 20);
+    defer w.deinit();
+    const commit = try w.take(a);
+    defer commit.deinit(a);
+    try std.testing.expectError(error.InvalidV3TruthWitnessPhase, w.take(a));
+}
+test "V3 bounded interaction publication ownership and every allocation failure" {
+    const a = std.testing.allocator;
+    const O = core.fields.om31.OM31;
+    const P = @import("worker_protocol.zig");
+    var ch = P.Channel.init();
+    const wire = A.crypto.sha256.equations.WireFor(O).draw(&ch);
+    const bytes = ch.drawSecureFelt();
+    const native = try A.crypto.arith256.trace.Source.init(a, &.{.{ .a = 2, .b = 3, .c = 1, .m = 97, .r_before = 0 }}, 1, 8);
+    var source = R.TruthSource{ .arith256_mod = .{ .source = native } };
+    defer source.deinit();
+    try std.testing.checkAllAllocationFailures(a, witnessAllocationCase, .{ &source, wire, bytes });
+    try std.testing.expectError(error.V3TruthBudgetExceeded, @import("truth_v3_witness.zig").generate(a, &source, wire, bytes, 0));
+    try source.arith256_mod.source.releaseMain();
+    try witnessAllocationCase(a, &source, wire, bytes);
+}
+test "V3 all curve families physical OM proofs with admissible native operands" {
+    const a = std.testing.allocator;
+    const HR = @import("../../curves/roster.zig");
+    const F = @import("../curves_fixture.zig");
+    inline for (std.enums.values(A.crypto.curves.Op)) |op| {
+        if (op == .bn254_fp2_mul) continue;
+        var setup = try HR.TruthSetup.init(a, op, 8);
+        defer setup.deinit();
+        const N = A.crypto.curves.Native(op);
+        const words = F.initialWords(op);
+        var packet: N.Packet = undefined;
+        for (&packet, 0..) |*v, i| v.* = @truncate(words[i / 8] >> @intCast(8 * (i % 8)));
+        var source = try A.crypto.curves.Trace(op).Source.init(a, &.{packet}, 1, 8);
+        a.free(source.fixed);
+        source.fixed = setup.fixed;
+        source.owns_fixed = false;
+        try runV3(.{ .curve = .{ .setup = &setup, .first_id = 1, .calls = 1 } }, .{ .curve = @unionInit(HR.TruthSource, @tagName(op), source) });
+    }
+}
