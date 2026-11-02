@@ -56,10 +56,33 @@ fn rejectMutants(bundle: *C.Bundle, cpus: []const *const R.CpuSetup, truths: []c
     var wrong = expected;
     wrong.final_pc += 4;
     if (bundle.verify(a, cpus, truths, wrong, try Config())) |_| return error.V3FalseEndpointAccepted else |_| {}
-    const original = bundle.cpus[0].claims[0];
-    bundle.cpus[0].claims[0] = original.add(@import("worker_protocol.zig").O.one());
-    defer bundle.cpus[0].claims[0] = original;
-    if (bundle.verify(a, cpus, truths, expected, try Config())) |_| return error.V3FalseGlobalClaimAccepted else |err| std.debug.print("V3_GLOBAL_MUTANT rejected={s}\n", .{@errorName(err)});
+    // Preserve a zero aggregate delta: physical authentication must reject even
+    // when the forged shard claims still sum to the original global claim.
+    {
+        const first = bundle.cpus[0].claims[0];
+        const second = bundle.cpus[1].claims[0];
+        defer bundle.cpus[0].claims[0] = first;
+        defer bundle.cpus[1].claims[0] = second;
+        const one = @import("worker_protocol.zig").O.one();
+        bundle.cpus[0].claims[0] = first.add(one);
+        if (bundle.verify(a, cpus, truths, expected, try Config())) |_| return error.V3FalseGlobalClaimAccepted else |err| std.debug.print("V3_GLOBAL_MUTANT rejected={s}\n", .{@errorName(err)});
+        bundle.cpus[1].claims[0] = second.sub(one);
+        try std.testing.expect(bundle.cpus[0].claims[0].add(bundle.cpus[1].claims[0]).eql(first.add(second)));
+        if (bundle.verify(a, cpus, truths, expected, try Config())) |_| return error.V3BalancedGlobalClaimsAccepted else |err| std.debug.print("V3_BALANCED_GLOBAL_MUTANT rejected={s}\n", .{@errorName(err)});
+    }
+    {
+        std.mem.swap(@TypeOf(bundle.cpus[0]), &bundle.cpus[0], &bundle.cpus[1]);
+        defer std.mem.swap(@TypeOf(bundle.cpus[0]), &bundle.cpus[0], &bundle.cpus[1]);
+        if (bundle.verify(a, cpus, truths, expected, try Config())) |_| return error.V3ReorderedShardsAccepted else |err| std.debug.print("V3_SHARD_ORDER_MUTANT rejected={s}\n", .{@errorName(err)});
+    }
+    if (bundle.truths.len > 0) {
+        const all = bundle.truths;
+        bundle.truths = all[0 .. all.len - 1];
+        defer bundle.truths = all;
+        try std.testing.expectError(error.InvalidWideServicesProofInventory, bundle.verify(a, cpus, truths, expected, try Config()));
+    }
+    // The mutations above must restore borrowed ownership and the valid bundle.
+    try std.testing.expect((try bundle.verify(a, cpus, truths, expected, try Config())).completed);
 }
 test "V3 GKR complete two epoch SHA arith bulk execution freshly closes all global debts with paired CPU" {
     const F = @import("../v3_fixture.zig");

@@ -1,5 +1,19 @@
 # V3 native OM31 truth adapters
 
+## Current integration status
+
+These adapters are now connected to the full services coordinator and fresh
+execution receiver. The parent-integration requirements below describe the
+original component checkpoint; the [delivery ledger](rv64-pr308-pr309-integration-plan.md)
+and [complete-block receipt](../../vectors/reports/rv64-v3-gkr-full-block-20261102/README.md)
+record their completion, including shared manifest challenges and global
+RAM/KIO/Wire closure. Truth-local BYTE claims close inside each provider.
+The block exercises SHA256, arith256 and secp; additional curve families retain
+separate physical proof/fresh-verifier tests. No whole-protocol certificate or
+current-profile recursive root is claimed.
+
+## Historical adapter checkpoint
+
 The adapters prove the existing SHA256, arith256_mod, seven curve/field, and secp row ADD/DOUBLE equations in the native OM31 PCS. They are independently sized truth proofs, without adding their MAIN width to CPU rows. This slice does not claim complete execution acceptance, a block speedup, or whole-protocol128 security.
 
 `services/gkr_local/truth_v3_worker.zig` exposes `NativeTruthWorker` (alias `TruthWorker`) with the same init/initWithAuthority, seal, complete, spillMain/restoreMain and deinit signatures as the earlier truth worker. `native_recorder` and `scheme` are available to the coordinator. Source ownership moves only after successful init. Complete returns the existing `TruthEncoded` type with exactly one authenticated Wire35 claim. BYTE queries close inside each provider; they do not become manifest cancellation debt. Only the appended manifest kind `delegation` is needed; the statement and immutable key bind exact family/op/profile/span/geometry.

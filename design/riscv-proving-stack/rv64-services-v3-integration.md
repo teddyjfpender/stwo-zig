@@ -1,5 +1,15 @@
 # `ethereum_services_v3` integration: SHA-256 + arith256_mod + bulk memory
 
+## Current GKR status
+
+The remaining GKR-admission and native-security gaps listed at the end of this
+original classic-services integration note have since been completed for the
+qualified V3 representations. See the [GKR delivery ledger](rv64-pr308-pr309-integration-plan.md),
+[full-block qualification](../../vectors/reports/rv64-v3-gkr-full-block-20261102/README.md)
+and [V3 bounded security review](rv64-v3-bounded-security-review.md).
+Recursion remains separate. This document's older guest timings and remaining
+gaps describe its original snapshot, not the current GKR execution route.
+
 Branch `codex/rv64-guest-prover-v3-integration` merges the three admitted v3
 prover services into one profile and proves the evmone client end to end.
 Service designs: [SHA-256](rv64-sha256-service.md),

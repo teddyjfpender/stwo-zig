@@ -69,8 +69,8 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype
     // Freeze the original field order rather than hashing an extensible struct.
     inline for (.{ "cpu_log", "alu_log", "alu_tail_log", "binary_log", "binary_tail_log", "shift_log", "shift_tail_log", "jalr_log", "division_log", "omit_empty_division", "multiplication_log", "ls_log", "ls_tail_log", "boundary_log", "initial_log", "terminal_log" }) |name|
         hashValue(&h, @field(setup.materials.geometry, name));
-    // v2 projection only (the route admits nothing else, see v2_scope.zig):
-    // the exact pre-v3 statement encoding, so v2 GKR statements stay byte-identical.
+    // Preserve the exact pre-v3 prefix so unchanged V2 statements stay byte-identical.
+    // Qualified V3 geometry, bridges and calls are domain-separated below.
     hashValue(&h, struct { keccak: ?u32, add: ?u32, double: ?u32 }{ .keccak = setup.bridges.keccak, .add = setup.bridges.add, .double = setup.bridges.double });
     hashValue(&h, struct { base: @TypeOf(request.base), calls: [3]u32 }{ .base = request.base, .calls = request.calls[0..3].* });
     const ids = firstVector(first);
