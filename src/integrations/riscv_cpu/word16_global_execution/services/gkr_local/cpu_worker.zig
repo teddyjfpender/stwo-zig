@@ -86,6 +86,12 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: anytype
         hashValue(&h, request.ls_dword);
         hashValue(&h, ids);
     }
+    // Compact decode changes CPU MAIN, the ROM fixed tuple and AUIPC/JAL
+    // FUNCTION facts. Absent (false) it leaves every older statement byte-identical.
+    if (setup.materials.geometry.cpu_compact_decode) {
+        h.update("RV64-CPU-COMPACT-DECODE-GKR-STATEMENT-1");
+        hashValue(&h, @import("stwo_riscv_frontend").rv64_air.word16_execution.features.compactIdentity());
+    }
     if (setup.bridges.bulk.any() or request.bulk.any()) {
         h.update("RV64-BULK-GKR-V3-STATEMENT-1");
         hashValue(&h, setup.bridges.bulk);

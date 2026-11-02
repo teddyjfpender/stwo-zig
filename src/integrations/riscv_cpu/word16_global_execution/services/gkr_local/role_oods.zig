@@ -38,7 +38,7 @@ pub fn evaluate(self: anytype, point: Point, mask: *const Air.MaskValues, acc: *
     }
     if (comptime local_binding) {
         var projection = B.ProjectionFor(O){ .challenges = &self.data.challenges, .lane_weights = self.data.lane_weights[0..self.data.lane_count], .terms = self.data.instance.terms };
-        self.emitLocalFor(O, fixed[0..shape.fixed], main[0..shape.main], &projection);
+        if (comptime @hasDecl(Component, "emitLocalWithPreviousFor")) self.emitLocalWithPreviousFor(O, fixed[0..shape.fixed], main[0..shape.main], previous[0..shape.main], &projection) else self.emitLocalFor(O, fixed[0..shape.fixed], main[0..shape.main], &projection);
         try projection.finish();
         const local = try A.geometry.localPointFor(O, point, global_log, Geo.logSize(self));
         const anchors = try MP.evalAnchorsFor(O, Geo.logSize(self), local);

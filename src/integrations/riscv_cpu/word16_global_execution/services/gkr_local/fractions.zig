@@ -65,6 +65,27 @@ pub fn cpuModeFor(comptime F: type, fixed: []const F, row: []const F, epoch: F, 
     sink.emit(.byte_pair, [4]F{ row[m.gap8], row[m.gap8 + 1], F.zero(), F.one() }, F.one());
     sink.emit(.byte_pair, [4]F{ row[m.gap8 + 2], F.zero(), F.zero(), F.one() }, F.one());
 }
+/// Compact decode (Geometry.cpu_compact_decode) on top of the byte-pair mode:
+/// the SAME fourteen terms, relations, order and weights as `cpuModeFor(pairs)`,
+/// over the compact tuples of `emitCompactFor`. The only cross-row read is the
+/// ROM pc coordinate `first*initial_pc + (1-first)*felt(previous next)`, so the
+/// row PC chain is definitional; `previous` is the cyclic previous MAIN row and
+/// `initial_pc` is felt(public initial PC). Every coordinate has degree <= 2.
+pub fn cpuCompactFor(comptime F: type, fixed: []const F, row: []const F, previous: []const F, epoch: F, initial_pc: F, sink: anytype) void {
+    const k = X.layout.compact;
+    const U = X.tuples.compact;
+    for (0..3) |slot| {
+        const w = row[k.enabled + slot];
+        sink.emit(.register, U.register(F, fixed, row, slot, false), w);
+        sink.emit(.register, U.register(F, fixed, row, slot, true), w.neg());
+    }
+    sink.emit(.function, U.function(F, row), row[k.function]);
+    sink.emit(.rom, U.rom(F, fixed, row, previous, initial_pc), row[k.active]);
+    sink.emit(.owner, U.owner(F, fixed, row, epoch), row[k.active].sub(row[k.function]));
+    for (0..3) |slot| sink.emit(.range16, [1]F{row[k.gap16 + slot]}, F.one());
+    sink.emit(.byte_pair, [4]F{ row[k.gap8], row[k.gap8 + 1], F.zero(), F.one() }, F.one());
+    sink.emit(.byte_pair, [4]F{ row[k.gap8 + 2], F.zero(), F.zero(), F.one() }, F.one());
+}
 pub fn andTableModeFor(comptime F: type, fixed: []const F, main: []const F, pairs: bool, sink: anytype) void {
     andTableFor(F, fixed, main, sink);
     if (pairs) sink.emit(.byte_pair, [4]F{ fixed[0], fixed[1], F.zero(), F.one() }, main[1].neg());

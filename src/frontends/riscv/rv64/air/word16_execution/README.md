@@ -235,9 +235,32 @@ by the fourth finite difference over random dense rows.
 Scope. Only the `ethereum_services_v3` route admits the flag
 (`main.zig admitProfile`), where it is the default (`CpuLayout.forProfile`;
 `--no-compact-decode` opts a producer out). `ethereum/main.zig` makes the
-capture program compact before capture. The local GKR lane fails closed (`v2_scope`
-refuses the flag); the MAIN-only authority, reached only through that lane,
-keeps the legacy shape. A
+capture program compact before capture. The V2 local GKR lane fails closed
+(`v2_scope` refuses the flag).
+
+V3 local GKR route. The services GKR lane admits the flag on top of byte pairs
+(`gkr_local/service_scope.zig`) and defaults to it (`CpuLayout.forGkrProfile`,
+`ethereum/gkr_main.zig` makes the capture program compact before capture).
+The MAIN-only authority has a separate role `.cpu_compact` (37 columns,
+`emitCompactMainFor`, previous-row masks `next[2]` and `active`), and
+`gkr_local/fractions.zig cpuCompactFor` emits the SAME fourteen terms,
+relations, order and weights as the paired emitter over the compact tuples
+above. Its only cross-row read is the ROM pc coordinate; the native GKR
+input (`pair_projection.emitCpuMetadata`) reads the cyclic previous capture
+row and `first = (row == 0)`, and the authenticated terminal binding
+(`role_domain`/`role_oods`, `Component.emitLocalWithPreviousFor`) reads the
+same coordinate from previous-row MAIN masks. The binding constraint
+`prefix - prefix' - Eq*projection + target` stays degree 3 because every
+compact tuple coordinate has degree <= 2 (tested by finite differences with
+a live previous row). The GKR worker statement mixes `compactIdentity()`
+only when the flag is set, so older statements are byte-identical. Lookup
+accounting (`source_bounds`) is unchanged except for the 37-column MAIN and
+the compact residual count: same relations, arities and slots per row. Gates:
+`cpu_compact_role_test.zig` (honest proof; a forged static `next` that keeps
+every MAIN-only residual zero, and target/Eq/prefix tampering, are each
+rejected by a fresh receiver) and `v3_execution_test.zig` (complete
+two-shard execution closes every global debt; a paired-layout receiver, a
+wrong initial PC and a wrong global claim are rejected). A
 capture is bound to its layout. `Prepared.takeCpu` refuses to rebind a capture
 to a program owner of the other layout, because the AUIPC/JAL facts differ.
 
