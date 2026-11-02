@@ -141,3 +141,23 @@ Full receipts under `vectors/reports/rv64-deferred-local-binding-20261102/` reco
 actual96-byte overlap, all completed children under their admitted hard caps,
 profile, frozen binary, resources, process usage and every authoritative hash.
 Whole128 and accepting OM/GKR recursion remain independently unqualified.
+
+## Schedule observation and independent ISA qualification
+
+The same frozen CLI, K18 geometry, resource caps and deferred mode ran under
+three6-worker lanes. All33 artifacts match two8-worker lanes and the fresh
+complete receiver accepts. Three lanes measured230.39s proving (92.19s stage
+one,138.01s stage two), versus227.20s (89.66s,137.36s) with two lanes. Peak RSS
+was37.92GB versus38.03GB. One pair establishes no schedule speedup; the existing
+2x8 selection remains. It does not justify a larger-memory-cap production policy.
+
+The optional producer flag is also exposed by the existing pinned OM Sail
+qualification adapter, without changing its independently expected image or
+receiver. Both profiles compare every one of1,032,240 retirements across12,903
+cases/all63 ordinary opcodes before advice construction. All four authoritative
+artifacts are byte-identical to the already accepted streamed80 Sail runs.
+Fresh receivers accept and wrong endpoints/cross-profile reception reject.
+Control proving is2.829s and candidate3.654s in single functional observations,
+not a causal performance A/B. See `vectors/reports/rv64-deferred-sail-20261102/`.
+Previously Rust-replayed numerical contexts retain identical child proof bytes;
+no new Rust physical PCS/whole-execution qualification is implied.
