@@ -1,0 +1,20 @@
+GKR_TREE_POLICY stride=1 numerical_requested_peak=12350314816 including_binding_peak=12350314816 raw_input_bytes=4446104832 tight_admission=true admitted_peak_bytes=12849279488 allocator_limit_bytes=12849279488 streamed_bottom=false planned_input_reserve_bytes=4446104832
+GKR_TREE_POLICY stride=1 numerical_requested_peak=12615739328 including_binding_peak=12615739328 raw_input_bytes=4541656320 tight_admission=true admitted_peak_bytes=13125427712 allocator_limit_bytes=13125427712 streamed_bottom=false planned_input_reserve_bytes=4541656320
+       19.00 real       175.19 user        13.61 sys
+         30572756992  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             5165771  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+               12090  voluntary context switches
+              119416  involuntary context switches
+       2134719780065  instructions retired
+        710207124002  cycles elapsed
+         30586231248  peak memory footprint
