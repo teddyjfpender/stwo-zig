@@ -25,8 +25,8 @@ pub fn terms(role: Geometry.Role) u32 {
 }
 pub fn termsForSetup(setup: *const R.CpuSetup, role: Geometry.Role) u32 {
     if (setup.materials.geometry.cpu_u8_pairs) switch (role) {
-        .cpu => return 14,
-        .and_table => return 2,
+        .cpu => return @import("fractions.zig").cpuTerms(true),
+        .and_table => return @import("fractions.zig").andTableTerms(true),
         else => {},
     };
     return terms(role);

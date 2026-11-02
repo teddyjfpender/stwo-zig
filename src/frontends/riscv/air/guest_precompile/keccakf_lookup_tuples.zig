@@ -55,6 +55,9 @@ pub fn xor5Accessors(comptime S: type, state: anytype, parity: anytype, event: u
 /// bit at `28^5`; tuple[1..6] are the five next-state cells `x = 0..4`.
 /// `scale(value, constant)` multiplies by a small canonical constant.
 pub fn throughputChi(comptime S: type, comptime scale: anytype, state: []const S, parity: []const S, next: []const S, round_selectors: []const S, event: usize) [6]S {
+    return throughputChiAccessors(S, scale, SliceCells(S){ .values = state }, SliceCells(S){ .values = parity }, SliceCells(S){ .values = next }, round_selectors, event);
+}
+pub fn throughputChiAccessors(comptime S: type, comptime scale: anytype, state: anytype, parity: anytype, next: anytype, round_selectors: []const S, event: usize) [6]S {
     const y = event / authority.lane_bits;
     const z = event % authority.lane_bits;
     var tuple: [6]S = undefined;
@@ -65,12 +68,12 @@ pub fn throughputChi(comptime S: type, comptime scale: anytype, state: []const S
         const source_y = x;
         const rotation = authority.rho_offsets[source_x][source_y];
         const source_z = (z + authority.lane_bits - rotation) % authority.lane_bits;
-        const theta = state[cell(source_x, source_y, source_z)]
-            .add(parity[((source_x + 4) % 5) * authority.lane_bits + source_z])
-            .add(parity[((source_x + 1) % 5) * authority.lane_bits + (source_z + 63) % 64]);
+        const theta = state.at(cell(source_x, source_y, source_z))
+            .add(parity.at(((source_x + 4) % 5) * authority.lane_bits + source_z))
+            .add(parity.at(((source_x + 1) % 5) * authority.lane_bits + (source_z + 63) % 64));
         packed_value = packed_value.add(scale(theta, power));
         power *= authority.geometry.chi_input_radix;
-        tuple[1 + x] = next[cell(x, y, z)];
+        tuple[1 + x] = next.at(cell(x, y, z));
     }
     if (y == 0) for (0..authority.round_count) |round| {
         if (((authority.round_constants[round] >> @intCast(z)) & 1) != 0) packed_value = packed_value.add(scale(round_selectors[round], authority.geometry.chi_span));
@@ -81,6 +84,9 @@ pub fn throughputChi(comptime S: type, comptime scale: anytype, state: []const S
 /// Throughput xor5 row: three column sums then their three parities. The
 /// final event's positions beyond 320 are the all-zero table entry.
 pub fn throughputXor5(comptime S: type, state: []const S, parity: []const S, event: usize) [6]S {
+    return throughputXor5Accessors(S, SliceCells(S){ .values = state }, SliceCells(S){ .values = parity }, event);
+}
+pub fn throughputXor5Accessors(comptime S: type, state: anytype, parity: anytype, event: usize) [6]S {
     var tuple: [6]S = @splat(S.zero());
     for (0..authority.geometry.xor5_batch) |offset| {
         const position = event * authority.geometry.xor5_batch + offset;
@@ -88,9 +94,9 @@ pub fn throughputXor5(comptime S: type, state: []const S, parity: []const S, eve
         const x = position / authority.lane_bits;
         const z = position % authority.lane_bits;
         var sum = S.zero();
-        for (0..5) |y| sum = sum.add(state[cell(x, y, z)]);
+        for (0..5) |y| sum = sum.add(state.at(cell(x, y, z)));
         tuple[offset] = sum;
-        tuple[authority.geometry.xor5_batch + offset] = parity[position];
+        tuple[authority.geometry.xor5_batch + offset] = parity.at(position);
     }
     return tuple;
 }

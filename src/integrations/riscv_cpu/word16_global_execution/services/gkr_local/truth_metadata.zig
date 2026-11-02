@@ -91,6 +91,14 @@ pub const Provider = struct {
                         weight = weight.add(v.*);
                     }
                     weight = weight.mul(M.fromCanonical(row.flags & 1)).neg();
+                    if (instance.keccak_policy.throughputTables()) {
+                        const chi_count = instance.keccak_policy.chiLookups();
+                        for (first_query..end) |event| {
+                            if (event < chi_count) sink.emitBase(.chi, tuples.throughputChiAccessors(M, K.equations.ScaleFor(M).apply, StateCells{ .row = row }, ParityCells{ .row = row }, StateCells{ .row = next }, &round, event), weight)
+                            else sink.emitBase(.xor5, tuples.throughputXor5Accessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, event - chi_count), weight);
+                        }
+                        return;
+                    }
                     const chi_end = @min(end, K.layout.STATE);
                     if (first_query < chi_end) for (first_query..chi_end) |event| sink.emitBase(.chi, tuples.chiAccessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, StateCells{ .row = next }, &round, event), weight);
                     const xor_first = @max(first_query, K.layout.STATE) - K.layout.STATE;

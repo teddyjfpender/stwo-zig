@@ -55,13 +55,16 @@ pub fn inverseCount(role: Frame.Role) usize {
         else => 0,
     };
 }
+pub fn inverseCountFor(instance: Frame.Instance) usize {
+    return if (instance.role == .keccak) instance.keccak_policy.ioLookups() else inverseCount(instance.role);
+}
 pub fn generate(allocator: @import("std").mem.Allocator, metadata: *const Metadata.Provider, role: Frame.Role, challenges: *const Challenges, budget: usize) !Witness {
-    const count = inverseCount(role);
+    const count = if (role == .keccak and metadata.source.* == .keccak) metadata.source.keccak.permutation.policy.ioLookups() else inverseCount(role);
     if (count == 0) return error.InvalidTruthGlobalRole;
     const log = switch (metadata.source.*) {
         .keccak => |s| if (role == .keccak) s.permutation.log_size else return error.InvalidTruthGlobalRole,
         .secp => |s| if (role == .product) s.batch.product.log_size else if (role == .linear) s.batch.linear.log_size else return error.InvalidTruthGlobalRole,
         else => return error.GkrV3ServiceUnsupported,
     };
-    return Witness.init(allocator, log, &.{.{ .inverses = @intCast(count) }}, Provider{ .metadata = metadata, .challenges = challenges, .role = role }, budget);
+    return Witness.initTruth(allocator, log, &.{.{ .inverses = @intCast(count) }}, Provider{ .metadata = metadata, .challenges = challenges, .role = role }, budget);
 }

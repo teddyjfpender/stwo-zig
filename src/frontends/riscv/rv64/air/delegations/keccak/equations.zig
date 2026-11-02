@@ -196,17 +196,21 @@ pub const INV8: u32 = 1 << 28;
 /// output-plane selector fixed[27] in both groups. Every element is affine
 /// in the committed columns, so IO denominators stay linear.
 pub fn ioTupleR27For(comptime F: type, row: RowFor(F), entry: usize) [L.IO_ARITY]F {
+    const Cells = struct { values: []const F, pub fn at(self: @This(), i: usize) F { return self.values[i]; } };
+    return ioTupleR27Accessors(F, Cells{ .values = row.main }, Cells{ .values = row.state_minus_one }, row.fixed, entry);
+}
+pub fn ioTupleR27Accessors(comptime F: type, main: anytype, previous: anytype, fixed: []const F, entry: usize) [L.IO_ARITY]F {
     const group_b = entry >= L.IO_LANES;
     const lane = entry % L.IO_LANES;
     var tuple: [L.IO_ARITY]F = undefined;
-    tuple[0] = if (group_b) row.main[L.BASE_ID].add(F.one()) else row.main[L.BASE_ID];
-    tuple[1] = row.fixed[27];
+    tuple[0] = if (group_b) main.at(L.BASE_ID).add(F.one()) else main.at(L.BASE_ID);
+    tuple[1] = fixed[27];
     tuple[2] = constantFor(F, @intCast(lane));
     for (0..8) |byte| {
         var value = F.zero();
         for (0..8) |bit| {
             const cell = 64 * lane + 8 * byte + bit;
-            const digit = if (group_b) row.main[cell].add(row.state_minus_one[cell]).sub(F.one()) else F.one().sub(row.main[cell]);
+            const digit = if (group_b) main.at(cell).add(previous.at(cell)).sub(F.one()) else F.one().sub(main.at(cell));
             value = value.add(digit.mul(constantFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
         }
         tuple[3 + byte] = if (group_b) value.mul(constantFor(F, INV8)) else value;
@@ -216,8 +220,12 @@ pub fn ioTupleR27For(comptime F: type, row: RowFor(F), entry: usize) [L.IO_ARITY
 /// Weight of IO entry `entry`: group A on the two plane rows of an active
 /// slot, group B on the v0 row and the output-plane row of a slot with B.
 pub fn ioActiveR27For(comptime F: type, row: RowFor(F), entry: usize) F {
-    if (entry < L.IO_LANES) return row.main[L.ACTIVE_A].mul(row.fixed[0].add(row.fixed[27]));
-    return row.main[L.ACTIVE_B].mul(row.fixed[2].add(row.fixed[27]));
+    const Cells = struct { values: []const F, pub fn at(self: @This(), i: usize) F { return self.values[i]; } };
+    return ioActiveR27Accessors(F, Cells{ .values = row.main }, row.fixed, entry);
+}
+pub fn ioActiveR27Accessors(comptime F: type, main: anytype, fixed: []const F, entry: usize) F {
+    if (entry < L.IO_LANES) return main.at(L.ACTIVE_A).mul(fixed[0].add(fixed[27]));
+    return main.at(L.ACTIVE_B).mul(fixed[2].add(fixed[27]));
 }
 /// Direct equations of the 27-row slot. Header, booleanity of the two plane
 /// rows, parity-zero and padding equations are those of `emitDirectFor`; the
