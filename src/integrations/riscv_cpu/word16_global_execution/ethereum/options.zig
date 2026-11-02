@@ -20,6 +20,9 @@ pub const Options = struct {
     park_retained_main: bool = false,
     prefetch_main_bytes: usize = 0,
     prefetch_main_set: bool = false,
+    /// Producer planning only: keep every LD/SD in the LS32 instances instead
+    /// of the v3 LS-D64 component (the receiver admits either declared shape).
+    no_ls_dword: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -71,6 +74,9 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--keep-capture-cache")) {
                 if (out.keep_capture_cache) return error.DuplicateOperationalOption;
                 out.keep_capture_cache = true;
+            } else if (std.mem.eql(u8, arg, "--no-ls-dword")) {
+                if (out.no_ls_dword) return error.DuplicateOperationalOption;
+                out.no_ls_dword = true;
             } else if (std.mem.eql(u8, arg, "--keep-fixed-witness")) {
                 if (out.keep_fixed_witness) return error.DuplicateOperationalOption;
                 out.keep_fixed_witness = true;
@@ -98,7 +104,7 @@ pub const Options = struct {
         return policy;
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {

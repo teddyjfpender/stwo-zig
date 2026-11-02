@@ -61,7 +61,8 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
         calls[@intFromEnum(ST.Family.sha256)] = captured.advice.sha256[i].len;
         calls[@intFromEnum(ST.Family.arith256_mod)] = captured.advice.arith256_mod[i].len;
         for (captured.advice.curves[i], ST.FIRST_CURVE..) |c, k| calls[k] = c.len;
-        out.* = try Roles.build(setup, native, @intCast(captured.advice.events[i].len), if (i == 0) captured.advice.initial.len else 0, if (i + 1 == keys.cpus.len) captured.advice.terminal.len else 0, calls, captured.advice.bulk[i].counts(), captured.advice.sponge[i].counts());
+        const dword: u32 = if (setup.bridges.ls_dword != null) @import("../services/pipeline.zig").dwordCount(captured.advice.events[i]) else 0;
+        out.* = try Roles.build(setup, native, @intCast(captured.advice.events[i].len - dword), dword, if (i == 0) captured.advice.initial.len else 0, if (i + 1 == keys.cpus.len) captured.advice.terminal.len else 0, calls, captured.advice.bulk[i].counts(), captured.advice.sponge[i].counts());
         for (0..3) |tree| {
             var cells: u64 = 0;
             for (out.*) |role| cells = try std.math.add(u64, cells, role.native_cells[tree]);

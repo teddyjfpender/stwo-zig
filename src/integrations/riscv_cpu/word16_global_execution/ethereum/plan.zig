@@ -18,19 +18,22 @@ pub fn ladder(count: usize, reserve: u32) !Ladder {
     return .{ .head = head, .tail = tail };
 }
 /// CPU AIR layout options chosen by the producer route. Every option is part of
-/// `Geometry`, so it is mixed into each CPU transcript and published in the
-/// declaration; the receiver rebuilds keys from the declared geometry.
+/// the declaration (`Geometry` or the LS-D64 bridge logs), so it is mixed into
+/// each CPU transcript and published; the receiver rebuilds keys from it.
 pub const CpuLayout = struct {
     /// Fused-tail CPU interaction (40 -> 36 columns, same LogUp statement).
     fused_tail: bool = false,
     /// Byte-pair CPU lookups on top of the fused tail (36 -> 32 columns).
     u8_pairs: bool = false,
+    /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
+    /// instances are sized on the remainder.
+    ls_dword: bool = false,
     /// Default layout for a profile route. Only the admitted
-    /// `ethereum_services_v3` route defaults to the fused tail; every older
-    /// route keeps its historical layout and bundle bytes.
+    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs and
+    /// LS-D64; every older route keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
         const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3 };
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
@@ -39,7 +42,9 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
     const boundary = try Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len));
     for (captured.native.items, out, 0..) |n, *d, i| {
         var g = try n.geometryOmittingEmptyDivision();
-        const ls = try ladder(captured.advice.events[i].len, 1);
+        const events = captured.advice.events[i];
+        const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
+        const ls = try ladder(events.len - dword, 1);
         g.ls_log = ls.head;
         g.ls_tail_log = ls.tail;
         const alu = try ladder(n.alu.facts.len, 0);
@@ -57,6 +62,12 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.cpu_fused_tail = layout.fused_tail;
         g.cpu_u8_pairs = layout.u8_pairs;
         d.* = .{ .geometry = g, .bridges = .{} };
+        // The same two-instance ladder as LS32 (one inactive row per instance).
+        if (dword != 0) {
+            const dl = try ladder(dword, 1);
+            d.bridges.ls_dword = dl.head;
+            d.bridges.ls_dword_tail = dl.tail;
+        }
         const k = captured.advice.keccak[i].len;
         const add = captured.advice.secp[i][0].len;
         const double = captured.advice.secp[i][1].len;

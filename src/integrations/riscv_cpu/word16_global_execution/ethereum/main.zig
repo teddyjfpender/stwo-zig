@@ -81,7 +81,9 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    const cpu_declarations = try Plan.cpus(a, &captured, Plan.CpuLayout.forProfile(config.value.execution_profile));
+    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
+    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
+    const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
     const truth_declarations = try Plan.truthsForProfile(a, &captured, config.value.execution_profile == .ethereum_services_v3);
     defer a.free(truth_declarations);
@@ -133,6 +135,7 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     for (truths) |d| if (d.family == .arith256_mod) return error.UnadmittedArith256Service;
     for (cpus) |d| if (d.bridges.bulk.any()) return error.UnadmittedBulkMemoryService;
     for (cpus) |d| if (d.bridges.sponge.any()) return error.UnadmittedKeccakSpongeService;
+    for (cpus) |d| if (d.bridges.ls_dword != null or d.bridges.ls_dword_tail != null) return error.UnadmittedLsDwordComponent;
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });

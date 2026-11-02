@@ -32,15 +32,18 @@ pub const CompactRequest = struct {
     bulk: T.BulkCounts = .{},
     /// Keccak-sponge rows and first IO11 ID (v3); omitted from JSON when zero.
     sponge: T.SpongeCounts = .{},
+    /// LS-D64 rows (v3); omitted from JSON when zero. `ls_count` is then the
+    /// core LS32 share.
+    ls_dword: u32 = 0,
     pub fn from(r: P.Request) @This() {
-        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3], .arith256_mod_calls = r.calls[4], .curve_calls = r.calls[T.FIRST_CURVE..].*, .bulk = r.bulk, .sponge = r.sponge };
+        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3], .arith256_mod_calls = r.calls[4], .curve_calls = r.calls[T.FIRST_CURVE..].*, .bulk = r.bulk, .sponge = r.sponge, .ls_dword = r.ls_dword };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curve_calls) |c| if (c != 0) return true;
         return false;
     }
     pub fn expand(self: @This(), initial: []const Cell, terminal: []const Cell) P.Request {
-        return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all(), .bulk = self.bulk, .sponge = self.sponge };
+        return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all(), .bulk = self.bulk, .sponge = self.sponge, .ls_dword = self.ls_dword };
     }
     pub fn all(self: @This()) [T.FAMILIES]u32 {
         return self.calls ++ [2]u32{ self.sha256_calls, self.arith256_mod_calls } ++ self.curve_calls;
@@ -63,7 +66,7 @@ pub const CompactRequest = struct {
                     try jws.objectField(field.name);
                     try jws.write(self.curve_calls);
                 }
-            } else if (comptime !std.mem.eql(u8, field.name, "sha256_calls") and !std.mem.eql(u8, field.name, "arith256_mod_calls")) {
+            } else if (comptime !std.mem.eql(u8, field.name, "sha256_calls") and !std.mem.eql(u8, field.name, "arith256_mod_calls") and !std.mem.eql(u8, field.name, "ls_dword")) {
                 try jws.objectField(field.name);
                 try jws.write(@field(self, field.name));
             } else if (@field(self, field.name) != 0) {
@@ -92,16 +95,19 @@ pub const WireClaims = struct {
     sponge: ?[2]T.SpongeClaims = null,
     /// JUMPDEST claims (jdesc, jscan, jtab); present iff the roster has them.
     jumpdest: ?[3]T.BulkClaims = null,
+    /// LS-D64 head/tail claims; each present iff that instance is.
+    ls_dword: ?T.DwordClaims = null,
+    ls_dword_tail: ?T.DwordClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
         var curves: [T.CURVES]?T.ExtraClaims = @splat(null);
         for (&curves, T.FIRST_CURVE..) |*out, k| out.* = if (bridges.at(@enumFromInt(k)) != null) c.extras[k] else null;
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..T.BULK_EXT].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .jumpdest = if (bridges.bulk.jump()) c.bulk[T.BULK_EXT..].* else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..T.BULK_EXT].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .jumpdest = if (bridges.bulk.jump()) c.bulk[T.BULK_EXT..].* else null, .ls_dword = if (bridges.ls_dword != null) c.ls_dword[0] else null, .ls_dword_tail = if (bridges.ls_dword_tail != null) c.ls_dword[1] else null };
     }
     fn expand(self: @This()) E.CpuClaims {
         var extras: [T.FAMILIES]T.ExtraClaims = undefined;
         extras[0..5].* = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() };
         for (extras[T.FIRST_CURVE..], self.curves) |*out, c| out.* = c orelse T.ExtraClaims.zero();
-        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()) ++ (self.jumpdest orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
+        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()) ++ (self.jumpdest orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()), .ls_dword = .{ self.ls_dword orelse T.DwordClaims.zero(), self.ls_dword_tail orelse T.DwordClaims.zero() } };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curves) |c| if (c != null) return true;
@@ -141,6 +147,14 @@ pub const WireClaims = struct {
             try jws.objectField("jumpdest");
             try jws.write(b);
         }
+        if (self.ls_dword) |b| {
+            try jws.objectField("ls_dword");
+            try jws.write(b);
+        }
+        if (self.ls_dword_tail) |b| {
+            try jws.objectField("ls_dword_tail");
+            try jws.write(b);
+        }
         try jws.endObject();
     }
 };
@@ -148,7 +162,7 @@ fn zeroBulk() [T.BULK_BASE]T.BulkClaims {
     return @splat(T.BulkClaims.zero());
 }
 fn serviceCalls(r: CompactRequest) u64 {
-    var n: u64 = r.bulk.ecalls() + r.sponge.calls + r.ls_count;
+    var n: u64 = r.bulk.ecalls() + r.sponge.calls + r.ls_count + r.ls_dword;
     for (r.all()) |c| n += c;
     return n;
 }
@@ -241,6 +255,8 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         if ((cpu.claims.jumpdest != null) != cpu.declaration.bridges.bulk.jump()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk_ext != null) != cpu.declaration.bridges.bulk.anyExtension()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.ls_dword != null) != (cpu.declaration.bridges.ls_dword != null)) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.ls_dword_tail != null) != (cpu.declaration.bridges.ls_dword_tail != null)) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;
         const claims = cpu.claims.expand();
         try claims.canonical();
@@ -251,6 +267,9 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
         for (T.sponge_kinds, claims.sponge) |kind, c| if (cpu.declaration.bridges.sponge.at(kind) == null) {
+            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
+        };
+        for (claims.ls_dword, 0..) |c, k| if (cpu.declaration.bridges.dwordLog(k) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
     }
@@ -325,9 +344,16 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
             mass8 = try std.math.add(u64, mass8, @as(u64, A.crypto.keccak_sponge.layout.range8Count(kind)) << @intCast(l));
         } else if (cpu.request.sponge.rows(kind) != 0) return error.InvalidServicesWireRequest;
         sponge_perms = try std.math.add(u64, sponge_perms, cpu.request.sponge.perms);
+        // LS-D64 geometry/mass: the same admission the receiver repeats in P.admit.
+        _ = T.dwordCounts(cpu.declaration.bridges, cpu.request.ls_dword) catch return error.InvalidServicesWireRequest;
+        for (0..T.DWORD_INSTANCES) |k| if (cpu.declaration.bridges.dwordLog(k)) |l| {
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(l));
+            mass16 = try std.math.add(u64, mass16, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U16.len) << @intCast(l));
+            mass8 = try std.math.add(u64, mass8, @as(u64, A.memory.load_store_dword.layout.LOGICAL_U8.len) << @intCast(l));
+        };
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
         ram = try std.math.add(u64, ram, 58 * @as(u64, cpu.request.sponge.calls) + 36 * @as(u64, cpu.request.sponge.perms));
-        ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
+        ram = try std.math.add(u64, ram, 2 * (@as(u64, cpu.request.ls_count) + cpu.request.ls_dword));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * calls[k]);
         try P.bulkCounts(cpu.request.bulk);
         ram = try std.math.add(u64, ram, cpu.request.bulk.ram());

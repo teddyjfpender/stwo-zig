@@ -47,6 +47,15 @@ pub const Logs = struct {
     /// Admitted Keccak-256 sponge bridges (v3), a separate block after bulk.
     /// The sponge uses the Keccak IO11 bus, so it takes no Family ordinal.
     sponge: Sponge = .{},
+    /// LS-D64 aligned LD/SD fast row (v3), a separate block after the sponge.
+    /// Present: every LD/SD of this CPU proof is consumed by it (head, then
+    /// the optional tail instance), every other load/store by the core LS32
+    /// instances. Absent: v2/v3 bytes unchanged.
+    ls_dword: ?u32 = null,
+    ls_dword_tail: ?u32 = null,
+    pub fn dwordLog(self: @This(), k: usize) ?u32 {
+        return if (k == 0) self.ls_dword else self.ls_dword_tail;
+    }
     pub fn at(self: @This(), family: Family) ?u32 {
         return switch (family) {
             .keccak => self.keccak,
@@ -88,6 +97,14 @@ pub const Logs = struct {
         if (self.sponge.any()) {
             try jws.objectField("sponge");
             try jws.write(self.sponge);
+        }
+        if (self.ls_dword) |log| {
+            try jws.objectField("ls_dword");
+            try jws.write(log);
+        }
+        if (self.ls_dword_tail) |log| {
+            try jws.objectField("ls_dword_tail");
+            try jws.write(log);
         }
         try jws.endObject();
     }
@@ -298,4 +315,34 @@ pub const SpongeCounts = struct {
 pub const SpongeClaims = A.crypto.keccak_sponge.types.Claims;
 pub fn spongeWidths(kind: SpongeKind) [3]usize {
     return A.crypto.keccak_sponge.layout.widths(kind);
+}
+
+/// LS-D64 physical claims: RAM14, OWNER19, U16 and U8 shares (no selection).
+pub const DwordClaims = A.memory.closed_ram.types.Claims;
+pub const DWORD_MAX_LOG: u32 = 22;
+pub const DWORD_INSTANCES = 2;
+/// Canonical head/tail split of the LS-D64 rows, as for LS32: the head takes
+/// up to 2^log - 1 rows (each present instance keeps an inactive terminal
+/// row); a tail is present iff it has rows. Receiver-derived from the total.
+pub fn dwordCounts(logs: Logs, total: u32) ![DWORD_INSTANCES]u32 {
+    const head_log = logs.ls_dword orelse {
+        if (total != 0 or logs.ls_dword_tail != null) return error.InvalidCombinedBridgePresence;
+        return .{ 0, 0 };
+    };
+    if (total == 0) return error.InvalidCombinedBridgePresence;
+    for ([_]?u32{ logs.ls_dword, logs.ls_dword_tail }) |optional| if (optional) |l| if (l < 5 or l > DWORD_MAX_LOG) return error.InvalidCombinedServiceCount;
+    const head: u32 = @intCast(@min(total, (@as(u64, 1) << @intCast(head_log)) - 1));
+    const tail = total - head;
+    if (logs.ls_dword_tail) |l| {
+        if (tail == 0 or tail >= (@as(u64, 1) << @intCast(l))) return error.InvalidCombinedServiceCount;
+    } else if (tail != 0) return error.InvalidCombinedServiceCount;
+    return .{ head, tail };
+}
+pub fn dwordWidths() [3]usize {
+    return A.memory.load_store_dword.layout.widths();
+}
+/// The routing rule shared by prover and receiver accounting: with an LS-D64
+/// component present, exactly the LD/SD events are its rows.
+pub fn isDwordEvent(e: A.memory.load_store_v2.native.Event) bool {
+    return A.memory.load_store_dword.source.admits(e);
 }
