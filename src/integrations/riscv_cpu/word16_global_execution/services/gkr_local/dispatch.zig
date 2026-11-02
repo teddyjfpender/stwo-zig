@@ -5,6 +5,8 @@ const Frame = @import("frame.zig");
 const Fns = @import("fractions.zig");
 pub fn emitFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: []const F, epoch: F, boundary: A.word16_cpu.boundary.PublicFor(E.ConstFor(F)), sink: anytype) !void {
     switch (origin) {
+        .dword => @import("dword_projection.zig").emitLocalFor(F, main, sink),
+        .sponge => return error.MissingSpongeFirstId,
         .bulk => |kind| switch (kind) {
             inline else => |k| @import("bulk_projection.zig").emitLocalFor(F, k, fixed, main, sink),
         },

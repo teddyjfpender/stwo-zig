@@ -16,11 +16,11 @@ fn lift(values: anytype) [values.len]O {
 }
 const Sink = struct {
     shared: *const Manifest.Shared,
-    ram: [18]O = undefined,
-    ram_weights: [18]M = undefined,
+    ram: [58]O = undefined,
+    ram_weights: [58]M = undefined,
     ram_count: usize = 0,
-    other: [2]O = undefined,
-    other_weights: [2]M = undefined,
+    other: [50]O = undefined,
+    other_weights: [50]M = undefined,
     other_count: usize = 0,
     invalid: bool = false,
     fn denominator(ch: anytype, tuple: anytype) O {
@@ -41,7 +41,7 @@ const Sink = struct {
         }
         switch (relation) {
             .ram => {
-                if (self.ram_count >= 18) {
+                if (self.ram_count >= 58) {
                     self.invalid = true;
                     return;
                 }
@@ -50,7 +50,7 @@ const Sink = struct {
                 self.ram_count += 1;
             },
             .kio => {
-                if (self.other_count >= 2) {
+                if (self.other_count >= 50) {
                     self.invalid = true;
                     return;
                 }
@@ -59,7 +59,7 @@ const Sink = struct {
                 self.other_count += 1;
             },
             .wire => {
-                if (self.other_count >= 2) {
+                if (self.other_count >= 50) {
                     self.invalid = true;
                     return;
                 }
@@ -90,6 +90,9 @@ const Sink = struct {
 pub fn groups(origin: Frame.Origin) ![]const Classic.Group {
     const l = G.layout(origin);
     if (l.ram_queries == 0) return error.MissingWideGlobalRole;
+    if (origin == .sponge) return switch (origin.sponge) {
+        inline else => |kind| &.{ .{ .inverses = @intCast((@import("sponge_projection.zig").ramTerms(kind) + 1) / 2) }, .{ .inverses = @intCast((@import("sponge_projection.zig").kioTerms(kind) + 1) / 2) } },
+    };
     return if (origin == .bulk) switch (origin.bulk) {
         inline else => |kind| if (@import("bulk_projection.zig").ramTerms(kind) == 0) error.MissingWideGlobalRole else &.{.{ .inverses = comptime @as(u16, @intCast((@import("bulk_projection.zig").ramTerms(kind) + 1) / 2)) }},
     } else if (l.other_queries == 0) &.{.{ .inverses = 1 }} else if (l.ram_queries == 2) &.{ .{ .inverses = 1 }, .{ .inverses = 1 } } else &.{ .{ .inverses = 4 }, .{ .inverses = 1 } };
@@ -108,6 +111,19 @@ pub const Provider = struct {
         if (self.log_size < 5 or self.log_size > 22 or logical >= n or denominators.len != (l.ram_queries + 1) / 2 + (l.other_queries + 1) / 2 or numerators.len != denominators.len) return error.InvalidWideGlobalMetadata;
         var sink = Sink{ .shared = &self.shared };
         switch (self.origin) {
+            .dword => |index| {
+                const src = &(self.source.ls_dword[index] orelse return error.MissingLocalGkrBridge);
+                if (src.log_size != self.log_size or src.metadata.len != n) return error.InvalidWideGlobalMetadata;
+                @import("dword_projection.zig").emitGlobalMetadata(src.metadata[logical], &sink);
+            },
+            .sponge => |kind| switch (kind) {
+                inline else => |k| {
+                    const src = &(self.source.sponge[@intFromEnum(k)] orelse return error.MissingLocalGkrBridge);
+                    if (src.kind != k or src.log_size != self.log_size) return error.InvalidWideGlobalMetadata;
+                    const fixed = [_]O{ O.fromBase(M.fromCanonical(@intCast(logical))), O.fromBase(M.fromCanonical(@intFromBool(logical == 0))), O.fromBase(M.fromCanonical(@intFromBool(logical + 1 == n))) };
+                    @import("sponge_projection.zig").emitGlobalFor(O, k, &fixed, &lift(src.plan.row(k, logical, src.first_id)), src.first_id, &sink);
+                },
+            },
             .bulk => |kind| switch (kind) {
                 inline else => |k| {
                     const src = &(self.source.bulk[@intFromEnum(k)] orelse return error.MissingLocalGkrBridge);
@@ -174,9 +190,17 @@ pub const Provider = struct {
                 numerators[at] = .{ .secure = sink.ram[first + 1].mulM31(sink.ram_weights[first]).add(sink.ram[first].mulM31(sink.ram_weights[first + 1])) };
             }
         }
-        if (l.other_queries != 0) {
-            denominators[at] = sink.other[0].mul(sink.other[1]);
-            numerators[at] = .{ .secure = sink.other[1].mulM31(sink.other_weights[0]).add(sink.other[0].mulM31(sink.other_weights[1])) };
+        var other_at: usize = 0;
+        while (other_at < l.other_queries) : (other_at += 2) {
+            const first = other_at;
+            if (first + 1 == l.other_queries) {
+                denominators[at] = sink.other[first];
+                numerators[at] = .{ .base = sink.other_weights[first] };
+            } else {
+                denominators[at] = sink.other[first].mul(sink.other[first + 1]);
+                numerators[at] = .{ .secure = sink.other[first + 1].mulM31(sink.other_weights[first]).add(sink.other[first].mulM31(sink.other_weights[first + 1])) };
+            }
+            at += 1;
         }
     }
 };

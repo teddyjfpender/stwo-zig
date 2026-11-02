@@ -33,6 +33,19 @@ pub const Provider = struct {
         if (logical >= try instance.rows()) return error.LocalGkrMetadataShape;
         var base_sink = BaseSink{ .target = sink };
         switch (instance.origin) {
+            .dword => |index| {
+                const src = &(self.source.ls_dword[index] orelse return error.MissingLocalGkrBridge);
+                if (src.log_size != instance.row_log or instance.terms != @import("dword_projection.zig").LOCAL_TERMS or src.metadata.len != try instance.rows()) return error.LocalGkrMetadataShape;
+                @import("dword_projection.zig").emitMetadata(src.metadata[logical], sink);
+            },
+            .sponge => |kind| switch (kind) {
+                inline else => |k| {
+                    const src = &(self.source.sponge[@intFromEnum(k)] orelse return error.MissingLocalGkrBridge);
+                    if (src.kind != k or src.log_size != instance.row_log or instance.terms != @import("sponge_projection.zig").localTerms(k)) return error.LocalGkrMetadataShape;
+                    const fixed = [_]M{ M.fromCanonical(@intCast(logical)), M.fromCanonical(@intFromBool(logical == 0)), M.fromCanonical(@intFromBool(logical + 1 == src.size())) };
+                    @import("sponge_projection.zig").emitLocalFor(M, k, &fixed, &src.plan.row(k, logical, src.first_id), src.first_id, &base_sink);
+                },
+            },
             .bulk => |kind| switch (kind) {
                 inline else => |k| {
                     const src = &(self.source.bulk[@intFromEnum(k)] orelse return error.MissingLocalGkrBridge);
@@ -78,11 +91,7 @@ pub const Provider = struct {
         const s = &self.source.core;
         var base_sink = BaseSink{ .target = sink };
         switch (role) {
-            .cpu => {
-                const main = try s.cpu.row(i);
-                const fixed = [_]M{ M.fromCanonical(@intCast(i)), M.zero(), M.zero() };
-                F.cpuFor(M, &fixed, &main, M.fromCanonical(s.cpu.epoch), &base_sink);
-            },
+            .cpu => try @import("pair_projection.zig").emitCpuMetadata(&s.cpu, i, s.cpu.u8_pairs, sink),
             .rom => sink.emitBase(.rom, try s.rom.program.tupleAt(i), (try count(s.rom.counts[X.layout.physical(i, s.rom.program.log_size)])).neg()),
             .boundary => {
                 if (i >= 32) return error.LocalGkrMetadataShape;
@@ -159,11 +168,11 @@ pub const Provider = struct {
             .range16 => sink.emitBase(.range16, [1]M{M.fromCanonical(@intCast(i))}, (try count(s.range16.counts[i])).neg()),
             .range8 => sink.emitBase(.range8, [1]M{M.fromCanonical(@intCast(i))}, (try count(s.range8.counts[i])).neg()),
             .and_table => {
-                const tuple = A.providers.tables.Kind.byte_and.tupleAt(i);
-                var v: [3]M = undefined;
-                for (tuple[0..3], &v) |value, *d| d.* = M.fromCanonical(value);
-                const n = s.binary.and_counts[i] + (if (s.tails.binary) |tail| tail.and_counts[i] else 0);
-                sink.emitBase(.and_, v, (try count(n)).neg());
+                var n = s.binary.and_counts[i] + (if (s.tails.binary) |tail| tail.and_counts[i] else 0);
+                for (self.source.sponge) |maybe| if (maybe) |src| {
+                    n += src.counts_and[i];
+                };
+                try @import("pair_projection.zig").emitAndMetadata(i, n, s.and_table.pair_counts, s.cpu.u8_pairs, sink);
             },
             .shift_table => for (0..16) |lane| {
                 const at = 16 * i + lane;
