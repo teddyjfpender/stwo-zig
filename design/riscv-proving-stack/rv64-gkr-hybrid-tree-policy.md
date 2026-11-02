@@ -1,7 +1,7 @@
 # Optional hybrid CPU tree storage
 
-Status: software/physical-fixture qualified; complete-block performance comparison
-pending. This changes operational storage only. No proof/profile/statement/wire,
+Status: software, physical-fixture and complete-block correctness qualified. The
+complete-block performance observation does not justify enabling this by default. This changes operational storage only. No proof/profile/statement/wire,
 security parameters, relation closure or immutable setup authority changes.
 
 Resources and coordinator Options accept `checkpoint_above_gkr_bytes`, default0
@@ -44,3 +44,27 @@ configured resource caps still govern the complete execution. A matched complete
 block and fresh independent receiver remain the policy-promotion gate. Native
 payload admission excludes independent setup/capture/PCS, free recycler cache,
 allocator rounding, stacks and kernel memory.
+
+## Complete-block observation
+
+The final combined source (`4d9aafacd`, frozen CLI SHA256
+`a0604d7250cedf545cb9bd7cdfa5a8fe53476747a8b87625ed56fe7426af8565`)
+proved the entire pinned104,253,913-step block with the12GiB K16 selector.
+CPU4,5,6 selected checkpoint68 and all other CPUs selected source80. An
+independent fresh receiver accepts the complete block and all39 durable artifacts
+match the uniform source80 K16 execution byte for byte.
+
+| Storage configuration | Proving | Wall | Peak RSS |
+| --- | ---: | ---: | ---: |
+| Uniform source80 K16 |224.752s|243.16s|37.708GB|
+| Hybrid12GiB K16 |231.600s|250.37s|37.051GB|
+| Uniform checkpoint68 K16 |254.659s|273.00s|30.172GB|
+
+These are single observations, not a controlled repeated latency estimate. The
+hybrid saves only0.657GB RSS against source80 and is slower in this pair. It
+remains explicitly optional with default threshold0. The more substantial
+checkpoint68 memory saving costs numerical replay and larger K16 proof/receiver
+work compared with default K18 geometry. No whole-protocol128 certificate, current
+OM recursive root or GPU result follows from this storage qualification.
+
+Evidence: `vectors/reports/rv64-gkr-hybrid-tree-20261102/fullblock-k16-threshold12-v1/`.
