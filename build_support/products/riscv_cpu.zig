@@ -39,6 +39,7 @@ pub const descriptor = product_policy.Descriptor{
 pub fn addProduct(context: Context) void {
     inline for (.{
         .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 22 },
+        .{ "om-classic-control", "src/integrations/riscv_cpu/rv64_om_classic_control_test_root.zig", 1 },
         .{ "services-gkr-local", "src/integrations/riscv_cpu/rv64_services_gkr_local_test_root.zig", 40 },
         .{ "logup-gkr-prototype", "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_test_root.zig", 22 },
         .{ "selective-openings", "src/integrations/riscv_cpu/rv64_selective_opening_test_root.zig", 7 },
@@ -53,7 +54,7 @@ pub fn addProduct(context: Context) void {
         .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 28 },
         .{ "main-merkle-parking", "src/integrations/riscv_cpu/rv64_main_merkle_parking_test_root.zig", 17 },
         .{ "wide-fixed-setup", "src/integrations/riscv_cpu/rv64_wide_fixed_setup_test_root.zig", 6 },
-        .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 6 },
+        .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 8 },
         .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
         .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 8 },
         .{ "full-capture", "src/integrations/riscv_cpu/rv64_full_capture_test_root.zig", 9 },
@@ -180,10 +181,12 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-om-classic-control", .source = "src/integrations/riscv_cpu/rv64_om_classic_control_main.zig" },
         .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
         .{ .name = "rv64-word16-ethereum-gkr", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_gkr_main.zig" },
         .{ .name = "rv64-logup-gkr-prototype", .source = "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig" },
         .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
+        .{ .name = "rv64-om-sail-qualification", .source = "src/integrations/riscv_cpu/rv64_om_sail_qualification_main.zig" },
         .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
         .{ .name = "rv64-word16-setup-ownership", .source = "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig" },
         .{ .name = "rv64-word16-csp", .source = "src/integrations/riscv_cpu/rv64_word16_csp_main.zig" },

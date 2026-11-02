@@ -14,6 +14,9 @@ const Residency = engine.pcs.residency_estimate;
 const BASE_BYTES = @sizeOf(core.fields.m31.M31);
 const SECURE_BYTES = @sizeOf(W.O);
 const DEGREE = SECURE_BYTES / BASE_BYTES;
+// The compact target shares native incremental PCS storage authority. Uniform
+// counters/backend metadata are per wave, not replicated at every leaf.
+const PROGRESSIVE_STATE_BYTES = @sizeOf(engine.vcs_lifted.compact_blake_state.State);
 fn add(x: u64, y: u64) !u64 {
     return std.math.add(u64, x, y);
 }
@@ -45,7 +48,7 @@ pub const Tree = struct {
         const retained_log = if (domain_log >= 20) domain_log - 4 else domain_log;
         const pruned_nodes = try mul(try std.math.sub(u64, try mul(try power(retained_log), 2), 1), @sizeOf(W.H.Hash));
         const tile_columns = @min(64, estimate.column_count);
-        return .{ .columns = estimate.column_count, .max_native_log = estimate.max_column_log_size, .coefficient_bytes = estimate.retained_coefficient_bytes, .lde_bytes = estimate.extended_evaluation_bytes, .full_merkle_node_bytes = nodes, .retained_contract_bytes = try add(estimate.minimum_resident_bytes, nodes), .compact_pruned_node_bytes = pruned_nodes, .compact_coefficient_resident_bytes = try add(estimate.retained_coefficient_bytes, pruned_nodes), .streaming_native_tile_bytes = try mul(try mul(tile_columns, try power(estimate.max_column_log_size)), BASE_BYTES), .streaming_lde_tile_bytes = try mul(try mul(tile_columns, try power(domain_log)), BASE_BYTES), .streaming_hash_state_upper_bytes = try mul(try power(domain_log), @sizeOf(std.crypto.hash.blake2.Blake2s256)) };
+        return .{ .columns = estimate.column_count, .max_native_log = estimate.max_column_log_size, .coefficient_bytes = estimate.retained_coefficient_bytes, .lde_bytes = estimate.extended_evaluation_bytes, .full_merkle_node_bytes = nodes, .retained_contract_bytes = try add(estimate.minimum_resident_bytes, nodes), .compact_pruned_node_bytes = pruned_nodes, .compact_coefficient_resident_bytes = try add(estimate.retained_coefficient_bytes, pruned_nodes), .streaming_native_tile_bytes = try mul(try mul(tile_columns, try power(estimate.max_column_log_size)), BASE_BYTES), .streaming_lde_tile_bytes = try mul(try mul(tile_columns, try power(domain_log)), BASE_BYTES), .streaming_hash_state_upper_bytes = try mul(try power(domain_log), PROGRESSIVE_STATE_BYTES) };
     }
 };
 pub const Contract = struct {
@@ -73,7 +76,7 @@ pub const Contract = struct {
     secure_oods_samples_exact: ?u64 = null,
     compact: struct {
         streaming_column_cap: u32 = 64,
-        progressive_state_bytes_per_leaf_upper: usize = @sizeOf(std.crypto.hash.blake2.Blake2s256),
+        progressive_state_bytes_per_leaf_upper: usize = PROGRESSIVE_STATE_BYTES,
         retained_main_bytes: u64,
         retained_inter_bytes: u64,
         retained_composition_bytes: u64,
@@ -228,6 +231,7 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig) !Cont
 test "resident OM layout preserves eight coordinates and separates beta from composition split" {
     const first = try finish(&.{5}, &.{ 5, 6 }, &.{6}, 1, 1, .{ .binding_bytes = 16 * 64 * 4 }, 4096);
     const second = try finish(&.{5}, &.{ 5, 6 }, &.{6}, 2, 1, .{ .binding_bytes = 16 * 64 * 4 }, 4096);
+    try std.testing.expectEqual(@as(usize, 96), first.compact.progressive_state_bytes_per_leaf_upper);
     try std.testing.expectEqual(@as(usize, 8), first.secure_coordinates);
     try std.testing.expectEqual(@as(usize, 32), first.secure_value_bytes);
     try std.testing.expectEqual(@as(u64, 16), first.trees[3].columns);
@@ -237,6 +241,8 @@ test "resident OM layout preserves eight coordinates and separates beta from com
     for (first.trees, second.trees) |a, b| {
         try std.testing.expectEqual(a.coefficient_bytes, b.coefficient_bytes);
         try std.testing.expectEqual(2 * a.lde_bytes, b.lde_bytes);
+        try std.testing.expectEqual((@as(u64, 1) << @intCast(a.max_native_log + 1)) * 96, a.streaming_hash_state_upper_bytes);
+        try std.testing.expectEqual(2 * a.streaming_hash_state_upper_bytes, b.streaming_hash_state_upper_bytes);
         try std.testing.expect(b.full_merkle_node_bytes > a.full_merkle_node_bytes);
     }
     const keccak = try finish(&.{5}, &.{6}, &.{6}, 1, 2, .{}, 4096);
@@ -244,6 +250,8 @@ test "resident OM layout preserves eight coordinates and separates beta from com
     try std.testing.expectEqual(@as(u32, 8), keccak.composition_domain_log);
     try std.testing.expectEqual(@as(u64, 256 * 32), keccak.composition_secure_evaluation_bytes);
     try std.testing.expectEqual(@as(u64, 128 * 4), keccak.trees[2].streaming_lde_tile_bytes);
+    const empty = try Tree.fromLogs(&.{}, 2);
+    try std.testing.expectEqual(@as(u64, 0), empty.streaming_hash_state_upper_bytes);
     const tile = try Tree.fromLogs(&([_]u32{18} ** 64), 2);
     try std.testing.expectEqual(@as(u64, 256 << 20), tile.streaming_lde_tile_bytes);
     try std.testing.expect(keccak.compact.retained_main_bytes < keccak.trees[1].retained_contract_bytes);

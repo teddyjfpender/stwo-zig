@@ -1,0 +1,76 @@
+{
+  "scope": "Actual CPU0 prefix,4,194,303 steps; CLI owns and consumes ordinary RAM advice. Operational ownership only; same protocol and exact artifacts. Single observation, no speedup claim.",
+  "source_commit": "b58c334c1",
+  "security_qualified": false,
+  "prove_seconds": 8.772948875,
+  "capture_before_proving": {
+    "native_payload": 317226940,
+    "native_headers": 1368,
+    "advice": {
+      "ordinary_events": 86546448,
+      "service_calls": 0,
+      "public_cells": 34029936,
+      "outer_slice_headers": 64
+    }
+  },
+  "capture_after_proving": {
+    "native_payload": 0,
+    "native_headers": 1368,
+    "advice": {
+      "ordinary_events": 0,
+      "service_calls": 0,
+      "public_cells": 34029936,
+      "outer_slice_headers": 64
+    }
+  },
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 1,
+    "truth_proofs": 0,
+    "load_and_setup_ns": 1013839416,
+    "verify_ns": 410410209
+  },
+  "artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 5489,
+      "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+      "matches_prior_accepted": true
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "matches_prior_accepted": true
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 679424,
+      "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+      "matches_prior_accepted": true
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 88400,
+      "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+      "matches_prior_accepted": true
+    }
+  ],
+  "focused_checks": {
+    "ReleaseFast": [
+      "test-riscv64-services-gkr-local",
+      "test-riscv64-capture-prefetch",
+      "rv64-word16-ethereum-gkr"
+    ],
+    "atomic_recycler_fix": {
+      "source_commit": "39c418656",
+      "Safe": true,
+      "Fast": true,
+      "independent_review": "PASS; detach cached owners atomically before publishing lower cap"
+    }
+  }
+}

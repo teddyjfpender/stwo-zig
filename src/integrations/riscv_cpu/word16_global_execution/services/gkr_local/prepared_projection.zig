@@ -15,6 +15,10 @@ pub fn For(comptime F: type) type {
         entries: []Entry,
         coefficients: []S,
         padded: S,
+        pub fn maxBytesForTerms(terms: usize) !usize {
+            if (terms == 0 or terms > 128) return error.LocalGkrProjectionShape;
+            return std.math.add(usize, try std.math.mul(usize, terms, @sizeOf(Entry)), try std.math.mul(usize, try std.math.mul(usize, terms, R.MAX_ARITY), @sizeOf(S)));
+        }
         pub fn init(a: std.mem.Allocator, relations: []const R.Relation, ch: *const Ch, weights: []const O) !@This() {
             if (relations.len == 0 or relations.len > 128 or relations.len > weights.len or weights.len > 128 or !std.math.isPowerOfTwo(weights.len)) return error.LocalGkrProjectionShape;
             var count: usize = 0;
@@ -89,6 +93,26 @@ pub fn For(comptime F: type) type {
                 self.numerator = self.numerator.add(E.mulBaseFor(F, entry.weight, weight));
                 var d = entry.offset;
                 for (tuple, 0..) |value, i| d = d.sub(E.mulBaseFor(F, self.prepared.coefficients[entry.start + i], value));
+                self.denominator = self.denominator.add(d);
+                self.used += 1;
+            }
+            /// Native metadata projection keeps tuple values in M31. Public
+            /// lane/challenge products are hoisted once, never rematerialized
+            /// as full denominator planes or secure tuple values.
+            pub fn emitBase(self: *@This(), relation: R.Relation, tuple: anytype, weight: core.fields.m31.M31) void {
+                comptime if (F != O) @compileError("native base projection requires OM31");
+                if (self.used >= self.prepared.entries.len) {
+                    self.invalid = true;
+                    return;
+                }
+                const entry = self.prepared.entries[self.used];
+                if (entry.relation != relation or tuple.len != relation.arity()) {
+                    self.invalid = true;
+                    return;
+                }
+                self.numerator = self.numerator.add(entry.weight.mulM31(weight));
+                var d = entry.offset;
+                for (tuple, 0..) |value, i| d = d.sub(self.prepared.coefficients[entry.start + i].mulM31(value));
                 self.denominator = self.denominator.add(d);
                 self.used += 1;
             }

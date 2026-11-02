@@ -1,0 +1,67 @@
+{
+  "schema": "rv64-active-packed-om-air-v1",
+  "scope": "Actual frontend PackedOmSecure multiply and pointer weighted-base accumulator; no transcript/geometry/protocol changes",
+  "tests": {
+    "independent_scalar_fields": "ReleaseSafe and ReleaseFast PASS",
+    "complete_two_cpu_keccak_add_double_fresh_receiver": "ReleaseSafe and ReleaseFast PASS"
+  },
+  "performance_qualified": false,
+  "whole_protocol_128": false,
+  "actual_service_artifact_parity_pending": false,
+  "source_commit": "0d5f8fa4d",
+  "independent_source_review": "pipeline: no concrete math/dispatch/ownership blocker",
+  "actual_binary_caller_audit": {
+    "old_out_of_line_packed_full_products": 140,
+    "new_out_of_line_packed_full_products": 4,
+    "remaining_callers": "classic numeric batchInverse/contributions",
+    "base_mul_calls": "Scaled/fallback call remains; static call count does not measure dynamic nullscale bypass."
+  },
+  "binary_bytes": {
+    "baseline": 3195512,
+    "candidate": 3475192,
+    "note": "Native fullmul is concretely inlined at active AIR sites; binary grew about8.8%, not heap retention."
+  },
+  "source_review_scope": "Concrete same field product and pointer accumulation; pipeline independent read-only PASS. No extra independent runtime qualification claimed.",
+  "actual_service_gate": {
+    "cpu_shards": 4,
+    "truths": [
+      "keccak336",
+      "add817",
+      "double680"
+    ],
+    "runs": 6,
+    "authoritative_artifact_hash_comparisons": 60,
+    "all_artifacts_identical": true,
+    "all_fresh_accepted": true
+  },
+  "performance_observation": {
+    "qualified_scope": "Shared-host alternating six-run real service prefix; not isolated causal estimate or full block",
+    "medians": {
+      "baseline": {
+        "prove_seconds": 38.291610458,
+        "numerical_seconds": 7.367790083,
+        "gkr_seconds": 9.484137333,
+        "inputs_seconds": 0.730611292,
+        "binding_seconds": 1.279282418,
+        "native_complete_seconds": 21.387614332,
+        "truth_native_complete_seconds": 1.958516333,
+        "cpu_domain_rows_summed_seconds": 3.067406794,
+        "cpu_domain_fft_summed_seconds": 2.779393373,
+        "native_composition_summed_seconds": 8.838063
+      },
+      "active_air_fused": {
+        "prove_seconds": 37.219203875,
+        "numerical_seconds": 7.272743333,
+        "gkr_seconds": 9.364752584,
+        "inputs_seconds": 0.7220835,
+        "binding_seconds": 1.274071125,
+        "native_complete_seconds": 20.738442251,
+        "truth_native_complete_seconds": 1.883925708,
+        "cpu_domain_rows_summed_seconds": 2.794192253,
+        "cpu_domain_fft_summed_seconds": 2.776031995,
+        "native_composition_summed_seconds": 8.444328
+      }
+    },
+    "full_block_qualified": false
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "baseline": {
+    "packed_full_mul_calls": {
+      "_word16_global_execution.services.gkr_local.classic_witness_numeric.batchInverse": 3,
+      "_word16_global_execution.services.gkr_local.classic_witness_numeric.contributions": 1,
+      "_rv64.air.wide_sinks.Sink(fields.om31.OM31,rv64.air.packed_fields.PackedOmBase,rv64.air.packed_fields.PackedOmSecure).emit__anon_88823": 8,
+      "_rv64.air.main_only.global_classic.linearPairsFor__anon_89023": 12,
+      "_rv64.air.wide_sinks.Sink(fields.om31.OM31,rv64.air.packed_fields.PackedOmBase,rv64.air.packed_fields.PackedOmSecure).emit__anon_89043": 12,
+      "_word16_global_execution.services.gkr_local.global_cpu.emitFor__anon_88973": 16,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.combine": 4,
+      "_word16_global_execution.services.gkr_local.binding.emitFor__anon_88966": 16,
+      "_rv64.air.lane.PointAccumulator(rv64.air.packed_fields.PackedOmSecure).accumulate": 4,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).flush": 28,
+      "_rv64.air.main_only.global_classic.singlesFor__anon_90921": 4,
+      "_rv64.air.delegations.secp256k1.equations.emitMainFor__anon_90936": 28,
+      "_air.guest_precompile.secp256k1_mul_direct.evaluateTraceBytes__anon_91922": 4
+    },
+    "packed_full_mul_call_count": 140,
+    "wide_512B_mulBase_calls": {
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_79858.Work.runRange": 1,
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_80325.Work.runRange": 1,
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_80391.Work.runRange": 1,
+      "_rv64.air.wide_sinks.Sink(fields.om31.OM31,rv64.air.packed_fields.PackedOmBase,rv64.air.packed_fields.PackedOmSecure).emit__anon_88823": 1,
+      "_word16_global_execution.services.gkr_local.global_cpu.QuerySinkFor(rv64.air.packed_fields.PackedOmBase,word16_global_execution.services.gkr_local.manifest.Shared).emit__anon_88999": 1,
+      "_word16_global_execution.services.gkr_local.global_cpu.QuerySinkFor(rv64.air.packed_fields.PackedOmBase,word16_global_execution.services.gkr_local.manifest.Shared).emit__anon_89010": 1,
+      "_word16_global_execution.services.gkr_local.global_cpu.QuerySinkFor(rv64.air.packed_fields.PackedOmBase,word16_global_execution.services.gkr_local.manifest.Shared).emit__anon_89018": 1,
+      "_rv64.air.main_only.global_classic.linearPairsFor__anon_89023": 4,
+      "_word16_global_execution.services.gkr_local.global_cpu.emitFor__anon_88973": 4,
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_80448.Work.execute": 1,
+      "_word16_global_execution.services.gkr_local.truth_role_domain.Rows.runRange": 1,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_90738": 2,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).finish": 2,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).flush": 5,
+      "_rv64.air.main_only.global_classic.singlesFor__anon_90921": 3,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91386": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91389": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91391": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91397": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91433": 2,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).emit__anon_91472": 1,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).emit__anon_91485": 1,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91674": 2
+    },
+    "wide_512B_mulBase_call_count": 43
+  },
+  "candidate": {
+    "packed_full_mul_calls": {
+      "_word16_global_execution.services.gkr_local.classic_witness_numeric.batchInverse": 3,
+      "_word16_global_execution.services.gkr_local.classic_witness_numeric.contributions": 1
+    },
+    "packed_full_mul_call_count": 4,
+    "wide_512B_mulBase_calls": {
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_79858.Work.runRange": 1,
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_80325.Work.runRange": 1,
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_80391.Work.runRange": 1,
+      "_rv64.air.wide_sinks.Sink(fields.om31.OM31,rv64.air.packed_fields.PackedOmBase,rv64.air.packed_fields.PackedOmSecure).emit__anon_88823": 1,
+      "_word16_global_execution.services.gkr_local.global_cpu.QuerySinkFor(rv64.air.packed_fields.PackedOmBase,word16_global_execution.services.gkr_local.manifest.Shared).emit__anon_88999": 1,
+      "_word16_global_execution.services.gkr_local.global_cpu.QuerySinkFor(rv64.air.packed_fields.PackedOmBase,word16_global_execution.services.gkr_local.manifest.Shared).emit__anon_89010": 1,
+      "_word16_global_execution.services.gkr_local.global_cpu.QuerySinkFor(rv64.air.packed_fields.PackedOmBase,word16_global_execution.services.gkr_local.manifest.Shared).emit__anon_89018": 1,
+      "_rv64.air.main_only.global_classic.linearPairsFor__anon_89023": 4,
+      "_rv64.air.main_only.global_classic.clearedPairFor__anon_89051": 4,
+      "_word16_global_execution.services.gkr_local.role_domain.evaluate__anon_80448.Work.execute": 1,
+      "_word16_global_execution.services.gkr_local.truth_role_domain.Rows.runRange": 1,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_90750": 2,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).finish": 2,
+      "_rv64.air.main_only.global_classic.singlesFor__anon_90933": 3,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91400": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91403": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91405": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91411": 2,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91447": 2,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).emit__anon_91486": 1,
+      "_word16_global_execution.services.gkr_local.truth_classic.products__anon_91489": 5,
+      "_word16_global_execution.services.gkr_local.truth_classic.SinkFor(rv64.air.packed_fields.PackedOmBase).emit__anon_91499": 1,
+      "_word16_global_execution.services.gkr_local.prepared_projection.For(rv64.air.packed_fields.PackedOmBase).Projection.emit__anon_91688": 2
+    },
+    "wide_512B_mulBase_call_count": 43
+  }
+}

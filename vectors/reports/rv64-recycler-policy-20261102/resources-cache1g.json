@@ -1,0 +1,13 @@
+{
+  "gkr_bytes": 34359738368,
+  "global_bytes": 8589934592,
+  "retained_frontend_bytes": 17179869184,
+  "disk_bytes": 0,
+  "schedule": {
+    "lanes": 1,
+    "workers_per_lane": 16,
+    "memory_cap_bytes": 51539607552
+  },
+  "park_main": false,
+  "recycler_cache_bytes": 1073741824
+}

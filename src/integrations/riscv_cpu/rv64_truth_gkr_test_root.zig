@@ -14,3 +14,11 @@ test {
 test {
     _ = @import("word16_global_execution/ethereum/gkr_main.zig");
 }
+
+test {
+    _ = @import("word16_global_execution/services/gkr_local/full_isa_test.zig");
+}
+
+test {
+    _ = @import("word16_global_execution/services/gkr_local/advice_retirement_test.zig");
+}

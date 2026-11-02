@@ -330,38 +330,50 @@ fn selectedTail(comptime windowed: bool, values: []M31, log: u32, tree: M31Twidd
     }
 }
 
-/// Exact sparse outputs, retaining only one native-sized half-window for the
-/// common 2x extension. The degenerate top layer duplicates the coefficients;
-/// each half then follows the SAME selected butterfly/twiddle authority above.
-/// Other blowups and tiny domains retain the old full-buffer control path.
+/// Scratch length for an admitted power-of-two coefficient/domain geometry.
+/// Every zero-padded top layer duplicates its lower input. Thus any extension
+/// can use coefficient-sized windows, not only the common 2x extension.
+/// The selected bottom kernel needs at least32 rows; smaller inputs retain the
+/// full-buffer path. This helper does not replace the evaluator's validation.
+pub fn selectedCoefficientScratchLength(coefficient_count: usize, domain_log: u32) usize {
+    const n = @as(usize, 1) << @intCast(domain_log);
+    return if (coefficient_count >= 32 and coefficient_count < n) coefficient_count else n;
+}
+
+/// Exact sparse outputs, retaining only one coefficient-sized window. All
+/// zero-padded top FFT layers duplicate the coefficients; each occupied window
+/// then follows the SAME selected butterfly/twiddle authority above.
+/// Tiny inputs retain the old full-buffer control path.
 /// Positions must be sorted, may repeat, and outputs preserve that exact order.
 pub fn evaluateSelectedCoefficientsWithTwiddles(coefficients: []const M31, scratch: []M31, domain: CircleDomain, tree: M31TwiddleTree, positions: []const usize, out: []M31) PolyError!void {
     const n = domain.size();
     if (coefficients.len == 0 or !std.math.isPowerOfTwo(coefficients.len) or coefficients.len > n or out.len != positions.len or
         !domain.half_coset.isDoublingOf(tree.root_coset) or tree.twiddles.len != tree.root_coset.size() or
         tree.itwiddles.len != tree.twiddles.len) return PolyError.InvalidLength;
-    const half = coefficients.len == n / 2 and domain.logSize() > 5;
-    if (scratch.len != (if (half) n / 2 else n)) return PolyError.InvalidLength;
+    const minimum = selectedCoefficientScratchLength(coefficients.len, domain.logSize());
+    // Keep the previous full-buffer contract available to existing callers.
+    // The opening queue chooses minimum scratch; a full buffer selects the
+    // unchanged dense/sparse control path instead.
+    if (scratch.len != minimum and scratch.len != n) return PolyError.InvalidLength;
+    const windowed = minimum < n and scratch.len == minimum;
     for (positions, 0..) |position, i| if (position >= n or (i != 0 and position < positions[i - 1])) return PolyError.InvalidLength;
     if (overlaps(coefficients, scratch) or overlaps(coefficients, out) or overlaps(scratch, out)) return PolyError.InvalidLength;
     if (positions.len == 0) return;
-    if (!half) {
+    if (!windowed) {
         @memcpy(scratch[0..coefficients.len], coefficients);
         try evaluateSelectedBufferWithTwiddles(scratch, coefficients.len, domain, tree, positions);
         for (positions, out) |position, *value| value.* = scratch[position];
         return;
     }
-    var split: usize = 0;
-    while (split < positions.len and positions[split] < scratch.len) : (split += 1) {}
-    const bounds = [_]usize{ 0, split, positions.len };
-    for (0..2) |part| {
-        const first = bounds[part];
-        const end = bounds[part + 1];
-        if (first == end) continue;
-        const offset = part * scratch.len;
+    var first: usize = 0;
+    while (first < positions.len) {
+        const offset = positions[first] & ~(scratch.len - 1);
+        var end = first + 1;
+        while (end < positions.len and positions[end] - offset < scratch.len) : (end += 1) {}
         @memcpy(scratch, coefficients);
-        selectedTail(true, scratch, domain.logSize(), tree, positions[first..end], offset, domain.logSize() - 2);
+        selectedTail(true, scratch, domain.logSize(), tree, positions[first..end], offset, @as(u32, @intCast(std.math.log2_int(usize, coefficients.len))) - 1);
         for (positions[first..end], out[first..end]) |position, *value| value.* = scratch[position - offset];
+        first = end;
     }
 }
 fn overlaps(x: []const M31, y: []const M31) bool {

@@ -1,0 +1,26 @@
+{
+  "scope": "Read-only actual-byte structural and source-pinned literal numerical cost report, not proof acceptance, full recursive circuit, GPU or security qualification.",
+  "source_base": "f123dab6af137bb9a4fe09dfa0b969cf1a71ef71",
+  "inputs": {
+    "full": "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+    "prefix": "/tmp/stwo-rv64-om-ethereum-prefix1-compact-aux-v1",
+    "physical_proof_verification": "Not performed by the report tool; parent already independently qualified these native artifacts."
+  },
+  "gates": [
+    {
+      "command": "python3 -m unittest discover -s scripts -p test_rv64_om_recursion_readiness.py -v",
+      "result": "PASS5; canonical8coordinates, structural bounds/order/kind/truncation/trailing, short polynomial transcript lengths, hand-derived one-layer literal count"
+    },
+    {
+      "command": "zig build test-riscv64-gkr-circuit -Doptimize=ReleaseSafe -Driscv-test-filter='OM31 GKR circuit real proof replay' -j2 --summary all",
+      "result": "PASS36s MaxRSS2G; actual smallOM circuit valid,18596variables,3760BlakeG,2844QMops,98guesses. Existing mandatory shared controls also execute. Not a production leaf."
+    },
+    {
+      "command": "bounded report actual full and prefix commands in design document",
+      "result": "PASS; full25CPU5truth/477localinstances, declared fullgeometry equals source-contract roster; prefix1CPU/no truth"
+    }
+  ],
+  "profile_gate": "Actual complete newOM services accepting recursive leaf remains unimplemented. OldQM cost/leaf codec is not reused as if it accepted the new profile.",
+  "representation_caveat": "Literal OM multiplication/addition/subtraction counts include zero/constant operations; actual circuit lowering may fold them. Kernel transcript counts exclude scope/challenges/receipt/eta/manifest, binding andPCS. Source-contract beta is not independently decoded from physicalSTARK configuration by this tool.",
+  "independent_review": "Core-agent source math review PASS; literal OM/Horner/Eq/mask/transcript/closure counts independently derived. Added closure.zig authority pin from review."
+}

@@ -109,19 +109,7 @@ fn rejected(setup: *const native.PreparedSetup, statement: native.Statement, met
 test "rv64 proof: all 63 retiring instructions share one authenticated proof" {
     const rv = @import("stwo_riscv_frontend").rv64;
     const a = std.testing.allocator;
-    const program = [_]u32{
-        0x002081b3, 0x402081b3, 0x00108193, 0x002081bb, 0x402081bb, 0x0010819b,
-        0x0020f1b3, 0x0020e1b3, 0x0020c1b3, 0x0020a1b3, 0x0020b1b3, 0x002091b3,
-        0x0020d1b3, 0x4020d1b3, 0x002091bb, 0x0020d1bb, 0x4020d1bb, 0x022081b3,
-        0x022091b3, 0x0220a1b3, 0x0220b1b3, 0x022081bb, 0x0220c1b3, 0x0220d1b3,
-        0x0220e1b3, 0x0220f1b3, 0x0220c1bb, 0x0220d1bb, 0x0220e1bb, 0x0220f1bb,
-        0x800001b7, 0x80000197, 0xfff0a193, 0xfff0b193, 0xfff0c193, 0xfff0e193,
-        0xfff0f193, 0x03f09193, 0x03f0d193, 0x43f0d193, 0x01f0919b, 0x01f0d19b,
-        0x41f0d19b, 0x00008183, 0x00009183, 0x0000a183, 0x0000b183, 0x0000c183,
-        0x0000d183, 0x0000e183, 0x00208023, 0x00209023, 0x0020a023, 0x0020b023,
-        0x00208263, 0x00209263, 0x0020c263, 0x0020d263, 0x0020e263, 0x0020f263,
-        0x004001ef, 0x0000000f, 0x000201e7,
-    };
+    const program = @import("rv64_all_ordinary_opcodes.zig").WORDS;
     var covered: [65]bool = @splat(false);
     for (program) |word| covered[@intFromEnum((try rv.decode.Instruction.decode(word)).opcode)] = true;
     for (covered[0..63]) |present| try std.testing.expect(present);

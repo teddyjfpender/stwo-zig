@@ -1,0 +1,56 @@
+1/43 gkr_resource_test_root.test_0...OK
+2/43 lookups.resource_test.test.GKR bound covers actual mixed-height all-kind allocations and every OOM...OK
+3/43 lookups.resource_test.test.GKR bound covers Q and OM single/multiple/mixed small and large matrices...GKR_ADMISSION single vars=1 OM peak=1480 plan=33040; Q peak=1192 plan=32912
+GKR_ADMISSION single vars=2 OM peak=2200 plan=61984; Q peak=1720 plan=61728
+GKR_ADMISSION single vars=8 OM peak=28376 plan=440320; Q peak=15816 plan=423936
+GKR_ADMISSION single vars=14 OM peak=1640968 plan=3272704; Q peak=854168 plan=2224128
+GKR_ADMISSION single vars=16 OM peak=6556280 plan=10235904; Q peak=3410224 plan=6041600
+GKR_ADMISSION mixed vars=16,14,15,12 OM peak=11147384 plan=17997824
+GKR_ADMISSION twelve vars=8 OM peak=322400 plan=1228800
+OK
+4/43 lookups.resource_test.test.GKR plan rejects malformed and overflowing shape counts...OK
+5/43 lookups.resource_test.test.hard numerical cap reports resource OutOfMemory rather than malformed proof...OK
+6/43 lookups.resource_test.test.GKR raw-input tree phase peak is measured before ownership changes...GKR_PHASE_CURRENT facts=262144 raw=9437184 tree_peak=26216104 full_numerical_peak=26217136 retained_after=9465304
+OK
+7/43 lookups.resource_test.test.stride two GKR preserves Q OM proof artifact and transcript across mixed heights and every OOM...GKR_CHECKPOINT fieldBytes=16 oldPeak=3986712 checkpointPeak=2920287 ratio=1.365 old_ns=18062292 checkpoint_ns=18110125
+GKR_CHECKPOINT fieldBytes=32 oldPeak=7706328 checkpointPeak=5568607 ratio=1.384 old_ns=24795917 checkpoint_ns=27205708
+OK
+8/43 lookups.resource_test.test.fused adjacent LogUp and product reductions equal two original layers on dense Q OM inputs including poles...OK
+9/43 lookups.resource_test.test.consuming checkpoint inputs retain exact borrowed proof and fresh terminal binding with every OOM...GKR_CONSUMED fieldBytes=16 oldPeak=3986712 consumedPeak=2399503 ratio=1.661 old_ns=17754583 consumed_ns=18220458
+GKR_CONSUMED fieldBytes=32 oldPeak=7706328 consumedPeak=4527743 ratio=1.702 old_ns=24936416 consumed_ns=26013667
+OK
+10/43 lookups.lazy_checkpoint_test.test.lazy checkpoint Q OM all kinds match original sums folds masks signed padding and zero denominators...OK
+11/43 lookups.lazy_checkpoint_test.test.lazy checkpoint first sums and folds preserve three worker and held lease execution...OK
+12/43 lookups.lazy_checkpoint_test.test.lazy checkpoint rejects malformed source shapes and preserves exceptional challenge errors...OK
+13/43 lookups.gkr_prover.test.gkr prover: grand product prove and verify...OK
+14/43 lookups.gkr_prover.test.gkr prover: logup generic prove and verify...OK
+15/43 lookups.gkr_prover.test.gkr prover: logup singles prove and verify...OK
+16/43 lookups.gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+17/43 lookups.mle.test.mle: init validates power-of-two length...OK
+18/43 lookups.mle.test.mle: fix first variable preserves evaluation semantics...OK
+19/43 lookups.mle.test.mle: fix first variable lifts base-field mle...OK
+20/43 lookups.mle.test.mle: evalAtPoint validates dimensions...OK
+21/43 host_budget_allocator.test.host budget allocator admits the exact live-byte boundary...OK
+22/43 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+23/43 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+24/43 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+25/43 host_budget_allocator.test.shared host budget lease survives original owner release...OK
+26/43 host_budget_allocator.test.shared host budget nested owner survives backing release and every allocation failure...OK
+27/43 host_budget_allocator.test.shared host budget nested descendants and external lease preserve backing chain...OK
+28/43 lookups.gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+29/43 lookups.gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+30/43 lookups.gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+31/43 lookups.gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+32/43 lookups.sumcheck.test.sumcheck: prove and partially verify single mle...OK
+33/43 lookups.sumcheck.test.sumcheck: invalid proof is rejected...OK
+34/43 lookups.utils.test.lookups utils: lagrange interpolation...OK
+35/43 lookups.utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+36/43 lookups.utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+37/43 lookups.utils.test.lookups utils: polynomial arithmetic and normalization...OK
+38/43 lookups.utils.test.lookups utils: horner and random linear combination...OK
+39/43 lookups.utils.test.lookups utils: eq kernel...OK
+40/43 lookups.utils.test.lookups utils: fold mle evals...OK
+41/43 lookups.utils.test.lookups utils: reciprocal arithmetic...OK
+42/43 cooperative_queue.test.cooperative queue: split runs every index once on one thread...OK
+43/43 cooperative_queue.test.cooperative queue: many threads drain nested splits from many items...OK
+All 43 tests passed.

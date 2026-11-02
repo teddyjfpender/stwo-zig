@@ -16,6 +16,13 @@ pub const Ops = struct {
 };
 /// Arithmetic-only packed API: no hidden scalar inverse or serialization.
 pub const PackedOM31 = om31.Quadratic(P, Ops);
+/// Concrete SIMD call policy: preserve the shared quadratic arithmetic while
+/// keeping128-byte packed operands/results off the by-value call ABI. This is
+/// deliberately not a change to generic/native/circuit Quadratic methods.
+pub inline fn mul(a: PackedOM31, b: PackedOM31) PackedOM31 {
+    @setEvalBranchQuota(100000);
+    return @call(.always_inline, PackedOM31.mul, .{ a, b });
+}
 pub fn splat(x: om31.OM31) PackedOM31 {
     return .{ .c0 = P.splat(x.c0), .c1 = P.splat(x.c1) };
 }
@@ -52,7 +59,7 @@ pub const PackedOM31x16 = struct {
     }
     pub fn mul(a: @This(), b: @This()) @This() {
         var out: @This() = undefined;
-        inline for (0..GROUP_PACKS) |g| out.groups[g] = a.groups[g].mul(b.groups[g]);
+        inline for (0..GROUP_PACKS) |g| out.groups[g] = @import("packed_om31.zig").mul(a.groups[g], b.groups[g]);
         return out;
     }
     pub fn mulBase(a: @This(), b: *const [GROUP_ROWS]m31.M31) @This() {

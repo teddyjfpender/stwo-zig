@@ -13,12 +13,16 @@ const Work = engine.lookups.row_work;
 const Challenges = @import("challenges.zig").For(O);
 pub const RowSink = struct {
     challenges: *const Challenges,
-    numerator: []M,
-    denominator: []O,
+    numerator: []M = &.{},
+    denominator: []O = &.{},
+    /// Explicit terminal-projection mode; retains no N/D matrix. Canonicality
+    /// and original provider tuple authority remain exactly the same.
+    projection: ?*@import("prepared_projection.zig").For(O).Projection = null,
+    catalog: ?[]Fractions.Relation = null,
     count: usize = 0,
     invalid: bool = false,
     pub fn emit(self: *RowSink, relation: Fractions.Relation, tuple: anytype, weight: O) void {
-        if (self.count >= self.numerator.len) {
+        if (self.count >= (if (self.projection) |p| p.prepared.entries.len else self.numerator.len)) {
             self.invalid = true;
             return;
         }
@@ -39,7 +43,7 @@ pub const RowSink = struct {
         self.emitBase(relation, base, coordinates[0]);
     }
     pub fn emitBase(self: *RowSink, relation: Fractions.Relation, tuple: anytype, weight: M) void {
-        if (self.count >= self.numerator.len) {
+        if (self.count >= (if (self.projection) |p| p.prepared.entries.len else self.numerator.len)) {
             self.invalid = true;
             return;
         }
@@ -51,8 +55,17 @@ pub const RowSink = struct {
             self.invalid = true;
             return;
         };
-        self.numerator[self.count] = weight;
-        self.denominator[self.count] = self.challenges.denominatorBase(relation, tuple);
+        if (self.catalog) |relations| {
+            if (self.count >= relations.len) {
+                self.invalid = true;
+                return;
+            }
+            relations[self.count] = relation;
+        }
+        if (self.projection) |p| p.emitBase(relation, tuple, weight) else {
+            self.numerator[self.count] = weight;
+            self.denominator[self.count] = self.challenges.denominatorBase(relation, tuple);
+        }
         self.count += 1;
     }
 };
@@ -111,6 +124,13 @@ pub const Inputs = struct {
             done += 1;
         }
         return .{ .allocator = a, .layers = layers };
+    }
+    /// Transfers the heap layer descriptors AND their MLE owners. The caller
+    /// must pass the result to a consuming GKR API even on failure.
+    pub fn takeLayers(self: *Inputs) []GP.Layer {
+        const out = self.layers;
+        self.layers = &.{};
+        return out;
     }
     pub fn deinit(self: *Inputs) void {
         for (self.layers) |*layer| layer.deinit(self.allocator);

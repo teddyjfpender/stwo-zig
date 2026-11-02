@@ -34,6 +34,27 @@ pub fn mainShapeFor(kind: Kind) Main.Shape {
 pub fn constraintCount(kind: Kind) usize {
     return mainShapeFor(kind).constraints + B.CONSTRAINTS;
 }
+pub fn emitMainFor(kind: Kind, comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
+    const shape = mainShapeFor(kind);
+    if (fixed.len != shape.fixed or main.len != shape.main or previous.len != shape.main) return error.InvalidLocalGkrTableShape;
+    if (kind == .rom) sink.emit(main[0].mul(F.one().sub(fixed[A.word16_execution.layout.rom.valid])));
+}
+pub fn emitLocalFor(kind: Kind, boundary_public: ?Boundary, comptime F: type, fixed: []const F, main: []const F, sink: anytype) void {
+    switch (kind) {
+        .rom => Fns.romFor(F, fixed, main, sink),
+        .range16 => Fns.scalarTableFor(F, .range16, fixed, main, sink),
+        .range8 => Fns.scalarTableFor(F, .range8, fixed, main, sink),
+        .and_table => Fns.andTableFor(F, fixed, main, sink),
+        .shift_table => Fns.shiftTableFor(F, fixed, main, sink),
+        .selection => Fns.selectionTableFor(F, fixed, main, sink),
+        .boundary => {
+            const boundary = A.word16_cpu.boundary;
+            const public = boundary_public.?.value;
+            sink.emit(.register, boundary.tupleFor(F, fixed, public, false), F.one().neg());
+            sink.emit(.register, boundary.tupleFor(F, fixed, public, true), F.one());
+        },
+    }
+}
 pub const MAX_DEGREE: u8 = 3;
 pub const Component = struct {
     pub const MAX_FIXED = 34;
@@ -52,25 +73,10 @@ pub const Component = struct {
         return false;
     }
     pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
-        const shape = self.mainShape();
-        if (fixed.len != shape.fixed or main.len != shape.main or previous.len != shape.main) return error.InvalidLocalGkrTableShape;
-        if (self.kind == .rom) sink.emit(main[0].mul(F.one().sub(fixed[A.word16_execution.layout.rom.valid])));
+        return @import("table_role.zig").emitMainFor(self.kind, F, fixed, main, previous, sink);
     }
     pub fn emitLocalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, sink: anytype) void {
-        switch (self.kind) {
-            .rom => Fns.romFor(F, fixed, main, sink),
-            .range16 => Fns.scalarTableFor(F, .range16, fixed, main, sink),
-            .range8 => Fns.scalarTableFor(F, .range8, fixed, main, sink),
-            .and_table => Fns.andTableFor(F, fixed, main, sink),
-            .shift_table => Fns.shiftTableFor(F, fixed, main, sink),
-            .selection => Fns.selectionTableFor(F, fixed, main, sink),
-            .boundary => {
-                const boundary = A.word16_cpu.boundary;
-                const public = self.boundary.?.value;
-                sink.emit(.register, boundary.tupleFor(F, fixed, public, false), F.one().neg());
-                sink.emit(.register, boundary.tupleFor(F, fixed, public, true), F.one());
-            },
-        }
+        @import("table_role.zig").emitLocalFor(self.kind, self.boundary, F, fixed, main, sink);
     }
     pub fn nConstraints(self: *const @This()) usize {
         return constraintCount(self.kind);

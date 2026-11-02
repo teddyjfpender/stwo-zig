@@ -1,0 +1,61 @@
+1/60 gkr_parallel_test_root.test_0...OK
+2/60 lookups.owned_fold_test.test.owned Q folding preserves pooled halfsplit alias law and both allocator paths...OK
+3/60 lookups.owned_fold_test.test.owned OM folding preserves pooled halfsplit alias law and both allocator paths...OK
+4/60 lookups.owned_fold_test.test.nonresizable fallback OOM leaves a valid original allocation for deinit...OK
+5/60 lookups.owned_fold_test.test.destructive internal GKR fold cleans every allocation failure without changing caller matrices...OK
+6/60 lookups.owned_fold_test.test.optional destructive oracle propagates its own error and consumes owner once...OK
+7/60 lookups.owned_fold_test.test.owned Q and OM paired folds preserve scalar authority pooled and held-lease paths...OK
+8/60 lookups.owned_fold_test.test.paired folds reject unequal or aliased owners before any mutation...OK
+9/60 lookups.owned_fold_test.test.paired borrowed aliases are immutable and become separate owned outputs...OK
+10/60 lookups.owned_fold_test.test.paired owned nonresizable folds deinitialize both owners at every OOM boundary...OK
+11/60 lookups.owned_fold_test.test.multiplicity owned denominator lift preserves Q OM scalar fractions and caller base inputs...OK
+12/60 lookups.owned_fold_test.test.multiplicity owned denominator lift cleans every allocation failure with both base ownerships...OK
+13/60 lookups.owned_fold_test.test.multiplicity fold rejects unequal and overlapping owned planes before mutation...OK
+14/60 lookups.eq_parallel_test.test.pooled Q Eq levels preserve direct tensor basis ordering...OK
+15/60 lookups.eq_parallel_test.test.pooled OM Eq levels preserve direct tensor basis ordering...OK
+16/60 lookups.eq_parallel_test.test.optional bounded Eq levels microbenchmark...OK
+17/60 lookups.gkr_interpolation_test.test.GKR corrected cubic Q matches generic Lagrange exact coefficients and poles...OK
+18/60 lookups.gkr_interpolation_test.test.GKR corrected cubic OM matches generic Lagrange exact coefficients and poles...OK
+19/60 lookups.gkr_interpolation_test.test.GKR fixed cubic allocation failure preserves ownership...OK
+20/60 lookups.gkr_interpolation_test.test.optional GKR corrected cubic numerical microbenchmark...OK
+21/60 lookups.packed_rows_test.test.packed Q GKR numerical kernels match independent scalar formulas at unaligned ranges and tails...OK
+22/60 lookups.packed_rows_test.test.packed OM GKR numerical kernels match independent scalar formulas at unaligned ranges and tails...OK
+23/60 lookups.packed_rows_test.test.optional packed GKR kernel microbenchmark...OK
+24/60 lookups.packed_rows_test.test.weighted packed LogUp gate preserves zeros negative multiplicities and exact cancellation...OK
+25/60 lookups.owner_memory_test.test.owned GKR work preserves caller-owned matrices through success and every allocation failure...OK
+26/60 lookups.owner_memory_test.test.GKR fixed-variable transitions share a scoped immutable Eq owner...OK
+27/60 lookups.owner_memory_test.test.owned sumcheck consumes every owner on malformed early return...OK
+28/60 lookups.owner_memory_test.test.owned sumcheck valid proof releases every allocation failure...OK
+29/60 lookups.owner_memory_test.test_0...OK
+30/60 lookups.parallel_rows_test.test.Q mixed-gate scoped row kernels preserve complete proof transcript and fresh binding...OK
+31/60 lookups.parallel_rows_test.test.OM mixed-gate scoped row kernels preserve complete proof transcript and fresh binding...OK
+32/60 lookups.parallel_rows_test.test.row kernels fall back without a nested lease and use bounded stack payload...OK
+33/60 lookups.parallel_rows_test.test.bounded callback ranges honor explicit grain and publish each ordinal once...OK
+34/60 lookups.mle.test.mle: init validates power-of-two length...OK
+35/60 lookups.mle.test.mle: fix first variable preserves evaluation semantics...OK
+36/60 lookups.mle.test.mle: fix first variable lifts base-field mle...OK
+37/60 lookups.mle.test.mle: evalAtPoint validates dimensions...OK
+38/60 cooperative_queue.test.cooperative queue: split runs every index once on one thread...OK
+39/60 cooperative_queue.test.cooperative queue: many threads drain nested splits from many items...OK
+40/60 lookups.utils.test.lookups utils: lagrange interpolation...OK
+41/60 lookups.utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+42/60 lookups.utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+43/60 lookups.utils.test.lookups utils: polynomial arithmetic and normalization...OK
+44/60 lookups.utils.test.lookups utils: horner and random linear combination...OK
+45/60 lookups.utils.test.lookups utils: eq kernel...OK
+46/60 lookups.utils.test.lookups utils: fold mle evals...OK
+47/60 lookups.utils.test.lookups utils: reciprocal arithmetic...OK
+48/60 lookups.gkr_prover.test.gkr prover: grand product prove and verify...OK
+49/60 lookups.gkr_prover.test.gkr prover: logup generic prove and verify...OK
+50/60 lookups.gkr_prover.test.gkr prover: logup singles prove and verify...OK
+51/60 lookups.gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+52/60 lookups.gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+53/60 lookups.gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+54/60 lookups.gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+55/60 lookups.gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+56/60 lookups.sumcheck.test.sumcheck: prove and partially verify single mle...OK
+57/60 lookups.sumcheck.test.sumcheck: invalid proof is rejected...OK
+58/60 lookups.om31_test.test.OM31 actual mixed-height GKR accepts and binds all terminal MLE inputs...OK
+59/60 lookups.om31_test.test.OM31 actual prover and verifier allocation failures release every owned layer...OK
+60/60 lookups.om31_test.test.OM31 actual GKR rejects sumcheck mask output and terminal mutations...OK
+All 60 tests passed.

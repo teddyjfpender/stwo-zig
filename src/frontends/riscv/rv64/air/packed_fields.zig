@@ -143,10 +143,17 @@ pub const PackedOmSecure = struct {
         inline for (0..PACKS) |i| out.packs[i] = x.packs[i].sub(y.packs[i]);
         return out;
     }
-    pub fn mul(x: @This(), y: @This()) @This() {
+    pub inline fn mul(x: @This(), y: @This()) @This() {
         var out: @This() = undefined;
-        inline for (0..PACKS) |i| out.packs[i] = x.packs[i].mul(y.packs[i]);
+        inline for (0..PACKS) |i| out.packs[i] = wide.mul(x.packs[i], y.packs[i]);
         return out;
+    }
+    /// Pointer accumulation avoids constructing/passing a 512-byte splatted
+    /// weight and returning a 512-byte weighted residual for each base constraint.
+    /// One native pack updates at a time through existing field arithmetic.
+    pub fn addScaledBase(self: *@This(), scalar: O, value: PackedOmBase) void {
+        const weight = wide.splat(scalar);
+        inline for (0..PACKS) |i| self.packs[i] = self.packs[i].add(weight.mulBase(value.raw.packs[i]));
     }
     pub fn mulBase(x: @This(), y: PackedOmBase) @This() {
         var out: @This() = undefined;

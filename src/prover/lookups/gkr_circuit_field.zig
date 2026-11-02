@@ -34,6 +34,7 @@ pub fn ForField(comptime Secure: type) type {
         const Packed = @import("packed_rows.zig").ForField(Secure);
         const MleBase = mle_mod.MleFor(Secure, M31);
         const MleSecure = mle_mod.MleFor(Secure, Secure);
+        pub const MultiplicitiesSource = @import("multiplicities_source.zig").ForField(Secure);
         pub const EqEvals = struct {
             y: []Secure,
             owns_y: bool = true,
@@ -187,6 +188,18 @@ pub fn ForField(comptime Secure: type) type {
                 };
             }
 
+            /// Same adjacent-pair product/fraction authority applied twice,
+            /// without retaining the intermediate N/2 secure planes.
+            pub fn nextLayerTwice(self: Layer, allocator: std.mem.Allocator) !Layer {
+                if (self.nVariables() < 2) return GkrProverError.InvalidLayerStructure;
+                return switch (self) {
+                    .GrandProduct => |mle| try nextGrandProductTwoLayers(allocator, mle),
+                    .LogUpGeneric => |inner| try nextLogupTwoLayers(allocator, .{ .MleSecure = &inner.numerators }, &inner.denominators),
+                    .LogUpMultiplicities => |inner| try nextLogupTwoLayers(allocator, .{ .MleBase = &inner.numerators }, &inner.denominators),
+                    .LogUpSingles => |inner| try nextLogupTwoLayers(allocator, .{ .Constant = Secure.one() }, &inner.denominators),
+                };
+            }
+
             pub fn outputLayerValues(self: Layer, allocator: std.mem.Allocator) GkrProverError![]Secure {
                 if (!self.isOutputLayer()) return GkrProverError.NotOutputLayer;
 
@@ -245,22 +258,66 @@ pub fn ForField(comptime Secure: type) type {
             /// Internal exclusive-owner path. Every failed partial fold still
             /// owns valid buffers for deinit; the caller aborts the proof.
             pub fn fixFirstVariableInPlace(self: *Layer, allocator: std.mem.Allocator, x0: Secure) !void {
+                switch (self.*) {
+                    .LogUpMultiplicities => |inner| try validateMultiplicityFold(inner),
+                    else => {},
+                }
                 if (self.nVariables() == 0) return;
                 switch (self.*) {
                     .GrandProduct => |*mle| try mle.foldOwnedSecure(allocator, x0),
                     .LogUpGeneric => |*inner| {
-                        try inner.numerators.foldOwnedSecure(allocator, x0);
-                        try inner.denominators.foldOwnedSecure(allocator, x0);
+                        try inner.numerators.foldOwnedSecurePair(&inner.denominators, allocator, x0);
                     },
                     .LogUpSingles => |*inner| try inner.denominators.foldOwnedSecure(allocator, x0),
-                    .LogUpMultiplicities => {
-                        // The first base-to-secure lift keeps its existing
-                        // failure-atomic allocation path and immutable input.
-                        const next = try self.fixFirstVariable(allocator, x0);
-                        self.deinit(allocator);
-                        self.* = next;
+                    .LogUpMultiplicities => |*inner| {
+                        if (inner.denominators.owns_evals) {
+                            // Lift the base numerator without mutating it. Until
+                            // the denominator fold succeeds, both original
+                            // owners remain in the old union for abort cleanup.
+                            var numerator = try inner.numerators.fixFirstVariable(allocator, x0);
+                            errdefer numerator.deinit(allocator);
+                            try inner.denominators.foldOwnedSecure(allocator, x0);
+                            const denominator = inner.denominators;
+                            inner.numerators.deinit(allocator);
+                            self.* = .{ .LogUpGeneric = .{ .numerators = numerator, .denominators = denominator } };
+                        } else {
+                            // Borrowed denominator stays immutable; allocation
+                            // failure leaves the entire old layer unchanged.
+                            const next = try self.fixFirstVariable(allocator, x0);
+                            self.deinit(allocator);
+                            self.* = next;
+                        }
                     },
                 }
+            }
+
+            fn validateMultiplicityFold(inner: anytype) !void {
+                const n = inner.numerators.evals.len;
+                if (n == 0 or n != inner.denominators.evals.len or !std.math.isPowerOfTwo(n)) return error.PairShapeMismatch;
+                if (inner.numerators.owns_evals or inner.denominators.owns_evals) {
+                    const nbytes = std.math.mul(usize, n, @sizeOf(M31)) catch return error.InvalidOwnerRange;
+                    const dbytes = std.math.mul(usize, n, @sizeOf(Secure)) catch return error.InvalidOwnerRange;
+                    const na = @intFromPtr(inner.numerators.evals.ptr);
+                    const da = @intFromPtr(inner.denominators.evals.ptr);
+                    const ne = std.math.add(usize, na, nbytes) catch return error.InvalidOwnerRange;
+                    const de = std.math.add(usize, da, dbytes) catch return error.InvalidOwnerRange;
+                    if (na < de and da < ne) return error.AliasedMleOwners;
+                }
+            }
+
+            /// Borrows a retained checkpoint one reduction below the missing
+            /// input layer. Its owner and Eq table outlive the joined oracle.
+            pub fn intoReducedMultivariatePoly(self: Layer, lambda: Secure, eq_evals: *const EqEvals) GkrProverError!GkrMultivariatePolyOracle {
+                const n = switch (self) {
+                    .GrandProduct => |x| x.evals.len,
+                    .LogUpSingles => |x| x.denominators.evals.len,
+                    inline .LogUpGeneric, .LogUpMultiplicities => |x| blk: {
+                        if (x.numerators.evals.len != x.denominators.evals.len) return error.InvalidLayerStructure;
+                        break :blk x.denominators.evals.len;
+                    },
+                };
+                if (n < 4 or !std.math.isPowerOfTwo(n)) return error.InvalidLayerStructure;
+                return .{ .input_layer = self.borrowed(), .eq_evals = eq_evals.borrowed(), .eq_fixed_var_correction = Secure.one(), .lambda = lambda, .reduce_input = true };
             }
 
             /// Moves this internal layer; the immutable Eq owner must outlive
@@ -292,6 +349,9 @@ pub fn ForField(comptime Secure: type) type {
             input_layer: Layer,
             eq_fixed_var_correction: Secure,
             lambda: Secure,
+            // Internal operational view only; no proof or Layer variant.
+            reduce_input: bool = false,
+            source_input: ?MultiplicitiesSource = null,
 
             pub fn deinit(self: *GkrMultivariatePolyOracle, allocator: std.mem.Allocator) void {
                 self.eq_evals.deinit(allocator);
@@ -304,15 +364,17 @@ pub fn ForField(comptime Secure: type) type {
                 errdefer eq_owned.deinit(allocator);
                 return .{
                     .eq_evals = eq_owned,
-                    .input_layer = try self.input_layer.cloneOwned(allocator),
+                    .input_layer = if (self.source_input) |source| try materializeSource(allocator, source) else try self.input_layer.cloneOwned(allocator),
                     .eq_fixed_var_correction = self.eq_fixed_var_correction,
                     .lambda = self.lambda,
+                    .reduce_input = self.reduce_input,
                 };
             }
 
             pub fn nVariables(self: GkrMultivariatePolyOracle) usize {
-                const in_vars = self.input_layer.nVariables();
-                return if (in_vars == 0) 0 else in_vars - 1;
+                const in_vars: usize = if (self.source_input) |source| source.variables else self.input_layer.nVariables();
+                const reduction: usize = if (self.reduce_input) 2 else 1;
+                return in_vars -| reduction;
             }
 
             pub fn isConstant(self: GkrMultivariatePolyOracle) bool {
@@ -330,7 +392,11 @@ pub fn ForField(comptime Secure: type) type {
                 const n_terms: usize = @as(usize, 1) << @intCast(n_variables - 1);
 
                 var eval_pair: [2]Secure = undefined;
-                switch (self.input_layer) {
+                if (self.source_input) |source| {
+                    eval_pair = if (self.reduce_input) try evalSourceSum(true, &self.eq_evals, source, n_terms, self.lambda) else try evalSourceSum(false, &self.eq_evals, source, n_terms, self.lambda);
+                } else if (self.reduce_input) {
+                    eval_pair = evalReducedSum(&self.eq_evals, self.input_layer, n_terms, self.lambda);
+                } else switch (self.input_layer) {
                     .GrandProduct => |mle| {
                         eval_pair = evalGrandProductSum(&self.eq_evals, &mle, n_terms);
                     },
@@ -396,7 +462,7 @@ pub fn ForField(comptime Secure: type) type {
                 return .{
                     .eq_evals = eq_owned,
                     .eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term),
-                    .input_layer = try self.input_layer.fixFirstVariable(allocator, challenge),
+                    .input_layer = if (self.source_input) |source| (if (self.reduce_input) try foldSourceLayer(true, allocator, source, challenge) else try foldSourceLayer(false, allocator, source, challenge)) else if (self.reduce_input) try foldReducedLayer(allocator, self.input_layer, challenge) else try self.input_layer.fixFirstVariable(allocator, challenge),
                     .lambda = self.lambda,
                 };
             }
@@ -409,7 +475,18 @@ pub fn ForField(comptime Secure: type) type {
                 const n_variables = self.nVariables();
                 const z0 = self.eq_evals.ySlice()[self.eq_evals.ySlice().len - n_variables];
                 const eq_term = utils.eq(Secure, &.{challenge}, &.{z0}) catch return GkrProverError.ShapeMismatch;
-                try self.input_layer.fixFirstVariableInPlace(allocator, challenge);
+                if (self.source_input) |source| {
+                    const next = if (self.reduce_input) try foldSourceLayer(true, allocator, source, challenge) else try foldSourceLayer(false, allocator, source, challenge);
+                    self.input_layer.deinit(allocator);
+                    self.input_layer = next;
+                    self.source_input = null;
+                    self.reduce_input = false;
+                } else if (self.reduce_input) {
+                    const next = try foldReducedLayer(allocator, self.input_layer, challenge);
+                    self.input_layer.deinit(allocator);
+                    self.input_layer = next;
+                    self.reduce_input = false;
+                } else try self.input_layer.fixFirstVariableInPlace(allocator, challenge);
                 self.eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term);
             }
 
@@ -418,6 +495,31 @@ pub fn ForField(comptime Secure: type) type {
                 allocator: std.mem.Allocator,
             ) GkrProverError!gkr_verifier_field.GkrMask {
                 if (!self.isConstant()) return GkrProverError.NotConstantPoly;
+                if (self.source_input) |source| {
+                    var n: [2]Secure = undefined;
+                    var d: [2]Secure = undefined;
+                    if (self.reduce_input) {
+                        if (source.variables != 2) return error.InvalidLayerStructure;
+                        try readSourceReduced(source, 0, &n, &d);
+                    } else {
+                        if (source.variables != 1) return error.InvalidLayerStructure;
+                        var m: [2]M31 = undefined;
+                        try source.read(0, &m, &d);
+                        for (m, &n) |v, *out| out.* = Secure.fromBase(v);
+                    }
+                    return gkr_verifier_field.GkrMask.initOwned(try allocator.dupe([2]Secure, &.{ n, d }));
+                }
+                if (self.reduce_input) {
+                    if (self.input_layer.nVariables() != 2) return error.InvalidLayerStructure;
+                    var n: [2]Secure = undefined;
+                    var d: [2]Secure = undefined;
+                    reduceCheckpointRows(self.input_layer, 0, &n, &d);
+                    const cols = if (self.input_layer == .GrandProduct)
+                        try allocator.dupe([2]Secure, &.{n})
+                    else
+                        try allocator.dupe([2]Secure, &.{ n, d });
+                    return gkr_verifier_field.GkrMask.initOwned(cols);
+                }
 
                 return switch (self.input_layer) {
                     .GrandProduct => |mle| blk: {
@@ -460,6 +562,287 @@ pub fn ForField(comptime Secure: type) type {
                 };
             }
         };
+        pub fn sourceOracle(source: MultiplicitiesSource, reduced: bool, lambda: Secure, eq: *const EqEvals) GkrProverError!GkrMultivariatePolyOracle {
+            try source.validate();
+            if (reduced and source.variables < 2) return error.InvalidLayerStructure;
+            return .{ .eq_evals = eq.borrowed(), .input_layer = .{ .LogUpMultiplicities = .{ .numerators = .{ .evals = &.{}, .owns_evals = false }, .denominators = .{ .evals = &.{}, .owns_evals = false } } }, .eq_fixed_var_correction = Secure.one(), .lambda = lambda, .reduce_input = reduced, .source_input = source };
+        }
+        fn materializeSource(a: std.mem.Allocator, source: MultiplicitiesSource) !Layer {
+            try source.validate();
+            const n = try a.alloc(M31, source.len());
+            errdefer a.free(n);
+            const d = try a.alloc(Secure, source.len());
+            errdefer a.free(d);
+            var first: usize = 0;
+            while (first < n.len) {
+                const end = @min(first + 4 * REDUCED_TILE, n.len);
+                try source.read(first, n[first..end], d[first..end]);
+                first = end;
+            }
+            return .{ .LogUpMultiplicities = .{ .numerators = try MleBase.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+        }
+        /// Bounded source read plus exactly the original adjacent fraction add.
+        fn readSourceReduced(source: MultiplicitiesSource, first: usize, n: []Secure, d: []Secure) !void {
+            if (n.len != d.len or n.len > 2 * REDUCED_TILE) return error.ShapeMismatch;
+            var ms: [4 * REDUCED_TILE]M31 = undefined;
+            var ds: [4 * REDUCED_TILE]Secure = undefined;
+            try source.read(2 * first, ms[0 .. 2 * n.len], ds[0 .. 2 * n.len]);
+            const tail = Packed.nextLogup(M31, ms[0 .. 2 * n.len], ds[0 .. 2 * n.len], n, d, 0, n.len);
+            for (tail..n.len) |i| {
+                const value = baseFraction(ms[2 * i], ds[2 * i]).add(baseFraction(ms[2 * i + 1], ds[2 * i + 1]));
+                n[i] = value.numerator;
+                d[i] = value.denominator;
+            }
+        }
+        pub fn firstSourceCheckpoint(a: std.mem.Allocator, source: MultiplicitiesSource, levels: usize) !Layer {
+            try source.validate();
+            if (levels < 1 or levels > 2 or levels > source.variables) return error.InvalidLayerStructure;
+            const len = source.len() >> @intCast(levels);
+            const n = try a.alloc(Secure, len);
+            errdefer a.free(n);
+            const d = try a.alloc(Secure, len);
+            errdefer a.free(d);
+            const Context = struct {
+                source: MultiplicitiesSource,
+                levels: usize,
+                n: []Secure,
+                d: []Secure,
+                errors: [rows.MAX_SHARDS]?GkrProverError = @splat(null),
+                pub fn runRange(ctx: *@This(), ordinal: usize, first: usize, end: usize) void {
+                    ctx.process(first, end) catch |err| {
+                        ctx.errors[ordinal] = err;
+                    };
+                }
+                fn process(ctx: *@This(), first: usize, end: usize) GkrProverError!void {
+                    var ns: [2 * REDUCED_TILE]Secure = undefined;
+                    var ds: [2 * REDUCED_TILE]Secure = undefined;
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        const on = ctx.n[start..][0..count];
+                        const od = ctx.d[start..][0..count];
+                        if (ctx.levels == 1) try readSourceReduced(ctx.source, start, on, od) else {
+                            try readSourceReduced(ctx.source, 2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
+                            const tail = Packed.nextLogup(Secure, ns[0 .. 2 * count], ds[0 .. 2 * count], on, od, 0, count);
+                            for (tail..count) |i| {
+                                const value = fraction.Fraction(Secure, Secure).new(ns[2 * i], ds[2 * i]).add(fraction.Fraction(Secure, Secure).new(ns[2 * i + 1], ds[2 * i + 1]));
+                                on[i] = value.numerator;
+                                od[i] = value.denominator;
+                            }
+                        }
+                        start += count;
+                    }
+                }
+            };
+            var context = Context{ .source = source, .levels = levels, .n = n, .d = d };
+            const jobs = rows.forEachRange(len, &context, .{});
+            for (context.errors[0..jobs]) |err| if (err) |failure| return failure;
+            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+        }
+        fn evalSourceSum(comptime reduced: bool, eq: *const EqEvals, source: MultiplicitiesSource, terms: usize, lambda: Secure) GkrProverError![2]Secure {
+            const F = if (reduced) Secure else M31;
+            const Context = struct {
+                eq: *const EqEvals,
+                source: MultiplicitiesSource,
+                terms: usize,
+                lambda: Secure,
+                partial: [rows.MAX_SHARDS][2]Secure = undefined,
+                errors: [rows.MAX_SHARDS]?GkrProverError = @splat(null),
+                pub fn runRange(ctx: *@This(), ordinal: usize, first: usize, end: usize) void {
+                    ctx.partial[ordinal] = ctx.process(first, end) catch |err| {
+                        ctx.errors[ordinal] = err;
+                        return;
+                    };
+                }
+                fn process(ctx: *@This(), first: usize, end: usize) GkrProverError![2]Secure {
+                    var ns: [4 * REDUCED_TILE]F = undefined;
+                    var ds: [4 * REDUCED_TILE]Secure = undefined;
+                    var es: [REDUCED_TILE]Secure = undefined;
+                    var sum = [2]Secure{ Secure.zero(), Secure.zero() };
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        if (reduced) {
+                            try readSourceReduced(ctx.source, 2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
+                            try readSourceReduced(ctx.source, 2 * (ctx.terms + start), ns[2 * REDUCED_TILE ..][0 .. 2 * count], ds[2 * REDUCED_TILE ..][0 .. 2 * count]);
+                        } else {
+                            try ctx.source.read(2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
+                            try ctx.source.read(2 * (ctx.terms + start), ns[2 * REDUCED_TILE ..][0 .. 2 * count], ds[2 * REDUCED_TILE ..][0 .. 2 * count]);
+                        }
+                        @memcpy(es[0..count], ctx.eq.evals.evals[start..][0..count]);
+                        const le = EqEvals{ .y = &.{}, .owns_y = false, .evals = .{ .evals = &es, .owns_evals = false } };
+                        const ln = mle_mod.MleFor(Secure, F){ .evals = &ns, .owns_evals = false };
+                        const ld = MleSecure{ .evals = &ds, .owns_evals = false };
+                        const value = evalLogupSumRange(F, &le, &ln, &ld, REDUCED_TILE, ctx.lambda, 0, count);
+                        sum[0] = sum[0].add(value[0]);
+                        sum[1] = sum[1].add(value[1]);
+                        start += count;
+                    }
+                    return sum;
+                }
+            };
+            var context = Context{ .eq = eq, .source = source, .terms = terms, .lambda = lambda };
+            const jobs = rows.forEachRange(terms, &context, .{});
+            var sum = [2]Secure{ Secure.zero(), Secure.zero() };
+            for (0..jobs) |i| {
+                if (context.errors[i]) |err| return err;
+                sum[0] = sum[0].add(context.partial[i][0]);
+                sum[1] = sum[1].add(context.partial[i][1]);
+            }
+            return sum;
+        }
+        fn foldSourceLayer(comptime reduced: bool, a: std.mem.Allocator, source: MultiplicitiesSource, challenge: Secure) !Layer {
+            const F = if (reduced) Secure else M31;
+            const len = source.len() >> @as(u6, if (reduced) 2 else 1);
+            const n = try a.alloc(Secure, len);
+            errdefer a.free(n);
+            const d = try a.alloc(Secure, len);
+            errdefer a.free(d);
+            const Context = struct {
+                source: MultiplicitiesSource,
+                n: []Secure,
+                d: []Secure,
+                challenge: Secure,
+                errors: [rows.MAX_SHARDS]?GkrProverError = @splat(null),
+                pub fn runRange(ctx: *@This(), ordinal: usize, first: usize, end: usize) void {
+                    ctx.process(first, end) catch |err| {
+                        ctx.errors[ordinal] = err;
+                    };
+                }
+                fn process(ctx: *@This(), first: usize, end: usize) GkrProverError!void {
+                    var ns: [2 * REDUCED_TILE]F = undefined;
+                    var ds: [2 * REDUCED_TILE]Secure = undefined;
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        if (reduced) {
+                            try readSourceReduced(ctx.source, start, ns[0..count], ds[0..count]);
+                            try readSourceReduced(ctx.source, ctx.n.len + start, ns[count..][0..count], ds[count..][0..count]);
+                        } else {
+                            try ctx.source.read(start, ns[0..count], ds[0..count]);
+                            try ctx.source.read(ctx.n.len + start, ns[count..][0..count], ds[count..][0..count]);
+                        }
+                        const on = ctx.n[start..][0..count];
+                        const od = ctx.d[start..][0..count];
+                        const nt = Packed.fold(F, ns[0 .. 2 * count], on, ctx.challenge, 0, count);
+                        for (nt..count) |i| on[i] = utils.foldMleEvalsFor(Secure, F, ctx.challenge, ns[i], ns[count + i]);
+                        const dt = Packed.fold(Secure, ds[0 .. 2 * count], od, ctx.challenge, 0, count);
+                        for (dt..count) |i| od[i] = utils.foldMleEvalsFor(Secure, Secure, ctx.challenge, ds[i], ds[count + i]);
+                        start += count;
+                    }
+                }
+            };
+            var context = Context{ .source = source, .n = n, .d = d, .challenge = challenge };
+            const jobs = rows.forEachRange(len, &context, .{});
+            for (context.errors[0..jobs]) |err| if (err) |failure| return failure;
+            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+        }
+
+        const REDUCED_TILE = 16;
+        /// Compute only a bounded span of the missing layer. Packed reductions
+        /// are the original nextLayer kernels; scalar tails retain fraction.add.
+        fn reduceCheckpointRows(input: Layer, first: usize, n: []Secure, d: []Secure) void {
+            const count = n.len;
+            const source = 2 * first;
+            switch (input) {
+                .GrandProduct => |x| {
+                    const tail = Packed.nextProduct(x.evals[source..], n, 0, count);
+                    for (tail..count) |i| n[i] = x.evals[source + 2 * i].mul(x.evals[source + 2 * i + 1]);
+                },
+                inline .LogUpGeneric, .LogUpMultiplicities => |x| {
+                    const F = @TypeOf(x.numerators.evals[0]);
+                    const tail = Packed.nextLogup(F, x.numerators.evals[source..], x.denominators.evals[source..], n, d, 0, count);
+                    for (tail..count) |i| {
+                        const j = source + 2 * i;
+                        const value = if (F == M31)
+                            baseFraction(x.numerators.evals[j], x.denominators.evals[j]).add(baseFraction(x.numerators.evals[j + 1], x.denominators.evals[j + 1]))
+                        else
+                            fraction.Fraction(Secure, Secure).new(x.numerators.evals[j], x.denominators.evals[j]).add(fraction.Fraction(Secure, Secure).new(x.numerators.evals[j + 1], x.denominators.evals[j + 1]));
+                        n[i] = value.numerator;
+                        d[i] = value.denominator;
+                    }
+                },
+                .LogUpSingles => |x| {
+                    const tail = Packed.nextLogup(void, &.{}, x.denominators.evals[source..], n, d, 0, count);
+                    for (tail..count) |i| {
+                        const j = source + 2 * i;
+                        const value = utils.Reciprocal(Secure).new(x.denominators.evals[j]).add(utils.Reciprocal(Secure).new(x.denominators.evals[j + 1]));
+                        n[i] = value.numerator;
+                        d[i] = value.denominator;
+                    }
+                },
+            }
+        }
+        fn evalReducedSum(eq: *const EqEvals, input: Layer, terms: usize, lambda: Secure) [2]Secure {
+            const Context = struct {
+                eq: *const EqEvals,
+                input: Layer,
+                terms: usize,
+                lambda: Secure,
+                pub fn sumRange(ctx: @This(), first: usize, end: usize) [2]Secure {
+                    var ns: [4 * REDUCED_TILE]Secure = undefined;
+                    var ds: [4 * REDUCED_TILE]Secure = undefined;
+                    var es: [REDUCED_TILE]Secure = undefined;
+                    var sum = [2]Secure{ Secure.zero(), Secure.zero() };
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        reduceCheckpointRows(ctx.input, 2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
+                        reduceCheckpointRows(ctx.input, 2 * (ctx.terms + start), ns[2 * REDUCED_TILE ..][0 .. 2 * count], ds[2 * REDUCED_TILE ..][0 .. 2 * count]);
+                        @memcpy(es[0..count], ctx.eq.evals.evals[start..][0..count]);
+                        const local_eq = EqEvals{ .y = &.{}, .owns_y = false, .evals = .{ .evals = &es, .owns_evals = false } };
+                        const local_n = MleSecure{ .evals = &ns, .owns_evals = false };
+                        const local_d = MleSecure{ .evals = &ds, .owns_evals = false };
+                        const value = if (ctx.input == .GrandProduct)
+                            evalGrandProductSumRange(&local_eq, &local_n, REDUCED_TILE, 0, count)
+                        else
+                            evalLogupSumRange(Secure, &local_eq, &local_n, &local_d, REDUCED_TILE, ctx.lambda, 0, count);
+                        sum[0] = sum[0].add(value[0]);
+                        sum[1] = sum[1].add(value[1]);
+                        start += count;
+                    }
+                    return sum;
+                }
+            };
+            return rows.reduce(Secure, terms, Context{ .eq = eq, .input = input, .terms = terms, .lambda = lambda });
+        }
+        fn foldReducedLayer(a: std.mem.Allocator, input: Layer, challenge: Secure) !Layer {
+            const len = @as(usize, 1) << @intCast(input.nVariables() - 2);
+            const n = try a.alloc(Secure, len);
+            errdefer a.free(n);
+            const product = input == .GrandProduct;
+            const d: []Secure = if (product) &.{} else try a.alloc(Secure, len);
+            errdefer if (!product) a.free(d);
+            const Context = struct {
+                input: Layer,
+                n: []Secure,
+                d: []Secure,
+                challenge: Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    var ns: [2 * REDUCED_TILE]Secure = undefined;
+                    var ds: [2 * REDUCED_TILE]Secure = undefined;
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        reduceCheckpointRows(ctx.input, start, ns[0..count], ds[0..count]);
+                        reduceCheckpointRows(ctx.input, ctx.n.len + start, ns[count..][0..count], ds[count..][0..count]);
+                        const out_n = ctx.n[start..][0..count];
+                        const tail_n = Packed.fold(Secure, ns[0 .. 2 * count], out_n, ctx.challenge, 0, count);
+                        for (tail_n..count) |i| out_n[i] = utils.foldMleEvalsFor(Secure, Secure, ctx.challenge, ns[i], ns[count + i]);
+                        if (ctx.input != .GrandProduct) {
+                            const out_d = ctx.d[start..][0..count];
+                            const tail_d = Packed.fold(Secure, ds[0 .. 2 * count], out_d, ctx.challenge, 0, count);
+                            for (tail_d..count) |i| out_d[i] = utils.foldMleEvalsFor(Secure, Secure, ctx.challenge, ds[i], ds[count + i]);
+                        }
+                        start += count;
+                    }
+                }
+            };
+            rows.fill(len, Context{ .input = input, .n = n, .d = d, .challenge = challenge });
+            if (product) return .{ .GrandProduct = try MleSecure.initOwned(n) };
+            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+        }
+
         /// Computes `r(t) = sum_x eq((t, x), y[-k:]) * p(t, x)` from evaluations of
         /// `f(t) = sum_x eq(({0}^(n-k), 0, x), y) * p(t, x)`.
         pub fn correctSumAsPolyInFirstVariable(
@@ -616,6 +999,51 @@ pub fn ForField(comptime Secure: type) type {
                 .numerators = try MleSecure.initOwned(next_numerators),
                 .denominators = try MleSecure.initOwned(next_denominators),
             } };
+        }
+
+        fn nextGrandProductTwoLayers(a: std.mem.Allocator, input: MleSecure) !Layer {
+            const output = try a.alloc(Secure, input.evals.len / 4);
+            const Context = struct {
+                input: []const Secure,
+                output: []Secure,
+                pub fn fillRange(self: @This(), start: usize, end: usize) void {
+                    for (start..end) |i| {
+                        const k = 4 * i;
+                        self.output[i] = self.input[k].mul(self.input[k + 1]).mul(self.input[k + 2].mul(self.input[k + 3]));
+                    }
+                }
+            };
+            rows.fill(output.len, Context{ .input = input.evals, .output = output });
+            return .{ .GrandProduct = try MleSecure.initOwned(output) };
+        }
+        fn nextLogupTwoLayers(a: std.mem.Allocator, nums: MleExpr, dens: *const MleSecure) !Layer {
+            const numerator = try a.alloc(Secure, dens.evals.len / 4);
+            errdefer a.free(numerator);
+            const denominator = try a.alloc(Secure, dens.evals.len / 4);
+            errdefer a.free(denominator);
+            const Context = struct {
+                nums: MleExpr,
+                dens: []const Secure,
+                n: []Secure,
+                d: []Secure,
+                fn pair(self: @This(), k: usize) fraction.Fraction(Secure, Secure) {
+                    // This is exactly nextLogupLayer's first reduction,
+                    // including its base-valued numerator specialization.
+                    return if (self.nums == .MleBase)
+                        baseFraction(self.nums.MleBase.evals[k], self.dens[k]).add(baseFraction(self.nums.MleBase.evals[k + 1], self.dens[k + 1]))
+                    else
+                        fraction.Fraction(Secure, Secure).new(self.nums.at(k), self.dens[k]).add(fraction.Fraction(Secure, Secure).new(self.nums.at(k + 1), self.dens[k + 1]));
+                }
+                pub fn fillRange(self: @This(), start: usize, end: usize) void {
+                    for (start..end) |i| {
+                        const value = self.pair(4 * i).add(self.pair(4 * i + 2));
+                        self.n[i] = value.numerator;
+                        self.d[i] = value.denominator;
+                    }
+                }
+            };
+            rows.fill(numerator.len, Context{ .nums = nums, .dens = dens.evals, .n = numerator, .d = denominator });
+            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(numerator), .denominators = try MleSecure.initOwned(denominator) } };
         }
 
         fn evalGrandProductSum(
@@ -856,8 +1284,8 @@ pub fn ForField(comptime Secure: type) type {
                     var at = first;
                     while (at + @import("packed_rows.zig").WIDTH <= end) : (at += @import("packed_rows.zig").WIDTH) {
                         const v = Packed.load(ctx.input, at, 1);
-                        Packed.store(ctx.output, at, v.mul(p0));
-                        Packed.store(ctx.output, at + ctx.input.len, v.mul(p1));
+                        Packed.store(ctx.output, at, Packed.mul(v, p0));
+                        Packed.store(ctx.output, at + ctx.input.len, Packed.mul(v, p1));
                     }
                     for (at..end) |i| {
                         ctx.output[i] = ctx.input[i].mul(ctx.zero);

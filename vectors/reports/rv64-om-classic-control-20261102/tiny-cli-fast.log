@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded
+rv64-om-classic-control success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 20s MaxRSS:1G
+test-riscv64-om-classic-control success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 20s MaxRSS:1G
+

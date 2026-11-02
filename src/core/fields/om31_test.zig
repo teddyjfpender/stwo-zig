@@ -178,11 +178,13 @@ test "om31: native packed products and secure by base preserve independent lanes
     const x = packed_fields.fromCoordinates(l);
     const y = packed_fields.fromCoordinates(r);
     const result = x.mul(y);
+    const inlined = packed_fields.mul(x, y);
     const scales: m31.PackedM31 = @splat(319);
     const scaled = x.mulBase(scales);
     const squared = x.square();
     for (0..m31.PACK_WIDTH) |i| {
         try std.testing.expect(packed_fields.lane(result, i).eql(oracleMul(packed_fields.lane(x, i), packed_fields.lane(y, i))));
+        try std.testing.expect(packed_fields.lane(inlined, i).eql(oracleMul(packed_fields.lane(x, i), packed_fields.lane(y, i))));
         try std.testing.expect(packed_fields.lane(scaled, i).eql(packed_fields.lane(x, i).mulBase(M.fromCanonical(319))));
         try std.testing.expect(packed_fields.lane(squared, i).eql(packed_fields.lane(x, i).square()));
     }

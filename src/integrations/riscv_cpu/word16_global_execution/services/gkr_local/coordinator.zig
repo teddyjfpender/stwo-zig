@@ -36,11 +36,19 @@ pub const WorkerTiming = struct {
     stage1_ns: u64 = 0,
     stage2_ns: u64 = 0,
     actual_main_merkle_bytes: usize = 0,
+    retired_memory_event_bytes: usize = 0,
+    memory_event_retire_ns: u64 = 0,
     stage1_completed: bool = false,
     stage2_completed: bool = false,
+    completed_worker_retired: bool = false,
 };
 pub const Options = struct {
     max_workers: usize = 8,
+    /// Destructive opt-in for an exclusively owned Advice inventory. Successful
+    /// CPU stage one has joined MAIN/local proofs and copied global LS caches;
+    /// its original ordinary-memory events can then be retired. A later error
+    /// leaves those slots empty. Failed/unstarted ordinals remain caller-owned.
+    consume_memory_events: bool = false,
     /// Frontend MAIN/backing+binding admission, excluding independently owned setup
     /// and proof-engine scratch. This is not a total-RSS or device-memory claim.
     max_retained_frontend_bytes: usize = 512 << 20,
@@ -160,6 +168,7 @@ const Run = struct {
     stages: []Manifest.StageOne,
     results: []?Result,
     pending: ?*const Manifest.PendingManifest = null,
+    tree_policy: @import("child.zig").TreePolicy,
     fn stageOne(self: *Run, index: usize) !void {
         const timing = if (self.options.worker_timings) |values| &values[index] else null;
         var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
@@ -175,6 +184,7 @@ const Run = struct {
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
+            self.workers[index].?.cpu.tree_policy = self.tree_policy;
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
@@ -210,10 +220,13 @@ const Run = struct {
             }
             if (self.options.retained_store) |store| _ = try self.workers[index].?.truth.spillMain(store);
         }
-        if (timer) |*clock| {
-            timing.?.spill_ns = clock.lap();
-            timing.?.stage1_completed = true;
+        if (timer) |*clock| timing.?.spill_ns = clock.lap();
+        if (index < self.setups.len and self.options.consume_memory_events) {
+            const retired = try self.advice.retireEvents(index);
+            if (timing) |value| value.retired_memory_event_bytes = retired;
+            if (timer) |*clock| timing.?.memory_event_retire_ns = clock.lap();
         }
+        if (timing) |value| value.stage1_completed = true;
     }
     fn stageTwo(self: *Run, index: usize) !void {
         const timing = if (self.options.worker_timings) |values| &values[index] else null;
@@ -237,9 +250,15 @@ const Run = struct {
             .cpu => |*v| .{ .cpu = try v.complete(self.a, pending, index, self.options.global_budget) },
             .truth => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
         };
-        if (timer) |*clock| {
-            timing.?.native_complete_ns = clock.lap();
-            timing.?.stage2_completed = true;
+        if (timer) |*clock| timing.?.native_complete_ns = clock.lap();
+        // Encoded bytes/claims are detached owners. The joined manifest owns its
+        // reconstructed local artifacts, and StageOne bytes were encoded before
+        // this phase. No later worker needs this completed source/child owner.
+        worker.deinit(self.a);
+        self.workers[index] = null;
+        if (timing) |value| {
+            value.stage2_completed = true;
+            value.completed_worker_retired = true;
         }
     }
 };
@@ -256,6 +275,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 /// The authority is independently derived from trusted setup, never parsed from
 /// operational resource JSON or a producer bundle. It stays live through return.
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
+    const policy = try @import("child.zig").readTreePolicy(a);
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
     if (options.worker_timings) |timings| @memset(timings, .{});
@@ -266,7 +286,7 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
-    const estimates = try admit(a, setups, truths, requests, &inventory, config, options);
+    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy);
     defer estimates.deinit(a);
     const workers = try a.alloc(?Worker, count);
     defer a.free(workers);
@@ -278,7 +298,7 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     defer a.free(results);
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
-    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
+    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .tree_policy = policy };
     const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
     const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
@@ -307,7 +327,7 @@ const Admission = struct {
         a.free(self.stage2);
     }
 };
-fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options) !Admission {
+fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy) !Admission {
     const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{} };
     errdefer a.free(estimates.stage1);
     var result = estimates;
@@ -320,7 +340,7 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
     const full_nodes = if (options.retained_store) |store| store.stats().merkle_parking_enabled else false;
     var disk: usize = 0;
     for (result.stage1, result.stage2, 0..) |*stage1, *stage2, i| {
-        const plan = if (i < setups.len) try Retention.forCpu(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
+        const plan = if (i < setups.len) try Retention.forCpuWithTightAdmission(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed, policy.tight_admission) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;

@@ -39,6 +39,10 @@ const Resources = struct {
     disk_bytes: usize,
     /// Explicit operational choice: small inventories may retain MAIN in RAM.
     park_main: bool = true,
+    /// Operational cache only; never changes live proof ownership or protocol.
+    recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
+    /// Producer geometry experiment. The default preserves the admitted roster.
+    keccak_max_log: u32 = 18,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
@@ -46,6 +50,8 @@ const Resources = struct {
         if (self.gkr_bytes == 0 or self.global_bytes == 0 or self.retained_frontend_bytes == 0 or (self.park_main and self.disk_bytes == 0) or self.schedule.memory_cap_bytes == 0) return error.MissingWideResourceAdmission;
         try self.capture_options.validate();
         try self.schedule.validate();
+        if (self.recycler_cache_bytes > ReceiverBudget.RECYCLER_CACHE_BYTES) return error.UnsupportedRecyclerCacheLimit;
+        if (self.keccak_max_log < 16 or self.keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
         try Schedule.validateOrder(self.stage2_order, self.stage2_order.len);
     }
     pub fn jsonStringify(self: Resources, writer: anytype) !void {
@@ -63,6 +69,14 @@ const Resources = struct {
             try writer.objectField("capture_options");
             try writer.write(self.capture_options);
         }
+        if (self.recycler_cache_bytes != ReceiverBudget.RECYCLER_CACHE_BYTES) {
+            try writer.objectField("recycler_cache_bytes");
+            try writer.write(self.recycler_cache_bytes);
+        }
+        if (self.keccak_max_log != 18) {
+            try writer.objectField("keccak_max_log");
+            try writer.write(self.keccak_max_log);
+        }
         try writer.endObject();
     }
 };
@@ -75,11 +89,14 @@ const CandidateResources = struct {
     disk_bytes: usize,
     fixed_setup_bytes: usize,
     park_main: bool = true,
+    recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
+    /// Producer geometry experiment. The default preserves the admitted roster.
+    keccak_max_log: u32 = 18,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
+        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
     }
     fn validate(self: CandidateResources) !void {
         if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
@@ -180,6 +197,7 @@ pub fn main() !void {
             resources = control_resource_owner.?.value;
         }
     }
+    if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
     const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
     var jobs = try std.fs.cwd().openDir(args[3], .{});
     defer jobs.close();
@@ -194,7 +212,7 @@ pub fn main() !void {
     try @import("../services/gkr_local/v2_scope.zig").advice(&captured.advice);
     const cpu = try Plan.cpus(a, &captured);
     defer a.free(cpu);
-    const truths = try Plan.truths(a, &captured);
+    const truths = try Plan.truthsWithKeccakMaxLog(a, &captured, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
     if (capture_only) {
         const digest_start = timer.read();
@@ -203,6 +221,7 @@ pub fn main() !void {
     }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
+    const worker_limit = try producerWorkerLimit(operational.park_main, cpu.len + truths.len, operational.keccak_max_log);
     try Schedule.validateOrder(operational.stage2_order, try std.math.add(usize, cpu.len, truths.len));
     var source_bounds: ?SourceBounds.Report = null;
     defer if (source_bounds) |*value| value.deinit();
@@ -233,10 +252,13 @@ pub fn main() !void {
     if (request.value.profile_stages) try observations.enableScheduleTraces();
     const worker_timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
     defer a.free(worker_timings);
+    // This CLI owns capture; both snapshots occur outside worker activity.
+    const capture_before_proving = captured.ownership();
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .max_workers = if (operational.park_main) 32 else 8, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
+    const capture_after_proving = captured.ownership();
     if (request.value.profile_stages) {
         const profiling = @import("../services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
         for (0..observations.pointers.len) |i| try profiling.finish(a, i);
@@ -246,7 +268,7 @@ pub fn main() !void {
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
@@ -313,4 +335,64 @@ test "explicit stage2 resource order remains owner-backed and serializes only wh
     defer a.free(encoded);
     try std.testing.expect(std.mem.indexOf(u8, encoded, "\"stage2_order\":[2,0,1]") != null);
     try std.testing.expectError(error.InvalidServiceOrder, Schedule.validateOrder(operational.stage2_order, 5));
+}
+
+test "explicit recycler cache ceiling remains an operational bounded option" {
+    const a = std.testing.allocator;
+    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .park_main = false, .schedule = .{ .memory_cap_bytes = 5 } };
+    try limits.validate();
+    const old = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(old);
+    try std.testing.expect(std.mem.indexOf(u8, old, "recycler_cache_bytes") == null);
+    limits.recycler_cache_bytes = 0;
+    try limits.validate();
+    const encoded = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(encoded);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "\"recycler_cache_bytes\":0") != null);
+    const decoded = try std.json.parseFromSlice(Resources, a, encoded, .{});
+    defer decoded.deinit();
+    try decoded.value.validate();
+    try std.testing.expectEqual(@as(usize, 0), decoded.value.recycler_cache_bytes);
+    limits.recycler_cache_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES + 1;
+    try std.testing.expectError(error.UnsupportedRecyclerCacheLimit, limits.validate());
+    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .fixed_setup_bytes = 6, .park_main = false, .recycler_cache_bytes = 1024, .schedule = .{ .memory_cap_bytes = 5 } };
+    try candidate.validate();
+    try std.testing.expectEqual(@as(usize, 1024), candidate.operational().recycler_cache_bytes);
+}
+
+// Worker admission is an operational bound, independent of scheduler threads.
+// The default geometry keeps the prior32 ceiling; only smaller parked shards
+// may select a larger, still bounded roster. No-store retention stays at8.
+fn producerWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
+    if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
+    const cap: usize = if (!park_main) 8 else if (keccak_max_log < 18) 64 else 32;
+    if (count == 0 or count > cap or count > @import("../services/gkr_local/manifest.zig").MAX_WORKERS) return error.BoundedWideCoordinatorLimit;
+    return if (park_main) @max(@as(usize, 32), count) else 8;
+}
+test "Keccak shard operational resource remains explicit bounded and default-schema preserving" {
+    const a = std.testing.allocator;
+    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .schedule = .{ .memory_cap_bytes = 5 } };
+    const old = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(old);
+    try std.testing.expect(std.mem.indexOf(u8, old, "keccak_max_log") == null);
+    limits.keccak_max_log = 16;
+    try limits.validate();
+    const encoded = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(encoded);
+    const parsed = try std.json.parseFromSlice(Resources, a, encoded, .{});
+    defer parsed.deinit();
+    try parsed.value.validate();
+    try std.testing.expectEqual(@as(u32, 16), parsed.value.keccak_max_log);
+    limits.keccak_max_log = 15;
+    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, limits.validate());
+    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 5, .keccak_max_log = 17, .schedule = .{ .memory_cap_bytes = 6 } };
+    try candidate.validate();
+    try std.testing.expectEqual(@as(u32, 17), candidate.operational().keccak_max_log);
+    try std.testing.expectEqual(@as(usize, 32), try producerWorkerLimit(true, 30, 18));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 36, 18));
+    try std.testing.expectEqual(@as(usize, 36), try producerWorkerLimit(true, 36, 16));
+    try std.testing.expectEqual(@as(usize, 64), try producerWorkerLimit(true, 64, 16));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 65, 16));
+    try std.testing.expectEqual(@as(usize, 8), try producerWorkerLimit(false, 8, 16));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(false, 9, 16));
 }

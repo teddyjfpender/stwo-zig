@@ -134,6 +134,7 @@ pub const CpuWorker = struct {
     channel: W.Channel,
     child: ?*Child.Unbound = null,
     gkr_budget: usize,
+    tree_policy: ?Child.TreePolicy = null,
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
@@ -209,7 +210,8 @@ pub const CpuWorker = struct {
         const root = self.scheme.trees.items[1].root();
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
         var phase_timing = Child.PhaseTiming{};
-        self.child = try Child.Unbound.proveTimed(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, if (self.seal_timing != null) &phase_timing else null);
+        const policy = if (self.tree_policy) |value| value else try Child.readTreePolicy(a);
+        self.child = try Child.Unbound.proveTimedWithPolicy(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, if (self.seal_timing != null) &phase_timing else null);
         if (self.seal_timing) |timing| {
             timing.inputs_ns = phase_timing.inputs_ns;
             timing.numerical_ns = phase_timing.numerical_ns;

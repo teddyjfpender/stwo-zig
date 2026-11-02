@@ -17,7 +17,7 @@ fn check(log: u32, extra: u32, positions: []const usize) !void {
     var tw = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
     defer engine.poly.twiddles.deinitM31(a, &tw);
     const view = engine.poly.twiddles.TwiddleTree([]const M).init(tw.root_coset, tw.twiddles, tw.itwiddles);
-    const scratch = try a.alloc(M, if (extra == 1 and log > 5) n / 2 else n);
+    const scratch = try a.alloc(M, if (extra != 0 and coefficients.len >= 32) coefficients.len else n);
     defer a.free(scratch);
     const out = try a.alloc(M, positions.len);
     defer a.free(out);
@@ -29,6 +29,13 @@ fn check(log: u32, extra: u32, positions: []const usize) !void {
             try std.testing.expectEqual(Q.fromBase(value), p.evalAtPoint(.{ .x = Q.fromBase(point.x), .y = Q.fromBase(point.y) }));
         }
     }
+    if (extra >= 2 and log == 10) {
+        const full = try a.alloc(M, n);
+        defer a.free(full);
+        // Existing4x+ callers may continue passing a full domain-sized buffer.
+        try circle.poly.evaluateSelectedCoefficientsWithTwiddles(coefficients, full, domain, view, positions, out);
+        for (positions, out) |position, value| try std.testing.expectEqual(reference.values[position], value);
+    }
 }
 test "sparse half windows match full packed FFT and scalar circle-basis evaluation across small logs" {
     for (1..13) |l| {
@@ -37,7 +44,7 @@ test "sparse half windows match full packed FFT and scalar circle-basis evaluati
         const positions = try a.alloc(usize, n);
         defer a.free(positions);
         for (positions, 0..) |*p, i| p.* = i;
-        for (0..@min(l, 3)) |extra| try check(log, @intCast(extra), positions);
+        for (0..@min(l, 4)) |extra| try check(log, @intCast(extra), positions);
         try check(log, 1, &.{});
     }
 }
@@ -53,6 +60,11 @@ test "pruned half windows preserve repeated targets either half and sparse radix
         try check(log, 1, &.{ 0, 0, n / 2 - 1 });
         try check(log, 1, &.{ n / 2, n / 2, n - 1 });
         try check(log, 2, &positions);
+        try check(log, 3, &positions);
+        // Large blowup with only sparse occupied windows: no scan/allocation
+        // proportional to the number of unqueried windows is needed.
+        try check(log, log - 5, &positions);
+        try check(log, 2, &.{ 0, n / 4 - 1, n / 4, n / 2 - 1, n / 2, 3 * n / 4 - 1, 3 * n / 4, n - 1 });
     }
 }
 test "invalid sparse geometry refuses before publishing or touching coefficient inputs" {
@@ -81,6 +93,9 @@ fn makeTree(allocator: std.mem.Allocator) !Tree {
     return makeTreeFor(allocator, &.{ 9, 7, 9, 6 });
 }
 fn makeTreeFor(allocator: std.mem.Allocator, logs: []const u32) !Tree {
+    return makeTreeForBlowup(allocator, logs, 1);
+}
+fn makeTreeForBlowup(allocator: std.mem.Allocator, logs: []const u32, blowup_log: u32) !Tree {
     var transferred = false;
     const columns = try allocator.alloc(engine.pcs.ColumnEvaluation, logs.len);
     errdefer if (!transferred) allocator.free(columns);
@@ -94,7 +109,7 @@ fn makeTreeFor(allocator: std.mem.Allocator, logs: []const u32) !Tree {
         allocator.free(coefficients);
     };
     for (logs, columns, coefficients, 0..) |log, *column, *coefficient, i| {
-        const values = try allocator.alloc(M, @as(usize, 1) << @intCast(log - 1));
+        const values = try allocator.alloc(M, @as(usize, 1) << @intCast(log - blowup_log));
         errdefer allocator.free(values);
         for (values, 0..) |*value, row| value.* = M.fromU64(13 + i * 7 + row * row);
         const poly = try circle.CircleCoefficients.initOwned(values);
@@ -111,7 +126,10 @@ fn makeTreeFor(allocator: std.mem.Allocator, logs: []const u32) !Tree {
     return tree;
 }
 fn openingCase(allocator: std.mem.Allocator) !void {
-    var tree = try makeTree(allocator);
+    for (1..4) |blowup| try openingBlowupCase(allocator, @intCast(blowup));
+}
+fn openingBlowupCase(allocator: std.mem.Allocator, blowup_log: u32) !void {
+    var tree = try makeTreeForBlowup(allocator, &.{ 9, 7, 9, 6 }, blowup_log);
     defer tree.deinit(allocator);
     const queries = [_]usize{ 0, 7, 7, 31, 128, 271, 511 };
     var expected = try engine.pcs.coefficient_opening.testing.decommitFull(H, allocator, tree, &queries);

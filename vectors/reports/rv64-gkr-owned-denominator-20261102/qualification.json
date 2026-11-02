@@ -1,0 +1,14 @@
+{
+  "schema": "rv64-gkr-owned-multiplicity-denominator-v1",
+  "parent": "c4d6fbff9",
+  "scope": "Original immutable M31 numerator lift plus existing owned secure denominator fold; metadata replay/consuming checkpoint API external",
+  "ReleaseSafe_tests": 60,
+  "ReleaseFast_tests_with_pinned_Q_OM_capture": 54,
+  "independent_scalar_owned_base_and_borrowed_base": true,
+  "nonresizable_allocation_failure_cleanup": true,
+  "shape_and_alias_guard_before_mutation": true,
+  "default_borrowed_proof_artifact_next_draw_unchanged": true,
+  "production_consuming_checkpoint_integration_pending": true,
+  "allocator_resize_caveat": "Retained pointer depends on allocator resize; fallback still copies a half plane. No unconditional memory or wholeproof speedup claim.",
+  "whole_protocol_128": false
+}

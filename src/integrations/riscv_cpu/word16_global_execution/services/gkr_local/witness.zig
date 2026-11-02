@@ -60,7 +60,7 @@ fn projectLanes(weights: []const O, numerators: []const M, denominators: []const
     while (i + engine.lookups.packed_rows.WIDTH <= weights.len) : (i += engine.lookups.packed_rows.WIDTH) {
         const w = Packed.load(weights, i, 1);
         pn = pn.add(w.mulBase(Packed.base(numerators, i, 1)));
-        pd = pd.add(w.mul(Packed.load(denominators, i, 1)));
+        pd = pd.add(Packed.mul(w, Packed.load(denominators, i, 1)));
     }
     var n = Packed.sum(pn);
     var d = Packed.sum(pd);
@@ -72,7 +72,7 @@ fn projectLanes(weights: []const O, numerators: []const M, denominators: []const
 }
 // Projection fills physical rows contiguously. Prefix wave one uses logical
 // ranges, then a joined carry wave adjusts disjoint physical slots in place.
-fn projectAndPrefix(data: []M, rows: usize, row_log: u32, lanes: usize, weights: []const O, numerators: []const M, denominators: []const O, eta: O, uniform: O, options: Work.RangeOptions) !void {
+fn projectAndPrefix(comptime projection_ready: bool, data: []M, rows: usize, row_log: u32, lanes: usize, weights: []const O, numerators: []const M, denominators: []const O, eta: O, uniform: O, options: Work.RangeOptions) !void {
     const Context = struct {
         data: []M,
         rows: usize,
@@ -115,7 +115,7 @@ fn projectAndPrefix(data: []M, rows: usize, row_log: u32, lanes: usize, weights:
         }
     };
     var context = Context{ .data = data, .rows = rows, .row_log = row_log, .lanes = lanes, .weights = weights, .numerators = numerators, .denominators = denominators, .eta = eta, .uniform = uniform };
-    _ = Work.forEachRange(rows, &context, options);
+    if (!projection_ready) _ = Work.forEachRange(rows, &context, options);
     const Prefix = struct {
         context: *Context,
         pub fn runRange(self: *@This(), i: usize, start: usize, end: usize) void {
@@ -170,12 +170,88 @@ pub const Witness = struct {
             const target = claims[0].add(eta.mul(claims[1]));
             const uniform = target.mulM31(try M.fromCanonical(@intCast(rows)).inv());
             const vectors = layer.LogUpMultiplicities;
-            try projectAndPrefix(data, rows, instance.row_log, lanes, lane_weights[0..lanes], vectors.numerators.evals, vectors.denominators.evals, eta, uniform, options);
+            try projectAndPrefix(false, data, rows, instance.row_log, lanes, lane_weights[0..lanes], vectors.numerators.evals, vectors.denominators.evals, eta, uniform, options);
             out[index] = data;
             done += 1;
         }
         return .{ .allocator = a, .columns = out };
     }
+    /// Replays original narrow metadata into the exact terminal linear form.
+    /// No numerator/denominator planes or MAIN columns are retained/rebuilt.
+    /// Scratch coefficients are explicitly charged to the numerical allocator;
+    /// output planes remain parent-owned and externally reserved by Child.
+    pub fn initFromProvider(a: std.mem.Allocator, scratch: std.mem.Allocator, instances: []const Frame.Instance, challenges: *const @import("challenges.zig").For(O), provider: anytype, artifact: *const V.GkrArtifact, eta: O) !Witness {
+        if (instances.len != artifact.claims_to_verify_by_instance.len or instances.len != artifact.n_variables_by_instance.len) return error.LocalGkrProjectionShape;
+        const out = try a.alloc([]M, instances.len);
+        var done: usize = 0;
+        errdefer {
+            for (out[0..done]) |values| a.free(values);
+            a.free(out);
+        }
+        for (instances, artifact.claims_to_verify_by_instance, 0..) |instance, claims, index| {
+            if (claims.len != 2 or instance.terms > 128) return error.LocalGkrProjectionShape;
+            const point = try Frame.splitPoint(instance, artifact.ood_point, artifact.n_variables_by_instance[index]);
+            const rows = try instance.rows();
+            const lanes: usize = @as(usize, 1) << @intCast(try instance.laneLog());
+            if (lanes > 128) return error.LocalGkrProjectionShape;
+            const data = try a.alloc(M, try std.math.mul(usize, rows, 16));
+            errdefer a.free(data);
+            try eqInto(data, rows, point.rows);
+            var lane_planes: [8 * 128]M = undefined;
+            try eqInto(lane_planes[0 .. 8 * lanes], lanes, point.lanes);
+            var lane_weights: [128]O = undefined;
+            for (lane_weights[0..lanes], 0..) |*v, j| v.* = get(&lane_planes, lanes, 0, j);
+            var relations: [128]@import("fractions.zig").Relation = undefined;
+            var n: [128]M = undefined;
+            var d: [128]O = undefined;
+            var catalog = @import("inputs.zig").RowSink{ .challenges = challenges, .numerator = n[0..instance.terms], .denominator = d[0..instance.terms], .catalog = relations[0..instance.terms] };
+            try provider.emit(instance, 0, &catalog);
+            if (catalog.invalid or catalog.count != instance.terms) return error.LocalGkrProjectionShape;
+            var prepared = try @import("prepared_projection.zig").For(O).init(scratch, relations[0..instance.terms], challenges, lane_weights[0..lanes]);
+            defer prepared.deinit();
+            const target = claims[0].add(eta.mul(claims[1]));
+            const uniform = target.mulM31(try M.fromCanonical(@intCast(rows)).inv());
+            const Context = struct {
+                data: []M,
+                rows: usize,
+                instance: Frame.Instance,
+                challenges: *const @import("challenges.zig").For(O),
+                provider: @TypeOf(provider),
+                prepared: *const @import("prepared_projection.zig").For(O),
+                eta: O,
+                uniform: O,
+                errors: [Work.MAX_SHARDS]?anyerror = @splat(null),
+                pub fn runRange(self: *@This(), ordinal: usize, start: usize, end: usize) void {
+                    for (start..end) |p| {
+                        const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, self.instance.row_log), self.instance.row_log);
+                        var projection = self.prepared.projection();
+                        var sink = @import("inputs.zig").RowSink{ .challenges = self.challenges, .projection = &projection };
+                        self.provider.emit(self.instance, logical, &sink) catch |err| {
+                            self.errors[ordinal] = err;
+                            return;
+                        };
+                        if (sink.invalid or sink.count != self.instance.terms) {
+                            self.errors[ordinal] = error.LocalGkrProjectionShape;
+                            return;
+                        }
+                        projection.finish() catch |err| {
+                            self.errors[ordinal] = err;
+                            return;
+                        };
+                        set(self.data, self.rows, 8, p, get(self.data, self.rows, 0, p).mul(projection.combine(self.eta)).sub(self.uniform));
+                    }
+                }
+            };
+            var context = Context{ .data = data, .rows = rows, .instance = instance, .challenges = challenges, .provider = provider, .prepared = &prepared, .eta = eta, .uniform = uniform };
+            const shards = Work.forEachRange(rows, &context, .{});
+            for (context.errors[0..shards]) |err| if (err) |e| return e;
+            try projectAndPrefix(true, data, rows, instance.row_log, 0, &.{}, &.{}, &.{}, eta, uniform, .{});
+            out[index] = data;
+            done += 1;
+        }
+        return .{ .allocator = a, .columns = out };
+    }
+
     /// Header allocation and all shape checks precede the transfer. On any
     /// error the original witness remains owned and retryable. Both descriptors
     /// and backing planes use this witness's parent allocator.
@@ -267,9 +343,9 @@ test "bounded Eq projection and two-wave prefix match serial authority in every 
         var binding = try Pools.ScopedPoolBinding.init(&pool);
         defer binding.deinit();
         try eqIntoWithOptions(parallel, rows, &point, .{});
-        try projectAndPrefix(parallel, rows, log, lanes, &weights, n, d, eta, uniform, .{});
+        try projectAndPrefix(false, parallel, rows, log, lanes, &weights, n, d, eta, uniform, .{});
         try std.testing.expectEqualSlices(M, serial, parallel);
-        try std.testing.expectError(error.UnboundLocalGkrInput, projectAndPrefix(parallel, rows, log, lanes, &weights, n, d, eta, uniform.add(O.one()), .{}));
+        try std.testing.expectError(error.UnboundLocalGkrInput, projectAndPrefix(false, parallel, rows, log, lanes, &weights, n, d, eta, uniform.add(O.one()), .{}));
     }
 }
 
