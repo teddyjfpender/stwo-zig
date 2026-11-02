@@ -124,3 +124,56 @@ pub fn metadataByteUpperBound(truth: R.Truth) !usize {
     try visit(truth, &ctx);
     return ctx.total;
 }
+pub fn descriptorForDeclaration(d: @import("../wire.zig").TruthDeclaration) !Descriptor {
+    if (d.logs[1] != 0) return error.NotV3Truth;
+    const max_log: u32 = switch (d.family) {
+        .sha256 => @import("../../sha256/roster.zig").MAX_LOG,
+        .arith256_mod => @import("../../arith256/roster.zig").MAX_LOG,
+        .add, .double => @import("../../secp/row_roster.zig").MAX_LOG,
+        .keccak => return error.NotV3Truth,
+        else => @import("../../curves/roster.zig").MAX_LOG,
+    };
+    if (d.logs[0] > max_log) return error.V3TruthShapeExceeded;
+    var ctx = struct {
+        log: u32,
+        calls: u32,
+        first: u32,
+        value: Descriptor = undefined,
+        pub fn call(s: *@This(), comptime T: type) !void {
+            try T.L.validateGeometry(s.calls, s.first, s.log);
+            s.value = .{ .log_size = s.log, .shape = .{ .fixed = T.fixed, .main = T.L.MAIN, .inter = 8 * (T.byte_batches + T.wire_batches), .constraints = T.main_constraints + T.byte_batches + T.wire_batches, .degree = T.degree, .byte_batches = T.byte_batches, .wire_batches = T.wire_batches } };
+        }
+    }{ .log = d.logs[0], .calls = d.calls, .first = d.first_id };
+    switch (d.family) {
+        .sha256 => try ctx.call(Sha()),
+        .arith256_mod => try ctx.call(Arith()),
+        .add => try ctx.call(Curve(A.crypto.curves.spec.SecpKind.add)),
+        .double => try ctx.call(Curve(A.crypto.curves.spec.SecpKind.double)),
+        .keccak => return error.NotV3Truth,
+        inline else => |f| try ctx.call(Curve(@as(A.crypto.curves.Op, @enumFromInt(@intFromEnum(f))))),
+    }
+    return ctx.value;
+}
+pub const LookupCounts = struct { byte_unit_consumers: u64, byte_provider_support: u64, byte_denominator_slots: u64, wire_denominator_slots: u64, wire_fractions_per_row: usize, byte_queries_per_row: usize };
+pub fn lookupCountsForDeclaration(d: @import("../wire.zig").TruthDeclaration) !LookupCounts {
+    const std = @import("std");
+    _ = try descriptorForDeclaration(d);
+    var ctx = struct {
+        bytes: usize = 0,
+        wires: usize = 0,
+        pub fn call(s: *@This(), comptime T: type) !void {
+            s.bytes = T.bytes;
+            s.wires = T.wires;
+        }
+    }{};
+    switch (d.family) {
+        .sha256 => try ctx.call(Sha()),
+        .arith256_mod => try ctx.call(Arith()),
+        .add => try ctx.call(Curve(A.crypto.curves.spec.SecpKind.add)),
+        .double => try ctx.call(Curve(A.crypto.curves.spec.SecpKind.double)),
+        .keccak => return error.NotV3Truth,
+        inline else => |f| try ctx.call(Curve(@as(A.crypto.curves.Op, @enumFromInt(@intFromEnum(f))))),
+    }
+    const n = @as(u64, 1) << @intCast(d.logs[0]);
+    return .{ .byte_unit_consumers = try std.math.mul(u64, n, ctx.bytes), .byte_provider_support = if (ctx.bytes == 0) 0 else 256, .byte_denominator_slots = if (ctx.bytes == 0) 0 else try std.math.mul(u64, n, ctx.bytes + 1), .wire_denominator_slots = try std.math.mul(u64, n, ctx.wires), .wire_fractions_per_row = ctx.wires, .byte_queries_per_row = ctx.bytes };
+}

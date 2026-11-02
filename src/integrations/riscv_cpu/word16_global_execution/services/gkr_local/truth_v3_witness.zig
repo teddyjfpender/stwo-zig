@@ -48,7 +48,9 @@ fn typed(comptime T: type, a: std.mem.Allocator, s: anytype, wire: Wire, bytes: 
     const row = try a.create(T.N.Row);
     defer a.destroy(row);
     var table: [256]O = undefined;
-    if (comptime T.bytes != 0) for (&table, 0..) |*v, i| v.* = try bytes.sub(O.fromBase(M.fromCanonical(@intCast(i)))).inv();
+    if (comptime T.bytes != 0) {
+        for (&table, 0..) |*v, i| v.* = try bytes.sub(O.fromBase(M.fromCanonical(@intCast(i)))).inv();
+    }
     var bt = O.zero();
     var wt = O.zero();
     const V = struct {
