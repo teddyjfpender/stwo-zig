@@ -1,0 +1,51 @@
+{
+  "schema": "rv64-current-om-gkr-full-ordinary-isa-v1",
+  "source_base": "921b6ebd205b36dbd76f0a5e9d67e85100a9a880",
+  "scope": "One actual continuous63-retirement opcode-complete program on the existing current services coordinator; control and beta2 engineering candidate. No newproduction acceptance route.",
+  "instructions": 63,
+  "program_words_le_sha256": "e248b47f22b747745e3e004ebd32f80146564748bf6d96c396f4d5aa0fdfadc2",
+  "opcode_coverage": "Each ordinary opcode0..62 is observed exactlyonce from machine retirements before proving; ECALL/EBREAK and serviceacceptance are outside this fixture.",
+  "data_address": "0x200004000",
+  "operand": "0x8000000000000001",
+  "control": {
+    "beta": 1,
+    "queries": 12,
+    "pow_bits": 0,
+    "scope": "Small functional fixture, notproduction q70/P26 securitycontrol.",
+    "physical_bytes": 140752,
+    "safe_prove_ns": 664100208,
+    "safe_fresh_and_tamper_ns": 145667625,
+    "fast_prove_ns": 470147500,
+    "fast_fresh_and_tamper_ns": 128749500
+  },
+  "candidate": {
+    "profile": "Actual om31_security_candidate.config beta2/q256/P0/fold4",
+    "whole_protocol_128": false,
+    "physical_bytes": 1585392,
+    "safe_prove_ns": 800371250,
+    "safe_fresh_and_tamper_ns": 335078875,
+    "fast_prove_ns": 574964209,
+    "fast_fresh_and_tamper_ns": 298829916
+  },
+  "fresh_receiver": "Same-process independent CPU setup; candidate additionally independently rebuilds FIXEDcache/leases. Receiver takes only bundle, independently expected program/state/image and keys; no native tape is supplied to verifier.",
+  "adversarial": [
+    "Independently expected finalregister3 flipped: rejected",
+    "Physical proofmiddlebyte flipped: rejected; byte restored before teardown"
+  ],
+  "gates": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe -Driscv-test-filter='OM-GKR services all63' -j2 --summary all",
+      "result": "PASS44s MaxRSS1G (compiler+test process scope)"
+    },
+    {
+      "command": "lockf /private/tmp/stwo-rv64-perf-heavy.lock zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast -Driscv-test-filter='OM-GKR services all63' -j2 --summary all",
+      "result": "PASS28s MaxRSS1G (compiler+test process scope)"
+    }
+  ],
+  "limitations": [
+    "One operandpattern peropcode, not exhaustive semanticedges.",
+    "Currentprofile continuous Sail corpus/CSPsuite physicalproofs pending; earlier QM/Word16receipts do not transfer.",
+    "Pinned Rust qualification is densev2 ADDI/ADDI/SD/LD/ADD four-coordinate adapter only, not currentOM/GKR/allISA verification.",
+    "Functional timings on sharedhost; no controlledspeedupcomparison or proofbyteparity claim acrossprofiles."
+  ]
+}

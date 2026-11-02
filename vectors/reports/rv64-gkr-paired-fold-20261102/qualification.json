@@ -1,0 +1,31 @@
+{
+  "schema": "rv64-gkr-owned-pair-fold-v1",
+  "source": "2426718fa",
+  "base": "449bc62a0",
+  "baseline_core_source": {
+    "path": "/private/tmp/stwo-rv64-gkr-public-aux",
+    "commit": "75d2f402c",
+    "temporary_wrapper_removed": true
+  },
+  "tests": {
+    "ReleaseSafe": 57,
+    "ReleaseFast_explicit_pinned_baseline": 51,
+    "Q_OM_proof_artifact_next_draw_exact": true,
+    "fresh_terminal_MLE": true,
+    "all_OOM": true
+  },
+  "independent_review": "pipeline read-only PASS: exclusive disjoint ownership, same-index/halfsuffix alias law, joined callbacks and partial finalizer OOM cleanup",
+  "micro": {
+    "samples": 144,
+    "alternate_each_sample": true,
+    "warmup_sample0_retained_excluded_from_medians": true,
+    "source_input_reset_and_allocations_outside_timer": true,
+    "row_wave_calls": "old2/new1 by construction, not measured hardware launches or necessarily pool leases",
+    "max_backing_bytes": 67108864,
+    "no_new_fold_buffers": true,
+    "pool": "explicit existing-scoped1/8workers,1MiBhelperstacks",
+    "host": "shared; no quiet causal or wholeproof claim"
+  },
+  "whole_protocol_128": false,
+  "full_block_performance_qualified": false
+}

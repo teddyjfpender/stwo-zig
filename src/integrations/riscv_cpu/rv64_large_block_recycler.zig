@@ -9,10 +9,11 @@
 const std = @import("std");
 
 pub const LargeBlockRecycler = struct {
+    const FreeBlocks = std.AutoHashMapUnmanaged(usize, std.ArrayListUnmanaged([*]u8));
     child: std.mem.Allocator,
     cap_bytes: usize,
     mutex: std.Thread.Mutex = .{},
-    free_blocks: std.AutoHashMapUnmanaged(usize, std.ArrayListUnmanaged([*]u8)) = .empty,
+    free_blocks: FreeBlocks = .empty,
     live: std.AutoHashMapUnmanaged(usize, usize) = .empty,
     cached_bytes: usize = 0,
     reused_blocks: u64 = 0,
@@ -26,16 +27,43 @@ pub const LargeBlockRecycler = struct {
         return .{ .child = child, .cap_bytes = cap_bytes };
     }
 
+    /// Change the cache ceiling without changing any live allocation. If the
+    /// old cache exceeds it, detach that cache through the existing joined
+    /// ownership path. Concurrent alloc/free remain safe under the new ceiling.
+    pub fn setCap(self: *LargeBlockRecycler, cap_bytes: usize) usize {
+        self.mutex.lock();
+        self.cap_bytes = cap_bytes;
+        var detached: FreeBlocks = .empty;
+        var released: usize = 0;
+        if (self.cached_bytes > cap_bytes) {
+            // Never publish cached_bytes > cap_bytes: free() uses this
+            // invariant while computing the remaining cache allowance.
+            detached = self.free_blocks;
+            released = self.cached_bytes;
+            self.free_blocks = .empty;
+            self.cached_bytes = 0;
+        }
+        self.mutex.unlock();
+        self.freeDetached(detached);
+        return released;
+    }
+
     /// Return cached free blocks to the child without touching live ownership.
     /// Concurrent alloc/free remain valid; blocks freed after the detach can
     /// populate the new cache. The returned byte count covers this detach only.
     pub fn releaseCached(self: *LargeBlockRecycler) usize {
         self.mutex.lock();
-        var detached = self.free_blocks;
+        const detached = self.free_blocks;
         const released = self.cached_bytes;
         self.free_blocks = .empty;
         self.cached_bytes = 0;
         self.mutex.unlock();
+        self.freeDetached(detached);
+        return released;
+    }
+
+    fn freeDetached(self: *LargeBlockRecycler, blocks: FreeBlocks) void {
+        var detached = blocks;
         // Child calls need not hold the recycler lock. No live block appears
         // in detached, and detached metadata has a single owner.
         var it = detached.iterator();
@@ -44,7 +72,6 @@ pub const LargeBlockRecycler = struct {
             entry.value_ptr.deinit(self.child);
         }
         detached.deinit(self.child);
-        return released;
     }
 
     /// Destroy metadata after callers have freed all allocations. For a phase
@@ -128,7 +155,7 @@ pub const LargeBlockRecycler = struct {
         const owned = self.live.fetchRemove(@intFromPtr(memory.ptr));
         if (owned) |entry| {
             const capacity = entry.value;
-            if (capacity <= self.cap_bytes - self.cached_bytes) {
+            if (self.cached_bytes <= self.cap_bytes and capacity <= self.cap_bytes - self.cached_bytes) {
                 const list = self.free_blocks.getOrPut(self.child, capacity) catch null;
                 if (list) |slot| {
                     if (!slot.found_existing) slot.value_ptr.* = .empty;
@@ -189,6 +216,26 @@ test "large blocks are recycled by rounded capacity, small blocks pass through, 
     const big = try a.alloc(u8, 9 * 1024 * 1024);
     a.free(big);
     try std.testing.expectEqual(LargeBlockRecycler.capacityFor(1_000_000).?, recycler.stats().cached_bytes);
+}
+
+test "cache ceiling changes preserve live backing ownership and content" {
+    var recycler = LargeBlockRecycler.init(std.testing.allocator, 4 * 1024 * 1024);
+    defer recycler.deinit();
+    const a = recycler.allocator();
+    const live = try a.alloc(u8, 1024 * 1024);
+    @memset(live, 0xa7);
+    const parked = try a.alloc(u8, 1024 * 1024);
+    a.free(parked);
+    try std.testing.expectEqual(@as(usize, 1024 * 1024), recycler.setCap(0));
+    try std.testing.expectEqual(@as(usize, 0), recycler.stats().cached_bytes);
+    for (live) |byte| try std.testing.expectEqual(@as(u8, 0xa7), byte);
+    a.free(live);
+    try std.testing.expectEqual(@as(usize, 0), recycler.stats().cached_bytes);
+    try std.testing.expectEqual(@as(usize, 0), recycler.setCap(2 * 1024 * 1024));
+    const next = try a.alloc(u8, 1024 * 1024);
+    a.free(next);
+    try std.testing.expectEqual(@as(usize, 1024 * 1024), recycler.stats().cached_bytes);
+    try std.testing.expectEqual(@as(usize, 0), recycler.live.count());
 }
 
 test "cached capacity preserves stronger alignment and overflow is allocation failure" {
@@ -324,6 +371,7 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
     defer recycler.deinit();
     const Worker = struct {
         a: std.mem.Allocator,
+        recycler: *LargeBlockRecycler,
         failed: *std.atomic.Value(bool),
         done: *std.atomic.Value(usize),
         fn run(self: @This()) void {
@@ -339,6 +387,9 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
                     break;
                 };
                 self.a.free(memory);
+                self.recycler.mutex.lock();
+                if (self.recycler.cached_bytes > self.recycler.cap_bytes) self.failed.store(true, .monotonic);
+                self.recycler.mutex.unlock();
             }
         }
     };
@@ -349,11 +400,12 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
         var spawned: usize = 0;
         defer for (workers[0..spawned]) |thread| thread.join();
         for (&workers) |*thread| {
-            thread.* = try std.Thread.spawn(.{}, Worker.run, .{Worker{ .a = recycler.allocator(), .failed = &failed, .done = &done }});
+            thread.* = try std.Thread.spawn(.{}, Worker.run, .{Worker{ .a = recycler.allocator(), .recycler = &recycler, .failed = &failed, .done = &done }});
             spawned += 1;
         }
         while (done.load(.acquire) < workers.len) {
-            _ = recycler.releaseCached();
+            _ = recycler.setCap(0);
+            _ = recycler.setCap(4 * 1024 * 1024);
             std.Thread.yield() catch {};
         }
     }

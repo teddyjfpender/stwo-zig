@@ -1018,6 +1018,7 @@ dependencies = [
  "stwo-constraint-framework",
  "stwo-examples",
  "test-log",
+ "thiserror",
  "tracing",
 ]
 

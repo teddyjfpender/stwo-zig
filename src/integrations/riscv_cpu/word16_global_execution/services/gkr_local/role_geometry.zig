@@ -5,17 +5,35 @@ const A = @import("stwo_riscv_frontend").rv64_air;
 const O = core.fields.om31.OM31;
 const Point = core.circle.CirclePoint(O);
 const Air = core.air.components.ForField(O);
+pub const MAX_SAMPLES_PER_COLUMN: usize = 2;
+pub fn hasLocal(comptime Component: type) bool {
+    return if (@hasDecl(Component, "LOCAL_GKR")) Component.LOCAL_GKR else true;
+}
+pub fn logSize(self: anytype) u32 {
+    return if (@hasDecl(@typeInfo(@TypeOf(self)).pointer.child, "logSize")) self.logSize() else self.data.instance.row_log;
+}
+pub fn interWidth(self: anytype) usize {
+    return if (@hasDecl(@typeInfo(@TypeOf(self)).pointer.child, "interWidth")) self.interWidth() else 16;
+}
+pub fn maxInter(comptime Component: type) usize {
+    return if (@hasDecl(Component, "MAX_INTER")) Component.MAX_INTER else 16;
+}
+pub fn previousInter(self: anytype, c: usize) bool {
+    const Component = @typeInfo(@TypeOf(self)).pointer.child;
+    if (hasLocal(Component) and c < 16) return c >= 8;
+    return if (@hasDecl(Component, "previousInter")) self.previousInter(c) else false;
+}
 pub fn bounds(self: anytype, a: std.mem.Allocator) !Air.TraceLogDegreeBounds {
     try self.validate();
     const shape = self.mainShape();
-    const widths = [_]usize{ shape.fixed, shape.main, 16 };
+    const widths = [_]usize{ shape.fixed, shape.main, interWidth(self) };
     const trees = try a.alloc([]u32, 3);
     errdefer a.free(trees);
     var done: usize = 0;
     errdefer for (trees[0..done]) |tree| a.free(tree);
     for (trees, widths) |*tree, width| {
         tree.* = try a.alloc(u32, width);
-        @memset(tree.*, self.data.instance.row_log);
+        @memset(tree.*, logSize(self));
         done += 1;
     }
     return Air.TraceLogDegreeBounds.initOwned(trees);
@@ -28,9 +46,9 @@ pub fn indices(self: anytype, a: std.mem.Allocator) ![]usize {
 }
 pub fn masks(self: anytype, a: std.mem.Allocator, point: Point, global_log: u32) !Air.MaskPoints {
     try self.validate();
-    _ = try A.geometry.localPointFor(O, point, global_log, self.data.instance.row_log);
+    _ = try A.geometry.localPointFor(O, point, global_log, logSize(self));
     const shape = self.mainShape();
-    const widths = [_]usize{ shape.fixed, shape.main, 16 };
+    const widths = [_]usize{ shape.fixed, shape.main, interWidth(self) };
     const trees = try a.alloc([][]Point, 3);
     errdefer a.free(trees);
     var done: usize = 0;
@@ -49,8 +67,10 @@ pub fn masks(self: anytype, a: std.mem.Allocator, point: Point, global_log: u32)
             a.free(tree.*);
         }
         for (tree.*, 0..) |*column, c| {
-            column.* = if (t == 2)
-                try a.dupe(Point, &.{ point, if (c < 8) next2 else prior })
+            column.* = if (t == 2 and hasLocal(@typeInfo(@TypeOf(self)).pointer.child) and c < 8)
+                try a.dupe(Point, &.{ point, next2 })
+            else if (t == 2 and previousInter(self, c))
+                try a.dupe(Point, &.{ point, prior })
             else if (t == 1 and self.previousMain(c))
                 try a.dupe(Point, &.{ point, prior })
             else

@@ -1,0 +1,8 @@
+1/6 rv64_wide_fixed_setup_test_root.test_0...OK
+2/6 word16_execution.fixed_setup_test.test.wide fixed cache OM append owns its allocator after cache teardown and all OOM exits...OK
+3/6 word16_execution.fixed_setup_test.test.wide fixed beta1 control root unchanged and beta2 rejects stale authority...WIDE_FIXED_SETUP beta1=c2eb2765ea8e37e118efdc02ec69db837d938cc1c121b335186bf1f76f6b1bcd beta2=96f81de73ee85f8d04b79fbb609a43259679be9f0015d439a3813b24c3244fda
+OK
+4/6 word16_execution.fixed_setup_test.test.wide fixed cache keys immutable ordered coefficient content and survives source release...OK
+5/6 word16_execution.fixed_setup_test.test.wide fixed cache hard cap and malformed profiles fail closed...OK
+6/6 word16_execution.fixed_setup_test.test.wide fixed immutable key reused across q PoW and fold while receiver config stays exact...OK
+All 6 tests passed.

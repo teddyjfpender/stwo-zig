@@ -96,25 +96,30 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
     return truthsForProfile(a, captured, false);
 }
 pub fn truthsForProfile(a: std.mem.Allocator, captured: *const Capture, v3: bool) ![]W.TruthDeclaration {
-    var total: [3]u32 = @splat(0);
-    for (captured.advice.keccak, captured.advice.secp) |k, s| {
-        total[0] = try std.math.add(u32, total[0], @intCast(k.len));
-        total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
-        total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
-    }
-    // Keccak-sponge permutations follow the Keccak-f calls in the IO11 ID space.
-    for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
+    return truthsWithOptions(a, captured, v3, 18);
+}
+/// Producer geometry experiment only; the receiver admits original call spans.
+/// The default entry point remains log18. Smaller shards multiply proof leaves.
+/// v2 profile (compact Keccak truth): the OM GKR route is v2-only.
+pub fn truthsWithKeccakMaxLog(a: std.mem.Allocator, captured: *const Capture, max_log: u32) ![]W.TruthDeclaration {
+    return truthsWithOptions(a, captured, false, max_log);
+}
+fn truthsForCounts(a: std.mem.Allocator, total: [3]u32, max_log: u32) ![]W.TruthDeclaration {
     var out: std.ArrayList(W.TruthDeclaration) = .{};
     errdefer out.deinit(a);
-    // Two Keccak permutations share each29-row slot. A bounded log18 shape
-    // is reusable and avoids the log19 provider's doubled peak working set.
-    const max_keccak: u32 = ((1 << 18) / 29) * 2;
+    try appendKeccakSecp(a, &out, total, max_log, false);
+    return out.toOwnedSlice(a);
+}
+fn appendKeccakSecp(a: std.mem.Allocator, out: *std.ArrayList(W.TruthDeclaration), total: [3]u32, max_log: u32, v3: bool) !void {
+    if (max_log < 16 or max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
+    // Keep full shard lengths even so partitioning preserves paired slots.
+    const max_keccak: u32 = ((@as(u32, 1) << @intCast(max_log)) / A.crypto.keccak.layout.ROWS_PER_PAIR) * 2;
     var next: u32 = 1;
     while (next <= total[0]) {
         // Explicit u32: @min with a comptime bound narrows to u15, and the row
         // product below then wraps (latent: logs below 18 were under-sized).
         const calls: u32 = @min(max_keccak, total[0] - next + 1);
-        const log: u32 = if (calls > max_keccak / 2) 18 else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
+        const log: u32 = if (calls > max_keccak / 2) max_log else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
         try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, W.keccakProfileWord(keccakTruthPolicy(v3, log)) } });
         next = try std.math.add(u32, next, calls);
     }
@@ -133,6 +138,20 @@ pub fn truthsForProfile(a: std.mem.Allocator, captured: *const Capture, v3: bool
             next = try std.math.add(u32, next, calls);
         }
     }
+}
+fn truthsWithOptions(a: std.mem.Allocator, captured: *const Capture, v3: bool, max_log: u32) ![]W.TruthDeclaration {
+    var total: [3]u32 = @splat(0);
+    for (captured.advice.keccak, captured.advice.secp) |k, s| {
+        total[0] = try std.math.add(u32, total[0], @intCast(k.len));
+        total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
+        total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
+    }
+    // Keccak-sponge permutations follow the Keccak-f calls in the IO11 ID space.
+    for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
+    var out: std.ArrayList(W.TruthDeclaration) = .{};
+    errdefer out.deinit(a);
+    try appendKeccakSecp(a, &out, total, max_log, v3);
+    var next: u32 = 1;
     // SHA-256: one compression per row plus a padding row; bounded log13 spans.
     var sha256: u32 = 0;
     for (captured.advice.sha256) |calls| sha256 = try std.math.add(u32, sha256, @intCast(calls.len));
@@ -193,4 +212,49 @@ test "two-instance planner reduces physical rows only and respects reserved LS r
     try std.testing.expectEqualDeep(Ladder{ .head = 5 }, try ladder(0, 1));
     try std.testing.expectEqualDeep(Ladder{ .head = 6 }, try ladder(32, 1));
     try std.testing.expectError(error.EthereumInstanceCapacityExceeded, ladder(1 << 22, 1));
+}
+
+test "bounded Keccak shard experiment preserves full-block call spans and reports physical costs" {
+    const a = std.testing.allocator;
+    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, truthsForCounts(a, .{ 0, 0, 0 }, 15));
+    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, truthsForCounts(a, .{ 0, 0, 0 }, 19));
+    const Shape = @import("../services/gkr_local/truth_components.zig");
+    for ([_]u32{ 18, 16 }) |max_log| {
+        const declarations = try truthsForCounts(a, .{ 32835, 0, 0 }, max_log);
+        defer a.free(declarations);
+        var next: u32 = 1;
+        var cells: [3]u64 = @splat(0);
+        var permutation_rows: u64 = 0;
+        var active_rows: u64 = 0;
+        var opening_samples: u64 = 0;
+        var max_main_bytes: u64 = 0;
+        var max_interaction_bytes: u64 = 0;
+        var narrow_metadata_bytes: u64 = 0;
+        for (declarations) |d| {
+            try std.testing.expectEqual(next, d.first_id);
+            try std.testing.expect(d.calls > 0 and d.logs[0] <= max_log);
+            next += d.calls;
+            permutation_rows += @as(u64, 1) << @intCast(d.logs[0]);
+            active_rows += ((@as(u64, d.calls) + 1) / 2) * A.crypto.keccak.layout.ROWS_PER_PAIR;
+            var worker_cells: [3]u64 = @splat(0);
+            narrow_metadata_bytes += (((@as(u64, d.calls) + 1) / 2) * A.crypto.keccak.layout.ROWS_PER_PAIR) * @sizeOf(A.crypto.keccak.trace.PackedRow);
+            narrow_metadata_bytes += (@as(u64, A.crypto.keccak.layout.FIXED) * 4) << @intCast(d.logs[0]);
+            narrow_metadata_bytes += (8192 + 1024) * (7 * 4 + 4);
+            for (try Shape.shapesForDeclaration(d)) |role| {
+                for (role.widths(), 0..) |width, tree| {
+                    const count = @as(u64, width) << @intCast(role.log_size);
+                    cells[tree] += count;
+                    worker_cells[tree] += count;
+                    for (0..width) |column| opening_samples += role.shifts(tree, column).len;
+                }
+            }
+            max_main_bytes = @max(max_main_bytes, worker_cells[1] * 4);
+            max_interaction_bytes = @max(max_interaction_bytes, worker_cells[2] * 4);
+        }
+        try std.testing.expectEqual(@as(u32, 32836), next);
+        try std.testing.expectEqual(@as(u64, 476122), active_rows);
+        try std.testing.expectEqual(if (max_log == 18) @as(usize, 2) else 8, declarations.len);
+        try std.testing.expectEqual(if (max_log == 18) @as(u64, 524288) else 491520, permutation_rows);
+        std.debug.print("KECCAK_SHARD_COST max_log={d} proofs={d} permutation_rows={d} active_rows={d} fixed_cells={d} main_cells={d} interaction_cells={d} opening_samples={d} max_main_bytes={d} max_interaction_bytes={d} narrow_metadata_bytes={d} packed_row_bytes={d}\n", .{ max_log, declarations.len, permutation_rows, active_rows, cells[0], cells[1], cells[2], opening_samples, max_main_bytes, max_interaction_bytes, narrow_metadata_bytes, @sizeOf(A.crypto.keccak.trace.PackedRow) });
+    }
 }

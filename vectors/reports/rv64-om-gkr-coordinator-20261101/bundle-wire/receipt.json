@@ -1,0 +1,29 @@
+{
+  "base_commit": "00cf8981d",
+  "scope": "Durable experimental OM services execution transport, independent receiver keys, declaration-only shared legacy preflight",
+  "tests": {
+    "ReleaseSafe": "PASS test-riscv64-truth-gkr",
+    "ReleaseFast": "PASS test-riscv64-truth-gkr",
+    "legacy_ReleaseSafe": "PASS test-riscv64-word16-combined-services"
+  },
+  "fixture": {
+    "retirements": 7,
+    "cpu_proofs": 2,
+    "truth_proofs": 3,
+    "fresh_independent_keys": true,
+    "separate_process_receiver": false
+  },
+  "checks": [
+    "exact stage-one, proof and OM claim roundtrip",
+    "admitted changed CPU geometry with actual independently rebuilt key rejected",
+    "every reader allocation failure cleans up",
+    "corrupt stage-one file rejected",
+    "noncanonical high OM coordinate, field alias and claim width rejected",
+    "metadata and proof budgets preflight before key construction"
+  ],
+  "limitations": [
+    "Not full Ethereum block qualification",
+    "No whole-protocol 128-bit security claim",
+    "No new recursion or GPU qualification"
+  ]
+}

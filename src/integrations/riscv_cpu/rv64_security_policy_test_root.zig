@@ -2,4 +2,5 @@
 test {
     _ = @import("word16_execution/security_policy_test.zig");
     _ = @import("word16_execution/security_authority_test.zig");
+    _ = @import("word16_execution/om31_security_candidate_test.zig");
 }

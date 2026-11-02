@@ -143,6 +143,21 @@ pub const Cache = struct {
         }
         return out;
     }
+    /// Constructor-only seam: the shared owner was reserved before cache
+    /// custody changes, and no lease or mutable alias has been published.
+    /// All fallible planning still precedes internTree's ownership transition.
+    /// The caller must not publish this tree until the synchronous call returns.
+    pub fn internExclusiveSharedTreeBeforePublication(self: *const Cache, a: std.mem.Allocator, tree: *Tree) !Result {
+        const owner = tree.shared_owner orelse return error.InvalidFixedNativeCachePhase;
+        if (owner.references.load(.acquire) != 1 or owner.tree.shared_owner != null) return error.InvalidFixedNativeCachePhase;
+        if (owner.allocator.ptr != a.ptr or owner.allocator.vtable != a.vtable) return error.InvalidFixedNativeCacheOwner;
+        const result = try self.internTree(a, &owner.tree);
+        // The owner is still exclusive. Refresh teardown/alias metadata without
+        // allocating or changing the sole reference count after adoption.
+        tree.* = owner.tree;
+        tree.shared_owner = owner;
+        return result;
+    }
     /// Host-only concrete fixed-tree operation, before share(). All allocation,
     /// shape/alias validation and capacity decisions precede custody changes.
     /// Failure leaves tree and cache unchanged. The cache uses its own

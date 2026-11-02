@@ -1,0 +1,51 @@
+{
+  "base_commit": "fbcd9aaff5832614b4fa01027f6d5dd51888ae16",
+  "profile": "explicit beta2 engineering physical worker profile, no whole-protocol128 claim",
+  "default_control_unchanged": true,
+  "qualified_scope": [
+    "source-derived immutable coefficient lease identity",
+    "explicit CPU/truth beta2 init/append/freshreceiver APIs",
+    "actual fully parked CPU K and ADD/DOUBLE physical proofs",
+    "actual Keccak and ADD truth physical proofs and separate pure globals",
+    "default beta1 valid/control and negative tests preserved"
+  ],
+  "candidate_engineering_fixture": {
+    "blowup_log": 2,
+    "queries": 12,
+    "pow": 0,
+    "fold": 1
+  },
+  "whole_execution_candidate_config_fixture_pending": true,
+  "checks": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "8eb47eb30e9ec85ab5db6eee04bf0517b6884c397cf981ae75560679c04978ba"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "326893c3bb742c0260506200f166eb11d6bd39fed47bdfeba0afdbf6e5973702"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "dc1620e05af4bd47072d801926ac0102f49147fcbd1bbce8dc0a1ba315b9602c"
+    },
+    {
+      "command": "zig build test-riscv64-wide-fixed-setup -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "02ddff127d8731941425849e336ac0170806170bb22970162b74e7fe6d656021"
+    },
+    {
+      "command": "zig build test-riscv64-wide-fixed-setup -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "9b6274a9d3386cbad353427bf7ef44f2d1beeb6c6e4401b55149db8b88e24937"
+    }
+  ]
+}

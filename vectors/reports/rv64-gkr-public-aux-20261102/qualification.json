@@ -1,0 +1,32 @@
+{
+  "schema": "rv64-public-gkr-aux-preparation-v1",
+  "source_commit": "a096482e1180f0022754d7ba3729c54771de00dd",
+  "base": "a119db93a",
+  "scope": "uncommitted derived public Eq carry and singleton selector coefficients only; no AIR/transcript/proof geometry change",
+  "qualification": {
+    "focused_target": "test-riscv64-gkr-public-aux",
+    "focused_ReleaseSafe": "PASS (three named gates plus root)",
+    "focused_ReleaseFast": "PASS (three named gates plus root)",
+    "coefficient_oracle": "all ten coefficient vectors equal untouched prior logical walk + scalar interpolateFromEvaluation for logs1..14; three-worker log18 pooled and held-lease paths also equal",
+    "ownership": "independent nonoverlapping coefficient owners; checked point unchanged; all allocator failures; malformed geometry before allocation; degenerate0/1 checked-point constructor rejection",
+    "physical_target": "test-riscv64-truth-gkr with explicit complete two-CPU K ADD DOUBLE execution test filter",
+    "physical_ReleaseSafe": "PASS: five physical proofs, fresh independent complete global closure; parked two-lane proofs/manifest exact against resident path; tamper rejection",
+    "physical_ReleaseFast": "PASS: same scope",
+    "independent_review": "recover_pipeline_wave2 read-only ownership/transform/physical-index review PASS; no additional independent mathematical transform claim"
+  },
+  "resource_model": {
+    "coefficient_buffers": 10,
+    "shared_twiddle_arrays": "two half-size M31 arrays",
+    "new_peak_requested_heap": "11*rows*sizeof(M31)",
+    "old_peak_requested_heap": "12*rows*sizeof(M31), including duplicated input",
+    "saved_log22_requested_heap_bytes": 16777216,
+    "coordinate_table_stack_bytes": 1920,
+    "additional_N_sized_scratch": false,
+    "cache": false,
+    "pool": "existing explicitly supplied/current scoped pool; joined helpers and existing FFT fallback, no global discovery/new pool",
+    "not_rss_bound": true
+  },
+  "remaining_gate": "real Ethereum prefix proof/bundle/cell byte parity plus fresh receiver and profile measurements; no native speedup claimed from source qualification",
+  "security": "same exact coefficients and transcript; no whole-protocol128 or GPU qualification claim",
+  "hooks": "one-off authorized core.hooksPath=/dev/null; no persistent change"
+}

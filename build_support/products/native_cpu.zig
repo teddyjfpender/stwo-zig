@@ -150,6 +150,28 @@ pub fn addProduct(context: Context) void {
     const wide_run = context.b.addRunArtifact(wide_tests);
     context.b.step("test-native-cpu-om31", "Prove and freshly verify wide STARKs, mixed heights, wire files and allocation failures").dependOn(&wide_run.step);
     test_step.dependOn(&wide_run.step);
+    const sampling_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/prover/wide_sampling_test_root.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(sampling_root);
+    const sampling_tests = context.b.addTest(.{ .root_module = sampling_root });
+    const sampling_run = context.b.addRunArtifact(sampling_tests);
+    context.b.step("test-native-cpu-wide-sampling", "Qualify bounded shared wide point bases, normalization and allocation failures").dependOn(&sampling_run.step);
+    test_step.dependOn(&sampling_run.step);
+    const gkr_rows_root = graph.create(context.b, .{
+        .product = product(.@"test"),
+        .root_source_file = "src/prover/gkr_parallel_test_root.zig",
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    context.protocol.addImports(gkr_rows_root);
+    const gkr_rows_tests = context.b.addTest(.{ .root_module = gkr_rows_root });
+    const gkr_rows_run = context.b.addRunArtifact(gkr_rows_tests);
+    context.b.step("test-native-cpu-gkr-rows", "Qualify bounded pooled GKR row kernels and exact transcript parity").dependOn(&gkr_rows_run.step);
+    test_step.dependOn(&gkr_rows_run.step);
 
     const help = context.b.addRunArtifact(installed.executable);
     help.addArg("--help");

@@ -16,7 +16,12 @@ pub fn WireFor(comptime C: type) type {
             for (&out.coefficients) |*v| v.* = channel.drawSecureFelt();
             return out;
         }
-        pub fn denominator(self: @This(), tuple: *const [L.WIRE_ARITY]Q) Q {
+        pub fn denominatorBase(self: @This(), tuple: *const [L.WIRE_ARITY]M) C {
+            var out = self.offset;
+            for (tuple, self.coefficients) |value, coefficient| out = out.sub(coefficient.mulM31(value));
+            return out;
+        }
+        pub fn denominator(self: @This(), tuple: *const [L.WIRE_ARITY]C) C {
             var out = self.offset;
             for (tuple, self.coefficients) |v, c| out = out.sub(v.mul(c));
             return out;
@@ -31,7 +36,7 @@ pub fn ChallengesFor(comptime C: type) type {
         bytes: C,
         wire: WireFor(C),
         pub fn draw(channel: anytype) @This() {
-            return .{ .polynomial = channel.drawSecureFelt(), .bytes = channel.drawSecureFelt(), .wire = Wire.draw(channel) };
+            return .{ .polynomial = channel.drawSecureFelt(), .bytes = channel.drawSecureFelt(), .wire = WireFor(C).draw(channel) };
         }
     };
 }
@@ -124,11 +129,22 @@ pub fn byteForPolicy(comptime F: type, kind: L.Kind, policy: L.BytePolicy, main:
 pub fn wireCoefficient(row: Row, event: usize) Q {
     return wireCoefficientFor(Q, row, event);
 }
+fn MainCells(comptime F: type) type {
+    return struct {
+        values: []const F,
+        pub inline fn at(self: @This(), index: usize) F {
+            return self.values[index];
+        }
+    };
+}
 pub fn wireCoefficientFor(comptime F: type, row: RowFor(F), event: usize) F {
-    return row.main[0].mul(switch (event) {
-        0 => row.fixed[L.LHS_WIRE].neg(),
-        1 => row.fixed[L.RHS_WIRE].neg(),
-        2 => row.fixed[L.USES],
+    return wireCoefficientAccessors(F, MainCells(F){ .values = row.main }, row.fixed, event);
+}
+pub fn wireCoefficientAccessors(comptime F: type, main: anytype, fixed: []const F, event: usize) F {
+    return main.at(0).mul(switch (event) {
+        0 => fixed[L.LHS_WIRE].neg(),
+        1 => fixed[L.RHS_WIRE].neg(),
+        2 => fixed[L.USES],
         else => unreachable,
     });
 }
@@ -136,10 +152,13 @@ pub fn wireTuple(kind: L.Kind, program: *const P.Program, row: Row, event: usize
     return wireTupleFor(Q, kind, program, row, event);
 }
 pub fn wireTupleFor(comptime F: type, kind: L.Kind, program: *const P.Program, row: RowFor(F), event: usize) [L.WIRE_ARITY]F {
+    return wireTupleAccessors(F, kind, program, MainCells(F){ .values = row.main }, row.fixed, event);
+}
+pub fn wireTupleAccessors(comptime F: type, kind: L.Kind, program: *const P.Program, main: anytype, fixed: []const F, event: usize) [L.WIRE_ARITY]F {
     var out: [L.WIRE_ARITY]F = undefined;
-    out[0] = Eval.qFor(F, @intFromEnum(program.kind));
-    out[1] = row.main[L.base(kind)];
-    out[2] = row.fixed[
+    out[0] = if (F == M) M.fromCanonical(@intFromEnum(program.kind)) else Eval.qFor(F, @intFromEnum(program.kind));
+    out[1] = main.at(L.base(kind));
+    out[2] = fixed[
         switch (event) {
             0 => L.LHS_ID,
             1 => L.RHS_ID,
@@ -156,7 +175,7 @@ pub fn wireTupleFor(comptime F: type, kind: L.Kind, program: *const P.Program, r
         1 => L.linear.Layout.rhs,
         else => L.linear.Layout.result,
     };
-    @memcpy(out[3..], row.main[offset..][0..32]);
+    for (out[3..], 0..) |*value, i| value.* = main.at(offset + i);
     return out;
 }
 pub fn externalTuple(program: *const P.Program, id: u32, wire: u8, value: u256) [L.WIRE_ARITY]Q {

@@ -1,0 +1,45 @@
+{
+  "schema": "rv64-truth-parallel-composition-v1",
+  "base": "4e149dcb5",
+  "scheduler_source": "819d57f5a",
+  "scope": "OM31 classic service truth packed domain rows; no transcript change",
+  "qualification": {
+    "status": "ReleaseSafe and ReleaseFast:8/8 PASS",
+    "pre_edit_serial_sha256": "eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386",
+    "proofs": 5,
+    "roles": [
+      "CPU",
+      "CPU",
+      "Keccak",
+      "secp ADD",
+      "secp DOUBLE"
+    ],
+    "fresh_global_closure": true,
+    "pool_workers": 4,
+    "worker_stack_bytes": 1048576,
+    "upgraded_truth_min_log": 11,
+    "comparison": "canonical proof bytes, classic/global claims and stage-one manifest bytes",
+    "after_sha256": "eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386",
+    "focused_checks": [
+      "all six family wrapper/heap packed emission parity",
+      "packed first/last lanes vs native OM31 scalar constraints",
+      "workspace cap validation and all allocation failures"
+    ],
+    "build_target": "test-riscv64-truth-parallel"
+  },
+  "resources": {
+    "workspace_bytes_per_task": 1217920,
+    "max_tasks": 16,
+    "max_workspace_bytes": 19486720,
+    "explicit_workspace_cap_bytes": 33554432,
+    "min_packed_blocks_per_task": 64,
+    "packed_lanes": 16,
+    "scope": "per active component; existing proof allocator owns scratch; no global cache/pool/stack policy"
+  },
+  "limits": [
+    "No full-block or GPU speed claim",
+    "Shared-host correctness qualification, no controlled performance estimate",
+    "Old point/circuit emitFor wrapper retains original local workspace; domain workers call heap workspace entrypoint",
+    "No change to degree, masks, random powers, FRI, native global relations or receiver authority"
+  ]
+}

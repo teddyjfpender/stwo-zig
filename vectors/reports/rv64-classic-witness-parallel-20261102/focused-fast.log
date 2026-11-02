@@ -1,0 +1,9 @@
+1/8 rv64_classic_witness_test_root.test_0...OK
+2/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic parallel physical scatter and two-wave prefix preserve all cells claims and immutable input...OK
+3/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic witness plan counts every tile and adapts to exact legacy scratch cap...OK
+4/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic pooled tile allocation failures clean every partially initialized owner...OK
+5/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic zero-weight poles and provider errors reject after joined workers...OK
+6/8 word16_global_execution.services.gkr_local.classic_witness_test.test.non-opted stateful providers retain serial logical order...OK
+7/8 word16_global_execution.services.gkr_local.classic_witness_test.test.packed classic inverse contributions and dots match scalar with tails and strict poles...OK
+8/8 word16_global_execution.services.gkr_local.classic_witness_test.test.optional classic640 inverse kernel A B...OK
+All 8 tests passed.

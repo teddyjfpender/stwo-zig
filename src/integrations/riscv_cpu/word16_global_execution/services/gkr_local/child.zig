@@ -64,6 +64,60 @@ pub fn verifyPending(a: std.mem.Allocator, scope: Receipt.Scope, instances: []co
     const eta = ch.drawSecureFelt();
     return .{ .artifact = artifact, .challenges = challenges, .eta = eta, .digest = digest };
 }
+/// Operational storage only: no transcript/profile/statement input changes.
+pub fn parseTreeCheckpoints(value: ?[]const u8) !bool {
+    const text = value orelse return false;
+    if (text.len == 0) return false;
+    if (std.mem.eql(u8, text, "2")) return true;
+    return error.InvalidGkrTreeCheckpointPolicy;
+}
+pub fn treeCheckpoints(a: std.mem.Allocator) !bool {
+    const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_CHECKPOINTS") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return false,
+        else => return err,
+    };
+    defer a.free(value);
+    return parseTreeCheckpoints(value);
+}
+fn treeMetrics(a: std.mem.Allocator) !bool {
+    const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_METRICS") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return false,
+        else => return err,
+    };
+    defer a.free(value);
+    return std.mem.eql(u8, value, "1");
+}
+
+pub const TreePolicy = struct { checkpointed: bool = false, tight_admission: bool = false, stream_bottom: bool = false };
+pub fn parseTightAdmission(value: ?[]const u8) !bool {
+    const text = value orelse return false;
+    if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
+    if (std.mem.eql(u8, text, "1")) return true;
+    return error.InvalidGkrTightAdmissionPolicy;
+}
+pub fn parseStreamBottom(value: ?[]const u8, checkpointed: bool) !bool {
+    const text = value orelse return false;
+    if (text.len == 0 or std.mem.eql(u8, text, "0")) return false;
+    if (!std.mem.eql(u8, text, "1") or !checkpointed) return error.InvalidGkrStreamBottomPolicy;
+    return true;
+}
+pub fn readTreePolicy(a: std.mem.Allocator) !TreePolicy {
+    const cp = try treeCheckpoints(a);
+    const value: ?[]u8 = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TIGHT_ADMISSION") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+    defer if (value) |v| a.free(v);
+    const tight = try parseTightAdmission(value);
+    const stream: ?[]u8 = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_STREAM_BOTTOM") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+    defer if (stream) |v| a.free(v);
+    return .{ .checkpointed = cp, .tight_admission = cp or tight, .stream_bottom = try parseStreamBottom(stream, cp) };
+}
+
+pub const PhaseTiming = struct { inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
     budget: Budget,
@@ -74,30 +128,51 @@ pub const Unbound = struct {
     binding: @import("witness.zig").Witness,
     binding_reserved_bytes: usize,
     pub fn prove(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype) !*Unbound {
-        const plan = try Resource.Plan.forInstances(instances, limit);
+        return proveTimed(a, limit, scope, instances, provider, null);
+    }
+    pub fn proveTimed(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, timing: ?*PhaseTiming) !*Unbound {
+        return proveTimedWithPolicy(a, limit, scope, instances, provider, try readTreePolicy(a), timing);
+    }
+    pub fn proveTimedWithCheckpoints(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, checkpointed: bool, timing: ?*PhaseTiming) !*Unbound {
+        return proveTimedWithPolicy(a, limit, scope, instances, provider, .{ .checkpointed = checkpointed, .tight_admission = checkpointed }, timing);
+    }
+    pub fn proveTimedWithPolicy(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, policy: TreePolicy, timing: ?*PhaseTiming) !*Unbound {
+        const checkpointed = policy.checkpointed;
+        if (policy.stream_bottom and !checkpointed) return error.InvalidGkrStreamBottomPolicy;
+        const metrics = try treeMetrics(a);
+        const plan = try Resource.Plan.forInstancesWithTightAdmission(instances, limit, checkpointed, policy.tight_admission);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
-        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
+        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, if (policy.tight_admission) plan.peak_bytes else limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
         const challenges = Challenges.draw(&ch);
-        var inputs = try Inputs.init(bounded, instances, &challenges, provider);
+        var clock: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
+        if (timing) |output| output.* = .{};
+        var inputs = if (policy.stream_bottom) Inputs{ .allocator = bounded, .layers = &.{} } else try Inputs.init(bounded, instances, &challenges, provider);
         defer inputs.deinit();
-        var result = try GP.proveBatch(bounded, &ch, inputs.layers);
+        var source_inputs = if (policy.stream_bottom) try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(bounded, instances, &challenges, provider) else null;
+        defer if (source_inputs) |*source| source.deinit();
+        if (clock) |*timer| timing.?.inputs_ns = timer.lap();
+        var result = if (source_inputs) |source| try GP.proveBatchSourceCheckpointed(bounded, &ch, source.sources) else if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
+        const numerical_peak_bytes = self.budget.peak_live_bytes;
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
         self.digest = try Receipt.digest(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
         const eta = ch.drawSecureFelt();
+        if (clock) |*timer| timing.?.numerical_ns = timer.lap();
         const binding_bytes = try std.math.add(usize, plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
         try Resource.reserveExternal(&self.budget, binding_bytes);
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
-        self.binding = try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        self.binding = if (checkpointed) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+        if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d} tight_admission={any} admitted_peak_bytes={d} allocator_limit_bytes={d} streamed_bottom={any} planned_input_reserve_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, @as(usize, if (policy.stream_bottom) 0 else plan.input_bytes), policy.tight_admission, plan.peak_bytes, self.budget.limit, policy.stream_bottom, plan.input_bytes });
         return self;
     }
     pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
@@ -108,6 +183,15 @@ pub const Unbound = struct {
         // explicit transfer; releasing the local reservation is not an RSS drop.
         return commit;
     }
+    /// Caller allocates and validates its combined INTER descriptors first.
+    /// This no-allocation transfer is the final ownership transition.
+    pub fn takeBindingBackings(self: *Unbound) [][]core.fields.m31.M31 {
+        const out = self.binding.columns;
+        self.binding.columns = &.{};
+        Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
+        self.binding_reserved_bytes = 0;
+        return out;
+    }
     pub fn deinit(self: *Unbound) void {
         const a = self.parent_allocator;
         self.binding.deinit();
@@ -117,3 +201,18 @@ pub const Unbound = struct {
         a.destroy(self);
     }
 };
+
+test "GKR operational tree policy fails closed without changing default protocol" {
+    try std.testing.expect(!try parseTreeCheckpoints(null));
+    try std.testing.expect(!try parseTreeCheckpoints(""));
+    try std.testing.expect(try parseTreeCheckpoints("2"));
+    for ([_][]const u8{ "1", "3", "false", "2 " }) |value| try std.testing.expectError(error.InvalidGkrTreeCheckpointPolicy, parseTreeCheckpoints(value));
+}
+
+test "tight admission operational flag is explicit and does not select a protocol" {
+    try std.testing.expect(!try parseTightAdmission(null));
+    try std.testing.expect(!try parseTightAdmission(""));
+    try std.testing.expect(!try parseTightAdmission("0"));
+    try std.testing.expect(try parseTightAdmission("1"));
+    for ([_][]const u8{ "2", "true", "1 " }) |value| try std.testing.expectError(error.InvalidGkrTightAdmissionPolicy, parseTightAdmission(value));
+}

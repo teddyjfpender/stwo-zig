@@ -1,0 +1,132 @@
+{
+  "status": "candidate necessary accounting only; no reviewed128 certificate",
+  "native_params": {
+    "secure_degree": 8,
+    "raw_modulo_words": 8,
+    "queries": 256,
+    "log_blowup": 2,
+    "fold_step": 4,
+    "query_pow": 0
+  },
+  "caps": {
+    "native_proofs": 256,
+    "max_trace_log": 22,
+    "max_columns": 16384,
+    "max_constraints": 65536,
+    "max_local_instances": 128,
+    "max_tuple_arity": 128,
+    "max_gkr_variables": 30,
+    "positive_negative_mass_each": 2147483646,
+    "transcript_rounds": 1048576,
+    "max_air_degree": 5,
+    "max_samples_per_column": 8
+  },
+  "algebraic_terms": [
+    {
+      "argument": "tuple_compression",
+      "conditional_degree_weight": "5447249727843842457606144",
+      "raw_modulo_integer_bits": 161,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "local_rational_identity",
+      "conditional_degree_weight": "9895604640768",
+      "raw_modulo_integer_bits": 200,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "global_rational_identity",
+      "conditional_degree_weight": "12884901876",
+      "raw_modulo_integer_bits": 209,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "pole_events",
+      "conditional_degree_weight": "9908489542644",
+      "raw_modulo_integer_bits": 200,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "gkr_sumcheck",
+      "conditional_degree_weight": "42762240",
+      "raw_modulo_integer_bits": 217,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "gkr_instance_mix",
+      "conditional_degree_weight": "998400",
+      "raw_modulo_integer_bits": 223,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "gkr_late_binding",
+      "conditional_degree_weight": "32768",
+      "raw_modulo_integer_bits": 228,
+      "basis": "binding_theorem_required"
+    },
+    {
+      "argument": "composition_mix",
+      "conditional_degree_weight": "16777216",
+      "raw_modulo_integer_bits": 219,
+      "basis": "conditional_root_count"
+    },
+    {
+      "argument": "oods",
+      "conditional_degree_weight": "4503599627370496",
+      "raw_modulo_integer_bits": 191,
+      "basis": "circle_pcs_theorem_required"
+    },
+    {
+      "argument": "deep_batching",
+      "conditional_degree_weight": "4503599627370496",
+      "raw_modulo_integer_bits": 191,
+      "basis": "circle_pcs_theorem_required"
+    },
+    {
+      "argument": "fri_folding",
+      "conditional_degree_weight": "35742748073881763840",
+      "raw_modulo_integer_bits": 178,
+      "basis": "unreviewed_fri_envelope"
+    }
+  ],
+  "total_conditional_degree_weight": "5447285479618932633766888",
+  "total_raw_modulo_integer_bits": 161,
+  "whole_native_query_integer_bits": 165,
+  "necessary_rom_budget": {
+    "log_max_work": 120,
+    "target_per_work_bits": 128,
+    "algebraic_query_bits_required": 151,
+    "outer_proofs_included": false,
+    "applicable_theorem_established": false
+  },
+  "open_gates": [
+    "beta2 immutable setup",
+    "allnative/global OM31 arguments",
+    "actualquerylayout theorem",
+    "quotientonly degreecorrection theorem",
+    "integerweights andcharacteristic",
+    "lateGKR binding theorem",
+    "adaptive rawmodROM theorem",
+    "allouter layerswide/rawchannel",
+    "receiverregistrycertificate"
+  ],
+  "default_control_changed": false,
+  "receiver_candidate_identity": "16b0e3bee1f01b1d6a4384d91a8c8cd9953e08d4acd58c4339aa007795b975a7",
+  "tests": {
+    "ReleaseSafe": 7,
+    "ReleaseFast": 7
+  },
+  "base": "8c43a3a7a0861ee45db21e2779253db514f930ac",
+  "source_authority_checks": [
+    "raw fraction enum has9localrelations",
+    "actualrawOmchannel type",
+    "prefixedraw256BlakeMerkletype",
+    "q70P26benchmarkcontrol unchanged"
+  ],
+  "research_sources": [
+    "https://eprint.iacr.org/2022/1530",
+    "https://eprint.iacr.org/2023/1284",
+    "https://eprint.iacr.org/2024/278",
+    "https://raw.githubusercontent.com/starkware-libs/stwo/dev/.agents/papers/llm/Stwo_Whitepaper.llm.md"
+  ]
+}

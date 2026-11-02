@@ -4,3 +4,10 @@ pub const gkr_prover = @import("gkr_prover.zig");
 pub const mle = @import("mle.zig");
 pub const sumcheck = @import("sumcheck.zig");
 pub const utils = @import("utils.zig");
+
+pub const resource = @import("resource.zig");
+
+pub const row_work = @import("row_work.zig");
+
+/// Shared native-pack numerical authority for lookup and binding projections.
+pub const packed_rows = @import("packed_rows.zig");

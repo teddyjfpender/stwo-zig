@@ -1,0 +1,48 @@
+{
+  "scope": "owned payload lifecycle; not an RSS benchmark",
+  "source_base": "321b54944a701b8f48768c5916be894b84fdb458",
+  "protocol_changed": false,
+  "default_consume_memory_events": false,
+  "qualified_workload": {
+    "cpu_proofs": 2,
+    "truth_proofs": 3,
+    "exact_all_physical_proof_bytes": true,
+    "exact_stage_one_bytes": true,
+    "fresh_independent_keys_receiver": true
+  },
+  "full_block_source_derived": {
+    "steps": 104253913,
+    "cpu_metadata_bytes_per_step": 56,
+    "cpu_metadata_total_bytes": 5838219128,
+    "cpu_metadata_already_retires": true,
+    "ordinary_ls_event_count": 33457230,
+    "ordinary_ls_event_size": 72,
+    "ordinary_ls_event_payload_bytes": 2408920560
+  },
+  "excluded": [
+    "allocator cached capacity",
+    "process RSS",
+    "immutable setup",
+    "original capture peak",
+    "native heap capacity not owned by Prepared"
+  ],
+  "failure_cases": [
+    "retained admission rejection preserves ordinary events and CPU source",
+    "later invalid secp worker after completed first CPU preserves service advice and safely cleans up consumed slots",
+    "repeated ordinary event retirement is idempotent",
+    "out of range ordinal rejected"
+  ],
+  "timing_effect": "optional caller-owned WorkerTiming fields only; retirement excluded from spill time",
+  "safe_gate": "PASS final source, both tests selected by memory advice retires filter",
+  "fast_gate": "PASS final source, both tests selected by memory advice retires filter",
+  "completed_worker_retirement": {
+    "pending_artifact_independently_owned": true,
+    "stage_one_serialized_before_retirement": true,
+    "encoded_result_detached": true,
+    "worker_slot_cleared_for_deferred_cleanup": true,
+    "admission_bounds_unchanged": true,
+    "safe_gate": "PASS three selected lifecycle tests plus imported gates, MaxRSS2G, 38s",
+    "fast_gate": "PASS same final source, MaxRSS2G, 37s",
+    "later_stage_failure": "deterministic allocator refuses new allocations after CPU0 completed owner was freed; error.OutOfMemory, remaining cleanup leak-free"
+  }
+}

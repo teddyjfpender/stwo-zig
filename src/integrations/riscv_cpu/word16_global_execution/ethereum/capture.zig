@@ -10,7 +10,16 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Coverage = @import("../../word16_execution/coverage.zig");
 const Memory = @import("../../word16_execution/memory/statement.zig");
 const Collector = @import("../services/collector.zig");
+pub const Options = @import("capture_prefetch.zig").Options;
+pub const ScheduleStats = struct {
+    max_inflight_packets: u8 = 1,
+    max_worker_shards: u8 = 1,
+    decoded_packet_heap_limit_bytes: ?usize = null,
+    max_reserved_decoded_packet_heap_bytes: usize = 0,
+    max_single_packet_decoded_heap_bytes: usize = 0,
+};
 pub const Owner = struct {
+    capture_schedule: ScheduleStats = .{},
     allocator: std.mem.Allocator,
     native: std.ArrayList(*Native),
     advice: Collector.Advice,
@@ -66,6 +75,20 @@ pub const Owner = struct {
         var advice = try collector.finish();
         errdefer advice.deinit();
         return .{ .allocator = a, .native = native, .advice = advice, .total_steps = total, .final_pc = pc, .final_registers = regs };
+    }
+    /// Opt-in producer scheduling only. The caller allocator must support
+    /// concurrent allocations; image/program and packet files remain immutable.
+    pub fn initWithOptions(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, jobs: std.fs.Dir, prefix_packets: u32, options: Options) !Owner {
+        if (options.max_inflight_packets == 1) return init(a, image, program, config, jobs, prefix_packets);
+        return @import("capture_prefetch.zig").run(a, image, program, config, jobs, prefix_packets, options);
+    }
+    /// Quiescent measurement only: do not race source handoff or stage jobs.
+    /// Counts owned requested payload, not allocator cache or immutable setup.
+    pub fn ownership(self: *const Owner) struct { native_payload: usize, native_headers: usize, advice: @import("capture_ownership.zig").AdvicePayload } {
+        const Owned = @import("capture_ownership.zig");
+        var total: usize = 0;
+        for (self.native.items) |value| total += Owned.native(value).total();
+        return .{ .native_payload = total, .native_headers = self.native.items.len * @sizeOf(Native) + self.native.capacity * @sizeOf(*Native), .advice = Owned.advice(&self.advice) };
     }
     pub fn deinit(self: *Owner) void {
         for (self.native.items) |n| {

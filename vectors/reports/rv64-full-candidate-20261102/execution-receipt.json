@@ -1,0 +1,50 @@
+{
+  "source_commit": "7282f699de49002d154e1f5acf627df614d79635",
+  "source_tree": "052e89a4d9b72bf00557251e9fbce4aa6a69437c",
+  "binary_sha256": "d2d558df389fb0868adee9f318932420281a787436037407c1ba199ef77a114d",
+  "config_sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad",
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "fixed_setup_bytes": 12884901888,
+    "park_main": true,
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 16,
+      "memory_cap_bytes": 51539607552
+    }
+  },
+  "swap_start_bytes": 1931015618,
+  "security_qualified": false,
+  "controlled_speedup_claim": false,
+  "produce": {
+    "command": [
+      "/private/tmp/stwo-rv64-full-candidate/zig-out/bin/rv64-word16-ethereum-gkr",
+      "produce-candidate",
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+      "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+      "0",
+      "/tmp/rv64-full-candidate-resources-v1.json"
+    ],
+    "returncode": 0,
+    "wall_observed_s": 504.99258494377136,
+    "peak_polled_rss_bytes": 42483286016,
+    "stop_reason": null
+  },
+  "fresh_verify": {
+    "command": [
+      "/private/tmp/stwo-rv64-full-candidate/zig-out/bin/rv64-word16-ethereum-gkr",
+      "verify-candidate",
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+      "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+      "12884901888"
+    ],
+    "returncode": 0,
+    "wall_observed_s": 35.31973624229431,
+    "peak_polled_rss_bytes": 12120604672,
+    "stop_reason": null
+  }
+}

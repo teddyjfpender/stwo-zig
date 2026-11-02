@@ -1,0 +1,46 @@
+{
+  "scope": "Read-only CUDA source inventory, no build/device gate",
+  "kernels": [
+    {
+      "area": "M31 native interpolation/LDE",
+      "source": "src/backends/cuda/native/transform/lde.cu",
+      "state": "Existing field-neutraldeviceprimitive; actualRV64ownership/layout integration unqualified"
+    },
+    {
+      "area": "Prefixed/plain Blake2s streaming leaves and Merkle",
+      "source": "src/backends/cuda/native/commitment/progressive.cu",
+      "state": "Existingdeviceprimitive. NativecurrentprofileusesprefixedBlake2s; pin correctABI/transcript. ProgressiveState96B is belowconservativeCPUstateupper used in contract.",
+      "abi_source": "src/backends/cuda/native/commitment/blake2s_core.cuh"
+    },
+    {
+      "area": "RV64 MAIN/GKRbinding/classictruth constraint kernels",
+      "source": "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/{role_domain,truth_role_domain}.zig",
+      "state": "CPU authorityexists; typed8coordinate devicekernel/codegen/AOTcatalog absent/unqualified"
+    },
+    {
+      "area": "OM31 arithmetic, LogUpclassic inverse/prefix, localGKRsumcheck andEq",
+      "source": "src/backends/cuda/native/constraints/field.cuh",
+      "state": "UNSUPPORTED OM31: CUDAfield explicitlyQM31=4u32. Need actualdegree8authority port and sharedvector tests, no4columnreinterpretation."
+    },
+    {
+      "area": "OM31 OODS/sample/DEEPquadraticinnerQM31law",
+      "source": "src/backends/cuda/native/quotient/field.cuh",
+      "state": "UNSUPPORTED OM31: currentlyQM31securepoint/kernel contracts. Port8coordinate OODSandnativeOM31quadraticDEEP, preservepoles, bounds and sampler authority."
+    },
+    {
+      "area": "OM31 FRI circle/line folds andlastlayer",
+      "source": "src/backends/cuda/native/fri/field.cuh",
+      "state": "UNSUPPORTED OM31: sizeofsecurefield4u32. Need8coordinate buffers, typedproofwire/transcript andfreshreceiver parity."
+    },
+    {
+      "area": "PrunednativeMAIN/openings andscalarcoefficient sparse evaluations",
+      "source": "src/backends/cuda/native/decommit/sparse_parents.cu",
+      "state": "M31hash/authentication primitivesexist; compactRV64OM31fullroute andprunednativepayload reconstruction not qualified."
+    },
+    {
+      "area": "Recursion/wrap/fold",
+      "source": "src/integrations/riscv_cpu/rv64_recursion/om31_circuit_lane.zig",
+      "state": "OM31 circuitlane/GKRfragments exist; actualwholeOM31PCS/FRIleaf integration+security+devicewrapping require separatequalification."
+    }
+  ]
+}

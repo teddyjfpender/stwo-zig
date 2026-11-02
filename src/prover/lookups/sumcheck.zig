@@ -24,6 +24,7 @@ pub const SumcheckProof = ForField(QM31).SumcheckProof;
 pub const ProveBatchResult = ForField(QM31).ProveBatchResult;
 pub const PartialVerifyResult = ForField(QM31).PartialVerifyResult;
 pub const proveBatch = ForField(QM31).proveBatch;
+pub const proveBatchOwned = ForField(QM31).proveBatchOwned;
 pub const partiallyVerify = ForField(QM31).partiallyVerify;
 
 test "sumcheck: prove and partially verify single mle" {

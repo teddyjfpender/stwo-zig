@@ -29,11 +29,19 @@ pub fn Sink(comptime C: type, comptime B: type, comptime S: type) type {
             if (self.weighted_accumulator) |a| {
                 std.debug.assert(self.count < a.powers.len);
                 const scalar = a.powers[a.powers.len - 1 - self.count];
-                const power = if (C == S) scalar else S.splat(scalar);
-                const factor = if (self.scale) |scale| power.mul(scale) else power;
-                // Preserve the packed-base multiply for local domain residuals.
-                const weighted = if (is_base) factor.mulBase(value) else factor.mul(value);
-                a.accumulation = a.accumulation.add(weighted);
+                weighting: {
+                    if (comptime is_base and C == core.fields.om31.OM31 and @hasDecl(S, "addScaledBase")) {
+                        if (self.scale == null) {
+                            a.accumulation.addScaledBase(scalar, value);
+                            break :weighting;
+                        }
+                    }
+                    const power = if (C == S) scalar else S.splat(scalar);
+                    const factor = if (self.scale) |scale| power.mul(scale) else power;
+                    // Scaled/secure/scalar paths retain their original authority.
+                    const weighted = if (is_base) factor.mulBase(value) else factor.mul(value);
+                    a.accumulation = a.accumulation.add(weighted);
+                }
             }
             self.count += 1;
         }
