@@ -25,8 +25,8 @@ fn Row(comptime kind: L.Kind) type {
     return struct {
         product: [slots]Q,
         numerator: [slots][3]Q,
-        fn init(m: []const Q, ch: T.Challenges) @This() {
-            const list = Eq.fractions(Q, kind, m, ch);
+        fn init(f: []const Q, m: []const Q, ch: T.Challenges) @This() {
+            const list = Eq.fractions(Q, kind, f, m, ch);
             var out: @This() = undefined;
             for (0..slots) |j| {
                 out.numerator[j] = @splat(Q.zero());
@@ -55,7 +55,9 @@ pub fn generate(s: *Source, ch: T.Challenges, dict16: []const Q) !T.Claims {
                     return source.row(kind, logical);
                 }
             };
-            const built = try generateRows(kind, s.allocator, s.log_size, s.rows, s, Provider.row, ch);
+            // Every jtab row is a table entry with its own fixed values.
+            const active = if (kind == .jtab) s.size() else s.rows;
+            const built = try generateRows(kind, s.allocator, s.log_size, active, s, Provider.row, ch);
             errdefer s.allocator.free(built.interaction);
             if (dict16.len != 0) {
                 try LS.interaction.validateDictionary(ch.range16, dict16, 65536);
@@ -66,6 +68,19 @@ pub fn generate(s: *Source, ch: T.Challenges, dict16: []const Q) !T.Claims {
         },
     }
 }
+/// The fixed values the fractions read: the jtab table entry (the FIXED
+/// selectors are not read by any fraction and stay zero here).
+fn fixedRow(comptime kind: L.Kind, logical: usize) [L.fixedWidth(kind)]Q {
+    var out: [L.fixedWidth(kind)]Q = @splat(Q.zero());
+    if (kind == .jtab) {
+        const e = T.tableEntry(logical);
+        out[L.jtab.pending] = Q.fromBase(M.fromCanonical(e.pending));
+        out[L.jtab.byte] = Q.fromBase(M.fromCanonical(e.byte));
+        out[L.jtab.next] = Q.fromBase(M.fromCanonical(e.next));
+        out[L.jtab.jumpdest] = Q.fromBase(M.fromCanonical(e.jumpdest));
+    }
+    return out;
+}
 pub const Built = struct { interaction: []M, claims: T.Claims };
 /// Rows at logical index >= `active` must equal the padding row `rowFn(n-1)`.
 /// Tests pass `active = n` to evaluate arbitrary (forged) row sets.
@@ -74,7 +89,7 @@ pub fn generateRows(comptime kind: L.Kind, a: std.mem.Allocator, log: u32, activ
     const n = @as(usize, 1) << @intCast(log);
     const out = try a.alloc(M, L.interaction(kind) * n);
     errdefer a.free(out);
-    const padding = Row(kind).init(&promote(L.main(kind), rowFn(ctx, n - 1)), ch);
+    const padding = Row(kind).init(&fixedRow(kind, n - 1), &promote(L.main(kind), rowFn(ctx, n - 1)), ch);
     var padding_inverse: [slots]Q = undefined;
     for (padding.product, &padding_inverse) |p, *i| i.* = try p.inv();
     var sums = [3]Q{ Q.zero(), Q.zero(), Q.zero() };
@@ -89,7 +104,7 @@ pub fn generateRows(comptime kind: L.Kind, a: std.mem.Allocator, log: u32, activ
         const count = @min(CHUNK, n - begin);
         const active: usize = if (begin < active_rows) @min(count, active_rows - begin) else 0;
         for (0..active) |i| {
-            rows[i] = Row(kind).init(&promote(L.main(kind), rowFn(ctx, begin + i)), ch);
+            rows[i] = Row(kind).init(&fixedRow(kind, begin + i), &promote(L.main(kind), rowFn(ctx, begin + i)), ch);
             @memcpy(input[i * slots ..][0..slots], &rows[i].product);
         }
         if (active != 0) try core.fields.batchInverseInPlace(Q, input[0 .. active * slots], inverses[0 .. active * slots]);

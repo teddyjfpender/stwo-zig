@@ -100,3 +100,16 @@ Scoring with estimated costs (calibration.json is locked): a wrapper imports
 python3 -I <scratch>/bench_with_costs.py run --elf <elf> --executor <exec> --cache <cache> \
   --out <out> --set all --jobs 4 --profile ethereum_services_v3_candidate
 ```
+
+## `jumpdest_bitmap` (0x0003_0040), added 2026-11-02
+
+Packet = 3 u64 `code, len, bitmap`. `code` 64-byte aligned, `bitmap` 8-byte
+aligned, `len` a nonzero multiple of 8 up to 2^20 (else `MisalignedAddress` /
+`CandidateLengthLimit`); code words, bitmap words and packet pairwise disjoint
+(else `CandidateAliasing`). Reads the `len/8` code words, writes exactly
+`ceil(len/64)` bitmap words (bit `i%64` of word `i/64` = byte `i` is a JUMPDEST
+outside PUSH data; data past `len` cut off). `bytes` = `len`. Reported in
+`candidate_service_calls` only once called (like the curve candidates), so
+existing reports and cost files are unchanged. Executor:
+`ethereum_services/candidate_jumpdest.zig`. Client: `build.py --profile v3
+--candidate-jumpdest`. Proposal: `proposals/jumpdest-bitmap.md`.

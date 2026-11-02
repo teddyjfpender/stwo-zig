@@ -146,13 +146,16 @@ pub fn widths(family: Family) [3]usize {
 /// Bulk-memory bridge logs: memcpy/memset descriptors (one row per call),
 /// aligned copy and set bodies (one row per word), unaligned copy bodies (one
 /// row per source word), memcmp descriptors and memcmp bodies (one row per
-/// examined word pair). Each present kind is one component of the CPU proof.
-/// The first three kinds are the original (aligned) block; the last three are
-/// the extension block, which is mixed, committed and serialized only when
-/// present so aligned-only bundles stay byte-identical.
+/// examined word pair), then the JUMPDEST analysis kinds (jdesc per call,
+/// jscan per 64 code bytes, the jtab transition table). Each present kind is
+/// one component of the CPU proof, in this order. Three blocks: the original
+/// aligned block [0, BULK_BASE), the extension [BULK_BASE, BULK_EXT) and the
+/// JUMPDEST block [BULK_EXT, len); the latter two are mixed, committed and
+/// serialized only when present, so earlier bundles stay byte-identical.
 pub const BulkKind = A.crypto.bulk_memory.layout.Kind;
-pub const bulk_kinds = A.crypto.bulk_memory.layout.kinds;
+pub const bulk_kinds = A.crypto.bulk_memory.layout.kinds ++ A.crypto.bulk_memory.layout.jumpdest_kinds;
 pub const BULK_BASE = 3;
+pub const BULK_EXT = A.crypto.bulk_memory.layout.kinds.len;
 pub const Bulk = struct {
     desc: ?u32 = null,
     copy: ?u32 = null,
@@ -160,6 +163,9 @@ pub const Bulk = struct {
     ucopy: ?u32 = null,
     cdesc: ?u32 = null,
     cmp: ?u32 = null,
+    jdesc: ?u32 = null,
+    jscan: ?u32 = null,
+    jtab: ?u32 = null,
     pub fn at(self: @This(), kind: BulkKind) ?u32 {
         return switch (kind) {
             inline else => |k| @field(self, @tagName(k)),
@@ -171,10 +177,15 @@ pub const Bulk = struct {
     }
     /// Any extension kind (unaligned copy, memcmp) present.
     pub fn anyExtension(self: @This()) bool {
-        inline for (bulk_kinds[BULK_BASE..]) |k| if (self.at(k) != null) return true;
+        inline for (bulk_kinds[BULK_BASE..BULK_EXT]) |k| if (self.at(k) != null) return true;
         return false;
     }
-    /// Aligned-only rosters serialize exactly as before the extension.
+    /// Any JUMPDEST kind present.
+    pub fn jump(self: @This()) bool {
+        inline for (bulk_kinds[BULK_EXT..]) |k| if (self.at(k) != null) return true;
+        return false;
+    }
+    /// Aligned-only rosters serialize exactly as before the extensions.
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
         inline for (bulk_kinds, 0..) |k, i| if (i < BULK_BASE or self.at(k) != null) {
@@ -185,7 +196,9 @@ pub const Bulk = struct {
     }
 };
 /// Public bulk rows of one CPU proof: memcpy/memset calls (descriptor rows),
-/// aligned body words, unaligned body rows, memcmp calls and memcmp rows.
+/// aligned body words, unaligned body rows, memcmp calls and memcmp rows,
+/// JUMPDEST calls (jdesc rows) and scan rows (jtab has TABLE_ENTRIES rows
+/// whenever a call exists).
 pub const BulkCounts = struct {
     calls: u32 = 0,
     copy_words: u32 = 0,
@@ -195,6 +208,8 @@ pub const BulkCounts = struct {
     cmp_calls: u32 = 0,
     /// memcmp body rows: word pairs examined up to the first difference.
     cmp_words: u32 = 0,
+    jump_calls: u32 = 0,
+    jump_rows: u32 = 0,
     pub fn rows(self: @This(), kind: BulkKind) u32 {
         return switch (kind) {
             .desc => self.calls,
@@ -203,6 +218,9 @@ pub const BulkCounts = struct {
             .ucopy => self.ucopy_rows,
             .cdesc => self.cmp_calls,
             .cmp => self.cmp_words,
+            .jdesc => self.jump_calls,
+            .jscan => self.jump_rows,
+            .jtab => if (self.jump_calls != 0) @intCast(A.crypto.bulk_memory.types.TABLE_ENTRIES) else 0,
         };
     }
     pub fn any(self: @This()) bool {
@@ -210,22 +228,25 @@ pub const BulkCounts = struct {
         return false;
     }
     pub fn anyExtension(self: @This()) bool {
-        inline for (bulk_kinds[BULK_BASE..]) |k| if (self.rows(k) != 0) return true;
+        inline for (bulk_kinds[BULK_BASE..BULK_EXT]) |k| if (self.rows(k) != 0) return true;
         return false;
+    }
+    pub fn jump(self: @This()) bool {
+        return self.jump_calls != 0 or self.jump_rows != 0;
     }
     /// RAM14 fractions (each access a consume/produce pair, at most): desc 6,
     /// copy 4, set 2, ucopy 4, cdesc 8 (three packet reads, result write),
-    /// cmp 4 per row.
+    /// cmp 4 per row; jdesc 6, jscan 18 (8 code reads, bitmap write).
     pub fn ram(self: @This()) u64 {
         var n: u64 = 0;
         inline for (bulk_kinds) |k| n += @as(u64, A.crypto.bulk_memory.layout.ramCount(k)) * self.rows(k);
         return n;
     }
-    /// memcpy/memset and memcmp ECALLs (each one CPU step).
+    /// memcpy/memset, memcmp and JUMPDEST ECALLs (each one CPU step).
     pub fn ecalls(self: @This()) u64 {
-        return @as(u64, self.calls) + self.cmp_calls;
+        return @as(u64, self.calls) + self.cmp_calls + self.jump_calls;
     }
-    /// Extension counts are omitted when zero (aligned-only bytes unchanged).
+    /// Extension and JUMPDEST counts are omitted when zero (aligned-only bytes unchanged).
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(@This()), 0..) |f, i| if (i < BULK_BASE or @field(self, f.name) != 0) {

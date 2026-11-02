@@ -18,6 +18,12 @@
 //! - memset writes `byte & 0xff`; memcmp writes -1, 0 or 1 (as i64) by the
 //!   first differing byte, reading only the words up to and including the
 //!   first differing word.
+//! - jumpdest 0x30040: packet `code, len, bitmap`; `code` 64-aligned (so the
+//!   eight code words of one bitmap word share address limbs 1..3), `bitmap`
+//!   8-aligned, `len` a nonzero multiple of 8 up to 1 MiB; reads the `len/8`
+//!   code words and writes `ceil(len/64)` bitmap words: bit `i` set iff code
+//!   byte `i` is 0x5b outside PUSH1..PUSH32 data (evmone's analysis;
+//!   proposals/jumpdest-bitmap.md). Bitmap words readable and writable.
 //! Every check precedes any change: a trapping call changes nothing.
 const std = @import("std");
 const memory = @import("../memory.zig");
@@ -43,10 +49,12 @@ pub const Event = struct { call: BulkCall, packet: Packet, dst_before: []const u
 pub const MEMCPY_TAG = profile.MEMCPY_TAG;
 pub const MEMSET_TAG = profile.MEMSET_TAG;
 pub const MEMCMP_TAG = profile.MEMCMP_TAG;
+pub const JUMPDEST_TAG = profile.JUMPDEST_TAG;
 pub const MAX_BYTES: u64 = 1 << 20;
-pub const Kind = enum { memcpy, memset, memcmp };
+pub const Kind = enum { memcpy, memset, memcmp, jumpdest };
 pub const Error = memory.Error || error{ UnsupportedService, BulkMemoryLength, BulkMemoryOverlap };
-/// `word1` is the source (memcpy), fill word (memset) or `b` (memcmp).
+/// `word1` is the source (memcpy), fill word (memset), `b` (memcmp) or the
+/// bitmap (jumpdest, whose `dst` is the code).
 /// memcmp: `result` is the written value and `examined` the number of word
 /// pairs read (index of the first differing word + 1, or `len / 8`).
 pub const Packet = struct { dst: u64, word1: u64, len: u64, result: i64 = 0, examined: u64 = 0 };
@@ -56,6 +64,7 @@ pub fn kindOf(tag: u64) ?Kind {
         MEMCPY_TAG => .memcpy,
         MEMSET_TAG => .memset,
         MEMCMP_TAG => .memcmp,
+        JUMPDEST_TAG => .jumpdest,
         else => null,
     };
 }
@@ -64,6 +73,29 @@ pub fn tagOf(kind: Kind) u64 {
         .memcpy => MEMCPY_TAG,
         .memset => MEMSET_TAG,
         .memcmp => MEMCMP_TAG,
+        .jumpdest => JUMPDEST_TAG,
+    };
+}
+/// jumpdest: bitmap words written for `len` code bytes.
+pub fn bitmapWords(len: u64) u64 {
+    return (len + 63) / 64;
+}
+/// evmone's JUMPDEST analysis of whole code words: bit i of the bitmap is
+/// set iff byte i is 0x5b and not PUSH1..PUSH32 data (data past the end is
+/// cut off). `out` holds `ceil(code.len / 8)` words.
+pub fn analyze(code: []const u64, out: []u64) void {
+    @memset(out, 0);
+    var pending: u8 = 0;
+    for (code, 0..) |w, k| for (0..8) |i| {
+        const b: u8 = @truncate(w >> @intCast(8 * i));
+        if (pending > 0) {
+            pending -= 1;
+        } else if (b >= 0x60 and b <= 0x7f) {
+            pending = b - 0x5f;
+        } else if (b == 0x5b) {
+            const bit = 8 * k + i;
+            out[bit / 64] |= @as(u64, 1) << @intCast(bit % 64);
+        }
     };
 }
 fn overlaps(a: u64, a_len: u64, b: u64, b_len: u64) bool {
@@ -84,6 +116,7 @@ pub fn admit(mem: *memory.Memory, kind: Kind, pointer: u64) Error!Packet {
     _ = try memory.endAddress(pointer, packet_bytes);
     try mem.mappings.check(pointer, packet_bytes, .read);
     if (kind == .memcmp) try mem.mappings.check(pointer + 24, 8, .write);
+    if (kind == .jumpdest) return admitJumpdest(mem, pointer, packet_bytes);
     const p = Packet{ .dst = try mem.load(pointer, 8), .word1 = try mem.load(pointer + 8, 8), .len = try mem.load(pointer + 16, 8) };
     if (p.len == 0 or p.len % 8 != 0 or p.len > MAX_BYTES) return error.BulkMemoryLength;
     if (p.dst & 7 != 0) return error.MisalignedAddress;
@@ -105,7 +138,21 @@ pub fn admit(mem: *memory.Memory, kind: Kind, pointer: u64) Error!Packet {
             try mem.mappings.check(p.word1, p.len, .read);
             if (overlaps(pointer, packet_bytes, p.word1, p.len) or overlaps(p.dst, p.len, p.word1, p.len)) return error.BulkMemoryOverlap;
         },
+        .jumpdest => unreachable,
     }
+    return p;
+}
+fn admitJumpdest(mem: *memory.Memory, pointer: u64, packet_bytes: u64) Error!Packet {
+    const p = Packet{ .dst = try mem.load(pointer, 8), .len = try mem.load(pointer + 8, 8), .word1 = try mem.load(pointer + 16, 8) };
+    if (p.len == 0 or p.len % 8 != 0 or p.len > MAX_BYTES) return error.BulkMemoryLength;
+    if (p.dst & 63 != 0 or p.word1 & 7 != 0) return error.MisalignedAddress;
+    const bitmap_bytes = 8 * bitmapWords(p.len);
+    _ = try memory.endAddress(p.dst, p.len);
+    _ = try memory.endAddress(p.word1, bitmap_bytes);
+    try mem.mappings.check(p.dst, p.len, .read);
+    try mem.mappings.check(p.word1, bitmap_bytes, .read);
+    try mem.mappings.check(p.word1, bitmap_bytes, .write);
+    if (overlaps(pointer, packet_bytes, p.dst, p.len) or overlaps(pointer, packet_bytes, p.word1, bitmap_bytes) or overlaps(p.dst, p.len, p.word1, bitmap_bytes)) return error.BulkMemoryOverlap;
     return p;
 }
 /// The memcmp result of two words compared byte by byte in memory order.
@@ -144,6 +191,19 @@ pub fn executeRecording(a: std.mem.Allocator, mem: *memory.Memory, kind: Kind, p
         try mem.storeWords(pointer + 24, &.{@bitCast(p.result)});
         return p;
     }
+    if (kind == .jumpdest) {
+        const n: usize = @intCast(bitmapWords(p.len));
+        try before.resize(a, n);
+        for (before.items, 0..) |*w, j| w.* = mem.backing.load(p.word1 + 8 * j, 8).value;
+        const code = try a.alloc(u64, @intCast(p.len / 8));
+        defer a.free(code);
+        for (code, 0..) |*w, j| w.* = mem.backing.load(p.dst + 8 * j, 8).value;
+        const bitmap = try a.alloc(u64, n);
+        defer a.free(bitmap);
+        analyze(code, bitmap);
+        try mem.storeWords(p.word1, bitmap);
+        return p;
+    }
     try before.resize(a, @intCast(p.len / 8));
     for (before.items, 0..) |*w, j| w.* = mem.backing.load(p.dst + 8 * j, 8).value;
     const words = try a.alloc(u64, @intCast(p.len / 8));
@@ -159,7 +219,7 @@ pub fn executeRecording(a: std.mem.Allocator, mem: *memory.Memory, kind: Kind, p
             }
         },
         .memset => @memset(words, @as(u64, @as(u8, @truncate(p.word1))) * 0x0101010101010101),
-        .memcmp => unreachable,
+        .memcmp, .jumpdest => unreachable,
     }
     try mem.storeWords(p.dst, words);
     return p;
@@ -274,4 +334,56 @@ test "admitted bulk memory: memcmp result, examined words and traps" {
     // Read-only ranges are admitted; a read-only result word is not.
     try mem.storeWords(0x1000, &.{ 0x3000, 0x3100, 8, 0 });
     _ = try execute(t.allocator, &mem, .memcmp, 0x1000);
+}
+
+test "admitted jumpdest writes the canonical bitmap and refuses unprovable calls" {
+    const t = std.testing;
+    const ref = @import("candidate_jumpdest.zig");
+    var mem = memory.Memory.init(t.allocator, .{});
+    defer mem.deinit();
+    try mem.map(.{ .start = 0x1000, .size = 0x1000, .permissions = .{ .read = true, .write = true } });
+    try mem.map(.{ .start = 0x3000, .size = 0x1000, .permissions = .{ .read = true } });
+    var prng = std.Random.DefaultPrng.init(7);
+    const r = prng.random();
+    var bytes: [200]u8 = undefined;
+    for (&bytes) |*b| b.* = switch (r.uintLessThan(u8, 3)) {
+        0 => 0x5b,
+        1 => r.intRangeAtMost(u8, 0x60, 0x7f),
+        else => r.int(u8),
+    };
+    for (bytes, 0..) |b, i| try mem.store(0x1400 + i, 1, b);
+    for ([_]u64{ 8, 64, 72, 200 }) |len| {
+        try mem.storeWords(0x1000, &.{ 0x1400, len, 0x1800 });
+        try mem.storeWords(0x1800, &.{ 0xdead, 0xdead, 0xdead, 0xdead });
+        var before: std.ArrayList(u64) = .empty;
+        defer before.deinit(t.allocator);
+        _ = try executeRecording(t.allocator, &mem, .jumpdest, 0x1000, &before);
+        var want: [4]u64 = @splat(0xdead);
+        ref.bitmap(bytes[0..@intCast(len)], want[0..@intCast(bitmapWords(len))]);
+        for (0..4) |j| try t.expectEqual(want[j], try mem.load(0x1800 + 8 * j, 8));
+        try t.expectEqual(@as(usize, @intCast(bitmapWords(len))), before.items.len);
+        for (before.items) |w| try t.expectEqual(@as(u64, 0xdead), w);
+    }
+    // Code may be read-only; the bitmap may not. Every refusal changes nothing.
+    try mem.storeWords(0x1000, &.{ 0x3000, 64, 0x1800 });
+    _ = try execute(t.allocator, &mem, .jumpdest, 0x1000);
+    const bad = [_]struct { packet: [3]u64, err: anyerror }{
+        .{ .packet = .{ 0x1400, 0, 0x1800 }, .err = error.BulkMemoryLength },
+        .{ .packet = .{ 0x1400, 60, 0x1800 }, .err = error.BulkMemoryLength },
+        .{ .packet = .{ 0x1400, (1 << 20) + 8, 0x1800 }, .err = error.BulkMemoryLength },
+        .{ .packet = .{ 0x1408, 64, 0x1800 }, .err = error.MisalignedAddress },
+        .{ .packet = .{ 0x1400, 64, 0x1804 }, .err = error.MisalignedAddress },
+        .{ .packet = .{ 0x1400, 128, 0x1440 }, .err = error.BulkMemoryOverlap },
+        .{ .packet = .{ 0x1400, 64, 0x1010 }, .err = error.BulkMemoryOverlap },
+        .{ .packet = .{ 0x1000, 64, 0x1800 }, .err = error.BulkMemoryOverlap },
+        .{ .packet = .{ 0x1400, 64, 0x3000 }, .err = error.AccessDenied },
+        .{ .packet = .{ 0x1FC0, 128, 0x1800 }, .err = error.UnmappedAddress },
+    };
+    for (bad) |c| {
+        try mem.storeWords(0x1000, &c.packet);
+        var snapshot: [512]u64 = undefined;
+        for (&snapshot, 0..) |*w, i| w.* = try mem.load(0x1000 + 8 * i, 8);
+        try t.expectError(c.err, execute(t.allocator, &mem, .jumpdest, 0x1000));
+        for (snapshot, 0..) |w, i| try t.expectEqual(w, try mem.load(0x1000 + 8 * i, 8));
+    }
 }
