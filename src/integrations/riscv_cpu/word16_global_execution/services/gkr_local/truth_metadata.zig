@@ -58,12 +58,20 @@ pub const Provider = struct {
     /// expected geometry must come from independently admitted receiver setup,
     /// not copied from producer declarations. This adapter alone is not a verifier.
     pub fn emit(self: Provider, instance: Frame.Instance, logical: usize, sink: anytype) !void {
+        return self.emitRange(instance, logical, 0, instance.queries, sink);
+    }
+    /// Emits only the selected original query interval from immutable metadata.
+    /// No expanded MAIN row, query matrix or callback-owned storage is created.
+    pub fn emitRange(self: Provider, instance: Frame.Instance, logical: usize, first_query: usize, count: usize, sink: anytype) !void {
         if (logical >= try instance.rows()) return error.InvalidTruthGkrRow;
         var found = false;
         for (self.frames) |expected| if (std.meta.eql(instance, expected)) {
             found = true;
         };
         if (!found) return error.TruthGkrSourceGeometryMismatch;
+        if (first_query > instance.queries or count > instance.queries - first_query) return error.InvalidTruthGkrQueryRange;
+        if (count == 0) return;
+        const end = first_query + count;
         switch (self.source.*) {
             .keccak => |s| switch (instance.role) {
                 .keccak => {
@@ -82,8 +90,11 @@ pub const Provider = struct {
                         weight = weight.add(v.*);
                     }
                     weight = weight.mul(M.fromCanonical(row.flags & 1)).neg();
-                    for (0..K.layout.STATE) |event| sink.emitBase(.chi, tuples.chiAccessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, StateCells{ .row = next }, &round, event), weight);
-                    for (0..K.layout.PARITY) |event| sink.emitBase(.xor5, tuples.xor5Accessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, event), weight);
+                    const chi_end = @min(end, K.layout.STATE);
+                    if (first_query < chi_end) for (first_query..chi_end) |event| sink.emitBase(.chi, tuples.chiAccessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, StateCells{ .row = next }, &round, event), weight);
+                    const xor_first = @max(first_query, K.layout.STATE) - K.layout.STATE;
+                    const xor_end = end -| K.layout.STATE;
+                    for (xor_first..xor_end) |event| sink.emitBase(.xor5, tuples.xor5Accessors(M, StateCells{ .row = row }, ParityCells{ .row = row }, event), weight);
                 },
                 .chi, .xor5 => {
                     const table = if (instance.role == .chi) &s.chi else &s.xor5;
@@ -99,9 +110,9 @@ pub const Provider = struct {
                 .product, .linear => {
                     const trace = if (instance.role == .product) &s.batch.product else &s.batch.linear;
                     const active = logical < @as(usize, trace.calls) * trace.program.rows(trace.kind == .product);
-                    const count = S.layout.metadataByteCount(trace.kind);
+                    const byte_count = S.layout.metadataByteCount(trace.kind);
                     const skip: usize = if (instance.byte_policy == .canonical_inputs) 64 else 0;
-                    for (0..instance.queries) |query| sink.emitBase(.byte, [1]M{if (active) M.fromCanonical(trace.lookup_bytes[logical * count + skip + query]) else M.zero()}, M.one());
+                    for (first_query..end) |query| sink.emitBase(.byte, [1]M{if (active) M.fromCanonical(trace.lookup_bytes[logical * byte_count + skip + query]) else M.zero()}, M.one());
                 },
                 .bytes => sink.emitBase(.byte, [1]M{M.fromCanonical(@intCast(logical))}, s.bytes.main[physical(logical, 8)].neg()),
                 else => return error.TruthGkrSourceGeometryMismatch,
