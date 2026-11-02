@@ -1,7 +1,7 @@
 # Optional projected local binding retention
 
-Status: software/lifetime/physical-fixture qualification; complete-block RSS and
-latency qualification pending. Resource option `defer_local_binding` defaults
+Status: software/lifetime/physical-fixture and complete K18 control qualification.
+K16 checkpoint and candidate-profile full-block measurements remain pending. Resource option `defer_local_binding` defaults
 false and is omitted from default resource JSON. Candidate operational resources
 forward the same flag. It does not select a proof or security construction.
 
@@ -84,3 +84,35 @@ allocation-failure tests pass Safe/Fast. Lifecycle qualification additionally ch
 Whole128 construction and GPU execution remain independently unqualified. The
 complete-block benchmark and fresh receiver under both control/candidate profiles
 are still required before promoting this optional operational mode.
+
+## First complete-block measurement
+
+The frozen final CLI (`f35c350d3`, SHA256
+`02195aee6a1c9fea3deef751bf4088189dcb28b107c6c4d19d7af6c9df406c53`)
+proves the entire pinned block under q70/P26, streamed dense-upper K18 and the
+same2x8 schedule/resources with only the deferred flag enabled. All33 durable
+artifacts match immediate binding; a fresh complete receiver accepts.
+
+| K18 storage | Proving | Wall | Peak RSS |
+| --- | ---: | ---: | ---: |
+| Earlier immediate binding |231.55s|250.25s|38.07GB|
+| Deferred projection |227.20s|245.92s|38.03GB|
+
+These are individual observations using different frozen binaries of equivalent
+physical protocol, not repeated same-binary causal latency evidence. Projection
+retention across all25 CPUs is6,542,893,520 bytes including headers, against
+13,085,779,408 final binding bytes including headers. Every completed child stays
+within its exact admitted requested-byte limit and clears its pending flag.
+
+**There is no meaningful whole-process RSS reduction in this K18 observation.**
+The maximum recorded process peak occurs in physical worker25, a Keccak truth
+proof, in both runs. Those counters cover concurrent whole-process activity;
+they are not isolated component allocation costs. Halving barrier storage does
+not remove the widest service-proof allocation regime. Smaller independently
+sized truth instances must be measured before a whole-prover memory claim.
+
+Receipt: `vectors/reports/rv64-deferred-local-binding-20261102/fullblock-deferred80-k18-v1/`.
+The balanced-cache adversarial physical proof separately reaches a fresh receiver
+and fails `OodsNotMatching` under both Safe/Fast, even though its modified
+projection preserves the exact weighted sum and final prefix. Its numerical
+closure is deliberately valid; the original authenticated MAIN remains authority.
