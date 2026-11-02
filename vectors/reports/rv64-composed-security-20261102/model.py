@@ -113,6 +113,7 @@ def run_v3(bundle_path,receiver_path,source_path):
     assert all(c['declaration']['geometry']['cpu_fused_tail'] and c['declaration']['geometry']['cpu_u8_pairs'] for c in bundle['cpus'])
     for cpu in bundle['cpus']:
         assert not any(cpu['declaration']['geometry'].get(k,False) for k in ('mul_u8_pairs','ls_fused_pairs','alu_fused_tail','ls_dword_fused_pairs','cpu_compact_decode'))
+        assert 'zbb' not in cpu['declaration']['bridges'] # Zbb BINARY (v3_zbb) has no GKR role
     assert len(source_report['cpu_scopes'])==7
     p=(1<<31)-1
     for scope in source_report['cpu_scopes']:
