@@ -460,3 +460,7 @@ test {
 test {
     _ = @import("v3_execution_test.zig");
 }
+
+test {
+    _ = @import("service_scope.zig");
+}
