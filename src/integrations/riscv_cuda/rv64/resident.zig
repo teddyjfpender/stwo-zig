@@ -73,6 +73,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
 
         fn handle(self: *Self) !*anyopaque {
             if (self.poisoned) return error.JobPoisoned;
+            if (comptime @hasDecl(Context, "prepareKernelEnqueue")) try self.context.prepareKernelEnqueue();
             const lane = try self.context.lane(self.lane_index);
             try self.context.validateLane(lane);
             return @ptrFromInt(lane.owner);
@@ -82,6 +83,10 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 self.poisoned = true;
                 return error.CudaEnqueueFailed;
             }
+            if (comptime @hasDecl(Context, "recordKernels")) self.context.recordKernels(launches) catch |err| {
+                self.poisoned = true;
+                return err;
+            };
             self.launches +|= launches;
         }
         pub fn project(self: *Self, tuples: Plane, weights: Plane, active: Plane, arity: u32, challenges: Slice, output: Fraction, verdict: Slice) !void {
@@ -282,6 +287,13 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             if (input.count != 2) return error.InvalidGeometry;
             const owner = try self.handle();
             try self.result(Api.stwo_rv64_batch_mask_on(owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32)), 1);
+        }
+        pub fn gatherParameters(self: *Self, reservoir: Slice, output: Slice, slots: []const u32, namespaces: u32, verdict: Slice) !void {
+            const total = abi.relation_count * abi.relation_slot_stride;
+            if (slots.len == 0 or slots.len > total or (namespaces != 9 and namespaces != 10)) return error.InvalidGeometry;
+            for (slots) |slot| if (slot >= total) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_parameter_gather_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, reservoir, total * 8), try self.context.deviceSlicePointer(u32, output, slots.len * 8), slots.ptr, @intCast(slots.len), namespaces, try self.context.deviceSlicePointer(u32, verdict, 1)), 1);
         }
         pub fn packRoots(self: *Self, roots: []const Fraction, output: Slice) !void {
             if (roots.len == 0 or roots.len > abi.batch_max_oracles) return error.InvalidGeometry;

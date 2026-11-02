@@ -1,0 +1,3 @@
+========= COMPUTE-SANITIZER
+{"schema":"rv64-source-projection-gpu/v1","cases":47,"poison_cases":4,"invalid_slot_rejections_per_case":2,"native_raw_tuple_parity":true,"device_challenges":true,"numeric_feedback_bytes":0,"physical_pcs_binding":false,"full_block_verified":false}
+========= RACECHECK SUMMARY: 0 hazards displayed (0 errors, 0 warnings)

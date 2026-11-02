@@ -186,6 +186,11 @@ fn emitRamPairRaw(comptime F: type, sink: anytype, address: [4]F, k: []const F, 
     sink.emit(RAM, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable), weight.neg());
 }
 pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, first_id: u32, sink: anytype) void {
+    emitRawWithFirstFor(F, kind, f, m, if (kind == .perm) q(F, first_id) else F.zero(), sink);
+}
+/// Same tuple authority with an already lifted public first-ID value. This
+/// keeps cold symbolic/device programs independent of request numeric values.
+pub fn emitRawWithFirstFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, first_id: F, sink: anytype) void {
     const one = F.one();
     const after = afterClock(F, m, kind);
     switch (kind) {
@@ -232,7 +237,7 @@ pub fn emitRawFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []co
             const P = L.perm;
             const a = m[P.active];
             const first = m[P.first];
-            const id = permId(F, f, first_id);
+            const id = first_id.add(f[0]);
             sink.emit(OWNER, tokenTuple(F, after, limbs(F, m, P.base), m[P.rb], m[P.wr], m[P.fin], m[P.freshfirst], shiftValue(F, m[P.shift..][0..8]), id), first.neg());
             for (0..T.LANES) |l| {
                 sink.emit(IO, ioTuple(F, id, F.zero(), l, inputBytes(F, m, l)), a.neg());

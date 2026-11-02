@@ -810,6 +810,13 @@ pub fn ContextFor(comptime Api: type) type {
             return .{ .free = available, .total = total };
         }
 
+        /// Check admission before an external enqueue-only command launches.
+        /// recordKernels remains the post-launch accounting authority.
+        pub fn prepareKernelEnqueue(self: *Self) runtime_error.Error!void {
+            _ = try self.requireHandle();
+            if (self.active_stage == null) return error.StageNotActive;
+        }
+
         pub fn recordKernels(self: *Self, count: u64) runtime_error.Error!void {
             _ = try self.requireHandle();
             if (count == 0) return error.KernelPathUnused;

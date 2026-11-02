@@ -41,3 +41,9 @@ export fn rv64_test_gkr(context: *Context, lane: u32, inputs: [*]const R.Fractio
     _ = @import("rv64/gkr.zig").enqueue(&commands, inputs[0..count], seed.*, arena.*, budget, 1) catch return 1;
     return 0;
 }
+
+export fn rv64_test_parameter_map(context: *Context, lane: u32, reservoir: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), output: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), slots: [*]const u32, count: usize, verdict: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.gatherParameters(reservoir.*, output.*, slots[0..count], 10, verdict.*) catch return 1;
+    return 0;
+}

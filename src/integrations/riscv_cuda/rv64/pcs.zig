@@ -26,6 +26,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         launches: u64 = 0,
         fn handle(self: *Self) !*anyopaque {
             if (self.poisoned) return error.JobPoisoned;
+            if (comptime @hasDecl(Context, "prepareKernelEnqueue")) try self.context.prepareKernelEnqueue();
             const lane = try self.context.lane(self.lane_index);
             try self.context.validateLane(lane);
             return @ptrFromInt(lane.owner);
@@ -35,6 +36,10 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 self.poisoned = true;
                 return error.CudaEnqueueFailed;
             }
+            if (comptime @hasDecl(Context, "recordKernels")) self.context.recordKernels(1) catch |err| {
+                self.poisoned = true;
+                return err;
+            };
             self.launches +|= 1;
         }
         pub fn fold(self: *Self, job: Fold) !void {

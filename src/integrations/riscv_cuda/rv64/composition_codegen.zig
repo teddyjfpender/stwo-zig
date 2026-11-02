@@ -22,7 +22,7 @@ pub fn kernelName(a: std.mem.Allocator, program: *const Program) ![]u8 {
 }
 /// Iterative root-first postorder. Load masks close to their first use instead
 /// of starting with every input column live; no recursive stack at large DAGs.
-fn schedule(a: std.mem.Allocator, program: *const Program) ![]u32 {
+pub fn schedule(a: std.mem.Allocator, program: *const Program) ![]u32 {
     const seen = try a.alloc(bool, program.nodes.len);
     defer a.free(seen);
     @memset(seen, false);
@@ -96,41 +96,10 @@ pub fn emit(a: std.mem.Allocator, w: anytype, program: *const Program, name: []c
     for (order) |i| {
         const node = program.nodes[i];
         const sort = sorts[i];
-        switch (node.op) {
-            .input => {
-                const in = program.inputs[node.value];
-                try w.print(" const uint32_t v{}=tree{}[column_offsets[{}]+composition_mask_row(row,trace_log,eval_log,{})];\n", .{ i, in.tree, node.value, in.offset });
-            },
-            .constant => {
-                const words = program.constants[node.value];
-                if (sort == .base) {
-                    try w.print(" const uint32_t v{}={}u;\n", .{ i, words[0] });
-                } else {
-                    try w.print(" const uint32_t c{}[8]={{{}u,{}u,{}u,{}u,{}u,{}u,{}u,{}u}};\n", .{ i, words[0], words[1], words[2], words[3], words[4], words[5], words[6], words[7] });
-                    try w.print(" const OM31 v{}=from_words(c{});\n", .{ i, i });
-                }
-            },
-            .parameter => try w.print(" const OM31 v{}=from_words(parameters+{}u);\n", .{ i, 8 * node.value }),
-            .neg => if (sort == .base) {
-                try w.print(" const uint32_t v{}=q::sub(0u,v{});\n", .{ i, node.lhs });
-            } else {
-                try w.print(" const OM31 v{}=sub(zero(),v{});\n", .{ i, node.lhs });
-            },
-            .add, .sub, .mul => {
-                if (sort == .base) {
-                    try w.print(" const uint32_t v{}=q::{s}(v{},v{});\n", .{ i, @tagName(node.op), node.lhs, node.rhs });
-                } else if (node.op == .mul and sorts[node.lhs] != sorts[node.rhs]) {
-                    try w.print(" const OM31 v{}=scale(v{},v{});\n", .{ i, if (sorts[node.lhs] == .secure) node.lhs else node.rhs, if (sorts[node.lhs] == .base) node.lhs else node.rhs });
-                } else {
-                    try w.print(" const OM31 v{}={s}(", .{ i, @tagName(node.op) });
-                    if (sorts[node.lhs] == .base) try w.print("base(v{})", .{node.lhs}) else try w.print("v{}", .{node.lhs});
-                    try w.writeAll(",");
-                    if (sorts[node.rhs] == .base) try w.print("base(v{})", .{node.rhs}) else try w.print("v{}", .{node.rhs});
-                    try w.writeAll(");\n");
-                }
-            },
-            .fraction, .range_fraction => unreachable,
-        }
+        if (node.op == .input) {
+            const in = program.inputs[node.value];
+            try w.print(" const uint32_t v{}=tree{}[column_offsets[{}]+composition_mask_row(row,trace_log,eval_log,{})];\n", .{ i, in.tree, node.value, in.offset });
+        } else try emitValue(w, program, sorts, i);
         var root = head[i];
         while (root != std.math.maxInt(u32)) : (root = next[root]) {
             const power = 8 * (program.roots.len - 1 - root);
@@ -144,4 +113,42 @@ pub fn emit(a: std.mem.Allocator, w: anytype, program: *const Program, name: []c
         \\}
         \\
     );
+}
+
+/// Emit one arithmetic DAG node. Callers own input addressing and output laws.
+pub fn emitValue(w: anytype, program: *const Program, sorts: []const ir.Sort, i: u32) !void {
+    const node = program.nodes[i];
+    const sort = sorts[i];
+    switch (node.op) {
+        .input => unreachable,
+        .constant => {
+            const words = program.constants[node.value];
+            if (sort == .base) {
+                try w.print(" const uint32_t v{}={}u;\n", .{ i, words[0] });
+            } else {
+                try w.print(" const uint32_t c{}[8]={{{}u,{}u,{}u,{}u,{}u,{}u,{}u,{}u}};\n", .{ i, words[0], words[1], words[2], words[3], words[4], words[5], words[6], words[7] });
+                try w.print(" const OM31 v{}=from_words(c{});\n", .{ i, i });
+            }
+        },
+        .parameter => try w.print(" const OM31 v{}=from_words(parameters+{}u);\n", .{ i, 8 * node.value }),
+        .neg => if (sort == .base) {
+            try w.print(" const uint32_t v{}=q::sub(0u,v{});\n", .{ i, node.lhs });
+        } else {
+            try w.print(" const OM31 v{}=sub(zero(),v{});\n", .{ i, node.lhs });
+        },
+        .add, .sub, .mul => {
+            if (sort == .base) {
+                try w.print(" const uint32_t v{}=q::{s}(v{},v{});\n", .{ i, @tagName(node.op), node.lhs, node.rhs });
+            } else if (node.op == .mul and sorts[node.lhs] != sorts[node.rhs]) {
+                try w.print(" const OM31 v{}=scale(v{},v{});\n", .{ i, if (sorts[node.lhs] == .secure) node.lhs else node.rhs, if (sorts[node.lhs] == .base) node.lhs else node.rhs });
+            } else {
+                try w.print(" const OM31 v{}={s}(", .{ i, @tagName(node.op) });
+                if (sorts[node.lhs] == .base) try w.print("base(v{})", .{node.lhs}) else try w.print("v{}", .{node.lhs});
+                try w.writeAll(",");
+                if (sorts[node.rhs] == .base) try w.print("base(v{})", .{node.rhs}) else try w.print("v{}", .{node.rhs});
+                try w.writeAll(");\n");
+            }
+        },
+        .fraction, .range_fraction => unreachable,
+    }
 }

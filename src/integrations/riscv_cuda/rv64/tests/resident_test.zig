@@ -3,6 +3,16 @@ const R = @import("../resident.zig");
 const Abi = @import("../abi.zig");
 const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
 const Context = struct {
+    stage_active: bool = true,
+    recorded: u64 = 0,
+    pub fn prepareKernelEnqueue(self: *@This()) !void {
+        if (!self.stage_active) return error.StageNotActive;
+    }
+    pub fn recordKernels(self: *@This(), count: u64) !void {
+        try self.prepareKernelEnqueue();
+        self.recorded += count;
+    }
+
     const Lane = struct { owner: usize, index: u32 };
     pub fn lane(_: *@This(), index: u32) !Lane {
         if (index >= 2) return error.InvalidLane;
@@ -153,4 +163,22 @@ test "RV64 CUDA tail batch binds all jobs before dispatch and poisons native fai
     Fake.failure = true;
     try std.testing.expectError(error.CudaEnqueueFailed, commands.tail(tailJob()));
     try std.testing.expectError(error.JobPoisoned, commands.tail(tailJob()));
+}
+
+test "RV64 CUDA external commands require active stage before native mutation and account queued kernels" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{ .stage_active = false };
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    try std.testing.expectError(error.StageNotActive, commands.eq(slice(), 3, plane(8)));
+    try std.testing.expectEqual(@as(usize, 0), Fake.calls);
+    try std.testing.expectEqual(@as(u64, 0), context.recorded);
+    context.stage_active = true;
+    try commands.eq(slice(), 3, plane(8));
+    try std.testing.expectEqual(commands.launches, context.recorded);
+    try std.testing.expectEqual(@as(u64, 3), context.recorded);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.project(plane(3), plane(1), plane(1), 3, slice(), leaf(16), slice()));
+    try std.testing.expect(commands.poisoned);
+    try std.testing.expectEqual(@as(u64, 3), context.recorded);
 }

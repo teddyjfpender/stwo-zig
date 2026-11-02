@@ -1,0 +1,6 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function 'rv64_projection_case_20' for 'sm_120'
+ptxas info    : Function properties for rv64_projection_case_20
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 168 registers, used 0 barriers
+ptxas info    : Compile time = 1249.358 ms

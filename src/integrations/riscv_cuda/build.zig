@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_backend_contracts", contracts);
     integration.addImport("stwo_cuda_backend", backend);
     integration.addImport("stwo_riscv_frontend", frontend);
+    integration.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     integration.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     integration.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
@@ -83,6 +84,16 @@ pub fn build(b: *std.Build) void {
     const run_gkr = b.addRunArtifact(gkr_fixture);
     if (b.args) |args| run_gkr.addArgs(args);
     b.step("rv64-gkr-fixtures", "Export full native OM31 GKR proof fixtures").dependOn(&run_gkr.step);
+    const projection_root = b.createModule(.{ .root_source_file = b.path("rv64_projection_fixture_main.zig"), .target = target, .optimize = optimize });
+    projection_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    projection_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    projection_root.addImport("stwo_riscv_frontend", frontend);
+    projection_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    projection_root.addImport("stwo_cuda_backend", backend);
+    const projection_fixture = b.addExecutable(.{ .name = "rv64-projection-fixtures", .root_module = projection_root });
+    const run_projection = b.addRunArtifact(projection_fixture);
+    if (b.args) |args| run_projection.addArgs(args);
+    b.step("rv64-projection-fixtures", "Export native source-column projection fixtures").dependOn(&run_projection.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

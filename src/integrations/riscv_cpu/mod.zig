@@ -1,6 +1,7 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
 const std = @import("std");
+pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/source_authority.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");

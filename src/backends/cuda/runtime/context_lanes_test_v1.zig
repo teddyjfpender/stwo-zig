@@ -3,7 +3,7 @@
 const std = @import("std");
 const runtime = @import("../abi/runtime.zig");
 const Context = @import("context.zig").ContextFor(struct {});
-pub const behavioral_test_count = 6;
+pub const behavioral_test_count = 7;
 
 fn context(handle: *u8, first: *u8, second: *u8) Context {
     var result = Context{
@@ -163,4 +163,26 @@ test "CUDA lane ownership: missing event backend state and exhausted generation 
     try std.testing.expectEqualDeep(before, original);
     try std.testing.expect(owner.dependencies[0].active);
     try std.testing.expectEqual(@as(usize, 1), owner.live_dependencies);
+}
+
+test "CUDA lane ownership: external enqueue preflight and accounting require a live owned active stage" {
+    var handle: u8 = 0;
+    var streams = [_]u8{ 0, 0 };
+    var owner = context(&handle, &streams[0], &streams[1]);
+    try owner.prepareKernelEnqueue();
+    owner.active_stage = null;
+    try std.testing.expectError(error.StageNotActive, owner.prepareKernelEnqueue());
+    try std.testing.expectEqual(@as(u64, 0), owner.counters.kernel_launches);
+    owner.active_stage = .trace_generation;
+    owner.owner_thread_id = 0;
+    try std.testing.expectError(error.ThreadOwnershipViolation, owner.prepareKernelEnqueue());
+    owner.owner_thread_id = std.Thread.getCurrentId();
+    owner.teardown_pending = true;
+    try std.testing.expectError(error.InvalidState, owner.prepareKernelEnqueue());
+    owner.teardown_pending = false;
+    try owner.recordKernels(2);
+    try std.testing.expect(!owner.synchronized);
+    try std.testing.expectEqual(@as(u64, 2), owner.counters.kernel_launches);
+    owner.handle = null;
+    try std.testing.expectError(error.ContextClosed, owner.prepareKernelEnqueue());
 }

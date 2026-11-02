@@ -1,23 +1,10 @@
 // Offline-generated native AIR kernels; no runtime compilation or CPU fallback.
+#include "composition_launches.h"
 #include "context_owner.cuh"
 #include "rv64/composition.cuh"
 #include <algorithm>
 #include <fstream>
 #include <iterator>
-#define DECL(N)                                                                \
-  extern "C" __global__ void rv64_composition_fixture_##N(                     \
-      const uint32_t *, const uint32_t *, const uint32_t *, const uint64_t *,  \
-      const uint32_t *, const uint32_t *, const uint32_t *, uint32_t *,        \
-      uint32_t, uint32_t, uint32_t, uint32_t);
-DECL(0)
-DECL(1)
-DECL(2)
-DECL(3) DECL(4) DECL(5) DECL(6) DECL(7) DECL(8) static const void *kernels[] = {
-    (void *)rv64_composition_fixture_0, (void *)rv64_composition_fixture_1,
-    (void *)rv64_composition_fixture_2, (void *)rv64_composition_fixture_3,
-    (void *)rv64_composition_fixture_4, (void *)rv64_composition_fixture_5,
-    (void *)rv64_composition_fixture_6, (void *)rv64_composition_fixture_7,
-    (void *)rv64_composition_fixture_8};
 static void exercise(const std::string &directory, uint32_t index,
                      uint32_t tiles) {
   const auto file = directory + "/case-" + std::to_string(index) + ".bin";
@@ -139,13 +126,13 @@ int main(int argc, char **argv) {
     if (argc != 2)
       throw std::runtime_error("expected native fixture directory");
     const auto mask_cases = check_masks(argv[1]);
-    for (uint32_t role = 0; role < 9; ++role)
+    for (uint32_t role = 0; role < composition_case_count; ++role)
       for (uint32_t tiles : {1u, 3u})
         exercise(argv[1], role, tiles);
     std::printf(
-        "{\"schema\":\"rv64-om31-composition-v1\",\"native_roles\":8,"
-        "\"cases\":18,\"mask_cases\":%u,\"full_block_verified\":false}\n",
-        mask_cases);
+        "{\"schema\":\"rv64-om31-composition-v1\",\"native_roles\":%u,"
+        "\"cases\":%u,\"mask_cases\":%u,\"full_block_verified\":false}\n",
+        composition_case_count - 1, 2 * composition_case_count, mask_cases);
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "%s\n", e.what());

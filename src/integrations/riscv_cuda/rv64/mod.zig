@@ -1,5 +1,6 @@
 //! Additive RV64 numerical CUDA lane, based on PR310. Full Ethereum CUDA proof
 //! dispatch remains unavailable until witness/PCS/transcript parity qualifies.
+pub const projection_codegen = @import("projection_codegen.zig");
 pub const gkr = @import("gkr.zig");
 pub const batch = @import("batch.zig");
 pub const composition_codegen = @import("composition_codegen.zig");
@@ -14,6 +15,7 @@ pub const production_ready = false;
 test {
     _ = @import("tests/batch_test.zig");
     _ = @import("tests/gkr_test.zig");
+    _ = @import("tests/projection_codegen_test.zig");
     _ = @import("tests/composition_codegen_test.zig");
     _ = @import("tests/channel_test.zig");
     _ = @import("tests/pcs_test.zig");

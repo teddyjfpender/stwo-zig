@@ -19,6 +19,7 @@ const felts = @import("rv64/fixture_io.zig").felts;
 fn public(role: Main.Role) Main.PublicFor(O) {
     return switch (role) {
         .cpu => .{ .cpu = .{ .steps = 3, .initial_pc = .{ 4096, 0, 0, 0 }, .final_pc = .{ 4108, 0, 0, 0 }, .epoch = 1 } },
+        .cpu_compact => .{ .cpu_compact = .{ .steps = 3, .initial_pc = .{ 4096, 0, 0, 0 }, .final_pc = .{ 4108, 0, 0, 0 }, .epoch = 1 } },
         .alu => .{ .alu = {} },
         .binary => .{ .binary = {} },
         .shift => .{ .shift = {} },
@@ -202,7 +203,16 @@ pub fn main() !void {
     var source: std.ArrayList(u8) = .empty;
     defer source.deinit(a);
     for (std.enums.values(Main.Role), 0..) |role, i| try fixture(dir, source.writer(a), role, @intCast(i), 5, 7);
-    try fixture(dir, source.writer(a), null, 8, 5, 7);
+    try fixture(dir, source.writer(a), null, @intCast(std.enums.values(Main.Role).len), 5, 7);
     try dir.writeFile(.{ .sub_path = "generated.cu", .data = source.items });
+    var declarations: std.ArrayList(u8) = .empty;
+    defer declarations.deinit(a);
+    const count = std.enums.values(Main.Role).len + 1;
+    try declarations.writer(a).writeAll("#pragma once\n#include <cuda_runtime.h>\n#include <cstdint>\n");
+    for (0..count) |id| try declarations.writer(a).print("extern \"C\" __global__ void rv64_composition_fixture_{}(const uint32_t*,const uint32_t*,const uint32_t*,const uint64_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t,uint32_t,uint32_t,uint32_t);\n", .{id});
+    try declarations.writer(a).print("constexpr uint32_t composition_case_count={};\nstatic const void *kernels[]={{{s}", .{ count, "" });
+    for (0..count) |id| try declarations.writer(a).print("{s}(void*)rv64_composition_fixture_{}", .{ if (id == 0) "" else ",", id });
+    try declarations.writer(a).writeAll("};\n");
+    try dir.writeFile(.{ .sub_path = "composition_launches.h", .data = declarations.items });
     try writeMasks(dir);
 }

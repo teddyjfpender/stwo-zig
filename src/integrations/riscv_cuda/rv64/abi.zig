@@ -100,3 +100,7 @@ pub extern "c" fn stwo_rv64_gkr_pack_roots_on(*anyopaque, u32, [*]const GkrRoot,
 pub extern "c" fn stwo_rv64_gkr_init_on(*anyopaque, u32, [*]u32, [*]const u32, [*]const u32, u32, u32, u64) c_int;
 pub extern "c" fn stwo_rv64_gkr_begin_on(*anyopaque, u32, [*]u32, u32, u32, u32, [*]const u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_gkr_close_on(*anyopaque, u32, [*]u32, [*]const u32, ?[*]const u32, [*]const u32, u32, u32, u32) c_int;
+
+pub const relation_count = 10;
+pub const relation_slot_stride = 31;
+pub extern "c" fn stwo_rv64_parameter_gather_on(*anyopaque, u32, [*]const u32, [*]u32, [*]const u32, u32, u32, [*]u32) c_int;
