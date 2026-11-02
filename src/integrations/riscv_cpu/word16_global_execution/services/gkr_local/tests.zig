@@ -442,3 +442,6 @@ test {
 test {
     _ = @import("bulk_execution_test.zig");
 }
+test {
+    _ = @import("bulk_candidate_test.zig");
+}
