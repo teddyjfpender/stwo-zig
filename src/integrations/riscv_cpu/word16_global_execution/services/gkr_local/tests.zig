@@ -442,3 +442,9 @@ test {
 test {
     _ = @import("bulk_execution_test.zig");
 }
+test {
+    _ = @import("dword_projection_test.zig");
+}
+test {
+    _ = @import("dword_role_test.zig");
+}
