@@ -73,6 +73,13 @@ const Op = enum(u8) {
     divuw,
     remw,
     remuw,
+    andn,
+    orn,
+    xnor,
+    rev8,
+    sext_b,
+    sext_h,
+    zext_h,
     lb,
     lh,
     lw,
@@ -120,6 +127,8 @@ pub const Options = struct {
     watch: []const [2]u64 = &.{},
     /// Per-slot retirement counts (difference array) for census reports.
     counting: bool = false,
+    /// Decode set; must equal the reference session's (`Session.decoder.isa`).
+    isa: isa.Isa = .rv64im,
 };
 
 pub const Engine = struct {
@@ -205,7 +214,7 @@ pub const Engine = struct {
             const word = memory.fetch(pc) catch continue;
             // Writable code would let a store outdate the pre-decoded slot.
             if (memory.mappings.check(pc, 4, .write)) |_| continue else |_| {}
-            const inst = isa.Instruction.decode(word) catch continue;
+            const inst = isa.decodeFor(options.isa, word) catch continue;
             self.slots[i] = self.lower(inst, pc);
             if (self.slots[i].op != .slow) self.opcodes[i] = inst.opcode;
         }
@@ -344,6 +353,13 @@ pub const Engine = struct {
             },
             .JALR => .jalr,
             .FENCE => .nop,
+            .ANDN => .andn,
+            .ORN => .orn,
+            .XNOR => .xnor,
+            .REV8 => .rev8,
+            .SEXT_B => .sext_b,
+            .SEXT_H => .sext_h,
+            .ZEXT_H => .zext_h,
             .ECALL, .EBREAK => return .{},
         };
         return s;
@@ -410,7 +426,7 @@ pub const Engine = struct {
                 i += 1;
                 continue :sw slots[i].op;
             },
-            inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw => |op| {
+            inline .add, .sub, .sll, .slt, .sltu, .xor, .srl, .sra, .@"or", .@"and", .addi, .slti, .sltiu, .xori, .ori, .andi, .slli, .srli, .srai, .addw, .subw, .sllw, .srlw, .sraw, .addiw, .slliw, .srliw, .sraiw, .mul, .mulh, .mulhsu, .mulhu, .div, .divu, .rem, .remu, .mulw, .divw, .divuw, .remw, .remuw, .andn, .orn, .xnor, .rev8, .sext_b, .sext_h, .zext_h => |op| {
                 const s = slots[i];
                 r[s.rd] = alu(op, r[s.rs1], r[s.rs2], s.imm);
                 i += 1;
@@ -578,6 +594,13 @@ inline fn alu(comptime op: Op, a: u64, b: u64, imm: u64) u64 {
         .remw => sext32(machine.divSigned32(@bitCast(aw), @bitCast(bw), true)),
         .divuw => sext32(if (bw == 0) std.math.maxInt(u32) else aw / bw),
         .remuw => sext32(if (bw == 0) aw else aw % bw),
+        .andn => a & ~b,
+        .orn => a | ~b,
+        .xnor => ~(a ^ b),
+        .rev8 => @byteSwap(a),
+        .sext_b => @bitCast(@as(i64, @as(i8, @bitCast(@as(u8, @truncate(a)))))),
+        .sext_h => @bitCast(@as(i64, @as(i16, @bitCast(@as(u16, @truncate(a)))))),
+        .zext_h => a & 0xffff,
         else => @compileError("not an ALU op"),
     };
 }

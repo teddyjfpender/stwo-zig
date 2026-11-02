@@ -10,4 +10,6 @@ test {
     _ = @import("tests/ethereum_contract_test.zig");
     _ = @import("tests/service_session_test.zig");
     _ = @import("tests/fast_execution_test.zig");
+    _ = @import("tests/zbb_binary_test.zig");
+    _ = @import("isa_audit.zig");
 }

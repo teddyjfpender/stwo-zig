@@ -37,6 +37,11 @@ pub const Geometry = struct {
     /// the tagged tuple (x, y, 0, 1) in the AND relation, served by a second
     /// multiplicity column of the AND table. CPU interaction 36 -> 32 columns.
     cpu_u8_pairs: bool = false,
+    /// Opt-in compact decode CPU MAIN (requires cpu_u8_pairs): the row PC is
+    /// read from the previous row's single-felt next PC, immediates live in
+    /// the operand slot the instruction does not use, AUIPC/JAL fold to static
+    /// constants. CPU MAIN 47 -> 37; ROM keeps its 30 coordinates.
+    cpu_compact_decode: bool = false,
     /// Opt-in MUL byte-pair lookups (requires cpu_u8_pairs, whose AND table
     /// carries the pair multiplicity column): the 96 MUL BYTE queries become
     /// 48 tagged pair queries (x, y, 0, 1) of the AND relation, two per strict
@@ -80,7 +85,7 @@ pub const Geometry = struct {
     }
     /// Opt-in layout flags: Boolean, default false, omitted from JSON when false.
     pub fn isLayoutFlag(comptime name: []const u8) bool {
-        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs") or std.mem.eql(u8, name, "ls_fused_pairs") or std.mem.eql(u8, name, "alu_fused_tail") or std.mem.eql(u8, name, "ls_dword_fused_pairs");
+        return std.mem.eql(u8, name, "cpu_fused_tail") or std.mem.eql(u8, name, "cpu_u8_pairs") or std.mem.eql(u8, name, "mul_u8_pairs") or std.mem.eql(u8, name, "ls_fused_pairs") or std.mem.eql(u8, name, "alu_fused_tail") or std.mem.eql(u8, name, "ls_dword_fused_pairs") or std.mem.eql(u8, name, "cpu_compact_decode");
     }
     pub fn initialLog(self: Geometry) u32 {
         return self.initial_log orelse self.boundary_log;
@@ -92,6 +97,8 @@ pub const Geometry = struct {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         // The pair encoding is defined only on top of the fused tail.
         if (self.cpu_u8_pairs and !self.cpu_fused_tail) return error.InvalidCpuPairGeometry;
+        // Compact decode is defined only on top of the byte-pair encoding.
+        if (self.cpu_compact_decode and !self.cpu_u8_pairs) return error.InvalidCpuCompactGeometry;
         // CPU log 23 is admitted only with the wide-clock encoding, which is
         // defined on the fused tail without byte pairs (layout.wideClock).
         if (self.cpu_log > 22 and (self.cpu_log > front.rv64_air.word16_execution.layout.MAX_LOG or !self.cpu_fused_tail or self.cpu_u8_pairs)) return error.InvalidExecutionGeometry;
@@ -194,7 +201,7 @@ pub fn shapesForProgramLog(program_log: u32, geometry: Geometry) [ROLE_COUNT]Sha
     var offsets: [3]usize = @splat(0);
     for (std.enums.values(Role), &result) |role, *shape| {
         const widths: [3]usize = switch (role) {
-            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.interCountFor(geometry.cpu_fused_tail, geometry.cpu_u8_pairs) },
+            .cpu => .{ 3, front.rv64_air.word16_execution.layout.mainCount(geometry.cpu_compact_decode), front.rv64_air.word16_execution.layout.interCountFor(geometry.cpu_fused_tail, geometry.cpu_u8_pairs) },
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .alu => .{ 2, B.alu_experiment.lookup.MAIN, aluInteraction(geometry) },

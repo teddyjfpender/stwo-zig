@@ -100,7 +100,7 @@ pub const Segments = struct {
         const self = try a.create(Segments);
         errdefer a.destroy(self);
         self.* = .{ .allocator = a, .main = main, .workers = workers, .engine = undefined, .recorder = undefined };
-        self.engine = try rv.fast_execution.Engine.init(a, main.memory, .{ .stop_pcs = &.{main.config.terminal_pc} });
+        self.engine = try rv.fast_execution.Engine.init(a, main.memory, .{ .stop_pcs = &.{main.config.terminal_pc}, .isa = main.session.keccak.base.decoder.isa });
         errdefer self.engine.deinit();
         self.engine.attach();
         self.recorder = try rv.checkpoint.Recorder.init(a, &self.engine);

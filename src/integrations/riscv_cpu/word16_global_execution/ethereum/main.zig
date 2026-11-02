@@ -16,6 +16,7 @@ const W = @import("../services/wire.zig");
 const ProgramMetadata = @import("../../word16_execution/program_metadata.zig");
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
+const rv_profile = @import("stwo_riscv_frontend").rv64.execution_profile;
 pub fn main() !void {
     var recycler = Recycler.init(std.heap.smp_allocator, 4 << 30);
     defer recycler.deinit();
@@ -75,6 +76,14 @@ pub fn main() !void {
     const count = try std.fmt.parseUnsigned(u32, args[if (direct) 4 else 5], 10);
     var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
     defer program.deinit();
+    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
+    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
+    if (operational.compact_decode and cpu_layout.u8_pairs) cpu_layout.compact_decode = true;
+    // Compact decode is not admitted with the Zbb ROM (see admitProfile).
+    if (config.value.execution_profile == .ethereum_services_v3_zbb) cpu_layout.compact_decode = false;
+    if (operational.no_compact_decode) cpu_layout.compact_decode = false;
+    // The capture's FUNCTION facts depend on the decode layout.
+    if (cpu_layout.compact_decode) try program.makeCompact();
     // Range-checked by Options.parse; the windowed reader re-validates. (The
     // GKR driver's capture schema stays limited to its own 1-2 packets.)
     const capture_options = operational.captureOptions();
@@ -90,15 +99,13 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
-    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
     if (operational.layout.mul_u8_pairs) cpu_layout.mul_u8_pairs = true;
     if (operational.layout.ls_fused_pairs) cpu_layout.ls_fused_pairs = true;
     if (operational.layout.alu_fused_tail) cpu_layout.alu_fused_tail = true;
     if (operational.layout.ls_dword_fused_pairs) cpu_layout.ls_dword_fused_pairs = true;
     const cpu_declarations = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu_declarations);
-    const truth_declarations = try Plan.truthsForKeccakOptions(a, &captured, .{ .v3 = config.value.execution_profile == .ethereum_services_v3, .quartet = !operational.keccak_throughput_v1, .r27 = !operational.keccak_pair29 });
+    const truth_declarations = try Plan.truthsForKeccakOptions(a, &captured, .{ .v3 = rv_profile.isV3(config.value.execution_profile), .quartet = !operational.keccak_throughput_v1, .r27 = !operational.keccak_pair29 });
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     try admitProfile(config.value, cpu_declarations, truth_declarations);
@@ -136,10 +143,19 @@ pub fn main() !void {
 /// exist only in the admitted v3 roster. A v2 request can never accept a
 /// proof that relies on them.
 pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration) !void {
-    if (config.execution_profile == .ethereum_services_v3) return;
+    // The Zbb BINARY component exists only under ethereum_services_v3_zbb
+    // (its ROM decodes the Zbb subset); every other request rejects it.
+    if (config.execution_profile != .ethereum_services_v3_zbb) for (cpus) |d| if (d.bridges.zbb != null) return error.UnadmittedZbbBinaryComponent;
+    // v3_zbb is the v3 roster (every v3 service and CPU layout: fused tail,
+    // U8 byte pairs, LS-D64) plus the Zbb BINARY component; its ROM differs
+    // only in the Zbb rows, which the program identity binds.
+    // Compact decode is proven with the RV64IM opcode set only: fail closed on
+    // a Zbb bundle that declares it.
+    if (config.execution_profile == .ethereum_services_v3_zbb) for (cpus) |d| if (d.geometry.cpu_compact_decode) return error.UnadmittedCompactDecodeZbb;
+    if (rv_profile.isV3(config.execution_profile)) return;
     // The fused-tail CPU layout is admitted only on the v3 route. A v2
     // receiver keeps the historical CPU AIR and fails closed on any other.
-    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.mul_u8_pairs or d.geometry.ls_fused_pairs or d.geometry.alu_fused_tail or d.geometry.ls_dword_fused_pairs) return error.UnadmittedFusedTailCpuLayout;
+    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.mul_u8_pairs or d.geometry.ls_fused_pairs or d.geometry.alu_fused_tail or d.geometry.ls_dword_fused_pairs or d.geometry.cpu_compact_decode) return error.UnadmittedFusedTailCpuLayout;
     // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
     for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
     // The secp row truth (wire logs[1] = 0) is v3-only.

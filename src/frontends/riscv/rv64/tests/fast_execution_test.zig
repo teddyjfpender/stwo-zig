@@ -10,6 +10,7 @@ const fast = @import("../fast_execution.zig");
 const eth = @import("../ethereum_services/session.zig");
 const profile = @import("../execution_profile.zig");
 const checkpoint = @import("../checkpoint.zig");
+const Base = @import("../session.zig");
 const a = std.testing.allocator;
 
 const CODE: u64 = 0x10000;
@@ -100,6 +101,15 @@ fn randomWord(r: std.Random, slot: usize, ecalls: bool) u32 {
         if (r.uintLessThan(u32, 10) == 0) imm += @as(i32, @intCast(r.uintLessThan(u32, 4)));
         return iType(imm, 6, 0, dest(r), 0x67);
     }
+    if (kind == 92) return switch (r.uintLessThan(u32, 7)) {
+        0 => rType(0x20, src(r), src(r), 7, dest(r), 0x33), // andn
+        1 => rType(0x20, src(r), src(r), 6, dest(r), 0x33), // orn
+        2 => rType(0x20, src(r), src(r), 4, dest(r), 0x33), // xnor
+        3 => iType(0x604, src(r), 1, dest(r), 0x13), // sext.b
+        4 => iType(0x605, src(r), 1, dest(r), 0x13), // sext.h
+        5 => iType(0x6b8, src(r), 5, dest(r), 0x13), // rev8
+        else => rType(0x04, 0, src(r), 4, dest(r), 0x3b), // zext.h
+    };
     if (kind < 93) return (r.int(u32) & 0xfffff000) | (dest(r) << 7) | (if (r.boolean()) @as(u32, 0x37) else 0x17);
     if (kind < 95) return 0x0ff0000f; // fence
     if (kind < 97 and ecalls) return 0x73;
@@ -167,30 +177,36 @@ fn expectSameMemory(x: *mem.Memory, y: *mem.Memory) !void {
     }
 }
 
-fn referenceRun(m: *mem.Memory, start: machine.Cpu, limit: u64) Outcome {
+fn referenceRun(m: *mem.Memory, start: machine.Cpu, limit: u64, set: isa.Isa) !Outcome {
     var out = Outcome{ .cpu = start, .stop = null };
-    while (out.cpu.retired < limit) {
-        const row = out.cpu.step(m) catch |err| {
+    var session = try Base.Session.init(a, start, m, .{ .max_retirements = limit, .isa = set });
+    defer session.deinit();
+    while (session.cpu.retired < limit) {
+        const row = session.step() catch |err| {
             out.stop = err;
             break;
         };
         out.counts[@intFromEnum(row.opcode)] += 1;
     }
+    out.cpu = session.cpu;
     return out;
 }
 
 /// Fast engine with random intermediate budgets (checkpoint boundaries).
-fn fastRun(m: *mem.Memory, start: machine.Cpu, limit: u64, r: std.Random, engine: *fast.Engine) Outcome {
+fn fastRun(m: *mem.Memory, start: machine.Cpu, limit: u64, r: std.Random, engine: *fast.Engine, set: isa.Isa) !Outcome {
     var out = Outcome{ .cpu = start, .stop = null };
-    while (out.cpu.retired < limit) {
-        const budget = @min(limit, out.cpu.retired + 1 + r.uintLessThan(u64, 3000));
-        if (engine.run(&out.cpu, budget) == .limit) continue;
-        const row = out.cpu.step(m) catch |err| {
+    var session = try Base.Session.init(a, start, m, .{ .max_retirements = limit, .isa = set });
+    defer session.deinit();
+    while (session.cpu.retired < limit) {
+        const budget = @min(limit, session.cpu.retired + 1 + r.uintLessThan(u64, 3000));
+        if (engine.run(&session.cpu, budget) == .limit) continue;
+        const row = session.step() catch |err| {
             out.stop = err;
             break;
         };
         out.counts[@intFromEnum(row.opcode)] += 1;
     }
+    out.cpu = session.cpu;
     var loads: u64 = 0;
     var stores: u64 = 0;
     engine.census(&out.counts, &loads, &stores, null);
@@ -203,6 +219,7 @@ test "fast engine: random RV64IM programs equal the reference interpreter" {
     var total_fast: u64 = 0;
     var total: u64 = 0;
     var traps: usize = 0;
+    var zbb: u64 = 0;
     for (0..1500) |program| {
         var words: [SLOTS]u32 = undefined;
         for (&words, 0..) |*w, i| w.* = randomWord(r, i, true);
@@ -213,21 +230,25 @@ test "fast engine: random RV64IM programs equal the reference interpreter" {
         defer ref.deinit();
         var subject = try Image.init(&words, seed);
         defer subject.deinit();
-        const expected = referenceRun(&ref.memory, start, limit);
-        var engine = try fast.Engine.init(a, &subject.memory, .{ .counting = true, .watch = if (program % 3 == 0) &.{.{ DATA + 0x100, 8 }} else &.{} });
+        // Half the programs run under the admitted Zbb BINARY ISA.
+        const set: isa.Isa = if (program % 2 == 0) .rv64im else .rv64im_zbb_binary;
+        const expected = try referenceRun(&ref.memory, start, limit, set);
+        var engine = try fast.Engine.init(a, &subject.memory, .{ .counting = true, .isa = set, .watch = if (program % 3 == 0) &.{.{ DATA + 0x100, 8 }} else &.{} });
         defer engine.deinit();
-        const actual = fastRun(&subject.memory, start, limit, r, &engine);
+        const actual = try fastRun(&subject.memory, start, limit, r, &engine, set);
         try std.testing.expectEqualDeep(expected.cpu, actual.cpu);
         try std.testing.expectEqual(expected.stop, actual.stop);
         try std.testing.expectEqualSlices(u64, &expected.counts, &actual.counts);
         try expectSameMemory(&ref.memory, &subject.memory);
         total_fast += engine.fast_retired;
+        for (expected.counts[isa.BASE_OPCODE_COUNT..]) |n| zbb += n;
         total += actual.cpu.retired;
         if (actual.stop != null) traps += 1;
     }
     // The generator must actually exercise the fast path and the trap path.
     try std.testing.expect(total_fast * 2 > total);
     try std.testing.expect(traps > 100);
+    try std.testing.expect(zbb > 1000);
 }
 
 test "fast engine: watched stores and stop pcs are left to the caller" {
@@ -268,7 +289,7 @@ test "fast engine: dirty set covers every page written by fast or reference stor
         var it = image.memory.backing.table.iterator();
         while (it.next()) |e| try before.put(e.key_ptr.*, e.value_ptr.*.*);
         var cpu = initialCpu(r);
-        _ = fastRun(&image.memory, cpu, 1 + r.uintLessThan(u64, 5000), r, &engine);
+        _ = try fastRun(&image.memory, cpu, 1 + r.uintLessThan(u64, 5000), r, &engine, .rv64im);
         cpu = undefined;
         var after = image.memory.backing.table.iterator();
         while (after.next()) |e| {
@@ -371,7 +392,7 @@ test "checkpoints: every segment re-executed by the reference from its image mee
     var prng = std.Random.DefaultPrng.init(0xc4ec);
     const r = prng.random();
     var segments_checked: usize = 0;
-    for (0..200) |_| {
+    for (0..500) |_| {
         var words: [SLOTS]u32 = undefined;
         // Mostly ECALL-free so programs run long; ECALL traps under v3 tag 0.
         for (&words, 0..) |*w, i| w.* = randomWord(r, i, r.uintLessThan(u32, 4) == 0);

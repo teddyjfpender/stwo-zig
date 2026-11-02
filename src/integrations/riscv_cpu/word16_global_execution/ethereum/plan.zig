@@ -28,6 +28,10 @@ pub const CpuLayout = struct {
     /// Route every aligned LD/SD of a shard to the LS-D64 component; LS32
     /// instances are sized on the remainder.
     ls_dword: bool = false,
+    /// Compact decode CPU MAIN on top of the byte pairs (47 -> 37 columns).
+    /// Changes the AUIPC/JAL FUNCTION facts, so the capture program must be
+    /// made compact (Program.makeCompact) before capture.
+    compact_decode: bool = false,
     /// MUL byte pairs served by the AND pair column (requires u8_pairs).
     mul_u8_pairs: bool = false,
     /// LS32 fused tail + byte pairs, INIT/TEARDOWN fused single (requires u8_pairs).
@@ -36,15 +40,18 @@ pub const CpuLayout = struct {
     alu_fused_tail: bool = false,
     /// LS-D64 fused tail + byte pair (requires u8_pairs and ls_dword).
     ls_dword_fused_pairs: bool = false,
-    /// Default layout for a profile route. Only the admitted
-    /// `ethereum_services_v3` route defaults to the fused tail, byte pairs,
+    /// Default layout for a profile route. Only the admitted v3 routes
+    /// (`ethereum_services_v3` and its Zbb variant `ethereum_services_v3_zbb`)
+    /// default to the fused tail, byte pairs,
     /// LS-D64 and the fused2 component layouts (MUL pairs, LS32/INIT/TEARDOWN
-    /// fused pairs, ALU fused tail, LS-D64 fused pairs: proved and freshly
+    /// fused pairs, ALU fused tail, LS-D64 fused pairs) and compact decode (all proved and freshly
     /// verified on a real 4-packet prefix of block 24,628,607); every older
     /// route keeps its historical layout and bundle bytes.
     pub fn forProfile(profile: @import("stwo_riscv_frontend").rv64.execution_profile.Profile) CpuLayout {
-        const v3 = profile == .ethereum_services_v3;
-        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3 };
+        const v3 = @import("stwo_riscv_frontend").rv64.execution_profile.isV3(profile);
+        // Compact decode is proven with the RV64IM opcode set only; the Zbb
+        // profile keeps the classic decode MAIN until compact decode admits Zbb.
+        return .{ .fused_tail = v3, .u8_pairs = v3, .ls_dword = v3, .mul_u8_pairs = v3, .ls_fused_pairs = v3, .alu_fused_tail = v3, .ls_dword_fused_pairs = v3, .compact_decode = profile == .ethereum_services_v3 };
     }
 };
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
@@ -72,6 +79,7 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         g.terminal_log = if (i + 1 == out.len) boundary else 5;
         g.cpu_fused_tail = layout.fused_tail;
         g.cpu_u8_pairs = layout.u8_pairs;
+        g.cpu_compact_decode = layout.compact_decode;
         g.mul_u8_pairs = layout.mul_u8_pairs;
         g.ls_fused_pairs = layout.ls_fused_pairs;
         g.alu_fused_tail = layout.alu_fused_tail;
@@ -82,6 +90,7 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         if (g.wideClock()) {
             g.cpu_fused_tail = true;
             g.cpu_u8_pairs = false;
+            g.cpu_compact_decode = false;
             g.mul_u8_pairs = false;
             g.ls_fused_pairs = false;
             g.ls_dword_fused_pairs = false;
@@ -127,6 +136,9 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) !
         const sponge = captured.advice.sponge[i].counts();
         if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
         if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
+        // v3_zbb: one Zbb BINARY row per distinct Zbb FUNCTION fact (pure
+        // truth provider, every row may be active), only when the shard has one.
+        if (n.zbb.facts.len != 0) d.bridges.zbb = try Coverage.minimalLog(@intCast(n.zbb.facts.len));
         try g.validate();
     }
     return out;

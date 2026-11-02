@@ -448,6 +448,10 @@ pub fn ForField(comptime Secure: type) type {
             }
         };
 
+        /// Test-only, read-only view of every composition input (component
+        /// handles and the committed trace) before evaluation. Compiled out of
+        /// non-test builds; it can observe but never alter a proof.
+        pub var test_composition_observer: if (@import("builtin").is_test) ?*const fn ([]const ComponentProver, *const Trace) anyerror!void else void = if (@import("builtin").is_test) null else {};
         pub const ComponentProvers = struct {
             components: []const ComponentProver,
             n_preprocessed_columns: usize,
@@ -680,6 +684,7 @@ pub fn ForField(comptime Secure: type) type {
                 composition_twiddles: ?M31TwiddleTree,
                 diagnostic: ?*?prover_api.EvaluationDiagnostic,
             ) anyerror!SecureColumnByCoords {
+                if (comptime @import("builtin").is_test) if (test_composition_observer) |observe| try observe(self.components, trace);
                 if (comptime Secure != @import("stwo_core").fields.qm31.QM31) {
                     if (self.composition_stage != null or self.cpu_composition_execution != null or self.composition_work_capture != null)
                         return error.UnsupportedWideCompositionCapability;
