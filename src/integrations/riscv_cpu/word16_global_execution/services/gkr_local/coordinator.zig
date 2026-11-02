@@ -156,7 +156,7 @@ const Run = struct {
     stages: []Manifest.StageOne,
     results: []?Result,
     pending: ?*const Manifest.PendingManifest = null,
-    tree_checkpoints: bool,
+    tree_policy: @import("child.zig").TreePolicy,
     fn stageOne(self: *Run, index: usize) !void {
         const timing = if (self.options.worker_timings) |values| &values[index] else null;
         var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
@@ -172,7 +172,7 @@ const Run = struct {
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
-            self.workers[index].?.cpu.tree_checkpoints = self.tree_checkpoints;
+            self.workers[index].?.cpu.tree_policy = self.tree_policy;
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
@@ -254,7 +254,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 /// The authority is independently derived from trusted setup, never parsed from
 /// operational resource JSON or a producer bundle. It stays live through return.
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
-    const checkpointed = try @import("child.zig").treeCheckpoints(a);
+    const policy = try @import("child.zig").readTreePolicy(a);
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
     if (options.worker_timings) |timings| @memset(timings, .{});
@@ -265,7 +265,7 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
-    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, checkpointed);
+    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy);
     defer estimates.deinit(a);
     const workers = try a.alloc(?Worker, count);
     defer a.free(workers);
@@ -277,7 +277,7 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     defer a.free(results);
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
-    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .tree_checkpoints = checkpointed };
+    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results, .tree_policy = policy };
     const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{}, .trace = options.stage1_trace };
     const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order, .trace = options.stage2_trace };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
@@ -306,7 +306,7 @@ const Admission = struct {
         a.free(self.stage2);
     }
 };
-fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, checkpointed: bool) !Admission {
+fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy) !Admission {
     const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{} };
     errdefer a.free(estimates.stage1);
     var result = estimates;
@@ -319,7 +319,7 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
     const full_nodes = if (options.retained_store) |store| store.stats().merkle_parking_enabled else false;
     var disk: usize = 0;
     for (result.stage1, result.stage2, 0..) |*stage1, *stage2, i| {
-        const plan = if (i < setups.len) try Retention.forCpuWithOwnedCheckpoints(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, checkpointed) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
+        const plan = if (i < setups.len) try Retention.forCpuWithTightAdmission(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget, policy.checkpointed, policy.tight_admission) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;

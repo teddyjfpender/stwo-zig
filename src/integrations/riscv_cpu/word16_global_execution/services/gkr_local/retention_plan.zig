@@ -58,9 +58,12 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
     return forCpuWithOwnedCheckpoints(a, setup, request, config, gkr_limit, global_limit, false);
 }
 pub fn forCpuWithOwnedCheckpoints(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool) !RetentionPlan {
+    return forCpuWithTightAdmission(a, setup, request, config, gkr_limit, global_limit, checkpointed, checkpointed);
+}
+pub fn forCpuWithTightAdmission(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool, tight: bool) !RetentionPlan {
     const instances = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
-    const numerical = try @import("resource.zig").Plan.forInstancesWithOwnedCheckpoints(instances, gkr_limit, checkpointed);
+    const numerical = try @import("resource.zig").Plan.forInstancesWithTightAdmission(instances, gkr_limit, checkpointed, tight);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();
     const logs = try setup.logs(a, 1);
