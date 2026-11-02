@@ -24,6 +24,15 @@
     "src/prover/pcs/quotient_field.zig": "3975793b4ebe77e2f96506dceaafb7c9a32f9d4ee8ab93ee83c45f27e8efd7e8",
     "src/prover/pcs/quotients/coefficient_groups.zig": "841db5a9e8f1d042c111ad74d7b0854de80027ba7c31581db07aa67ddab763ed",
     "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/child.zig": "25efa90bb5e326f2df4fcc616f267975afc979a1ae9b50e917d64a50f4ccd118",
-    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig": "4817fa6dc085c64781a2d59a8661a013601c67e9c4d81739308bb7884965e677"
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/worker_protocol.zig": "4817fa6dc085c64781a2d59a8661a013601c67e9c4d81739308bb7884965e677",
+    "src/core/constraints.zig": "ec28b4cbf72b5cc08a78d85566a36e4e918c0e363908cee9193f59c80639c868",
+    "src/core/pcs/quotients/samples_family.zig": "6e7d1b21f031edab634991b424ae6f936183265be776f963b9c968f6a56603b2",
+    "src/core/pcs/quotients/fri_answers_family.zig": "d3c181b6e0b3fe8385c5d4c43a29ff35824c3a065cb94bf6abef8adc7bef141d",
+    "src/prover/pcs/sampled_values_field.zig": "49cc49532f95fc24e54b71ea5640774b7f16661e57143ea8be4c7ed747ed9765",
+    "src/frontends/riscv/rv64/air/geometry.zig": "14ed49f65f456d9a10b0433deace14f7a5ed277acc969f2b99599231beb2da9b",
+    "src/integrations/riscv_cpu/logup_gkr/mle_point.zig": "354f5eef0898d135271253f6510a6149514b723bb397592cb9adbef3ca71fa9e",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_geometry.zig": "544e4b6a92f17b7f4337b72fe911cfe14689eb01b8f26bf7ad7aa29ea2d94bbc",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/role_oods.zig": "a42eb74b9cde6b126a27f738bd362fcb57885af5cad1fb5fb233f54b75db270c",
+    "src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/truth_role.zig": "a356c04382ca359ffb80e71d4ae88b13c4935db36349ec609597200845654dbc"
   }
 }
