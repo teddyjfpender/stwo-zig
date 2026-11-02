@@ -53,5 +53,22 @@
     "safe": "PASS final source, 4s, MaxRSS439MiB",
     "fast": "PASS final source, 3s, MaxRSS412MiB",
     "physical_fullblock_log16": "pending; no CLI selection added"
+  },
+  "cli_optional_resource": {
+    "name": "keccak_max_log",
+    "default": 18,
+    "allowed": [
+      16,
+      17,
+      18
+    ],
+    "default_json_omitted": true,
+    "parked_default_worker_cap": 32,
+    "parked_opt_in_worker_cap": 64,
+    "resident_worker_cap": 8,
+    "root_integration_required": "parent-owned produce expression must invoke checked producerWorkerLimit after declaration planning",
+    "whole_cli_build": "parent combined source batch pending",
+    "safe": "PASS focused schema/limit test,8s MaxRSS856M",
+    "fast": "PASS same source,4s MaxRSS418M"
   }
 }

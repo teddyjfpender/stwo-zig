@@ -41,6 +41,8 @@ const Resources = struct {
     park_main: bool = true,
     /// Operational cache only; never changes live proof ownership or protocol.
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
+    /// Producer geometry experiment. The default preserves the admitted roster.
+    keccak_max_log: u32 = 18,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
@@ -49,6 +51,7 @@ const Resources = struct {
         try self.capture_options.validate();
         try self.schedule.validate();
         if (self.recycler_cache_bytes > ReceiverBudget.RECYCLER_CACHE_BYTES) return error.UnsupportedRecyclerCacheLimit;
+        if (self.keccak_max_log < 16 or self.keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
         try Schedule.validateOrder(self.stage2_order, self.stage2_order.len);
     }
     pub fn jsonStringify(self: Resources, writer: anytype) !void {
@@ -70,6 +73,10 @@ const Resources = struct {
             try writer.objectField("recycler_cache_bytes");
             try writer.write(self.recycler_cache_bytes);
         }
+        if (self.keccak_max_log != 18) {
+            try writer.objectField("keccak_max_log");
+            try writer.write(self.keccak_max_log);
+        }
         try writer.endObject();
     }
 };
@@ -83,11 +90,13 @@ const CandidateResources = struct {
     fixed_setup_bytes: usize,
     park_main: bool = true,
     recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
+    /// Producer geometry experiment. The default preserves the admitted roster.
+    keccak_max_log: u32 = 18,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
+        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .keccak_max_log = self.keccak_max_log, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
     }
     fn validate(self: CandidateResources) !void {
         if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
@@ -201,7 +210,7 @@ pub fn main() !void {
     const capture_cache_released = recycler.releaseCached();
     const cpu = try Plan.cpus(a, &captured);
     defer a.free(cpu);
-    const truths = try Plan.truths(a, &captured);
+    const truths = try Plan.truthsWithKeccakMaxLog(a, &captured, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
     if (capture_only) {
         const digest_start = timer.read();
@@ -346,4 +355,41 @@ test "explicit recycler cache ceiling remains an operational bounded option" {
     const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .fixed_setup_bytes = 6, .park_main = false, .recycler_cache_bytes = 1024, .schedule = .{ .memory_cap_bytes = 5 } };
     try candidate.validate();
     try std.testing.expectEqual(@as(usize, 1024), candidate.operational().recycler_cache_bytes);
+}
+
+// Worker admission is an operational bound, independent of scheduler threads.
+// The default geometry keeps the prior32 ceiling; only smaller parked shards
+// may select a larger, still bounded roster. No-store retention stays at8.
+fn producerWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
+    if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
+    const cap: usize = if (!park_main) 8 else if (keccak_max_log < 18) 64 else 32;
+    if (count == 0 or count > cap or count > @import("../services/gkr_local/manifest.zig").MAX_WORKERS) return error.BoundedWideCoordinatorLimit;
+    return if (park_main) @max(@as(usize, 32), count) else 8;
+}
+test "Keccak shard operational resource remains explicit bounded and default-schema preserving" {
+    const a = std.testing.allocator;
+    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .schedule = .{ .memory_cap_bytes = 5 } };
+    const old = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(old);
+    try std.testing.expect(std.mem.indexOf(u8, old, "keccak_max_log") == null);
+    limits.keccak_max_log = 16;
+    try limits.validate();
+    const encoded = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(encoded);
+    const parsed = try std.json.parseFromSlice(Resources, a, encoded, .{});
+    defer parsed.deinit();
+    try parsed.value.validate();
+    try std.testing.expectEqual(@as(u32, 16), parsed.value.keccak_max_log);
+    limits.keccak_max_log = 15;
+    try std.testing.expectError(error.UnsupportedEthereumKeccakShardLog, limits.validate());
+    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 5, .keccak_max_log = 17, .schedule = .{ .memory_cap_bytes = 6 } };
+    try candidate.validate();
+    try std.testing.expectEqual(@as(u32, 17), candidate.operational().keccak_max_log);
+    try std.testing.expectEqual(@as(usize, 32), try producerWorkerLimit(true, 30, 18));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 36, 18));
+    try std.testing.expectEqual(@as(usize, 36), try producerWorkerLimit(true, 36, 16));
+    try std.testing.expectEqual(@as(usize, 64), try producerWorkerLimit(true, 64, 16));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 65, 16));
+    try std.testing.expectEqual(@as(usize, 8), try producerWorkerLimit(false, 8, 16));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(false, 9, 16));
 }
