@@ -9,10 +9,11 @@
 const std = @import("std");
 
 pub const LargeBlockRecycler = struct {
+    const FreeBlocks = std.AutoHashMapUnmanaged(usize, std.ArrayListUnmanaged([*]u8));
     child: std.mem.Allocator,
     cap_bytes: usize,
     mutex: std.Thread.Mutex = .{},
-    free_blocks: std.AutoHashMapUnmanaged(usize, std.ArrayListUnmanaged([*]u8)) = .empty,
+    free_blocks: FreeBlocks = .empty,
     live: std.AutoHashMapUnmanaged(usize, usize) = .empty,
     cached_bytes: usize = 0,
     reused_blocks: u64 = 0,
@@ -32,9 +33,19 @@ pub const LargeBlockRecycler = struct {
     pub fn setCap(self: *LargeBlockRecycler, cap_bytes: usize) usize {
         self.mutex.lock();
         self.cap_bytes = cap_bytes;
-        const trim = self.cached_bytes > cap_bytes;
+        var detached: FreeBlocks = .empty;
+        var released: usize = 0;
+        if (self.cached_bytes > cap_bytes) {
+            // Never publish cached_bytes > cap_bytes: free() uses this
+            // invariant while computing the remaining cache allowance.
+            detached = self.free_blocks;
+            released = self.cached_bytes;
+            self.free_blocks = .empty;
+            self.cached_bytes = 0;
+        }
         self.mutex.unlock();
-        return if (trim) self.releaseCached() else 0;
+        self.freeDetached(detached);
+        return released;
     }
 
     /// Return cached free blocks to the child without touching live ownership.
@@ -42,11 +53,17 @@ pub const LargeBlockRecycler = struct {
     /// populate the new cache. The returned byte count covers this detach only.
     pub fn releaseCached(self: *LargeBlockRecycler) usize {
         self.mutex.lock();
-        var detached = self.free_blocks;
+        const detached = self.free_blocks;
         const released = self.cached_bytes;
         self.free_blocks = .empty;
         self.cached_bytes = 0;
         self.mutex.unlock();
+        self.freeDetached(detached);
+        return released;
+    }
+
+    fn freeDetached(self: *LargeBlockRecycler, blocks: FreeBlocks) void {
+        var detached = blocks;
         // Child calls need not hold the recycler lock. No live block appears
         // in detached, and detached metadata has a single owner.
         var it = detached.iterator();
@@ -55,7 +72,6 @@ pub const LargeBlockRecycler = struct {
             entry.value_ptr.deinit(self.child);
         }
         detached.deinit(self.child);
-        return released;
     }
 
     /// Destroy metadata after callers have freed all allocations. For a phase
@@ -139,7 +155,7 @@ pub const LargeBlockRecycler = struct {
         const owned = self.live.fetchRemove(@intFromPtr(memory.ptr));
         if (owned) |entry| {
             const capacity = entry.value;
-            if (capacity <= self.cap_bytes - self.cached_bytes) {
+            if (self.cached_bytes <= self.cap_bytes and capacity <= self.cap_bytes - self.cached_bytes) {
                 const list = self.free_blocks.getOrPut(self.child, capacity) catch null;
                 if (list) |slot| {
                     if (!slot.found_existing) slot.value_ptr.* = .empty;
@@ -355,6 +371,7 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
     defer recycler.deinit();
     const Worker = struct {
         a: std.mem.Allocator,
+        recycler: *LargeBlockRecycler,
         failed: *std.atomic.Value(bool),
         done: *std.atomic.Value(usize),
         fn run(self: @This()) void {
@@ -370,6 +387,9 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
                     break;
                 };
                 self.a.free(memory);
+                self.recycler.mutex.lock();
+                if (self.recycler.cached_bytes > self.recycler.cap_bytes) self.failed.store(true, .monotonic);
+                self.recycler.mutex.unlock();
             }
         }
     };
@@ -380,7 +400,7 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
         var spawned: usize = 0;
         defer for (workers[0..spawned]) |thread| thread.join();
         for (&workers) |*thread| {
-            thread.* = try std.Thread.spawn(.{}, Worker.run, .{Worker{ .a = recycler.allocator(), .failed = &failed, .done = &done }});
+            thread.* = try std.Thread.spawn(.{}, Worker.run, .{Worker{ .a = recycler.allocator(), .recycler = &recycler, .failed = &failed, .done = &done }});
             spawned += 1;
         }
         while (done.load(.acquire) < workers.len) {
