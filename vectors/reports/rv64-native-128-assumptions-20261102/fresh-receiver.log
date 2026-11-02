@@ -1,0 +1,136 @@
+{
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "security_target": {
+    "label": "128-bit security target under documented assumptions",
+    "target_bits": 128,
+    "assumption_set": "rv64-native-om31-beta2-q256-p0-fold4-assumptions-20261102-v1",
+    "scope": "native proof bundle; recursion excluded",
+    "budget_scope": "reviewed 25 CPU plus 5 truth roster; changed guest or geometry requires recalculation",
+    "bounded_engineering_review_complete": true,
+    "independent_security_audit_complete": false,
+    "whole_protocol_128_certified": false
+  },
+  "accepted": true,
+  "completed_ethereum_block": true,
+  "output": [
+    230,
+    61,
+    39,
+    151,
+    202,
+    92,
+    111,
+    130,
+    106,
+    50,
+    210,
+    12,
+    65,
+    186,
+    85,
+    45,
+    37,
+    119,
+    117,
+    51,
+    171,
+    41,
+    95,
+    157,
+    35,
+    37,
+    96,
+    176,
+    20,
+    208,
+    144,
+    48,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    20
+  ],
+  "cpu_proofs": 25,
+  "truth_proofs": 5,
+  "load_and_setup_ns": 29843665208,
+  "verify_ns": 1403428542,
+  "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 2000763768,
+    "peak_bytes": 4240096296,
+    "keys": 29,
+    "hits": 0,
+    "seals": 29,
+    "refused": false,
+    "native_coefficients": {
+      "limit_bytes": 12884901888,
+      "retained_bytes": 279786496,
+      "native_backing_bytes": 279745920,
+      "groups": 316,
+      "hits": 3416,
+      "duplicate_native_bytes_released": 5384819584,
+      "observed_individual_owners": 3732,
+      "observed_backing_owners": 0,
+      "observed_spans": 3732,
+      "owner_leases": 30
+    }
+  },
+  "source_validations": 29,
+  "source_coefficient_cells": 1416141376,
+  "source_shape": {
+    "native_proofs": 30,
+    "max_trace_log": 22,
+    "max_columns": 7371,
+    "max_constraints": 6128,
+    "max_samples_per_column": 5,
+    "max_air_degree": 5,
+    "max_local_instances": 22,
+    "max_tuple_arity": 35,
+    "max_gkr_variables": 26
+  },
+  "source_lookup_only_conditional_degrees": {
+    "tuple_collision": 1242334912920526656,
+    "rational_identity": 3804538944,
+    "local_rational_identity": 3705519680,
+    "global_rational_identity": 99019264,
+    "poles": 3804538944
+  },
+  "receiver_budget": {
+    "live_bytes": 4302173231,
+    "peak_live_bytes": 6541505959,
+    "host_live_bytes": 4302173231,
+    "external_live_bytes": 0,
+    "peak_host_bytes": 6541505959,
+    "peak_external_bytes": 0,
+    "limit": 34359738368,
+    "exceeded": false
+  },
+  "receiver_recycler_cache_cap_bytes": 4294967296,
+  "receiver_worker_stack_upper_bound_bytes": 16777216
+}
+       31.29 real       240.62 user         1.53 sys
+          7365951488  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              468164  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               80451  involuntary context switches
+       2575396477480  instructions retired
+       1036383495056  cycles elapsed
+          7367694048  peak memory footprint

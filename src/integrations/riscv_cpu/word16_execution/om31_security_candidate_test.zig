@@ -1,6 +1,14 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const C = @import("om31_security_candidate.zig");
+test "assumption qualified target is explicit metadata and cannot authorize certification" {
+    try std.testing.expectEqualStrings("128-bit security target under documented assumptions", C.ASSUMPTION_TARGET.label);
+    try std.testing.expectEqual(@as(u16, 128), C.ASSUMPTION_TARGET.target_bits);
+    try std.testing.expect(C.ASSUMPTION_TARGET.bounded_engineering_review_complete);
+    try std.testing.expect(!C.ASSUMPTION_TARGET.independent_security_audit_complete);
+    try std.testing.expect(!C.ASSUMPTION_TARGET.whole_protocol_128_certified);
+    try std.testing.expectError(error.Om31CandidateReviewIncomplete, C.requireWholeProtocolPromotion(.{}));
+}
 test "candidate pins receiver configuration sampler and scope identity" {
     try C.requireParameters(C.config());
     try C.requireIdentity(C.identity());

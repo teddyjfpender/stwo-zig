@@ -1,0 +1,9 @@
+test-riscv64-security-policy
++- riscv test suite guard
+   +- run test stderr
+OM31_SECURITY_CANDIDATE identity=16b0e3bee1f01b1d6a4384d91a8c8cd9953e08d4acd58c4339aa007795b975a7 conditional_weight=5447285479618932633766888
+
+Build Summary: 2/2 steps succeeded
+test-riscv64-security-policy success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4s MaxRSS:435M
+

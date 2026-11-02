@@ -1,0 +1,26 @@
+{
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "security_target": {
+    "label": "128-bit security target under documented assumptions",
+    "target_bits": 128,
+    "assumption_set": "rv64-native-om31-beta2-q256-p0-fold4-assumptions-20261102-v1",
+    "scope": "native proof bundle; recursion excluded",
+    "budget_scope": "reviewed 25 CPU plus 5 truth roster; changed guest or geometry requires recalculation",
+    "bounded_engineering_review_complete": true,
+    "independent_security_audit_complete": false,
+    "whole_protocol_128_certified": false
+  },
+  "pcs": {
+    "pow_bits": 0,
+    "fri_config": {
+      "log_blowup_factor": 2,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 256,
+      "fold_step": 4
+    },
+    "lifting_log_size": null
+  },
+  "scope": "native 128-bit target under documented assumptions; no whole-protocol certificate",
+  "usage": "produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]"
+}

@@ -38,7 +38,7 @@ pub const descriptor = product_policy.Descriptor{
 };
 pub fn addProduct(context: Context) void {
     inline for (.{
-        .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 22 },
+        .{ "security-policy", "src/integrations/riscv_cpu/rv64_security_policy_test_root.zig", 23 },
         .{ "om-classic-control", "src/integrations/riscv_cpu/rv64_om_classic_control_test_root.zig", 1 },
         .{ "services-gkr-local", "src/integrations/riscv_cpu/rv64_services_gkr_local_test_root.zig", 40 },
         .{ "logup-gkr-prototype", "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_test_root.zig", 22 },

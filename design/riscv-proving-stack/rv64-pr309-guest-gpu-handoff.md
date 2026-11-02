@@ -1,5 +1,7 @@
 # PR309 handoff: native GKR qualification and security boundaries
 
+Current engineering classification: **128-bit security target under documented assumptions**. The [bounded review](rv64-native-128-assumptions-review.md) is complete for the pinned native construction. Certification and recursion remain separate; the historical analysis and fail-closed certificate policy below are preserved.
+
 This closes the current CPU implementation slice. Guest integration and GPU execution are subsequent work. Do not infer a security promotion from proof acceptance, a wider field, or faster kernels.
 
 ## What is implemented

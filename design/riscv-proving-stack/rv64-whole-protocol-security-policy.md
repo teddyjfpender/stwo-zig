@@ -1,5 +1,7 @@
 # Whole-protocol 128-bit security: architecture and fail-closed accounting
 
+Current engineering classification: **128-bit security target under documented assumptions**. The [bounded review](rv64-native-128-assumptions-review.md) is complete for the pinned native construction. Certification and recursion remain separate; the historical analysis and fail-closed certificate policy below are preserved.
+
 Status: additive policy foundation, not an implemented128-bit proof suite. Current q70/P26 benchmark proofs, transcript and receivers are unchanged. The new `word16_execution/security_policy.zig` cannot authorize any whole-protocol128 claim: its receiver-owned certificate registry has no such entry. Numeric budgets, wider-field labels, repetition flags and query counts cannot manufacture that authority.
 
 The target needs a precise classical computational/ROM work-factor definition, including allowed adversarial hash queries and applicable conjectures. It is not simply a per-proof probability of2^-128, and it is not a post-quantum target. The dyadic budget helper checks a necessary union-bound bookkeeping condition only; it does not implement a concrete ROM security estimator.

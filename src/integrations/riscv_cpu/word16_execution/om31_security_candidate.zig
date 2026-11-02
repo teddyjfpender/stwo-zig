@@ -21,6 +21,18 @@ pub const GLOBAL_RELATIONS: u64 = 3;
 pub const MAX_GKR_VARIABLES: u32 = 30;
 pub const MAX_ROUND_COUNT: u64 = 1 << 20;
 pub const TARGET_BITS: u16 = 128;
+/// Engineering target and explicit assumption scope, not certificate authority.
+/// Reporting metadata only: excluded from identity()/begin() and proof framing.
+pub const ASSUMPTION_TARGET = .{
+    .label = "128-bit security target under documented assumptions",
+    .target_bits = TARGET_BITS,
+    .assumption_set = "rv64-native-om31-beta2-q256-p0-fold4-assumptions-20261102-v1",
+    .scope = "native proof bundle; recursion excluded",
+    .budget_scope = "reviewed 25 CPU plus 5 truth roster; changed guest or geometry requires recalculation",
+    .bounded_engineering_review_complete = true,
+    .independent_security_audit_complete = false,
+    .whole_protocol_128_certified = false,
+};
 /// A bounded concrete-RO audit range, not a redefinition/certificate of the
 /// unrestricted target. At T=2^128 the whitepaper's conservative collision
 /// term alone exceeds the literal 2^-128-per-work inequality for raw256 bits.
