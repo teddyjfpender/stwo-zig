@@ -2,15 +2,36 @@
 //! Page pointers remain stable until deinit. Missing pages are never cached.
 const std = @import("std");
 const types = @import("memory_types.zig");
-const Page = [types.PAGE_SIZE]u8;
+pub const Page = [types.PAGE_SIZE]u8;
 const Cached = struct { index: u64 = 0, page: ?*Page = null };
 const Pending = struct { index: u64, page: *Page };
+
+/// Bit per written page index. An index past the bitmap sets `overflow`,
+/// which makes any checkpoint built from it unusable (never silently lost).
+pub const Dirty = struct {
+    bits: []u64,
+    overflow: bool = false,
+    pub fn mark(self: *Dirty, index: u64) void {
+        if (index / 64 < self.bits.len) self.bits[@intCast(index / 64)] |= @as(u64, 1) << @intCast(index % 64) else self.overflow = true;
+    }
+    pub fn isSet(self: *const Dirty, index: u64) bool {
+        return index / 64 < self.bits.len and self.bits[@intCast(index / 64)] & (@as(u64, 1) << @intCast(index % 64)) != 0;
+    }
+    pub fn clear(self: *Dirty) void {
+        @memset(self.bits, 0);
+        self.overflow = false;
+    }
+};
 
 pub const Pages = struct {
     allocator: std.mem.Allocator,
     max_pages: usize,
     table: std.AutoHashMap(u64, *Page),
     cache: [4]Cached = @splat(.{}),
+    /// Optional prover-side write observer (fast_execution checkpoints). Every
+    /// guest or service write reaches backing through store/storeWords, so a
+    /// page index is marked before its bytes change. Never architectural.
+    dirty: ?*Dirty = null,
 
     pub fn init(allocator: std.mem.Allocator, limit: usize) Pages {
         return .{ .allocator = allocator, .max_pages = limit, .table = std.AutoHashMap(u64, *Page).init(allocator) };
@@ -21,6 +42,11 @@ pub const Pages = struct {
         while (it.next()) |page| self.allocator.destroy(page.*);
         self.table.deinit();
         self.* = undefined;
+    }
+
+    /// Uncached table probe for observers that must not perturb `cache`.
+    pub fn peek(self: *const Pages, index: u64) ?*Page {
+        return self.table.get(index);
     }
 
     fn lookup(self: *Pages, index: u64) ?*Page {
@@ -41,6 +67,7 @@ pub const Pages = struct {
 
     pub fn store(self: *Pages, address: u64, width: u4, value: u64) types.Error!types.Observed {
         const page = try self.ensureOne(address / types.PAGE_SIZE);
+        if (self.dirty) |d| d.mark(address / types.PAGE_SIZE);
         const offset: usize = @intCast(address % types.PAGE_SIZE);
         const bytes = page[(offset & ~@as(usize, 7))..][0..8];
         const before = std.mem.readInt(u64, bytes, .little);
@@ -85,6 +112,7 @@ pub const Pages = struct {
         for (words, 0..) |word, i| {
             const current = address + i * 8;
             const page = self.lookup(current / types.PAGE_SIZE).?;
+            if (self.dirty) |d| d.mark(current / types.PAGE_SIZE);
             const offset: usize = @intCast(current % types.PAGE_SIZE);
             std.mem.writeInt(u64, page[offset..][0..8], word, .little);
         }
