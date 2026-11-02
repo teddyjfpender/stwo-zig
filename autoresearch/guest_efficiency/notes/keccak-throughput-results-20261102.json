@@ -1,0 +1,76 @@
+{
+ "what": "15-block basket, evmone v3 client (ge-cache/integ ELF, 4.060 instr/gas), committed bits with keccak_cells_per_call_v3 (throughput-v1 Keccak-f truth)",
+ "elf": {
+  "path": "/Users/theodorepender/Coding/ge-cache/integ/evm/client-evmone-v3.elf",
+  "sha256": "b44b434a1dcd65f990cd40c33f6d3f29450a294cf01628b63f7714359a7071bd"
+ },
+ "executor_sha256": "a336e9094e499eddd77c9ba580aa18786d73a247664295328b5e920719b01e66",
+ "ok": true,
+ "promotable": true,
+ "guards": [
+  {
+   "guard": "G1_complete_basket",
+   "ok": true
+  },
+  {
+   "guard": "G2_exact_output",
+   "ok": true
+  },
+  {
+   "guard": "G3_determinism",
+   "ok": true
+  },
+  {
+   "guard": "G4_per_block_regression",
+   "ok": true
+  },
+  {
+   "guard": "G5_holdout_generalises",
+   "ok": true
+  },
+  {
+   "guard": "G6_execution_profile",
+   "ok": true
+  }
+ ],
+ "metrics": {
+  "scored": {
+   "blocks": 12,
+   "gas_used": 357472990,
+   "instructions": 1451195803,
+   "instructions_per_gas": 4.05959567182964,
+   "committed_bits_per_gas": 54543.794413412346,
+   "committed_bits_per_instruction": 13435.770165955895,
+   "keccak_f_calls_per_kgas": 0.24190359109369355,
+   "secp_calls_per_kgas": 3.1590302808612196,
+   "memory_ops_per_gas": 1.4420701687140054
+  },
+  "holdout": {
+   "blocks": 3,
+   "gas_used": 87926127,
+   "instructions": 302488962,
+   "instructions_per_gas": 3.440262551311967,
+   "committed_bits_per_gas": 46051.16583633745,
+   "committed_bits_per_instruction": 13385.94515664961,
+   "keccak_f_calls_per_kgas": 0.2178192154420722,
+   "secp_calls_per_kgas": 2.799566049349586,
+   "memory_ops_per_gas": 1.2068341643206917
+  },
+  "all": {
+   "blocks": 15,
+   "gas_used": 445399117,
+   "instructions": 1753684765,
+   "instructions_per_gas": 3.9373332772009064,
+   "committed_bits_per_gas": 52867.266754665965,
+   "committed_bits_per_instruction": 13427.175967244988,
+   "keccak_f_calls_per_kgas": 0.23714910058970773,
+   "secp_calls_per_kgas": 3.0880685378637605,
+   "memory_ops_per_gas": 1.3956322886019552
+  }
+ },
+ "before_compact_coefficient_bits_per_gas": {
+  "scored": 60527,
+  "holdout": 51039,
+  "all": 58654
+ }
+}

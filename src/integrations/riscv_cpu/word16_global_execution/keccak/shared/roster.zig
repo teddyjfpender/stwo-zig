@@ -108,21 +108,39 @@ pub const TruthSetup = struct {
     chi: K.tables.Trace,
     xor5: K.tables.Trace,
     key: Key,
-    pub const WIDTHS = [3]usize{ K.layout.FIXED + 14, K.layout.MAIN + 2, K.layout.INTERACTION + 8 };
+    /// Lookup interpretation of the unchanged MAIN witness. `triple_v2` is the
+    /// compact truth (existing bundles); `throughput_v1` commits the RV32
+    /// throughput tables (2^21 chi, 2^16 xor5) and 608 interaction columns.
+    policy: Policy = .triple_v2,
+    pub const Policy = K.equations.BatchPolicy;
+    pub const WIDTHS = widthsFor(.triple_v2);
+    pub fn widthsFor(policy: Policy) [3]usize {
+        return .{ K.layout.FIXED + 14, K.layout.MAIN + 2, policy.interactionCount() + 8 };
+    }
+    pub fn widths(self: *const TruthSetup) [3]usize {
+        return widthsFor(self.policy);
+    }
     pub fn init(a: std.mem.Allocator, log: u32) !TruthSetup {
         return initWithSuite(a, log, Key.Suite.production());
     }
     pub fn initWithSuite(a: std.mem.Allocator, log: u32, suite: Key.Suite) !TruthSetup {
+        return initPolicy(a, log, suite, .triple_v2);
+    }
+    pub fn initPolicy(a: std.mem.Allocator, log: u32, suite: Key.Suite, policy: Policy) !TruthSetup {
         try suite.validate();
+        if (policy == .quartet_v3) return error.UnsupportedSharedTruthPolicy;
         if (log > 21) return error.SharedTruthGeometryBudget;
         try K.layout.validateGeometry(0, 1, log);
         const fixed = try K.trace.fixedColumnsForLog(a, log);
         errdefer a.free(fixed);
-        var chi = try K.tables.Trace.init(a, .chi, &(@as([8192]u64, @splat(0))));
+        const zeros = try a.alloc(u64, @as(usize, 1) << @intCast(policy.tableLog(.chi)));
+        defer a.free(zeros);
+        @memset(zeros, 0);
+        var chi = try K.tables.Trace.initPolicy(a, .chi, policy, zeros);
         errdefer chi.deinit();
-        var xor = try K.tables.Trace.init(a, .xor5, &(@as([1024]u64, @splat(0))));
+        var xor = try K.tables.Trace.initPolicy(a, .xor5, policy, zeros[0 .. @as(usize, 1) << @intCast(policy.tableLog(.xor5))]);
         errdefer xor.deinit();
-        var self = TruthSetup{ .allocator = a, .log = log, .fixed = fixed, .chi = chi, .xor5 = xor, .key = undefined };
+        var self = TruthSetup{ .allocator = a, .log = log, .fixed = fixed, .chi = chi, .xor5 = xor, .key = undefined, .policy = policy };
         const cols = try self.fixedColumns(a);
         defer a.free(cols);
         self.key = try Key.sealWithSuite(a, cols, suite);
@@ -135,18 +153,18 @@ pub const TruthSetup = struct {
         self.xor5.deinit();
     }
     pub fn fixedColumns(self: *const TruthSetup, a: std.mem.Allocator) ![]Col {
-        const out = try a.alloc(Col, WIDTHS[0]);
+        const out = try a.alloc(Col, self.widths()[0]);
         var at: usize = 0;
         V1.append(out, &at, self.fixed, self.log);
-        V1.append(out, &at, self.chi.fixed, 13);
-        V1.append(out, &at, self.xor5.fixed, 10);
+        V1.append(out, &at, self.chi.fixed, self.policy.tableLog(.chi));
+        V1.append(out, &at, self.xor5.fixed, self.policy.tableLog(.xor5));
         return out;
     }
     pub fn logs(self: *const TruthSetup, a: std.mem.Allocator, tree: usize) ![]u32 {
-        const out = try a.alloc(u32, WIDTHS[tree]);
-        const widths = if (tree == 0) [3]usize{ K.layout.FIXED, 7, 7 } else if (tree == 1) [3]usize{ K.layout.MAIN, 1, 1 } else [3]usize{ K.layout.INTERACTION, 4, 4 };
+        const out = try a.alloc(u32, self.widths()[tree]);
+        const parts = if (tree == 0) [3]usize{ K.layout.FIXED, 7, 7 } else if (tree == 1) [3]usize{ K.layout.MAIN, 1, 1 } else [3]usize{ self.policy.interactionCount(), 4, 4 };
         var at: usize = 0;
-        for (widths, [3]u32{ self.log, 13, 10 }) |w, l| {
+        for (parts, [3]u32{ self.log, self.policy.tableLog(.chi), self.policy.tableLog(.xor5) }) |w, l| {
             @memset(out[at..][0..w], l);
             at += w;
         }
@@ -161,8 +179,19 @@ pub const TruthSource = struct {
         return initSpan(a, inputs, 1, log);
     }
     pub fn initSpan(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32) !TruthSource {
+        return initSpanPolicy(a, inputs, first_id, log, .triple_v2);
+    }
+    pub fn initSpanPolicy(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32, lookup: TruthSetup.Policy) !TruthSource {
+        if (lookup == .quartet_v3) return error.UnsupportedSharedTruthPolicy;
         var p = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
         errdefer p.deinit();
+        if (lookup == .throughput_v1) {
+            var counts = try K.throughput_counts.Counts.fromTrace(a, &p);
+            defer counts.deinit();
+            var c = try K.tables.Trace.initPolicy(a, .chi, lookup, counts.chi);
+            errdefer c.deinit();
+            return .{ .permutation = p, .chi = c, .xor5 = try K.tables.Trace.initPolicy(a, .xor5, lookup, counts.xor5) };
+        }
         const counts = try K.interaction.Counts.fromTrace(&p);
         var c = try K.tables.Trace.init(a, .chi, &counts.chi);
         errdefer c.deinit();
@@ -178,12 +207,16 @@ pub const TruthSource = struct {
         try self.chi.releaseMain();
         try self.xor5.releaseMain();
     }
+    pub fn policy(self: *const TruthSource) TruthSetup.Policy {
+        return self.chi.policy;
+    }
     pub fn columns(self: *const TruthSource, a: std.mem.Allocator, tree: usize) ![]Col {
-        const out = try a.alloc(Col, TruthSetup.WIDTHS[tree]);
+        const p = self.policy();
+        const out = try a.alloc(Col, TruthSetup.widthsFor(p)[tree]);
         var at: usize = 0;
         V1.append(out, &at, if (tree == 1) self.permutation.main else self.permutation.interaction, self.permutation.log_size);
-        V1.append(out, &at, if (tree == 1) self.chi.main else self.chi.interaction, 13);
-        V1.append(out, &at, if (tree == 1) self.xor5.main else self.xor5.interaction, 10);
+        V1.append(out, &at, if (tree == 1) self.chi.main else self.chi.interaction, p.tableLog(.chi));
+        V1.append(out, &at, if (tree == 1) self.xor5.main else self.xor5.interaction, p.tableLog(.xor5));
         return out;
     }
 };
