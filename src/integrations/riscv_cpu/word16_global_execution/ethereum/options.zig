@@ -24,9 +24,10 @@ pub const Options = struct {
     /// of the v3 LS-D64 component (the receiver admits either declared shape).
     no_ls_dword: bool = false,
     /// Producer planning only: Keccak truths that take the throughput tables
-    /// use the quartet batching (`throughput_quartet_v1`); the profile word
-    /// is published and transcript-bound, the receiver rebuilds its key.
-    keccak_quartet: bool = false,
+    /// keep the triple batching (`throughput_v1`) instead of the v3 default
+    /// quartet batching (`throughput_quartet_v1`). The profile word is
+    /// published and transcript-bound; the receiver admits either.
+    keccak_throughput_v1: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -81,9 +82,9 @@ pub const Options = struct {
             } else if (std.mem.eql(u8, arg, "--no-ls-dword")) {
                 if (out.no_ls_dword) return error.DuplicateOperationalOption;
                 out.no_ls_dword = true;
-            } else if (std.mem.eql(u8, arg, "--keccak-quartet")) {
-                if (out.keccak_quartet) return error.DuplicateOperationalOption;
-                out.keccak_quartet = true;
+            } else if (std.mem.eql(u8, arg, "--keccak-throughput-v1")) {
+                if (out.keccak_throughput_v1) return error.DuplicateOperationalOption;
+                out.keccak_throughput_v1 = true;
             } else if (std.mem.eql(u8, arg, "--keep-fixed-witness")) {
                 if (out.keep_fixed_witness) return error.DuplicateOperationalOption;
                 out.keep_fixed_witness = true;
@@ -111,7 +112,7 @@ pub const Options = struct {
         return policy;
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.keccak_quartet;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set or self.no_ls_dword or self.keccak_throughput_v1;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {
@@ -220,13 +221,13 @@ test "Retained MAIN prefetch has an explicit bounded producer-only cap and is of
     try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
 }
 
-test "keccak quartet truth selection is an explicit producer-only planning option" {
+test "keccak throughput-v1 truth fallback is an explicit producer-only planning option" {
     var defaults = [_][:0]u8{ @constCast("tool"), @constCast("produce") };
-    try std.testing.expect(!(try Options.parse(&defaults)).keccak_quartet);
-    var enabled = [_][:0]u8{ @constCast("tool"), @constCast("produce"), @constCast("--keccak-quartet") };
+    try std.testing.expect(!(try Options.parse(&defaults)).keccak_throughput_v1);
+    var enabled = [_][:0]u8{ @constCast("tool"), @constCast("produce"), @constCast("--keccak-throughput-v1") };
     const options = try Options.parse(&enabled);
-    try std.testing.expect(options.keccak_quartet and options.producerOnly());
+    try std.testing.expect(options.keccak_throughput_v1 and options.producerOnly());
     try std.testing.expectEqual(@as(usize, 2), options.count);
-    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--keccak-quartet"), @constCast("--keccak-quartet") };
+    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--keccak-throughput-v1"), @constCast("--keccak-throughput-v1") };
     try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
 }

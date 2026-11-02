@@ -115,8 +115,9 @@ pub fn keccakTruthCells(policy: KeccakPolicy, log: u32) u64 {
     return permutation + (@as(u64, 5) << @intCast(policy.tableLog(.chi))) + (@as(u64, 5) << @intCast(policy.tableLog(.xor5)));
 }
 /// v3 profile: each truth takes the throughput tables exactly when that is
-/// fewer committed cells (log >= 13: 1,988 cells/row saved vs the 2^21+2^16
-/// tables). v2 never selects it (receiver policy rejects it there).
+/// fewer committed cells (log >= 13), batched four per degree-five batch by
+/// default (`KeccakTruthOptions.quartet`). v2 never selects them (receiver
+/// policy rejects them there).
 pub fn keccakTruthPolicy(v3: bool, log: u32) KeccakPolicy {
     return keccakTruthPolicyFor(.{ .v3 = v3 }, log);
 }
@@ -127,7 +128,9 @@ pub const KeccakTruthOptions = struct {
     v3: bool = false,
     /// Throughput tables cleared four per degree-five batch
     /// (`throughput_quartet_v1`, 456 instead of 608 interaction columns).
-    quartet: bool = false,
+    /// v3 default since it proved and fresh-verified a real 4-packet prefix
+    /// of block 24,628,607; `false` keeps `throughput_v1`.
+    quartet: bool = true,
 };
 pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
     if (!options.v3) return .triple_v2;
@@ -245,14 +248,18 @@ test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
 test "v3 keccak truth takes the throughput tables exactly where they commit fewer cells" {
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(true, 12));
-    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicy(true, 13));
-    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicy(true, 18));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false }, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = false }, 18));
+    // v3 default: the quartet batching of the same tables.
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicy(true, 13));
+    try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicy(true, 18));
     // log18: 2^18 x (1923 + 2596) + 5 x (2^13 + 2^10) vs 2^18 x 2531 + 5 x (2^21 + 2^16).
     try std.testing.expectEqual(@as(u64, 1_184_674_816), keccakTruthCells(.triple_v2, 18));
     try std.testing.expectEqual(@as(u64, 674_299_904), keccakTruthCells(.throughput_v1, 18));
 }
 test "quartet keccak truth option keeps the throughput tables and cuts 152 interaction columns per row" {
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .quartet = true }, 18));
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicy(false, 18));
     try std.testing.expectEqual(KeccakPolicy.triple_v2, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 12));
     try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 13));
     try std.testing.expectEqual(KeccakPolicy.throughput_quartet_v1, keccakTruthPolicyFor(.{ .v3 = true, .quartet = true }, 18));
