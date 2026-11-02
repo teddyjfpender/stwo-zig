@@ -253,12 +253,13 @@ test "execution receiver binds independently configured prefix budgets before fi
     public.steps = 1;
     admission.max_prefix_steps = 0;
     try std.testing.expectError(error.InvalidExecutionBudget, admission.validateCpu(geometry, public));
-    admission.max_prefix_steps = 1 << 22;
+    // Segments of up to 2^23 - 1 steps are admitted (wide-clock CPUs); 2^23 is not.
+    admission.max_prefix_steps = 1 << 23;
     try std.testing.expectError(error.InvalidExecutionBudget, admission.validateCpu(geometry, public));
     config.max_steps = 0;
     try std.testing.expectError(error.InvalidEthereumProofBudget, Image.Owner.init(a, config));
     config = fixture.config();
-    config.batch_steps = 1 << 22;
+    config.batch_steps = 1 << 23;
     try std.testing.expectError(error.InvalidEthereumProofBudget, Image.Owner.init(a, config));
     _ = Execution;
 }

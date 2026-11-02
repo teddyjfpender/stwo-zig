@@ -75,6 +75,12 @@ pub fn main() !void {
     const count = try std.fmt.parseUnsigned(u32, args[if (direct) 4 else 5], 10);
     var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
     defer program.deinit();
+    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
+    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
+    if (operational.compact_decode and cpu_layout.u8_pairs) cpu_layout.compact_decode = true;
+    if (operational.no_compact_decode) cpu_layout.compact_decode = false;
+    // The capture's FUNCTION facts depend on the decode layout.
+    if (cpu_layout.compact_decode) try program.makeCompact();
     // Range-checked by Options.parse; the windowed reader re-validates. (The
     // GKR driver's capture schema stays limited to its own 1-2 packets.)
     const capture_options = operational.captureOptions();
@@ -90,8 +96,6 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    var cpu_layout = Plan.CpuLayout.forProfile(config.value.execution_profile);
-    if (operational.no_ls_dword) cpu_layout.ls_dword = false;
     if (operational.layout.mul_u8_pairs) cpu_layout.mul_u8_pairs = true;
     if (operational.layout.ls_fused_pairs) cpu_layout.ls_fused_pairs = true;
     if (operational.layout.alu_fused_tail) cpu_layout.alu_fused_tail = true;
@@ -139,7 +143,7 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     if (config.execution_profile == .ethereum_services_v3) return;
     // The fused-tail CPU layout is admitted only on the v3 route. A v2
     // receiver keeps the historical CPU AIR and fails closed on any other.
-    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.mul_u8_pairs or d.geometry.ls_fused_pairs or d.geometry.alu_fused_tail or d.geometry.ls_dword_fused_pairs) return error.UnadmittedFusedTailCpuLayout;
+    for (cpus) |d| if (d.geometry.cpu_fused_tail or d.geometry.cpu_u8_pairs or d.geometry.mul_u8_pairs or d.geometry.ls_fused_pairs or d.geometry.alu_fused_tail or d.geometry.ls_dword_fused_pairs or d.geometry.cpu_compact_decode) return error.UnadmittedFusedTailCpuLayout;
     // Throughput Keccak truth tables (wire logs[1] != 0) are v3-only.
     for (truths) |d| if (d.family == .keccak and d.logs[1] != 0) return error.UnadmittedKeccakThroughputProfile;
     // The secp row truth (wire logs[1] = 0) is v3-only.

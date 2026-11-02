@@ -33,6 +33,23 @@ LogUp/GKR CPU speed (`codex/rv64-ge-logup`): packed fused GKR prover,
 2.3-3.4x per thread, byte-identical; not yet reconciled with PR #309's own
 packed GKR kernels.
 
+Compact decode CPU MAIN (`codex/rv64-ge-decode`, default on v3): CPU MAIN
+47 -> 37 (PC read from the previous row as one felt, immediates in the unused
+operand slot, AUIPC/JAL folded to static constants, LS offset as (low16,
+sign)). Measured on the same freshly verified 4-packet prefix: CPU native cells
+2,401,629,856 -> 2,233,857,696 (-167,772,160 = 4 x 10 x 2^22, -10.000
+cells/instruction); basket 3.283 instr/gas, 40,336 -> 38,209 bits/gas before
+the secp row-truth merge, 37,073 -> 34,946 with it, and 34,171 with the
+throughput_r27_v1 Keccak truth merged as well (the prefix was re-proved and
+freshly verified on each merged tree: CPU cells 2,233,857,696 every time).
+On top of the fused2 layouts (MUL pairs, LS32/INIT/TEARDOWN fused pairs,
+ALU fused tail, LS-D64 fused pairs) the same prefix measures 2,282,308,512 ->
+2,114,536,352 (again exactly -167,772,160), calibration 119.881 -> 109.881;
+basket (client3, 3.130 instr/gas) 33,695 -> 31,667 bits/gas scored. Review fix:
+compact decode admits only PCs in (0, 2^31) and refuses felt-0 endpoints,
+because the JALR target 0xFFFFFFFE (= 2p) has felt 0 and would alias a ROM pc
+0 (`compact-decode.v2` identity; README compact-decode point 2).
+
 Open items:
 - Complete-block proof of the final client (calibration uses a 4-packet prefix; curve and sha256 costs are fixture/older values).
 - EEST re-run on the final client (needs ~10 GB of inputs; this host was disk-bound).
