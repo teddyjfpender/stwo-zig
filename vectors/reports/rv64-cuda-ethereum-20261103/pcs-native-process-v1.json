@@ -25,5 +25,17 @@
   "device_bytes": 12681778464,
   "output_sha256": "794f997ea7d05477fad1f0523b7bc8d019c486b15694a993de8860304f1276ca",
   "matches_prior_accepted_hybrid": true,
-  "caveat": "PCS-only comparison; host witness, binding and setup remain. This is not full-resident end-to-end timing."
+  "caveat": "PCS-only comparison; host witness, binding and setup remain. This is not full-resident end-to-end timing.",
+  "lease_rejection_checks": [
+    "wrong_owner_thread",
+    "wrong_token",
+    "wrong_generation",
+    "wrong_scope",
+    "overflow_range",
+    "retired_lease",
+    "double_release"
+  ],
+  "lease_acceptance_checks": [
+    "valid_subrange"
+  ]
 }
