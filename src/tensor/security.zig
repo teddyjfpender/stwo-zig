@@ -11,7 +11,11 @@
 //!     (each query term divided by 2^pow) or not;
 //!   * round_with / round_without  -log2 of the largest single term;
 //!   * compiled   FlashProve's compiled level for round_with (the largest L
-//!     with 2^-L >= 2^-w + 8.5 * 2^(L - 256)).
+//!     with 2^-L >= 2^-w + 8.5 * 2^(L - 256));
+//!   * rbr_round_with / rbr_round_without / rbr_compiled  the same maxima
+//!     with the lambda/query pair of each inner level in its round-by-round
+//!     (Markov) form instead of the interactive mean-value form
+//!     (security.md 3.3). Every other term is already a per-round bound.
 //!
 //! Regimes per committed table (security.md section 2-4):
 //!   * fresh tables (witness, committed rows) opened with k proximity rows:
@@ -44,9 +48,20 @@ pub const Term = struct {
     pow: u32 = 0,
     /// how many rounds share this bound (summed in sum_*)
     count: f64 = 1,
+    /// round-by-round form of this round, if it differs (lambda / query of
+    /// an inner level): log2 error [with work, without work]
+    rbr: ?[2]f64 = null,
 
     fn withWork(self: Term) f64 {
         return self.log2_err - @as(f64, @floatFromInt(self.pow));
+    }
+
+    fn rbrWith(self: Term) f64 {
+        return if (self.rbr) |r| r[0] else self.withWork();
+    }
+
+    fn rbrWithout(self: Term) f64 {
+        return if (self.rbr) |r| r[1] else self.log2_err;
     }
 };
 
@@ -59,6 +74,10 @@ pub const Summary = struct {
     worst: []const u8,
     worst_without: []const u8,
     n_terms: usize,
+    rbr_round_with: f64,
+    rbr_round_without: f64,
+    rbr_compiled: f64,
+    rbr_worst: []const u8,
 };
 
 /// log2(2^x + 2^y)
@@ -85,10 +104,15 @@ pub const Account = struct {
     }
 
     pub fn add(self: *Account, name: []const u8, kind: Kind, log2_err: f64, pow: u32, count: f64) !void {
+        return self.addRbr(name, kind, log2_err, pow, count, null);
+    }
+
+    pub fn addRbr(self: *Account, name: []const u8, kind: Kind, log2_err: f64, pow: u32, count: f64, rbr: ?[2]f64) !void {
         if (count <= 0) return;
         const n = try self.a.dupe(u8, name);
         try self.names.append(self.a, n);
-        try self.terms.append(self.a, .{ .name = n, .kind = kind, .log2_err = @min(log2_err, 0), .pow = pow, .count = count });
+        const r: ?[2]f64 = if (rbr) |x| .{ @min(x[0], 0), @min(x[1], 0) } else null;
+        try self.terms.append(self.a, .{ .name = n, .kind = kind, .log2_err = @min(log2_err, 0), .pow = pow, .count = count, .rbr = r });
     }
 
     /// numerator / |F|, `count` times
@@ -101,7 +125,7 @@ pub const Account = struct {
         for (other.terms.items) |t| {
             const n = try std.fmt.allocPrint(self.a, "{s}{s}", .{ prefix, t.name });
             defer self.a.free(n);
-            try self.add(n, t.kind, t.log2_err, t.pow, t.count);
+            try self.addRbr(n, t.kind, t.log2_err, t.pow, t.count, t.rbr);
         }
     }
 
@@ -112,7 +136,15 @@ pub const Account = struct {
         var mo = -std.math.inf(f64);
         var worst: []const u8 = "";
         var worst_o: []const u8 = "";
+        var rw = -std.math.inf(f64);
+        var ro = -std.math.inf(f64);
+        var worst_r: []const u8 = "";
         for (self.terms.items) |t| {
+            if (t.rbrWith() > rw) {
+                rw = t.rbrWith();
+                worst_r = t.name;
+            }
+            ro = @max(ro, t.rbrWithout());
             const lc = std.math.log2(t.count);
             sw = logAdd(sw, t.withWork() + lc);
             so = logAdd(so, t.log2_err + lc);
@@ -125,12 +157,12 @@ pub const Account = struct {
                 worst_o = t.name;
             }
         }
-        return .{ .sum_with = -sw, .sum_without = -so, .round_with = -mw, .round_without = -mo, .compiled = compiledLevel(-mw, 256), .worst = worst, .worst_without = worst_o, .n_terms = self.terms.items.len };
+        return .{ .sum_with = -sw, .sum_without = -so, .round_with = -mw, .round_without = -mo, .compiled = compiledLevel(-mw, 256), .worst = worst, .worst_without = worst_o, .n_terms = self.terms.items.len, .rbr_round_with = -rw, .rbr_round_without = -ro, .rbr_compiled = compiledLevel(-rw, 256), .rbr_worst = worst_r };
     }
 
     pub fn writeJson(self: Account, out: anytype, top: usize) !void {
         const s = self.summary();
-        try out.print("{{\"sum_with_work\":{d:.2},\"sum_without_work\":{d:.2},\"round_with_work\":{d:.2},\"round_without_work\":{d:.2},\"compiled\":{d:.2},\"worst\":\"{s}\",\"worst_without_work\":\"{s}\",\"terms\":{d},\"largest\":[", .{ s.sum_with, s.sum_without, s.round_with, s.round_without, s.compiled, s.worst, s.worst_without, s.n_terms });
+        try out.print("{{\"sum_with_work\":{d:.2},\"sum_without_work\":{d:.2},\"round_with_work\":{d:.2},\"round_without_work\":{d:.2},\"compiled\":{d:.2},\"worst\":\"{s}\",\"worst_without_work\":\"{s}\",\"terms\":{d},\"rbr_round_with_work\":{d:.2},\"rbr_round_without_work\":{d:.2},\"rbr_compiled\":{d:.2},\"rbr_worst\":\"{s}\",\"largest\":[", .{ s.sum_with, s.sum_without, s.round_with, s.round_without, s.compiled, s.worst, s.worst_without, s.n_terms, s.rbr_round_with, s.rbr_round_without, s.rbr_compiled, s.rbr_worst });
         // the `top` largest terms (with work), each as [name, -log2 err, pow, count]
         const idx = try self.a.alloc(usize, self.terms.items.len);
         defer self.a.free(idx);
@@ -230,9 +262,12 @@ fn levelTerms(acc: ?*Account, name: []const u8, li: pcs2.LevelInfo, mode: Mode, 
     var buf: [128]u8 = undefined;
     const T = struct {
         fn put(ac: ?*Account, tot: *f64, nm: []const u8, kind: Kind, l2: f64, pow: u32, count: f64) !void {
+            return putRbr(ac, tot, nm, kind, l2, pow, count, null);
+        }
+        fn putRbr(ac: ?*Account, tot: *f64, nm: []const u8, kind: Kind, l2: f64, pow: u32, count: f64, rbr: ?[2]f64) !void {
             if (count <= 0 or l2 == -std.math.inf(f64)) return;
             tot.* = logAdd(tot.*, l2 - @as(f64, @floatFromInt(pow)) + std.math.log2(count));
-            if (ac) |x| try x.add(nm, kind, l2, pow, count);
+            if (ac) |x| try x.addRbr(nm, kind, l2, pow, count, rbr);
         }
     };
     // claims within a group: independent gamma per claim
@@ -253,15 +288,47 @@ fn levelTerms(acc: ?*Account, name: []const u8, li: pcs2.LevelInfo, mode: Mode, 
         },
         .consistency => |dk| agree = rho + dk,
     }
+    const log_g: f64 = @floatFromInt(@max(li.log_g, 1));
+    var rbr_query: ?[2]f64 = null;
     if (!li.final) {
         // lambda-combination cancels at a position (mean value over t queries)
-        try T.put(acc, &total, try std.fmt.bufPrint(&buf, "{s} lambda", .{name}), .lambda, std.math.log2(t * @as(f64, @floatFromInt(@max(li.log_g, 1)))) - LOG2_F, 0, 1);
+        const r = lambdaRbr(log_g, t, agree, p.pow_bits);
+        rbr_query = r.query;
+        try T.putRbr(acc, &total, try std.fmt.bufPrint(&buf, "{s} lambda", .{name}), .lambda, std.math.log2(t * log_g) - LOG2_F, 0, 1, r.lambda);
         // inner batching gamma' and the degree-2 sumcheck over log G' + lc vars
         try T.put(acc, &total, try std.fmt.bufPrint(&buf, "{s} inner batch", .{name}), .field, -LOG2_F, 0, 1);
         try T.put(acc, &total, try std.fmt.bufPrint(&buf, "{s} inner sumcheck", .{name}), .field, 1 - LOG2_F, 0, @floatFromInt(li.log_g + li.log_cols));
     }
-    try T.put(acc, &total, try std.fmt.bufPrint(&buf, "{s} queries ({d} at {d:.3})", .{ name, p.n_queries, agree }), .query, t * std.math.log2(agree), p.pow_bits, 1);
+    try T.putRbr(acc, &total, try std.fmt.bufPrint(&buf, "{s} queries ({d} at {d:.3})", .{ name, p.n_queries, agree }), .query, t * std.math.log2(agree), p.pow_bits, 1, rbr_query);
     return total;
+}
+
+const LambdaRbr = struct { lambda: [2]f64, query: [2]f64 };
+
+/// Round-by-round (Markov) form of a level's lambda/query pair (security.md
+/// 3.3): N_rho, the positions outside Z where the lambda-combination
+/// vanishes, has mean <= E log G'/|F|, so the lambda round is bad
+/// (N_rho >= tau E) with probability <= log G'/(tau |F|); otherwise a query
+/// passes with probability <= a + tau. tau is fixed from public parameters;
+/// it is chosen separately for the with-work and without-work maxima.
+fn lambdaRbr(log_g: f64, t: f64, agree: f64, pow_bits: u32) LambdaRbr {
+    var out: LambdaRbr = undefined;
+    const pw: f64 = @floatFromInt(pow_bits);
+    for ([_]f64{ pw, 0 }, 0..) |work, k| {
+        var best = std.math.inf(f64);
+        var x: f64 = 1;
+        while (x <= 60) : (x += 1.0 / 32.0) {
+            // tau = 2^-x
+            const lam = std.math.log2(log_g) + x - LOG2_F;
+            const q = t * std.math.log2(@min(agree + std.math.exp2(-x), 1)) - work;
+            if (@max(lam, q) < best) {
+                best = @max(lam, q);
+                out.lambda[k] = lam;
+                out.query[k] = q;
+            }
+        }
+    }
+    return out;
 }
 
 /// Best proximity for a fresh level (Johnson only with an OOD sample).
@@ -474,6 +541,22 @@ test "unique decoding and Johnson parameters" {
     try std.testing.expect(j2.count > 1.99 * (j.count - j.list) and j2.count < 2.01 * j.count);
 }
 
+test "round-by-round (Markov) form of lambda and queries" {
+    // witness L1 of the toy: log G' = 3, 76 queries at 0.412, 20 bits of work
+    const r = lambdaRbr(3, 76, 0.412, 20);
+    const with = -@max(r.lambda[0], r.query[0]);
+    const without = -@max(r.lambda[1], r.query[1]);
+    // the query term alone is 117.2 bits with work, 97.2 without; tau costs
+    // ~2 bits with work (115.3) and almost nothing without
+    const q0 = -76 * std.math.log2(0.412);
+    try std.testing.expect(with > 115 and with < q0 + 20 - 1);
+    try std.testing.expect(without > q0 - 0.01 and without <= q0);
+    try std.testing.expect(-r.lambda[0] >= with and -r.query[0] >= with);
+    // tau = 2^-x with x >= 1 keeps a + tau <= 1 meaningful
+    const full = lambdaRbr(3, 10, 0.9, 0);
+    try std.testing.expect(full.query[1] <= 0);
+}
+
 test "account sums and maxima" {
     var acc = Account.init(std.testing.allocator);
     defer acc.deinit();
@@ -516,6 +599,8 @@ test "end-to-end accounting of a product proof: more queries, more bits" {
         const s = rep.request.summary();
         try std.testing.expect(s.sum_with <= s.round_with);
         try std.testing.expect(s.sum_without <= s.sum_with);
+        try std.testing.expect(s.rbr_round_without <= s.rbr_round_with);
+        try std.testing.expect(s.rbr_round_with > 0 and s.rbr_round_without > 0);
         results[i] = s.sum_with;
         // a tampered proof is not accounted (the verifier runs first)
         proof.witness_value = proof.witness_value.add(f.QM31.one());
