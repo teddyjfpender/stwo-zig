@@ -359,6 +359,10 @@ pub const Timings = struct {
     weight_open_ns: u64 = 0,
     witness_elems: usize = 0,
     witness_table_elems: usize = 0,
+    /// ext ops: accumulators, key columns, multiplicities (before commit)
+    ext_init_ns: u64 = 0,
+    /// ext terminal claims (MLE evaluations after GKR)
+    ext_terminal_ns: u64 = 0,
 };
 
 fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
@@ -599,9 +603,11 @@ pub fn prove(
         for (acc) |x| if (x) |v| a.free(v);
         a.free(acc);
     }
+    const t_init = try std.time.Instant.now();
     var eps = try xt.proverInit(a, pool, st, witness);
     defer eps.deinit(a);
     const mults = try multiplicities(a, st, rel, witness, acc, &eps);
+    timings.ext_init_ns = nowNs(t_init);
     defer {
         for (mults) |m| a.free(m);
         a.free(mults);
@@ -644,7 +650,7 @@ pub fn prove(
     const n_inst = rel.keys.len + rel.tables.len;
     const inputs = try a.alloc(Fast.Input, n_inst);
     defer a.free(inputs);
-    for (rel.keys, 0..) |k, i| inputs[i] = .{ .num = .ones, .den = if (k.kind == .ext) try xt.keyDen(a, &eps, k.op, alpha, beta) else try keyValues(a, pool, st, all, acc, k, alpha, beta), .owned = true };
+    for (rel.keys, 0..) |k, i| inputs[i] = .{ .num = .ones, .den = if (k.kind == .ext) try xt.keyDen(a, pool, &eps, k.op, alpha, beta) else try keyValues(a, pool, st, all, acc, k, alpha, beta), .owned = true };
     const mult_m31 = try a.alloc([]M31, rel.tables.len);
     defer {
         for (mult_m31) |m| a.free(m);
@@ -724,7 +730,9 @@ pub fn prove(
     var ext_finals: std.ArrayList([2]QM31) = .empty;
     errdefer ext_finals.deinit(a);
     const gview = xt.GkrView{ .ood = art.ood_point, .cv = @ptrCast(art.claims_to_verify_by_instance), .key_base = rel.ext_base };
+    const t_term = try std.time.Instant.now();
     try xt.proveTerminal(a, pool, st, all, &eps, gview, alpha, beta, &tr, &claims, &ext_values);
+    timings.ext_terminal_ns = nowNs(t_term);
 
     // --- op sumchecks (matmul / hadamard), in key order (one per remainder key)
     t0 = try std.time.Instant.now();

@@ -363,18 +363,28 @@ pub fn einsumAcc(a: std.mem.Allocator, pool: *f.Pool, e: Einsum, av: []const i32
     var gb = try Gather.init(a, mb);
     defer gb.deinit(a);
     const n_o = @as(usize, 1) << @intCast(e.n_out);
+    const kn = @as(usize, 1) << @intCast(e.n_k);
     const acc = try a.alloc(i64, n_o);
-    const Ctx = struct { ga: *const Gather, gb: *const Gather, av: []const i32, bv: []const i32, acc: []i64, nk: u32 };
-    const ctx = Ctx{ .ga = &ga, .gb = &gb, .av = av, .bv = bv, .acc = acc, .nk = e.n_k };
+    errdefer a.free(acc);
+    // gathers are ORs of disjoint per-bit contributions: index(o, k) =
+    // index(o, 0) | index(0, k); precompute the k offsets once.
+    const offs = try a.alloc(u32, 2 * kn);
+    defer a.free(offs);
+    for (0..kn) |k| {
+        offs[k] = @intCast(ga.get(k));
+        offs[kn + k] = @intCast(gb.get(k));
+    }
+    const Ctx = struct { ga: *const Gather, gb: *const Gather, av: []const i32, bv: []const i32, acc: []i64, nk: u32, offa: []const u32, offb: []const u32 };
+    const ctx = Ctx{ .ga = &ga, .gb = &gb, .av = av, .bv = bv, .acc = acc, .nk = e.n_k, .offa = offs[0..kn], .offb = offs[kn..] };
     pool.parallelFor(n_o, 16, &ctx, struct {
         fn run(c: *const Ctx, s: usize, end: usize) void {
-            const kn = @as(usize, 1) << @intCast(c.nk);
             for (s..end) |o| {
                 var sum: i64 = 0;
                 const base = o << @intCast(c.nk);
-                for (0..kn) |k| {
-                    const x = base | k;
-                    sum += @as(i64, c.av[c.ga.get(x)]) * @as(i64, c.bv[c.gb.get(x)]);
+                const ba = c.ga.get(base);
+                const bb = c.gb.get(base);
+                for (c.offa, c.offb) |oa, ob| {
+                    sum += @as(i64, c.av[ba | oa]) * @as(i64, c.bv[bb | ob]);
                 }
                 c.acc[o] = sum;
             }
@@ -454,8 +464,27 @@ fn termScale(t: Term, nb: u32) QM31 {
 fn mlePar(a: std.mem.Allocator, pool: *f.Pool, vals: []const i32, pt: []const QM31) !QM31 {
     const eq = try f.eqTablePar(a, pool, pt, QM31.one());
     defer a.free(eq);
+    const CH = 1 << 14;
+    const n_ch = (vals.len + CH - 1) / CH;
+    const parts = try a.alloc(QM31, n_ch);
+    defer a.free(parts);
+    const Ctx = struct { vals: []const i32, eq: []const QM31, parts: []QM31 };
+    const ctx = Ctx{ .vals = vals, .eq = eq, .parts = parts };
+    pool.parallelFor(n_ch, 1, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            for (s..e) |ch| {
+                const lo = ch * CH;
+                const hi = @min(c.vals.len, lo + CH);
+                var acc = QM31.zero();
+                for (c.vals[lo..hi], c.eq[lo..hi]) |v, w| {
+                    if (v != 0) acc = acc.add(w.mulM31(f.fromI32(v)));
+                }
+                c.parts[ch] = acc;
+            }
+        }
+    }.run);
     var acc = QM31.zero();
-    for (vals, eq) |v, e| acc = acc.add(e.mulM31(f.fromI32(v)));
+    for (parts) |x| acc = acc.add(x);
     return acc;
 }
 
@@ -582,14 +611,20 @@ pub fn proverInit(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: [
     return .{ .keys = keys, .acc = acc, .col0 = col0, .col1 = col1 };
 }
 
-pub fn keyDen(a: std.mem.Allocator, ps: *const ProverState, ki: usize, alpha: QM31, beta: QM31) ![]QM31 {
+pub fn keyDen(a: std.mem.Allocator, pool: *f.Pool, ps: *const ProverState, ki: usize, alpha: QM31, beta: QM31) ![]QM31 {
     const c0 = ps.col0[ki];
     const out = try a.alloc(QM31, c0.len);
-    if (ps.col1[ki]) |c1| {
-        for (out, c0, c1) |*o, u, v| o.* = alpha.sub(f.qFromI64(u).add(beta.mul(f.qFromI64(v))));
-    } else {
-        for (out, c0) |*o, u| o.* = alpha.sub(f.qFromI64(u));
-    }
+    const Ctx = struct { out: []QM31, c0: []const i64, c1: ?[]const i64, alpha: QM31, beta: QM31 };
+    const ctx = Ctx{ .out = out, .c0 = c0, .c1 = ps.col1[ki], .alpha = alpha, .beta = beta };
+    pool.parallelFor(c0.len, 8192, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            if (c.c1) |c1| {
+                for (s..e) |i| c.out[i] = c.alpha.sub(f.qFromI64(c.c0[i]).add(c.beta.mul(f.qFromI64(c1[i]))));
+            } else {
+                for (s..e) |i| c.out[i] = c.alpha.sub(f.qFromI64(c.c0[i]));
+            }
+        }
+    }.run);
     return out;
 }
 
@@ -761,7 +796,8 @@ const Layout = struct {
 };
 
 /// A'(b, k) = sum over operand-only output bits u of eq(rho_u, u) * A[..].
-fn foldOperand(a: std.mem.Allocator, lay: Layout, vals: []const i32, lab: Labels, rho: []const QM31) ![]QM31 {
+/// Parallel over the target index t: source(t, u) = gT(t) | gU(u).
+fn foldOperand(a: std.mem.Allocator, pool: *f.Pool, lay: Layout, vals: []const i32, lab: Labels, rho: []const QM31) ![]QM31 {
     const nb = f.log2Exact(vals.len);
     var upt: [MAXB]QM31 = undefined;
     var nu: u32 = 0;
@@ -769,30 +805,51 @@ fn foldOperand(a: std.mem.Allocator, lay: Layout, vals: []const i32, lab: Labels
         upt[nu] = rho[lab[pb]];
         nu += 1;
     };
-    const masks = try a.alloc(u64, nb);
-    defer a.free(masks);
+    // masks from target bits (LSB-first) and u bits (LSB-first) to source bits
+    const mt = try a.alloc(u64, lay.ns);
+    defer a.free(mt);
+    @memset(mt, 0);
+    const mu = try a.alloc(u64, nu);
+    defer a.free(mu);
     var ui: u32 = 0;
     for (0..nb) |pb| {
         const v = lab[pb];
+        const src = @as(u64, 1) << @intCast(nb - 1 - pb);
         if (lay.sc_pos[v] != NONE) {
-            masks[nb - 1 - pb] = @as(u64, 1) << @intCast(lay.ns - 1 - lay.sc_pos[v]);
+            mt[lay.ns - 1 - lay.sc_pos[v]] = src;
         } else {
-            masks[nb - 1 - pb] = (@as(u64, 1) << @intCast(nu - 1 - ui)) << 32;
+            mu[nu - 1 - ui] = src;
             ui += 1;
         }
     }
-    var g = try Gather.init(a, masks);
-    defer g.deinit(a);
+    var gt = try Gather.init(a, mt);
+    defer gt.deinit(a);
+    const nU = @as(usize, 1) << @intCast(nu);
+    const uoff = try a.alloc(u32, nU);
+    defer a.free(uoff);
+    {
+        var gu = try Gather.init(a, mu);
+        defer gu.deinit(a);
+        for (uoff, 0..) |*o, u| o.* = @intCast(gu.get(u));
+    }
     const equ = try f.eqTable(a, upt[0..nu], QM31.one());
     defer a.free(equ);
     const out = try a.alloc(QM31, @as(usize, 1) << @intCast(lay.ns));
-    @memset(out, QM31.zero());
-    for (vals, 0..) |v, i| {
-        if (v == 0) continue;
-        const gi = g.get(i);
-        const t: usize = @intCast(gi & 0xffff_ffff);
-        out[t] = out[t].add(equ[@intCast(gi >> 32)].mulM31(f.fromI32(v)));
-    }
+    const Ctx = struct { gt: *const Gather, uoff: []const u32, equ: []const QM31, vals: []const i32, out: []QM31 };
+    const ctx = Ctx{ .gt = &gt, .uoff = uoff, .equ = equ, .vals = vals, .out = out };
+    pool.parallelFor(out.len, 1024, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            for (s..e) |t| {
+                const base = c.gt.get(t);
+                var acc = QM31.zero();
+                for (c.uoff, c.equ) |uo, w| {
+                    const v = c.vals[base | uo];
+                    if (v != 0) acc = acc.add(w.mulM31(f.fromI32(v)));
+                }
+                c.out[t] = acc;
+            }
+        }
+    }.run);
     return out;
 }
 
@@ -803,9 +860,9 @@ fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []co
     const lay = Layout.init(e);
     const av = refValues(st, w, e.a);
     const bv = refValues(st, w, e.b);
-    const fa = try foldOperand(a, lay, av, e.a_labels, rho);
+    const fa = try foldOperand(a, pool, lay, av, e.a_labels, rho);
     defer a.free(fa);
-    const fb = try foldOperand(a, lay, bv, e.b_labels, rho);
+    const fb = try foldOperand(a, pool, lay, bv, e.b_labels, rho);
     defer a.free(fb);
     var res: sc.ProveResult = undefined;
     var fin: [2]QM31 = undefined;
@@ -819,7 +876,13 @@ fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []co
         defer a.free(eqb);
         const eqf = try a.alloc(QM31, fa.len);
         defer a.free(eqf);
-        for (eqf, 0..) |*o, i| o.* = eqb[i >> @intCast(e.n_k)];
+        const BCtx = struct { eqf: []QM31, eqb: []const QM31, nk: u32 };
+        const bctx = BCtx{ .eqf = eqf, .eqb = eqb, .nk = e.n_k };
+        pool.parallelFor(eqf.len, 1 << 14, &bctx, struct {
+            fn run(c: *const BCtx, s: usize, end: usize) void {
+                for (s..end) |i| c.eqf[i] = c.eqb[i >> @intCast(c.nk)];
+            }
+        }.run);
         res = try sc.proveActive(3, &T_EQ3, a, pool, tr, claim, .{ eqf, fa, fb }, fa.len);
         fin = .{ res.finals[1], res.finals[2] };
     }

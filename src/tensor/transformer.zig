@@ -207,6 +207,16 @@ pub const Builder = struct {
         return id;
     }
 
+    /// Asserts einsum(A, B) == existing witness y exactly.
+    pub fn einsumInto(self: *Builder, y: u32, a_: Ref, b_: Ref, n_k: u32, la: []const []const u8, lb: []const []const u8) !void {
+        var e = einsumSpec(a_, b_, self.infos.items[y].logSize(), n_k, la, lb);
+        const acc = try xt.einsumAcc(self.a, self.pool, e, self.vals(a_), self.vals(b_));
+        defer self.a.free(acc);
+        for (acc, self.wit.items[y]) |v, w| if (v != w) return error.EinsumMismatch;
+        e.y = y;
+        try self.xops.append(self.a, .{ .einsum = e });
+    }
+
     pub fn key(self: *Builder, n: u32, input: xt.Expr, output: ?xt.Expr, table: xt.TableRef) !void {
         try self.xops.append(self.a, .{ .key = .{ .n = @intCast(n), .input = input, .output = output, .table = table } });
     }
@@ -585,8 +595,9 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
         term(1, Ref.w(S), &.{all3}),
         term(1, Ref.p(c.bias), &.{ids(lh, 2 * lt)}),
     }, 0));
-    // sel in {0,1}, sum_j sel = 1, sum_j sel * D = 0
-    try b.key(n3, try b.expr(&.{term(1, Ref.w(sel_id), &.{all3})}, 0), null, .{ .range = 1 });
+    // sel in {0,1} (sel * sel == sel: one degree-3 zero-check, cheaper than a
+    // 1-bit LogUp key over H T^2), sum_j sel = 1, sum_j sel * D = 0
+    try b.einsumInto(sel_id, Ref.w(sel_id), Ref.w(sel_id), 0, &.{all3}, &.{all3});
     try b.lineq(n2, try b.expr(&.{term(1, Ref.w(sel_id), &.{ ids(0, n2), sums(lt) })}, -1));
     _ = try b.einsumExact(null, n2, Ref.w(sel_id), Ref.w(dd_id), lt, &.{all3}, &.{all3});
     // e = exp_table(D) (domain [0, 1024) also range-checks D)
@@ -975,7 +986,7 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
     }
 }
 
-const Cheat = enum { rden_plus_one, sel_moved, max_lowered, prob_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
+const Cheat = enum { sel_nonbinary, rden_plus_one, sel_moved, max_lowered, prob_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
 
 fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
     var pool: f.Pool = undefined;
@@ -1019,6 +1030,11 @@ fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
         },
         .prob_plus_one => b.wit.items[at.probs][row * T] += 1,
         .rden_plus_one => b.wit.items[at.rden][row] += 1,
+        .sel_nonbinary => {
+            // non-binary selector that keeps sum_j sel = 1
+            sel[row * T + jstar] = 2;
+            sel[row * T + jlow.?] = -1;
+        },
         .rt_plus_one => {
             const r = fx.out.rms1;
             b.wit.items[r.rt][0] += 1;

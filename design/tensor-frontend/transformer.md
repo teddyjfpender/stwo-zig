@@ -143,7 +143,8 @@ signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
   and |P den - 128 e| <= den (tested against the exact quotient).
 * o[t, h, e] = rq_s(sum_j P[h,t,j] v[j, hk(h), e]) int8, s chosen.
 
-Constraints for the rowmax: sel in {0,1} (1-bit range), sum_j sel = 1
+Constraints for the rowmax: sel in {0,1} (exact einsum sel * sel = sel, a
+degree-3 zero-check; over the field x^2 = x iff x in {0,1}), sum_j sel = 1
 (lineq), sum_j sel * D = 0 (exact einsum with y = 0).
 
 **Residual**: z = x + y committed with a lineq (no range check needed: z is
@@ -163,7 +164,7 @@ ties are irrelevant: m is unique; sel may pick any maximiser but nothing
 downstream depends on which).
 
 Uniqueness arguments:
-* rowmax: sel in {0,1}, sum sel = 1 over <= T < p terms => exactly one j*;
+* rowmax: sel in {0,1} (sel^2 = sel), sum sel = 1 over <= T < p terms => exactly one j*;
   D_j in [0,1024) and D_j = m - S_j - Bias_j as integers (bounds below) =>
   m >= Sm_j for all j; sum_j sel D = D_{j*} = 0 => m = Sm_{j*}. So m = max Sm.
 * division: rden in range and pr = rden den exactly; with |2^K - pr| < 2^30,
