@@ -122,6 +122,83 @@ const Pp = struct {
     }
 };
 
+/// Field-independent lookup authority. Secure fields change denominators and
+/// interaction encoding, never these MAIN/preprocessed tuple values or weights.
+/// Preprocessed references are resolved once, not searched per emitted row.
+pub const RawLookupRows = struct {
+    base: BaseView,
+    gather_pp: [5][11][]const M31,
+    table_pp: [4][3][]const M31,
+    seq: []const M31,
+    pub const MAX_LOOKUPS = components.blake_g_gate.n_lookups;
+    pub fn init(columns: []const ColumnEvaluation, circuit: *const preprocessed.PreprocessedCircuit) !RawLookupRows {
+        const pp = Pp{ .circuit = circuit };
+        const base = try BaseView.init(columns);
+        var out = RawLookupRows{ .base = base, .gather_pp = undefined, .table_pp = undefined, .seq = try pp.column("seq_16") };
+        const ids = .{ preprocessed.EQ_COLUMN_IDS, preprocessed.QM31_OPS_COLUMN_IDS, preprocessed.TRIPLE_XOR_COLUMN_IDS, preprocessed.M31_TO_U32_COLUMN_IDS, preprocessed.BLAKE_G_GATE_COLUMN_IDS };
+        inline for (ids, 0..) |names, i| @memcpy(out.gather_pp[i][0..names.len], &(try pp.columns(names)));
+        inline for (.{ "bitwise_xor_8", "bitwise_xor_4", "bitwise_xor_7", "bitwise_xor_9" }, 0..) |name, i| out.table_pp[i] = try pp.columns(.{ name ++ "_0", name ++ "_1", name ++ "_2" });
+        return out;
+    }
+    pub fn count(kind: component_list.ComponentList) usize {
+        return switch (kind) {
+            .eq => components.eq.n_lookups,
+            .qm31_ops => components.qm31_ops.n_lookups,
+            .triple_xor => components.triple_xor.n_lookups,
+            .m_31_to_u_32 => components.m31_to_u32.n_lookups,
+            .blake_g_gate => components.blake_g_gate.n_lookups,
+            .verify_bitwise_xor_8 => components.xor_8.relations.len,
+            .verify_bitwise_xor_12 => components.xor_12.n_mult_columns,
+            .verify_bitwise_xor_4 => components.xor_4.relations.len,
+            .verify_bitwise_xor_7 => components.xor_7.relations.len,
+            .verify_bitwise_xor_9 => components.xor_9.relations.len,
+            .range_check_16 => 1,
+        };
+    }
+    pub fn fill(self: *const RawLookupRows, kind: component_list.ComponentList, r: usize, storage: []Lookup) ![]const Lookup {
+        const n = count(kind);
+        if (storage.len < n) return error.LookupRowBufferTooSmall;
+        const index = kind.idx();
+        const columns = self.base.component(index, traceWidths()[index]);
+        for (columns) |column| if (r >= column.values.len) return error.InvalidTraceShape;
+        const gather = .{ components.eq, components.qm31_ops, components.triple_xor, components.m31_to_u32, components.blake_g_gate };
+        inline for (gather, 0..) |K, i| if (index == i) {
+            const pc = self.gather_pp[i][0..switch (i) {
+                0 => 2,
+                1 => 8,
+                2 => 5,
+                3 => 3,
+                4 => 11,
+                else => unreachable,
+            }];
+            for (pc) |column| if (r >= column.len) return error.InvalidPreprocessedCircuit;
+            const row = self.base.row(K.n_columns, i, r);
+            const values = K.lookups(&row, ppRow(K, pc, r));
+            @memcpy(storage[0..n], &values);
+            return storage[0..n];
+        };
+        inline for (.{ components.xor_8, components.xor_4, components.xor_7, components.xor_9 }, .{ @as(usize, 5), 7, 8, 9 }, 0..) |table, id, i| if (index == id) {
+            var mults: [2]M31 = undefined;
+            for (columns, 0..) |column, j| mults[j] = column.values[r];
+            for (self.table_pp[i]) |column| if (r >= column.len) return error.InvalidPreprocessedCircuit;
+            components.xorTableLookups(table, .{ self.table_pp[i][0][r], self.table_pp[i][1][r], self.table_pp[i][2][r] }, mults[0..n], storage[0..n]);
+            return storage[0..n];
+        };
+        if (kind == .verify_bitwise_xor_12) {
+            for (storage[0..n], columns, 0..) |*lookup, column, i| {
+                lookup.* = .{ .numerator = column.values[r].neg(), .len = 4 };
+                lookup.tuple[0..4].* = components.xor_12.tupleAt(i, r);
+            }
+        } else {
+            if (r >= self.seq.len) return error.InvalidPreprocessedCircuit;
+            storage[0] = .{ .numerator = columns[0].values[r].neg(), .len = 2 };
+            storage[0].tuple[0] = components.range_check_16.relation;
+            storage[0].tuple[1] = self.seq[r];
+        }
+        return storage[0..n];
+    }
+};
+
 /// A gather component's row count: a power of two of at least `N_LANES`
 /// (`ComponentTrace` packs 16-row vectors).
 fn gatherLogSize(n_rows: usize) Error!u32 {
