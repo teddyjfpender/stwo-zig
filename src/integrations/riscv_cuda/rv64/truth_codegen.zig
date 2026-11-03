@@ -183,3 +183,157 @@ test "classic truth records the existing equation authority with bounded mask ge
         }
     }
 }
+
+pub const V3Role = @import("stwo_riscv_cpu_integration").rv64_gkr_truth_v3_role;
+pub const V3Catalog = @import("stwo_riscv_cpu_integration").rv64_gkr_truth_v3_catalog;
+pub fn recordV3Type(a: std.mem.Allocator, comptime T: type, family: u32) !Artifact {
+    var recording = X.Recording.init(a);
+    defer recording.deinit();
+    recording.begin();
+    defer recording.end();
+    const View = struct {
+        pub fn fixed(_: *const @This(), c: usize) F {
+            return F.input(0, c, 0);
+        }
+        pub fn main(_: *const @This(), c: usize) F {
+            return F.input(1, c, 0);
+        }
+        pub fn previousActive(_: *const @This()) F {
+            return F.input(1, 0, -1);
+        }
+        pub fn interaction(_: *const @This(), c: usize) F {
+            return F.input(2, c, 0);
+        }
+        pub fn previousInteraction(_: *const @This(), c: usize) F {
+            return F.input(2, c, -1);
+        }
+    };
+    var view = View{};
+    const n = T.main_constraints + T.byte_batches + T.wire_batches;
+    const values = try a.alloc(F, n);
+    defer a.free(values);
+    var sink = E.SinkFor(F){ .values = values };
+    const p = symbolicParameters();
+    T.Eq.emitMain(F, &view, p.span, &sink);
+    if (T.bytes == 0) T.Eq.emitInteraction(F, &view, p.span, p.claim, p.wire, &sink) else T.Eq.emitInteraction(F, &view, p.span, p.claim, .{ .bytes = p.local.polynomial, .wire = p.wire }, &sink);
+    if (sink.count != n) return error.WrongTruthConstraintCount;
+    const roots = try a.alloc(u32, n);
+    defer a.free(roots);
+    for (roots, values) |*r, v| r.* = v.id;
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("rv64/cuda/native-v3-truth/v1");
+    var tag: [4]u8 = undefined;
+    std.mem.writeInt(u32, &tag, family, .little);
+    h.update(&tag);
+    var program = try recording.builder.finish(h.finalResult(), roots);
+    errdefer program.deinit();
+    const map = try a.alloc(u32, program.parameters.len);
+    errdefer a.free(map);
+    for (program.parameters, map) |value, *slot| {
+        const w = value.toM31Array();
+        for (w[1..]) |x| if (!x.isZero()) return error.InvalidTruthParameter;
+        if (w[0].v == 0 or w[0].v > slots.count) return error.InvalidTruthParameter;
+        slot.* = w[0].v - 1;
+    }
+    return .{ .a = a, .program = program, .parameter_slots = map, .last_anchor_column = std.math.maxInt(usize) };
+}
+pub fn recordV3(a: std.mem.Allocator, component: *const V3Role.Component) !Artifact {
+    var visitor = struct {
+        allocator: std.mem.Allocator,
+        family: u32,
+        artifact: ?Artifact = null,
+        pub fn call(self: *@This(), comptime T: type) !void {
+            self.artifact = try recordV3Type(self.allocator, T, self.family);
+        }
+    }{ .allocator = a, .family = @intFromEnum(component.truth.family()) };
+    try V3Catalog.visit(component.truth, &visitor);
+    return visitor.artifact orelse error.InvalidTruthFamily;
+}
+pub fn nativeMetadataV3(component: *const V3Role.Component) [slots.count]O {
+    var values: [slots.count]O = @splat(O.zero());
+    const M = core.fields.m31.M31;
+    values[0] = O.fromBase(M.fromCanonical(component.truth.count()));
+    values[1] = O.fromBase(M.fromCanonical(component.truth.first()));
+    values[2] = if (component.truth.count() == 0) O.zero() else O.one();
+    values[slots.polynomial] = component.bytes;
+    values[slots.wire] = component.wire.offset;
+    @memcpy(values[slots.wire + 1 ..][0..component.wire.coefficients.len], &component.wire.coefficients);
+    values[slots.claim] = component.claim;
+    return values;
+}
+test "V3 SHA arithmetic and secp row providers record original equation authority" {
+    const a = std.testing.allocator;
+    inline for (.{ V3Catalog.Sha(), V3Catalog.Arith(), V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double) }, 0..) |T, i| {
+        var artifact = try recordV3Type(a, T, @intCast(i));
+        defer artifact.deinit();
+        try artifact.program.validate();
+        const degrees = try artifact.program.degrees(a);
+        defer a.free(degrees);
+        for (artifact.program.roots) |r| try std.testing.expect(degrees[r] <= T.degree);
+        const Dense = struct {
+            fn value(seed: usize) O {
+                var coordinates: [8]core.fields.m31.M31 = undefined;
+                for (&coordinates, 0..) |*v, j| v.* = core.fields.m31.M31.fromCanonical(@intCast((seed * 37 + j * 113 + 1) % core.fields.m31.Modulus));
+                return O.fromM31Array(coordinates);
+            }
+            fn get(tree: usize, column: usize, offset: i8) O {
+                return value(tree * 100000 + column * 11 + @as(usize, @intCast(offset + 1)));
+            }
+            pub fn fixed(_: *@This(), c: usize) O {
+                return get(0, c, 0);
+            }
+            pub fn main(_: *@This(), c: usize) O {
+                return get(1, c, 0);
+            }
+            pub fn previousActive(_: *@This()) O {
+                return get(1, 0, -1);
+            }
+            pub fn interaction(_: *@This(), c: usize) O {
+                return get(2, c, 0);
+            }
+            pub fn previousInteraction(_: *@This(), c: usize) O {
+                return get(2, c, -1);
+            }
+        };
+        var parameters: [slots.count]O = undefined;
+        for (&parameters, 0..) |*v, j| v.* = Dense.value(1000 + j);
+        parameters[0] = O.fromBase(core.fields.m31.M31.fromCanonical(3));
+        parameters[1] = O.fromBase(core.fields.m31.M31.fromCanonical(2));
+        parameters[2] = O.one();
+        for (artifact.program.parameters, artifact.parameter_slots) |*v, slot| v.* = parameters[slot];
+        const inputs = try a.alloc(O, artifact.program.inputs.len);
+        defer a.free(inputs);
+        for (inputs, artifact.program.inputs) |*v, input| v.* = Dense.get(input.tree, input.column, input.offset);
+        const actual = try artifact.program.evaluate(a, inputs);
+        defer a.free(actual);
+        const expected = try a.alloc(O, artifact.program.roots.len);
+        defer a.free(expected);
+        var sink = E.SinkFor(O){ .values = expected };
+        var view = Dense{};
+        var wire: A.crypto.sha256.equations.WireFor(O) = undefined;
+        wire.offset = parameters[slots.wire];
+        for (&wire.coefficients, 0..) |*v, j| v.* = parameters[slots.wire + 1 + j];
+        const span = E.CallSpanFor(O){ .calls = 3, .first_id = 2 };
+        T.Eq.emitMain(O, &view, span, &sink);
+        if (T.bytes == 0) T.Eq.emitInteraction(O, &view, span, parameters[slots.claim], wire, &sink) else T.Eq.emitInteraction(O, &view, span, parameters[slots.claim], .{ .bytes = parameters[slots.polynomial], .wire = wire }, &sink);
+        try std.testing.expectEqual(expected.len, sink.count);
+        for (expected, actual) |x, y| try std.testing.expect(x.eql(y));
+        for (artifact.program.inputs) |input| {
+            try std.testing.expect(input.tree < 3);
+            const width: usize = switch (input.tree) {
+                0 => T.fixed,
+                1 => T.L.MAIN,
+                else => (T.byte_batches + T.wire_batches) * 8,
+            };
+            try std.testing.expect(input.column < width);
+            if (input.offset != 0) {
+                try std.testing.expectEqual(@as(i8, -1), input.offset);
+                if (input.tree == 1) try std.testing.expectEqual(@as(u32, 0), input.column) else {
+                    try std.testing.expect(input.tree == 2);
+                    const batch = input.column / 8;
+                    try std.testing.expect((T.byte_batches > 0 and batch == T.byte_batches - 1) or batch == T.byte_batches + T.wire_batches - 1);
+                }
+            }
+        }
+    }
+}

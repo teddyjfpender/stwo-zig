@@ -14,6 +14,9 @@ const G = @import("joined_codegen.zig");
 const Oracle = @import("joined_fixture_support.zig");
 const Hybrid = @import("real_composition.zig");
 const Abi = @import("abi.zig");
+const Events = @import("cuda_events.zig");
+const Span = enum { coefficients, auxiliary, domain_fft, rows, finalize, commit_fft, commit_hash };
+const Timing = Events.RecorderFor(Span);
 const O = D.O;
 const M = D.M;
 const Items = CPU.rv64_gkr_cpu_components;
@@ -39,10 +42,36 @@ fn felts(a: std.mem.Allocator, values: []const O) ![]u32 {
     };
     return out;
 }
+fn sourceColumn(source: engine.air.component_prover.ForField(O).Poly) !D.Column {
+    try source.validate();
+    if (source.device) |device| {
+        if (device.count == 0 or !std.math.isPowerOfTwo(device.count) or device.count > (@as(u64, 1) << 28)) return error.InvalidResidentSource;
+        return .{ .log_size = std.math.log2_int(u64, device.count), .device = device };
+    }
+    const p = source.coefficients orelse return error.DevicePcsCoefficientsRequired;
+    return .{ .log_size = p.logSize(), .coefficients = p.coefficients() };
+}
+const Geometry = struct {
+    key: [32]u8,
+    source_words: usize,
+    eval_base: usize,
+    tw_base: usize,
+    desc_base: usize,
+    arena_words: usize,
+    descriptors: []u32,
+    masks: []u64,
+    denominators: []M,
+    fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        a.free(self.descriptors);
+        a.free(self.masks);
+        a.free(self.denominators);
+    }
+};
 pub const Context = struct {
     allocator: std.mem.Allocator,
     service: *Service.Context,
     session_api: SC.Api,
+    timing: Events.Api,
     role: *const @TypeOf(Abi.stwo_rv64_composition_role_on),
     finish: *const @TypeOf(Abi.stwo_rv64_composition_finish_on),
     auxiliary: *const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on),
@@ -54,10 +83,13 @@ pub const Context = struct {
     artifacts: [49]G.Artifact,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
+    geometries: std.ArrayList(Geometry) = .empty,
+    geometry_hits: u64 = 0,
+    geometry_misses: u64 = 0,
     log_blowup: u32 = 1,
     result_columns: std.ArrayList([]D.Column) = .empty,
     pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
-        var result: Context = .{ .allocator = a, .service = service, .session_api = .{
+        var result: Context = .{ .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -77,6 +109,8 @@ pub const Context = struct {
     pub fn deinit(self: *Context) void {
         for (&self.artifacts) |*artifact| artifact.deinit();
         for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(self.allocator, value);
+        for (self.geometries.items) |*cached_geometry| cached_geometry.deinit(self.allocator);
+        self.geometries.deinit(self.allocator);
         for (self.result_columns.items) |columns| self.allocator.free(columns);
         self.result_columns.deinit(self.allocator);
         self.* = undefined;
@@ -84,6 +118,54 @@ pub const Context = struct {
     fn tw(self: *Context, log: u32) !*const Twiddle {
         if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(self.allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
         return &self.twiddles[log].?;
+    }
+    fn geometry(self: *Context, artifact: *const G.Artifact, rl: u32, el: u32, widths: [3]usize, sources: []const D.Column, auxiliary_count: usize, twiddle_words: usize) !*const Geometry {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("rv64/cuda/composition-immutable-geometry/v1");
+        hash.update(&artifact.program.identity);
+        for ([_]usize{ rl, el, widths[0], widths[1], widths[2], auxiliary_count, twiddle_words }) |value| {
+            var bytes: [8]u8 = undefined;
+            std.mem.writeInt(u64, &bytes, value, .little);
+            hash.update(&bytes);
+        }
+        for (sources) |source| {
+            var bytes: [4]u8 = undefined;
+            std.mem.writeInt(u32, &bytes, source.log_size, .little);
+            hash.update(&bytes);
+        }
+        const key = hash.finalResult();
+        for (self.geometries.items) |*cached| if (std.mem.eql(u8, &cached.key, &key)) {
+            self.geometry_hits += 1;
+            return cached;
+        };
+        const a = self.allocator;
+        const n = @as(usize, 1) << @intCast(el);
+        const count = sources.len + auxiliary_count;
+        const descriptors = try a.alloc(u32, count * 6);
+        errdefer a.free(descriptors);
+        var source_words: usize = 0;
+        for (0..count) |i| {
+            const degree = if (i < sources.len) sources[i].log_size else rl;
+            if (degree > el) return error.InvalidResidentSource;
+            const size = @as(usize, 1) << @intCast(degree);
+            const dst = i * n;
+            descriptors[i * 6 ..][0..6].* = .{ @truncate(source_words), @truncate(@as(u64, source_words) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), degree, 0 };
+            source_words = try std.math.add(usize, source_words, size);
+        }
+        const masks = try a.alloc(u64, artifact.program.inputs.len);
+        errdefer a.free(masks);
+        for (masks, artifact.program.inputs) |*off, input| off.* = @as(u64, input.column) * n;
+        const denominators = try A.geometry.denominatorInverses(a, rl, el);
+        errdefer a.free(denominators);
+        const tw_base = try std.math.add(usize, source_words, try std.math.mul(usize, count, n));
+        const desc_base = std.mem.alignForward(usize, tw_base + twiddle_words, 2);
+        if (self.geometries.items.len == 256) {
+            var retired = self.geometries.swapRemove(0);
+            retired.deinit(a);
+        }
+        try self.geometries.append(a, .{ .key = key, .source_words = source_words, .eval_base = source_words, .tw_base = tw_base, .desc_base = desc_base, .arena_words = desc_base + count * 6, .descriptors = descriptors, .masks = masks, .denominators = denominators });
+        self.geometry_misses += 1;
+        return &self.geometries.items[self.geometries.items.len - 1];
     }
     pub fn stage(self: *Context) CPU.rv64_gkr_cpu_worker.ResidentCompositionStage {
         return .{ .context = self, .evaluate_and_commit = evaluate };
@@ -113,6 +195,13 @@ const Job = struct {
     scope: D.Scope,
     result: ?D.Tree = null,
     failure: ?anyerror = null,
+    active_role: u32 = 999,
+    fn checked(self: *Job, comptime operation: []const u8, status: c_int) !void {
+        if (status != 0) {
+            std.debug.print("GPU_COMPOSITION_FAILED ordinal={} role={} operation={s} native_status={}\n", .{ self.scope.ordinal, self.active_role, operation, status });
+            return error.CudaResidentCompositionFailed;
+        }
+    }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(data.?));
         self.run(raw, token) catch |err| {
@@ -126,6 +215,16 @@ const Job = struct {
         const b = self.backend;
         var context = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.scope), .api = &b.session_api };
         defer context.active = false;
+        var events = try Timing.init(&b.timing);
+        defer events.deinit();
+        var spans: [std.meta.fields(Span).len]f64 = @splat(0);
+        var stream0: ?*anyopaque = null;
+        var stream1: ?*anyopaque = null;
+        try self.checked("lane0", b.session_api.lane_stream(raw, 0, &stream0));
+        try self.checked("lane1", b.session_api.lane_stream(raw, 1, &stream1));
+        var host_cells: u64 = 0;
+        var device_cells: u64 = 0;
+        var domain_cells: u64 = 0;
         var leases: std.ArrayList(Native.Lease) = .empty;
         defer {
             context.join() catch {};
@@ -146,6 +245,7 @@ const Job = struct {
                 const T = @TypeOf(c.*);
                 const descriptor = Hybrid.descriptor(T, c);
                 const id = try Hybrid.caseId(descriptor);
+                self.active_role = id;
                 const artifact = &b.artifacts[id];
                 if (artifact.program.roots.len != c.nConstraints()) return error.WrongResidentConstraintCount;
                 const rl = G.Authority.RoleGeometry.logSize(c);
@@ -163,28 +263,25 @@ const Job = struct {
                 try sources.appendSlice(a, self.trace.polys.items[0][offsets[0]..][0..widths[0]]);
                 try sources.appendSlice(a, self.trace.polys.items[1][offsets[1]..][0..widths[1]]);
                 try sources.appendSlice(a, self.trace.polys.items[2][c.inter_offset..][0..iw]);
-                var source_words: usize = aux * (@as(usize, 1) << @intCast(rl));
-                for (sources.items) |source| {
-                    const p = source.coefficients orelse return error.DevicePcsCoefficientsRequired;
-                    source_words += p.coefficients().len;
-                }
+                const source_metadata = try a.alloc(D.Column, sources.items.len);
+                defer a.free(source_metadata);
+                for (source_metadata, sources.items) |*column, source| column.* = try sourceColumn(source);
                 const tw = try b.tw(el);
-                const eval_base = source_words;
-                const tw_base = eval_base + column_count * n;
-                const desc_base = tw_base + tw.twiddles.len;
-                var arena = try context.allocate(desc_base + column_count * 6, 0);
+                const geometry = try b.geometry(artifact, rl, el, widths, source_metadata, aux, tw.twiddles.len);
+                const eval_base = geometry.eval_base;
+                const tw_base = geometry.tw_base;
+                const desc_base = geometry.desc_base;
+                var arena = try context.allocate(geometry.arena_words, 0);
                 defer {
                     context.join() catch {};
                     context.release(&arena) catch {};
                 }
                 const arena_ptr = arena.words.?;
                 var coefficient_offset: usize = 0;
-                var descriptors: std.ArrayList(u32) = .empty;
-                defer descriptors.deinit(a);
-                for (sources.items, 0..) |source, i| {
-                    const p = source.coefficients.?;
-                    const values = p.coefficients();
-                    const original = D.Column{ .log_size = p.logSize(), .coefficients = values };
+                try events.mark(.coefficients, false, stream0.?);
+                for (source_metadata, 0..) |original, i| {
+                    const values = original.coefficients;
+                    const length: usize = if (original.device) |device| @intCast(device.count) else values.len;
                     const target = arena_ptr + coefficient_offset;
                     const source_tree: u32 = if (i < widths[0]) 0 else if (i < widths[0] + widths[1]) 1 else 2;
                     const original_index = switch (source_tree) {
@@ -192,14 +289,17 @@ const Job = struct {
                         1 => offsets[1] + i - widths[0],
                         else => c.inter_offset + i - widths[0] - widths[1],
                     };
-                    if (b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
-                        try check(b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
-                        try check(b.copy(raw, @ptrCast(target), @ptrCast(device.words), values.len * 4));
-                    } else try check(b.session_api.upload(raw, @ptrCast(target), values.ptr, values.len * 4));
-                    const dst = eval_base + i * n;
-                    try descriptors.appendSlice(a, &.{ @truncate(coefficient_offset), @truncate(@as(u64, coefficient_offset) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), p.logSize(), 0 });
-                    coefficient_offset += values.len;
+                    if (if (original.device != null) original.device else b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
+                        try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
+                        try self.checked("copy", b.copy(raw, @ptrCast(target), @ptrCast(device.words), length * 4));
+                        device_cells += length;
+                    } else {
+                        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(target), values.ptr, values.len * 4));
+                        host_cells += values.len;
+                    }
+                    coefficient_offset += length;
                 }
+                try events.mark(.coefficients, true, stream0.?);
                 if (comptime @hasField(T, "data")) {
                     var hc: [2 * 22 * 8]u32 = undefined;
                     for (0..2) |half| for (0..rl) |i| for ((if (half == 0) c.data.point.hc0[i] else c.data.point.hc1[i]).toM31Array(), 0..) |word, j| {
@@ -210,19 +310,16 @@ const Job = struct {
                     const it = try upload(a, &context, &leases, words(role_tw.itwiddles));
                     try context.join();
                     var stream: ?*anyopaque = null;
-                    try check(b.session_api.lane_stream(raw, 1, &stream));
+                    try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
                     var launches: u32 = 0;
-                    try check(b.auxiliary(raw, 1, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
+                    try events.mark(.auxiliary, false, stream.?);
+                    try self.checked("auxiliary", b.auxiliary(raw, 1, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
                     const rows = @as(usize, 1) << @intCast(rl);
-                    try check(b.b2n(arena_ptr + coefficient_offset, rows, arena_ptr + coefficient_offset, rows, rl, 10, it.words.?, @intCast(role_tw.itwiddles.len), @intCast(rows / 2), stream.?, &launches));
-                    for (0..10) |i| {
-                        const src = coefficient_offset + i * rows;
-                        const dst = eval_base + (sources.items.len + i) * n;
-                        try descriptors.appendSlice(a, &.{ @truncate(src), @truncate(@as(u64, src) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), rl, 0 });
-                    }
+                    try self.checked("b2n", b.b2n(arena_ptr + coefficient_offset, rows, arena_ptr + coefficient_offset, rows, rl, 10, it.words.?, @intCast(role_tw.itwiddles.len), @intCast(rows / 2), stream.?, &launches));
+                    try events.mark(.auxiliary, true, stream.?);
                 }
-                try check(b.session_api.upload(raw, @ptrCast(arena_ptr + tw_base), tw.twiddles.ptr, tw.twiddles.len * 4));
-                try check(b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), descriptors.items.ptr, descriptors.items.len * 4));
+                try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + tw_base), tw.twiddles.ptr, tw.twiddles.len * 4));
+                try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), geometry.descriptors.ptr, geometry.descriptors.len * 4));
                 const metadata = Hybrid.metadata(T, c, descriptor);
                 const parameters = try a.alloc(O, artifact.parameter_slots.len);
                 defer a.free(parameters);
@@ -235,25 +332,30 @@ const Job = struct {
                 const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
                 defer a.free(power_words);
                 const pw = try upload(a, &context, &leases, power_words);
-                const mask_offsets = try a.alloc(u64, artifact.program.inputs.len);
-                defer a.free(mask_offsets);
-                for (mask_offsets, artifact.program.inputs) |*off, mask| off.* = @as(u64, mask.column) * n;
+                const mask_offsets = geometry.masks;
                 const masks = try upload(a, &context, &leases, @as([*]const u32, @ptrCast(mask_offsets.ptr))[0 .. mask_offsets.len * 2]);
-                const ds = try A.geometry.denominatorInverses(a, rl, el);
-                defer a.free(ds);
-                const denom = try upload(a, &context, &leases, words(ds));
+                const denom = try upload(a, &context, &leases, words(geometry.denominators));
                 if (buckets[el] == null) {
                     buckets[el] = try allocate(a, &context, &leases, 8 * n, 0);
-                    try check(b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
+                    try self.checked("clear", b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
                 }
                 try context.join();
                 var stream: ?*anyopaque = null;
-                try check(b.session_api.lane_stream(raw, 1, &stream));
+                try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
                 var launches: u32 = 0;
-                try check(b.n2b(arena_ptr, arena.count, arena_ptr + desc_base, @intCast(column_count), eval_base, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
-                const packet = Abi.CompositionRole{ .role = id, .trace_log = rl, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ arena_ptr + eval_base, arena_ptr + eval_base + widths[0] * n, arena_ptr + eval_base + (widths[0] + widths[1]) * n }, .tree_words = .{ widths[0] * n, widths[1] * n, widths[2] * n }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = mask_offsets.len, .parameters = params.words.?, .parameter_count = parameters.len, .powers = pw.words.?, .constraint_count = artifact.program.roots.len, .denominator_inverses = denom.words.?, .output = buckets[el].?.words.? };
-                try check(b.role(raw, 1, &packet, &launches));
+                try events.mark(.domain_fft, false, stream.?);
+                try self.checked("n2b", b.n2b(arena_ptr, arena.count, arena_ptr + desc_base, @intCast(column_count), eval_base, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
+                try events.mark(.domain_fft, true, stream.?);
+                const packet = Abi.CompositionRole{ .role = id, .trace_log = rl, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ arena_ptr + eval_base, arena_ptr + eval_base + widths[0] * n, arena_ptr + eval_base + (widths[0] + widths[1]) * n }, .tree_words = .{ @max(@as(usize, 1), widths[0] * n), @max(@as(usize, 1), widths[1] * n), @max(@as(usize, 1), widths[2] * n) }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = mask_offsets.len, .parameters = params.words.?, .parameter_count = parameters.len, .powers = pw.words.?, .constraint_count = artifact.program.roots.len, .denominator_inverses = denom.words.?, .output = buckets[el].?.words.? };
+                try events.mark(.rows, false, stream.?);
+                try self.checked("role", b.role(raw, 1, &packet, &launches));
+                try events.mark(.rows, true, stream.?);
                 try context.join();
+                spans[@intFromEnum(Span.coefficients)] += try events.milliseconds(.coefficients);
+                spans[@intFromEnum(Span.domain_fft)] += try events.milliseconds(.domain_fft);
+                spans[@intFromEnum(Span.rows)] += try events.milliseconds(.rows);
+                if (comptime @hasField(T, "data")) spans[@intFromEnum(Span.auxiliary)] += try events.milliseconds(.auxiliary);
+                domain_cells += column_count * n;
             },
         };
         if (next != 0) return error.UnusedCompositionCoefficients;
@@ -269,7 +371,7 @@ const Job = struct {
         if (commit_log > 28) return error.UnsupportedResidentCompositionBlowup;
         const tw = try b.tw(commit_log);
         const composition_tw = try b.tw(self.log);
-        var output = try context.allocate(coeff_count + eval_words + tw.twiddles.len + count * 6, 2);
+        var output = try context.allocate(std.mem.alignForward(usize, coeff_count + eval_words + tw.twiddles.len, 2) + count * 6, 2);
         errdefer context.release(&output) catch {};
         const accumulator = try allocate(a, &context, &leases, coeff_count, 0);
         const inv = try upload(a, &context, &leases, words(composition_tw.itwiddles));
@@ -278,9 +380,11 @@ const Job = struct {
         for (buckets, 0..) |bucket, log| if (bucket) |value| try list.append(a, .{ .words = value.words.?, .log = @intCast(log) });
         try context.join();
         var launches: u32 = 0;
-        try check(b.finish(raw, 1, list.items.ptr, @intCast(list.items.len), accumulator.words.?, output.words.?, self.log, self.split, inv.words.?, @intCast(composition_tw.itwiddles.len), &launches));
+        try events.mark(.finalize, false, stream1.?);
+        try self.checked("finish", b.finish(raw, 1, list.items.ptr, @intCast(list.items.len), accumulator.words.?, output.words.?, self.log, self.split, inv.words.?, @intCast(composition_tw.itwiddles.len), &launches));
+        try events.mark(.finalize, true, stream1.?);
         const output_tw = coeff_count + eval_words;
-        const output_desc = output_tw + tw.twiddles.len;
+        const output_desc = std.mem.alignForward(usize, output_tw + tw.twiddles.len, 2);
         var descriptors: std.ArrayList(u32) = .empty;
         defer descriptors.deinit(a);
         for (0..count) |i| {
@@ -288,19 +392,26 @@ const Job = struct {
             const dst = coeff_count + i * commit_rows;
             try descriptors.appendSlice(a, &.{ @truncate(src), @truncate(@as(u64, src) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), chunk_log, 0 });
         }
-        try check(b.session_api.upload(raw, @ptrCast(output.words.? + output_tw), tw.twiddles.ptr, tw.twiddles.len * 4));
-        try check(b.session_api.upload(raw, @ptrCast(output.words.? + output_desc), descriptors.items.ptr, descriptors.items.len * 4));
+        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(output.words.? + output_tw), tw.twiddles.ptr, tw.twiddles.len * 4));
+        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(output.words.? + output_desc), descriptors.items.ptr, descriptors.items.len * 4));
         try context.join();
         var stream: ?*anyopaque = null;
-        try check(b.session_api.lane_stream(raw, 1, &stream));
-        try check(b.n2b(output.words.?, output.count, output.words.? + output_desc, @intCast(count), coeff_count, commit_log, output.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, 1, &launches));
+        try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
+        try events.mark(.commit_fft, false, stream.?);
+        try self.checked("n2b", b.n2b(output.words.?, output.count, output.words.? + output_desc, @intCast(count), coeff_count, commit_log, output.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, 1, &launches));
+        try events.mark(.commit_fft, true, stream.?);
         const tree_words = (2 * commit_rows - 1) * 8;
         const tree = try allocate(a, &context, &leases, tree_words, 0);
         const segment = Abi.MixedSegment{ .columns = output.words.? + coeff_count, .stride_words = commit_rows, .capacity_words = eval_words, .source_size = @intCast(commit_rows), .reserved = 0 };
-        try check(b.tree(raw, 1, @ptrCast(&segment), 1, commit_log, tree.words.?, tree_words));
+        try events.mark(.commit_hash, false, stream1.?);
+        try self.checked("tree", b.tree(raw, 1, @ptrCast(&segment), 1, commit_log, tree.words.?, tree_words));
+        try events.mark(.commit_hash, true, stream1.?);
         try context.join();
+        spans[@intFromEnum(Span.finalize)] = try events.milliseconds(.finalize);
+        spans[@intFromEnum(Span.commit_fft)] = try events.milliseconds(.commit_fft);
+        spans[@intFromEnum(Span.commit_hash)] = try events.milliseconds(.commit_hash);
         var root_words: [8]u32 = undefined;
-        try check(b.session_api.download(raw, &root_words, @ptrCast(tree.words.? + tree_words - 8), 32));
+        try self.checked("session_api.download", b.session_api.download(raw, &root_words, @ptrCast(tree.words.? + tree_words - 8), 32));
         try context.join();
         var root: [32]u8 = undefined;
         for (root_words, 0..) |v, i| std.mem.writeInt(u32, root[i * 4 ..][0..4], v, .little);
@@ -309,6 +420,9 @@ const Job = struct {
         for (columns, 0..) |*column, i| column.* = .{ .log_size = chunk_log, .device = .{ .words = output.words.? + i * (@as(usize, 1) << @intCast(chunk_log)), .count = @as(u64, 1) << @intCast(chunk_log), .context_token = output.context_token, .generation = output.generation } };
         try b.service.retainDeviceLease(context.scope, output);
         self.result = .{ .root = root, .columns = columns };
+        var kernel_ms: f64 = 0;
+        for (spans[1..]) |value| kernel_ms += value;
+        std.debug.print("GPU_COMPOSITION_TIMING ordinal={} coefficient_stream_ms={d:.3} auxiliary_ms={d:.3} domain_fft_ms={d:.3} rows_ms={d:.3} finalize_ms={d:.3} commit_fft_ms={d:.3} commit_hash_ms={d:.3} gpu_enqueued_kernel_spans_ms={d:.3} host_coefficient_cells={} device_coefficient_cells={} domain_cells={} geometry_hits={} geometry_misses={}\n", .{ self.scope.ordinal, spans[0], spans[1], spans[2], spans[3], spans[4], spans[5], spans[6], kernel_ms, host_cells, device_cells, domain_cells, b.geometry_hits, b.geometry_misses });
     }
 };
 fn allocate(a: std.mem.Allocator, c: *SC.Context, list: *std.ArrayList(Native.Lease), n: usize, kind: u32) !Native.Lease {
@@ -329,4 +443,15 @@ test "resident composition adapter binds the actual worker callback" {
     try std.testing.expectEqual(@intFromPtr(&context), @intFromPtr(stage.context));
     _ = Context.init;
     _ = Job.callback;
+}
+
+test "resident composition accepts a scoped device polynomial without host reconstruction" {
+    const T = engine.air.component_prover.ForField(O).Poly;
+    var source = T{ .log_size = 8, .values = &.{}, .device = .{ .words = @ptrFromInt(4096), .count = 128, .context_token = 7, .generation = 3 } };
+    const column = try sourceColumn(source);
+    try std.testing.expectEqual(@as(u32, 7), column.log_size);
+    try std.testing.expectEqual(@as(usize, 0), column.coefficients.len);
+    try std.testing.expectEqual(@as(u64, 3), column.device.?.generation);
+    source.device.?.count = 129;
+    try std.testing.expectError(error.InvalidColumnLength, sourceColumn(source));
 }
