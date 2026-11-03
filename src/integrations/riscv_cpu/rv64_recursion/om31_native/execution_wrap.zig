@@ -384,7 +384,6 @@ const ParallelExecution = struct {
             self.proofs[id] = outcome.pending;
             const spec = self.plan.nodes[id];
             self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left, .right = spec.right, .authority = outcome.pending.proof.authority.identity, .digest = outcome.pending.proof.digest };
-            self.graph_ns += outcome.graph_ns;
             self.retired_bytes += outcome.retired_bytes;
             if (spec.left) |left| {
                 // prove() has freshly verified and durably published the parent.
@@ -393,9 +392,10 @@ const ParallelExecution = struct {
                 self.proofs[spec.right.?].?.deinit(self.input.allocator);
                 self.proofs[left] = null;
                 self.proofs[spec.right.?] = null;
-                self.fold_ns += outcome.proof_ns;
+                self.fold_ns += outcome.graph_ns + outcome.proof_ns;
                 self.restored_folds += @intFromBool(outcome.restored);
             } else {
+                self.graph_ns += outcome.graph_ns;
                 self.wrap_ns += outcome.proof_ns;
                 self.restored_leaves += @intFromBool(outcome.restored);
             }
