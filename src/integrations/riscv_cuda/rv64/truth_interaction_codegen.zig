@@ -46,21 +46,24 @@ const Collector = struct {
 };
 /// id0=throughput-r27 permutation, id1=chi multiplicities, id2=xor5.
 pub fn record(a: std.mem.Allocator, id: u32) !Artifact {
-    if (id >= 3) return switch (id) {
+    if (id >= 3 and id < 7) return switch (id) {
         3 => recordV3(a, T.V3Catalog.Sha(), id),
         4 => recordV3(a, T.V3Catalog.Arith(), id),
         5 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), id),
         6 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double), id),
         else => error.UnsupportedTruthInteractionRole,
     };
+    if (id >= 10) return error.UnsupportedTruthInteractionRole;
+    const local_id: u32 = if (id < 3) id else id - 7;
+    const policy: K.equations.BatchPolicy = if (id < 3) .throughput_r27_v1 else .triple_v2;
     var recording = X.Recording.init(a);
     defer recording.deinit();
     recording.begin();
     defer recording.end();
     const params = T.symbolicParameters();
-    var collector = Collector{ .a = a, .parameters = params, .packing = if (id == 0) 3 else 1 };
+    var collector = Collector{ .a = a, .parameters = params, .packing = if (local_id == 0) 3 else 1 };
     defer collector.roots.deinit(a);
-    if (id == 0) {
+    if (local_id == 0) {
         var fixed: [K.layout.FIXED]F = undefined;
         for (&fixed, 0..) |*v, i| v.* = F.input(0, i, 0);
         var main: [K.layout.MAIN]F = undefined;
@@ -73,26 +76,25 @@ pub fn record(a: std.mem.Allocator, id: u32) !Artifact {
         }
         const empty: [K.layout.STATE]F = @splat(F.zero());
         const row = K.equations.RowFor(F){ .fixed = &fixed, .main = &main, .previous_header = &@as([3]F, @splat(F.zero())), .state_minus_two = &empty, .state_minus_one = &previous, .state_plus_one = &next, .state_plus_two = &empty };
-        const policy = K.equations.BatchPolicy.throughput_r27_v1;
         const weight = K.equations.roundActiveFor(F, row).neg();
         for (0..policy.lookups()) |event| {
-            const tuple = K.equations.throughputTupleFor(F, main[0..K.layout.STATE], main[K.layout.STATE..K.layout.ACTIVE_A], &next, fixed[2..26], event);
+            const tuple = if (policy == .throughput_r27_v1) K.equations.throughputTupleFor(F, main[0..K.layout.STATE], main[K.layout.STATE..K.layout.ACTIVE_A], &next, fixed[2..26], event) else K.equations.lookupTupleFor(F, row, event);
             const d = params.local.denominatorFor(F, if (event < policy.chiLookups()) .chi else .xor5, tuple);
             try collector.append(d, weight);
         }
         if (collector.fill != 0) try collector.flush();
         const local: u32 = @intCast(collector.roots.items.len / 2);
-        for (0..50) |entry| {
-            const tuple = K.equations.ioTupleR27For(F, row, entry);
+        for (0..if (policy == .throughput_r27_v1) 2 * K.layout.IO_LANES else K.layout.IO_LANES) |entry| {
+            const tuple = if (policy == .throughput_r27_v1) K.equations.ioTupleR27For(F, row, entry) else K.equations.ioTupleFor(F, row, entry);
             const d = A.evaluation.denominatorFor(F, params.kio.offset, &params.kio.coefficients, &tuple, true);
-            const n = K.equations.ioActiveR27For(F, row, entry);
+            const n = if (policy == .throughput_r27_v1) K.equations.ioActiveR27For(F, row, entry) else K.equations.ioActiveFor(F, row);
             try collector.roots.appendSlice(a, &.{ n.id, d.id });
         }
-        return finish(a, &recording, collector.roots.items, id, .{ local, 50 });
+        return finish(a, &recording, collector.roots.items, id, .{ local, if (policy == .throughput_r27_v1) 50 else 25 });
     }
     var tuple: [6]F = undefined;
     for (&tuple, 0..) |*v, i| v.* = F.input(0, i, 0);
-    try collector.append(params.local.denominatorFor(F, if (id == 1) .chi else .xor5, tuple), F.input(1, 0, 0));
+    try collector.append(params.local.denominatorFor(F, if (local_id == 1) .chi else .xor5, tuple), F.input(1, 0, 0));
     return finish(a, &recording, collector.roots.items, id, .{ 1, 0 });
 }
 fn recordV3(a: std.mem.Allocator, comptime Type: type, id: u32) !Artifact {
@@ -164,12 +166,12 @@ pub fn emit(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, kernel_
 }
 test "truth rational projection keeps native triple and strict IO groups" {
     const a = std.testing.allocator;
-    for (0..7) |id| {
+    for (0..10) |id| {
         var artifact = try record(a, @intCast(id));
         defer artifact.deinit();
         try artifact.program.validate();
-        const first = [7]u32{ 143, 1, 1, 2, @intCast(T.V3Catalog.Arith().byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).byte_batches) };
-        const second = [7]u32{ 50, 0, 0, 0, @intCast(T.V3Catalog.Arith().wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).wire_batches) };
+        const first = [10]u32{ 143, 1, 1, 2, @intCast(T.V3Catalog.Arith().byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).byte_batches), 640, 1, 1 };
+        const second = [10]u32{ 50, 0, 0, 0, @intCast(T.V3Catalog.Arith().wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).wire_batches), 25, 0, 0 };
         try std.testing.expectEqual(first[id], artifact.groups[0]);
         try std.testing.expectEqual(second[id], artifact.groups[1]);
         try std.testing.expectEqual(@as(usize, 2) * (artifact.groups[0] + artifact.groups[1]), artifact.program.roots.len);
@@ -181,11 +183,11 @@ test "truth rational projection keeps native triple and strict IO groups" {
 }
 
 pub fn name(a: std.mem.Allocator, id: u32) ![]u8 {
-    if (id > 6) return error.UnsupportedTruthInteractionRole;
+    if (id > 9) return error.UnsupportedTruthInteractionRole;
     return std.fmt.allocPrint(a, "stwo_rv64_truth_projection_{}", .{id});
 }
 pub fn writeAot(a: std.mem.Allocator, dir: std.fs.Dir) !void {
-    for (0..7) |id| {
+    for (0..10) |id| {
         var artifact = try record(a, @intCast(id));
         defer artifact.deinit();
         const symbol = try name(a, @intCast(id));
@@ -196,7 +198,7 @@ pub fn writeAot(a: std.mem.Allocator, dir: std.fs.Dir) !void {
         defer text.deinit(a);
         const w = text.writer(a);
         try emit(a, w, &artifact, kernel);
-        const widths: [2]usize = if (id == 0) .{ 32, 1923 } else if (id < 3) .{ 7, 1 } else if (id == 3) .{ T.V3Catalog.Sha().fixed, T.V3Catalog.Sha().L.MAIN } else if (id == 4) .{ T.V3Catalog.Arith().fixed, T.V3Catalog.Arith().L.MAIN } else if (id == 5) .{ T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).fixed, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).L.MAIN } else .{ T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).fixed, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).L.MAIN };
+        const widths: [2]usize = if (id == 0 or id == 7) .{ 32, 1923 } else if (id < 3 or id >= 8) .{ 7, 1 } else if (id == 3) .{ T.V3Catalog.Sha().fixed, T.V3Catalog.Sha().L.MAIN } else if (id == 4) .{ T.V3Catalog.Arith().fixed, T.V3Catalog.Arith().L.MAIN } else if (id == 5) .{ T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).fixed, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).L.MAIN } else .{ T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).fixed, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).L.MAIN };
         const pairs = artifact.groups[0] + artifact.groups[1];
         const width = 8 * (pairs + 1 + @as(u32, @intFromBool(artifact.groups[1] != 0)));
         try w.writeAll("\n#include \"rv64/custody.cuh\"\n");

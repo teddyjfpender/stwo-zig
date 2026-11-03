@@ -16,7 +16,7 @@ const T = @import("truth_codegen.zig");
 const O = D.O;
 const Truth = @FieldType(S.Prepare, "truth");
 const Launch = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, [*]const u32, [*]u32, [*]u32, [*]u32, u32) callconv(.c) c_int;
-const Keccak = extern struct { inputs: [*]const u32, main: [*]u32, chi: [*]u32, xor5: [*]u32, status: [*]u32, input_words: u64, main_words: u64, calls: u32, first_id: u32, log: u32, reserved: u32 = 0 };
+const Keccak = extern struct { inputs: [*]const u32, main: [*]u32, chi: [*]u32, xor5: [*]u32, status: [*]u32, input_words: u64, main_words: u64, calls: u32, first_id: u32, log: u32, policy: u32 = 0 };
 const Sha = extern struct { inputs: [*]const u32, main: [*]u32, status: [*]u32, input_words: u64, main_words: u64, calls: u32, first_id: u32, log: u32, reserved: u32 = 0 };
 const Arith = extern struct { inputs: [*]const u32, main: [*]u32, byte_counts: [*]u32, status: [*]u32, input_words: u64, main_words: u64, calls: u32, first_id: u32, log: u32, reserved: u32 = 0 };
 const Secp = extern struct { inputs: [*]const u32, main: [*]u32, byte_counts: [*]u32, status: [*]u32, input_words: u64, main_words: u64, calls: u32, first_id: u32, log: u32, kind: u32 };
@@ -53,7 +53,7 @@ pub const Context = struct {
     sha: ?ShaFn,
     arith: ?ArithFn,
     secp: ?SecpFn,
-    entries: [7]?Entry = @splat(null),
+    entries: [10]?Entry = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Native.Context, trace: *Trace.Context, rational: *Rational.Context) !Context {
         return .{ .allocator = a, .service = service, .trace = trace, .rational = rational, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(N.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(N.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(N.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(N.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .rebind = try symbol(N.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .keccak = try symbol(KeccakFn, &service.library, "stwo_rv64_keccak_witness_on"), .arith = service.library.lookup(ArithFn, "stwo_rv64_arith256_witness_on"), .secp = service.library.lookup(SecpFn, "stwo_rv64_secp_witness_on"), .sha = service.library.lookup(ShaFn, "stwo_rv64_sha256_witness_on") };
@@ -87,8 +87,8 @@ pub const Context = struct {
         if (request.budget == 0 or request.truth.count() == 0) return error.InvalidDeviceTruthBudget;
         switch (request.truth) {
             .keccak => |truth| {
-                if (truth.setup.policy != .throughput_r27_v1) return error.UnsupportedDeviceTruthPolicy;
-                for (0..3) |id| _ = try self.entry(@intCast(id));
+                const base = try T.classicKernelId(truth.setup.policy, .keccak);
+                for (base..base + 3) |id| _ = try self.entry(@intCast(id));
             },
             .sha256 => {
                 if (self.sha == null) return error.MissingDeviceTruthSymbol;
@@ -168,11 +168,12 @@ const Owner = struct {
             if (local != .classic) return error.DeviceTruthChallengeMismatch;
             var fixed_offset: usize = 0;
             var main_offset: usize = 0;
+            const base = try T.classicKernelId(self.truth.keccak.setup.policy, .keccak);
             for (0..3) |id| {
-                const entry = try self.backend.entry(@intCast(id));
+                const entry = try self.backend.entry(base + @as(u32, @intCast(id)));
                 const log: u32 = if (id == 0) self.truth.keccak.setup.log else self.truth.keccak.setup.policy.tableLog(if (id == 1) .chi else .xor5);
                 const widths: [2]usize = if (id == 0) .{ 32, 1923 } else .{ 7, 1 };
-                const component = T.Role.Component{ .kind = if (id == 0) .keccak else if (id == 1) .chi else .xor5, .log_size = log, .calls = if (id == 0) self.truth.count() else 0, .first_id = if (id == 0) self.truth.first() else 1, .keccak_policy = .throughput_r27_v1, .local = local.classic, .shared = shared, .claim = O.zero(), .global_claim = O.zero(), .split = 2 };
+                const component = T.Role.Component{ .kind = if (id == 0) .keccak else if (id == 1) .chi else .xor5, .log_size = log, .calls = if (id == 0) self.truth.count() else 0, .first_id = if (id == 0) self.truth.first() else 1, .keccak_policy = self.truth.keccak.setup.policy, .local = local.classic, .shared = shared, .claim = O.zero(), .global_claim = O.zero(), .split = 2 };
                 const metadata = T.nativeMetadata(&component);
                 const parameters = try a.alloc(O, entry.slots.len);
                 defer a.free(parameters);
@@ -294,9 +295,9 @@ const MainJob = struct {
         try checked(b.api.upload(raw, @ptrCast(status.words.?), &zero_status, 4));
         o.raw_leases[0] = try context.allocate(width * n, 0);
         if (o.truth == .keccak) {
-            o.raw_leases[1] = try context.allocate(1 << 21, 0);
-            o.raw_leases[2] = try context.allocate(1 << 16, 0);
-            const packet = Keccak{ .inputs = input.words.?, .main = o.raw_leases[0].?.words.?, .chi = o.raw_leases[1].?.words.?, .xor5 = o.raw_leases[2].?.words.?, .status = status.words.?, .input_words = o.compact_words, .main_words = width * n, .calls = o.truth.count(), .first_id = o.truth.first(), .log = log };
+            o.raw_leases[1] = try context.allocate(@as(usize, 1) << @intCast(o.truth.keccak.setup.policy.tableLog(.chi)), 0);
+            o.raw_leases[2] = try context.allocate(@as(usize, 1) << @intCast(o.truth.keccak.setup.policy.tableLog(.xor5)), 0);
+            const packet = Keccak{ .inputs = input.words.?, .main = o.raw_leases[0].?.words.?, .chi = o.raw_leases[1].?.words.?, .xor5 = o.raw_leases[2].?.words.?, .status = status.words.?, .input_words = o.compact_words, .main_words = width * n, .calls = o.truth.count(), .first_id = o.truth.first(), .log = log, .policy = if (o.truth.keccak.setup.policy == .triple_v2) 1 else 0 };
             try context.join();
             try checked(b.keccak(raw, 1, &packet));
         } else if (o.truth == .arith256_mod) {
@@ -323,8 +324,8 @@ const MainJob = struct {
         o.raw_columns = try a.alloc(D.TraceColumn, total);
         for (o.raw_columns[0..width], 0..) |*column, i| column.* = evalColumn(o.raw_leases[0].?, i * n, log);
         if (o.truth == .keccak) {
-            o.raw_columns[width] = evalColumn(o.raw_leases[1].?, 0, 21);
-            o.raw_columns[width + 1] = evalColumn(o.raw_leases[2].?, 0, 16);
+            o.raw_columns[width] = evalColumn(o.raw_leases[1].?, 0, o.truth.keccak.setup.policy.tableLog(.chi));
+            o.raw_columns[width + 1] = evalColumn(o.raw_leases[2].?, 0, o.truth.keccak.setup.policy.tableLog(.xor5));
         }
     }
 };

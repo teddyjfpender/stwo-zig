@@ -9,12 +9,12 @@ const IO = @import("fixture_io.zig");
 const Oracle = @import("joined_fixture_support.zig");
 const Field = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
-pub const count = 7;
+pub const count = 10;
 pub const Record = struct { artifact: T.Artifact, widths: [3]usize, classic: ?T.Role.Component };
 pub fn record(a: std.mem.Allocator, id: u32) !Record {
-    if (id < 3) {
-        const kind = ([3]T.Role.Kind{ .keccak, .chi, .xor5 })[id];
-        const c = T.Role.Component{ .kind = kind, .log_size = 5, .keccak_policy = .throughput_r27_v1, .local = std.mem.zeroes(@FieldType(T.Role.Component, "local")), .shared = std.mem.zeroes(@FieldType(T.Role.Component, "shared")), .claim = Field.zero(), .split = 2 };
+    if (id < 3 or (id >= 7 and id < 10)) {
+        const kind = ([3]T.Role.Kind{ .keccak, .chi, .xor5 })[if (id < 3) id else id - 7];
+        const c = T.Role.Component{ .kind = kind, .log_size = 5, .keccak_policy = if (id < 3) .throughput_r27_v1 else .triple_v2, .local = std.mem.zeroes(@FieldType(T.Role.Component, "local")), .shared = std.mem.zeroes(@FieldType(T.Role.Component, "shared")), .claim = Field.zero(), .split = 2 };
         var widths = c.widths();
         widths[2] += 1;
         return .{ .artifact = try T.record(a, &c), .widths = widths, .classic = c };

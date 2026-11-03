@@ -36,6 +36,21 @@ pub fn symbolicParameters() Role.Component.ParametersFor(F) {
     p.global_claim = F.parameter(slots.global_claim);
     return p;
 }
+/// Stable native kernel roster. Protocol policy, never table height, chooses
+/// the authority: IDs0..2 are r27 and IDs7..9 are original triple_v2.
+pub fn classicKernelId(policy: A.crypto.keccak.equations.BatchPolicy, kind: Role.Kind) !u32 {
+    const base: u32 = switch (policy) {
+        .throughput_r27_v1 => 0,
+        .triple_v2 => 7,
+        else => return error.UnsupportedTruthCompositionPolicy,
+    };
+    return base + @as(u32, switch (kind) {
+        .keccak => 0,
+        .chi => 1,
+        .xor5 => 2,
+        else => return error.UnsupportedTruthCompositionRole,
+    });
+}
 pub fn nativeMetadata(component: *const Role.Component) [slots.count]O {
     var values: [slots.count]O = @splat(O.zero());
     const M = core.fields.m31.M31;
@@ -336,4 +351,12 @@ test "V3 SHA arithmetic and secp row providers record original equation authorit
             }
         }
     }
+}
+
+test "classic GPU authority IDs distinguish admitted policy independently of log" {
+    try std.testing.expectEqual(@as(u32, 0), try classicKernelId(.throughput_r27_v1, .keccak));
+    try std.testing.expectEqual(@as(u32, 7), try classicKernelId(.triple_v2, .keccak));
+    try std.testing.expectEqual(@as(u32, 8), try classicKernelId(.triple_v2, .chi));
+    try std.testing.expectEqual(@as(u32, 9), try classicKernelId(.triple_v2, .xor5));
+    try std.testing.expectError(error.UnsupportedTruthCompositionRole, classicKernelId(.triple_v2, .bytes));
 }

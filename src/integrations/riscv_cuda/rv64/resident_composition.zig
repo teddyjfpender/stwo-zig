@@ -132,7 +132,7 @@ pub const Context = struct {
     copy: Copy,
     clear: Clear,
     artifacts: [49]KernelMetadata,
-    truth_artifacts: [7]?KernelMetadata = @splat(null),
+    truth_artifacts: [10]?KernelMetadata = @splat(null),
     truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
@@ -297,13 +297,7 @@ pub const Context = struct {
         defer for (roles[0..made]) |role| a.free(role.parameters);
         switch (bound) {
             .classic => |components| for (components, roles) |*c, *role| {
-                if (c.keccak_policy != .throughput_r27_v1) return error.UnsupportedTruthCompositionPolicy;
-                const id: u32 = switch (c.kind) {
-                    .keccak => 0,
-                    .chi => 1,
-                    .xor5 => 2,
-                    else => return error.UnsupportedTruthCompositionRole,
-                };
+                const id = try @import("truth_codegen.zig").classicKernelId(c.keccak_policy, c.kind);
                 role.* = try self.bindTruthRole(a, id, c.log_size, c.maxConstraintLogDegreeBound(), c.widths(), c.offsets, @import("truth_codegen.zig").nativeMetadata(c), c.nConstraints(), true);
                 made += 1;
             },
