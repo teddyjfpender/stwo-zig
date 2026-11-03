@@ -406,12 +406,19 @@ fn accountGkr(acc: *Account, name: []const u8, g: anytype) !void {
     }
 }
 
-/// LogUp: the fractional-sum identity of each relation, as a rational
-/// function in (alpha, beta), fails at the draw with probability <= degree /
-/// |F|: (fractions) x (beta-degree of a key + 1), plus a zero denominator.
+/// LogUp: a key of arity a enters as the denominator alpha - (v_0 + beta
+/// v_1 + ... + beta^(a-1) v_(a-1)), a polynomial of total degree g =
+/// max(a - 1, 1) in (alpha, beta); distinct keys give distinct, monic-in-
+/// alpha (hence coprime) denominators. If the relation's multiset identity
+/// fails (some net multiplicity c_s != 0 mod p, which needs D < p), the
+/// rational function sum_s c_s / d_s is nonzero, so its numerator over the
+/// common denominator - total degree <= (N - 1) g for N <= D distinct keys
+/// - vanishes at the draw with probability <= (N - 1) g / |F| (Schwartz-
+/// Zippel), and a zero denominator has probability <= N g / |F|. Summed
+/// over the relations: < 2 g D / |F| with D all fractions.
 fn accountLogup(acc: *Account, name: []const u8, fractions: f64, max_arity: u32) !void {
-    const deg: f64 = @floatFromInt(@max(max_arity, 2));
-    try acc.add(name, .logup, std.math.log2(2 * deg * fractions) - LOG2_F, 0, 1);
+    const g: f64 = @floatFromInt(@max(max_arity, 2) - 1);
+    try acc.add(name, .logup, std.math.log2(2 * g * fractions) - LOG2_F, 0, 1);
 }
 
 pub const Report = struct {
@@ -555,6 +562,18 @@ test "round-by-round (Markov) form of lambda and queries" {
     // tau = 2^-x with x >= 1 keeps a + tau <= 1 meaningful
     const full = lambdaRbr(3, 10, 0.9, 0);
     try std.testing.expect(full.query[1] <= 0);
+}
+
+test "LogUp term: total degree max(arity - 1, 1) per denominator" {
+    var acc = Account.init(std.testing.allocator);
+    defer acc.deinit();
+    try accountLogup(&acc, "a1", std.math.exp2(25.0), 1);
+    try accountLogup(&acc, "a2", std.math.exp2(25.0), 2);
+    try accountLogup(&acc, "a3", std.math.exp2(25.0), 3);
+    // 2 * 2^25 / |F| for arity 1 and 2; 4 * 2^25 / |F| for arity 3
+    try std.testing.expectApproxEqAbs(26 - LOG2_F, acc.terms.items[0].log2_err, 1e-9);
+    try std.testing.expectApproxEqAbs(26 - LOG2_F, acc.terms.items[1].log2_err, 1e-9);
+    try std.testing.expectApproxEqAbs(27 - LOG2_F, acc.terms.items[2].log2_err, 1e-9);
 }
 
 test "account sums and maxima" {
