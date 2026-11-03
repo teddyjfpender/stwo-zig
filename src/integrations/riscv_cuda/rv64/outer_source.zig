@@ -105,6 +105,18 @@ pub const Context = struct {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (values.len == 0 or values.len > std.math.maxInt(u32) / 4) return error.InvalidOuterAssignment;
         if (comptime @hasDecl(Outer.prove.Authority, "requireProverData")) try key.requireProverData();
+        // Raw FIXED evaluations are borrowed together while generating MAIN and
+        // INTER. The original alias scope is released before composition borrows
+        // the coefficient forest; immutable aliases must never be evicted live.
+        var fixed_bytes: u64 = 0;
+        for (key.pp.columns) |column| fixed_bytes = try std.math.add(u64, fixed_bytes, try std.math.mul(u64, column.values.len, @sizeOf(u32)));
+        if (self.service.immutable_setup == null) try self.service.enableImmutableSetup(@min(self.service.byte_cap, 2 << 30));
+        const immutable_limit = self.service.immutable_setup.?.limit;
+        if (fixed_bytes > immutable_limit) {
+            std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, key.logs.toArray() });
+            return error.OuterFixedForestExceedsImmutableBudget;
+        }
+        std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} assignment_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, values.len * @sizeOf(Outer.protocol.Q), key.logs.toArray() });
         self.mutex.lock();
         if (self.active != null) {
             self.mutex.unlock();
