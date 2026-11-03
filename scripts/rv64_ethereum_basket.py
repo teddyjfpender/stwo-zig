@@ -61,7 +61,9 @@ def measure(argv, directory, name, environment=None):
               "peak_rss_bytes": usage.ru_maxrss if platform.system() == "Darwin" else usage.ru_maxrss * 1024,
               "minor_faults": usage.ru_minflt, "major_faults": usage.ru_majflt}
     if process.returncode:
-        raise RuntimeError(f"{name} failed ({process.returncode}); see {directory / (name + '.stderr')}")
+        error = RuntimeError(f"{name} failed ({process.returncode}); see {directory / (name + '.stderr')}")
+        error.measurement = result
+        raise error
     return result
 
 
@@ -240,6 +242,7 @@ def execute(job, backend, admission, nsys=None):
         atomic_json(target / "resources.json", job["resources"])
     worker_index = None
     monitor = None
+    physical_memory = None
     try:
         environment = os.environ.copy()
         worker = None
@@ -309,7 +312,12 @@ def execute(job, backend, admission, nsys=None):
         atomic_json(target / "result.json", result)
         return result
     except Exception as error:
-        atomic_json(target / "failure.json", {"block": job["block"], "backend": backend, "error": str(error), "accepted": False})
+        if monitor:
+            physical_memory = monitor.finish()
+            monitor = None
+        atomic_json(target / "failure.json", {"block": job["block"], "backend": backend, "error": str(error), "accepted": False,
+                                              "failed_process": getattr(error, "measurement", None),
+                                              "physical_gpu_memory": physical_memory if backend == "gpu" else None})
         raise
     finally:
         if monitor:

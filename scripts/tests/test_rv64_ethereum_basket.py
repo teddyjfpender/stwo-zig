@@ -137,6 +137,16 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(result["gpu_device_ns_per_native_cell"], 500)
         self.assertEqual(result["worker"]["device"], 1)
 
+    def test_failed_producer_preserves_its_process_usage(self):
+        job = self.job(False)
+        job["produce"] = [sys.executable, "-c", "raise SystemExit(3)"]
+        with self.assertRaises(RuntimeError):
+            B.execute(job, "cpu", B.Admission([{"device": None, "capacity_bytes": 1}]))
+        failure = B.load(Path(job["output"]) / "failure.json")
+        self.assertEqual(failure["failed_process"]["exit_code"], 3)
+        self.assertGreater(failure["failed_process"]["peak_rss_bytes"], 0)
+        self.assertFalse(failure["accepted"])
+
     def test_prefix_receiver_has_no_terminal_output(self):
         job = self.job(True)
         job["prefix_count"] = 1
