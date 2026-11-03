@@ -87,3 +87,15 @@ receivers. `run` preserves the original sequential behavior. Relocating a run
 requires preserving pinned authority/assets and paths; the harness never
 silently rebases or substitutes them. Pending cases stay incomplete in JSON
 and Markdown reports.
+
+`--strict-recursive-receiver` selects `verify-recursion-candidate`: one CPU
+process derives native keys and fixed authority once, verifies the native bundle,
+then verifies every existing recursive node using trace-only graphs. It must
+return both native acceptance and complete restored-root acceptance, with no
+proof generation. The original separate native + resume receiver path stays a
+control. A deferred `qualify` may explicitly upgrade only its receiver binaries
+and this verification strategy: the original `plan.json` and pending provenance
+remain unchanged, and the new pins are recorded in `qualification-plan.json`.
+Changing guest, profile, prover, runtime, request, resources or physical artifacts
+is rejected. The strict process usage is shared by native and root acceptance;
+it must not be counted twice when aggregating receiver time.

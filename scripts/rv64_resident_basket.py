@@ -55,7 +55,7 @@ def device_resources(resources, device_count):
     return result
 
 
-def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME, combined=False, recursive_receiver=None, repeat=2):
+def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME, combined=False, recursive_receiver=None, repeat=2, strict_recursive_receiver=False):
     if type(repeat) is not int or repeat not in (1, 2):
         raise ValueError("repeat must be 1 (fresh cold) or 2 (fresh cold/warm)")
     if manifest.get("schema") != "rv64-ethereum-basket-inputs/v1":
@@ -68,6 +68,8 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
         raise ValueError("matrix requires available distinct 1/2/4-device groups")
     if combined and counts != [1]:
         raise ValueError("combined recursion supports exactly one GPU; 2/4-device admission remains closed")
+    if strict_recursive_receiver and not combined:
+        raise ValueError("strict recursive receiver requires complete combined proving")
     if combined and recursive_receiver is None:
         raise ValueError("combined qualification requires an independently pinned recursive receiver")
     positive(cap, "device cap")
@@ -126,7 +128,7 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
                          "input_sha256": request["input_sha256"] if request else None,
                          "segments": entry["expected_cpu_segments"] if request else None,
                          "target": str(target), "resources": device_resources(resources, n)})
-    return {"schema": SCHEMA, "combined": combined, "repeat": repeat, "profile": PROFILE,
+    return {"schema": SCHEMA, "combined": combined, "repeat": repeat, "strict_recursive_receiver": strict_recursive_receiver, "profile": PROFILE,
             "immutable_host_key_bytes": manifest.get("immutable_host_key_bytes", 8 << 30),
             "combined_immutable_device_bytes": manifest.get("combined_immutable_device_bytes", 2 << 30),
             "combined_host_bytes": manifest.get("combined_host_bytes", 48 << 30), "runtime_target_sha256": expected_runtime,
@@ -238,7 +240,7 @@ def receiver_environment(environment, directory=None):
     return result
 
 
-def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log, environment):
+def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log, environment, received_override=None, shared_usage=None):
     combined = B.load(proof / "combined-report.json")
     entry = B.load(proof / "combined-entry.json")
     count = native["cpu_proofs"] + native["truth_proofs"]
@@ -263,10 +265,15 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
     usage = None
     if trial == 0:
         verify_env = receiver_environment(environment, target / "recursive-receiver-gpu-disabled")
-        command = B.command(plan["assets"]["recursive_receiver"], plan["profile"], "resume-recursion-candidate", job["request"], proof,
-                            job["resources"]["fixed_setup_bytes"], plan["combined_host_bytes"])
-        usage = B.measure(command, target, "recursive-receiver-0", verify_env)
-        received = B.load(target / "recursive-receiver-0.stdout")
+        if received_override is None:
+            command = B.command(plan["assets"]["recursive_receiver"], plan["profile"], "resume-recursion-candidate", job["request"], proof,
+                                job["resources"]["fixed_setup_bytes"], plan["combined_host_bytes"])
+            usage = B.measure(command, target, "recursive-receiver-0", verify_env)
+            received = B.load(target / "recursive-receiver-0.stdout")
+        else:
+            received, usage = received_override, shared_usage
+            if not all(received.get(k) is True for k in ("shared_fresh_native_authority", "native_verified_before_recursion", "existing_recursive_proofs_only", "trace_only_recursive_graphs")):
+                raise ValueError("strict existing-only shared-authority verification missing")
         if received.get("accepted") is not True or received.get("completed_ethereum_block") is not True or received.get("native_profile") != native["profile"]:
             raise ValueError("fresh recursive receiver rejected the complete statement")
         check_recursive_report(received["recursive"], count, restored=True)
@@ -277,6 +284,7 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
     return {"recursion_ns": combined["recursion_ns"], "recursive": recursive,
             "root_proof_bytes": recursive["root_proof_bytes"], "recursive_snapshot": snapshot,
             "fresh_recursive_receiver": usage, "fresh_recursive_receiver_accepted": trial == 0,
+            "native_and_recursive_share_receiver": plan.get("strict_recursive_receiver", False),
             "recursive_acceptance": "fresh full-context receiver" if trial == 0 else "exact cold proof/tree SHA parity",
             "device_lifecycle_audit": entry["device_lifecycle_audit"], "zero_cpu_assignments": True,
             "combined_report_sha256": B.sha(proof / "combined-report.json"), "entry_sha256": B.sha(proof / "combined-entry.json")}
@@ -352,11 +360,24 @@ def produced_snapshot(plan, job):
     return result
 
 
-def qualify_job(plan, job, pending=None):
+def production_identity(plan):
+    """Only independently pinned verifier binaries/strategy may change later."""
+    value = copy.deepcopy(plan)
+    value.pop("strict_recursive_receiver", None)
+    for name in ("assets", "asset_sha256"):
+        for key in ("receiver", "recursive_receiver"):
+            value.get(name, {}).pop(key, None)
+    return plan_identity(value)
+
+
+def qualify_job(plan, job, pending=None, production_plan=None):
     target = Path(job["target"])
     pending = B.load(target / "produced.json") if pending is None else pending
+    original = plan if production_plan is None else production_plan
+    if production_identity(original) != production_identity(plan):
+        raise ValueError("qualification changed the original production authority")
     if (pending.get("status") != "produced_pending_verification" or pending.get("accepted") is not False
-            or pending.get("plan_sha256") != plan_identity(plan) or pending.get("block") != job["block"]
+            or pending.get("plan_sha256") != plan_identity(original) or pending.get("block") != job["block"]
             or pending.get("device_count") != job["device_count"]):
         raise ValueError("pending production authority differs from the pinned plan")
     for key, path in plan["assets"].items():
@@ -384,9 +405,17 @@ def qualify_job(plan, job, pending=None):
         bundle_hash = B.sha(proof / "bundle.json")
         if not artifacts:
             raise ValueError("proof binaries missing")
+        strict_received = None
         if trial == 0:
-            receiver_usage = B.measure(command, target, "receiver-0", receiver_environment(environment, target / "native-receiver-gpu-disabled"))
-            accepted_receiver = B.load(target / "receiver-0.stdout")
+            if plan.get("strict_recursive_receiver"):
+                command = B.command(plan["assets"]["recursive_receiver"], plan["profile"], "verify-recursion-candidate", job["request"], proof,
+                                    job["resources"]["fixed_setup_bytes"], plan["combined_host_bytes"])
+                receiver_usage = B.measure(command, target, "strict-receiver-0", receiver_environment(environment, target / "strict-receiver-gpu-disabled"))
+                strict_received = B.load(target / "strict-receiver-0.stdout")
+                accepted_receiver = strict_received["native"]
+            else:
+                receiver_usage = B.measure(command, target, "receiver-0", receiver_environment(environment, target / "native-receiver-gpu-disabled"))
+                accepted_receiver = B.load(target / "receiver-0.stdout")
         else:
             if artifacts != trials[0]["artifact_sha256"] or bundle_hash != trials[0]["bundle_sha256"]:
                 raise ValueError("warm bytes differ from freshly accepted cold proof")
@@ -405,7 +434,7 @@ def qualify_job(plan, job, pending=None):
         if plan.get("combined"):
             if (accepted_receiver.get("cpu_proofs"), accepted_receiver.get("truth_proofs")) != (report["cpu_proofs"], report["truth_proofs"]):
                 raise ValueError("fresh native receiver proof inventory differs")
-            trial_result.update(qualify_recursive_trial(plan, job, proof, report, target, trial, trials, log, environment))
+            trial_result.update(qualify_recursive_trial(plan, job, proof, report, target, trial, trials, log, environment, strict_received, receiver_usage))
         trials.append(trial_result)
     if len(trials) > 1 and (trials[0]["artifact_sha256"] != trials[1]["artifact_sha256"] or trials[0]["bundle_sha256"] != trials[1]["bundle_sha256"]):
         raise ValueError("cold/warm deterministic byte parity failed")
@@ -425,6 +454,8 @@ def qualify_job(plan, job, pending=None):
     return {"schema": SCHEMA, "combined": plan.get("combined", False), "status": "accepted", "block": job["block"], "device_count": job["device_count"],
             "coordinator_schedule": job["resources"]["schedule"],
             "request_sha256": job["request_sha256"], "input_sha256": job["input_sha256"], "asset_sha256": plan["asset_sha256"],
+            "production_plan_sha256": pending["plan_sha256"], "qualification_plan_sha256": plan_identity(plan),
+            "strict_recursive_receiver": plan.get("strict_recursive_receiver", False),
             "single_device_proof_byte_parity": cross_device_parity,
             "profile": plan["profile"], "trials": trials,
             "environment": {k: v for k, v in environment.items() if k.startswith(("STWO_RV64_", "CUDA_"))}, "producer_process": usage, "gpu": gpu, "physical_gpu_memory": memory,
@@ -490,6 +521,7 @@ def main():
     p.add_argument("--driver", type=Path, required=True)
     p.add_argument("--receiver", type=Path, required=True)
     p.add_argument("--combined", action="store_true", help="Qualify complete native plus recursive cold/warm requests; currently one GPU only")
+    p.add_argument("--strict-recursive-receiver", action="store_true", help="Fresh native and existing-only trace-only recursive verification under one independently derived authority")
     p.add_argument("--recursive-receiver", type=Path, help="Current recursive receiver supporting resume-recursion-candidate; all cached proofs must be restored and verified, never newly proved")
     p.add_argument("--library", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
@@ -503,13 +535,20 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     plan = build_plan(B.load(args.basket), B.load(args.inputs), args.inputs.resolve().parent,
                       args.driver.resolve(), args.receiver.resolve(), args.library.resolve(), args.output.resolve(),
-                      list(map(int, args.devices.split(","))), list(map(int, args.counts.split(","))), args.device_cap_bytes, args.library_sha256, args.combined, args.recursive_receiver.resolve() if args.recursive_receiver else None, args.repeat)
+                      list(map(int, args.devices.split(","))), list(map(int, args.counts.split(","))), args.device_cap_bytes, args.library_sha256, args.combined, args.recursive_receiver.resolve() if args.recursive_receiver else None, args.repeat, args.strict_recursive_receiver)
     plan.update(basket_sha256=B.sha(args.basket), inputs_sha256=B.sha(args.inputs))
-    if args.mode not in ("report", "qualify"):
+    production_plan = None
+    if args.mode == "qualify":
+        production_plan = B.load(args.output / "plan.json")
+        if production_identity(production_plan) != production_identity(plan):
+            raise ValueError("qualification differs from original production authority")
+        B.atomic_json(args.output / "qualification-plan.json", plan)
+    elif args.mode != "report":
         B.atomic_json(args.output / "plan.json", plan)
     else:
-        if B.load(args.output / "plan.json") != plan:
-            raise ValueError("report authority differs from original pinned plan")
+        recorded = args.output / "qualification-plan.json"
+        if B.load(recorded if recorded.is_file() else args.output / "plan.json") != plan:
+            raise ValueError("report authority differs from pinned qualification plan")
     if args.mode in ("run", "produce", "qualify"):
         if not plan["input_ready"]:
             raise ValueError("matrix has missing assets/inputs; inspect plan.json")
@@ -520,7 +559,7 @@ def main():
             path = Path(job["target"]) / "result.json"
             try:
                 result = (produce_job(plan, job) if args.mode == "produce" else
-                          qualify_job(plan, job) if args.mode == "qualify" else run_job(plan, job))
+                          qualify_job(plan, job, production_plan=production_plan) if args.mode == "qualify" else run_job(plan, job))
             except Exception as error:
                 result = {"schema": SCHEMA, "status": "failed", "block": job["block"], "device_count": job["device_count"], "error": str(error),
                           "process_measurement": getattr(error, "measurement", None)}

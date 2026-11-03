@@ -255,10 +255,10 @@ class ResidentBasket(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "CPU assignment"):
             R.check_recursive_report(dict(report, assignment_source="cpu_circuit_builder"), 2)
 
-    def exercise_combined(self, corruption=None, repeat=2, deferred=False):
+    def exercise_combined(self, corruption=None, repeat=2, deferred=False, strict=False):
         self.manifest["blocks"]["1"]["expected_cpu_segments"] = 1
         plan = R.build_plan(self.basket, self.manifest, self.root, *self.assets[:3], self.root / "combined",
-                            [0], [1], 28 << 30, R.B.sha(self.assets[2]), True, self.assets[1], repeat)
+                            [0], [1], 28 << 30, R.B.sha(self.assets[2]), True, self.assets[1], repeat, strict)
         job = plan["jobs"][0]
         target = Path(job["target"])
         calls = []
@@ -303,7 +303,7 @@ class ResidentBasket(unittest.TestCase):
                 self.assertNotIn("STWO_RV64_GPU_LIBRARY", environment)
                 (target / (name + ".stdout")).write_text(json.dumps({"accepted": True, "completed_ethereum_block": True,
                     "security_profile": R.PROFILE, "output": [171, 205], "cpu_proofs": 1, "truth_proofs": 1}))
-            elif name == "recursive-receiver-0":
+            elif name in ("recursive-receiver-0", "strict-receiver-0"):
                 self.assertNotIn("STWO_RV64_GPU_DEVICES", environment)
                 self.assertEqual(environment["CUDA_VISIBLE_DEVICES"], "")
                 self.assertEqual(environment["STWO_RV64_GPU_PCS_HELPER"], "/bin/false")
@@ -311,8 +311,17 @@ class ResidentBasket(unittest.TestCase):
                 restored = dict(recursive, restored_leaves=2, restored_folds=1, gpu_new_leaf_proofs=0, gpu_new_fold_proofs=0)
                 if corruption == "reprove":
                     restored["restored_leaves"] = 1
-                (target / (name + ".stdout")).write_text(json.dumps({"accepted": True, "completed_ethereum_block": True,
-                    "native_profile": "native-label", "recursive": restored}))
+                response = {"accepted": True, "completed_ethereum_block": True,
+                            "native_profile": "native-label", "recursive": restored}
+                if name == "strict-receiver-0":
+                    self.assertEqual(argv[3], "verify-recursion-candidate")
+                    response.update(shared_fresh_native_authority=True, native_verified_before_recursion=True,
+                                    existing_recursive_proofs_only=True, trace_only_recursive_graphs=True,
+                                    native={"accepted": True, "completed_ethereum_block": True, "security_profile": R.PROFILE,
+                                            "output": [171, 205], "cpu_proofs": 1, "truth_proofs": 1})
+                    if corruption == "shared-authority":
+                        response["shared_fresh_native_authority"] = False
+                (target / (name + ".stdout")).write_text(json.dumps(response))
                 if corruption == "repair":
                     path = target / "batch/trial-0/1/proof/recursion-om31/root.proof"
                     path.write_bytes(b"repaired")
@@ -341,7 +350,27 @@ class ResidentBasket(unittest.TestCase):
                     self.assertNotIn("warm", result["trials"][0]["recursive_acceptance"])
                     self.assertIn("—", R.render(plan, [result]))
                 self.assertIn("Cold recursion", R.render(plan, [result]))
-        self.assertEqual(calls, ["producer", "receiver-0", "recursive-receiver-0"])
+        self.assertEqual(calls, ["producer", "strict-receiver-0"] if strict else ["producer", "receiver-0", "recursive-receiver-0"])
+
+    def test_strict_receiver_checks_native_and_root_with_one_process(self):
+        self.exercise_combined(repeat=1, strict=True)
+
+    def test_strict_receiver_rejects_missing_shared_authority_and_new_proofs(self):
+        self.exercise_combined("shared-authority", repeat=1, strict=True)
+
+    def test_receiver_upgrade_cannot_change_pinned_production_authority(self):
+        original = self.plan(counts=[1])
+        upgraded = copy.deepcopy(original)
+        upgraded["strict_recursive_receiver"] = True
+        upgraded["assets"]["receiver"] = "new independently pinned CPU receiver"
+        upgraded["asset_sha256"]["receiver"] = "new receiver digest"
+        self.assertEqual(R.production_identity(original), R.production_identity(upgraded))
+        for mutate in (lambda p: p.update(profile="different"),
+                       lambda p: p["asset_sha256"].update(driver="different"),
+                       lambda p: p["jobs"][0]["resources"].update(global_bytes=1)):
+            changed = copy.deepcopy(upgraded)
+            mutate(changed)
+            self.assertNotEqual(R.production_identity(original), R.production_identity(changed))
 
     def test_deferred_combined_requires_both_fresh_receivers_before_acceptance(self):
         self.exercise_combined(repeat=1, deferred=True)
