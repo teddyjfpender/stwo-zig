@@ -4184,3 +4184,34 @@ test "zk decoder layer: verifier rejects invalid attention / softmax / RMSNorm /
     }
     try std.testing.expect(n_run >= 6);
 }
+
+test "zk MoE top-1 layer (routing, dispatch, combine): verifies under both PCS modes, tampering rejected" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    // MoE config of transformer.zig's tests; router columns = weight table columns
+    const lc = tfm.LayerCfg{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 1, .log_experts = 2, .log_capacity = 3, .router_log_cols = 6 };
+    for ([_]bool{ false, true }) |rec| {
+        var cfg = layerCfgZk();
+        if (rec) cfg.two_level = .{ .inner = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .depth = 1, .inner_work_shift = 0 };
+        var fx: LayerFixture = undefined;
+        try fx.init(a, &pool, cfg, lc, 600);
+        defer fx.deinit(a);
+        try std.testing.expect(fx.out.moe != null);
+        const st = fx.b.statement();
+        const wv = try fx.b.witnessView(a);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        var proof = try prove(a, &pool, cfg, st, &fx.zw, wv, &tm);
+        defer proof.deinit(a);
+        try verify(a, cfg, st, fx.zw.key(), &proof);
+        const targets = [_]*QM31{ &proof.xhats[proof.xhats.len / 2], &proof.vrem_hats[0], &proof.vchecks[proof.vchecks.len - 1].hats[1], &proof.batch.hats[0] };
+        for (targets) |ptr| {
+            ptr.* = ptr.*.add(QM31.one());
+            try std.testing.expect(std.meta.isError(verify(a, cfg, st, fx.zw.key(), &proof)));
+            ptr.* = ptr.*.sub(QM31.one());
+        }
+        try verify(a, cfg, st, fx.zw.key(), &proof);
+    }
+}
