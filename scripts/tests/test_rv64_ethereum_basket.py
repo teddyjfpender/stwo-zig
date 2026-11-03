@@ -33,10 +33,13 @@ class BasketTests(unittest.TestCase):
                    "input_sha256": B.sha(self.root / "input"), "expected_output": output}
         (self.root / "request.json").write_text(json.dumps(request))
         block = {"block": 1, "set": "scored", "gas_used": 10, "new_payload_request_root": "0x" + "ab" * 32}
-        manifest = {"cpu_driver": sys.executable, "resources": {"fixed_setup_bytes": 100}}
+        manifest = {"cpu_driver": sys.executable, "resources": {"fixed_setup_bytes": 100, "disk_bytes": 200}, "disk_free_floor_bytes": 20, "remove_verified_proof_binaries": True}
         entry = {"request": "request.json", "jobs": "-"}
         job = B.job_for(block, entry, manifest, self.root, "cpu", self.root / "out", B.PROFILES[0])
         self.assertTrue(job["ready"])
+        self.assertEqual(job["disk_reservation_bytes"], 200)
+        self.assertEqual(job["disk_free_floor_bytes"], 20)
+        self.assertTrue(job["remove_verified_proof_binaries"])
         self.assertEqual(job["produce"][5], "-")
         self.assertTrue(job["produce"][-1].endswith("/1/resources.json"))
         (self.root / "input").write_bytes(b"mutated")
