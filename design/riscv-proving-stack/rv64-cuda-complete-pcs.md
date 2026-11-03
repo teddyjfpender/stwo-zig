@@ -58,10 +58,24 @@ objects, runs the resident pipeline and all four sanitizer/receiver gates.
 The older primitive-only `pcs_smoke.cu` remains intact; the complete path is in
 `pcs_pipeline_smoke.cu`.
 
+The four-tree extension now also qualifies fixed, MAIN, interaction and
+composition commitments with 30 heterogeneous columns, empty masks, offsets
+0/-1/+2, 35 explicit samples and six additional periodicity fractions. Immutable
+sample ordering is gathered on the device before transcript mixing. All four
+sanitizers pass; each capture is identical and freshly accepted by the native
+Linux verifier with exact native reference proof bytes. Eight physical mutations
+are rejected, including sample and tree order. The macOS verifier independently
+accepts the same capture. Evidence is in
+`vectors/reports/rv64-cuda-pcs-masks-20261103/`.
+
+`rv64-masked-pcs-fixtures` exports/verifies this extension, and the qualification
+script selects it with `--masked`. Both fixtures use the same failure-atomic
+proof assembler; its allocation-failure test includes empty and multiple masks.
+The normal masked fixture uses 2.34 MB and about 11 ms on the RTX 5090. These
+are functional fixture measurements, not production block or ns/cell timings.
+
 The current orchestration is a qualified proof harness, not a production
-execution dispatcher. The real RV64 proof uses multiple trees, heterogeneous
-opening masks and periodicity samples; these require receiver-derived planning,
-sample-order permutation and bounded residency. Joined-domain composition,
+execution dispatcher. Bounded production residency, joined-domain composition,
 actual CPU/truth witness integration and manifest/statement/physical-root
 acceptance are still required before the Ethereum receiver can accept a GPU
 bundle. GPU block timings, recursion and ZisK-equivalent performance remain

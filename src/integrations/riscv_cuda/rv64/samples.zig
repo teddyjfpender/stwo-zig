@@ -3,6 +3,8 @@
 const std = @import("std");
 const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
 pub const factor_stride: usize = 28;
+/// Receiver-derived map from grouped sampling slots to transcript order.
+pub const Order = struct { input: Slice, map: Slice, output: Slice, verdict: Slice, source_count: u32, count: u32 };
 pub const Points = struct {
     parameter: Slice,
     recipes: Slice,

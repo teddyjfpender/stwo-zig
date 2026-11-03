@@ -386,6 +386,11 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             };
             try self.result(Api.stwo_rv64_sample_evaluate_on(owner, self.lane_index, &packet), plan.dispatches);
         }
+        pub fn sampleOrder(self: *Self, j: @import("samples.zig").Order) !void {
+            if (j.source_count == 0 or j.source_count > 65536 or j.count == 0 or j.count > 65536) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.result(Api.stwo_rv64_sample_order_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, j.input, @as(usize, j.source_count) * 8), j.source_count, try self.context.deviceSlicePointer(u32, j.map, j.count), j.count, try self.context.deviceSlicePointer(u32, j.output, @as(usize, j.count) * 8), try self.context.deviceSlicePointer(u32, j.verdict, 1)), 1);
+        }
         pub fn projectBinding(self: *Self, input: Fraction, eq_column: Plane, prefix_column: Plane, metadata: Slice, verdict: Slice, row_log: u32, lane_log: u32) !void {
             if (row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > 28) return error.InvalidGeometry;
             const rows = @as(u32, 1) << @intCast(row_log);

@@ -5,26 +5,26 @@ const engine = @import("stwo_prover_engine");
 const F = @import("rv64/fri.zig");
 const T = @import("rv64/trace.zig");
 const IO = @import("rv64/fixture_io.zig");
-const O = core.fields.om31.OM31;
-const M = core.fields.m31.M31;
-const H = F.H;
-const Channel = core.channel.raw_mod_m31.Om31Channel;
-const Point = core.circle.CirclePoint(O);
-const TreeVec = core.pcs.TreeVec;
-const Native = core.pcs.ForField(O);
-const Cpu = @import("stwo_riscv_cpu_integration").CpuProverEngine.Backend;
-const MC = struct {
+pub const O = core.fields.om31.OM31;
+pub const M = core.fields.m31.M31;
+pub const H = F.H;
+pub const Channel = core.channel.raw_mod_m31.Om31Channel;
+pub const Point = core.circle.CirclePoint(O);
+pub const TreeVec = core.pcs.TreeVec;
+pub const Native = core.pcs.ForField(O);
+pub const Cpu = @import("stwo_riscv_cpu_integration").CpuProverEngine.Backend;
+pub const MC = struct {
     pub fn mixRoot(channel: *Channel, root: H.Hash) void {
         core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleChannel.mixRoot(&channel.inner, root);
     }
 };
-const Scheme = engine.pcs.ForField(O).CommitmentSchemeProver(Cpu, H, MC);
-const Verifier = Native.verifier.CommitmentSchemeVerifier(H, MC);
+pub const Scheme = engine.pcs.ForField(O).CommitmentSchemeProver(Cpu, H, MC);
+pub const Verifier = Native.verifier.CommitmentSchemeVerifier(H, MC);
 const a = std.heap.page_allocator;
 const degrees = [_]u32{ 5, 5, 7, 7, 9, 9 };
 const output_log: u32 = 11;
 const group_count: u32 = 3;
-fn config() core.pcs.PcsConfig {
+pub fn config() core.pcs.PcsConfig {
     return .{ .pow_bits = 0, .fri_config = .{ .log_blowup_factor = 2, .log_last_layer_degree_bound = 0, .n_queries = 256, .fold_step = 4 } };
 }
 fn initial() Channel {
@@ -50,17 +50,17 @@ fn pointsFor(c: *Channel) !TreeVec([][]Point) {
     }
     return TreeVec([][]Point).initOwned(trees);
 }
-fn bases(w: anytype, values: []const M) !void {
+pub fn bases(w: anytype, values: []const M) !void {
     for (values) |v| try IO.words(w, &.{v.v});
 }
-fn hashWords(w: anytype, h: H.Hash) !void {
+pub fn hashWords(w: anytype, h: H.Hash) !void {
     for (0..8) |i| try IO.words(w, &.{std.mem.readInt(u32, h[4 * i ..][0..4], .little)});
 }
-fn checkpoint(w: anytype, c: Channel) !void {
+pub fn checkpoint(w: anytype, c: Channel) !void {
     try hashWords(w, c.inner.digest);
     try IO.words(w, &.{c.inner.n_draws});
 }
-fn friMetadata(plan: F.Plan, descriptions: *std.ArrayList(u32), twiddles: *std.ArrayList(M)) !void {
+pub fn friMetadata(plan: F.Plan, descriptions: *std.ArrayList(u32), twiddles: *std.ArrayList(M)) !void {
     const domain = core.poly.circle.canonic.CanonicCoset.new(plan.initial_log).circleDomain();
     var line = core.poly.line.LineDomain.fromCircleDomain(domain);
     for (plan.layers[0..plan.len], 0..) |layer, li| {
@@ -202,10 +202,10 @@ fn exportFixture(dir: std.fs.Dir) !void {
     try dir.writeFile(.{ .sub_path = "case-0.bin", .data = bytes.items });
     std.debug.print("PASS complete native PCS reference, columns=6 groups=3 degree=9 beta=2 q=256 fold=4\n", .{});
 }
-const Reader = struct {
+pub const Reader = struct {
     words: []u32,
     pos: usize = 0,
-    fn init(path: []const u8) !@This() {
+    pub fn init(path: []const u8) !@This() {
         const bytes = try std.fs.cwd().readFileAlloc(a, path, 1 << 28);
         defer a.free(bytes);
         if (bytes.len % 4 != 0) return error.InvalidPcsReadback;
@@ -213,10 +213,10 @@ const Reader = struct {
         for (out, 0..) |*v, i| v.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
         return .{ .words = out };
     }
-    fn deinit(self: *@This()) void {
+    pub fn deinit(self: *@This()) void {
         a.free(self.words);
     }
-    fn take(self: *@This(), count: usize) ![]const u32 {
+    pub fn take(self: *@This(), count: usize) ![]const u32 {
         if (count > self.words.len - self.pos) return error.TruncatedPcsReadback;
         const out = self.words[self.pos..][0..count];
         self.pos += count;
@@ -232,7 +232,7 @@ fn secure(words: []const u32) !O {
     }
     return O.fromM31Array(c);
 }
-fn digest(words: []const u32) H.Hash {
+pub fn digest(words: []const u32) H.Hash {
     var out: H.Hash = undefined;
     for (words, 0..) |v, i| std.mem.writeInt(u32, out[4 * i ..][0..4], v, .little);
     return out;
@@ -247,37 +247,11 @@ const Capture = struct {
     trace_values: []const u32,
     trace_paths: []const u32,
     fn assemble(self: @This()) !Native.CommitmentSchemeProof(H) {
-        const plan = try F.Plan.init(9, config().fri_config);
-        const column_logs = [_]u32{ 7, 7, 9, 9, 11, 11 };
-        const order = [_]u32{ 0, 1, 2, 3, 4, 5 };
-        var trace = try T.assemble(a, .{ .tree_log = output_log, .lifting_log = output_log, .column_logs = &column_logs, .column_order = &order }, self.raw, .{ .root = self.root, .values = self.trace_values, .paths = self.trace_paths });
-        var trace_owned = true;
-        defer if (trace_owned) trace.deinit(a);
-        var fri = try F.assemble(a, plan, self.raw, self.layers, &self.terminal);
-        var fri_owned = true;
-        defer if (fri_owned) fri.deinit(a);
-        const commitments = try a.dupe(H.Hash, &.{trace.root});
-        errdefer a.free(commitments);
-        const sampled = try a.alloc([]O, degrees.len);
-        errdefer a.free(sampled);
-        var count: usize = 0;
-        errdefer for (sampled[0..count]) |v| a.free(v);
-        for (sampled, 0..) |*column, i| {
-            column.* = try a.dupe(O, &.{try secure(self.samples[8 * i ..][0..8])});
-            count += 1;
-        }
-        const sampled_outer = try a.alloc([][]O, 1);
-        errdefer a.free(sampled_outer);
-        sampled_outer[0] = sampled;
-        const queried_outer = try a.alloc([][]M, 1);
-        errdefer a.free(queried_outer);
-        queried_outer[0] = trace.queried_values;
-        const decommitments = try a.alloc(core.vcs_lifted.verifier.MerkleDecommitmentLifted(H), 1);
-        errdefer a.free(decommitments);
-        decommitments[0] = trace.decommitment;
-        trace_owned = false;
-        fri_owned = false;
-        return .{ .config = config(), .commitments = TreeVec(H.Hash).initOwned(commitments), .sampled_values = TreeVec([][]O).initOwned(sampled_outer), .decommitments = TreeVec(core.vcs_lifted.verifier.MerkleDecommitmentLifted(H)).initOwned(decommitments), .queried_values = TreeVec([][]M).initOwned(queried_outer), .proof_of_work = self.nonce, .fri_proof = fri };
+        return @import("rv64/pcs_assembly.zig").assemble(a, .{
+            .config = config(),
+            .degree_log = 9,
+            .trees = &.{.{ .coefficient_logs = &degrees, .sorted_to_original = &.{ 0, 1, 2, 3, 4, 5 }, .sample_counts = &.{ 1, 1, 1, 1, 1, 1 } }},
+        }, .{ .raw_queries = self.raw, .samples = self.samples, .trace = &.{.{ .root = self.root, .values = self.trace_values, .paths = self.trace_paths }}, .fri = self.layers, .terminal = self.terminal, .nonce = self.nonce });
     }
 };
 const Attack = enum { none, sample, trace_value, fri_root, terminal, nonce, trace_root };

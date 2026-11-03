@@ -12,6 +12,7 @@ pub const deep = @import("deep.zig");
 pub const samples = @import("samples.zig");
 pub const fri = @import("fri.zig");
 pub const trace = @import("trace.zig");
+pub const pcs_assembly = @import("pcs_assembly.zig");
 pub const plan = @import("plan.zig");
 pub const scheduler = @import("scheduler.zig");
 pub const resident = @import("resident.zig");
@@ -23,6 +24,7 @@ test {
     _ = fri;
     _ = @import("tests/fri_test.zig");
     _ = @import("tests/trace_test.zig");
+    _ = @import("tests/pcs_assembly_test.zig");
     _ = @import("tests/joined_codegen_test.zig");
     _ = @import("tests/symbolic_external_test.zig");
     _ = @import("tests/batch_test.zig");

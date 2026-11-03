@@ -100,6 +100,11 @@ const Fake = struct {
         return if (failure) 1 else 0;
     }
     pub const stwo_rv64_gkr_eq_fused_on = stwo_rv64_gkr_eq_on;
+    pub fn stwo_rv64_sample_order_on(_: *anyopaque, lane: u32, _: [*]const u32, sources: u32, _: [*]const u32, count: u32, _: [*]u32, _: [*]u32) c_int {
+        std.debug.assert(lane == 1 and sources == 41 and count == 35);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
 fn slice() Slice {
@@ -113,6 +118,28 @@ fn leaf(n: u32) R.Fraction {
 }
 fn fraction(n: u32) R.Fraction {
     return .{ .n = plane(8), .d = plane(8), .count = n };
+}
+test "sample transcript permutation checks geometry custody and launch poisoning" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    var job = @import("../samples.zig").Order{ .input = slice(), .map = slice(), .output = slice(), .verdict = slice(), .source_count = 41, .count = 35 };
+    try commands.sampleOrder(job);
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    job.count = 0;
+    try std.testing.expectError(error.InvalidGeometry, commands.sampleOrder(job));
+    job.count = 35;
+    job.map.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.sampleOrder(job));
+    job.map = slice();
+    job.output.len = 279;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.sampleOrder(job));
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    job.output = slice();
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.sampleOrder(job));
+    try std.testing.expectError(error.JobPoisoned, commands.sampleOrder(job));
 }
 test "RV64 CUDA commands validate generations use assigned lane and poison launch failure" {
     Fake.calls = 0;

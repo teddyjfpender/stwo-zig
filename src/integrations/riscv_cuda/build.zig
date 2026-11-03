@@ -166,6 +166,15 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_pcs.addArgs(args);
     b.step("rv64-pcs-fixtures", "Export native complete PCS oracle or verify resident GPU proof").dependOn(&run_pcs.step);
     b.step("build-rv64-pcs-tool", "Build independent native complete PCS receiver").dependOn(&b.addInstallArtifact(pcs_fixture, .{}).step);
+    const masked_pcs_root = b.createModule(.{ .root_source_file = b.path("rv64_pcs_masks_fixture_main.zig"), .target = target, .optimize = optimize });
+    masked_pcs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    masked_pcs_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    masked_pcs_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const masked_pcs_fixture = b.addExecutable(.{ .name = "rv64-masked-pcs-fixtures", .root_module = masked_pcs_root });
+    const run_masked_pcs = b.addRunArtifact(masked_pcs_fixture);
+    if (b.args) |args| run_masked_pcs.addArgs(args);
+    b.step("rv64-masked-pcs-fixtures", "Export native heterogeneous PCS masks or verify resident GPU proof").dependOn(&run_masked_pcs.step);
+    b.step("build-rv64-masked-pcs-tool", "Build independent native heterogeneous PCS receiver").dependOn(&b.addInstallArtifact(masked_pcs_fixture, .{}).step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
