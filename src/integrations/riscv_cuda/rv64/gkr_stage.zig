@@ -214,11 +214,16 @@ const Job = struct {
             offset += count;
         }
         var twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(source.max_log).circleDomain().half_coset);
-        defer engine.poly.twiddles.deinitM31(a, &twiddles);
+        var twiddles_ingress_joined = false;
+        defer {
+            if (!twiddles_ingress_joined) context.join() catch {};
+            engine.poly.twiddles.deinitM31(a, &twiddles);
+        }
         try context.upload(tw, @as([*]const u32, @ptrCast(twiddles.twiddles.ptr))[0..twiddles.twiddles.len]);
         try checked(b.functions.copy_device(raw_context, @ptrFromInt(values.address), @ptrFromInt(coeff.address), source.cells * 4));
         try events.mark(.ingress, true, upload_stream);
         try context.join();
+        twiddles_ingress_joined = true;
         var stream: ?*anyopaque = null;
         try checked(b.session_api.lane_stream(raw_context, 1, &stream));
         const assigned_stream = stream orelse return error.InvalidLane;
