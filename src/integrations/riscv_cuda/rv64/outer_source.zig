@@ -67,11 +67,12 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .prepare = prepare };
+        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit };
     }
     /// Explicit opt-in generation from this finalized original graph. The
     /// graph must outlive prove(); the legacy factory keeps its upload path.
     pub fn factoryForWitness(self: *Context, graph: *const circuit.builder.Context(Outer.protocol.Q)) !Dev.Factory {
+        if (graph.trace_only) return error.TraceOnlyGraphRequiresAtomicIngress;
         self.mutex.lock();
         defer self.mutex.unlock();
         if (self.active != null) return error.OuterProofAlreadyActive;
@@ -117,10 +118,31 @@ pub const Context = struct {
         self.body_identity = identity;
     }
     fn prepare(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope) !Dev.Source {
+        return prepareImpl(raw, a, key, values, scope, null);
+    }
+    fn prepareFromCircuit(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, graph: *const circuit.builder.Context(Outer.protocol.Q), scope: D.Scope) !Dev.Source {
+        if (!graph.trace_only or !graph.finalized or !graph.record_gates) return error.TraceOnlyGraphRequired;
+        return prepareImpl(raw, a, key, &.{}, scope, graph);
+    }
+    fn prepareImpl(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope, graph: ?*const circuit.builder.Context(Outer.protocol.Q)) !Dev.Source {
         const self: *Context = @ptrCast(@alignCast(raw));
-        if (values.len == 0 or values.len > std.math.maxInt(u32) / 4) return error.InvalidOuterAssignment;
+        if (graph == null and (values.len == 0 or values.len > std.math.maxInt(u32) / 4)) return error.InvalidOuterAssignment;
         if (comptime @hasDecl(Outer.prove.Authority, "requireProverData")) try key.requireProverData();
-        if (self.assignment) |assignment| if (assignment.reference != values.ptr or assignment.count != values.len) return error.OuterWitnessGraphMismatch;
+        self.mutex.lock();
+        var locked = true;
+        defer if (locked) self.mutex.unlock();
+        if (self.active != null) return error.OuterProofAlreadyActive;
+        if (graph) |ctx| {
+            const prepared = try Assignment.Prepared.init(self.allocator, ctx, &self.service.library);
+            if (self.assignment) |*old| old.deinit();
+            self.assignment = prepared;
+        }
+        const value_count = if (graph != null) blk: {
+            const assignment = self.assignment orelse return error.TraceOnlySourceRequired;
+            if (assignment.reference != null or assignment.count == 0 or assignment.count > std.math.maxInt(u32) / 4) return error.TraceOnlySourceRequired;
+            break :blk assignment.count;
+        } else values.len;
+        if (graph == null) if (self.assignment) |assignment| if (assignment.reference != values.ptr or assignment.count != values.len) return error.OuterWitnessGraphMismatch;
         // Raw FIXED evaluations are borrowed together while generating MAIN and
         // INTER. The original alias scope is released before composition borrows
         // the coefficient forest; immutable aliases must never be evicted live.
@@ -135,22 +157,12 @@ pub const Context = struct {
             return error.OuterFixedForestExceedsImmutableBudget;
         }
         std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} assignment_bytes={} schedule_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, values.len * @sizeOf(Outer.protocol.Q), schedule_bytes, key.logs.toArray() });
-        self.mutex.lock();
-        if (self.active != null) {
-            self.mutex.unlock();
-            return error.OuterProofAlreadyActive;
-        }
-        self.ensureCatalogue(key) catch |err| {
-            self.mutex.unlock();
-            return err;
-        };
-        const owner = a.create(Owner) catch |err| {
-            self.mutex.unlock();
-            return err;
-        };
-        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = self.service.stage(), .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
+        try self.ensureCatalogue(key);
+        const owner = try a.create(Owner);
+        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .value_count = value_count, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = self.service.stage(), .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
         self.active = owner;
         self.mutex.unlock();
+        locked = false;
         errdefer Owner.release(owner);
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
@@ -167,6 +179,7 @@ pub const Owner = struct {
     backend: *Context,
     key: *const Outer.prove.Authority,
     input: []const Outer.protocol.Q,
+    value_count: usize,
     initial_scope: D.Scope,
     scope: D.Scope,
     raw_fixed: [45]Native.Lease = undefined,

@@ -72,7 +72,7 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         }
         var outputs: [52][*]u32 = undefined;
         for (outputs[0..widths[component]], owner.main_columns[main_at..][0..widths[component]]) |*out, input| out.* = @constCast(input.device.?.words);
-        try S.checked(b.base(@intCast(component), values.words.?, @intCast(owner.input.len), @as(u32, 1) << @intCast(logs[component]), @intCast(owner.key.pp.first_permutation_row), &pp, @intCast(pp_widths[component]), &outputs, @intCast(widths[component]), &counts, 22, status.words.?, stream.?));
+        try S.checked(b.base(@intCast(component), values.words.?, @intCast(owner.value_count), @as(u32, 1) << @intCast(logs[component]), @intCast(owner.key.pp.first_permutation_row), &pp, @intCast(pp_widths[component]), &outputs, @intCast(widths[component]), &counts, 22, status.words.?, stream.?));
         main_at += widths[component];
     }
     try ctx.join();

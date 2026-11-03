@@ -28,6 +28,9 @@ pub const Factory = struct {
     /// MAIN generation and commitment happen on device. Failure is atomic and
     /// owns no result. On success Source owns all temporary/device allocations.
     prepare: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, []const P.Q, D.Scope) anyerror!Source,
+    /// Explicit trace-only ingress. The independently constructed source owns
+    /// compact proof seeds and the original topology; no CPU values stand-in.
+    prepare_from_circuit: ?*const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, *const circuit.builder.Context(P.Q), D.Scope) anyerror!Source = null,
 };
 fn statement(key: *const Native.Authority, outputs: []const P.Q) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
@@ -60,9 +63,25 @@ pub fn prove(a: std.mem.Allocator, key: *const Native.Authority, values: []const
     const start = circuit.witness.trace.U_VAR_IDX + 1;
     if (values.len < start or key.pp.n_outputs > values.len - start) return error.InvalidOm31CircuitOutputCount;
     const outputs = try a.dupe(P.Q, values[start..][0..key.pp.n_outputs]);
+    return proveOwned(a, key, outputs, values, ordinal, factory, null);
+}
+/// Expected outputs come from the independently authenticated public statement.
+/// The circuit MAIN must produce precisely those values: the existing output
+/// lookup closure and STARK verification bind them under the unchanged AIR.
+pub fn proveFromCircuit(a: std.mem.Allocator, key: *const Native.Authority, graph: *const circuit.builder.Context(P.Q), expected: []const P.Q, ordinal: u32, factory: Factory) !Native.Produced {
+    if (factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
+    try key.requireProverData();
+    if (!graph.trace_only or !graph.finalized or !graph.record_gates or graph.witness_metadata == null) return error.TraceOnlyGraphRequired;
+    if (expected.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+    for (expected) |value| for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalOm31CircuitOutput;
+    const outputs = try a.dupe(P.Q, expected);
+    return proveOwned(a, key, outputs, &.{}, ordinal, factory, graph);
+}
+fn proveOwned(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q, values: []const P.Q, ordinal: u32, factory: Factory, graph: ?*const circuit.builder.Context(P.Q)) !Native.Produced {
     errdefer a.free(outputs);
+    try key.requireProverData();
     const requested = D.Scope{ .statement = statement(key, outputs), .fixed = key.fixedRoot(), .main = @splat(0), .ordinal = ordinal };
-    const source = try factory.prepare(factory.context, a, key, values, requested);
+    const source = if (graph) |ctx| try factory.prepare_from_circuit.?(factory.context, a, key, ctx, requested) else try factory.prepare(factory.context, a, key, values, requested);
     defer source.release(source.context);
     if (!std.mem.eql(u8, &source.scope.statement, &requested.statement) or !std.mem.eql(u8, &source.scope.fixed, &requested.fixed) or source.scope.ordinal != ordinal or !std.mem.eql(u8, &source.scope.main, &source.main.root)) return error.InvalidOm31CircuitDeviceScope;
     const main_logs = try key.treeLogs(a, 1);
@@ -112,4 +131,17 @@ test "native OM31 device controller rejects host geometry and mixed custody" {
     try std.testing.expectError(error.InvalidOm31CircuitDeviceGeometry, validateTree(&.{ 4, 4 }, .{ .root = @splat(0), .columns = &columns }));
     const implementation: *const fn (std.mem.Allocator, *const Native.Authority, []const P.Q, u32, Factory) anyerror!Native.Produced = prove;
     _ = implementation;
+}
+
+test "trace-only device ingress requires explicit graph source before allocation" {
+    const Never = struct {
+        fn prepare(_: *anyopaque, _: std.mem.Allocator, _: *const Native.Authority, _: []const P.Q, _: D.Scope) !Source {
+            return error.UnexpectedLegacyFallback;
+        }
+    };
+    var key: Native.Authority = undefined;
+    var graph: circuit.builder.Context(P.Q) = undefined;
+    var context: u8 = 0;
+    const factory = Factory{ .context = &context, .prepare = Never.prepare };
+    try std.testing.expectError(error.TraceOnlySourceRequired, proveFromCircuit(std.testing.allocator, &key, &graph, &.{}, 0, factory));
 }
