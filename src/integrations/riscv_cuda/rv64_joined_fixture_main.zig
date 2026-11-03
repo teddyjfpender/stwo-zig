@@ -169,6 +169,9 @@ fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32, grou
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-hints-control")) return @import("rv64/outer_proof_fixture.zig").run(a, .control_hints, "", args[2]);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-hints-proof")) return @import("rv64/outer_proof_fixture.zig").run(a, .gpu_trace_hints, args[2], args[3]);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-hints-check")) return @import("rv64/outer_proof_fixture.zig").run(a, .verify_hints, args[2], args[3]);
     if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-trace-proof")) return @import("rv64/outer_proof_fixture.zig").run(a, .gpu_trace, args[2], args[3]);
     if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-dag-control")) return @import("rv64/outer_proof_fixture.zig").run(a, .control_dag, "", args[2]);
     if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-dag-proof")) return @import("rv64/outer_proof_fixture.zig").run(a, .gpu_dag, args[2], args[3]);

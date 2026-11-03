@@ -7,10 +7,11 @@ const Service = @import("pcs_native.zig");
 const TC = @import("trace_commit.zig");
 const RC = @import("resident_composition.zig");
 const Device = @import("outer_source.zig");
-pub const Mode = enum { control, gpu, verify, control_dag, gpu_dag, verify_dag, gpu_trace };
+pub const Mode = enum { control, gpu, verify, control_dag, gpu_dag, verify_dag, gpu_trace, control_hints, gpu_trace_hints, verify_hints };
 pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []const u8) !void {
-    const trace_only = mode == .gpu_trace;
-    const dag = trace_only or mode == .control_dag or mode == .gpu_dag or mode == .verify_dag;
+    const trace_only = mode == .gpu_trace or mode == .gpu_trace_hints;
+    const production_hints = mode == .control_hints or mode == .gpu_trace_hints or mode == .verify_hints;
+    const dag = production_hints or trace_only or mode == .control_dag or mode == .gpu_dag or mode == .verify_dag;
     var ctx = if (trace_only) try circuit.builder.Context(Outer.protocol.Q).initTraceOnly(a, 8) else if (dag) try circuit.builder.Context(Outer.protocol.Q).initWithWitnessOrigins(a, 8) else try circuit.builder.Context(Outer.protocol.Q).init(a, 8);
     defer ctx.deinit();
     const expected: [32]u8 = @splat(0x42);
@@ -27,6 +28,37 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
         _ = try circuit.builder.simd.guessLsb(Outer.protocol.Q, &ctx, lanes);
         _ = try ctx.permuteNamed(&.{ sum, x, y }, .sort_by_u_coordinate);
     }
+    if (production_hints) {
+        const B = circuit.builder;
+        const raw: u32 = 0xfedcba98;
+        const packed_word = try B.wrappers.guessU32(Outer.protocol.Q, &ctx, B.wrappers.u32Value(Outer.protocol.Q, raw));
+        var octets: [4]B.Var = undefined;
+        for (&octets, 0..) |*out, i| {
+            const octet: u8 = @truncate(raw >> @intCast(i * 8));
+            out.* = try ctx.guessU16(Outer.protocol.Q.fromU32Unchecked(octet, 0, 0, 0));
+            const complement = try ctx.guessU16(Outer.protocol.Q.fromU32Unchecked(255 - @as(u32, octet), 0, 0, 0));
+            try ctx.noteWitnessByte(out.*, packed_word.get(), @intCast(i), false);
+            try ctx.noteWitnessByte(complement, packed_word.get(), @intCast(i), true);
+            try ctx.eq(try ctx.add(out.*, complement), try ctx.constant(Outer.protocol.Q.fromU32Unchecked(255, 0, 0, 0)));
+        }
+        const k = try ctx.constant(Outer.protocol.Q.fromU32Unchecked(256, 0, 0, 0));
+        const low = try ctx.add(octets[0], try ctx.mul(octets[1], k));
+        const high = try ctx.add(octets[2], try ctx.mul(octets[3], k));
+        const imag = try ctx.constant(Outer.protocol.Q.fromU32Unchecked(0, 1, 0, 0));
+        try ctx.eq(packed_word.get(), try ctx.add(low, try ctx.mul(high, imag)));
+        for ([_]u32{ 0, 17 }) |count| {
+            const value = try ctx.guess(Outer.protocol.Q.fromU32Unchecked(count, 0, 0, 0));
+            const nonzero = try ctx.guess(if (count == 0) Outer.protocol.Q.zero() else Outer.protocol.Q.one());
+            const inverse = try ctx.guess(if (count == 0) Outer.protocol.Q.zero() else try Outer.protocol.Q.fromU32Unchecked(count, 0, 0, 0).inv());
+            const zero = try ctx.guess(Outer.protocol.Q.zero());
+            try ctx.noteWitnessHint(nonzero, .is_nonzero, value, ctx.zero());
+            try ctx.noteWitnessHint(inverse, .pointwise_inverse_or_zero, value, ctx.zero());
+            try ctx.noteWitnessHint(zero, .zero, ctx.zero(), ctx.zero());
+            try ctx.eq(try ctx.mul(value, inverse), nonzero);
+            try ctx.eq(try ctx.mul(nonzero, try ctx.sub(nonzero, ctx.one())), ctx.zero());
+            try ctx.eq(zero, ctx.zero());
+        }
+    }
     try ctx.setOutputs(&outputs);
     try ctx.finalize(false);
     try circuit.common.finalize.padToTargets(Outer.protocol.Q, &ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
@@ -37,7 +69,7 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
     try std.fs.cwd().makePath(directory);
     var dir = try std.fs.cwd().openDir(directory, .{});
     defer dir.close();
-    if (mode == .verify or mode == .verify_dag) {
+    if (mode == .verify or mode == .verify_dag or mode == .verify_hints) {
         const bytes = try std.fs.cwd().readFileAlloc(a, input, Outer.wire.MAX_BYTES);
         defer a.free(bytes);
         var decoded = try Outer.wire.decode(a, key.identity, 8, bytes);
@@ -48,7 +80,7 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
         std.debug.print("OM31_OUTER_DEVICE_FRESH_RECEIVER accepted=true profile=q108-p20-fold4\n", .{});
         return;
     }
-    if (mode == .control or mode == .control_dag) {
+    if (mode == .control or mode == .control_dag or mode == .control_hints) {
         var proof = try Outer.prove.prove(a, &key, ctx.values());
         defer proof.deinit();
         var capture = try Outer.prove.verify(a, &key, proof.outputs, proof.claims, &proof.proof.proof);
