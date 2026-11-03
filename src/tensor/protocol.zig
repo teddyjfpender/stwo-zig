@@ -23,6 +23,7 @@ const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
+const pcs2 = @import("pcs2.zig");
 const linalg = @import("linalg.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
@@ -142,6 +143,11 @@ fn splitTable(log_total: u32, log_cols_max: u32) struct { lr: u32, lc: u32 } {
 
 pub const Config = struct {
     pcs: pcs.Params = .{},
+    /// When set, all openings use the recursive tensor PCS (pcs2): combined
+    /// rows are committed instead of sent, claims are grouped by column point,
+    /// and the witness table split is chosen by the pcs2 size model. `pcs` is
+    /// then ignored (two_level.outer holds the outer parameters).
+    two_level: ?pcs2.Params = null,
     /// max log columns of the weight table (must be <= min log N over matmuls)
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
@@ -157,11 +163,12 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
     var lc = cfg.weight_log_cols;
     if (lc > lay.log_total) lc = lay.log_total;
     const lr = lay.log_total - lc;
-    var tw = try pcs.Twiddles.init(a, lc + cfg.pcs.log_blowup);
+    const lb = outerParams(cfg).log_blowup;
+    var tw = try pcs.Twiddles.init(a, lc + lb);
     defer tw.deinit(a);
     const ru = (lay.used + (@as(usize, 1) << @intCast(lc)) - 1) >> @intCast(lc);
     const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
-    const com = try pcs.commit(i8, a, pool, &tw, m, cfg.pcs.log_blowup);
+    const com = try pcs.commit(i8, a, pool, &tw, m, lb);
     return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
 }
 
@@ -269,6 +276,52 @@ fn tableKeyMle(st: Statement, a: std.mem.Allocator, t: RelTable, point: []const 
 // ---------------------------------------------------------------------------
 // Proof.
 
+/// An opening proof of either PCS flavour.
+pub const Opening = union(enum) {
+    flat: pcs.OpeningProof,
+    two: pcs2.Proof,
+
+    pub fn deinit(self: *Opening, a: std.mem.Allocator) void {
+        switch (self.*) {
+            .flat => |*p| p.deinit(a),
+            .two => |*p| p.deinit(a),
+        }
+    }
+
+    pub fn byteSize(self: Opening) usize {
+        return switch (self) {
+            .flat => |p| p.byteSize(),
+            .two => |p| p.byteSize(),
+        };
+    }
+};
+
+/// Max log columns of the witness table under pcs2 (bounds twiddle memory).
+const PCS2_MAX_LOG_COLS: u32 = 22;
+
+fn witnessSplit(cfg: Config, log_total: u32, used: usize) struct { lr: u32, lc: u32 } {
+    if (cfg.two_level) |tl| {
+        const b = pcs2.bestOuter(tl, log_total, used, 2, @min(log_total, PCS2_MAX_LOG_COLS));
+        return .{ .lr = log_total - b.log_cols, .lc = b.log_cols };
+    }
+    const s = splitTable(log_total, cfg.witness_log_cols_max);
+    return .{ .lr = s.lr, .lc = s.lc };
+}
+
+fn outerParams(cfg: Config) pcs.Params {
+    return if (cfg.two_level) |tl| tl.outer else cfg.pcs;
+}
+
+/// Weight-table column count for a weight set under the configured PCS: with
+/// pcs2 the size model picks it (assuming `n_groups` distinct column points per
+/// batch); otherwise `cfg.weight_log_cols`.
+pub fn chooseWeightLogCols(cfg: Config, a: std.mem.Allocator, infos: []const TensorInfo, n_groups: usize) !u32 {
+    const tl = cfg.two_level orelse return cfg.weight_log_cols;
+    const lay = try layout(a, infos, &.{});
+    defer a.free(lay.offsets);
+    return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
+}
+
 pub const WitnessClaim = struct { tensor: usize, point: []QM31, value: QM31 };
 
 pub const Proof = struct {
@@ -281,9 +334,9 @@ pub const Proof = struct {
     op_finals: [][]QM31,
     batch_sumcheck: sc.Proof,
     witness_value: QM31,
-    witness_opening: pcs.OpeningProof,
+    witness_opening: Opening,
     weight_values: []QM31,
-    weight_opening: ?pcs.OpeningProof,
+    weight_opening: ?Opening,
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
         if (self.gkr) |*g| g.deinit(a);
@@ -588,12 +641,13 @@ pub fn prove(
     defer a.free(wtab);
     @memset(wtab, 0);
     for (all, 0..) |v, i| @memcpy(wtab[lay.offsets[i]..][0..v.len], v);
-    const split = splitTable(lay.log_total, cfg.witness_log_cols_max);
-    var wtw = try pcs.Twiddles.init(a, split.lc + cfg.pcs.log_blowup);
+    const split = witnessSplit(cfg, lay.log_total, lay.used);
+    const olb = outerParams(cfg).log_blowup;
+    var wtw = try pcs.Twiddles.init(a, split.lc + olb);
     defer wtw.deinit(a);
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
     const wm = pcs.Matrix(i32){ .data = wtab, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru };
-    var wcom = try pcs.commit(i32, a, pool, &wtw, wm, cfg.pcs.log_blowup);
+    var wcom = try pcs.commit(i32, a, pool, &wtw, wm, olb);
     defer wcom.deinit(a);
     timings.witness_commit_ns = nowNs(t0);
     timings.witness_table_elems = w_ru << @intCast(split.lc);
@@ -810,7 +864,10 @@ pub fn prove(
     t0 = try std.time.Instant.now();
     const wclaim = [_]pcs.Claim{.{ .point = bres.point, .value = wval }};
     const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
-    const wopen = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, &wgroups, true);
+    const wopen: Opening = if (cfg.two_level) |tl|
+        .{ .two = try pcs2.open(i32, a, pool, &tr, tl, &wcom, wm, &wgroups, true) }
+    else
+        .{ .flat = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, &wgroups, true) };
     timings.witness_open_ns = nowNs(t0);
 
     // --- weight opening (single combined row; proximity proven at commit time)
@@ -830,7 +887,16 @@ pub fn prove(
         wvals[i] = c.value;
     }
     const wtgroups = [_]pcs.Group{.{ .claims = wcl }};
-    const wtopen: ?pcs.OpeningProof = if (wcl.len == 0) null else try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false);
+    var wtopen: ?Opening = null;
+    if (wcl.len > 0) {
+        if (cfg.two_level) |tl| {
+            const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
+            defer pcs2.freeGroups(a, gs);
+            wtopen = .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), gs, false) };
+        } else {
+            wtopen = .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false) };
+        }
+    }
     timings.weight_open_ns = nowNs(t0);
 
     return .{
@@ -870,7 +936,8 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     defer a.free(ext);
     const lay = try layout(a, ext, &.{});
     defer a.free(lay.offsets);
-    const split = splitTable(lay.log_total, cfg.witness_log_cols_max);
+    const split = witnessSplit(cfg, lay.log_total, lay.used);
+    const olb = outerParams(cfg).log_blowup;
 
     var tr = Transcript.initDomain("stwo-tensor-v1");
     mixStatement(&tr, st, key.root);
@@ -1053,19 +1120,16 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     }
     if (!bv.final_claim.eql(proof.witness_value.mul(e_at))) return error.BatchSumcheck;
 
-    var wtw = try pcs.Twiddles.init(a, split.lc + cfg.pcs.log_blowup);
-    defer wtw.deinit(a);
     const wclaim = [_]pcs.Claim{.{ .point = bv.point, .value = proof.witness_value }};
     const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &wtw, .{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = cfg.pcs.log_blowup, .rows_used = w_ru }, proof.witness_root, &wgroups, true, proof.witness_opening);
+    const wshape = pcs.Shape{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = olb, .rows_used = w_ru };
+    try verifyOpeningAny(a, &tr, cfg, wshape, proof.witness_root, &wgroups, true, proof.witness_opening);
 
     if (proof.weight_values.len != weight_pts.items.len) return error.ProofShape;
     const wcl = try a.alloc(pcs.Claim, weight_pts.items.len);
     defer a.free(wcl);
     for (weight_pts.items, proof.weight_values, 0..) |p, v, i| wcl[i] = .{ .point = p, .value = v };
-    var ktw = try pcs.Twiddles.init(a, key.log_cols + cfg.pcs.log_blowup);
-    defer ktw.deinit(a);
     const kgroups = [_]pcs.Group{.{ .claims = wcl }};
     // matmul finals for W must equal the opened weight values
     {
@@ -1084,20 +1148,43 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         }
     }
     if ((wcl.len == 0) != (proof.weight_opening == null)) return error.ProofShape;
-    if (proof.weight_opening) |wop| try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &kgroups, false, wop);
+    if (proof.weight_opening) |wop| {
+        const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = olb, .rows_used = key.rows_used };
+        if (cfg.two_level != null) {
+            const gs = try pcs2.groupByColumn(a, wcl, key.log_rows);
+            defer pcs2.freeGroups(a, gs);
+            try verifyOpeningAny(a, &tr, cfg, kshape, key.root, gs, false, wop);
+        } else {
+            try verifyOpeningAny(a, &tr, cfg, kshape, key.root, &kgroups, false, wop);
+        }
+    }
+}
+
+/// Verifies an opening of the PCS flavour selected by `cfg`; a proof of the
+/// other flavour is rejected.
+fn verifyOpeningAny(a: std.mem.Allocator, tr: *Transcript, cfg: Config, shape: pcs.Shape, root: [32]u8, groups: []const pcs.Group, with_proximity: bool, op: Opening) !void {
+    if (cfg.two_level) |tl| {
+        if (op != .two) return error.ProofShape;
+        try pcs2.verify(a, tr, tl, shape, root, groups, with_proximity, op.two);
+    } else {
+        if (op != .flat) return error.ProofShape;
+        var tw = try pcs.Twiddles.init(a, shape.log_cols + shape.log_blowup);
+        defer tw.deinit(a);
+        try pcs.verifyOpening(a, tr, cfg.pcs, &tw, shape, root, groups, with_proximity, op.flat);
+    }
 }
 
 /// Offline: proximity test of the committed weight table (run once per commitment).
-pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, ws: *const WeightStore) !pcs.OpeningProof {
+pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, ws: *const WeightStore) !Opening {
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(ws.com.root());
-    return pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &.{}, true);
+    if (cfg.two_level) |tl| return .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), &.{}, true) };
+    return .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &.{}, true) };
 }
 
-pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: Config, key: WeightKey, proof: pcs.OpeningProof) !void {
+pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: Config, key: WeightKey, proof: Opening) !void {
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(key.root);
-    var ktw = try pcs.Twiddles.init(a, key.log_cols + cfg.pcs.log_blowup);
-    defer ktw.deinit(a);
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &.{}, true, proof);
+    const shape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = outerParams(cfg).log_blowup, .rows_used = key.rows_used };
+    try verifyOpeningAny(a, &tr, cfg, shape, key.root, &.{}, true, proof);
 }

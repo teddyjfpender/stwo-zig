@@ -19,6 +19,26 @@ fn nsToS(ns: u64) f64 {
     return @as(f64, @floatFromInt(ns)) / 1e9;
 }
 
+/// Optional trailing args `<depth> [inner_queries] [inner_log_blowup] [inner_pow]`
+/// select the recursive PCS (pcs2); absent = legacy flat Ligero.
+fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Params {
+    if (args.len <= first) return null;
+    var p = t.pcs2.Params{ .outer = outer, .depth = try std.fmt.parseInt(u32, args[first], 10) };
+    p.inner.pow_bits = outer.pow_bits;
+    if (args.len > first + 1) p.inner.n_queries = try std.fmt.parseInt(usize, args[first + 1], 10);
+    if (args.len > first + 2) p.inner.log_blowup = try std.fmt.parseInt(u32, args[first + 2], 10);
+    if (args.len > first + 3) p.inner.pow_bits = try std.fmt.parseInt(u32, args[first + 3], 10);
+    return p;
+}
+
+fn printTl(out: anytype, pc: proto.Config) !void {
+    if (pc.two_level) |tl| {
+        try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ tl.depth, tl.inner.n_queries, tl.inner.log_blowup, tl.inner.pow_bits, tl.conjecturedBits(), tl.provenBits() });
+    } else {
+        try out.print("\"pcs\":\"flat\",\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits() });
+    }
+}
+
 fn peakRssBytes() u64 {
     var ru: std.posix.rusage = undefined;
     ru = std.posix.getrusage(std.posix.rusage.SELF);
@@ -49,14 +69,16 @@ pub fn main() !void {
     try pool.init(a, threads);
     defer pool.deinit();
     const cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf };
-    const pc = proto.Config{
+    var pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
         .weight_log_cols = @min(ld, 13),
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
     };
+    pc.two_level = try twoLevel(args, 9, pc.pcs);
 
     const winfos = model.mlpWeightInfos(cfg);
+    pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, &winfos, 3);
     var wdata: [3][]i8 = undefined;
     for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
     const wv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
@@ -94,7 +116,8 @@ pub fn main() !void {
     const macs = T * n_weights;
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"mlp\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, threads, queries, lb, pow });
-    try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits(), n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
+    try printTl(out, pc);
+    try out.print("\"weight_log_cols\":{d},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.weight_log_cols, n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });
@@ -115,7 +138,8 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads };
+    var pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads };
+    pc.two_level = try twoLevel(args, 7, pc.pcs);
     const dummy_info = [_]proto.TensorInfo{proto.TensorInfo.mat(2, 2)};
     var dummy: [16]i8 = [_]i8{0} ** 16;
     const dv = [_][]const i8{&dummy};
@@ -143,7 +167,8 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
         proof.deinit(a);
     }
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ ln, threads, queries, lb, pow, pc.pcs.conjecturedBits(), pc.pcs.provenBits() });
+    try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, queries, lb, pow });
+    try printTl(out, pc);
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"prove_ns_per_entry\":{d:.2},\"stage_s\":{{\"witness_commit\":{d:.4},\"op_sumchecks\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4}}},\"peak_rss_bytes\":{d}}}\n", .{ best_prove, best_verify, size, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))), nsToS(tm.witness_commit_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), peakRssBytes() });
     built.deinit(a);
     ws.deinit(a);
