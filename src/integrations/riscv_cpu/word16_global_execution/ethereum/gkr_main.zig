@@ -209,7 +209,13 @@ pub fn mainWithResidentPipelineAndRecursion(stages: ResidentStages, factory: @im
     defer std.process.argsFree(recycler.allocator(), all_args);
     const selection = try selectProfile(all_args);
     if (selection.args.len < 2 or !isCombinedProducer(selection.args[1])) return error.CombinedProductRequiresCombinedMode;
-    return runArguments(&recycler, all_args, stages, null, true, factory);
+    // Reuse the existing bounded cache of independently derived native geometry
+    // classes. Its 4 GiB allocation budget is a child of the same host budget.
+    var session = try ResidentSession.init(recycler.allocator(), 4 << 30);
+    defer session.deinit();
+    session.active = true;
+    defer session.active = false;
+    return runArguments(&recycler, all_args, stages, &session, true, factory);
 }
 fn isCombinedProducer(mode: []const u8) bool {
     return std.mem.eql(u8, mode, "produce-and-recurse-candidate");
@@ -471,7 +477,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         recursion.native_prove_ns = prove_ns;
         const recursion_ns = timer.read() - recursion_start_ns;
         try Driver.writeJson(a, recursive_dir, "report.json", recursion);
-        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
+        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
         try std.posix.fsync(dir.fd);
         return emit(a, report);
