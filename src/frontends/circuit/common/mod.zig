@@ -9,3 +9,9 @@ pub const finalize = @import("finalize.zig");
 pub const preprocessed = @import("preprocessed.zig");
 /// ZK blinding rows (`finalize.rs::add_zk_blinding`).
 pub const zk_blinding = @import("zk_blinding.zig");
+
+/// Explicit candidate profile; legacy receivers remain unchanged.
+pub const lookup_repeat2 = @import("lookup_repeat2.zig");
+test {
+    _ = lookup_repeat2;
+}
