@@ -64,7 +64,7 @@ def truth_sources(raw, partitions):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("source-root", "core-domain", "truth-domain", "truth-partitions", "truth-rational", "build"):
+    for name in ("source-root", "core-domain", "core-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     parser.add_argument("--jobs", type=int, default=6)
@@ -79,7 +79,15 @@ def main():
     core, header = core_catalog(args.core_domain.resolve())
     (build / "real_composition_launches.h").write_text(header)
     (build / "truth_composition_launches.h").write_bytes((args.truth_partitions / "truth_composition_launches.h").read_bytes())
+    (build / "projection_fixture.h").write_bytes((root / "tests/cuda/rv64/projection_fixture.h").read_bytes())
     sources = core + truth_sources(args.truth_domain.resolve(), args.truth_partitions.resolve())
+    # The source projection catalogue is distinct from the 49 composition
+    # layouts. Keep its exact exported IDs, including the fixture ABI header.
+    projections = sorted(args.core_projection.resolve().glob("case-*.cu"))
+    ids = {int(re.fullmatch(r"case-(\d+)\.cu", p.name)[1]) for p in projections}
+    if ids != set(range(47)):
+        raise ValueError("complete image requires all 47 source projections")
+    sources.extend(projections)
     for role in range(15):
         source = args.truth_rational / f"stwo_rv64_truth_projection_{role}.cu"
         result = Rational.partition(source.resolve(), build / "rational" / str(role), 16)
@@ -107,7 +115,7 @@ def main():
     subprocess.run(command, check=True)
     library = build / "native/libstwo-rv64-native.so"
     image = ctypes.CDLL(str(library))
-    required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)]
+    required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on", "stwo_rv64_curve_witness_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)] + [f"launch_{i}" for i in range(47)]
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))

@@ -79,7 +79,7 @@ fn fixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !void {
     const tags = G.Source.Frame.originWords(descriptor.origin);
     std.debug.print("id={} origin={}/{} roots={} masks={} params={} identity={s}\n", .{ id, tags[0], tags[1], artifact.program.roots.len, artifact.program.inputs.len, artifact.parameter_slots.len, std.fmt.bytesToHex(try artifact.identity(), .lower) });
 }
-fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !void {
+fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32, group_all: bool) !void {
     const M = core.fields.m31.M31;
     const trace_log: u32 = 4;
     const eval_log: u32 = 6;
@@ -90,7 +90,7 @@ fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !voi
     defer source.deinit(a);
     const name = try std.fmt.allocPrint(a, "rv64_joined_domain_{}", .{id});
     defer a.free(name);
-    if (id == 41) try C.emitGrouped(a, source.writer(a), &artifact.program, name, 32) else try C.emit(a, source.writer(a), &artifact.program, name);
+    if (group_all or id == 41) try C.emitGrouped(a, source.writer(a), &artifact.program, name, 32) else try C.emit(a, source.writer(a), &artifact.program, name);
     const source_file = try std.fmt.allocPrint(a, "case-{}-domain.cu", .{id});
     defer a.free(source_file);
     try dir.writeFile(.{ .sub_path = source_file, .data = source.items });
@@ -195,14 +195,15 @@ pub fn main() !void {
     }
     const truth = args.len == 3 and std.mem.eql(u8, args[1], "--truth-domain");
     if (truth) return truthFixtures(args[2]);
-    const domain = args.len == 3 and std.mem.eql(u8, args[1], "--domain");
+    const group_all = args.len == 3 and std.mem.eql(u8, args[1], "--grouped-domain");
+    const domain = group_all or (args.len == 3 and std.mem.eql(u8, args[1], "--domain"));
     if (args.len != 2 and !domain) return error.ExpectedOutputDirectory;
     const directory = args[if (domain) @as(usize, 2) else 1];
     try std.fs.cwd().makePath(directory);
     var dir = try std.fs.cwd().openDir(directory, .{});
     defer dir.close();
     for (Oracle.descriptors(), 0..) |descriptor, id| {
-        if (domain) try domainFixture(dir, descriptor, @intCast(id)) else try fixture(dir, descriptor, @intCast(id));
+        if (domain) try domainFixture(dir, descriptor, @intCast(id), group_all) else try fixture(dir, descriptor, @intCast(id));
     }
     var declarations: std.ArrayList(u8) = .empty;
     defer declarations.deinit(a);
@@ -215,7 +216,7 @@ pub fn main() !void {
         try w.writeAll("};\nstatic const uint32_t composition_groups[]={");
         for (0..Oracle.count) |id| {
             var count: usize = 1;
-            if (id == 41) {
+            if (group_all or id == 41) {
                 var grouped = try G.record(a, Oracle.descriptors()[id]);
                 defer grouped.deinit();
                 count = (grouped.program.roots.len + 31) / 32;
