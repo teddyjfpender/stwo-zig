@@ -1372,6 +1372,9 @@ pub const VerifyInfo = struct {
     logup_max_relation: f64 = 0,
     /// largest key arity (1 = single values, 3 = glu triples)
     logup_max_arity: u32 = 1,
+    /// sum over relations of g_rel * fractions_rel, with g_rel = max(arity - 1,
+    /// 1) the total degree of the relation's denominators in (alpha, beta)
+    logup_degree_fractions: f64 = 0,
 };
 
 pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof) !void {
@@ -1643,6 +1646,13 @@ pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
         inf.witness_groups = wgroups.len;
         for (rel.tables, 0..) |t, ti| {
             var d: f64 = @floatFromInt(@as(u64, 1) << @intCast(t.log_size));
+            // the table's own entries: range values, (key, out) pairs, glu
+            // triples; ext tables counted as triples (conservative)
+            var ar_rel: u32 = switch (t.kind) {
+                .range => 1,
+                .act => 2,
+                .glu, .ext_lookup => 3,
+            };
             for (rel.keys) |k| if (k.table == ti) {
                 d += @floatFromInt(@as(u64, 1) << @intCast(k.log_size));
                 const ar: u32 = switch (k.kind) {
@@ -1650,8 +1660,10 @@ pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightK
                     .glu_triple, .ext => 3,
                     else => 1,
                 };
-                inf.logup_max_arity = @max(inf.logup_max_arity, ar);
+                ar_rel = @max(ar_rel, ar);
             };
+            inf.logup_max_arity = @max(inf.logup_max_arity, ar_rel);
+            inf.logup_degree_fractions += @as(f64, @floatFromInt(@max(ar_rel, 2) - 1)) * d;
             inf.logup_fractions += d;
             inf.logup_max_relation = @max(inf.logup_max_relation, d);
         }

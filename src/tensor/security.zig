@@ -415,10 +415,15 @@ fn accountGkr(acc: *Account, name: []const u8, g: anytype) !void {
 /// common denominator - total degree <= (N - 1) g for N <= D distinct keys
 /// - vanishes at the draw with probability <= (N - 1) g / |F| (Schwartz-
 /// Zippel), and a zero denominator has probability <= N g / |F|. Summed
-/// over the relations: < 2 g D / |F| with D all fractions.
+/// over the relations: < 2 sum_rel g_rel D_rel / |F|.
 fn accountLogup(acc: *Account, name: []const u8, fractions: f64, max_arity: u32) !void {
     const g: f64 = @floatFromInt(@max(max_arity, 2) - 1);
-    try acc.add(name, .logup, std.math.log2(2 * g * fractions) - LOG2_F, 0, 1);
+    try accountLogupDegree(acc, name, g * fractions);
+}
+
+/// As accountLogup, given sum_rel g_rel D_rel directly (per-relation degree).
+fn accountLogupDegree(acc: *Account, name: []const u8, degree_fractions: f64) !void {
+    try acc.add(name, .logup, std.math.log2(2 * degree_fractions) - LOG2_F, 0, 1);
 }
 
 pub const Report = struct {
@@ -446,7 +451,9 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
     const P: f64 = @floatFromInt(f.P);
 
     if (proof.gkr) |*g| {
-        try accountLogup(&req, "logup alpha,beta", info.logup_fractions, info.logup_max_arity);
+        // per-relation degree; never above the global-arity bound
+        if (info.logup_degree_fractions < info.logup_fractions or info.logup_degree_fractions > @as(f64, @floatFromInt(@max(info.logup_max_arity, 2) - 1)) * info.logup_fractions) return error.LogupAccount;
+        try accountLogupDegree(&req, "logup alpha,beta", info.logup_degree_fractions);
         try accountGkr(&req, "gkr", g);
     }
     for (proof.op_sumchecks) |p| try accountSumcheck(&req, "op sumcheck", p);
