@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import rv64_cuda_resident_image_build as B
@@ -23,7 +24,11 @@ extern "C" __global__ void rv64_joined_domain_8(void){uint32_t i=0;switch(blockI
 ''')
             build = root / "build"
             build.mkdir()
-            sources = B.split_core(root, build, [8])
+            with mock.patch.object(B.Grouped, "partition", wraps=B.Grouped.partition) as partition:
+                sources = B.split_core(root, build, [8], 32768)
+            self.assertEqual(partition.call_args.args[-1], 32768)
+            with self.assertRaisesRegex(ValueError, "positive"):
+                B.split_core(root, build, [8], 0)
             self.assertEqual(len(sources), 51)  # 48 untouched + 2 fragments + dispatcher.
             first = (build / "core-parts/8/rv64_joined_domain_8_shard_0.cu").read_text()
             second = (build / "core-parts/8/rv64_joined_domain_8_shard_1.cu").read_text()

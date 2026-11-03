@@ -63,9 +63,11 @@ def truth_sources(raw, partitions):
     return sources
 
 
-def split_core(directory, build, roles):
+def split_core(directory, build, roles, max_module_bytes=128 << 10):
     """Keep global RLC indices while bounding individual optimizer units."""
     original, _ = core_catalog(directory)
+    if max_module_bytes < 1:
+        raise ValueError("positive core compiler-unit byte bound required")
     if len(set(roles)) != len(roles) or any(role not in range(49) for role in roles):
         raise ValueError("distinct existing core role IDs required")
     signature = "const uint32_t*,const uint32_t*,const uint32_t*,const uint64_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t,uint32_t,uint32_t,uint32_t"
@@ -77,7 +79,7 @@ def split_core(directory, build, roles):
         if role in roles:
             destination = build / "core-parts" / str(role)
             destination.mkdir(parents=True, exist_ok=True)
-            modules = Grouped.partition(source, destination, 1, 128 << 10)["modules"]
+            modules = Grouped.partition(source, destination, 1, max_module_bytes)["modules"]
             grouping = 32
         else:
             symbol = f"rv64_joined_domain_{role}"
@@ -121,8 +123,9 @@ def main():
     parser.add_argument("--jobs", type=int, default=6)
     parser.add_argument("--compile-timeout", type=float, default=180)
     parser.add_argument("--split-core-role", type=int, action="append", default=[], help="Split a grouped core optimizer unit into single-group kernels")
+    parser.add_argument("--core-module-max-bytes", type=int, default=128 << 10, help="Bound single-group core SSA optimizer units above this size")
     args = parser.parse_args()
-    if not 1 <= args.jobs <= 16 or not 0 < args.compile_timeout < float("inf"):
+    if not 1 <= args.jobs <= 16 or not 0 < args.compile_timeout < float("inf") or args.core_module_max_bytes < 1:
         parser.error("bounded jobs and finite positive compiler deadline required")
     root, build = args.source_root.resolve(), args.build.resolve()
     build.mkdir(parents=True, exist_ok=True)
@@ -131,7 +134,7 @@ def main():
     core, header = core_catalog(args.core_domain.resolve())
     (build / "real_composition_launches.h").write_text(header)
     if args.split_core_role:
-        core = split_core(args.core_domain.resolve(), build, args.split_core_role)
+        core = split_core(args.core_domain.resolve(), build, args.split_core_role, args.core_module_max_bytes)
     (build / "truth_composition_launches.h").write_bytes((args.truth_partitions / "truth_composition_launches.h").read_bytes())
     (build / "projection_fixture.h").write_bytes((root / "tests/cuda/rv64/projection_fixture.h").read_bytes())
     sources = core + truth_sources(args.truth_domain.resolve(), args.truth_partitions.resolve())
@@ -175,7 +178,7 @@ def main():
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "truth_roles": 15, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 
