@@ -61,6 +61,16 @@ pub fn build(b: *std.Build) void {
     om31_witness_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     b.step("test-circuit-om31-witness", "Compare real circuit MAIN/lookup witnesses across quartic and octic fields").dependOn(&om31_witness_tests.step);
 
+    const om31_proof_root = b.createModule(.{ .root_source_file = b.path("om31_proof_test_root.zig"), .target = target, .optimize = optimize });
+    om31_proof_root.addImport("stwo_core", core);
+    om31_proof_root.addImport("stwo_prover_engine", prover);
+    om31_proof_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_proof_root.addImport("stwo_circuit_frontend", circuit);
+    om31_proof_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_proof_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_proof_root }));
+    om31_proof_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-proof", "Prove and freshly verify an actual circuit under native octic q108/P20").dependOn(&om31_proof_tests.step);
+
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
 
