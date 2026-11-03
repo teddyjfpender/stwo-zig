@@ -160,6 +160,7 @@ fn messageWords(a: std.mem.Allocator, children: [2]Child) ![]u32 {
     var count: usize = 2;
     for (children) |child| count += 9 + 4 * child.produced.outputs.len;
     const words = try a.alloc(u32, count);
+    errdefer a.free(words);
     words[0] = domain;
     words[1] = 1;
     var at: usize = 2;
@@ -200,6 +201,7 @@ pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
     defer message.deinit(a);
     try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, 1) });
     for (children) |child| {
+        try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try shape(ctx.scratch(), child.authority);
         const captured = try V.proof.fromNative(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry);
         const guessed = try V.proof.guess(&ctx, &captured, &geometry);
