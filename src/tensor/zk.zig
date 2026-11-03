@@ -268,7 +268,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
                 const wi = wk.infos[m.w];
                 const yi = st.witness[m.y];
                 if (xi.n_dims != 2 or wi.log_dims[0] != xi.log_dims[1] or yi.logSize() != xi.log_dims[0] + wi.log_dims[1]) return error.StatementShape;
-                if (wi.log_dims[1] < wk.log_cols or xi.log_dims[1] < 2) return error.StatementShape;
+                if (xi.log_dims[1] < 2) return error.StatementShape;
                 const n = @max(xi.log_dims[1], yi.logSize());
                 try checks.append(a, .{ .kind = .matmul, .idx = oi, .n = n, .deg = 2, .u = 0 });
             },
@@ -1051,7 +1051,6 @@ const ProverCtx = struct {
     plan: Plan,
     vecs: [2][]const []const i32,
     zw: ?*const ZkWeights,
-    colpoint: []const QM31,
 
     fn padValue(self: *const ProverCtx, sp: FSpec, r: []const QM31) QM31 {
         var v = sp.konst;
@@ -1061,7 +1060,9 @@ const ProverCtx = struct {
             if (p.weight) {
                 const zw = self.zw.?;
                 const C = @as(usize, 1) << @intCast(zw.log_cols);
-                const eqc = f.eqTable(self.a, self.colpoint, QM31.one()) catch @panic("oom");
+                const full = weightFull(self.a, zw.key(), p.id, loc) catch @panic("oom");
+                defer self.a.free(full);
+                const eqc = f.eqTable(self.a, full[zw.log_rows..], QM31.one()) catch @panic("oom");
                 defer self.a.free(eqc);
                 const eqs = f.eqTable(self.a, &.{ r[r.len - 2], r[r.len - 1] }, QM31.one()) catch @panic("oom");
                 defer self.a.free(eqs);
@@ -1237,8 +1238,9 @@ pub fn prove(
     if (has_matmul) {
         const w = zw.?;
         wtw = try pcs.Twiddles.init(a, w.log_cols + wpcs(cfg).log_blowup);
-        wmask_data = try randVec(ar, &rng, @as(usize, 4) << @intCast(w.log_cols));
-        const mm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = 2, .log_cols = w.log_cols };
+        const wmr = 4 * weightGroupCount(st, w.key());
+        wmask_data = try randVec(ar, &rng, wmr << @intCast(w.log_cols));
+        const mm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = log2Ceil(wmr), .log_cols = w.log_cols, .rows_used = wmr };
         wmask_com = try zkp.commit(i32, a, pool, &wtw.?, &rng, mm, &.{}, w.com.shape.slots, wpcs(cfg).log_blowup);
     }
     timings.witness_commit_ns = nowNs(t0);
@@ -1286,8 +1288,7 @@ pub fn prove(
 
     const rho = try ar.alloc(QM31, plan.rho_len);
     tr.drawN(rho);
-    const colpoint: []const QM31 = if (wkey) |k| rho[rho.len - k.log_cols ..] else &.{};
-    const pc = ProverCtx{ .a = ar, .plan = plan, .vecs = .{ vecs1, vecs2 }, .zw = zw, .colpoint = colpoint };
+    const pc = ProverCtx{ .a = ar, .plan = plan, .vecs = .{ vecs1, vecs2 }, .zw = zw };
 
     var claims: std.ArrayList(LClaim) = .empty;
     var wclaims: std.ArrayList(WClaim) = .empty;
@@ -1461,19 +1462,26 @@ pub fn prove(
     var wopen: ?zkp.Opening = null;
     if (has_matmul) {
         const w = zw.?;
-        const wg = try weightGroup(ar, w.key(), wclaims.items, colpoint);
-        const wmm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = 2, .log_cols = w.log_cols };
-        const wmus = try a.alloc(QM31, 1);
-        wmus[0] = zkp.maskValue(i32, wmm, 0, wg[0].col);
+        const wmr = 4 * weightGroupCount(st, w.key());
+        const wg = try weightGroup(ar, w.key(), wclaims.items, wmr / 4);
+        const wmm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = log2Ceil(wmr), .log_cols = w.log_cols, .rows_used = wmr };
+        const wmus = try a.alloc(QM31, wg.len);
+        for (wg, 0..) |g, gi| wmus[gi] = zkp.maskValue(i32, wmm, g.mask.row, g.col);
         const wshapes = [_]zkp.Shape{ w.key().shape(wpcs(cfg).log_blowup), wmask_com.?.shape };
         var wco = try zkp.drawCoeffs(a, &tr, &wshapes, wg, wmus, null);
         defer wco.deinit(a);
-        const c0 = [_][]const QM31{wco.v[0][0]};
-        const c1 = [_][]const QM31{wco.v[0][1]};
-        const r0 = try zkp.combine(i8, a, pool, &w.com, w.tableMatrix(), w.extra, &c0);
-        const r1 = try zkp.combine(i32, a, pool, &wmask_com.?, wmm, &.{}, &c1);
-        for (r0[0], r1[0]) |*x, y| x.* = x.*.add(y);
-        a.free(r1[0]);
+        const c0 = try ar.alloc([]const QM31, wg.len);
+        const c1 = try ar.alloc([]const QM31, wg.len);
+        for (0..wg.len) |o| {
+            c0[o] = wco.v[o][0];
+            c1[o] = wco.v[o][1];
+        }
+        const r0 = try zkp.combine(i8, a, pool, &w.com, w.tableMatrix(), w.extra, c0);
+        const r1 = try zkp.combine(i32, a, pool, &wmask_com.?, wmm, &.{}, c1);
+        for (r0, r1) |x, y| {
+            for (x, y) |*u, v| u.* = u.*.add(v);
+            a.free(y);
+        }
         a.free(r1);
         const wcoms = [_]*const zkp.Commitment{ &w.com, &wmask_com.? };
         wopen = try zkp.finish(a, &tr, wpcs(cfg), &wcoms, wmus, r0);
@@ -1641,17 +1649,53 @@ fn hpFromCells(cells: []const i32, n: u32, deg: u32, buf: []QM31) zks.Hp {
     return .{ .n = n, .d = deg, .c = buf };
 }
 
-fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, colpoint: []const QM31) ![]zkp.Group {
+/// Full weight-table point of a local point of weight tensor `w`.
+fn weightFull(a: std.mem.Allocator, key: WeightKey, w: u32, local: []const QM31) ![]QM31 {
+    const info = key.infos[w];
+    const full = try a.alloc(QM31, key.log_rows + key.log_cols);
+    const nb = key.log_rows + key.log_cols - info.logSize();
+    bitsPoint(full[0..nb], key.offsets[w] >> @intCast(info.logSize()));
+    @memcpy(full[nb..], local);
+    return full;
+}
+
+/// Number of weight-opening groups (distinct column points): matmuls whose output
+/// dimension covers the table's columns share the column point (suffix of rho);
+/// each other matmul has its own (it contains sumcheck coordinates).
+fn weightGroupCount(st: Statement, key: WeightKey) usize {
+    var shared = false;
+    var own: usize = 0;
+    for (st.ops) |op| switch (op) {
+        .matmul => |m| {
+            if (key.infos[m.w].log_dims[1] >= key.log_cols) shared = true else own += 1;
+        },
+        else => {},
+    };
+    return own + @intFromBool(shared);
+}
+
+fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, max_groups: usize) ![]zkp.Group {
     const lr = key.log_rows;
     const nr = key.rows_used + 2 * WPAD_ROWS;
-    const claims = try a.alloc(zkp.Claim, wcl.len);
-    for (wcl, 0..) |c, i| {
-        const info = key.infos[c.w];
-        const full = try a.alloc(QM31, lr + key.log_cols);
-        const nb = lr + key.log_cols - info.logSize();
-        bitsPoint(full[0..nb], key.offsets[c.w] >> @intCast(info.logSize()));
-        @memcpy(full[nb..], c.local);
-        for (full[lr..], colpoint) |x, y| if (!x.eql(y)) return error.WeightColumnPoint;
+    var cols: std.ArrayList([]const QM31) = .empty;
+    var members: std.ArrayList(std.ArrayList(zkp.Claim)) = .empty;
+    for (wcl) |c| {
+        const full = try weightFull(a, key, c.w, c.local);
+        const cp = full[lr..];
+        var gi: ?usize = null;
+        for (cols.items, 0..) |x, i| {
+            var same = true;
+            for (x, cp) |u, v| same = same and u.eql(v);
+            if (same) {
+                gi = i;
+                break;
+            }
+        }
+        if (gi == null) {
+            try cols.append(a, cp);
+            try members.append(a, .empty);
+            gi = cols.items.len - 1;
+        }
         const eqr = try f.eqTable(a, full[0..lr], c.c_data);
         const rv = try a.alloc(QM31, nr);
         @memcpy(rv[0..key.rows_used], eqr[0..key.rows_used]);
@@ -1661,10 +1705,13 @@ fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, colpoi
         const rows = try a.alloc([]const QM31, 2);
         rows[0] = rv;
         rows[1] = &.{};
-        claims[i] = .{ .rows = rows, .value = c.value };
+        try members.items[gi.?].append(a, .{ .rows = rows, .value = c.value });
     }
-    const groups = try a.alloc(zkp.Group, 1);
-    groups[0] = .{ .col = try f.eqTable(a, colpoint, QM31.one()), .claims = claims, .mask = .{ .table = 1, .row = 0 } };
+    if (cols.items.len > max_groups) return error.WeightColumnPoint;
+    const groups = try a.alloc(zkp.Group, cols.items.len);
+    for (groups, cols.items, members.items, 0..) |*g, cp, *mem, gi| {
+        g.* = .{ .col = try f.eqTable(a, cp, QM31.one()), .claims = mem.items, .mask = .{ .table = 1, .row = 4 * gi } };
+    }
     return groups;
 }
 
@@ -1692,7 +1739,6 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
     if (proof.root2) |r| tr.mixDigest(r);
     const rho = try ar.alloc(QM31, plan.rho_len);
     tr.drawN(rho);
-    const colpoint: []const QM31 = if (wkey) |k| rho[rho.len - k.log_cols ..] else &.{};
 
     var claims: std.ArrayList(LClaim) = .empty;
     var wclaims: std.ArrayList(WClaim) = .empty;
@@ -1769,11 +1815,12 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
     // weight opening
     if (proof.weight_opening) |wop| {
         const wk = wkey.?;
-        const wg = try weightGroup(ar, wk, wclaims.items, colpoint);
+        const wmr = 4 * weightGroupCount(st, wk);
+        const wg = try weightGroup(ar, wk, wclaims.items, wmr / 4);
         var wtw = try pcs.Twiddles.init(a, wk.log_cols + wpcs(cfg).log_blowup);
         defer wtw.deinit(a);
         const wshape = wk.shape(wpcs(cfg).log_blowup);
-        const mshape = zkp.Shape{ .log_cols = wk.log_cols, .log_blowup = wpcs(cfg).log_blowup, .slots = wk.slots, .n_rows = 4 };
+        const mshape = zkp.Shape{ .log_cols = wk.log_cols, .log_blowup = wpcs(cfg).log_blowup, .slots = wk.slots, .n_rows = wmr };
         const wshapes = [_]zkp.Shape{ wshape, mshape };
         const wroots = [_]Hash{ wk.root, proof.wmask_root.? };
         try zkp.verifyOpening(ar, &tr, wpcs(cfg), &wtw, &wshapes, &wroots, wg, null, wop);
@@ -2389,6 +2436,22 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     try verify(a, cfg2, st, zw2.key(), &proof3);
     // the verifier must use the same weight parameters
     try std.testing.expect(std.meta.isError(verify(a, cfg, st, zw2.key(), &proof3)));
+    // weight table wider than the matmul output dims: one opening group per matmul
+    {
+        var cfgw = cfg;
+        cfgw.weight_log_cols = 8;
+        var zww = try commitWeights(a, &pool, cfgw, &winfos, &wvv);
+        defer zww.deinit(a);
+        var pw = try prove(a, &pool, cfgw, st, &zww, wv, &tm);
+        defer pw.deinit(a);
+        try verify(a, cfgw, st, zww.key(), &pw);
+        try std.testing.expectEqual(@as(usize, 3), pw.weight_opening.?.rows.len);
+        pw.weight_opening.?.rows[2][5] = pw.weight_opening.?.rows[2][5].add(QM31.one());
+        try std.testing.expect(std.meta.isError(verify(a, cfgw, st, zww.key(), &pw)));
+        pw.weight_opening.?.rows[2][5] = pw.weight_opening.?.rows[2][5].sub(QM31.one());
+        pw.checks[0].hats[1] = pw.checks[0].hats[1].add(QM31.one());
+        try std.testing.expect(std.meta.isError(verify(a, cfgw, st, zww.key(), &pw)));
+    }
     try std.testing.expectEqual(@as(usize, 6), proof3.weight_opening.?.tables[0].salts.len);
 }
 

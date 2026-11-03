@@ -110,9 +110,10 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     defer pool.deinit();
     const cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf };
     // Weight table (committed once): higher blowup, slots = C_w, queries for 128 conjectured bits.
-    const wlc: u32 = @min(ld, 13);
+    // hiding weight table may be wider than the smallest output dim (one opening group per such matmul)
+    const wlc: u32 = if (std.posix.getenv("ZK_WEIGHT_LC")) |v| try std.fmt.parseInt(u32, v, 10) else @min(ld + 2, 14);
     const wlb: u32 = if (std.posix.getenv("ZK_WEIGHT_LB")) |v| try std.fmt.parseInt(u32, v, 10) else 4;
-    const wslots: u32 = if (std.posix.getenv("ZK_WEIGHT_SLOTS")) |v| try std.fmt.parseInt(u32, v, 10) else @as(u32, 1) << @intCast(wlc);
+    const wslots: u32 = if (std.posix.getenv("ZK_WEIGHT_SLOTS")) |v| try std.fmt.parseInt(u32, v, 10) else @as(u32, 1) << @intCast(wlc - 2);
     const wbits = std.math.log2(@as(f64, @floatFromInt(@as(u64, 1) << @intCast(wlc + wlb))) / @as(f64, @floatFromInt((@as(u64, 1) << @intCast(wlc)) + wslots)));
     const wq_auto: usize = @intFromFloat(@ceil((128.0 - @as(f64, @floatFromInt(pow))) / wbits));
     const wq: usize = if (std.posix.getenv("ZK_WEIGHT_Q")) |v| try std.fmt.parseInt(usize, v, 10) else wq_auto;
