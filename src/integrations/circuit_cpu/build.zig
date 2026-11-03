@@ -53,6 +53,20 @@ pub fn build(b: *std.Build) void {
     om31_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     b.step("test-circuit-om31", "Test concrete native OM31 circuit authority and witnesses").dependOn(&om31_tests.step);
 
+    const om31_fraction_root = b.createModule(.{ .root_source_file = b.path("om31_fractions_test_root.zig"), .target = target, .optimize = optimize });
+    om31_fraction_root.addImport("stwo_core", core);
+    om31_fraction_root.addImport("stwo_prover_engine", prover);
+    om31_fraction_root.addImport("stwo_circuit_frontend", circuit);
+    om31_fraction_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_fraction_test = b.addTest(.{ .root_module = om31_fraction_root });
+    om31_fraction_root.addIncludePath(.{ .cwd_relative = b.pathFromRoot("../circuit_cuda/native/emulation/include") });
+    om31_fraction_root.addIncludePath(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native") });
+    om31_fraction_root.addCSourceFile(.{ .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/rv64/circuit_interaction.cu") }, .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_OM31_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" }, .language = .cpp });
+    om31_fraction_test.linkLibCpp();
+    const om31_fraction_run = b.addRunArtifact(om31_fraction_test);
+    om31_fraction_run.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-cuda-fractions", "Compare native octic CUDA fractions with all original native lookup tuples").dependOn(&om31_fraction_run.step);
+
     const om31_witness_root = b.createModule(.{ .root_source_file = b.path("om31_witness_test_root.zig"), .target = target, .optimize = optimize });
     om31_witness_root.addImport("stwo_core", core);
     om31_witness_root.addImport("stwo_prover_engine", prover);
