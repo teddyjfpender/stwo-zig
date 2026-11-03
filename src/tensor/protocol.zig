@@ -622,6 +622,45 @@ fn keyValuesInto(out: []QM31, pool: *f.Pool, st: Statement, w: []const []const i
     }
 }
 
+/// One buffer whose first `touch_len` entries a helper thread faults in.
+const PrefaultBuf = struct {
+    buf: ?[]QM31 = null,
+    thread: ?std.Thread = null,
+
+    fn start(self: *PrefaultBuf, a: std.mem.Allocator, len: usize, touch_len: usize) !void {
+        const b = try a.alloc(QM31, len);
+        self.buf = b;
+        // the slice is copied into the thread's arguments (no stack temporaries)
+        self.thread = std.Thread.spawn(.{}, touchOne, .{b[0..touch_len]}) catch null;
+    }
+
+    fn touchOne(b: []QM31) void {
+        KeyBufs.touch(&.{b});
+    }
+
+    /// The buffer (ownership passes to the caller), or a fresh one.
+    fn take(self: *PrefaultBuf, a: std.mem.Allocator, len: usize) ![]QM31 {
+        self.join();
+        if (self.buf) |b| {
+            std.debug.assert(b.len == len);
+            self.buf = null;
+            return b;
+        }
+        return a.alloc(QM31, len);
+    }
+
+    fn join(self: *PrefaultBuf) void {
+        if (self.thread) |t| t.join();
+        self.thread = null;
+    }
+
+    fn deinit(self: *PrefaultBuf, a: std.mem.Allocator) void {
+        self.join();
+        if (self.buf) |b| a.free(b);
+        self.buf = null;
+    }
+};
+
 /// GKR key-input buffers allocated before the witness commitment, with their
 /// pages touched by a helper thread while the commitment runs. Fresh pages
 /// cost a serialized zero-fill fault each (≈9 GB/s for the 0.9 GB of key
@@ -1025,6 +1064,11 @@ pub fn proveWithAllAccumulators(
     for (rel.tables, 0..) |_, i| a.free(inputs[rel.keys.len + i].den);
     defer if (n_inst > 0) art.deinit(a);
     timings.gkr_ns = nowNs(t0);
+    // CPU batch stage: allocate its E table now (the GKR layers are gone) and
+    // fault in the pages it will write while the terminal and op sumchecks run.
+    var e_pre = PrefaultBuf{};
+    defer e_pre.deinit(a);
+    if (cfg.accel == null and cfg.prefault_gkr_inputs) try e_pre.start(a, total, lay.used);
     timings.gkr_build_ns = gkr_stats.build_ns;
     timings.gkr_sumcheck_ns = gkr_stats.sumcheck_ns;
     const L = art.ood_point.len;
@@ -1251,7 +1295,7 @@ pub fn proveWithAllAccumulators(
         break :blk try accel.batchProve(cfg.accel, a, pool, &tr, wtab, lay.used, bclaims, batch_claim);
     } else blk: {
         // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
-        const E = try a.alloc(QM31, total);
+        const E = try e_pre.take(a, total);
         defer a.free(E);
         var rc: std.ArrayList(batch.RegionClaim) = .empty;
         defer rc.deinit(a);
