@@ -33,6 +33,7 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
+    if (args.len >= 2 and std.mem.eql(u8, args[1], "prims")) return @import("bench_prims.zig").run(a, if (args.len > 2) try std.fmt.parseInt(usize, args[2], 10) else 1);
     if (args.len < 5 or !std.mem.eql(u8, args[1], "mlp")) {
         std.debug.print("usage: tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]\n", .{});
         return;

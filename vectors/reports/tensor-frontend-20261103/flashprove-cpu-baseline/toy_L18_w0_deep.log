@@ -1,0 +1,20 @@
+L=18 work_bits=0
+base code 0: log_n=21 ell=262144 r(tail = hidden positions)=86 rate=0.12504
+base code 1: log_n=18 ell=16384 r(tail = hidden positions)=65 rate=0.06275
+base code 2: log_n=15 ell=1024 r(tail = hidden positions)=53 rate=0.03287
+base code 3: log_n=13 ell=1024 r(tail = hidden positions)=89 rate=0.13586
+mask code 0: log_n=17 ell=64 r=86 rate=0.00114
+mask code 1: log_n=14 ell=64 r=65 rate=0.00787
+mask code 2: log_n=12 ell=64 r=53 rate=0.02856
+mask code 3: log_n=13 ell=512 r=89 rate=0.07336
+stage 0: base code 0 mask code 0 k=2 h=0
+stage 1: base code 1 mask code 1 k=4 h=3
+stage 2: base code 2 mask code 2 k=4 h=3
+stage 3: base code 3 mask code 3 k=0 h=0
+rep 0: prover 2.0197 s verifier 0.0118 s bytes 250264 verdict ACCEPT
+rep 1: prover 2.0212 s verifier 0.0121 s bytes 251120 verdict ACCEPT
+rep 2: prover 2.0600 s verifier 0.0115 s bytes 249920 verdict ACCEPT
+rep 3: prover 2.0914 s verifier 0.0116 s bytes 251648 verdict ACCEPT
+rep 4: prover 2.0459 s verifier 0.0118 s bytes 250928 verdict ACCEPT
+engine-call split of last rep (s): [commit(encode+merkle) 1.7593] [evaluate 0.0208] [fold_begin 0.0926] [fold_bind 0.0127] [fold_end 0.0027] [fold_round 0.0223] [open 0.0003]
+RESULT L=18 n=262144 work=0 prover_median_s=2.0459 verifier_median_s=0.0118 proof_bytes=250928 ok=1 reps=5

@@ -1,0 +1,34 @@
+L=16 work_bits=0
+base code 0: log_n=19 ell=65536 r(tail = hidden positions)=86 rate=0.12516
+base code 1: log_n=18 ell=32768 r(tail = hidden positions)=86 rate=0.12533
+mask code 0: log_n=15 ell=64 r=86 rate=0.00458
+mask code 1: log_n=16 ell=256 r=86 rate=0.00522
+mask code 2: log_n=18 ell=1024 r=86 rate=0.00423
+stage 0: base code 0 mask code 0 k=2 h=0
+stage 1: base code 1 mask code 1 k=1 h=1
+stage 2: base code 1 mask code 2 k=0 h=0
+rep 0: prover 0.8018 s verifier 0.0347 s bytes 944920 verdict ACCEPT
+rep 1: prover 0.7827 s verifier 0.0353 s bytes 944824 verdict ACCEPT
+rep 2: prover 0.8091 s verifier 0.0354 s bytes 943480 verdict ACCEPT
+rep 3: prover 0.8061 s verifier 0.0357 s bytes 944984 verdict ACCEPT
+rep 4: prover 0.7902 s verifier 0.0340 s bytes 945688 verdict ACCEPT
+engine-call split of last rep (s): [commit(encode+merkle) 0.7050] [evaluate 0.0061] [fold_begin 0.0237] [fold_bind 0.0028] [fold_end 0.0008] [fold_round 0.0050] [open 0.0001]
+RESULT L=16 n=65536 work=0 prover_median_s=0.8018 verifier_median_s=0.0353 proof_bytes=945688 ok=1 reps=5
+        5.14 real         4.14 user         0.15 sys
+           374063104  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               34071  page reclaims
+                  55  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  12  voluntary context switches
+                2227  involuntary context switches
+           287374988  instructions retired
+           138406369  cycles elapsed
+            11436656  peak memory footprint
