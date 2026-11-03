@@ -1,0 +1,5 @@
+DEEP case=0 groups=1 terms=2 rows=2048 coefficient_cells=256 evaluation_cells=1024
+DEEP case=1 groups=3 terms=6 rows=2048 coefficient_cells=1792 evaluation_cells=7168
+DEEP case=2 groups=10 terms=20 rows=2048 coefficient_cells=8448 evaluation_cells=33792
+DEEP case=3 groups=3 terms=6 rows=131072 coefficient_cells=229376 evaluation_cells=917504
+DEEP case=4 groups=3 terms=6 rows=2048 coefficient_cells=1792 evaluation_cells=7168

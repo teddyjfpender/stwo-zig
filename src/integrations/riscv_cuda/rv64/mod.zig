@@ -9,6 +9,7 @@ pub const composition_codegen = @import("composition_codegen.zig");
 pub const channel = @import("channel.zig");
 pub const pcs = @import("pcs.zig");
 pub const deep = @import("deep.zig");
+pub const samples = @import("samples.zig");
 pub const plan = @import("plan.zig");
 pub const scheduler = @import("scheduler.zig");
 pub const resident = @import("resident.zig");
@@ -16,6 +17,7 @@ pub const assembly = @import("assembly.zig");
 pub const sumcheck = @import("sumcheck.zig");
 pub const production_ready = false;
 test {
+    _ = samples;
     _ = @import("tests/joined_codegen_test.zig");
     _ = @import("tests/symbolic_external_test.zig");
     _ = @import("tests/batch_test.zig");

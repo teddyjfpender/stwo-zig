@@ -4,6 +4,13 @@ const R = @import("rv64/resident.zig");
 const S = @import("rv64/sumcheck.zig");
 const Context = @import("stwo_cuda_backend").runtime.NativeContext;
 
+export fn rv64_test_samples(context: *Context, lane: u32, points: *const @import("rv64/samples.zig").Points, evaluation: *const @import("rv64/samples.zig").Evaluation) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.samplePoints(points.*) catch return 1;
+    commands.sampleEvaluate(evaluation.*) catch return 1;
+    return 0;
+}
+
 export fn rv64_test_deep(context: *Context, lane: u32, prepare: *const @import("rv64/deep.zig").Prepare, combine: *const @import("rv64/deep.zig").Combine) c_int {
     var commands = @import("rv64/deep.zig").NativeCommands{ .context = context, .lane_index = lane };
     commands.prepare(prepare.*) catch return 1;

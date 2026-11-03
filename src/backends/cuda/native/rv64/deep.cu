@@ -252,6 +252,10 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
       input->term_count > 65536 || !input->group_count ||
       input->group_count > 1024)
     return int(cudaErrorInvalidValue);
+  if (reinterpret_cast<uintptr_t>(input->sources) %
+          alignof(StwoRv64DeepSource) ||
+      reinterpret_cast<uintptr_t>(input->groups) % alignof(StwoRv64DeepGroup))
+    return int(cudaErrorInvalidValue);
   const auto j = *input;
   RangeCustody<20> c(ctx, lane);
   for (uint32_t i = 0; i < 4; ++i) {
@@ -292,6 +296,8 @@ extern "C" int stwo_rv64_deep_combine_on(void *ctx, uint32_t lane,
   if (!input || input->reserved[0] || input->reserved[1] ||
       !input->group_count || input->group_count > 1024 || !input->output_log ||
       input->output_log > 28)
+    return int(cudaErrorInvalidValue);
+  if (reinterpret_cast<uintptr_t>(input->groups) % alignof(StwoRv64DeepGroup))
     return int(cudaErrorInvalidValue);
   const auto j = *input;
   RangeCustody<12> c(ctx, lane);

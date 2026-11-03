@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qualify compact OM31 DEEP kernels against native PCS fixtures on NVIDIA."""
+"""Qualify resident OM31 PCS kernels against native PCS fixtures on NVIDIA."""
 import argparse
 import hashlib
 import json
@@ -18,34 +18,53 @@ def main():
     p.add_argument("--fixtures", required=True, type=Path)
     p.add_argument("--build", required=True, type=Path)
     p.add_argument("--context-object", required=True, type=Path)
-    p.add_argument("--lde-object", required=True, type=Path)
-    p.add_argument("--n2b-object", required=True, type=Path)
+    p.add_argument("--mode", choices=["deep", "samples"], default="deep")
+    p.add_argument("--channel-object", type=Path)
+    p.add_argument("--lde-object", type=Path)
+    p.add_argument("--n2b-object", type=Path)
     p.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     p.add_argument("--sanitizer", default="/usr/local/cuda/bin/compute-sanitizer")
     p.add_argument("--arch", choices=["89", "90", "100", "120"], default="120")
     args = p.parse_args()
     root, fixtures, build = args.source_root.resolve(), args.fixtures.resolve(), args.build.resolve()
-    objects = [args.context_object.resolve(), args.lde_object.resolve(), args.n2b_object.resolve()]
-    bins = [fixtures / f"case-{i}.bin" for i in range(4)]
+    if args.mode == "deep":
+        if args.lde_object is None or args.n2b_object is None or args.channel_object is None:
+            p.error("deep mode requires --lde-object, --n2b-object and --channel-object")
+        objects = [args.context_object.resolve(), args.lde_object.resolve(), args.n2b_object.resolve(), args.channel_object.resolve()]
+        honest, mutants = 5, 19
+    else:
+        if args.channel_object is None:
+            p.error("samples mode requires --channel-object")
+        objects = [args.context_object.resolve(), args.channel_object.resolve()]
+        honest, mutants = 2, 17
+    bins = [fixtures / f"case-{i}.bin" for i in range(honest)]
     if not all(path.is_file() for path in objects + bins):
-        p.error("the four native fixtures and all qualified dependency objects are required")
+        p.error("native fixtures and all qualified dependency objects are required")
     build.mkdir(parents=True, exist_ok=True)
     flags = ["-O3", "-std=c++17", "-lineinfo", "-gencode", f"arch=compute_{args.arch},code=sm_{args.arch}",
              f"-I{root / 'src/backends/cuda/native'}", f"-I{root / 'tests/cuda/rv64'}", "-Xcompiler=-pthread"]
-    source = root / "src/backends/cuda/native/rv64/deep.cu"
-    driver = root / "tests/cuda/rv64/deep_smoke.cu"
-    inputs = objects + bins + [source, driver, Path(__file__).resolve(),
+    kind = args.mode
+    source = root / f"src/backends/cuda/native/rv64/{kind}.cu"
+    driver = root / f"tests/cuda/rv64/{kind}_smoke.cu"
+    sources = [source] if kind == "samples" else [source, root / "src/backends/cuda/native/rv64/samples.cu"]
+    inputs = objects + bins + sources + [driver, Path(__file__).resolve(),
         root / "src/backends/cuda/native/rv64/deep.h",
         root / "src/backends/cuda/native/rv64/om31.cuh",
         root / "src/backends/cuda/native/oods/field.cuh",
-        root / "src/integrations/riscv_cuda/rv64_deep_fixture_main.zig"]
+        root / f"src/integrations/riscv_cuda/rv64_{kind}_fixture_main.zig",
+        root / "tests/cuda/rv64/fixture_words.cuh",
+        root / "src/backends/cuda/native/rv64/custody.cuh",
+        root / "src/backends/cuda/native/rv64/gkr.h"]
+    inputs.append(root / "src/backends/cuda/native/rv64/samples.h")
     pinned = {str(path): sha(path) for path in inputs}
-    executable = build / "deep-smoke"
+    executable = build / f"{kind}-smoke"
     started = time.monotonic()
+    compiled = [build / f"{item.stem}.o" for item in sources]
     with (build / "compile.log").open("w") as log:
-        subprocess.run([args.nvcc, *flags, "-Xptxas=-v", "-c", str(source), "-o", str(build / "deep.o")],
-                       check=True, stdout=log, stderr=subprocess.STDOUT)
-        subprocess.run([args.nvcc, *flags, str(driver), str(build / "deep.o"), *map(str, objects), "-o", str(executable)],
+        for item, out in zip(sources, compiled):
+            subprocess.run([args.nvcc, *flags, "-Xptxas=-v", "-c", str(item), "-o", str(out)],
+                           check=True, stdout=log, stderr=subprocess.STDOUT)
+        subprocess.run([args.nvcc, *flags, str(driver), *map(str, compiled + objects), "-o", str(executable)],
                        check=True, stdout=log, stderr=subprocess.STDOUT)
     compile_seconds = time.monotonic() - started
     gates = {}
@@ -58,24 +77,24 @@ def main():
             subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
         text = path.read_text()
         cases = [json.loads(line) for line in text.splitlines() if line.startswith("{")]
-        if (len(cases) != 23 or any(x["result"] != "PASS" for x in cases)
-                or sum(x["fault"] == 0 and x["status"] == 0 for x in cases) != 4
-                or sum(x["fault"] > 0 and x["status"] > 0 for x in cases) != 19):
-            raise RuntimeError(f"incomplete DEEP qualification: {tool}")
+        if (len(cases) != honest + mutants or any(x["result"] != "PASS" for x in cases)
+                or sum(x["fault"] == 0 and x["status"] == 0 for x in cases) != honest
+                or sum(x["fault"] > 0 and x["status"] > 0 for x in cases) != mutants):
+            raise RuntimeError(f"incomplete PCS qualification: {tool}")
         if tool != "normal" and not any(marker in text for marker in ["ERROR SUMMARY: 0 errors", "RACECHECK SUMMARY: 0 hazards displayed"]):
             raise RuntimeError(f"missing sanitizer success summary: {tool}")
         gates[tool] = {"status": "PASS", "sha256": sha(path)}
         print(json.dumps({"gate": tool, "status": "PASS"}), flush=True)
     receipt = {
-        "schema": "rv64-cuda-om31-compact-deep/v1", "full_block_verified": False,
-        "scope": "Native numerical quotient and compact aggregate/LDE parity; no proof or execution admission",
+        "schema": f"rv64-cuda-om31-{kind}/v2", "full_block_verified": False,
+        "scope": "Native numerical PCS parity; no proof or execution admission",
         "arch": args.arch, "compiler": subprocess.check_output([args.nvcc, "--version"], text=True),
-        "compile_seconds": compile_seconds, "honest_cases": 4, "mutants_rejected": 19,
+        "compile_seconds": compile_seconds, "honest_cases": honest, "mutants_rejected": mutants,
         "intermediate_field_transfers": 0, "source_sha256": sha(source), "driver_sha256": sha(driver),
-        "fixture_generator_sha256": sha(root / "src/integrations/riscv_cuda/rv64_deep_fixture_main.zig"),
+        "fixture_generator_sha256": sha(root / f"src/integrations/riscv_cuda/rv64_{kind}_fixture_main.zig"),
         "dependency_objects": {str(path): sha(path) for path in objects},
         "fixtures": {path.name: sha(path) for path in bins}, "gates": gates,
-        "inputs_sha256": pinned, "executable_sha256": sha(executable), "object_sha256": sha(build / "deep.o"),
+        "inputs_sha256": pinned, "executable_sha256": sha(executable), "object_sha256": sha(build / f"{kind}.o"),
     }
     if any(sha(Path(path)) != digest for path, digest in pinned.items()):
         raise RuntimeError("qualification inputs changed during the run; refusing receipt")

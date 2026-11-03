@@ -9,6 +9,11 @@ const Q = core.pcs.ForField(O).quotients;
 const Poly = engine.poly.circle.CircleCoefficients;
 const Canonic = core.poly.circle.canonic.CanonicCoset;
 const a = std.heap.page_allocator;
+const Channel = core.channel.raw_mod_m31.Om31Channel;
+fn checkpoint(w: anytype, channel: Channel) !void {
+    for (0..8) |i| try IO.words(w, &.{std.mem.readInt(u32, channel.inner.digest[i * 4 ..][0..4], .little)});
+    try IO.words(w, &.{channel.inner.n_draws});
+}
 fn random(r: std.Random) O {
     var limbs: [8]M = undefined;
     for (&limbs) |*v| v.* = M.fromU64(r.int(u32));
@@ -17,12 +22,18 @@ fn random(r: std.Random) O {
 fn bases(w: anytype, values: []const M) !void {
     for (values) |v| try IO.words(w, &.{v.v});
 }
-fn fixture(dir: std.fs.Dir, count: u32, id: u32) !void {
+fn fixture(dir: std.fs.Dir, count: u32, id: u32, resident_samples: bool) !void {
     const terms = count * 2;
     const output_log: u32 = if (id == 3) 17 else 11;
     const rows = @as(usize, 1) << @intCast(output_log);
     var rng = std.Random.DefaultPrng.init(0xd33f101 + id);
-    const alpha = random(rng.random());
+    var alpha = random(rng.random());
+    var channel = Channel.init();
+    channel.mixU32s(&.{ 0x52564450, 2, id });
+    const initial_channel = channel;
+    const parameter = channel.drawSecureFelt();
+    const base_point = try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, parameter);
+    var recipes: std.ArrayList(u32) = .empty;
     const batches = try a.alloc(Q.ColumnSampleBatch, count);
     const coefficients = try a.alloc([]M, terms);
     const evaluations = try a.alloc([]const M, terms);
@@ -39,7 +50,9 @@ fn fixture(dir: std.fs.Dir, count: u32, id: u32) !void {
         const coefficient_log: u32 = if (id == 3) 12 + g % 3 else 5 + g % 4;
         const evaluation_log = coefficient_log + 2;
         const n = @as(usize, 1) << @intCast(coefficient_log);
-        const point = try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, random(rng.random()));
+        const offset = Canonic.new(8).circleDomain().at((gi + 1) * 7);
+        const point = if (resident_samples) base_point.add(.{ .x = O.fromBase(offset.x), .y = O.fromBase(offset.y) }) else try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, random(rng.random()));
+        try recipes.appendSlice(a, &.{ offset.x.v, offset.y.v, output_log - evaluation_log, coefficient_log });
         const members = try a.alloc(Q.NumeratorData, 2);
         batch.* = .{ .point = point, .cols_vals_randpows = members };
         try group_words.appendSlice(a, &.{ g * 2, g * 2 + 2, coefficient_log, evaluation_log, coefficient_words, 0, evaluation_words, 0 });
@@ -58,18 +71,33 @@ fn fixture(dir: std.fs.Dir, count: u32, id: u32) !void {
             try tree.appendSlice(a, coeff);
             try term_words.appendSlice(a, &.{ t, g, terms - 1 - t, 0 });
             const poly = try Poly.initBorrowed(coeff);
-            const sample = poly.evalAtPointFor(O, point);
+            const sample = poly.evalAtPointFor(O, if (resident_samples) point.repeatedDouble(output_log - evaluation_log) else point);
             try values.append(a, sample);
             member.* = .{ .column_index = t, .sample_value = sample, .random_coeff = alpha.pow(terms - 1 - t) };
             const evaluated = try poly.evaluate(a, domain);
             evaluations[t] = evaluated.values;
         }
     }
+    if (resident_samples) {
+        channel.mixFelts(values.items);
+        alpha = channel.drawSecureFelt();
+        for (batches, 0..) |*batch, gi| for (batch.cols_vals_randpows, 0..) |*member, j| {
+            const t = gi * 2 + j;
+            member.random_coeff = alpha.pow(terms - 1 - t);
+        };
+    }
     var constants = try Q.quotientConstants(a, batches);
     defer constants.deinit(a);
     var bytes: std.ArrayList(u8) = .empty;
     const w = bytes.writer(a);
-    try IO.words(w, &.{ 0x52564450, 1, count, terms, terms, output_log, @intCast(tree.items.len), coefficient_words, evaluation_words, @intCast(twiddle_words.items.len) });
+    try IO.words(w, &.{ 0x52564450, if (resident_samples) 2 else 1, count, terms, terms, output_log, @intCast(tree.items.len), coefficient_words, evaluation_words, @intCast(twiddle_words.items.len) });
+    if (resident_samples) {
+        try checkpoint(w, initial_channel);
+        try IO.words(w, recipes.items);
+        try IO.felts(w, &.{parameter});
+        try checkpoint(w, channel);
+        try IO.words(w, &.{ 3, 0, 0, 68, 0, 0, 0 });
+    }
     try IO.words(w, source_words.items);
     try IO.words(w, term_words.items);
     try IO.words(w, group_words.items);
@@ -131,5 +159,6 @@ pub fn main() !void {
     try std.fs.cwd().makePath(args[1]);
     var dir = try std.fs.cwd().openDir(args[1], .{});
     defer dir.close();
-    for ([_]u32{ 1, 3, 10, 3 }, 0..) |count, id| try fixture(dir, count, @intCast(id));
+    for ([_]u32{ 1, 3, 10, 3 }, 0..) |count, id| try fixture(dir, count, @intCast(id), false);
+    try fixture(dir, 3, 4, true);
 }

@@ -1,0 +1,63 @@
+{
+  "schema": "rv64-cuda-om31-samples/v2",
+  "full_block_verified": false,
+  "scope": "Native numerical PCS parity; no proof or execution admission",
+  "arch": "120",
+  "compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0\n",
+  "compile_seconds": 6.355327589903027,
+  "honest_cases": 2,
+  "mutants_rejected": 17,
+  "intermediate_field_transfers": 0,
+  "source_sha256": "4bf919bc058a185cd76f36f7e384d5bb4ff98a287dd9939f795af68e73afd860",
+  "driver_sha256": "35f131edda5af23b020d9f242e43b8b6868445c01c0a1ab8a75f1455c4cbf542",
+  "fixture_generator_sha256": "4b02afed07059b5dd7056a2b8af1af175caa0542f4dab92eee3845e4d79449d5",
+  "dependency_objects": {
+    "/workspace/rv64-gpu-session/build/context.o": "a083b05689c22b6c4e1e56e99f6f28cd5496044454037df8296d5fe327f63a9e",
+    "/workspace/rv64-gpu-session/build/rv64-channel.o": "1f3a16c3a72d37f21f33d9b80ab9c0b96500b0ae62403b59c4671b52d9cb4d5d"
+  },
+  "fixtures": {
+    "case-0.bin": "91b41e6e869c16dacb0af137da81901afb753fa6f15e7c32c7433bcf914fd9e2",
+    "case-1.bin": "b0b08ee75b14aa7435daf5b81b1c7725a15a00a476b89683118acae19b36cf52"
+  },
+  "gates": {
+    "normal": {
+      "status": "PASS",
+      "sha256": "aefbbc5d42566594ee3dabd1caf3d1967e6c0337d4fb9cbb0b5c4c3ca8255a56"
+    },
+    "memcheck": {
+      "status": "PASS",
+      "sha256": "e5f0279ca38ff470f8c63a2a07a94eef4cb0470ce804e636b9a0bcb8087dec6f"
+    },
+    "racecheck": {
+      "status": "PASS",
+      "sha256": "71a351834f9a62d414467a26935bb6b50cb0ce8796b0cdb1a2373313a089a35e"
+    },
+    "initcheck": {
+      "status": "PASS",
+      "sha256": "e5f0279ca38ff470f8c63a2a07a94eef4cb0470ce804e636b9a0bcb8087dec6f"
+    },
+    "synccheck": {
+      "status": "PASS",
+      "sha256": "e5f0279ca38ff470f8c63a2a07a94eef4cb0470ce804e636b9a0bcb8087dec6f"
+    }
+  },
+  "inputs_sha256": {
+    "/workspace/rv64-gpu-session/build/context.o": "a083b05689c22b6c4e1e56e99f6f28cd5496044454037df8296d5fe327f63a9e",
+    "/workspace/rv64-gpu-session/build/rv64-channel.o": "1f3a16c3a72d37f21f33d9b80ab9c0b96500b0ae62403b59c4671b52d9cb4d5d",
+    "/workspace/rv64-gpu-session/rv64-samples-fixtures/case-0.bin": "91b41e6e869c16dacb0af137da81901afb753fa6f15e7c32c7433bcf914fd9e2",
+    "/workspace/rv64-gpu-session/rv64-samples-fixtures/case-1.bin": "b0b08ee75b14aa7435daf5b81b1c7725a15a00a476b89683118acae19b36cf52",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/samples.cu": "4bf919bc058a185cd76f36f7e384d5bb4ff98a287dd9939f795af68e73afd860",
+    "/workspace/stwo-zig/tests/cuda/rv64/samples_smoke.cu": "35f131edda5af23b020d9f242e43b8b6868445c01c0a1ab8a75f1455c4cbf542",
+    "/workspace/stwo-zig/scripts/rv64_cuda_deep_qualify.py": "f49f9e6c6918b9a01bdd443ded358a2ed9ca62c6c1c453e72b5760df128bf655",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/deep.h": "320f309b7d404d01480ee021cb604158ae0175de5a7ee1bfe87b5e11524fadbe",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/om31.cuh": "fe75730531a7638460b8a53e0d33d2daad53b7aff342b69fd196d1bbcdeb8d0b",
+    "/workspace/stwo-zig/src/backends/cuda/native/oods/field.cuh": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec",
+    "/workspace/stwo-zig/src/integrations/riscv_cuda/rv64_samples_fixture_main.zig": "4b02afed07059b5dd7056a2b8af1af175caa0542f4dab92eee3845e4d79449d5",
+    "/workspace/stwo-zig/tests/cuda/rv64/fixture_words.cuh": "0f8ca9a74757d9a7d24d9f6a632cd34ea7fe86a526e947e067c75d43956b67d7",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/custody.cuh": "0db77222de7dd7cabcf90de0eb349144d1ad1ca1a6d542ac03b1ac63cb5a3d5b",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/gkr.h": "1047ecb9a178be05c2528922b01169d40b0a0e9c30d563fc3309ebf1dab535c0",
+    "/workspace/stwo-zig/src/backends/cuda/native/rv64/samples.h": "cd4f63c754373514473730a461ffff41967a99ff6697eaab0d145f0eac84ba8e"
+  },
+  "executable_sha256": "c9febf313f890bb001359e631338d6cd49b01d3cc7d89c5e0ae8723708063ea5",
+  "object_sha256": "e4c2e31252db47cffad4aeb79eb019e1848917e426cc63bf89037bcf1a638a37"
+}

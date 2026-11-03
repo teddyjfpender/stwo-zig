@@ -337,6 +337,55 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const owner = try self.handle();
             try self.result(Api.stwo_rv64_binding_eq_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, point, row_log * 8), row_log, try output.bind(self.context), try self.context.deviceSlicePointer(u32, verdict, 1)), 1 + (row_log + 3) / 4);
         }
+        pub fn samplePoints(self: *Self, j: @import("samples.zig").Points) !void {
+            if (j.count == 0 or j.count > 1024) return error.InvalidGeometry;
+            const owner = try self.handle();
+            const packet = abi.SamplePoints{
+                .parameter = try self.context.deviceSlicePointer(u32, j.parameter, 8),
+                .recipes = try self.context.deviceSlicePointer(u32, j.recipes, @as(usize, j.count) * 4),
+                .points = try self.context.deviceSlicePointer(u32, j.points, @as(usize, j.count + 1) * 16),
+                .factors = try self.context.deviceSlicePointer(u32, j.factors, @as(usize, j.count) * @import("samples.zig").factor_stride * 8),
+                .ready = try self.context.deviceSlicePointer(u32, j.ready, j.count + 1),
+                .status = try self.context.deviceSlicePointer(u32, j.verdict, 1),
+                .count = j.count,
+            };
+            try self.result(Api.stwo_rv64_sample_points_on(owner, self.lane_index, &packet), 2);
+        }
+        pub fn sampleEvaluate(self: *Self, j: @import("samples.zig").Evaluation) !void {
+            if (j.source_count == 0 or j.source_count > 65536 or j.term_capacity > 65536 or j.group_count == 0 or j.group_count > 1024 or j.first > j.term_capacity or j.count > j.term_capacity - j.first or j.sources.address % 8 != 0) return error.InvalidGeometry;
+            const plan = try @import("samples.zig").Plan.init(j.coefficient_log, j.count);
+            const owner = try self.handle();
+            var trees: [4]?[*]const u32 = @splat(null);
+            var tree_words: [4]u64 = @splat(0);
+            for (j.trees, 0..) |source, i| if (source) |s| {
+                if (s.len == 0) return error.InvalidGeometry;
+                trees[i] = try self.context.deviceSlicePointer(u32, s, s.len);
+                tree_words[i] = s.len;
+            };
+            const packet = abi.SampleEvaluation{
+                .trees = trees,
+                .tree_words = tree_words,
+                .sources = try self.context.deviceSlicePointer(u32, j.sources, @as(usize, j.source_count) * 4),
+                .terms = try self.context.deviceSlicePointer(u32, j.terms, @as(usize, j.term_capacity) * 4),
+                .recipes = try self.context.deviceSlicePointer(u32, j.recipes, @as(usize, j.group_count) * 4),
+                .factors = try self.context.deviceSlicePointer(u32, j.factors, @as(usize, j.group_count) * @import("samples.zig").factor_stride * 8),
+                .point_ready = try self.context.deviceSlicePointer(u32, j.point_ready, j.group_count + 1),
+                .scratch_a = try self.context.deviceSlicePointer(u32, j.scratch_a, plan.scratch_words),
+                .scratch_b = try self.context.deviceSlicePointer(u32, j.scratch_b, plan.scratch_words),
+                .values = try self.context.deviceSlicePointer(u32, j.values, @as(usize, j.term_capacity) * 8),
+                .valid = try self.context.deviceSlicePointer(u32, j.valid, j.count),
+                .status = try self.context.deviceSlicePointer(u32, j.verdict, 1),
+                .scratch_words = plan.scratch_words,
+                .value_words = j.values.len,
+                .source_count = j.source_count,
+                .term_capacity = j.term_capacity,
+                .group_count = j.group_count,
+                .first = j.first,
+                .count = j.count,
+                .coefficient_log = j.coefficient_log,
+            };
+            try self.result(Api.stwo_rv64_sample_evaluate_on(owner, self.lane_index, &packet), plan.dispatches);
+        }
         pub fn projectBinding(self: *Self, input: Fraction, eq_column: Plane, prefix_column: Plane, metadata: Slice, verdict: Slice, row_log: u32, lane_log: u32) !void {
             if (row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > 28) return error.InvalidGeometry;
             const rows = @as(u32, 1) << @intCast(row_log);

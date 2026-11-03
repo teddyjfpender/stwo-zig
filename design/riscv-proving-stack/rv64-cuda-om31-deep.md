@@ -5,6 +5,11 @@ source coefficients and combines their independently sized LDEs into an OM31
 quotient. This is a numerical PCS qualification, not an accepting Ethereum GPU
 proof. The complete resident transcript/PCS controller remains unfinished.
 
+The [resident sampling qualification](rv64-cuda-om31-samples.md) now connects
+the device channel, OODS point/sample generation and DEEP in one flow. Its
+additional native oracle does not upload points, sample values or the DEEP
+challenge. Earlier standalone cases remain useful numerical controls.
+
 The implementation follows `core/constraints.zig` and
 `core/pcs/quotients/row_evaluation_family.zig`. OM31 quadratic conjugation
 negates the upper four coordinates. The conjugate line has coefficients
@@ -77,17 +82,17 @@ zig build --build-file src/integrations/riscv_cuda/build.zig rv64-deep-fixtures 
 python3 scripts/rv64_cuda_deep_qualify.py \
   --fixtures /tmp/rv64-deep-fixtures --build /tmp/rv64-deep-qualified \
   --context-object /path/to/context.o --lde-object /path/to/transform-lde.o \
-  --n2b-object /path/to/transform-n2b.o
+  --n2b-object /path/to/transform-n2b.o --channel-object /path/to/rv64-channel.o
 ```
 
-The three dependency objects are the existing qualified native context and
+The dependency objects are the existing qualified native context, channel and
 transform objects; their exact hashes enter the receipt. Hardware qualification
 requires NVIDIA CUDA, not the host-only test environment.
 
 ## Remaining accepting-proof path
 
-Derive all OODS points and samples on-device from the actual transcript;
-connect joined composition, DEEP, OM31 FRI and Merkle openings to the native
+Connect the qualified OODS sampling, joined composition, DEEP, OM31 FRI and
+Merkle openings to the actual complete native proof transcript and
 proof format; and pass a fresh, independently keyed native receiver on real
 Ethereum execution. GKR root denominators and lookup closure must be checked
 in addition to numeric sumcheck parity. Truth-provider witness generation and

@@ -116,6 +116,13 @@ pub fn build(b: *std.Build) void {
     const run_deep = b.addRunArtifact(deep_fixture);
     if (b.args) |args| run_deep.addArgs(args);
     b.step("rv64-deep-fixtures", "Export native OM31 compact coefficient DEEP fixtures").dependOn(&run_deep.step);
+    const samples_root = b.createModule(.{ .root_source_file = b.path("rv64_samples_fixture_main.zig"), .target = target, .optimize = optimize });
+    samples_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    samples_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const samples_fixture = b.addExecutable(.{ .name = "rv64-samples-fixtures", .root_module = samples_root });
+    const run_samples = b.addRunArtifact(samples_fixture);
+    if (b.args) |args| run_samples.addArgs(args);
+    b.step("rv64-samples-fixtures", "Export native OM31 transcript/point/polynomial sampling fixtures").dependOn(&run_samples.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

@@ -209,3 +209,42 @@ comptime {
 }
 pub extern "c" fn stwo_rv64_deep_prepare_on(*anyopaque, u32, *const DeepPrepare) c_int;
 pub extern "c" fn stwo_rv64_deep_combine_on(*anyopaque, u32, *const DeepCombine) c_int;
+
+pub const SamplePoints = extern struct {
+    parameter: [*]const u32,
+    recipes: [*]const u32,
+    points: [*]u32,
+    factors: [*]u32,
+    ready: [*]u32,
+    status: [*]u32,
+    count: u32,
+    reserved: u32 = 0,
+};
+pub const SampleEvaluation = extern struct {
+    trees: [4]?[*]const u32,
+    tree_words: [4]u64,
+    sources: [*]const u32,
+    terms: [*]const u32,
+    recipes: [*]const u32,
+    factors: [*]const u32,
+    point_ready: [*]const u32,
+    scratch_a: [*]u32,
+    scratch_b: [*]u32,
+    values: [*]u32,
+    valid: [*]u32,
+    status: [*]u32,
+    scratch_words: u64,
+    value_words: u64,
+    source_count: u32,
+    term_capacity: u32,
+    group_count: u32,
+    first: u32,
+    count: u32,
+    coefficient_log: u32,
+};
+comptime {
+    if (@sizeOf(SamplePoints) != 56 or @sizeOf(SampleEvaluation) != 184 or @offsetOf(SampleEvaluation, "scratch_words") != 144)
+        @compileError("RV64 OM31 sampling ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_sample_points_on(*anyopaque, u32, *const SamplePoints) c_int;
+pub extern "c" fn stwo_rv64_sample_evaluate_on(*anyopaque, u32, *const SampleEvaluation) c_int;

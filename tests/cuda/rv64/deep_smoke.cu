@@ -2,7 +2,10 @@
 // No intermediate field-value transfers; these are numerical PCS gates, not
 // execution proof acceptance. Metadata comes from immutable fixture setup.
 #include "context_owner.cuh"
+#include "fixture_words.cuh"
+#include "rv64/channel.h"
 #include "rv64/deep.h"
+#include "rv64/samples.h"
 #include <cstring>
 #include <fstream>
 #include <string>
@@ -10,50 +13,23 @@ extern "C" int stwo_lde_n2b_addressed_on(uint32_t *, size_t, const void *,
                                          uint32_t, size_t, uint32_t,
                                          const uint32_t *, uint32_t, uint32_t,
                                          void *, uint32_t, uint32_t *);
-struct Reader {
-  std::vector<uint32_t> data;
-  size_t position = 0;
-  Reader(const std::string &path) {
-    std::ifstream f(path, std::ios::binary | std::ios::ate);
-    if (!f)
-      throw std::runtime_error("fixture missing");
-    const size_t bytes = size_t(f.tellg());
-    if (bytes % 4)
-      throw std::runtime_error("fixture alignment");
-    data.resize(bytes / 4);
-    f.seekg(0);
-    f.read(reinterpret_cast<char *>(data.data()), bytes);
-    if (!f)
-      throw std::runtime_error("fixture truncated");
-  }
-  std::vector<uint32_t> take(size_t n) {
-    if (n > data.size() - position)
-      throw std::runtime_error("fixture bounds");
-    std::vector<uint32_t> out(data.begin() + position,
-                              data.begin() + position + n);
-    position += n;
-    return out;
-  }
-};
+using Reader = FixtureWords;
 __global__ void tamper_word(uint32_t *word, uint32_t value) { *word = value; }
-static void equal(const char *label, const std::vector<uint32_t> &a,
-                  const std::vector<uint32_t> &b) {
-  if (a == b)
-    return;
-  for (size_t i = 0; i < std::min(a.size(), b.size()); ++i)
-    if (a[i] != b[i]) {
-      std::fprintf(stderr, "%s index=%zu got=%u want=%u\n", label, i, a[i],
-                   b[i]);
-      break;
-    }
-  throw std::runtime_error(label);
-}
 static void exercise(const std::string &path, uint32_t fault) {
   Reader f(path);
   const auto h = f.take(10);
-  if (h[0] != 0x52564450 || h[1] != 1)
+  if (h[0] != 0x52564450 || (h[1] != 1 && h[1] != 2))
     throw std::runtime_error("fixture version");
   const uint32_t gc = h[2], sc = h[3], tc = h[4], log = h[5], rows = 1u << log;
+  const bool resident_samples = h[1] == 2;
+  std::vector<uint32_t> initial_seed, recipes, expected_parameter,
+      expected_channel;
+  if (resident_samples) {
+    initial_seed = f.take(9);
+    recipes = f.take(gc * 4);
+    expected_parameter = f.take(8);
+    expected_channel = f.take(16);
+  }
   auto sources = f.take(sc * 4), terms = f.take(tc * 4),
        groups = f.take(gc * 8), tree = f.take(h[6]);
   auto points = f.take(gc * 16), values = f.take(tc * 8), alpha = f.take(8);
@@ -119,9 +95,36 @@ static void exercise(const std::string &path, uint32_t fault) {
     o.upload(p, v);
     return p;
   };
-  const auto src = upload(sources), term = upload(terms), grp = upload(groups),
-             input = upload(tree), pts = upload(points), vals = upload(values),
-             random = upload(alpha), xy = upload(domain);
+  auto padded_sources = sources;
+  padded_sources.resize(sources.size() + 2, 0);
+  const auto src = upload(padded_sources), term = upload(terms),
+             grp = upload(groups), input = upload(tree), xy = upload(domain);
+  const auto point_arena =
+      resident_samples ? o.plane((gc + 1) * 16, 1) : upload(points);
+  const StwoRv64Plane pts{point_arena.words + (resident_samples ? 16 : 0),
+                          gc * 16, 1, 0};
+  const auto vals = resident_samples ? o.plane(tc * 8, 1) : upload(values),
+             random = resident_samples ? o.plane(8, 1) : upload(alpha);
+  StwoRv64Plane seed{}, recipe{}, state{}, boundary{}, parameter{},
+      sample_factors{}, sample_ready{}, sample_valid{}, sample_scratch_a{},
+      sample_scratch_b{};
+  uint64_t sample_scratch_words = 0;
+  if (resident_samples) {
+    seed = upload(initial_seed);
+    recipe = upload(recipes);
+    state = o.plane(16, 1);
+    boundary = o.plane(16, 1);
+    parameter = o.plane(8, 1);
+    sample_factors = o.plane(gc * 28 * 8, 1);
+    sample_ready = o.plane(gc + 1, 1);
+    sample_valid = o.plane(2, 1);
+    for (uint32_t g = 0; g < gc; ++g)
+      sample_scratch_words = std::max(
+          sample_scratch_words,
+          uint64_t(((1u << dispatch_groups[g * 8 + 2]) + 1023) / 1024) * 2 * 8);
+    sample_scratch_a = o.plane(sample_scratch_words, 1);
+    sample_scratch_b = o.plane(sample_scratch_words, 1);
+  }
   const auto weights = o.plane(tc * 8, 1), linear = o.plane(gc * 16, 1),
              arena = o.plane(h[7] + h[8] + h[9] + gc * 48, 1),
              valid = o.plane(2, 1), status = upload({fault == 15 ? 32u : 0u}),
@@ -149,6 +152,49 @@ static void exercise(const std::string &path, uint32_t fault) {
   CHECK(stwo_exec_context_dependency_wait(o.ctx, 1, &ingress));
   void *raw = nullptr;
   CHECK(stwo_exec_context_lane_stream(o.ctx, 1, &raw));
+  if (resident_samples) {
+    CHECK(stwo_rv64_channel_init_on(o.ctx, 1, state.words, seed.words, 17));
+    CHECK(stwo_rv64_channel_draw_on(o.ctx, 1, state.words, 0, 17, 34, 1,
+                                    parameter.words, boundary.words));
+    StwoRv64SamplePoints pj{
+        parameter.words,
+        reinterpret_cast<const StwoRv64PointRecipe *>(recipe.words),
+        point_arena.words,
+        sample_factors.words,
+        sample_ready.words,
+        status.words,
+        gc,
+        0};
+    CHECK(stwo_rv64_sample_points_on(o.ctx, 1, &pj));
+    for (uint32_t g = 0; g < gc; ++g) {
+      StwoRv64SampleEvaluation sj{};
+      sj.trees[0] = input.words;
+      sj.tree_words[0] = tree.size();
+      sj.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
+      sj.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
+      sj.recipes = reinterpret_cast<const StwoRv64PointRecipe *>(recipe.words);
+      sj.factors = sample_factors.words;
+      sj.point_ready = sample_ready.words;
+      sj.scratch_a = sample_scratch_a.words;
+      sj.scratch_b = sample_scratch_b.words;
+      sj.values = vals.words;
+      sj.valid = sample_valid.words;
+      sj.status = status.words;
+      sj.scratch_words = sample_scratch_words;
+      sj.value_words = tc * 8;
+      sj.source_count = sc;
+      sj.term_capacity = tc;
+      sj.group_count = gc;
+      sj.first = g * 2;
+      sj.count = 2;
+      sj.coefficient_log = dispatch_groups[g * 8 + 2];
+      CHECK(stwo_rv64_sample_evaluate_on(o.ctx, 1, &sj));
+    }
+    CHECK(stwo_rv64_channel_mix_on(o.ctx, 1, state.words, 1, 34, 51, vals.words,
+                                   tc * 8, 1, boundary.words));
+    CHECK(stwo_rv64_channel_draw_on(o.ctx, 1, state.words, 2, 51, 68, 1,
+                                    random.words, boundary.words));
+  }
   StwoRv64DeepPrepare prepare{};
   prepare.trees[0] = input.words;
   prepare.tree_words[0] = tree.size();
@@ -175,6 +221,14 @@ static void exercise(const std::string &path, uint32_t fault) {
   invalid.coefficient_words = arena.stride + 1;
   if (!stwo_rv64_deep_prepare_on(o.ctx, 1, &invalid))
     throw std::runtime_error("DEEP undersized allocation accepted");
+  invalid = prepare;
+  invalid.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words + 1);
+  if (!stwo_rv64_deep_prepare_on(o.ctx, 1, &invalid))
+    throw std::runtime_error("misaligned DEEP source descriptor accepted");
+  invalid = prepare;
+  invalid.groups = reinterpret_cast<const StwoRv64DeepGroup *>(grp.words + 1);
+  if (!stwo_rv64_deep_prepare_on(o.ctx, 1, &invalid))
+    throw std::runtime_error("misaligned DEEP group descriptor accepted");
   CHECK(stwo_rv64_deep_prepare_on(o.ctx, 1, &prepare));
   uint32_t tw_offset = 0;
   for (uint32_t g = 0; g < gc; ++g) {
@@ -225,15 +279,23 @@ static void exercise(const std::string &path, uint32_t fault) {
   if (!fault) {
     if (verdict)
       throw std::runtime_error("honest DEEP verdict");
-    equal("line weights", o.read(weights), expected_weights);
-    equal("group line", o.read(linear), expected_linear);
-    equal("compact aggregate", o.read(coeff), expected_coefficients);
-    equal("aggregate LDE", o.read(eval), expected_evaluations);
+    if (resident_samples) {
+      fixture_equal("resident sample parameter", o.read(parameter),
+                    expected_parameter);
+      fixture_equal("resident sample points", o.read(pts), points);
+      fixture_equal("resident sample values", o.read(vals), values);
+      fixture_equal("resident quotient alpha", o.read(random), alpha);
+      fixture_equal("resident sample channel", o.read(state), expected_channel);
+    }
+    fixture_equal("line weights", o.read(weights), expected_weights);
+    fixture_equal("group line", o.read(linear), expected_linear);
+    fixture_equal("compact aggregate", o.read(coeff), expected_coefficients);
+    fixture_equal("aggregate LDE", o.read(eval), expected_evaluations);
     std::vector<uint32_t> packed;
     for (uint32_t c = 0; c < 8; ++c)
       packed.insert(packed.end(), actual.begin() + uint64_t(c) * (rows + 3),
                     actual.begin() + uint64_t(c) * (rows + 3) + rows);
-    equal("native OM31 DEEP", packed, expected);
+    fixture_equal("native OM31 DEEP", packed, expected);
   } else if (!verdict)
     throw std::runtime_error("DEEP mutant accepted");
   CHECK(stwo_exec_context_dependency_release(o.ctx, &ingress));
@@ -246,7 +308,7 @@ int main(int argc, char **argv) {
   try {
     if (argc != 2)
       throw std::runtime_error("usage: deep-smoke FIXTURE_DIRECTORY");
-    for (uint32_t i = 0; i < 4; ++i)
+    for (uint32_t i = 0; i < 5; ++i)
       exercise(std::string(argv[1]) + "/case-" + std::to_string(i) + ".bin", 0);
     for (uint32_t fault = 1; fault <= 19; ++fault)
       exercise(std::string(argv[1]) + "/case-1.bin", fault);
