@@ -169,6 +169,18 @@ pub const CompositionStage = struct {
     context: *anyopaque,
     evaluate: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, usize, *const anyopaque, *anyopaque) anyerror!bool,
 };
+pub const ResidentCompositionStage = struct {
+    context: *anyopaque,
+    evaluate_and_commit: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, u32, usize, *const anyopaque) anyerror!@import("stwo_prover_api").device_pcs.Tree,
+};
+const ResidentCompositionInvocation = struct {
+    stage: ResidentCompositionStage,
+    items: []const Components.Item,
+    fn evaluateAndCommit(ctx: *anyopaque, a: std.mem.Allocator, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque) anyerror!@import("stwo_prover_api").device_pcs.Tree {
+        const invocation: *const @This() = @ptrCast(@alignCast(ctx));
+        return invocation.stage.evaluate_and_commit(invocation.stage.context, a, invocation.items, alpha, log, split, total, trace);
+    }
+};
 const CompositionInvocation = struct {
     stage: CompositionStage,
     items: []const Components.Item,
@@ -179,6 +191,7 @@ const CompositionInvocation = struct {
 };
 pub const CpuWorker = struct {
     om31_composition_stage: ?CompositionStage = null,
+    resident_composition_stage: ?ResidentCompositionStage = null,
     numerical_gkr_stage: ?Child.NumericalStage = null,
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
@@ -397,9 +410,16 @@ pub const CpuWorker = struct {
         W.mixManifestAndClaims(&self.channel, pending.digest, claims);
         owns_buffers = false;
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, headers, backings, 64, self.native_recorder, &self.channel);
-        const scheme = self.scheme;
+        var scheme = self.scheme;
         self.scheme = undefined;
         self.owns_scheme = false;
+        var resident_invocation: ResidentCompositionInvocation = undefined;
+        var resident_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage = undefined;
+        if (self.resident_composition_stage) |selected| {
+            resident_invocation = .{ .stage = selected, .items = set.items };
+            resident_stage = .{ .context = &resident_invocation, .evaluate_and_commit = ResidentCompositionInvocation.evaluateAndCommit };
+            scheme.device_om31_composition_stage = &resident_stage;
+        }
         var invocation: CompositionInvocation = undefined;
         const stage: ?@import("stwo_prover_api").device_composition.Om31Stage = if (self.om31_composition_stage) |selected| blk: {
             invocation = .{ .stage = selected, .items = set.items };

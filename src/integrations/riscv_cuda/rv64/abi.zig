@@ -1,4 +1,22 @@
 //! Exact numerical ABI. No production admission implied by a successful launch.
+pub const CpuWitness = extern struct {
+    metadata: ?[*]const u32,
+    rom: [*]const u32,
+    main: [*]u32,
+    counts16: [*]u32,
+    counts8: [*]u32,
+    rom_counts: [*]u32,
+    status: [*]u32,
+    count: u32,
+    log: u32,
+    rom_log: u32,
+    final_pc: u32,
+};
+pub extern "c" fn stwo_rv64_cpu_witness_on(*anyopaque, u32, *const CpuWitness) c_int;
+comptime {
+    if (@sizeOf(CpuWitness) != 72 or @offsetOf(CpuWitness, "count") != 56)
+        @compileError("RV64 compact CPU witness ABI mismatch");
+}
 pub const Plane = extern struct {
     words: [*]u32,
     stride: u64,
@@ -322,3 +340,26 @@ pub extern "c" fn stwo_rv64_fri_terminal_on(*anyopaque, u32, Plane, u32, [*]u32,
 pub extern "c" fn stwo_rv64_fri_open_on(*anyopaque, u32, *const FriOpen) c_int;
 
 pub extern "c" fn stwo_rv64_composition_lift_add_on(*anyopaque, u32, [*]const u32, u32, [*]u32, u32, *u32) c_int;
+
+pub const CompositionRole = extern struct {
+    role: u32,
+    trace_log: u32,
+    eval_log: u32,
+    first_row: u32,
+    row_count: u32,
+    reserved: u32 = 0,
+    trees: [3][*]const u32,
+    tree_words: [3]u64,
+    column_offsets: [*]const u64,
+    mask_count: u64,
+    parameters: [*]const u32,
+    parameter_count: u64,
+    powers: [*]const u32,
+    constraint_count: u64,
+    denominator_inverses: [*]const u32,
+    output: [*]u32,
+};
+pub extern "c" fn stwo_rv64_composition_role_on(*anyopaque, u32, *const CompositionRole, *u32) c_int;
+
+pub const CompositionBucket = extern struct { words: [*]const u32, log: u32, reserved: u32 = 0 };
+pub extern "c" fn stwo_rv64_composition_finish_on(*anyopaque, u32, [*]const CompositionBucket, u32, [*]u32, [*]u32, u32, u32, [*]const u32, u32, *u32) c_int;

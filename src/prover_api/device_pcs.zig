@@ -8,7 +8,10 @@ pub const H = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
 pub const Channel = core.channel.raw_mod_m31.Om31Channel;
 pub const P = core.pcs.ForField(O);
 pub const Point = core.circle.CirclePoint(O);
-pub const Column = struct { log_size: u32, coefficients: []const M };
+/// Device columns are borrowed; the stage must validate their owner, statement
+/// scope, generation and exact length before enqueue. They are never CPU slices.
+pub const DeviceCoefficients = struct { words: [*]const u32, count: u64, context_token: u64, generation: u64 };
+pub const Column = struct { log_size: u32, coefficients: []const M = &.{}, device: ?DeviceCoefficients = null };
 pub const Tree = struct { root: H.Hash, columns: []const Column };
 pub const Scope = struct { statement: [32]u8, fixed: [32]u8, main: [32]u8, ordinal: u32 };
 pub const Request = struct {

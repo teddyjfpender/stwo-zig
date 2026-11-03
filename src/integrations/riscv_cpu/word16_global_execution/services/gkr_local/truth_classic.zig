@@ -50,7 +50,7 @@ pub fn SinkFor(comptime F: type) type {
     return struct {
         const Self = @This();
         const S = E.SecureFor(F);
-        challenges: *const T.ChallengesFor(O),
+        challenges: *const T.ChallengesFor(E.ConstFor(F)),
         current: []const F,
         out: *E.SinkFor(F),
         width: usize,
@@ -62,7 +62,7 @@ pub fn SinkFor(comptime F: type) type {
         contribution: S = S.zero(),
         invalid: bool = false,
         fn flush(self: *Self) void {
-            const inverse = E.secureForField(O, F, self.current, 8 * self.batches);
+            const inverse = E.secureForField(E.ConstFor(F), F, self.current, 8 * self.batches);
             const value = products(F, self.d, self.w, self.width);
             self.out.emit(inverse.mul(value.d).sub(S.one()));
             self.contribution = self.contribution.add(inverse.mul(value.n));
@@ -82,11 +82,11 @@ pub fn SinkFor(comptime F: type) type {
             self.queries += 1;
             if (self.fill == self.width) self.flush();
         }
-        pub fn finish(self: *Self, instance: Frame.Instance, previous: []const F, first: F, last: F, claim: O) !void {
+        pub fn finish(self: *Self, instance: Frame.Instance, previous: []const F, first: F, last: F, claim: E.ConstFor(F)) !void {
             if (self.fill != 0) self.flush();
             if (self.invalid or self.queries != instance.queries or self.batches != inverseCount(instance) or self.current.len != columns(instance) or previous.len != self.current.len) return error.InvalidTruthClassicQueries;
-            const sum = E.secureForField(O, F, self.current, 8 * self.batches);
-            const prior = E.secureForField(O, F, previous, 8 * self.batches);
+            const sum = E.secureForField(E.ConstFor(F), F, self.current, 8 * self.batches);
+            const prior = E.secureForField(E.ConstFor(F), F, previous, 8 * self.batches);
             self.out.emit(sum.sub(prior).add(E.mulBaseFor(F, E.splatFor(F, claim), first)).sub(self.contribution));
             self.out.emit(E.mulBaseFor(F, sum, last));
         }

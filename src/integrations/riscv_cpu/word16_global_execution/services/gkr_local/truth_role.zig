@@ -223,7 +223,29 @@ pub const Component = struct {
         var workspace: Workspace(F) = undefined;
         return self.emitForWithWorkspace(F, samples, sink, &workspace);
     }
+    /// Runtime public/challenge wires can be native scalars, packed constants,
+    /// or symbolic device parameters without duplicating the truth equations.
+    pub fn ParametersFor(comptime C: type) type {
+        return struct {
+            span: E.CallSpanFor(C),
+            local: TF.ChallengesFor(C),
+            kio: K.equations.IoFor(C),
+            wire: S.equations.WireFor(C),
+            claim: C,
+            global_claim: C,
+        };
+    }
     pub fn emitForWithWorkspace(self: *const @This(), comptime F: type, samples: anytype, sink: *E.SinkFor(F), workspace: *Workspace(F)) !void {
+        return self.emitWithParameters(F, samples, sink, workspace, .{
+            .span = .{ .calls = self.calls, .first_id = self.first_id },
+            .local = self.local,
+            .kio = self.shared.kio,
+            .wire = self.shared.wire,
+            .claim = self.claim,
+            .global_claim = self.global_claim,
+        });
+    }
+    pub fn emitWithParameters(self: *const @This(), comptime F: type, samples: anytype, sink: *E.SinkFor(F), workspace: *Workspace(F), params: ParametersFor(E.ConstFor(F))) !void {
         const width = self.widths();
         const fixed = &workspace.fixed;
         const main = &workspace.main;
@@ -238,7 +260,7 @@ pub const Component = struct {
         }
         const first = fixed[self.firstColumn()];
         const last = try samples.last();
-        var local = Local.SinkFor(F){ .challenges = &self.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
+        var local = Local.SinkFor(F){ .challenges = &params.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
         switch (self.kind) {
             .keccak => {
                 const shifted = &workspace.shifted;
@@ -249,25 +271,25 @@ pub const Component = struct {
                 const header = &workspace.header;
                 for (header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
                 const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
-                if (self.keccak_policy.geometry() == .pair27) K.equations.emitDirectR27For(F, row, .{ .calls = self.calls, .first_id = self.first_id }, sink) else K.equations.emitDirectFor(F, row, .{ .calls = self.calls, .first_id = self.first_id }, sink, true);
+                if (self.keccak_policy.geometry() == .pair27) K.equations.emitDirectR27For(F, row, params.span, sink) else K.equations.emitDirectFor(F, row, params.span, sink, true);
                 TF.keccakForPolicy(F, self.keccak_policy, row, &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, self.claim);
-                try Globals.keccakForPolicy(F, self.keccak_policy, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, self.global_claim, self.shared.kio, sink);
+                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+                try Globals.keccakForPolicy(F, self.keccak_policy, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.kio, sink);
             },
             .product, .linear => {
                 const row = S.equations.RowFor(F){ .fixed = fixed[0..S.layout.FIXED], .main = main[0..width[1]], .previous_active = try samples.get(1, 0, -1), .previous_id = try samples.get(1, S.layout.base(self.secpKind()), -1) };
-                S.equations.emitMainFor(F, self.secpKind(), row, self.local.polynomial, .{ .calls = self.calls, .first_id = self.first_id }, sink);
+                S.equations.emitMainFor(F, self.secpKind(), row, params.local.polynomial, params.span, sink);
                 TF.secpFor(F, self.secpKind(), self.byte_policy, row.main, &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, self.claim);
-                try Globals.secpFor(F, self.secpKind(), self.program.?, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, self.global_claim, self.shared.wire, sink);
+                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+                try Globals.secpFor(F, self.secpKind(), self.program.?, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.wire, sink);
             },
             .chi, .xor5 => {
                 TF.keccakTableFor(F, if (self.kind == .chi) .chi else .xor5, fixed[0..6].*, main[0], &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, self.claim);
+                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
             },
             .bytes => {
                 TF.byteTableFor(F, fixed[0], main[0], &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, self.claim);
+                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
             },
         }
     }

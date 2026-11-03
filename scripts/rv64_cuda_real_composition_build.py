@@ -17,6 +17,7 @@ def main():
     for name in ["source-root", "kernel-build", "objects", "build"]:
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--grouped-kernel-build", type=Path)
+    parser.add_argument("--native-object", action="store_true", help="also compile the persistent context role dispatcher")
     args = parser.parse_args()
     root, old, objects, build = (getattr(args, key).resolve() for key in ["source_root", "kernel_build", "objects", "build"])
     build.mkdir(parents=True, exist_ok=True)
@@ -45,6 +46,9 @@ def main():
     started = time.monotonic()
     with (build / "compile.log").open("w") as log:
         subprocess.run(["/usr/local/cuda/bin/nvcc", *flags, str(driver), *map(str, kernels + libraries), "-o", str(executable)], check=True, stdout=log, stderr=subprocess.STDOUT)
+    if args.native_object:
+        with (build / "native-compile.log").open("w") as log:
+            subprocess.run(["/usr/local/cuda/bin/nvcc", *flags, "-Xcompiler=-fPIC", "-c", str(root / "tests/cuda/rv64/real_composition_native.cu"), "-o", str(build / "real_composition_native.o")], check=True, stdout=log, stderr=subprocess.STDOUT)
     inputs = [driver, root / "tests/cuda/rv64/context_owner.cuh", root / "tests/cuda/rv64/fixture_words.cuh", *kernels, *libraries, Path(__file__).resolve()]
     receipt = {"schema": "rv64-hybrid-real-composition-build/v1", "gpu_layouts": ids, "cpu_layouts": unavailable,
                "scope": "Native prover composition offload; CPU witness/auxiliary generation and bucket lifting retained",

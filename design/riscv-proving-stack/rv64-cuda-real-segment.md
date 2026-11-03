@@ -85,3 +85,27 @@ numerical qualification and host tests, not yet by a new full real-segment
 timing. The measured hybrid path still writes coefficient jobs, reads quotient
 buckets back, and merges/interpolates them natively. Fully resident bucket
 lifting and composition finalization are a subsequent integration gate.
+
+### Resident composition interface
+
+`Scheme.device_om31_composition_stage` is the earlier composition boundary.
+Its callback receives the actual alpha, geometry and native trace metadata and
+returns a borrowed `device_pcs.Tree` whose columns contain scoped device
+coefficient descriptors. The engine checks the native split count, coefficient
+height, exact lengths, common owner and nonzero generations; it mixes the
+returned Merkle root and forwards this virtual final tree directly to the device
+PCS stage. It creates no dummy host coefficient polynomial. The stage owner
+retains the descriptors and leases through the proof call. Unsupported field,
+hash, revision, mixed host/device composition configuration, or missing device
+PCS is an error.
+
+The native `composition_role_on` entry launches the 49 qualified AOT layouts
+under the existing context registry. `composition_finish_on` validates every
+bucket and output before enqueue, zeroes a global accumulator, lifts independently
+sized buckets with the native circle-domain index, and runs GPU interpolation
+and splitting. Its coefficient output is already in native chunk/coordinate
+order for the PCS device-column handoff. These entries are qualified against
+native domain and interpolation fixtures; end-to-end resident segment
+qualification is still required. Classic truth recording now uses the same
+parameterized Keccak/secp equation authority with dense native OM31 residual
+parity, not copied GPU-specific cryptographic equations.

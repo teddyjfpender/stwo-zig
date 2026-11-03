@@ -57,6 +57,7 @@ pub const Options = struct {
     numerical_gkr_stage: ?*const @import("child.zig").NumericalStage = null,
     device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     om31_composition_stage: ?*const CPU.CompositionStage = null,
+    resident_composition_stage: ?*const CPU.ResidentCompositionStage = null,
     /// Caller-owned BASE policy observation; per-CPU resolution is in worker timings.
     observed_tree_policy: ?*@import("child.zig").TreePolicy = null,
     max_workers: usize = 8,
@@ -214,6 +215,7 @@ const Run = struct {
             self.workers[index].?.cpu.scheme.device_om31_pcs_stage = self.options.device_pcs_stage;
             self.workers[index].?.cpu.numerical_gkr_stage = if (self.options.numerical_gkr_stage) |stage| stage.* else null;
             self.workers[index].?.cpu.om31_composition_stage = if (self.options.om31_composition_stage) |stage| stage.* else null;
+            self.workers[index].?.cpu.resident_composition_stage = if (self.options.resident_composition_stage) |stage| stage.* else null;
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;

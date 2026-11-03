@@ -130,3 +130,20 @@ test "OM31 stages preserve all eight coordinates and propagate terminal errors" 
     mode = 2;
     try std.testing.expectError(error.TestDeviceFailure, tryStageFor(O, stage, input));
 }
+
+test "resident composition validates physical device geometry without host coefficients" {
+    const D = @import("stwo_prover_api").device_pcs;
+    var columns: [16]D.Column = @splat(.{ .log_size = 7, .device = .{ .words = @ptrFromInt(4096), .count = 128, .context_token = 1, .generation = 2 } });
+    var tree = D.Tree{ .root = @splat(0), .columns = &columns };
+    try api.validateResidentTree(tree, 8, 1);
+    tree.columns = columns[0..15];
+    try std.testing.expectError(error.InvalidResidentCompositionTree, api.validateResidentTree(tree, 8, 1));
+    tree.columns = &columns;
+    columns[1].device.?.context_token = 3;
+    try std.testing.expectError(error.InvalidResidentCompositionTree, api.validateResidentTree(tree, 8, 1));
+    columns[1].device.?.context_token = 1;
+    columns[1].device.?.count -= 1;
+    try std.testing.expectError(error.InvalidResidentCompositionTree, api.validateResidentTree(tree, 8, 1));
+    columns[1].device = null;
+    try std.testing.expectError(error.ResidentCompositionHostColumn, api.validateResidentTree(tree, 8, 1));
+}

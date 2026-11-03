@@ -148,6 +148,9 @@ pub fn mainWithStages(device_pcs_stage: ?*const @import("stwo_prover_api").devic
     return mainWithDeviceStages(device_pcs_stage, om31_composition_stage, null);
 }
 pub fn mainWithDeviceStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../services/gkr_local/cpu_worker.zig").CompositionStage, numerical_gkr_stage: ?*const @import("../services/gkr_local/child.zig").NumericalStage) !void {
+    return mainWithResidentStages(device_pcs_stage, om31_composition_stage, numerical_gkr_stage, null);
+}
+pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../services/gkr_local/cpu_worker.zig").CompositionStage, numerical_gkr_stage: ?*const @import("../services/gkr_local/child.zig").NumericalStage, resident_composition_stage: ?*const @import("../services/gkr_local/cpu_worker.zig").ResidentCompositionStage) !void {
     var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
     const base = recycler.allocator();
@@ -318,7 +321,7 @@ pub fn mainWithDeviceStages(device_pcs_stage: ?*const @import("stwo_prover_api")
     const capture_before_proving = captured.ownership();
     var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .device_pcs_stage = device_pcs_stage, .om31_composition_stage = om31_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .device_pcs_stage = device_pcs_stage, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const capture_after_proving = captured.ownership();

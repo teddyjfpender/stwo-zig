@@ -59,3 +59,34 @@ test "a device composition stage can decline without initializing a result" {
         &result,
     ));
 }
+
+/// Earlier resident boundary: evaluate, GPU interpolate/split, and commit the
+/// composition tree without constructing a host polynomial. The callback owns
+/// returned descriptors and device coefficients until the proof returns.
+/// This requires the native device PCS stage; errors are terminal.
+pub const ResidentOm31Stage = struct {
+    context: *anyopaque,
+    evaluate_and_commit: *const fn (
+        *anyopaque,
+        std.mem.Allocator,
+        @import("stwo_core").fields.om31.OM31,
+        u32,
+        u32,
+        usize,
+        *const anyopaque,
+    ) anyerror!@import("device_pcs.zig").Tree,
+};
+
+pub fn validateResidentTree(tree: @import("device_pcs.zig").Tree, log: u32, split: u32) !void {
+    if (split < 1 or split > 2 or log > 28 or log <= split + 1) return error.InvalidResidentCompositionTree;
+    const count = @as(usize, 8) << @intCast(split);
+    if (tree.columns.len != count) return error.InvalidResidentCompositionTree;
+    var owner: ?u64 = null;
+    for (tree.columns) |column| {
+        const device = column.device orelse return error.ResidentCompositionHostColumn;
+        if (column.log_size != log - split or column.coefficients.len != 0 or device.context_token == 0 or device.generation == 0 or device.count != @as(u64, 1) << @intCast(column.log_size)) return error.InvalidResidentCompositionTree;
+        if (owner) |token| {
+            if (device.context_token != token) return error.InvalidResidentCompositionTree;
+        } else owner = device.context_token;
+    }
+}

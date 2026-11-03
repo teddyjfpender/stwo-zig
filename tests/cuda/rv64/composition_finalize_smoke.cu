@@ -11,6 +11,38 @@ extern "C" int stwo_ntt_b2n_composition_split_compact_on(
 extern "C" int stwo_ntt_b2n_composition_split_depth_two_on(
     uint32_t *, size_t, size_t, uint32_t *, size_t, size_t, uint32_t,
     const uint32_t *, uint32_t, uint32_t, void *, uint32_t *);
+static void exercise_lift() {
+  for (uint32_t source_log : {3u, 5u, 7u})
+    for (uint32_t target_log : {7u, 9u}) {
+      const uint32_t src_rows = 1u << source_log, dst_rows = 1u << target_log;
+      Owner o(0);
+      const auto input = o.plane(uint64_t(8) * src_rows, 1),
+                 output = o.plane(uint64_t(8) * dst_rows, 1);
+      std::vector<uint32_t> src(8 * src_rows), dst(8 * dst_rows), expected(dst.size());
+      for (size_t i = 0; i < src.size(); ++i) src[i] = uint32_t(i * 73) % 2147483647u;
+      for (size_t i = 0; i < dst.size(); ++i) dst[i] = 2147483646u - uint32_t(i);
+      for (uint32_t c = 0; c < 8; ++c)
+        for (uint32_t row = 0; row < dst_rows; ++row) {
+          const uint32_t index = ((row >> (target_log - source_log + 1)) << 1) | (row & 1);
+          const uint64_t value = uint64_t(dst[c * dst_rows + row]) + src[c * src_rows + index];
+          expected[c * dst_rows + row] = value % 2147483647u;
+        }
+      o.upload(input, src); o.upload(output, dst);
+      StwoCudaDependency ready{};
+      CHECK(stwo_exec_context_dependency_record(o.ctx, 0, 0, &ready));
+      CHECK(stwo_exec_context_dependency_wait(o.ctx, 1, &ready));
+      uint32_t launches = 99;
+      if (!stwo_rv64_composition_lift_add_on(o.ctx, 1, input.words, source_log,
+                                               input.words, target_log, &launches) || launches)
+        throw std::runtime_error("lift alias admitted");
+      CHECK(stwo_rv64_composition_lift_add_on(o.ctx, 1, input.words, source_log,
+                                             output.words, target_log, &launches));
+      if (launches != 1) throw std::runtime_error("lift launch receipt");
+      fixture_equal("native lifted accumulator", o.read(output), expected);
+      CHECK(stwo_exec_context_dependency_release(o.ctx, &ready));
+      o.close();
+    }
+}
 static void exercise(const std::string &path) {
   FixtureWords f(path);
   const auto h = f.take(8);
@@ -46,9 +78,11 @@ static void exercise(const std::string &path) {
         launches)
       throw std::runtime_error("split foreign owner admitted");
     other.close();
-    CHECK(stwo_rv64_composition_finalize_on(o.ctx, 1, input.words, output.words,
-                                            h[3], h[4], twiddles.words, h[6],
-                                            &launches));
+    const auto accumulator = o.plane(words, 1);
+    const StwoRv64CompositionBucket bucket{input.words,h[3],0};
+    CHECK(stwo_rv64_composition_finish_on(o.ctx, 1, &bucket, 1, accumulator.words,
+                                          output.words, h[3], h[4], twiddles.words,
+                                          h[6], &launches));
   } else {
     RawSplit split = h[4] == 1 ? stwo_ntt_b2n_composition_split_compact_on
                                : stwo_ntt_b2n_composition_split_depth_two_on;
@@ -65,6 +99,7 @@ int main(int argc, char **argv) {
   try {
     if (argc != 2)
       throw std::runtime_error("expected split fixtures");
+    exercise_lift();
     uint32_t count = 0;
     for (const auto &file : std::filesystem::directory_iterator(argv[1]))
       if (file.path().extension() == ".bin") {

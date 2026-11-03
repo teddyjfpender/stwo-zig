@@ -478,7 +478,21 @@ pub fn ForField(comptime Secure: type) type {
 
             diagnostic_subphase.* = .evaluation;
             @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.evaluation");
-            {
+            composition_execution: {
+                if (scheme.device_om31_composition_stage) |resident| {
+                    const D = prover_api.device_pcs;
+                    if (comptime Secure != D.O or H != D.H) return error.UnsupportedResidentCompositionProtocol;
+                    if (scheme.device_om31_pcs_stage == null or scheme.revision_config != null or composition_stage != null) return error.DeviceCompositionRequiresDevicePcs;
+                    var trace = try scheme.trace(allocator);
+                    defer trace.polys.deinitDeep(allocator);
+                    var total_constraints: usize = 0;
+                    for (components) |component| total_constraints = try std.math.add(usize, total_constraints, component.nConstraints());
+                    const tree = try resident.evaluate_and_commit(resident.context, allocator, random_coeff, composition_log_size, composition_log_split, total_constraints, &trace);
+                    try prover_api.device_composition.validateResidentTree(tree, composition_log_size, composition_log_split);
+                    scheme.device_om31_composition_tree = tree;
+                    MC.mixRoot(channel, tree.root);
+                    break :composition_execution;
+                }
                 const residency_handles = scheme.backendResidencyHandles(allocator) catch |err| {
                     prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
                         .stage = .residency,

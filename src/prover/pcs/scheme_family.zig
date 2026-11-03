@@ -142,6 +142,10 @@ pub fn ForField(comptime Secure: type) type {
                 /// worker. Other hash/field/revision families reject it.
                 device_om31_pcs_stage: ?*const prover_api.device_pcs.Stage = null,
                 device_om31_scope: ?prover_api.device_pcs.Scope = null,
+                device_om31_composition_stage: ?*const prover_api.device_composition.ResidentOm31Stage = null,
+                /// Borrowed under the composition-stage owner, consumed only by
+                /// the device PCS callback; never a dummy host coefficient tree.
+                device_om31_composition_tree: ?prover_api.device_pcs.Tree = null,
 
                 const Self = @This();
 
@@ -400,17 +404,18 @@ pub fn ForField(comptime Secure: type) type {
                         const D = prover_api.device_pcs;
                         if (comptime Secure == D.O and H == D.H and @TypeOf(channel.*) == D.Channel) {
                             if (scheme.revision_config != null) return error.UnsupportedDevicePcsRevision;
-                            const trees = try allocator.alloc(D.Tree, scheme.trees.items.len);
+                            const trees = try allocator.alloc(D.Tree, scheme.trees.items.len + @intFromBool(scheme.device_om31_composition_tree != null));
                             defer allocator.free(trees);
                             var made: usize = 0;
                             defer for (trees[0..made]) |tree| allocator.free(tree.columns);
-                            for (scheme.trees.items, trees) |tree, *out| {
+                            for (scheme.trees.items, trees[0..scheme.trees.items.len]) |tree, *out| {
                                 const coefficients = tree.coefficients orelse return error.DevicePcsCoefficientsRequired;
                                 const columns = try allocator.alloc(D.Column, coefficients.len);
                                 out.* = .{ .root = tree.root(), .columns = columns };
                                 made += 1;
                                 for (coefficients, columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
                             }
+                            if (scheme.device_om31_composition_tree) |composition| trees[scheme.trees.items.len] = composition;
                             var after = channel.*;
                             var result = try stage.prove(stage.context, allocator, .{ .scope = scheme.device_om31_scope, .config = scheme.config, .lifting_log_size = lifting_log_size, .trees = trees, .points = sampled_points_owned }, &after);
                             errdefer result.deinit(allocator);
@@ -427,6 +432,7 @@ pub fn ForField(comptime Secure: type) type {
                             return result;
                         } else return error.UnsupportedDevicePcsProtocol;
                     }
+                    if (scheme.device_om31_composition_tree != null) return error.DeviceCompositionRequiresDevicePcs;
                     const sampled_values = blk: {
                         var sampled_value_eval_stage = try stage_profile.StageScope.begin(
                             recorder,
@@ -825,6 +831,12 @@ pub fn ForField(comptime Secure: type) type {
                 /// revision scheme proves at the final tree's committed height
                 /// (upstream `prove_values`), which lifting may place above its columns.
                 pub fn proofLiftingLogSize(self: Self) !u32 {
+                    if (self.device_om31_composition_tree) |tree| {
+                        if (tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
+                        const log = tree.columns[0].log_size;
+                        for (tree.columns) |column| if (column.log_size != log) return CommitmentSchemeError.ShapeMismatch;
+                        return log;
+                    }
                     if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
                     const final_tree = self.trees.items[self.trees.items.len - 1];
                     if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
