@@ -9,7 +9,7 @@ const IO = @import("fixture_io.zig");
 const Oracle = @import("joined_fixture_support.zig");
 const Field = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
-pub const count = 10;
+pub const count = 15;
 pub const Record = struct { artifact: T.Artifact, widths: [3]usize, classic: ?T.Role.Component };
 pub fn record(a: std.mem.Allocator, id: u32) !Record {
     if (id < 3 or (id >= 7 and id < 10)) {
@@ -24,11 +24,16 @@ pub fn record(a: std.mem.Allocator, id: u32) !Record {
         4 => return v3(a, T.V3Catalog.Arith(), id),
         5 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), id),
         6 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double), id),
+        10 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add), id),
+        11 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double), id),
+        12 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul), id),
+        13 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul), id),
+        14 => return v3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont), id),
         else => return error.InvalidTruthKernel,
     }
 }
 fn v3(a: std.mem.Allocator, comptime Type: type, id: u32) !Record {
-    const family: T.V3Catalog.Family = if (Type == T.V3Catalog.Sha()) .sha256 else if (Type == T.V3Catalog.Arith()) .arith256_mod else if (id == 5) .add else .double;
+    const family: T.V3Catalog.Family = if (Type == T.V3Catalog.Sha()) .sha256 else if (Type == T.V3Catalog.Arith()) .arith256_mod else if (id == 5) .add else if (id == 6) .double else @enumFromInt(id - 5);
     return .{ .artifact = try T.recordV3Type(a, Type, @intFromEnum(family)), .widths = .{ Type.fixed, Type.L.MAIN, (Type.byte_batches + Type.wire_batches) * 8 }, .classic = null };
 }
 const Samples = struct {
@@ -142,6 +147,11 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, id: u32) !void {
             4 => try nativeV3(T.V3Catalog.Arith(), sample, &params, &sink),
             5 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), sample, &params, &sink),
             6 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double), sample, &params, &sink),
+            10 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add), sample, &params, &sink),
+            11 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double), sample, &params, &sink),
+            12 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul), sample, &params, &sink),
+            13 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul), sample, &params, &sink),
+            14 => try nativeV3(T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont), sample, &params, &sink),
             else => return error.InvalidTruthKernel,
         }
         if (sink.count != native_values.len) return error.WrongTruthConstraintCount;

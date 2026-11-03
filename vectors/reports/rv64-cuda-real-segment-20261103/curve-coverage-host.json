@@ -1,0 +1,67 @@
+{
+  "schema": "rv64-curve-coverage-host-v1",
+  "source_base": "0ae3246d51debaef774369df6cc6e69cadc24d02",
+  "recovered_checkpoint": "0b446968e",
+  "qualification": "host_only_device_gates_pending",
+  "families": [
+    "bn254_g1_add",
+    "bn254_g1_double",
+    "bn254_fp2_mul",
+    "bls12_381_fp2_mul",
+    "arith384_mont"
+  ],
+  "aot_role_ids": [
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "reserved_triple_roles": [
+    7,
+    8,
+    9
+  ],
+  "unsupported": [
+    "bls12_381_g1_add",
+    "bls12_381_g1_double"
+  ],
+  "host_integration_tests_passed": 114,
+  "native_main_and_histogram_host_body_parity_cases": 15,
+  "calls_per_family": [
+    0,
+    1,
+    9
+  ],
+  "generated_layout_byte_identical": true,
+  "fixture_sha256": {
+    "case-0.bin": "c451e726d217327e11e408ea3c27fb7a2ae926ab2eac36e2e8175e57e663dcd7",
+    "case-1.bin": "836d0ae778f0581f7c9bb443382158e0c7c97cf14dd3c60c48c3546feb53f34f",
+    "case-10.bin": "3d295eca5855a528c3ac6a95b613f94f9ec9af0e68127233047031ea11373fe0",
+    "case-11.bin": "7ac54cf39f2eed5a8efcdde2b8d7826a868053c28d0bea36af3f0c3e2f345075",
+    "case-12.bin": "05afc9a1bc0665b10106d632a7611b08c9ec7e105d03a34a8ecdbdcdf7e6d6f6",
+    "case-13.bin": "c731ec7a7268f184dd52d40f10ce2efcc43a27c3f16e886e1b0f33763e68c567",
+    "case-14.bin": "8483291ff76515d741586a81d9e76c811a00ef219efd3f7cd8ba98c03c746a28",
+    "case-2.bin": "b095d476d9ea2e3b63443184b933855bb67682d71b349c80ebd4624fe36a8bfd",
+    "case-3.bin": "08925d870e81a791ebe58ead10a65439c66f63be9758c8199cbe7b732914608a",
+    "case-4.bin": "f264a29001a702f0737fe710f6f7cda88377d2caaf955c290383bb14c5b5af34",
+    "case-5.bin": "fbbeafdeb25f6845122d838d2dbd2acae98128b65ea90a8e66150d0340583f0c",
+    "case-6.bin": "f5d5b4dcae3cd32aa6309b6013a5cf13f7f1971542bef6629032383e0bdf4bf5",
+    "case-7.bin": "85f77d86f637c3252a69bc0eca849f6c7c691482bcb93459253931e9b63b8c70",
+    "case-8.bin": "ec1440daa85833323bd70e4624ddf7dfb377c9e28f5f1baff915f6ef8e9bd0eb",
+    "case-9.bin": "ce682b25e9c7cbf1d7eef918cf77bb490b2623e2a15f9d0fc375186a9736c8b7"
+  },
+  "commands": [
+    "zig build --build-file src/integrations/riscv_cuda/build.zig test -Doptimize=ReleaseFast -j4 --summary all",
+    "zig build --build-file src/integrations/riscv_cuda/build.zig rv64-cpu-witness-fixtures -Doptimize=ReleaseFast -j4 -- --curves /private/tmp/rv64-curve-coverage-native",
+    "python3 tests/cuda/rv64/curve_host_check.py /private/tmp/rv64-curve-coverage-native"
+  ],
+  "pending_gates": [
+    "CUDA MAIN and BYTE parity on all15 cases and preflight/domain mutants",
+    "raw numerator/denominator GPU parity",
+    "native DOMAIN GPU parity using independent original authority fixtures",
+    "fresh accepted real basket block with curves and exact CPU-native proof comparison",
+    "all15basket on1/2/4GPUs"
+  ],
+  "claims": "No CUDA kernel execution, resident curve proof, speedup, or basket completion claimed by this receipt."
+}

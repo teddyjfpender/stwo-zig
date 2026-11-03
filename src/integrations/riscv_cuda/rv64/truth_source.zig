@@ -53,10 +53,11 @@ pub const Context = struct {
     sha: ?ShaFn,
     arith: ?ArithFn,
     secp: ?SecpFn,
-    entries: [10]?Entry = @splat(null),
+    curve: ?SecpFn,
+    entries: [15]?Entry = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Native.Context, trace: *Trace.Context, rational: *Rational.Context) !Context {
-        return .{ .allocator = a, .service = service, .trace = trace, .rational = rational, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(N.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(N.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(N.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(N.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .rebind = try symbol(N.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .keccak = try symbol(KeccakFn, &service.library, "stwo_rv64_keccak_witness_on"), .arith = service.library.lookup(ArithFn, "stwo_rv64_arith256_witness_on"), .secp = service.library.lookup(SecpFn, "stwo_rv64_secp_witness_on"), .sha = service.library.lookup(ShaFn, "stwo_rv64_sha256_witness_on") };
+        return .{ .allocator = a, .service = service, .trace = trace, .rational = rational, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(N.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(N.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(N.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(N.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .rebind = try symbol(N.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind"), .keccak = try symbol(KeccakFn, &service.library, "stwo_rv64_keccak_witness_on"), .arith = service.library.lookup(ArithFn, "stwo_rv64_arith256_witness_on"), .secp = service.library.lookup(SecpFn, "stwo_rv64_secp_witness_on"), .curve = service.library.lookup(SecpFn, "stwo_rv64_curve_witness_on"), .sha = service.library.lookup(ShaFn, "stwo_rv64_sha256_witness_on") };
     }
     pub fn deinit(self: *Context) void {
         for (&self.entries) |*cached| if (cached.*) |value| self.allocator.free(value.slots);
@@ -101,6 +102,11 @@ pub const Context = struct {
             .secp_row => |truth| {
                 if (self.secp == null) return error.MissingDeviceTruthSymbol;
                 _ = try self.entry(if (truth.setup.kind == .add) 5 else 6);
+            },
+            .curve => |truth| {
+                const id = try @import("truth_codegen.zig").curveKernelId(truth.setup.op);
+                if (self.curve == null) return error.MissingDeviceTruthSymbol;
+                _ = try self.entry(id);
             },
             else => return error.UnsupportedDeviceTruthFamily,
         }
@@ -190,7 +196,7 @@ const Owner = struct {
             if (!claims[0].add(claims[1]).add(claims[2]).isZero()) return error.DeviceTruthLocalClosure;
         } else {
             if (local != .delegated) return error.DeviceTruthChallengeMismatch;
-            const entry = try self.backend.entry(if (self.truth == .sha256) 3 else if (self.truth == .arith256_mod) 4 else if (self.truth.secp_row.setup.kind == .add) 5 else 6);
+            const entry = try self.backend.entry(if (self.truth == .curve) try @import("truth_codegen.zig").curveKernelId(self.truth.curve.setup.op) else if (self.truth == .sha256) 3 else if (self.truth == .arith256_mod) 4 else if (self.truth.secp_row.setup.kind == .add) 5 else 6);
             const component = T.V3Role.Component{ .truth = self.truth, .wire = shared.wire, .bytes = local.delegated, .claim = O.zero() };
             const metadata = T.nativeMetadataV3(&component);
             const parameters = try a.alloc(O, entry.slots.len);
@@ -305,11 +311,11 @@ const MainJob = struct {
             const packet = Arith{ .inputs = input.words.?, .main = o.raw_leases[0].?.words.?, .byte_counts = o.raw_leases[1].?.words.?, .status = status.words.?, .input_words = o.compact_words, .main_words = width * n, .calls = o.truth.count(), .first_id = o.truth.first(), .log = log };
             try context.join();
             try checked((b.arith orelse return error.MissingDeviceTruthSymbol)(raw, 1, &packet));
-        } else if (o.truth == .secp_row) {
+        } else if (o.truth == .secp_row or o.truth == .curve) {
             o.raw_leases[1] = try context.allocate(256, 0);
-            const packet = Secp{ .inputs = input.words.?, .main = o.raw_leases[0].?.words.?, .byte_counts = o.raw_leases[1].?.words.?, .status = status.words.?, .input_words = o.compact_words, .main_words = width * n, .calls = o.truth.count(), .first_id = o.truth.first(), .log = log, .kind = if (o.truth.secp_row.setup.kind == .add) 0 else 1 };
+            const packet = Secp{ .inputs = input.words.?, .main = o.raw_leases[0].?.words.?, .byte_counts = o.raw_leases[1].?.words.?, .status = status.words.?, .input_words = o.compact_words, .main_words = width * n, .calls = o.truth.count(), .first_id = o.truth.first(), .log = log, .kind = if (o.truth == .curve) @intFromEnum(o.truth.curve.setup.op) - 5 else if (o.truth.secp_row.setup.kind == .add) 0 else 1 };
             try context.join();
-            try checked((b.secp orelse return error.MissingDeviceTruthSymbol)(raw, 1, &packet));
+            try checked(((if (o.truth == .curve) b.curve else b.secp) orelse return error.MissingDeviceTruthSymbol)(raw, 1, &packet));
         } else {
             const packet = Sha{ .inputs = input.words.?, .main = o.raw_leases[0].?.words.?, .status = status.words.?, .input_words = o.compact_words, .main_words = width * n, .calls = o.truth.count(), .first_id = o.truth.first(), .log = log };
             try context.join();
@@ -333,7 +339,7 @@ fn evalColumn(lease: N.Lease, offset: usize, log: u32) D.TraceColumn {
     return .{ .log_size = log, .encoding = .evaluations, .device = .{ .words = lease.words.? + offset, .count = @as(u64, 1) << @intCast(log), .context_token = lease.context_token, .generation = lease.generation } };
 }
 fn compactInputs(a: std.mem.Allocator, request: S.Prepare) ![]u32 {
-    const words: usize = if (request.truth == .keccak) 50 else if (request.truth == .sha256) 24 else if (request.truth == .arith256_mod) 40 else if (request.truth.secp_row.setup.kind == .add) 48 else 24;
+    const words: usize = if (request.truth == .keccak) 50 else if (request.truth == .sha256) 24 else if (request.truth == .arith256_mod) 40 else if (request.truth == .curve) curveWords(request.truth.curve.setup.op) else if (request.truth.secp_row.setup.kind == .add) 48 else 24;
     const output = try a.alloc(u32, try std.math.mul(usize, request.truth.count(), words));
     errdefer a.free(output);
     const begin: usize = request.truth.first() - 1;
@@ -362,7 +368,7 @@ fn compactInputs(a: std.mem.Allocator, request: S.Prepare) ![]u32 {
             offset += 1;
         };
     } else {
-        const chunks = if (request.truth == .sha256) request.advice.sha256 else if (request.truth == .arith256_mod) request.advice.arith256_mod else return compactSecp(a, request, output);
+        const chunks = if (request.truth == .sha256) request.advice.sha256 else if (request.truth == .arith256_mod) request.advice.arith256_mod else if (request.truth == .curve) return compactCurve(request, output) else return compactSecp(a, request, output);
         for (chunks) |chunk| for (chunk) |call| {
             if (offset >= begin and offset < end) {
                 for (call.before[0 .. words / 2], 0..) |value, i| {
@@ -374,6 +380,32 @@ fn compactInputs(a: std.mem.Allocator, request: S.Prepare) ![]u32 {
             offset += 1;
         };
     }
+    if (written != request.truth.count()) return error.InvalidDeviceTruthSpan;
+    return output;
+}
+
+fn curveWords(op: A.crypto.curves.spec.Op) usize {
+    return switch (op) {
+        inline else => |kind| A.crypto.curves.Layout(kind).PACKET_BYTES / 4,
+    };
+}
+fn compactCurve(request: S.Prepare, output: []u32) ![]u32 {
+    const index = @intFromEnum(request.truth.curve.setup.op) - 5;
+    const words = curveWords(request.truth.curve.setup.op);
+    const begin: usize = request.truth.first() - 1;
+    const end = begin + request.truth.count();
+    var offset: usize = 0;
+    var written: usize = 0;
+    for (request.advice.curves) |chunk| for (chunk[index]) |call| {
+        if (offset >= begin and offset < end) {
+            for (call.before[0 .. words / 2], 0..) |word, i| {
+                output[written * words + 2 * i] = @truncate(word);
+                output[written * words + 2 * i + 1] = @truncate(word >> 32);
+            }
+            written += 1;
+        }
+        offset += 1;
+    };
     if (written != request.truth.count()) return error.InvalidDeviceTruthSpan;
     return output;
 }
