@@ -1,0 +1,31 @@
+{
+  "schema": "stwo.circuit.om31.gpu-trace-owned-coefficients/v1",
+  "change_commit": "d82d3f5a7",
+  "qualified_isolated_commit": "4fbd479f0",
+  "profile": "native-om31-q108-p20-fold4",
+  "native_image": "7f85bf706d5b053e (unchanged)",
+  "paths": {
+    "original_assignment_ingress": {
+      "proof_bytes": 635472,
+      "sha256": "654e08505ab79d307acfac54ea8e1270833cc469dc845491d7fa86ccedb52f14"
+    },
+    "compact_seed_gpu_dag": {
+      "proof_bytes": 634928,
+      "sha256": "2bd412d4f3bf5c6d5f0759699fb0e1e2dcbd719073676c2f5815258808b4f837"
+    }
+  },
+  "checks": {
+    "cold_and_warm_gpu_proofs_equal_original_cpu_control": true,
+    "fresh_native_cpu_verification_each_proof": true,
+    "main_final_coefficient_copy_words": 0,
+    "inter_final_coefficient_copy_words": 0,
+    "dag_all_assignments_equal_cpu": true,
+    "dag_noncanonical_seed_rejected": true,
+    "dag_zero_inverse_rejected": true
+  },
+  "limits": [
+    "Small original-circuit qualification, not production Ethereum leaf or complete GPU recursion tree.",
+    "No performance claim; host AOT compilation was concurrent.",
+    "Beta1 path uses original native separate coefficient N2B entry; other beta profiles retain existing route."
+  ]
+}
