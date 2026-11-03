@@ -27,6 +27,8 @@ pub const Open = struct {
     layout: @import("fri.zig").Layer,
     query_count: u32,
 };
+pub const TraceSegment = struct { columns: Slice, stride: usize, count: u32, log: u32 };
+pub const TraceOpen = struct { tree: Slice, queries: Slice, values: Slice, paths: Slice, verdict: Slice, tree_log: u32, lifting_log: u32, query_count: u32 };
 pub fn Commands(comptime Context: type, comptime Api: type) type {
     return struct {
         const Self = @This();
@@ -51,6 +53,53 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 return err;
             };
             self.launches +|= count;
+        }
+        fn bindTrace(self: *Self, segments: []const TraceSegment, log: u32, packets: *[96]abi.MixedSegment) !u32 {
+            if (log < 1 or log > 28 or segments.len == 0 or segments.len > packets.len) return error.InvalidGeometry;
+            var columns: u32 = 0;
+            var previous: u32 = 0;
+            for (segments, packets[0..segments.len]) |segment, *packet| {
+                if (segment.log < 1 or segment.log > log or segment.log < previous or segment.count == 0 or segment.count > 65536 - columns) return error.InvalidGeometry;
+                const rows = @as(u32, 1) << @intCast(segment.log);
+                if (segment.stride < rows) return error.InvalidGeometry;
+                const words = try std.math.mul(usize, segment.stride, segment.count);
+                packet.* = .{ .columns = try self.context.deviceSlicePointer(u32, segment.columns, words), .stride_words = segment.stride, .capacity_words = words, .source_size = rows };
+                columns += segment.count;
+                previous = segment.log;
+            }
+            return columns;
+        }
+        pub fn traceTree(self: *Self, segments: []const TraceSegment, log: u32, nodes: Slice) !void {
+            const owner = try self.handle();
+            var packets: [96]abi.MixedSegment = undefined;
+            _ = try self.bindTrace(segments, log, &packets);
+            if (nodes.address % 32 != 0) return error.InvalidGeometry;
+            const words = ((@as(usize, 2) << @intCast(log)) - 1) * 8;
+            const output = try self.context.deviceSlicePointer(u32, nodes, words);
+            try self.finish(Api.stwo_rv64_trace_tree_on(owner, self.lane_index, &packets, @intCast(segments.len), log, output, words), log + 1);
+        }
+        pub fn traceOpen(self: *Self, segments: []const TraceSegment, input: TraceOpen) !void {
+            if (input.lifting_log < 1 or input.lifting_log > 28 or input.query_count == 0 or input.query_count > 1024 or input.tree.address % 32 != 0) return error.InvalidGeometry;
+            const owner = try self.handle();
+            var packets: [96]abi.MixedSegment = undefined;
+            const columns = try self.bindTrace(segments, input.tree_log, &packets);
+            const tree_words = ((@as(usize, 2) << @intCast(input.tree_log)) - 1) * 8;
+            const value_words = @as(usize, columns) * input.query_count;
+            const path_words = @as(usize, input.query_count) * input.tree_log * 8;
+            const job = abi.TraceOpen{
+                .tree = try self.context.deviceSlicePointer(u32, input.tree, tree_words),
+                .queries = try self.context.deviceSlicePointer(u32, input.queries, input.query_count),
+                .values = try self.context.deviceSlicePointer(u32, input.values, value_words),
+                .paths = try self.context.deviceSlicePointer(u32, input.paths, path_words),
+                .status = try self.context.deviceSlicePointer(u32, input.verdict, 1),
+                .tree_words = tree_words,
+                .value_words = value_words,
+                .path_words = path_words,
+                .tree_log = input.tree_log,
+                .lifting_log = input.lifting_log,
+                .query_count = input.query_count,
+            };
+            try self.finish(Api.stwo_rv64_trace_open_on(owner, self.lane_index, &packets, @intCast(segments.len), &job), 2);
         }
         pub fn fold(self: *Self, job: Fold) !void {
             if (job.count == 0 or job.count > 1 << 28 or !std.math.isPowerOfTwo(job.count) or job.steps < 1 or job.steps > 4 or job.count < @as(u32, 1) << @intCast(job.steps)) return error.InvalidGeometry;

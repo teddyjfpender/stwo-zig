@@ -184,6 +184,32 @@ comptime {
 pub extern "c" fn stwo_rv64_global_pairs_on(*anyopaque, u32, *const GlobalPairs) c_int;
 pub extern "c" fn stwo_rv64_local_close_on(*anyopaque, u32, [*]const u32, u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_global_close_on(*anyopaque, u32, [*]const u32, [*]const u32, u32, [*]u32) c_int;
+pub const MixedSegment = extern struct {
+    columns: [*]const u32,
+    stride_words: u64,
+    capacity_words: u64,
+    source_size: u32,
+    reserved: u32 = 0,
+};
+pub const TraceOpen = extern struct {
+    tree: [*]const u32,
+    queries: [*]const u32,
+    values: [*]u32,
+    paths: [*]u32,
+    status: [*]u32,
+    tree_words: u64,
+    value_words: u64,
+    path_words: u64,
+    tree_log: u32,
+    lifting_log: u32,
+    query_count: u32,
+    reserved: u32 = 0,
+};
+comptime {
+    if (@sizeOf(MixedSegment) != 32 or @sizeOf(TraceOpen) != 80) @compileError("trace commitment/opening ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_trace_tree_on(*anyopaque, u32, [*]const MixedSegment, u32, u32, [*]u32, u64) c_int;
+pub extern "c" fn stwo_rv64_trace_open_on(*anyopaque, u32, [*]const MixedSegment, u32, *const TraceOpen) c_int;
 
 pub extern "c" fn stwo_rv64_binding_eq_on(*anyopaque, u32, [*]const u32, u32, Plane, [*]u32) c_int;
 

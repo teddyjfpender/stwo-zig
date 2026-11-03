@@ -149,6 +149,14 @@ pub fn build(b: *std.Build) void {
     const run_closure = b.addRunArtifact(closure_fixture);
     if (b.args) |args| run_closure.addArgs(args);
     b.step("rv64-closure-fixtures", "Export native local GKR and manifest-claim closure fixtures").dependOn(&run_closure.step);
+    const trace_root = b.createModule(.{ .root_source_file = b.path("rv64_trace_fixture_main.zig"), .target = target, .optimize = optimize });
+    trace_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    trace_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const trace_fixture = b.addExecutable(.{ .name = "rv64-trace-fixtures", .root_module = trace_root });
+    const run_trace = b.addRunArtifact(trace_fixture);
+    if (b.args) |args| run_trace.addArgs(args);
+    b.step("rv64-trace-fixtures", "Export native lifted PCS trees or freshly verify GPU openings").dependOn(&run_trace.step);
+    b.step("build-rv64-trace-tool", "Build independent native lifted trace opening receiver").dependOn(&b.addInstallArtifact(trace_fixture, .{}).step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

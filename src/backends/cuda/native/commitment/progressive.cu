@@ -4,6 +4,7 @@
 #include "blake2s_protocol.cuh"
 #include "progressive_scalar.cuh"
 #include "resident_layout.cuh"
+#include "mixed_layout.h"
 
 #include <cuda_runtime_api.h>
 
@@ -360,14 +361,6 @@ __global__ void contiguous_leaf_kernel(
 
 // A bounded launch descriptor replaces the full-domain progressive state
 // slab. Descriptors travel as kernel arguments; no upload or scratch is used.
-struct MixedSegment {
-    const uint32_t *columns;
-    size_t stride_words;
-    size_t capacity_words;
-    uint32_t source_size;
-    uint32_t reserved;
-};
-static constexpr uint32_t kMaxMixedSegments = 96;
 struct MixedInputs {
     MixedSegment segments[kMaxMixedSegments];
 };

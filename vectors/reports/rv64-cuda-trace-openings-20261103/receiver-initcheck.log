@@ -1,0 +1,6 @@
+PASS fresh native trace receiver case=0 compact_opening_exact=true mutations_rejected=true
+PASS fresh native trace receiver case=1 compact_opening_exact=true mutations_rejected=true
+PASS fresh native trace receiver case=2 compact_opening_exact=true mutations_rejected=true
+PASS fresh native trace receiver case=3 compact_opening_exact=true mutations_rejected=true
+PASS fresh native trace receiver case=4 compact_opening_exact=true mutations_rejected=true
+PASS fresh native trace receiver case=5 compact_opening_exact=true mutations_rejected=true

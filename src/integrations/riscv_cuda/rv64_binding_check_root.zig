@@ -107,3 +107,10 @@ export fn rv64_test_closures(context: *Context, lane: u32, regions: *const [4]@i
     commands.closeGlobalClaims(regions[1], regions[2], 2, regions[3]) catch return 1;
     return 0;
 }
+
+export fn rv64_test_trace(context: *Context, lane: u32, segment: *const @import("rv64/pcs.zig").TraceSegment, job: *const @import("rv64/pcs.zig").TraceOpen) c_int {
+    var commands = @import("rv64/pcs.zig").NativeCommands{ .context = context, .lane_index = lane };
+    commands.traceTree(&.{segment.*}, job.tree_log, job.tree) catch return 1;
+    commands.traceOpen(&.{segment.*}, job.*) catch return 1;
+    return 0;
+}
