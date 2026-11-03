@@ -12,6 +12,7 @@ pub fn build(b: *std.Build) void {
     const prover = b.dependency("stwo_prover_engine", dependency_options).module("stwo_prover_engine");
     const prover_api = b.dependency("stwo_prover_api", dependency_options).module("stwo_prover_api");
     const cpu_backend = b.dependency("stwo_cpu_backend", dependency_options).module("stwo_cpu_backend");
+    const proof_wire = b.dependency("stwo_proof_wire", dependency_options).module("stwo_proof_wire");
     const circuit = b.dependency("stwo_circuit_frontend", dependency_options).module("stwo_circuit_frontend");
     const cairo = b.dependency("stwo_cairo_frontend", dependency_options).module("stwo_cairo_frontend");
     // The wire package shares the Cairo frontend's injected interop modules:
@@ -33,6 +34,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     integration.addImport("stwo_core", core);
+    integration.addImport("stwo_proof_wire", proof_wire);
     integration.addImport("stwo_prover_api", prover_api);
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
@@ -60,6 +62,15 @@ pub fn build(b: *std.Build) void {
     const om31_witness_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_witness_root }));
     om31_witness_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     b.step("test-circuit-om31-witness", "Compare real circuit MAIN/lookup witnesses across quartic and octic fields").dependOn(&om31_witness_tests.step);
+
+    const om31_wire_root = b.createModule(.{ .root_source_file = b.path("om31_wire_test_root.zig"), .target = target, .optimize = optimize });
+    om31_wire_root.addImport("stwo_core", core);
+    om31_wire_root.addImport("stwo_prover_engine", prover);
+    om31_wire_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_wire_root.addImport("stwo_circuit_frontend", circuit);
+    om31_wire_root.addImport("stwo_proof_wire", proof_wire);
+    const om31_wire_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_wire_root }));
+    b.step("test-circuit-om31-wire", "Test bounded native OM31 circuit proof transport").dependOn(&om31_wire_tests.step);
 
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
