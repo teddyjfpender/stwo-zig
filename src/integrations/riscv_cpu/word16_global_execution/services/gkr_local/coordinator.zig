@@ -54,6 +54,7 @@ pub const WorkerTiming = struct {
     completed_worker_retired: bool = false,
 };
 pub const Options = struct {
+    cpu_replay_stage: ?@import("cpu_replay.zig").Stage = null,
     device_source_stage: ?Pipeline.DeviceSourceStage = null,
     device_global_stage: ?CPU.DeviceGlobal.Stage = null,
     device_cpu_projection: ?@import("../../../word16_execution/cpu_source.zig").ProjectionStage = null,
@@ -91,6 +92,7 @@ pub const Options = struct {
     stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
+        if (self.cpu_replay_stage != null and (!self.defer_local_binding or self.device_source_stage == null or self.device_trace_commit_stage == null or self.numerical_gkr_stage == null or self.numerical_gkr_stage.?.replay_binding == null or self.retained_store != null)) return error.InvalidCpuReplayAdmission;
         if (self.truth_device_source_stage != null and (self.truth_device_pcs_stage == null or self.truth_device_composition_stage == null)) return error.DeviceTruthRequiresResidentStages;
         if (self.device_global_stage != null and self.device_trace_commit_stage == null) return error.ResidentGlobalRequiresDeviceTrace;
         if (self.device_source_stage != null and self.device_trace_commit_stage == null) return error.DeviceSourceRequiresDeviceTraceCommit;
@@ -216,6 +218,8 @@ const Run = struct {
             timing.?.stage1_ns = clock.read();
         };
         if (index < self.setups.len) {
+            var replay: ?@import("cpu_replay.zig").Owner = if (self.options.cpu_replay_stage) |stage| try stage.prepare(stage.context, self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } }) else null;
+            errdefer if (replay) |*owner| owner.deinit();
             self.native[index].device_cpu_projection = self.options.device_cpu_projection;
             self.native[index].device_cpu_scope = if (self.options.device_cpu_projection != null) .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(self.inventory.workers[index].ordinal) } else null;
             var source = blk: {
@@ -231,6 +235,8 @@ const Run = struct {
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
+            self.workers[index].?.cpu.replay = replay;
+            replay = null;
             self.workers[index].?.cpu.device_trace_commit_stage = if (self.options.device_trace_commit_stage) |stage| stage.* else null;
             self.workers[index].?.cpu.device_global_stage = self.options.device_global_stage;
             self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];
@@ -264,6 +270,7 @@ const Run = struct {
                 timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.cpu.scheme);
             }
             try self.workers[index].?.cpu.retireLocalMetadata();
+            if (self.workers[index].?.cpu.replay) |*owner| try owner.park(owner.context, &self.workers[index].?.cpu);
             if (timer) |*clock| timing.?.metadata_retire_ns = clock.lap();
             if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
         } else {
@@ -308,7 +315,7 @@ const Run = struct {
             }
         }
         if (timer) |*clock| timing.?.spill_ns = clock.lap();
-        if (index < self.setups.len and self.options.consume_memory_events) {
+        if (index < self.setups.len and self.options.consume_memory_events and self.workers[index].?.cpu.replay == null) {
             const retired = try self.advice.retireEvents(index);
             if (timing) |value| value.retired_memory_event_bytes = retired;
             if (timer) |*clock| timing.?.memory_event_retire_ns = clock.lap();
@@ -335,6 +342,13 @@ const Run = struct {
         if (timer) |*clock| timing.?.restore_ns = clock.lap();
         self.results[index] = switch (worker.*) {
             .cpu => |*v| blk: {
+                if (v.replay) |*owner| {
+                    try owner.restore(owner.context, v);
+                    // Replay has joined every compact input reader; physical
+                    // global obligations now live in regenerated device MAIN.
+                    self.native[index].releaseFacts();
+                    if (self.options.consume_memory_events) _ = try self.advice.retireEvents(index);
+                }
                 const encoded = try v.complete(self.a, pending, index, self.options.global_budget);
                 if (timing) |value| {
                     value.gkr_peak_including_final_binding_bytes = v.child.?.peak_gkr_owned_bytes;
@@ -398,7 +412,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
-    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy);
+    const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy, native, advice);
     defer estimates.deinit(a);
     if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
         timings[i].resolved_tree_policy = selected;
@@ -444,7 +458,7 @@ const Admission = struct {
         a.free(self.cpu_policies);
     }
 };
-fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy) !Admission {
+fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options, policy: @import("child.zig").TreePolicy, native: []const *Native, advice: ?*const Advice) !Admission {
     const estimates = Admission{ .stage1 = try a.alloc(u64, inventory.workers.len), .stage2 = &.{}, .cpu_policies = &.{} };
     errdefer a.free(estimates.stage1);
     var result = estimates;
@@ -470,7 +484,16 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
         // The full pending inventory remains charged once below, independently
         // of each task lease. Stage two has no numerical GKR working planes;
         // its child proof, binding and global advice remain in retained bytes.
-        retained = try std.math.add(usize, retained, if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes)));
+        const retained_worker = if (i < setups.len and options.cpu_replay_stage != null) replay: {
+            if (native.len != setups.len or advice == null or options.retained_store != null) return error.InvalidCpuReplayAdmission;
+            const stage = options.cpu_replay_stage.?;
+            const compact = try stage.estimate(stage.context, .{ .setup = setups[i], .request = requests[i], .native = native[i], .advice = advice.?, .ordinal = i, .first_ids = inventory.first_ids[i], .scope = .{ .statement = inventory.workers[i].statement, .fixed = inventory.workers[i].fixed, .main = @splat(0), .ordinal = @intCast(i) } });
+            stage2.* = @max(stage2.*, plan.gkr_peak_bytes);
+            // No MAIN/P8 planes survive this barrier. Account compact advice,
+            // native proof/artifact and narrow authenticated binding metadata.
+            break :replay try std.math.add(usize, compact, try std.math.add(usize, plan.local_proof_reserve_bytes + plan.owner_header_bytes + plan.binding_descriptor_bytes, 16 * 1024));
+        } else if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes));
+        retained = try std.math.add(usize, retained, retained_worker);
         disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
     }
     if (retained > options.max_retained_frontend_bytes) return error.BoundedWideCoordinatorRetainedLimit;
@@ -515,7 +538,7 @@ test "hybrid per-CPU policies preserve complete physical proofs fresh verificati
         options: Options,
         policy: Child.TreePolicy,
         fn run(allocator: std.mem.Allocator, context: @This()) !void {
-            const value = try admit(allocator, context.setups, context.truths, context.requests, context.inventory, context.config, context.options, context.policy);
+            const value = try admit(allocator, context.setups, context.truths, context.requests, context.inventory, context.config, context.options, context.policy, &.{}, null);
             defer value.deinit(allocator);
         }
     };

@@ -63,7 +63,7 @@ pub const Context = struct {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (request.tree_index < 1 or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
         if (request.expected_main_root) |expected| {
-            if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or !std.mem.eql(u8, &request.scope.main, &expected)) return error.InvalidTraceReplayScope;
+            if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
         } else if (request.tree_index == 1 and !std.mem.allEqual(u8, &request.scope.main, 0)) return error.InvalidTraceCommitRequest;
         const beta = request.config.fri_config.log_blowup_factor;
         if (beta < 1 or beta > 4) return error.InvalidTraceCommitRequest;

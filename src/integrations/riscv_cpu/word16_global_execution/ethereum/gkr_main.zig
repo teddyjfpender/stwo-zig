@@ -157,6 +157,7 @@ pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api
     return mainWithResidentPipeline(.{ .pcs = device_pcs_stage, .composition = om31_composition_stage, .numerical = numerical_gkr_stage, .resident_composition = resident_composition_stage });
 }
 pub const ResidentStages = struct {
+    cpu_replay: ?@import("../services/gkr_local/cpu_replay.zig").Stage = null,
     source: ?@import("../services/pipeline.zig").DeviceSourceStage = null,
     truth_source: ?@import("../services/gkr_local/truth_device_source.zig").Stage = null,
     truth_composition: ?@import("../services/gkr_local/truth_device_composition.zig").Stage = null,
@@ -170,6 +171,7 @@ pub const ResidentStages = struct {
     cpu_projection: ?@import("../../word16_execution/cpu_source.zig").ProjectionStage = null,
     pub fn requireFullyResident(self: ResidentStages) !void {
         if (self.source == null or self.truth_source == null or self.global_interaction == null or self.truth_composition == null or self.resident_composition == null or self.pcs == null or self.truth_pcs == null or self.trace_commit == null or self.cpu_projection == null or self.numerical == null or self.numerical.?.bind == null) return error.FullyResidentPipelineIncomplete;
+        if (self.cpu_replay != null and self.numerical.?.replay_binding == null) return error.CpuReplayRequiresResidentProjection;
     }
 };
 pub const ResidentSession = @import("resident_session.zig").Session;
@@ -371,7 +373,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const capture_before_proving = captured.ownership();
     var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .cpu_replay_stage = stages.cpu_replay, .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const capture_after_proving = captured.ownership();

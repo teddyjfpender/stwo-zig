@@ -10,6 +10,46 @@ const Execution = @import("execution.zig");
 const X = front.rv64_air.word16_execution;
 const a = std.testing.allocator;
 const WORDS = [_]u32{ 0x00004033, 0xfe000ee3 }; // XOR x0,x0,x0; BEQ x0,x0,-4
+test "compact replay owns CPU transport and borrows normalized facts without wide witnesses" {
+    const Replay = @import("replay_capture.zig").Capture;
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+    defer program.deinit();
+    var original = try Prepared.Prepared.capture(a, &program, fixture.boundary, 1, 8, &fixture.tape, .{});
+    defer original.deinit();
+    var replay = try Replay.init(a, &original);
+    defer replay.deinit();
+    try std.testing.expect(replay.value.cpu.?.metadata.ptr != original.cpu.?.metadata.ptr);
+    try std.testing.expectEqualSlices(CPU.Metadata, original.cpu.?.metadata, replay.value.cpu.?.metadata);
+    try std.testing.expectEqual(original.binary.facts.ptr, replay.value.binary.facts.ptr);
+    try std.testing.expectEqual(@as(usize, 0), replay.value.cpu.?.main.len);
+    try std.testing.expectEqual(@as(usize, 0), replay.value.jalr.?.main.len);
+    try std.testing.expect((try Replay.bytes(&original)) >= original.cpu.?.metadata.len * @sizeOf(CPU.Metadata));
+    original.cpu.?.deinit();
+    original.cpu = null;
+    var restored = try replay.value.takeCpu(&program, 8);
+    defer restored.deinit();
+    try std.testing.expectEqual(@as(usize, 130), restored.metadata.len);
+    try std.testing.expectEqual(@as(u32, 8), restored.log_size);
+    try std.testing.expectEqual(@as(usize, 0), restored.main.len);
+}
+fn replayAllocationCase(allocator: std.mem.Allocator, prepared: *const Prepared.Prepared) !void {
+    var replay = try @import("replay_capture.zig").Capture.init(allocator, prepared);
+    defer replay.deinit();
+}
+test "compact replay allocation failure preserves original capture custody" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+    defer program.deinit();
+    var original = try Prepared.Prepared.capture(a, &program, fixture.boundary, 1, 8, &fixture.tape, .{});
+    defer original.deinit();
+    try std.testing.checkAllAllocationFailures(a, replayAllocationCase, .{&original});
+    try std.testing.expectEqual(@as(usize, 130), original.cpu.?.metadata.len);
+    original.cpu.?.main_projection_closed = true;
+    try std.testing.expectError(error.CpuReplayRequiresUnmaterializedCapture, @import("replay_capture.zig").Capture.init(a, &original));
+}
 var image_context: u8 = 0;
 const ZeroImage = struct {
     fn word(_: *const anyopaque, _: u64) !u64 {

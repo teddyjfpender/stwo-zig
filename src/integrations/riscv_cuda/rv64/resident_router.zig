@@ -90,6 +90,7 @@ pub const Config = struct {
     }
 };
 pub const Endpoint = struct {
+    cpu_replay: ?CPU.rv64_gkr_cpu_replay.Stage = null,
     truth_source: ?CPU.rv64_gkr_truth_device_source.Stage = null,
     truth_composition: ?CPU.rv64_gkr_truth_device_composition.Stage = null,
     source: ?CPU.rv64_device_source_stage = null,
@@ -209,7 +210,29 @@ pub const Router = struct {
             if (supported) stage.bind = bind;
         }
         if (comptime @hasField(Child.NumericalStage, "abort")) stage.abort = abort;
+        if (comptime @hasField(Child.NumericalStage, "replay_binding")) stage.replay_binding = replayBinding;
         return stage;
+    }
+    fn replayBinding(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request, owner: *Child.DeviceBinding.Owner) !void {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(nativeScope(request.scope), .retained);
+        const stage = self.endpoints[index].numerical;
+        try (stage.replay_binding orelse return error.DeviceBindingReplayUnavailable)(stage.context, a, request, owner);
+    }
+    pub fn cpuReplayStage(self: *Router) CPU.rv64_gkr_cpu_replay.Stage {
+        return .{ .context = self, .estimate = replayEstimate, .prepare = replayPrepare };
+    }
+    fn replayEstimate(raw: *anyopaque, request: CPU.rv64_device_source_stage.Request) !usize {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (request.ordinal >= self.planned_cpu_workers) return error.UnplannedResidentWorker;
+        const stage = self.endpoints[request.ordinal % self.endpoints.len].cpu_replay orelse return error.CpuReplayUnavailable;
+        return stage.estimate(stage.context, request);
+    }
+    fn replayPrepare(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Request) !CPU.rv64_gkr_cpu_replay.Owner {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(request.scope, .capture);
+        const stage = self.endpoints[index].cpu_replay orelse return error.CpuReplayUnavailable;
+        return stage.prepare(stage.context, a, request);
     }
     pub fn compositionStage(self: *Router) Worker.ResidentCompositionStage {
         return .{ .context = self, .evaluate_and_commit = composition };

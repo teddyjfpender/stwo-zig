@@ -192,6 +192,7 @@ const CompositionInvocation = struct {
     }
 };
 pub const CpuWorker = struct {
+    replay: ?@import("cpu_replay.zig").Owner = null,
     device_global_stage: ?DeviceGlobal.Stage = null,
     om31_composition_stage: ?CompositionStage = null,
     resident_composition_stage: ?ResidentCompositionStage = null,
@@ -529,6 +530,7 @@ pub const CpuWorker = struct {
         return .{ .bytes = try W.encodePhysical(a, proof.proof), .claims = claims };
     }
     pub fn deinit(self: *CpuWorker, a: std.mem.Allocator) void {
+        if (self.replay) |*owner| owner.deinit();
         if (self.child) |c| c.deinit();
         if (self.local_metadata_retired and !self.source.device_generated) {
             self.source.core.memory.deinit();
