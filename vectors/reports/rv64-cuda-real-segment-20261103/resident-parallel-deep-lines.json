@@ -61,7 +61,27 @@
     "native_mutations_rejected": 19,
     "fixture_max_terms": 20,
     "log": "/workspace/rv64-gpu-session/build/deep-pipeline-qualified/parallel-normal.log",
-    "scope": "Existing fixtures check exact weights, line sums, combined coefficients and DEEP evaluations. Real large-term full-block parity/timing pending parent run; no speedup asserted yet."
+    "scope": "Existing fixtures check exact weights, line sums, combined coefficients and DEEP evaluations. Real large-term full-block parity/timing pending parent run; no speedup asserted yet.",
+    "sanitizers": {
+      "memcheck": {
+        "errors": 0,
+        "honest_cases": 5,
+        "mutation_cases": 19,
+        "sha256": "701080cab53db240bc5cac606014dcd888f340dae32b0b354add7ed8239105d9"
+      },
+      "synccheck": {
+        "errors": 0,
+        "honest_cases": 5,
+        "mutation_cases": 19,
+        "sha256": "701080cab53db240bc5cac606014dcd888f340dae32b0b354add7ed8239105d9"
+      }
+    },
+    "full_block_gate": {
+      "cold_prove_seconds": 11.5775,
+      "warm_prove_seconds": 9.8525,
+      "all20_files_byte_identical": true,
+      "scope": "Parent-coordinated repeat2 accepted full block. WarmPCS1.5726s wall/1.1275s GPU. Includes other previously qualified optimizations; these totals do not isolate DEEP alone."
+    }
   },
   "build_manifest_sha256": "8235039d3fc27d83db7b0742c1b8bf6ca0a956d5361d6feb5ffdc77c879a9fae"
 }
