@@ -1,0 +1,170 @@
+{
+  "schema": "rv64-fully-resident-complete-block/v1",
+  "date_utc": "2026-11-03",
+  "scope": "Complete native proof bundle, recursion excluded; single qualified run, not a repeated performance baseline",
+  "block": 24628607,
+  "completed_ethereum_block": true,
+  "fresh_receiver_accepted": true,
+  "instructions": 26894777,
+  "cpu_proofs": 7,
+  "truth_proofs": 10,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "whole_protocol_certified": false,
+  "security_scope": "128-bit conjectured target under owner-accepted documented assumptions; no whole-protocol certificate",
+  "execution_and_capture_ns": 11197383239,
+  "cold_setup_ns": 87340175994,
+  "prove_ns": 16325026183,
+  "same_process_verify_ns": 2244439430,
+  "producer_wall_seconds": 120.4466104140738,
+  "fresh_receiver_setup_ns": 86332015773,
+  "fresh_receiver_verify_ns": 2364279676,
+  "gpu_count": 1,
+  "gpu_model": "RTX5090 sm120 32607MiB",
+  "host_cpu": "XeonGold6530,13.6CPU quota; GNU x86_64_v4 ReleaseFast",
+  "host_peak_rss_bytes": 5846048768,
+  "sampled_whole_device_peak_bytes": 33667678208,
+  "memory_sample_scope": "Whole-device200ms samples, includes driver/runtime/pool reservation; not exact process peak",
+  "logical_gpu_allocation_cap_bytes": 30064771072,
+  "conservative_frontend_admission_bytes": 51539607552,
+  "retained_host_wide_parking": false,
+  "pipeline": "CPU+service MAIN/histograms, global INTER, GKR/binding, composition and PCS on device; compact advice and immutable setup may enter from host",
+  "native_library_sha256": "7020905a70bfbcf3e360d94e6f11356c4977b4e479cb5c901995286951cb8dde",
+  "source_fixes": [
+    "7b29cf4dd",
+    "9d47998bf",
+    "95116f769",
+    "180953659"
+  ],
+  "keccak_uniform_throughput": true,
+  "keccak_spans": [
+    {
+      "first_id": 1,
+      "calls": 19418,
+      "log": 18
+    },
+    {
+      "first_id": 19419,
+      "calls": 1212,
+      "log": 14
+    },
+    {
+      "first_id": 20631,
+      "calls": 9368,
+      "log": 17
+    }
+  ],
+  "legacy_mixed_plan_artifact_parity_claim": false,
+  "legacy_parity_note": "Uniformthroughputchangesauthenticatedroster andallbundlehashes; defaultmixedprefix independentlymatchesall10nativeartifacts",
+  "worker_stage_totals": [
+    {
+      "group": "cpu",
+      "source_ns": 2754157837,
+      "main_commit_ns": 490481630,
+      "gkr_ns": 1798256172,
+      "stage1_ns": 5463856426,
+      "stage2_ns": 5465671735
+    },
+    {
+      "group": "truth",
+      "source_ns": 87443164,
+      "main_commit_ns": 440870482,
+      "gkr_ns": 0,
+      "stage1_ns": 528322262,
+      "stage2_ns": 4330027412
+    }
+  ],
+  "oom_recovery_observed": true,
+  "remaining": [
+    "Repeated resident blocks and warm-setup timings",
+    "Same-hardware/same-profile CPU comparison before a speedup claim",
+    "GPU-stage-versus-wall profiling and lower proving time",
+    "Eight basket blocks require additional curvetruth providers; large-block retention also unqualified",
+    "2/4GPU allocation and qualification",
+    "Compact triple-policy composition remains closed duecompilerpathology"
+  ],
+  "artifacts": {
+    "cpu-0.bin": {
+      "bytes": 3265496,
+      "sha256": "d228325b05cb2ac649c99e3456889ea1badc36b0f3ebaab5672bf4693cc3d6b3"
+    },
+    "cpu-1.bin": {
+      "bytes": 2902600,
+      "sha256": "e406822a2ab1ee13c213535366e6c7c38db23add838ab52f435592eea2ebc973"
+    },
+    "cpu-2.bin": {
+      "bytes": 3156640,
+      "sha256": "338c766e60dcd5eab69be5be5a6e374a046c0afc62cd4b14a516fa2fd90c1239"
+    },
+    "cpu-3.bin": {
+      "bytes": 3173288,
+      "sha256": "45a873f4da607a9bc08af6381c77c199095d6616a42860f425f6cce1eb133894"
+    },
+    "cpu-4.bin": {
+      "bytes": 3106824,
+      "sha256": "44b53dbe040eeacba3a9e2681f21cc5741ad9e79744cdadb7431c35963513077"
+    },
+    "cpu-5.bin": {
+      "bytes": 3022048,
+      "sha256": "f78613e39f85db62b6981a2283a00b2f08b72e7b28050da0e6d3977282d22411"
+    },
+    "cpu-6.bin": {
+      "bytes": 1438928,
+      "sha256": "fa5cc32d5a1611a137cf73539b9665860d9b2ab6f53f69359dbe897e999026ba"
+    },
+    "truth-0.bin": {
+      "bytes": 2352008,
+      "sha256": "d1778c9e8634ad8d606f46183abe88361d6aa0743b84c22acf91ea10b219d5f7"
+    },
+    "truth-1.bin": {
+      "bytes": 2347496,
+      "sha256": "bf5b35b8581bfcd50fa6c7d24667440a002be6e493d111c2926a5d233cfb50c5"
+    },
+    "truth-2.bin": {
+      "bytes": 2344200,
+      "sha256": "e7be56b12ea6f1983db3df5f70f33e0e17b1d797afab6fa7f3331463de6919c4"
+    },
+    "truth-3.bin": {
+      "bytes": 3463652,
+      "sha256": "8f35ad3785fbb38c955a7c25c7f85433c756872ae0617cc0fa52d6bb70bfba2b"
+    },
+    "truth-4.bin": {
+      "bytes": 3348948,
+      "sha256": "7c4fdea4e85ed6c1b0724cae600c30e8be0593f2ac8692907625cdebcfbaae32"
+    },
+    "truth-5.bin": {
+      "bytes": 3130488,
+      "sha256": "d5690e400bcbd61f9a8c090f204282f740b4ec58f8bb5834741cc4cd650708ad"
+    },
+    "truth-6.bin": {
+      "bytes": 2754732,
+      "sha256": "dc8c1fae89b2223a7a59d6ed09416ceeae20cb54443cb62eeb012cdfbf2869a1"
+    },
+    "truth-7.bin": {
+      "bytes": 2626112,
+      "sha256": "b362ab58a21bb664d08f5c07cd6f6d4d6fa003782b16a47b38dc1b9e4da435bf"
+    },
+    "truth-8.bin": {
+      "bytes": 3653640,
+      "sha256": "583690beea58d3632be783674360c422b0eccf92de0acafeea166aa982d3d450"
+    },
+    "truth-9.bin": {
+      "bytes": 687400,
+      "sha256": "b2815081266d41b4309a46b7969ba9d5854c1d3a32cb70556df702755df6413b"
+    },
+    "cells.bin": {
+      "bytes": 47481952,
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+    },
+    "stage-one.bin": {
+      "bytes": 823536,
+      "sha256": "0441f0a8afc985e712e35dcdf4eb652be10955b2d2a1933eee78651a98223df8"
+    },
+    "bundle.json": {
+      "bytes": 75235,
+      "sha256": "6c9a1f0252e8ea15faf51f577e375f1d80e9ea40240ff3990633e427b7ec2710"
+    }
+  },
+  "proof_bytes": 46774500,
+  "expected_output_hex": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "guest_elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903"
+}
