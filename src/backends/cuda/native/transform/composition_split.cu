@@ -46,7 +46,7 @@ __global__ void b2n_composition_stage(
         m31_mul(m31_sub(left, right), twiddle);
 }
 
-template <uint32_t CompactDepth>
+template <uint32_t CompactDepth, uint32_t Coordinates = kCoordinateCount>
 __global__ void b2n_composition_split_final(
     const M31 *coordinates,
     M31 *coefficients,
@@ -74,15 +74,15 @@ __global__ void b2n_composition_split_final(
     const uint32_t right_chunk = right_index >> (log_n - CompactDepth);
     M31 *left_output = coefficients +
         static_cast<size_t>(
-            coordinate + left_chunk * kCoordinateCount) * chunk_rows;
+            coordinate + left_chunk * Coordinates) * chunk_rows;
     M31 *right_output = coefficients +
         static_cast<size_t>(
-            coordinate + right_chunk * kCoordinateCount) * chunk_rows;
+            coordinate + right_chunk * Coordinates) * chunk_rows;
     left_output[row & (chunk_rows - 1u)] = left_result;
     right_output[right_index & (chunk_rows - 1u)] = right_result;
 }
 
-template <uint32_t CompactDepth>
+template <uint32_t CompactDepth, uint32_t Coordinates = kCoordinateCount>
 cudaError_t launch_composition_split(
     uint32_t *coordinate_values,
     uint32_t *coefficients,
@@ -117,7 +117,7 @@ cudaError_t launch_composition_split(
             initial_coordinates,
             coordinates,
             log_n,
-            kCoordinateCount,
+            Coordinates,
             schedule.intervals[0],
             inverse_twiddles,
             stream);
@@ -132,7 +132,7 @@ cudaError_t launch_composition_split(
                       coordinates,
                       compact_coefficients,
                       log_n,
-                      kCoordinateCount,
+                      Coordinates,
                       start_stage,
                       stages,
                       inverse_twiddles,
@@ -140,7 +140,7 @@ cudaError_t launch_composition_split(
                 : launch_b2n_continue<false>(
                       coordinates,
                       log_n,
-                      kCoordinateCount,
+                      Coordinates,
                       start_stage,
                       stages,
                       inverse_twiddles,
@@ -155,7 +155,7 @@ cudaError_t launch_composition_split(
     const uint32_t pair_count = 1u << (log_n - 1u);
     const uint32_t blocks =
         (pair_count + kThreadsPerBlock - 1u) / kThreadsPerBlock;
-    const dim3 grid(blocks, kCoordinateCount);
+    const dim3 grid(blocks, Coordinates);
     const M31 rescale_factor = m31_inverse_power_of_two(log_n);
 
     b2n_composition_stage<<<grid, kThreadsPerBlock, 0, stream>>>(
@@ -182,7 +182,7 @@ cudaError_t launch_composition_split(
         layer_offset += layer_size;
     }
 
-    b2n_composition_split_final<CompactDepth>
+    b2n_composition_split_final<CompactDepth, Coordinates>
         <<<grid, kThreadsPerBlock, 0, stream>>>(
         reinterpret_cast<const M31 *>(coordinate_values),
         reinterpret_cast<M31 *>(coefficients),
@@ -327,4 +327,36 @@ extern "C" int stwo_ntt_b2n_composition_split_depth_two_on(
         evaluation_domain_size,
         reinterpret_cast<cudaStream_t>(stream_raw),
         launches_out));
+}
+
+// OM31 uses eight coordinate polynomials. Keep the qualified four-coordinate
+// ABI unchanged and reuse the same fused transform and chunk-major output law.
+extern "C" int stwo_ntt_b2n_om31_composition_split_on(
+    uint32_t *coordinate_values, size_t coordinate_capacity_words,
+    uint32_t *coefficients, size_t coefficient_capacity_words,
+    uint32_t log_n, uint32_t split_depth,
+    const uint32_t *inverse_twiddles, uint32_t inverse_twiddle_words,
+    void *stream_raw, uint32_t *launches_out) {
+    using namespace stwo::cuda::transform;
+    if (launches_out != nullptr) *launches_out = 0;
+    if (log_n < 3u || log_n > 28u || split_depth < 1u || split_depth > 2u ||
+        log_n <= split_depth + 1u || stream_raw == nullptr || launches_out == nullptr)
+        return int(cudaErrorInvalidValue);
+    const uint32_t domain_size = 1u << (log_n - 1u);
+    const size_t words = size_t(8) << log_n;
+    if (!valid_shape(log_n, 8u, inverse_twiddle_words, domain_size) ||
+        coordinate_capacity_words != words || coefficient_capacity_words != words)
+        return int(cudaErrorInvalidValue);
+    DeviceRange input{}, output{}, twiddles{};
+    if (!word_range(coordinate_values, words, &input) ||
+        !word_range(coefficients, words, &output) ||
+        !word_range(inverse_twiddles, inverse_twiddle_words, &twiddles) ||
+        ranges_overlap(input, output) || ranges_overlap(input, twiddles) ||
+        ranges_overlap(output, twiddles)) return int(cudaErrorInvalidValue);
+    const auto stream = reinterpret_cast<cudaStream_t>(stream_raw);
+    return int(split_depth == 1u
+        ? launch_composition_split<1u, 8u>(coordinate_values, coefficients, log_n,
+              inverse_twiddles, inverse_twiddle_words, domain_size, stream, launches_out)
+        : launch_composition_split<2u, 8u>(coordinate_values, coefficients, log_n,
+              inverse_twiddles, inverse_twiddle_words, domain_size, stream, launches_out));
 }

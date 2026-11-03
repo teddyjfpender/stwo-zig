@@ -175,6 +175,13 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_masked_pcs.addArgs(args);
     b.step("rv64-masked-pcs-fixtures", "Export native heterogeneous PCS masks or verify resident GPU proof").dependOn(&run_masked_pcs.step);
     b.step("build-rv64-masked-pcs-tool", "Build independent native heterogeneous PCS receiver").dependOn(&b.addInstallArtifact(masked_pcs_fixture, .{}).step);
+    const split_root = b.createModule(.{ .root_source_file = b.path("rv64_composition_split_fixture_main.zig"), .target = target, .optimize = optimize });
+    split_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    split_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const split_fixture = b.addExecutable(.{ .name = "rv64-composition-split-fixtures", .root_module = split_root });
+    const run_split = b.addRunArtifact(split_fixture);
+    if (b.args) |args| run_split.addArgs(args);
+    b.step("rv64-composition-split-fixtures", "Export native four/eight-coordinate composition split oracle").dependOn(&run_split.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

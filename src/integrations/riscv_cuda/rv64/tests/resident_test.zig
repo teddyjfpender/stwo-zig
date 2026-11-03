@@ -105,6 +105,12 @@ const Fake = struct {
         calls += 1;
         return if (failure) 1 else 0;
     }
+    pub fn stwo_rv64_composition_finalize_on(_: *anyopaque, lane: u32, _: [*]u32, _: [*]u32, log: u32, depth: u32, _: [*]const u32, twiddles: u32, launches: *u32) c_int {
+        std.debug.assert(lane == 1 and log == 5 and depth == 2 and twiddles >= 16);
+        calls += 1;
+        launches.* = if (failure) 1 else 5;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
 fn slice() Slice {
@@ -140,6 +146,25 @@ test "sample transcript permutation checks geometry custody and launch poisoning
     Fake.failure = true;
     try std.testing.expectError(error.CudaEnqueueFailed, commands.sampleOrder(job));
     try std.testing.expectError(error.JobPoisoned, commands.sampleOrder(job));
+}
+test "OM31 composition finalization validates all regions before launch and poisons partial failures" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    try commands.finalizeComposition(slice(), slice(), 5, 2, slice());
+    try std.testing.expectEqual(@as(u64, 5), commands.launches);
+    try std.testing.expectError(error.InvalidGeometry, commands.finalizeComposition(slice(), slice(), 3, 2, slice()));
+    var invalid = slice();
+    invalid.len = 255;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.finalizeComposition(slice(), invalid, 5, 2, slice()));
+    invalid = slice();
+    invalid.owner = 7;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.finalizeComposition(invalid, slice(), 5, 2, slice()));
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.finalizeComposition(slice(), slice(), 5, 2, slice()));
+    try std.testing.expectError(error.JobPoisoned, commands.finalizeComposition(slice(), slice(), 5, 2, slice()));
 }
 test "RV64 CUDA commands validate generations use assigned lane and poison launch failure" {
     Fake.calls = 0;

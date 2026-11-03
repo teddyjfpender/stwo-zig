@@ -391,6 +391,16 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const owner = try self.handle();
             try self.result(Api.stwo_rv64_sample_order_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, j.input, @as(usize, j.source_count) * 8), j.source_count, try self.context.deviceSlicePointer(u32, j.map, j.count), j.count, try self.context.deviceSlicePointer(u32, j.output, @as(usize, j.count) * 8), try self.context.deviceSlicePointer(u32, j.verdict, 1)), 1);
         }
+        /// Interpolate an OM31 accumulator and emit native composition chunks.
+        /// Input is consumed in place; coefficients and twiddles are disjoint.
+        pub fn finalizeComposition(self: *Self, input: Slice, output: Slice, log: u32, depth: u32, twiddles: Slice) !void {
+            if (log < 3 or log > 28 or depth < 1 or depth > 2 or log <= depth + 1 or twiddles.len < @as(usize, 1) << @intCast(log - 1) or twiddles.len > std.math.maxInt(u32)) return error.InvalidGeometry;
+            const words = @as(usize, 8) << @intCast(log);
+            const owner = try self.handle();
+            var launches: u32 = 0;
+            const status = Api.stwo_rv64_composition_finalize_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, input, words), try self.context.deviceSlicePointer(u32, output, words), log, depth, try self.context.deviceSlicePointer(u32, twiddles, twiddles.len), @intCast(twiddles.len), &launches);
+            try self.result(status, launches);
+        }
         pub fn projectBinding(self: *Self, input: Fraction, eq_column: Plane, prefix_column: Plane, metadata: Slice, verdict: Slice, row_log: u32, lane_log: u32) !void {
             if (row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > 28) return error.InvalidGeometry;
             const rows = @as(u32, 1) << @intCast(row_log);
