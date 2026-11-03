@@ -763,14 +763,23 @@ pub fn proveWithAccumulators(
     defer a.free(gammas);
     tr.drawN(gammas);
     // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
+    // The first claim on a tensor overwrites its block, uncovered blocks are zeroed.
     const E = try a.alloc(QM31, total);
-    @memset(E[0..lay.used], QM31.zero());
+    const covered = try a.alloc(bool, ext.len);
+    defer a.free(covered);
+    @memset(covered, false);
     var batch_claim = QM31.zero();
     for (claims.items, gammas) |c, g| {
         const off = lay.offsets[c.tensor];
-        try batch.addEqScaled(a, pool, E[off..][0 .. @as(usize, 1) << @intCast(c.point.len)], c.point, g);
+        if (!covered[c.tensor] and c.point.len != ext[c.tensor].logSize()) {
+            @memset(E[off..][0..ext[c.tensor].size()], QM31.zero());
+            covered[c.tensor] = true;
+        }
+        try batch.eqScaledInto(a, pool, E[off..][0 .. @as(usize, 1) << @intCast(c.point.len)], c.point, g, covered[c.tensor]);
+        covered[c.tensor] = true;
         batch_claim = batch_claim.add(g.mul(c.value));
     }
+    for (covered, 0..) |cv, t| if (!cv) @memset(E[lay.offsets[t]..][0..ext[t].size()], QM31.zero());
     const bres = try batch.proveBaseTimesExt(a, pool, &tr, batch_claim, wtab, E, lay.used);
     a.free(E);
     defer a.free(bres.point);
