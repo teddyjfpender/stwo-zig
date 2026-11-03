@@ -12,7 +12,6 @@ const A = @import("abi.zig");
 const Ingress = @import("cpu_witness.zig");
 const a = std.heap.page_allocator;
 const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
-const Rom = struct { program: [32]u8, fixed: [32]u8, log: u32, lease: Native.Lease };
 fn symbol(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
     return lib.lookup(T, name) orelse error.MissingCpuProjectionSymbol;
 }
@@ -20,11 +19,11 @@ fn checked(status: c_int) !void {
     if (status != 0) return error.CudaCpuProjectionFailed;
 }
 pub const Context = struct {
+    retain_ledgers: bool = false,
     service: *Service.Context,
     api: SC.Api,
     kernel: *const @TypeOf(A.stwo_rv64_cpu_witness_on),
     memset: Memset,
-    roms: std.ArrayList(Rom) = .empty,
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
         return .{ .service = service, .api = .{
@@ -37,18 +36,15 @@ pub const Context = struct {
             .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
         }, .kernel = try symbol(*const @TypeOf(A.stwo_rv64_cpu_witness_on), &service.library, "stwo_rv64_cpu_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
     }
+    pub fn residentStage(self: *Context) CPU.ProjectionStage {
+        self.retain_ledgers = true;
+        return self.stage();
+    }
     pub fn stage(self: *Context) CPU.ProjectionStage {
         return .{ .context = self, .project = project };
     }
     pub fn deinit(self: *Context) void {
-        _ = self.service.submit(self.service.session, releaseRoms, self);
-        self.roms.deinit(a);
         self.* = undefined;
-    }
-    fn releaseRoms(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
-        const self: *Context = @ptrCast(@alignCast(raw.?));
-        for (self.roms.items) |*rom| if (self.service.lease_release(self.service.session, &rom.lease) != 0) return 1;
-        return 0;
     }
     fn project(raw: *anyopaque, source: *const CPU.Source, scope: D.Scope) !CPU.DeviceProjection {
         const self: *Context = @ptrCast(@alignCast(raw));
@@ -65,23 +61,27 @@ pub const Context = struct {
         errdefer a.destroy(owner);
         owner.* = .{ .service = self.service, .columns = try a.alloc(D.TraceColumn, X.layout.mainCount(true)), .counts16 = &.{}, .counts8 = &.{}, .pairs = &.{} };
         errdefer a.free(owner.columns);
-        owner.counts16 = try a.alloc(u64, 65536);
         errdefer a.free(owner.counts16);
-        owner.counts8 = try a.alloc(u64, 256);
         errdefer a.free(owner.counts8);
-        owner.pairs = try a.alloc(u64, 65536);
         errdefer a.free(owner.pairs);
+        if (!self.retain_ledgers) {
+            owner.counts16 = try a.alloc(u64, 65536);
+            owner.counts8 = try a.alloc(u64, 256);
+            owner.pairs = try a.alloc(u64, 65536);
+        }
         var job = Job{ .backend = self, .source = source, .scope = scope, .owner = owner };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try checked(status);
         std.debug.print("GPU_CPU_PROJECTION rows={} active={} metadata_h2d_bytes={} main_d2h_bytes=0 total_ns={} rom_cache_hit={}\n", .{ source.size(), source.metadata.len, source.metadata.len * @sizeOf(CPU.Metadata), timer.read(), job.rom_cache_hit });
-        return .{ .owner = .{ .context = owner, .release = Owner.release }, .columns = owner.columns, .counts16 = owner.counts16, .counts8 = owner.counts8, .pair_counts = owner.pairs };
+        return .{ .owner = .{ .context = owner, .release = Owner.release }, .columns = owner.columns, .ledgers = owner.ledgers, .counts16 = owner.counts16, .counts8 = owner.counts8, .pair_counts = owner.pairs };
     }
 };
 const Owner = struct {
     service: *Service.Context,
     eval: Native.Lease = .{},
+    ledger_lease: Native.Lease = .{},
+    ledgers: ?CPU.DeviceLedgers = null,
     columns: []D.TraceColumn,
     counts16: []u64,
     counts8: []u64,
@@ -97,7 +97,10 @@ const Owner = struct {
     }
     fn releaseDevice(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(raw.?));
-        return self.service.lease_release(self.service.session, &self.eval);
+        var status: c_int = 0;
+        if (self.ledger_lease.generation != 0) status = self.service.lease_release(self.service.session, &self.ledger_lease);
+        const eval_status = self.service.lease_release(self.service.session, &self.eval);
+        return if (status != 0) status else eval_status;
     }
 };
 const Job = struct {
@@ -115,44 +118,43 @@ const Job = struct {
         };
         return 0;
     }
-    fn rom(self: *Job, raw: *anyopaque, token: u64) !Native.Lease {
+    fn rom(self: *Job, raw: *anyopaque, _: u64) !Native.Lease {
         const b = self.backend;
         const p = self.source.program;
+        if (p.log_size < 5 or p.log_size > 24) return error.InvalidCpuRomGeometry;
         var h = std.crypto.hash.sha2.Sha256.init(.{});
-        h.update("stwo/rv64/cuda/immutable-cpu-rom/v1\x00");
+        h.update("stwo/rv64/cuda/immutable-cpu-rom/v2\x00");
         h.update(&p.identity);
-        h.update(&self.scope.fixed);
+        var log_bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &log_bytes, p.log_size, .little);
+        h.update(&log_bytes);
+        // makeCompact changes the physical ROM tuple without changing the
+        // code identity; never reuse the uncompressed decode matrix for it.
+        h.update(&.{@intFromBool(p.compact)});
+        std.mem.writeInt(u32, &log_bytes, @intFromEnum(p.profile), .little);
+        h.update(&log_bytes);
         const digest = h.finalResult();
         var identity: [8]u32 = undefined;
         for (&identity, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
-        for (b.roms.items) |entry| if (entry.log == p.log_size and std.mem.eql(u8, &entry.program, &p.identity) and std.mem.eql(u8, &entry.fixed, &self.scope.fixed)) {
-            try checked(b.service.lease_validate_range(b.service.session, entry.lease.words.?, entry.lease.count, token, entry.lease.generation, &identity));
+        const scope = @import("pcs_scope.zig").identity(self.scope);
+        const count = X.layout.rom.FIXED * p.size();
+        if (try b.service.immutableLookup(scope, identity, count)) |lease| {
             self.rom_cache_hit = true;
-            return entry.lease;
-        };
-        if (p.log_size < 5 or p.log_size > 24) return error.InvalidCpuRomGeometry;
-        try b.roms.ensureUnusedCapacity(a, 1);
-        if (b.roms.items.len >= 2) {
-            var retired = b.roms.orderedRemove(0);
-            try checked(b.service.lease_release(b.service.session, &retired.lease));
+            return lease;
         }
-        const rows = p.size();
         const rebuilt = if (p.fixed_retired) try reconstructRom(a, p) else null;
         defer if (rebuilt) |words| a.free(words);
         const words: []const u32 = if (rebuilt) |data| data else std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(p.fixed));
-        if (words.len != X.layout.rom.FIXED * rows) return error.InvalidCpuRomGeometry;
-        var ctx = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = identity, .api = &b.api };
-        var lease = try ctx.allocate(words.len, 3);
-        errdefer ctx.release(&lease) catch {};
-        try ctx.upload(try ctx.borrow(lease), words);
-        try ctx.join();
-        b.roms.appendAssumeCapacity(.{ .program = p.identity, .fixed = self.scope.fixed, .log = p.log_size, .lease = lease });
-        return lease;
+        if (words.len != count) return error.InvalidCpuRomGeometry;
+        return b.service.immutableWords(raw, scope, identity, words);
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
         const source = self.source;
         const rom_lease = try self.rom(raw, token);
+        // The cache owns immutable ROM. This proof owns only the provisional
+        // read-only alias, which ends after formatter work has joined.
+        defer b.service.releaseImmutableScope(@import("pcs_scope.zig").identity(self.scope)) catch {};
         const metadata = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(source.metadata));
         const scope = @import("pcs_scope.zig").identity(self.scope);
         var ctx = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = scope, .api = &b.api };
@@ -163,9 +165,10 @@ const Job = struct {
         const status_base = rom_base + rom_rows;
         const pair_base = status_base + 1;
         var scratch = try ctx.allocate(pair_base + 65536, 0);
+        var ledger_adopted = false;
         defer {
             ctx.join() catch {};
-            ctx.release(&scratch) catch {};
+            if (!ledger_adopted) ctx.release(&scratch) catch {};
         }
         const eval = try ctx.allocate(source.size() * X.layout.mainCount(true), 1);
         var adopted = false;
@@ -183,20 +186,40 @@ const Job = struct {
         // on lane1. A join after the download cannot establish that ordering.
         // This is the narrow host histogram boundary, never a MAIN readback.
         try ctx.join();
-        const readback = try a.alloc(u32, pair_base + 65536 - count_base);
-        defer a.free(readback);
-        try ctx.download(try (try ctx.borrow(scratch)).sub(count_base, readback.len), readback);
-        try ctx.join();
-        if (readback[status_base - count_base] != 0) return error.InvalidGpuCpuMetadata;
-        for (readback[rom_base - count_base ..][0..rom_rows], source.rom_counts) |actual, expected| if (actual != expected) return error.CpuRomMultiplicityMismatch;
-        for (self.owner.counts16, readback[0..65536]) |*out, value| out.* = value;
-        for (self.owner.counts8, readback[c8_base - count_base ..][0..256]) |*out, value| out.* = value;
-        for (self.owner.pairs, readback[pair_base - count_base ..][0..65536]) |*out, value| out.* = value;
+        if (b.retain_ledgers) {
+            var verdict: [1]u32 = undefined;
+            try ctx.download(try (try ctx.borrow(scratch)).sub(status_base, 1), &verdict);
+            try ctx.join();
+            if (verdict[0] != 0) return error.InvalidGpuCpuMetadata;
+            self.owner.ledger_lease = scratch;
+            self.owner.ledgers = .{
+                .metadata = if (metadata.len == 0) null else ledger(scratch, 0, metadata.len),
+                .range16 = ledger(scratch, count_base, 65536),
+                .range8 = ledger(scratch, c8_base, 256),
+                .pairs = ledger(scratch, pair_base, 65536),
+                .rom = ledger(scratch, rom_base, rom_rows),
+            };
+            ledger_adopted = true;
+        } else {
+            const readback = try a.alloc(u32, pair_base + 65536 - count_base);
+            defer a.free(readback);
+            try ctx.download(try (try ctx.borrow(scratch)).sub(count_base, readback.len), readback);
+            try ctx.join();
+            if (readback[status_base - count_base] != 0) return error.InvalidGpuCpuMetadata;
+            for (readback[rom_base - count_base ..][0..rom_rows], source.rom_counts) |actual, expected| if (actual != expected) return error.CpuRomMultiplicityMismatch;
+            for (self.owner.counts16, readback[0..65536]) |*out, value| out.* = value;
+            for (self.owner.counts8, readback[c8_base - count_base ..][0..256]) |*out, value| out.* = value;
+            for (self.owner.pairs, readback[pair_base - count_base ..][0..65536]) |*out, value| out.* = value;
+        }
         for (self.owner.columns, 0..) |*column, i| column.* = .{ .log_size = source.log_size, .encoding = .evaluations, .device = .{ .words = eval.words.? + i * source.size(), .count = source.size(), .context_token = token, .generation = eval.generation } };
         self.owner.eval = eval;
         adopted = true;
     }
 };
+
+fn ledger(lease: Native.Lease, offset: usize, count: usize) D.DeviceCoefficients {
+    return .{ .words = lease.words.? + offset, .count = count, .context_token = lease.context_token, .generation = lease.generation };
+}
 
 fn reconstructRom(allocator: std.mem.Allocator, program: anytype) ![]u32 {
     const rows = program.size();

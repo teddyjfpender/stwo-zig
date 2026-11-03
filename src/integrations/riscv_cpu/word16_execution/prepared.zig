@@ -148,7 +148,7 @@ pub const Prepared = struct {
         // The same normalized operands authority is used by the DIV witness.
         for (df.items) |request| try mf.appendSlice(a, &try A.arithmetic.division.word16_product.witness.support(request));
         const jalr_log = options.jalr_log orelse try Coverage.minimalLog(@intCast(jf.items.len));
-        var jalr = try J.Source.init(a, jf.items, jalr_log);
+        var jalr = try J.Source.capture(a, jf.items, jalr_log);
         errdefer jalr.deinit();
         const extra_alu = try jalr.aluFacts(a);
         defer a.free(extra_alu);

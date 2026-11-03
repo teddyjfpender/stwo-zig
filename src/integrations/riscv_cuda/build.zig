@@ -222,6 +222,14 @@ pub fn build(b: *std.Build) void {
     const run_cpu_witness = b.addRunArtifact(cpu_witness_fixture);
     if (b.args) |args| run_cpu_witness.addArgs(args);
     b.step("rv64-cpu-witness-fixtures", "Export native compact CPU formatting and histogram oracle").dependOn(&run_cpu_witness.step);
+    const family_root = b.createModule(.{ .root_source_file = b.path("rv64_family_witness_fixture_main.zig"), .target = target, .optimize = optimize });
+    family_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    family_root.addImport("stwo_riscv_frontend", frontend);
+    family_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const family_fixture = b.addExecutable(.{ .name = "rv64-family-witness-fixtures", .root_module = family_root });
+    const run_family = b.addRunArtifact(family_fixture);
+    if (b.args) |args| run_family.addArgs(args);
+    b.step("rv64-family-witness-fixtures", "Export native compact family MAIN and ledger oracle").dependOn(&run_family.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

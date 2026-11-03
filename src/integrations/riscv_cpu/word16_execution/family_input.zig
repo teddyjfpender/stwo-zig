@@ -2,8 +2,9 @@
 //! execution facts and multiplicities, never padded field-column witnesses.
 const std = @import("std");
 const core = @import("stwo_core");
-const A = @import("stwo_riscv_frontend").rv64_air.word16_v1;
-pub const Kind = enum(u32) { alu = 0, binary = 1, shift = 2, zbb = 3 };
+const Air = @import("stwo_riscv_frontend").rv64_air;
+const A = Air.word16_v1;
+pub const Kind = enum(u32) { alu = 0, binary = 1, shift = 2, zbb = 3, jalr = 4, multiplication = 5, division = 6 };
 pub const Fact = extern struct {
     op: u32,
     multiplicity: u32,
@@ -71,6 +72,45 @@ pub const Batch = struct {
             out.a = f.a;
             out.b = f.b;
             out.c = f.c;
+        }
+        return batch;
+    }
+    pub fn jalr(a: std.mem.Allocator, facts: []const @import("jalr_source.zig").Fact, log: u32) !Batch {
+        const batch = try allocate(a, .jalr, facts.len, null, log);
+        for (facts, batch.facts) |f, *out| {
+            out.op = f.op;
+            out.a = f.a;
+            out.b = f.b;
+            out.c = f.c;
+        }
+        return batch;
+    }
+    pub fn multiplication(a: std.mem.Allocator, facts: []const Air.arithmetic.multiplication.trace.Request, log: u32) !Batch {
+        var batch = try allocate(a, .multiplication, facts.len, null, log);
+        errdefer batch.deinit();
+        for (facts, batch.facts) |f, *out| {
+            out.op = @intCast(try Air.arithmetic.multiplication.layout.opcodeIndex(f.opcode));
+            out.multiplicity = 0; // Reserved word of the arithmetic request ABI.
+            out.a = f.a;
+            out.b = f.b;
+            out.c = f.result;
+        }
+        return batch;
+    }
+    pub fn division(a: std.mem.Allocator, facts: []const Air.arithmetic.division.trace.Request, log: u32) !Batch {
+        var batch = try allocate(a, .division, facts.len, null, log);
+        errdefer batch.deinit();
+        for (facts, batch.facts) |f, *out| {
+            var opcode: ?u32 = null;
+            for (Air.arithmetic.division.word16_product.layout.OPCODES, 0..) |op, index| if (op == f.opcode) {
+                opcode = @intCast(index);
+                break;
+            };
+            out.op = opcode orelse return error.InvalidDeviceDivisionOpcode;
+            out.multiplicity = 0;
+            out.a = f.a;
+            out.b = f.b;
+            out.c = f.result;
         }
         return batch;
     }

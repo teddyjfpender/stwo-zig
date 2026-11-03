@@ -39,7 +39,15 @@ pub const ProjectionOwner = struct {
     /// failure, MAIN handoff, or Source destruction before handoff.
     release: *const fn (*anyopaque) void,
 };
+pub const DeviceLedgers = struct {
+    metadata: ?Device.DeviceCoefficients = null,
+    range16: Device.DeviceCoefficients,
+    range8: Device.DeviceCoefficients,
+    pairs: Device.DeviceCoefficients,
+    rom: Device.DeviceCoefficients,
+};
 pub const DeviceProjection = struct {
+    ledgers: ?DeviceLedgers = null,
     owner: ?ProjectionOwner = null,
     columns: []const Device.TraceColumn,
     counts16: []const u64,
@@ -61,6 +69,7 @@ pub const Source = struct {
     metadata: []Metadata,
     main: []M = &.{},
     device_main: []const Device.TraceColumn = &.{},
+    device_ledgers: ?DeviceLedgers = null,
     device_projection_owner: ?ProjectionOwner = null,
     device_pair_counts: []u64 = &.{},
     /// Sticky after successful projection or explicit retirement. A cleared
@@ -162,17 +171,30 @@ pub const Source = struct {
         defer if (!adopted) {
             if (projected.owner) |owner| owner.release(owner.context);
         };
-        if (projected.columns.len != L.mainCount(self.compact) or projected.counts16.len != self.counts16.len or projected.counts8.len != self.counts8.len or projected.pair_counts.len != 65536) return error.InvalidCpuDeviceProjection;
+        if (projected.columns.len != L.mainCount(self.compact)) return error.InvalidCpuDeviceProjection;
         for (projected.columns) |column| {
             try column.validate();
             if (column.log_size != self.log_size or column.encoding != .evaluations or column.device == null) return error.InvalidCpuDeviceProjection;
         }
-        for (projected.counts16) |count| if (count >= core.fields.m31.Modulus) return error.InvalidCpuDeviceProjection;
-        for (projected.counts8) |count| if (count >= core.fields.m31.Modulus) return error.InvalidCpuDeviceProjection;
-        const pairs = try self.allocator.dupe(u64, projected.pair_counts);
-        @memcpy(self.counts16, projected.counts16);
-        @memcpy(self.counts8, projected.counts8);
-        self.device_pair_counts = pairs;
+        if (projected.ledgers) |ledgers| {
+            if (projected.owner == null or projected.counts16.len != 0 or projected.counts8.len != 0 or projected.pair_counts.len != 0) return error.InvalidCpuDeviceProjection;
+            const token = projected.columns[0].device.?.context_token;
+            for ([_]Device.DeviceCoefficients{ ledgers.range16, ledgers.range8, ledgers.pairs, ledgers.rom }, [_]usize{ 65536, 256, 65536, self.program.size() }) |ledger, count| {
+                if (@intFromPtr(ledger.words) == 0 or ledger.count != count or ledger.context_token != token or ledger.generation == 0) return error.InvalidCpuDeviceProjection;
+            }
+            if (ledgers.metadata) |metadata| {
+                if (@intFromPtr(metadata.words) == 0 or metadata.count != self.metadata.len * (@sizeOf(Metadata) / 4) or metadata.context_token != token or metadata.generation == 0) return error.InvalidCpuDeviceProjection;
+            } else if (self.metadata.len != 0) return error.InvalidCpuDeviceProjection;
+            self.device_ledgers = ledgers;
+        } else {
+            if (projected.counts16.len != self.counts16.len or projected.counts8.len != self.counts8.len or projected.pair_counts.len != 65536) return error.InvalidCpuDeviceProjection;
+            for (projected.counts16) |count| if (count >= core.fields.m31.Modulus) return error.InvalidCpuDeviceProjection;
+            for (projected.counts8) |count| if (count >= core.fields.m31.Modulus) return error.InvalidCpuDeviceProjection;
+            const pairs = try self.allocator.dupe(u64, projected.pair_counts);
+            @memcpy(self.counts16, projected.counts16);
+            @memcpy(self.counts8, projected.counts8);
+            self.device_pair_counts = pairs;
+        }
         self.device_main = projected.columns;
         self.device_projection_owner = projected.owner;
         adopted = true;
@@ -237,6 +259,7 @@ pub const Source = struct {
         self.allocator.free(self.main);
         self.main = &.{};
         self.device_main = &.{};
+        self.device_ledgers = null;
         if (self.device_projection_owner) |owner| {
             self.device_projection_owner = null;
             owner.release(owner.context);

@@ -89,6 +89,7 @@ pub const Source = struct {
             var stage = try Profile.StageScope.begin(recorder, "source_cpu_materialize", "CPU materialization and final program binding");
             defer stage.end();
             try prepared.ensureCpuMain(&materials.program, g.cpu_log);
+            if ((prepared.cpu orelse return error.PreparedExecutionConsumed).device_ledgers != null) return error.DeviceOnlySourceRequiresFactory;
         }
         var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
         errdefer cpu.deinit();
@@ -101,6 +102,7 @@ pub const Source = struct {
             break :blk try prepared.takeJalr(g.jalr_log);
         };
         errdefer jalr.deinit();
+        if (jalr.main.len == 0) try jalr.materializeMain();
         var alu = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_alu", "ALU witness");
             defer stage.end();
