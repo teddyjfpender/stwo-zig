@@ -297,11 +297,10 @@ fn reduceAndOpen(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, tr: *Tr
         };
         if (rc.items.len > 0) try batch_sc.fillRegion(a, pool, E[ws.offsets[w]..][0..ws.infos[w].size()], rc.items);
     }
-    const F = try a.alloc(i32, total);
-    defer a.free(F);
-    for (F, ws.table) |*o, v| o.* = v;
+    // the committed i8 table is the base operand directly (no widened copy)
+    std.debug.assert(ws.table.len == total);
     const used = @min(total, ws.rows_used << @intCast(ws.log_cols));
-    var res = try batch_sc.proveBaseTimesExt(a, pool, tr, claim, F, E, used);
+    var res = try batch_sc.proveBaseTimesExtT(i8, a, pool, tr, claim, ws.table, E, used);
     defer a.free(res.point);
     errdefer res.proof.deinit(a);
     const value = res.finals[0];
