@@ -131,7 +131,7 @@ pub const Context = struct {
         const schedule_bytes: u64 = if (self.assignment) |assignment| try std.math.mul(u64, try std.math.add(u64, assignment.tasks.len * 8, assignment.indices.len), 4) else 0;
         const required_immutable = try std.math.add(u64, fixed_bytes, schedule_bytes);
         if (required_immutable > immutable_limit) {
-            std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, key.logs.toArray() });
+            std.debug.print("GPU_OUTER fixed_forest_bytes={} schedule_bytes={} required_immutable_bytes={} immutable_limit_bytes={} device_limit_bytes={} logs={any}\n", .{ fixed_bytes, schedule_bytes, required_immutable, immutable_limit, self.service.byte_cap, key.logs.toArray() });
             return error.OuterFixedForestExceedsImmutableBudget;
         }
         std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} assignment_bytes={} schedule_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, values.len * @sizeOf(Outer.protocol.Q), schedule_bytes, key.logs.toArray() });
