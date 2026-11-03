@@ -1,0 +1,286 @@
+{
+  "schema": 1,
+  "status": "complete_production_ethereum_recursion_accepted",
+  "block": 24628607,
+  "native_cpu_proofs": 7,
+  "native_truth_proofs": 10,
+  "fresh_outer_root_verified": true,
+  "ethereum_terminal_accepted": true,
+  "root_proof": {
+    "bytes": 717048,
+    "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+  },
+  "all_artifacts": {
+    "fold-000002.proof": {
+      "bytes": 748760,
+      "sha256": "72a465aabd4562a670bc2a5908cc7f50a0d6349bda6a69cf98670266b6e03baf"
+    },
+    "fold-000005.proof": {
+      "bytes": 747800,
+      "sha256": "dafe94c086807c1057306f966640ff93a2ccd357e2a97052fa59c0bb89ba56e8"
+    },
+    "fold-000006.proof": {
+      "bytes": 746776,
+      "sha256": "f02c2013ce6992f860421fda1925236864083486484d0297126c9f9eefe34851"
+    },
+    "fold-000009.proof": {
+      "bytes": 747416,
+      "sha256": "4bc230a5727c96d9f89c1a768a75721f8d7b3f795d90754469cb21f9249e73b4"
+    },
+    "fold-000012.proof": {
+      "bytes": 755704,
+      "sha256": "7a862d8f5970f5eb932dfaabd38d0f577edb432412bcedee1f75c1ed857ed543"
+    },
+    "fold-000013.proof": {
+      "bytes": 745464,
+      "sha256": "c589b2f9ff47828a46e45a9ade68c7af1fef03eb2d5c058b08f4ec76fe8c34ba"
+    },
+    "fold-000014.proof": {
+      "bytes": 742392,
+      "sha256": "41acafcc36aac39131351099590ad1edd9e2defc8a30593113e67fa995c714c2"
+    },
+    "fold-000017.proof": {
+      "bytes": 753528,
+      "sha256": "2a740a27950d6ea5933feafabe9a10e8e20893af6d117a96c7a7137b1108a9fc"
+    },
+    "fold-000020.proof": {
+      "bytes": 747928,
+      "sha256": "559ad28848e574acd8e15c5d14d07ec09008174777a4c3bfb6beb31927479acb"
+    },
+    "fold-000021.proof": {
+      "bytes": 738296,
+      "sha256": "c61c12dda6ae684244303134682bc3083280849468d36aea477c3e3eddf8c3d0"
+    },
+    "fold-000024.proof": {
+      "bytes": 748664,
+      "sha256": "c41ae7d9f5a21a1d5c48b8f8668720e829401c8e275830df9e231bc6219dbb1d"
+    },
+    "fold-000027.proof": {
+      "bytes": 746904,
+      "sha256": "8ed07cb3b15102faed932a4cf26821aae7327f4888f83cd7956e7d0eedfccb05"
+    },
+    "fold-000028.proof": {
+      "bytes": 750680,
+      "sha256": "6a0cb0510bbe2aaf266afe2f0c800b09c76f7bea2614312249bbff1ef79476cc"
+    },
+    "fold-000029.proof": {
+      "bytes": 748760,
+      "sha256": "04fc01cf99194f6d645b6ddba3c6ba705eebd92f80ab44cdf8eaa5a38a581c6b"
+    },
+    "fold-000030.proof": {
+      "bytes": 749688,
+      "sha256": "8e3ac2ee369157f83a70532ac824c119ee75e4f944374a593847e9aa90f9c637"
+    },
+    "fold-000032.proof": {
+      "bytes": 717048,
+      "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+    },
+    "leaf-000000.proof": {
+      "bytes": 747608,
+      "sha256": "34e1e118dfec4a2a76536e0a828172f71da6174889b9b9e941351933c6484c5a"
+    },
+    "leaf-000001.proof": {
+      "bytes": 752824,
+      "sha256": "8d87e7d32f3c176ebf2f3c80f213fbf2558ab48a0d24bb11ce7705065efb6ebe"
+    },
+    "leaf-000002.proof": {
+      "bytes": 746296,
+      "sha256": "68b25ca55d5d717c5a562830b5ac630e8bba5eadf8ccbe32626bd22b410ca9e6"
+    },
+    "leaf-000003.proof": {
+      "bytes": 751384,
+      "sha256": "c088391ffa4e6f38336ce1d353edd64b5dc855113ad8ba79498d744fd2eb46ca"
+    },
+    "leaf-000004.proof": {
+      "bytes": 743448,
+      "sha256": "bd052e517578a5cbf9e21109a5ad72b85f4e3834def47ee77dcce5b3edfac770"
+    },
+    "leaf-000005.proof": {
+      "bytes": 752760,
+      "sha256": "9389d5f7475b1f868b6972c106c4e90ffd6742e875bef813073bfce5311ba4cd"
+    },
+    "leaf-000006.proof": {
+      "bytes": 750744,
+      "sha256": "ce0ab3f19e6f8ebf4bb0eec007139af711da1e6efdd284c64916e6750b2999c0"
+    },
+    "leaf-000007.proof": {
+      "bytes": 745880,
+      "sha256": "3d536577dac296638559052165007616a2b4f633ec6a11dcf2b500ffa3ea52cc"
+    },
+    "leaf-000008.proof": {
+      "bytes": 755960,
+      "sha256": "e9cca429817ce22af9503cacd16398a8b7c6f2c6270a63ea9167ee6a94c28604"
+    },
+    "leaf-000009.proof": {
+      "bytes": 748088,
+      "sha256": "a4024ab2fa20d7c266c613a0ee9122b06131061048605ff39100df4bead68728"
+    },
+    "leaf-000010.proof": {
+      "bytes": 751416,
+      "sha256": "d1889b6f9f82212650dfa16c794af8b32ec81e75b2d1b129176ee41a77f18e14"
+    },
+    "leaf-000011.proof": {
+      "bytes": 741784,
+      "sha256": "3146443be137ad3292ad2f80ebe53d1d848f2be3e32d5b89948a854a25aec8c5"
+    },
+    "leaf-000012.proof": {
+      "bytes": 746680,
+      "sha256": "bb302d0a22afa81c8e183d2eac3b0cfabe7cdfe420cf30f1d2009c2ae748e3e4"
+    },
+    "leaf-000013.proof": {
+      "bytes": 747896,
+      "sha256": "702ec67149ea34902445f2b291396632ff2f88922d3c8d8bfadea1e56ebcca0e"
+    },
+    "leaf-000014.proof": {
+      "bytes": 753496,
+      "sha256": "4b67d33794445dbba55f1ae3ef17991d1c19b1b47c9306dfd6faa51c664133e2"
+    },
+    "leaf-000015.proof": {
+      "bytes": 747448,
+      "sha256": "9e8ebfb51dd7a36e27181e4d3b781612bd2b645c10b33e2a630336418a0b246c"
+    },
+    "leaf-000016.proof": {
+      "bytes": 674296,
+      "sha256": "df9547993b9d3e33cb2aa02c9363ad4f4e1c30f231462fca21b10f2049367e43"
+    },
+    "root.proof": {
+      "bytes": 717048,
+      "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+    }
+  },
+  "report": {
+    "schema": 2,
+    "accepted": true,
+    "outer_backend": "cpu",
+    "leaf_proofs": 17,
+    "restored_leaves": 10,
+    "fold_proofs": 16,
+    "restored_folds": 0,
+    "peak_pending_authorities": 6,
+    "root_node": 32,
+    "root_digest": [
+      216,
+      144,
+      50,
+      210,
+      238,
+      151,
+      29,
+      97,
+      140,
+      208,
+      24,
+      10,
+      170,
+      79,
+      175,
+      57,
+      217,
+      38,
+      124,
+      143,
+      71,
+      233,
+      173,
+      123,
+      135,
+      60,
+      9,
+      218,
+      59,
+      66,
+      177,
+      175
+    ],
+    "root_authority": [
+      127,
+      0,
+      48,
+      83,
+      212,
+      2,
+      122,
+      171,
+      238,
+      203,
+      99,
+      165,
+      36,
+      101,
+      252,
+      217,
+      245,
+      246,
+      205,
+      133,
+      222,
+      71,
+      138,
+      122,
+      87,
+      26,
+      174,
+      35,
+      154,
+      160,
+      135,
+      8
+    ],
+    "manifest": [
+      228,
+      171,
+      8,
+      40,
+      5,
+      69,
+      136,
+      158,
+      169,
+      156,
+      150,
+      102,
+      39,
+      22,
+      36,
+      49,
+      95,
+      48,
+      103,
+      221,
+      54,
+      90,
+      245,
+      200,
+      131,
+      168,
+      57,
+      47,
+      34,
+      115,
+      246,
+      164
+    ],
+    "native_prove_ns": null,
+    "graph_ns": 5753862916,
+    "wrap_ns": 255743375710,
+    "fold_ns": 621467183250,
+    "root_verify_ns": 314900625,
+    "total_ns": 884648298875,
+    "root_proof_bytes": 717048,
+    "portable_root_key_admission": false
+  },
+  "timing_scope": "Mixed recovery run: 10 previously proved leaves freshly restored under regenerated authority; 7 new leaf proofs and all16new fold proofs. 884.648s is NOT a cold complete recursion benchmark. Native7.71sGPUproving is separate and excludes recursion. Outer backend CPU.",
+  "source_commit": "49d0a5e91",
+  "row_parallel_commit": "7981bd713",
+  "host_budget_bytes": 51539607552,
+  "wall_seconds": 894.06,
+  "user_seconds": 6090.18,
+  "system_seconds": 103.94,
+  "max_rss_bytes": 42167631872,
+  "peak_footprint_bytes": 46466456312,
+  "zero_page_faults_reported_by_time": true,
+  "guest_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+  "input_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "production_binary_sha256": "61d5f0d0abb4c317be3fe8235f37b252b92f353602932a3aa92162e734b4ea66",
+  "scope": "128-bit target under documented assumptions. Original native statements, local GKR and terminal binding, all physicalAIR/PCS/FRI, ordered binary folds, exact manifest, separateRAM/KIO/Wire closure, memoryboundary and Ethereumterminal all checked. New-process root-only key admission remains unqualified (see report portable_root_key_admission=false)."
+}
