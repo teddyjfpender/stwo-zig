@@ -825,12 +825,33 @@ extern "C" int stwo_exec_context_alloc_u32(
             count * sizeof(uint32_t),
             context->pool,
             context->stream);
+        // Freed async-pool pages can remain physically resident and fragmented
+        // despite a small live allocation set. Reclaim only unused backing,
+        // after every lane has finished using it, then retry this allocation
+        // once. Live witnesses and allocation custody remain unchanged.
+        if (status == cudaErrorMemoryAllocation && !context->capture_active) {
+            *out_pointer = nullptr;
+            // A recovered allocation error must not poison later kernel
+            // launch checks using cudaPeekAtLastError on this owner thread.
+            (void)cudaGetLastError();
+            status = join_lanes(context);
+            if (status == cudaSuccess) status = cudaMemPoolTrimTo(context->pool, 0);
+            if (status == cudaSuccess) {
+                status = cudaMallocFromPoolAsync(
+                    reinterpret_cast<void **>(out_pointer),
+                    count * sizeof(uint32_t),
+                    context->pool,
+                    context->stream);
+            }
+        }
     }
     if (status == cudaSuccess) {
         context->allocations[context->allocation_count++] = {
             reinterpret_cast<uintptr_t>(*out_pointer),
             count * sizeof(uint32_t),
         };
+    } else {
+        *out_pointer = nullptr;
     }
     return static_cast<int>(status);
 }
