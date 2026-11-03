@@ -118,6 +118,7 @@ pub const Gpu = struct {
     p_gkr_next: *anyopaque,
     p_gkr_sum: *anyopaque,
     p_gkr_fold: *anyopaque,
+    p_gkr_fold_sum: *anyopaque,
     p_combine: *anyopaque,
     p_row_dots: *anyopaque,
     p_lazy_round0: *anyopaque,
@@ -126,6 +127,10 @@ pub const Gpu = struct {
     /// the shared (unified-memory) buffers, saving a device round trip.
     gkr_cpu_sum_max: usize = 1 << 9,
     gkr_cpu_fold_max: usize = 1 << 10,
+    /// fuse GKR device folds with the next round's sums. Off by default:
+    /// measured 50 vs 45 ms device time per MLP proof (the rounds are
+    /// arithmetic-bound, fusion only saves a re-read). Tests cover both.
+    gkr_fused_fold_sum: bool = false,
     /// force the int32 matmul kernel (tests)
     matmul_int_only: bool = false,
     /// buffers whose release waits for the in-flight command to complete
@@ -166,6 +171,7 @@ pub const Gpu = struct {
             .p_gkr_next = try pipeline(rt, "tm_gkr_next"),
             .p_gkr_sum = try pipeline(rt, "tm_gkr_sum"),
             .p_gkr_fold = try pipeline(rt, "tm_gkr_fold"),
+            .p_gkr_fold_sum = try pipeline(rt, "tm_gkr_fold_sum"),
             .p_combine = try pipeline(rt, "tm_combine_rows"),
             .p_row_dots = try pipeline(rt, "tm_row_dots"),
             .p_lazy_round0 = try pipeline(rt, "tm_lazy_round0"),
@@ -192,7 +198,7 @@ pub const Gpu = struct {
     }
 
     pub fn deinit(self: *Gpu, a: std.mem.Allocator) void {
-        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_combine", "p_row_dots", "p_lazy_round0", "p_lazy_fold0" }) |name|
+        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_gkr_fold_sum", "p_combine", "p_row_dots", "p_lazy_round0", "p_lazy_fold0" }) |name|
             tm_release(@field(self, name));
         self.releaseRetired();
         self.retired.deinit(std.heap.c_allocator);

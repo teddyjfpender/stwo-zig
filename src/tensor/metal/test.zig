@@ -378,9 +378,11 @@ test "metal LogUp-GKR batch proof matches the CPU fast prover" {
         g.gkr_cpu_fold_max = saved[1];
     }
     // default split (CPU for small layers), all-device, and a mixed split
-    for ([_][2]usize{ .{ 1 << 9, 1 << 10 }, .{ 0, 0 }, .{ 1 << 12, 1 << 13 } }) |th| for ([_]bool{ true, false }) |owned| {
+    defer g.gkr_fused_fold_sum = false;
+    for ([_][2]usize{ .{ 1 << 9, 1 << 10 }, .{ 0, 0 }, .{ 1 << 12, 1 << 13 } }) |th| for ([_]bool{ true, false }) |owned| for ([_]bool{ true, false }) |fused| {
         g.gkr_cpu_sum_max = th[0];
         g.gkr_cpu_fold_max = th[1];
+        g.gkr_fused_fold_sum = fused;
         var keep: std.ArrayList([]u8) = .empty;
         defer {
             for (keep.items) |b| a.free(b);

@@ -30,6 +30,10 @@ const SECURE: u32 = 2;
 const NextParams = extern struct { size: u32, num_kind: u32 };
 const SumParams = extern struct { n_terms: u32, num_kind: u32, eq_lo: u32, _pad: u32 = 0, lambda: Gpu.Q };
 const FoldParams = extern struct { half_len: u32, num_kind: u32, _pad0: u32 = 0, _pad1: u32 = 0, r: Gpu.Q };
+const FoldSumParams = extern struct { half_len: u32, num_kind: u32, n_terms: u32, eq_lo: u32, lambda: Gpu.Q, r: Gpu.Q };
+
+/// Next-round sums to fuse into a device fold.
+const NextSum = struct { eq: EqTabs, lambda: S, partials: Buf, slot: usize, groups: *u32 };
 
 const TG: u32 = 256;
 
@@ -201,7 +205,7 @@ fn readSum(partials: Buf, slot: usize, groups: u32) [2]S {
 
 /// Folds `layer` by r (first fold of a read-only layer goes to fresh
 /// device buffers; base numerators become secure).
-fn encodeFold(g: *Gpu, cmd_opt: ?*anyopaque, layer: *Layer, r: S) !void {
+fn encodeFold(g: *Gpu, cmd_opt: ?*anyopaque, layer: *Layer, r: S, next: ?NextSum) !void {
     const half = layer.len / 2;
     var den_dst = layer.den.?;
     var num_dst: ?Buf = layer.num;
@@ -234,15 +238,34 @@ fn encodeFold(g: *Gpu, cmd_opt: ?*anyopaque, layer: *Layer, r: S) !void {
         }
     } else {
         const cmd = cmd_opt.?;
-        const p = FoldParams{ .half_len = @intCast(half), .num_kind = layer.kind, .r = Gpu.toQ(r) };
-        gpu_mod.tm_cmd_pipeline(cmd, g.p_gkr_fold);
-        bind(cmd, 0, layer.den.?);
-        bind(cmd, 1, layer.num orelse layer.den.?);
-        bind(cmd, 2, den_dst);
-        bind(cmd, 3, num_dst orelse den_dst);
-        gpu_mod.tm_cmd_bytes(cmd, 4, &p, @sizeOf(FoldParams));
-        const h: u32 = @intCast(half);
-        gpu_mod.tm_cmd_dispatch(cmd, (h + 255) / 256, 1, 1, 256, 1, 1);
+        if (next) |nx| {
+            // fold fused with the next round's sums (n_terms = half / 4)
+            const n_terms = half / 4;
+            const groups: u32 = @intCast(@max(1, @min(MAX_GROUPS, (n_terms + TG * 4 - 1) / (TG * 4))));
+            const p = FoldSumParams{ .half_len = @intCast(half), .num_kind = layer.kind, .n_terms = @intCast(n_terms), .eq_lo = nx.eq.lo, .lambda = Gpu.toQ(nx.lambda), .r = Gpu.toQ(r) };
+            gpu_mod.tm_cmd_pipeline(cmd, g.p_gkr_fold_sum);
+            bind(cmd, 0, layer.den.?);
+            bind(cmd, 1, layer.num orelse layer.den.?);
+            bind(cmd, 2, den_dst);
+            bind(cmd, 3, num_dst orelse den_dst);
+            gpu_mod.tm_cmd_buffer(cmd, 4, nx.eq.buf.handle, nx.eq.pre_off);
+            gpu_mod.tm_cmd_buffer(cmd, 5, nx.eq.buf.handle, nx.eq.suf_off);
+            gpu_mod.tm_cmd_buffer(cmd, 6, nx.partials.handle, nx.slot * MAX_GROUPS * 32);
+            gpu_mod.tm_cmd_bytes(cmd, 7, &p, @sizeOf(FoldSumParams));
+            gpu_mod.tm_cmd_threadgroup_memory(cmd, 0, TG * 32);
+            gpu_mod.tm_cmd_dispatch(cmd, groups, 1, 1, TG, 1, 1);
+            nx.groups.* = groups;
+        } else {
+            const p = FoldParams{ .half_len = @intCast(half), .num_kind = layer.kind, .r = Gpu.toQ(r) };
+            gpu_mod.tm_cmd_pipeline(cmd, g.p_gkr_fold);
+            bind(cmd, 0, layer.den.?);
+            bind(cmd, 1, layer.num orelse layer.den.?);
+            bind(cmd, 2, den_dst);
+            bind(cmd, 3, num_dst orelse den_dst);
+            gpu_mod.tm_cmd_bytes(cmd, 4, &p, @sizeOf(FoldParams));
+            const h: u32 = @intCast(half);
+            gpu_mod.tm_cmd_dispatch(cmd, (h + 255) / 256, 1, 1, 256, 1, 1);
+        }
     }
     // Old buffers stay referenced by this command until it completes; they
     // are released by the caller after `end` via `retired`.
@@ -473,12 +496,21 @@ pub fn proveBatch(g: *Gpu, a: std.mem.Allocator, channel: anytype, inputs: []con
                 const z0 = ood.items[ood.items.len - nv[s]];
                 correction[s] = correction[s].mul(eqOne(r, z0));
                 const gpu_fold = layer.len / 2 > g.gkr_cpu_fold_max;
-                try encodeFold(g, cmd, layer, r);
-                nv[s] -= 1;
-                if (nv[s] >= 1) {
-                    const nt = @as(usize, 1) << @intCast(nv[s] - 1);
-                    // a device fold is still in flight: its sum must follow it on the device
-                    pending[s] = if (gpu_fold) .{ .gpu = encodeSum(g, cmd.?, layer, nt, eq, lambda, partials, s) } else .{ .cpu = cpuSum(layer, nt, eq, lambda) };
+                const has_next = nv[s] >= 2;
+                if (gpu_fold and has_next and g.gkr_fused_fold_sum) {
+                    // device fold fused with the next round's sums
+                    var groups: u32 = 0;
+                    try encodeFold(g, cmd, layer, r, .{ .eq = eq, .lambda = lambda, .partials = partials, .slot = s, .groups = &groups });
+                    nv[s] -= 1;
+                    pending[s] = .{ .gpu = groups };
+                } else {
+                    try encodeFold(g, cmd, layer, r, null);
+                    nv[s] -= 1;
+                    if (nv[s] >= 1) {
+                        const nt = @as(usize, 1) << @intCast(nv[s] - 1);
+                        // a device fold is still in flight: its sum must follow it on the device
+                        pending[s] = if (gpu_fold) .{ .gpu = encodeSum(g, cmd.?, layer, nt, eq, lambda, partials, s) } else .{ .cpu = cpuSum(layer, nt, eq, lambda) };
+                    }
                 }
             }
             if (cmd) |c| {

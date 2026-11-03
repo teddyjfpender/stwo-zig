@@ -780,3 +780,78 @@ kernel void tm_row_dots(
     }
     if (tid == 0u) tm_store(out, k, scratch[0]);
 }
+
+// Fused GKR fold + next-round sums (the CPU's foldSumChunk): term i of the
+// next round owns folded positions 2i, 2i+1, 2(n+i), 2(n+i)+1 (n = half/4),
+// which partition [0, half); each is folded once, by its owner, then summed.
+struct TmGkrFoldSumParams { uint half_len; uint num_kind; uint n_terms; uint eq_lo; Qm31Value lambda; Qm31Value r; };
+
+inline Qm31Value tm_gkr_fold_at(device const uint *src, uint half_len, Qm31Value r, uint j) {
+    Qm31Value x = tm_load(src, j);
+    return qm_add(qm_mul(r, qm_sub(tm_load(src, j + half_len), x)), x);
+}
+
+kernel void tm_gkr_fold_sum(
+    device const uint *den [[buffer(0)]],
+    device const uint *num [[buffer(1)]],
+    device uint *den_out [[buffer(2)]],
+    device uint *num_out [[buffer(3)]],
+    device const uint *eq_pre [[buffer(4)]],
+    device const uint *eq_suf [[buffer(5)]],
+    device uint *partials [[buffer(6)]],
+    constant TmGkrFoldSumParams &p [[buffer(7)]],
+    threadgroup Qm31Value *scratch [[threadgroup(0)]],
+    uint gid [[thread_position_in_grid]],
+    uint tg [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint tgsize [[threads_per_threadgroup]],
+    uint grid [[threads_per_grid]]
+) {
+    Qm31Value e0 = tm_zero(), e2 = tm_zero();
+    uint mask = (1u << p.eq_lo) - 1u;
+    for (uint i = gid; i < p.n_terms; i += grid) {
+        uint js[4] = { 2u * i, 2u * i + 1u, 2u * (p.n_terms + i), 2u * (p.n_terms + i) + 1u };
+        Qm31Value d[4], n[4];
+        for (uint k = 0u; k < 4u; ++k) {
+            d[k] = tm_gkr_fold_at(den, p.half_len, p.r, js[k]);
+            tm_store(den_out, js[k], d[k]);
+            if (p.num_kind == GKR_BASE) {
+                uint b0 = num[js[k]];
+                n[k] = qm_add(qm_mul_m31(p.r, m31_sub(num[js[k] + p.half_len], b0)), Qm31Value{ b0, 0u, 0u, 0u });
+                tm_store(num_out, js[k], n[k]);
+            } else if (p.num_kind != GKR_ONES) {
+                n[k] = tm_gkr_fold_at(num, p.half_len, p.r, js[k]);
+                tm_store(num_out, js[k], n[k]);
+            }
+        }
+        Qm31Value d20 = qm_sub(qm_add(d[2], d[2]), d[0]);
+        Qm31Value d21 = qm_sub(qm_add(d[3], d[3]), d[1]);
+        Qm31Value n0, n2;
+        if (p.num_kind == GKR_ONES) {
+            n0 = qm_add(d[0], d[1]);
+            n2 = qm_add(d20, d21);
+        } else {
+            Qm31Value n20 = qm_sub(qm_add(n[2], n[2]), n[0]);
+            Qm31Value n21 = qm_sub(qm_add(n[3], n[3]), n[1]);
+            n0 = qm_add(qm_mul(n[0], d[1]), qm_mul(d[0], n[1]));
+            n2 = qm_add(qm_mul(n20, d21), qm_mul(d20, n21));
+        }
+        Qm31Value w = qm_mul(tm_load(eq_pre, i >> p.eq_lo), tm_load(eq_suf, i & mask));
+        e0 = qm_add(e0, qm_mul(w, qm_add(n0, qm_mul(p.lambda, qm_mul(d[0], d[1])))));
+        e2 = qm_add(e2, qm_mul(w, qm_add(n2, qm_mul(p.lambda, qm_mul(d20, d21)))));
+    }
+    scratch[tid * 2u] = e0;
+    scratch[tid * 2u + 1u] = e2;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint s = tgsize >> 1u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            scratch[tid * 2u] = qm_add(scratch[tid * 2u], scratch[(tid + s) * 2u]);
+            scratch[tid * 2u + 1u] = qm_add(scratch[tid * 2u + 1u], scratch[(tid + s) * 2u + 1u]);
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (tid == 0u) {
+        tm_store(partials, tg * 2u, scratch[0]);
+        tm_store(partials, tg * 2u + 1u, scratch[1]);
+    }
+}

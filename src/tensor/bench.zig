@@ -19,6 +19,7 @@ fn accelFor() ?*const t.accel.Accel {
     if (!build_options.metal or !use_metal) return null;
     if (gpu_ctx == null) {
         gpu_ctx = metal.Gpu.init(std.heap.c_allocator) catch |e| std.debug.panic("metal init: {s}", .{@errorName(e)});
+        if (std.posix.getenv("TENSOR_GKR_FUSED")) |v| gpu_ctx.?.gkr_fused_fold_sum = !std.mem.eql(u8, v, "0");
         // tuning knob: TENSOR_GKR_CPU_LOG=k runs GKR layers of <= 2^k terms on the CPU
         if (std.posix.getenv("TENSOR_GKR_CPU_LOG")) |v| {
             const k = std.fmt.parseInt(u6, v, 10) catch 12;
