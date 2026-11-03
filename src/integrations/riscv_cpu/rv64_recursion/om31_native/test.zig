@@ -134,9 +134,135 @@ test "OM31 native PCS primitive accepts actual ALU proof and matches final trans
         const wires = try V.proof.guess(&ctx, &values, &shape);
         const verified = try V.verify(&ctx, &shape, &wires, Statement{ .config = cfg });
         try std.testing.expectEqual(native_ch.digestBytes(), verified.channel.raw.inner.debugDigest(&ctx));
+        try std.testing.expect(verified.composition_randomness.value().eql(captured.composition_randomness));
+        try std.testing.expect(verified.deep_randomness.value().eql(captured.deep_randomness));
+        const expected_point = try core.circle.secureFieldPointFromRandomSeedCheckedFor(O, captured.oods_seed);
+        try std.testing.expect(verified.oods_point.x.value().eql(expected_point.x));
+        try std.testing.expect(verified.oods_point.y.value().eql(expected_point.y));
+        for (verified.fri_input, captured.deep_answers) |wire, expected| try std.testing.expect(wire.value().eql(expected));
+        for (verified.fri_alphas, captured.fri.layers) |wire, layer| try std.testing.expect(wire.value().eql(layer.folding_alpha));
+        for (captured.queries.raw, 0..) |position, q| {
+            var rebuilt: usize = 0;
+            for (verified.queries.unpacked, 0..) |bits, i| rebuilt |= @as(usize, ctx.get(bits[q]).c0.a.v) << @intCast(i);
+            try std.testing.expectEqual(position, rebuilt);
+        }
         try C.lane.finish();
         active = false;
         try ctx.finalize(false);
         try std.testing.expect(try ctx.isCircuitValid());
     }
+}
+
+fn checkCircuit(values: *const V.Captured, shape: *const V.Shape, cfg: core.pcs.PcsConfig, counts: ?*circuit.builder.context.GateCounts) !bool {
+    var ctx = try C.Context.init(a, 0);
+    defer ctx.deinit();
+    C.lane.begin(&ctx);
+    var active = true;
+    defer if (active) C.lane.finish() catch {};
+    const wires = try V.proof.guess(&ctx, values, shape);
+    _ = try V.verify(&ctx, shape, &wires, Statement{ .config = cfg });
+    try C.lane.finish();
+    active = false;
+    try ctx.finalize(false);
+    if (counts) |out| out.* = ctx.gate_counts;
+    return ctx.isCircuitValid();
+}
+fn delta(coordinate: usize) O {
+    var coordinates = [_]M{M.zero()} ** 8;
+    coordinates[coordinate] = M.one();
+    return O.fromM31Array(coordinates);
+}
+test "OM31 native PCS binds every OODS and FRI secure coordinate with invariant topology" {
+    const cfg = try config(4);
+    var native = try produce(cfg);
+    defer native.proof.deinit(a);
+    defer native.aux.deinit(a);
+    var cap: V.proof.NativeCapture = undefined;
+    _ = try capture(cfg, &native.proof, &cap);
+    defer cap.deinit(a);
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const shape = try geometry(arena.allocator(), cfg);
+    const values = try V.proof.fromNative(arena.allocator(), &native.proof, &cap, &shape);
+    var reference: circuit.builder.context.GateCounts = undefined;
+    try std.testing.expect(try checkCircuit(&values, &shape, cfg, &reference));
+    const sampled = @constCast(values.sampled_values[1][0]);
+    const coset = @constCast(values.layers[0].cosets[0]);
+    for (0..8) |coordinate| {
+        var actual: circuit.builder.context.GateCounts = undefined;
+        const before = sampled[0];
+        sampled[0] = before.add(delta(coordinate));
+        try std.testing.expect(!try checkCircuit(&values, &shape, cfg, &actual));
+        try std.testing.expectEqual(reference, actual);
+        sampled[0] = before;
+        const previous = coset[0];
+        coset[0] = previous.add(delta(coordinate));
+        try std.testing.expect(!try checkCircuit(&values, &shape, cfg, &actual));
+        try std.testing.expectEqual(reference, actual);
+        coset[0] = previous;
+    }
+}
+test "OM31 native PCS rejects altered roots base openings paths nonce and terminal polynomial" {
+    var cfg = try config(4);
+    cfg.pow_bits = 3;
+    var native = try produce(cfg);
+    defer native.proof.deinit(a);
+    defer native.aux.deinit(a);
+    var cap: V.proof.NativeCapture = undefined;
+    _ = try capture(cfg, &native.proof, &cap);
+    defer cap.deinit(a);
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const shape = try geometry(arena.allocator(), cfg);
+    var values = try V.proof.fromNative(arena.allocator(), &native.proof, &cap, &shape);
+    try std.testing.expect(try checkCircuit(&values, &shape, cfg, null));
+    const roots = @constCast(values.commitments);
+    roots[1][0] ^= 1;
+    try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+    roots[1][0] ^= 1;
+    const bases = @constCast(values.queried_values[1][0]);
+    bases[0] = bases[0].add(M.one());
+    try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+    bases[0] = bases[0].sub(M.one());
+    const path = @constCast(values.auth_paths[1][0]);
+    path[0][0] ^= 1;
+    try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+    path[0][0] ^= 1;
+    values.pow_nonce ^= 1;
+    try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+    values.pow_nonce ^= 1;
+    const last = @constCast(values.last_layer_coefs);
+    last[0] = last[0].add(delta(7));
+    try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
+}
+test "OM31 native PCS shape rejects four-coordinate composition and declaration mutations" {
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    var shape = try geometry(arena.allocator(), try config(4));
+    try shape.validate();
+    shape.global_log += 1;
+    try std.testing.expectError(error.InvalidCompositionTree, shape.validate());
+    shape.global_log -= 1;
+    const trees = @constCast(shape.tree_column_log_sizes);
+    trees[3] = trees[3][0..8];
+    try std.testing.expectError(error.InvalidTrees, shape.validate());
+}
+test "OM31 native PCS OODS zero denominator is unsatisfied without a witness selected topology" {
+    var counts: [2]circuit.builder.context.GateCounts = undefined;
+    for ([_]O{ O.fromBase(M.fromCanonical(3)), O.fromM31Array(.{ M.zero(), M.one(), M.zero(), M.zero(), M.zero(), M.zero(), M.zero(), M.zero() }) }, 0..) |seed, i| {
+        var ctx = try C.Context.init(a, 0);
+        defer ctx.deinit();
+        C.lane.begin(&ctx);
+        var active = true;
+        defer if (active) C.lane.finish() catch {};
+        const point = V.pointFromSeed(try F.guess(&ctx, seed));
+        // Use both outputs, without assuming the map itself is valid.
+        _ = point.x.add(point.y);
+        try C.lane.finish();
+        active = false;
+        try ctx.finalize(false);
+        counts[i] = ctx.gate_counts;
+        try std.testing.expectEqual(i == 0, try ctx.isCircuitValid());
+    }
+    try std.testing.expectEqual(counts[0], counts[1]);
 }
