@@ -321,6 +321,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
         .gkr_threads = threads,
     };
     pc.two_level = try twoLevel(args, 12, pc.pcs);
+    pc.accel = accelFor();
     pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
     if (pc.two_level != null) {
         const wi = try tf.layerWeightInfos(a, cfg);
