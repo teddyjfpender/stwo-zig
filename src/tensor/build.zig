@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("bench.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
     bench_mod.addImport("stwo_tensor", tensor);
     bench_mod.addImport("stwo_core", core);

@@ -68,6 +68,8 @@ pub const Op = union(enum) {
     hadamard: struct { a: u32, b: u32, y: u32, shift: u5 },
     lookup: struct { in: u32, out: u32, table: u32 },
     range8: struct { in: u32 },
+    /// c = a (.) b over the field (arbitrary M31 values, canonical in [0, p))
+    product: struct { a: u32, b: u32, c: u32 },
 };
 
 pub const Statement = struct {
@@ -84,6 +86,7 @@ pub const WeightStore = struct {
     table: []i8,
     log_rows: u32,
     log_cols: u32,
+    rows_used: usize,
     com: pcs.Committed,
 
     pub fn deinit(self: *WeightStore, a: std.mem.Allocator) void {
@@ -98,13 +101,13 @@ pub const WeightStore = struct {
     }
 
     pub fn tableMatrix(self: *const WeightStore) pcs.Matrix(i8) {
-        return .{ .data = self.table, .log_rows = self.log_rows, .log_cols = self.log_cols };
+        return .{ .data = self.table, .log_rows = self.log_rows, .log_cols = self.log_cols, .rows_used = self.rows_used };
     }
 };
 
 /// Aligned layout: tensors sorted by size (desc), each at an offset that is a
 /// multiple of its size. Returns offsets and total log size.
-pub fn layout(a: std.mem.Allocator, infos: []const TensorInfo, extra_sizes: []const usize) !struct { offsets: []usize, log_total: u32 } {
+pub fn layout(a: std.mem.Allocator, infos: []const TensorInfo, extra_sizes: []const usize) !struct { offsets: []usize, log_total: u32, used: usize } {
     const n = infos.len + extra_sizes.len;
     const sizes = try a.alloc(usize, n);
     defer a.free(sizes);
@@ -126,7 +129,7 @@ pub fn layout(a: std.mem.Allocator, infos: []const TensorInfo, extra_sizes: []co
     }
     var total: usize = 1;
     while (total < cur) total *= 2;
-    return .{ .offsets = offsets, .log_total = f.log2Exact(total) };
+    return .{ .offsets = offsets, .log_total = f.log2Exact(total), .used = cur };
 }
 
 fn splitTable(log_total: u32, log_cols_max: u32) struct { lr: u32, lc: u32 } {
@@ -156,9 +159,10 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
     const lr = lay.log_total - lc;
     var tw = try pcs.Twiddles.init(a, lc + cfg.pcs.log_blowup);
     defer tw.deinit(a);
-    const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc };
+    const ru = (lay.used + (@as(usize, 1) << @intCast(lc)) - 1) >> @intCast(lc);
+    const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
     const com = try pcs.commit(i8, a, pool, &tw, m, cfg.pcs.log_blowup);
-    return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .com = com };
+    return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +229,7 @@ fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
             .range8 => |r| {
                 try keys.append(a, .{ .kind = .plain_range, .op = i, .log_size = st.witness[r.in].logSize(), .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
             },
+            .product => {},
         }
     }
     return .{ .keys = try keys.toOwnedSlice(a), .tables = try tabs.toOwnedSlice(a) };
@@ -268,7 +273,7 @@ pub const WitnessClaim = struct { tensor: usize, point: []QM31, value: QM31 };
 
 pub const Proof = struct {
     witness_root: [32]u8,
-    gkr: GkrVerifier.GkrBatchProof,
+    gkr: ?GkrVerifier.GkrBatchProof,
     /// per lookup key instance: claimed In(rho)
     lookup_in_values: []QM31,
     /// per matmul/hadamard op (in op order): sumcheck proof and final factor values
@@ -278,10 +283,10 @@ pub const Proof = struct {
     witness_value: QM31,
     witness_opening: pcs.OpeningProof,
     weight_values: []QM31,
-    weight_opening: pcs.OpeningProof,
+    weight_opening: ?pcs.OpeningProof,
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
-        self.gkr.deinit(a);
+        if (self.gkr) |*g| g.deinit(a);
         a.free(self.lookup_in_values);
         for (self.op_sumchecks) |*p| p.deinit(a);
         a.free(self.op_sumchecks);
@@ -290,25 +295,27 @@ pub const Proof = struct {
         self.batch_sumcheck.deinit(a);
         self.witness_opening.deinit(a);
         a.free(self.weight_values);
-        self.weight_opening.deinit(a);
+        if (self.weight_opening) |*w| w.deinit(a);
     }
 
     pub const Sizes = struct { gkr: usize, sumchecks: usize, witness_opening: usize, weight_opening: usize, total: usize };
 
     pub fn sizes(self: Proof) Sizes {
         var gk: usize = 0;
-        for (self.gkr.sumcheck_proofs) |p| for (p.round_polys) |rp| {
-            gk += rp.coeffsSlice().len * 16;
-        };
-        for (self.gkr.layer_masks_by_instance) |ms| for (ms) |m| {
-            gk += m.columnsSlice().len * 32;
-        };
-        for (self.gkr.output_claims_by_instance) |c| gk += c.len * 16;
+        if (self.gkr) |g| {
+            for (g.sumcheck_proofs) |p| for (p.round_polys) |rp| {
+                gk += rp.coeffsSlice().len * 16;
+            };
+            for (g.layer_masks_by_instance) |ms| for (ms) |m| {
+                gk += m.columnsSlice().len * 32;
+            };
+            for (g.output_claims_by_instance) |c| gk += c.len * 16;
+        }
         var s: usize = self.lookup_in_values.len * 16 + self.batch_sumcheck.byteSize() + 16 + self.weight_values.len * 16;
         for (self.op_sumchecks) |p| s += p.byteSize();
         for (self.op_finals) |x| s += x.len * 16;
         const wo = self.witness_opening.byteSize();
-        const wto = self.weight_opening.byteSize();
+        const wto = if (self.weight_opening) |w| w.byteSize() else 0;
         return .{ .gkr = gk, .sumchecks = s, .witness_opening = wo, .weight_opening = wto, .total = 32 + gk + s + wo + wto };
     }
 };
@@ -344,6 +351,7 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
         .hadamard => |h| tr.mixU32s(&.{ 2, h.a, h.b, h.y, h.shift }),
         .lookup => |l| tr.mixU32s(&.{ 3, l.in, l.out, l.table }),
         .range8 => |r| tr.mixU32s(&.{ 4, r.in }),
+        .product => |q| tr.mixU32s(&.{ 5, q.a, q.b, q.c }),
     };
 }
 
@@ -531,6 +539,10 @@ fn toQM31Vec(a: std.mem.Allocator, pool: *f.Pool, v: []const i32) ![]QM31 {
 
 const ClaimList = std.ArrayList(WitnessClaim);
 
+const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
+const T_EQ3 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1, 2 } }};
+const T_PRODUCT = [_]sc.Term{ .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1, 2 } }, .{ .coeff = QM31.fromU32Unchecked(f.P - 1, 0, 0, 0), .factors = &[_]u8{ 0, 3 } } };
+
 fn nowNs(t0: std.time.Instant) u64 {
     const t1 = std.time.Instant.now() catch return 0;
     return t1.since(t0);
@@ -579,11 +591,12 @@ pub fn prove(
     const split = splitTable(lay.log_total, cfg.witness_log_cols_max);
     var wtw = try pcs.Twiddles.init(a, split.lc + cfg.pcs.log_blowup);
     defer wtw.deinit(a);
-    const wm = pcs.Matrix(i32){ .data = wtab, .log_rows = split.lr, .log_cols = split.lc };
+    const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
+    const wm = pcs.Matrix(i32){ .data = wtab, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru };
     var wcom = try pcs.commit(i32, a, pool, &wtw, wm, cfg.pcs.log_blowup);
     defer wcom.deinit(a);
     timings.witness_commit_ns = nowNs(t0);
-    timings.witness_table_elems = total;
+    timings.witness_table_elems = w_ru << @intCast(split.lc);
     for (all) |v| timings.witness_elems += v.len;
 
     var tr = Transcript.initDomain("stwo-tensor-v1");
@@ -608,12 +621,17 @@ pub fn prove(
         for (mults[i], mult_m31[i]) |m, *o| o.* = f.fromI32(m);
         inputs[rel.keys.len + i] = .{ .num = .{ .base = mult_m31[i] }, .den = try tableDen(a, st, t, alpha, beta), .owned = false };
     }
-    var gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads }, null);
+    var gkr_proof: ?GkrVerifier.GkrBatchProof = null;
+    var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
+    if (n_inst > 0) {
+        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads }, null);
+        gkr_proof = gkr_res.proof;
+        art = gkr_res.artifact;
+    }
     // table dens were borrowed (owned=false): free them now
     for (rel.tables, 0..) |_, i| a.free(inputs[rel.keys.len + i].den);
-    defer gkr_res.artifact.deinit(a);
+    defer if (n_inst > 0) art.deinit(a);
     timings.gkr_ns = nowNs(t0);
-    const art = gkr_res.artifact;
     const L = art.ood_point.len;
 
     var claims: ClaimList = .empty;
@@ -697,8 +715,7 @@ pub fn prove(
                 const gw = try linalg.rowDots(i8, a, pool, ws.matrix(m.w), eq_n, 7);
                 defer a.free(gw);
                 timings.weight_fold_ns += nowNs(tw0);
-                const terms = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
-                const res = try sc.prove(a, pool, &tr, acc_val, &.{ fx, gw }, &terms);
+                const res = try sc.proveActive(2, &T_PROD2, a, pool, &tr, acc_val, .{ fx, gw }, fx.len);
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals);
@@ -721,8 +738,7 @@ pub fn prove(
                 defer a.free(eq);
                 defer a.free(fa);
                 defer a.free(fb);
-                const terms = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1, 2 } }};
-                var res = try sc.prove(a, pool, &tr, acc_val, &.{ eq, fa, fb }, &terms);
+                var res = try sc.proveActive(3, &T_EQ3, a, pool, &tr, acc_val, .{ eq, fa, fb }, eq.len);
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals[1..]);
@@ -735,6 +751,34 @@ pub fn prove(
             else => unreachable,
         }
     }
+    for (st.ops) |op| switch (op) {
+        .product => |q| {
+            const ls = st.witness[q.c].logSize();
+            const rho = try a.alloc(QM31, ls);
+            defer a.free(rho);
+            tr.drawN(rho);
+            const eq = try f.eqTablePar(a, pool, rho, QM31.one());
+            const fa = try toQM31Vec(a, pool, all[q.a]);
+            const fb = try toQM31Vec(a, pool, all[q.b]);
+            const fc = try toQM31Vec(a, pool, all[q.c]);
+            defer a.free(eq);
+            defer a.free(fa);
+            defer a.free(fb);
+            defer a.free(fc);
+            var res = try sc.proveActive(4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ eq, fa, fb, fc }, eq.len);
+            defer a.free(res.point);
+            try op_proofs.append(a, res.proof);
+            const fin = try a.dupe(QM31, res.finals[1..]);
+            a.free(res.finals);
+            res.finals = &.{};
+            tr.mixFelts(fin);
+            try op_finals.append(a, fin);
+            try claims.append(a, .{ .tensor = q.a, .point = try a.dupe(QM31, res.point), .value = fin[0] });
+            try claims.append(a, .{ .tensor = q.b, .point = try a.dupe(QM31, res.point), .value = fin[1] });
+            try claims.append(a, .{ .tensor = q.c, .point = try a.dupe(QM31, res.point), .value = fin[2] });
+        },
+        else => {},
+    };
     timings.op_sumcheck_ns = nowNs(t0);
 
     // --- batch witness claims into one point
@@ -754,8 +798,7 @@ pub fn prove(
         batch_claim = batch_claim.add(g.mul(c.value));
     }
     const F = try toQM31Vec(a, pool, wtab);
-    const bterms = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
-    const bres = try sc.prove(a, pool, &tr, batch_claim, &.{ F, E }, &bterms);
+    const bres = try sc.proveActive(2, &T_PROD2, a, pool, &tr, batch_claim, .{ F, E }, lay.used);
     a.free(F);
     a.free(E);
     defer a.free(bres.point);
@@ -787,12 +830,12 @@ pub fn prove(
         wvals[i] = c.value;
     }
     const wtgroups = [_]pcs.Group{.{ .claims = wcl }};
-    const wtopen = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false);
+    const wtopen: ?pcs.OpeningProof = if (wcl.len == 0) null else try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false);
     timings.weight_open_ns = nowNs(t0);
 
     return .{
         .witness_root = wcom.root(),
-        .gkr = gkr_res.proof,
+        .gkr = gkr_proof,
         .lookup_in_values = try lookup_vals.toOwnedSlice(a),
         .op_sumchecks = try op_proofs.toOwnedSlice(a),
         .op_finals = try op_finals.toOwnedSlice(a),
@@ -813,10 +856,11 @@ pub const WeightKey = struct {
     offsets: []const usize,
     log_rows: u32,
     log_cols: u32,
+    rows_used: usize,
 };
 
 pub fn weightKey(ws: *const WeightStore) WeightKey {
-    return .{ .root = ws.com.root(), .infos = ws.infos, .offsets = ws.offsets, .log_rows = ws.log_rows, .log_cols = ws.log_cols };
+    return .{ .root = ws.com.root(), .infos = ws.infos, .offsets = ws.offsets, .log_rows = ws.log_rows, .log_cols = ws.log_cols, .rows_used = ws.rows_used };
 }
 
 pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof) !void {
@@ -835,12 +879,16 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     const beta = tr.draw();
 
     const n_inst = rel.keys.len + rel.tables.len;
-    if (proof.gkr.output_claims_by_instance.len != n_inst) return error.GkrShape;
-    const gates = try a.alloc(GkrVerifier.Gate, n_inst);
-    defer a.free(gates);
-    @memset(gates, .LogUp);
-    var art = try GkrVerifier.partiallyVerifyBatch(a, gates, &proof.gkr, &tr.ch);
-    defer art.deinit(a);
+    if ((n_inst > 0) != (proof.gkr != null)) return error.GkrShape;
+    var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
+    if (proof.gkr) |*gp| {
+        if (gp.output_claims_by_instance.len != n_inst) return error.GkrShape;
+        const gates = try a.alloc(GkrVerifier.Gate, n_inst);
+        defer a.free(gates);
+        @memset(gates, .LogUp);
+        art = try GkrVerifier.partiallyVerifyBatch(a, gates, gp, &tr.ch);
+    }
+    defer if (n_inst > 0) art.deinit(a);
     const L = art.ood_point.len;
     for (rel.keys, 0..) |k, i| if (art.n_variables_by_instance[i] != k.log_size) return error.GkrShape;
     for (rel.tables, 0..) |t, i| if (art.n_variables_by_instance[rel.keys.len + i] != t.log_size) return error.GkrShape;
@@ -856,11 +904,11 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
             }
         }.f;
         for (rel.keys, 0..) |k, i| if (k.table == ti) {
-            const oc = proof.gkr.output_claims_by_instance[i];
+            const oc = proof.gkr.?.output_claims_by_instance[i];
             if (oc.len != 2 or oc[1].isZero()) return error.GkrShape;
             add(&num, &den, oc[0], oc[1]);
         };
-        const oc = proof.gkr.output_claims_by_instance[rel.keys.len + ti];
+        const oc = proof.gkr.?.output_claims_by_instance[rel.keys.len + ti];
         if (oc.len != 2 or oc[1].isZero()) return error.GkrShape;
         // table side is subtracted
         add(&num, &den, oc[0].neg(), oc[1]);
@@ -964,6 +1012,28 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         }
         op_i += 1;
     }
+    for (st.ops) |op| switch (op) {
+        .product => |q| {
+            if (op_i >= proof.op_sumchecks.len) return error.ProofShape;
+            const ls = st.witness[q.c].logSize();
+            if (st.witness[q.a].logSize() != ls or st.witness[q.b].logSize() != ls) return error.StatementShape;
+            const rho = try a.alloc(QM31, ls);
+            defer a.free(rho);
+            tr.drawN(rho);
+            const vr = try sc.verify(a, &tr, QM31.zero(), ls, 3, proof.op_sumchecks[op_i]);
+            defer a.free(vr.point);
+            const fin = proof.op_finals[op_i];
+            if (fin.len != 3) return error.ProofShape;
+            const e = f.eqEval(rho, vr.point);
+            if (!vr.final_claim.eql(e.mul(fin[0].mul(fin[1]).sub(fin[2])))) return error.OpSumcheck;
+            tr.mixFelts(fin);
+            try claims.append(a, .{ .tensor = q.a, .point = try a.dupe(QM31, vr.point), .value = fin[0] });
+            try claims.append(a, .{ .tensor = q.b, .point = try a.dupe(QM31, vr.point), .value = fin[1] });
+            try claims.append(a, .{ .tensor = q.c, .point = try a.dupe(QM31, vr.point), .value = fin[2] });
+            op_i += 1;
+        },
+        else => {},
+    };
     if (op_i != proof.op_sumchecks.len) return error.ProofShape;
 
     // batch reduction
@@ -987,7 +1057,8 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     defer wtw.deinit(a);
     const wclaim = [_]pcs.Claim{.{ .point = bv.point, .value = proof.witness_value }};
     const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &wtw, .{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = cfg.pcs.log_blowup }, proof.witness_root, &wgroups, true, proof.witness_opening);
+    const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
+    try pcs.verifyOpening(a, &tr, cfg.pcs, &wtw, .{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = cfg.pcs.log_blowup, .rows_used = w_ru }, proof.witness_root, &wgroups, true, proof.witness_opening);
 
     if (proof.weight_values.len != weight_pts.items.len) return error.ProofShape;
     const wcl = try a.alloc(pcs.Claim, weight_pts.items.len);
@@ -1012,7 +1083,8 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
             oi += 1;
         }
     }
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup }, key.root, &kgroups, false, proof.weight_opening);
+    if ((wcl.len == 0) != (proof.weight_opening == null)) return error.ProofShape;
+    if (proof.weight_opening) |wop| try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &kgroups, false, wop);
 }
 
 /// Offline: proximity test of the committed weight table (run once per commitment).
@@ -1027,5 +1099,5 @@ pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: Config, key: WeightKey, 
     tr.mixDigest(key.root);
     var ktw = try pcs.Twiddles.init(a, key.log_cols + cfg.pcs.log_blowup);
     defer ktw.deinit(a);
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup }, key.root, &.{}, true, proof);
+    try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &.{}, true, proof);
 }

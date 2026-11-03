@@ -229,3 +229,56 @@ test "prover refuses a wrong witness (requant mismatch)" {
     var tm: proto.Timings = .{};
     try std.testing.expectError(error.RemainderOutOfRange, proto.prove(a, &pool, pc, built.statement(), &ws, wview, &tm));
 }
+
+/// FlashProve toy-equivalent statement: prover knows a, b, c in F^(2^L) with
+/// a[i] * b[i] = c[i]. Witness ids 0=a, 1=b, 2=c.
+pub fn buildProduct(a: std.mem.Allocator, log_n: u32, seed: u64) !Built {
+    const n = @as(usize, 1) << @intCast(log_n);
+    var prng = std.Random.DefaultPrng.init(seed);
+    const r = prng.random();
+    const wa = try a.alloc(i32, n);
+    const wb = try a.alloc(i32, n);
+    const wc = try a.alloc(i32, n);
+    for (0..n) |i| {
+        const x = r.intRangeLessThan(u32, 0, f.P);
+        const y = r.intRangeLessThan(u32, 0, f.P);
+        wa[i] = @intCast(x);
+        wb[i] = @intCast(y);
+        wc[i] = @intCast(f.M31.fromCanonical(x).mul(f.M31.fromCanonical(y)).v);
+    }
+    const infos = try a.alloc(TensorInfo, 3);
+    for (infos) |*x| x.* = TensorInfo.vec(log_n);
+    const ops = try a.alloc(proto.Op, 1);
+    ops[0] = .{ .product = .{ .a = 0, .b = 1, .c = 2 } };
+    const wit = try a.alloc([]i32, 3);
+    wit[0] = wa;
+    wit[1] = wb;
+    wit[2] = wc;
+    return .{ .witness_infos = infos, .weight_infos = try a.alloc(TensorInfo, 0), .tables = try a.alloc(proto.Table, 0), .ops = ops, .witness = wit };
+}
+
+test "product statement proves and verifies; wrong c rejected by prover-side check" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .weight_log_cols = 2, .witness_log_cols_max = 6, .gkr_threads = 1 };
+    const dummy_info = [_]TensorInfo{TensorInfo.mat(2, 2)};
+    var dummy: [16]i8 = [_]i8{0} ** 16;
+    const dv = [_][]const i8{&dummy};
+    var ws = try proto.commitWeights(a, &pool, pc, &dummy_info, &dv);
+    defer ws.deinit(a);
+    var built = try buildProduct(a, 10, 5);
+    defer built.deinit(a);
+    const wview = try a.alloc([]const i32, built.witness.len);
+    defer a.free(wview);
+    for (built.witness, 0..) |w, i| wview[i] = w;
+    var tm: proto.Timings = .{};
+    var st = built.statement();
+    st.weights = &dummy_info;
+    var proof = try proto.prove(a, &pool, pc, st, &ws, wview, &tm);
+    defer proof.deinit(a);
+    try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
+    proof.op_finals[0][2] = proof.op_finals[0][2].add(f.QM31.one());
+    try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, proto.weightKey(&ws), &proof)));
+}

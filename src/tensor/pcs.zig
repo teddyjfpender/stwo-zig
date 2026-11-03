@@ -129,6 +129,8 @@ pub const Committed = struct {
     log_rows: u32,
     log_cols: u32,
     log_blowup: u32,
+    /// rows >= rows_used are zero and not committed (columns have rows_used entries)
+    rows_used: usize,
     /// encoded table, column-major: col j occupies enc[j*R .. (j+1)*R)
     enc: []M31,
     tree: Merkle,
@@ -148,7 +150,7 @@ pub const Committed = struct {
         return self.log_cols + self.log_blowup;
     }
     pub fn column(self: Committed, j: usize) []const M31 {
-        const r = self.nRows();
+        const r = self.rows_used;
         return self.enc[j * r .. (j + 1) * r];
     }
     pub fn root(self: Committed) Hash {
@@ -162,6 +164,12 @@ pub fn Matrix(comptime T: type) type {
         data: []const T,
         log_rows: u32,
         log_cols: u32,
+        /// rows at or beyond this index are zero (null = all rows)
+        rows_used: ?usize = null,
+
+        pub fn usedRows(self: @This()) usize {
+            return self.rows_used orelse self.nRows();
+        }
 
         pub fn nRows(self: @This()) usize {
             return @as(usize, 1) << @intCast(self.log_rows);
@@ -177,7 +185,7 @@ pub fn Matrix(comptime T: type) type {
 }
 
 pub fn commit(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, tw: *const Twiddles, m: Matrix(T), log_blowup: u32) !Committed {
-    const R = m.nRows();
+    const R = m.usedRows();
     const C = m.nCols();
     const log_ext = m.log_cols + log_blowup;
     const E = @as(usize, 1) << @intCast(log_ext);
@@ -185,25 +193,36 @@ pub fn commit(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, tw: *const 
     const enc = try a.alloc(M31, R * E);
     errdefer a.free(enc);
 
-    // Encode rows in blocks; each task encodes a contiguous block of rows into
-    // scratch and transposes into column-major storage.
+    // Encode blocks of BR rows into scratch, then write each column's BR
+    // values contiguously into column-major storage.
+    const BR = 16;
     const EncCtx = struct { m: Matrix(T), enc: []M31, tw: *const Twiddles, E: usize, C: usize, R: usize };
     const ectx = EncCtx{ .m = m, .enc = enc, .tw = tw, .E = E, .C = C, .R = R };
-    pool.parallelFor(R, 1, &ectx, struct {
+    const n_blocks = (R + BR - 1) / BR;
+    pool.parallelFor(n_blocks, 1, &ectx, struct {
         fn run(c: *const EncCtx, s: usize, e: usize) void {
-            const buf = std.heap.page_allocator.alloc(M31, c.E) catch @panic("oom");
+            const buf = std.heap.page_allocator.alloc(M31, c.E * BR) catch @panic("oom");
             defer std.heap.page_allocator.free(buf);
-            for (s..e) |i| {
-                const row = c.m.row(i);
-                for (row, 0..) |v, j| buf[j] = f.fromI32(@intCast(v));
-                c.tw.encode(buf, c.C);
-                for (0..c.E) |j| c.enc[j * c.R + i] = buf[j];
+            for (s..e) |blk| {
+                const r0 = blk * BR;
+                const r1 = @min(c.R, r0 + BR);
+                const nb = r1 - r0;
+                for (0..nb) |bi| {
+                    const row = c.m.row(r0 + bi);
+                    const rb = buf[bi * c.E .. (bi + 1) * c.E];
+                    for (row, 0..) |v, j| rb[j] = f.fromI32(@intCast(v));
+                    c.tw.encode(rb, c.C);
+                }
+                for (0..c.E) |j| {
+                    const dst = c.enc[j * c.R + r0 ..][0..nb];
+                    for (0..nb) |bi| dst[bi] = buf[bi * c.E + j];
+                }
             }
         }
     }.run);
 
     const tree = try buildTree(a, pool, enc, R, E);
-    return .{ .log_rows = m.log_rows, .log_cols = m.log_cols, .log_blowup = log_blowup, .enc = enc, .tree = tree };
+    return .{ .log_rows = m.log_rows, .log_cols = m.log_cols, .log_blowup = log_blowup, .rows_used = R, .enc = enc, .tree = tree };
 }
 
 fn buildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E: usize) !Merkle {
@@ -239,7 +258,7 @@ fn buildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E:
 /// limb (|m| < 2^15, R < 2^16 keeps |acc| < 2^62), reduced once per column.
 pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Matrix(T), coeffs: []const []const QM31, bound_log2: u32) ![][]QM31 {
     const C = m.nCols();
-    const R = m.nRows();
+    const R = m.usedRows();
     const G = coeffs.len;
     const out = try a.alloc([]QM31, G);
     for (out) |*o| o.* = try a.alloc(QM31, C);
@@ -247,7 +266,7 @@ pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Mat
     const planes = try a.alloc(u32, G * 4 * R);
     defer a.free(planes);
     for (coeffs, 0..) |cg, g| {
-        for (cg, 0..) |c, i| {
+        for (cg[0..R], 0..) |c, i| {
             const l = f.limbs(c);
             for (0..4) |k| planes[(g * 4 + k) * R + i] = l[k];
         }
@@ -423,7 +442,7 @@ pub fn open(
     return .{ .rows = rows, .pow_nonce = nonce, .columns = cols };
 }
 
-pub const Shape = struct { log_rows: u32, log_cols: u32, log_blowup: u32 };
+pub const Shape = struct { log_rows: u32, log_cols: u32, log_blowup: u32, rows_used: ?usize = null };
 
 pub fn verifyOpening(
     a: std.mem.Allocator,
@@ -437,6 +456,8 @@ pub fn verifyOpening(
     proof: OpeningProof,
 ) !void {
     const R = @as(usize, 1) << @intCast(shape.log_rows);
+    const RU = shape.rows_used orelse R;
+    if (RU > R) return error.OpeningShape;
     const C = @as(usize, 1) << @intCast(shape.log_cols);
     const log_ext = shape.log_cols + shape.log_blowup;
     const gammas = try drawGammas(a, tr, groups);
@@ -481,11 +502,11 @@ pub fn verifyOpening(
     defer freeNested(a, encs);
     for (proof.rows, 0..) |r, i| encs[i] = try encodeSecure(a, tw, r);
     for (proof.columns, idx) |col, j| {
-        if (col.index != j or col.values.len != R) return error.OpeningShape;
+        if (col.index != j or col.values.len != RU) return error.OpeningShape;
         if (!verifyPath(root_h, hashColumn(col.values), j, log_ext, col.path)) return error.OpeningMerkle;
         for (coeffs, 0..) |cf, i| {
             var acc = QM31.zero();
-            for (cf, col.values) |c, v| acc = acc.add(c.mulM31(v));
+            for (cf[0..RU], col.values) |c, v| acc = acc.add(c.mulM31(v));
             if (!acc.eql(encs[i][j])) return error.OpeningColumnMismatch;
         }
     }
