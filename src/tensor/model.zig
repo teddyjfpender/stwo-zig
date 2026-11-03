@@ -42,6 +42,9 @@ pub const Built = struct {
     tables: []proto.Table,
     ops: []proto.Op,
     witness: [][]i32,
+    /// per op: integer accumulator kept from the forward pass (matmul/hadamard), for
+    /// protocol.proveWithAccumulators; empty when the builder does not keep them
+    accs: []?[]i64 = &.{},
 
     pub fn statement(self: *const Built) proto.Statement {
         return .{ .witness = self.witness_infos, .weights = self.weight_infos, .tables = self.tables, .ops = self.ops };
@@ -54,6 +57,8 @@ pub const Built = struct {
         a.free(self.ops);
         for (self.witness) |w| a.free(w);
         a.free(self.witness);
+        for (self.accs) |x| if (x) |v| a.free(v);
+        if (self.accs.len > 0) a.free(self.accs);
     }
 };
 
@@ -96,13 +101,11 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
     // gate (1), up (2)
     const xi = infos.items[0];
     const acc_g = try proto.matmulAcc(a, pool, xi, wit.items[0], ws.matrix(0));
-    defer a.free(acc_g);
     const sg = chooseShift(acc_g);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
     try wit.append(a, try requantAll(a, acc_g, sg));
     try ops.append(a, .{ .matmul = .{ .x = 0, .w = 0, .y = 1, .shift = sg } });
     const acc_u = try proto.matmulAcc(a, pool, xi, wit.items[0], ws.matrix(1));
-    defer a.free(acc_u);
     const su = chooseShift(acc_u);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
     try wit.append(a, try requantAll(a, acc_u, su));
@@ -116,7 +119,6 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
     try ops.append(a, .{ .lookup = .{ .in = 1, .out = 3, .table = 0 } });
     // h = requant(act * up) (4)
     const acc_h = try a.alloc(i64, n_tf);
-    defer a.free(acc_h);
     for (act, wit.items[2], acc_h) |p, q, *o| o.* = @as(i64, p) * q;
     const sh = chooseShift(acc_h);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
@@ -124,12 +126,17 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
     try ops.append(a, .{ .hadamard = .{ .a = 3, .b = 2, .y = 4, .shift = sh } });
     // out = requant(h Wd) (5)
     const acc_o = try proto.matmulAcc(a, pool, infos.items[4], wit.items[4], ws.matrix(2));
-    defer a.free(acc_o);
     const so = chooseShift(acc_o);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_d));
     try wit.append(a, try requantAll(a, acc_o, so));
     try ops.append(a, .{ .matmul = .{ .x = 4, .w = 2, .y = 5, .shift = so } });
 
+    const accs = try a.alloc(?[]i64, ops.items.len);
+    @memset(accs, null);
+    accs[1] = acc_g;
+    accs[2] = acc_u;
+    accs[4] = acc_h;
+    accs[5] = acc_o;
     const winfos = try a.alloc(TensorInfo, 3);
     winfos[0] = TensorInfo.mat(cfg.log_d, cfg.log_f);
     winfos[1] = TensorInfo.mat(cfg.log_d, cfg.log_f);
@@ -140,6 +147,7 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
         .tables = tables,
         .ops = try ops.toOwnedSlice(a),
         .witness = try wit.toOwnedSlice(a),
+        .accs = accs,
     };
 }
 
@@ -178,6 +186,14 @@ test "mlp block proves and verifies; tampering rejected" {
     defer proof.deinit(a);
     const key = proto.weightKey(&ws);
     try proto.verify(a, pc, st, key, &proof);
+    // reusing the forward-pass accumulators yields the identical proof
+    {
+        var proof2 = try proto.proveWithAccumulators(a, &pool, pc, st, &ws, wview, built.accs, &tm);
+        defer proof2.deinit(a);
+        try std.testing.expectEqualSlices(u8, &@import("proof_digest.zig").digest(&proof), &@import("proof_digest.zig").digest(&proof2));
+        // wrong accumulator shape is refused
+        try std.testing.expectError(error.AccumulatorShape, proto.proveWithAccumulators(a, &pool, pc, st, &ws, wview, built.accs[0..2], &tm));
+    }
 
     // tamper: final witness value
     const saved = proof.witness_value;

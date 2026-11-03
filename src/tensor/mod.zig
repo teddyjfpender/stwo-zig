@@ -8,6 +8,7 @@ pub const model = @import("model.zig");
 pub const proof_digest = @import("proof_digest.zig");
 pub const batch = @import("batch.zig");
 pub const eqsum = @import("eqsum.zig");
+pub const prep = @import("prep.zig");
 
 test {
     _ = field;
@@ -20,4 +21,5 @@ test {
     _ = proof_digest;
     _ = batch;
     _ = eqsum;
+    _ = prep;
 }

@@ -56,6 +56,9 @@ pub fn log2Exact(n: usize) u32 {
 // ---------------------------------------------------------------------------
 // Thread pool helper.
 
+/// upper bound on per-call task fan-out used by fixed-size scratch arrays
+pub const MAX_POOL_TASKS: usize = 256;
+
 pub const Pool = struct {
     pool: std.Thread.Pool,
     n_threads: usize,

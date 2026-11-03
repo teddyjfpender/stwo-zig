@@ -26,6 +26,7 @@ const pcs = @import("pcs.zig");
 const linalg = @import("linalg.zig");
 const batch = @import("batch.zig");
 const eqsum = @import("eqsum.zig");
+const prep = @import("prep.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const M31 = f.M31;
@@ -330,6 +331,9 @@ pub const Timings = struct {
     batch_ns: u64 = 0,
     witness_open_ns: u64 = 0,
     weight_open_ns: u64 = 0,
+    /// prover-side recomputation of matmul/hadamard accumulators (0 with proveWithAccumulators)
+    accumulators_ns: u64 = 0,
+    multiplicities_ns: u64 = 0,
     witness_elems: usize = 0,
     witness_table_elems: usize = 0,
 };
@@ -369,44 +373,37 @@ fn fullPoint(a: std.mem.Allocator, log_total: u32, offset: usize, log_size: u32,
     return out;
 }
 
-/// Key value at index for a key instance (prover side), as field element.
+fn keySrc(st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst) prep.KeySrc {
+    return switch (k.kind) {
+        .remainder => blk: {
+            const y_id: u32, const sh: u5 = switch (st.ops[k.op]) {
+                .matmul => |m| .{ m.y, m.shift },
+                .hadamard => |h| .{ h.y, h.shift },
+                else => unreachable,
+            };
+            break :blk .{ .remainder = .{ .acc = acc[k.op].?, .y = w[y_id], .sh = sh } };
+        },
+        .y_range => .{ .range8 = .{ .v = w[
+            switch (st.ops[k.op]) {
+                .matmul => |m| m.y,
+                .hadamard => |h| h.y,
+                else => unreachable,
+            }
+        ] } },
+        .plain_range => .{ .range8 = .{ .v = w[st.ops[k.op].range8.in] } },
+        .lookup_pair => blk: {
+            const l = st.ops[k.op].lookup;
+            break :blk .{ .lookup = .{ .in = w[l.in], .out = w[l.out], .table = &st.tables[l.table].values } };
+        },
+    };
+}
+
+/// Denominators alpha - key(i) for a key instance (prover side). Must run
+/// after `multiplicities` accepted the witness (keys in range).
 fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31) ![]QM31 {
     const n = @as(usize, 1) << @intCast(k.log_size);
     const out = try a.alloc(QM31, n);
-    const Ctx = struct { out: []QM31, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31 };
-    const ctx = Ctx{ .out = out, .st = st, .w = w, .acc = acc, .k = k, .alpha = alpha, .beta = beta };
-    pool.parallelFor(n, 4096, &ctx, struct {
-        fn run(c: *const Ctx, s: usize, e: usize) void {
-            for (s..e) |i| {
-                const key: QM31 = switch (c.k.kind) {
-                    .remainder => blk: {
-                        const op = c.st.ops[c.k.op];
-                        const y_id: u32, const sh: u5 = switch (op) {
-                            .matmul => |m| .{ m.y, m.shift },
-                            .hadamard => |h| .{ h.y, h.shift },
-                            else => unreachable,
-                        };
-                        const r = c.acc[c.k.op].?[i] + shiftHalf(sh) - (@as(i64, c.w[y_id][i]) << sh);
-                        break :blk f.qFromI64(r);
-                    },
-                    .y_range => blk: {
-                        const y_id: u32 = switch (c.st.ops[c.k.op]) {
-                            .matmul => |m| m.y,
-                            .hadamard => |h| h.y,
-                            else => unreachable,
-                        };
-                        break :blk f.qFromI64(@as(i64, c.w[y_id][i]) + 128);
-                    },
-                    .plain_range => f.qFromI64(@as(i64, c.w[c.st.ops[c.k.op].range8.in][i]) + 128),
-                    .lookup_pair => blk: {
-                        const l = c.st.ops[c.k.op].lookup;
-                        break :blk f.qFromI64(c.w[l.in][i]).add(c.beta.mul(f.qFromI64(c.w[l.out][i])));
-                    },
-                };
-                c.out[i] = c.alpha.sub(key);
-            }
-        }
-    }.run);
+    prep.denominators(pool, out, keySrc(st, w, acc, k), alpha, beta);
     return out;
 }
 
@@ -420,8 +417,8 @@ fn tableDen(a: std.mem.Allocator, st: Statement, t: RelTable, alpha: QM31, beta:
     return out;
 }
 
-/// Compute multiplicities for all tables from witness values.
-fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []const []const i32, acc: []const ?[]i64) ![][]i32 {
+/// Compute multiplicities for all tables from witness values (validating every key).
+fn multiplicities(a: std.mem.Allocator, pool: *f.Pool, st: Statement, rel: Relations, w: []const []const i32, acc: []const ?[]i64) ![][]i32 {
     const out = try a.alloc([]i32, rel.tables.len);
     var n_alloc: usize = 0;
     errdefer {
@@ -433,47 +430,7 @@ fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []cons
         @memset(out[i], 0);
         n_alloc += 1;
     }
-    for (rel.keys) |k| {
-        const n = @as(usize, 1) << @intCast(k.log_size);
-        const mult = out[k.table];
-        switch (k.kind) {
-            .remainder => {
-                const op = st.ops[k.op];
-                const y_id: u32, const sh: u5 = switch (op) {
-                    .matmul => |m| .{ m.y, m.shift },
-                    .hadamard => |h| .{ h.y, h.shift },
-                    else => unreachable,
-                };
-                for (0..n) |i| {
-                    const r = acc[k.op].?[i] + shiftHalf(sh) - (@as(i64, w[y_id][i]) << sh);
-                    if (r < 0 or r >= mult.len) return error.RemainderOutOfRange;
-                    mult[@intCast(r)] += 1;
-                }
-            },
-            .y_range, .plain_range => {
-                const y_id: u32 = switch (st.ops[k.op]) {
-                    .matmul => |m| m.y,
-                    .hadamard => |h| h.y,
-                    .range8 => |r| r.in,
-                    else => unreachable,
-                };
-                for (0..n) |i| {
-                    const v = @as(i64, w[y_id][i]) + 128;
-                    if (v < 0 or v >= 256) return error.ValueOutOfRange;
-                    mult[@intCast(v)] += 1;
-                }
-            },
-            .lookup_pair => {
-                const l = st.ops[k.op].lookup;
-                for (0..n) |i| {
-                    const v = @as(i64, w[l.in][i]) + 128;
-                    if (v < 0 or v >= 256) return error.ValueOutOfRange;
-                    if (st.tables[l.table].values[@intCast(v)] != w[l.out][i]) return error.LookupMismatch;
-                    mult[@intCast(v)] += 1;
-                }
-            },
-        }
-    }
+    for (rel.keys) |k| try prep.countInto(a, pool, out[k.table], keySrc(st, w, acc, k));
     return out;
 }
 
@@ -562,14 +519,42 @@ pub fn prove(
     witness: []const []const i32,
     timings: *Timings,
 ) !Proof {
-    var rel = try deriveRelations(a, st);
-    defer rel.deinit(a);
+    const tp = try std.time.Instant.now();
     const acc = try computeAccumulators(a, pool, st, ws, witness);
     defer {
         for (acc) |x| if (x) |v| a.free(v);
         a.free(acc);
     }
-    const mults = try multiplicities(a, st, rel, witness, acc);
+    timings.accumulators_ns = nowNs(tp);
+    return proveWithAccumulators(a, pool, cfg, st, ws, witness, acc, timings);
+}
+
+/// As `prove`, with the integer accumulators of the matmul/hadamard ops
+/// supplied by the caller (e.g. kept from the forward pass). `acc` must equal
+/// `computeAccumulators(st, ws, witness)`; anything else only yields a proof
+/// the verifier rejects (the prover is untrusted), and out-of-range
+/// remainders are still refused here.
+pub fn proveWithAccumulators(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: Config,
+    st: Statement,
+    ws: *const WeightStore,
+    witness: []const []const i32,
+    acc: []const ?[]i64,
+    timings: *Timings,
+) !Proof {
+    if (acc.len != st.ops.len) return error.AccumulatorShape;
+    for (st.ops, acc) |op, x| switch (op) {
+        .matmul => |m| if (x == null or x.?.len != st.witness[m.y].size()) return error.AccumulatorShape,
+        .hadamard => |h| if (x == null or x.?.len != st.witness[h.y].size()) return error.AccumulatorShape,
+        else => {},
+    };
+    var rel = try deriveRelations(a, st);
+    defer rel.deinit(a);
+    const tm0 = try std.time.Instant.now();
+    const mults = try multiplicities(a, pool, st, rel, witness, acc);
+    timings.multiplicities_ns = nowNs(tm0);
     defer {
         for (mults) |m| a.free(m);
         a.free(mults);
