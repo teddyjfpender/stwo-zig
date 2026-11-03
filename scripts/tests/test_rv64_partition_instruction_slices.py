@@ -32,6 +32,26 @@ class InstructionModules(unittest.TestCase):
             self.assertNotIn('rv64_truth_bounded_step_', ''.join(chunks))
             self.assertEqual(source.read_text(), original)
 
+    def test_original_grouped_entry_keeps_exports_power_indices_and_calls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "grouped.cu"
+            text = "#include \"rv64/composition.cuh\"\n" + ''.join(
+                f'__device__ __noinline__ void role_part_{i}(int a){{use(powers+{100+i}u);}}\n' for i in range(3))
+            text += 'extern "C" __global__ void original_kernel(){role_part_0(0);role_part_1(0);role_part_2(0);}'
+            source.write_text(text)
+            plan = S.partition(source, root / "parts", 1)
+            self.assertEqual(plan["mode"], "original_root_groups")
+            self.assertEqual(len(plan["sources"]), 4)
+            for i, path in enumerate(plan["sources"][:3]):
+                self.assertIn(f"powers+{100+i}u", path.read_text())
+                self.assertNotIn("original_kernel", path.read_text())
+            entry = plan["sources"][-1].read_text()
+            self.assertIn('extern "C" __global__ void original_kernel()', entry)
+            self.assertLess(entry.index('role_part_0(0)'), entry.index('role_part_1(0)'))
+            self.assertNotIn('use(powers', entry)
+            self.assertEqual(source.read_text(), text)
+
     def test_invalid_bound_and_unbounded_input_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

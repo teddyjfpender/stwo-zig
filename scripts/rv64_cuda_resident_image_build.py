@@ -246,7 +246,12 @@ def main():
         actual, lowered = bounded_compile_source(source, obj, build, raw_directory=args.truth_domain.resolve())
         if lowered:
             lowering[str(source)] = lowered
-        if lowered and lowered.get("raw_source_sha256"):
+        cold_grouped = (not obj.is_file() and actual == source and source.stat().st_size > 256 << 10 and
+                        len(re.findall(r"__device__ __noinline__ void [A-Za-z0-9_]+_part_\d+\(", source.read_text())) >= 2)
+        if (lowered and lowered.get("raw_source_sha256")) or cold_grouped:
+            if lowered is None:
+                lowered = {"source_sha256": N.sha(source), "original_root_groups": True}
+                lowering[str(source)] = lowered
             modules = Instructions.partition(actual, build / "rdc-aot" / name)
             device_link.append(str(source))
             lowered["device_modules"] = [{"source": str(p), "sha256": N.sha(p)} for p in modules["sources"]]
