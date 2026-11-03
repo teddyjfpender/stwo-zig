@@ -1,6 +1,8 @@
 //! Independently trusted leaf topology admission, never derived from leaf JSON.
 const std = @import("std");
-pub const MAX_LEAVES = 64;
+// Match the native services proof inventory. Large basket blocks can have 49
+// CPU proofs plus independently sized truth shards; 64 is not a safe bound.
+pub const MAX_LEAVES = 256;
 pub const MAX_NODES = 2 * MAX_LEAVES - 1;
 pub const MAX_DEPTH = 64;
 pub const MAX_PACKED_JSON_BYTES = 64 * 1024 * 1024;
