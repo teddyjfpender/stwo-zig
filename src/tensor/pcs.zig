@@ -69,8 +69,23 @@ pub const Twiddles = struct {
 
     /// In place: buf[0..msg_len] holds coefficients, rest is overwritten.
     pub fn encode(self: *const Twiddles, buf: []M31, msg_len: usize) void {
-        @memset(buf[msg_len..], M31.zero());
-        circle.transforms.evaluateBufferWithTwiddles(buf, self.domain, self.view());
+        self.encodeBatch(&.{buf}, msg_len);
+    }
+
+    /// Batched `encode` (all buffers share `msg_len`). For a power-of-two
+    /// message shorter than the domain this uses stwo's dyadic-extension FFT,
+    /// which skips the degenerate top layers and needs no zero fill; it is
+    /// bit-identical to zero-padding + full evaluation.
+    pub fn encodeBatch(self: *const Twiddles, bufs: []const []M31, msg_len: usize) void {
+        const E = self.domain.size();
+        if (msg_len > 0 and msg_len < E and std.math.isPowerOfTwo(msg_len)) {
+            circle.transforms.evaluateDyadicExtensionBuffersWithTwiddlesWithPool(bufs, f.log2Exact(msg_len), self.domain, self.view(), null) catch unreachable;
+            return;
+        }
+        for (bufs) |buf| {
+            @memset(buf[msg_len..], M31.zero());
+            circle.transforms.evaluateBufferWithTwiddles(buf, self.domain, self.view());
+        }
     }
 };
 
@@ -207,12 +222,14 @@ pub fn commit(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, tw: *const 
                 const r0 = blk * BR;
                 const r1 = @min(c.R, r0 + BR);
                 const nb = r1 - r0;
+                var views: [BR][]M31 = undefined;
                 for (0..nb) |bi| {
                     const row = c.m.row(r0 + bi);
                     const rb = buf[bi * c.E .. (bi + 1) * c.E];
                     for (row, 0..) |v, j| rb[j] = f.fromI32(@intCast(v));
-                    c.tw.encode(rb, c.C);
+                    views[bi] = rb;
                 }
+                c.tw.encodeBatch(views[0..nb], c.C);
                 for (0..c.E) |j| {
                     const dst = c.enc[j * c.R + r0 ..][0..nb];
                     for (0..nb) |bi| dst[bi] = buf[bi * c.E + j];
@@ -339,16 +356,14 @@ pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Mat
 pub fn encodeSecure(a: std.mem.Allocator, tw: *const Twiddles, msg: []const QM31) ![]QM31 {
     const E = tw.domain.size();
     const out = try a.alloc(QM31, E);
-    const buf = try a.alloc(M31, E);
-    defer a.free(buf);
     var coord: [4][]M31 = undefined;
     for (&coord) |*c| c.* = try a.alloc(M31, E);
     defer for (coord) |c| a.free(c);
-    for (0..4) |k| {
-        for (msg, 0..) |v, j| buf[j] = M31.fromU32Unchecked(f.limbs(v)[k]);
-        tw.encode(buf, msg.len);
-        @memcpy(coord[k], buf);
+    for (msg, 0..) |v, j| {
+        const l = f.limbs(v);
+        inline for (0..4) |k| coord[k][j] = M31.fromU32Unchecked(l[k]);
     }
+    tw.encodeBatch(&coord, msg.len);
     for (0..E) |j| out[j] = f.fromLimbs(.{ coord[0][j].v, coord[1][j].v, coord[2][j].v, coord[3][j].v });
     return out;
 }
