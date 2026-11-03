@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 SOURCE = Path(__file__).resolve().parents[1] / "rv64_ethereum_basket.py"
 SPEC = importlib.util.spec_from_file_location("basket", SOURCE)
@@ -160,6 +161,26 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(result["prove_ns_per_native_cell"], 5)
         self.assertEqual(result["gpu_device_ns_per_native_cell"], 500)
         self.assertEqual(result["worker"]["device"], 1)
+
+    def test_single_worker_stops_without_starting_any_later_block(self):
+        called = []
+        def fail(job, *_):
+            called.append(job)
+            raise RuntimeError("first block rejected")
+        with patch.object(B, "execute", side_effect=fail):
+            with self.assertRaisesRegex(RuntimeError, "first block rejected"):
+                B.run_jobs([1, 2, 3], "gpu", None, None, 1)
+        self.assertEqual(called, [1])
+
+    def test_first_acceptance_gate_prevents_parallel_basket_after_rejection(self):
+        called = []
+        def fail(job, *_):
+            called.append(job)
+            raise RuntimeError("test block rejected")
+        with patch.object(B, "execute", side_effect=fail):
+            with self.assertRaisesRegex(RuntimeError, "test block rejected"):
+                B.run_jobs([1, 2, 3], "gpu", None, None, 2, True)
+        self.assertEqual(called, [1])
 
     def test_physical_disk_preflight_fails_before_producer(self):
         job = self.job(False)

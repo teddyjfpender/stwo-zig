@@ -358,6 +358,32 @@ def execute(job, backend, admission, nsys=None):
             admission.release(worker_index)
 
 
+def run_jobs(jobs, backend, admission, nsys, worker_count, require_first_acceptance=False):
+    if not jobs:
+        return []
+    # A single admitted GPU runs one block at a time. No speculative queued
+    # child may start after a failure, even during executor shutdown.
+    if worker_count == 1:
+        return [execute(job, backend, admission, nsys) for job in jobs]
+    results = []
+    remaining = jobs
+    if require_first_acceptance:
+        results.append(execute(jobs[0], backend, admission, nsys))
+        remaining = jobs[1:]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as pool:
+        futures = [pool.submit(execute, job, backend, admission, nsys) for job in remaining]
+        try:
+            for future in concurrent.futures.as_completed(futures):
+                results.append(future.result())
+        except BaseException:
+            for pending in futures:
+                pending.cancel()
+            # Already running children retain their admission until they join.
+            # Waiting here never starts cancelled pending blocks.
+            raise
+    return results
+
+
 def ordered_blocks(blocks, selected, execution_order):
     if execution_order is None:
         return [block for block in blocks if block["block"] in selected]
@@ -417,9 +443,7 @@ def main():
             p.error("concurrent GPU groups must not overlap physical devices")
     admission = Admission(workers, manifest.get("host_capacity_bytes") if args.backend == "gpu" else None)
     start = time.monotonic_ns()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(workers)) as pool:
-        futures = {pool.submit(execute, job, args.backend, admission, args.nsys): job["block"] for job in jobs}
-        results = [future.result() for future in concurrent.futures.as_completed(futures)]
+    results = run_jobs(jobs, args.backend, admission, args.nsys, len(workers), manifest.get("require_first_acceptance", False))
     plan.update({"executed": True, "wall_ns": time.monotonic_ns() - start, "results": sorted(results, key=lambda x: x["block"])})
     atomic_json(args.output / "result.json", plan)
     print(json.dumps({"result": str(args.output / "result.json"), "accepted": len(results)}))
