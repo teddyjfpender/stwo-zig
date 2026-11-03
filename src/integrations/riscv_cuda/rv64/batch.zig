@@ -100,6 +100,27 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     if (largest != 0) try commands.eq(input.point, largest, work.eq);
     for (0..largest) |round| {
         const remaining = largest - @as(u32, @intCast(round));
+        if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchTail")) {
+            if (remaining <= 4 and commands.supportsBatchTail()) {
+                var jobs: [abi.batch_max_oracles]R.BatchTailOracle = undefined;
+                var compatible = true;
+                for (work.oracles, 0..) |oracle, j| {
+                    if (current[j].n.stride != current[j].d.stride or current[j].n.stride > std.math.maxInt(u32)) compatible = false;
+                    var output: ?R.Fraction = null;
+                    if (variables[j] != 0) {
+                        var next = oracle.banks[folds[j] % 2];
+                        next.count = current[j].count / 2;
+                        if (next.n.stride != next.d.stride or next.n.stride > std.math.maxInt(u32)) compatible = false;
+                        output = next;
+                    }
+                    jobs[j] = .{ .input = current[j], .output = output, .mask = oracle.terminal_mask, .variables = variables[j] };
+                }
+                if (compatible) {
+                    try commands.batchTail(jobs[0..input.oracles.len], .{ .state = work.state, .point = input.point, .lambda = input.lambda, .eq = work.eq, .records = try work.records.sub(round * abi.round_record_words, remaining * abi.round_record_words), .variables = largest, .first = @intCast(round) });
+                    return .{ .rounds = largest, .oracles = input.oracles.len, .state = work.state, .records = try work.records.sub(0, largest * abi.round_record_words) };
+                }
+            }
+        }
         if (comptime @hasDecl(@TypeOf(commands.*), "sumBatch")) {
             if (commands.batched_oracles) {
                 var jobs: [abi.batch_max_oracles]R.BatchSum = undefined;

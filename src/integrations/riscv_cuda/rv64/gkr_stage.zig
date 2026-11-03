@@ -93,6 +93,7 @@ pub const Backend = struct {
     twiddle_cache: TwiddleCache.Cache,
     batched_oracles: bool,
     batched_trees: bool,
+    batched_tail: bool = false,
     byte_cap: usize,
     pub fn init(a: std.mem.Allocator, library: *std.DynLib, session: *anyopaque, byte_cap: usize) !Backend {
         var catalogue = try Sources.Catalogue.init(a);
@@ -121,6 +122,8 @@ pub const Backend = struct {
         };
         defer if (tree_flag) |value| a.free(value);
         const trees_enabled = try treeBatchEnabled(tree_flag, numerical.stwo_rv64_batch_layer_on != null);
+        const tail_enabled = std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_TAIL");
+        if (tail_enabled and (!batch_enabled or numerical.stwo_rv64_batch_tail_on == null)) return error.MissingCudaBatchedTailSymbol;
         return .{ .allocator = a, .session = session, .session_api = .{
             .allocate = try symbol(Native.LeaseAllocate, library, "stwo_rv64_gpu_lease_allocate"),
             .release = try symbol(Native.LeaseRelease, library, "stwo_rv64_gpu_lease_release"),
@@ -129,7 +132,7 @@ pub const Backend = struct {
             .download = try symbol(Native.Download, library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try symbol(Native.Sync, library, "stwo_exec_context_sync"),
             .lane_stream = try symbol(Native.LaneStream, library, "stwo_exec_context_lane_stream"),
-        }, .numerical = numerical, .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .twiddle_cache = .{ .allocator = a }, .batched_oracles = batch_enabled, .batched_trees = trees_enabled, .byte_cap = byte_cap };
+        }, .numerical = numerical, .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .twiddle_cache = .{ .allocator = a }, .batched_oracles = batch_enabled, .batched_trees = trees_enabled, .batched_tail = tail_enabled, .byte_cap = byte_cap };
     }
     pub fn enableDeviceBinding(self: *Backend, library: *std.DynLib) !void {
         if (self.configuration_sealed) return error.DeviceBindingConfigurationSealed;
@@ -414,6 +417,7 @@ const Job = struct {
         try events.mark(.traversal, false, assigned_stream);
         commands.batched_oracles = b.batched_oracles;
         commands.batched_trees = b.batched_trees;
+        commands.batched_tail = b.batched_tail;
         const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace, cap, chain, status);
         try events.mark(.traversal, true, assigned_stream);
         try context.join();
@@ -490,7 +494,7 @@ const Job = struct {
         for (layers) |layer| readback_words += layer.records.len + layer.masks.len;
         if (binding_state != null) readback_words += A.gkr_state_words;
         std.debug.print("GPU_GKR_SPANS ordinal={} ingress_ms={d:.6} base_fft_ms={d:.6} draws_ms={d:.6} projection_ms={d:.6} traversal_ms={d:.6} compact_readback_ms={d:.6} numerical_ready_wall_ns={} readback_wall_ns={} native_decode_ns={}\n", .{ self.request.scope.ordinal, try events.milliseconds(.ingress), try events.milliseconds(.base_fft), try events.milliseconds(.relation_draws), try events.milliseconds(.projection), try events.milliseconds(.traversal), try events.milliseconds(.readback), numerical_ready_ns, readback_done_ns - numerical_ready_ns, decode_ns });
-        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={} gkr_kernel_launches={} batched_oracles={} batched_trees={} batched_masks={} twiddle_setup_ns={} twiddle_cache_hit={} twiddle_cache_bytes={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0, commands.launches, b.batched_oracles, b.batched_trees, b.batched_oracles and b.numerical.stwo_rv64_batch_masks_on != null, twiddle_setup_ns, twiddles.cache_hit, b.twiddle_cache.retained_bytes });
+        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={} gkr_kernel_launches={} batched_oracles={} batched_trees={} batched_masks={} batched_tail={} twiddle_setup_ns={} twiddle_cache_hit={} twiddle_cache_bytes={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0, commands.launches, b.batched_oracles, b.batched_trees, b.batched_oracles and b.numerical.stwo_rv64_batch_masks_on != null, b.batched_tail, twiddle_setup_ns, twiddles.cache_hit, b.twiddle_cache.retained_bytes });
     }
     test "GKR batching defaults to qualified capability and keeps an explicit serial control" {
         try std.testing.expect(try batchEnabled(true, false, false));

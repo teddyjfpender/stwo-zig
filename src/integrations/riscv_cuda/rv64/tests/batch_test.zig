@@ -13,6 +13,10 @@ const Commands = struct {
     context: *Context,
     poisoned: bool = false,
     batched_oracles: bool = false,
+    tail_enabled: bool = false,
+    tail_count: usize = 0,
+    tail_first: u32 = 0,
+    fail_tail: bool = false,
     sum_batches: usize = 0,
     fold_batches: usize = 0,
     calls: usize = 0,
@@ -21,6 +25,28 @@ const Commands = struct {
     rounds: u32 = 0,
     masks: u32 = 0,
     fail_sum: bool = false,
+    pub fn supportsBatchTail(self: *@This()) bool {
+        return self.batched_oracles and self.tail_enabled;
+    }
+    pub fn batchTail(self: *@This(), oracles: []const R.BatchTailOracle, job: R.BatchTail) !void {
+        self.calls += 1;
+        if (self.fail_tail) {
+            self.poisoned = true;
+            return error.CudaEnqueueFailed;
+        }
+        try std.testing.expectEqual(@as(usize, 3), oracles.len);
+        try std.testing.expectEqual(self.rounds, job.first);
+        try std.testing.expect(job.variables - job.first <= 4);
+        for (oracles) |oracle| {
+            const expected = @as(u32, 2) << @as(u5, @intCast(@min(oracle.variables, job.variables - job.first)));
+            try std.testing.expectEqual(expected, oracle.input.count);
+            if (oracle.variables == 0) try std.testing.expect(oracle.output == null) else try std.testing.expectEqual(expected / 2, oracle.output.?.count);
+        }
+        self.tail_count += 1;
+        self.tail_first = job.first;
+        self.rounds = job.variables;
+        self.masks += @intCast(oracles.len);
+    }
     pub fn initBatch(s: *@This(), _: Slice, _: Slice, _: Slice, _: Slice, descriptors: []const R.BatchOracle, variables: u32) !void {
         try std.testing.expectEqual(@as(usize, 3), descriptors.len);
         var largest: u32 = 0;
@@ -91,9 +117,12 @@ const Fixture = struct {
     shared: B.Workspace,
     request: B.Input,
     fn init() @This() {
+        return initSized(.{ 4, 16, 2 });
+    }
+    fn initSized(counts: [3]u32) @This() {
         var f = Factory{};
         var out: @This() = undefined;
-        for ([_]u32{ 4, 16, 2 }, 0..) |n, i| {
+        for (counts, 0..) |n, i| {
             out.inputs[i] = f.fraction(n, if (i % 2 == 0) 1 else 8);
             out.work[i] = .{
                 .banks = .{ f.fraction(n / 2, 8), f.fraction(@max(1, n / 4), 8) },
@@ -104,8 +133,9 @@ const Fixture = struct {
             };
         }
         // Pointers are rebound after returning this value; no self-referential move.
-        out.request = .{ .oracles = &.{}, .point = f.slice(24), .lambda = f.slice(8), .alpha = f.slice(8), .claims = f.slice(24), .seed = f.slice(9) };
-        out.shared = .{ .oracles = &.{}, .eq = f.plane(4, 8), .state = f.slice(Abi.batch_state_words), .records = f.slice(3 * Abi.round_record_words) };
+        const largest: u32 = std.math.log2_int(u32, @max(counts[0], @max(counts[1], counts[2]))) - 1;
+        out.request = .{ .oracles = &.{}, .point = f.slice(8 * largest), .lambda = f.slice(8), .alpha = f.slice(8), .claims = f.slice(24), .seed = f.slice(9) };
+        out.shared = .{ .oracles = &.{}, .eq = f.plane(@as(u32, 1) << @as(u5, @intCast(largest - 1)), 8), .state = f.slice(Abi.batch_state_words), .records = f.slice(largest * Abi.round_record_words) };
         return out;
     }
     fn bind(self: *@This()) void {
@@ -212,4 +242,46 @@ test "batched oracle capability is optional and missing symbols fail before enqu
     try std.testing.expectError(error.MissingCudaBatchedOracleSymbol, commands.requireBatchedOracles());
     try std.testing.expect(!commands.poisoned);
     try std.testing.expectEqual(@as(u64, 0), commands.launches);
+}
+
+test "mixed persistent tail preserves sleeping oracles and avoids per-round dispatch" {
+    var fixture = Fixture.init();
+    fixture.bind();
+    var context = Context{};
+    var commands = Commands{ .context = &context, .batched_oracles = true, .tail_enabled = true };
+    const result = try B.enqueue(&commands, fixture.request, fixture.shared);
+    try std.testing.expectEqual(@as(u32, 3), result.rounds);
+    try std.testing.expectEqual(@as(usize, 1), commands.tail_count);
+    try std.testing.expectEqual(@as(u32, 0), commands.tail_first);
+    try std.testing.expectEqual(@as(u32, 3), commands.rounds);
+    try std.testing.expectEqual(@as(u32, 3), commands.masks);
+    try std.testing.expectEqual(@as(usize, 0), commands.sum_batches);
+    try std.testing.expectEqual(@as(usize, 0), commands.fold_batches);
+}
+test "mixed persistent tail starts after the large round at the original record offset" {
+    var fixture = Fixture.initSized(.{ 4, 64, 2 });
+    fixture.bind();
+    var context = Context{};
+    var commands = Commands{ .context = &context, .batched_oracles = true, .tail_enabled = true };
+    const result = try B.enqueue(&commands, fixture.request, fixture.shared);
+    try std.testing.expectEqual(@as(u32, 5), result.rounds);
+    try std.testing.expectEqual(@as(u32, 1), commands.tail_first);
+    try std.testing.expectEqual(@as(usize, 1), commands.sum_batches);
+    try std.testing.expectEqual(@as(usize, 1), commands.fold_batches);
+}
+test "mixed persistent tail retains all-oracle preflight and poison semantics" {
+    var fixture = Fixture.init();
+    fixture.bind();
+    var context = Context{};
+    var commands = Commands{ .context = &context, .batched_oracles = true, .tail_enabled = true };
+    fixture.work[2].terminal_mask.address = fixture.inputs[0].n.data.address;
+    try std.testing.expectError(error.OverlappingWorkspace, B.enqueue(&commands, fixture.request, fixture.shared));
+    try std.testing.expectEqual(@as(usize, 0), commands.calls);
+    fixture = Fixture.init();
+    fixture.bind();
+    commands.fail_tail = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, B.enqueue(&commands, fixture.request, fixture.shared));
+    const calls = commands.calls;
+    try std.testing.expectError(error.JobPoisoned, B.enqueue(&commands, fixture.request, fixture.shared));
+    try std.testing.expectEqual(calls, commands.calls);
 }
