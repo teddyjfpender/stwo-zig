@@ -32,7 +32,7 @@ def main():
     sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu",
                "commitment/merkle.cu", "commitment/progressive.cu", "pow/search.cu"]
     sources += ["rv64/" + name + ".cu" for name in ["deep", "samples", "fri", "channel", "pcs", "trace", "sample_order",
-                "gkr", "round", "tail", "batch", "gkr_loop", "binding", "parameters", "closure", "global"]]
+                "gkr", "round", "tail", "batch", "gkr_loop", "binding", "parameters", "closure", "global", "ls_dword_witness"]]
     flags = ["-O3", "-std=c++17", "-lineinfo", "-gencode", "arch=compute_120,code=sm_120", "-Xcompiler=-fPIC,-pthread", f"-I{native}"]
     version = subprocess.check_output([args.nvcc, "--version"], text=True)
     def compile_one(relative):
