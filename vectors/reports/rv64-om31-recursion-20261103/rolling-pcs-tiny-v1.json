@@ -81,5 +81,16 @@
     "legacy_nonimported": "unchanged",
     "device_cap_bytes": 30064771072
   },
-  "production_cpu0": "pending; no accepted production GPU recursive leaf yet"
+  "production_cpu0": {
+    "fresh_cpu_verified": true,
+    "bytes": 747608,
+    "sha256": "34e1e118dfec4a2a76536e0a828172f71da6174889b9b9e941351933c6484c5a",
+    "exact_original_cpu_reference": true,
+    "outer_prove_ns": 2008507558,
+    "scope": "functional exact-proof qualification only; whole bounded-memory gate remains open"
+  },
+  "bounded_memory_qualification": {
+    "accepted": false,
+    "reason": "candidate branch predates owned Merkle prefix scratch patch8662; rolling tree capacity omitted separately allocated native prefix scratch. Root is merging explicit admitted tree+prefix capacity; rebuild and rerun required."
+  }
 }
