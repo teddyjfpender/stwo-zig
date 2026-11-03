@@ -174,6 +174,14 @@ pub const Config = struct {
     gkr_min_parallel: usize = 1 << 10,
     /// Optional device accelerator (e.g. Metal); proofs are identical either way.
     accel: ?*const accel.Accel = null,
+    /// zero-knowledge mode (zk.zig): hiding commitments, masked sumchecks, no GKR
+    hiding: bool = false,
+    /// hiding weight commitment: random coefficient slots per row; opening budget = slots/2 columns
+    weight_mask_slots: u32 = 1024,
+    /// hiding mode: PCS parameters of the weight table (null = same as `pcs`)
+    weight_pcs: ?pcs.Params = null,
+    /// hiding mode LogUp: masked GKR (true) or committed inverses (false)
+    zk_logup_gkr: bool = true,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
@@ -771,6 +779,8 @@ pub fn prove(
     witness: []const []const i32,
     timings: *Timings,
 ) !Proof {
+    // hiding proofs come from zk.prove; never silently produce a non-hiding one
+    if (cfg.hiding) return error.HidingRequiresZkProve;
     const tp = try std.time.Instant.now();
     const acc = try computeAccumulators(a, pool, st, ws, witness, cfg.accel);
     defer {
