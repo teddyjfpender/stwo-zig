@@ -16,7 +16,7 @@ inline bool overlap(const uint32_t *a,uint64_t na,const uint32_t *b,uint64_t nb)
   return pa<=pb ? pb-pa<4*na : pa-pb<4*nb;
 }
 inline int validate(const StwoCircuitOm31Fractions &j) {
-  if(j.component>=11 || j.row_log<4 || j.row_log>22 || j.reserved[0] || j.reserved[1] ||
+  if(j.component>=11 || j.row_log<4 || j.row_log>27 || j.reserved[0] || j.reserved[1] ||
      !j.main || !j.parameters || !j.numerators || !j.denominators || !j.status) return 1;
   const uint64_t rows=uint64_t(1)<<j.row_log;
   if(j.fixed_words!=rows*tuples::kPpWidths[j.component] ||
@@ -119,7 +119,7 @@ __global__ void cumulative(StwoCircuitOm31Cumulative j) {
 }
 extern "C" int stwo_circuit_om31_cumulative_on(void*raw,uint32_t lane,const StwoCircuitOm31Cumulative*input){
   using namespace stwo::cuda::rv64;
-  if(!input||input->row_log<4||input->row_log>22||!input->pairs||input->pairs>13||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
+  if(!input||input->row_log<4||input->row_log>27||!input->pairs||input->pairs>13||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
   const auto j=*input;Custody c(raw,lane);
   if(!c.range(j.output,8*uint64_t(j.pairs+1)*j.stride,true)||!c.range(j.contributions,8*uint64_t(j.pairs)*j.stride,false)||!c.range(j.claim,8,false))return c.status;
   circuit_outer::cumulative<<<((1u<<j.row_log)+127)/128,128,0,c.stream>>>(j);

@@ -328,7 +328,7 @@ test "prefix planning sizes the hierarchy independently and accounts each CUDA d
         try std.testing.expect(plan.levels >= 1 and plan.levels <= 4);
     }
     try std.testing.expectError(error.InvalidGeometry, Plan.init(0));
-    try std.testing.expectError(error.InvalidGeometry, Plan.init(23));
+    try std.testing.expectError(error.InvalidGeometry, Plan.init(28));
     Fake.calls = 0;
     Fake.failure = false;
     var context = Context{};
