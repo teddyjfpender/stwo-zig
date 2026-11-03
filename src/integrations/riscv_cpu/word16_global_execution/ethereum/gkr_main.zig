@@ -196,6 +196,24 @@ pub fn mainWithRecursionFactory(factory: ?@import("stwo_circuit_cpu_integration"
     defer std.process.argsFree(recycler.allocator(), all_args);
     return runArguments(&recycler, all_args, .{}, null, true, factory);
 }
+/// Explicit linked product: production and recursion share independently derived
+/// live authorities and the in-memory bundle. No receiver handoff is reloaded.
+pub fn mainWithResidentPipelineAndRecursion(stages: ResidentStages, factory: @import("stwo_circuit_cpu_integration").om31.device_prove.Factory, host_bytes: usize) !void {
+    try stages.requireFullyResident();
+    if (host_bytes == 0) return error.InvalidCombinedHostBudget;
+    const budget = try engine.host_budget_allocator.SharedHostBudget.create(std.heap.smp_allocator, host_bytes);
+    defer budget.destroy();
+    var recycler = Recycler.init(budget.allocator(), ReceiverBudget.RECYCLER_CACHE_BYTES);
+    defer recycler.deinit();
+    const all_args = try std.process.argsAlloc(recycler.allocator());
+    defer std.process.argsFree(recycler.allocator(), all_args);
+    const selection = try selectProfile(all_args);
+    if (selection.args.len < 2 or !isCombinedProducer(selection.args[1])) return error.CombinedProductRequiresCombinedMode;
+    return runArguments(&recycler, all_args, stages, null, true, factory);
+}
+fn isCombinedProducer(mode: []const u8) bool {
+    return std.mem.eql(u8, mode, "produce-and-recurse-candidate");
+}
 /// Same producer authority and CLI contract, with caller-owned persistent caches.
 /// The caller keeps one GPU pool/session alive and serializes complete requests.
 pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: *ResidentSession) !void {
@@ -218,10 +236,18 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const resume_recursion = std.mem.eql(u8, args[1], "resume-recursion-candidate");
     const recurse = resume_recursion or std.mem.eql(u8, args[1], "recurse-candidate");
-    const candidate = recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
+    const combined = isCombinedProducer(args[1]);
+    if (combined) {
+        if (args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
+        if (try std.fmt.parseUnsigned(u32, args[5], 10) != 0) return error.CombinedRequiresCompleteExecution;
+        if (comptime !enable_recursion) return error.RecursionProductRequired;
+        if (recursion_factory == null) return error.CombinedRequiresDeviceRecursion;
+        try stages.requireFullyResident();
+    }
+    const candidate = combined or recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = recurse or std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
     const prefix = std.mem.eql(u8, args[1], "verify-prefix-control") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
-    const produce = std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
+    const produce = combined or std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
     const plan = std.mem.eql(u8, args[1], "plan");
     if (session != null and !produce) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
@@ -323,6 +349,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             resources = control_resource_owner.?.value;
         }
     }
+    if (combined and resources.?.park_main) return error.CombinedRequiresResidentMain;
     if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
     const uniform_throughput = if (candidate_resource_owner) |owner| owner.value.keccak_uniform_throughput else false;
     if (uniform_throughput and request.value.execution_profile != .ethereum_services_v3) return error.UniformThroughputRequiresServicesV3;
@@ -380,15 +407,20 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         try C.assignSpongeIds(requests);
         source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
     }
+    const producer_keys_start_ns = timer.read();
     var keys = if (session) |shared| try shared.acquireKeys(&image, program.identity, cpu, truths, Suite.experimentalFold4()) else try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
+    const producer_keys_ns = timer.read() - producer_keys_start_ns;
+    const producer_fixed_start_ns = timer.read();
     var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
     defer if (local_fixed) |*owner| owner.deinit();
     const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
     var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session) |shared| try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &shared.validated_fixed) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
     defer if (fixed_set) |*owner| owner.deinit();
+    const producer_fixed_ns = timer.read() - producer_fixed_start_ns;
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = request.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     const completed = count == 0;
+    if (combined and !completed) return error.CombinedRequiresCompleteExecution;
     if (completed and expected.final_pc != image.terminal_pc) return error.MissingEthereumTerminalPacket;
     try std.fs.cwd().makeDir(args[4]);
     // Linux's path-only descriptor cannot be fsync'd. The producer publishes
@@ -419,11 +451,31 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const verify_start = timer.read();
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
+    const publish_start_ns = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
+    const native_publish_ns = timer.read() - publish_start_ns;
     try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .capture_breakdown = capture_breakdown, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
+    if (combined) {
+        if (comptime !enable_recursion) return error.RecursionProductRequired;
+        // The terminal endpoint is checked before any accepted root artifact.
+        const last = bundle.requests[bundle.requests.len - 1].base;
+        _ = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
+        try dir.makeDir("recursion-om31");
+        var recursive_dir = try dir.openDir("recursion-om31", .{});
+        defer recursive_dir.close();
+        const recursion_start_ns = timer.read();
+        var recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, recursion_factory);
+        recursion.native_prove_ns = prove_ns;
+        const recursion_ns = timer.read() - recursion_start_ns;
+        try Driver.writeJson(a, recursive_dir, "report.json", recursion);
+        const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
+        try Driver.writeJson(a, dir, "combined-report.json", report);
+        try std.posix.fsync(dir.fd);
+        return emit(a, report);
+    }
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
@@ -622,4 +674,9 @@ test "uniform resident Keccak resource is opt-in and cannot select security" {
     try std.testing.expectEqualDeep(parsed.value.operational(), selected.operational());
     const injection = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":5,\"keccak_uniform_throughput\":true,\"security_profile\":\"weaker\",\"schedule\":{\"memory_cap_bytes\":6}}";
     try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CandidateResources, a, injection, .{}));
+}
+
+test "combined mode is explicit and cannot be confused with native or cache modes" {
+    try std.testing.expect(isCombinedProducer("produce-and-recurse-candidate"));
+    for ([_][]const u8{ "produce-candidate", "produce-control", "recurse-candidate", "resume-recursion-candidate", "verify-candidate" }) |mode| try std.testing.expect(!isCombinedProducer(mode));
 }

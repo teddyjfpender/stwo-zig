@@ -301,6 +301,22 @@ pub fn build(b: *std.Build) void {
     outer_check.linkLibC();
     b.step("check-rv64-ethereum-gpu-recursion", "Type-check CUDA outer recursion without a GPU or binary output").dependOn(&outer_check.step);
 
+    const combined_root = b.createModule(.{ .root_source_file = b.path("rv64_combined_ethereum_main.zig"), .target = target, .optimize = optimize });
+    combined_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    combined_root.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api").?);
+    combined_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    combined_root.addImport("stwo_riscv_cpu_integration", cpu_integration);
+    combined_root.addImport("stwo_riscv_frontend", frontend);
+    combined_root.addImport("stwo_cuda_backend", backend);
+    combined_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    combined_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
+    const combined = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu-combined", .root_module = combined_root });
+    combined.linkLibC();
+    b.step("build-rv64-ethereum-gpu-combined", "Build one-process native GPU proving and GPU OM31 recursion").dependOn(&b.addInstallArtifact(combined, .{}).step);
+    const combined_check = b.addExecutable(.{ .name = "rv64-combined-gpu-check", .root_module = combined_root });
+    combined_check.linkLibC();
+    b.step("check-rv64-ethereum-gpu-combined", "Type-check combined GPU proving and recursion without emitting a binary").dependOn(&combined_check.step);
+
     binding_root.addImport("stwo_cuda_backend", backend);
     binding_root.addImport("stwo_riscv_frontend", frontend);
     const binding_object = b.addObject(.{ .name = "rv64-cuda-binding-check", .root_module = binding_root });
