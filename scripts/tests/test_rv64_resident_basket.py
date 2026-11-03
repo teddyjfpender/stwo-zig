@@ -62,6 +62,11 @@ class ResidentBasket(unittest.TestCase):
             R.device_resources({"schedule": {"lanes": 1, "workers_per_lane": 2}}, 4)
         with self.assertRaisesRegex(ValueError, "explicit coordinator"):
             R.device_resources({}, 1)
+        for schedule in ({"lanes": 2, "workers_per_lane": 32}, {"lanes": 1, "workers_per_lane": 33}):
+            with self.assertRaisesRegex(ValueError, "32-worker limit"):
+                R.device_resources({"schedule": schedule}, 1)
+        with self.assertRaisesRegex(ValueError, "lane geometry"):
+            R.device_resources({"schedule": {"lanes": 1, "workers_per_lane": 4, "lane_workers": [True]}}, 1)
 
     def test_runtime_hash_mismatch_fails(self):
         with self.assertRaisesRegex(ValueError, "runtime differs"):

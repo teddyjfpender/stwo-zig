@@ -39,9 +39,11 @@ def device_resources(resources, device_count):
     lanes = positive(schedule.get("lanes"), "coordinator lanes")
     workers = positive(schedule.get("workers_per_lane"), "workers per lane")
     explicit = schedule.get("lane_workers", [])
-    if lanes > 4 or len(explicit) > lanes:
+    if lanes > 4 or not isinstance(explicit, list) or len(explicit) > lanes or any(type(x) is not int or not 0 <= x <= 32 for x in explicit):
         raise ValueError("invalid coordinator lane geometry")
     budget = sum(positive(explicit[i] or workers, "lane workers") if i < len(explicit) else workers for i in range(lanes))
+    if workers > 32 or budget > 32:
+        raise ValueError("coordinator schedule exceeds the production 32-worker limit")
     target = max(lanes, device_count)
     if budget < target:
         raise ValueError("CPU worker budget cannot expose every GPU; increase the manifest schedule explicitly")
