@@ -53,7 +53,7 @@ pub const Context = struct {
     }
 };
 const Reader = struct {
-    words: []u32,
+    words: []const u32,
     cursor: usize = 0,
     fn take(self: *@This(), n: usize) ![]const u32 {
         if (n > self.words.len - self.cursor) return error.TruncatedGpuPcsProof;
@@ -62,7 +62,7 @@ const Reader = struct {
         return values;
     }
 };
-const Decoded = struct { proof: D.P.CommitmentSchemeProof(D.H), channel: D.Channel };
+pub const Decoded = struct { proof: D.P.CommitmentSchemeProof(D.H), channel: D.Channel };
 fn decode(a: std.mem.Allocator, shape: Assembly.Shape, path: []const u8) !Decoded {
     const bytes = try std.fs.cwd().readFileAlloc(a, path, 1 << 30);
     defer a.free(bytes);
@@ -70,6 +70,9 @@ fn decode(a: std.mem.Allocator, shape: Assembly.Shape, path: []const u8) !Decode
     const words = try a.alloc(u32, bytes.len / 4);
     defer a.free(words);
     for (words, 0..) |*v, i| v.* = std.mem.readInt(u32, bytes[4 * i ..][0..4], .little);
+    return decodeWords(a, shape, words);
+}
+pub fn decodeWords(a: std.mem.Allocator, shape: Assembly.Shape, words: []const u32) !Decoded {
     var r = Reader{ .words = words };
     const header = try r.take(14);
     const plan = try F.Plan.init(shape.degree_log, shape.config.fri_config);

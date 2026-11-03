@@ -73,7 +73,7 @@ fn secure(file: std.fs.File, value: D.O) !void {
 fn hash(file: std.fs.File, digest: [32]u8) !void {
     try file.writeAll(&digest);
 }
-pub fn exportRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channel, path: []const u8) !Metadata {
+pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channel) !Prepared {
     if (request.trees.len == 0 or request.trees.len > 4 or request.points.items.len != request.trees.len or request.lifting_log_size < request.config.fri_config.log_blowup_factor or request.lifting_log_size > 28) return error.InvalidDevicePcsRequest;
     const beta = request.config.fri_config.log_blowup_factor;
     const degree = request.lifting_log_size - beta;
@@ -101,7 +101,7 @@ pub fn exportRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channe
         const counts = try a.alloc(u32, tree.columns.len);
         errdefer a.free(counts);
         for (tree.columns, points, logs, order, counts, 0..) |column, ps, *log, *index, *count, i| {
-            if (column.log_size == 0 or column.log_size > 28 - beta or column.coefficients.len != @as(usize, 1) << @intCast(column.log_size) or ps.len > 5 or (ps.len != 0 and column.log_size > degree)) return error.InvalidDevicePcsColumn;
+            if (column.log_size == 0 or column.log_size > 28 - beta or columnCount(column) != @as(usize, 1) << @intCast(column.log_size) or ps.len > 5 or (ps.len != 0 and column.log_size > degree)) return error.InvalidDevicePcsColumn;
             log.* = column.log_size;
             index.* = @intCast(i);
             count.* = @intCast(ps.len);
@@ -216,19 +216,95 @@ pub fn exportRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channe
     defer fri_tw.deinit(std.heap.page_allocator);
     try C.friMetadata(plan, &fri_desc, &fri_tw);
     const h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), try count32(coefficient_words), try count32(evaluation_words), try count32(combined_coefficients), try count32(combined_evaluations), try count32(twiddles.twiddles.len), try count32(fri_tw.items.len), 1, request.config.pow_bits, 0 };
+    var section_storage: [17][]u32 = @splat(&.{});
+    errdefer for (section_storage) |section| a.free(section);
+    var seed: [9]u32 = undefined;
+    for (seed[0..8], 0..) |*v, i| v.* = std.mem.readInt(u32, initial.inner.digest[i * 4 ..][0..4], .little);
+    seed[8] = initial.inner.n_draws;
+    var point_words: [16]u32 = undefined;
+    for (base_point.x.toM31Array(), point_words[0..8]) |v, *word| word.* = v.v;
+    for (base_point.y.toM31Array(), point_words[8..]) |v, *word| word.* = v.v;
+    const expected_roots = try a.alloc(u32, request.trees.len * 8);
+    defer a.free(expected_roots);
+    for (request.trees, 0..) |tree, t| for (0..8) |i| {
+        expected_roots[t * 8 + i] = std.mem.readInt(u32, tree.root[i * 4 ..][0..4], .little);
+    };
+    const half = core.poly.circle.canonic.CanonicCoset.new(request.lifting_log_size).circleDomain().half_coset;
+    const domain_parameters = [4]u32{ half.initial.x.v, half.initial.y.v, half.step.x.v, half.step.y.v };
+    const sections = [_][]const u32{ &h, &seed, &point_words, sources.items, terms.items, deep_groups.items, source_groups.items, tree_info.items, recipes.items, deep_tw.items, sample_map, sample_counts.items, mWords(twiddles.twiddles), fri_desc.items, mWords(fri_tw.items), expected_roots, &domain_parameters };
+    for (sections, &section_storage) |section, *storage| storage.* = try a.dupe(u32, section);
+    const coefficients = try a.alloc(Native.Column, source_count);
+    errdefer a.free(coefficients);
+    var ci: usize = 0;
+    for (request.trees, trees) |tree, meta| for (meta.sorted_to_original) |original| {
+        coefficients[ci] = nativeColumn(tree.columns[original]);
+        ci += 1;
+    };
+    return .{ .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .coefficients = coefficients, .scope = requestScope(request) };
+}
+
+fn columnCount(column: D.Column) u64 {
+    if (comptime @hasField(D.Column, "device")) {
+        if (column.device) |device| return device.count;
+    }
+    return column.coefficients.len;
+}
+fn nativeColumn(column: D.Column) Native.Column {
+    if (comptime @hasField(D.Column, "device")) {
+        if (column.device) |device| return .{ .kind = 1, .coefficient_log = column.log_size, .words = device.words, .count = device.count, .context_token = device.context_token, .generation = device.generation };
+    }
+    const values = mWords(column.coefficients);
+    return .{ .coefficient_log = column.log_size, .words = values.ptr, .count = values.len };
+}
+fn requestScope(request: D.Request) [8]u32 {
+    if (comptime @hasField(D.Request, "scope")) {
+        if (request.scope) |scope| return @import("pcs_scope.zig").identity(scope);
+    }
+    return @splat(0);
+}
+const Native = @import("pcs_native_abi.zig");
+fn mWords(values: []const M) []const u32 {
+    comptime if (@sizeOf(M) != @sizeOf(u32) or @alignOf(M) != @alignOf(u32)) @compileError("M31 word ABI changed");
+    return @as([*]const u32, @ptrCast(values.ptr))[0..values.len];
+}
+pub const Prepared = struct {
+    metadata: Metadata,
+    section_storage: [17][]u32,
+    coefficients: []Native.Column,
+    owns_metadata: bool = true,
+    scope: [8]u32 = @splat(0),
+    pub fn descriptor(self: *const Prepared) Native.Request {
+        var result = Native.Request{ .sections = undefined, .coefficients = self.coefficients.ptr, .coefficient_count = self.coefficients.len, .scope = self.scope };
+        for (self.section_storage, &result.sections) |section, *span| span.* = .{ .words = section.ptr, .count = section.len };
+        return result;
+    }
+    pub fn takeMetadata(self: *Prepared) Metadata {
+        std.debug.assert(self.owns_metadata);
+        self.owns_metadata = false;
+        return self.metadata;
+    }
+    pub fn deinit(self: *Prepared, a: std.mem.Allocator) void {
+        if (self.owns_metadata) self.metadata.deinit(a);
+        for (self.section_storage) |section| a.free(section);
+        a.free(self.coefficients);
+        self.* = undefined;
+    }
+};
+
+/// Debug file compatibility only. The native in-process lane uses prepareRequest
+/// and borrows every coefficient span directly, without a materialized warehouse.
+pub fn exportRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channel, path: []const u8) !Metadata {
+    var prepared = try prepareRequest(a, request, initial);
+    defer prepared.deinit(a);
     var file = try std.fs.cwd().createFile(path, .{});
     defer file.close();
     errdefer std.fs.cwd().deleteFile(path) catch {};
-    try words(file, &h);
-    try hash(file, initial.inner.digest);
-    try words(file, &.{initial.inner.n_draws});
-    try secure(file, base_point.x);
-    try secure(file, base_point.y);
-    for ([_][]const u32{ sources.items, terms.items, deep_groups.items, source_groups.items, tree_info.items, recipes.items, deep_tw.items, sample_map, sample_counts.items }) |section| try words(file, section);
-    for (request.trees, trees) |tree, meta| for (meta.sorted_to_original) |original| try fields(file, tree.columns[original].coefficients);
-    try fields(file, twiddles.twiddles);
-    try words(file, fri_desc.items);
-    try fields(file, fri_tw.items);
+    for (prepared.section_storage[0..12]) |section| try words(file, section);
+    for (prepared.coefficients) |column| {
+        if (column.kind != 0) return error.DeviceColumnsRequireNativePcs;
+        try words(file, column.words.?[0..@intCast(column.count)]);
+    }
+    for (prepared.section_storage[12..15]) |section| try words(file, section);
     const domain_words = try a.alloc(u32, @as(usize, 2) << @intCast(request.lifting_log_size));
     defer a.free(domain_words);
     var iterator = core.poly.circle.canonic.CanonicCoset.new(request.lifting_log_size).circleDomain().iter();
@@ -239,7 +315,7 @@ pub fn exportRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channe
         domain_words[2 * physical + 1] = point.y.v;
     }
     try words(file, domain_words);
-    for (request.trees) |tree| try hash(file, tree.root);
+    try words(file, prepared.section_storage[15]);
     try words(file, &@as([17]u32, @splat(0)));
-    return .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words };
+    return prepared.takeMetadata();
 }

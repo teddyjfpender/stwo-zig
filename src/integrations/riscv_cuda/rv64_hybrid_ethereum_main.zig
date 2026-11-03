@@ -1,10 +1,23 @@
 //! Same Ethereum producer/receiver, with explicit experimental GPU PCS offload.
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
+const Native = @import("rv64/pcs_native.zig");
 const H = @import("rv64/hybrid_pcs.zig");
 const Composition = @import("rv64/real_composition.zig");
 pub fn main() !void {
     const a = std.heap.page_allocator;
+    const native_library = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_LIBRARY") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+    defer if (native_library) |path| a.free(path);
+    if (native_library) |path| {
+        var native = try Native.Context.init(path, 0, 24 * 1024 * 1024 * 1024);
+        defer native.deinit();
+        const native_stage = native.stage();
+        try CPU.rv64_ethereum_gkr_main.mainWithStages(&native_stage, null);
+        return;
+    }
     const helper = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PCS_HELPER");
     defer a.free(helper);
     const directory = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_WORKDIR");
