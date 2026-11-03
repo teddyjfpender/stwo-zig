@@ -70,3 +70,18 @@ This mode requires the complete resident native pipeline, a device recursion fac
 `report.json` retains native capture/setup/prove/verify times. `combined-report.json` adds measured authority setup, native publication, recursion and combined pipeline times. `combined-entry.json` is written only after the device lifecycle audit succeeds and includes GPU initialization and entry wall time. Recursion uses the same original proof profile and records newly proved GPU nodes; it never treats restored bytes as a fresh benchmark. Implementation and semantic checks do not establish a speedup: the combined real-block gate must pin the image, guest, request and all native/recursive proof hashes before reporting measurements.
 
 The combined build above requires an x86 host with SHA instructions. This changes host hashing implementation, not proof bytes; the deployment must check CPU feature support. Production witness generation also receives an explicit 16-kind kernel preflight before native capture or circuit construction.
+
+## Recursive basket qualification
+
+`combined-batch MANIFEST.json OUTPUT` reuses the existing resident request loop, one GPU context, one outer factory and a bounded native-authority session. Every request produces fresh native and recursive proofs, then audits that all request leases were released. Manifest fields `combined_host_bytes` and `combined_immutable_device_bytes` default to 48 GiB and 2 GiB; `immutable_host_key_bytes` remains an explicit bounded cache within the host budget. A block's expected segment count is checked against the completed native report. Multiple GPUs and prefix requests are rejected.
+
+The existing basket runner now accepts the combined product:
+
+```sh
+python3 scripts/rv64_resident_basket.py run --combined --counts 1 --devices 0 \
+  --inputs INPUT_MANIFEST.json --driver COMBINED_GPU_DRIVER \
+  --receiver CURRENT_NATIVE_RECEIVER --recursive-receiver CURRENT_RECURSION_RECEIVER \
+  --library QUALIFIED_RUNTIME.so --library-sha256 RUNTIME_SHA256 --output NEW_RESULT_DIRECTORY
+```
+
+Each block runs cold and warm in one process. A separate receiver verifies the cold native proof and reconstructs the recursive authorities to verify every existing outer proof. The harness rejects missing proofs, any newly proved node during receiver replay, changed root/tree bytes, incomplete execution, or CPU assignment/proving fallback. Warm acceptance inherits only through exact SHA parity of the native bundle, every native and outer proof and the ordered tree. This remains full-context recursive verification; portable root-only key admission is not implied. Two- and four-GPU combined plans remain closed until the parallel recursion scheduler is qualified.

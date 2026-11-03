@@ -54,7 +54,7 @@ def device_resources(resources, device_count):
     return result
 
 
-def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME):
+def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME, combined=False, recursive_receiver=None):
     if manifest.get("schema") != "rv64-ethereum-basket-inputs/v1":
         raise ValueError("unsupported input manifest")
     if manifest.get("profile", PROFILE) != PROFILE:
@@ -63,8 +63,20 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
         raise ValueError("distinct nonnegative physical devices required")
     if not counts or len(set(counts)) != len(counts) or any(n not in (1, 2, 4) or n > len(devices) for n in counts):
         raise ValueError("matrix requires available distinct 1/2/4-device groups")
+    if combined and counts != [1]:
+        raise ValueError("combined recursion supports exactly one GPU; 2/4-device admission remains closed")
+    if combined and recursive_receiver is None:
+        raise ValueError("combined qualification requires an independently pinned recursive receiver")
     positive(cap, "device cap")
+    if combined:
+        host = positive(manifest.get("combined_host_bytes", 48 << 30), "combined host budget")
+        immutable = positive(manifest.get("combined_immutable_device_bytes", 2 << 30), "combined immutable budget")
+        keys = positive(manifest.get("immutable_host_key_bytes", 8 << 30), "host key budget")
+        if cap > 28 << 30 or immutable > cap or keys > host:
+            raise ValueError("combined budgets exceed the admitted device/host bounds")
     assets = {"driver": driver, "receiver": receiver, "library": library}
+    if combined:
+        assets["recursive_receiver"] = recursive_receiver
     missing = [str(p) for p in assets.values() if not p.is_file()]
     pins = {k: B.sha(p) for k, p in assets.items() if p.is_file()}
     if not re.fullmatch(r"[0-9a-f]{64}", expected_runtime):
@@ -111,13 +123,16 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
                          "input_sha256": request["input_sha256"] if request else None,
                          "segments": entry["expected_cpu_segments"] if request else None,
                          "target": str(target), "resources": device_resources(resources, n)})
-    return {"schema": SCHEMA, "profile": PROFILE, "runtime_target_sha256": expected_runtime,
+    return {"schema": SCHEMA, "combined": combined, "profile": PROFILE,
+            "immutable_host_key_bytes": manifest.get("immutable_host_key_bytes", 8 << 30),
+            "combined_immutable_device_bytes": manifest.get("combined_immutable_device_bytes", 2 << 30),
+            "combined_host_bytes": manifest.get("combined_host_bytes", 48 << 30), "runtime_target_sha256": expected_runtime,
             "assets": {k: str(p) for k, p in assets.items()}, "asset_sha256": pins,
             "elf_sha256": elf, "jobs": jobs, "device_cap_bytes": cap,
             "input_ready": all(not j["missing"] for j in jobs),
             "resident_environment": manifest.get("resident_environment", {}),
             "capacity_qualification": "Production per-device byte admission remains authoritative; input readiness does not establish that all retained MAINs fit.",
-            "measurement_scope": "One process/block/config, two requests sharing immutable setup. Cold/warm request wall excludes initial pool creation; process wall includes it. No recursion or projected timings."}
+            "measurement_scope": ("One process/block/config, two fresh complete native plus recursive requests sharing bounded immutable setup. Cold/warm request wall excludes initial pool creation; process wall includes it. No resumed proofs or projected timings." if combined else "One process/block/config, two requests sharing immutable setup. Cold/warm request wall excludes initial pool creation; process wall includes it. No recursion or projected timings.")}
 
 
 def gpu_inventory(devices):
@@ -158,6 +173,104 @@ def request_markers(log, block, count):
     return result
 
 
+def recursive_snapshot(proof, leaf_count):
+    """Freeze every physical proof and ordered sidecar before independent replay."""
+    directory = proof / "recursion-om31"
+    tree = B.load(directory / "tree.json")
+    nodes = tree.get("nodes", [])
+    if leaf_count < 1 or len(nodes) != 2 * leaf_count - 1 or tree.get("root") != len(nodes) - 1:
+        raise ValueError("recursive tree coverage mismatch")
+    names, leaves, uses = set(), set(), [0] * len(nodes)
+    for index, node in enumerate(nodes):
+        left, right = node.get("left"), node.get("right")
+        if left is None and right is None:
+            first = node.get("first_leaf")
+            if type(first) is not int or not 0 <= first < leaf_count or first in leaves or node.get("leaf_count") != 1:
+                raise ValueError("recursive leaf coverage mismatch")
+            leaves.add(first)
+            names.add(f"leaf-{first:06}.proof")
+        else:
+            if type(left) is not int or type(right) is not int or not 0 <= left < index or not 0 <= right < index or left == right:
+                raise ValueError("recursive child ordering mismatch")
+            a, b = nodes[left], nodes[right]
+            if (node.get("first_leaf") != a["first_leaf"] or b["first_leaf"] != a["first_leaf"] + a["leaf_count"]
+                    or node.get("leaf_count") != a["leaf_count"] + b["leaf_count"]):
+                raise ValueError("recursive adjacency mismatch")
+            uses[left] += 1
+            uses[right] += 1
+            names.add(f"fold-{index:06}.proof")
+    if leaves != set(range(leaf_count)) or uses != [1] * (len(nodes) - 1) + [0] or nodes[-1]["first_leaf"] != 0 or nodes[-1]["leaf_count"] != leaf_count:
+        raise ValueError("recursive complete coverage missing")
+    names.add("root.proof")
+    if {p.name for p in directory.glob("*.proof")} != names:
+        raise ValueError("missing or extra physical recursive proofs; verification cannot re-prove")
+    hashes = {name: B.sha(directory / name) for name in sorted(names)}
+    final = f"fold-{len(nodes)-1:06}.proof" if leaf_count > 1 else "leaf-000000.proof"
+    if hashes["root.proof"] != hashes[final]:
+        raise ValueError("root proof differs from the physical final node")
+    return {"proof_sha256": hashes, "tree_sha256": B.sha(directory / "tree.json")}
+
+
+def check_recursive_report(report, leaf_count, restored=False):
+    if report.get("accepted") is not True or report.get("leaf_proofs") != leaf_count or report.get("fold_proofs") != leaf_count - 1:
+        raise ValueError("complete recursive acceptance missing")
+    expected_restored = (leaf_count, leaf_count - 1) if restored else (0, 0)
+    if (report.get("restored_leaves"), report.get("restored_folds")) != expected_restored:
+        raise ValueError("recursive verification re-proved a missing proof" if restored else "resumed proofs cannot be a benchmark")
+    expected_new = (0, 0) if restored else (leaf_count, leaf_count - 1)
+    if (report.get("gpu_new_leaf_proofs"), report.get("gpu_new_fold_proofs")) != expected_new:
+        raise ValueError("recursive device proof counts disagree")
+    if not restored and (report.get("outer_backend") != "cuda_trace_only" or report.get("assignment_source") != "gpu_original_circuit_dag"):
+        raise ValueError("CPU assignment or proving fallback rejected")
+
+
+def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log, environment):
+    combined = B.load(proof / "combined-report.json")
+    entry = B.load(proof / "combined-entry.json")
+    count = native["cpu_proofs"] + native["truth_proofs"]
+    if (combined.get("accepted") is not True or combined.get("completed_ethereum_block") is not True
+            or combined.get("native_bundle_reload") is not False or combined.get("restored_recursive_proofs") is not False
+            or combined.get("native_authority_session_used") is not True or entry.get("accepted") is not True
+            or entry.get("device_lifecycle_audit") != "all request leases released"):
+        raise ValueError("combined authority/lifecycle acceptance missing")
+    recursive = combined["recursive"]
+    check_recursive_report(recursive, count)
+    matches = list(re.finditer(r"GPU_RESIDENT_BLOCK block=(\d+) trial=(\d+).*?gpu_contexts=(\d+)", log))
+    marker = next((m for m in matches if int(m[2]) == trial), None)
+    if marker is None:
+        raise ValueError("combined request marker missing")
+    start = 0 if trial == 0 else next(m.end() for m in matches if int(m[2]) == trial - 1)
+    scoped_log = log[start:marker.start()]
+    assignment = re.findall(r"GPU_OUTER .*?assignment_bytes=(\d+)", scoped_log)
+    uploads = re.findall(r"GPU_OUTER_ASSIGNMENT .*?full_assignment_upload_words=(\d+)", scoped_log)
+    if len(assignment) != 2 * count - 1 or len(uploads) != 2 * count - 1 or set(assignment) != {"0"} or set(uploads) != {"0"}:
+        raise ValueError("physical zero-CPU-assignment generation evidence missing")
+    snapshot = recursive_snapshot(proof, count)
+    usage = None
+    if trial == 0:
+        verify_env = dict(environment)
+        verify_env.pop("STWO_RV64_GPU_DEVICES", None)
+        verify_env["STWO_RV64_GPU_DEVICE"] = str(job["devices"][0])
+        verify_env["STWO_RV64_GPU_BYTE_CAP"] = str(plan["device_cap_bytes"])
+        command = B.command(plan["assets"]["recursive_receiver"], plan["profile"], "resume-recursion-candidate", job["request"], proof,
+                            job["resources"]["fixed_setup_bytes"], plan["combined_host_bytes"])
+        usage = B.measure(command, target, "recursive-receiver-0", verify_env)
+        received = B.load(target / "recursive-receiver-0.stdout")
+        if received.get("accepted") is not True or received.get("completed_ethereum_block") is not True or received.get("native_profile") != native["profile"]:
+            raise ValueError("fresh recursive receiver rejected the complete statement")
+        check_recursive_report(received["recursive"], count, restored=True)
+        if recursive_snapshot(proof, count) != snapshot:
+            raise ValueError("fresh recursive receiver repaired or changed a proof/tree")
+    elif snapshot != prior[0]["recursive_snapshot"]:
+        raise ValueError("warm recursive bytes differ from freshly accepted cold proof")
+    return {"recursion_ns": combined["recursion_ns"], "recursive": recursive,
+            "root_proof_bytes": recursive["root_proof_bytes"], "recursive_snapshot": snapshot,
+            "fresh_recursive_receiver": usage, "fresh_recursive_receiver_accepted": trial == 0,
+            "recursive_acceptance": "fresh full-context receiver" if trial == 0 else "exact cold proof/tree SHA parity",
+            "device_lifecycle_audit": entry["device_lifecycle_audit"], "zero_cpu_assignments": True,
+            "combined_report_sha256": B.sha(proof / "combined-report.json"), "entry_sha256": B.sha(proof / "combined-entry.json")}
+
+
 def run_job(plan, job):
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
@@ -175,7 +288,9 @@ def run_job(plan, job):
     manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "profile": plan["profile"],
                 "blocks": {str(job["block"]): {"request": job["request"], "expected_cpu_segments": job["segments"]}},
                 "execution_order": [job["block"]], "resources": job["resources"], "repeat": 2,
-                "immutable_host_key_bytes": 8 << 30, "immutable_device_bytes": 512 << 20}
+                "immutable_host_key_bytes": plan.get("immutable_host_key_bytes", 8 << 30), "immutable_device_bytes": 512 << 20,
+                "combined_host_bytes": plan.get("combined_host_bytes", 48 << 30),
+                "combined_immutable_device_bytes": plan.get("combined_immutable_device_bytes", 2 << 30)}
     B.atomic_json(target / "manifest.json", manifest)
     worker = {"device": ",".join(map(str, job["devices"])), "device_caps_bytes": [plan["device_cap_bytes"]] * job["device_count"],
               "planned_cpu_workers": job["segments"], "retained_scopes": 64}
@@ -188,7 +303,7 @@ def run_job(plan, job):
     monitor = B.DeviceMonitor(worker["device"])
     monitor.thread.start()
     try:
-        usage = B.measure([plan["assets"]["driver"], "resident-batch", str(target / "manifest.json"), str(target / "batch")], target, "producer", environment)
+        usage = B.measure([plan["assets"]["driver"], "combined-batch" if plan.get("combined") else "resident-batch", str(target / "manifest.json"), str(target / "batch")], target, "producer", environment)
     finally:
         memory = monitor.finish()
         B.atomic_json(target / "gpu-memory.json", memory)
@@ -215,7 +330,7 @@ def run_job(plan, job):
                 raise ValueError("warm bytes differ from freshly accepted cold proof")
             receiver_usage = None
         check_trial(report, accepted_receiver, job, plan["profile"])
-        trials.append({"temperature": "cold" if trial == 0 else "warm", "request_wall_ns": markers[trial],
+        trial_result = {"temperature": "cold" if trial == 0 else "warm", "request_wall_ns": markers[trial],
                        "capture_ns": report["capture_ns"], "setup_ns": report["setup_ns"], "prove_ns": report["prove_ns"],
                        "same_process_verify_ns": report["same_process_verify_ns"], "workers": report.get("workers"),
                        "gkr_tree_policy": report.get("gkr_tree_policy"), "total_before_report_ns": report["total_before_report_ns"],
@@ -224,7 +339,12 @@ def run_job(plan, job):
                        "cell_accounting_status": "producer measured" if report.get("native_cells") else "not emitted by this producer; no inferred cell-rate claim",
                        "fresh_receiver": receiver_usage, "fresh_receiver_accepted": trial == 0,
                        "acceptance": "fresh receiver" if trial == 0 else "inherited from fresh cold receiver by exact proof and bundle SHA parity",
-                       "artifact_sha256": artifacts, "bundle_sha256": bundle_hash, "report_sha256": B.sha(proof / "report.json")})
+                       "artifact_sha256": artifacts, "bundle_sha256": bundle_hash, "report_sha256": B.sha(proof / "report.json")}
+        if plan.get("combined"):
+            if (accepted_receiver.get("cpu_proofs"), accepted_receiver.get("truth_proofs")) != (report["cpu_proofs"], report["truth_proofs"]):
+                raise ValueError("fresh native receiver proof inventory differs")
+            trial_result.update(qualify_recursive_trial(plan, job, proof, report, target, trial, trials, log, environment))
+        trials.append(trial_result)
     if trials[0]["artifact_sha256"] != trials[1]["artifact_sha256"] or trials[0]["bundle_sha256"] != trials[1]["bundle_sha256"]:
         raise ValueError("cold/warm deterministic byte parity failed")
     cross_device_parity = None
@@ -251,7 +371,7 @@ def run_job(plan, job):
 
 def render(plan, results):
     by_key = {(r["device_count"], r["block"]): r for r in results}
-    lines = ["# Resident Ethereum basket measurements", "", "128-bit security target under documented conjectured assumptions; no whole-protocol certificate. No recursion or projected GPU figures.", "",
+    lines = ["# Resident Ethereum basket measurements", "", "128-bit security target under documented conjectured assumptions; no whole-protocol certificate. " + ("Includes fresh native and recursive proving; one GPU only." if plan.get("combined") else "No recursion or projected GPU figures."), "",
              "| GPUs | Block | Status | Cold prove s | Warm prove s | Cold request s | Warm request s |", "|---:|---:|---|---:|---:|---:|---:|"]
     for job in plan["jobs"]:
         r = by_key.get((job["device_count"], job["block"]))
@@ -268,6 +388,14 @@ def render(plan, results):
             continue
         gpu_peak = ", ".join(f"{k}: {v / 2**30:.2f}" if v is not None else f"{k}: unavailable" for k, v in r["physical_gpu_memory"].get("peak_used_bytes", {}).items())
         lines.append(f"| {r['device_count']} | {r['block']} | {r['producer_process']['wall_ns']/1e9:.3f} | {r['process_unattributed_wall_ns']/1e9:.3f} | {r['producer_process'].get('peak_rss_bytes',0)/2**30:.2f} | {gpu_peak} |")
+    if plan.get("combined"):
+        lines += ["", "| Block | Cold recursion s | Warm recursion s | Cold complete request s | Warm complete request s | Root bytes |", "|---:|---:|---:|---:|---:|---:|"]
+        for r in results:
+            if r.get("status") != "accepted":
+                continue
+            cold, warm = r["trials"]
+            lines.append(f"| {r['block']} | {cold['recursion_ns']/1e9:.3f} | {warm['recursion_ns']/1e9:.3f} | {cold['request_wall_ns']/1e9:.3f} | {warm['request_wall_ns']/1e9:.3f} | {cold['root_proof_bytes']} |")
+        lines += ["", "Cold verification independently reconstructs native and recursive authorities and verifies the existing proofs. Warm acceptance inherits only through exact native bundle, all native proofs, all outer proofs and tree SHA parity. Verification is outside request proving wall. This is full-context verification; portable root-only key admission remains unqualified."]
     for r in results:
         if r.get("status") == "failed":
             lines += ["", f"Failure, {r['device_count']} GPU(s), block {r['block']}: {r['error']}"]
@@ -287,6 +415,8 @@ def main():
     p.add_argument("--inputs", type=Path, required=True)
     p.add_argument("--driver", type=Path, required=True)
     p.add_argument("--receiver", type=Path, required=True)
+    p.add_argument("--combined", action="store_true", help="Qualify complete native plus recursive cold/warm requests; currently one GPU only")
+    p.add_argument("--recursive-receiver", type=Path, help="Current recursive receiver supporting resume-recursion-candidate; all cached proofs must be restored and verified, never newly proved")
     p.add_argument("--library", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--library-sha256", default=RUNTIME)
@@ -298,7 +428,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     plan = build_plan(B.load(args.basket), B.load(args.inputs), args.inputs.resolve().parent,
                       args.driver.resolve(), args.receiver.resolve(), args.library.resolve(), args.output.resolve(),
-                      list(map(int, args.devices.split(","))), list(map(int, args.counts.split(","))), args.device_cap_bytes, args.library_sha256)
+                      list(map(int, args.devices.split(","))), list(map(int, args.counts.split(","))), args.device_cap_bytes, args.library_sha256, args.combined, args.recursive_receiver.resolve() if args.recursive_receiver else None)
     plan.update(basket_sha256=B.sha(args.basket), inputs_sha256=B.sha(args.inputs))
     if args.mode != "report":
         B.atomic_json(args.output / "plan.json", plan)
