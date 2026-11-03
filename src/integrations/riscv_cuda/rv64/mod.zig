@@ -8,6 +8,7 @@ pub const batch = @import("batch.zig");
 pub const composition_codegen = @import("composition_codegen.zig");
 pub const channel = @import("channel.zig");
 pub const pcs = @import("pcs.zig");
+pub const deep = @import("deep.zig");
 pub const plan = @import("plan.zig");
 pub const scheduler = @import("scheduler.zig");
 pub const resident = @import("resident.zig");
@@ -23,6 +24,7 @@ test {
     _ = @import("tests/composition_codegen_test.zig");
     _ = @import("tests/channel_test.zig");
     _ = @import("tests/pcs_test.zig");
+    _ = @import("tests/deep_test.zig");
     _ = @import("tests/plan_test.zig");
     _ = @import("tests/scheduler_test.zig");
     _ = @import("tests/resident_test.zig");

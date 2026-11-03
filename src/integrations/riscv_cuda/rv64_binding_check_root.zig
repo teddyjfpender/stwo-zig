@@ -3,6 +3,13 @@
 const R = @import("rv64/resident.zig");
 const S = @import("rv64/sumcheck.zig");
 const Context = @import("stwo_cuda_backend").runtime.NativeContext;
+
+export fn rv64_test_deep(context: *Context, lane: u32, prepare: *const @import("rv64/deep.zig").Prepare, combine: *const @import("rv64/deep.zig").Combine) c_int {
+    var commands = @import("rv64/deep.zig").NativeCommands{ .context = context, .lane_index = lane };
+    commands.prepare(prepare.*) catch return 1;
+    commands.combine(combine.*) catch return 1;
+    return 0;
+}
 export fn rv64_test_enqueue_native(context: *Context, lane: u32, input: *const S.Input, workspace: *const S.Workspace, split: bool) c_int {
     var commands = R.NativeCommands{ .context = context, .lane_index = lane, .split_secure_sum = split, .fused_eq = split, .fused_fold_sum = split, .tail_count = if (split) 256 else 0 };
     _ = S.enqueue(&commands, input.*, workspace.*) catch return 1;

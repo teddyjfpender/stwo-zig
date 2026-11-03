@@ -168,3 +168,44 @@ pub extern "c" fn stwo_rv64_binding_project_on(*anyopaque, u32, *const BindingPr
 pub extern "c" fn stwo_rv64_prefix_scan_on(*anyopaque, u32, *const PrefixScan) c_int;
 
 pub extern "c" fn stwo_rv64_binding_eq_on(*anyopaque, u32, [*]const u32, u32, Plane, [*]u32) c_int;
+
+pub const DeepPrepare = extern struct {
+    trees: [4]?[*]const u32,
+    tree_words: [4]u64,
+    sources: [*]const u32,
+    terms: [*]const u32,
+    groups: [*]const u32,
+    points: [*]const u32,
+    values: [*]const u32,
+    alpha: [*]const u32,
+    weights: [*]u32,
+    linear: [*]u32,
+    coefficients: [*]u32,
+    valid: [*]u32,
+    status: [*]u32,
+    coefficient_words: u64,
+    source_count: u32,
+    term_count: u32,
+    group_count: u32,
+    reserved: u32 = 0,
+};
+pub const DeepCombine = extern struct {
+    groups: [*]const u32,
+    points: [*]const u32,
+    linear: [*]const u32,
+    evaluations: [*]const u32,
+    domain_xy: [*]const u32,
+    valid: [*]const u32,
+    output: Plane,
+    status: [*]u32,
+    evaluation_words: u64,
+    group_count: u32,
+    output_log: u32,
+    reserved: [2]u32 = .{ 0, 0 },
+};
+comptime {
+    if (@sizeOf(DeepPrepare) != 176 or @sizeOf(DeepCombine) != 104 or @offsetOf(DeepPrepare, "coefficient_words") != 152 or @offsetOf(DeepCombine, "output") != 48)
+        @compileError("RV64 OM31 DEEP ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_deep_prepare_on(*anyopaque, u32, *const DeepPrepare) c_int;
+pub extern "c" fn stwo_rv64_deep_combine_on(*anyopaque, u32, *const DeepCombine) c_int;
