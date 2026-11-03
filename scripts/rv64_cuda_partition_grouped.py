@@ -22,6 +22,7 @@ def bound_ssa_module(source: Path, operations_per_slice: int = 192):
     text = source.read_text()
     parts = list(re.finditer(r"__device__ __noinline__ void ", text))
     entry = text.index('extern "C" __global__ void')
+    entry_name = re.search(r'extern "C" __global__ void ([A-Za-z0-9_]+)\(', text).group(1)
     if len(parts) != 1:
         raise ValueError("oversized module must contain exactly one root group")
     start = parts[0].start()
@@ -76,7 +77,7 @@ def bound_ssa_module(source: Path, operations_per_slice: int = 192):
         constants = {match[1] for match in re.finditer(r"const uint32_t (c\d+)\[", code)}
         if not set(re.findall(r"\bc\d+\b", code)) <= constants:
             raise ValueError("constant array crossed a bounded slice")
-        name = f"rv64_truth_bounded_step_{i}"
+        name = f"{entry_name}_bounded_step_{i}"
         helpers.append(f"__device__ __noinline__ OM31 {name}({arguments}) {{OM31 folded=zero();\n" + code + " return folded;\n}\n")
         calls.append(f" folded=add(folded,{name}({values}));\n")
     bank_helpers = """__device__ __forceinline__ OM31 bank_load(const volatile OM31 &v) {return {{{v.c0.a.a,v.c0.a.b},{v.c0.b.a,v.c0.b.b}},{{v.c1.a.a,v.c1.a.b},{v.c1.b.a,v.c1.b.b}}};}

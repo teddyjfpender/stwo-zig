@@ -14,6 +14,8 @@ import shlex
 import subprocess
 import time
 
+import rv64_cuda_private_host_symbols as PrivateHost
+
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -129,6 +131,14 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         objects = [first, *pool.map(compile_one, sources[1:])]
     objects += [p.resolve(strict=True) for p in args.extra_object]
+    localized = []
+    original_objects = objects
+    objects = []
+    for obj in original_objects:
+        selected, repair = PrivateHost.localize(obj, build / "localized-host-objects")
+        objects.append(selected)
+        if repair:
+            localized.append(repair)
     library = build / "libstwo-rv64-native.so"
     pending = build / f".libstwo-rv64-native-{os.getpid()}.so"
     try:
@@ -150,7 +160,7 @@ def main():
                "required_exports": len(required), "required_export_manifest_sha256": sha(symbol_path),
                "library_sha256": sha(library), "builder_sha256": sha(Path(__file__).resolve()),
                "compile_timeout_seconds": args.compile_timeout, "link_timeout_seconds": args.link_timeout,
-               "objects": {str(p): sha(p) for p in objects}, "scope": "AOT build only; no proof or residency qualification"}
+               "objects": {str(p): sha(p) for p in objects}, "localized_private_host_helpers": localized, "scope": "AOT build only; no proof or residency qualification"}
     (build / "build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(str(library), flush=True)
 

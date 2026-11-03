@@ -9,7 +9,9 @@ def partition(source: Path, destination: Path, steps_per_module: int = 8, max_mo
         raise ValueError("positive instruction-slice module bound required")
     text = source.read_text()
     tag = "rv64_aot_" + hashlib.sha256(text.encode()).hexdigest()[:16]
-    text = re.sub(r"\brv64_truth_bounded_step_(\d+)\b", lambda m: tag + "_step_" + m[1], text)
+    names = re.findall(r"__device__ __noinline__ OM31 ([A-Za-z0-9_]+_bounded_step_(\d+))\(", text)
+    for original, index in names:
+        text = re.sub(r"\b" + re.escape(original) + r"\b", tag + "_step_" + index, text)
     parts = list(re.finditer(r"__device__ __noinline__ OM31 " + tag + r"_step_\d+\(", text))
     mode = "instruction_slices"
     if parts:
