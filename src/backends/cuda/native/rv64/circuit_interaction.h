@@ -12,3 +12,13 @@ static_assert(sizeof(StwoCircuitOm31Fractions)==96,"OM31 circuit fractions ABI")
 // Completion is the native cumulative-per-batch LogUp pipeline, not inverse
 // witness publication. No public lookup closure is accepted by this formatter.
 extern "C" int stwo_circuit_om31_fractions_on(void*,uint32_t,const StwoCircuitOm31Fractions*);
+// Circuit AIR uses row-cumulative earlier columns and a last prefix centered
+// by claim/N at EVERY logical row. This is distinct from truth cumulative AIR.
+struct StwoCircuitOm31Cumulative {
+  uint32_t *output;
+  const uint32_t *contributions, *claim;
+  uint64_t stride;
+  uint32_t row_log, pairs;
+};
+static_assert(sizeof(StwoCircuitOm31Cumulative)==40,"circuit cumulative ABI");
+extern "C" int stwo_circuit_om31_cumulative_on(void*,uint32_t,const StwoCircuitOm31Cumulative*);

@@ -2,25 +2,25 @@
 #include "global.h"
 #include "om31.cuh"
 namespace stwo::cuda::rv64 {
-__device__ OM31 warp_up(OM31 value, uint32_t delta) {
+__device__ OM31 warp_up(OM31 value, uint32_t delta, uint32_t mask) {
   uint32_t words[8];
 #pragma unroll
   for (uint32_t i = 0; i < 8; ++i)
-    words[i] = __shfl_up_sync(0xffffffffu, coordinate(value, i), delta);
+    words[i] = __shfl_up_sync(mask, coordinate(value, i), delta);
   return from_words(words);
 }
-__device__ OM31 warp_down(OM31 value, uint32_t delta) {
+__device__ OM31 warp_down(OM31 value, uint32_t delta, uint32_t mask) {
   uint32_t words[8];
 #pragma unroll
   for (uint32_t i = 0; i < 8; ++i)
-    words[i] = __shfl_down_sync(0xffffffffu, coordinate(value, i), delta);
+    words[i] = __shfl_down_sync(mask, coordinate(value, i), delta);
   return from_words(words);
 }
-__device__ OM31 warp_at(OM31 value, uint32_t lane) {
+__device__ OM31 warp_at(OM31 value, uint32_t lane, uint32_t mask) {
   uint32_t words[8];
 #pragma unroll
   for (uint32_t i = 0; i < 8; ++i)
-    words[i] = __shfl_sync(0xffffffffu, coordinate(value, i), lane);
+    words[i] = __shfl_sync(mask, coordinate(value, i), lane);
   return from_words(words);
 }
 __global__ void global_inverse_contribute(StwoRv64GlobalPairs j) {
@@ -42,23 +42,26 @@ __global__ void global_inverse_contribute(StwoRv64GlobalPairs j) {
   }
   OM31 prefix = d, suffix = d;
   const uint32_t lane = threadIdx.x & 31u;
-  // Every active warp has exactly32 rows (row_log>=5). No block barrier or
-  // cross-block ordering is required; there is one inversion per warp/pair.
+  // The circuit minimum is16 rows; higher powers of two fill every warp.
+  // Freeze the participating mask before the lane-zero inverse branch.
+  // Prefix scan padding still runs complete128-thread blocks with zero tails.
+  const uint32_t mask = __activemask();
+  const uint32_t active_rows = (1u << j.row_log) < 32 ? (1u << j.row_log) : 32;
 #pragma unroll
-  for (uint32_t delta = 1; delta < 32; delta <<= 1) {
-    const OM31 before = warp_up(prefix, delta),
-               after = warp_down(suffix, delta);
+  for (uint32_t delta = 1; delta < active_rows; delta <<= 1) {
+    const OM31 before = warp_up(prefix, delta, mask),
+               after = warp_down(suffix, delta, mask);
     if (lane >= delta)
       prefix = mul(prefix, before);
-    if (lane + delta < 32)
+    if (lane + delta < active_rows)
       suffix = mul(suffix, after);
   }
-  const OM31 total = warp_at(prefix, 31);
+  const OM31 total = warp_at(prefix, active_rows - 1, mask);
   const OM31 inv_total =
-      warp_at(lane == 0 ? inverse_nonzero(total) : zero(), 0);
-  const OM31 previous = warp_up(prefix, 1), next = warp_down(suffix, 1);
+      warp_at(lane == 0 ? inverse_nonzero(total) : zero(), 0, mask);
+  const OM31 previous = warp_up(prefix, 1, mask), next = warp_down(suffix, 1, mask);
   const OM31 inverse =
-      mul(inv_total, mul(lane ? previous : one(), lane < 31 ? next : one()));
+      mul(inv_total, mul(lane ? previous : one(), lane + 1 < active_rows ? next : one()));
   store(j.output + pair_offset, j.stride, row, inverse);
   store(j.contributions + pair_offset, j.stride, row, mul(n, inverse));
 }
@@ -77,7 +80,7 @@ extern "C" int stwo_rv64_global_pairs_on(void *ctx, uint32_t lane,
                                          const StwoRv64GlobalPairs *input) {
   using namespace stwo::cuda::rv64;
   if (!input || input->reserved[0] || input->reserved[1] ||
-      input->row_log < 5 || input->row_log > 22 || !input->pairs ||
+      input->row_log < 4 || input->row_log > 22 || !input->pairs ||
       input->pairs > 640 || input->stride < (1u << input->row_log) ||
       input->stride > SIZE_MAX / (8 * uint64_t(input->pairs + 1)))
     return int(cudaErrorInvalidValue);
@@ -128,7 +131,7 @@ __global__ void global_cumulative(StwoRv64GlobalCumulative j) {
 }
 extern "C" __attribute__((visibility("default"))) int stwo_rv64_global_cumulative_on(void*ctx,uint32_t lane,const StwoRv64GlobalCumulative*input){
   using namespace stwo::cuda::rv64;
-  if(!input||input->row_log<5||input->row_log>22||!input->pairs||input->pairs>640||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
+  if(!input||input->row_log<4||input->row_log>22||!input->pairs||input->pairs>640||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
   const auto j=*input;Custody c(ctx,lane);
   if(!c.range(j.output,uint64_t(j.pairs+1)*8*j.stride,true)||!c.range(j.contributions,uint64_t(j.pairs)*8*j.stride,false))return c.status;
   global_cumulative<<<((1u<<j.row_log)+127)/128,128,0,c.stream>>>(j);return int(cudaPeekAtLastError());
