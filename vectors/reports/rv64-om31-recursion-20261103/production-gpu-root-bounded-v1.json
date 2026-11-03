@@ -346,7 +346,7 @@
     "coefficients": "scope/generation checked per-tree device borrowing",
     "cap_increased": false,
     "host_proving_fallback": false,
-    "scope": "All17realCPU/truthleafgraphs and16folds accepted ontestblock24628607, profileq108/P20/fold4."
+    "scope": "All 17 real CPU/truth leaf graphs and 16 folds accepted on test block 24,628,607, profile q108/P20/fold4."
   },
   "aggregate_pcs": {
     "calls": 33,
@@ -357,10 +357,10 @@
     "max_requested_bytes": 15727747012
   },
   "qualification_notes": [
-    "EveryGPUproducedproof freshlyverifiednatively before folding; all34bytes exactly match priorCPU proofs.",
-    "CPU circuit graph/assignment and independently authenticatedPP/Authorityconstruction remain; GPU MAIN/INTER/composition/PCS.",
-    "Native input proofs reused. Process wall includes independentnativeauthority/capture setup. Nativeprove_ns isnull, so this is not whole-block nativeplusrecursive wall.",
-    "Portable rootkeyadmission remainsfalse. 128-bit security target under documented assumptions, not whole-protocol certification.",
-    "Separate malformed legacy sourcegroupindex guard dbef41abe is a sourcefollowup; production rollingpath partitions alreadyvalidated."
+    "Every GPU-produced proof was freshly verified natively before folding; all 34 proof files exactly match the prior CPU proofs.",
+    "CPU circuit graph/assignment and independently authenticated PP/Authority construction remain; MAIN, INTER, composition and PCS run on the GPU.",
+    "Native input proofs were reused. Process wall includes independent native authority/capture setup. Native prove_ns is null, so this is not whole-block native plus recursive wall time.",
+    "Portable root key admission remains false. Security wording: 128-bit target under documented assumptions, not whole-protocol certification.",
+    "The separate malformed legacy source-group index guard dbef41abe is a source follow-up; production rolling-path partitions were already validated."
   ]
 }
