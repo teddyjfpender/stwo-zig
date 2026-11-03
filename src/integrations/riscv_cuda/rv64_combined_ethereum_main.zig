@@ -17,14 +17,7 @@ fn outputDirectory(args: []const [:0]const u8) ![]const u8 {
     return args[mode + 3];
 }
 fn publishEntryReport(path: []const u8, json: []const u8) !void {
-    // Linux O_PATH descriptors support openat but cannot be fsync'd.
-    var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
-    defer dir.close();
-    var file = try dir.createFile("combined-entry.json", .{ .exclusive = true, .truncate = false });
-    defer file.close();
-    try file.writeAll(json);
-    try std.posix.fsync(file.handle);
-    try std.posix.fsync(dir.fd);
+    return @import("rv64/combined_publication.zig").write(path, json);
 }
 pub fn main() !void {
     var timer = try std.time.Timer.start();
@@ -32,6 +25,12 @@ pub fn main() !void {
     const library = (try env(a, "STWO_RV64_GPU_LIBRARY")) orelse return error.CombinedRequiresNativeLibrary;
     defer a.free(library);
     if (std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED")) return error.CombinedRequiresFullyResidentNative;
+    const arguments = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, arguments);
+    if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "combined-batch")) {
+        if (arguments.len != 4) return error.ExpectedCombinedBatchManifestAndOutput;
+        return @import("rv64/resident_batch.zig").runCombined(a, library, arguments[2], arguments[3]);
+    }
     const planned_text = (try env(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS")) orelse return error.CombinedRequiresResidentPlan;
     defer a.free(planned_text);
     const planned = std.fmt.parseUnsigned(usize, planned_text, 10) catch return error.InvalidResidentPlan;
@@ -43,8 +42,7 @@ pub fn main() !void {
     const host_text = try env(a, "STWO_RV64_RECURSION_HOST_BYTES");
     defer if (host_text) |v| a.free(v);
     const host_bytes = if (host_text) |v| std.fmt.parseUnsigned(usize, v, 10) catch return error.InvalidCombinedHostBudget else 48 << 30;
-    const arguments = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, arguments);
+
     const output_path = try outputDirectory(arguments);
     // Identity binds this lifecycle to the explicit request and command. Actual
     // proof scopes continue to bind authenticated statement/FIXED/MAIN roots.

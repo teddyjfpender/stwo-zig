@@ -213,9 +213,18 @@ pub fn mainWithResidentPipelineAndRecursion(stages: ResidentStages, factory: @im
     // classes. Its 4 GiB allocation budget is a child of the same host budget.
     var session = try ResidentSession.init(recycler.allocator(), 4 << 30);
     defer session.deinit();
+    return runCombinedResidentArgs(&recycler, all_args, stages, &session, factory);
+}
+/// Persistent combined requests reuse only bounded independently derived setup.
+/// Every call still captures, proves and freshly verifies the complete block.
+pub fn runCombinedResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: *ResidentSession, factory: @import("stwo_circuit_cpu_integration").om31.device_prove.Factory) !void {
+    try stages.requireFullyResident();
+    const selection = try selectProfile(all_args);
+    if (selection.args.len < 2 or !isCombinedProducer(selection.args[1])) return error.CombinedProductRequiresCombinedMode;
+    if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(&recycler, all_args, stages, &session, true, factory);
+    return runArguments(recycler, all_args, stages, session, true, factory);
 }
 fn isCombinedProducer(mode: []const u8) bool {
     return std.mem.eql(u8, mode, "produce-and-recurse-candidate");

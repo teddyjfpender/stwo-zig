@@ -14,8 +14,16 @@ const Manifest = struct {
     profile: []const u8 = "conjectured128_b2_q108_p20_fold4",
     immutable_host_key_bytes: usize = 4 << 30,
     immutable_device_bytes: u64 = 512 << 20,
+    combined_immutable_device_bytes: u64 = 2 << 30,
+    combined_host_bytes: usize = 48 << 30,
 };
 pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
+    return runMode(a, library, manifest_path, output, false);
+}
+pub fn runCombined(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8) !void {
+    return runMode(a, library, manifest_path, output, true);
+}
+fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8, output: []const u8, comptime combined: bool) !void {
     const raw = try std.fs.cwd().readFileAlloc(a, manifest_path, 1 << 20);
     defer a.free(raw);
     var parsed = try std.json.parseFromSlice(Manifest, a, raw, .{ .ignore_unknown_fields = true });
@@ -29,14 +37,30 @@ pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
     defer config.deinit(a);
     var first_name: [24]u8 = undefined;
     const first = manifest.blocks.map.get(try std.fmt.bufPrint(&first_name, "{d}", .{manifest.execution_order[0]})) orelse return error.MissingResidentBatchBlock;
-    const pool = try Pool.createWithBinding(a, library, config, cpuCount(first), true);
-    defer pool.deinit();
-    try pool.stages().requireFullyResident();
-    var recycler = Main.Recycler.init(std.heap.smp_allocator, 1 << 30);
+    if (combined) {
+        if (config.ids.len != 1) return error.MultiGpuCombinedRecursionNotImplemented;
+        if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_CAPS")) config.caps[0] = 28 << 30;
+        if (config.caps[0] > 28 << 30 or manifest.combined_immutable_device_bytes == 0 or manifest.combined_immutable_device_bytes > config.caps[0] or manifest.combined_host_bytes == 0 or manifest.immutable_host_key_bytes > manifest.combined_host_bytes) return error.InvalidCombinedBatchBudget;
+        for (manifest.execution_order) |block| {
+            var name: [24]u8 = undefined;
+            const item = manifest.blocks.map.get(try std.fmt.bufPrint(&name, "{d}", .{block})) orelse return error.MissingResidentBatchBlock;
+            if (item.prefix_count != 0 or !std.mem.eql(u8, item.jobs, "-")) return error.CombinedRequiresCompleteDirectExecution;
+            try config.validatePlan(cpuCount(item));
+        }
+    }
+    const budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = if (combined) try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.create(a, manifest.combined_host_bytes) else null;
+    defer if (budget) |owner| owner.destroy();
+    var recycler = Main.Recycler.init(if (budget) |owner| owner.allocator() else std.heap.smp_allocator, 1 << 30);
     defer recycler.deinit();
     const base = recycler.allocator();
     var session = try Main.ResidentSession.init(base, manifest.immutable_host_key_bytes);
     defer session.deinit();
+    const pool = try Pool.createWithBinding(if (combined) base else a, library, config, cpuCount(first), true);
+    defer pool.deinit();
+    try pool.stages().requireFullyResident();
+    var outer: if (combined) @import("outer_source.zig").Context else void = if (combined) try @import("outer_source.zig").Context.init(base, &pool.devices[0].native, &pool.devices[0].trace, &pool.devices[0].composition) else {};
+    defer if (combined) outer.deinit();
+    const factory = if (combined) try outer.factoryForTraceOnly() else {};
     try std.fs.cwd().makePath(output);
     const resource_json = try std.json.Stringify.valueAlloc(a, manifest.resources, .{});
     defer a.free(resource_json);
@@ -90,11 +114,29 @@ pub fn run(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
             std.mem.writeInt(u64, transaction[8..16], iteration, .little);
             hash.update(&transaction);
             const identity = hash.finalResult();
-            for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
+            for (pool.devices, config.caps) |*device, cap| try device.native.beginBlock(identity, .{ .device_bytes = cap, .immutable_bytes = if (combined) manifest.combined_immutable_device_bytes else manifest.immutable_device_bytes, .max_scopes = config.scope_limit });
             var timer = try std.time.Timer.start();
-            try Main.runWithResidentArgs(&recycler, &args, pool.stages(), &session);
+            if (combined) {
+                // Same producer and live authority handoff; every trial is fresh.
+                a.free(args[3]);
+                args[3] = try a.dupeZ(u8, "produce-and-recurse-candidate");
+                try Main.runCombinedResidentArgs(&recycler, &args, pool.stages(), &session, factory);
+            } else try Main.runWithResidentArgs(&recycler, &args, pool.stages(), &session);
             for (pool.devices) |*device| try device.native.endBlock(identity);
-            std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={}\n", .{ block, trial, iteration, timer.read(), session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len });
+            const request_wall_ns = timer.read();
+            if (combined) {
+                const report_path = try std.fs.path.join(base, &.{ proof, "report.json" });
+                defer base.free(report_path);
+                const bytes = try std.fs.cwd().readFileAlloc(base, report_path, 8 << 20);
+                defer base.free(bytes);
+                const summary = try std.json.parseFromSlice(struct { cpu_proofs: usize, completed_ethereum_block: bool }, base, bytes, .{ .ignore_unknown_fields = true });
+                defer summary.deinit();
+                if (summary.value.cpu_proofs != item.expected_cpu_segments or !summary.value.completed_ethereum_block) return error.CombinedBatchCoverageMismatch;
+                const entry = try std.json.Stringify.valueAlloc(base, .{ .schema = 1, .accepted = true, .request_wall_ns = request_wall_ns, .device_lifecycle_audit = "all request leases released", .device_byte_cap = config.caps[0], .immutable_device_bytes = manifest.combined_immutable_device_bytes, .host_byte_cap = manifest.combined_host_bytes, .trial = trial, .block = block, .fresh_production = true }, .{ .whitespace = .indent_2 });
+                defer base.free(entry);
+                try @import("combined_publication.zig").write(proof, entry);
+            }
+            std.debug.print("GPU_RESIDENT_BLOCK block={} trial={} iteration={} request_wall_ns={} cached_host_keys={} host_key_cache_hits={} host_key_cache_misses={} host_key_cache_evictions={} gpu_contexts={}\n", .{ block, trial, iteration, request_wall_ns, session.keyCount(), session.hits, session.misses, session.evictions, pool.devices.len });
         }
     }
 }
