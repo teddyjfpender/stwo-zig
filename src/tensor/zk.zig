@@ -67,6 +67,19 @@ const Key = struct { kind: KeyKind, op: u32, log_size: u32, rel: u32, h: u32 };
 const CheckKind = enum { product, hadamard, matmul, key };
 const Check = struct { kind: CheckKind, idx: u32, n: u32, deg: u32, u: u32 };
 const Lay = struct { offsets: []usize, log_total: u32, used: usize };
+/// One layer k (1..n) of a hiding GKR tree: its hiding polynomial and the pads of its 4 finals.
+const GLayer = struct { u: u32, pads: [4]u32 };
+const GRel = struct {
+    rel: u32,
+    /// log2 of the number of leaves
+    n: u32,
+    /// key indices of this relation (segments 0..nk), then the table segment, then the blinder leaf
+    keys: []u32,
+    seg_off: []usize,
+    seg_log: []u32,
+    blinder: u32,
+    layers: []GLayer,
+};
 
 const Plan = struct {
     nw: u32,
@@ -74,6 +87,8 @@ const Plan = struct {
     rels: []Rel,
     keys: []Key,
     checks: []Check,
+    /// hiding LogUp-GKR trees (one per relation), empty in committed-inverse mode
+    grels: []GRel,
     batch_u: u32,
     batch_n: u32,
     infos: [2][]TensorInfo,
@@ -168,7 +183,14 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
                 if (s == 0) return error.StatementShape;
                 const lsz = st.witness[opY(op)].logSize();
                 try keys.append(a, .{ .kind = .remainder, .op = oi, .log_size = lsz, .rel = try findRel(&rels, a, &inf1, .{ .range = s }), .h = 0 });
-                try keys.append(a, .{ .kind = .y_range, .op = oi, .log_size = lsz, .rel = try findRel(&rels, a, &inf1, .{ .range = 8 }), .h = 0 });
+                // y in [-128, 128) is implied when y is also the input of a lookup
+                // (a LogUp match against the int8 table forces it); skip the key then.
+                var implied = false;
+                for (st.ops) |o2| switch (o2) {
+                    .lookup => |l| implied = implied or l.in == opY(op),
+                    else => {},
+                };
+                if (!implied) try keys.append(a, .{ .kind = .y_range, .op = oi, .log_size = lsz, .rel = try findRel(&rels, a, &inf1, .{ .range = 8 }), .h = 0 });
             },
             .lookup => |l| {
                 if (l.table >= st.tables.len) return error.StatementShape;
@@ -190,11 +212,12 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         pad1[i] = @intCast(inf1.items.len);
         try inf1.append(a, TensorInfo.vec(@min(PAD_LOG, inf1.items[i].logSize())));
     }
-    // table 2: inverse limbs + pads
-    for (keys.items) |*k| {
+    // table 2: inverse limbs + pads (committed-inverse LogUp only)
+    const gkr = cfg.zk_logup_gkr;
+    if (!gkr) for (keys.items) |*k| {
         k.h = @intCast(inf2.items.len);
         for (0..4) |_| try inf2.append(a, TensorInfo.vec(k.log_size));
-    }
+    };
     const n_limbs: u32 = @intCast(inf2.items.len);
     const pad2 = try a.alloc(u32, n_limbs);
     for (0..n_limbs) |i| {
@@ -227,7 +250,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             else => {},
         }
     }
-    for (keys.items, 0..) |k, i| try checks.append(a, .{ .kind = .key, .idx = @intCast(i), .n = k.log_size, .deg = 3, .u = 0 });
+    if (!gkr) for (keys.items, 0..) |k, i| try checks.append(a, .{ .kind = .key, .idx = @intCast(i), .n = k.log_size, .deg = 3, .u = 0 });
     for (checks.items) |*c| {
         c.u = @intCast(inf1.items.len);
         try inf1.append(a, TensorInfo.vec(uLog(c.n, c.deg)));
@@ -237,7 +260,34 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         };
         rho_len = @max(rho_len, need);
     }
-    const has2 = keys.items.len > 0;
+    var grels: std.ArrayList(GRel) = .empty;
+    if (gkr) for (rels.items, 0..) |rel, ri| {
+        var ks: std.ArrayList(u32) = .empty;
+        var sizes: std.ArrayList(TensorInfo) = .empty;
+        for (keys.items, 0..) |k, ki| if (k.rel == ri) {
+            try ks.append(a, @intCast(ki));
+            try sizes.append(a, TensorInfo.vec(k.log_size));
+        };
+        try sizes.append(a, TensorInfo.vec(rel.log_size));
+        try sizes.append(a, TensorInfo.vec(0));
+        const lay = try proto.layout(a, sizes.items, &.{});
+        const seg_log = try a.alloc(u32, sizes.items.len);
+        for (sizes.items, 0..) |x, i| seg_log[i] = x.logSize();
+        const blinder: u32 = @intCast(inf1.items.len);
+        try inf1.append(a, TensorInfo.vec(0));
+        const n = @max(lay.log_total, 1);
+        const layers = try a.alloc(GLayer, n);
+        for (layers, 0..) |*l, k0| {
+            l.u = @intCast(inf1.items.len);
+            try inf1.append(a, TensorInfo.vec(uLog(@intCast(k0), 3)));
+            for (&l.pads) |*pd| {
+                pd.* = @intCast(inf1.items.len);
+                try inf1.append(a, TensorInfo.vec(PAD_LOG));
+            }
+        }
+        try grels.append(a, .{ .rel = @intCast(ri), .n = n, .keys = try ks.toOwnedSlice(a), .seg_off = lay.offsets, .seg_log = seg_log, .blinder = blinder, .layers = layers });
+    };
+    const has2 = !gkr and keys.items.len > 0;
     // column split from table 1 without the C-dependent tensors
     const est = try proto.layout(a, inf1.items, &.{});
     var lc: u32 = (est.log_total + 3) / 2;
@@ -280,6 +330,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             .rels = try rels.toOwnedSlice(a),
             .keys = try keys.toOwnedSlice(a),
             .checks = try checks.toOwnedSlice(a),
+            .grels = grels.items,
             .batch_u = batch_u,
             .batch_n = N,
             .infos = .{ try inf1.toOwnedSlice(a), try inf2.toOwnedSlice(a) },
@@ -633,8 +684,14 @@ pub const Proof = struct {
     batch: zks.MaskedProof,
     opening: zkp.Opening,
     weight_opening: ?zkp.Opening,
+    /// hiding GKR: root denominators (numerators are 0) and layer sumchecks, relation-major
+    gkr_roots: []QM31 = &.{},
+    gkr_layers: []zks.MaskedProof = &.{},
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
+        for (self.gkr_layers) |*c| c.deinit(a);
+        a.free(self.gkr_layers);
+        a.free(self.gkr_roots);
         for (self.checks) |*c| c.deinit(a);
         a.free(self.checks);
         self.batch.deinit(a);
@@ -647,10 +704,13 @@ pub const Proof = struct {
     pub fn sizes(self: Proof) Sizes {
         var s: usize = self.batch.byteSize();
         for (self.checks) |c| s += c.byteSize();
+        var lg: usize = self.gkr_roots.len * 16;
+        for (self.gkr_layers) |c| lg += c.byteSize();
+        s += lg;
         const wo = self.opening.byteSize();
         const wto = if (self.weight_opening) |w| w.byteSize() else 0;
         const roots: usize = 32 * (1 + @as(usize, @intFromBool(self.root2 != null)) + @intFromBool(self.wmask_root != null));
-        return .{ .sumchecks = s, .logup = 0, .witness_opening = wo, .weight_opening = wto, .total = roots + s + wo + wto };
+        return .{ .sumchecks = s, .logup = lg, .witness_opening = wo, .weight_opening = wto, .total = roots + s + wo + wto };
     }
 };
 
@@ -1002,6 +1062,10 @@ pub fn prove(
     for (vecs1, 0..) |*v, i| {
         if (v.len == 0) v.* = try randVec(ar, &rng, plan.infos[0][i].size());
     }
+    for (plan.grels) |g| {
+        const b: []i32 = @constCast(vecs1[g.blinder]);
+        while (b[0] == 0) b[0] = @intCast(rng.m31().v);
+    }
     // --- table 1 commit
     const C = plan.nCols();
     const tw_log = plan.lc + cfg.pcs.log_blowup;
@@ -1160,7 +1224,18 @@ pub fn prove(
         const dt = nowNs(tc);
         if (c.kind == .key) timings.gkr_ns += dt else timings.op_sumcheck_ns += dt;
     }
-    try logupClaims(ar, plan, st, alpha, beta, &claims);
+    var gkr_roots: std.ArrayList(QM31) = .empty;
+    var gkr_layers: std.ArrayList(zks.MaskedProof) = .empty;
+    errdefer {
+        for (gkr_layers.items) |*l| l.deinit(a);
+        gkr_layers.deinit(a);
+        gkr_roots.deinit(a);
+    }
+    if (plan.grels.len > 0) {
+        const tg = try std.time.Instant.now();
+        for (plan.grels) |g| try gkrProveRel(a, ar, pool, &tr, plan, st, witness, vecs1, alpha, beta, g, &claims, &gkr_roots, &gkr_layers);
+        timings.gkr_ns += nowNs(tg);
+    } else try logupClaims(ar, plan, st, alpha, beta, &claims);
 
     // --- masked batch sumcheck
     t0 = try std.time.Instant.now();
@@ -1247,6 +1322,8 @@ pub fn prove(
         .batch = bout.proof,
         .opening = opening,
         .weight_opening = wopen,
+        .gkr_roots = try gkr_roots.toOwnedSlice(a),
+        .gkr_layers = try gkr_layers.toOwnedSlice(a),
     };
 }
 
@@ -1458,7 +1535,20 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
         if (!vo.final_claim.eql(cp.u_val.add(vo.eps.mul(evalCheckTerms(c.kind, vals[0..nSpecs(c.kind)]))))) return error.MaskedSumcheck;
         try checkClaims(ar, plan, specs, c.u, c.n, c.deg, vo.point, cp, &claims, &wclaims, wkey);
     }
-    try logupClaims(ar, plan, st, alpha, beta, &claims);
+    if (plan.grels.len > 0) {
+        if (proof.gkr_roots.len != plan.grels.len) return error.ProofShape;
+        var n_layers: usize = 0;
+        for (plan.grels) |g| n_layers += g.n;
+        if (proof.gkr_layers.len != n_layers) return error.ProofShape;
+        var li: usize = 0;
+        for (plan.grels, proof.gkr_roots) |g, d_root| {
+            try gkrVerifyRel(ar, &tr, plan, st, alpha, beta, g, d_root, proof.gkr_layers[li..][0..g.n], &claims);
+            li += g.n;
+        }
+    } else {
+        if (proof.gkr_roots.len != 0 or proof.gkr_layers.len != 0) return error.ProofShape;
+        try logupClaims(ar, plan, st, alpha, beta, &claims);
+    }
 
     // batch
     const gammas = try ar.alloc(QM31, claims.items.len);
@@ -1499,6 +1589,391 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
         const wroots = [_]Hash{ wk.root, proof.wmask_root.? };
         try zkp.verifyOpening(ar, &tr, wpcs(cfg), &wtw, &wshapes, &wroots, wg, null, wop);
     } else if (wclaims.items.len != 0) return error.ProofShape;
+}
+
+// ---------------------------------------------------------------------------
+// Hiding LogUp-GKR (default LogUp of the hiding mode).
+//
+// One fraction tree per relation: leaves = key segments (1, alpha - key),
+// the table segment (-m(t), alpha - key_t), one blinder leaf (0, rho) with a
+// committed uniform rho != 0, and padding (0, 1); MSB split
+// (node x of layer k-1 = node x (+) node x + 2^(k-1) of layer k). The root
+// numerator must be 0 (it is not sent); the root denominator is uniform
+// because of rho. Each layer k = 1..n is a masked sumcheck over k-1 variables
+//   (lambda a^ + b^) / (1 - g') = sum_x eq(r, x) [lam n0 d1 + lam n1 d0 + d0 d1](x)
+//                               + sum_x et(x) Q(x)
+// whose four finals are revealed as hats padded by fresh 16-cell pads at
+// t_k = last 4 coords of (aux ++ r'), and whose Q term absorbs the previous
+// layer's pad part g' (lam P_a + P_b)(t_{k-1}) / (1 - g'); Q's final value is one
+// more (independent) linear claim on those pads. The last layer's hats become
+// linear claims on the committed tensors (keys, multiplicities, blinder) and pads.
+
+const T_GKR = [_]zks.Term{
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1, 4 } },
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 2, 3 } },
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 3, 4 } },
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 5, 6 } },
+};
+const GKR_PUBLIC = [7]bool{ true, false, false, false, false, true, false };
+
+/// eq (A0 D1 + A1 D0 + D0 D1) + et Q with 4 multiplications (T_GKR uses 7).
+const GkrEval = struct {
+    pub inline fn eval(c: *const [7]QM31) QM31 {
+        return c[0].mul(c[1].mul(c[4]).add(c[3].mul(c[2].add(c[4])))).add(c[5].mul(c[6]));
+    }
+};
+
+fn gkrPadPoint(aux: [4]QM31, r: []const QM31) [4]QM31 {
+    var t: [4]QM31 = undefined;
+    const total = 4 + r.len;
+    for (0..4) |i| {
+        const pos = total - 4 + i;
+        t[i] = if (pos < 4) aux[pos] else r[pos - 4];
+    }
+    return t;
+}
+
+const QShape = struct { mp: usize, t_lead: []const QM31, t_tail: []const QM31 };
+
+fn qShape(m: usize, t: *const [4]QM31) QShape {
+    const mp = @min(m, 4);
+    return .{ .mp = mp, .t_lead = t[0 .. 4 - mp], .t_tail = t[4 - mp ..] };
+}
+
+fn etPoint(a: std.mem.Allocator, m: usize, qs: QShape) ![]QM31 {
+    const p = try a.alloc(QM31, m);
+    @memset(p[0 .. m - qs.mp], QM31.zero());
+    @memcpy(p[m - qs.mp ..], qs.t_tail);
+    return p;
+}
+
+fn uClaims(a: std.mem.Allocator, u_id: u32, n: u32, deg: u32, point: []const QM31, proof: zks.MaskedProof, claims: *std.ArrayList(LClaim)) !void {
+    const ne = zks.Hp.entries(n, deg);
+    const fs = try a.alloc(QM31, ne);
+    zks.Hp.sumForm(n, deg, fs);
+    const fe = try a.alloc(QM31, ne);
+    zks.Hp.evalForm(n, deg, point, fe);
+    const t_sig = try a.alloc(LTerm, 1);
+    t_sig[0] = .{ .table = 0, .id = u_id, .coeff = QM31.one(), .form = .{ .sparse = try sparseOfForm(a, fs) } };
+    try claims.append(a, .{ .terms = t_sig, .value = proof.sigma });
+    const t_u = try a.alloc(LTerm, 1);
+    t_u[0] = .{ .table = 0, .id = u_id, .coeff = QM31.one(), .form = .{ .sparse = try sparseOfForm(a, fe) } };
+    try claims.append(a, .{ .terms = t_u, .value = proof.u_val });
+}
+
+fn gkrWeights(lam: QM31, c: QM31) [4]QM31 {
+    const omc = QM31.one().sub(c);
+    return .{ lam.mul(omc), lam.mul(c), omc, c };
+}
+
+/// Q(r') = coefQ * eq(r'_head, 0) * sum_j w_j P_j(t_lead, r'_tail)
+fn qClaim(a: std.mem.Allocator, pads: [4]u32, w: [4]QM31, coef_q: QM31, qs: QShape, r: []const QM31, value: QM31, claims: *std.ArrayList(LClaim)) !void {
+    const pt = try a.alloc(QM31, 4);
+    @memcpy(pt[0..qs.t_lead.len], qs.t_lead);
+    @memcpy(pt[qs.t_lead.len..], r[r.len - qs.mp ..]);
+    const scale = coef_q.mul(zeroExtScale(r, @intCast(qs.mp)));
+    const terms = try a.alloc(LTerm, 4);
+    for (0..4) |j| terms[j] = .{ .table = 0, .id = pads[j], .coeff = scale.mul(w[j]), .form = .{ .eq = pt } };
+    try claims.append(a, .{ .terms = terms, .value = value });
+}
+
+fn relKeyMle(a: std.mem.Allocator, st: Statement, rel: Rel, local: []const QM31, beta: QM31) !QM31 {
+    switch (rel.kind) {
+        .range => return f.identityMle(local),
+        .act => |ti| {
+            var outv: [256]i32 = undefined;
+            for (0..256) |i| outv[i] = st.tables[ti].values[i];
+            return f.identityMle(local).sub(qi(128)).add(beta.mul(try f.mleEvalI32(a, &outv, local)));
+        },
+    }
+}
+
+/// Claims on the committed tensors from the last layer's hats (both sides).
+fn gkrLeafClaims(a: std.mem.Allocator, plan: Plan, st: Statement, g: GRel, alpha: QM31, beta: QM31, p: []const QM31, gam: QM31, c: QM31, t: [4]QM31, pads: [4]u32, ahat: QM31, bhat: QM31, claims: *std.ArrayList(LClaim)) !void {
+    const n = g.n;
+    const omg = QM31.one().sub(gam);
+    var nterms: std.ArrayList(LTerm) = .empty;
+    var dterms: std.ArrayList(LTerm) = .empty;
+    var num_pub = QM31.zero();
+    var den_pub = QM31.zero();
+    var sum_blk = QM31.zero();
+    const nk = g.keys.len;
+    for (g.seg_log, g.seg_off, 0..) |l, o, i| {
+        const bits = try a.alloc(QM31, n - l);
+        bitsPoint(bits, o >> @intCast(l));
+        const blk = f.eqEval(p[0 .. n - l], bits);
+        const local = p[n - l ..];
+        sum_blk = sum_blk.add(blk);
+        if (i < nk) {
+            const k = plan.keys[g.keys[i]];
+            const d = try keyFactorD(a, plan, st, k, alpha, beta, k.log_size);
+            num_pub = num_pub.add(blk);
+            den_pub = den_pub.add(blk.mul(d.konst));
+            for (d.parts) |pt| try dterms.append(a, .{ .table = 0, .id = pt.id, .coeff = omg.mul(blk).mul(pt.coeff), .form = .{ .eq = local } });
+        } else if (i == nk) {
+            const rel = plan.rels[g.rel];
+            try nterms.append(a, .{ .table = 0, .id = rel.mult, .coeff = omg.mul(blk).neg(), .form = .{ .eq = local } });
+            den_pub = den_pub.add(blk.mul(alpha.sub(try relKeyMle(a, st, rel, local, beta))));
+        } else {
+            try dterms.append(a, .{ .table = 0, .id = g.blinder, .coeff = omg.mul(blk), .form = .{ .eq = local } });
+        }
+    }
+    den_pub = den_pub.add(QM31.one().sub(sum_blk));
+    const tp = try a.dupe(QM31, &t);
+    const omc = QM31.one().sub(c);
+    try nterms.append(a, .{ .table = 0, .id = pads[0], .coeff = gam.mul(omc), .form = .{ .eq = tp } });
+    try nterms.append(a, .{ .table = 0, .id = pads[1], .coeff = gam.mul(c), .form = .{ .eq = tp } });
+    try dterms.append(a, .{ .table = 0, .id = pads[2], .coeff = gam.mul(omc), .form = .{ .eq = tp } });
+    try dterms.append(a, .{ .table = 0, .id = pads[3], .coeff = gam.mul(c), .form = .{ .eq = tp } });
+    try claims.append(a, .{ .terms = try nterms.toOwnedSlice(a), .value = ahat.sub(omg.mul(num_pub)) });
+    try claims.append(a, .{ .terms = try dterms.toOwnedSlice(a), .value = bhat.sub(omg.mul(den_pub)) });
+}
+
+const GkrPad = struct {
+    a: std.mem.Allocator,
+    vecs1: []const []const i32,
+    pad_ids: [4]u32,
+    lam: QM31,
+    aux: [4]QM31,
+    pub fn pads(self: @This(), r: []const QM31, fin: [7]QM31) [7]QM31 {
+        const t = gkrPadPoint(self.aux, r);
+        var out = fin;
+        for (0..4) |j| {
+            const v = f.mleEvalI32(self.a, self.vecs1[self.pad_ids[j]], &t) catch @panic("oom");
+            out[1 + j] = if (j < 2) self.lam.mul(v) else v;
+        }
+        return out;
+    }
+};
+
+/// Partial evaluation of a 16-cell pad at its leading coordinates (MSB first).
+fn padPartial(a: std.mem.Allocator, cells: []const i32, lead: []const QM31) ![]QM31 {
+    var buf = try a.alloc(QM31, cells.len);
+    for (buf, cells) |*x, v| x.* = QM31.fromBase(f.fromI32(v));
+    var len = buf.len;
+    for (lead) |r| {
+        const half = len / 2;
+        for (0..half) |i| buf[i] = buf[i].add(r.mul(buf[i + half].sub(buf[i])));
+        len = half;
+    }
+    return buf[0..len];
+}
+
+fn gkrProveRel(
+    a: std.mem.Allocator,
+    ar: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    plan: Plan,
+    st: Statement,
+    witness: []const []const i32,
+    vecs1: []const []const i32,
+    alpha: QM31,
+    beta: QM31,
+    g: GRel,
+    claims: *std.ArrayList(LClaim),
+    roots: *std.ArrayList(QM31),
+    layers_out: *std.ArrayList(zks.MaskedProof),
+) !void {
+    const n = g.n;
+    const L = @as(usize, 1) << @intCast(n);
+    const lnum = try a.alloc([]QM31, n + 1);
+    const lden = try a.alloc([]QM31, n + 1);
+    defer {
+        for (lnum, lden) |x, y| {
+            a.free(x);
+            a.free(y);
+        }
+        a.free(lnum);
+        a.free(lden);
+    }
+    for (lnum, lden) |*x, *y| {
+        x.* = &.{};
+        y.* = &.{};
+    }
+    lnum[n] = try a.alloc(QM31, L);
+    lden[n] = try a.alloc(QM31, L);
+    @memset(lnum[n], QM31.zero());
+    @memset(lden[n], QM31.one());
+    const nk = g.keys.len;
+    for (g.keys, 0..) |ki, i| {
+        const d = try keyDenoms(a, pool, plan, st, witness, vecs1, plan.keys[ki], alpha, beta);
+        defer a.free(d);
+        @memcpy(lden[n][g.seg_off[i]..][0..d.len], d);
+        @memset(lnum[n][g.seg_off[i]..][0..d.len], QM31.one());
+    }
+    const rel = plan.rels[g.rel];
+    {
+        const o = g.seg_off[nk];
+        for (vecs1[rel.mult], 0..) |m, t| {
+            lnum[n][o + t] = qi(-@as(i64, m));
+            lden[n][o + t] = alpha.sub(relKey(st, rel.kind, t, beta));
+        }
+        lden[n][g.seg_off[nk + 1]] = QM31.fromBase(f.fromI32(vecs1[g.blinder][0]));
+    }
+    var k: usize = n;
+    while (k > 0) : (k -= 1) {
+        const half = @as(usize, 1) << @intCast(k - 1);
+        lnum[k - 1] = try a.alloc(QM31, half);
+        lden[k - 1] = try a.alloc(QM31, half);
+        const Ctx = struct { n0: []const QM31, d0: []const QM31, on: []QM31, od: []QM31, half: usize };
+        const ctx = Ctx{ .n0 = lnum[k], .d0 = lden[k], .on = lnum[k - 1], .od = lden[k - 1], .half = half };
+        pool.parallelFor(half, 4096, &ctx, struct {
+            fn run(c: *const Ctx, s: usize, e: usize) void {
+                for (s..e) |x| {
+                    const a0 = c.n0[x];
+                    const a1 = c.n0[x + c.half];
+                    const b0 = c.d0[x];
+                    const b1 = c.d0[x + c.half];
+                    c.on[x] = a0.mul(b1).add(a1.mul(b0));
+                    c.od[x] = b0.mul(b1);
+                }
+            }
+        }.run);
+    }
+    if (!lnum[0][0].isZero()) return error.LogUpMismatch;
+    const d_root = lden[0][0];
+    tr.mixFelt(d_root);
+    try roots.append(a, d_root);
+    var aux: [4]QM31 = undefined;
+    tr.drawN(&aux);
+    var ca = QM31.zero();
+    var cb = d_root;
+    var gam = QM31.zero();
+    var r_prev: []QM31 = &.{};
+    var c_prev = QM31.zero();
+    var t_prev: [4]QM31 = undefined;
+    var pads_prev: [4]u32 = undefined;
+    var lam_prev = QM31.zero();
+    _ = &lam_prev;
+    var hpbuf: [256]QM31 = undefined;
+    for (1..n + 1) |kk| {
+        const lam = tr.draw();
+        const m = kk - 1;
+        const half = @as(usize, 1) << @intCast(m);
+        const inv_omg = QM31.one().sub(gam).inv() catch return error.GkrChallenge;
+        const claim = lam.mul(ca).add(cb).mul(inv_omg);
+        const eq = try f.eqTablePar(a, pool, r_prev, QM31.one());
+        defer a.free(eq);
+        const A0 = try a.alloc(QM31, half);
+        defer a.free(A0);
+        const A1 = try a.alloc(QM31, half);
+        defer a.free(A1);
+        for (A0, A1, lnum[kk][0..half], lnum[kk][half..]) |*x, *y, u, v| {
+            x.* = lam.mul(u);
+            y.* = lam.mul(v);
+        }
+        const D0 = try a.dupe(QM31, lden[kk][0..half]);
+        defer a.free(D0);
+        const D1 = try a.dupe(QM31, lden[kk][half..]);
+        defer a.free(D1);
+        const et = try a.alloc(QM31, half);
+        defer a.free(et);
+        const Q = try a.alloc(QM31, half);
+        defer a.free(Q);
+        @memset(Q, QM31.zero());
+        var qs: QShape = undefined;
+        var coef_q = QM31.zero();
+        var w: [4]QM31 = undefined;
+        if (kk == 1) {
+            et[0] = QM31.one();
+        } else {
+            qs = qShape(m, &t_prev);
+            const etp = try etPoint(a, m, qs);
+            defer a.free(etp);
+            const ett = try f.eqTable(a, etp, QM31.one());
+            defer a.free(ett);
+            @memcpy(et, ett);
+            coef_q = gam.mul(inv_omg);
+            w = gkrWeights(lam, c_prev);
+            for (0..4) |j| {
+                const part = try padPartial(a, vecs1[pads_prev[j]], qs.t_lead);
+                defer a.free(part.ptr[0..16]);
+                for (part, 0..) |v, x| Q[x] = Q[x].add(coef_q.mul(w[j]).mul(v));
+            }
+        }
+        const layer = g.layers[m];
+        const hp = hpOf(plan, vecs1, layer.u, @intCast(m), 3, hpbuf[0..zks.Hp.entries(m, 3)]);
+        const pctx = GkrPad{ .a = ar, .vecs1 = vecs1, .pad_ids = layer.pads, .lam = lam, .aux = aux };
+        var out = try zks.proveWith(7, &T_GKR, GkrEval, a, pool, tr, claim, .{ eq, A0, A1, D0, D1, et, Q }, half, GKR_PUBLIC, hp, pctx);
+        defer a.free(out.point);
+        errdefer out.proof.deinit(a);
+        const hats = out.proof.hats;
+        const rp = out.point[0..m];
+        try uClaims(ar, layer.u, @intCast(m), 3, out.point, out.proof, claims);
+        if (kk >= 2) try qClaim(ar, pads_prev, w, coef_q, qs, try ar.dupe(QM31, rp), hats[4], claims);
+        const c = tr.draw();
+        const inv_lam = lam.inv() catch return error.GkrChallenge;
+        const omc = QM31.one().sub(c);
+        ca = omc.mul(hats[0]).add(c.mul(hats[1])).mul(inv_lam);
+        cb = omc.mul(hats[2]).add(c.mul(hats[3]));
+        gam = out.point[m];
+        const nr = try ar.alloc(QM31, kk);
+        nr[0] = c;
+        @memcpy(nr[1..], rp);
+        r_prev = nr;
+        t_prev = gkrPadPoint(aux, rp);
+        pads_prev = layer.pads;
+        c_prev = c;
+        try layers_out.append(a, out.proof);
+    }
+    try gkrLeafClaims(ar, plan, st, g, alpha, beta, r_prev, gam, c_prev, t_prev, pads_prev, ca, cb, claims);
+}
+
+fn gkrVerifyRel(ar: std.mem.Allocator, tr: *Transcript, plan: Plan, st: Statement, alpha: QM31, beta: QM31, g: GRel, d_root: QM31, layers: []const zks.MaskedProof, claims: *std.ArrayList(LClaim)) !void {
+    if (d_root.isZero()) return error.GkrRoot;
+    if (layers.len != g.n) return error.ProofShape;
+    tr.mixFelt(d_root);
+    var aux: [4]QM31 = undefined;
+    tr.drawN(&aux);
+    var ca = QM31.zero();
+    var cb = d_root;
+    var gam = QM31.zero();
+    var r_prev: []QM31 = &.{};
+    var c_prev = QM31.zero();
+    var t_prev: [4]QM31 = undefined;
+    var pads_prev: [4]u32 = undefined;
+    for (1..g.n + 1) |kk| {
+        const lam = tr.draw();
+        const m = kk - 1;
+        const inv_omg = QM31.one().sub(gam).inv() catch return error.GkrChallenge;
+        const claim = lam.mul(ca).add(cb).mul(inv_omg);
+        const lp = layers[m];
+        const vo = try zks.verify(ar, tr, claim, m, 3, 5, lp);
+        const rp = vo.point[0..m];
+        const hats = lp.hats;
+        var etv = QM31.one();
+        var qs: QShape = undefined;
+        var coef_q = QM31.zero();
+        var w: [4]QM31 = undefined;
+        if (kk == 1) {
+            if (!hats[4].isZero()) return error.GkrLayer;
+        } else {
+            qs = qShape(m, &t_prev);
+            etv = f.eqEval(try etPoint(ar, m, qs), rp);
+            coef_q = gam.mul(inv_omg);
+            w = gkrWeights(lam, c_prev);
+        }
+        const vals = [7]QM31{ f.eqEval(r_prev, rp), hats[0], hats[1], hats[2], hats[3], etv, hats[4] };
+        if (!vo.final_claim.eql(lp.u_val.add(vo.eps.mul(zks.evalTermsRt(&T_GKR, 7, vals))))) return error.GkrLayer;
+        const layer = g.layers[m];
+        try uClaims(ar, layer.u, @intCast(m), 3, vo.point, lp, claims);
+        if (kk >= 2) try qClaim(ar, pads_prev, w, coef_q, qs, rp, hats[4], claims);
+        const c = tr.draw();
+        const inv_lam = lam.inv() catch return error.GkrChallenge;
+        const omc = QM31.one().sub(c);
+        ca = omc.mul(hats[0]).add(c.mul(hats[1])).mul(inv_lam);
+        cb = omc.mul(hats[2]).add(c.mul(hats[3]));
+        gam = vo.point[m];
+        const nr = try ar.alloc(QM31, kk);
+        nr[0] = c;
+        @memcpy(nr[1..], rp);
+        r_prev = nr;
+        t_prev = gkrPadPoint(aux, rp);
+        pads_prev = layer.pads;
+        c_prev = c;
+    }
+    try gkrLeafClaims(ar, plan, st, g, alpha, beta, r_prev, gam, c_prev, t_prev, pads_prev, ca, cb, claims);
 }
 
 // ---------------------------------------------------------------------------
@@ -1604,6 +2079,19 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     proof.checks[last].rounds[0][0] = proof.checks[last].rounds[0][0].add(QM31.one());
     try std.testing.expect(std.meta.isError(verify(a, cfg, st, key, &proof)));
     proof.checks[last].rounds[0][0] = proof.checks[last].rounds[0][0].sub(QM31.one());
+    // tamper: hiding GKR root, layer hat, layer round, layer u_val, Q value
+    try std.testing.expect(proof.gkr_roots.len > 0 and proof.gkr_layers.len > 0);
+    {
+        const one = QM31.one();
+        const L = proof.gkr_layers.len;
+        const targets = [_]*QM31{ &proof.gkr_roots[0], &proof.gkr_layers[0].hats[2], &proof.gkr_layers[L - 1].hats[0], &proof.gkr_layers[L / 2].rounds[0][0], &proof.gkr_layers[L / 2].u_val, &proof.gkr_layers[L / 2].hats[4], &proof.gkr_layers[0].hats[4], &proof.gkr_layers[3].sigma };
+        for (targets) |ptr| {
+            ptr.* = ptr.*.add(one);
+            try std.testing.expect(std.meta.isError(verify(a, cfg, st, key, &proof)));
+            ptr.* = ptr.*.sub(one);
+        }
+        try verify(a, cfg, st, key, &proof);
+    }
     // tamper: weight opening row
     proof.weight_opening.?.rows[0][1] = proof.weight_opening.?.rows[0][1].add(QM31.one());
     try std.testing.expect(std.meta.isError(verify(a, cfg, st, key, &proof)));
@@ -1636,6 +2124,21 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     built.witness[5][3] += 1;
     try std.testing.expect(std.meta.isError(prove(a, &pool, cfg, st, &zw, wv, &tm)));
     built.witness[5][3] -= 1;
+
+    // committed-inverse LogUp mode still proves and verifies; modes are not interchangeable
+    {
+        var cfgi = cfg;
+        cfgi.zk_logup_gkr = false;
+        var zwi = try commitWeights(a, &pool, cfgi, &winfos, &wvv);
+        defer zwi.deinit(a);
+        var pi = try prove(a, &pool, cfgi, st, &zwi, wv, &tm);
+        defer pi.deinit(a);
+        try verify(a, cfgi, st, zwi.key(), &pi);
+        try std.testing.expect(pi.root2 != null and pi.gkr_layers.len == 0);
+        try std.testing.expect(std.meta.isError(verify(a, cfg, st, zwi.key(), &pi)));
+        pi.checks[pi.checks.len - 1].rounds[0][0] = pi.checks[pi.checks.len - 1].rounds[0][0].add(QM31.one());
+        try std.testing.expect(std.meta.isError(verify(a, cfgi, st, zwi.key(), &pi)));
+    }
 
     // separate weight PCS parameters (higher blowup, fewer queries, larger budget)
     var cfg2 = cfg;
@@ -1705,4 +2208,68 @@ test "zk statistical sanity: opened values of zero vs random witness look unifor
     }
     try std.testing.expect(@abs(stats[0][0] - stats[1][0]) < 0.03);
     try std.testing.expect(@abs(stats[0][2] - stats[1][2]) < 0.03);
+}
+
+// Same sanity check for the hiding GKR and the op checks of an MLP: an all-zero
+// input (every activation, remainder pattern and key multiset degenerate) vs a
+// random input. GKR roots, all layer hats (incl. Q values) and op-check hats
+// should look uniform in both cases.
+test "zk statistical sanity: MLP GKR / sumcheck values for zero vs random input" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var cfg = testCfg();
+    cfg.weight_mask_slots = 64;
+    cfg.weight_pcs = .{ .log_blowup = 3, .n_queries = 4, .pow_bits = 1 };
+    const mc = model.Mlp{ .log_t = 3, .log_d = 6, .log_f = 7 };
+    const winfos = model.mlpWeightInfos(mc);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 300 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var stats: [2][2]f64 = undefined;
+    for (0..2) |case| {
+        const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 77);
+        defer a.free(x);
+        if (case == 0) @memset(x, 0);
+        var n_vals: f64 = 0;
+        var top: f64 = 0;
+        var mean: f64 = 0;
+        for (0..3) |_| {
+            var zw = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+            defer zw.deinit(a);
+            const pv = zw.plainView();
+            var built = try model.buildMlp(a, &pool, &pv, mc, x);
+            defer built.deinit(a);
+            const st = built.statement();
+            const wv = try wview(a, built.witness);
+            defer a.free(wv);
+            var tm: proto.Timings = .{};
+            var proof = try prove(a, &pool, cfg, st, &zw, wv, &tm);
+            defer proof.deinit(a);
+            try verify(a, cfg, st, zw.key(), &proof);
+            var vals: std.ArrayList(QM31) = .empty;
+            defer vals.deinit(a);
+            try vals.appendSlice(a, proof.gkr_roots);
+            for (proof.gkr_layers, 0..) |l, li| {
+                // layer 1 of each tree has Q = 0 by construction
+                for (l.hats, 0..) |h, hi| if (!(hi == 4 and h.isZero())) try vals.append(a, h);
+                _ = li;
+                try vals.append(a, l.sigma);
+            }
+            for (proof.checks) |c| try vals.appendSlice(a, c.hats);
+            for (vals.items) |q| for (f.limbs(q)) |l| {
+                n_vals += 1;
+                if (l >= f.P / 2) top += 1;
+                mean += @as(f64, @floatFromInt(l)) / @as(f64, @floatFromInt(f.P));
+            };
+        }
+        stats[case] = .{ top / n_vals, mean / n_vals };
+    }
+    for (stats) |s| {
+        try std.testing.expect(@abs(s[0] - 0.5) < 0.04);
+        try std.testing.expect(@abs(s[1] - 0.5) < 0.04);
+    }
+    try std.testing.expect(@abs(stats[0][0] - stats[1][0]) < 0.05);
 }

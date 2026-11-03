@@ -187,7 +187,16 @@ fn Ctx(comptime NF: usize) type {
     return struct { fac: [NF][]QM31, half: usize, active: usize, partial: [][MAX_DEG + 1]QM31, chunk: usize };
 }
 
-fn roundKernel(comptime NF: usize, comptime terms: []const Term, comptime deg: usize) fn (*const Ctx(NF), usize, usize) void {
+/// Default evaluator of the summand: the comptime term list.
+pub fn TermsEval(comptime NF: usize, comptime terms: []const Term) type {
+    return struct {
+        pub inline fn eval(cur: *const [NF]QM31) QM31 {
+            return evalTerms(terms, NF, cur);
+        }
+    };
+}
+
+fn roundKernel(comptime NF: usize, comptime Ev: type, comptime deg: usize) fn (*const Ctx(NF), usize, usize) void {
     return struct {
         fn run(c: *const Ctx(NF), s: usize, e: usize) void {
             var acc: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
@@ -201,12 +210,12 @@ fn roundKernel(comptime NF: usize, comptime terms: []const Term, comptime deg: u
                     diff[j] = hi.sub(lo);
                     cur[j] = lo;
                 }
-                acc[0] = acc[0].add(evalTerms(terms, NF, &cur));
+                acc[0] = acc[0].add(Ev.eval(&cur));
                 inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
-                acc[2] = acc[2].add(evalTerms(terms, NF, &cur));
+                acc[2] = acc[2].add(Ev.eval(&cur));
                 if (deg >= 3) {
                     inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
-                    acc[3] = acc[3].add(evalTerms(terms, NF, &cur));
+                    acc[3] = acc[3].add(Ev.eval(&cur));
                 }
             }
             c.partial[s / c.chunk] = acc;
@@ -250,6 +259,25 @@ pub fn prove(
     hp: Hp,
     pad_ctx: anytype,
 ) !ProveOut {
+    return proveWith(NF, terms, TermsEval(NF, terms), a, pool, tr, claim, factors, active_in, public, hp, pad_ctx);
+}
+
+/// As `prove`, with a hand-written evaluator `Ev.eval(*const [NF]QM31) QM31`
+/// that must compute the same polynomial as `terms` (which still fixes the degree).
+pub fn proveWith(
+    comptime NF: usize,
+    comptime terms: []const Term,
+    comptime Ev: type,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    factors: [NF][]QM31,
+    active_in: usize,
+    public: [NF]bool,
+    hp: Hp,
+    pad_ctx: anytype,
+) !ProveOut {
     const deg = comptime termDegree(terms);
     const n = hp.n;
     const len0 = @as(usize, 1) << @intCast(n);
@@ -283,7 +311,7 @@ pub fn prove(
             if (chunk > work) chunk = work;
             const n_chunks = (work + chunk - 1) / chunk;
             const ctx = Ctx(NF){ .fac = factors, .half = half, .active = active, .partial = partial, .chunk = chunk };
-            const run = comptime roundKernel(NF, terms, deg);
+            const run = comptime roundKernel(NF, Ev, deg);
             if (n_chunks <= 1) {
                 run(&ctx, 0, work);
             } else {

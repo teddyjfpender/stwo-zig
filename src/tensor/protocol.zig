@@ -152,6 +152,8 @@ pub const Config = struct {
     weight_mask_slots: u32 = 1024,
     /// hiding mode: PCS parameters of the weight table (null = same as `pcs`)
     weight_pcs: ?pcs.Params = null,
+    /// hiding mode LogUp: masked GKR (true) or committed inverses (false)
+    zk_logup_gkr: bool = true,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {

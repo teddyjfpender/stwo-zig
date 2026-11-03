@@ -176,5 +176,5 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
     try stagesJson(out, tm);
-    try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, budget[0], budget[1], tm.witness_table_elems, peakRssBytes() });
+    try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"gkr_trees\":{d},\"gkr_layers\":{d},\"logup_bytes\":{d},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, proof.gkr_roots.len, proof.gkr_layers.len, sz.logup, budget[0], budget[1], tm.witness_table_elems, peakRssBytes() });
 }
