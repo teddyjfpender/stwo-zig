@@ -182,6 +182,10 @@ pub const Config = struct {
     weight_pcs: ?pcs.Params = null,
     /// hiding mode LogUp: masked GKR (true) or committed inverses (false)
     zk_logup_gkr: bool = true,
+    /// hiding mode (masked GKR only): requant remainders stay virtual; each
+    /// remainder leaf claim is routed through a matmul / hadamard sumcheck at the
+    /// GKR leaf point with a pad-masked accumulator hat (zk.md §4.7)
+    zk_virtual_remainders: bool = false,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {

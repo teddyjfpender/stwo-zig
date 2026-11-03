@@ -623,6 +623,83 @@ A chain of links serves an unbounded number of proofs from one set of weights, m
 FlashProve's "copies of the table with fresh masks, each with a link".
 `ZkWeights.budgetLeft()` tells the operator when to rotate.
 
+### 4.7 Virtual remainders (`Config.zk_virtual_remainders`, masked GKR only)
+
+Without this option, each requant op (matmul or hadamard) commits its remainder
+`r = acc + 2^(s−1) − 2^s·Y` in table 1, and proves `acc − 2^s·Y − r = −2^(s−1)` with a
+masked zero-check at `ρ`. With it, `r` is never committed. The prover keeps it only to
+build the GKR leaves and multiplicities. The remainder's range key is reduced to the
+committed `X, W, Y` (or `a, b, Y`) through a sumcheck at the GKR leaf point, using the
+`Q` pad device of §4.3.
+
+**Protocol**, per remainder key, after its GKR tree's last layer. Let `p` be the tree's
+leaf point and `local` the key's suffix of `p`.
+1. Draw `t_A` (4 coordinates). The prover sends the **accumulator hat**
+   `Â = acc~(local) + P_A~(t_A)`, where `P_A` is a fresh 16-cell pad in table 1. Mix `Â`.
+2. Leaf claim. The remainder segment's leaf denominator `α − tag − r~(local)` is written
+   as `(α − tag − 2^(s−1) − Â) + 2^s·Y~(local) + P_A~(t_A)`. It is a public part plus
+   linear terms on `Y` and `P_A`, with the same `(1−γ)·blk` weights as every other leaf
+   term.
+3. After all trees, one masked sumcheck per remainder with the public claim `Â`.
+   `Q(x) = [x_head = 0]·P_A(t_lead, x_tail)` and `et = eq((0, t_tail), ·)`, so that
+   `Σ et·Q = P_A~(t_A)`:
+   - matmul: `Σ_k [X(local_t, k)·W(k, local_n) + et(k)·Q(k)] = Â`, over `log K`
+     variables. Hats `X̂, Ŵ, Q̂`. `Ŵ` is a weight claim at `(r_k, local_n)` padded by
+     `R_W`, as before.
+   - hadamard: `Σ_x [eq(local, x)·a(x)·b(x) + et(x)·Q(x)] = Â`. Hats `â, b̂, Q̂`.
+   - `Q̂` is `Q~(r)` itself, a functional of `P_A` only. Its linear claim is
+     `Q̂ = eq(r_head, 0)·P_A~(t_lead, r_tail)`.
+
+The matmul column point is now a suffix of the GKR tree's leaf point instead of `ρ`.
+Matmuls in the same tree whose output dimension covers the weight table's columns still
+share one weight-opening group; `weightGroupCount` counts one group per tree.
+Proof-format additions: `vrem_hats` and `vchecks`. The option is bound in the transcript,
+and proofs with and without it are not interchangeable.
+
+**Soundness.**
+- `P_A`, `X`, `Y` and `W` are committed before every challenge. `Â` is sent after `p` and
+  before the sumcheck.
+- The sumcheck with the final check `X̂·Ŵ + et(r)·Q̂` binds `X̂`, `Ŵ` and `Q̂` to the
+  committed tensors at the final point. This pins `Q` to the honest pad-derived vector,
+  exactly as in the GKR layers. So `Σ_k X~W~ = Â − P_A~(t_A)`, that is
+  `Â = acc~(local) + P_A~(t_A)`, except with the sumcheck error `2·log K/|F|`, or
+  `3n/|F|` for a hadamard.
+- Then the leaf claim states that the GKR leaves of this segment are
+  `α − tag − (acc + 2^(s−1) − 2^s·Y)` at `local`. MLEs are linear and
+  `acc~(local) = Σ_k X~(local_t, k)·W~(k, local_n)`.
+- The GKR's leaf-layer reduction holds for the multilinear leaf function, so LogUp proves
+  `acc + 2^(s−1) − 2^s·Y ∈ [0, 2^s)` element-wise: the requant relation, as in v1.
+- The removed zero-check at `ρ` added no constraint beyond this: it only tied the
+  committed `r` to `acc` and `Y`.
+
+**Zero knowledge.**
+- `Â` is uniform: it carries the fresh functional `P_A~(t_A)`.
+- `P_A` sees exactly two functionals, at `t_A` and at `(t_lead, r_tail)`. These are
+  independent points. For `log K < 4` the two points share `t_lead` but differ in their
+  tails. So the two functionals are independent except with probability `O(1)/|F|`, and
+  `(Â, Q̂)` is jointly uniform.
+- The sumcheck messages are uniform given the public claim `Â` (Lemma 3). `X̂` and `Ŵ`
+  carry their own pads, as in §4.2. `X`'s 16-cell pad gains one more hat per matmul that
+  reads it, and stays far below 16 functionals.
+- The leaf claim on `P_A` and `Y` is a batch claim. It is never revealed outside the
+  `R_b`-padded batch hats.
+
+**Effect.**
+- mlp 8 10 11, fused: table 1 shrinks from 3,526,656 to 2,215,936 cells (−37%), commit
+  0.063 → 0.051 s, batch 0.033 → 0.025 s, flat proof 922 → 840 KB.
+- The matmul zero-check at `ρ` (a sumcheck over `max(lk, lt+ln)` variables with 5
+  factors) becomes one over `lk` variables with 4 factors.
+
+**Tests.**
+- MLP fused and unfused, flat and recursive PCS: verifies; one virtual check per
+  remainder; a smaller witness table than with committed remainders;
+- proofs are rejected by the other mode's verifier;
+- tampering is rejected for: `Â` (first and last), the `X`, `W` and `Q` hats, a round
+  message, `u`, `σ`, a changed requant shift;
+- a wrong requant output is refused by the prover;
+- `ZkVirtualNeedsGkr` without the masked GKR;
+- statistical sanity, zero vs random input: `Â`, the check hats and `σ` are uniform-looking.
+
 ## 5. Measurements
 
 M4 Max, AC power, `ReleaseFast`, memguard. FlashProve CPU numbers are from fp-bench on
