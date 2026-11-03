@@ -329,10 +329,23 @@ const Run = struct {
     }
 };
 fn mainNodes(scheme: *const W.Scheme) !usize {
+    // Device MAIN occupies a logical trace slot, not a host PCS tree. Its
+    // Merkle backing belongs to the device allocator, outside this host count.
+    if (scheme.device_om31_trace_trees[1] != null) return 0;
+    if (scheme.trees.items.len <= 1) return error.MissingPhysicalMainCommitment;
     var bytes: usize = 0;
     for (scheme.trees.items[1].commitment.layers) |layer| bytes = try std.math.add(usize, bytes, try std.math.mul(usize, layer.len, @sizeOf(W.H.Hash)));
     return bytes;
 }
+test "MAIN host accounting accepts a device slot without a dummy host tree" {
+    var scheme: W.Scheme = undefined;
+    scheme.trees = .empty;
+    scheme.device_om31_trace_trees = @splat(null);
+    try std.testing.expectError(error.MissingPhysicalMainCommitment, mainNodes(&scheme));
+    scheme.device_om31_trace_trees[1] = .{ .root = @splat(0), .columns = &.{} };
+    try std.testing.expectEqual(@as(usize, 0), try mainNodes(&scheme));
+}
+
 /// Consume prepared CPU traces only through successful original source building;
 /// advice and setup remain borrowed. Returned request cell lists are independent.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options) !Bundle {

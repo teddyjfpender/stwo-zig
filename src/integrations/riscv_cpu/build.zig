@@ -53,7 +53,8 @@ pub fn build(b: *std.Build) void {
     const projection_tests = b.addTest(.{ .root_module = device_projection_root, .filters = &.{"device CPU projection"} });
     b.step("test-device-cpu-projection", "Verify narrow CPU capture/device geometry ownership without materializing MAIN").dependOn(&b.addRunArtifact(projection_tests).step);
 
-    const tests = b.addTest(.{ .root_module = integration });
+    const test_filter = b.option([]const u8, "test-filter", "Run only tests whose names contain this text");
+    const tests = b.addTest(.{ .root_module = integration, .filters = if (test_filter) |filter| &.{filter} else &.{} });
     b.step("test", "Test the focused RISC-V CPU integration")
         .dependOn(&b.addRunArtifact(tests).step);
 
