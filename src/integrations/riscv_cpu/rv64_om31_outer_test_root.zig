@@ -44,6 +44,11 @@ test "om31 outer bridge actual child verifies in shared lane" {
         try std.testing.expectEqual(@as(usize, 0), trace.ctx.value_table.capacity);
         var plan = try circuit.builder.witness_plan.build(a, &trace.ctx);
         defer plan.deinit();
+        var reference = try circuit.builder.witness_plan.buildDfsReference(a, &trace.ctx);
+        defer reference.deinit();
+        try std.testing.expectEqualDeep(reference.tasks, plan.tasks);
+        try std.testing.expectEqualDeep(reference.seeds, plan.seeds);
+        try std.testing.expectEqualSlices(usize, reference.level_ends, plan.level_ends);
         const values = try circuit.builder.witness_plan.evaluate(a, &trace.ctx, plan);
         defer a.free(values);
         try std.testing.expectEqualDeep(graph.ctx.values(), values);

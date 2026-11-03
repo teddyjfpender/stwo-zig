@@ -115,11 +115,22 @@ pub const BuildMetrics = struct {
     level_init_ns: u64 = 0,
     walk_ns: u64 = 0,
     ordering_ns: u64 = 0,
+    ready_tasks: usize = 0,
+    dfs_roots: usize = 0,
 };
 pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     return buildProfiled(a, ctx, null);
 }
 pub fn buildProfiled(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMetrics) !Plan {
+    return buildImpl(a, ctx, metrics, true);
+}
+/// Test oracle retains the original task-order DFS, including its independent
+/// discovery order. Production always uses the ready-variable fast path.
+pub fn buildDfsReference(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
+    if (!@import("builtin").is_test) @compileError("DFS reference is qualification-only");
+    return buildImpl(a, ctx, null, false);
+}
+fn buildImpl(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMetrics, comptime ready_variables: bool) !Plan {
     var timer: std.time.Timer = undefined;
     if (metrics) |m| {
         m.* = .{};
@@ -164,8 +175,37 @@ pub fn buildProfiled(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*
     defer stack.deinit(a);
     if (metrics) |m| m.level_init_ns = timer.lap();
     var max_level: u32 = 0;
-    for (0..tasks.items.len) |start| {
-        if (levels[start] != missing) continue;
+    const starts = if (ready_variables) producer.len else tasks.items.len;
+    for (0..starts) |position| {
+        const start: u32 = if (ready_variables) producer[position] else @intCast(position);
+        if (start == seeded or levels[start] != missing) continue;
+        if (ready_variables) {
+            // Builders allocate variable IDs in generation order, while gate
+            // families are stored separately. Most tasks therefore have every
+            // dependency ready in this sweep, avoiding DFS stack traffic and
+            // repeated input decoding. Forward references retain the full DFS.
+            var input_buffer: [6]u32 = undefined;
+            var maximum: u32 = 0;
+            var ready = true;
+            for (inputs(ctx, tasks.items[start], &input_buffer)) |variable| {
+                const parent = producer[variable]; // append checked every ID
+                if (parent == seeded) continue;
+                const level = levels[parent];
+                if (level == missing) {
+                    ready = false;
+                    break;
+                }
+                if (level == visiting) return error.CyclicWitnessDefinition;
+                maximum = @max(maximum, level);
+            }
+            if (ready) {
+                levels[start] = try std.math.add(u32, maximum, 1);
+                max_level = @max(max_level, levels[start]);
+                if (metrics) |m| m.ready_tasks += 1;
+                continue;
+            }
+        }
+        if (metrics) |m| m.dfs_roots += 1;
         levels[start] = visiting;
         try stack.append(a, .{ .id = @intCast(start) });
         while (stack.items.len != 0) {
@@ -387,10 +427,19 @@ test "witness trace-only: exact original topology and assignments without CPU va
     try traceOnlyFixture(&original);
     try traceOnlyFixture(&trace);
     try std.testing.expectEqualDeep(original.circuit, trace.circuit);
+    // This fixture covers independently seeded constants and four-output
+    // Blake tasks, which the producer-order sweep must schedule only once.
+    try std.testing.expect(trace.constants.count() > 0);
+    try std.testing.expect(trace.circuit.blake_g_gate.items.len > 0);
     try std.testing.expectEqual(@as(usize, 0), trace.value_table.items.len);
     try std.testing.expectEqual(@as(usize, 0), trace.value_table.capacity);
     var plan = try build(a, &trace);
     defer plan.deinit();
+    var reference = try buildDfsReference(a, &trace);
+    defer reference.deinit();
+    try std.testing.expectEqualDeep(reference.tasks, plan.tasks);
+    try std.testing.expectEqualDeep(reference.seeds, plan.seeds);
+    try std.testing.expectEqualSlices(usize, reference.level_ends, plan.level_ends);
     const reconstructed = try evaluate(a, &trace, plan);
     defer a.free(reconstructed);
     try std.testing.expectEqualDeep(original.values(), reconstructed);
@@ -413,4 +462,37 @@ test "witness schedule profiling preserves exact generation plan" {
     try std.testing.expectEqualDeep(plain.tasks, profiled.tasks);
     try std.testing.expectEqualDeep(plain.seeds, profiled.seeds);
     try std.testing.expectEqualSlices(usize, plain.level_ends, profiled.level_ends);
+}
+
+test "witness schedule ready-variable sweep retains DFS forward references and rejects cycles" {
+    const a = std.testing.allocator;
+    var ctx = try C.Context(Q).initTraceOnly(a, 0);
+    defer ctx.deinit();
+    const seed = try ctx.guess(Q.one());
+    const first = try ctx.add(seed, seed);
+    const second = try ctx.mul(seed, seed);
+    try ctx.finalize(false);
+    // A forward definition cannot use the ready fast path, but its level and
+    // final stable family order must match the original DFS oracle exactly.
+    for (ctx.circuit.add.items) |*gate| if (gate.out == first.idx) {
+        gate.in0 = second.idx;
+    };
+    var plan = try build(a, &ctx);
+    defer plan.deinit();
+    var reference = try buildDfsReference(a, &ctx);
+    defer reference.deinit();
+    try std.testing.expectEqualDeep(reference.tasks, plan.tasks);
+    try std.testing.expectEqualDeep(reference.seeds, plan.seeds);
+    try std.testing.expectEqualSlices(usize, reference.level_ends, plan.level_ends);
+    for (ctx.circuit.mul.items) |*gate| if (gate.out == second.idx) {
+        gate.in0 = first.idx;
+    };
+    try std.testing.expectError(error.CyclicWitnessDefinition, build(a, &ctx));
+    try std.testing.expectError(error.CyclicWitnessDefinition, buildDfsReference(a, &ctx));
+    for (ctx.circuit.mul.items) |*gate| if (gate.out == second.idx) {
+        gate.in0 = seed.idx;
+        gate.out = first.idx;
+    };
+    try std.testing.expectError(error.DuplicateWitnessDefinition, build(a, &ctx));
+    try std.testing.expectError(error.DuplicateWitnessDefinition, buildDfsReference(a, &ctx));
 }
