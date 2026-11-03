@@ -493,6 +493,7 @@ pub fn ForField(comptime Secure: type) type {
                     MC.mixRoot(channel, tree.root);
                     break :composition_execution;
                 }
+                if (scheme.device_om31_trace_trees[1] != null or scheme.device_om31_trace_trees[2] != null) return error.DeviceTraceRequiresResidentComposition;
                 const residency_handles = scheme.backendResidencyHandles(allocator) catch |err| {
                     prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
                         .stage = .residency,

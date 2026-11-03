@@ -141,6 +141,7 @@ pub fn ForField(comptime Secure: type) type {
                 /// Explicit hybrid/native OM31 offload selected by this proof's
                 /// worker. Other hash/field/revision families reject it.
                 device_om31_pcs_stage: ?*const prover_api.device_pcs.Stage = null,
+                device_om31_trace_trees: [3]?prover_api.device_pcs.Tree = @splat(null),
                 device_om31_scope: ?prover_api.device_pcs.Scope = null,
                 device_om31_composition_stage: ?*const prover_api.device_composition.ResidentOm31Stage = null,
                 /// Borrowed under the composition-stage owner, consumed only by
@@ -308,6 +309,25 @@ pub fn ForField(comptime Secure: type) type {
                     return scheme_views.polynomials(self, allocator);
                 }
 
+                /// Adopt an externally committed physical trace tree. Fixed
+                /// setup remains native; only the next MAIN/INTER slot is legal.
+                pub fn adoptDeviceOm31TraceTree(self: *Self, index: u32, tree: prover_api.device_pcs.Tree, channel: anytype) !void {
+                    const D = prover_api.device_pcs;
+                    if (comptime Secure != D.O or H != D.H or @TypeOf(channel.*) != D.Channel) return error.UnsupportedDevicePcsProtocol;
+                    if (self.revision_config != null or index < 1 or index > 2 or tree.columns.len == 0 or self.device_om31_trace_trees[index] != null) return error.InvalidDeviceTraceTree;
+                    if (scheme_views.traceTreeCount(self) != index) return error.InvalidDeviceTraceTreeOrder;
+                    var token: ?u64 = null;
+                    for (tree.columns) |column| {
+                        const device = column.device orelse return error.DeviceTraceHostColumn;
+                        if (column.coefficients.len != 0 or column.log_size < 3 or column.log_size > 28 or device.count != @as(u64, 1) << @intCast(column.log_size) or device.context_token == 0 or device.generation == 0) return error.InvalidDeviceTraceTree;
+                        if (token) |previous| {
+                            if (previous != device.context_token) return error.InvalidDeviceTraceTree;
+                        } else token = device.context_token;
+                    }
+                    self.device_om31_trace_trees[index] = tree;
+                    MC.mixRoot(channel, tree.root);
+                }
+
                 pub fn trace(
                     self: Self,
                     allocator: std.mem.Allocator,
@@ -404,18 +424,28 @@ pub fn ForField(comptime Secure: type) type {
                         const D = prover_api.device_pcs;
                         if (comptime Secure == D.O and H == D.H and @TypeOf(channel.*) == D.Channel) {
                             if (scheme.revision_config != null) return error.UnsupportedDevicePcsRevision;
-                            const trees = try allocator.alloc(D.Tree, scheme.trees.items.len + @intFromBool(scheme.device_om31_composition_tree != null));
+                            const trees = try allocator.alloc(D.Tree, scheme_views.traceTreeCount(scheme) + @intFromBool(scheme.device_om31_composition_tree != null));
                             defer allocator.free(trees);
                             var made: usize = 0;
-                            defer for (trees[0..made]) |tree| allocator.free(tree.columns);
-                            for (scheme.trees.items, trees[0..scheme.trees.items.len]) |tree, *out| {
+                            defer for (trees[0..made], 0..) |tree, index| {
+                                if (index >= 3 or scheme.device_om31_trace_trees[index] == null) allocator.free(tree.columns);
+                            };
+                            var host_index: usize = 0;
+                            for (trees[0..scheme_views.traceTreeCount(scheme)], 0..) |*out, index| {
+                                if (index < 3) if (scheme.device_om31_trace_trees[index]) |device| {
+                                    out.* = device;
+                                    made += 1;
+                                    continue;
+                                };
+                                const tree = scheme.trees.items[host_index];
+                                host_index += 1;
                                 const coefficients = tree.coefficients orelse return error.DevicePcsCoefficientsRequired;
                                 const columns = try allocator.alloc(D.Column, coefficients.len);
                                 out.* = .{ .root = tree.root(), .columns = columns };
                                 made += 1;
                                 for (coefficients, columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
                             }
-                            if (scheme.device_om31_composition_tree) |composition| trees[scheme.trees.items.len] = composition;
+                            if (scheme.device_om31_composition_tree) |composition| trees[scheme_views.traceTreeCount(scheme)] = composition;
                             var after = channel.*;
                             var result = try stage.prove(stage.context, allocator, .{ .scope = scheme.device_om31_scope, .config = scheme.config, .lifting_log_size = lifting_log_size, .trees = trees, .points = sampled_points_owned }, &after);
                             errdefer result.deinit(allocator);
@@ -432,7 +462,7 @@ pub fn ForField(comptime Secure: type) type {
                             return result;
                         } else return error.UnsupportedDevicePcsProtocol;
                     }
-                    if (scheme.device_om31_composition_tree != null) return error.DeviceCompositionRequiresDevicePcs;
+                    if (scheme.device_om31_composition_tree != null or scheme.device_om31_trace_trees[1] != null or scheme.device_om31_trace_trees[2] != null) return error.DeviceCompositionRequiresDevicePcs;
                     const sampled_values = blk: {
                         var sampled_value_eval_stage = try stage_profile.StageScope.begin(
                             recorder,
