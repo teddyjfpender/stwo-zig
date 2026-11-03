@@ -30,6 +30,11 @@ pub const WorkerTiming = struct {
     local_binding_completed: bool = false,
     resolved_tree_policy: ?@import("child.zig").TreePolicy = null,
     source_ns: u64 = 0,
+    /// Observation only: nanoseconds since `Options.epoch` when this worker's
+    /// witness source build began / its prover inputs were ready. Zero without
+    /// an epoch. Never proof or schedule authority.
+    source_begin_ns: u64 = 0,
+    source_ready_ns: u64 = 0,
     seal_native_and_gkr_ns: u64 = 0,
     main_commit_ns: u64 = 0,
     gkr_ns: u64 = 0,
@@ -78,6 +83,11 @@ pub const Options = struct {
     stage1_trace: []Schedule.Trace = &.{},
     stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
+    /// Observation only (block_to_inputs report): a caller clock origin for
+    /// per-worker source timestamps, and where to record the instant the
+    /// coordinator finished admission (requests, inventory, estimates).
+    epoch: ?std.time.Instant = null,
+    admitted_at_ns: ?*u64 = null,
     pub fn validate(self: Options, count: usize) !void {
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
@@ -193,6 +203,7 @@ const Run = struct {
         defer if (total_timer) |*clock| {
             timing.?.stage1_ns = clock.read();
         };
+        if (timing) |t| t.source_begin_ns = sinceEpoch(self.options.epoch);
         if (index < self.setups.len) {
             var source = blk: {
                 // Observation only (lane rusage); never proof authority.
@@ -201,6 +212,7 @@ const Run = struct {
                 break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
             };
             if (timer) |*clock| timing.?.source_ns = clock.lap();
+            if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
             var owned = true;
             errdefer if (owned) source.deinit();
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
@@ -239,6 +251,7 @@ const Run = struct {
             const truth = self.truths[index - self.setups.len];
             var source = try R.TruthSource.init(self.a, truth, self.advice);
             if (timer) |*clock| timing.?.source_ns = clock.lap();
+            if (timing) |t| t.source_ready_ns = sinceEpoch(self.options.epoch);
             var owned = true;
             errdefer if (owned) source.deinit();
             if (Execution.extendedTruth(truth)) {
@@ -322,6 +335,34 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 }
 /// The authority is independently derived from trusted setup, never parsed from
 /// operational resource JSON or a producer bundle. It stays live through return.
+/// Diagnostic only (block_to_inputs harness): runs exactly the stage-one
+/// source construction of every worker, in ordinal order, with the same
+/// requests/inventory as produce, records source timestamps and drops each
+/// source. No proof, manifest or acceptance is produced.
+pub fn buildInputsOnly(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, epoch: ?std.time.Instant, timings: []WorkerTiming, admitted_at_ns: *u64) !void {
+    const count = try std.math.add(usize, setups.len, truths.len);
+    if (timings.len != count) return error.InvalidWideCoordinatorTimings;
+    if (setups.len == 0 or setups.len != native.len) return error.InvalidCombinedInventory;
+    @memset(timings, .{});
+    const requests = try requestsFrom(a, setups, native, advice);
+    defer freeRequests(a, requests);
+    var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
+    defer inventory.deinit();
+    admitted_at_ns.* = sinceEpoch(epoch);
+    for (timings, 0..) |*t, index| {
+        t.source_begin_ns = sinceEpoch(epoch);
+        if (index < setups.len) {
+            var source = try Pipeline.buildCpuSource(a, setups[index], requests[index], native[index], advice, index, inventory.first_ids[index], false, null);
+            t.source_ready_ns = sinceEpoch(epoch);
+            source.deinit();
+        } else {
+            var source = try R.TruthSource.init(a, truths[index - setups.len], advice);
+            t.source_ready_ns = sinceEpoch(epoch);
+            source.deinit();
+        }
+        t.source_ns = t.source_ready_ns - t.source_begin_ns;
+    }
+}
 pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
     const policy = try @import("child.zig").readTreePolicyFor(a, options.checkpoint_above_gkr_bytes != 0);
     return produceFrozen(a, setups, truths, native, advice, expected, config, options, fixed, policy);
@@ -341,6 +382,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     defer inventory.deinit();
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options, policy);
     defer estimates.deinit(a);
+    if (options.admitted_at_ns) |out| out.* = sinceEpoch(options.epoch);
     if (options.worker_timings) |timings| for (estimates.cpu_policies, 0..) |selected, i| {
         timings[i].resolved_tree_policy = selected;
     };
@@ -374,6 +416,12 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     for (encoded_truths, results[setups.len..]) |*out, result| out.* = result.?.truth;
     @memset(results, null);
     return .{ .requests = requests, .stage_one_bytes = stage_bytes, .cpus = cpus, .truths = encoded_truths };
+}
+/// Observation clock only; zero when no epoch was supplied or the clock fails.
+fn sinceEpoch(epoch: ?std.time.Instant) u64 {
+    const origin = epoch orelse return 0;
+    const now = std.time.Instant.now() catch return 0;
+    return now.since(origin);
 }
 const Admission = struct {
     stage1: []u64,

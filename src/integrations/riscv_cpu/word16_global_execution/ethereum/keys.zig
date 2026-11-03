@@ -14,6 +14,7 @@ const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
+pub const SetupCache = @import("setup_cache.zig");
 pub const Owner = struct {
     allocator: std.mem.Allocator,
     cpus: []*const R.CpuSetup,
@@ -47,6 +48,149 @@ pub const Owner = struct {
     }
     pub fn initWithSuiteAndCaches(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
         return initPolicy(a, image, cpu, truth, retire, suite, caches);
+    }
+    /// Candidate-route setup borrowed from a receiver-owned resident/persisted
+    /// cache (`setup_cache.zig`). Components are owned by `cache`, which must
+    /// outlive this owner, `caches` and every lease derived from them.
+    pub fn initResident(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches, cache: *SetupCache.Cache) !Owner {
+        try suite.validate();
+        const cpus = try a.alloc(*const R.CpuSetup, cpu.len);
+        const truths = a.alloc(R.Truth, truth.len) catch |err| {
+            a.free(cpus);
+            return err;
+        };
+        var self = Owner{ .allocator = a, .cpus = cpus, .truths = truths };
+        errdefer self.deinit();
+        const Builders = struct {
+            const Cpu = struct {
+                a: std.mem.Allocator,
+                image: *const Image.Owner,
+                d: W.CpuDeclaration,
+                suite: Suite,
+                caches: ImmutableCaches,
+                retire: bool,
+                pub fn build(b: @This()) !R.CpuSetup {
+                    var s = try R.CpuSetup.initWithAuthorityAndSuiteAndCaches(b.a, &b.image.authority, b.d.geometry, b.d.bridges, b.suite, b.caches);
+                    errdefer s.deinit();
+                    if (b.retire) try s.releaseFixedWitness();
+                    return s;
+                }
+            };
+            const Keccak = struct {
+                a: std.mem.Allocator,
+                log: u32,
+                suite: Suite,
+                policy: K.TruthSetup.Policy,
+                pub fn build(b: @This()) !K.TruthSetup {
+                    return K.TruthSetup.initPolicy(b.a, b.log, b.suite, b.policy);
+                }
+            };
+            const SecpRow = struct {
+                a: std.mem.Allocator,
+                kind: SR.Kind,
+                log: u32,
+                suite: Suite,
+                pub fn build(b: @This()) !SR.TruthSetup {
+                    return SR.TruthSetup.initWithSuite(b.a, b.kind, b.log, b.suite);
+                }
+            };
+            const Secp = struct {
+                a: std.mem.Allocator,
+                kind: @import("stwo_riscv_frontend").rv64_air.crypto.secp256k1.program.Kind,
+                logs: @FieldType(W.TruthDeclaration, "logs"),
+                suite: Suite,
+                pub fn build(b: @This()) !S.TruthSetup {
+                    return S.TruthSetup.initWithSuite(b.a, b.kind, b.logs, b.suite);
+                }
+            };
+            const Sha = struct {
+                a: std.mem.Allocator,
+                log: u32,
+                suite: Suite,
+                pub fn build(b: @This()) !H.TruthSetup {
+                    return H.TruthSetup.initWithSuite(b.a, b.log, b.suite);
+                }
+            };
+            const Arith = struct {
+                a: std.mem.Allocator,
+                log: u32,
+                suite: Suite,
+                pub fn build(b: @This()) !Ar.TruthSetup {
+                    return Ar.TruthSetup.initWithSuite(b.a, b.log, b.suite);
+                }
+            };
+            const Curve = struct {
+                a: std.mem.Allocator,
+                op: @FieldType(Cv.TruthSetup, "op"),
+                log: u32,
+                suite: Suite,
+                pub fn build(b: @This()) !Cv.TruthSetup {
+                    return Cv.TruthSetup.initWithSuite(b.a, b.op, b.log, b.suite);
+                }
+            };
+        };
+        const Jobs = struct {
+            a: std.mem.Allocator,
+            image: *const Image.Owner,
+            cpu: []const W.CpuDeclaration,
+            truth: []const W.TruthDeclaration,
+            cpus: []*const R.CpuSetup,
+            truths: []R.Truth,
+            suite: Suite,
+            suite_id: [32]u8,
+            caches: ImmutableCaches,
+            retire: bool,
+            cache: *SetupCache.Cache,
+            fn run(j: *const @This(), index: usize) anyerror!void {
+                const al = j.a;
+                const st = j.suite;
+                const sid = j.suite_id;
+                const c = j.cache;
+                if (index < j.cpu.len) {
+                    const d = j.cpu[index];
+                    j.cpus[index] = try c.obtain(R.CpuSetup, "cpu", .{ .suite = sid, .retire = j.retire, .geometry = d.geometry, .bridges = d.bridges }, true, Builders.Cpu{ .a = al, .image = j.image, .d = d, .suite = st, .caches = j.caches, .retire = j.retire });
+                    return;
+                }
+                const d = j.truth[index - j.cpu.len];
+                const out = &j.truths[index - j.cpu.len];
+                switch (d.family) {
+                    .keccak => {
+                        const policy = try @import("../services/wire.zig").keccakPolicy(d.logs[1]);
+                        const s = try c.obtain(K.TruthSetup, "keccak", .{ .suite = sid, .log = d.logs[0], .policy = policy }, false, Builders.Keccak{ .a = al, .log = d.logs[0], .suite = st, .policy = policy });
+                        out.* = .{ .keccak = .{ .setup = s, .first_id = d.first_id, .calls = d.calls } };
+                    },
+                    .add, .double => if (W.isSecpRow(d)) {
+                        const kind: SR.Kind = if (d.family == .add) .add else .double;
+                        const s = try c.obtain(SR.TruthSetup, "secp_row", .{ .suite = sid, .kind = kind, .log = d.logs[0] }, false, Builders.SecpRow{ .a = al, .kind = kind, .log = d.logs[0], .suite = st });
+                        out.* = .{ .secp_row = .{ .setup = s, .first_id = d.first_id, .calls = d.calls } };
+                    } else {
+                        const kind: @import("stwo_riscv_frontend").rv64_air.crypto.secp256k1.program.Kind = if (d.family == .add) .add else .double;
+                        const s = try c.obtain(S.TruthSetup, "secp", .{ .suite = sid, .kind = kind, .logs = d.logs }, false, Builders.Secp{ .a = al, .kind = kind, .logs = d.logs, .suite = st });
+                        out.* = .{ .secp = .{ .setup = s, .first_id = d.first_id, .calls = d.calls } };
+                    },
+                    .sha256 => {
+                        if (d.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+                        const s = try c.obtain(H.TruthSetup, "sha256", .{ .suite = sid, .log = d.logs[0] }, false, Builders.Sha{ .a = al, .log = d.logs[0], .suite = st });
+                        out.* = .{ .sha256 = .{ .setup = s, .first_id = d.first_id, .calls = d.calls } };
+                    },
+                    .arith256_mod => {
+                        if (d.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+                        const s = try c.obtain(Ar.TruthSetup, "arith256_mod", .{ .suite = sid, .log = d.logs[0] }, false, Builders.Arith{ .a = al, .log = d.logs[0], .suite = st });
+                        out.* = .{ .arith256_mod = .{ .setup = s, .first_id = d.first_id, .calls = d.calls } };
+                    },
+                    .bn254_g1_add, .bn254_g1_double, .bn254_fp2_mul, .bls12_381_fp2_mul, .arith384_mont, .bls12_381_g1_add, .bls12_381_g1_double => {
+                        if (d.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+                        const op = Types.curveOp(d.family).?;
+                        const s = try c.obtain(Cv.TruthSetup, "curve", .{ .suite = sid, .op = op, .log = d.logs[0] }, false, Builders.Curve{ .a = al, .op = op, .log = d.logs[0], .suite = st });
+                        out.* = .{ .curve = .{ .setup = s, .first_id = d.first_id, .calls = d.calls } };
+                    },
+                }
+            }
+        };
+        const jobs = Jobs{ .a = a, .image = image, .cpu = cpu, .truth = truth, .cpus = cpus, .truths = truths, .suite = suite, .suite_id = try suite.identity(), .caches = caches, .retire = retire, .cache = cache };
+        // Independent pure components; the cache serializes equal keys.
+        try SetupCache.Cache.parallel(cpu.len + truth.len, cache.max_build_threads, &jobs, Jobs.run);
+        return self;
     }
     fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
         try suite.validate();

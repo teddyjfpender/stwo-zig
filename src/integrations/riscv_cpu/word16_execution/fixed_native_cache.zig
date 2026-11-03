@@ -151,7 +151,7 @@ pub const Cache = struct {
         const owner = tree.shared_owner orelse return error.InvalidFixedNativeCachePhase;
         if (owner.references.load(.acquire) != 1 or owner.tree.shared_owner != null) return error.InvalidFixedNativeCachePhase;
         if (owner.allocator.ptr != a.ptr or owner.allocator.vtable != a.vtable) return error.InvalidFixedNativeCacheOwner;
-        const result = try self.internTree(a, &owner.tree);
+        const result = try self.internTreeWithDigests(a, &owner.tree, &.{});
         // The owner is still exclusive. Refresh teardown/alias metadata without
         // allocating or changing the sole reference count after adoption.
         tree.* = owner.tree;
@@ -168,12 +168,29 @@ pub const Cache = struct {
     /// exactly as required by tree.deinit(a). A final tree lease may outlive the
     /// cache handle and its original Setup.
     pub fn internTree(self: *const Cache, a: std.mem.Allocator, tree: *Tree) !Result {
+        return self.internTreeWithDigests(a, tree, &.{});
+    }
+    /// As internExclusiveSharedTreeBeforePublication for a restored tree whose
+    /// columns each own their coefficients and whose per-column `columnDigest`
+    /// values were authenticated with it. A digest is a lookup hint only:
+    /// every hit still compares the actual ordered logs and values.
+    pub fn internExclusiveSharedTreeBeforePublicationWithDigests(self: *const Cache, a: std.mem.Allocator, tree: *Tree, digests: []const [32]u8) !Result {
+        const owner = tree.shared_owner orelse return error.InvalidFixedNativeCachePhase;
+        if (owner.references.load(.acquire) != 1 or owner.tree.shared_owner != null) return error.InvalidFixedNativeCachePhase;
+        if (owner.allocator.ptr != a.ptr or owner.allocator.vtable != a.vtable) return error.InvalidFixedNativeCacheOwner;
+        const result = try self.internTreeWithDigests(a, &owner.tree, digests);
+        tree.* = owner.tree;
+        tree.shared_owner = owner;
+        return result;
+    }
+    fn internTreeWithDigests(self: *const Cache, a: std.mem.Allocator, tree: *Tree, digests: []const [32]u8) !Result {
         const state = self.state orelse return .{};
         const owner_allocator = state.allocator;
         if (tree.shared_owner != null or tree.backing_teardown != null or !tree.compact_polynomials) return error.InvalidFixedNativeCachePhase;
         const buffers: [][]M = tree.coefficient_backing_buffers orelse &.{};
         const coefficients = tree.coefficients orelse return error.InvalidFixedNativeCacheShape;
         if (coefficients.len != tree.columns.len) return error.InvalidFixedNativeCacheShape;
+        if (digests.len != 0 and (digests.len != coefficients.len or buffers.len != 0)) return error.InvalidFixedNativeCacheShape;
         var owned_columns: usize = 0;
         for (coefficients, tree.columns) |coefficient, column| {
             if (coefficient.log_size >= @bitSizeOf(usize) or coefficient.coeffs.len != (@as(usize, 1) << @intCast(coefficient.log_size))) return error.InvalidFixedNativeCacheShape;
@@ -243,7 +260,7 @@ pub const Cache = struct {
             errdefer owner_allocator.free(spans);
             const group = bindings[plan.first..][0..plan.count];
             for (spans, group) |*span, binding| span.* = binding.span;
-            entry.* = .{ .digest = digest(coefficients, group), .values = buffer, .alignment = group_owner.alignment, .spans = spans, .payload_allocator = a };
+            entry.* = .{ .digest = if (digests.len != 0) digests[group_owner.owned_column orelse return error.InvalidFixedNativeCacheShape] else digest(coefficients, group), .values = buffer, .alignment = group_owner.alignment, .spans = spans, .payload_allocator = a };
             _ = try std.math.add(usize, try std.math.mul(usize, buffer.len, @sizeOf(M)), try std.math.add(usize, @sizeOf(Entry), try std.math.mul(usize, spans.len, @sizeOf(Span))));
             plan.candidate = entry;
         }
@@ -344,6 +361,12 @@ const Range = struct {
         return a.start <= b.start and b.end <= a.end;
     }
 };
+/// Sharing digest of one individually owned column (the group digest of a
+/// single-column group), as stored by the RV64 setup cache.
+pub fn columnDigest(coefficient: Coefficient) [32]u8 {
+    const one = [_]Binding{.{ .column = 0, .span = .{ .offset = 0, .len = coefficient.coeffs.len, .log = coefficient.log_size } }};
+    return digest(&.{coefficient}, &one);
+}
 fn digest(coefficients: []const Coefficient, bindings: []const Binding) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("RV64/fixed-native-circle-coefficient-group/v1\x00");
