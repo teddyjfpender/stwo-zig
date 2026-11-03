@@ -54,6 +54,11 @@ pub const Params = struct {
     inner: pcs.Params = .{ .log_blowup = 4, .n_queries = 32, .pow_bits = 20 },
     /// number of committed-row levels (0 = plain Ligero with multiproofs)
     depth: u32 = 1,
+    /// prover-cost bound used by the shape search: a level with 2^lc columns
+    /// may commit its combined rows only if 4 * 2^lc * 2^inner_blowup <=
+    /// max(used >> inner_work_shift, 2^14), i.e. the inner encoding stays a
+    /// small fraction of the level's own row-combination work.
+    inner_work_shift: u32 = 2,
 
     pub fn level(self: Params, i: usize) pcs.Params {
         return if (i == 0) self.outer else self.inner;
@@ -305,6 +310,9 @@ pub fn predictLevel(params: Params, lvl: usize, log_total: u32, used: usize, log
     if (depth == 0) {
         bytes += @as(f64, @floatFromInt(n_rows * C * 16));
     } else {
+        const lbi = params.level(lvl + 1).log_blowup;
+        const budget = @max(used >> @intCast(params.inner_work_shift), @as(usize, 1) << 14);
+        if ((4 * C) << @intCast(lbi) > budget) return std.math.inf(f64);
         const best = bestInner(params, lvl + 1, n_rows, log_cols, depth - 1);
         bytes += 32 + 64 + @as(f64, @floatFromInt(ceilLog2(n_rows) + log_cols)) * 32 + best.bytes;
     }
@@ -490,11 +498,17 @@ fn openRec(
     const vdata = try a.alloc(i32, @as(usize, 1) << @intCast(ish.log_total));
     defer a.free(vdata);
     @memset(vdata, 0);
-    for (rows, 0..) |r, g| {
-        for (0..4) |c| {
-            const dst = vdata[(g * 4 + c) * C ..][0..C];
-            for (r, dst) |v, *d| d.* = @intCast(f.limbs(v)[c]);
-        }
+    {
+        const VCtx = struct { rows: []const []const QM31, v: []i32, C: usize };
+        const vctx = VCtx{ .rows = rows, .v = vdata, .C = C };
+        pool.parallelFor(rows.len * 4, 1, &vctx, struct {
+            fn run(c: *const VCtx, s: usize, e: usize) void {
+                for (s..e) |gc| {
+                    const dst = c.v[gc * c.C ..][0..c.C];
+                    for (c.rows[gc / 4], dst) |val, *d| d.* = @intCast(f.limbs(val)[gc % 4]);
+                }
+            }
+        }.run);
     }
     const pi = params.level(lvl + 1);
     var itw = try pcs.Twiddles.init(a, ish.log_cols + pi.log_blowup);
@@ -585,11 +599,8 @@ fn openRec(
     }
     defer for (pts) |pt| a.free(pt);
     var lc: [4]Claim = undefined;
-    for (0..4) |c| {
-        const v = try limbMle(a, pool, rows, c, res.point, ish.log_g);
-        levels.items[li].limb_vals[c] = v;
-        lc[c] = .{ .point = pts[c], .value = v };
-    }
+    levels.items[li].limb_vals = try limbMles(a, pool, rows, res.point, ish.log_g);
+    for (0..4) |c| lc[c] = .{ .point = pts[c], .value = levels.items[li].limb_vals[c] };
     tr.mixFelts(&levels.items[li].limb_vals);
     const ngroups = [_]Group{.{ .claims = &lc }};
     try openRec(i32, a, pool, tr, params, lvl + 1, &vcom, vm, &ngroups, true, levels);
@@ -603,20 +614,43 @@ fn countEval(groups: []const Group) usize {
     return n;
 }
 
-/// MLE of limb c of the stacked rows (G' x C, zero padded) at point.
-fn limbMle(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, c: usize, point: []const QM31, log_g: u32) !QM31 {
+/// MLEs of the four limbs of the stacked rows (G' x C, zero padded) at point,
+/// in one parallel pass.
+fn limbMles(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, point: []const QM31, log_g: u32) ![4]QM31 {
     const C = rows[0].len;
     const eq_g = try f.eqTable(a, point[0..log_g], QM31.one());
     defer a.free(eq_g);
     const eq_k = try f.eqTablePar(a, pool, point[log_g..], QM31.one());
     defer a.free(eq_k);
-    var acc = QM31.zero();
-    for (rows, 0..) |r, g| {
-        var s = QM31.zero();
-        for (r, eq_k[0..C]) |v, e| s = s.add(e.mulM31(M31.fromU32Unchecked(f.limbs(v)[c])));
-        acc = acc.add(s.mul(eq_g[g]));
-    }
-    return acc;
+    const CH = 4096;
+    const n_ch = (C + CH - 1) / CH;
+    const part = try a.alloc([4]QM31, n_ch);
+    defer a.free(part);
+    const Ctx = struct { rows: []const []const QM31, eq_g: []const QM31, eq_k: []const QM31, part: [][4]QM31, C: usize };
+    const ctx = Ctx{ .rows = rows, .eq_g = eq_g, .eq_k = eq_k, .part = part, .C = C };
+    pool.parallelFor(n_ch, 1, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            for (s..e) |ch| {
+                const k0 = ch * CH;
+                const k1 = @min(c.C, k0 + CH);
+                var acc = [_]QM31{QM31.zero()} ** 4;
+                for (c.rows, 0..) |r, g| {
+                    var sg = [_]QM31{QM31.zero()} ** 4;
+                    for (r[k0..k1], c.eq_k[k0..k1]) |v, ek| {
+                        const l = f.limbs(v);
+                        inline for (0..4) |li| sg[li] = sg[li].add(ek.mulM31(M31.fromU32Unchecked(l[li])));
+                    }
+                    inline for (0..4) |li| acc[li] = acc[li].add(sg[li].mul(c.eq_g[g]));
+                }
+                c.part[ch] = acc;
+            }
+        }
+    }.run);
+    var out = [_]QM31{QM31.zero()} ** 4;
+    for (part) |p| inline for (0..4) |li| {
+        out[li] = out[li].add(p[li]);
+    };
+    return out;
 }
 
 /// S[k] = sum_q gp[q] T_{j_q}[k] where T_j is the circle-basis tensor at j.

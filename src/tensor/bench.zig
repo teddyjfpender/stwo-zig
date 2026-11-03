@@ -28,6 +28,7 @@ fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Pa
     if (args.len > first + 1) p.inner.n_queries = try std.fmt.parseInt(usize, args[first + 1], 10);
     if (args.len > first + 2) p.inner.log_blowup = try std.fmt.parseInt(u32, args[first + 2], 10);
     if (args.len > first + 3) p.inner.pow_bits = try std.fmt.parseInt(u32, args[first + 3], 10);
+    if (args.len > first + 4) p.inner_work_shift = try std.fmt.parseInt(u32, args[first + 4], 10);
     return p;
 }
 
@@ -53,6 +54,7 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
+    if (args.len >= 9 and std.mem.eql(u8, args[1], "model")) return runModel(args);
     if (args.len < 5 or !std.mem.eql(u8, args[1], "mlp")) {
         std.debug.print("usage: tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]\n", .{});
         return;
@@ -173,4 +175,24 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     built.deinit(a);
     ws.deinit(a);
     a.free(wview);
+}
+
+/// tensor-bench model <log_total> <used> <n_rows> <queries> <log_blowup> <depth> <inner_queries> <inner_log_blowup> [inner_work_shift]
+/// Prints the pcs2 size model's chosen outer split and predicted opening bytes
+/// (no proving; used for extrapolation).
+fn runModel(args: []const [:0]u8) !void {
+    const lt = try std.fmt.parseInt(u32, args[2], 10);
+    const used = try std.fmt.parseInt(usize, args[3], 10);
+    const nr = try std.fmt.parseInt(usize, args[4], 10);
+    var p = t.pcs2.Params{
+        .outer = .{ .n_queries = try std.fmt.parseInt(usize, args[5], 10), .log_blowup = try std.fmt.parseInt(u32, args[6], 10) },
+        .depth = try std.fmt.parseInt(u32, args[7], 10),
+    };
+    p.inner.n_queries = if (args.len > 8) try std.fmt.parseInt(usize, args[8], 10) else p.inner.n_queries;
+    p.inner.log_blowup = if (args.len > 9) try std.fmt.parseInt(u32, args[9], 10) else p.inner.log_blowup;
+    if (args.len > 10) p.inner_work_shift = try std.fmt.parseInt(u32, args[10], 10);
+    const b = t.pcs2.bestOuter(p, lt, used, nr, @min(lt, 30));
+    const flat = t.pcs2.bestOuter(.{ .outer = p.outer, .depth = 0 }, lt, used, nr, @min(lt, 30));
+    const out = std.fs.File.stdout().deprecatedWriter();
+    try out.print("{{\"log_total\":{d},\"used\":{d},\"n_rows\":{d},\"depth\":{d},\"log_cols\":{d},\"bytes\":{d:.0},\"flat_log_cols\":{d},\"flat_bytes\":{d:.0}}}\n", .{ lt, used, nr, p.depth, b.log_cols, b.bytes, flat.log_cols, flat.bytes });
 }
