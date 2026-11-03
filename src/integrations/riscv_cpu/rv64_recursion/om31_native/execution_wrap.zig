@@ -127,6 +127,9 @@ pub const ParallelOptions = struct {
     /// Sum of caller-owned pool workers; native proving must have drained.
     pool_worker_budget: usize,
     max_pending_authorities: usize = 17,
+    /// Optional caller-owned reservation covering these pools' helper stacks.
+    /// Must remain live and belong to the same shared host budget for the run.
+    pool_stack_reservation: ?*const @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.ExternalReservation = null,
 };
 pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory) !Report {
     return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, factory, null);
@@ -139,8 +142,37 @@ pub fn runWithFactories(a: std.mem.Allocator, setups: []const *const R.CpuSetup,
     try validateLanes(options);
     _ = budget.retain();
     defer budget.destroy();
+    var stacks = try StackReservations.init(a, options);
+    defer stacks.deinit();
     return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, null, options);
 }
+const SharedBudget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
+/// Reserves existing OS helper stacks as well as newly spawned coordinators.
+/// A borrowed caller reservation is validated, never consumed or double charged.
+pub const StackReservations = struct {
+    coordinators: SharedBudget.ExternalReservation,
+    helpers: SharedBudget.ExternalReservation,
+    pub fn init(a: std.mem.Allocator, options: ParallelOptions) !StackReservations {
+        const budget = SharedBudget.fromAllocator(a) orelse return error.SharedRecursionBudgetRequired;
+        var helper_bytes: usize = 0;
+        for (options.lanes) |lane| {
+            const bytes = try std.math.mul(usize, lane.pool.workerCount() - 1, lane.pool.stackSize());
+            helper_bytes = try std.math.add(usize, helper_bytes, bytes);
+        }
+        var helpers = SharedBudget.ExternalReservation.empty();
+        errdefer helpers.deinit();
+        if (options.pool_stack_reservation) |existing| {
+            try existing.requireOwner(a, existing.bytes);
+            if (existing.bytes < helper_bytes) return error.InsufficientRecursionPoolStackReservation;
+        } else helpers = try budget.reserveExternal(helper_bytes);
+        const coordinators = try budget.reserveExternal(try std.math.mul(usize, options.lanes.len, 8 << 20));
+        return .{ .coordinators = coordinators, .helpers = helpers };
+    }
+    pub fn deinit(self: *StackReservations) void {
+        self.helpers.deinit();
+        self.coordinators.deinit();
+    }
+};
 fn validateLanes(options: ParallelOptions) !void {
     if (options.lanes.len == 0 or options.lanes.len > 4) return error.InvalidRecursionAdmission;
     var identities: [4]Dag.LaneIdentity = undefined;
@@ -332,62 +364,42 @@ const ParallelExecution = struct {
     input: PreparedExecution,
     options: ParallelOptions,
     plan: *const Dag.Plan,
-    queue: Dag.Queue,
+    dispatch: Dag.Dispatcher,
     nodes: []Node,
     proofs: [Dag.max_nodes]?Pending = @splat(null),
-    mutex: std.Thread.Mutex = .{},
-    changed: std.Thread.Condition = .{},
-    fatal: ?anyerror = null,
     graph_ns: u64 = 0,
     wrap_ns: u64 = 0,
     fold_ns: u64 = 0,
     restored_leaves: usize = 0,
     restored_folds: usize = 0,
     retired_bytes: usize = 0,
-    fn stop(self: *ParallelExecution, err: anyerror) void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
-        if (self.fatal == null) self.fatal = err;
-        self.changed.broadcast();
-    }
     fn runLane(self: *ParallelExecution, lane: usize) void {
         var binding = Pools.ScopedPoolBinding.init(self.options.lanes[lane].pool) catch |err| {
-            self.stop(err);
+            self.dispatch.stop(err);
             return;
         };
         defer binding.deinit();
-        while (true) {
-            self.mutex.lock();
-            const id = claim: while (true) {
-                if (self.fatal != null or self.queue.failure != null or self.queue.completed == self.plan.count) {
-                    self.mutex.unlock();
-                    return;
-                }
-                const next = self.queue.take() catch |err| {
-                    self.fatal = err;
-                    self.changed.broadcast();
-                    self.mutex.unlock();
-                    return;
-                };
-                if (next) |value| break :claim value;
-                self.changed.wait(&self.mutex);
-            };
-            self.mutex.unlock();
+        while (self.dispatch.take() catch return) |id| {
             const outcome = self.prove(id, self.options.lanes[lane].factory) catch |err| {
-                self.mutex.lock();
-                self.queue.fail(id, err);
-                self.changed.broadcast();
-                self.mutex.unlock();
+                self.dispatch.fail(id, err);
                 return;
             };
-            self.mutex.lock();
+            var publication = Publication{ .execution = self, .outcome = outcome };
+            self.dispatch.publish(id, &publication, Publication.apply);
+        }
+    }
+    const Publication = struct {
+        execution: *ParallelExecution,
+        outcome: Outcome,
+        fn apply(raw: *anyopaque, id: usize) void {
+            const publication: *@This() = @ptrCast(@alignCast(raw));
+            const self = publication.execution;
+            const outcome = publication.outcome;
             self.proofs[id] = outcome.pending;
             const spec = self.plan.nodes[id];
             self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left, .right = spec.right, .authority = outcome.pending.proof.authority.identity, .digest = outcome.pending.proof.digest };
             self.retired_bytes += outcome.retired_bytes;
             if (spec.left) |left| {
-                // prove() has freshly verified and durably published the parent.
-                // Neither child has another consumer in this ordered tree.
                 self.proofs[left].?.deinit(self.input.allocator);
                 self.proofs[spec.right.?].?.deinit(self.input.allocator);
                 self.proofs[left] = null;
@@ -399,11 +411,8 @@ const ParallelExecution = struct {
                 self.wrap_ns += outcome.proof_ns;
                 self.restored_leaves += @intFromBool(outcome.restored);
             }
-            self.queue.complete(id);
-            self.changed.broadcast();
-            self.mutex.unlock();
         }
-    }
+    };
     fn prove(self: *ParallelExecution, id: usize, factory: Outer.Device.Factory) !Outcome {
         const in = self.input;
         const a = in.allocator;
@@ -452,26 +461,22 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Repo
     const plan = try Dag.Plan.init(input.inventory.workers.len);
     const budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.fromAllocator(a).?;
     const stack_bytes = 8 << 20;
-    var reservation = try budget.reserveExternal(options.lanes.len * stack_bytes);
-    defer reservation.deinit();
     const nodes = try a.alloc(Node, plan.count);
     defer a.free(nodes);
-    var shared = ParallelExecution{ .input = input, .options = options, .plan = &plan, .queue = try Dag.Queue.init(&plan, options.lanes.len, options.max_pending_authorities), .nodes = nodes };
+    var shared = ParallelExecution{ .input = input, .options = options, .plan = &plan, .dispatch = .{ .queue = try Dag.Queue.init(&plan, options.lanes.len, options.max_pending_authorities) }, .nodes = nodes };
     defer for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
     var threads: [4]std.Thread = undefined;
     var launched: usize = 0;
     // Every started lane joins on every path, including partial spawn failure.
     for (options.lanes, 0..) |_, lane| {
         threads[lane] = std.Thread.spawn(.{ .stack_size = stack_bytes }, ParallelExecution.runLane, .{ &shared, lane }) catch |err| {
-            shared.stop(err);
+            shared.dispatch.stop(err);
             break;
         };
         launched += 1;
     }
     for (threads[0..launched]) |thread| thread.join();
-    if (shared.fatal) |err| return err;
-    if (shared.queue.failure) |failure| return failure.err;
-    if (shared.queue.completed != plan.count or shared.queue.live != 1) return error.RecursiveLeafCoverage;
+    try shared.dispatch.result();
     const final = shared.proofs[plan.root] orelse return error.RecursiveLeafCoverage;
     const info = nodes[plan.root];
     const verify_start = input.timer.read();
@@ -487,11 +492,11 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Repo
     defer a.free(tree);
     try @import("publication.zig").write(input.dir, "tree.json", tree);
     const n = input.inventory.workers.len;
-    const report = Report{ .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = n - 1 - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = n - 1, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = n - 1 - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = n - 1, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.dispatch.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     try @import("publication.zig").write(input.dir, "report.json", report_bytes);
-    const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
+    const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.dispatch.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
     defer a.free(scheduler);
     try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
     return report;

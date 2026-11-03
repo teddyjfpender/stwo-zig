@@ -20,7 +20,10 @@ or CPU proving fallback.
 
 The allocator must come from `SharedHostBudget`. All graph, proof and retired
 child-key storage uses that synchronized allocator. A separate external
-reservation charges 8 MiB per lane for thread stacks. Each lane owns at most one
+reservation charges 8 MiB per lane for coordinator thread stacks. Pool helper
+stacks are also reserved from their measured pool count and stack size. A caller
+may supply an already live helper-stack reservation from the same budget; it is
+validated and borrowed without double charging. Each lane owns at most one
 active graph/proof. The ready queue counts completed child authorities plus
 in-flight output reservations, prioritizes ready parents and reserves headroom
 against filling the budget with unmatched leaves. The minimum slot cap is
@@ -39,7 +42,18 @@ Host checks cover exact binary-carry IDs, all 1–256 leaf counts with 1–4 lan
 adversarial completion order, bounded active/retained custody, failure draining,
 deterministic lowest submitted-node failure, duplicated device/factory/pool,
 CPU worker over-admission, stale pending-file replacement and publication
-failure cleanup. Production recursion semantic checking also passes.
+failure cleanup. The actual blocking dispatcher is also tested by real threads:
+out-of-order completion publishes before parent release, cancellation drains all
+active work, and simultaneous failures retain deterministic lowest-node errors.
+`zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-recursion-ready -Doptimize=ReleaseFast`
+runs the scheduler/publication checks plus a direct call to the actual
+`runWithFactories` API, forcing its full semantic reachability, and budget tests
+for owned, borrowed, foreign, undersized and failure-atomic stack reservations.
+
+The recursion allocator must be the direct shared-budget allocator. Existing
+native capture/keys/bundles may remain under a recycler backed by that same
+budget. Passing its unidentifiable recycler wrapper to this API is rejected;
+there is no ancestry guessing or unbounded allocator fallback.
 
 Remaining gates: run the candidate with one physical GPU and compare every
 leaf, fold, root proof and tree against the serial control; independently verify

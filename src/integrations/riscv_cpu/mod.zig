@@ -293,3 +293,5 @@ test {
 }
 
 pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
+
+pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/execution_wrap.zig");
