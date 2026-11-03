@@ -1,6 +1,7 @@
 //! tensor-bench: end-to-end benchmarks of the tensor frontend.
 //!
 //!   tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]
+//!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]
 //!
 //! Prints one JSON object with timings, sizes and derived metrics.
 const std = @import("std");
@@ -8,6 +9,7 @@ const t = @import("stwo_tensor");
 const f = t.field;
 const proto = t.protocol;
 const model = t.model;
+const tf = t.transformer;
 
 fn now() std.time.Instant {
     return std.time.Instant.now() catch unreachable;
@@ -69,6 +71,7 @@ pub fn main() !void {
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 2 and std.mem.eql(u8, args[1], "prims")) return @import("bench_prims.zig").run(a, if (args.len > 2) try std.fmt.parseInt(usize, args[2], 10) else 1);
     if (args.len >= 9 and std.mem.eql(u8, args[1], "model")) return runModel(args);
+    if (args.len >= 6 and std.mem.eql(u8, args[1], "layer")) return runLayer(a, args);
     if (args.len < 5 or !std.mem.eql(u8, args[1], "mlp")) {
         std.debug.print("usage: tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]\n", .{});
         return;
@@ -215,4 +218,64 @@ fn runModel(args: []const [:0]u8) !void {
     const flat = t.pcs2.bestOuter(.{ .outer = p.outer, .depth = 0 }, lt, used, nr, false, @min(lt, 30));
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"log_total\":{d},\"used\":{d},\"n_rows\":{d},\"depth\":{d},\"log_cols\":{d},\"bytes\":{d:.0},\"flat_log_cols\":{d},\"flat_bytes\":{d:.0}}}\n", .{ lt, used, nr, p.depth, b.log_cols, b.bytes, flat.log_cols, flat.bytes });
+}
+
+/// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]
+fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
+    const lt = try std.fmt.parseInt(u32, args[2], 10);
+    const ld = try std.fmt.parseInt(u32, args[3], 10);
+    const lf = try std.fmt.parseInt(u32, args[4], 10);
+    const lh = try std.fmt.parseInt(u32, args[5], 10);
+    const threads: usize = if (args.len > 6) try std.fmt.parseInt(usize, args[6], 10) else 12;
+    const queries: usize = if (args.len > 7) try std.fmt.parseInt(usize, args[7], 10) else 64;
+    const lb: u32 = if (args.len > 8) try std.fmt.parseInt(u32, args[8], 10) else 2;
+    const pow: u32 = if (args.len > 9) try std.fmt.parseInt(u32, args[9], 10) else 20;
+    const lkv: u32 = if (args.len > 10) try std.fmt.parseInt(u32, args[10], 10) else lh;
+    const nl: u32 = if (args.len > 11) try std.fmt.parseInt(u32, args[11], 10) else 1;
+    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl };
+    try cfg.validate();
+    var pool: f.Pool = undefined;
+    try pool.init(a, threads);
+    defer pool.deinit();
+    const pc = proto.Config{
+        .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
+        .weight_log_cols = @min(cfg.logDkv(), 13),
+        .witness_log_cols_max = 14,
+        .gkr_threads = threads,
+    };
+    var t0 = now();
+    var sw = try tf.setupWeights(a, &pool, cfg, pc, 100);
+    const commit_s = secs(t0);
+    var b = tf.Builder.init(a, &pool);
+    const c = try tf.initCtx(&b, cfg, &sw.ws, 7);
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 9);
+    t0 = now();
+    _ = try tf.buildStack(&b, c, x);
+    const forward_s = secs(t0);
+    const st = b.statement();
+    const wview = try b.witnessView(a);
+    var tm: proto.Timings = .{};
+    t0 = now();
+    var proof = try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm);
+    const prove_s = secs(t0);
+    t0 = now();
+    try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
+    const verify_s = secs(t0);
+    const sz = proof.sizes();
+    var n_weights: usize = 0;
+    for (sw.winfos) |wi| n_weights += wi.size();
+    const out = std.fs.File.stdout().deprecatedWriter();
+    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, nl, threads, queries, lb, pow });
+    try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits(), n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
+    try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
+    try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns) });
+    try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
+    proof.deinit(a);
+    a.free(wview);
+    b.deinit();
+    sw.ws.deinit(a);
+    for (sw.wdata) |w| a.free(w);
+    a.free(sw.wdata);
+    a.free(sw.winfos);
+    a.free(x);
 }
