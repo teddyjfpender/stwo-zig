@@ -149,6 +149,10 @@ pub const Config = struct {
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
     gkr_threads: usize = 8,
+    /// smallest GKR loop split across the GKR pool (stwo's default is 2^13;
+    /// 2^10 measured best for the MLP: the many small late-round loops of
+    /// every layer otherwise run serially)
+    gkr_min_parallel: usize = 1 << 10,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
@@ -334,6 +338,10 @@ pub const Timings = struct {
     /// prover-side recomputation of matmul/hadamard accumulators (0 with proveWithAccumulators)
     accumulators_ns: u64 = 0,
     multiplicities_ns: u64 = 0,
+    /// parts of gkr_ns: LogUp input construction, layer build, layer sumchecks
+    gkr_input_ns: u64 = 0,
+    gkr_build_ns: u64 = 0,
+    gkr_sumcheck_ns: u64 = 0,
     witness_elems: usize = 0,
     witness_table_elems: usize = 0,
 };
@@ -610,8 +618,10 @@ pub fn proveWithAccumulators(
     }
     var gkr_proof: ?GkrVerifier.GkrBatchProof = null;
     var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
+    var gkr_stats: Fast.Stats = .{};
+    timings.gkr_input_ns = nowNs(t0);
     if (n_inst > 0) {
-        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads }, null);
+        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads, .min_parallel = cfg.gkr_min_parallel }, &gkr_stats);
         gkr_proof = gkr_res.proof;
         art = gkr_res.artifact;
     }
@@ -619,6 +629,8 @@ pub fn proveWithAccumulators(
     for (rel.tables, 0..) |_, i| a.free(inputs[rel.keys.len + i].den);
     defer if (n_inst > 0) art.deinit(a);
     timings.gkr_ns = nowNs(t0);
+    timings.gkr_build_ns = gkr_stats.build_ns;
+    timings.gkr_sumcheck_ns = gkr_stats.sumcheck_ns;
     const L = art.ood_point.len;
 
     var claims: ClaimList = .empty;
