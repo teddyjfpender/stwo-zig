@@ -51,14 +51,14 @@ pub const Params = struct {
     /// query / blowup / PoW parameters of the outer (big) commitment
     outer: pcs.Params = .{},
     /// parameters of every inner (committed-row) commitment
-    inner: pcs.Params = .{ .log_blowup = 4, .n_queries = 32, .pow_bits = 20 },
+    inner: pcs.Params = .{ .log_blowup = 2, .n_queries = 54, .pow_bits = 20 },
     /// number of committed-row levels (0 = plain Ligero with multiproofs)
     depth: u32 = 1,
     /// prover-cost bound used by the shape search: a level with 2^lc columns
     /// may commit its combined rows only if 4 * 2^lc * 2^inner_blowup <=
     /// max(used >> inner_work_shift, 2^14), i.e. the inner encoding stays a
     /// small fraction of the level's own row-combination work.
-    inner_work_shift: u32 = 2,
+    inner_work_shift: u32 = 3,
 
     pub fn level(self: Params, i: usize) pcs.Params {
         return if (i == 0) self.outer else self.inner;
@@ -550,36 +550,62 @@ fn openRec(
     tr.drawN(gp);
 
     // W = sum_eval gp_e (e_g (x) eq(z_col_g)) + lambda (x) (sum_j gp_j T_j)
-    const W = try a.alloc(QM31, G * C);
-    defer a.free(W);
     const S = try querySum(a, pool, com.logExt(), log_c, uq, gp[n_eval..]);
     defer a.free(S);
-    for (0..G) |g| {
-        const dst = W[g * C ..][0..C];
-        if (lambda[g].isZero()) {
-            @memset(dst, QM31.zero());
-        } else for (dst, S) |*d, s| {
-            d.* = s.mul(lambda[g]);
-        }
-    }
     var claim = QM31.zero();
     for (ys, gp[n_eval..]) |y, g| claim = claim.add(g.mul(y));
-    var ei: usize = 0;
     const k0 = @intFromBool(with_proximity);
-    for (groups, 0..) |g, gi| {
-        if (g.claims.len == 0) continue;
-        const zc = g.claims[0].point[com.log_rows..];
-        const eqc = try f.eqTablePar(a, pool, zc, gp[ei]);
-        defer a.free(eqc);
-        const dst = W[(k0 + gi) * C ..][0..C];
-        for (dst, eqc) |*d, e| d.* = d.add(e);
-        claim = claim.add(gp[ei].mul(evalTarget(g, su.gammas[gi])));
-        ei += 1;
+    // per U row: optional eq(z_col) table scaled by its gamma'
+    const eq_rows = try a.alloc(?[]QM31, G);
+    @memset(eq_rows, null);
+    defer {
+        for (eq_rows) |e| if (e) |x| a.free(x);
+        a.free(eq_rows);
     }
+    {
+        var ei: usize = 0;
+        for (groups, 0..) |g, gi| {
+            if (g.claims.len == 0) continue;
+            const zc = g.claims[0].point[com.log_rows..];
+            eq_rows[k0 + gi] = try f.eqTablePar(a, pool, zc, gp[ei]);
+            claim = claim.add(gp[ei].mul(evalTarget(g, su.gammas[gi])));
+            ei += 1;
+        }
+    }
+    const W = try a.alloc(QM31, G * C);
+    defer a.free(W);
     const Uf = try a.alloc(QM31, G * C);
     defer a.free(Uf);
-    @memset(Uf, QM31.zero());
-    for (rows, 0..) |r, g| @memcpy(Uf[g * C ..][0..C], r);
+    {
+        const WCtx = struct { W: []QM31, Uf: []QM31, S: []const QM31, lambda: []const QM31, eq_rows: []const ?[]QM31, rows: []const []QM31, C: usize };
+        const wctx = WCtx{ .W = W, .Uf = Uf, .S = S, .lambda = lambda, .eq_rows = eq_rows, .rows = rows, .C = C };
+        const CH = 8192;
+        const n_ch = (G * C + CH - 1) / CH;
+        pool.parallelFor(n_ch, 1, &wctx, struct {
+            fn run(c: *const WCtx, s0: usize, e0: usize) void {
+                for (s0..e0) |ch| {
+                    const ia = ch * CH;
+                    const ib = @min(c.W.len, ia + CH);
+                    var i = ia;
+                    while (i < ib) {
+                        const g = i / c.C;
+                        const k_lo = i % c.C;
+                        const k_hi = @min(c.C, k_lo + (ib - i));
+                        const n = k_hi - k_lo;
+                        const lam = c.lambda[g];
+                        const wd = c.W[i..][0..n];
+                        for (wd, c.S[k_lo..k_hi]) |*d, sv| d.* = sv.mul(lam);
+                        if (c.eq_rows[g]) |eqr| for (wd, eqr[k_lo..k_hi]) |*d, e| {
+                            d.* = d.add(e);
+                        };
+                        const ud = c.Uf[i..][0..n];
+                        if (g < c.rows.len) @memcpy(ud, c.rows[g][k_lo..k_hi]) else @memset(ud, QM31.zero());
+                        i += n;
+                    }
+                }
+            }
+        }.run);
+    }
     // full length: W is nonzero on the padded (zero) rows of U, and the
     // verifier evaluates the untruncated W~.
     const res = try sc.proveActive(2, &T_PROD2, a, pool, tr, claim, .{ Uf, W }, G * C);
@@ -1104,6 +1130,10 @@ test "pcs2 depth 1 roundtrip and tampering" {
 
 test "pcs2 depth 2 roundtrip and tampering" {
     try runRoundtrip(2);
+}
+
+test "pcs2 depth 3 roundtrip and tampering" {
+    try runRoundtrip(3);
 }
 
 test "pcs2 rejects a committed table that is not a codeword" {
