@@ -74,7 +74,9 @@ fn histMle(a: std.mem.Allocator, h: [256]u32, point: []const QM31) !QM31 {
     return f.mleEvalI32(a, &v, point);
 }
 
-pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const proto.WeightStore) !KeyProof {
+pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const proto.WeightStore) !KeyProof {
+    // the key's opening runs at the key-time outer parameters (Config.key_outer)
+    const cfg = try proto.keyConfig(cfg0);
     const key = proto.weightKey(ws);
     var tr = startTranscript(key);
     const n = ws.table.len;
@@ -116,7 +118,8 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const 
     return .{ .histogram = hist, .gkr = res.proof, .value = value, .opening = opening };
 }
 
-pub fn verify(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
+pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
+    const cfg = try proto.keyConfig(cfg0);
     var tr = startTranscript(key);
     var total: u64 = 0;
     for (proof.histogram) |h| total += h;

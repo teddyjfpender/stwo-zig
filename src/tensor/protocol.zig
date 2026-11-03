@@ -164,6 +164,17 @@ pub const Config = struct {
     /// with shared challenges, so their weight claims share the local point
     /// (one PCS claim group per class instead of per matmul).
     batch_matmuls: bool = false,
+    /// Per-batch weight openings: query/PoW parameters of the outer level
+    /// (the weight table itself; null = the witness outer parameters). The
+    /// weight table's proximity is proven once in the weight key at a small
+    /// distance, so per-batch consistency queries each fail a cheating
+    /// prover with probability ~1 - (rho + delta_key) instead of
+    /// (1 - rho)/2 (security.md, section 4). The blowup must equal the outer
+    /// blowup (same commitment).
+    weight_outer: ?pcs.Params = null,
+    /// Weight-key proximity proof (one-time): outer-level query/PoW
+    /// parameters (null = the witness outer parameters). Same blowup rule.
+    key_outer: ?pcs.Params = null,
     /// max log columns of the weight table (must be <= min log N over matmuls)
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
@@ -380,7 +391,7 @@ const PCS2_MAX_LOG_COLS: u32 = 22;
 
 fn witnessSplit(cfg: Config, log_total: u32, used: usize) struct { lr: u32, lc: u32 } {
     if (cfg.two_level) |tl| {
-        const b = pcs2.bestOuter(tl, log_total, used, 1, true, @min(log_total, PCS2_MAX_LOG_COLS));
+        const b = pcs2.bestOuter(tl, log_total, used, 1 + @as(usize, @intFromBool(tl.ood)), true, @min(log_total, PCS2_MAX_LOG_COLS));
         return .{ .lr = log_total - b.log_cols, .lc = b.log_cols };
     }
     const s = splitTable(log_total, cfg.witness_log_cols_max);
@@ -391,11 +402,55 @@ pub fn outerParams(cfg: Config) pcs.Params {
     return if (cfg.two_level) |tl| tl.outer else cfg.pcs;
 }
 
+/// Config whose outer-level parameters are `over` (same blowup required).
+fn withOuter(cfg: Config, over: ?pcs.Params) !Config {
+    const o = over orelse return cfg;
+    if (o.log_blowup != outerParams(cfg).log_blowup) return error.ConfigBlowup;
+    var c = cfg;
+    if (c.two_level) |*tl| tl.outer = o else c.pcs = o;
+    return c;
+}
+
+/// Config used for per-batch weight openings.
+pub fn weightOpenConfig(cfg: Config) !Config {
+    return withOuter(cfg, cfg.weight_outer);
+}
+
+/// Config used for the one-time weight-key proximity opening.
+pub fn keyConfig(cfg: Config) !Config {
+    return withOuter(cfg, cfg.key_outer);
+}
+
+/// The witness table carries an OOD sample when the PCS runs beyond unique
+/// decoding (pcs2 with ood): one extra claim group in the witness opening.
+pub fn witnessOod(cfg: Config) bool {
+    return if (cfg.two_level) |tl| tl.ood else false;
+}
+
+/// MLE of a committed i32 table (row-major, rows >= rows_used zero) at a point
+/// (row coordinates first): one row combination and a dot product.
+pub fn tableMle(a: std.mem.Allocator, pool: *f.Pool, m: pcs.Matrix(i32), point: []const QM31) !QM31 {
+    std.debug.assert(point.len == m.log_rows + m.log_cols);
+    const eq_r = try f.eqTable(a, point[0..m.log_rows], QM31.one());
+    defer a.free(eq_r);
+    const cv = [_][]const QM31{eq_r};
+    const rows = try pcs.combineRows(i32, a, pool, m, &cv, 30);
+    defer {
+        for (rows) |r| a.free(r);
+        a.free(rows);
+    }
+    const eq_c = try f.eqTablePar(a, pool, point[m.log_rows..], QM31.one());
+    defer a.free(eq_c);
+    var v = QM31.zero();
+    for (rows[0], eq_c) |u, e| v = v.add(u.mul(e));
+    return v;
+}
+
 /// Weight-table column count for a weight set under the configured PCS: with
 /// pcs2 the size model picks it (assuming `n_groups` distinct column points per
 /// batch); otherwise `cfg.weight_log_cols`.
 pub fn chooseWeightLogCols(cfg: Config, a: std.mem.Allocator, infos: []const TensorInfo, n_groups: usize) !u32 {
-    const tl = cfg.two_level orelse return cfg.weight_log_cols;
+    const tl = (try weightOpenConfig(cfg)).two_level orelse return cfg.weight_log_cols;
     const lay = try layout(a, infos, &.{});
     defer a.free(lay.offsets);
     return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups, false, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
@@ -413,8 +468,12 @@ pub const Proof = struct {
     op_finals: [][]QM31,
     batch_sumcheck: sc.Proof,
     witness_value: QM31,
+    /// MLE of the witness table at the OOD point drawn right after its root
+    /// (only when the PCS runs beyond unique decoding, `witnessOod`)
+    witness_ood: ?QM31 = null,
     witness_opening: Opening,
-    weight_values: []QM31,
+    /// The weight claims' values are not sent: they are the op finals
+    /// (W(r, rho_n)) already in the proof; the verifier rebuilds them.
     weight_opening: ?Opening,
     ext: xt.ProofPart = .{},
 
@@ -427,7 +486,6 @@ pub const Proof = struct {
         a.free(self.op_finals);
         self.batch_sumcheck.deinit(a);
         self.witness_opening.deinit(a);
-        a.free(self.weight_values);
         if (self.weight_opening) |*w| w.deinit(a);
         self.ext.deinit(a);
     }
@@ -445,7 +503,7 @@ pub const Proof = struct {
             };
             for (g.output_claims_by_instance) |c| gk += c.len * 16;
         }
-        var s: usize = self.lookup_in_values.len * 16 + self.batch_sumcheck.byteSize() + 16 + self.weight_values.len * 16;
+        var s: usize = self.lookup_in_values.len * 16 + self.batch_sumcheck.byteSize() + 16 + @as(usize, if (self.witness_ood != null) 16 else 0);
         for (self.op_sumchecks) |p| s += p.byteSize();
         for (self.op_finals) |x| s += x.len * 16;
         s += self.ext.byteSize();
@@ -846,6 +904,16 @@ pub fn proveWithAccumulators(
     var tr = Transcript.initDomain("stwo-tensor-v1");
     mixStatement(&tr, st, ws.com.root());
     tr.mixDigest(wcom.root());
+    // OOD sample of the witness table: fixes the decoded witness before any
+    // challenge (security.md, section 3)
+    const wood_pt = try a.alloc(QM31, if (witnessOod(cfg)) lay.log_total else 0);
+    defer a.free(wood_pt);
+    var wood: ?QM31 = null;
+    if (witnessOod(cfg)) {
+        tr.drawN(wood_pt);
+        wood = try tableMle(a, pool, wm, wood_pt);
+        tr.mixFelt(wood.?);
+    }
     const alpha = tr.draw();
     const beta = tr.draw();
 
@@ -1124,18 +1192,20 @@ pub fn proveWithAccumulators(
     // --- witness opening (with proximity)
     t0 = try std.time.Instant.now();
     const wclaim = [_]pcs.Claim{.{ .point = bres.point, .value = wval }};
-    const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
+    const woclaim = [_]pcs.Claim{.{ .point = wood_pt, .value = wood orelse QM31.zero() }};
+    const wgroups_all = [_]pcs.Group{ .{ .claims = &wclaim }, .{ .claims = &woclaim } };
+    const wgroups = wgroups_all[0 .. 1 + @as(usize, @intFromBool(witnessOod(cfg)))];
     const wopen: Opening = if (cfg.two_level) |tl|
-        .{ .two = try pcs2.open(i32, a, pool, &tr, tl, &wcom, wm, &wgroups, true) }
+        .{ .two = try pcs2.open(i32, a, pool, &tr, tl, &wcom, wm, wgroups, true) }
     else
-        .{ .flat = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, &wgroups, true) };
+        .{ .flat = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, wgroups, true) };
     timings.witness_open_ns = nowNs(t0);
 
     // --- weight opening (single combined row; proximity proven at commit time)
     t0 = try std.time.Instant.now();
     const wcl = try a.alloc(pcs.Claim, weight_claims.items.len);
     defer a.free(wcl);
-    const wvals = try a.alloc(QM31, weight_claims.items.len);
+    const wcfg = try weightOpenConfig(cfg);
     const full_pts = try a.alloc([]QM31, weight_claims.items.len);
     defer {
         for (full_pts) |p| a.free(p);
@@ -1145,17 +1215,16 @@ pub fn proveWithAccumulators(
     for (weight_claims.items, 0..) |c, i| {
         full_pts[i] = try fullPoint(a, wlog_total, ws.offsets[c.w], ws.infos[c.w].logSize(), c.point);
         wcl[i] = .{ .point = full_pts[i], .value = c.value };
-        wvals[i] = c.value;
     }
     const wtgroups = [_]pcs.Group{.{ .claims = wcl }};
     var wtopen: ?Opening = null;
     if (wcl.len > 0) {
-        if (cfg.two_level) |tl| {
+        if (wcfg.two_level) |tl| {
             const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
             defer pcs2.freeGroups(a, gs);
             wtopen = .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), gs, false) };
         } else {
-            wtopen = .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false) };
+            wtopen = .{ .flat = try pcs.open(i8, a, pool, &tr, wcfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false) };
         }
     }
     timings.weight_open_ns = nowNs(t0);
@@ -1168,8 +1237,8 @@ pub fn proveWithAccumulators(
         .op_finals = try op_finals.toOwnedSlice(a),
         .batch_sumcheck = bres.proof,
         .witness_value = wval,
+        .witness_ood = wood,
         .witness_opening = wopen,
-        .weight_values = wvals,
         .weight_opening = wtopen,
         .ext = .{ .values = try ext_values.toOwnedSlice(a), .sumchecks = try ext_sumchecks.toOwnedSlice(a), .finals = try ext_finals.toOwnedSlice(a) },
     };
@@ -1306,6 +1375,13 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     var tr = Transcript.initDomain("stwo-tensor-v1");
     mixStatement(&tr, st, key.root);
     tr.mixDigest(proof.witness_root);
+    if ((proof.witness_ood != null) != witnessOod(cfg)) return error.ProofShape;
+    const wood_pt = try a.alloc(QM31, if (witnessOod(cfg)) lay.log_total else 0);
+    defer a.free(wood_pt);
+    if (proof.witness_ood) |v| {
+        tr.drawN(wood_pt);
+        tr.mixFelt(v);
+    }
     const alpha = tr.draw();
     const beta = tr.draw();
 
@@ -1538,28 +1614,29 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     if (!bv.final_claim.eql(proof.witness_value.mul(e_at))) return error.BatchSumcheck;
 
     const wclaim = [_]pcs.Claim{.{ .point = bv.point, .value = proof.witness_value }};
-    const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
+    const woclaim = [_]pcs.Claim{.{ .point = wood_pt, .value = proof.witness_ood orelse QM31.zero() }};
+    const wgroups_all = [_]pcs.Group{ .{ .claims = &wclaim }, .{ .claims = &woclaim } };
+    const wgroups = wgroups_all[0 .. 1 + @as(usize, @intFromBool(witnessOod(cfg)))];
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
     const wshape = pcs.Shape{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = olb, .rows_used = w_ru };
-    try verifyOpeningAny(a, &tr, cfg, wshape, proof.witness_root, &wgroups, true, proof.witness_opening);
+    try verifyOpeningAny(a, &tr, cfg, wshape, proof.witness_root, wgroups, true, proof.witness_opening);
 
-    if (proof.weight_values.len != weight_pts.items.len) return error.ProofShape;
+    // weight claims: the values are the matmul finals for W (not resent)
+    if (expected_w.items.len != weight_pts.items.len) return error.ProofShape;
     const wcl = try a.alloc(pcs.Claim, weight_pts.items.len);
     defer a.free(wcl);
-    for (weight_pts.items, proof.weight_values, 0..) |p, v, i| wcl[i] = .{ .point = p, .value = v };
+    for (weight_pts.items, expected_w.items, 0..) |p, v, i| wcl[i] = .{ .point = p, .value = v };
     const kgroups = [_]pcs.Group{.{ .claims = wcl }};
-    // matmul finals for W must equal the opened weight values
-    if (expected_w.items.len != proof.weight_values.len) return error.ProofShape;
-    for (expected_w.items, proof.weight_values) |e, v| if (!e.eql(v)) return error.WeightValueMismatch;
     if ((wcl.len == 0) != (proof.weight_opening == null)) return error.ProofShape;
     if (proof.weight_opening) |wop| {
+        const wcfg = try weightOpenConfig(cfg);
         const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = olb, .rows_used = key.rows_used };
-        if (cfg.two_level != null) {
+        if (wcfg.two_level != null) {
             const gs = try pcs2.groupByColumn(a, wcl, key.log_rows);
             defer pcs2.freeGroups(a, gs);
-            try verifyOpeningAny(a, &tr, cfg, kshape, key.root, gs, false, wop);
+            try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, gs, false, wop);
         } else {
-            try verifyOpeningAny(a, &tr, cfg, kshape, key.root, &kgroups, false, wop);
+            try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, &kgroups, false, wop);
         }
     }
 }
@@ -1579,14 +1656,16 @@ pub fn verifyOpeningAny(a: std.mem.Allocator, tr: *Transcript, cfg: Config, shap
 }
 
 /// Offline: proximity test of the committed weight table (run once per commitment).
-pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, ws: *const WeightStore) !Opening {
+pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg0: Config, ws: *const WeightStore) !Opening {
+    const cfg = try keyConfig(cfg0);
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(ws.com.root());
     if (cfg.two_level) |tl| return .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), &.{}, true) };
     return .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &.{}, true) };
 }
 
-pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: Config, key: WeightKey, proof: Opening) !void {
+pub fn verifyWeightProximity(a: std.mem.Allocator, cfg0: Config, key: WeightKey, proof: Opening) !void {
+    const cfg = try keyConfig(cfg0);
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(key.root);
     const shape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = outerParams(cfg).log_blowup, .rows_used = key.rows_used };

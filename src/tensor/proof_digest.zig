@@ -62,7 +62,7 @@ pub fn digest(p: *const proto.Proof) [32]u8 {
     for (p.batch_sumcheck.rounds) |rp| for (rp.evals[0..p.batch_sumcheck.deg]) |x| felt(&h, x);
     felt(&h, p.witness_value);
     openingAny(&h, p.witness_opening);
-    for (p.weight_values) |x| felt(&h, x);
+    if (p.witness_ood) |v| felt(&h, v);
     if (p.weight_opening) |o| openingAny(&h, o);
     var out: [32]u8 = undefined;
     h.final(&out);
@@ -92,7 +92,9 @@ fn hex(d: [32]u8) [64]u8 {
 }
 
 /// Golden digests recorded on the pre-optimization prover (cc5ac62c9).
-const GOLDEN_MLP = "487a2f07ea13b7350cc7b80f39ea8002f6a3563f6bc6f58fad97af2e43274015";
+// r2-sec: weight_values dropped from the proof (transcript unchanged; the
+// digest no longer hashes the duplicated values)
+const GOLDEN_MLP = "eb73e685c5672b3831d6dfb16b942cf46856b902932a95e8181b81c67f00d228";
 const GOLDEN_PRODUCT = "ef898ebc41f69dc02891d663b412d409f8b0e999d1672af46d7c2ffca1021446";
 
 fn mlpProofDigest(threads: usize) ![32]u8 {

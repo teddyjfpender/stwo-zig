@@ -26,7 +26,7 @@ pub fn proofDigest(p: proto.Proof) [32]u8 {
     for (p.batch_sumcheck.rounds) |r| hashFelts(&h, r.evals[0..p.batch_sumcheck.deg]);
     hashFelts(&h, &.{p.witness_value});
     hashOpening(&h, p.witness_opening);
-    hashFelts(&h, p.weight_values);
+    if (p.witness_ood) |v| hashFelts(&h, &.{v});
     if (p.weight_opening) |w| hashOpening(&h, w);
     var out: [32]u8 = undefined;
     h.final(&out);
