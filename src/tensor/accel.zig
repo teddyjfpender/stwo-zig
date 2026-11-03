@@ -33,8 +33,6 @@ pub const Accel = struct {
     /// Applies the last fold, copies the folded prefix of every factor into
     /// out[j][0 .. len] (len = current length) and releases the session.
     sc_finish: *const fn (ctx: *anyopaque, s: *anyopaque, r_last: QM31, out: []const []QM31) anyerror!void,
-    /// Device-resident batch sumcheck factors: F = wtab (as QM31) and
-    /// E = sum_c gamma_c eq(point_c, . - offset_c). Null = not handled.
     /// Integer matmul accumulators acc = X (T x K, i32) . W (K x N, i8) as i64.
     matmul_acc: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, x: []const i32, T: usize, wm: pcs.Matrix(i8)) anyerror!?[]i64 = null,
     /// MLE of an integer vector (length 2^point.len) at `point`.
@@ -46,7 +44,10 @@ pub const Accel = struct {
     /// 2^gkr_min_log entries.
     gkr_prove: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, ch: *Channel, inputs: []const GkrInput) anyerror!GkrResult = null,
     gkr_min_log: u32 = 12,
-    sc_begin_batch: ?*const fn (ctx: *anyopaque, wtab: []const i32, claims: []const BatchClaim, active: usize) anyerror!?*anyopaque = null,
+    /// Sumcheck over implicitly given factors (see FactorSpec), all of length
+    /// `len`; the device never materialises them at full length. Null = not
+    /// handled.
+    sc_begin_lazy: ?*const fn (ctx: *anyopaque, specs: []const FactorSpec, terms: []const sc.Term, len: usize, active: usize) anyerror!?*anyopaque = null,
     sc_abort: *const fn (ctx: *anyopaque, s: *anyopaque) void,
     /// Device rounds run while the round's work (min(half, active)) is at
     /// least this; the remaining small rounds run on the CPU.
@@ -175,6 +176,75 @@ pub const BatchClaim = struct {
 
 const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
 
+/// A sumcheck factor given implicitly: an integer vector (as field elements)
+/// or a sum of scaled eq tables placed at offsets (zero elsewhere).
+pub const FactorSpec = union(enum) {
+    int: []const i32,
+    eq: []const BatchClaim,
+};
+
+fn materialize(a: std.mem.Allocator, pool: *f.Pool, spec: FactorSpec, len: usize) ![]QM31 {
+    // a single full-length eq table: build it directly
+    if (spec == .eq and spec.eq.len == 1 and spec.eq[0].offset == 0 and (@as(usize, 1) << @intCast(spec.eq[0].point.len)) == len)
+        return f.eqTablePar(a, pool, spec.eq[0].point, spec.eq[0].gamma);
+    const out = try a.alloc(QM31, len);
+    errdefer a.free(out);
+    switch (spec) {
+        .int => |v| {
+            const Ctx = struct { v: []const i32, out: []QM31 };
+            const ctx = Ctx{ .v = v, .out = out };
+            pool.parallelFor(len, 8192, &ctx, struct {
+                fn run(c: *const Ctx, s: usize, e: usize) void {
+                    for (s..e) |i| c.out[i] = QM31.fromBase(f.fromI32(c.v[i]));
+                }
+            }.run);
+        },
+        .eq => |claims| {
+            @memset(out, QM31.zero());
+            for (claims) |c| {
+                const eq = try f.eqTablePar(a, pool, c.point, c.gamma);
+                defer a.free(eq);
+                for (out[c.offset..][0..eq.len], eq) |*e, v| e.* = e.add(v);
+            }
+        },
+    }
+    return out;
+}
+
+/// Sumcheck over implicitly given factors; identical output to
+/// materialising them and calling `sc.proveActive`.
+pub fn proveFactors(
+    acc: ?*const Accel,
+    comptime NF: usize,
+    comptime terms: []const sc.Term,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    specs: [NF]FactorSpec,
+    len: usize,
+    active: usize,
+) !sc.ProveResult {
+    if (acc) |A| if (A.sc_begin_lazy) |begin| if (NF <= 4 and len >= 2 and @min(len / 2, active) >= A.sc_min_work) {
+        if (try begin(A.ctx, &specs, terms, len, @min(active, len))) |s| {
+            const tail_len = @min(len, 2 * A.sc_min_work);
+            const tf = try a.alloc(QM31, NF * tail_len);
+            defer a.free(tf);
+            var outs: [NF][]QM31 = undefined;
+            inline for (0..NF) |j| outs[j] = tf[j * tail_len ..][0..tail_len];
+            return deviceRounds(A, s, NF, terms, a, pool, tr, claim, len, @min(active, len), outs);
+        }
+    };
+    var mats: [NF][]QM31 = undefined;
+    var made: usize = 0;
+    defer for (mats[0..made]) |m| a.free(m);
+    inline for (0..NF) |j| {
+        mats[j] = try materialize(a, pool, specs[j], len);
+        made += 1;
+    }
+    return proveActive(acc, NF, terms, a, pool, tr, claim, mats, active);
+}
+
 /// Claim-batching sumcheck: proves sum_x F(x) E(x) = batch_claim with
 /// F = wtab (as QM31) and E = sum_c gamma_c eq(point_c, x - offset_c);
 /// entries >= `active` are zero. Identical output on every path.
@@ -188,34 +258,7 @@ pub fn batchProve(
     claims: []const BatchClaim,
     batch_claim: QM31,
 ) !sc.ProveResult {
-    const total = wtab.len;
-    if (acc) |A| if (A.sc_begin_batch) |begin| if (total >= 2 and @min(total / 2, active) >= A.sc_min_work) {
-        if (try begin(A.ctx, wtab, claims, @min(active, total))) |s| {
-            const tail_len = @max(1, A.sc_min_work * 2);
-            const tf = try a.alloc(QM31, 2 * @min(total, tail_len));
-            defer a.free(tf);
-            const half = tf.len / 2;
-            return deviceRounds(A, s, 2, &T_PROD2, a, pool, tr, batch_claim, total, @min(active, total), .{ tf[0..half], tf[half..] });
-        }
-    };
-    const E = try a.alloc(QM31, total);
-    defer a.free(E);
-    @memset(E, QM31.zero());
-    for (claims) |c| {
-        const eq = try f.eqTablePar(a, pool, c.point, c.gamma);
-        defer a.free(eq);
-        for (E[c.offset..][0..eq.len], eq) |*e, v| e.* = e.add(v);
-    }
-    const F = try a.alloc(QM31, total);
-    defer a.free(F);
-    const Ctx = struct { v: []const i32, out: []QM31 };
-    const ctx = Ctx{ .v = wtab, .out = F };
-    pool.parallelFor(total, 8192, &ctx, struct {
-        fn run(c: *const Ctx, s: usize, e: usize) void {
-            for (s..e) |i| c.out[i] = QM31.fromBase(f.fromI32(c.v[i]));
-        }
-    }.run);
-    return proveActive(acc, 2, &T_PROD2, a, pool, tr, batch_claim, .{ F, E }, active);
+    return proveFactors(acc, 2, &T_PROD2, a, pool, tr, batch_claim, .{ .{ .int = wtab }, .{ .eq = claims } }, wtab.len, active);
 }
 
 /// Device matmul accumulators (X rows = 2^log_t); null = use the CPU kernel.

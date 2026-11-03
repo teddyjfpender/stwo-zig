@@ -858,15 +858,9 @@ pub fn prove(
             const rho = try a.alloc(QM31, ls);
             defer a.free(rho);
             tr.drawN(rho);
-            const eq = try f.eqTablePar(a, pool, rho, QM31.one());
-            const fa = try toQM31Vec(a, pool, all[q.a]);
-            const fb = try toQM31Vec(a, pool, all[q.b]);
-            const fc = try toQM31Vec(a, pool, all[q.c]);
-            defer a.free(eq);
-            defer a.free(fa);
-            defer a.free(fb);
-            defer a.free(fc);
-            var res = try accel.proveActive(cfg.accel, 4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ eq, fa, fb, fc }, eq.len);
+            const eqc = [_]accel.BatchClaim{.{ .offset = 0, .point = rho, .gamma = QM31.one() }};
+            const n_prod = @as(usize, 1) << @intCast(ls);
+            var res = try accel.proveFactors(cfg.accel, 4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ .{ .eq = &eqc }, .{ .int = all[q.a] }, .{ .int = all[q.b] }, .{ .int = all[q.c] } }, n_prod, n_prod);
             defer a.free(res.point);
             try op_proofs.append(a, res.proof);
             const fin = try a.dupe(QM31, res.finals[1..]);

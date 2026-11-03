@@ -582,17 +582,35 @@ kernel void tm_matmul_simd(
 }
 
 // ---------------------------------------------------------------------------
-// Claim-batching sumcheck, round 0 without materialising F or E:
-// F(x) = wtab[x] (base field), E(x) = sum over claims c covering x of
-// pre_c[(x - off_c) >> lo_c] * suf_c[(x - off_c) & mask_c] (gamma folded into
-// pre_c). Round 0 sums and the round-0 fold (into half-size QM31 buffers)
-// evaluate E on the fly; later rounds use the generic kernels.
+// Lazy sumcheck round 0: factors are given implicitly, each either an int32
+// vector (base field) or a sum of eq tables
+//   E(x) = sum over claims c covering x of pre_c[(x - off_c) >> lo_c] *
+//          suf_c[(x - off_c) & mask_c]       (gamma folded into pre_c),
+// and are evaluated on the fly. Round 0 sums and the round-0 fold (into
+// half-size QM31 buffers) never materialise a full-length factor; later
+// rounds use the generic kernels. Used by the claim-batching sumcheck
+// (F = witness table, E = batched eq) and the product op (eq, a, b, c).
 struct TmBatchClaim { uint offset; uint count; uint lo_bits; uint pre_off; uint suf_off; };
-struct TmBatchParams { uint half_len; uint active; uint work; uint n_claims; Qm31Value r; };
+struct TmLazyFactor { uint kind; uint claim0; uint n_claims; uint _pad; };  // kind 0: int32 (buffer j), 1: eq sum
+struct TmLazyParams {
+    uint half_len;
+    uint active;
+    uint work;
+    uint n_factors;
+    uint n_terms;
+    uint deg;
+    uint _pad0;
+    uint _pad1;
+    uint term_len[4];
+    uint term_fac[4][3];
+    Qm31Value coeff[4];
+    Qm31Value r;
+    TmLazyFactor fac[4];
+};
 
-inline Qm31Value tm_batch_e(device const uint *tabs, device const TmBatchClaim *cl, uint n, uint x) {
+inline Qm31Value tm_batch_e(device const uint *tabs, device const TmBatchClaim *cl, uint c0, uint n, uint x) {
     Qm31Value e = tm_zero();
-    for (uint c = 0u; c < n; ++c) {
+    for (uint c = c0; c < c0 + n; ++c) {
         uint i = x - cl[c].offset;
         if (x < cl[c].offset || i >= cl[c].count) continue;
         uint mask = (1u << cl[c].lo_bits) - 1u;
@@ -601,12 +619,32 @@ inline Qm31Value tm_batch_e(device const uint *tabs, device const TmBatchClaim *
     return e;
 }
 
-kernel void tm_batch_round0(
-    device const int *wtab [[buffer(0)]],
-    device const uint *tabs [[buffer(1)]],
-    device const TmBatchClaim *cl [[buffer(2)]],
-    device uint *partials [[buffer(4)]],
-    constant TmBatchParams &p [[buffer(5)]],
+inline Qm31Value tm_lazy_value(constant TmLazyParams &p, uint j, device const int *src, device const uint *tabs, device const TmBatchClaim *cl, uint x) {
+    if (p.fac[j].kind == 0u) return { tm_from_i32(src[x]), 0u, 0u, 0u };
+    return tm_batch_e(tabs, cl, p.fac[j].claim0, p.fac[j].n_claims, x);
+}
+
+inline Qm31Value tm_lazy_terms(constant TmLazyParams &p, thread const Qm31Value *cur) {
+    Qm31Value v = tm_zero();
+    for (uint t = 0u; t < p.n_terms; ++t) {
+        Qm31Value prod = cur[p.term_fac[t][0]];
+        for (uint k = 1u; k < p.term_len[t]; ++k) prod = qm_mul(prod, cur[p.term_fac[t][k]]);
+        Qm31Value c = p.coeff[t];
+        if (!(c.a == 1u && c.b == 0u && c.c == 0u && c.d == 0u)) prod = qm_mul(prod, c);
+        v = qm_add(v, prod);
+    }
+    return v;
+}
+
+kernel void tm_lazy_round0(
+    device const int *s0 [[buffer(0)]],
+    device const int *s1 [[buffer(1)]],
+    device const int *s2 [[buffer(2)]],
+    device const int *s3 [[buffer(3)]],
+    device const uint *tabs [[buffer(4)]],
+    device const TmBatchClaim *cl [[buffer(5)]],
+    device uint *partials [[buffer(6)]],
+    constant TmLazyParams &p [[buffer(10)]],
     threadgroup Qm31Value *scratch [[threadgroup(0)]],
     uint gid [[thread_position_in_grid]],
     uint tg [[threadgroup_position_in_grid]],
@@ -614,26 +652,33 @@ kernel void tm_batch_round0(
     uint tgsize [[threads_per_threadgroup]],
     uint grid [[threads_per_grid]]
 ) {
-    Qm31Value acc0 = tm_zero(), acc2 = tm_zero();
+    device const int *srcs[4] = { s0, s1, s2, s3 };
+    Qm31Value acc0 = tm_zero(), acc2 = tm_zero(), acc3 = tm_zero();
     for (uint x = gid; x < p.work; x += grid) {
         bool has_hi = x + p.half_len < p.active;
-        uint f_lo = tm_from_i32(wtab[x]);
-        uint f_hi = has_hi ? tm_from_i32(wtab[x + p.half_len]) : 0u;
-        Qm31Value e_lo = tm_batch_e(tabs, cl, p.n_claims, x);
-        Qm31Value e_hi = has_hi ? tm_batch_e(tabs, cl, p.n_claims, x + p.half_len) : tm_zero();
-        acc0 = qm_add(acc0, qm_mul_m31(e_lo, f_lo));
-        uint f2 = m31_sub(m31_add(f_hi, f_hi), f_lo);
-        Qm31Value e2 = qm_sub(qm_add(e_hi, e_hi), e_lo);
-        acc2 = qm_add(acc2, qm_mul_m31(e2, f2));
+        Qm31Value diff[4], cur[4];
+        for (uint j = 0u; j < p.n_factors; ++j) {
+            Qm31Value lo = tm_lazy_value(p, j, srcs[j], tabs, cl, x);
+            Qm31Value hi = has_hi ? tm_lazy_value(p, j, srcs[j], tabs, cl, x + p.half_len) : tm_zero();
+            cur[j] = lo;
+            diff[j] = qm_sub(hi, lo);
+        }
+        acc0 = qm_add(acc0, tm_lazy_terms(p, cur));
+        for (uint j = 0u; j < p.n_factors; ++j) cur[j] = qm_add(qm_add(cur[j], diff[j]), diff[j]);
+        acc2 = qm_add(acc2, tm_lazy_terms(p, cur));
+        if (p.deg >= 3u) {
+            for (uint j = 0u; j < p.n_factors; ++j) cur[j] = qm_add(cur[j], diff[j]);
+            acc3 = qm_add(acc3, tm_lazy_terms(p, cur));
+        }
     }
     scratch[tid * 3u] = acc0;
     scratch[tid * 3u + 1u] = acc2;
-    scratch[tid * 3u + 2u] = tm_zero();
+    scratch[tid * 3u + 2u] = acc3;
     threadgroup_barrier(mem_flags::mem_threadgroup);
     for (uint s = tgsize >> 1u; s > 0u; s >>= 1u) {
         if (tid < s) {
-            scratch[tid * 3u] = qm_add(scratch[tid * 3u], scratch[(tid + s) * 3u]);
-            scratch[tid * 3u + 1u] = qm_add(scratch[tid * 3u + 1u], scratch[(tid + s) * 3u + 1u]);
+            for (uint k = 0u; k < 3u; ++k)
+                scratch[tid * 3u + k] = qm_add(scratch[tid * 3u + k], scratch[(tid + s) * 3u + k]);
         }
         threadgroup_barrier(mem_flags::mem_threadgroup);
     }
@@ -642,22 +687,34 @@ kernel void tm_batch_round0(
     }
 }
 
-// F1[x] = F[x] + r (F[x + half] - F[x]), same for E (x < work; hi = 0 past active).
-kernel void tm_batch_fold0(
-    device const int *wtab [[buffer(0)]],
-    device const uint *tabs [[buffer(1)]],
-    device const TmBatchClaim *cl [[buffer(2)]],
-    device uint *f1 [[buffer(3)]],
-    device uint *e1 [[buffer(4)]],
-    constant TmBatchParams &p [[buffer(5)]],
+// out_j[x] = v_j(x) + r (v_j(x + half) - v_j(x)) for x < work (hi = 0 past active)
+kernel void tm_lazy_fold0(
+    device const int *s0 [[buffer(0)]],
+    device const int *s1 [[buffer(1)]],
+    device const int *s2 [[buffer(2)]],
+    device const int *s3 [[buffer(3)]],
+    device const uint *tabs [[buffer(4)]],
+    device const TmBatchClaim *cl [[buffer(5)]],
+    device uint *o0 [[buffer(6)]],
+    device uint *o1 [[buffer(7)]],
+    device uint *o2 [[buffer(8)]],
+    device uint *o3 [[buffer(9)]],
+    constant TmLazyParams &p [[buffer(10)]],
     uint x [[thread_position_in_grid]]
 ) {
     if (x >= p.work) return;
+    device const int *srcs[4] = { s0, s1, s2, s3 };
+    device uint *outs[4] = { o0, o1, o2, o3 };
     bool has_hi = x + p.half_len < p.active;
-    uint f_lo = tm_from_i32(wtab[x]);
-    uint f_hi = has_hi ? tm_from_i32(wtab[x + p.half_len]) : 0u;
-    Qm31Value e_lo = tm_batch_e(tabs, cl, p.n_claims, x);
-    Qm31Value e_hi = has_hi ? tm_batch_e(tabs, cl, p.n_claims, x + p.half_len) : tm_zero();
-    tm_store(f1, x, qm_add(qm_mul_m31(p.r, m31_sub(f_hi, f_lo)), Qm31Value{ f_lo, 0u, 0u, 0u }));
-    tm_store(e1, x, qm_add(e_lo, qm_mul(p.r, qm_sub(e_hi, e_lo))));
+    for (uint j = 0u; j < p.n_factors; ++j) {
+        if (p.fac[j].kind == 0u) {
+            uint lo = tm_from_i32(srcs[j][x]);
+            uint hi = has_hi ? tm_from_i32(srcs[j][x + p.half_len]) : 0u;
+            tm_store(outs[j], x, qm_add(qm_mul_m31(p.r, m31_sub(hi, lo)), Qm31Value{ lo, 0u, 0u, 0u }));
+        } else {
+            Qm31Value lo = tm_batch_e(tabs, cl, p.fac[j].claim0, p.fac[j].n_claims, x);
+            Qm31Value hi = has_hi ? tm_batch_e(tabs, cl, p.fac[j].claim0, p.fac[j].n_claims, x + p.half_len) : tm_zero();
+            tm_store(outs[j], x, qm_add(lo, qm_mul(p.r, qm_sub(hi, lo))));
+        }
+    }
 }

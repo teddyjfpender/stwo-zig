@@ -108,8 +108,8 @@ pub const Gpu = struct {
     p_gkr_next: *anyopaque,
     p_gkr_sum: *anyopaque,
     p_gkr_fold: *anyopaque,
-    p_batch_round0: *anyopaque,
-    p_batch_fold0: *anyopaque,
+    p_lazy_round0: *anyopaque,
+    p_lazy_fold0: *anyopaque,
     /// GKR layers at most this size are summed / folded by the CPU directly in
     /// the shared (unified-memory) buffers, saving a device round trip.
     gkr_cpu_sum_max: usize = 1 << 9,
@@ -154,8 +154,8 @@ pub const Gpu = struct {
             .p_gkr_next = try pipeline(rt, "tm_gkr_next"),
             .p_gkr_sum = try pipeline(rt, "tm_gkr_sum"),
             .p_gkr_fold = try pipeline(rt, "tm_gkr_fold"),
-            .p_batch_round0 = try pipeline(rt, "tm_batch_round0"),
-            .p_batch_fold0 = try pipeline(rt, "tm_batch_fold0"),
+            .p_lazy_round0 = try pipeline(rt, "tm_lazy_round0"),
+            .p_lazy_fold0 = try pipeline(rt, "tm_lazy_fold0"),
             .page = std.heap.pageSize(),
         };
         g.vt = .{
@@ -165,7 +165,7 @@ pub const Gpu = struct {
             .sc_begin = scBegin,
             .sc_round = scRound,
             .sc_finish = scFinish,
-            .sc_begin_batch = scBeginBatch,
+            .sc_begin_lazy = scBeginLazy,
             .matmul_acc = matmulAcc,
             .mle_eval_i32 = mleEvalI32,
             .gkr_prove = gkrProve,
@@ -175,7 +175,7 @@ pub const Gpu = struct {
     }
 
     pub fn deinit(self: *Gpu, a: std.mem.Allocator) void {
-        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_batch_round0", "p_batch_fold0" }) |name|
+        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_lazy_round0", "p_lazy_fold0" }) |name|
             tm_release(@field(self, name));
         self.releaseRetired();
         self.retired.deinit(std.heap.c_allocator);
@@ -568,32 +568,60 @@ pub const Gpu = struct {
         lazy: ?Lazy = null,
     };
 
-    const Lazy = struct { wtab: Buf, tabs: Buf, claims: Buf, n_claims: u32 };
+    const Lazy = struct { srcs: [4]?Buf, tabs: Buf, claims: Buf, params: LazyParams };
     const BatchClaimGpu = extern struct { offset: u32, count: u32, lo_bits: u32, pre_off: u32, suf_off: u32 };
-    const BatchParams = extern struct { half_len: u32, active: u32, work: u32, n_claims: u32, r: Q };
+    const LazyFactor = extern struct { kind: u32, claim0: u32, n_claims: u32, _pad: u32 = 0 };
+    const LazyParams = extern struct {
+        half_len: u32,
+        active: u32,
+        work: u32,
+        n_factors: u32,
+        n_terms: u32,
+        deg: u32,
+        _pad0: u32 = 0,
+        _pad1: u32 = 0,
+        term_len: [4]u32,
+        term_fac: [4][3]u32,
+        coeff: [4]Q,
+        r: Q,
+        fac: [4]LazyFactor,
+    };
 
-    /// Encodes the round-0 fold of a lazy batch session into fresh F1/E1.
+    fn bindLazy(s: *Session, cmd: *anyopaque) void {
+        const lz = s.lazy.?;
+        var first: ?Buf = null;
+        for (lz.srcs) |b| if (b != null and first == null) {
+            first = b;
+        };
+        for (0..4) |j| bind(cmd, @intCast(j), lz.srcs[j] orelse first orelse lz.tabs);
+        bind(cmd, 4, lz.tabs);
+        bind(cmd, 5, lz.claims);
+    }
+
+    /// Encodes the round-0 fold of a lazy session into fresh half-size
+    /// QM31 factor buffers.
     fn lazyFold(g: *Gpu, s: *Session, cmd: *anyopaque, r: QM31) !void {
         const lz = s.lazy.?;
         const half = s.prev_half;
         const work = s.active;
+        const nf = lz.params.n_factors;
         // full half length: the tail copy reads [0, len); entries >= work are
         // never read by the prover
-        s.bufs[0] = try g.alloc(half * 16);
-        s.bufs[1] = try g.alloc(half * 16);
-        const bp = BatchParams{ .half_len = @intCast(half), .active = @intCast(s.prev_active), .work = @intCast(work), .n_claims = lz.n_claims, .r = toQ(r) };
-        tm_cmd_pipeline(cmd, g.p_batch_fold0);
-        bind(cmd, 0, lz.wtab);
-        bind(cmd, 1, lz.tabs);
-        bind(cmd, 2, lz.claims);
-        bind(cmd, 3, s.bufs[0]);
-        bind(cmd, 4, s.bufs[1]);
-        tm_cmd_bytes(cmd, 5, &bp, @sizeOf(BatchParams));
+        for (0..nf) |j| s.bufs[j] = try g.alloc(half * 16);
+        var lp = lz.params;
+        lp.half_len = @intCast(half);
+        lp.active = @intCast(s.prev_active);
+        lp.work = @intCast(work);
+        lp.r = toQ(r);
+        tm_cmd_pipeline(cmd, g.p_lazy_fold0);
+        bindLazy(s, cmd);
+        for (0..4) |j| bind(cmd, @intCast(6 + j), s.bufs[if (j < nf) j else 0]);
+        tm_cmd_bytes(cmd, 10, &lp, @sizeOf(LazyParams));
         const w: u32 = @intCast(work);
         if (w > 0) tm_cmd_dispatch(cmd, (w + 255) / 256, 1, 1, 256, 1, 1);
-        s.nf = 2;
+        s.nf = nf;
         // the lazy inputs are referenced by this command: retire them
-        try g.retire(lz.wtab);
+        for (lz.srcs) |b| if (b) |x| try g.retire(x);
         try g.retire(lz.tabs);
         try g.retire(lz.claims);
         s.lazy = null;
@@ -657,13 +685,14 @@ pub const Gpu = struct {
                 p.prev_half = 0;
                 p.prev_active = 0;
             } else {
-                const bp = BatchParams{ .half_len = @intCast(half), .active = @intCast(s.active), .work = @intCast(work), .n_claims = lz.n_claims, .r = toQ(QM31.zero()) };
-                tm_cmd_pipeline(cmd, g.p_batch_round0);
-                bind(cmd, 0, lz.wtab);
-                bind(cmd, 1, lz.tabs);
-                bind(cmd, 2, lz.claims);
-                bind(cmd, 4, s.partials);
-                tm_cmd_bytes(cmd, 5, &bp, @sizeOf(BatchParams));
+                var lp = lz.params;
+                lp.half_len = @intCast(half);
+                lp.active = @intCast(s.active);
+                lp.work = @intCast(work);
+                tm_cmd_pipeline(cmd, g.p_lazy_round0);
+                bindLazy(s, cmd);
+                bind(cmd, 6, s.partials);
+                tm_cmd_bytes(cmd, 10, &lp, @sizeOf(LazyParams));
                 tm_cmd_threadgroup_memory(cmd, 0, SC_TG * 3 * 16);
                 tm_cmd_dispatch(cmd, groups, 1, 1, SC_TG, 1, 1);
             }
@@ -724,53 +753,78 @@ pub const Gpu = struct {
         }
     }
 
-    /// Batch sumcheck sum_x F(x) E(x): F = wtab (base field), E = sum_c
-    /// gamma_c eq(point_c, x - off_c) with each eq table factored as a CPU
-    /// prefix (x) suffix. Neither factor is materialised at full size: round 0
-    /// and its fold evaluate them on the fly (tm_batch_round0/fold0), and the
-    /// fold writes half-size QM31 factors for the generic rounds.
-    fn scBeginBatch(ctx: *anyopaque, wtab: []const i32, claims: []const t.accel.BatchClaim, active: usize) anyerror!?*anyopaque {
+    /// Lazy session: every factor is an int32 vector or a sum of eq tables
+    /// (each claim's gamma*eq factored as a CPU prefix (x) suffix). Round 0
+    /// and its fold evaluate the factors on the fly (tm_lazy_round0/fold0), so
+    /// no full-length factor is materialised; the fold writes the half-size
+    /// QM31 factors the generic rounds continue on.
+    fn scBeginLazy(ctx: *anyopaque, specs: []const t.accel.FactorSpec, terms: []const sc.Term, len: usize, active: usize) anyerror!?*anyopaque {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
-        const len = wtab.len;
-        if (len >= (1 << 31) or claims.len == 0) return null;
-        for (claims) |c| if (c.offset + (@as(usize, 1) << @intCast(c.point.len)) > len) return error.BatchClaimRange;
-        var p = std.mem.zeroes(ScParams);
-        p.n_factors = 2;
-        p.n_terms = 1;
-        p.deg = 2;
-        p.term_len[0] = 2;
-        p.term_fac[0] = .{ 0, 1, 0 };
-        p.coeff[0] = toQ(QM31.one());
-        var total_tab: usize = 0;
-        for (claims) |c| {
-            const n = c.point.len;
-            const lo = n / 2;
-            total_tab += (@as(usize, 1) << @intCast(n - lo)) + (@as(usize, 1) << @intCast(lo));
+        if (len >= (1 << 31) or specs.len == 0 or specs.len > 4 or terms.len > 4) return null;
+        var lp = std.mem.zeroes(LazyParams);
+        lp.n_factors = @intCast(specs.len);
+        lp.n_terms = @intCast(terms.len);
+        var deg: u32 = 2;
+        for (terms, 0..) |term, i| {
+            lp.term_len[i] = @intCast(term.factors.len);
+            for (term.factors, 0..) |fi, k| lp.term_fac[i][k] = fi;
+            lp.coeff[i] = toQ(term.coeff);
+            deg = @max(deg, @as(u32, @intCast(term.factors.len)));
         }
-        const tabs = try g.alloc(total_tab * 16);
+        lp.deg = deg;
+        var p = std.mem.zeroes(ScParams);
+        p.n_factors = lp.n_factors;
+        p.n_terms = lp.n_terms;
+        p.deg = deg;
+        p.term_len = lp.term_len;
+        p.term_fac = lp.term_fac;
+        p.coeff = lp.coeff;
+        var total_tab: usize = 0;
+        var n_claims: usize = 0;
+        for (specs) |sp| switch (sp) {
+            .int => |v| if (v.len != len) return null,
+            .eq => |cs| for (cs) |c| {
+                if (c.offset + (@as(usize, 1) << @intCast(c.point.len)) > len) return error.BatchClaimRange;
+                const lo = c.point.len / 2;
+                total_tab += (@as(usize, 1) << @intCast(c.point.len - lo)) + (@as(usize, 1) << @intCast(lo));
+                n_claims += 1;
+            },
+        };
+        const tabs = try g.alloc(@max(1, total_tab) * 16);
         errdefer g.free(tabs);
-        const cbuf = try g.alloc(claims.len * @sizeOf(BatchClaimGpu));
+        const cbuf = try g.alloc(@max(1, n_claims) * @sizeOf(BatchClaimGpu));
         errdefer g.free(cbuf);
         const tq: [*]QM31 = @ptrCast(@alignCast(tabs.ptr()));
         const cq: [*]BatchClaimGpu = @ptrCast(@alignCast(cbuf.ptr()));
         var at: usize = 0;
-        for (claims, 0..) |c, i| {
-            const n = c.point.len;
-            const lo = n / 2;
-            const pre = try f.eqTable(std.heap.c_allocator, c.point[0 .. n - lo], c.gamma);
-            defer std.heap.c_allocator.free(pre);
-            const suf = try f.eqTable(std.heap.c_allocator, c.point[n - lo ..], QM31.one());
-            defer std.heap.c_allocator.free(suf);
-            @memcpy(tq[at..][0..pre.len], pre);
-            @memcpy(tq[at + pre.len ..][0..suf.len], suf);
-            cq[i] = .{ .offset = @intCast(c.offset), .count = @intCast(@as(usize, 1) << @intCast(n)), .lo_bits = @intCast(lo), .pre_off = @intCast(at), .suf_off = @intCast(at + pre.len) };
-            at += pre.len + suf.len;
-        }
-        const wbuf = try g.view(@constCast(std.mem.sliceAsBytes(wtab)), true);
-        errdefer g.release(wbuf, null);
+        var ci: usize = 0;
+        var srcs: [4]?Buf = .{ null, null, null, null };
+        errdefer for (srcs) |b| if (b) |x| g.release(x, null);
+        for (specs, 0..) |sp, j| switch (sp) {
+            .int => |v| {
+                lp.fac[j] = .{ .kind = 0, .claim0 = 0, .n_claims = 0 };
+                srcs[j] = try g.view(@constCast(std.mem.sliceAsBytes(v)), true);
+            },
+            .eq => |cs| {
+                lp.fac[j] = .{ .kind = 1, .claim0 = @intCast(ci), .n_claims = @intCast(cs.len) };
+                for (cs) |c| {
+                    const n = c.point.len;
+                    const lo = n / 2;
+                    const pre = try f.eqTable(std.heap.c_allocator, c.point[0 .. n - lo], c.gamma);
+                    defer std.heap.c_allocator.free(pre);
+                    const suf = try f.eqTable(std.heap.c_allocator, c.point[n - lo ..], QM31.one());
+                    defer std.heap.c_allocator.free(suf);
+                    @memcpy(tq[at..][0..pre.len], pre);
+                    @memcpy(tq[at + pre.len ..][0..suf.len], suf);
+                    cq[ci] = .{ .offset = @intCast(c.offset), .count = @intCast(@as(usize, 1) << @intCast(n)), .lo_bits = @intCast(lo), .pre_off = @intCast(at), .suf_off = @intCast(at + pre.len) };
+                    at += pre.len + suf.len;
+                    ci += 1;
+                }
+            },
+        };
         const s = try std.heap.c_allocator.create(Session);
         errdefer std.heap.c_allocator.destroy(s);
-        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .wtab = wbuf, .tabs = tabs, .claims = cbuf, .n_claims = @intCast(claims.len) } };
+        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .params = lp } };
         g.stats.sc_calls += 1;
         return s;
     }
@@ -779,7 +833,7 @@ pub const Gpu = struct {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
         const s: *Session = @ptrCast(@alignCast(sp));
         if (s.lazy) |lz| {
-            g.release(lz.wtab, null);
+            for (lz.srcs) |b| if (b) |x| g.release(x, null);
             g.free(lz.tabs);
             g.free(lz.claims);
         } else for (s.bufs[0..s.nf]) |b| g.release(b, null);

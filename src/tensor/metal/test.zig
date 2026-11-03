@@ -420,3 +420,44 @@ test "metal LogUp-GKR batch proof matches the CPU fast prover" {
         }
     };
 }
+
+test "metal lazy-factor sumcheck (eq sums and int vectors, degree 3) matches CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const g = try gpu();
+    const n = 14;
+    const len = @as(usize, 1) << n;
+    var prng = std.Random.DefaultPrng.init(99);
+    const r = prng.random();
+    var ints: [3][]i32 = undefined;
+    for (&ints) |*v| {
+        v.* = try a.alloc(i32, len);
+        for (v.*) |*x| x.* = @intCast(r.intRangeLessThan(i64, -(@as(i64, 1) << 30), f.P));
+    }
+    defer for (ints) |v| a.free(v);
+    var p0: [n]QM31 = undefined;
+    var p1: [12]QM31 = undefined;
+    for (&p0) |*p| p.* = randQ(r);
+    for (&p1) |*p| p.* = randQ(r);
+    const claims = [_]t.accel.BatchClaim{ .{ .offset = 0, .point = &p0, .gamma = randQ(r) }, .{ .offset = 1 << 13, .point = &p1, .gamma = randQ(r) } };
+    const specs = [4]t.accel.FactorSpec{ .{ .eq = &claims }, .{ .int = ints[0] }, .{ .int = ints[1] }, .{ .int = ints[2] } };
+    for ([_]usize{ len, len - 3001 }) |active| for ([_]usize{ 32, 1 << 13 }) |mw| {
+        const claim = randQ(r);
+        var tc = Transcript.initDomain("lz");
+        var rc = try t.accel.proveFactors(null, 4, &T_PRODUCT, a, &pool, &tc, claim, specs, len, active);
+        defer rc.deinit(a);
+        var acc = g.accel().*;
+        acc.sc_min_work = mw;
+        const before = g.stats.sc_rounds;
+        var td = Transcript.initDomain("lz");
+        var rd = try t.accel.proveFactors(&acc, 4, &T_PRODUCT, a, &pool, &td, claim, specs, len, active);
+        defer rd.deinit(a);
+        try std.testing.expect(g.stats.sc_rounds > before);
+        for (rc.proof.rounds, rd.proof.rounds) |x, y| for (0..sc.MAX_DEG) |k| try std.testing.expect(x.evals[k].eql(y.evals[k]));
+        for (rc.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
+        for (rc.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
+        try std.testing.expect(tc.draw().eql(td.draw()));
+    };
+}
