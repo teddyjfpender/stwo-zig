@@ -154,6 +154,37 @@ an integer function of range-checked integers).
 for RMSNorm (step 1) but the residual uses the full-precision stream
 (|x_l| <= 128 + 256 l).
 
+**MoE (top-1)** (`log_experts > 0`), replacing the dense SwiGLU MLP:
+* logits = rq(y2 Wr) (core matmul, int8). Wr has 2^max(le, wlc) columns so
+  the weight-table column constraint holds; only the first E columns are
+  used, selected with fixed-bit labels (FIX0 on the high column bits).
+* Routing x*(t) = **first** argmax_x L[t, x]: Dr = m - L (lineq) in [0, 256),
+  sel binary (sel^2 = sel), sum_x sel = 1, sum_x sel Dr = 0 (as for softmax),
+  plus tie-breaking: pre[t, x] = sum_{x' > x} sel[t, x'] (exact einsum with
+  the public triangle Tri[x', x] = [x' > x]) and Dr - pre >= 0, so every
+  x < x* has L_x < m strictly.
+* Dispatch Disp[x, c, t] in {0,1} (Disp^2 = Disp) with
+  sum_c Disp[x, c, t] = sel[t, x] (each token in exactly one slot of its
+  expert, none elsewhere) and occ[x, c] = sum_t Disp in {0,1} (a slot holds
+  at most one token). Capacity C = 2^log_capacity slots per expert; a batch
+  that overflows a capacity is outside the model (the prover errors).
+* Expert x: Xe_x[c, d] = sum_t Disp[x, c, t] y2[t, d] (exact einsum on the
+  FIX-labelled slice x of Disp), then the core SwiGLU on C slots with that
+  expert's weights (weight work follows the dispatched tokens: E * C rows
+  instead of E * T).
+* MO[x, c, d] = mo_x[c, d] (lineq per expert, FIX-labelled slice of the
+  stacked tensor); out[t, d] = sum_{x, c} Disp[x, c, t] MO[x, c, d] (exact
+  einsum, degree 2).
+* Semantics: out[t] = SwiGLU_{x*(t)}(y2[t]) (no gate-probability scaling;
+  slot assignment does not affect the output since the expert MLP is
+  row-wise). Uniqueness: Disp binary + row/slot sums pin a bijection between
+  routed tokens and occupied slots of the right expert; combine reads exactly
+  that slot back.
+
+**Fixed-bit labels.** A label FIX0/FIX1 pins an operand bit to a constant
+(slicing): the claim is made at a point with that coordinate 0/1, i.e. on the
+MLE of the slice, and is discharged by the same batch opening.
+
 ## 3. What is proved
 
 For a public statement (shapes, shifts, gammas, mask, RoPE table, exp/silu
@@ -210,11 +241,16 @@ All inequality operands therefore satisfy the range-to-integer lemma.
   witnesses: moved argmax selector, lowered rowmax (consistent D), P + 1,
   rden + 1, wrong rt, residual, exp value, masked-position exp leak,
   score, sum of squares -> all rejected by the verifier;
-* honest prover refuses an invalid witness (error, no proof).
+* honest prover refuses an invalid witness (error, no proof);
+* MoE: routing / dispatch / combine match a direct reference; prove/verify
+  (also with tied router columns); unchecked-prover cheats rejected: wrong
+  expert in sel, dropped token, duplicated slot, combine output, and a fully
+  consistent last-maximiser routing on tied logits (only Dr - pre >= 0 fails).
 
 ## 6. Not covered / caveats
 
-* MoE routing (top-1 argmax + expert selection) is not implemented yet.
+* MoE: no gate-probability scaling (top-1 output = expert output); router
+  columns padded to the weight-table width (padding weights are committed).
 * Weight gammas are public, not committed.
 * Prover kernels for ext ops are generic (bit-gather) and largely serial in
   the operand folds; attention sizes beyond T ~ 2^9 need tuned kernels.

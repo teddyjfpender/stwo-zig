@@ -1,7 +1,7 @@
 //! tensor-bench: end-to-end benchmarks of the tensor frontend.
 //!
 //!   tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]
-//!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]
+//!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity]
 //!
 //! Prints one JSON object with timings, sizes and derived metrics.
 const std = @import("std");
@@ -153,7 +153,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     a.free(wview);
 }
 
-/// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]
+/// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity]
 fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const lt = try std.fmt.parseInt(u32, args[2], 10);
     const ld = try std.fmt.parseInt(u32, args[3], 10);
@@ -165,14 +165,17 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const pow: u32 = if (args.len > 9) try std.fmt.parseInt(u32, args[9], 10) else 20;
     const lkv: u32 = if (args.len > 10) try std.fmt.parseInt(u32, args[10], 10) else lh;
     const nl: u32 = if (args.len > 11) try std.fmt.parseInt(u32, args[11], 10) else 1;
-    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl };
+    const le: u32 = if (args.len > 12) try std.fmt.parseInt(u32, args[12], 10) else 0;
+    const lcap: u32 = if (args.len > 13) try std.fmt.parseInt(u32, args[13], 10) else lt;
+    const wlc = @min(cfg0Dkv(lh, lkv, ld), 13);
+    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl, .log_experts = le, .log_capacity = lcap, .router_log_cols = wlc };
     try cfg.validate();
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
     const pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
-        .weight_log_cols = @min(cfg.logDkv(), 13),
+        .weight_log_cols = wlc,
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
     };
@@ -198,7 +201,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var n_weights: usize = 0;
     for (sw.winfos) |wi| n_weights += wi.size();
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, nl, threads, queries, lb, pow });
+    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, nl, threads, queries, lb, pow });
     try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits(), n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns) });
@@ -211,4 +214,8 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     a.free(sw.wdata);
     a.free(sw.winfos);
     a.free(x);
+}
+
+fn cfg0Dkv(lh: u32, lkv: u32, ld: u32) u32 {
+    return lkv + (ld - lh);
 }
