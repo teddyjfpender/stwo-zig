@@ -5,6 +5,7 @@ pub const pcs = @import("pcs.zig");
 pub const linalg = @import("linalg.zig");
 pub const protocol = @import("protocol.zig");
 pub const model = @import("model.zig");
+pub const weight_key = @import("weight_key.zig");
 
 test {
     _ = field;
@@ -14,4 +15,5 @@ test {
     _ = linalg;
     _ = protocol;
     _ = model;
+    _ = weight_key;
 }
