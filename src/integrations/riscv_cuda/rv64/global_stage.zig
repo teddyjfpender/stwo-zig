@@ -2,6 +2,7 @@
 //! Only independently derived setup/manifest metadata enters from the host.
 //! Wide rows, paired fractions, inverses and centered prefixes stay on device.
 const std = @import("std");
+const CopyRun = @import("device_copy_run.zig").Run;
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
@@ -57,6 +58,7 @@ fn immutableIdentity(domain: []const u8, root: [32]u8, index: usize, log: u32) [
 const Entry = struct { artifact: G.Artifact, launch: Launch };
 pub const Context = struct {
     service: *Service.Context,
+    profile_ingress: bool = false,
     api: SC.Api,
     copy: Native.CopyDevice,
     n2b: N2b,
@@ -66,7 +68,7 @@ pub const Context = struct {
     twiddles: [23]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
-        return .{ .service = service, .api = .{
+        return .{ .service = service, .profile_ingress = std.process.hasEnvVarConstant("STWO_RV64_GLOBAL_PROFILE"), .api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -207,6 +209,14 @@ const Job = struct {
         };
         return 0;
     }
+    fn copySegment(self: *Job, ctx: *SC.Context, destination: [*]u32, segment: CopyRun) !void {
+        const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
+        const slice = Slice{ .address = segment.source, .len = segment.words, .owner = std.math.cast(usize, segment.context_token) orelse return error.SizeOverflow, .generation = segment.generation };
+        // One native registry check covers the complete adjacent range under
+        // the exact worker scope; no unchecked address-based coalescing.
+        const from = try ctx.deviceSlicePointer(u32, slice, segment.words);
+        try checked(self.backend.copy(ctx.native_context, @ptrCast(destination + segment.target_word), from, try std.math.mul(usize, segment.words, 4)));
+    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
         const a = self.owner.allocator;
@@ -222,35 +232,36 @@ const Job = struct {
         const source_words = try std.math.mul(usize, self.request.fixed.len + self.request.main.len, rows);
         const source = try ctx.allocate(source_words, 0);
         try temporary.append(a, source);
+        var ingress_timer: ?std.time.Timer = if (b.profile_ingress) try std.time.Timer.start() else null;
+        var copies: usize = 0;
+        var pending: ?CopyRun = null;
         var offset: usize = 0;
         inline for (.{ self.request.fixed, self.request.main }, 0..) |columns, tree| for (columns) |column| {
             if (column.log_size != self.request.log_size) return error.InvalidGlobalGeometry;
-            const destination = source.words.? + offset;
-            if (column.device) |device| {
-                if (device.count != rows or column.coefficients.len != 0) return error.InvalidDeviceTraceColumn;
-                const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
-                const borrowed = Slice{ .address = @intFromPtr(device.words), .len = rows, .owner = @intCast(device.context_token), .generation = device.generation };
-                const from = try ctx.deviceSlicePointer(u32, borrowed, rows);
-                try checked(b.copy(raw, destination, from, rows * 4));
-            } else {
-                // FIXED is immutable setup. A host MAIN slice is always a bug.
+            const device: D.DeviceCoefficients = if (column.device) |resident| blk: {
+                if (resident.count != rows or column.coefficients.len != 0) return error.InvalidDeviceTraceColumn;
+                break :blk resident;
+            } else blk: {
                 if (tree != 0 or column.coefficients.len != rows) return error.ResidentGlobalMainRequired;
-                if (try b.service.immutableFixedColumn(self.scope, self.request.fixed_offset + offset / rows, column)) |device| {
-                    const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
-                    const borrowed = Slice{ .address = @intFromPtr(device.words), .len = rows, .owner = @intCast(device.context_token), .generation = device.generation };
-                    const from = try ctx.deviceSlicePointer(u32, borrowed, rows);
-                    try checked(b.copy(raw, destination, from, rows * 4));
-                } else {
-                    const key = immutableIdentity("rv64/global/fixed-column/v1\x00", self.scope.fixed, self.request.fixed_offset + offset / rows, self.request.log_size);
-                    const fixed = try b.service.immutableWords(raw, ctx.scope, key, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..rows]);
-                    const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
-                    const alias = Slice{ .address = @intFromPtr(fixed.words.?), .len = rows, .owner = @intCast(fixed.context_token), .generation = fixed.generation };
-                    const from = try ctx.deviceSlicePointer(u32, alias, rows);
-                    try checked(b.copy(raw, destination, from, rows * 4));
+                if (try b.service.immutableFixedColumn(self.scope, self.request.fixed_offset + offset / rows, column)) |resident| break :blk resident;
+                const key = immutableIdentity("rv64/global/fixed-column/v1\x00", self.scope.fixed, self.request.fixed_offset + offset / rows, self.request.log_size);
+                const fixed = try b.service.immutableWords(raw, ctx.scope, key, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..rows]);
+                break :blk .{ .words = fixed.words.?, .count = fixed.count, .context_token = fixed.context_token, .generation = fixed.generation };
+            };
+            const next = try CopyRun.init(@intFromPtr(device.words), offset, rows, device.context_token, device.generation);
+            if (pending) |*segment| {
+                if (!try segment.append(next)) {
+                    try self.copySegment(&ctx, source.words.?, segment.*);
+                    copies += 1;
+                    pending = next;
                 }
-            }
+            } else pending = next;
             offset += rows;
         };
+        if (pending) |segment| {
+            try self.copySegment(&ctx, source.words.?, segment);
+            copies += 1;
+        }
         const tw = &b.twiddles[self.request.log_size].?;
         const twiddle_key = immutableIdentity("rv64/canonic-forward-m31-twiddles/v1\x00", @splat(0), 0, self.request.log_size);
         const twiddle = try b.service.immutableWords(raw, ctx.scope, twiddle_key, @as([*]const u32, @ptrCast(tw.twiddles.ptr))[0..tw.twiddles.len]);
@@ -260,6 +271,7 @@ const Job = struct {
         try ctx.upload(try ctx.borrow(parameter), @as([*]const u32, @ptrCast(parameters.ptr))[0 .. parameters.len * 8]);
         // All host staging survives the ingress join, including parameters.
         try ctx.join();
+        if (ingress_timer) |*timer| std.debug.print("GPU_GLOBAL_INGRESS ordinal={} log={} source_columns={} source_words={} device_copy_calls={} joined_wall_ns={}\n", .{ self.scope.ordinal, self.request.log_size, self.request.fixed.len + self.request.main.len, source_words, copies, timer.read() });
         var stream: ?*anyopaque = null;
         try checked(b.api.lane_stream(raw, 1, &stream));
         const lane = stream orelse return error.InvalidLane;
