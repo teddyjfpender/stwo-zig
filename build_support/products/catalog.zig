@@ -50,6 +50,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-recursion-shape", .description = "Inspect bounded native-verified Word16 shape and opening costs without recursive acceptance", .scope = .riscv_cpu },
     .{ .name = "rv64-v3-truth-leaf", .description = "Wrap the v3 truth proofs (SHA-256, arith256_mod) of a native-verified Word16 bundle into in-circuit leaves; report gates and timings", .scope = .riscv_cpu },
+    .{ .name = "check-rv64-ethereum-recursion", .description = "Type-check current OM31 execution recursion without LLVM output", .scope = .riscv_cpu },
+    .{ .name = "rv64-word16-ethereum-gkr-recursion", .description = "Wrap current OM31 Ethereum CPU/truth proofs, fold and freshly verify their execution root", .scope = .riscv_cpu },
     .{ .name = "rv64-recursion", .description = "Build the RV64 recursion tools: wrap batch proofs into circuit leaves, fold them to one root, verify the root", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-distributed-functional", .description = "Verify experimental public facts under actual complete PCS root manifest", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-global-memory", .description = "Diagnostic sealed-root two-phase RAM aggregate with physical verification", .scope = .riscv_cpu },

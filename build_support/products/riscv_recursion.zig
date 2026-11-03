@@ -11,6 +11,7 @@ const riscv_cpu_tests = @import("riscv_cpu_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
 
 const roots = [_]struct { step: []const u8, source: []const u8, description: []const u8 }{
+    .{ .step = "rv64-word16-ethereum-gkr-recursion", .source = "src/integrations/riscv_cpu/rv64_om31_recursion_main.zig", .description = "Wrap current OM31 Ethereum CPU/truth proofs, fold and freshly verify their execution root" },
     .{ .step = "rv64-gkr-circuit-cost", .source = "src/integrations/riscv_cpu/rv64_gkr_circuit_cost_main.zig", .description = "Inspect actual GKR verifier circuit graph cost on native-verified mini-AIR bundles" },
     .{ .step = "rv64-om31-cost", .source = "src/integrations/riscv_cpu/rv64_om31_cost_main.zig", .description = "Measure isolated OM31 native and circuit arithmetic, no protocol migration" },
     .{ .step = "rv64-word16-recursion-shape", .source = "src/integrations/riscv_cpu/rv64_word16_recursion_shape_main.zig", .description = "Inspect native-verified Word16 shapes without constructing a recursive circuit" },
@@ -24,6 +25,10 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         const executable = context.b.addExecutable(.{ .name = spec.step, .root_module = root });
         const install = context.b.addInstallArtifact(executable, .{});
         context.b.step(spec.step, spec.description).dependOn(&install.step);
+        if (std.mem.eql(u8, spec.step, "rv64-word16-ethereum-gkr-recursion")) {
+            const check = context.b.addExecutable(.{ .name = "rv64-word16-recursion-check", .root_module = root });
+            context.b.step("check-rv64-ethereum-recursion", "Type-check the current OM31 execution recursion route without LLVM output").dependOn(&check.step);
+        }
     }
     const gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_gkr_circuit_test_root.zig") });
     context.b.step("test-riscv64-gkr-circuit", "Qualify shared numerical GKR verifier on real circuit wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = gkr_tests, .minimum = 9 }}));
