@@ -6,6 +6,9 @@ pub const linalg = @import("linalg.zig");
 pub const protocol = @import("protocol.zig");
 pub const model = @import("model.zig");
 pub const weight_key = @import("weight_key.zig");
+pub const proof_digest = @import("proof_digest.zig");
+pub const batch = @import("batch.zig");
+pub const eqsum = @import("eqsum.zig");
 
 test {
     _ = field;
@@ -16,4 +19,7 @@ test {
     _ = protocol;
     _ = model;
     _ = weight_key;
+    _ = proof_digest;
+    _ = batch;
+    _ = eqsum;
 }
