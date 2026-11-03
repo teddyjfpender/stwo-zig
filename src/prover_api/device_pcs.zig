@@ -45,6 +45,19 @@ pub const TraceColumn = struct {
         } else if (self.host.len != count) return error.InvalidDeviceTraceColumn;
     }
 };
+/// Optional owner-thread custody transfer after joined coefficient ingress.
+/// Only consumed evaluation buffers may be retired; returned coefficients have
+/// independent ownership. Failure leaves all remaining source custody with its
+/// original owner and the commitment cleans up its untransferred coefficients.
+pub const TraceInputRetirement = struct {
+    context: *anyopaque,
+    scope: Scope,
+    retire: *const fn (*anyopaque, *anyopaque, u64, Scope) anyerror!void,
+    pub fn invoke(self: @This(), native_context: *anyopaque, token: u64, expected: Scope) !void {
+        if (token == 0 or !std.meta.eql(self.scope, expected)) return error.InvalidTraceInputRetirementScope;
+        try self.retire(self.context, native_context, token, expected);
+    }
+};
 pub const TraceCommitRequest = struct {
     /// MAIN uses main=zero before its commitment exists. The successful device
     /// owner promotes its leases to the same scope with main=result.root.
@@ -56,6 +69,9 @@ pub const TraceCommitRequest = struct {
     /// Bounded device replay after the manifest barrier. MAIN stays bound to
     /// this already committed root; no second transcript mix is performed.
     expected_main_root: ?H.Hash = null,
+    /// INTER only. Called once after all ingress copies have joined and before
+    /// allocating LDE/tree scratch. The callback must preserve column headers.
+    retire_input: ?TraceInputRetirement = null,
 };
 pub const TraceCommitStage = struct {
     context: *anyopaque,

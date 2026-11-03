@@ -69,6 +69,9 @@ pub const Context = struct {
             if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or (!std.mem.allEqual(u8, &request.scope.main, 0) and !std.mem.eql(u8, &request.scope.main, &expected))) return error.InvalidTraceReplayScope;
         } else if (request.tree_index == 1 and !std.mem.allEqual(u8, &request.scope.main, 0)) return error.InvalidTraceCommitRequest;
         const beta = request.config.fri_config.log_blowup_factor;
+        if (request.retire_input) |retirement| {
+            if (request.tree_index != 2 or beta != 1 or self.n2b_columns == null or !std.meta.eql(retirement.scope, request.scope)) return error.InvalidTraceInputRetirementScope;
+        }
         if (beta < 1 or beta > 4) return error.InvalidTraceCommitRequest;
         for (request.columns) |column| {
             try column.validate();
@@ -110,6 +113,29 @@ const Job = struct {
             return err;
         };
     }
+    fn copyInputs(self: *Job, ctx: *SC.Context, destination: @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), coefficient_ptr: [*]u32, order: []const usize, offsets: []const usize) !void {
+        const b = self.backend;
+        var pending_copy: ?DeviceCopy.Run = null;
+        for (order) |original| {
+            const column = self.request.columns[original];
+            const count = @as(usize, 1) << @intCast(column.log_size);
+            if (column.device) |device| {
+                if (device.count != count) return error.InvalidDeviceTraceColumn;
+                const next = try DeviceCopy.Run.init(@intFromPtr(device.words), offsets[original], count, device.context_token, device.generation);
+                if (pending_copy) |*copy_run| {
+                    if (!try copy_run.append(next)) {
+                        try DeviceCopy.execute(ctx, b.copy, destination, copy_run.*);
+                        pending_copy = next;
+                    }
+                } else pending_copy = next;
+            } else {
+                if (pending_copy) |copy_run| try DeviceCopy.execute(ctx, b.copy, destination, copy_run);
+                pending_copy = null;
+                try check(b.api.upload(ctx.native_context, coefficient_ptr + offsets[original], column.host.ptr, count * 4));
+            }
+        }
+        if (pending_copy) |copy_run| try DeviceCopy.execute(ctx, b.copy, destination, copy_run);
+    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
         const a = self.a;
@@ -150,6 +176,12 @@ const Job = struct {
             _ = b.api.release(b.service.session, &coefficients);
         };
         if (separate_coefficients) coefficients = try self.allocate(&ctx, coefficient_cells, 2, "coefficients");
+        // The source's INTER evaluations are dead after joined coefficient
+        // ingress. Retire them before the much larger LDE/tree scratch exists.
+        if (r.retire_input) |retirement| {
+            try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
+            try retireJoinedInput(&ctx, retirement, r.scope);
+        }
         const tw_base = try std.math.add(usize, if (separate_coefficients) 0 else coefficient_cells, eval_cells);
         const inverse_base = try std.math.add(usize, tw_base, tw.twiddles.len);
         const desc_base = std.mem.alignForward(usize, try std.math.add(usize, inverse_base, tw.itwiddles.len), 2);
@@ -168,31 +200,16 @@ const Job = struct {
         var eval_offset: usize = if (separate_coefficients) 0 else coefficient_cells;
         var segments: std.ArrayList(A.MixedSegment) = .empty;
         defer segments.deinit(a);
-        var pending_copy: ?DeviceCopy.Run = null;
+        if (r.retire_input == null) try self.copyInputs(&ctx, coefficient_slice, coefficient_ptr, order, offsets);
         for (order, 0..) |original, i| {
             const column = r.columns[original];
             const count = @as(usize, 1) << @intCast(column.log_size);
             const rows = count << @intCast(beta);
-            if (column.device) |device| {
-                if (device.count != count) return error.InvalidDeviceTraceColumn;
-                const next = try DeviceCopy.Run.init(@intFromPtr(device.words), offsets[original], count, device.context_token, device.generation);
-                if (pending_copy) |*copy_run| {
-                    if (!try copy_run.append(next)) {
-                        try DeviceCopy.execute(&ctx, b.copy, coefficient_slice, copy_run.*);
-                        pending_copy = next;
-                    }
-                } else pending_copy = next;
-            } else {
-                if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, coefficient_slice, copy_run);
-                pending_copy = null;
-                try check(b.api.upload(raw, coefficient_ptr + offsets[original], column.host.ptr, count * 4));
-            }
             descriptors[6 * order.len + i] = column.log_size;
             descriptors[6 * i ..][0..6].* = .{ @truncate(offsets[original]), @truncate(@as(u64, offsets[original]) >> 32), @truncate(eval_offset), @truncate(@as(u64, eval_offset) >> 32), column.log_size, 0 };
             if (segments.items.len != 0 and segments.items[segments.items.len - 1].source_size == rows) segments.items[segments.items.len - 1].capacity_words += rows else try segments.append(a, .{ .columns = ptr + eval_offset, .stride_words = rows, .capacity_words = rows, .source_size = @intCast(rows), .reserved = 0 });
             eval_offset += rows;
         }
-        if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, coefficient_slice, copy_run);
         try check(b.api.upload(raw, ptr + tw_base, tw.twiddles.ptr, tw.twiddles.len * 4));
         try check(b.api.upload(raw, ptr + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
         try check(b.api.upload(raw, ptr + desc_base, descriptors.ptr, descriptors.len * 4));
@@ -275,6 +292,50 @@ const Job = struct {
         self.result = .{ .root = root, .columns = columns };
     }
 };
+fn retireJoinedInput(ctx: *SC.Context, retirement: D.TraceInputRetirement, scope: D.Scope) !void {
+    try ctx.join();
+    try retirement.invoke(ctx.native_context, ctx.token, scope);
+}
+
+test "trace INTER input retirement waits for ingress join and propagates failures" {
+    const Fake = struct {
+        syncs: usize = 0,
+        calls: usize = 0,
+        fail_sync: bool = false,
+        fail_retire: bool = false,
+        fn sync(raw: *anyopaque) callconv(.c) c_int {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.syncs += 1;
+            return if (self.fail_sync) 1 else 0;
+        }
+        fn retire(raw: *anyopaque, native: *anyopaque, token: u64, _: D.Scope) !void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            try std.testing.expect(raw == native and token == 7);
+            try std.testing.expectEqual(self.syncs, self.calls + 1);
+            self.calls += 1;
+            if (self.fail_retire) return error.RetirementFailure;
+        }
+    };
+    var fake: Fake = .{};
+    var api: SC.Api = undefined;
+    api.sync = Fake.sync;
+    const scope = D.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 4 };
+    const retirement = D.TraceInputRetirement{ .context = &fake, .scope = scope, .retire = Fake.retire };
+    var ctx = SC.Context{ .session = &fake, .native_context = &fake, .token = 7, .scope = @import("pcs_scope.zig").identity(scope), .api = &api };
+    try retireJoinedInput(&ctx, retirement, scope);
+    try std.testing.expectEqual(@as(usize, 1), fake.calls);
+    fake.fail_retire = true;
+    try std.testing.expectError(error.RetirementFailure, retireJoinedInput(&ctx, retirement, scope));
+    try std.testing.expectEqual(@as(usize, 2), fake.calls);
+    fake.fail_sync = true;
+    try std.testing.expectError(error.CudaJoinFailed, retireJoinedInput(&ctx, retirement, scope));
+    try std.testing.expectEqual(@as(usize, 2), fake.calls);
+    var other = scope;
+    other.ordinal += 1;
+    try std.testing.expectError(error.InvalidTraceInputRetirementScope, retirement.invoke(&fake, 7, other));
+    try std.testing.expectEqual(@as(usize, 2), fake.calls);
+}
+
 test "resident trace commitment instantiates the typed mixed-encoding callback" {
     std.testing.refAllDecls(Context);
 }
