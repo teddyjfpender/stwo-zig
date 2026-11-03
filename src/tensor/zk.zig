@@ -614,6 +614,11 @@ pub const ZkWeights = struct {
     pub fn plainView(self: *const ZkWeights) proto.WeightStore {
         return .{ .infos = self.infos, .offsets = self.offsets, .table = self.table, .log_rows = self.log_rows, .log_cols = self.log_cols, .rows_used = self.rows_used, .com = undefined };
     }
+    /// Columns still openable; re-randomize (rerandomizeWeights) while this is >= one opening.
+    pub fn budgetLeft(self: *const ZkWeights) usize {
+        const b = self.com.budget.?;
+        return b.limit - b.count;
+    }
     /// Distinct weight columns opened so far / budget.
     pub fn budgetUsed(self: *const ZkWeights) [2]usize {
         const b = self.com.budget.?;
@@ -671,6 +676,129 @@ pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: proto.Config, key: Weigh
     const shapes = [_]zkp.Shape{key.shape(wpcs(cfg).log_blowup)};
     const roots = [_]Hash{key.root};
     try zkp.verifyOpening(a, &tr, wpcs(cfg), &tw, &shapes, &roots, &.{}, .{ .table = 0, .row = key.rows_used + WPAD_ROWS }, proof);
+}
+
+// ---------------------------------------------------------------------------
+// Weight re-randomization with a link proof.
+//
+// A hiding weight commitment can only open `slots/2` distinct columns. To keep
+// serving proofs, the prover commits the same weights again with fresh
+// randomness (new tau, pads, masks) and links the two commitments: a 2-table
+// hiding opening (old, new, plus a fresh 4-row mask table) of the single claim
+//   W_old~(z) - W_new~(z) = 0        at a random point z (rows: data rows only)
+// Soundness: both tables are close to the code (commit-time proximity of each,
+// verified separately), so the claim binds the decoded tables, and a non-zero
+// difference has a non-zero MLE at a random z except with prob. (lr+lc)/|F|.
+// ZK: the claim value is the public 0; the opening is simulatable (Lemma 2) and
+// charges t_w columns of both budgets.
+
+pub const WeightLink = struct {
+    mask_root: Hash,
+    opening: zkp.Opening,
+
+    pub fn deinit(self: *WeightLink, a: std.mem.Allocator) void {
+        self.opening.deinit(a);
+    }
+    pub fn byteSize(self: WeightLink) usize {
+        return 32 + self.opening.byteSize();
+    }
+};
+
+fn linkGroup(a: std.mem.Allocator, tr: *Transcript, old: WeightKey, new: WeightKey) ![]zkp.Group {
+    if (old.log_rows != new.log_rows or old.log_cols != new.log_cols or old.rows_used != new.rows_used or old.slots != new.slots or old.infos.len != new.infos.len) return error.WeightLinkShape;
+    for (old.infos, new.infos, old.offsets, new.offsets) |x, y, ox, oy| if (!std.meta.eql(x, y) or ox != oy) return error.WeightLinkShape;
+    const z = try a.alloc(QM31, old.log_rows + old.log_cols);
+    tr.drawN(z);
+    const eqr = try f.eqTable(a, z[0..old.log_rows], QM31.one());
+    const nr = old.rows_used + 2 * WPAD_ROWS;
+    const ro = try a.alloc(QM31, nr);
+    const rn = try a.alloc(QM31, nr);
+    @memset(ro, QM31.zero());
+    @memset(rn, QM31.zero());
+    for (0..old.rows_used) |i| {
+        ro[i] = eqr[i];
+        rn[i] = eqr[i].neg();
+    }
+    const rows = try a.alloc([]const QM31, 3);
+    rows[0] = ro;
+    rows[1] = rn;
+    rows[2] = &.{};
+    const claims = try a.alloc(zkp.Claim, 1);
+    claims[0] = .{ .rows = rows, .value = QM31.zero() };
+    const groups = try a.alloc(zkp.Group, 1);
+    groups[0] = .{ .col = try f.eqTable(a, z[old.log_rows..], QM31.one()), .claims = claims, .mask = .{ .table = 2, .row = 0 } };
+    return groups;
+}
+
+fn linkTranscript(old: WeightKey, new: WeightKey, mask_root: Hash) Transcript {
+    var tr = Transcript.initDomain("stwo-tensor-zk-weight-link-v1");
+    tr.mixDigest(old.root);
+    tr.mixDigest(new.root);
+    tr.mixDigest(mask_root);
+    return tr;
+}
+
+/// Commit the same weights again with fresh randomness and link the two commitments.
+/// The new commitment still needs its own `proveWeightProximity`.
+pub fn rerandomizeWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, old: *const ZkWeights) !struct { new: ZkWeights, link: WeightLink } {
+    const data = try a.alloc([]const i8, old.infos.len);
+    defer a.free(data);
+    for (0..old.infos.len) |i| data[i] = old.matrix(i).data;
+    var new = try commitWeights(a, pool, cfg, old.infos, data);
+    errdefer new.deinit(a);
+    var link = try proveWeightLink(a, pool, cfg, old, &new);
+    _ = &link;
+    return .{ .new = new, .link = link };
+}
+
+pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, old: *const ZkWeights, new: *const ZkWeights) !WeightLink {
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const ar = arena_state.allocator();
+    const wp = wpcs(cfg);
+    var rng = zkp.Rng.initOs();
+    var tw = try pcs.Twiddles.init(a, old.log_cols + wp.log_blowup);
+    defer tw.deinit(a);
+    const mdata = try randVec(ar, &rng, @as(usize, 4) << @intCast(old.log_cols));
+    const mm = pcs.Matrix(i32){ .data = mdata, .log_rows = 2, .log_cols = old.log_cols };
+    var mcom = try zkp.commit(i32, a, pool, &tw, &rng, mm, &.{}, old.com.shape.slots, wp.log_blowup);
+    defer mcom.deinit(a);
+    var tr = linkTranscript(old.key(), new.key(), mcom.root());
+    const groups = try linkGroup(ar, &tr, old.key(), new.key());
+    const mus = try a.alloc(QM31, 1);
+    mus[0] = zkp.maskValue(i32, mm, 0, groups[0].col);
+    const shapes = [_]zkp.Shape{ old.com.shape, new.com.shape, mcom.shape };
+    var co = try zkp.drawCoeffs(a, &tr, &shapes, groups, mus, null);
+    defer co.deinit(a);
+    const c0 = [_][]const QM31{co.v[0][0]};
+    const c1 = [_][]const QM31{co.v[0][1]};
+    const c2 = [_][]const QM31{co.v[0][2]};
+    const r0 = try zkp.combine(i8, a, pool, &old.com, old.tableMatrix(), old.extra, &c0);
+    const r1 = try zkp.combine(i8, a, pool, &new.com, new.tableMatrix(), new.extra, &c1);
+    const r2 = try zkp.combine(i32, a, pool, &mcom, mm, &.{}, &c2);
+    for (r0[0], r1[0], r2[0]) |*x, y, w| x.* = x.*.add(y).add(w);
+    a.free(r1[0]);
+    a.free(r1);
+    a.free(r2[0]);
+    a.free(r2);
+    const coms = [_]*const zkp.Commitment{ &old.com, &new.com, &mcom };
+    const opening = try zkp.finish(a, &tr, wp, &coms, mus, r0);
+    return .{ .mask_root = mcom.root(), .opening = opening };
+}
+
+pub fn verifyWeightLink(a: std.mem.Allocator, cfg: proto.Config, old: WeightKey, new: WeightKey, link: WeightLink) !void {
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const ar = arena_state.allocator();
+    const wp = wpcs(cfg);
+    var tr = linkTranscript(old, new, link.mask_root);
+    const groups = try linkGroup(ar, &tr, old, new);
+    var tw = try pcs.Twiddles.init(a, old.log_cols + wp.log_blowup);
+    defer tw.deinit(a);
+    const mshape = zkp.Shape{ .log_cols = old.log_cols, .log_blowup = wp.log_blowup, .slots = old.slots, .n_rows = 4 };
+    const shapes = [_]zkp.Shape{ old.shape(wp.log_blowup), new.shape(wp.log_blowup), mshape };
+    const roots = [_]Hash{ old.root, new.root, link.mask_root };
+    try zkp.verifyOpening(ar, &tr, wp, &tw, &shapes, &roots, groups, null, link.opening);
 }
 
 // ---------------------------------------------------------------------------
@@ -2138,6 +2266,34 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
         try std.testing.expect(std.meta.isError(verify(a, cfg, st, zwi.key(), &pi)));
         pi.checks[pi.checks.len - 1].rounds[0][0] = pi.checks[pi.checks.len - 1].rounds[0][0].add(QM31.one());
         try std.testing.expect(std.meta.isError(verify(a, cfgi, st, zwi.key(), &pi)));
+    }
+
+    // re-randomized weights with a link proof: new commitment serves new proofs
+    {
+        var zw0 = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+        defer zw0.deinit(a);
+        var rr = try rerandomizeWeights(a, &pool, cfg, &zw0);
+        defer rr.new.deinit(a);
+        defer rr.link.deinit(a);
+        try verifyWeightLink(a, cfg, zw0.key(), rr.new.key(), rr.link);
+        try std.testing.expect(!std.mem.eql(u8, &zw0.key().root, &rr.new.key().root));
+        var pn = try prove(a, &pool, cfg, st, &rr.new, wv, &tm);
+        defer pn.deinit(a);
+        try verify(a, cfg, st, rr.new.key(), &pn);
+        // tampered link / swapped roots rejected
+        rr.link.opening.rows[0][0] = rr.link.opening.rows[0][0].add(QM31.one());
+        try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, zw0.key(), rr.new.key(), rr.link)));
+        rr.link.opening.rows[0][0] = rr.link.opening.rows[0][0].sub(QM31.one());
+        try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, rr.new.key(), zw0.key(), rr.link)));
+        // a link between commitments of different weights is rejected
+        const other = try model.randomWeights(a, winfos[1].size(), 999, -8, 7);
+        defer a.free(other);
+        const wvo = [_][]const i8{ wdata[0], other, wdata[2] };
+        var zo = try commitWeights(a, &pool, cfg, &winfos, &wvo);
+        defer zo.deinit(a);
+        var bad = try proveWeightLink(a, &pool, cfg, &zw0, &zo);
+        defer bad.deinit(a);
+        try std.testing.expectError(error.OpeningEvalMismatch, verifyWeightLink(a, cfg, zw0.key(), zo.key(), bad));
     }
 
     // separate weight PCS parameters (higher blowup, fewer queries, larger budget)
