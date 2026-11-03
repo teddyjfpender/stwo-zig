@@ -91,7 +91,7 @@ pub fn ForLane(comptime F: type) type {
             var exponent = n;
             while (exponent != 0) : (exponent >>= 1) {
                 if (exponent & 1 != 0) out = out.mul(base);
-                base = base.square();
+                if (exponent > 1) base = base.square();
             }
             return out;
         }

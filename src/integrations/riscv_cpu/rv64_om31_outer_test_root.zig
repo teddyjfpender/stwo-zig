@@ -15,13 +15,19 @@ test "om31 outer bridge actual child verifies in shared lane" {
     defer pp.deinit(a);
     var authority = try Outer.prove.Authority.init(a, &pp);
     defer authority.deinit();
+    std.debug.print("OUTER leaf key ready\n", .{});
     var produced = try Outer.prove.prove(a, &authority, ctx.values());
     defer produced.deinit();
     var capture = try Outer.prove.verify(a, &authority, produced.outputs, produced.claims, &produced.proof.proof);
     defer capture.deinit(a);
     const child = Bridge.Child{ .authority = &authority, .produced = &produced, .capture = &capture };
+    std.debug.print("OUTER leaf proved/verified; building fold\n", .{});
     var graph = try Bridge.buildFold(a, .{ child, child });
     defer graph.deinit();
-    try std.testing.expect(try graph.ctx.isCircuitValid());
+    std.debug.print("OUTER graph built; checking gates\n", .{});
+    if (try graph.ctx.circuit.check(a, graph.ctx.values())) |failure| {
+        std.debug.print("OUTER failure={any}\n", .{failure});
+        return error.InvalidOuterGraph;
+    }
     try std.testing.expectEqual(try Bridge.expectedDigest(.{ child, child }), graph.output_digest);
 }

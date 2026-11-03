@@ -96,10 +96,10 @@ const Statement = struct {
             denominator = denominator.add(power.mulM31(coordinate));
             power = power.mul(challenges.alpha);
         }
-        for (words) |coordinate| {
+        for (words, 0..) |coordinate, i| {
             const base = try circuit.native_verifier.channel.wordToM31(Q, ctx, coordinate);
             denominator = denominator.add(power.mul(C.base(base)));
-            power = power.mul(challenges.alpha);
+            if (i + 1 < words.len) power = power.mul(challenges.alpha);
         }
         return denominator.sub(challenges.z).inv();
     }
@@ -138,9 +138,9 @@ const Statement = struct {
         const n = self.key.bound.total_constraints;
         const powers = try ctx.scratch().alloc(F, n);
         var power = F.one();
-        for (powers) |*p| {
+        for (powers, 0..) |*p, i| {
             p.* = power;
-            power = power.mul(randomness);
+            if (i + 1 < powers.len) power = power.mul(randomness);
         }
         var result = F.zero();
         for (self.key.bound.components, self.claims) |component, claim| {
@@ -149,7 +149,7 @@ const Statement = struct {
             const inverse = try A.geometry.denominatorInverseFor(F, .{ .x = point.x, .y = point.y }, self.key.bound.max_evaluation_log_size - 1, component.trace_log_size);
             for (component.parts) |part| {
                 const roots = try Eval.evaluate(ctx.scratch(), part.program, .{ .context = &read, .get = Read.get }, parameters);
-                for (roots, 0..) |root, r| result = result.add(root.mul(inverse).mul(powers[n - 1 - part.rc_base - r]));
+                for (roots, 0..) |root, r| result = result.add(root.mul(inverse).mul(powers[n - 1 - component.random_coefficient_offset - part.rc_base - r]));
             }
         }
         return result;
@@ -193,6 +193,7 @@ pub fn expectedDigest(children: [2]Child) ![32]u8 {
 pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
     var ctx = try C.Context.init(a, 8);
     errdefer ctx.deinit();
+    ctx.assert_eq_on_eval = true;
     C.lane.begin(&ctx);
     defer C.lane.finish() catch {};
     var message: std.ArrayList(Word) = .empty;
@@ -220,6 +221,9 @@ pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
     var outputs: [8]C.Var = undefined;
     for (&outputs, digest.words) |*out, w| out.* = w.get();
     try ctx.setOutputs(&outputs);
-    try ctx.finalize(true);
+    // Native PCS verifier emits terminal arithmetic/transcript intermediates
+    // that are intentionally unused; all asserted verification equalities and
+    // guessed-input yield gates are retained, as in the native PCS fixtures.
+    try ctx.finalize(false);
     return .{ .ctx = ctx, .output_digest = try expectedDigest(children) };
 }
