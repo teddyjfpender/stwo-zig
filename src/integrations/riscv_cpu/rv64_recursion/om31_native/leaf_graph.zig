@@ -28,10 +28,10 @@ pub const Graph = struct {
         self.* = undefined;
     }
 };
-fn context(a: std.mem.Allocator) !*C.Context {
+fn context(a: std.mem.Allocator, trace_only: bool) !*C.Context {
     const ctx = try a.create(C.Context);
     errdefer a.destroy(ctx);
-    ctx.* = try C.Context.init(a, circuit.common.component_list.N_RESERVED);
+    ctx.* = if (trace_only) try C.Context.initTraceOnly(a, circuit.common.component_list.N_RESERVED) else try C.Context.init(a, circuit.common.component_list.N_RESERVED);
     return ctx;
 }
 fn binding(value: ?*const Fixed.Binding) ?V.frame.Binding {
@@ -51,13 +51,13 @@ fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const 
     }
     var digest: [32]u8 = undefined;
     h.final(&digest);
-    for (output.words, 0..) |word, i| {
+    if (!ctx.trace_only) for (output.words, 0..) |word, i| {
         const actual = circuit.builder.ivalue.unpackU32(C.Q, ctx.get(word.get()));
         if (actual != std.mem.readInt(u32, digest[4 * i ..][0..4], .little)) return error.CurrentOm31FrameDigest;
-    }
+    };
     try C.lane.finish();
     try ctx.finalize(false);
-    if (!try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
+    if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     return .{ .allocator = a, .ctx = ctx, .words = try a.dupe(u32, words), .digest = digest };
 }
 pub const CpuInput = struct {
@@ -73,13 +73,19 @@ pub const CpuInput = struct {
     fixed: ?*const Fixed.Binding = null,
 };
 pub fn cpu(a: std.mem.Allocator, input: CpuInput) !Graph {
+    return cpuMode(a, input, false);
+}
+pub fn cpuTraceOnly(a: std.mem.Allocator, input: CpuInput) !Graph {
+    return cpuMode(a, input, true);
+}
+fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool) !Graph {
     var admitted = try Capture.verify(a, input.setup, input.request, input.expected, input.first, input.manifest, input.index, input.config, input.encoded, input.fixed);
     defer admitted.deinit(a);
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
     const shape = try Capture.geometry(arena.allocator(), input.setup, input.config);
     const values = try V.proof.fromNative(arena.allocator(), &admitted.proof, &admitted.capture, &shape);
-    const ctx = try context(a);
+    const ctx = try context(a, trace_only);
     errdefer {
         ctx.deinit();
         a.destroy(ctx);
@@ -104,6 +110,12 @@ pub const TruthInput = struct {
     fixed: ?*const Fixed.Binding = null,
 };
 pub fn truth(a: std.mem.Allocator, input: TruthInput) !Graph {
+    return truthMode(a, input, false);
+}
+pub fn truthTraceOnly(a: std.mem.Allocator, input: TruthInput) !Graph {
+    return truthMode(a, input, true);
+}
+fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool) !Graph {
     var capture: V.proof.NativeCapture = undefined;
     var native = if (input.truth == .keccak)
         try Keccak.capture(a, input.truth, input.expected, input.manifest, input.config, input.encoded, input.fixed, &capture)
@@ -115,7 +127,7 @@ pub fn truth(a: std.mem.Allocator, input: TruthInput) !Graph {
     defer arena.deinit();
     const shape = if (input.truth == .keccak) try Keccak.shape(arena.allocator(), input.truth, input.config) else try Truth.shape(arena.allocator(), input.truth, input.config);
     const values = try V.proof.fromNative(arena.allocator(), &native, &capture, &shape);
-    const ctx = try context(a);
+    const ctx = try context(a, trace_only);
     errdefer {
         ctx.deinit();
         a.destroy(ctx);

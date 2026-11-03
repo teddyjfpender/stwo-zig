@@ -23,16 +23,38 @@ test "OM31 native PCS concrete leaf orchestration admits actual CPU and truth fr
     defer stages.deinit();
     var manifest = try stages.verifyAndSeal(a, inventory.execution_identity, inventory.workers);
     defer manifest.deinit(a);
-    var cpu = try G.cpu(a, .{ .setup = fixture.keys.cpus[0], .request = fixture.bundle.requests[0], .expected = inventory.workers[0], .first = inventory.first_ids[0], .manifest = &manifest, .index = 0, .stage = &stages.stages[0], .config = config, .encoded = &fixture.bundle.cpus[0] });
+    const cpu_input = G.CpuInput{ .setup = fixture.keys.cpus[0], .request = fixture.bundle.requests[0], .expected = inventory.workers[0], .first = inventory.first_ids[0], .manifest = &manifest, .index = 0, .stage = &stages.stages[0], .config = config, .encoded = &fixture.bundle.cpus[0] };
+    var cpu = try G.cpu(a, cpu_input);
     defer cpu.deinit();
     try std.testing.expectEqual(@as(usize, 9), cpu.ctx.circuit.output.items.len);
+    {
+        var trace = try G.cpuTraceOnly(a, cpu_input);
+        defer trace.deinit();
+        try traceParity(cpu.ctx, trace.ctx);
+    }
     {
         var actual = try @import("outer_wrap.zig").wrapGraph(a, cpu.ctx, cpu.digest);
         defer actual.deinit();
         std.debug.print("OM31_ACTUAL_CPU_WRAP vars={} preprocess_ns={} prove_ns={} verify_ns={}\n", .{ cpu.ctx.circuit.n_vars, actual.timings.preprocess_ns, actual.timings.prove_ns, actual.timings.verify_ns });
     }
     const ordinal = setups.len;
-    var truth = try G.truth(a, .{ .truth = truths[0], .expected = inventory.workers[ordinal], .manifest = &manifest, .config = config, .encoded = &fixture.bundle.truths[0] });
+    const truth_input = G.TruthInput{ .truth = truths[0], .expected = inventory.workers[ordinal], .manifest = &manifest, .config = config, .encoded = &fixture.bundle.truths[0] };
+    var truth = try G.truth(a, truth_input);
     defer truth.deinit();
     try std.testing.expectEqual(@as(usize, 9), truth.ctx.circuit.output.items.len);
+    var trace = try G.truthTraceOnly(a, truth_input);
+    defer trace.deinit();
+    try traceParity(truth.ctx, trace.ctx);
+}
+
+fn traceParity(original: *const @import("common.zig").Context, trace: *const @import("common.zig").Context) !void {
+    const schedule = @import("stwo_circuit_frontend").builder.witness_plan;
+    try std.testing.expectEqualDeep(original.circuit, trace.circuit);
+    try std.testing.expectEqual(@as(usize, 0), trace.value_table.items.len);
+    try std.testing.expectEqual(@as(usize, 0), trace.value_table.capacity);
+    var plan = try schedule.build(a, trace);
+    defer plan.deinit();
+    const values = try schedule.evaluate(a, trace, plan);
+    defer a.free(values);
+    try std.testing.expectEqualDeep(original.values(), values);
 }

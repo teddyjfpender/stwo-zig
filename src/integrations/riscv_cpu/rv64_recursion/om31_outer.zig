@@ -192,9 +192,15 @@ pub fn expectedDigest(children: [2]Child) ![32]u8 {
     return digest;
 }
 pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
-    var ctx = try C.Context.init(a, 8);
+    return buildFoldMode(a, children, false);
+}
+pub fn buildFoldTraceOnly(a: std.mem.Allocator, children: [2]Child) !Graph {
+    return buildFoldMode(a, children, true);
+}
+fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Graph {
+    var ctx = if (trace_only) try C.Context.initTraceOnly(a, 8) else try C.Context.init(a, 8);
     errdefer ctx.deinit();
-    ctx.assert_eq_on_eval = true;
+    ctx.assert_eq_on_eval = !trace_only;
     C.lane.begin(&ctx);
     defer C.lane.finish() catch {};
     var message: std.ArrayList(Word) = .empty;
