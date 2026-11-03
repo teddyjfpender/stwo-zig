@@ -484,6 +484,16 @@ pub const Ctx = struct {
 };
 
 pub fn initCtx(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u64) !Ctx {
+    const c = try initCtxPublics(b, cfg, ws, seed);
+    const wi = try layerWeightInfos(b.a, cfg);
+    defer b.a.free(wi);
+    try b.weight_infos.appendSlice(b.a, wi);
+    return c;
+}
+
+/// As `initCtx`, without registering the weight infos (callers with their own
+/// weight layout, e.g. `lm.zig`'s interleaved dense/MoE stack, append them).
+pub fn initCtxPublics(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u64) !Ctx {
     try cfg.validate();
     const rt = try ropeTable(b.a, cfg.log_t, cfg.logDh());
     defer b.a.free(rt);
@@ -502,11 +512,6 @@ pub fn initCtx(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u
     for (gammas) |*gid| {
         for (g) |*v| v.* = prng.random().intRangeAtMost(i32, 48, 80);
         gid.* = try b.public(cfg.log_d, g);
-    }
-    {
-        const wi = try layerWeightInfos(b.a, cfg);
-        defer b.a.free(wi);
-        try b.weight_infos.appendSlice(b.a, wi);
     }
     var tri: u32 = 0;
     if (cfg.isMoe()) {
@@ -880,8 +885,13 @@ pub const LayerOut = struct { out: u32, h: u32, attn: AttnOut, rms1: RmsOut, rms
 
 /// One Llama-style decoder layer: x -> x + Attn(RMSNorm(x)) -> h + MLP(RMSNorm(h)).
 pub fn decoderLayer(b: *Builder, c: Ctx, layer: u32, x: u32, x_int8: bool) !LayerOut {
+    return decoderLayerAt(b, c, layer, layer * c.cfg.weightsPerLayer(), x, x_int8);
+}
+
+/// `decoderLayer` with an explicit first weight index `wb` (layers of
+/// different kinds, e.g. dense and MoE, interleaved in one weight store).
+pub fn decoderLayerAt(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool) !LayerOut {
     const cfg = c.cfg;
-    const wb = layer * cfg.weightsPerLayer();
     const r1 = try rmsnorm(b, c, x, c.gammas[2 * layer], x_int8);
     const y1 = r1.y;
     var q: u32 = undefined;

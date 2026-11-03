@@ -19,6 +19,7 @@ pub const recycle = @import("recycle.zig");
 pub const accel = @import("accel.zig");
 pub const digest = @import("digest.zig");
 pub const serve = @import("serve.zig");
+pub const lm = @import("lm.zig");
 
 test {
     _ = @import("qmul_check_test.zig");
@@ -43,4 +44,5 @@ test {
     _ = accel;
     _ = digest;
     _ = serve;
+    _ = lm;
 }
