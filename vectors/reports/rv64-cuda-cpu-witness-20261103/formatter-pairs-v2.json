@@ -1,0 +1,49 @@
+{
+  "schema": "rv64-cuda-compact-cpu-format-pairs-v2",
+  "device": "RTX5090 sm_120",
+  "scope": "formatter qualification, not an integrated Ethereum proof",
+  "input_bytes_per_active_row": 56,
+  "main_columns": 37,
+  "abi_bytes": 80,
+  "histograms": [
+    "U16",
+    "U8",
+    "U8-pair",
+    "ROM physical rows"
+  ],
+  "native_main_and_histogram_parity": true,
+  "cases": [
+    {
+      "log": 5,
+      "active_rows": 0,
+      "gpu_ms": 0.188864
+    },
+    {
+      "log": 5,
+      "active_rows": 31,
+      "gpu_ms": 0.021504
+    },
+    {
+      "log": 13,
+      "active_rows": 3077,
+      "gpu_ms": 0.01872
+    },
+    {
+      "log": 22,
+      "active_rows": 4194303,
+      "main_cells": 155189248,
+      "gpu_ms": 2.559616
+    }
+  ],
+  "timing": "single CUDA event interval including histogram generation, excludes ingress/readback; no warm median claim",
+  "pair_rule": [
+    "gap_hi0*256+gap_hi1",
+    "gap_hi2*256"
+  ],
+  "wide_clock_pairs": "rejected for log>22",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/cpu_witness.cu": "8837e0b9adb8b6f6493bdeec58896d6463f43097f0cafe97867c6b904d53d005",
+    "src/backends/cuda/native/rv64/cpu_witness.h": "7b54d9fc594deb7c9a6783a8de099b5df101df1d7fe95582eda6fe60c0208510",
+    "tests/cuda/rv64/cpu_witness_smoke.cu": "bc9ba9e7daeaedf6e49d577eb60d4596f1196ae30799a035d72c8f0d88b7baa5"
+  }
+}

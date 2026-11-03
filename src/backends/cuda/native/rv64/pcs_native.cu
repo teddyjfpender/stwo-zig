@@ -524,6 +524,36 @@ extern "C" int stwo_rv64_gpu_lease_validate(void *raw,
     return int(cudaErrorInvalidValue);
   }
 }
+extern "C" int stwo_rv64_gpu_lease_rebind(
+    void *raw, const StwoRv64GpuLease *lease, const uint32_t from[8],
+    const uint32_t to[8]) {
+  if (!raw || !lease || lease->reserved || !from || !to)
+    return int(cudaErrorInvalidValue);
+  auto &s = *static_cast<Service *>(raw);
+  if (!s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+  try {
+    const Scope target = scope_of(to);
+    if (!nonzero(target)) throw std::runtime_error("empty promoted lease scope");
+    const auto &record = s.owner->find(lease->words, lease->count,
+        lease->context_token, lease->generation, scope_of(from));
+    if (record.value.words != lease->words || record.value.count != lease->count ||
+        record.value.kind != lease->kind)
+      throw std::runtime_error("altered promoted lease descriptor");
+    // There is no allocation or mutation until the complete old descriptor
+    // and both namespaces have been admitted. All registry access is confined
+    // to this service's owner thread.
+    for (auto &entry : s.owner->leases) {
+      if (entry.value.generation == lease->generation) {
+        entry.scope = target;
+        return 0;
+      }
+    }
+    throw std::runtime_error("retired promoted lease");
+  } catch (const std::exception &e) {
+    s.error = e.what();
+    return int(cudaErrorInvalidValue);
+  }
+}
 extern "C" int stwo_rv64_gpu_lease_release(void *raw, StwoRv64GpuLease *lease) {
   if (!raw || !lease)
     return int(cudaErrorInvalidValue);

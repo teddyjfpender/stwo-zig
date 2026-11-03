@@ -83,13 +83,18 @@ __global__ void cpu_witness(StwoRv64CpuWitness j) {
     if (j.log > 22) count_bin(j.counts16, 128 * row[29 + slot]);
     else count_bin(j.counts8, row[29 + slot]);
   }
+  if (j.pair_counts) {
+    count_bin(j.pair_counts, row[29] * 256 + row[30]);
+    count_bin(j.pair_counts, row[31] * 256);
+  }
 }
 } // namespace stwo::cuda::rv64
 extern "C" int stwo_rv64_cpu_witness_on(void *ctx, uint32_t lane,
                                        const StwoRv64CpuWitness *job) {
   using namespace stwo::cuda::rv64;
   if (!job || job->log < 5 || job->log > 23 || job->rom_log < 5 || job->rom_log > 22 ||
-      job->count >= (1u << job->log) || !job->final_pc || job->final_pc >= (1u << 31) || (job->final_pc & 3))
+      job->count >= (1u << job->log) || (job->pair_counts && job->log > 22) ||
+      !job->final_pc || job->final_pc >= (1u << 31) || (job->final_pc & 3))
     return int(cudaErrorInvalidValue);
   const auto j = *job;
   Custody c(ctx, lane);
@@ -97,7 +102,8 @@ extern "C" int stwo_rv64_cpu_witness_on(void *ctx, uint32_t lane,
       !c.range(j.rom, uint64_t(32) << j.rom_log, false) ||
       !c.range(j.main, uint64_t(37) << j.log, true) ||
       !c.range(j.counts16, 65536, true) || !c.range(j.counts8, 256, true) ||
-      !c.range(j.rom_counts, uint64_t(1) << j.rom_log, true) || !c.range(j.status, 1, true))
+      !c.range(j.rom_counts, uint64_t(1) << j.rom_log, true) || !c.range(j.status, 1, true) ||
+      (j.pair_counts && !c.range(j.pair_counts, 65536, true)))
     return c.status;
   cpu_witness<<<((1u << j.log) + 127) / 128, 128, 0, c.stream>>>(j);
   return int(cudaPeekAtLastError());

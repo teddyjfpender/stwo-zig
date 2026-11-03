@@ -11,10 +11,11 @@ pub const CpuWitness = extern struct {
     log: u32,
     rom_log: u32,
     final_pc: u32,
+    pair_counts: ?[*]u32 = null,
 };
 pub extern "c" fn stwo_rv64_cpu_witness_on(*anyopaque, u32, *const CpuWitness) c_int;
 comptime {
-    if (@sizeOf(CpuWitness) != 72 or @offsetOf(CpuWitness, "count") != 56)
+    if (@sizeOf(CpuWitness) != 80 or @offsetOf(CpuWitness, "count") != 56 or @offsetOf(CpuWitness, "pair_counts") != 72)
         @compileError("RV64 compact CPU witness ABI mismatch");
 }
 pub const Plane = extern struct {

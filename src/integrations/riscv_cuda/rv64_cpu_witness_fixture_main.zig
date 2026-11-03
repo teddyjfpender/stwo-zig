@@ -26,6 +26,7 @@ fn fixture(dir: std.fs.Dir, id: u32, log: u32, count: u32) !void {
     var counts16: [65536]u32 = @splat(0);
     var counts8: [256]u32 = @splat(0);
     var rom_counts: [32]u32 = @splat(0);
+    var pairs: [65536]u32 = @splat(0);
     var rng = std.Random.DefaultPrng.init(0xcafe789 + id);
     for (0..n) |logical| {
         var row: X.row.Main = undefined;
@@ -53,17 +54,22 @@ fn fixture(dir: std.fs.Dir, id: u32, log: u32, count: u32) !void {
             const hi = row[X.layout.compact.gap8 + slot].v;
             if (log > 22) counts16[128 * hi] += 1 else counts8[hi] += 1;
         }
+        if (log <= 22) {
+            pairs[row[X.layout.compact.gap8].v * 256 + row[X.layout.compact.gap8 + 1].v] += 1;
+            pairs[row[X.layout.compact.gap8 + 2].v * 256] += 1;
+        }
     }
     var bytes: std.ArrayList(u8) = .empty;
     defer bytes.deinit(a);
     const w = bytes.writer(a);
-    try IO.words(w, &.{ 0x52564357, 1, id, log, count, 5, 8192, 37 });
+    try IO.words(w, &.{ 0x52564357, 2, id, log, count, 5, 8192, 37 });
     try w.writeAll(std.mem.sliceAsBytes(metadata));
     try w.writeAll(std.mem.sliceAsBytes(&rom));
     try w.writeAll(std.mem.sliceAsBytes(matrix));
     try IO.words(w, &counts16);
     try IO.words(w, &counts8);
     try IO.words(w, &rom_counts);
+    try IO.words(w, &pairs);
     const name = try std.fmt.allocPrint(a, "case-{}.bin", .{id});
     defer a.free(name);
     try dir.writeFile(.{ .sub_path = name, .data = bytes.items });

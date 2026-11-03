@@ -58,6 +58,11 @@ int stwo_rv64_gpu_lease_allocate(void *, uint64_t words, uint32_t kind,
                                  const uint32_t scope[8], StwoRv64GpuLease *);
 int stwo_rv64_gpu_lease_validate(void *, const StwoRv64GpuLease *,
                                  const uint32_t scope[8]);
+// Owner-thread only. Promote an exact live lease from provisional MAIN scope
+// to the scope containing the newly computed commitment. No pointer, kind,
+// generation or extent changes; a failed validation leaves the record intact.
+int stwo_rv64_gpu_lease_rebind(void *, const StwoRv64GpuLease *,
+                               const uint32_t from[8], const uint32_t to[8]);
 int stwo_rv64_gpu_lease_release(void *, StwoRv64GpuLease *);
 int stwo_rv64_gpu_lease_validate_range(void *, const uint32_t *, uint64_t words,
                                      uint64_t context_token, uint64_t generation,

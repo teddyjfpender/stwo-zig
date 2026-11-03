@@ -16,6 +16,9 @@ struct StwoRv64CpuWitness {
   uint32_t *rom_counts;
   uint32_t *status;
   uint32_t count, log, rom_log, final_pc;
+  // Optional U8-pair multiplicities: (gap_hi0,gap_hi1), (gap_hi2,0).
+  // Pair mode is admitted only for the 24-bit clock (log <=22).
+  uint32_t *pair_counts;
 };
 extern "C" int stwo_rv64_cpu_witness_on(void *, uint32_t,
                                        const StwoRv64CpuWitness *);

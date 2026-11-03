@@ -7,6 +7,7 @@ pub const Callback = *const fn (*anyopaque, u64, ?*anyopaque) callconv(.c) c_int
 pub const Submit = *const fn (*anyopaque, Callback, ?*anyopaque) callconv(.c) c_int;
 pub const LeaseAllocate = *const fn (*anyopaque, u64, u32, *const [8]u32, *Lease) callconv(.c) c_int;
 pub const LeaseValidate = *const fn (*anyopaque, *const Lease, *const [8]u32) callconv(.c) c_int;
+pub const LeaseRebind = *const fn (*anyopaque, *const Lease, *const [8]u32, *const [8]u32) callconv(.c) c_int;
 pub const LeaseRelease = *const fn (*anyopaque, *Lease) callconv(.c) c_int;
 pub const LeaseValidateRange = *const fn (*anyopaque, [*]const u32, u64, u64, u64, *const [8]u32) callconv(.c) c_int;
 pub const Upload = *const fn (*anyopaque, *anyopaque, *const anyopaque, usize) callconv(.c) c_int;

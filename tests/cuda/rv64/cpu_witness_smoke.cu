@@ -5,29 +5,30 @@
 static void exercise(const std::string &directory, uint32_t id) {
   FixtureWords f(directory + "/case-" + std::to_string(id) + ".bin");
   const auto h = f.take(8);
-  if (h[0] != 0x52564357 || h[1] != 1 || h[2] != id || h[3] < 5 || h[3] > 23 ||
+  if (h[0] != 0x52564357 || h[1] != 2 || h[2] != id || h[3] < 5 || h[3] > 22 ||
       h[4] >= (1u << h[3]) || h[5] != 5 || h[6] != 8192 || h[7] != 37)
     throw std::runtime_error("CPU witness fixture shape");
   const uint32_t n = 1u << h[3], count = h[4];
   const auto metadata = f.take(uint64_t(count) * 14), rom = f.take(32 * 32);
   const auto expected = f.take(uint64_t(37) * n), c16 = f.take(65536),
-             c8 = f.take(256), cr = f.take(32);
+             c8 = f.take(256), cr = f.take(32), cp = f.take(65536);
   if (f.position != f.data.size()) throw std::runtime_error("trailing fixture data");
   Owner o(0);
   auto input = o.plane(std::max(uint64_t(1), uint64_t(count) * 14), 1),
        fixed = o.plane(32 * 32, 1), main = o.plane(n, 37),
        counts16 = o.plane(65536, 1), counts8 = o.plane(256, 1),
-       counts_rom = o.plane(32, 1), status = o.plane(1, 1);
+       counts_rom = o.plane(32, 1), status = o.plane(1, 1), pairs = o.plane(65536, 1);
   if (count) o.upload(input, metadata);
   o.upload(fixed, rom);
   o.upload(counts16, std::vector<uint32_t>(65536));
   o.upload(counts8, std::vector<uint32_t>(256));
   o.upload(counts_rom, std::vector<uint32_t>(32));
   o.upload(status, {0});
+  o.upload(pairs, std::vector<uint32_t>(65536));
   CHECK(stwo_exec_context_sync(o.ctx));
   StwoRv64CpuWitness j{input.words, fixed.words, main.words, counts16.words,
                        counts8.words, counts_rom.words, status.words,
-                       count, h[3], h[5], h[6]};
+                       count, h[3], h[5], h[6], pairs.words};
   void *raw = nullptr;
   CHECK(stwo_exec_context_lane_stream(o.ctx, 1, &raw));
   const auto stream = reinterpret_cast<cudaStream_t>(raw);
@@ -42,6 +43,7 @@ static void exercise(const std::string &directory, uint32_t id) {
   fixture_equal("CPU U16 multiplicities", o.read(counts16), c16);
   fixture_equal("CPU U8 multiplicities", o.read(counts8), c8);
   fixture_equal("CPU ROM multiplicities", o.read(counts_rom), cr);
+  fixture_equal("CPU U8-pair multiplicities", o.read(pairs), cp);
   if (o.read(status)[0]) throw std::runtime_error("valid CPU metadata rejected");
   if (id == 1) {
     auto bad = metadata;
