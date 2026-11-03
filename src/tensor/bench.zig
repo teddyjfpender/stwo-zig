@@ -237,12 +237,19 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const pc = proto.Config{
+    var pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
         .weight_log_cols = @min(cfg.logDkv(), 13),
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
     };
+    pc.two_level = try twoLevel(args, 12, pc.pcs);
+    pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
+    if (pc.two_level != null) {
+        const wi = try tf.layerWeightInfos(a, cfg);
+        defer a.free(wi);
+        pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, wi, wi.len);
+    }
     var t0 = now();
     var sw = try tf.setupWeights(a, &pool, cfg, pc, 100);
     const commit_s = secs(t0);
@@ -266,7 +273,8 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     for (sw.winfos) |wi| n_weights += wi.size();
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, nl, threads, queries, lb, pow });
-    try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits(), n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
+    try printTl(out, pc);
+    try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
