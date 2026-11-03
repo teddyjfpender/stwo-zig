@@ -117,7 +117,40 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
 /// Streaming binary carry is the same ordered pair-fold tree as breadth-first
 /// folding with odd promotion. Final blocks combine from the rightmost/smallest
 /// block upward; left-associative finalization would produce a different tree.
+pub const Lane = struct {
+    physical_device: u32,
+    factory: Outer.Device.Factory,
+    pool: *@import("stwo_prover_engine").work_pool.WorkPool,
+};
+pub const ParallelOptions = struct {
+    lanes: []const Lane,
+    /// Sum of caller-owned pool workers; native proving must have drained.
+    pool_worker_budget: usize,
+    max_pending_authorities: usize = 17,
+};
 pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory) !Report {
+    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, factory, null);
+}
+/// Explicit candidate route. Hardware admission remains with the caller; every
+/// supplied lane must own a distinct physical device and an atomic GPU factory.
+/// All graph/proof allocations share this identifiable synchronized budget.
+pub fn runWithFactories(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, options: ParallelOptions) !Report {
+    const budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.fromAllocator(a) orelse return error.SharedRecursionBudgetRequired;
+    try validateLanes(options);
+    _ = budget.retain();
+    defer budget.destroy();
+    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, null, options);
+}
+fn validateLanes(options: ParallelOptions) !void {
+    if (options.lanes.len == 0 or options.lanes.len > 4) return error.InvalidRecursionAdmission;
+    var identities: [4]Dag.LaneIdentity = undefined;
+    for (options.lanes, 0..) |lane, i| {
+        if (lane.factory.prepare_from_circuit == null) return error.TraceOnlySourceRequired;
+        identities[i] = .{ .device = lane.physical_device, .factory = @intFromPtr(lane.factory.context), .pool = @intFromPtr(lane.pool), .workers = lane.pool.workerCount() };
+    }
+    try Dag.validateLanes(identities[0..options.lanes.len], options.pool_worker_budget, options.max_pending_authorities);
+}
+fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory, parallel: ?ParallelOptions) !Report {
     var timer = try std.time.Timer.start();
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, bundle.requests, expected, config, fixed);
     defer inventory.deinit();
@@ -163,6 +196,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     // Early rejection only. Acceptance still requires every freshly verified
     // leaf, every parent, the root and this exact metadata check again below.
     const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
+    if (parallel) |options| return runPreparedParallel(.{ .allocator = a, .setups = setups, .truths = truths, .bundle = bundle, .expected = expected, .config = config, .fixed = fixed, .dir = dir, .allow_resume = allow_resume, .inventory = &inventory, .stages = &stages, .manifest = &manifest, .words = words, .frames = frames, .timer = &timer }, options);
     var nodes: std.ArrayList(Node) = .empty;
     defer nodes.deinit(a);
     try nodes.ensureTotalCapacity(a, 2 * n - 1);
@@ -271,5 +305,194 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     try dir.writeFile(.{ .sub_path = "report.json", .data = report_bytes });
+    return report;
+}
+
+const Dag = @import("ready_dag.zig");
+const Pools = @import("stwo_prover_engine").work_pool;
+const PreparedExecution = struct {
+    allocator: std.mem.Allocator,
+    setups: []const *const R.CpuSetup,
+    truths: []const R.Truth,
+    bundle: *const Coordinator.Bundle,
+    expected: P.Expected,
+    config: W.PcsConfig,
+    fixed: ?*const FixedSet,
+    dir: std.fs.Dir,
+    allow_resume: bool,
+    inventory: *const Execution.Inventory,
+    stages: *const MW.Owned,
+    manifest: *const @import("../../word16_global_execution/services/gkr_local/manifest.zig").PendingManifest,
+    words: []const []const u32,
+    frames: Root.Frames,
+    timer: *std.time.Timer,
+};
+const Outcome = struct { pending: Pending, restored: bool, retired_bytes: usize, graph_ns: u64 = 0, proof_ns: u64 = 0 };
+const ParallelExecution = struct {
+    input: PreparedExecution,
+    options: ParallelOptions,
+    plan: *const Dag.Plan,
+    queue: Dag.Queue,
+    nodes: []Node,
+    proofs: [Dag.max_nodes]?Pending = @splat(null),
+    mutex: std.Thread.Mutex = .{},
+    changed: std.Thread.Condition = .{},
+    fatal: ?anyerror = null,
+    graph_ns: u64 = 0,
+    wrap_ns: u64 = 0,
+    fold_ns: u64 = 0,
+    restored_leaves: usize = 0,
+    restored_folds: usize = 0,
+    retired_bytes: usize = 0,
+    fn stop(self: *ParallelExecution, err: anyerror) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.fatal == null) self.fatal = err;
+        self.changed.broadcast();
+    }
+    fn runLane(self: *ParallelExecution, lane: usize) void {
+        var binding = Pools.ScopedPoolBinding.init(self.options.lanes[lane].pool) catch |err| {
+            self.stop(err);
+            return;
+        };
+        defer binding.deinit();
+        while (true) {
+            self.mutex.lock();
+            const id = claim: while (true) {
+                if (self.fatal != null or self.queue.failure != null or self.queue.completed == self.plan.count) {
+                    self.mutex.unlock();
+                    return;
+                }
+                const next = self.queue.take() catch |err| {
+                    self.fatal = err;
+                    self.changed.broadcast();
+                    self.mutex.unlock();
+                    return;
+                };
+                if (next) |value| break :claim value;
+                self.changed.wait(&self.mutex);
+            };
+            self.mutex.unlock();
+            const outcome = self.prove(id, self.options.lanes[lane].factory) catch |err| {
+                self.mutex.lock();
+                self.queue.fail(id, err);
+                self.changed.broadcast();
+                self.mutex.unlock();
+                return;
+            };
+            self.mutex.lock();
+            self.proofs[id] = outcome.pending;
+            const spec = self.plan.nodes[id];
+            self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left, .right = spec.right, .authority = outcome.pending.proof.authority.identity, .digest = outcome.pending.proof.digest };
+            self.graph_ns += outcome.graph_ns;
+            self.retired_bytes += outcome.retired_bytes;
+            if (spec.left) |left| {
+                // prove() has freshly verified and durably published the parent.
+                // Neither child has another consumer in this ordered tree.
+                self.proofs[left].?.deinit(self.input.allocator);
+                self.proofs[spec.right.?].?.deinit(self.input.allocator);
+                self.proofs[left] = null;
+                self.proofs[spec.right.?] = null;
+                self.fold_ns += outcome.proof_ns;
+                self.restored_folds += @intFromBool(outcome.restored);
+            } else {
+                self.wrap_ns += outcome.proof_ns;
+                self.restored_leaves += @intFromBool(outcome.restored);
+            }
+            self.queue.complete(id);
+            self.changed.broadcast();
+            self.mutex.unlock();
+        }
+    }
+    fn prove(self: *ParallelExecution, id: usize, factory: Outer.Device.Factory) !Outcome {
+        const in = self.input;
+        const a = in.allocator;
+        const spec = self.plan.nodes[id];
+        if (spec.left) |left_id| {
+            const left = self.proofs[left_id].?;
+            const right = self.proofs[spec.right.?].?;
+            const children = [2]Bridge.Child{ child(left), child(right) };
+            const digest = try Bridge.expectedDigest(children);
+            var timer = try std.time.Timer.start();
+            var graph = try Bridge.buildFoldTraceOnly(a, children);
+            defer graph.deinit();
+            if (!std.mem.eql(u8, &digest, &graph.output_digest)) return error.RecursiveFoldDigest;
+            const graph_ns = timer.lap();
+            var name_buffer: [64]u8 = undefined;
+            const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{id});
+            return self.wrap(a, &graph.ctx, digest, id, name, factory, graph_ns, &timer);
+        }
+        const ordinal = spec.first_leaf;
+        const worker = in.inventory.workers[ordinal];
+        var timer = try std.time.Timer.start();
+        var graph = if (ordinal < in.setups.len) try Graph.cpuTraceOnly(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null });
+        defer graph.deinit();
+        if (!std.mem.eql(u32, graph.words, in.words[ordinal])) return error.RecursiveLeafFrame;
+        const graph_ns = timer.lap();
+        var name_buffer: [64]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{ordinal});
+        return self.wrap(a, graph.ctx, graph.digest, id, name, factory, graph_ns, &timer);
+    }
+    fn wrap(self: *ParallelExecution, a: std.mem.Allocator, ctx: *@import("common.zig").Context, digest: [32]u8, id: usize, name: []const u8, factory: Outer.Device.Factory, graph_ns: u64, timer: *std.time.Timer) !Outcome {
+        const encoded = try cached(a, self.input.dir, name, self.input.allow_resume);
+        defer if (encoded) |bytes| a.free(bytes);
+        const proof = try a.create(Outer.Wrapped);
+        errdefer a.destroy(proof);
+        proof.* = try Outer.wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, @intCast(id), factory);
+        errdefer proof.deinit();
+        const bytes = try proof.serialize(a);
+        defer a.free(bytes);
+        try @import("publication.zig").write(self.input.dir, name, bytes);
+        return .{ .pending = .{ .proof = proof, .node = id }, .restored = encoded != null, .retired_bytes = proof.retireProverData(), .graph_ns = graph_ns, .proof_ns = timer.read() };
+    }
+};
+
+fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Report {
+    const a = input.allocator;
+    const plan = try Dag.Plan.init(input.inventory.workers.len);
+    const budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.fromAllocator(a).?;
+    const stack_bytes = 8 << 20;
+    var reservation = try budget.reserveExternal(options.lanes.len * stack_bytes);
+    defer reservation.deinit();
+    const nodes = try a.alloc(Node, plan.count);
+    defer a.free(nodes);
+    var shared = ParallelExecution{ .input = input, .options = options, .plan = &plan, .queue = try Dag.Queue.init(&plan, options.lanes.len, options.max_pending_authorities), .nodes = nodes };
+    defer for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
+    var threads: [4]std.Thread = undefined;
+    var launched: usize = 0;
+    // Every started lane joins on every path, including partial spawn failure.
+    for (options.lanes, 0..) |_, lane| {
+        threads[lane] = std.Thread.spawn(.{ .stack_size = stack_bytes }, ParallelExecution.runLane, .{ &shared, lane }) catch |err| {
+            shared.stop(err);
+            break;
+        };
+        launched += 1;
+    }
+    for (threads[0..launched]) |thread| thread.join();
+    if (shared.fatal) |err| return err;
+    if (shared.queue.failure) |failure| return failure.err;
+    if (shared.queue.completed != plan.count or shared.queue.live != 1) return error.RecursiveLeafCoverage;
+    const final = shared.proofs[plan.root] orelse return error.RecursiveLeafCoverage;
+    const info = nodes[plan.root];
+    const verify_start = input.timer.read();
+    try Outer.requireDigest(final.proof.produced.outputs, info.digest);
+    var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
+    defer fresh.deinit(a);
+    const metadata = try Root.check(a, input.setups, input.truths, input.bundle.requests, input.expected, input.config, input.fixed, input.bundle.stage_one_bytes, input.frames, .{});
+    const verify_ns = input.timer.read() - verify_start;
+    const bytes = try final.proof.serialize(a);
+    defer a.free(bytes);
+    try @import("publication.zig").write(input.dir, "root.proof", bytes);
+    const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = input.frames.cpus, .truth_frames = input.frames.truths }, .{ .whitespace = .indent_2 });
+    defer a.free(tree);
+    try @import("publication.zig").write(input.dir, "tree.json", tree);
+    const n = input.inventory.workers.len;
+    const report = Report{ .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = n - 1 - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = n - 1, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
+    defer a.free(report_bytes);
+    try @import("publication.zig").write(input.dir, "report.json", report_bytes);
+    const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
+    defer a.free(scheduler);
+    try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
     return report;
 }
