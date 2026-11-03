@@ -84,6 +84,8 @@ fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(
     var ibuf: [6]u32 = undefined;
     const out = outputs(ctx, task, &obuf);
     const in = inputs(ctx, task, &ibuf);
+    for (in) |v| if (v >= producer.len) return error.InvalidWitnessVariable;
+    for (out) |v| if (v >= producer.len) return error.InvalidWitnessVariable;
     if (out.len == 1 and task.kind != .hint and task.kind != .permutation) {
         // Finalization yields guesses in-place. These are constraints, not
         // computational definitions. They must already have an explicit seed
@@ -92,7 +94,6 @@ fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(
     }
     var all_seeded = true;
     for (out) |v| {
-        if (v >= producer.len) return error.InvalidWitnessVariable;
         all_seeded = all_seeded and producer[v] == seeded;
     }
     // Interned immutable constants are seeded independently of their original
@@ -136,33 +137,41 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     const levels = try a.alloc(u32, tasks.items.len);
     defer a.free(levels);
     @memset(levels, missing);
-    var stack: std.ArrayList(u32) = .empty;
+    // Remember the next dependency across child visits. Restarting from input
+    // zero makes high-fan-in permutation scheduling quadratic in its inputs.
+    const Frame = struct { id: u32, next: usize = 0, maximum: u32 = 0 };
+    var stack: std.ArrayList(Frame) = .empty;
     defer stack.deinit(a);
     var max_level: u32 = 0;
     for (0..tasks.items.len) |start| {
         if (levels[start] != missing) continue;
-        try stack.append(a, @intCast(start));
+        levels[start] = visiting;
+        try stack.append(a, .{ .id = @intCast(start) });
         while (stack.items.len != 0) {
-            const id = stack.items[stack.items.len - 1];
-            levels[id] = visiting;
+            const frame = &stack.items[stack.items.len - 1];
             var buf: [6]u32 = undefined;
-            var maximum: u32 = 0;
-            var wait = false;
-            for (inputs(ctx, tasks.items[id], &buf)) |v| {
-                if (v >= producer.len) return error.InvalidWitnessVariable;
-                const p = producer[v];
-                if (p == seeded) continue;
-                if (levels[p] == visiting) return error.CyclicWitnessDefinition;
-                if (levels[p] == missing) {
-                    try stack.append(a, p);
-                    wait = true;
-                    break;
+            const dependencies = inputs(ctx, tasks.items[frame.id], &buf);
+            if (frame.next < dependencies.len) {
+                const variable = dependencies[frame.next];
+                if (variable >= producer.len) return error.InvalidWitnessVariable;
+                const parent = producer[variable];
+                if (parent == seeded) {
+                    frame.next += 1;
+                    continue;
                 }
-                maximum = @max(maximum, levels[p]);
+                if (levels[parent] == visiting) return error.CyclicWitnessDefinition;
+                if (levels[parent] == missing) {
+                    levels[parent] = visiting;
+                    // append may move the stack: never use frame afterwards.
+                    try stack.append(a, .{ .id = parent });
+                    continue;
+                }
+                frame.maximum = @max(frame.maximum, levels[parent]);
+                frame.next += 1;
+                continue;
             }
-            if (wait) continue;
-            levels[id] = try std.math.add(u32, maximum, 1);
-            max_level = @max(max_level, levels[id]);
+            levels[frame.id] = try std.math.add(u32, frame.maximum, 1);
+            max_level = @max(max_level, levels[frame.id]);
             _ = stack.pop();
         }
     }
@@ -302,5 +311,17 @@ test "witness schedule: missing origins and cyclic or unknown input authority re
     ctx.witness_metadata.?.origins.items[1].a = inv.idx;
     try std.testing.expectError(error.CyclicWitnessDefinition, build(a, &ctx));
     ctx.witness_metadata.?.origins.items[1].a = ctx.circuit.n_vars;
+    try std.testing.expectError(error.InvalidWitnessVariable, build(a, &ctx));
+}
+
+test "witness schedule: skipped self-yields and seeded outputs still validate input authority" {
+    const a = std.testing.allocator;
+    var ctx = try C.Context(Q).initWithWitnessOrigins(a, 0);
+    defer ctx.deinit();
+    const seed = try ctx.guess(Q.one());
+    try ctx.finalize(false);
+    try ctx.circuit.add.append(a, .{ .in0 = seed.idx, .in1 = ctx.circuit.n_vars, .out = seed.idx });
+    try std.testing.expectError(error.InvalidWitnessVariable, build(a, &ctx));
+    ctx.circuit.add.items[ctx.circuit.add.items.len - 1] = .{ .in0 = ctx.circuit.n_vars, .in1 = ctx.zero().idx, .out = ctx.one().idx };
     try std.testing.expectError(error.InvalidWitnessVariable, build(a, &ctx));
 }
