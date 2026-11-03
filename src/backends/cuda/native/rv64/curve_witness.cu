@@ -1,46 +1,476 @@
+#include "curve_witness.h"
 #include "custody.cuh"
 #include "oods/field.cuh"
-#include "curve_witness.h"
-namespace stwo::cuda::rv64 { namespace curve {
-struct Term{uint32_t a;int32_t b,c;uint32_t shift;};
-struct Geometry{uint32_t q,carry,qbytes,groups,carries,group,bits,kp[192];};
-struct Query{uint32_t column,addend;};
+namespace stwo::cuda::rv64 {
+namespace curve {
+struct Term {
+  uint32_t a;
+  int32_t b, c;
+  uint32_t shift;
+};
+struct Geometry {
+  uint32_t q, carry, qbytes, groups, carries, group, bits, kp[192];
+};
+struct Query {
+  uint32_t column, addend;
+};
 #include "curve_witness_layout.cuh"
-struct Big{uint32_t b[192];};struct Word{uint32_t b[48];};
-__device__ int compare(Word a,Word b,uint32_t len){for(int i=int(len)-1;i>=0;--i)if(a.b[i]!=b.b[i])return a.b[i]>b.b[i]?1:-1;return 0;}
-__device__ bool one(Word a,uint32_t len){if(a.b[0]!=1)return false;for(uint32_t i=1;i<len;++i)if(a.b[i])return false;return true;}
-__device__ bool zeroWord(Word a,uint32_t len){for(uint32_t i=0;i<len;++i)if(a.b[i])return false;return true;}
-__device__ int cmp(const Big&a,const Big&b){for(int i=191;i>=0;--i)if(a.b[i]!=b.b[i])return a.b[i]>b.b[i]?1:-1;return 0;}
-__device__ void sub(Big&a,const Big&b){uint32_t borrow=0;for(uint32_t i=0;i<192;++i){uint32_t t=b.b[i]+borrow;borrow=a.b[i]<t;a.b[i]=(a.b[i]-t)&255u;}}
-__device__ Word subtract(Word a,Word b,uint32_t len){uint32_t borrow=0;for(uint32_t i=0;i<len;++i){uint32_t t=b.b[i]+borrow;borrow=a.b[i]<t;a.b[i]=(a.b[i]-t)&255u;}return a;}
-__device__ void addTerm(Big&out,const uint32_t*row,Term t,uint32_t len){uint64_t carry=0;uint32_t absolute=uint32_t(t.c<0?-t.c:t.c);for(uint32_t k=0;k<192;++k){uint64_t sum=out.b[k]+carry;if(t.b>=0){for(uint32_t i=0;i<len;++i)if(k>=i&&k-i<len)sum+=uint64_t(absolute)*row[t.a+i]*row[uint32_t(t.b)+k-i];}else if(k>=t.shift&&k-t.shift<len)sum+=uint64_t(absolute)*row[t.a+k-t.shift];out.b[k]=uint32_t(sum)&255u;carry=sum>>8;}}
-__device__ void divide(const Big&v,Big&q,Word&r,Word m,uint32_t len,uint32_t bits){Big rem{},mod{};for(uint32_t i=0;i<len;++i)mod.b[i]=m.b[i];for(int bit=int(bits)-1;bit>=0;--bit){uint32_t carry=(v.b[uint32_t(bit)/8]>>(uint32_t(bit)&7))&1u;for(uint32_t i=0;i<len+1;++i){uint32_t x=(rem.b[i]<<1)|carry;rem.b[i]=x&255u;carry=x>>8;}if(cmp(rem,mod)>=0){sub(rem,mod);q.b[uint32_t(bit)/8]|=1u<<(uint32_t(bit)&7);}}for(uint32_t i=0;i<len;++i)r.b[i]=rem.b[i];}
-__device__ Word reduce(Word a,Word m,uint32_t len){Big v{},q{};Word r{};for(uint32_t i=0;i<len;++i)v.b[i]=a.b[i];divide(v,q,r,m,len,8*len);return r;}
-__device__ Word mul(Word a,Word b,Word m,uint32_t len){Big v{},q{};Word r{};uint64_t carry=0;for(uint32_t k=0;k<2*len;++k){uint64_t x=carry;for(uint32_t i=0;i<len;++i)if(k>=i&&k-i<len)x+=uint64_t(a.b[i])*b.b[k-i];v.b[k]=x&255u;carry=x>>8;}divide(v,q,r,m,len,16*len);return r;}
-__device__ Word small(uint32_t v){Word a{};for(uint32_t i=0;i<4;++i)a.b[i]=(v>>(8*i))&255u;return a;}
-__device__ Word add(Word a,Word b,Word m,uint32_t len){Big v{},q{};Word r{};uint32_t carry=0;for(uint32_t i=0;i<len;++i){uint32_t x=a.b[i]+b.b[i]+carry;v.b[i]=x&255u;carry=x>>8;}v.b[len]=carry;divide(v,q,r,m,len,8*len+1);return r;}
-__device__ Word minus(Word a,Word b,Word m,uint32_t len){if(compare(a,b,len)<0){uint32_t carry=0;for(uint32_t i=0;i<len;++i){uint32_t x=a.b[i]+m.b[i]+carry;a.b[i]=x&255u;carry=x>>8;}}return subtract(a,b,len);}
-__device__ Word half(Word a,uint32_t len,uint32_t carry=0){for(int i=int(len)-1;i>=0;--i){uint32_t next=a.b[i]&1;a.b[i]=(a.b[i]>>1)|(carry<<7);carry=next;}return a;}
-__device__ Word halfAdjust(Word a,Word m,uint32_t len){uint32_t carry=0;if(a.b[0]&1){for(uint32_t i=0;i<len;++i){uint32_t x=a.b[i]+m.b[i]+carry;a.b[i]=x&255u;carry=x>>8;}}return half(a,len,carry);}
-__device__ bool inverse(Word a,Word m,uint32_t len,Word&result){if(zeroWord(a,len)||!(m.b[0]&1))return false;Word u=a,v=m,x1=small(1),x2{};for(uint32_t guard=0;guard<8192;++guard){if(one(u,len)){result=x1;return true;}if(one(v,len)){result=x2;return true;}if(zeroWord(u,len)||zeroWord(v,len))return false;while(!(u.b[0]&1)){u=half(u,len);x1=halfAdjust(x1,m,len);}while(!(v.b[0]&1)){v=half(v,len);x2=halfAdjust(x2,m,len);}if(compare(u,v,len)>=0){u=subtract(u,v,len);x1=minus(x1,x2,m,len);}else{v=subtract(v,u,len);x2=minus(x2,x1,m,len);}}return false;}
-template<class L> __device__ bool compute(uint32_t*row,Word m){constexpr uint32_t len=L::LIMBS;Word in[4]{},out[2]{},w{};for(uint32_t j=0;j<L::INPUTS;++j)for(uint32_t b=0;b<len;++b)in[j].b[b]=row[L::PACKET+len*j+b];
- if(L::VARIABLE){if(!(m.b[0]&1))return false;if(!one(m,len)){Word ab=mul(in[0],in[1],m,len);Big radix{},q{};radix.b[len]=1;Word r{};divide(radix,q,r,m,len,8*len+1);Word inv{};if(!inverse(r,m,len,inv))return false;out[0]=mul(ab,inv,m,len);}}
- else if(L::INPUTS==2||L::INPUTS==4&&L::OUTPUTS==2&&L::WITNESSES==1){for(uint32_t i=0;i<L::INPUTS;++i)if(compare(in[i],m,len)>=0)return false;Word denominator{},numerator{};if(L::INPUTS==4){denominator=minus(in[2],in[0],m,len);numerator=minus(in[3],in[1],m,len);}else{denominator=add(in[1],in[1],m,len);numerator=mul(mul(in[0],in[0],m,len),small(3),m,len);}Word inv{};if(!inverse(denominator,m,len,inv))return false;w=mul(numerator,inv,m,len);out[0]=minus(minus(mul(w,w,m,len),in[0],m,len),in[L::INPUTS==4?2:0],m,len);out[1]=minus(mul(w,minus(in[0],out[0],m,len),m,len),in[1],m,len);}
- else{for(uint32_t i=0;i<4;++i)in[i]=reduce(in[i],m,len);out[0]=minus(mul(in[0],in[2],m,len),mul(in[1],in[3],m,len),m,len);out[1]=add(mul(in[0],in[3],m,len),mul(in[1],in[2],m,len),m,len);if(len==48){Word ri{};for(uint32_t i=0;i<48;++i)ri.b[i]=L::rInverse(i);out[0]=mul(out[0],ri,m,len);out[1]=mul(out[1],ri,m,len);}}
- for(uint32_t j=0;j<L::OUTPUTS;++j)for(uint32_t b=0;b<len;++b)row[L::OUT+len*j+b]=out[j].b[b];if(L::WITNESSES)for(uint32_t b=0;b<len;++b)row[L::WIT+b]=w.b[b];return true;}
-template<class L> __global__ void witness(StwoRv64CurveWitness j){uint32_t physical=blockIdx.x*blockDim.x+threadIdx.x,n=1u<<j.log;if(physical>=n)return;uint32_t circle=__brev(physical)>>(32-j.log),logical=circle<n/2?2*circle:2*(n-1-circle)+1;uint32_t row[L::MAIN]{};
- if(logical<j.calls){row[0]=1;const uint32_t*input=j.inputs+uint64_t(logical)*L::PACKET_BYTES/4;for(uint32_t b=0;b<L::PACKET_BYTES;++b)row[L::PACKET+b]=(input[b/4]>>(8*(b&3)))&255u;Word modulus{};for(uint32_t i=0;i<L::LIMBS;++i)modulus.b[i]=L::modulus(row,i);
- if(!compute<L>(row,modulus)){atomicOr(j.status,256u);return;}
- for(uint32_t r=0;r<L::RELATIONS;++r){Geometry g=L::geometry(r);Term terms[8];uint32_t count=L::terms(r,terms);Big pos{},neg{};for(uint32_t i=0;i<192;++i)pos.b[i]=g.kp[i];for(uint32_t i=0;i<count;++i)addTerm(terms[i].c>0?pos:neg,row,terms[i],L::LIMBS);if(cmp(pos,neg)<0){atomicOr(j.status,1u);return;}sub(pos,neg);Big quotient{};Word remainder{};divide(pos,quotient,remainder,modulus,L::LIMBS,1536);for(uint32_t i=0;i<L::LIMBS;++i)if(remainder.b[i]){atomicOr(j.status,2u);return;}for(uint32_t i=0;i<g.qbytes;++i)row[g.q+i]=quotient.b[i];for(uint32_t i=g.qbytes;i<192;++i)if(quotient.b[i]){atomicOr(j.status,4u);return;}
- int64_t carry=0;for(uint32_t group=0;group<g.groups;++group){int64_t sum=carry;for(uint32_t k=0;k<g.group;++k){uint32_t at=group*g.group+k;int64_t c=g.kp[at];for(uint32_t t=0;t<count;++t){Term term=terms[t];if(term.b>=0){for(uint32_t i=0;i<L::LIMBS;++i)if(at>=i&&at-i<L::LIMBS)c+=int64_t(term.c)*row[term.a+i]*row[uint32_t(term.b)+at-i];}else if(at>=term.shift&&at-term.shift<L::LIMBS)c+=int64_t(term.c)*row[term.a+at-term.shift];}for(uint32_t i=0;i<g.qbytes;++i)if(at>=i&&at-i<L::LIMBS)c-=int64_t(row[g.q+i])*modulus.b[at-i];sum+=c*(int64_t(1)<<(8*k));}int64_t radix=int64_t(1)<<(8*g.group);if(sum%radix){atomicOr(j.status,8u);return;}carry=sum/radix;if(group==g.carries){if(carry)atomicOr(j.status,16u);break;}int64_t half=int64_t(1)<<(g.bits-1);if(carry< -half||carry>=half){atomicOr(j.status,32u);return;}uint64_t encoded=uint64_t(carry+half);uint32_t bytes=(g.bits+7)/8;for(uint32_t b=0;b<bytes;++b)row[g.carry+bytes*group+b]=uint32_t(encoded>>(8*b))&255u;}}
- for(uint32_t check=0;check<L::CHECKS;++check){uint32_t borrow=1;for(uint32_t i=0;i<L::LIMBS;++i){uint32_t xi=row[L::checkColumn(check)+i],subtrahend=xi+borrow;row[L::dbase(check)+i]=(modulus.b[i]-subtrahend)&255u;borrow=modulus.b[i]<subtrahend;}
- uint32_t carry=0;for(uint32_t i=0;i<L::LIMBS/2-1;++i){uint32_t x=row[L::checkColumn(check)+2*i]+256*row[L::checkColumn(check)+2*i+1],d=row[L::dbase(check)+2*i]+256*row[L::dbase(check)+2*i+1],m=modulus.b[2*i]+256*modulus.b[2*i+1];uint32_t total=x+d+carry+(i==0);carry=total!=m;row[L::borrow(check)+i]=carry;}}
- if(L::NONZERO){bool found=false;for(uint32_t i=0;i<L::LIMBS/2;++i){int64_t aa=row[L::NZA+2*i]+256*row[L::NZA+2*i+1],bb=L::NZB<0?0:row[uint32_t(L::NZB)+2*i]+256*row[uint32_t(L::NZB)+2*i+1];if(aa!=bb){row[L::SEL+i]=1;row[L::INV]=stwo::cuda::oods::inverse(uint32_t((aa-bb+0x7fffffffll)%0x7fffffffll));found=true;break;}}if(!found){atomicOr(j.status,512u);return;}}
- if(L::ODD){if(!(modulus.b[0]&1)){atomicOr(j.status,1024u);return;}row[L::HALF]=modulus.b[0]>>1;}
- }
- for(uint32_t q=0;q<L::QUERIES;++q){auto query=L::query(q);uint32_t value=row[query.column]+query.addend;if(value>=256){atomicOr(j.status,64u);return;}atomicAdd(j.byte_counts+value,1u);}
- for(uint32_t c=0;c<L::MAIN;++c)j.main[uint64_t(c)*n+physical]=row[c];}
-template<class L> __global__ void counts(StwoRv64CurveWitness j){uint32_t value=threadIdx.x,n=1u<<j.log;if(value>=256)return;uint32_t circle=value&1?n-1-value/2:value/2,physical=__brev(circle)>>(32-j.log);if(j.byte_counts[value]>=0x7fffffffu){atomicOr(j.status,128u);return;}j.main[uint64_t(L::MULT)*n+physical]=j.byte_counts[value];}
-template<class L> int launch(Custody&c,StwoRv64CurveWitness j){uint64_t n=1ull<<j.log;if(j.calls>=n||uint64_t(j.first_id)+j.calls>0x7fffffffull||uint64_t(L::QUERIES)*n>=0x7fffffffull||j.input_words!=uint64_t(j.calls)*L::PACKET_BYTES/4||j.main_words<uint64_t(L::MAIN)*n)return int(cudaErrorInvalidValue);if((j.calls&&!c.range(j.inputs,j.input_words,false))||!c.range(j.main,uint64_t(L::MAIN)*n,true)||!c.range(j.byte_counts,256,true)||!c.range(j.status,1,true))return c.status;auto e=cudaMemsetAsync(j.byte_counts,0,1024,c.stream);if(e!=cudaSuccess)return int(e);witness<L><<<(n+31)/32,32,0,c.stream>>>(j);counts<L><<<1,256,0,c.stream>>>(j);return int(cudaPeekAtLastError());}
-} }
-extern "C" __attribute__((visibility("default"))) int stwo_rv64_curve_witness_on(void*ctx,uint32_t lane,const StwoRv64CurveWitness*j){using namespace stwo::cuda::rv64;if(!j||j->log<8||j->log>22||!j->first_id||j->kind>4)return int(cudaErrorInvalidValue);Custody c(ctx,lane);switch(j->kind){case 0:return curve::launch<curve::bn254_g1_add>(c,*j);case 1:return curve::launch<curve::bn254_g1_double>(c,*j);case 2:return curve::launch<curve::bn254_fp2_mul>(c,*j);case 3:return curve::launch<curve::bls12_381_fp2_mul>(c,*j);case 4:return curve::launch<curve::arith384_mont>(c,*j);}return int(cudaErrorInvalidValue);}
+// Base-256 arithmetic follows the native integer witness exactly. No host
+// quotient, remainder, slope, inverse or square-root advice is consumed.
+struct Big {
+  uint32_t b[192];
+};
+struct Word {
+  uint32_t b[48];
+};
+__device__ int compare(Word a, Word b, uint32_t len) {
+  for (int i = int(len) - 1; i >= 0; --i)
+    if (a.b[i] != b.b[i])
+      return a.b[i] > b.b[i] ? 1 : -1;
+  return 0;
+}
+__device__ bool one(Word a, uint32_t len) {
+  if (a.b[0] != 1)
+    return false;
+  for (uint32_t i = 1; i < len; ++i)
+    if (a.b[i])
+      return false;
+  return true;
+}
+__device__ bool zeroWord(Word a, uint32_t len) {
+  for (uint32_t i = 0; i < len; ++i)
+    if (a.b[i])
+      return false;
+  return true;
+}
+__device__ int cmp(const Big &a, const Big &b) {
+  for (int i = 191; i >= 0; --i)
+    if (a.b[i] != b.b[i])
+      return a.b[i] > b.b[i] ? 1 : -1;
+  return 0;
+}
+__device__ void sub(Big &a, const Big &b) {
+  uint32_t borrow = 0;
+  for (uint32_t i = 0; i < 192; ++i) {
+    uint32_t t = b.b[i] + borrow;
+    borrow = a.b[i] < t;
+    a.b[i] = (a.b[i] - t) & 255u;
+  }
+}
+__device__ Word subtract(Word a, Word b, uint32_t len) {
+  uint32_t borrow = 0;
+  for (uint32_t i = 0; i < len; ++i) {
+    uint32_t t = b.b[i] + borrow;
+    borrow = a.b[i] < t;
+    a.b[i] = (a.b[i] - t) & 255u;
+  }
+  return a;
+}
+__device__ void addTerm(Big &out, const uint32_t *row, Term t, uint32_t len) {
+  uint64_t carry = 0;
+  uint32_t absolute = uint32_t(t.c < 0 ? -t.c : t.c);
+  for (uint32_t k = 0; k < 192; ++k) {
+    uint64_t sum = out.b[k] + carry;
+    if (t.b >= 0) {
+      for (uint32_t i = 0; i < len; ++i)
+        if (k >= i && k - i < len)
+          sum += uint64_t(absolute) * row[t.a + i] * row[uint32_t(t.b) + k - i];
+    } else if (k >= t.shift && k - t.shift < len)
+      sum += uint64_t(absolute) * row[t.a + k - t.shift];
+    out.b[k] = uint32_t(sum) & 255u;
+    carry = sum >> 8;
+  }
+}
+__device__ void divide(const Big &v, Big &q, Word &r, Word m, uint32_t len,
+                       uint32_t bits) {
+  Big rem{}, mod{};
+  for (uint32_t i = 0; i < len; ++i)
+    mod.b[i] = m.b[i];
+  for (int bit = int(bits) - 1; bit >= 0; --bit) {
+    uint32_t carry = (v.b[uint32_t(bit) / 8] >> (uint32_t(bit) & 7)) & 1u;
+    for (uint32_t i = 0; i < len + 1; ++i) {
+      uint32_t x = (rem.b[i] << 1) | carry;
+      rem.b[i] = x & 255u;
+      carry = x >> 8;
+    }
+    if (cmp(rem, mod) >= 0) {
+      sub(rem, mod);
+      q.b[uint32_t(bit) / 8] |= 1u << (uint32_t(bit) & 7);
+    }
+  }
+  for (uint32_t i = 0; i < len; ++i)
+    r.b[i] = rem.b[i];
+}
+__device__ Word reduce(Word a, Word m, uint32_t len) {
+  Big v{}, q{};
+  Word r{};
+  for (uint32_t i = 0; i < len; ++i)
+    v.b[i] = a.b[i];
+  divide(v, q, r, m, len, 8 * len);
+  return r;
+}
+__device__ Word mul(Word a, Word b, Word m, uint32_t len) {
+  Big v{}, q{};
+  Word r{};
+  uint64_t carry = 0;
+  for (uint32_t k = 0; k < 2 * len; ++k) {
+    uint64_t x = carry;
+    for (uint32_t i = 0; i < len; ++i)
+      if (k >= i && k - i < len)
+        x += uint64_t(a.b[i]) * b.b[k - i];
+    v.b[k] = x & 255u;
+    carry = x >> 8;
+  }
+  divide(v, q, r, m, len, 16 * len);
+  return r;
+}
+__device__ Word small(uint32_t v) {
+  Word a{};
+  for (uint32_t i = 0; i < 4; ++i)
+    a.b[i] = (v >> (8 * i)) & 255u;
+  return a;
+}
+__device__ Word add(Word a, Word b, Word m, uint32_t len) {
+  Big v{}, q{};
+  Word r{};
+  uint32_t carry = 0;
+  for (uint32_t i = 0; i < len; ++i) {
+    uint32_t x = a.b[i] + b.b[i] + carry;
+    v.b[i] = x & 255u;
+    carry = x >> 8;
+  }
+  v.b[len] = carry;
+  divide(v, q, r, m, len, 8 * len + 1);
+  return r;
+}
+__device__ Word minus(Word a, Word b, Word m, uint32_t len) {
+  if (compare(a, b, len) < 0) {
+    uint32_t carry = 0;
+    for (uint32_t i = 0; i < len; ++i) {
+      uint32_t x = a.b[i] + m.b[i] + carry;
+      a.b[i] = x & 255u;
+      carry = x >> 8;
+    }
+  }
+  return subtract(a, b, len);
+}
+__device__ Word half(Word a, uint32_t len, uint32_t carry = 0) {
+  for (int i = int(len) - 1; i >= 0; --i) {
+    uint32_t next = a.b[i] & 1;
+    a.b[i] = (a.b[i] >> 1) | (carry << 7);
+    carry = next;
+  }
+  return a;
+}
+__device__ Word halfAdjust(Word a, Word m, uint32_t len) {
+  uint32_t carry = 0;
+  if (a.b[0] & 1) {
+    for (uint32_t i = 0; i < len; ++i) {
+      uint32_t x = a.b[i] + m.b[i] + carry;
+      a.b[i] = x & 255u;
+      carry = x >> 8;
+    }
+  }
+  return half(a, len, carry);
+}
+__device__ bool inverse(Word a, Word m, uint32_t len, Word &result) {
+  if (zeroWord(a, len) || !(m.b[0] & 1))
+    return false;
+  Word u = a, v = m, x1 = small(1), x2{};
+  for (uint32_t guard = 0; guard < 8192; ++guard) {
+    if (one(u, len)) {
+      result = x1;
+      return true;
+    }
+    if (one(v, len)) {
+      result = x2;
+      return true;
+    }
+    if (zeroWord(u, len) || zeroWord(v, len))
+      return false;
+    while (!(u.b[0] & 1)) {
+      u = half(u, len);
+      x1 = halfAdjust(x1, m, len);
+    }
+    while (!(v.b[0] & 1)) {
+      v = half(v, len);
+      x2 = halfAdjust(x2, m, len);
+    }
+    if (compare(u, v, len) >= 0) {
+      u = subtract(u, v, len);
+      x1 = minus(x1, x2, m, len);
+    } else {
+      v = subtract(v, u, len);
+      x2 = minus(x2, x1, m, len);
+    }
+  }
+  return false;
+}
+template <class L> __device__ bool compute(uint32_t *row, Word m) {
+  constexpr uint32_t len = L::LIMBS;
+  Word in[4]{}, out[2]{}, w{};
+  for (uint32_t j = 0; j < L::INPUTS; ++j)
+    for (uint32_t b = 0; b < len; ++b)
+      in[j].b[b] = row[L::PACKET + len * j + b];
+  if (L::VARIABLE) {
+    if (!(m.b[0] & 1))
+      return false;
+    if (!one(m, len)) {
+      Word ab = mul(in[0], in[1], m, len);
+      Big radix{}, q{};
+      radix.b[len] = 1;
+      Word r{};
+      divide(radix, q, r, m, len, 8 * len + 1);
+      Word inv{};
+      if (!inverse(r, m, len, inv))
+        return false;
+      out[0] = mul(ab, inv, m, len);
+    }
+  } else if (L::INPUTS == 2 ||
+             L::INPUTS == 4 && L::OUTPUTS == 2 && L::WITNESSES == 1) {
+    for (uint32_t i = 0; i < L::INPUTS; ++i)
+      if (compare(in[i], m, len) >= 0)
+        return false;
+    Word denominator{}, numerator{};
+    if (L::INPUTS == 4) {
+      denominator = minus(in[2], in[0], m, len);
+      numerator = minus(in[3], in[1], m, len);
+    } else {
+      denominator = add(in[1], in[1], m, len);
+      numerator = mul(mul(in[0], in[0], m, len), small(3), m, len);
+    }
+    Word inv{};
+    if (!inverse(denominator, m, len, inv))
+      return false;
+    w = mul(numerator, inv, m, len);
+    out[0] = minus(minus(mul(w, w, m, len), in[0], m, len),
+                   in[L::INPUTS == 4 ? 2 : 0], m, len);
+    out[1] = minus(mul(w, minus(in[0], out[0], m, len), m, len), in[1], m, len);
+  } else {
+    for (uint32_t i = 0; i < 4; ++i)
+      in[i] = reduce(in[i], m, len);
+    out[0] =
+        minus(mul(in[0], in[2], m, len), mul(in[1], in[3], m, len), m, len);
+    out[1] = add(mul(in[0], in[3], m, len), mul(in[1], in[2], m, len), m, len);
+    if (len == 48) {
+      Word ri{};
+      for (uint32_t i = 0; i < 48; ++i)
+        ri.b[i] = L::rInverse(i);
+      out[0] = mul(out[0], ri, m, len);
+      out[1] = mul(out[1], ri, m, len);
+    }
+  }
+  for (uint32_t j = 0; j < L::OUTPUTS; ++j)
+    for (uint32_t b = 0; b < len; ++b)
+      row[L::OUT + len * j + b] = out[j].b[b];
+  if (L::WITNESSES)
+    for (uint32_t b = 0; b < len; ++b)
+      row[L::WIT + b] = w.b[b];
+  return true;
+}
+// Preserve the native physical circle order, zero padding and BYTE query
+// addends; the shared table includes contributions from inactive rows too.
+template <class L> __global__ void witness(StwoRv64CurveWitness j) {
+  uint32_t physical = blockIdx.x * blockDim.x + threadIdx.x, n = 1u << j.log;
+  if (physical >= n)
+    return;
+  uint32_t circle = __brev(physical) >> (32 - j.log),
+           logical = circle < n / 2 ? 2 * circle : 2 * (n - 1 - circle) + 1;
+  uint32_t row[L::MAIN]{};
+  if (logical < j.calls) {
+    row[0] = 1;
+    const uint32_t *input = j.inputs + uint64_t(logical) * L::PACKET_BYTES / 4;
+    for (uint32_t b = 0; b < L::PACKET_BYTES; ++b)
+      row[L::PACKET + b] = (input[b / 4] >> (8 * (b & 3))) & 255u;
+    Word modulus{};
+    for (uint32_t i = 0; i < L::LIMBS; ++i)
+      modulus.b[i] = L::modulus(row, i);
+    if (!compute<L>(row, modulus)) {
+      atomicOr(j.status, 256u);
+      return;
+    }
+    for (uint32_t r = 0; r < L::RELATIONS; ++r) {
+      Geometry g = L::geometry(r);
+      Term terms[8];
+      uint32_t count = L::terms(r, terms);
+      Big pos{}, neg{};
+      for (uint32_t i = 0; i < 192; ++i)
+        pos.b[i] = g.kp[i];
+      for (uint32_t i = 0; i < count; ++i)
+        addTerm(terms[i].c > 0 ? pos : neg, row, terms[i], L::LIMBS);
+      if (cmp(pos, neg) < 0) {
+        atomicOr(j.status, 1u);
+        return;
+      }
+      sub(pos, neg);
+      Big quotient{};
+      Word remainder{};
+      divide(pos, quotient, remainder, modulus, L::LIMBS, 1536);
+      for (uint32_t i = 0; i < L::LIMBS; ++i)
+        if (remainder.b[i]) {
+          atomicOr(j.status, 2u);
+          return;
+        }
+      for (uint32_t i = 0; i < g.qbytes; ++i)
+        row[g.q + i] = quotient.b[i];
+      for (uint32_t i = g.qbytes; i < 192; ++i)
+        if (quotient.b[i]) {
+          atomicOr(j.status, 4u);
+          return;
+        }
+      int64_t carry = 0;
+      for (uint32_t group = 0; group < g.groups; ++group) {
+        int64_t sum = carry;
+        for (uint32_t k = 0; k < g.group; ++k) {
+          uint32_t at = group * g.group + k;
+          int64_t c = g.kp[at];
+          for (uint32_t t = 0; t < count; ++t) {
+            Term term = terms[t];
+            if (term.b >= 0) {
+              for (uint32_t i = 0; i < L::LIMBS; ++i)
+                if (at >= i && at - i < L::LIMBS)
+                  c += int64_t(term.c) * row[term.a + i] *
+                       row[uint32_t(term.b) + at - i];
+            } else if (at >= term.shift && at - term.shift < L::LIMBS)
+              c += int64_t(term.c) * row[term.a + at - term.shift];
+          }
+          for (uint32_t i = 0; i < g.qbytes; ++i)
+            if (at >= i && at - i < L::LIMBS)
+              c -= int64_t(row[g.q + i]) * modulus.b[at - i];
+          sum += c * (int64_t(1) << (8 * k));
+        }
+        int64_t radix = int64_t(1) << (8 * g.group);
+        if (sum % radix) {
+          atomicOr(j.status, 8u);
+          return;
+        }
+        carry = sum / radix;
+        if (group == g.carries) {
+          if (carry)
+            atomicOr(j.status, 16u);
+          break;
+        }
+        int64_t half = int64_t(1) << (g.bits - 1);
+        if (carry < -half || carry >= half) {
+          atomicOr(j.status, 32u);
+          return;
+        }
+        uint64_t encoded = uint64_t(carry + half);
+        uint32_t bytes = (g.bits + 7) / 8;
+        for (uint32_t b = 0; b < bytes; ++b)
+          row[g.carry + bytes * group + b] =
+              uint32_t(encoded >> (8 * b)) & 255u;
+      }
+    }
+    for (uint32_t check = 0; check < L::CHECKS; ++check) {
+      uint32_t borrow = 1;
+      for (uint32_t i = 0; i < L::LIMBS; ++i) {
+        uint32_t xi = row[L::checkColumn(check) + i], subtrahend = xi + borrow;
+        row[L::dbase(check) + i] = (modulus.b[i] - subtrahend) & 255u;
+        borrow = modulus.b[i] < subtrahend;
+      }
+      uint32_t carry = 0;
+      for (uint32_t i = 0; i < L::LIMBS / 2 - 1; ++i) {
+        uint32_t x = row[L::checkColumn(check) + 2 * i] +
+                     256 * row[L::checkColumn(check) + 2 * i + 1],
+                 d = row[L::dbase(check) + 2 * i] +
+                     256 * row[L::dbase(check) + 2 * i + 1],
+                 m = modulus.b[2 * i] + 256 * modulus.b[2 * i + 1];
+        uint32_t total = x + d + carry + (i == 0);
+        carry = total != m;
+        row[L::borrow(check) + i] = carry;
+      }
+    }
+    if (L::NONZERO) {
+      bool found = false;
+      for (uint32_t i = 0; i < L::LIMBS / 2; ++i) {
+        int64_t aa = row[L::NZA + 2 * i] + 256 * row[L::NZA + 2 * i + 1],
+                bb = L::NZB < 0 ? 0
+                                : row[uint32_t(L::NZB) + 2 * i] +
+                                      256 * row[uint32_t(L::NZB) + 2 * i + 1];
+        if (aa != bb) {
+          row[L::SEL + i] = 1;
+          row[L::INV] = stwo::cuda::oods::inverse(
+              uint32_t((aa - bb + 0x7fffffffll) % 0x7fffffffll));
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        atomicOr(j.status, 512u);
+        return;
+      }
+    }
+    if (L::ODD) {
+      if (!(modulus.b[0] & 1)) {
+        atomicOr(j.status, 1024u);
+        return;
+      }
+      row[L::HALF] = modulus.b[0] >> 1;
+    }
+  }
+  for (uint32_t q = 0; q < L::QUERIES; ++q) {
+    auto query = L::query(q);
+    uint32_t value = row[query.column] + query.addend;
+    if (value >= 256) {
+      atomicOr(j.status, 64u);
+      return;
+    }
+    atomicAdd(j.byte_counts + value, 1u);
+  }
+  for (uint32_t c = 0; c < L::MAIN; ++c)
+    j.main[uint64_t(c) * n + physical] = row[c];
+}
+template <class L> __global__ void counts(StwoRv64CurveWitness j) {
+  uint32_t value = threadIdx.x, n = 1u << j.log;
+  if (value >= 256)
+    return;
+  uint32_t circle = value & 1 ? n - 1 - value / 2 : value / 2,
+           physical = __brev(circle) >> (32 - j.log);
+  if (j.byte_counts[value] >= 0x7fffffffu) {
+    atomicOr(j.status, 128u);
+    return;
+  }
+  j.main[uint64_t(L::MULT) * n + physical] = j.byte_counts[value];
+}
+template <class L> int launch(Custody &c, StwoRv64CurveWitness j) {
+  uint64_t n = 1ull << j.log;
+  if (j.calls >= n || uint64_t(j.first_id) + j.calls > 0x7fffffffull ||
+      uint64_t(L::QUERIES) * n >= 0x7fffffffull ||
+      j.input_words != uint64_t(j.calls) * L::PACKET_BYTES / 4 ||
+      j.main_words < uint64_t(L::MAIN) * n)
+    return int(cudaErrorInvalidValue);
+  if ((j.calls && !c.range(j.inputs, j.input_words, false)) ||
+      !c.range(j.main, uint64_t(L::MAIN) * n, true) ||
+      !c.range(j.byte_counts, 256, true) || !c.range(j.status, 1, true))
+    return c.status;
+  auto e = cudaMemsetAsync(j.byte_counts, 0, 1024, c.stream);
+  if (e != cudaSuccess)
+    return int(e);
+  witness<L><<<(n + 31) / 32, 32, 0, c.stream>>>(j);
+  counts<L><<<1, 256, 0, c.stream>>>(j);
+  return int(cudaPeekAtLastError());
+}
+} // namespace curve
+} // namespace stwo::cuda::rv64
+extern "C" __attribute__((visibility("default"))) int
+stwo_rv64_curve_witness_on(void *ctx, uint32_t lane,
+                           const StwoRv64CurveWitness *j) {
+  using namespace stwo::cuda::rv64;
+  if (!j || j->log < 8 || j->log > 22 || !j->first_id || j->kind > 4)
+    return int(cudaErrorInvalidValue);
+  Custody c(ctx, lane);
+  switch (j->kind) {
+  case 0:
+    return curve::launch<curve::bn254_g1_add>(c, *j);
+  case 1:
+    return curve::launch<curve::bn254_g1_double>(c, *j);
+  case 2:
+    return curve::launch<curve::bn254_fp2_mul>(c, *j);
+  case 3:
+    return curve::launch<curve::bls12_381_fp2_mul>(c, *j);
+  case 4:
+    return curve::launch<curve::arith384_mont>(c, *j);
+  }
+  return int(cudaErrorInvalidValue);
+}

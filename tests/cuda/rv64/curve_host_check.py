@@ -14,7 +14,7 @@ parser.add_argument("fixtures", type=Path)
 parser.add_argument("--compiler", default="c++")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[3]
-s=(root/'src/backends/cuda/native/rv64/curve_witness.cu').read_text();s=s[:s.index('template<class L> int launch')];s=s.replace('#include "custody.cuh"','');
+s=(root/'src/backends/cuda/native/rv64/curve_witness.cu').read_text();s=s[:s.index('template <class L> int launch')];s=s.replace('#include "custody.cuh"','');
 head='''#include <cstdint>
 #include <cstdio>
 #include <stdexcept>
