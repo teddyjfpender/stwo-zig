@@ -685,6 +685,19 @@ fn relKey(st: Statement, kind: RelKind, t: usize, beta: QM31) QM31 {
     };
 }
 
+/// Parallel batch inversion (Montgomery's trick per chunk).
+fn batchInversePar(a: std.mem.Allocator, pool: *f.Pool, v: []QM31) !void {
+    const Ctx = struct { v: []QM31, a: std.mem.Allocator, failed: *std.atomic.Value(bool) };
+    var failed = std.atomic.Value(bool).init(false);
+    const ctx = Ctx{ .v = v, .a = a, .failed = &failed };
+    pool.parallelFor(v.len, 1 << 14, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            batchInverse(std.heap.page_allocator, c.v[s..e]) catch c.failed.store(true, .monotonic);
+        }
+    }.run);
+    if (failed.load(.monotonic)) return error.ZeroDenominator;
+}
+
 fn batchInverse(a: std.mem.Allocator, v: []QM31) !void {
     const pre = try a.alloc(QM31, v.len);
     defer a.free(pre);
@@ -1029,7 +1042,7 @@ pub fn prove(
         for (plan.keys, 0..) |k, ki| {
             const n = @as(usize, 1) << @intCast(k.log_size);
             const h = try keyDenoms(ar, pool, plan, st, witness, vecs1, k, alpha, beta);
-            try batchInverse(ar, h);
+            try batchInversePar(ar, pool, h);
             hvecs[ki] = h;
             for (0..4) |q| {
                 const limb = try ar.alloc(i32, n);
@@ -1147,8 +1160,10 @@ pub fn prove(
     const gammas = try ar.alloc(QM31, claims.items.len);
     tr.drawN(gammas);
     const N = plan.batch_n;
-    const NL = @as(usize, 1) << @intCast(N);
     const tabs = [2][]const i32{ tab1, tab2 };
+    var active: usize = 0;
+    for (0..(if (plan.has2) @as(usize, 2) else 1)) |t| active = @max(active, plan.lay[t].used);
+    const NL = active; // factors are zero beyond the larger table's used length
     var Ev: [2][]QM31 = .{ &.{}, &.{} };
     var Tv: [2][]QM31 = .{ &.{}, &.{} };
     const n_tabs: usize = if (plan.has2) 2 else 1;
@@ -1166,8 +1181,6 @@ pub fn prove(
     for (claims.items, gammas) |cl, g| batch_claim = batch_claim.add(g.mul(cl.value));
     const bhp = hpOf(plan, vecs1, plan.batch_u, N, 2, hpbuf[0..zks.Hp.entries(N, 2)]);
     const bpad = BatchPad{ .plan = plan, .tabs = .{ vecs1[plan.rb[0]], if (plan.has2) vecs2[plan.rb[1]] else &.{} }, .a = ar };
-    var active: usize = 0;
-    for (0..n_tabs) |t| active = @max(active, plan.lay[t].used);
     var bout: zks.ProveOut = undefined;
     if (plan.has2) {
         bout = try zks.prove(4, &T_B4, a, pool, &tr, batch_claim, .{ Tv[0], Ev[0], Tv[1], Ev[1] }, active, .{ false, true, false, true }, bhp, bpad);

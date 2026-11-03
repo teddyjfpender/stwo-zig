@@ -32,6 +32,7 @@ pub fn main() !void {
     _ = &gpa;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (@import("zk_bench.zig").takeFlag(args)) |zargs| return @import("zk_bench.zig").main(a, zargs);
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len < 5 or !std.mem.eql(u8, args[1], "mlp")) {
         std.debug.print("usage: tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]\n", .{});

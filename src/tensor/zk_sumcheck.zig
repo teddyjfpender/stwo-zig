@@ -232,7 +232,9 @@ fn foldKernel(comptime NF: usize) fn (*const FoldCtx(NF), usize, usize) void {
     }.run;
 }
 
-/// Prove the masked sumcheck. Factors are folded in place. `pads` is called
+/// Prove the masked sumcheck over hp.n variables. Factors are folded in place
+/// and need only `min(active, 2^n)` entries (entries at or beyond `active` are
+/// zero and never read). `pads` is called
 /// once with the x-point r and the plain finals F_j(r) and returns the pad
 /// values p_j (ignored for public factors, whose hat is their plain value).
 pub fn prove(
@@ -249,9 +251,10 @@ pub fn prove(
     pad_ctx: anytype,
 ) !ProveOut {
     const deg = comptime termDegree(terms);
-    const len0 = factors[0].len;
-    const n = f.log2Exact(len0);
-    std.debug.assert(hp.n == n and hp.d == deg);
+    const n = hp.n;
+    const len0 = @as(usize, 1) << @intCast(n);
+    std.debug.assert(hp.d == deg);
+    inline for (factors) |fac| std.debug.assert(fac.len >= @min(active_in, len0));
     const sigma = hp.sum();
     tr.mixFelt(sigma);
     const eps = tr.draw();
