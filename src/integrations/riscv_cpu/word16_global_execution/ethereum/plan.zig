@@ -65,9 +65,15 @@ pub const CpuLayout = struct {
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
     const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
     errdefer a.free(out);
-    const boundary = try Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len));
+    const boundary = Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len)) catch |err| {
+        std.debug.print("RV64_PLAN_CAPACITY execution_boundary_words={d}\n", .{captured.advice.initial.len});
+        return err;
+    };
     for (captured.native.items, out, 0..) |n, *d, i| {
-        var g = try n.geometryOmittingEmptyDivision();
+        var g = n.geometryOmittingEmptyDivision() catch |err| {
+            std.debug.print("RV64_PLAN_CAPACITY cpu_ordinal={d} memory={d} unique_words={d} alu={d} binary={d} shift={d} mul={d} div={d}\n", .{ i, n.raw_counts.memory, n.unique_memory_words, n.alu.facts.len, n.binary.facts.len, n.shift.len, n.multiplication.len, n.division.len });
+            return err;
+        };
         const events = captured.advice.events[i];
         const dword: usize = if (layout.ls_dword) @import("../services/pipeline.zig").dwordCount(events) else 0;
         const ls = try ladder(events.len - dword, 1);

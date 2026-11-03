@@ -42,19 +42,28 @@ pub const Counts = struct {
     }
 };
 pub fn minimalLog(count: u32) !u32 {
-    if (count > 1 << 22) return error.ExecutionCapacityExceeded;
+    if (count > 1 << 22) {
+        std.debug.print("RV64_CAPACITY role=fact count={d} max={d}\n", .{ count, @as(u32, 1) << 22 });
+        return error.ExecutionCapacityExceeded;
+    }
     return @intCast(@max(5, std.math.log2_int_ceil(u32, @max(1, count))));
 }
 /// CPU MUL requests plus two unsigned support requests per DIV.
 pub fn minimalMultiplicationLog(count: u32) !u32 {
     const max_log = @import("stwo_riscv_frontend").rv64_air.arithmetic.multiplication.degree3_layout.MAX_LOG;
-    if (count > @as(u32, 1) << @intCast(max_log)) return error.ExecutionCapacityExceeded;
+    if (count > @as(u32, 1) << @intCast(max_log)) {
+        std.debug.print("RV64_CAPACITY role=multiplication count={d} max_log={d}\n", .{ count, max_log });
+        return error.ExecutionCapacityExceeded;
+    }
     return @intCast(@max(5, std.math.log2_int_ceil(u32, @max(1, count))));
 }
 /// Prefix authorities require at least one inactive row; pure truth-fact
 /// providers instead admit a completely occupied capacity via minimalLog.
 pub fn minimalPrefixLog(count: u32) !u32 {
-    if (count >= 1 << 22) return error.ExecutionCapacityExceeded;
+    if (count >= 1 << 22) {
+        std.debug.print("RV64_CAPACITY role=prefix count={d} max_exclusive={d}\n", .{ count, @as(u32, 1) << 22 });
+        return error.ExecutionCapacityExceeded;
+    }
     return minimalLog(count + 1);
 }
 
@@ -79,6 +88,9 @@ pub fn memoryWords(a: std.mem.Allocator, program: *const Program, tape: *const r
 /// wide-clock CPU encoding); every other prefix authority stays at 2^22.
 pub fn minimalCpuLog(count: u32) !u32 {
     const max_log = @import("stwo_riscv_frontend").rv64_air.word16_execution.layout.MAX_LOG;
-    if (count >= @as(u32, 1) << max_log) return error.ExecutionCapacityExceeded;
+    if (count >= @as(u32, 1) << max_log) {
+        std.debug.print("RV64_CAPACITY role=cpu count={d} max_log={d}\n", .{ count, max_log });
+        return error.ExecutionCapacityExceeded;
+    }
     return @intCast(@max(5, std.math.log2_int_ceil(u32, count + 1)));
 }
