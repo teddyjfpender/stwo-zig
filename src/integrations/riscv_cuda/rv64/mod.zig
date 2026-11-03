@@ -12,6 +12,7 @@ pub const projection_codegen = @import("projection_codegen.zig");
 pub const gkr = @import("gkr.zig");
 pub const gkr_result = @import("gkr_result.zig");
 pub const gkr_stage = @import("gkr_stage.zig");
+pub const device_binding_runtime = @import("device_binding_runtime.zig");
 pub const gkr_sources = @import("gkr_sources.zig");
 pub const runtime_api = @import("runtime_api.zig");
 pub const session_context = @import("session_context.zig");
@@ -38,6 +39,7 @@ test {
     _ = truth_codegen;
     _ = gkr_result;
     _ = gkr_stage;
+    _ = device_binding_runtime;
     _ = session_context;
     _ = real_composition;
     _ = resident_composition;

@@ -14,7 +14,9 @@ const Results = @import("gkr_result.zig");
 const Sources = @import("gkr_sources.zig");
 const Source = @import("projection_codegen.zig").Source;
 const N = @import("runtime_api.zig");
+const A = @import("abi.zig");
 const Events = @import("cuda_events.zig");
+const DeviceBindingRuntime = @import("device_binding_runtime.zig");
 const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
 const O = core.fields.om31.OM31;
 const Proof = engine.lookups.gkr_verifier.ForField(O).GkrBatchProof;
@@ -58,6 +60,7 @@ pub const CoefficientSink = struct {
 };
 pub const Backend = struct {
     coefficient_sink: ?CoefficientSink = null,
+    binding_runtime: ?*DeviceBindingRuntime.Runtime = null,
     allocator: std.mem.Allocator,
     session: *anyopaque,
     session_api: SC.Api,
@@ -94,20 +97,34 @@ pub const Backend = struct {
             .lane_stream = try symbol(Native.LaneStream, library, "stwo_exec_context_lane_stream"),
         }, .numerical = try N.Api.load(library), .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .byte_cap = byte_cap };
     }
+    pub fn enableDeviceBinding(self: *Backend, library: *std.DynLib) !void {
+        if (self.binding_runtime != null) return error.DeviceBindingAlreadyEnabled;
+        self.binding_runtime = try DeviceBindingRuntime.Runtime.create(self.allocator, library, self.session, self.session_api, self.numerical);
+    }
     pub fn deinit(self: *Backend) void {
+        if (self.binding_runtime) |runtime| runtime.destroy();
         self.catalogue.deinit();
         self.* = undefined;
     }
     pub fn stage(self: *Backend) Child.NumericalStage {
-        return .{ .context = self, .prove = prove };
+        return .{ .context = self, .prove = prove, .bind = if (self.binding_runtime != null) bind else null, .abort = if (self.binding_runtime != null) abort else null };
     }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
         const self: *Backend = @ptrCast(@alignCast(raw));
+        if (self.binding_runtime) |runtime| runtime.acquire(request.scope);
         var job = Job{ .backend = self, .allocator = a, .request = request };
         const status = self.functions.submit(self.session, Job.callback, &job);
         if (job.failure) |err| return err;
         try checked(status);
         return job.proof orelse error.CudaGkrStageFailed;
+    }
+    fn bind(raw: *anyopaque, a: std.mem.Allocator, request: Child.DeviceBinding.Request) !Child.DeviceBinding.Owner {
+        const self: *Backend = @ptrCast(@alignCast(raw));
+        return (self.binding_runtime orelse return error.DeviceBindingUnavailable).bind(a, request);
+    }
+    fn abort(raw: *anyopaque, scope: @TypeOf(@as(Child.NumericalStage.Request, undefined).scope)) void {
+        const self: *Backend = @ptrCast(@alignCast(raw));
+        if (self.binding_runtime) |runtime| runtime.abort(scope);
     }
 };
 const Job = struct {
@@ -163,10 +180,15 @@ const Job = struct {
         if (try std.math.mul(usize, requested, 4) > cap) return error.GkrWorkspaceBudgetExceeded;
         var leases: std.ArrayList(Native.Lease) = .empty;
         var published_generation: u64 = 0;
+        var pending_generations: [2 * A.batch_max_oracles + 1]u64 = undefined;
+        var pending_count: usize = 0;
         defer {
-            for (leases.items) |*lease| if (lease.generation != published_generation) {
-                context.release(lease) catch {};
-            };
+            for (leases.items) |*lease| {
+                if (lease.generation == published_generation) continue;
+                var keep = false;
+                for (pending_generations[0..pending_count]) |generation| keep = keep or generation == lease.generation;
+                if (!keep) context.release(lease) catch {};
+            }
             leases.deinit(a);
         }
         const coeff = try allocateKind(a, &context, &leases, source.cells, 2);
@@ -272,6 +294,14 @@ const Job = struct {
         var verdict: [1]u32 = undefined;
         var header_words: [20]u32 = undefined;
         var channel_words: [16]u32 = undefined;
+        var binding_state: ?Slice = null;
+        var binding_state_words: [A.gkr_state_words]u32 = undefined;
+        if (b.binding_runtime != null) {
+            const state = try allocate(a, &context, &leases, A.gkr_state_words);
+            try checked(b.functions.copy_device(raw_context, @ptrFromInt(state.address), @ptrFromInt(traversal.traversal.state.address), A.gkr_state_words * 4));
+            try context.download(state, &binding_state_words);
+            binding_state = state;
+        }
         try context.download(status, &verdict);
         try context.download(try traversal.traversal.state.sub(0, 20), &header_words);
         try context.download(channel, &channel_words);
@@ -315,9 +345,23 @@ const Job = struct {
             try sink.publish(sink.context, context.scope, coefficient_lease, self.request.native_fixed_columns, self.request.native_main_columns, source.offsets);
             published_generation = coefficient_lease.generation;
         };
+        if (b.binding_runtime) |runtime| {
+            var owned: [2 * A.batch_max_oracles + 1]Native.Lease = undefined;
+            var count: usize = 0;
+            for (fractions) |fraction| for ([_]u64{ fraction.n.data.generation, fraction.d.data.generation }) |generation| {
+                owned[count] = try findLease(leases.items, generation);
+                count += 1;
+            };
+            owned[count] = try findLease(leases.items, binding_state.?.generation);
+            count += 1;
+            try runtime.install(self.request.scope, self.request.instances, fractions, owned[0..count], binding_state.?, binding_state_words, traversal.traversal.layers, chain);
+            for (owned[0..count], pending_generations[0..count]) |lease, *generation| generation.* = lease.generation;
+            pending_count = count;
+        }
         self.proof = proof;
         var readback_words: usize = 1 + 20 + 16 + roots.len;
         for (layers) |layer| readback_words += layer.records.len + layer.masks.len;
+        if (binding_state != null) readback_words += A.gkr_state_words;
         std.debug.print("GPU_GKR_SPANS ordinal={} ingress_ms={d:.6} base_fft_ms={d:.6} draws_ms={d:.6} projection_ms={d:.6} traversal_ms={d:.6} compact_readback_ms={d:.6} numerical_ready_wall_ns={} readback_wall_ns={} native_decode_ns={}\n", .{ self.request.scope.ordinal, try events.milliseconds(.ingress), try events.milliseconds(.base_fft), try events.milliseconds(.relation_draws), try events.milliseconds(.projection), try events.milliseconds(.traversal), try events.milliseconds(.readback), numerical_ready_ns, readback_done_ns - numerical_ready_ns, decode_ns });
         std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={} gkr_kernel_launches={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0, commands.launches });
     }
@@ -340,4 +384,9 @@ fn upload(a: std.mem.Allocator, context: *SC.Context, leases: *std.ArrayList(Nat
 test "resident GKR worker callback is fully typed without a CUDA link" {
     _ = &Backend.init;
     _ = &Backend.stage;
+}
+
+fn findLease(leases: []const Native.Lease, generation: u64) !Native.Lease {
+    for (leases) |lease| if (lease.generation == generation) return lease;
+    return error.DeviceBindingUnavailable;
 }

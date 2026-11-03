@@ -39,7 +39,7 @@ __global__ void binding_eq_expand(const uint32_t *point, uint32_t first,
     for (uint32_t j = 0; j < (1u << Levels); ++j)
       store(output.words, output.stride, i + uint64_t(j) * half, zero());
 }
-template <bool BaseNumerator>
+template <bool BaseNumerator, bool Deferred = false>
 __global__ void project_binding(StwoRv64BindingProjection job) {
   const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
   const uint32_t rows = 1u << job.row_log;
@@ -47,8 +47,8 @@ __global__ void project_binding(StwoRv64BindingProjection job) {
     return;
   store(job.prefix.words, job.prefix.stride, row, zero());
   const OM31 eta = from_words(job.metadata + 8 * 256);
-  const OM31 target = from_words(job.metadata + 8 * 257);
-  const OM31 eq = load(job.eq.words, job.eq.stride, row);
+  const OM31 target = Deferred ? zero() : from_words(job.metadata + 8 * 257);
+  const OM31 eq = Deferred ? one() : load(job.eq.words, job.eq.stride, row);
   if (!canonical(eta) || !canonical(target) || !canonical(eq)) {
     atomicOr(job.status, 2u);
     return;
@@ -80,8 +80,24 @@ __global__ void project_binding(StwoRv64BindingProjection job) {
     }
     projection_d = add(projection_d, mul(weight, denominator));
   }
-  store(job.prefix.words, job.prefix.stride, row,
-        sub(mul(eq, add(projection_n, mul(eta, projection_d))), target));
+  const OM31 projected = add(projection_n, mul(eta, projection_d));
+  if constexpr (Deferred)
+    store(job.prefix.words, job.prefix.stride, row, projected);
+  else
+    store(job.prefix.words, job.prefix.stride, row, sub(mul(eq, projected), target));
+}
+__global__ void finalize_binding(StwoRv64BindingFinalize job) {
+  const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+  if (row >= (1u << job.row_log)) return;
+  const OM31 eq = load(job.eq.words, job.eq.stride, row);
+  const OM31 projection = load(job.projection.words, job.projection.stride, row);
+  const OM31 target = from_words(job.metadata + 8 * 257);
+  if (!canonical(eq) || !canonical(projection) || !canonical(target)) {
+    atomicOr(job.status, 2u);
+    store(job.output.words, job.output.stride, row, zero());
+    return;
+  }
+  store(job.output.words, job.output.stride, row, sub(mul(eq, projection), target));
 }
 __global__ void scan_chunks(uint32_t *data, uint64_t stride, uint32_t count,
                             uint32_t *totals, uint32_t blocks, uint32_t log,
@@ -209,6 +225,42 @@ stwo_rv64_binding_project_on(void *ctx, uint32_t lane,
     project_binding<true><<<(rows + 127) / 128, 128, 0, c.stream>>>(job);
   else
     project_binding<false><<<(rows + 127) / 128, 128, 0, c.stream>>>(job);
+  return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_rv64_binding_deferred_on(
+    void *ctx, uint32_t lane, const StwoRv64BindingDeferred *input) {
+  using namespace stwo::cuda::rv64;
+  if (!input || input->reserved[0] || input->reserved[1] || !input->row_log ||
+      input->row_log > 22 || input->lane_log > 8 ||
+      input->row_log + input->lane_log > 28) return int(cudaErrorInvalidValue);
+  const auto job = *input;
+  const uint32_t rows = 1u << job.row_log, facts = rows << job.lane_log;
+  Custody c(ctx, lane);
+  if (!c.numerator(job.n, facts) || !c.plane(job.d, facts, 8, false) ||
+      !c.plane(job.output, rows, 8, true) ||
+      !c.range(job.metadata, 260 * 8, false) || !c.range(job.status, 1, true))
+    return c.status;
+  const StwoRv64BindingProjection projected{job.n, job.d, {}, job.output,
+      job.metadata, job.status, job.row_log, job.lane_log, {0, 0}};
+  if (job.n.coordinates == 1)
+    project_binding<true, true><<<(rows + 127) / 128, 128, 0, c.stream>>>(projected);
+  else
+    project_binding<false, true><<<(rows + 127) / 128, 128, 0, c.stream>>>(projected);
+  return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_rv64_binding_finalize_on(
+    void *ctx, uint32_t lane, const StwoRv64BindingFinalize *input) {
+  using namespace stwo::cuda::rv64;
+  if (!input || input->reserved[0] || input->reserved[1] || input->reserved[2] ||
+      !input->row_log || input->row_log > 22) return int(cudaErrorInvalidValue);
+  const auto job = *input;
+  const uint32_t rows = 1u << job.row_log;
+  Custody c(ctx, lane);
+  if (!c.plane(job.projection, rows, 8, false) ||
+      !c.plane(job.eq, rows, 8, false) || !c.plane(job.output, rows, 8, true) ||
+      !c.range(job.metadata, 260 * 8, false) || !c.range(job.status, 1, true))
+    return c.status;
+  finalize_binding<<<(rows + 127) / 128, 128, 0, c.stream>>>(job);
   return int(cudaPeekAtLastError());
 }
 extern "C" int stwo_rv64_prefix_scan_on(void *ctx, uint32_t lane,

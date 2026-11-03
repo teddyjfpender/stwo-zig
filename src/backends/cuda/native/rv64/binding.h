@@ -7,6 +7,25 @@ struct StwoRv64BindingProjection {
   uint32_t *status;
   uint32_t row_log, lane_log, reserved[2];
 };
+// Deferred ownership retains the unweighted P=N+eta*D projection only.
+struct StwoRv64BindingDeferred {
+  StwoRv64Plane n, d, output;
+  const uint32_t *metadata;
+  uint32_t *status;
+  uint32_t row_log, lane_log, reserved[2];
+};
+struct StwoRv64BindingFinalize {
+  StwoRv64Plane projection, eq, output;
+  const uint32_t *metadata;
+  uint32_t *status;
+  uint32_t row_log, reserved[3];
+};
+static_assert(sizeof(StwoRv64BindingDeferred) == 104 &&
+              sizeof(StwoRv64BindingFinalize) == 104, "deferred binding ABI");
+extern "C" int stwo_rv64_binding_deferred_on(void *, uint32_t,
+                                            const StwoRv64BindingDeferred *);
+extern "C" int stwo_rv64_binding_finalize_on(void *, uint32_t,
+                                            const StwoRv64BindingFinalize *);
 struct StwoRv64PrefixScan {
   StwoRv64Plane data;
   uint32_t *scratch;
