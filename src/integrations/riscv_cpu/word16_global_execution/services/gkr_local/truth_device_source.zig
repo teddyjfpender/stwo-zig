@@ -42,9 +42,51 @@ pub const Owner = struct {
         self.* = undefined;
     }
 };
+/// Requested bytes surviving the stage-one barrier, not total RSS/device peak.
+/// Original advice and immutable setup remain separately admitted. MAIN replay
+/// preserves the original committed root and compact input; it never retires
+/// the cross-shard claims/statement obligation.
+pub const RetentionRequest = struct {
+    truth: R.Truth,
+    expected: M.ExpectedWorker,
+    config: W.PcsConfig,
+};
+pub const Retained = struct {
+    compact_input_bytes: usize,
+    narrow_metadata_bytes: usize,
+    kept_device_bytes: usize,
+    main_replayed: bool,
+    pub fn total(self: @This(), minimum_compact: usize, minimum_main: usize) !usize {
+        if (self.compact_input_bytes < minimum_compact or self.narrow_metadata_bytes == 0 or (!self.main_replayed and self.kept_device_bytes < minimum_main)) return error.InvalidDeviceTruthRetainedBound;
+        return std.math.add(usize, self.narrow_metadata_bytes, try std.math.add(usize, self.compact_input_bytes, self.kept_device_bytes));
+    }
+};
+/// Derive the compact payload from the execution ABI, including packet padding.
+pub fn compactInputBytes(truth: R.Truth) !usize {
+    const A = @import("stwo_riscv_frontend").rv64_air;
+    const bytes: usize = switch (truth) {
+        .keccak => 200,
+        .sha256 => 96,
+        .arith256_mod => 160,
+        .secp_row => |t| if (t.setup.kind == .add) 192 else 96,
+        .curve => |t| switch (t.setup.op) {
+            inline else => |op| A.crypto.curves.Layout(op).PACKET_BYTES,
+        },
+        else => return error.UnsupportedDeviceTruthRetention,
+    };
+    return std.math.mul(usize, truth.count(), bytes);
+}
 pub const Stage = struct {
     context: *anyopaque,
     prepare: *const fn (*anyopaque, std.mem.Allocator, Prepare) anyerror!Owner,
+    /// Absent means legacy conservative accounting. Merely selecting a device
+    /// source never grants a smaller whole-inventory lease.
+    retained_upper_bound: ?*const fn (*anyopaque, RetentionRequest) anyerror!Retained = null,
+    pub fn retainedUpperBound(self: @This(), request: RetentionRequest, minimum_main: usize) !?usize {
+        const callback = self.retained_upper_bound orelse return null;
+        const bound = try callback(self.context, request);
+        return try bound.total(try compactInputBytes(request.truth), minimum_main);
+    }
 };
 /// FIXED remains independently derived immutable setup; this is a synchronous
 /// borrowed coefficient view, never a producer-declared replacement key.
@@ -81,4 +123,22 @@ test "truth device tree is bound to independent heterogeneous native geometry" {
     try std.testing.expectError(error.DeviceTruthShapeMismatch, validateTree(tree, &.{5}));
     columns[1].device.?.context_token = 8;
     try std.testing.expectError(error.DeviceTruthContextMismatch, validateTree(tree, &.{ 5, 8 }));
+}
+
+test "device truth retained bound charges replay evidence and keeps nonreplay MAIN" {
+    const replay = Retained{ .compact_input_bytes = 200, .narrow_metadata_bytes = 4096, .kept_device_bytes = 0, .main_replayed = true };
+    try std.testing.expectEqual(@as(usize, 4296), try replay.total(200, 1000000));
+    var bad = replay;
+    bad.compact_input_bytes = 199;
+    try std.testing.expectError(error.InvalidDeviceTruthRetainedBound, bad.total(200, 1000000));
+    bad = replay;
+    bad.narrow_metadata_bytes = 0;
+    try std.testing.expectError(error.InvalidDeviceTruthRetainedBound, bad.total(200, 1000000));
+    bad = replay;
+    bad.main_replayed = false;
+    try std.testing.expectError(error.InvalidDeviceTruthRetainedBound, bad.total(200, 1000000));
+    bad.kept_device_bytes = 1000000;
+    try std.testing.expectEqual(@as(usize, 1004296), try bad.total(200, 1000000));
+    bad.kept_device_bytes = std.math.maxInt(usize);
+    try std.testing.expectError(error.Overflow, bad.total(200, 1000000));
 }
