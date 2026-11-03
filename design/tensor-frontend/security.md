@@ -17,8 +17,8 @@ term**. The bench prints the result as `"security"` for `product`, `mlp` and
 ```
 TENSOR_OOD=1 TENSOR_DEEP=76,3,20 \
   tensor-bench product 20 1 122 2 20 2 76 3 20 2 2      # toy, proven config
-TENSOR_BATCH_MATMULS=1 TENSOR_OOD=1 TENSOR_DEEP=76,3,20 TENSOR_WEIGHT_Q=66 TENSOR_KEY_Q=900 \
-  tensor-bench mlp 10 12 13 12 122 2 20 2 76 3 20 3 2   # MLP 1024, proven config
+TENSOR_BATCH_MATMULS=1 TENSOR_OOD=1 TENSOR_DEEP=61,3,20 TENSOR_WEIGHT_Q=53 TENSOR_KEY_Q=900 \
+  tensor-bench mlp 9 11 12 12 97 2 20 2 61 3 20 3 2     # MLP 512 x 2048 x 4096, balanced
 ```
 
 (positional pcs2 arguments as before: `depth inner_q inner_lb inner_pow
@@ -33,6 +33,7 @@ The report gives these figures, in FlashProve's style:
 | `sum_with_work` / `sum_without_work` | -log2 of the sum of all terms. With work, every query term is divided by 2^pow. This is the **whole bound** (FlashProve: 126.21 with work / 96.23 without). |
 | `round_with_work` / `round_without_work` | -log2 of the largest single term (FlashProve's "largest round error"). |
 | `compiled` | FlashProve's compiled level for `round_with_work` (the largest L with 2^-L >= 2^-w + 8.5 * 2^(L-256)); it gives 126.21 at w = 128, as theirs does (tested). |
+| `rbr_round_with_work` / `rbr_round_without_work` / `rbr_compiled` / `rbr_worst` | the largest single term with each inner level's lambda/query pair in its round-by-round (Markov) form (3.3). Every other term is already a per-round bound, so these are the round-by-round figures. |
 | `request` / `key` / `total` | the per-batch proof, the one-time weight-key proof, and both together (a client checks both). |
 | `largest` | the six largest terms, each as `[name, bits, pow, count]`. |
 
@@ -45,7 +46,7 @@ number of queries, and k the number of proximity rows.
 
 | term | bound | source / argument |
 |---|---|---|
-| LogUp (alpha, beta) | 2 * max(arity, 2) * D / \|F\|, with D = keys + table rows over all relations | The fractional-sum identity of a relation, cleared of denominators, is a nonzero polynomial in (alpha, beta) of total degree <= D (arity - 1) + D; add a zero denominator. Also requires D_rel < p (reported as `logup_below_p`). |
+| LogUp (alpha, beta) | 2 g D / \|F\| with g = max(arity - 1, 1), D = keys + table rows over all relations | A key of arity a enters as alpha - (v_0 + beta v_1 + ... + beta^(a-1) v_(a-1)): total degree g. Distinct keys give distinct denominators that are monic in alpha, hence coprime. If the multiset identity fails (a net multiplicity c_s != 0 mod p), sum_s c_s/d_s is a nonzero rational function, whose numerator over the common denominator has total degree <= (N - 1) g for N <= D distinct keys (Schwartz-Zippel), plus N g/\|F\| for a zero denominator. Needs D_rel < p (reported as `logup_below_p`). Until 0f1f577ec the calculator used 2 max(arity, 2) D, which added the alpha- and beta-degrees (1 bit loose for arity <= 2, 0.6 bit for arity 3). |
 | GKR, per layer | (2 n + 1)/\|F\| for instance batching, deg/\|F\| per round, n/\|F\| for the mask fold | Schwartz-Zippel on stwo's batched LogUp-GKR; n = instances active at the layer. |
 | sumchecks (op, ext, batch, class) | deg/\|F\| per round, plus (rounds + 1)/\|F\| for the claim's own randomness (zero-check point, batching xi or gamma) | Schwartz-Zippel / LFKN. |
 | PCS: claim gammas | 1/\|F\| per group | independent coefficients |
@@ -114,16 +115,24 @@ regime. With k rows the proximity term really is eps^k: all rows enter the
 same lambda check, and one good row suffices. (size.md's
 `prox_rows = 2 squares it` holds; this note states the argument.)
 
-### 3.3 Lambda (mean value)
+### 3.3 Lambda (mean value and round-by-round)
 
 U is fixed before rho, and the positions are drawn after rho. For a position
 j outside Z, the vector (e_g[j])_g is nonzero, and sum_g eq(rho, g) e_g[j]
 is a nonzero multilinear polynomial in rho. It vanishes with probability
 <= log G'/|F|. With N_rho such positions, Pr[pass] <= E_rho[(|Z|/E +
 N_rho/E)^t] <= (|Z|/E)^t + t E[N_rho]/E <= (|Z|/E)^t + t log G'/|F|. This
-interactive mean-value bound is not a round-by-round bound. A Markov split
-gives an RBR form (lambda round log G'/(tau |F|), query round (a + tau)^t);
-the calculator reports the mean-value form.
+interactive mean-value bound is not a round-by-round bound. The sums use
+it. For the round-by-round figures (`rbr_*`) the calculator also gives the
+Markov form: the lambda round is bad when N_rho >= tau E, which has
+probability <= E[N_rho]/(tau E) <= log G'/(tau |F|); in a good state a
+query passes with probability <= a + tau, so the query round is
+(a + tau)^t / 2^pow. tau = 2^-x is fixed from public parameters (any
+fixed tau gives a valid bound); the calculator picks x on a 1/32 grid in
+[1, 60] per level, separately for the with-work and without-work maxima.
+On the toy's witness L1 (log G' = 3, 76 queries at a = 0.412, 20 bits of
+work) this gives 115.3 bits with work (tau = 2^-7.1) against 117.2 for the
+query term alone, and 97.2 without work (unchanged to 0.01 bit).
 
 ### 3.4 OOD samples (pcs2 `ood`, witness OOD)
 
@@ -185,57 +194,99 @@ paid once, offline: about 900 key queries (key proof 1.9 MB instead of
 
 ## 6. Measurements
 
-M4 Max on AC power. The host was shared with other agents (load average 7-11
-during these runs), so times vary by about +-20% between identical runs.
-Sizes and bits are deterministic. Toy: `product 20`, 1 thread, best of 3.
-MLP: 1024 x 4096 x 8192, 12 threads, `TENSOR_BATCH_MATMULS=1`. "Bits" are the
-calculator's `total` (request + key): sum with work / sum without / largest
-round with work / without.
+M4 Max on AC power, binary at `0f1f577ec` (ReleaseFast), host shared with
+other agents (load average 4-11), so times vary by about +-20% between
+identical runs and are quoted as ranges over 2-3 runs. Sizes, digests and
+bits are deterministic. Every run goes through `memguard` (6 GB; peak RSS
+0.3 GB toy, 2.6 GB MLP). "Bits" are the calculator's `total` (request +
+key): whole bound (sum) with / without work, largest round with / without,
+and the round-by-round largest round with / without (`rbr_*`, 3.3).
+
+### 6.1 Toy: `product 20`, 1 thread, best of 3 (prove and verify)
+
+| config | command (after `tensor-bench`) | bytes | prove s | verify ms | sum w/ | sum w/o | round w/ | round w/o | rbr w/ | rbr w/o |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base conj (54/54, d2) | `product 20 1 54 2 20 2 54` | 117 976 | 0.14-0.19 | 0.6-0.7 | 55.0 | 35.0 | 56.5 | 36.5 | 56.5 | 36.5 |
+| base "proven-query" (160/160, d2, 1 prox) | `product 20 1 160 2 20 2 160 2 20 2` | 250 456 | 0.14-0.21 | 1.3-1.7 | 100.3 | 100.3 | 100.4 | 100.4 | 100.4 | 100.4 |
+| unique decoding, 2 prox (160/160) | `product 20 1 160 2 20 2 160 2 20 2 2` | 299 160 | 0.16-0.24 | 1.7-2.5 | 114.3 | 106.9 | 115.7 | 108.4 | 117.9 | 108.4 |
+| **Johnson+OOD** (122 lb2 / 76 lb3 / 76 lb3, 2 prox) | `TENSOR_OOD=1 TENSOR_DEEP=76,3,20` `product 20 1 122 2 20 2 76 3 20 2 2` | **246 920** | 0.16-0.21 | 1.3-1.5 | **113.5** | 96.8 | 115.7 | 97.1 | 115.6 | 97.1 |
+| Johnson+OOD (97 / 61 lb3 / 61 lb3) | `TENSOR_OOD=1 TENSOR_DEEP=61,3,20` `product 20 1 97 2 20 2 61 3 20 2 2` | 202 824 | 0.16-0.17 | 1.1-1.2 | 107.8 | 88.6 | 109.7 | 89.7 | 109.6 | 89.7 |
+
+The toy has no lookups and no weight key, so the LogUp change (0f1f577ec)
+does not move it. Digest of the proven config: `eaa5aa01ffec...` (same
+as at `1cd11fb72`).
+
+### 6.2 MLP 512 x 2048 x 4096 (`mlp 9 11 12`), 12 threads, `TENSOR_BATCH_MATMULS=1`
+
+All rows: `mlp 9 11 12 12 <q> 2 20 2 <inner q> [3 20 3 2]`; the Johnson
+rows add `TENSOR_OOD=1 TENSOR_DEEP=<q>,3,20 TENSOR_WEIGHT_Q=<w> TENSOR_KEY_Q=<k>`.
+Weight-key proof: 0.28-0.34 s once per model (offline), its verify 1.2 ms
+(54/160 queries) to 7.6 ms (900 queries).
+
+| config | bytes | prove s | verify ms | sum w/ | sum w/o | round w/ | round w/o | rbr w/ | rbr w/o | key bytes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| base conj (64/54) | 328 704 | 0.29-0.46 | 2.8-3.5 | 54.0 | 34.0 | 56.6 | 36.6 | 56.6 | 36.6 | 191 368 |
+| base "proven-query" (160/160, 1 prox) | 731 072 | 0.28-0.29 | 4.9-5.1 | 96.1 | 96.1 | 97.4 | 97.4 | 97.4 | 97.4 | 411 144 |
+| **Johnson+OOD, balanced** (97 / 61 lb3 / 61 lb3, weights 53, key 900) | **522 588** | 0.30-0.33 | 3.8-3.9 | **97.4** | 86.1 | 98.0 | 88.1 | 98.0 | 88.1 | 1 779 720 |
+| Johnson+OOD (122 / 76 / 76, weights 66, key 900) | 632 200 | 0.30-0.31 | 4.3-4.6 | 97.4 | 94.9 | 98.0 | 97.1 | 98.0 | 97.1 | 1 813 480 |
+| Johnson+OOD, lean (85 / 53 / 53, weights 46, key 800) | 464 748 | 0.29-0.30 | 3.5-4.9 | 94.9 | 75.2 | 96.8 | 76.8 | 96.8 | 76.8 | 1 585 704 |
+
+Request alone (what one batch carries): balanced 98.8 / 86.8, full 98.8 /
+95.5, proven-query 97.8 / 97.8 (sum with / without work). The worst terms of
+the two Johnson configs are the weight key's LogUp (2^25 + 256 keys, arity
+1: 2^-98.0) and the request LogUp (arity 3: 2^-98.8); every PCS term of the
+122/76 config is >= 113 bits.
+
+### 6.3 Earlier runs (previous session, calculator before 0f1f577ec)
+
+MLP 1024 x 4096 x 8192 (`mlp 10 12 13 12 ...`, same parameters as 6.2) and a
+decoder layer (256 tokens, D 512, F 1024, 8q/2kv heads, `layer 8 9 10 3 12
+<q> 2 20 1 1 0 8 1 2 ...`, request only). These are not re-run here (the
+1024-token MLP is reserved for the coordinator's final runs). Their bits
+used the old LogUp bound: the LogUp terms are now 1.0 bit (key, arity 1)
+and 0.58 bit (request, arity 3) higher, which lifts the LogUp-capped
+figures by up to that much. The rbr figures were not reported then.
 
 | config | bytes | prove s | verify ms | sum w/ | sum w/o | round w/ | round w/o | key bytes |
 |---|---|---|---|---|---|---|---|---|
-| toy base conj (54/54, d2) | 117 976 | 0.14-0.20 | 0.7 | 55.0 | 35.0 | 56.5 | 36.5 | |
-| toy base "proven-query" (160/160, d2, 1 prox) | 250 456 | 0.16-0.19 | 1.5 | 100.3 | 100.3 | 100.4 | 100.4 | |
-| toy UD, 2 prox (160/160) | 299 160 | 0.21 | 2.0 | 114.3 | 106.9 | 115.7 | 108.4 | |
-| **toy Johnson+OOD** (122 lb2 / 76 lb3 / 76 lb3, 2 prox) | **246 920** | 0.19 | 1.45 | **113.5** | 96.8 | 115.7 | 97.1 | |
-| toy Johnson+OOD (97 / 61 lb3 / 61 lb3) | 202 824 | 0.20 | 1.2 | 107.8 | 88.6 | 109.7 | 89.7 | |
-| MLP base conj (64/54) | 423 296 | 1.08-1.36 | 3.4-4.4 | 54.6 | 34.6 | 56.6 | 36.6 | 246 568 |
-| MLP base "proven-query" (160/160) | 914 848 | 1.05-1.28 | 6.4 | 93.7 | 93.7 | 95.0 | 95.0 | 514 024 |
-| **MLP Johnson+OOD, balanced** (97 / 61 lb3 / 61 lb3, weights 53, key 900) | **640 116** | 1.07 | 4.6 | **94.5** | 86.1 | 95.0 | 88.1 | 1 891 208 |
-| MLP Johnson+OOD (122 / 76 / 76, weights 66, key 900) | 763 672 | 1.08-1.55 | 6.2 | 94.5 | 93.5 | 95.0 | 95.0 | 1 931 048 |
-| layer 256 tok, D 512, F 1024, 8q/2kv heads, conj (54/54) | 321 816 | 0.26 | 5.2 | 54.0 | 34.0 | 56.5 | 36.5 | |
-| layer, base "proven-query" (160/160) | 705 152 | 0.28 | 7.2 | 98.0 | 98.0 | 98.6 | 98.6 | |
-| layer, Johnson+OOD balanced (97 / 61 lb3 / 61 lb3, weights 53, key 900) | 518 996 | 0.27 | 6.2 | 98.6 | 86.8 | 98.6 | 88.1 | |
+| MLP 1024 base conj (64/54) | 423 296 | 1.08-1.36 | 3.4-4.4 | 54.6 | 34.6 | 56.6 | 36.6 | 246 568 |
+| MLP 1024 base "proven-query" (160/160) | 914 848 | 1.05-1.28 | 6.4 | 93.7 | 93.7 | 95.0 | 95.0 | 514 024 |
+| MLP 1024 Johnson+OOD, balanced | 640 116 | 1.07 | 4.6 | 94.5 | 86.1 | 95.0 | 88.1 | 1 891 208 |
+| MLP 1024 Johnson+OOD (122 / 76 / 76) | 763 672 | 1.08-1.55 | 6.2 | 94.5 | 93.5 | 95.0 | 95.0 | 1 931 048 |
+| layer conj (54/54) | 321 816 | 0.26 | 5.2 | 54.0 | 34.0 | 56.5 | 36.5 | |
+| layer base "proven-query" (160/160) | 705 152 | 0.28 | 7.2 | 98.0 | 98.0 | 98.6 | 98.6 | |
+| layer Johnson+OOD balanced | 518 996 | 0.27 | 6.2 | 98.6 | 86.8 | 98.6 | 88.1 | |
 
-Layer rows: `tensor-bench layer 8 9 10 3 12 <q> 2 20 1 1 0 8 1 2 ...`; bits are
-the request only (the layer bench makes no key proof). The 1024-token layer
-command from the brief (`layer 10 11 12 4 12 54 2 20 2 1 0 10 1 2 54`) fails
-with `error.ExtStatement` on the base branch `61ba1ce6c` as well. That is
-pre-existing and was not investigated in this stream.
+The 1024-token layer command from the brief (`layer 10 11 12 4 12 54 2 20 2
+1 0 10 1 2 54`) fails with `error.ExtStatement` on the base branch
+`61ba1ce6c` as well. That is pre-existing and was not investigated in this
+stream.
 
 FlashProve's CPU toy on this machine: 341 KB, 8.37 s, 14 ms. Its printed
 accounting: 128 (largest round, work counted) / 96.23 (without work); its
 theorem: about q/2^124 + 2^-101.
 
-Reading the table:
+### 6.4 Reading the tables
 
-* The base "proven-query 128" configs are about 100 bits (toy) and 94
-  bits (MLP) once every term is counted. A single proximity row with
-  R x E/|F| and LogUp, respectively, are the limits.
+* The base "proven-query 128" configs are about 100 bits (toy) and 96
+  bits (MLP 512) once every term is counted. A single proximity row with
+  R x E/|F| (toy, and the MLP key) and LogUp are the limits.
 * **Toy:** 247 KB at 113.5 proven bits (whole bound with work), 28% below
-  FlashProve's 341 KB, with 115.7 bits for the largest round. 203 KB still
-  gives 107.8 bits, above the old 250 KB config. Without work, 97 bits,
-  comparable to FlashProve's 96.23. Against the unique-decoding config with
-  the same bits (299 KB), Johnson + OOD saves 17%.
-* **MLP:** the whole bound is capped at ~94.5 bits by LogUp: the weight
-  key's 2^27-key range proof (2^-95.0) and the per-batch LogUp over ~2^25
-  fractions (2^-96.2). Every PCS term is now >= 113 bits (122/76 config).
-  The balanced config puts them just above that floor at 640 KB, 30% below
-  the old 915 KB, with no loss of proven bits.
-* Prover cost: the extra rows (2 proximity rows + an OOD group) and the OOD
-  MLE add ~0.05-0.15 s to the MLP openings. On this loaded host that is
-  within the run-to-run noise of the total; the stage timers show
-  witness_open + weight_open going from ~0.10 s to ~0.12-0.24 s.
+  FlashProve's 341 KB, with 115.7 bits for the largest round (115.6
+  round-by-round). 203 KB still gives 107.8 bits, above the old 250 KB
+  config. Without work, 97 bits, comparable to FlashProve's 96.23. Against
+  the unique-decoding config with the same bits (299 KB), Johnson + OOD
+  saves 17%. Prove 0.16-0.21 s vs FlashProve's 8.37 s; verify 1.3-1.5 ms
+  vs 14 ms.
+* **MLP 512:** the balanced config is 523 KB at 97.4 bits, 29% below the
+  731 KB proven-query config at 96.1 bits, i.e. smaller and more bits. The
+  122/76 config keeps ~95 bits without work at 632 KB (-14%). The lean
+  config shows the trade-off below the LogUp cap: 465 KB at 94.9 bits.
+* Prover cost: the 2 proximity rows, the OOD groups and the OOD MLEs add
+  ~0.005-0.03 s to the openings of MLP 512 (witness_open + weight_open
+  0.039 s base vs 0.043-0.066 s Johnson), within the run-to-run noise of
+  the total (0.28-0.33 s). The key proof with 900 queries is 1.8 MB, once
+  per model.
 
 ## 7. Caveats and not done
 
@@ -244,20 +295,22 @@ Reading the table:
   collisions (~2^-114 to 2^-116) add up there. A largest round above ~122
   bits is impossible with a 2^124 field. Reaching 120+ for the whole bound
   needs a larger challenge field, or repeated sumchecks.
-* **LogUp is the MLP floor (~95 bits).** The fix is two independent alpha
+* **LogUp is the MLP floor (98.0 bits key, 98.8 request at MLP 512; about
+  1 bit lower at 1024 tokens).** The fix is two independent alpha
   (two GKR runs: the key proof is offline and could afford it; per batch
   it costs ~25% prover time), or alpha in a degree-2 extension of QM31.
   Not done. At Maverick scale (~9e9 keys per request), D exceeds p =
   2^31 - 1 and the LogUp multiplicity argument over M31 does not apply as
   stated. The calculator flags this (`logup_below_p`). Relations must be
   split below p, or the multiplicities checked another way.
-* The lambda term uses the interactive mean-value bound (3.3), so the
-  `round_*` figures are not a round-by-round proof. They are also neither
-  machine-checked nor refereed. The Johnson count (BCHKS25 Thm 4.6) is taken
+* The sums and `round_*` use the interactive mean-value bound for lambda
+  (3.3); `rbr_*` are the round-by-round figures (Markov form). None of
+  these arguments is machine-checked or refereed. The Johnson count (BCHKS25 Thm 4.6) is taken
   as given; FlashProve machine-checks it for lines (its Lemma 5.13). We
   use the conservative R factor for combinations of R rows.
-* Not done: the RBR (Markov) form of the lambda term in the report;
-  independent lambda coefficients (saves log G' in that term); GKR
+* Done in this session: the RBR form (`rbr_*`, 445111163) and the tighter
+  LogUp degree (0f1f577ec), both calculator-only (proofs byte-identical).
+* Not done: independent lambda coefficients (saves log G' in that term); GKR
   instance merging per lookup table; a second OOD point for tables with
   long lists (it would square the collision term at the cost of one group).
 * Metal: the OOD MLEs run on the CPU (`pcs.combineRows`, exact integer
@@ -276,5 +329,8 @@ Reading the table:
   tests.
 * `security.zig`: the compiled level (126.21 at w = 128), the unique and
   Johnson parameters, the sum/max arithmetic, and an end-to-end product
-  account: more queries give > 20 more bits, and a tampered proof is
-  refused.
+  account: more queries give > 20 more bits, the rbr fields are present,
+  and a tampered proof is refused. The RBR pair of the toy's witness L1
+  (115.3 bits with work; the query term without work to 0.01 bit) and the
+  LogUp term (2D for arity 1 and 2, 4D for arity 3) are pinned. 54/54
+  tests.
