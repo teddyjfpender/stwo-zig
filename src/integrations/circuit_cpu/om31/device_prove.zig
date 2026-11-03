@@ -24,8 +24,8 @@ pub const Source = struct {
 };
 pub const Factory = struct {
     context: *anyopaque,
-    /// Consumes only immutable authority and narrow builder assignments; source
-    /// MAIN generation and commitment happen on device. Failure is atomic and
+    /// Legacy builder-assignment ingress. MAIN generation and commitment happen
+    /// on device. Failure is atomic and
     /// owns no result. On success Source owns all temporary/device allocations.
     prepare: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, []const P.Q, D.Scope) anyerror!Source,
     /// Explicit trace-only ingress. The independently constructed source owns

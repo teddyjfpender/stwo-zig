@@ -1,6 +1,7 @@
-//! Concrete resident native-OM31 circuit factory. Builder assignments are the
-//! sole witness ingress. MAIN, lookup histograms, O8 INTER, composition and PCS
-//! remain under one persistent scoped native session; no host-wide fallback.
+//! Concrete resident native-OM31 circuit factory. Production binds the original
+//! trace-only graph and compact proof/public seeds atomically. The legacy
+//! assignment ingress remains explicit. MAIN, histograms, O8 INTER, composition
+//! and PCS share one persistent scoped native session; no host-wide fallback.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");

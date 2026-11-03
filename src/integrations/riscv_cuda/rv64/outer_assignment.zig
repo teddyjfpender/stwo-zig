@@ -1,6 +1,7 @@
 //! Optional device generation from original topology + explicit input origins.
-//! The CPU builder still constructs/checks its reference assignments. This
-//! removes their upload; it does not yet make graph construction GPU-resident.
+//! Production consumes trace-only topology and native proof/public seeds,
+//! allocating no CPU assignment array. Reference-mode assignments are optional
+//! qualification input; static topology/authority construction remains on CPU.
 const std = @import("std");
 const Circuit = @import("stwo_circuit_frontend");
 const Q = @import("stwo_core").fields.qm31.QM31;
