@@ -9,10 +9,14 @@ noisy outliers were re-run. Raw JSON is in `~/Coding/ge-cache/tensor-speed/final
 **Status (2026-11-04, after the host crash).** The session before this one
 crashed the host (36 GB, out of memory) at about 01:30. This round resumed
 from `8970db7de`, ran only the allowed sizes (decoder layer `9 11 12`, MLP
-`9 11 12`, one job at a time under `memguard --gb ≤ 8`) and added two
-allocation-only commits: the recycling allocator is now the bench default
-(§What changed 7) and it has a best-fit fallback (8). The final tables at the
-allowed sizes are in §Allowed sizes, final head. The 1024-token tables below
+`9 11 12`, one job at a time under `memguard --gb ≤ 8`) and added five
+prover-scheduling commits that leave proofs unchanged (§What changed 7–11).
+The recycling allocator is now the bench default and has a best-fit fallback.
+The page faults of single-shot proving are moved off the critical path: the
+GKR key inputs, the CPU GKR layers and the CPU batch E table are faulted in by
+helper threads while earlier stages run. At layer 512, single shot, this
+takes the CPU from 1.08 to 0.80 s and Metal from 0.69 to 0.60 s. The final
+tables at the allowed sizes are in §Allowed sizes, final head. The 1024-token tables below
 are from the previous session: their single-shot "new" columns were measured
 *without* the recycler (now `TENSOR_RECYCLE=0`), and nothing at 1024 tokens
 was re-run this round.
@@ -57,79 +61,101 @@ Digests: layer 512 `48cfb9d1…`, layer 1024 `925aad4a…` (`full_digest`;
 `proof_digest` `0bdd02cc…`), MLP `fc34ba94…`. All base/new and CPU/Metal pairs
 are equal.
 
-### Allowed sizes, final head (`11daca15b`, round 3)
+### Allowed sizes, final head (`f2e564a05`, round 3)
 
-Base `61ba1ce6c` vs the final head, same host, columns alternated within each
-round, 3 rounds, median per stage (raw JSON:
-`~/Coding/ge-cache/tensor-speed/r4/`, script `scripts/matrix4.sh` and
-`scripts/tables4.py`). "new, no recycler" is `TENSOR_RECYCLE=0`, which is how
-the previous session measured single shot. "new (default)" is the bench as it
-is now. Steady state is `TENSOR_RECYCLE=1 TENSOR_PROVE_REPS=3`, best of 3. The
-host was shared with other agents (load average 5–8, at times another
-`tensor-bench` at 800% CPU), so trust the alternated pairs, not the absolute
-values.
+#### Per-commit ladder (quiet-host A/B pairs, single shot, layer `9 11 12`)
+
+Each step was measured as alternated pairs against the step before, with the
+same arguments, while the host was quiet. Ranges are 3 runs.
+
+| step | commit | CPU prove (s) | Metal prove (s) |
+|---|---|---:|---:|
+| base | `61ba1ce6c` | 1.50–1.58 | 1.02–1.05 |
+| previous session's head (no recycler) | `8970db7de` | 1.08–1.13 | 0.68–0.71 |
+| + recycler on by default | `116859b9a` | 0.96–0.98 | 0.66–0.72 (noise) |
+| + recycler best fit | `11daca15b` | 0.95–0.96 | – |
+| + GKR key inputs faulted in during the witness commitment | `e37904482` | 0.88–0.92 (vs 0.96 with it off) | **0.59–0.61** (vs 0.67–0.69) |
+| + CPU GKR layer blocks warmed during the commitment | `d97254a5f` | 0.82–0.83 (vs 0.89–0.98) | – (CPU only) |
+| + CPU batch E table faulted in during the op sumchecks | `f2e564a05` | **0.79–0.83** (vs 0.81–0.92) | – (CPU only) |
+
+Overall, layer 512 single shot: CPU 1.54 → 0.80 s (≈1.9×), Metal 1.04 →
+0.60 s (≈1.7×). In steady state (best of 3) the last three commits are
+neutral: CPU stays at 0.67 s, and Metal goes from 0.54 to 0.53 s. Their gain is
+the first-touch page-fault cost of single-shot proving, which they move off the
+critical path.
+
+#### Final matrix (base vs head, all columns alternated)
+
+Base `61ba1ce6c` vs the head. Layer: 5 rounds; MLP: 3 rounds; median per
+stage. Raw JSON: `~/Coding/ge-cache/tensor-speed/r5/`; scripts
+`scripts/matrix5.sh` / `matrix5b.sh` and `scripts/tables5.py`. "new, no
+recycler" is `TENSOR_RECYCLE=0`, which also turns the GKR layer warm-up off;
+the key-input and E prefaults stay on. "new (default)" is the bench as it is
+now. Steady state is `TENSOR_RECYCLE=1 TENSOR_PROVE_REPS=3`, best of 3.
+**This matrix ran while other agents were building (load average 5–8). The
+CPU columns are about 15–20% slower than the quiet A/B pairs above, base and
+head alike.** Use the ratios, and the ladder for absolute values.
 
 | bench | path | base | new, no recycler | new (default) | base steady | new steady |
 |---|---|---:|---:|---:|---:|---:|
-| layer 512 tok (`layer 9 11 12 …`) | CPU | 1.575 | 1.081 (1.46×) | **0.990 (1.59×)** | 1.078 | **0.673 (1.60×)** |
-| layer 512 tok | Metal | 1.049 | 0.710 (1.48×) | **0.678 (1.55×)** | 0.855 | **0.542 (1.58×)** |
-| MLP 512 tok (`mlp 9 11 12 …`) | CPU | 0.278 | 0.205 (1.36×) | **0.179 (1.55×)** | 0.230 | **0.145 (1.59×)** |
-| MLP 512 tok | Metal | 0.151 | 0.190 (noise, range 0.151–0.227) | **0.146 (1.03×)** | 0.125 | **0.115 (1.09×)** |
+| layer 512 tok (`layer 9 11 12 …`) | CPU | 1.769 | 1.161 (1.52×) | **0.957 (1.85×)** | 1.326 | **0.878 (1.51×)** |
+| layer 512 tok | Metal | 1.136 | 0.697 (1.63×) | **0.677 (1.68×)** | 0.897 | **0.564 (1.59×)** |
+| MLP 512 tok (`mlp 9 11 12 …`) | CPU | 0.325 | 0.231 (1.41×) | **0.189 (1.72×)** | 0.264 | **0.198 (1.33×)** |
+| MLP 512 tok | Metal | 0.161 | 0.152 (1.06×) | **0.147 (1.10×)** | 0.119 | **0.116 (1.03×)** |
 
 Digests on every run: layer `48cfb9d1fae7a8d5…` (`full_digest`), MLP
-`a31527e0963a1f94…` (`proof_digest`; the MLP has no ext part). Proof sizes:
-460,328 B (layer), 328,752 B (MLP). Bench lines:
+`a31527e0963a1f94…` (`proof_digest`; the MLP has no ext part). Proof sizes
+are unchanged: 460,328 B (layer), 328,752 B (MLP). Bench lines:
 `tensor-bench layer 9 11 12 4 12 54 2 20 2 1 0 9 1 2 54 [--metal]` and
-`tensor-bench mlp 9 11 12 12 64 2 20 2 54 2 20 [--metal]` (D = 2048, F = 4096
-for the layer; 2048 × 4096 for the MLP), `TENSOR_BATCH_MATMULS=1` (the
-default anyway).
+`tensor-bench mlp 9 11 12 12 64 2 20 2 54 2 20 [--metal]` (layer: D = 2048,
+F = 4096, 16 q / 4 kv heads; MLP: 2048 × 4096, fused SwiGLU).
 
 #### Decoder layer 512 tokens, per stage (s)
 
-CPU (3 runs per column, median):
+CPU (5 runs per column, median):
 
 | stage | base | new, no recycler | new (default) | base steady | new steady |
 |---|---:|---:|---:|---:|---:|
-| **prove** | **1.575** | **1.081** | **0.990** | **1.078** | **0.673** |
-| prove (first rep) | 1.575 | 1.081 | 0.990 | 1.365 | 1.001 |
-| multiplicities | 0.032 | 0.008 | 0.008 | 0.029 | 0.006 |
-| ext_init | 0.225 | 0.046 | 0.043 | 0.187 | 0.011 |
-| witness_commit | 0.181 | 0.179 | 0.181 | 0.147 | 0.142 |
-| gkr | 0.551 | 0.515 | 0.465 | 0.284 | 0.278 |
-| · input (CPU) | 0.089 | 0.094 | 0.096 | 0.009 | 0.009 |
-| · layer build | 0.159 | 0.158 | 0.141 | 0.053 | 0.052 |
-| · layer sumchecks | 0.303 | 0.262 | 0.227 | 0.222 | 0.217 |
-| terminal | 0.062 | 0.004 | 0.003 | 0.054 | 0.003 |
-| op_sumchecks | 0.114 | 0.056 | 0.048 | 0.086 | 0.048 |
-| batch | 0.179 | 0.167 | 0.155 | 0.109 | 0.108 |
-| witness_open | 0.058 | 0.055 | 0.050 | 0.052 | 0.050 |
-| weight_open | 0.028 | 0.027 | 0.021 | 0.021 | 0.021 |
-| forward (not in prove) | 0.241 | 0.161 | 0.149 | 0.232 | 0.154 |
-| peak RSS (GB) | 6.28 | 6.29 | 6.39 | 7.10 | 7.10 |
+| **prove** | **1.769** | **1.161** | **0.957** | **1.326** | **0.878** |
+| prove (first rep) | 1.769 | 1.161 | 0.957 | 1.573 | 1.048 |
+| multiplicities | 0.032 | 0.010 | 0.009 | 0.029 | 0.007 |
+| ext_init | 0.241 | 0.047 | 0.043 | 0.211 | 0.014 |
+| witness_commit | 0.238 | 0.222 | 0.255 | 0.178 | 0.171 |
+| gkr | 0.586 | 0.497 | 0.370 | 0.361 | 0.377 |
+| · input (CPU) | 0.089 | 0.016 | 0.015 | 0.011 | 0.012 |
+| · layer build | 0.169 | 0.169 | 0.078 | 0.068 | 0.071 |
+| · layer sumchecks | 0.331 | 0.317 | 0.270 | 0.268 | 0.289 |
+| terminal | 0.065 | 0.005 | 0.004 | 0.061 | 0.004 |
+| op_sumchecks | 0.136 | 0.065 | 0.060 | 0.113 | 0.059 |
+| batch | 0.183 | 0.172 | 0.140 | 0.133 | 0.139 |
+| witness_open | 0.066 | 0.067 | 0.061 | 0.060 | 0.066 |
+| weight_open | 0.030 | 0.031 | 0.027 | 0.028 | 0.028 |
+| forward (not in prove) | 0.268 | 0.172 | 0.175 | 0.262 | 0.190 |
+| peak RSS (GB) | 6.28 | 6.17 | 6.42 | 7.11 | 7.19 |
 
-prove range: base 1.513–1.648; new, no recycler 1.075–1.170; new (default) 0.976–0.993; base steady 1.052–1.086; new steady 0.669–0.673
+prove range: base 1.529–1.879; new, no recycler 1.014–1.310; new (default) 0.784–1.060; base steady 1.050–1.338; new steady 0.707–0.927
 digests: ['48cfb9d1fae7a8d5']
 
-Metal (3 runs per column, median):
+Metal (5 runs per column, median):
 
 | stage | base | new, no recycler | new (default) | base steady | new steady |
 |---|---:|---:|---:|---:|---:|
-| **prove** | **1.049** | **0.710** | **0.678** | **0.855** | **0.542** |
-| prove (first rep) | 1.049 | 0.710 | 0.678 | 0.983 | 0.683 |
-| multiplicities | 0.033 | 0.007 | 0.007 | 0.030 | 0.006 |
-| ext_init | 0.217 | 0.044 | 0.042 | 0.193 | 0.012 |
-| witness_commit | 0.095 | 0.095 | 0.096 | 0.073 | 0.072 |
-| gkr | 0.339 | 0.340 | 0.329 | 0.249 | 0.258 |
-| · input (CPU) | 0.096 | 0.094 | 0.097 | 0.011 | 0.014 |
-| terminal | 0.012 | 0.004 | 0.004 | 0.009 | 0.004 |
-| op_sumchecks | 0.112 | 0.055 | 0.053 | 0.089 | 0.052 |
-| batch | 0.101 | 0.064 | 0.064 | 0.102 | 0.064 |
-| witness_open | 0.062 | 0.055 | 0.055 | 0.049 | 0.049 |
-| weight_open | 0.026 | 0.027 | 0.022 | 0.023 | 0.022 |
-| forward (not in prove) | 0.243 | 0.078 | 0.074 | 0.237 | 0.076 |
-| peak RSS (GB) | 2.18 | 2.17 | 2.13 | 2.26 | 2.23 |
+| **prove** | **1.136** | **0.697** | **0.677** | **0.897** | **0.564** |
+| prove (first rep) | 1.136 | 0.697 | 0.677 | 1.070 | 0.647 |
+| multiplicities | 0.036 | 0.009 | 0.009 | 0.031 | 0.007 |
+| ext_init | 0.269 | 0.045 | 0.043 | 0.219 | 0.013 |
+| witness_commit | 0.109 | 0.108 | 0.108 | 0.074 | 0.072 |
+| gkr | 0.338 | 0.277 | 0.257 | 0.251 | 0.249 |
+| · input (CPU) | 0.096 | 0.019 | 0.017 | 0.012 | 0.010 |
+| terminal | 0.015 | 0.004 | 0.004 | 0.011 | 0.005 |
+| op_sumchecks | 0.131 | 0.061 | 0.060 | 0.105 | 0.055 |
+| batch | 0.100 | 0.069 | 0.071 | 0.100 | 0.073 |
+| witness_open | 0.069 | 0.069 | 0.066 | 0.063 | 0.056 |
+| weight_open | 0.031 | 0.033 | 0.031 | 0.026 | 0.026 |
+| forward (not in prove) | 0.299 | 0.088 | 0.082 | 0.294 | 0.083 |
+| peak RSS (GB) | 2.18 | 2.18 | 2.13 | 2.26 | 2.29 |
 
-prove range: base 1.042–1.057; new, no recycler 0.693–0.710; new (default) 0.673–0.685; base steady 0.829–0.859; new steady 0.517–0.543
+prove range: base 1.051–1.175; new, no recycler 0.679–0.737; new (default) 0.625–0.733; base steady 0.874–0.936; new steady 0.552–0.608
 digests: ['48cfb9d1fae7a8d5']
 
 #### MLP 512 tokens, per stage (s)
@@ -138,48 +164,48 @@ CPU (3 runs per column, median):
 
 | stage | base | new, no recycler | new (default) | base steady | new steady |
 |---|---:|---:|---:|---:|---:|
-| **prove** | **0.278** | **0.205** | **0.179** | **0.230** | **0.145** |
-| prove (first rep) | 0.278 | 0.205 | 0.179 | 0.270 | 0.171 |
+| **prove** | **0.325** | **0.231** | **0.189** | **0.264** | **0.198** |
+| prove (first rep) | 0.325 | 0.231 | 0.189 | 0.291 | 0.225 |
 | multiplicities | 0.004 | 0.004 | 0.004 | 0.004 | 0.004 |
-| witness_commit | 0.036 | 0.036 | 0.034 | 0.033 | 0.031 |
-| gkr | 0.084 | 0.087 | 0.079 | 0.055 | 0.054 |
-| · input (CPU) | 0.012 | 0.012 | 0.013 | 0.005 | 0.004 |
-| · layer build | 0.027 | 0.026 | 0.024 | 0.010 | 0.010 |
-| · layer sumchecks | 0.045 | 0.047 | 0.042 | 0.040 | 0.040 |
-| op_sumchecks | 0.004 | 0.005 | 0.004 | 0.004 | 0.004 |
-| batch | 0.026 | 0.026 | 0.021 | 0.021 | 0.021 |
-| witness_open | 0.016 | 0.017 | 0.015 | 0.014 | 0.014 |
-| weight_open | 0.021 | 0.023 | 0.018 | 0.017 | 0.017 |
-| forward (not in prove) | 0.069 | 0.070 | 0.069 | 0.069 | 0.067 |
-| peak RSS (GB) | 2.58 | 2.57 | 2.55 | 2.81 | 2.69 |
+| witness_commit | 0.043 | 0.046 | 0.037 | 0.034 | 0.040 |
+| gkr | 0.094 | 0.092 | 0.068 | 0.064 | 0.073 |
+| · input (CPU) | 0.012 | 0.006 | 0.005 | 0.004 | 0.006 |
+| · layer build | 0.028 | 0.028 | 0.014 | 0.011 | 0.014 |
+| · layer sumchecks | 0.053 | 0.056 | 0.048 | 0.048 | 0.054 |
+| op_sumchecks | 0.006 | 0.006 | 0.005 | 0.005 | 0.006 |
+| batch | 0.030 | 0.029 | 0.025 | 0.024 | 0.026 |
+| witness_open | 0.026 | 0.023 | 0.025 | 0.022 | 0.021 |
+| weight_open | 0.027 | 0.032 | 0.028 | 0.025 | 0.025 |
+| forward (not in prove) | 0.075 | 0.086 | 0.074 | 0.079 | 0.083 |
+| peak RSS (GB) | 2.57 | 2.58 | 2.59 | 2.81 | 2.67 |
 
-prove range: base 0.277–0.291; new, no recycler 0.193–0.232; new (default) 0.170–0.180; base steady 0.223–0.279; new steady 0.142–0.242
+prove range: base 0.305–0.349; new, no recycler 0.229–0.264; new (default) 0.188–0.217; base steady 0.263–0.264; new steady 0.189–0.201
 digests: ['a31527e0963a1f94']
 
 Metal (3 runs per column, median):
 
 | stage | base | new, no recycler | new (default) | base steady | new steady |
 |---|---:|---:|---:|---:|---:|
-| **prove** | **0.151** | **0.190** | **0.146** | **0.125** | **0.115** |
-| prove (first rep) | 0.151 | 0.190 | 0.146 | 0.149 | 0.150 |
-| multiplicities | 0.004 | 0.005 | 0.004 | 0.004 | 0.004 |
-| witness_commit | 0.022 | 0.024 | 0.022 | 0.012 | 0.013 |
-| gkr | 0.066 | 0.068 | 0.066 | 0.049 | 0.048 |
-| · input (CPU) | 0.017 | 0.018 | 0.017 | 0.005 | 0.005 |
-| op_sumchecks | 0.004 | 0.005 | 0.004 | 0.005 | 0.004 |
-| batch | 0.011 | 0.010 | 0.011 | 0.010 | 0.010 |
-| witness_open | 0.019 | 0.024 | 0.018 | 0.018 | 0.016 |
-| weight_open | 0.025 | 0.037 | 0.022 | 0.022 | 0.018 |
-| forward (not in prove) | 0.022 | 0.022 | 0.022 | 0.022 | 0.021 |
-| peak RSS (GB) | 1.01 | 1.01 | 0.99 | 1.03 | 1.01 |
+| **prove** | **0.161** | **0.152** | **0.147** | **0.119** | **0.116** |
+| prove (first rep) | 0.161 | 0.152 | 0.147 | 0.148 | 0.141 |
+| multiplicities | 0.004 | 0.004 | 0.004 | 0.004 | 0.004 |
+| witness_commit | 0.022 | 0.023 | 0.023 | 0.013 | 0.011 |
+| gkr | 0.073 | 0.061 | 0.057 | 0.049 | 0.048 |
+| · input (CPU) | 0.017 | 0.005 | 0.005 | 0.004 | 0.004 |
+| op_sumchecks | 0.005 | 0.004 | 0.005 | 0.004 | 0.004 |
+| batch | 0.010 | 0.010 | 0.010 | 0.010 | 0.010 |
+| witness_open | 0.020 | 0.021 | 0.019 | 0.017 | 0.017 |
+| weight_open | 0.023 | 0.024 | 0.022 | 0.021 | 0.019 |
+| forward (not in prove) | 0.021 | 0.022 | 0.021 | 0.019 | 0.021 |
+| peak RSS (GB) | 1.01 | 1.00 | 0.97 | 1.03 | 1.01 |
 
-prove range: base 0.149–0.190; new, no recycler 0.151–0.227; new (default) 0.146–0.158; base steady 0.112–0.125; new steady 0.109–0.128
+prove range: base 0.160–0.216; new, no recycler 0.144–0.154; new (default) 0.141–0.180; base steady 0.112–0.132; new steady 0.113–0.130
 digests: ['a31527e0963a1f94']
 
 The MLP bench does not report a terminal stage. On the CPU, prove minus the
-listed stages is ≈0.09 s on the base and ≈0.01 s on the head: the serial
-`f.mleEvalI32` terminal evaluations, now parallel (as at 1024 tokens). On
-Metal the MLP was already device-bound in the base; the head is within noise.
+listed stages is ≈0.09 s on the base and ≈0.01 s on the head, because the
+serial `f.mleEvalI32` terminal evaluations are now parallel (as at 1024
+tokens). On Metal, the MLP was already device-bound in the base.
 
 ### Per-stage, decoder layer 1024 tokens, single shot (s), previous session (no recycler)
 
@@ -305,6 +331,29 @@ the segment-indexed batch E cut the batch stage from 0.093 to 0.061 s.
    overhead on the MLP (2.69 → 2.55 GB) and makes no measurable speed
    difference (layer 512: 0.956/0.957 vs 0.950/0.962 s on quiet runs).
 
+9. **GKR key inputs faulted in during the witness commitment**
+   (`e37904482`, round 3). The 52 key-denominator columns (57 M leaves,
+   0.9 GB at layer 512) are allocated before the commitment, and a helper
+   thread touches one byte per 16 KiB page while the commitment runs. The
+   values are still written after α and β are drawn (`keyValuesInto`,
+   `xt.keyDenInto`). `Config.prefault_gkr_inputs` (default true),
+   `TENSOR_PREFAULT=0`. GKR input stage 0.098 → 0.012 s. Prove: CPU 0.96 →
+   0.88–0.92 s, Metal 0.67–0.69 → 0.59–0.61 s. Peak RSS unchanged.
+10. **CPU GKR layer warm-up** (`d97254a5f`, round 3).
+    `Config.warm_gkr_layers` (default false; ignored with an accelerator). A
+    second helper allocates, touches and frees blocks of the sizes and order
+    the CPU GKR build allocates (num and den, 2^(k−1) QM31 per level per
+    instance). With a caching allocator the build then gets them back already
+    faulted in. The bench turns it on whenever the recycler is on
+    (`TENSOR_WARM_GKR=0` turns it off). GKR build 0.14–0.20 → 0.062 s, prove
+    0.89–0.98 → 0.82–0.83 s. Peak RSS +0.03–0.05 GB single shot, +0.16 GB in
+    steady state, +0.1 GB on the MLP.
+11. **CPU batch E table faulted in during the op sumchecks** (`f2e564a05`,
+    round 3). E (2^log_total QM31, 1 GiB at layer 512) is allocated right
+    after the GKR, whose layers are gone by then, and its used part is touched
+    while the terminal claims and op sumchecks run. Batch 0.146–0.159 →
+    0.118–0.122 s. Same switch as 9; CPU path only; peak RSS unchanged.
+
 ## Bugs found (pre-existing on the base)
 
 * **`Builder.add` aliasing.** Callers pass `self.infos.items[x]` by value. Zig
@@ -335,7 +384,10 @@ through `TENSOR_BATCH_MATMULS=0`. It holds up at layer 512:
 | flat | 1.20–1.22 | 5,258,576 B | 31 ms |
 
 The bench also uses the recycling allocator by default (§What changed 7);
-`TENSOR_RECYCLE=0` turns it off. This is a bench-level choice: `prove` takes
+`TENSOR_RECYCLE=0` turns it off. `Config.prefault_gkr_inputs` is true by
+default and `Config.warm_gkr_layers` is false. The bench sets the warm-up
+whenever it uses the recycler. Knobs: `TENSOR_PREFAULT=0`,
+`TENSOR_WARM_GKR=0`. This is a bench-level choice: `prove` takes
 whatever allocator its caller passes.
 
 `protocol.Config`'s field defaults are deliberately unchanged. With
@@ -367,6 +419,15 @@ a skip ahead of a bounds check. Prover-side arguments:
   value either moves a remainder out of `[0, 2^s)`, which the prover refuses,
   or makes the claimed `acc(ρ)` differ from `Σ A·B`, which the einsum
   sumcheck rejects. Exact einsums are still recomputed and checked.
+* **Prefault and warm-up helpers (round 3).** These change when memory is
+  allocated and first touched, not what is computed. Every key buffer is
+  fully written by `keyValuesInto` / `xt.keyDenInto` after the challenges
+  are drawn. The GKR build overwrites every layer entry, so the warm-up's
+  zero bytes are never read. E is filled by `batch.fillRegion` as before
+  (entries ≥ `lay.used` are never read). Each helper is joined before its
+  buffers are used and on every error path, before they are freed. The
+  helpers get their slices by value, and an allocation failure ends the
+  warm-up early.
 * **Segment index / eq_prefix.** The same terms of the same sum are computed;
   the only claims skipped are those whose range excludes x, and they
   contributed 0 before.
@@ -377,6 +438,9 @@ The Metal lazy-factor, batch and eq-prefix tests run for `lazy_rounds` 1, 2,
 3 and 5 (clamped to 3).
 
 
+* decoder-layer goldens (round 3): both configurations are also proved with
+  the key-input prefault off and with the GKR layer warm-up on, and must give
+  the golden digests;
 * `recycle` (round 3): best fit takes the smallest cached block within
   2×, declines blocks that are too small or more than 2× larger, returns a
   lent block to its own size class, and keeps the cached-byte count; the
@@ -425,7 +489,10 @@ The Metal lazy-factor, batch and eq-prefix tests run for `lazy_rounds` 1, 2,
    * on Metal, the 0.21 s input stage could become a device kernel writing
      into pooled buffers.
 
-   Round 3 estimate. The input stage is fault bound (0.09 s single shot vs
+   Round 3: the fault cost is now hidden by the prefault (§What changed 9;
+   input stage 0.012 s single shot), so a lazy input layer would save only
+   the remaining compute and 16 B/leaf of memory. The estimate below was made
+   before the prefault. The input stage is fault bound (0.09 s single shot vs
    0.009 s steady at layer 512). A lazy input layer avoids writing the 16 B/leaf
    input, but the input layer is also the last GKR sumcheck's working set: the
    first round and the first fold would read the generator, and that fold
@@ -445,6 +512,18 @@ The Metal lazy-factor, batch and eq-prefix tests run for `lazy_rounds` 1, 2,
    bench now does so by default). At 1024
    tokens, steady state is 1.75 s against 2.7 s single shot on the CPU, and
    1.2 s against 1.6 s on Metal.
+5. **Remaining single-shot gap at layer 512, round 3** (head, single vs
+   steady, quiet host): CPU 0.82 vs 0.69 s, Metal 0.59 vs 0.55 s. What is left:
+   ext_init 0.042 vs 0.011 s (fresh ext prover state at the start of `prove`;
+   nothing earlier runs inside `prove` to overlap with, but a caller could
+   overlap it with the forward pass), witness commitment 0.19–0.21 vs 0.16 s
+   (codeword buffers allocated inside `pcs` / `pcs2`), and GKR build
+   0.069 vs 0.053 s. In steady state the CPU is compute-bound: GKR layer
+   sumchecks 0.215 s, commitment 0.16 s, batch 0.107 s.
+6. **Metal core op sumchecks at 512 tokens** take ≈0.04 s against ≈0.012 s on
+   the CPU (op_sumchecks minus ext_ops). A `sc_min_work` sweep (2^14, 2^16,
+   2^18, 2^20) gave no clear winner (0.597–0.651 s prove, noise-level), so the
+   threshold is unchanged and the knob was not kept.
 
 ## Reproduce
 
@@ -461,16 +540,29 @@ TENSOR_PCS=flat TENSOR_BATCH_MATMULS=0 <dir>/bin/tensor-bench layer 9 11 12 4 12
 ```
 
 Scripts used: `~/Coding/ge-cache/tensor-speed/scripts/{run.sh,matrix.sh,stages.py}`;
-round 3: `scripts/{matrix4.sh,tables4.py}` (`matrix4.sh L9 <new-prefix> 3 layer 9 11 12 …`).
+round 3: `scripts/{matrix5.sh,matrix5b.sh,tables5.py}` (`matrix5.sh L9 <new-prefix> 3 layer 9 11 12 …`,
+`START=4 matrix5b.sh L9 <new-prefix> 5 …` for extra rounds; `tables5.py L9 <new-prefix>`).
+Knobs: `TENSOR_RECYCLE=0`, `TENSOR_PREFAULT=0`, `TENSOR_WARM_GKR=0`.
 
 ## Caveats
 
 * Nothing at 1024 tokens was re-run in round 3 (host memory rules). The
   1024-token tables come from the previous session. Peak RSS with the
-  recycler as the default is **not measured** at 1024 tokens. At 512 tokens it
-  costs +0.1 GB on the layer and nothing on the MLP (best fit). The coordinator's
+  recycler, the prefaults and the warm-up as defaults is **not measured** at
+  1024 tokens. At 512 tokens the head's default costs +0.14 GB on the layer
+  (6.28 → 6.42 GB) and nothing on the MLP; steady state +0.08–0.17 GB.
+  Expect the 1024-token layer CPU peak (12.3 GB before) to rise by a few
+  hundred MB. The coordinator's
   large runs now use the recycler unless `TENSOR_RECYCLE=0` is set. Compare
   against the earlier single-shot numbers with `TENSOR_RECYCLE=0`.
+* The prefault and warm-up helpers are extra OS threads next to the prover
+  pool (one each, short-lived). On a fully loaded host they compete with the
+  pool. Zero-fill faults serialize in the macOS kernel anyway, which is why the
+  overlap pays off. A deployed prover that reuses memory across proofs (steady
+  state) gains nothing from them.
+* The GKR layer warm-up depends on `gkr_prover_fast`'s build allocating in the
+  same sizes. If that changes, the warm-up stops helping, but correctness is
+  unaffected.
 * Part of the bench's recycler gain comes from reusing blocks freed by the
   weight commitment, which a deployed prover does once, not per proof. The
   forward-pass and in-prove reuse do apply per request. The steady-state
