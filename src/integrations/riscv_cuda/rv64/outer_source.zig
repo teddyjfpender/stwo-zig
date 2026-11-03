@@ -213,6 +213,9 @@ pub const Owner = struct {
         self.z = z;
         self.alpha = alpha;
         try self.run(@import("outer_source_interaction.zig").generate);
+        // INTER generation has joined all readers. Its commitment consumes only
+        // INTER evaluations; MAIN coefficients already have independent custody.
+        try self.run(dropMainEvaluations);
         const commit = self.backend.trace_commit.stage();
         const tree = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 2, .columns = self.inter_columns });
         self.inter_ready = true;
@@ -224,6 +227,22 @@ pub const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         if (!self.inter_ready) return error.OuterInteractionsNotReady;
         return @import("outer_source_composition.zig").evaluate(self, a, randomness, log, split, total, trace);
+    }
+    fn dropMainEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
+        const main = self.main_evaluations;
+        if (main.words == null) return;
+        for (self.leases.items, 0..) |*lease, i| {
+            if (lease.words != main.words or lease.count != main.count or lease.context_token != main.context_token or lease.generation != main.generation or lease.kind != main.kind or lease.reserved != main.reserved) continue;
+            const bytes = main.count * 4;
+            // Native release joins the owner lanes before freeing the allocation.
+            // Do not remove ownership on a failed release.
+            try checked(self.backend.service.lease_release(self.backend.service.session, lease));
+            _ = self.leases.swapRemove(i);
+            self.main_evaluations = .{};
+            std.log.info("GPU_OUTER released_main_evaluation_bytes={d} before_INTER_commit", .{bytes});
+            return;
+        }
+        return error.OuterMainEvaluationLeaseNotOwned;
     }
     fn dropEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
         for (self.leases.items) |*lease| if (lease.words != null) try checked(self.backend.service.lease_release(self.backend.service.session, lease));
