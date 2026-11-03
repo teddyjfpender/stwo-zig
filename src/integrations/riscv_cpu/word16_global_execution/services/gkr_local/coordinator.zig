@@ -56,6 +56,8 @@ pub const WorkerTiming = struct {
 pub const Options = struct {
     numerical_gkr_stage: ?*const @import("child.zig").NumericalStage = null,
     device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
+    /// Explicit opt-in until each truth geometry has real memory qualification.
+    truth_device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     om31_composition_stage: ?*const CPU.CompositionStage = null,
     resident_composition_stage: ?*const CPU.ResidentCompositionStage = null,
     /// Caller-owned BASE policy observation; per-CPU resolution is in worker timings.
@@ -257,6 +259,7 @@ const Run = struct {
             owned = false;
             switch (self.workers[index].?) {
                 inline .truth, .delegation => |*worker| {
+                    worker.scheme.device_om31_pcs_stage = self.options.truth_device_pcs_stage;
                     worker.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
                     self.stages[index] = try worker.seal(self.a);
                     if (timer) |*clock| {

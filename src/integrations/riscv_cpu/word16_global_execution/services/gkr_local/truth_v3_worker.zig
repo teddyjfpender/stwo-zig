@@ -158,6 +158,7 @@ pub const NativeTruthWorker = struct {
         var roots = try s.scheme.roots(a);
         defer roots.deinit(a);
         if (roots.items.len != 2) return error.V3TruthRoots;
+        s.scheme.device_om31_scope = .{ .statement = s.expected.statement, .fixed = s.expected.fixed, .main = roots.items[1], .ordinal = @intCast(s.expected.ordinal) };
         s.sealed = true;
         return .{ .main = roots.items[1], .local = null };
     }

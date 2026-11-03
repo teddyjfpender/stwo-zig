@@ -130,6 +130,7 @@ pub const TruthWorker = struct {
         var roots = try self.scheme.roots(a);
         defer roots.deinit(a);
         if (roots.items.len != 2) return error.WideTruthRoots;
+        self.scheme.device_om31_scope = .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = roots.items[1], .ordinal = @intCast(self.expected.ordinal) };
         self.sealed = true;
         return .{ .main = roots.items[1], .local = null };
     }
