@@ -679,3 +679,6 @@ extern "C" int stwo_rv64_gpu_immutable_seal(void *raw,const StwoRv64GpuLease *le
   throw std::runtime_error("stale immutable seal");
  }catch(const std::exception &e){s.error=e.what();return int(cudaErrorInvalidValue);}
 }
+
+// Metadata framing capability; no CUDA context or proof state is touched.
+extern "C" uint32_t stwo_rv64_pcs_request_version() { return 3; }

@@ -8,6 +8,7 @@
 #include "rv64/samples.h"
 #include "rv64/trace.h"
 #include "rv64/prefix_banks.h"
+#include "rv64/pcs_framing.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -105,9 +106,8 @@ struct FriStorage {
 };
 template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   const auto h = input.sections[0];
-  sizeIs(h, 24);
-  if (h[0] != 0x52564d53 || h[1] != 2 || h[2] || h[21] > 1 || h[22] > 32 ||
-      h[23])
+  stwo::cuda::rv64::PcsAggregateCounts aggregate{};
+  if (!stwo::cuda::rv64::decodePcsCounts(h.data(), h.size(), &aggregate))
     throw std::runtime_error("masked PCS header");
   const uint32_t degree = h[3], log = h[4], queries = h[6], sc = h[8],
                  tc = h[9], gc = h[10], sgc = h[11], nt = h[12],
@@ -128,7 +128,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
              descriptions = input.sections[13],
              fri_twiddles = input.sections[14],
              expected_roots = input.sections[15];
-  const size_t sizes[] = {24,
+  const size_t sizes[] = {h.size(),
                           9,
                           h[21] ? 16u : 0u,
                           size_t(sc) * 4,
@@ -203,10 +203,10 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     }
     if(next_source!=sc || next_group!=sgc) throw std::runtime_error("rolling tree coverage");
   }
-  const uint64_t source_eval_base = rolling_sources ? 0 : h[15],
-                 combined_coeff_base = rolling_sources ? 0 : source_eval_base + h[16],
-                 combined_eval_base = combined_coeff_base + h[17],
-                 twiddle_base = combined_eval_base + h[18],
+  const uint64_t source_eval_base = rolling_sources ? 0 : aggregate.coefficients,
+                 combined_coeff_base = rolling_sources ? 0 : source_eval_base + aggregate.evaluations,
+                 combined_eval_base = combined_coeff_base + aggregate.combined_coefficients,
+                 twiddle_base = combined_eval_base + aggregate.combined_evaluations,
                  descriptor_base = twiddle_base + h[19];
   const uint64_t arena_words = descriptor_base + uint64_t(sc + 8 * gc) * 6;
   const auto arena = o.plane(arena_words, 1);
@@ -219,7 +219,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     const auto coefficients = input.coefficients[c];
     if (sources[4*c+3]>28 ||
         coefficients.size() != (uint64_t(1) << sources[4 * c + 3]) ||
-        offset > h[15] || coefficients.size() > h[15] - offset)
+        offset > aggregate.coefficients || coefficients.size() > aggregate.coefficients - offset)
       throw std::runtime_error("coefficient span geometry");
     const uint32_t lease_kind=o.validateCoefficient(coefficients,input.scope.data());
     device_columns += coefficients.kind==1;
@@ -463,7 +463,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     const auto *d = groups.data() + g * 8;
     StwoRv64SampleEvaluation sample{};
     if(rolling_sources) for(uint32_t t=0;t<nt;++t) { sample.trees[t]=coefficient_trees[t].words; sample.tree_words[t]=coefficient_trees[t].stride; }
-    else { sample.trees[0] = arena.words; sample.tree_words[0] = h[15]; }
+    else { sample.trees[0] = arena.words; sample.tree_words[0] = aggregate.coefficients; }
     sample.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
     sample.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
     sample.recipes =
@@ -493,7 +493,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   phase_mark(3);
   StwoRv64DeepPrepare prepare{};
   if(rolling_sources) for(uint32_t t=0;t<nt;++t) { prepare.trees[t]=coefficient_trees[t].words; prepare.tree_words[t]=coefficient_trees[t].stride; }
-  else { prepare.trees[0] = arena.words; prepare.tree_words[0] = h[15]; }
+  else { prepare.trees[0] = arena.words; prepare.tree_words[0] = aggregate.coefficients; }
   prepare.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
   prepare.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
   prepare.groups = reinterpret_cast<const StwoRv64DeepGroup *>(grp.words);
@@ -505,7 +505,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   prepare.coefficients = arena.words + combined_coeff_base;
   prepare.valid = deep_valid.words;
   prepare.status = status.words;
-  prepare.coefficient_words = h[17];
+  prepare.coefficient_words = aggregate.combined_coefficients;
   prepare.source_count = sc;
   prepare.term_count = tc;
   prepare.group_count = gc;
@@ -521,7 +521,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   combine.valid = deep_valid.words;
   combine.output = deep;
   combine.status = status.words;
-  combine.evaluation_words = h[18];
+  combine.evaluation_words = aggregate.combined_evaluations;
   combine.group_count = gc;
   combine.output_log = log;
   CHECK(stwo_rv64_deep_combine_on(o.ctx, 1, &combine));

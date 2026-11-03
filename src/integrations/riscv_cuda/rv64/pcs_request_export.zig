@@ -80,6 +80,9 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
 /// Native contexts supply a bounded immutable host cache. Debug exports keep
 /// the uncached entry above; all transcript-derived sections stay fresh.
 pub fn prepareRequestWithCache(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache) !Prepared {
+    return prepareRequestWithFraming(a, request, initial, cache, false);
+}
+pub fn prepareRequestWithFraming(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache, wide_framing: bool) !Prepared {
     if (request.trees.len == 0 or request.trees.len > 4 or request.points.items.len != request.trees.len or request.lifting_log_size < request.config.fri_config.log_blowup_factor or request.lifting_log_size > 28) return error.InvalidDevicePcsRequest;
     const beta = request.config.fri_config.log_blowup_factor;
     const degree = request.lifting_log_size - beta;
@@ -229,7 +232,8 @@ pub fn prepareRequestWithCache(a: std.mem.Allocator, request: D.Request, initial
     if (geometry == null) try C.friMetadata(plan, &fri_desc, &fri_tw);
     const fri_descriptions: []const u32 = if (geometry) |borrow| borrow.descriptions() else fri_desc.items;
     const fri_coordinates: []const M = if (geometry) |borrow| borrow.coordinates() else fri_tw.items;
-    const h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), try count32(coefficient_words), try count32(evaluation_words), try count32(combined_coefficients), try count32(combined_evaluations), try count32(forward.len), try count32(fri_coordinates.len), 1, request.config.pow_bits, 0 };
+    var h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), 0, 0, 0, 0, try count32(forward.len), try count32(fri_coordinates.len), 1, request.config.pow_bits, 0, 0, 0, 0, 0 };
+    const header_len = try @import("pcs_framing.zig").encode(&h, .{ coefficient_words, evaluation_words, combined_coefficients, combined_evaluations }, wide_framing);
     var section_storage: [17][]const u32 = @splat(&.{});
     var section_owned: [17]bool = @splat(true);
     errdefer for (section_storage, section_owned) |section, owned| {
@@ -248,7 +252,7 @@ pub fn prepareRequestWithCache(a: std.mem.Allocator, request: D.Request, initial
     };
     const half = core.poly.circle.canonic.CanonicCoset.new(request.lifting_log_size).circleDomain().half_coset;
     const domain_parameters = [4]u32{ half.initial.x.v, half.initial.y.v, half.step.x.v, half.step.y.v };
-    const sections = [_][]const u32{ &h, &seed, &point_words, sources.items, terms.items, deep_groups.items, source_groups.items, tree_info.items, recipes.items, deep_tw.items, sample_map, sample_counts.items, mWords(forward), fri_descriptions, mWords(fri_coordinates), expected_roots, &domain_parameters };
+    const sections = [_][]const u32{ h[0..header_len], &seed, &point_words, sources.items, terms.items, deep_groups.items, source_groups.items, tree_info.items, recipes.items, deep_tw.items, sample_map, sample_counts.items, mWords(forward), fri_descriptions, mWords(fri_coordinates), expected_roots, &domain_parameters };
     for (sections, &section_storage, &section_owned, 0..) |section, *storage, *owned, i| {
         if (geometry != null and i >= 12 and i <= 14) {
             storage.* = section;

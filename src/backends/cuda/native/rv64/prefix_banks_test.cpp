@@ -1,10 +1,26 @@
 #include "prefix_banks.h"
+#include "pcs_framing.h"
 #include <cstdlib>
 #include <cstdint>
 #include <vector>
 using stwo::cuda::rv64::PrefixBanks;
 static void require(bool value) { if (!value) std::abort(); }
 int main() {
+  uint32_t header[28]{};
+  header[0] = 0x52564d53; header[1] = 2; header[15] = 0xffffffff;
+  stwo::cuda::rv64::PcsAggregateCounts totals{};
+  require(stwo::cuda::rv64::decodePcsCounts(header, 24, &totals));
+  require(totals.coefficients == 0xffffffffull);
+  require(!stwo::cuda::rv64::decodePcsCounts(header, 28, &totals));
+  header[1] = 3; header[16] = 17; header[25] = 1;
+  require(stwo::cuda::rv64::decodePcsCounts(header, 28, &totals));
+  require(totals.evaluations == (uint64_t(1) << 32) + 17);
+  require(!stwo::cuda::rv64::decodePcsCounts(header, 24, &totals));
+  require(!stwo::cuda::rv64::decodePcsCounts(header, 27, &totals));
+  header[25] = 0xffffffff;
+  require(!stwo::cuda::rv64::decodePcsCounts(header, 28, &totals));
+  header[25] = 0; header[23] = 1;
+  require(!stwo::cuda::rv64::decodePcsCounts(header, 28, &totals));
   // All subsets of 16 increasing heights: every written state fits one bank,
   // while the previous height occupies the other, disjoint bank.
   for (uint32_t mask = 0; mask < (1u << 16); ++mask) {
