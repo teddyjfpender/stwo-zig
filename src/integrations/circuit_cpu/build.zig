@@ -41,6 +41,16 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_circuit_recursion_wire", wire);
     integration.addImport("circuit_composition_cpu_aot", composition_aot.createModule(b, target, optimize, core, cairo, "../../../"));
 
+    const om31_root = b.createModule(.{ .root_source_file = b.path("om31_test_root.zig"), .target = target, .optimize = optimize });
+    om31_root.addImport("stwo_core", core);
+    om31_root.addImport("stwo_prover_engine", prover);
+    om31_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_root.addImport("stwo_circuit_frontend", circuit);
+    om31_root.addImport("stwo_cairo_frontend", cairo);
+    const om31_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_root }));
+    om31_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31", "Test concrete native OM31 circuit authority and witnesses").dependOn(&om31_tests.step);
+
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
 
