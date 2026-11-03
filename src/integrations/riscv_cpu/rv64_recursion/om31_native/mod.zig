@@ -11,6 +11,7 @@ pub const fri = @import("fri.zig");
 pub const deep = @import("deep.zig");
 pub const frame = @import("frame.zig");
 pub const truth_leaf = @import("truth_leaf.zig");
+pub const keccak_leaf = @import("keccak_leaf.zig");
 pub const Shape = shape.Shape;
 pub const Captured = proof.Captured;
 pub const Proof = proof.Proof;

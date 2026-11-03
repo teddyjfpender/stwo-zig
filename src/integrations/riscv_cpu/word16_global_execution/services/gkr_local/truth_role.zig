@@ -246,52 +246,7 @@ pub const Component = struct {
         });
     }
     pub fn emitWithParameters(self: *const @This(), comptime F: type, samples: anytype, sink: *E.SinkFor(F), workspace: *Workspace(F), params: ParametersFor(E.ConstFor(F))) !void {
-        const width = self.widths();
-        const fixed = &workspace.fixed;
-        const main = &workspace.main;
-        const current = &workspace.current;
-        const previous = &workspace.previous;
-        for (fixed[0..width[0]], 0..) |*v, c| v.* = try samples.get(0, c, 0);
-        for (main[0..width[1]], 0..) |*v, c| v.* = try samples.get(1, c, 0);
-        for (current[0..width[2]], 0..) |*v, c| {
-            v.* = try samples.get(2, c, 0);
-            previous[c] = F.zero();
-            if (self.shifts(2, c).len > 1) previous[c] = try samples.get(2, c, -1);
-        }
-        const first = fixed[self.firstColumn()];
-        const last = try samples.last();
-        var local = Local.SinkFor(F){ .challenges = &params.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
-        switch (self.kind) {
-            .keccak => {
-                const shifted = &workspace.shifted;
-                const offsets_ = [_]i32{ -2, -1, 1, 2 };
-                for (shifted, offsets_) |*state, shift| {
-                    for (state, 0..) |*v, c| v.* = try samples.get(1, c, shift);
-                }
-                const header = &workspace.header;
-                for (header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
-                const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
-                if (self.keccak_policy.geometry() == .pair27) K.equations.emitDirectR27For(F, row, params.span, sink) else K.equations.emitDirectFor(F, row, params.span, sink, true);
-                TF.keccakForPolicy(F, self.keccak_policy, row, &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
-                try Globals.keccakForPolicy(F, self.keccak_policy, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.kio, sink);
-            },
-            .product, .linear => {
-                const row = S.equations.RowFor(F){ .fixed = fixed[0..S.layout.FIXED], .main = main[0..width[1]], .previous_active = try samples.get(1, 0, -1), .previous_id = try samples.get(1, S.layout.base(self.secpKind()), -1) };
-                S.equations.emitMainFor(F, self.secpKind(), row, params.local.polynomial, params.span, sink);
-                TF.secpFor(F, self.secpKind(), self.byte_policy, row.main, &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
-                try Globals.secpFor(F, self.secpKind(), self.program.?, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.wire, sink);
-            },
-            .chi, .xor5 => {
-                TF.keccakTableFor(F, if (self.kind == .chi) .chi else .xor5, fixed[0..6].*, main[0], &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
-            },
-            .bytes => {
-                TF.byteTableFor(F, fixed[0], main[0], &local);
-                try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
-            },
-        }
+        return emitShape(self.shape(), self.program, F, samples, sink, workspace, params);
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const @This(), point: Point, mask: *const Air.MaskValues, acc: *Acc, global_log: u32) !void {
         try self.validate();
@@ -325,3 +280,57 @@ pub const Component = struct {
         return core.air.derive.ForField(O).ComponentAdapter(@This(), P.ComponentProver, P.Trace, D.DomainEvaluationAccumulator).asProverComponent(self);
     }
 };
+
+/// Claim-free immutable geometry enters the same numerical constraint body.
+/// All public values/challenges/claims are supplied explicitly as parameters;
+/// recursive/device callers need no fake or uninitialized native claims.
+pub fn emitShape(descriptor: Shape, program: ?*const S.program.Program, comptime F: type, samples: anytype, sink: *E.SinkFor(F), workspace: *Component.Workspace(F), params: Component.ParametersFor(E.ConstFor(F))) !void {
+    const self = &descriptor;
+
+    const width = self.widths();
+    const fixed = &workspace.fixed;
+    const main = &workspace.main;
+    const current = &workspace.current;
+    const previous = &workspace.previous;
+    for (fixed[0..width[0]], 0..) |*v, c| v.* = try samples.get(0, c, 0);
+    for (main[0..width[1]], 0..) |*v, c| v.* = try samples.get(1, c, 0);
+    for (current[0..width[2]], 0..) |*v, c| {
+        v.* = try samples.get(2, c, 0);
+        previous[c] = F.zero();
+        if (self.shifts(2, c).len > 1) previous[c] = try samples.get(2, c, -1);
+    }
+    const first = fixed[self.firstColumn()];
+    const last = try samples.last();
+    var local = Local.SinkFor(F){ .challenges = &params.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
+    switch (self.kind) {
+        .keccak => {
+            const shifted = &workspace.shifted;
+            const offsets_ = [_]i32{ -2, -1, 1, 2 };
+            for (shifted, offsets_) |*state, shift| {
+                for (state, 0..) |*v, c| v.* = try samples.get(1, c, shift);
+            }
+            const header = &workspace.header;
+            for (header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
+            const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
+            if (self.keccak_policy.geometry() == .pair27) K.equations.emitDirectR27For(F, row, params.span, sink) else K.equations.emitDirectFor(F, row, params.span, sink, true);
+            TF.keccakForPolicy(F, self.keccak_policy, row, &local);
+            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+            try Globals.keccakForPolicy(F, self.keccak_policy, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.kio, sink);
+        },
+        .product, .linear => {
+            const row = S.equations.RowFor(F){ .fixed = fixed[0..S.layout.FIXED], .main = main[0..width[1]], .previous_active = try samples.get(1, 0, -1), .previous_id = try samples.get(1, S.layout.base(self.secpKind()), -1) };
+            S.equations.emitMainFor(F, self.secpKind(), row, params.local.polynomial, params.span, sink);
+            TF.secpFor(F, self.secpKind(), self.byte_policy, row.main, &local);
+            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+            try Globals.secpFor(F, self.secpKind(), program.?, row, current[self.localWidth()..width[2]], previous[self.localWidth()..width[2]], first, last, params.global_claim, params.wire, sink);
+        },
+        .chi, .xor5 => {
+            TF.keccakTableFor(F, if (self.kind == .chi) .chi else .xor5, fixed[0..6].*, main[0], &local);
+            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+        },
+        .bytes => {
+            TF.byteTableFor(F, fixed[0], main[0], &local);
+            try local.finish(self.instance(), previous[0..self.localWidth()], first, last, params.claim);
+        },
+    }
+}
