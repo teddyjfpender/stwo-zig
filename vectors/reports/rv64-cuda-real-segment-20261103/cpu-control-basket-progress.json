@@ -4,12 +4,150 @@
   "profile": "conjectured128_b2_q108_p20_fold4",
   "scope": "Fresh native CPU full-block proofs and current cached fresh-receiver acceptance. No GPU/recursion. Partial basket checkpoint.",
   "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
-  "accepted": 5,
+  "accepted": 6,
   "selected": 15,
-  "stop_reason": "Current expected_image authority read cap4MiB rejected next valid4.675MB input. Fixed separately byfeea6d6fc; pending rebuilt producer/receiver for remainingten.",
+  "stop_reason": "User pivot to fully resident proving only. Active second wide-run block24697070 interrupted deliberately; no claim of complete15-basket qualification.",
   "producer_sha256": "1b40076d090ac4f8b1c43694abb6abaae1c0f860e0c9d666a44bd7d6ed261325",
   "receiver_sha256": "f81920ad214b9ef03cd12de9e4e141ceead25d25e2d1ed302deab5c096711163",
   "results": [
+    {
+      "block": 24626900,
+      "backend": "cpu",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "fresh_receiver_accepted": true,
+      "completed_block": true,
+      "instructions": 49123899,
+      "segments": 12,
+      "truth_proofs": 8,
+      "capture_ns": 4198649334,
+      "setup_ns": 9658176208,
+      "prove_ns": 236973481875,
+      "execution_included": true,
+      "direct_capture": {
+        "batches": 12,
+        "max_inflight": 1,
+        "execution_ns": 557205417,
+        "join_wait_ns": 84,
+        "segments": {
+          "segments": 12,
+          "workers": 8,
+          "first_pass_ns": 178412250,
+          "first_pass_retired": 49123899,
+          "fast_retired": 48946400,
+          "pages_copied": 9274,
+          "peak_live_pages": 9274,
+          "wait_ns": 554897748
+        }
+      },
+      "execution_note": "In-process execution included",
+      "producer_process": {
+        "argv": [
+          "/private/tmp/rv64-basket-cpu-wide/bin/rv64-word16-ethereum-gkr",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "produce-candidate",
+          "/private/tmp/rv64-basket-ready/blocks/24626900/request.json",
+          "-",
+          "/private/tmp/rv64-basket-ready/cpu-wide-control-run/24626900/proof",
+          "0",
+          "/private/tmp/rv64-basket-ready/cpu-wide-control-run/24626900/resources.json"
+        ],
+        "exit_code": 0,
+        "wall_ns": 252121679083,
+        "user_seconds": 1351.208169,
+        "system_seconds": 63.958836,
+        "peak_rss_bytes": 16595025920,
+        "minor_faults": 27560772,
+        "major_faults": 1225122
+      },
+      "receiver_process": {
+        "argv": [
+          "/private/tmp/rv64-basket-cpu-wide/bin/rv64-word16-ethereum-gkr",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-candidate",
+          "/private/tmp/rv64-basket-ready/blocks/24626900/request.json",
+          "/private/tmp/rv64-basket-ready/cpu-wide-control-run/24626900/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 11675696500,
+        "user_seconds": 81.472751,
+        "system_seconds": 0.747309,
+        "peak_rss_bytes": 3175186432,
+        "minor_faults": 207248,
+        "major_faults": 0
+      },
+      "worker": null,
+      "native_cells": null,
+      "cell_scope": null,
+      "prove_ns_per_native_cell": null,
+      "gpu_device_ns_per_native_cell": null,
+      "native_reference_byte_parity": null,
+      "summed_worker_stage_seconds": {
+        "source_construction": 9.919453,
+        "streaming_commit_prepare": 24.38877599999995,
+        "merkle_commit": 2.433586,
+        "local_gkr_prove": 57.101999000000006,
+        "binding_finalize": 3.0330250000000003,
+        "interaction_generation": 12.236657999999998,
+        "draw_random_coeff": 0.00024399999999999994,
+        "composition_trace_extract": 0.0007989999999999999,
+        "composition_evaluation": 61.406138,
+        "composition_interpolate_and_split": 3.1155569999999995,
+        "composition_commit": 3.644512,
+        "oods_point_and_mask_points": 0.007383,
+        "sampled_value_evaluation": 4.511822,
+        "sampled_value_channel_mix": 0.013656000000000001,
+        "fri_quotient_build_and_commit": 17.631324,
+        "proof_of_work": 0.06430699999999999,
+        "fri_decommit": 0.6886709999999999,
+        "trace_decommit": 6.330834999999999,
+        "constraint_check_and_assembly": 0.05059400000000001
+      },
+      "stage_scope": "Top-level stage elapsed summed over physical workers; overlaps are not block wall time",
+      "gpu": null,
+      "physical_gpu_memory": null,
+      "profiled": false,
+      "memory_budgets": {
+        "host_job_bytes": 51539607552,
+        "aggregate_gpu_job_credit_bytes": 32212254720,
+        "per_device_gpu_caps_bytes": null
+      },
+      "artifact_sha256": {
+        "truth-2.bin": "2165f14bb98ac04eb8b2b3762ca125a21f4a66e96f5bc5b28f07d7e1caa8476d",
+        "cpu-5.bin": "828af4545f38edc219d36e8d6847aa1a5ed35e0a7933246d725b06c4e05a31e5",
+        "cpu-4.bin": "daf5bdb33c981b81a4d5f454900da3898e75096d2b0ffd3bc3238f81c61f183a",
+        "truth-3.bin": "ee9e8f06bc5343e8fe240c069ec5fcb0ce2283fcf48497656f8eeb5b2b78d3a2",
+        "truth-1.bin": "3b80600fea24091e6c695011aa3735618a3b8fe4e8343d385123c8e55d020d15",
+        "cpu-6.bin": "2c72e85ebc2125c56c56cf18595006fa4e5684df097c574a0563e0842d63d997",
+        "cpu-7.bin": "d14c37e9771f9aa109bbbd12134aacf099a9d7ef449adc227ebd77ac55a1d54e",
+        "truth-0.bin": "ec6648d3fdc280f8aac34feee4404ced06f283e74c25a7c7e985b9c3aa351269",
+        "stage-one.bin": "b8a2a04ce73e1b95037ce9b6868d689ff2ce0bcfaea0f5aa8d8f5d6cb9087250",
+        "truth-4.bin": "2cd8af328e2c7b252c0e2e50a57459a742198dc716771b833e4ad5f011e0fed8",
+        "cpu-3.bin": "ae7d2d7db627b5d6964c5765a99dc819c643972c02c271ff2504fc9b013a3fd3",
+        "cpu-2.bin": "149b17b2a05b3a909c935a51bf7d9ef2d42957fc556f035f7b033065b1f3e0bd",
+        "truth-5.bin": "52d36227fc3a82317c53639ecc7b13eb349af23a35101b14e038bb594e6a1eab",
+        "truth-7.bin": "6931c257dfa156045a0581e45f3d08c278eebc0ae71ed0cca14b6f34374edf25",
+        "cpu-0.bin": "e7729f3059e67c0e47c6706f8682c80bbf090fdd9900c0fb4074456a1fbdcd79",
+        "cpu-1.bin": "9224217782be19c84417eda62d881b955071153bebc4e3ee2ef73382be7a4f54",
+        "truth-6.bin": "a4fbe6bb25ab016e8a5b27d04214ac774fd57f0cb16356dfeccb034bb0480d72",
+        "cells.bin": "5fda440e704d3205899c6303be5c5c34ad57feb50607dae7a116dca5d762ab79",
+        "cpu-11.bin": "35a411b09eaad8319ff7dad54a9c2dc27e129a7e567f76533e8601dbcf8ffc34",
+        "cpu-10.bin": "d19737247981ab3ab6cebafa2272844a5032812671058c04cd5100c1010fd7eb",
+        "cpu-9.bin": "c8202d508960b6d1d0267fda93ee1490873590521fd3c9c0bcddd74b782d6ade",
+        "cpu-8.bin": "e61a83b3b03332976f33f5d550fac2c63b59114860fea592dfadd4594193b530"
+      },
+      "bundle_sha256": "e6f4d310ac8466eef4584dea41e764ce770e65056b069fcdac7ad2fabe51a49c",
+      "report_sha256": "f3bc62a52eee0f506b3183c96ec001e9ba963ffae24ff4aa54856dc1d4fb057b",
+      "disk_admission": {
+        "free_before_producer_bytes": 198870724608,
+        "reservation_bytes": 137438953472,
+        "free_floor_bytes": 4294967296
+      },
+      "proof_binaries_retained": false
+    },
     {
       "block": 24628607,
       "backend": "cpu",
@@ -682,5 +820,13 @@
       },
       "proof_binaries_retained": true
     }
-  ]
+  ],
+  "reader_fix_variant": {
+    "source_commit": "53e8d20fb",
+    "producer_and_receiver_sha256": "834323fa2281c9966daf089e55b5af11f862f17701ea3df997a9cc6cd60c6c7c",
+    "accepted_blocks": [
+      24626900
+    ],
+    "first_full_test_freshly_reverified_unchanged": true
+  }
 }
