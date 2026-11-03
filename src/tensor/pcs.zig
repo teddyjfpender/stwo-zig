@@ -229,9 +229,23 @@ fn buildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E:
     const nodes = try a.alloc(Hash, 2 * E);
     const LCtx = struct { enc: []const M31, nodes: []Hash, R: usize, E: usize };
     const lctx = LCtx{ .enc = enc, .nodes = nodes, .R = R, .E = E };
-    pool.parallelFor(E, 64, &lctx, struct {
+    // Leaves: four columns per call through stwo's 4-lane SIMD Blake2s
+    // (`hashEqual4WithMode`), which yields exactly the scalar Blake2s digests
+    // (pinned by the proof-digest test). Work items are groups of 4 columns.
+    const n_groups = (E + 3) / 4;
+    pool.parallelFor(n_groups, 16, &lctx, struct {
         fn run(c: *const LCtx, s: usize, e: usize) void {
-            for (s..e) |j| c.nodes[c.E + j] = hashColumn(c.enc[j * c.R .. (j + 1) * c.R]);
+            for (s..e) |g| {
+                const j0 = g * 4;
+                if (j0 + 4 <= c.E) {
+                    var msgs: [4][]const u8 = undefined;
+                    for (0..4) |l| msgs[l] = std.mem.sliceAsBytes(c.enc[(j0 + l) * c.R .. (j0 + l + 1) * c.R]);
+                    const hs = Hasher.hashEqual4WithMode(.auto, &msgs);
+                    @memcpy(c.nodes[c.E + j0 ..][0..4], &hs);
+                } else {
+                    for (j0..c.E) |j| c.nodes[c.E + j] = hashColumn(c.enc[j * c.R .. (j + 1) * c.R]);
+                }
+            }
         }
     }.run);
     var level = E / 2;
@@ -240,7 +254,15 @@ fn buildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E:
         const nctx = NCtx{ .nodes = nodes, .base = level };
         pool.parallelFor(level, 256, &nctx, struct {
             fn run(c: *const NCtx, s: usize, e: usize) void {
-                for (s..e) |k| {
+                var k = s;
+                // children of 4 consecutive parents are 4 contiguous 64-byte blocks
+                while (k + 4 <= e) : (k += 4) {
+                    const idx = c.base + k;
+                    const blocks: *const [4][64]u8 = @ptrCast(&c.nodes[2 * idx]);
+                    const hs = Hasher.hashFixedSingleBlock4(64, blocks);
+                    @memcpy(c.nodes[idx..][0..4], &hs);
+                }
+                while (k < e) : (k += 1) {
                     const idx = c.base + k;
                     c.nodes[idx] = hashNode(c.nodes[2 * idx], c.nodes[2 * idx + 1]);
                 }
