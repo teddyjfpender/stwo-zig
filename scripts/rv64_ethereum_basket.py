@@ -219,6 +219,21 @@ def worker_environment(worker, environment):
     devices = visible.split(",")
     if any(not value.isdecimal() for value in devices) or len({int(value) for value in devices}) != len(devices):
         raise ValueError("GPU groups require distinct nonnegative physical ordinals")
+    mode = worker.get("mode", "resident")
+    if mode == "host-retained":
+        if len(devices) != 1 or type(worker.get("capacity_bytes")) is not int or worker["capacity_bytes"] <= 0:
+            raise ValueError("host-retained hybrid requires one explicitly capped GPU")
+        for key in ("STWO_RV64_GPU_DEVICES", "STWO_RV64_GPU_DEVICE_CAPS", "STWO_RV64_GPU_PLANNED_CPU_WORKERS",
+                    "STWO_RV64_GPU_DEVICE_TRACE", "STWO_RV64_GPU_DEVICE_BINDING"):
+            environment.pop(key, None)
+        environment.update({"CUDA_VISIBLE_DEVICES": visible,
+                            "STWO_RV64_GPU_HOST_RETAINED": "1",
+                            "STWO_RV64_GPU_BYTE_CAP": str(worker["capacity_bytes"]),
+                            "STWO_RV64_GPU_RETAINED_SCOPES": "2"})
+        return environment
+    if mode != "resident":
+        raise ValueError("unknown GPU worker execution mode")
+    environment.pop("STWO_RV64_GPU_HOST_RETAINED", None)
     caps = worker.get("device_caps_bytes", [])
     if (len(devices) not in (1, 2, 4) or len(caps) != len(devices)
             or any(type(cap) is not int or cap <= 0 for cap in caps)
@@ -326,6 +341,18 @@ def execute(job, backend, admission, nsys=None):
             admission.release(worker_index)
 
 
+def ordered_blocks(blocks, selected, execution_order):
+    if execution_order is None:
+        return [block for block in blocks if block["block"] in selected]
+    known = {block["block"] for block in blocks}
+    if (any(type(value) is not int for value in execution_order)
+            or len(set(execution_order)) != len(execution_order)
+            or not set(execution_order) <= known or not selected <= set(execution_order)):
+        raise ValueError("execution_order must name every selected block exactly once without unknown IDs")
+    lookup = {block["block"]: block for block in blocks}
+    return [lookup[number] for number in execution_order if number in selected]
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--basket", type=Path, default=Path(__file__).resolve().parents[1] / "autoresearch/guest_efficiency/basket.json")
@@ -347,7 +374,7 @@ def main():
         p.error("block selection contains an entry outside the pinned basket")
     args.output.mkdir(parents=True, exist_ok=True)
     jobs = [job_for(block, manifest.get("blocks", {}).get(str(block["block"])), manifest, args.manifest.resolve().parent, args.backend, args.output.resolve(), args.profile)
-            for block in basket["blocks"] if block["block"] in selected]
+            for block in ordered_blocks(basket["blocks"], selected, manifest.get("execution_order"))]
     plan = {"schema": SCHEMA, "basket_sha256": sha(args.basket), "manifest_sha256": sha(args.manifest), "backend": args.backend,
             "profile": args.profile, "executed": False, "jobs": jobs}
     atomic_json(args.output / "plan.json", plan)

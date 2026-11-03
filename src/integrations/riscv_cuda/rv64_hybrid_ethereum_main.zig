@@ -15,6 +15,8 @@ pub fn main() !void {
         else => return err,
     };
     defer if (native_library) |path| a.free(path);
+    const host_retained = std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED");
+    try @import("rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
     if (native_library) |path| {
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) {
             if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.ResidentPoolRequiresDeviceTrace;
@@ -47,7 +49,10 @@ pub fn main() !void {
         const native_stage = native.stage();
         var gkr = try Gkr.Backend.init(a, &native.library, native.session, cap);
         defer gkr.deinit();
-        gkr.coefficient_sink = .{ .context = &native, .publish = Native.Context.publishCoefficients };
+        // The explicit hybrid control keeps MAIN in the bounded host spill store.
+        // GKR ingress is temporary: never publish device MAIN across the barrier.
+        if (!host_retained) gkr.coefficient_sink = .{ .context = &native, .publish = Native.Context.publishCoefficients };
+        if (host_retained) std.debug.print("GPU_EXECUTION_MODE host_retained_hybrid stage1_device_main_retention=0 stage2=resident_composition_pcs\n", .{});
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) {
             if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.DeviceBindingRequiresResidentTraceCommit;
             try gkr.enableDeviceBinding(&native.library);

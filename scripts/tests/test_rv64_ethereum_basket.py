@@ -95,6 +95,30 @@ class BasketTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             B.worker_environment({"device": "0,1", "device_caps_bytes": [20, 30], "planned_cpu_workers": 7, "retained_scopes": 3}, {})
 
+    def test_execution_order_preserves_all_selected_block_ids(self):
+        blocks = [{"block": 1}, {"block": 2}, {"block": 3}]
+        self.assertEqual([b["block"] for b in B.ordered_blocks(blocks, {1, 2, 3}, [2, 1, 3])], [2, 1, 3])
+        self.assertEqual([b["block"] for b in B.ordered_blocks(blocks, {1, 3}, [2, 1, 3])], [1, 3])
+        for order in ([1, 2], [1, 2, 2, 3], [1, 2, 3, 4]):
+            with self.assertRaises(ValueError):
+                B.ordered_blocks(blocks, {1, 2, 3}, order)
+
+    def test_host_retained_hybrid_removes_device_only_custody_flags(self):
+        inherited = {key: "1" for key in ("STWO_RV64_GPU_DEVICES", "STWO_RV64_GPU_DEVICE_CAPS",
+                     "STWO_RV64_GPU_PLANNED_CPU_WORKERS", "STWO_RV64_GPU_DEVICE_TRACE", "STWO_RV64_GPU_DEVICE_BINDING")}
+        env = B.worker_environment({"device": "3", "mode": "host-retained", "capacity_bytes": 100}, inherited)
+        self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "3")
+        self.assertEqual(env["STWO_RV64_GPU_HOST_RETAINED"], "1")
+        self.assertEqual(env["STWO_RV64_GPU_BYTE_CAP"], "100")
+        self.assertEqual(env["STWO_RV64_GPU_RETAINED_SCOPES"], "2")
+        self.assertNotIn("STWO_RV64_GPU_DEVICES", env)
+        self.assertNotIn("STWO_RV64_GPU_DEVICE_TRACE", env)
+        self.assertNotIn("STWO_RV64_GPU_DEVICE_BINDING", env)
+        with self.assertRaises(ValueError):
+            B.worker_environment({"device": "0,1", "mode": "host-retained", "capacity_bytes": 100}, {})
+        with self.assertRaises(ValueError):
+            B.worker_environment({"device": "0", "mode": "unknown"}, {})
+
     def test_gpu_log_evidence_preserves_scope_and_does_not_infer_wall(self):
         log = self.root / "producer.stderr"
         log.write_text("GPU_GKR_SPANS ordinal=0 ingress_ms=2.0 traversal_ms=3.5\nGPU_GKR ordinal=0 native_stage_wall_ns=90000000 gkr_kernel_launches=42\nGPU_PCS_NATIVE device_ns=2500000 total_ns=8000000\n")
