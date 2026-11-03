@@ -199,6 +199,10 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     for (tape.secp_calls.items) |call| sizes[@intFromEnum(call.kind) - 1] += 1;
     const ee = try a.alloc(LS.native.Event, cpu.memory.items.len);
     errdefer a.free(ee);
+    // Capacity hint only (one growth per shard instead of repeated rehashing):
+    // at most one new cell per LS event; service words still grow on demand.
+    // The ledger's contents and every output order are unaffected.
+    try ledger.states.ensureUnusedCapacity(ledger.allocator, std.math.cast(u32, cpu.memory.items.len) orelse std.math.maxInt(u32));
     const kk = try a.alloc(K.types.Call, tape.service_calls.items.len);
     errdefer a.free(kk);
     const aa = try a.alloc(S.types.Call, sizes[0]);
@@ -242,12 +246,14 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
             const ea = rec.a +% rec.immediate;
             const address = ea & ~@as(u64, 7);
             if (rec.epoch != cpu.epoch or rec.tick % stride != 0 or rec.effect.address.toInt() != ea or rec.effect.width != desc.width or rec.effect.write != desc.write) return error.InvalidMemoryRecordEffect;
-            const before = try get(ledger, address);
+            // One lookup: no other ledger insert happens before the write.
+            const state = try slot(ledger, address);
+            const before = state.*;
             if (before.value != rec.effect.before_word.toInt()) return error.InconsistentCapturedMemoryBefore;
             const after = A.memory.closed_ram.types.State{ .value = rec.effect.after_word.toInt(), .epoch = cpu.epoch, .tick = rec.tick, .rights = before.rights };
             ee[mi] = .{ .opcode = rec.opcode, .a = rec.a, .b = rec.b, .c = rec.c, .immediate = rec.immediate, .epoch = cpu.epoch, .tick = rec.tick, .before = before, .after = after };
             try LS.native.validate(ee[mi]);
-            ledger.states.getPtr(address).?.* = after;
+            state.* = after;
             mi += 1;
         } else {
             const rec = cpu.services.items[ci];
@@ -456,11 +462,14 @@ fn withValue(clock: BM.types.State, value: u64, rights: u2) BM.types.State {
 fn owner(pointer: u64, tick: u24, stride: u32, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
     if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or stride * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;
 }
-fn get(ledger: *Old.Ledger, address: u64) !A.memory.closed_ram.types.State {
+fn slot(ledger: *Old.Ledger, address: u64) !*A.memory.closed_ram.types.State {
     const entry = try ledger.states.getOrPut(ledger.allocator, address);
     if (!entry.found_existing) {
         entry.value_ptr.* = .{ .value = try ledger.image.initialWord(address), .rights = try ledger.image.wordRights(address) };
         try ledger.initial.append(ledger.allocator, .{ .address = address, .state = entry.value_ptr.* });
     }
-    return entry.value_ptr.*;
+    return entry.value_ptr;
+}
+fn get(ledger: *Old.Ledger, address: u64) !A.memory.closed_ram.types.State {
+    return (try slot(ledger, address)).*;
 }

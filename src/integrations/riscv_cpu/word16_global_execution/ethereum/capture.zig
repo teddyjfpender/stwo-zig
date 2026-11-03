@@ -11,6 +11,7 @@ const Coverage = @import("../../word16_execution/coverage.zig");
 const Memory = @import("../../word16_execution/memory/statement.zig");
 const Collector = @import("../services/collector.zig");
 pub const Options = @import("capture_prefetch.zig").Options;
+pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const ScheduleStats = struct {
     max_inflight_packets: u8 = 1,
     max_worker_shards: u8 = 1,
@@ -18,8 +19,25 @@ pub const ScheduleStats = struct {
     max_reserved_decoded_packet_heap_bytes: usize = 0,
     max_single_packet_decoded_heap_bytes: usize = 0,
 };
+/// Producer timing of the ordered owner, nanoseconds from `Ordered.init` (the
+/// start of capture on every route). Report-only; never enters a proof.
+pub const Timing = struct {
+    /// Segment 0 inputs ready: its capture accepted and its ledger shard built.
+    first_inputs_ns: u64 = 0,
+    /// Last segment accepted (ledger shard built), before `finish`.
+    last_inputs_ns: u64 = 0,
+    /// Serial ordered ledger (`Collector.Builder.append`), summed.
+    ledger_ns: u64 = 0,
+    /// `finish` (global initial/terminal boundary cells).
+    finish_ns: u64 = 0,
+};
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},
+    timing: Timing = .{},
+    /// Monotonic instants of `timing.first_inputs_ns`/`last_inputs_ns`, so a
+    /// caller can place them on its own clock (null if no clock).
+    first_inputs_at: ?std.time.Instant = null,
+    last_inputs_at: ?std.time.Instant = null,
     allocator: std.mem.Allocator,
     native: std.ArrayList(*Native),
     advice: Collector.Advice,
@@ -92,8 +110,12 @@ pub const Ordered = struct {
     next_index: usize = 0,
     admitted: usize = 0,
     done: bool = false,
+    origin: ?std.time.Instant,
+    timing: Timing = .{},
+    first_inputs_at: ?std.time.Instant = null,
+    last_inputs_at: ?std.time.Instant = null,
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, config: Request.Config, prefix_packets: u32) Ordered {
-        return .{ .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = Collector.Builder.init(a, Memory.fromOwner(image)), .pc = image.initial_pc, .regs = image.initial_registers };
+        return .{ .origin = std.time.Instant.now() catch null, .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = Collector.Builder.init(a, Memory.fromOwner(image)), .pc = image.initial_pc, .regs = image.initial_registers };
     }
     /// Ordered adjacency/budget admission of the next packet, before its
     /// capture is accepted. Advances the expected chain state.
@@ -124,7 +146,17 @@ pub const Ordered = struct {
             return err;
         };
         self.native.appendAssumeCapacity(n);
+        const ledger_start = self.elapsed();
         try self.collector.append(n, &p.tape);
+        const ledger_end = self.elapsed();
+        self.timing.ledger_ns += ledger_end - ledger_start;
+        const now = std.time.Instant.now() catch null;
+        if (self.next_index == 0) {
+            self.timing.first_inputs_ns = ledger_end;
+            self.first_inputs_at = now;
+        }
+        self.timing.last_inputs_ns = ledger_end;
+        self.last_inputs_at = now;
         // The ledger and service advice own all predecessor/call data.
         // MAIN/INTER generation retains its separate CPU metadata.
         n.cpu.?.releaseCaptureRecords();
@@ -138,11 +170,18 @@ pub const Ordered = struct {
     }
     pub fn finish(self: *Ordered, stats: ScheduleStats) !Owner {
         if (!self.done) return error.MissingEthereumTerminalPacket;
+        const finish_start = self.elapsed();
         var advice = try self.collector.finish();
         errdefer advice.deinit();
+        self.timing.finish_ns = self.elapsed() - finish_start;
         const native = self.native;
         self.native = .{};
-        return .{ .capture_schedule = stats, .allocator = self.allocator, .native = native, .advice = advice, .total_steps = self.total, .final_pc = self.pc, .final_registers = self.regs };
+        return .{ .capture_schedule = stats, .timing = self.timing, .first_inputs_at = self.first_inputs_at, .last_inputs_at = self.last_inputs_at, .allocator = self.allocator, .native = native, .advice = advice, .total_steps = self.total, .final_pc = self.pc, .final_registers = self.regs };
+    }
+    fn elapsed(self: *const Ordered) u64 {
+        const origin = self.origin orelse return 0;
+        const now = std.time.Instant.now() catch return 0;
+        return now.since(origin);
     }
     pub fn deinit(self: *Ordered) void {
         for (self.native.items) |n| {
