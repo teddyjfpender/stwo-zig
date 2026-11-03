@@ -192,6 +192,8 @@ def run_job(plan, job):
                        "same_process_verify_ns": report["same_process_verify_ns"], "workers": report.get("workers"),
                        "gkr_tree_policy": report.get("gkr_tree_policy"), "total_before_report_ns": report["total_before_report_ns"],
                        "instructions": report["total_steps"], "segments": report["cpu_proofs"], "truths": report["truth_proofs"],
+                       "native_cells": report.get("native_cells"), "cell_scope": report.get("cell_scope"),
+                       "cell_accounting_status": "producer measured" if report.get("native_cells") else "not emitted by this producer; no inferred cell-rate claim",
                        "fresh_receiver": receiver_usage, "fresh_receiver_accepted": trial == 0,
                        "acceptance": "fresh receiver" if trial == 0 else "inherited from fresh cold receiver by exact proof and bundle SHA parity",
                        "artifact_sha256": artifacts, "bundle_sha256": bundle_hash, "report_sha256": B.sha(proof / "report.json")})
