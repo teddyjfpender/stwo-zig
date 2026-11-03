@@ -362,7 +362,11 @@ pub const Proof = struct {
 };
 
 pub const Timings = struct {
+    /// matmul/hadamard accumulators, multiplicities (before the commitment)
+    prep_ns: u64 = 0,
     witness_commit_ns: u64 = 0,
+    /// GKR terminal claims -> witness claims (MLE evaluations)
+    terminal_ns: u64 = 0,
     gkr_ns: u64 = 0,
     op_sumcheck_ns: u64 = 0,
     weight_fold_ns: u64 = 0,
@@ -535,12 +539,13 @@ fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []cons
 }
 
 /// Integer accumulators for matmul/hadamard ops (prover side).
-pub fn computeAccumulators(a: std.mem.Allocator, pool: *f.Pool, st: Statement, ws: *const WeightStore, w: []const []const i32) ![]?[]i64 {
+pub fn computeAccumulators(a: std.mem.Allocator, pool: *f.Pool, st: Statement, ws: *const WeightStore, w: []const []const i32, hook: ?*const accel.Accel) ![]?[]i64 {
     const out = try a.alloc(?[]i64, st.ops.len);
     for (st.ops, 0..) |op, i| {
         out[i] = null;
         switch (op) {
-            .matmul => |m| out[i] = try matmulAcc(a, pool, st.witness[m.x], w[m.x], ws.matrix(m.w)),
+            .matmul => |m| out[i] = try accel.matmulAcc(hook, a, st.witness[m.x].log_dims[0], w[m.x], ws.matrix(m.w)) orelse
+                try matmulAcc(a, pool, st.witness[m.x], w[m.x], ws.matrix(m.w)),
             .hadamard => |h| {
                 const n = st.witness[h.y].size();
                 const acc = try a.alloc(i64, n);
@@ -619,9 +624,10 @@ pub fn prove(
     witness: []const []const i32,
     timings: *Timings,
 ) !Proof {
+    const t_prep = try std.time.Instant.now();
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
-    const acc = try computeAccumulators(a, pool, st, ws, witness);
+    const acc = try computeAccumulators(a, pool, st, ws, witness, cfg.accel);
     defer {
         for (acc) |x| if (x) |v| a.free(v);
         a.free(acc);
@@ -638,6 +644,7 @@ pub fn prove(
     for (witness, 0..) |w, i| all[i] = w;
     for (mults, 0..) |m, i| all[witness.len + i] = m;
 
+    timings.prep_ns = nowNs(t_prep);
     // --- witness table + commitment
     var t0 = try std.time.Instant.now();
     const lay = try layout(a, ext, &.{});
@@ -704,6 +711,7 @@ pub fn prove(
         weight_claims.deinit(a);
     }
 
+    const t_term = try std.time.Instant.now();
     // terminal claims -> witness claims
     var lookup_vals: std.ArrayList(QM31) = .empty;
     const y_vals = try a.alloc(QM31, rel.keys.len);
@@ -713,8 +721,8 @@ pub fn prove(
         switch (k.kind) {
             .glu_triple => {
                 const g = st.ops[k.op].glu;
-                const vg = try f.mleEvalI32(a, all[g.g], pt);
-                const vu = try f.mleEvalI32(a, all[g.u], pt);
+                const vg = try accel.mleEvalI32(cfg.accel, a, all[g.g], pt);
+                const vu = try accel.mleEvalI32(cfg.accel, a, all[g.u], pt);
                 try lookup_vals.append(a, vg);
                 try lookup_vals.append(a, vu);
                 tr.mixFelts(&.{ vg, vu });
@@ -736,7 +744,7 @@ pub fn prove(
                             .hadamard => |h| h.y,
                             else => unreachable,
                         };
-                        const yv = try f.mleEvalI32(a, all[y_id], pt);
+                        const yv = try accel.mleEvalI32(cfg.accel, a, all[y_id], pt);
                         try lookup_vals.append(a, yv);
                         tr.mixFelt(yv);
                         y_vals[i] = yv;
@@ -759,7 +767,7 @@ pub fn prove(
             },
             .lookup_pair => {
                 const l = st.ops[k.op].lookup;
-                const vin = try f.mleEvalI32(a, all[l.in], pt);
+                const vin = try accel.mleEvalI32(cfg.accel, a, all[l.in], pt);
                 try lookup_vals.append(a, vin);
                 tr.mixFelt(vin);
                 const den = art.claims_to_verify_by_instance[i][1];
@@ -776,6 +784,7 @@ pub fn prove(
     }
 
     // --- op sumchecks (matmul / hadamard), in key order (one per remainder key)
+    timings.terminal_ns = nowNs(t_term);
     t0 = try std.time.Instant.now();
     var op_proofs: std.ArrayList(sc.Proof) = .empty;
     var op_finals: std.ArrayList([]QM31) = .empty;

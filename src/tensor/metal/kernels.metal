@@ -172,14 +172,16 @@ struct TmScParams {
     Qm31Value r;     // fold challenge (fused fold) / fold kernel challenge
 };
 
+// QM31 vectors are 4-byte aligned host arrays (aliased without copies), so
+// element access uses packed (4-byte aligned) vectors.
 inline Qm31Value tm_load(device const uint *f, ulong i) {
-    device const uint4 *v = (device const uint4 *)f;
-    uint4 x = v[i];
+    device const packed_uint4 *v = (device const packed_uint4 *)f;
+    uint4 x = uint4(v[i]);
     return { x.x, x.y, x.z, x.w };
 }
 inline void tm_store(device uint *f, ulong i, Qm31Value q) {
-    device uint4 *v = (device uint4 *)f;
-    v[i] = uint4(q.a, q.b, q.c, q.d);
+    device packed_uint4 *v = (device packed_uint4 *)f;
+    v[i] = packed_uint4(q.a, q.b, q.c, q.d);
 }
 inline Qm31Value tm_zero() { return { 0u, 0u, 0u, 0u }; }
 
@@ -290,12 +292,12 @@ kernel void tm_sc_fold(
 // ---------------------------------------------------------------------------
 // Batch-sumcheck factor construction (device resident).
 
-kernel void tm_zero4(device uint4 *dst [[buffer(0)]], constant uint &n [[buffer(1)]], uint i [[thread_position_in_grid]]) {
-    if (i < n) dst[i] = uint4(0u);
+kernel void tm_zero4(device uint *dst [[buffer(0)]], constant uint &n [[buffer(1)]], uint i [[thread_position_in_grid]]) {
+    if (i < n) tm_store(dst, i, tm_zero());
 }
 
-kernel void tm_i32_to_qm31(device const int *src [[buffer(0)]], device uint4 *dst [[buffer(1)]], constant uint &n [[buffer(2)]], uint i [[thread_position_in_grid]]) {
-    if (i < n) dst[i] = uint4(tm_from_i32(src[i]), 0u, 0u, 0u);
+kernel void tm_i32_to_qm31(device const int *src [[buffer(0)]], device uint *dst [[buffer(1)]], constant uint &n [[buffer(2)]], uint i [[thread_position_in_grid]]) {
+    if (i < n) tm_store(dst, i, { tm_from_i32(src[i]), 0u, 0u, 0u });
 }
 
 struct TmEqParams { uint offset; uint lo_bits; uint count; };
@@ -312,4 +314,104 @@ kernel void tm_eq_accum(
     Qm31Value v = qm_mul(tm_load(pre, x >> p.lo_bits), tm_load(suf, x & ((1u << p.lo_bits) - 1u)));
     ulong i = ulong(p.offset) + x;
     tm_store(e, i, qm_add(tm_load(e, i), v));
+}
+
+// ---------------------------------------------------------------------------
+// Integer matmul accumulators: acc[t][n] = sum_k X[t][k] W[k][n], X int32
+// (|x| < 2^15, checked by the host), W int8. Exact: products are < 2^22, so
+// int32 partial sums over 256-wide K chunks cannot overflow; chunks are added
+// into int64. 64x64 output tiles, 256 threads x (4x4) outputs, K step 32.
+
+struct TmMatmulParams { uint T; uint K; uint N; };
+
+constant uint MM_BM = 64u;
+constant uint MM_BN = 64u;
+constant uint MM_BK = 32u;
+
+kernel void tm_matmul_i32_i8(
+    device const int *x [[buffer(0)]],
+    device const char *w [[buffer(1)]],
+    device long *acc [[buffer(2)]],
+    constant TmMatmulParams &p [[buffer(3)]],
+    uint2 tg [[threadgroup_position_in_grid]],
+    uint tid [[thread_index_in_threadgroup]]
+) {
+    threadgroup int xs[MM_BM][MM_BK + 1];
+    threadgroup short ws[MM_BK][MM_BN];
+    uint t0 = tg.y * MM_BM;
+    uint n0 = tg.x * MM_BN;
+    uint ty = tid / 16u; // 0..15 -> rows ty*4 ..
+    uint tx = tid % 16u; // 0..15 -> cols tx*4 ..
+    int part[4][4];
+    long tot[4][4];
+    for (uint i = 0u; i < 4u; ++i) for (uint j = 0u; j < 4u; ++j) { part[i][j] = 0; tot[i][j] = 0; }
+    uint steps = 0u;
+    for (uint k0 = 0u; k0 < p.K; k0 += MM_BK) {
+        for (uint e = tid; e < MM_BM * MM_BK; e += 256u) {
+            uint r = e / MM_BK, c = e % MM_BK;
+            uint gt = t0 + r, gk = k0 + c;
+            xs[r][c] = (gt < p.T && gk < p.K) ? x[ulong(gt) * p.K + gk] : 0;
+        }
+        for (uint e = tid; e < MM_BK * MM_BN; e += 256u) {
+            uint r = e / MM_BN, c = e % MM_BN;
+            uint gk = k0 + r, gn = n0 + c;
+            ws[r][c] = (gk < p.K && gn < p.N) ? short(w[ulong(gk) * p.N + gn]) : short(0);
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        for (uint k = 0u; k < MM_BK; ++k) {
+            int xv[4], wv[4];
+            for (uint i = 0u; i < 4u; ++i) xv[i] = xs[ty * 4u + i][k];
+            for (uint j = 0u; j < 4u; ++j) wv[j] = int(ws[k][tx * 4u + j]);
+            for (uint i = 0u; i < 4u; ++i) for (uint j = 0u; j < 4u; ++j) part[i][j] += xv[i] * wv[j];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        if (++steps == 8u) {
+            steps = 0u;
+            for (uint i = 0u; i < 4u; ++i) for (uint j = 0u; j < 4u; ++j) { tot[i][j] += long(part[i][j]); part[i][j] = 0; }
+        }
+    }
+    for (uint i = 0u; i < 4u; ++i) {
+        uint gt = t0 + ty * 4u + i;
+        if (gt >= p.T) continue;
+        for (uint j = 0u; j < 4u; ++j) {
+            uint gn = n0 + tx * 4u + j;
+            if (gn < p.N) acc[ulong(gt) * p.N + gn] = tot[i][j] + long(part[i][j]);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MLE of an int32 vector at a point: sum_x v[x] P[x >> lo] S[x & mask], with
+// the eq table factored as prefix (x) suffix (built on the CPU). Per
+// threadgroup partial sums; the host adds them.
+struct TmMleParams { uint count; uint lo_bits; };
+
+kernel void tm_mle_i32(
+    device const int *v [[buffer(0)]],
+    device const uint *pre [[buffer(1)]],
+    device const uint *suf [[buffer(2)]],
+    device uint *partials [[buffer(3)]],
+    constant TmMleParams &p [[buffer(4)]],
+    threadgroup Qm31Value *scratch [[threadgroup(0)]],
+    uint gid [[thread_position_in_grid]],
+    uint tg [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint tgsize [[threads_per_threadgroup]],
+    uint grid [[threads_per_grid]]
+) {
+    uint mask = (1u << p.lo_bits) - 1u;
+    Qm31Value acc = tm_zero();
+    for (uint x = gid; x < p.count; x += grid) {
+        int s = v[x];
+        if (s == 0) continue;
+        Qm31Value e = qm_mul(tm_load(pre, x >> p.lo_bits), tm_load(suf, x & mask));
+        acc = qm_add(acc, qm_mul_m31(e, tm_from_i32(s)));
+    }
+    scratch[tid] = acc;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint s = tgsize >> 1u; s > 0u; s >>= 1u) {
+        if (tid < s) scratch[tid] = qm_add(scratch[tid], scratch[tid + s]);
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (tid == 0u) tm_store(partials, tg, scratch[0]);
 }

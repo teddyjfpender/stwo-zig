@@ -53,16 +53,27 @@ const Buf = struct {
     host: ?[]u8 = null,
     /// true when `handle` aliases `host` (no copies needed)
     aliased: bool = false,
+    /// byte offset of `host` inside the (page-aligned) device buffer
+    offset: usize = 0,
 
     fn ptr(self: Buf) [*]u8 {
-        return @ptrCast(tm_buffer_contents(self.handle));
+        const base: [*]u8 = @ptrCast(tm_buffer_contents(self.handle));
+        return base + self.offset;
     }
 };
+
+fn bind(cmd: *anyopaque, index: u32, b: Buf) void {
+    tm_cmd_buffer(cmd, index, b.handle, b.offset);
+}
 
 pub const Stats = struct {
     commit_gpu_ms: f64 = 0,
     commit_calls: usize = 0,
     sc_gpu_ms: f64 = 0,
+    matmul_gpu_ms: f64 = 0,
+    matmul_calls: usize = 0,
+    mle_gpu_ms: f64 = 0,
+    mle_calls: usize = 0,
     sc_rounds: usize = 0,
     sc_calls: usize = 0,
     wrapped_bytes: usize = 0,
@@ -82,6 +93,8 @@ pub const Gpu = struct {
     p_to_qm31: *anyopaque,
     p_zero4: *anyopaque,
     p_eq_accum: *anyopaque,
+    p_matmul: *anyopaque,
+    p_mle: *anyopaque,
     page: usize,
     stats: Stats = .{},
     /// rows per streamed commitment chunk are capped so a chunk is <= this
@@ -110,6 +123,8 @@ pub const Gpu = struct {
             .p_to_qm31 = try pipeline(rt, "tm_i32_to_qm31"),
             .p_zero4 = try pipeline(rt, "tm_zero4"),
             .p_eq_accum = try pipeline(rt, "tm_eq_accum"),
+            .p_matmul = try pipeline(rt, "tm_matmul_i32_i8"),
+            .p_mle = try pipeline(rt, "tm_mle_i32"),
             .page = std.heap.pageSize(),
         };
         g.vt = .{
@@ -120,13 +135,15 @@ pub const Gpu = struct {
             .sc_round = scRound,
             .sc_finish = scFinish,
             .sc_begin_batch = scBeginBatch,
+            .matmul_acc = matmulAcc,
+            .mle_eval_i32 = mleEvalI32,
             .sc_abort = scAbort,
         };
         return g;
     }
 
     pub fn deinit(self: *Gpu, a: std.mem.Allocator) void {
-        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_to_qm31", "p_zero4", "p_eq_accum" }) |name|
+        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_to_qm31", "p_zero4", "p_eq_accum", "p_matmul", "p_mle" }) |name|
             tm_release(@field(self, name));
         tm_destroy(self.rt);
         a.destroy(self);
@@ -149,15 +166,19 @@ pub const Gpu = struct {
         return .{ .handle = tm_buffer_alloc(self.rt, len) orelse return Error.MetalAlloc };
     }
 
-    /// Device view of host memory: aliased (zero-copy) when page aligned,
-    /// otherwise a shared buffer, filled from host when `copy_in`.
+    /// Device view of host memory. Unified memory: the pages spanning `host`
+    /// are wrapped without copying (every page holding a byte of a live
+    /// allocation is mapped, so rounding to page bounds is safe); the device
+    /// only touches bytes inside `host`. Falls back to a shared buffer, filled
+    /// from host when `copy_in`, if wrapping fails.
     fn view(self: *Gpu, host: []u8, copy_in: bool) !Buf {
-        const addr = @intFromPtr(host.ptr);
-        if (host.len > 0 and addr % self.page == 0) {
-            const len = std.mem.alignForward(usize, host.len, self.page);
-            if (tm_buffer_wrap(self.rt, host.ptr, len)) |h| {
+        if (host.len > 0) {
+            const addr = @intFromPtr(host.ptr);
+            const base = std.mem.alignBackward(usize, addr, self.page);
+            const end_addr = std.mem.alignForward(usize, addr + host.len, self.page);
+            if (tm_buffer_wrap(self.rt, @ptrFromInt(base), end_addr - base)) |h| {
                 self.stats.wrapped_bytes += host.len;
-                return .{ .handle = h, .host = host, .aliased = true };
+                return .{ .handle = h, .host = host, .aliased = true, .offset = addr - base };
             }
         }
         var b = try self.alloc(host.len);
@@ -252,8 +273,8 @@ pub const Gpu = struct {
             // expansion (implicit top lb layers)
             const ep = ExpandParams{ .log_c = log_c, .log_e = log_e, .rows = @intCast(rows), .row0 = @intCast(row0) };
             tm_cmd_pipeline(cmd, if (T == i8) self.p_expand_i8 else self.p_expand_i32);
-            tm_cmd_buffer(cmd, 0, in_buf.handle, 0);
-            tm_cmd_buffer(cmd, 1, scratch.handle, 0);
+            bind(cmd, 0, in_buf);
+            bind(cmd, 1, scratch);
             tm_cmd_bytes(cmd, 2, &ep, @sizeOf(ExpandParams));
             const n_el = rows * E;
             tm_cmd_dispatch(cmd, @intCast((n_el + 255) / 256), 1, 1, 256, 1, 1);
@@ -265,8 +286,8 @@ pub const Gpu = struct {
                 const off: u32 = tw_len - (@as(u32, 1) << @intCast(log_e - layer));
                 const cols: u32 = @intCast(rows);
                 tm_cmd_pipeline(cmd, self.p_layer);
-                tm_cmd_buffer(cmd, 0, scratch.handle, 0);
-                tm_cmd_buffer(cmd, 1, tw_buf.handle, 0);
+                bind(cmd, 0, scratch);
+                bind(cmd, 1, tw_buf);
                 tm_cmd_bytes(cmd, 2, &ls, 4);
                 tm_cmd_bytes(cmd, 3, &layer, 4);
                 tm_cmd_bytes(cmd, 4, &off, 4);
@@ -279,18 +300,18 @@ pub const Gpu = struct {
             const tile = @as(u32, 1) << @intCast(tile_log);
             const threads: u32 = @min(512, tile / 2);
             tm_cmd_pipeline(cmd, self.p_tail);
-            tm_cmd_buffer(cmd, 0, scratch.handle, 0);
-            tm_cmd_buffer(cmd, 1, tw_buf.handle, 0);
+            bind(cmd, 0, scratch);
+            bind(cmd, 1, tw_buf);
             tm_cmd_bytes(cmd, 2, &tp, @sizeOf(TailParams));
             tm_cmd_threadgroup_memory(cmd, 0, tile * 4);
             tm_cmd_dispatch(cmd, @intCast(rows * (E >> @intCast(tile_log))), 1, 1, threads, 1, 1);
             // column leaves (streamed Blake2s) + column-major codeword
             const lp = LeafParams{ .log_e = log_e, .rows = @intCast(rows), .row0 = @intCast(row0), .total_rows = @intCast(R), .last_chunk = @intFromBool(row0 + rows == R) };
             tm_cmd_pipeline(cmd, self.p_leaf);
-            tm_cmd_buffer(cmd, 0, scratch.handle, 0);
-            tm_cmd_buffer(cmd, 1, states.handle, 0);
-            tm_cmd_buffer(cmd, 2, enc_buf.handle, 0);
-            tm_cmd_buffer(cmd, 3, nodes_buf.handle, 0);
+            bind(cmd, 0, scratch);
+            bind(cmd, 1, states);
+            bind(cmd, 2, enc_buf);
+            bind(cmd, 3, nodes_buf);
             tm_cmd_bytes(cmd, 4, &lp, @sizeOf(LeafParams));
             tm_cmd_dispatch(cmd, @intCast((E + 63) / 64), 1, 1, 64, 1, 1);
         }
@@ -301,7 +322,7 @@ pub const Gpu = struct {
             const dst_off: u32 = @intCast(level * 8);
             const cnt: u32 = @intCast(level);
             tm_cmd_pipeline(cmd, self.p_parents);
-            tm_cmd_buffer(cmd, 0, nodes_buf.handle, 0);
+            bind(cmd, 0, nodes_buf);
             tm_cmd_bytes(cmd, 1, &child_off, 4);
             tm_cmd_bytes(cmd, 2, &dst_off, 4);
             tm_cmd_bytes(cmd, 3, &cnt, 4);
@@ -323,6 +344,85 @@ pub const Gpu = struct {
             .enc = enc,
             .tree = .{ .nodes = nodes, .n_leaves = E },
         };
+    }
+
+    // -----------------------------------------------------------------------
+    // Matmul accumulators
+
+    const MatmulParams = extern struct { T: u32, K: u32, N: u32 };
+
+    fn matmulAcc(ctx: *anyopaque, a: std.mem.Allocator, x: []const i32, T: usize, wm: pcs.Matrix(i8)) anyerror!?[]i64 {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        const K = wm.nRows();
+        const N = wm.nCols();
+        if (x.len != T * K or T * N >= (1 << 32) or T * K >= (1 << 32) or K * N >= (1 << 32)) return null;
+        // exactness bound for the int32 chunk sums
+        for (x) |v| if (v <= -(1 << 15) or v >= (1 << 15)) return null;
+        const out = try a.alloc(i64, T * N);
+        errdefer a.free(out);
+        const xb = try g.view(@constCast(std.mem.sliceAsBytes(x)), true);
+        defer g.release(xb, null);
+        const wb = try g.view(@constCast(std.mem.sliceAsBytes(wm.data[0 .. K * N])), true);
+        defer g.release(wb, null);
+        const ob = try g.view(std.mem.sliceAsBytes(out), false);
+        var ob_released = false;
+        defer if (!ob_released) g.release(ob, null);
+        const mp = MatmulParams{ .T = @intCast(T), .K = @intCast(K), .N = @intCast(N) };
+        const cmd = tm_cmd_begin(g.rt);
+        tm_cmd_pipeline(cmd, g.p_matmul);
+        bind(cmd, 0, xb);
+        bind(cmd, 1, wb);
+        bind(cmd, 2, ob);
+        tm_cmd_bytes(cmd, 3, &mp, @sizeOf(MatmulParams));
+        tm_cmd_dispatch(cmd, @intCast((N + 63) / 64), @intCast((T + 63) / 64), 1, 256, 1, 1);
+        g.stats.matmul_gpu_ms += try end(cmd);
+        g.stats.matmul_calls += 1;
+        ob_released = true;
+        g.release(ob, out.len * 8);
+        return out;
+    }
+
+    // -----------------------------------------------------------------------
+    // MLE evaluation of integer vectors
+
+    const MleParams = extern struct { count: u32, lo_bits: u32 };
+
+    fn mleEvalI32(ctx: *anyopaque, values: []const i32, point: []const QM31) anyerror!?QM31 {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        const n = point.len;
+        if (values.len != (@as(usize, 1) << @intCast(n)) or values.len >= (1 << 32)) return null;
+        const ca = std.heap.c_allocator;
+        const lo = n / 2;
+        const pre = try f.eqTable(ca, point[0 .. n - lo], QM31.one());
+        defer ca.free(pre);
+        const suf = try f.eqTable(ca, point[n - lo ..], QM31.one());
+        defer ca.free(suf);
+        const tabs = try g.alloc((pre.len + suf.len) * 16);
+        defer tm_release(tabs.handle);
+        const tq: [*]QM31 = @ptrCast(@alignCast(tabs.ptr()));
+        @memcpy(tq[0..pre.len], pre);
+        @memcpy(tq[pre.len..][0..suf.len], suf);
+        const groups: u32 = @intCast(@max(1, @min(SC_MAX_GROUPS, (values.len + SC_TG * 8 - 1) / (SC_TG * 8))));
+        const parts = try g.alloc(groups * 16);
+        defer tm_release(parts.handle);
+        const vb = try g.view(@constCast(std.mem.sliceAsBytes(values)), true);
+        defer g.release(vb, null);
+        const mp = MleParams{ .count = @intCast(values.len), .lo_bits = @intCast(lo) };
+        const cmd = tm_cmd_begin(g.rt);
+        tm_cmd_pipeline(cmd, g.p_mle);
+        bind(cmd, 0, vb);
+        tm_cmd_buffer(cmd, 1, tabs.handle, 0);
+        tm_cmd_buffer(cmd, 2, tabs.handle, pre.len * 16);
+        bind(cmd, 3, parts);
+        tm_cmd_bytes(cmd, 4, &mp, @sizeOf(MleParams));
+        tm_cmd_threadgroup_memory(cmd, 0, SC_TG * 16);
+        tm_cmd_dispatch(cmd, groups, 1, 1, SC_TG, 1, 1);
+        g.stats.mle_gpu_ms += try end(cmd);
+        g.stats.mle_calls += 1;
+        const pq: [*]const Q = @ptrCast(@alignCast(parts.ptr()));
+        var out = QM31.zero();
+        for (0..groups) |i| out = out.add(fromQ(pq[i]));
+        return out;
     }
 
     // -----------------------------------------------------------------------
@@ -398,7 +498,7 @@ pub const Gpu = struct {
     }
 
     fn bindFactors(s: *Session, cmd: *anyopaque) void {
-        for (0..4) |j| tm_cmd_buffer(cmd, @intCast(j), s.bufs[if (j < s.nf) j else 0].handle, 0);
+        for (0..4) |j| bind(cmd, @intCast(j), s.bufs[if (j < s.nf) j else 0]);
     }
 
     fn scRound(ctx: *anyopaque, sp: *anyopaque, r_prev: ?QM31) anyerror![3]QM31 {
@@ -419,7 +519,7 @@ pub const Gpu = struct {
         const cmd = tm_cmd_begin(g.rt);
         tm_cmd_pipeline(cmd, g.p_sc_round);
         bindFactors(s, cmd);
-        tm_cmd_buffer(cmd, 4, s.partials.handle, 0);
+        bind(cmd, 4, s.partials);
         tm_cmd_bytes(cmd, 5, &p, @sizeOf(ScParams));
         tm_cmd_threadgroup_memory(cmd, 0, SC_TG * 3 * 16);
         tm_cmd_dispatch(cmd, groups, 1, 1, SC_TG, 1, 1);
@@ -524,12 +624,12 @@ pub const Gpu = struct {
         const cmd = tm_cmd_begin(g.rt);
         const n32: u32 = @intCast(len);
         tm_cmd_pipeline(cmd, g.p_to_qm31);
-        tm_cmd_buffer(cmd, 0, wbuf.handle, 0);
-        tm_cmd_buffer(cmd, 1, s.bufs[0].handle, 0);
+        bind(cmd, 0, wbuf);
+        bind(cmd, 1, s.bufs[0]);
         tm_cmd_bytes(cmd, 2, &n32, 4);
         tm_cmd_dispatch(cmd, (n32 + 255) / 256, 1, 1, 256, 1, 1);
         tm_cmd_pipeline(cmd, g.p_zero4);
-        tm_cmd_buffer(cmd, 0, s.bufs[1].handle, 0);
+        bind(cmd, 0, s.bufs[1]);
         tm_cmd_bytes(cmd, 1, &n32, 4);
         tm_cmd_dispatch(cmd, (n32 + 255) / 256, 1, 1, 256, 1, 1);
         for (claims, offs) |c, o| {
@@ -537,7 +637,7 @@ pub const Gpu = struct {
             const ep = EqParams{ .offset = @intCast(c.offset), .lo_bits = @intCast(n / 2), .count = @intCast(@as(usize, 1) << @intCast(n)) };
             if (c.offset + ep.count > len) return error.BatchClaimRange;
             tm_cmd_pipeline(cmd, g.p_eq_accum);
-            tm_cmd_buffer(cmd, 0, s.bufs[1].handle, 0);
+            bind(cmd, 0, s.bufs[1]);
             tm_cmd_buffer(cmd, 1, tabs.handle, o[0] * 16);
             tm_cmd_buffer(cmd, 2, tabs.handle, o[1] * 16);
             tm_cmd_bytes(cmd, 3, &ep, @sizeOf(EqParams));

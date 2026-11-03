@@ -30,6 +30,12 @@ pub const Accel = struct {
     sc_finish: *const fn (ctx: *anyopaque, s: *anyopaque, r_last: QM31, out: []const []QM31) anyerror!void,
     /// Device-resident batch sumcheck factors: F = wtab (as QM31) and
     /// E = sum_c gamma_c eq(point_c, . - offset_c). Null = not handled.
+    /// Integer matmul accumulators acc = X (T x K, i32) . W (K x N, i8) as i64.
+    matmul_acc: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, x: []const i32, T: usize, wm: pcs.Matrix(i8)) anyerror!?[]i64 = null,
+    /// MLE of an integer vector (length 2^point.len) at `point`.
+    mle_eval_i32: ?*const fn (ctx: *anyopaque, values: []const i32, point: []const QM31) anyerror!?QM31 = null,
+    /// Vectors shorter than this are evaluated on the CPU.
+    mle_min_len: usize = 1 << 16,
     sc_begin_batch: ?*const fn (ctx: *anyopaque, wtab: []const i32, claims: []const BatchClaim, active: usize) anyerror!?*anyopaque = null,
     sc_abort: *const fn (ctx: *anyopaque, s: *anyopaque) void,
     /// Device rounds run while the round's work (min(half, active)) is at
@@ -200,4 +206,19 @@ pub fn batchProve(
         }
     }.run);
     return proveActive(acc, 2, &T_PROD2, a, pool, tr, batch_claim, .{ F, E }, active);
+}
+
+/// Device matmul accumulators (X rows = 2^log_t); null = use the CPU kernel.
+pub fn matmulAcc(acc: ?*const Accel, a: std.mem.Allocator, log_t: u32, x: []const i32, wm: pcs.Matrix(i8)) !?[]i64 {
+    const A = acc orelse return null;
+    const mm = A.matmul_acc orelse return null;
+    return mm(A.ctx, a, x, @as(usize, 1) << @intCast(log_t), wm);
+}
+
+/// MLE of an integer vector at `point` (same value as `f.mleEvalI32`).
+pub fn mleEvalI32(acc: ?*const Accel, a: std.mem.Allocator, values: []const i32, point: []const QM31) !QM31 {
+    if (acc) |A| if (A.mle_eval_i32) |ev| if (values.len >= A.mle_min_len) {
+        if (try ev(A.ctx, values, point)) |v| return v;
+    };
+    return f.mleEvalI32(a, values, point);
 }

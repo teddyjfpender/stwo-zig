@@ -124,6 +124,7 @@ fn proveBoth(a: std.mem.Allocator, pool: *f.Pool, pc_cpu: proto.Config, st: prot
     const g = try gpu();
     var acc = g.accel().*;
     acc.sc_min_work = 16; // exercise device rounds on small tests
+    acc.mle_min_len = 1;
     var pc_gpu = pc_cpu;
     pc_gpu.accel = &acc;
     var tm: proto.Timings = .{};
@@ -231,4 +232,66 @@ test "metal batch sumcheck (device-built factors) matches CPU" {
     for (rc.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
     for (rc.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
     try std.testing.expect(tc.draw().eql(td.draw()));
+}
+
+test "metal matmul accumulators match CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const g = try gpu();
+    const shapes = [_][3]u32{ .{ 0, 5, 3 }, .{ 4, 6, 7 }, .{ 7, 9, 6 }, .{ 6, 12, 8 } };
+    var prng = std.Random.DefaultPrng.init(11);
+    const r = prng.random();
+    for (shapes) |sh| {
+        const T = @as(usize, 1) << @intCast(sh[0]);
+        const K = @as(usize, 1) << @intCast(sh[1]);
+        const N = @as(usize, 1) << @intCast(sh[2]);
+        const x = try a.alloc(i32, T * K);
+        defer a.free(x);
+        // extreme values included: |x| up to 2^15 - 1, w in [-128, 127]
+        for (x) |*v| v.* = if (r.boolean()) r.intRangeAtMost(i32, -128, 127) else r.intRangeAtMost(i32, -(1 << 15) + 1, (1 << 15) - 1);
+        const w = try a.alloc(i8, K * N + 3);
+        defer a.free(w);
+        for (w) |*v| v.* = r.int(i8);
+        // unaligned weight view (offset 3), like a tensor inside the weight table
+        const wm = pcs.Matrix(i8){ .data = w[3..], .log_rows = sh[1], .log_cols = sh[2] };
+        const xi = proto.TensorInfo.mat(sh[0], sh[1]);
+        const cpu = try proto.matmulAcc(a, &pool, xi, x, wm);
+        defer a.free(cpu);
+        const dev = (try t.accel.matmulAcc(g.accel(), a, sh[0], x, wm)).?;
+        defer a.free(dev);
+        try std.testing.expectEqualSlices(i64, cpu, dev);
+    }
+    // out-of-bound activations are declined (CPU fallback)
+    var big = [_]i32{1 << 15} ** 4;
+    var wsmall = [_]i8{1} ** 4;
+    try std.testing.expect((try t.accel.matmulAcc(g.accel(), a, 1, &big, .{ .data = &wsmall, .log_rows = 1, .log_cols = 1 })) == null);
+}
+
+test "metal MLE evaluation of integer vectors matches CPU" {
+    const a = std.testing.allocator;
+    const g = try gpu();
+    var prng = std.Random.DefaultPrng.init(5);
+    const r = prng.random();
+    for ([_]u32{ 0, 1, 5, 12, 17 }) |n| {
+        const len = @as(usize, 1) << @intCast(n);
+        const v = try a.alloc(i32, len);
+        defer a.free(v);
+        for (v) |*x| x.* = switch (r.uintLessThan(u8, 3)) {
+            0 => 0,
+            1 => r.intRangeAtMost(i32, -128, 127),
+            else => @intCast(r.intRangeLessThan(i64, -(@as(i64, 1) << 30), f.P)),
+        };
+        const pt = try a.alloc(QM31, n);
+        defer a.free(pt);
+        for (pt) |*p| p.* = randQ(r);
+        const want = try f.mleEvalI32(a, v, pt);
+        var acc = g.accel().*;
+        acc.mle_min_len = 1;
+        const before = g.stats.mle_calls;
+        const got = try t.accel.mleEvalI32(&acc, a, v, pt);
+        try std.testing.expect(g.stats.mle_calls == before + 1);
+        try std.testing.expect(want.eql(got));
+    }
 }
