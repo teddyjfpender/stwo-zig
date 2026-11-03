@@ -43,6 +43,18 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     const replay = try restored.serialize(a);
     defer a.free(replay);
     try std.testing.expectEqualSlices(u8, bytes, replay);
+    var receiver_graph = try C.Context.initTraceOnly(a, circuit.common.component_list.N_RESERVED);
+    defer receiver_graph.deinit();
+    var receiver_outputs: [8]circuit.builder.Var = undefined;
+    for (&receiver_outputs, 0..) |*out, i| out.* = try receiver_graph.guess(circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little)));
+    try receiver_graph.setOutputs(&receiver_outputs);
+    try receiver_graph.finalize(false);
+    var trace_restored = try Wrap.wrapGraphOrLoad(a, &receiver_graph, digest, bytes);
+    defer trace_restored.deinit();
+    try std.testing.expect(trace_restored.restored);
+    try std.testing.expectEqual(@as(u64, 0), trace_restored.timings.prove_ns);
+    try std.testing.expectEqual(@as(usize, 0), receiver_graph.value_table.capacity);
+    try std.testing.expectEqual(wrapped.authority.identity, trace_restored.authority.identity);
     var device_selected_restore = try Wrap.wrapGraphOrLoadWithFactory(a, &ctx, digest, bytes, 99, factory);
     defer device_selected_restore.deinit();
     try std.testing.expect(device_selected_restore.restored);

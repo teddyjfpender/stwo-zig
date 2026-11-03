@@ -88,27 +88,29 @@ fn save(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proof: *const O
 const Fold = struct { pending: Pending, restored: bool, retired_preprocessed_bytes: usize };
 /// Borrows children throughout construction. The caller releases them ONLY
 /// after the new parent has a complete proof, fresh capture and durable bytes.
-fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.ArrayList(Node), dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory) !Fold {
+fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.ArrayList(Node), dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory, existing_only: bool) !Fold {
     const l = nodes.items[left.node];
     const r = nodes.items[right.node];
     if (l.first_leaf + l.leaf_count != r.first_leaf) return error.RecursiveLeafAdjacency;
     std.log.info("rv64 OM31 recursion fold: [{d},{d}) + [{d},{d})", .{ l.first_leaf, l.first_leaf + l.leaf_count, r.first_leaf, r.first_leaf + r.leaf_count });
     const children = [2]Bridge.Child{ child(left), child(right) };
     const digest = try Bridge.expectedDigest(children);
-    const build_fold = if (factory != null and factory.?.prepare_from_circuit != null) &Bridge.buildFoldTraceOnly else &Bridge.buildFold;
+    const build_fold = if (existing_only or (factory != null and factory.?.prepare_from_circuit != null)) &Bridge.buildFoldTraceOnly else &Bridge.buildFold;
     var graph = try build_fold(a, children);
     defer graph.deinit();
+    if (existing_only) try requireReceiverTrace(&graph.ctx);
     if (!std.mem.eql(u8, &digest, &graph.output_digest)) return error.RecursiveFoldDigest;
     var name_buffer: [64]u8 = undefined;
     const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{nodes.items.len});
     const encoded = try cached(a, dir, name, allow_resume);
+    if (existing_only and encoded == null) return error.MissingRecursiveNodeProof;
     defer if (encoded) |bytes| a.free(bytes);
     const proof = try a.create(Outer.Wrapped);
     errdefer a.destroy(proof);
     proof.* = try Outer.wrapGraphOrLoadWithFactory(a, &graph.ctx, digest, encoded, @intCast(nodes.items.len), factory);
     std.log.info("rv64 OM31 recursion fold accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
     errdefer proof.deinit();
-    try save(a, dir, name, proof);
+    if (!existing_only) try save(a, dir, name, proof);
     const retired_bytes = proof.retireProverData();
     const node = nodes.items.len;
     nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
@@ -132,7 +134,7 @@ pub const ParallelOptions = struct {
     pool_stack_reservation: ?*const @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.ExternalReservation = null,
 };
 pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory) !Report {
-    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, factory, null);
+    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, factory, null, false);
 }
 /// Explicit candidate route. Hardware admission remains with the caller; every
 /// supplied lane must own a distinct physical device and an atomic GPU factory.
@@ -144,7 +146,7 @@ pub fn runWithFactories(a: std.mem.Allocator, setups: []const *const R.CpuSetup,
     defer budget.destroy();
     var stacks = try StackReservations.init(a, options);
     defer stacks.deinit();
-    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, null, options);
+    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, allow_resume, null, options, false);
 }
 const SharedBudget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
 /// Reserves existing OS helper stacks as well as newly spawned coordinators.
@@ -173,6 +175,13 @@ pub const StackReservations = struct {
         self.coordinators.deinit();
     }
 };
+/// Independent receiver: every physical leaf and fold must already exist.
+/// Builds original trace-only verifier graphs; never computes a prover witness,
+/// invokes a factory or rewrites the producer's proof/tree/report artifacts.
+pub fn verifyExisting(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir) !Report {
+    try @import("publication.zig").requireExisting(dir, try Dag.Plan.init(setups.len + truths.len));
+    return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, true, null, null, true);
+}
 fn validateLanes(options: ParallelOptions) !void {
     if (options.lanes.len == 0 or options.lanes.len > 4) return error.InvalidRecursionAdmission;
     var identities: [4]Dag.LaneIdentity = undefined;
@@ -182,7 +191,7 @@ fn validateLanes(options: ParallelOptions) !void {
     }
     try Dag.validateLanes(identities[0..options.lanes.len], options.pool_worker_budget, options.max_pending_authorities);
 }
-fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory, parallel: ?ParallelOptions) !Report {
+fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool, factory: ?Outer.Device.Factory, parallel: ?ParallelOptions, existing_only: bool) !Report {
     var timer = try std.time.Timer.start();
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, bundle.requests, expected, config, fixed);
     defer inventory.deinit();
@@ -245,17 +254,19 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     for (inventory.workers, 0..) |worker, ordinal| {
         const graph_start = timer.read();
         std.log.info("rv64 OM31 recursion leaf {d}/{d}: admitted graph", .{ ordinal + 1, n });
-        const trace_only = factory != null and factory.?.prepare_from_circuit != null;
+        const trace_only = existing_only or (factory != null and factory.?.prepare_from_circuit != null);
         const build_cpu = if (trace_only) &Graph.cpuTraceOnly else &Graph.cpu;
         const build_truth = if (trace_only) &Graph.truthTraceOnly else &Graph.truth;
         var graph = if (ordinal < setups.len) try build_cpu(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try build_truth(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
         var graph_live = true;
         defer if (graph_live) graph.deinit();
+        if (existing_only) try requireReceiverTrace(graph.ctx);
         if (!std.mem.eql(u32, graph.words, words[ordinal])) return error.RecursiveLeafFrame;
         graph_ns += timer.read() - graph_start;
         var name_buffer: [64]u8 = undefined;
         const name = try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{ordinal});
         const encoded = try cached(a, dir, name, allow_resume);
+        if (existing_only and encoded == null) return error.MissingRecursiveNodeProof;
         defer if (encoded) |bytes| a.free(bytes);
         const wrap_start = timer.read();
         std.log.info("rv64 OM31 recursion leaf {d}/{d}: {s} outer (vars={d})", .{ ordinal + 1, n, if (encoded != null) "freshly verify cached" else "prove", graph.ctx.circuit.n_vars });
@@ -265,7 +276,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             proof.* = try Outer.wrapGraphOrLoadWithFactory(a, graph.ctx, graph.digest, encoded, @intCast(nodes.items.len), factory);
             std.log.info("rv64 OM31 recursion leaf {d}/{d} accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ ordinal + 1, n, proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
             errdefer proof.deinit();
-            try save(a, dir, name, proof);
+            if (!existing_only) try save(a, dir, name, proof);
             retired_bytes += proof.retireProverData();
             const node = nodes.items.len;
             nodes.appendAssumeCapacity(.{ .first_leaf = ordinal, .leaf_count = 1, .left = null, .right = null, .authority = proof.authority.identity, .digest = proof.digest });
@@ -283,7 +294,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
         while (stack[level]) |left| : (level += 1) {
             const start = timer.read();
             peak_pending = @max(peak_pending, pending_count + 1);
-            const parent = try combine(a, left, current.?, &nodes, dir, allow_resume, factory);
+            const parent = try combine(a, left, current.?, &nodes, dir, allow_resume, factory, existing_only);
             fold_ns += timer.read() - start;
             restored_folds += @intFromBool(parent.restored);
             retired_bytes += parent.retired_preprocessed_bytes;
@@ -306,7 +317,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             defer if (owns_left) left.deinit(a);
             const start = timer.read();
             peak_pending = @max(peak_pending, pending_count + 1);
-            const parent = try combine(a, left, right, &nodes, dir, allow_resume, factory);
+            const parent = try combine(a, left, right, &nodes, dir, allow_resume, factory, existing_only);
             fold_ns += timer.read() - start;
             restored_folds += @intFromBool(parent.restored);
             retired_bytes += parent.retired_preprocessed_bytes;
@@ -320,6 +331,7 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const final = root orelse return error.RecursiveLeafCoverage;
     const info = nodes.items[final.node];
     if (info.first_leaf != 0 or info.leaf_count != n or nodes.items.len != 2 * n - 1) return error.RecursiveLeafCoverage;
+    if (existing_only and (restored_leaves != n or restored_folds != n - 1)) return error.RecursiveReceiverMustRestoreAll;
     const verify_start = timer.read();
     try Outer.requireDigest(final.proof.produced.outputs, info.digest);
     var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
@@ -328,16 +340,20 @@ fn runImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const verify_ns = timer.read() - verify_start;
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);
-    try dir.writeFile(.{ .sub_path = "root.proof", .data = bytes });
+    if (existing_only) try @import("publication.zig").requireBytes(a, dir, "root.proof", bytes) else try dir.writeFile(.{ .sub_path = "root.proof", .data = bytes });
     const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes.items, .root = final.node, .cpu_frames = cpus, .truth_frames = truth_frames }, .{ .whitespace = .indent_2 });
     defer a.free(tree);
-    try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
+    if (existing_only) try @import("publication.zig").requireBytes(a, dir, "tree.json", tree) else try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
     const trace_only_backend = factory != null and factory.?.prepare_from_circuit != null;
-    const report = Report{ .outer_backend = if (trace_only_backend) "cuda_trace_only" else if (factory != null) "cuda_from_host_assignment" else "cpu", .assignment_source = if (trace_only_backend) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (factory != null) n - restored_leaves else 0, .gpu_new_fold_proofs = if (factory != null) n - 1 - restored_folds else 0, .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .retired_preprocessed_bytes = retired_bytes, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .outer_backend = if (existing_only) "cpu_trace_only_receiver" else if (trace_only_backend) "cuda_trace_only" else if (factory != null) "cuda_from_host_assignment" else "cpu", .assignment_source = if (existing_only) "none_receiver_trace_only" else if (trace_only_backend) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (factory != null) n - restored_leaves else 0, .gpu_new_fold_proofs = if (factory != null) n - 1 - restored_folds else 0, .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .retired_preprocessed_bytes = retired_bytes, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
-    try dir.writeFile(.{ .sub_path = "report.json", .data = report_bytes });
+    if (!existing_only) try dir.writeFile(.{ .sub_path = "report.json", .data = report_bytes });
     return report;
+}
+
+fn requireReceiverTrace(ctx: *const @import("common.zig").Context) !void {
+    if (!ctx.trace_only or ctx.value_table.items.len != 0 or ctx.value_table.capacity != 0) return error.RecursiveReceiverWitnessForbidden;
 }
 
 const Dag = @import("ready_dag.zig");
