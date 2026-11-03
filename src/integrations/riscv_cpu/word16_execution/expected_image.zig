@@ -21,7 +21,7 @@ pub const Owner = struct {
         try Request.validateBudget(config);
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 * 1024 * 1024);
         defer a.free(elf);
-        const input = try std.fs.cwd().readFileAlloc(a, config.input, 4 * 1024 * 1024);
+        const input = try std.fs.cwd().readFileAlloc(a, config.input, rv.ethereum_contract.INPUT_CAPACITY_MAX - 4);
         defer a.free(input);
         try Request.pin(elf, config.elf_sha256);
         try Request.pin(input, config.input_sha256);
