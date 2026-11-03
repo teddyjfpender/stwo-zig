@@ -55,7 +55,7 @@ The explicit combined product calls the existing native producer and then wraps 
 ```sh
 zig build --build-file src/integrations/riscv_cuda/build.zig \
   build-rv64-ethereum-gpu-combined -Doptimize=ReleaseFast \
-  -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4 -j2
+  -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4+sha -j2
 STWO_RV64_GPU_LIBRARY=/absolute/path/qualified-complete-native-image.so \
 STWO_RV64_GPU_DEVICES=0 STWO_RV64_GPU_DEVICE_CAPS=30064771072 \
 STWO_RV64_GPU_PLANNED_CPU_WORKERS=7 STWO_RV64_GPU_RETAINED_SCOPES=7 \
@@ -68,3 +68,5 @@ STWO_RV64_GPU_CPU_REPLAY=1 \
 This mode requires the complete resident native pipeline, a device recursion factory and a complete block. It rejects host MAIN parking, prefix runs, resumed recursive proofs and multiple devices. The persistent native context has a 28 GiB device cap and an explicit 2 GiB immutable setup budget shared by native proving and recursion. The host budget defaults to 48 GiB and can be specified with `STWO_RV64_RECURSION_HOST_BYTES`. The existing 4 GiB `ResidentSession` cache shares independently derived native geometry classes within that host budget; it does not admit producer-supplied verifier keys. Runtime images must contain the native CPU and truth catalogs, the outer circuit catalog and the production witness-generation capabilities; missing capabilities are terminal.
 
 `report.json` retains native capture/setup/prove/verify times. `combined-report.json` adds measured authority setup, native publication, recursion and combined pipeline times. `combined-entry.json` is written only after the device lifecycle audit succeeds and includes GPU initialization and entry wall time. Recursion uses the same original proof profile and records newly proved GPU nodes; it never treats restored bytes as a fresh benchmark. Implementation and semantic checks do not establish a speedup: the combined real-block gate must pin the image, guest, request and all native/recursive proof hashes before reporting measurements.
+
+The combined build above requires an x86 host with SHA instructions. This changes host hashing implementation, not proof bytes; the deployment must check CPU feature support. Production witness generation also receives an explicit 16-kind kernel preflight before native capture or circuit construction.

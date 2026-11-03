@@ -56,7 +56,7 @@ pub fn main() !void {
     defer outer.deinit();
     const gpu_init_ns = timer.read();
     std.log.info("GPU_COMBINED device={} cap_bytes={} immutable_bytes={} host_bytes={}; live native authority handoff; no CPU proving fallback", .{ config.ids[0], config.caps[0], @as(usize, 2 << 30), host_bytes });
-    try CPU.rv64_ethereum_gkr_main.mainWithResidentPipelineAndRecursion(pool.stages(), outer.factory(), host_bytes);
+    try CPU.rv64_ethereum_gkr_main.mainWithResidentPipelineAndRecursion(pool.stages(), try outer.factoryForTraceOnly(), host_bytes);
     try device.native.endBlock(identity);
     const full_entry_ns = timer.read();
     const entry_report = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .accepted = true, .gpu_init_ns = gpu_init_ns, .full_entry_ns = full_entry_ns, .native_authority_handoff = "live in process; no reload or reconstruction", .device_byte_cap = config.caps[0], .immutable_device_bytes = @as(u64, 2 << 30), .host_byte_cap = host_bytes, .device_lifecycle_audit = "all request leases released", .scope = "Entry wall includes native GPU pool initialization, native capture/proving/verification/publication and fresh GPU recursion; excludes operating-system process startup." }, .{ .whitespace = .indent_2 });
