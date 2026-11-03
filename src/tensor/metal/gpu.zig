@@ -43,6 +43,9 @@ pub extern fn tm_cmd_end(cmd: *anyopaque, gpu_ms: *f64, err: [*]u8, err_len: usi
 pub const source: [:0]const u8 = @import("tensor_metal_shaders").source;
 
 const POOL_MIN: usize = 1 << 20;
+/// one-off huge buffers (e.g. the offline weight-key GKR layers) are not
+/// pooled: they would crowd out the per-proof working set
+const POOL_MAX: usize = 512 << 20;
 
 pub const Error = error{ MetalInit, MetalPipeline, MetalAlloc, MetalCommand };
 
@@ -230,7 +233,7 @@ pub const Gpu = struct {
 
     /// Returns a buffer (device-allocated or view) once no command uses it.
     pub fn free(self: *Gpu, b: Buf) void {
-        if (b.aliased or b.cap < POOL_MIN) return tm_release(b.handle);
+        if (b.aliased or b.cap < POOL_MIN or b.cap > POOL_MAX) return tm_release(b.handle);
         while (self.pooled_bytes + b.cap > self.pool_limit and self.pool.items.len > 0) {
             const old = self.pool.orderedRemove(0);
             self.pooled_bytes -= old.cap;

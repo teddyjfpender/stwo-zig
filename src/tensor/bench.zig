@@ -107,8 +107,12 @@ pub fn main() !void {
     var ws = try proto.commitWeights(a, &pool, pc, &winfos, &wv);
     const commit_s = secs(t0);
     t0 = now();
-    var prox = try t.weight_key.prove(a, &pool, pc, &ws);
+    // TENSOR_KEY_CPU=1 keeps the offline weight-key proof on the CPU
+    var pc_key = pc;
+    if (std.posix.getenv("TENSOR_KEY_CPU") != null) pc_key.accel = null;
+    var prox = try t.weight_key.prove(a, &pool, pc_key, &ws);
     const prox_s = secs(t0);
+    const kd = t.digest.keyProofDigest(prox);
     const key = proto.weightKey(&ws);
     t0 = now();
     try t.weight_key.verify(a, pc, key, &prox);
@@ -168,7 +172,7 @@ pub fn main() !void {
     try out.print("\"stage_s\":{{\"prep\":{d:.4},\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"terminal\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.prep_ns), nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.terminal_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });
     try printGpuStats(out);
-    try out.print("\"proof_digest\":\"{s}\",", .{std.fmt.bytesToHex(pd, .lower)});
+    try out.print("\"proof_digest\":\"{s}\",\"key_proof_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd, .lower), std.fmt.bytesToHex(kd, .lower) });
     try out.print("\"proved_macs_per_s\":{d:.4},\"prove_ns_per_weight\":{d:.4},\"prove_ns_per_token\":{d:.1},\"committed_bits_per_token\":{d:.1},\"peak_rss_bytes\":{d}}}\n", .{ macs / prove_s, prove_s * 1e9 / n_weights, prove_s * 1e9 / T, @as(f64, @floatFromInt(tm.witness_table_elems)) * 32.0 / T, peakRssBytes() });
     proof.deinit(a);
     built.deinit(a);

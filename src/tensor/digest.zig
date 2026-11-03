@@ -19,11 +19,7 @@ fn hashFelts(h: *Blake2s, v: []const QM31) void {
 pub fn proofDigest(p: proto.Proof) [32]u8 {
     var h = Blake2s.init(.{});
     h.update(&p.witness_root);
-    if (p.gkr) |g| {
-        for (g.sumcheck_proofs) |sp| for (sp.round_polys) |rp| hashFelts(&h, rp.coeffsSlice());
-        for (g.layer_masks_by_instance) |ms| for (ms) |m| for (m.columnsSlice()) |c| hashFelts(&h, &c);
-        for (g.output_claims_by_instance) |c| hashFelts(&h, c);
-    }
+    if (p.gkr) |g| hashGkr(&h, g);
     hashFelts(&h, p.lookup_in_values);
     for (p.op_sumchecks) |s| for (s.rounds) |r| hashFelts(&h, r.evals[0..s.deg]);
     for (p.op_finals) |x| hashFelts(&h, x);
@@ -32,6 +28,24 @@ pub fn proofDigest(p: proto.Proof) [32]u8 {
     hashOpening(&h, p.witness_opening);
     hashFelts(&h, p.weight_values);
     if (p.weight_opening) |w| hashOpening(&h, w);
+    var out: [32]u8 = undefined;
+    h.final(&out);
+    return out;
+}
+
+fn hashGkr(h: *Blake2s, g: anytype) void {
+    for (g.sumcheck_proofs) |sp| for (sp.round_polys) |rp| hashFelts(h, rp.coeffsSlice());
+    for (g.layer_masks_by_instance) |ms| for (ms) |m| for (m.columnsSlice()) |c| hashFelts(h, &c);
+    for (g.output_claims_by_instance) |c| hashFelts(h, c);
+}
+
+/// Digest over every field of an offline weight-key proof.
+pub fn keyProofDigest(p: @import("weight_key.zig").KeyProof) [32]u8 {
+    var h = Blake2s.init(.{});
+    h.update(std.mem.sliceAsBytes(&p.histogram));
+    hashGkr(&h, p.gkr);
+    hashFelts(&h, &.{p.value});
+    hashOpening(&h, p.opening);
     var out: [32]u8 = undefined;
     h.final(&out);
     return out;

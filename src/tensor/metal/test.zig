@@ -183,6 +183,21 @@ test "metal proof digest equals CPU: small MLP (GPU weight commitment too)" {
     var ws_gpu = try proto.commitWeights(a, &pool, pcg, &winfos, &wv);
     defer ws_gpu.deinit(a);
     try std.testing.expectEqual(ws.com.root(), ws_gpu.com.root());
+    // offline weight-key proof (GKR over the whole weight table) on the device
+    {
+        var kacc = g.accel().*;
+        kacc.gkr_min_log = 0;
+        var pck = pc;
+        pck.accel = &kacc;
+        const before = g.stats.gkr_calls;
+        var kc = try t.weight_key.prove(a, &pool, pc, &ws);
+        defer kc.deinit(a);
+        var kd = try t.weight_key.prove(a, &pool, pck, &ws_gpu);
+        defer kd.deinit(a);
+        try std.testing.expect(g.stats.gkr_calls > before);
+        try std.testing.expectEqual(t.digest.keyProofDigest(kc), t.digest.keyProofDigest(kd));
+        try t.weight_key.verify(a, pc, proto.weightKey(&ws), &kd);
+    }
 
     const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 9);
     defer a.free(x);
