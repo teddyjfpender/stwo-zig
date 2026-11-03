@@ -297,7 +297,6 @@ struct ResidentOwner {
     return value;
   }
   void release(StwoRv64GpuLease &lease) {
-    sync();
     for (size_t i = 0; i < leases.size(); ++i) {
       const auto &value = leases[i].value;
       if (value.context_token == lease.context_token &&
@@ -306,6 +305,9 @@ struct ResidentOwner {
           !lease.reserved) {
         if (value.kind == 4 && !leases[i].immutable_scopes.empty())
           throw std::runtime_error("immutable setup still borrowed by a request");
+        // The context free joins every producer lane before retiring memory.
+        // Joining here too doubled the per-lease global barriers; validate the
+        // complete descriptor first, then use that one authoritative join.
         CHECK(stwo_exec_context_free_u32(ctx, value.words));
         retained -= value.count * 4;
         leases.erase(leases.begin() + i);
