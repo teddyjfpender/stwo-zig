@@ -171,6 +171,34 @@ def truth_catalog(source: Path, destination: Path, groups_per_module: int, max_m
     (destination / "truth_composition_launches.h").write_text("\n".join(lines) + "\n")
     return {"roles": catalogs}
 
+def extend_catalog(base: str, generated: str, first_new_role: int = 10):
+    """Append new roles without relabelling any qualified existing partition.
+
+    Reusing an old object with a newly partitioned same-named symbol is unsafe:
+    its y-grid may cover different original groups. Keep base declarations and
+    exact entries byte-for-byte and copy only the extension's new definitions.
+    """
+    pattern = r"static const StwoTruthKernelSpan truth_catalog\[\]=\{(.*?)\};"
+    old = re.search(pattern, base)
+    new = re.search(pattern, generated)
+    if not old or not new or base[old.end():].strip():
+        raise ValueError("expected terminal truth catalogue")
+    entries = lambda match: re.findall(r"\{truth_parts_(\d+),\d+u\}", match[1])
+    old_ids, new_ids = list(map(int, entries(old))), list(map(int, entries(new)))
+    if old_ids != list(range(first_new_role)) or new_ids != list(range(15)):
+        raise ValueError("catalogue extension requires exact original ten and new fifteen roles")
+    additions = []
+    for line in generated[:new.start()].splitlines():
+        role = re.search(r"(?:rv64_truth_domain_|truth_parts_)(\d+)", line)
+        if role and int(role[1]) >= first_new_role:
+            additions.append(line)
+    if not additions:
+        raise ValueError("missing new role declarations")
+    suffix = re.findall(r"\{truth_parts_\d+,\d+u\}", new[1])[first_new_role:]
+    return (base[:old.start()] + "\n".join(additions) + "\n" +
+            "static const StwoTruthKernelSpan truth_catalog[]={" + old[1] +
+            "," + ",".join(suffix) + "};\n")
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("source", type=Path)
@@ -179,11 +207,19 @@ def main():
     ap.add_argument("--truth-catalog", action="store_true")
     ap.add_argument("--max-module-bytes", type=int, default=524288)
     ap.add_argument("--truth-tail-first-group", type=int, help="Keep role7 prefix partitions and split its cold suffix into individual constraint groups")
+    ap.add_argument("--truth-base-catalog", type=Path, help="Append curves while preserving qualified0..9 declarations and partition entries")
     args = ap.parse_args()
+    if args.truth_base_catalog and not args.truth_catalog:
+        ap.error("--truth-base-catalog requires --truth-catalog")
     args.destination.mkdir(parents=True, exist_ok=True)
     for role in (0,5,6,7):
         if args.truth_catalog: (args.destination / f"role-{role}").mkdir(parents=True, exist_ok=True)
     manifest = truth_catalog(args.source, args.destination, args.groups_per_module, args.max_module_bytes, args.truth_tail_first_group) if args.truth_catalog else partition(args.source, args.destination, args.groups_per_module, args.max_module_bytes)
+    if args.truth_base_catalog:
+        header = args.destination / "truth_composition_launches.h"
+        base = args.truth_base_catalog.read_text()
+        header.write_text(extend_catalog(base, header.read_text()))
+        manifest["preserved_base_catalog_sha256"] = hashlib.sha256(base.encode()).hexdigest()
     target = args.destination / "partition.json"
     target.write_text(json.dumps(manifest, indent=2) + "\n")
     print(json.dumps({"manifest": str(target), "roles": len(manifest["roles"])} if args.truth_catalog else {"manifest": str(target), "groups": manifest["groups"], "modules": len(manifest["modules"])}))
