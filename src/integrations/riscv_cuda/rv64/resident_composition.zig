@@ -140,6 +140,7 @@ pub const Context = struct {
     auxiliary: *const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on),
     tree: *const @TypeOf(Abi.stwo_rv64_trace_tree_on),
     n2b: N2b,
+    n2b_columns: ?*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on) = null,
     b2n: B2n,
     copy: Copy,
     clear: Clear,
@@ -170,7 +171,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
+        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(*const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on), "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
     }
     pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
         var result = try initNumerical(a, service);
@@ -682,8 +683,17 @@ const Job = struct {
         var composition_tw_borrow = try b.tw(self.log);
         defer composition_tw_borrow.deinit(b.allocator);
         const composition_tw = &composition_tw_borrow.value;
-        var output = try context.allocate(std.mem.alignForward(usize, coeff_count + eval_words + tw.twiddles.len, 2) + count * 6, 2);
+        // PCS retains compact coefficients only. Commitment LDE/twiddles are
+        // scratch and retire with this joined job, rather than sharing the
+        // retained coefficient lease for the entire opening phase.
+        const separate = beta == 1 and b.n2b_columns != null;
+        const eval_base: usize = if (separate) 0 else coeff_count;
+        const output_tw = eval_base + eval_words;
+        const output_desc = std.mem.alignForward(usize, output_tw + tw.twiddles.len, 2);
+        const scratch_words = output_desc + if (separate) count else count * 6;
+        var output = try context.allocate(if (separate) coeff_count else scratch_words, 2);
         errdefer context.release(&output) catch {};
+        const scratch = if (separate) try allocate(a, &context, &leases, scratch_words, 0) else output;
         const accumulator = try allocate(a, &context, &leases, coeff_count, 0);
         const inv = try upload(a, &context, &leases, words(composition_tw.itwiddles));
         var list: std.ArrayList(Abi.CompositionBucket) = .empty;
@@ -694,26 +704,30 @@ const Job = struct {
         try events.mark(.finalize, false, stream1.?);
         try self.checked("finish", b.finish(raw, 1, list.items.ptr, @intCast(list.items.len), accumulator.words.?, output.words.?, self.log, self.split, inv.words.?, @intCast(composition_tw.itwiddles.len), &launches));
         try events.mark(.finalize, true, stream1.?);
-        const output_tw = coeff_count + eval_words;
-        const output_desc = std.mem.alignForward(usize, output_tw + tw.twiddles.len, 2);
         var descriptors: std.ArrayList(u32) = .empty;
         defer descriptors.deinit(a);
         for (0..count) |i| {
-            const src = i * (@as(usize, 1) << @intCast(chunk_log));
-            const dst = coeff_count + i * commit_rows;
-            try descriptors.appendSlice(a, &.{ @truncate(src), @truncate(@as(u64, src) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), chunk_log, 0 });
+            if (separate) {
+                try descriptors.append(a, chunk_log);
+            } else {
+                const src = i * (@as(usize, 1) << @intCast(chunk_log));
+                const dst = eval_base + i * commit_rows;
+                try descriptors.appendSlice(a, &.{ @truncate(src), @truncate(@as(u64, src) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), chunk_log, 0 });
+            }
         }
-        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(output.words.? + output_tw), tw.twiddles.ptr, tw.twiddles.len * 4));
-        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(output.words.? + output_desc), descriptors.items.ptr, descriptors.items.len * 4));
+        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(scratch.words.? + output_tw), tw.twiddles.ptr, tw.twiddles.len * 4));
+        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(scratch.words.? + output_desc), descriptors.items.ptr, descriptors.items.len * 4));
         try context.join();
         var stream: ?*anyopaque = null;
         try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
         try events.mark(.commit_fft, false, stream.?);
-        try self.checked("n2b", b.n2b(output.words.?, output.count, output.words.? + output_desc, @intCast(count), coeff_count, commit_log, output.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, 1, &launches));
+        if (separate) {
+            try self.checked("n2b_columns", b.n2b_columns.?(output.words.?, @as(usize, 1) << @intCast(chunk_log), scratch.words.? + output_desc, scratch.words.?, commit_rows, commit_log, @intCast(count), scratch.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, &launches));
+        } else try self.checked("n2b", b.n2b(output.words.?, output.count, output.words.? + output_desc, @intCast(count), eval_base, commit_log, output.words.? + output_tw, @intCast(tw.twiddles.len), @intCast(commit_rows / 2), stream.?, 1, &launches));
         try events.mark(.commit_fft, true, stream.?);
         const tree_words = (2 * commit_rows - 1) * 8;
         const tree = try allocate(a, &context, &leases, tree_words, 0);
-        const segment = Abi.MixedSegment{ .columns = output.words.? + coeff_count, .stride_words = commit_rows, .capacity_words = eval_words, .source_size = @intCast(commit_rows), .reserved = 0 };
+        const segment = Abi.MixedSegment{ .columns = scratch.words.? + eval_base, .stride_words = commit_rows, .capacity_words = eval_words, .source_size = @intCast(commit_rows), .reserved = 0 };
         try events.mark(.commit_hash, false, stream1.?);
         try self.checked("tree", b.tree(raw, 1, @ptrCast(&segment), 1, commit_log, tree.words.?, tree_words));
         try events.mark(.commit_hash, true, stream1.?);
@@ -730,6 +744,7 @@ const Job = struct {
         errdefer b.allocator.free(columns);
         for (columns, 0..) |*column, i| column.* = .{ .log_size = chunk_log, .device = .{ .words = output.words.? + i * (@as(usize, 1) << @intCast(chunk_log)), .count = @as(u64, 1) << @intCast(chunk_log), .context_token = output.context_token, .generation = output.generation } };
         try b.service.retainDeviceLease(context.scope, output);
+        std.debug.print("GPU_COMPOSITION_OWNERSHIP ordinal={} retained_coefficient_words={} joined_commit_scratch_words={} separate_coefficients={}\n", .{ self.scope.ordinal, output.count, if (separate) scratch.count else 0, separate });
         self.result = .{ .root = root, .columns = columns };
         var kernel_ms: f64 = 0;
         for (spans[1..]) |value| kernel_ms += value;
