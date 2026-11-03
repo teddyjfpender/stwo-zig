@@ -157,6 +157,15 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_trace.addArgs(args);
     b.step("rv64-trace-fixtures", "Export native lifted PCS trees or freshly verify GPU openings").dependOn(&run_trace.step);
     b.step("build-rv64-trace-tool", "Build independent native lifted trace opening receiver").dependOn(&b.addInstallArtifact(trace_fixture, .{}).step);
+    const pcs_root = b.createModule(.{ .root_source_file = b.path("rv64_pcs_fixture_main.zig"), .target = target, .optimize = optimize });
+    pcs_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    pcs_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    pcs_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const pcs_fixture = b.addExecutable(.{ .name = "rv64-pcs-fixtures", .root_module = pcs_root });
+    const run_pcs = b.addRunArtifact(pcs_fixture);
+    if (b.args) |args| run_pcs.addArgs(args);
+    b.step("rv64-pcs-fixtures", "Export native complete PCS oracle or verify resident GPU proof").dependOn(&run_pcs.step);
+    b.step("build-rv64-pcs-tool", "Build independent native complete PCS receiver").dependOn(&b.addInstallArtifact(pcs_fixture, .{}).step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
