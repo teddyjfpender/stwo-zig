@@ -6,7 +6,7 @@ const Outer = @import("stwo_circuit_cpu_integration").om31.prove;
 const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
-pub const Timings = struct { preprocess_ns: u64, prove_ns: u64, verify_ns: u64 };
+pub const Timings = struct { preprocess_ns: u64, prove_ns: u64, verify_ns: u64, restore_ns: u64 = 0 };
 pub const Wrapped = struct {
     allocator: std.mem.Allocator,
     pp: *PP,
@@ -15,6 +15,7 @@ pub const Wrapped = struct {
     capture: Outer.Capture,
     digest: [32]u8,
     timings: Timings,
+    restored: bool = false,
     pub fn deinit(self: *Wrapped) void {
         self.capture.deinit(self.allocator);
         self.produced.deinit();
@@ -31,6 +32,12 @@ pub const Wrapped = struct {
 /// Context must already be finalized by its concrete statement authority. Padding follows its exact graph counts; no external registry or legacy
 /// profile is accepted here.
 pub fn wrapGraph(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8) !Wrapped {
+    return wrapGraphOrLoad(a, ctx, digest, null);
+}
+/// Restore only after independently rebuilding this graph's PP and Authority.
+/// Encoded authority is never admitted; decode and fresh verification bind the
+/// bytes to the receiver-derived topology and expected public digest.
+pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8) !Wrapped {
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (!try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
@@ -44,13 +51,20 @@ pub fn wrapGraph(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8) !Wrapped
     authority.* = try Outer.Authority.init(a, pp);
     errdefer authority.deinit();
     const preprocess_ns = timer.lap();
-    var produced = try Outer.prove(a, authority, ctx.values());
+    var produced = if (encoded) |bytes| blk: {
+        var decoded = try Wire.decode(a, authority.identity, 8, bytes);
+        errdefer decoded.deinit();
+        // The prover-only auxiliary caches are not part of the native proof.
+        // Restored proofs need no such caches; all containers are owned-safe
+        // empty values so Produced.deinit remains the single cleanup path.
+        break :blk Outer.Produced{ .allocator = a, .outputs = decoded.outputs, .claims = decoded.claims, .proof = .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = .{ .items = &.{} }, .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } } };
+    } else try Outer.prove(a, authority, ctx.values());
     errdefer produced.deinit();
-    const prove_ns = timer.lap();
+    const source_ns = timer.lap();
     try requireDigest(produced.outputs, digest);
     var capture = try Outer.verify(a, authority, produced.outputs, produced.claims, &produced.proof.proof);
     errdefer capture.deinit(a);
-    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .timings = .{ .preprocess_ns = preprocess_ns, .prove_ns = prove_ns, .verify_ns = timer.lap() } };
+    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .timings = .{ .preprocess_ns = preprocess_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
 }
 /// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.
