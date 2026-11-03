@@ -1,4 +1,4 @@
-//! Native PCS -> GPU request framing for the hybrid proving boundary.
+//! Resident PCS request framing and borrowed, scoped coefficient spans.
 //! This exports borrowed native coefficients and actual opening points; it
 //! neither constructs a witness nor changes the native transcript.
 const std = @import("std");

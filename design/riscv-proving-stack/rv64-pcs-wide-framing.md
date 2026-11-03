@@ -25,4 +25,6 @@ metadata-only request exceeding 2^32 expanded cells, capability refusal,
 legacy-header retention, exact high-half reconstruction and malformed native
 headers. C++ parser tests run through the prefix host-test target and remain
 enabled in optimized/NDEBUG builds. All three production semantic checks pass.
-Real GPU parity and largest-leaf recovery remain qualification gates.
+Tiny GPU cold/warm V2-framed proofs match CPU controls on old and new
+runtimes, with fresh receiver acceptance. Actual V3 largest-leaf execution
+and recovery remain separate qualification gates.

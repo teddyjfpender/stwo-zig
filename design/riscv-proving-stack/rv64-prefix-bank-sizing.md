@@ -29,6 +29,7 @@ c++ -std=c++17 -Wall -Wextra -Werror src/backends/cuda/native/rv64/prefix_banks_
 ```
 
 All three production semantic checks pass. Independent source review passes.
-GPU root/PCS proof-byte parity and scoped allocation observations remain open;
-this candidate is not yet a qualified runtime replacement. No AIR, hash
+Tiny GPU cold/warm roots match CPU controls on both old and new runtimes,
+and separate CPU receivers accept them. Largest-geometry allocation and full
+basket qualification remain open; no complete-block speedup is claimed. No AIR, hash
 protocol, transcript, field, security profile or proof encoding changes.
