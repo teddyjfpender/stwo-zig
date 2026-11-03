@@ -1,5 +1,5 @@
-//! Explicit CUDA outer recursion over CPU-built circuit assignments. No device
-//! admission is implied by this entry: missing kernels/refusals are terminal.
+//! Explicit CUDA outer recursion from original trace-only graphs and compact
+//! proof seeds. Missing generation capabilities and device refusals are terminal.
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const Native = @import("rv64/pcs_native.zig");
@@ -35,6 +35,7 @@ pub fn main() !void {
     defer composition.deinit();
     var source = try Source.Context.init(a, &native, &trace, &composition);
     defer source.deinit();
-    std.log.info("CUDA outer requested: device={d} byte_cap={d}; CPU circuit assignment ingress; no CPU proving fallback", .{ device, cap });
-    try CPU.rv64_ethereum_gkr_main.mainWithRecursionFactory(source.factory());
+    const factory = try source.factoryForTraceOnly();
+    std.log.info("CUDA outer requested: device={d} byte_cap={d}; GPU assignments from original circuit graph; host graph/setup; no CPU proving fallback", .{ device, cap });
+    try CPU.rv64_ethereum_gkr_main.mainWithRecursionFactory(factory);
 }
