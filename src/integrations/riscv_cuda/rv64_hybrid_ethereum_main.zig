@@ -63,6 +63,7 @@ pub fn main() !void {
             if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.DeviceBindingRequiresResidentTraceCommit;
             try gkr.enableDeviceBinding(&native.library);
         }
+        if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) gkr.fixed_provider = .{ .context = &native, .acquire = Native.Context.provideFixed, .release = Native.Context.releaseProvidedFixed };
         const gkr_stage = gkr.stage();
         var composition = try ResidentComposition.Context.init(a, &native);
         defer composition.deinit();

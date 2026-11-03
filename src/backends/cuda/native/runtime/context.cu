@@ -26,6 +26,7 @@ constexpr size_t kInitialAllocationCapacity = 256;
 struct StwoNativeCudaAllocation {
     uintptr_t address;
     size_t bytes;
+    bool read_only = false;
 };
 
 struct StwoNativeCudaDependency {
@@ -893,6 +894,32 @@ extern "C" int stwo_exec_context_validate_allocation(
     return static_cast<int>(cudaErrorInvalidDevicePointer);
 }
 
+// Native constant images become read-only only after their owner joins writes.
+// This guards command-API destinations; custom CUDA kernels remain trusted code.
+static cudaError_t reject_read_only(StwoNativeCudaContext *context, const void *ptr, size_t bytes) {
+    const uintptr_t begin = reinterpret_cast<uintptr_t>(ptr);
+    if (bytes > UINTPTR_MAX - begin) return cudaErrorInvalidValue;
+    const uintptr_t end = begin + bytes;
+    for (size_t i = 0; i < context->allocation_count; ++i) {
+        const auto &allocation = context->allocations[i];
+        if (allocation.read_only && begin < allocation.address + allocation.bytes && allocation.address < end)
+            return cudaErrorInvalidValue;
+    }
+    return cudaSuccess;
+}
+extern "C" int stwo_exec_context_seal_read_only(void *handle, const void *ptr, size_t bytes) {
+    StwoNativeCudaContext *context = nullptr;
+    const auto status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    for (size_t i = 0; i < context->allocation_count; ++i) {
+        auto &allocation = context->allocations[i];
+        if (allocation.address == reinterpret_cast<uintptr_t>(ptr) && allocation.bytes == bytes) {
+            allocation.read_only = true;
+            return 0;
+        }
+    }
+    return static_cast<int>(cudaErrorInvalidDevicePointer);
+}
 extern "C" int stwo_exec_context_memset_async(
     void *handle,
     void *destination,
@@ -903,6 +930,7 @@ extern "C" int stwo_exec_context_memset_async(
     }
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+    if (status == cudaSuccess) status = reject_read_only(context, destination, bytes);
     if (status == cudaSuccess) {
         status = cudaMemsetAsync(
             destination,
@@ -923,6 +951,7 @@ extern "C" int stwo_exec_context_fill_u32_async(
     }
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+    if (status == cudaSuccess) status = reject_read_only(context, destination, count * sizeof(uint32_t));
     if (status != cudaSuccess) return static_cast<int>(status);
     constexpr uint32_t kThreads = 256;
     const size_t blocks = (count + kThreads - 1) / kThreads;
@@ -947,6 +976,7 @@ extern "C" int stwo_exec_context_memcpy_d2d_async(
     }
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+    if (status == cudaSuccess) status = reject_read_only(context, destination, bytes);
     if (status == cudaSuccess) {
         status = cudaMemcpyAsync(
             destination,
@@ -968,6 +998,7 @@ extern "C" int stwo_exec_context_memcpy_h2d_async(
     }
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+    if (status == cudaSuccess) status = reject_read_only(context, destination, bytes);
     if (status == cudaSuccess) {
         status = cudaMemcpyAsync(
             destination,

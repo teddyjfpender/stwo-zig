@@ -4,6 +4,7 @@ const std = @import("std");
 const A = @import("pcs_native_abi.zig");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Bind = *const fn (*anyopaque, *const A.Lease, *const [8]u32, *const [8]u32) callconv(.c) c_int;
+const Seal = *const fn (*anyopaque, *const A.Lease, *const [8]u32) callconv(.c) c_int;
 const Unbind = *const fn (*anyopaque, *const [8]u32) callconv(.c) c_int;
 const Entry = struct { key: [8]u32, lease: A.Lease, users: usize = 0, columns: []D.Column = &.{}, fixed_root: ?[32]u8 = null };
 const Borrow = struct { scope: [8]u32, key: [8]u32 };
@@ -12,19 +13,23 @@ pub const Cache = struct {
     allocate: A.LeaseAllocate,
     release: A.LeaseRelease,
     bind: Bind,
+    seal: Seal,
     unbind: Unbind,
     upload: A.Upload,
     sync: A.Sync,
+    copy: A.CopyDevice,
+    validate: A.LeaseValidateRange,
     limit: u64,
     bytes: u64 = 0,
     entries: std.ArrayList(Entry) = .empty,
     borrows: std.ArrayList(Borrow) = .empty,
     hits: u64 = 0,
     uploads: u64 = 0,
+    evictions: u64 = 0,
     const allocator = std.heap.page_allocator;
     pub fn init(library: *std.DynLib, session: *anyopaque, allocate: A.LeaseAllocate, release: A.LeaseRelease, limit: u64) !Cache {
         if (limit == 0) return error.InvalidImmutableSetupBudget;
-        return .{ .session = session, .allocate = allocate, .release = release, .limit = limit, .bind = library.lookup(Bind, "stwo_rv64_gpu_immutable_bind") orelse return error.MissingImmutableSetupCapability, .unbind = library.lookup(Unbind, "stwo_rv64_gpu_immutable_unbind_scope") orelse return error.MissingImmutableSetupCapability, .upload = library.lookup(A.Upload, "stwo_exec_context_memcpy_h2d_async") orelse return error.MissingImmutableSetupCapability, .sync = library.lookup(A.Sync, "stwo_exec_context_sync") orelse return error.MissingImmutableSetupCapability };
+        return .{ .session = session, .allocate = allocate, .release = release, .limit = limit, .bind = library.lookup(Bind, "stwo_rv64_gpu_immutable_bind") orelse return error.MissingImmutableSetupCapability, .seal = library.lookup(Seal, "stwo_rv64_gpu_immutable_seal") orelse return error.MissingImmutableSetupCapability, .unbind = library.lookup(Unbind, "stwo_rv64_gpu_immutable_unbind_scope") orelse return error.MissingImmutableSetupCapability, .upload = library.lookup(A.Upload, "stwo_exec_context_memcpy_h2d_async") orelse return error.MissingImmutableSetupCapability, .sync = library.lookup(A.Sync, "stwo_exec_context_sync") orelse return error.MissingImmutableSetupCapability, .copy = library.lookup(A.CopyDevice, "stwo_exec_context_memcpy_d2d_async") orelse return error.MissingImmutableSetupCapability, .validate = library.lookup(A.LeaseValidateRange, "stwo_rv64_gpu_lease_validate_range") orelse return error.MissingImmutableSetupCapability };
     }
     fn index(self: *const Cache, key: [8]u32) ?usize {
         for (self.entries.items, 0..) |entry, i| if (std.mem.eql(u32, &entry.key, &key)) return i;
@@ -67,10 +72,12 @@ pub const Cache = struct {
                 break;
             };
             const i = victim orelse return error.ImmutableSetupStillBorrowed;
-            var entry = self.entries.swapRemove(i);
+            var entry = self.entries.items[i];
             const bytes = entry.lease.count * 4;
             if (self.release(self.session, &entry.lease) != 0) return error.InvalidImmutableSetupLease;
+            _ = self.entries.swapRemove(i);
             self.bytes -= bytes;
+            self.evictions += 1;
             allocator.free(entry.columns);
         }
     }
@@ -93,6 +100,7 @@ pub const Cache = struct {
             _ = self.release(self.session, &lease);
         };
         if (self.upload(native_context, @ptrCast(lease.words.?), @ptrCast(values.ptr), @intCast(bytes)) != 0 or self.sync(native_context) != 0) return error.ImmutableSetupUploadFailed;
+        if (self.seal(self.session, &lease, &key) != 0) return error.ImmutableSetupSealFailed;
         self.entries.appendAssumeCapacity(.{ .key = key, .lease = lease });
         adopted = true;
         self.bytes += bytes;
@@ -113,27 +121,40 @@ pub const Cache = struct {
         for (columns) |column| {
             if (column.log_size > 28) return error.InvalidImmutableFixedSource;
             const count = @as(usize, 1) << @intCast(column.log_size);
-            if (column.device != null or column.coefficients.len != count) return error.InvalidImmutableFixedSource;
+            if (column.device) |device| {
+                if (column.coefficients.len != 0 or device.count != count) return error.InvalidImmutableFixedSource;
+            } else if (column.coefficients.len != count) return error.InvalidImmutableFixedSource;
             total = try std.math.add(usize, total, count);
         }
-        const values = try allocator.alloc(u32, total);
-        defer allocator.free(values);
+        if (total == 0) return error.InvalidImmutableFixedSource;
+        const bytes = try std.math.mul(u64, total, 4);
+        try self.evict(bytes);
+        try self.entries.ensureUnusedCapacity(allocator, 1);
         const output = try allocator.alloc(D.Column, columns.len);
-        errdefer allocator.free(output);
+        var lease: A.Lease = .{};
+        var adopted = false;
+        errdefer if (!adopted) {
+            if (lease.words != null) _ = self.release(self.session, &lease);
+            allocator.free(output);
+        };
+        if (self.allocate(self.session, total, 4, &key, &lease) != 0) return error.ImmutableSetupAllocationFailed;
         var offset: usize = 0;
-        for (columns) |column| {
-            for (column.coefficients, values[offset..][0..column.coefficients.len]) |value, *word| word.* = value.v;
-            offset += column.coefficients.len;
-        }
-        const lease = try self.words(native_context, request, key, values);
-        offset = 0;
         for (columns, output) |column, *out| {
-            const count = column.coefficients.len;
+            const count = @as(usize, 1) << @intCast(column.log_size);
+            const destination: *anyopaque = @ptrCast(lease.words.? + offset);
+            if (column.device) |device| {
+                if (self.validate(self.session, device.words, device.count, device.context_token, device.generation, &request) != 0 or self.copy(native_context, destination, @ptrCast(device.words), count * 4) != 0) return error.InvalidImmutableFixedSource;
+            } else if (self.upload(native_context, destination, @ptrCast(column.coefficients.ptr), count * 4) != 0) return error.ImmutableSetupUploadFailed;
             out.* = .{ .log_size = column.log_size, .device = .{ .words = lease.words.? + offset, .count = count, .context_token = lease.context_token, .generation = lease.generation } };
             offset += count;
         }
-        self.entries.items[self.index(key).?].columns = output;
-        self.entries.items[self.index(key).?].fixed_root = scope.fixed;
+        if (self.sync(native_context) != 0) return error.ImmutableSetupUploadFailed;
+        if (self.seal(self.session, &lease, &key) != 0) return error.ImmutableSetupSealFailed;
+        self.entries.appendAssumeCapacity(.{ .key = key, .lease = lease, .columns = output, .fixed_root = scope.fixed });
+        self.bytes += bytes;
+        self.uploads += 1;
+        adopted = true;
+        _ = try self.acquire(self.entries.items.len - 1, request);
         return output;
     }
     pub fn releaseScope(self: *Cache, scope: [8]u32) !void {
@@ -153,11 +174,18 @@ pub const Cache = struct {
     pub fn deinit(self: *Cache) !void {
         if (self.borrows.items.len != 0) return error.ImmutableSetupStillBorrowed;
         for (self.entries.items) |*entry| {
-            if (self.release(self.session, &entry.lease) != 0) return error.InvalidImmutableSetupLease;
-            allocator.free(entry.columns);
+            if (entry.lease.words != null and self.release(self.session, &entry.lease) != 0) return error.InvalidImmutableSetupLease;
         }
+        self.freeMetadata();
+    }
+    /// Terminal poisoned sessions still own device allocations until destroy.
+    /// Host-only descriptors can be reclaimed independently after callers join.
+    pub fn freeMetadata(self: *Cache) void {
+        for (self.entries.items) |entry| allocator.free(entry.columns);
         self.entries.deinit(allocator);
         self.borrows.deinit(allocator);
+        self.entries = .empty;
+        self.borrows = .empty;
     }
 };
 pub fn fixedIdentity(root: [32]u8, columns: []const D.Column) [8]u32 {
@@ -200,6 +228,9 @@ const Fake = struct {
         const self: *@This() = @ptrCast(@alignCast(raw));
         return if (self.fail_bind) 1 else 0;
     }
+    fn seal(_: *anyopaque, _: *const A.Lease, _: *const [8]u32) callconv(.c) c_int {
+        return 0;
+    }
     fn unbind(_: *anyopaque, _: *const [8]u32) callconv(.c) c_int {
         return 0;
     }
@@ -214,8 +245,11 @@ const Fake = struct {
     fn sync(_: *anyopaque) callconv(.c) c_int {
         return 0;
     }
+    fn validate(_: *anyopaque, _: [*]const u32, _: u64, _: u64, _: u64, _: *const [8]u32) callconv(.c) c_int {
+        return 0;
+    }
     fn cache(self: *@This(), limit: u64) Cache {
-        return .{ .session = self, .allocate = allocate, .release = release, .bind = bind, .unbind = unbind, .upload = upload, .sync = sync, .limit = limit };
+        return .{ .session = self, .allocate = allocate, .release = release, .bind = bind, .seal = seal, .unbind = unbind, .upload = upload, .copy = upload, .validate = validate, .sync = sync, .limit = limit };
     }
 };
 test "immutable setup reuses one upload and protects live requests from eviction" {
@@ -251,4 +285,27 @@ test "failed immutable alias admission leaves exactly one cache owner" {
     try cache.deinit();
     try std.testing.expectEqual(@as(usize, 1), fake.allocations);
     try std.testing.expectEqual(@as(usize, 1), fake.frees);
+}
+
+test "immutable FIXED forest reuses geometry across statements without host copies" {
+    var fake = Fake{};
+    var cache = fake.cache(1024);
+    const values = [_]D.M{D.M{ .v = 7 }} ** 32;
+    const columns = [_]D.Column{.{ .log_size = 5, .coefficients = &values }};
+    var scope = D.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    const first = try cache.fixed(&fake, scope, &columns);
+    const generation = first[0].device.?.generation;
+    try std.testing.expectEqual(@as(usize, 0), first[0].coefficients.len);
+    try std.testing.expectEqual(@as(u32, 7), first[0].device.?.words[31]);
+    const prior = @import("pcs_scope.zig").identity(scope);
+    scope.statement = @splat(4);
+    scope.main = @splat(5);
+    const second = try cache.fixed(&fake, scope, &columns);
+    try std.testing.expectEqual(generation, second[0].device.?.generation);
+    try std.testing.expectEqual(@as(usize, 1), fake.uploads);
+    try std.testing.expect((try cache.fixedColumn(scope, 0, columns[0])) != null);
+    try cache.releaseScope(prior);
+    try cache.releaseScope(@import("pcs_scope.zig").identity(scope));
+    try cache.deinit();
+    try std.testing.expectEqual(fake.allocations, fake.frees);
 }

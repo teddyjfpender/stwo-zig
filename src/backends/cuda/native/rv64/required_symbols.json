@@ -115,6 +115,11 @@
     "stwo_rv64_sumcheck_init_on",
     "stwo_rv64_sumcheck_round_on",
     "stwo_rv64_sumcheck_tail_on",
-    "stwo_rv64_trace_tree_on"
+    "stwo_rv64_trace_tree_on",
+    "stwo_rv64_gpu_immutable_bind",
+    "stwo_rv64_gpu_immutable_unbind_scope",
+    "stwo_rv64_gpu_session_live_leases",
+    "stwo_rv64_gpu_immutable_seal",
+    "stwo_exec_context_seal_read_only"
   ]
 }

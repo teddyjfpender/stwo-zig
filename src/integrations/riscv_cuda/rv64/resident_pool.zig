@@ -36,7 +36,7 @@ pub const Pool = struct {
             self.gkr = try @import("gkr_stage.zig").Backend.init(a, &self.native.library, self.native.session, std.math.cast(usize, cap) orelse return error.InvalidResidentDeviceCaps);
             errdefer self.gkr.deinit();
             if (device_binding) try self.gkr.enableDeviceBinding(&self.native.library);
-            self.gkr.fixed_provider = .{ .context = &self.native, .acquire = @import("pcs_native.zig").Context.provideFixed };
+            self.gkr.fixed_provider = .{ .context = &self.native, .acquire = @import("pcs_native.zig").Context.provideFixed, .release = @import("pcs_native.zig").Context.releaseProvidedFixed };
             self.gkr.coefficient_sink = .{ .context = &self.native, .publish = @import("pcs_native.zig").Context.publishCoefficients };
             self.composition = try @import("resident_composition.zig").Context.init(a, &self.native);
             errdefer self.composition.deinit();

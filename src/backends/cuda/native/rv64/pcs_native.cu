@@ -14,6 +14,7 @@
 extern "C" int stwo_exec_context_create_options(const StwoCudaContextOptions *,
                                                 void **);
 extern "C" int stwo_exec_context_destroy(void *);
+extern "C" int stwo_exec_context_seal_read_only(void *, const void *, size_t);
 extern "C" int stwo_exec_context_alloc_u32(void *, size_t, uint32_t **);
 extern "C" int stwo_exec_context_free_u32(void *, uint32_t *);
 extern "C" int stwo_exec_context_memcpy_h2d_async(void *, void *, const void *,
@@ -76,6 +77,7 @@ struct ResidentOwner {
     StwoRv64GpuLease value;
     Scope scope;
     std::vector<Scope> immutable_scopes;
+    bool sealed = false;
   };
   struct Domain {
     uint32_t log;
@@ -538,6 +540,7 @@ extern "C" int stwo_rv64_gpu_lease_rebind(
   auto &s = *static_cast<Service *>(raw);
   if (!s.isOwner()) return int(cudaErrorInvalidResourceHandle);
   try {
+    if (lease->kind == 4) throw std::runtime_error("immutable setup cannot change namespace");
     const Scope target = scope_of(to);
     if (!nonzero(target)) throw std::runtime_error("empty promoted lease scope");
     const auto &record = s.owner->find(lease->words, lease->count,
@@ -586,7 +589,7 @@ extern "C" int stwo_rv64_gpu_immutable_bind(void *raw, const StwoRv64GpuLease *l
   const Scope key=scope_of(setup), scope=scope_of(request_scope);
   if (!nonzero(scope) || lease->kind != 4 || lease->reserved) throw std::runtime_error("invalid immutable lease alias");
   const auto &found=s.owner->find(lease->words,lease->count,lease->context_token,lease->generation,key);
-  if(found.scope != key || found.value.words != lease->words || found.value.count != lease->count || found.value.kind !=4)
+  if(found.scope != key || found.value.words != lease->words || found.value.count != lease->count || found.value.kind !=4 || !found.sealed)
    throw std::runtime_error("immutable lease identity mismatch");
   for(auto &record:s.owner->leases) if(record.value.generation==lease->generation) {
    if(std::find(record.immutable_scopes.begin(),record.immutable_scopes.end(),scope)==record.immutable_scopes.end()) {
@@ -616,4 +619,19 @@ extern "C" int stwo_rv64_gpu_session_live_leases(void *raw,uint64_t counts[5],ui
  std::fill(counts,counts+5,0);*bytes=0;
  for(const auto &record:s.owner->leases) {++counts[record.value.kind];*bytes+=record.value.count*4;}
  return 0;
+}
+
+extern "C" int stwo_rv64_gpu_immutable_seal(void *raw,const StwoRv64GpuLease *lease,const uint32_t setup[8]) {
+ if(!raw || !lease || !setup || lease->reserved || lease->kind!=4) return int(cudaErrorInvalidValue);
+ auto &s=*static_cast<Service *>(raw);
+ if(!s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+ try {
+  const auto key=scope_of(setup);
+  const auto &found=s.owner->find(lease->words,lease->count,lease->context_token,lease->generation,key);
+  if(found.scope!=key || found.value.kind!=4 || found.value.words!=lease->words || found.value.count!=lease->count || !found.immutable_scopes.empty()) throw std::runtime_error("immutable seal descriptor mismatch");
+  s.owner->sync();
+  CHECK(stwo_exec_context_seal_read_only(s.owner->ctx,lease->words,lease->count*4));
+  for(auto &record:s.owner->leases) if(record.value.generation==lease->generation) {record.sealed=true;return 0;}
+  throw std::runtime_error("stale immutable seal");
+ }catch(const std::exception &e){s.error=e.what();return int(cudaErrorInvalidValue);}
 }

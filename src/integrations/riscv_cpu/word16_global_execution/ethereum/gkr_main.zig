@@ -165,6 +165,9 @@ pub const ResidentStages = struct {
     resident_composition: ?*const @import("../services/gkr_local/cpu_worker.zig").ResidentCompositionStage = null,
     trace_commit: ?*const @import("stwo_prover_api").device_pcs.TraceCommitStage = null,
     cpu_projection: ?@import("../../word16_execution/cpu_source.zig").ProjectionStage = null,
+    pub fn requireFullyResident(self: ResidentStages) !void {
+        if (self.source == null or self.truth_source == null or self.global_interaction == null or self.truth_composition == null or self.resident_composition == null or self.pcs == null or self.truth_pcs == null or self.trace_commit == null or self.cpu_projection == null or self.numerical == null or self.numerical.?.bind == null) return error.FullyResidentPipelineIncomplete;
+    }
 };
 pub const ResidentSession = @import("resident_session.zig").Session;
 pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
@@ -314,7 +317,11 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
-    const worker_limit = try producerWorkerLimit(operational.park_main, cpu.len + truths.len, operational.keccak_max_log);
+    const resident = blk: {
+        stages.requireFullyResident() catch break :blk false;
+        break :blk true;
+    };
+    const worker_limit = if (resident) try residentWorkerLimit(operational.park_main, cpu.len + truths.len, operational.keccak_max_log) else try producerWorkerLimit(operational.park_main, cpu.len + truths.len, operational.keccak_max_log);
     try Schedule.validateOrder(operational.stage2_order, try std.math.add(usize, cpu.len, truths.len));
     var source_bounds: ?SourceBounds.Report = null;
     defer if (source_bounds) |*value| value.deinit();
@@ -465,6 +472,12 @@ test "explicit recycler cache ceiling remains an operational bounded option" {
 // Parked coefficients and Merkle trees are bounded by explicit byte/disk
 // admission. Their roster must fit the existing receiver security envelope.
 // No-store retention keeps its smaller resident bound.
+fn residentWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
+    if (park_main) return error.ResidentPipelineCannotParkMain;
+    if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
+    if (count == 0 or count > Candidate.MAX_PROOFS or count > @import("../services/gkr_local/manifest.zig").MAX_WORKERS) return error.BoundedWideCoordinatorLimit;
+    return count;
+}
 fn producerWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
     if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
     const cap: usize = if (park_main) @intCast(Candidate.MAX_PROOFS) else 8;

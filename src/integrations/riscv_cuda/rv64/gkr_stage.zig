@@ -61,6 +61,7 @@ pub const CoefficientSink = struct {
 pub const FixedProvider = struct {
     context: *anyopaque,
     acquire: *const fn (*anyopaque, *anyopaque, @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope, []const @import("stwo_riscv_cpu_integration").rv64_device_pcs.Column) anyerror![]const @import("stwo_riscv_cpu_integration").rv64_device_pcs.Column,
+    release: *const fn (*anyopaque, @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope) anyerror!void,
 };
 pub const Backend = struct {
     fixed_provider: ?FixedProvider = null,
@@ -164,7 +165,19 @@ const Job = struct {
         defer context.active = false;
         const original_fixed_columns = self.request.native_fixed_columns;
         defer self.request.native_fixed_columns = original_fixed_columns;
-        if (b.fixed_provider) |provider| self.request.native_fixed_columns = try provider.acquire(provider.context, raw_context, .{ .statement = self.request.scope.statement, .fixed = self.request.scope.fixed, .main = self.request.scope.main, .ordinal = self.request.scope.ordinal }, original_fixed_columns);
+        const fixed_scope = @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope{ .statement = self.request.scope.statement, .fixed = self.request.scope.fixed, .main = self.request.scope.main, .ordinal = self.request.scope.ordinal };
+        var fixed_acquired = false;
+        var fixed_joined = false;
+        defer if (fixed_acquired) {
+            // Failure paths also drain readers before revoking immutable aliases.
+            if (!fixed_joined) context.join() catch {};
+            const provider = b.fixed_provider.?;
+            provider.release(provider.context, fixed_scope) catch {};
+        };
+        if (b.fixed_provider) |provider| {
+            self.request.native_fixed_columns = try provider.acquire(provider.context, raw_context, fixed_scope, original_fixed_columns);
+            fixed_acquired = true;
+        }
         var source = try Sources.Plan.init(a, self.request, &b.catalogue);
         defer source.deinit();
         const variables = try a.alloc(u32, source.items.len);
@@ -355,6 +368,7 @@ const Job = struct {
         }
         try events.mark(.readback, true, upload_stream);
         try context.join();
+        fixed_joined = true;
         const readback_done_ns = timer.read();
         const header: G.Header = @bitCast(header_words);
         try traversal.validate(header, verdict[0]);

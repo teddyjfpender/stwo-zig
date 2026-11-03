@@ -430,6 +430,13 @@ const Job = struct {
         var stream1: ?*anyopaque = null;
         try self.checked("lane0", b.session_api.lane_stream(raw, 0, &stream0));
         try self.checked("lane1", b.session_api.lane_stream(raw, 1, &stream1));
+        // A whole FIXED forest is acquired once under its independently derived
+        // root and ordered logs. Its read-only aliases live through native PCS.
+        if (self.trace.polys.items.len == 0) return error.MissingResidentFixedTree;
+        const fixed_columns = try a.alloc(D.Column, self.trace.polys.items[0].len);
+        defer a.free(fixed_columns);
+        for (self.trace.polys.items[0], fixed_columns) |column, *out| out.* = try sourceColumn(column);
+        _ = try b.service.immutableFixed(raw, self.scope, fixed_columns);
         var host_cells: u64 = 0;
         var device_cells: u64 = 0;
         var domain_cells: u64 = 0;
@@ -501,7 +508,8 @@ const Job = struct {
                     1 => offsets[1] + i - widths[0],
                     else => offsets[2] + i - widths[0] - widths[1],
                 };
-                if (if (original.device != null) original.device else b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
+                const immutable = if (source_tree == 0 and original.device == null) try b.service.immutableFixedColumn(self.scope, original_index, original) else null;
+                if (if (original.device != null) original.device else immutable orelse b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
                     try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
                     try self.checked("copy", b.copy(raw, @ptrCast(target), @ptrCast(device.words), length * 4));
                     device_cells += length;
@@ -736,6 +744,11 @@ test "LDE descriptor destinations include the coefficient arena prefix" {
 }
 
 test "truth stages retain typed authority with the same resident numerical pipeline" {
+    const Source = CPU.rv64_gkr_truth_device_source;
+    const columns = [_]D.Column{.{ .log_size = 5, .device = .{ .words = @ptrFromInt(4096), .count = 32, .context_token = 7, .generation = 9 } }};
+    const tree = D.Tree{ .root = @splat(0), .columns = &columns };
+    try Source.validateTree(tree, &.{5});
+    try std.testing.expectError(error.DeviceTruthShapeMismatch, Source.validateTree(tree, &.{6}));
     var context: Context = undefined;
     const stage = CPU.rv64_gkr_truth_device_composition.Stage{ .context = &context, .evaluate_and_commit = Context.evaluateTruth };
     try std.testing.expectEqual(@intFromPtr(&context), @intFromPtr(stage.context));

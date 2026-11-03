@@ -44,7 +44,7 @@ pub const Context = struct {
     /// Owner-thread callback: constants stay immutable; this request borrows a
     /// scoped alias. The cache owns the returned lease, never the caller.
     pub fn immutableWords(self: *Context, native_context: *anyopaque, scope: [8]u32, key: [8]u32, words: []const u32) !Abi.Lease {
-        if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 256 << 20));
+        if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 512 << 20));
         return self.immutable_setup.?.words(native_context, scope, key, words);
     }
     /// Owner-thread cold lookup avoids rebuilding authenticated constant words.
@@ -59,12 +59,16 @@ pub const Context = struct {
         const cache = self.immutable_setup orelse return null;
         return cache.fixedColumn(scope, index, original);
     }
+    pub fn releaseProvidedFixed(raw: *anyopaque, scope: D.Scope) !void {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        try self.releaseImmutableScope(@import("pcs_scope.zig").identity(scope));
+    }
     pub fn provideFixed(raw: *anyopaque, native_context: *anyopaque, scope: D.Scope, columns: []const D.Column) ![]const D.Column {
         const self: *Context = @ptrCast(@alignCast(raw));
         return self.immutableFixed(native_context, scope, columns);
     }
     pub fn immutableFixed(self: *Context, native_context: *anyopaque, scope: D.Scope, columns: []const D.Column) ![]const D.Column {
-        if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 256 << 20));
+        if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 512 << 20));
         return self.immutable_setup.?.fixed(native_context, scope, columns);
     }
     pub fn beginBlock(self: *Context, identity: [32]u8, budget: BlockBudget) !void {
@@ -80,6 +84,7 @@ pub const Context = struct {
         if (self.cache.items.len != 0) return error.ResidentBlockStillActive;
         try self.requireNoRequestLeases();
         self.active_block = null;
+        if (self.immutable_setup) |cache| std.debug.print("GPU_RESIDENT_SETUP device_bytes={} limit_bytes={} entries={} hits={} uploads={} evictions={} outstanding_aliases={}\n", .{ cache.bytes, cache.limit, cache.entries.items.len, cache.hits, cache.uploads, cache.evictions, cache.borrows.items.len });
     }
     const Audit = struct {
         self: *Context,
@@ -96,10 +101,19 @@ pub const Context = struct {
                 job.failure = error.ResidentRequestLeasesStillLive;
                 return 1;
             }
-            if (job.self.immutable_setup) |cache| if (cache.borrows.items.len != 0) {
-                job.failure = error.ImmutableSetupStillBorrowed;
+            if (job.self.immutable_setup) |cache| {
+                if (cache.borrows.items.len != 0) {
+                    job.failure = error.ImmutableSetupStillBorrowed;
+                    return 1;
+                }
+                if (counts[4] != cache.entries.items.len or bytes != cache.bytes) {
+                    job.failure = error.UntrackedImmutableSetupLease;
+                    return 1;
+                }
+            } else if (counts[4] != 0 or bytes != 0) {
+                job.failure = error.UntrackedImmutableSetupLease;
                 return 1;
-            };
+            }
             return 0;
         }
     };
@@ -239,6 +253,7 @@ pub const Context = struct {
         if (self.immutable_setup) |cache| {
             var cleanup = SetupCleanup{ .self = self, .cache = cache };
             _ = self.submit(self.session, SetupCleanup.run, &cleanup);
+            cache.freeMetadata();
             std.heap.page_allocator.destroy(cache);
         }
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");

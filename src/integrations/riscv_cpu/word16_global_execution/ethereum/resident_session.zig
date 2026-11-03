@@ -19,6 +19,7 @@ pub const Session = struct {
     active: bool = false,
     hits: u64 = 0,
     misses: u64 = 0,
+    evictions: u64 = 0,
     pub fn init(a: std.mem.Allocator, key_bytes: usize) !Session {
         const budget = try engine.host_budget_allocator.SharedHostBudget.create(a, key_bytes);
         errdefer budget.destroy();
@@ -68,8 +69,17 @@ pub const Session = struct {
             self.namespace = namespace;
         }
         const before = self.keyCount();
-        const out = try Keys.Owner.initWithSharedCache(self.key_budget.allocator(), image, cpu, truth, suite, self.caches(), &self.keys);
-        if (self.keyCount() == before) self.hits += 1 else self.misses += 1;
+        const evictions_before = self.evictions;
+        const out = Keys.Owner.initWithSharedCache(self.key_budget.allocator(), image, cpu, truth, suite, self.caches(), &self.keys) catch |err| blk: {
+            if (err != error.OutOfMemory) return err;
+            // No previous request holds an owner here. Reclaim cached classes
+            // and retry once under the SAME byte cap; never fall back unbounded.
+            self.keys.deinit();
+            self.keys = emptyKeys(self.key_budget.allocator());
+            self.evictions += 1;
+            break :blk try Keys.Owner.initWithSharedCache(self.key_budget.allocator(), image, cpu, truth, suite, self.caches(), &self.keys);
+        };
+        if (self.keyCount() == before and self.evictions == evictions_before) self.hits += 1 else self.misses += 1;
         return out;
     }
     pub fn keyCount(self: *const Session) usize {
