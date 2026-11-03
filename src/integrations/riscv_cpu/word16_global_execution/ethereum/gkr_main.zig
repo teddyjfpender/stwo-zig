@@ -476,7 +476,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         var recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, false, recursion_factory);
         recursion.native_prove_ns = prove_ns;
         const recursion_ns = timer.read() - recursion_start_ns;
-        try Driver.writeJson(a, recursive_dir, "report.json", recursion);
+        // execution_wrap already published its report exclusively. Native timing
+        // belongs in this combined report; never republish the existing file.
         const report = .{ .schema = 1, .accepted = true, .completed_ethereum_block = true, .authority_handoff = "live independently derived keys and fixed authority; direct in-memory bundle", .native_bundle_reload = false, .native_authority_session_used = session != null, .native_authority_classes = if (session) |shared| shared.keyCount() else @as(usize, 0), .restored_recursive_proofs = false, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .profile = selected_profile, .capture_ns = capture_ns, .native_setup_ns = setup_ns, .setup_breakdown = .{ .image_ns = image_load_ns, .program_ns = program_ns, .native_keys_ns = producer_keys_ns, .fixed_authority_ns = producer_fixed_ns }, .native_prove_ns = prove_ns, .native_verify_ns = verify_ns, .native_publish_ns = native_publish_ns, .recursion_ns = recursion_ns, .combined_ns = timer.read(), .recursive = recursion };
         try Driver.writeJson(a, dir, "combined-report.json", report);
         try std.posix.fsync(dir.fd);
