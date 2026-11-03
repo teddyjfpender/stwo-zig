@@ -141,6 +141,7 @@ def truth_catalog(source: Path, destination: Path, groups_per_module: int, max_m
     for role in roles:
         original = source / f"case-{role}-domain.cu"
         if role in (0, 5, 6, 7) or role >= 10:
+            (destination / f"role-{role}").mkdir(parents=True, exist_ok=True)
             item = partition(original, destination / f"role-{role}", groups_per_module, max_module_bytes)
             modules = item["modules"]
             if role == 7 and tail_first_group is not None:
