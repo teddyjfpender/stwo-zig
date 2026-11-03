@@ -1,0 +1,415 @@
+{
+  "schema": "rv64-real-resident-nsys/v1",
+  "scope": "Two complete real blocks, cold+warm; source_single_stream=true, cpu_replay=false; six AOT CPU compilers active during at least part of run. Profiling only; no headline wall speedup claim.",
+  "gpu": "RTX5090 sm120",
+  "native_library_sha256": "6d9a8d6188fb6df68b68d41557c2d905b2e17caa30a100d64cbbc7555c93a0ed",
+  "driver_sha256": "49f85ed00da6d6c6b752563eaa40a5b642eef13bf94499269321c138e09d3c92",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "trials": [
+    {
+      "trial": 0,
+      "all20_exact": true,
+      "report": {
+        "capture_ns": 5173820887,
+        "setup_ns": 25200708173,
+        "prove_ns": 9207258156,
+        "same_process_verify_ns": 2196629711,
+        "total_steps": 26894777,
+        "cpu_proofs": 7,
+        "truth_proofs": 10,
+        "completed_ethereum_block": true
+      }
+    },
+    {
+      "trial": 1,
+      "all20_exact": true,
+      "report": {
+        "capture_ns": 4841286422,
+        "setup_ns": 199411131,
+        "prove_ns": 7558671507,
+        "same_process_verify_ns": 2183934427,
+        "total_steps": 26894777,
+        "cpu_proofs": 7,
+        "truth_proofs": 10,
+        "completed_ethereum_block": true
+      }
+    }
+  ],
+  "memory_copies": [
+    {
+      "operation": "Host-to-Device",
+      "copies": 15571,
+      "bytes": 12840531288,
+      "summed_device_ns": 1026237521
+    },
+    {
+      "operation": "Device-to-Host",
+      "copies": 2674,
+      "bytes": 121599112,
+      "summed_device_ns": 5055622
+    },
+    {
+      "operation": "Device-to-Device",
+      "copies": 262944,
+      "bytes": 197905322080,
+      "summed_device_ns": 495065128
+    }
+  ],
+  "kernel_launches": 88171,
+  "summed_kernel_ns": 7844478765,
+  "top_kernel_families": [
+    {
+      "name": "stwo::cuda::rv64::keccak_witness(StwoRv64KeccakWitness)",
+      "launches": 12,
+      "summed_device_ns": 685600182
+    },
+    {
+      "name": "void stwo::cuda::transform::n2b_continue<(unsigned int)3, (unsigned int)3, (bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, const unsigned int *)",
+      "launches": 1704,
+      "summed_device_ns": 539526684
+    },
+    {
+      "name": "stwo::cuda::rv64::deep_aggregate_coordinates(StwoRv64DeepPrepare)",
+      "launches": 34,
+      "summed_device_ns": 473007902
+    },
+    {
+      "name": "rv64_truth_domain_0_shard_24",
+      "launches": 6,
+      "summed_device_ns": 450660422
+    },
+    {
+      "name": "stwo::cuda::rv64::oracles_fold(stwo::cuda::rv64::FoldPacket, unsigned int, const unsigned int *)",
+      "launches": 4500,
+      "summed_device_ns": 308222794
+    },
+    {
+      "name": "<unnamed>::stage_addressed_lde_columns(unsigned int *, unsigned long, const <unnamed>::AddressedLdeDescriptor *, unsigned int, unsigned long, unsigned int)",
+      "launches": 2722,
+      "summed_device_ns": 306812242
+    },
+    {
+      "name": "stwo::cuda::rv64::batch_round(unsigned int *, stwo::cuda::rv64::BatchJobs, unsigned int, const unsigned int *, unsigned int *)",
+      "launches": 4500,
+      "summed_device_ns": 301165477
+    },
+    {
+      "name": "stwo::cuda::rv64::oracles_sum(stwo::cuda::rv64::SumPacket, unsigned int, StwoRv64Plane, const unsigned int *, bool)",
+      "launches": 4500,
+      "summed_device_ns": 295198667
+    },
+    {
+      "name": "void stwo::cuda::transform::n2b_continue<(unsigned int)4, (unsigned int)4, (bool)0>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, const unsigned int *)",
+      "launches": 780,
+      "summed_device_ns": 285027153
+    },
+    {
+      "name": "void stwo::cuda::rv64::secp::witness<stwo::cuda::rv64::secp::Add>(StwoRv64SecpWitness)",
+      "launches": 12,
+      "summed_device_ns": 281664974
+    },
+    {
+      "name": "stwo::cuda::rv64::deep_combine(StwoRv64DeepCombine)",
+      "launches": 34,
+      "summed_device_ns": 273559767
+    },
+    {
+      "name": "void stwo::cuda::transform::n2b_final_block<(unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)",
+      "launches": 692,
+      "summed_device_ns": 247075518
+    },
+    {
+      "name": "void stwo::cuda::blake2s::mixed_leaf_kernel<(bool)1>(unsigned int, unsigned int, stwo::cuda::blake2s::MixedInputs, unsigned int, unsigned int, const stwo::cuda::blake2s::ProgressiveState *, stwo::cuda::blake2s::ProgressiveState *, stwo::cuda::blake2s::Hash *)",
+      "launches": 1200,
+      "summed_device_ns": 217607163
+    },
+    {
+      "name": "stwo::cuda::rv64::sample_first(StwoRv64SampleEvaluation, unsigned int)",
+      "launches": 1002,
+      "summed_device_ns": 213412216
+    },
+    {
+      "name": "stwo::cuda::rv64::channel_mix(unsigned int *, unsigned int, unsigned long, unsigned long, const unsigned int *, unsigned int, unsigned int, unsigned int *)",
+      "launches": 420,
+      "summed_device_ns": 164886459
+    },
+    {
+      "name": "stwo::cuda::rv64::deep_validate(StwoRv64DeepPrepare)",
+      "launches": 34,
+      "summed_device_ns": 142871275
+    },
+    {
+      "name": "stwo::cuda::rv64::derive_binding(StwoRv64BindingMetadata)",
+      "launches": 920,
+      "summed_device_ns": 139268018
+    },
+    {
+      "name": "void stwo::cuda::rv64::secp::witness<stwo::cuda::rv64::secp::Double>(StwoRv64SecpWitness)",
+      "launches": 8,
+      "summed_device_ns": 131214321
+    },
+    {
+      "name": "rv64_joined_domain_20",
+      "launches": 14,
+      "summed_device_ns": 108733878
+    },
+    {
+      "name": "void stwo::cuda::rv64::layer<(bool)0, (unsigned int)1>(StwoRv64Plane, StwoRv64Plane, unsigned int, StwoRv64Plane, StwoRv64Plane)",
+      "launches": 7494,
+      "summed_device_ns": 95666773
+    }
+  ],
+  "cuda_api": [
+    {
+      "name": "cudaStreamSynchronize_v3020",
+      "calls": 61114,
+      "summed_api_ns": 4476339913
+    },
+    {
+      "name": "cudaMemcpyAsync_v3020",
+      "calls": 281189,
+      "summed_api_ns": 2471948585
+    },
+    {
+      "name": "cudaLaunchKernel_v7000",
+      "calls": 88171,
+      "summed_api_ns": 2300873368
+    },
+    {
+      "name": "cudaEventSynchronize_v3020",
+      "calls": 34,
+      "summed_api_ns": 1817686588
+    },
+    {
+      "name": "cudaMallocFromPoolAsync_v11020",
+      "calls": 10997,
+      "summed_api_ns": 768151948
+    },
+    {
+      "name": "cudaMallocAsync_v11020",
+      "calls": 942,
+      "summed_api_ns": 277315993
+    },
+    {
+      "name": "cuLibraryUnload",
+      "calls": 268,
+      "summed_api_ns": 165225426
+    },
+    {
+      "name": "cudaMemPoolDestroy_v11020",
+      "calls": 1,
+      "summed_api_ns": 68912162
+    },
+    {
+      "name": "cudaMemPoolTrimTo_v11020",
+      "calls": 4,
+      "summed_api_ns": 46011476
+    },
+    {
+      "name": "cudaFreeAsync_v11020",
+      "calls": 11931,
+      "summed_api_ns": 15067205
+    },
+    {
+      "name": "cudaEventRecord_v3020",
+      "calls": 4720,
+      "summed_api_ns": 10143865
+    },
+    {
+      "name": "cudaEventCreateWithFlags_v3020",
+      "calls": 676,
+      "summed_api_ns": 3811428
+    },
+    {
+      "name": "cudaMemsetAsync_v3020",
+      "calls": 416,
+      "summed_api_ns": 3109372
+    },
+    {
+      "name": "cudaEventDestroy_v3020",
+      "calls": 948,
+      "summed_api_ns": 525534
+    },
+    {
+      "name": "cudaEventCreate_v3020",
+      "calls": 272,
+      "summed_api_ns": 214767
+    },
+    {
+      "name": "cudaStreamCreateWithFlags_v5000",
+      "calls": 2,
+      "summed_api_ns": 178023
+    },
+    {
+      "name": "cudaMemPoolCreate_v11020",
+      "calls": 1,
+      "summed_api_ns": 126590
+    },
+    {
+      "name": "cudaMemGetInfo_v3020",
+      "calls": 4,
+      "summed_api_ns": 101684
+    },
+    {
+      "name": "cudaStreamDestroy_v5050",
+      "calls": 2,
+      "summed_api_ns": 27047
+    },
+    {
+      "name": "cudaMemPoolSetAttribute_v11020",
+      "calls": 1,
+      "summed_api_ns": 6323
+    },
+    {
+      "name": "cuModuleGetLoadingMode",
+      "calls": 1,
+      "summed_api_ns": 1186
+    }
+  ],
+  "gpu_activity_timeline": {
+    "first_activity_ns": 31781805575,
+    "last_activity_ns": 55693358518,
+    "union_active_ns": 9360966727,
+    "span_ns": 23911552943,
+    "largest_idle_gaps": [
+      {
+        "start_ns": 40473900947,
+        "end_ns": 48638874839,
+        "duration_ns": 8164973892
+      },
+      {
+        "start_ns": 40093049195,
+        "end_ns": 40373074541,
+        "duration_ns": 280025346
+      },
+      {
+        "start_ns": 35465799610,
+        "end_ns": 35691674968,
+        "duration_ns": 225875358
+      },
+      {
+        "start_ns": 39547430870,
+        "end_ns": 39671889019,
+        "duration_ns": 124458149
+      },
+      {
+        "start_ns": 35298934204,
+        "end_ns": 35392849307,
+        "duration_ns": 93915103
+      },
+      {
+        "start_ns": 32025744639,
+        "end_ns": 32098945426,
+        "duration_ns": 73200787
+      },
+      {
+        "start_ns": 34944228095,
+        "end_ns": 35013100671,
+        "duration_ns": 68872576
+      },
+      {
+        "start_ns": 54939756215,
+        "end_ns": 55008537900,
+        "duration_ns": 68781685
+      },
+      {
+        "start_ns": 39094100443,
+        "end_ns": 39162880129,
+        "duration_ns": 68779686
+      },
+      {
+        "start_ns": 35239974044,
+        "end_ns": 35297909500,
+        "duration_ns": 57935456
+      }
+    ],
+    "scope": "Union of observed kernels/copies/memsets. Full trace includes setup,capture,native verification and inter-block gaps; not prover-only GPU utilization."
+  },
+  "raw_trace": {
+    "report": "/workspace/rv64-gpu-session/qualification/source-nsys-v1/trace.nsys-rep",
+    "report_bytes": 15542981,
+    "sqlite": "/workspace/rv64-gpu-session/qualification/source-nsys-v1/trace.sqlite"
+  },
+  "artifact_hashes": {
+    "bundle.json": {
+      "sha256": "6c9a1f0252e8ea15faf51f577e375f1d80e9ea40240ff3990633e427b7ec2710",
+      "bytes": 75235
+    },
+    "cells.bin": {
+      "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1",
+      "bytes": 47481952
+    },
+    "cpu-0.bin": {
+      "sha256": "d228325b05cb2ac649c99e3456889ea1badc36b0f3ebaab5672bf4693cc3d6b3",
+      "bytes": 3265496
+    },
+    "cpu-1.bin": {
+      "sha256": "e406822a2ab1ee13c213535366e6c7c38db23add838ab52f435592eea2ebc973",
+      "bytes": 2902600
+    },
+    "cpu-2.bin": {
+      "sha256": "338c766e60dcd5eab69be5be5a6e374a046c0afc62cd4b14a516fa2fd90c1239",
+      "bytes": 3156640
+    },
+    "cpu-3.bin": {
+      "sha256": "45a873f4da607a9bc08af6381c77c199095d6616a42860f425f6cce1eb133894",
+      "bytes": 3173288
+    },
+    "cpu-4.bin": {
+      "sha256": "44b53dbe040eeacba3a9e2681f21cc5741ad9e79744cdadb7431c35963513077",
+      "bytes": 3106824
+    },
+    "cpu-5.bin": {
+      "sha256": "f78613e39f85db62b6981a2283a00b2f08b72e7b28050da0e6d3977282d22411",
+      "bytes": 3022048
+    },
+    "cpu-6.bin": {
+      "sha256": "fa5cc32d5a1611a137cf73539b9665860d9b2ab6f53f69359dbe897e999026ba",
+      "bytes": 1438928
+    },
+    "stage-one.bin": {
+      "sha256": "0441f0a8afc985e712e35dcdf4eb652be10955b2d2a1933eee78651a98223df8",
+      "bytes": 823536
+    },
+    "truth-0.bin": {
+      "sha256": "d1778c9e8634ad8d606f46183abe88361d6aa0743b84c22acf91ea10b219d5f7",
+      "bytes": 2352008
+    },
+    "truth-1.bin": {
+      "sha256": "bf5b35b8581bfcd50fa6c7d24667440a002be6e493d111c2926a5d233cfb50c5",
+      "bytes": 2347496
+    },
+    "truth-2.bin": {
+      "sha256": "e7be56b12ea6f1983db3df5f70f33e0e17b1d797afab6fa7f3331463de6919c4",
+      "bytes": 2344200
+    },
+    "truth-3.bin": {
+      "sha256": "8f35ad3785fbb38c955a7c25c7f85433c756872ae0617cc0fa52d6bb70bfba2b",
+      "bytes": 3463652
+    },
+    "truth-4.bin": {
+      "sha256": "7c4fdea4e85ed6c1b0724cae600c30e8be0593f2ac8692907625cdebcfbaae32",
+      "bytes": 3348948
+    },
+    "truth-5.bin": {
+      "sha256": "d5690e400bcbd61f9a8c090f204282f740b4ec58f8bb5834741cc4cd650708ad",
+      "bytes": 3130488
+    },
+    "truth-6.bin": {
+      "sha256": "dc8c1fae89b2223a7a59d6ed09416ceeae20cb54443cb62eeb012cdfbf2869a1",
+      "bytes": 2754732
+    },
+    "truth-7.bin": {
+      "sha256": "b362ab58a21bb664d08f5c07cd6f6d4d6fa003782b16a47b38dc1b9e4da435bf",
+      "bytes": 2626112
+    },
+    "truth-8.bin": {
+      "sha256": "583690beea58d3632be783674360c422b0eccf92de0acafeea166aa982d3d450",
+      "bytes": 3653640
+    },
+    "truth-9.bin": {
+      "sha256": "b2815081266d41b4309a46b7969ba9d5854c1d3a32cb70556df702755df6413b",
+      "bytes": 687400
+    }
+  }
+}
