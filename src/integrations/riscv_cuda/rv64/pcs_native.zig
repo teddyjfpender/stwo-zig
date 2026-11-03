@@ -12,6 +12,8 @@ const Setup = @import("immutable_setup.zig");
 const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 pub const Context = struct {
     byte_cap: u64,
+    /// Immutable host FFT/FRI geometry only; request/transcript data never enter.
+    host_geometry: Export.GeometryCache = Export.GeometryCache.init(std.heap.page_allocator, Export.GeometryCache.default_bytes),
     immutable_setup: ?*Setup.Cache = null,
     active_block: ?[32]u8 = null,
     cache_mutex: std.Thread.Mutex = .{},
@@ -279,6 +281,7 @@ pub const Context = struct {
         return .{ .byte_cap = capacity, .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn deinit(self: *Context) void {
+        self.host_geometry.deinit();
         while (self.cache.items.len != 0) self.releaseScope(self.cache.items[self.cache.items.len - 1].scope);
         self.cache.deinit(std.heap.page_allocator);
         if (self.immutable_setup) |cache| {
@@ -356,7 +359,7 @@ pub const Context = struct {
         }
         var resident_request = request;
         resident_request.trees = trees;
-        var prepared = try Export.prepareRequest(a, resident_request, channel.*);
+        var prepared = try Export.prepareRequestWithCache(a, resident_request, channel.*, &self.host_geometry);
         defer prepared.deinit(a);
         const prepare_ns = timer.read();
         const descriptor = prepared.descriptor();
@@ -370,7 +373,8 @@ pub const Context = struct {
         var decoded = try Decode.decodeWords(a, prepared.metadata.shape, result.words.?[0..@intCast(result.count)]);
         errdefer decoded.proof.deinit(a);
         channel.* = decoded.channel;
-        std.debug.print("GPU_PCS_NATIVE prepare_ns={} device_ns={} total_ns={} device_bytes={} retained_bytes={} coefficient_cells={} reused_columns={} reused_cells={}\n", .{ prepare_ns, result.device_ns, timer.read(), result.requested_bytes, result.retained_bytes, prepared.metadata.coefficient_cells, reused_columns, reused_cells });
+        const host_geometry = self.host_geometry.stats();
+        std.debug.print("GPU_PCS_NATIVE prepare_ns={} device_ns={} total_ns={} device_bytes={} retained_bytes={} coefficient_cells={} reused_columns={} reused_cells={} host_geometry_hits={} host_geometry_misses={} host_geometry_bytes={} host_geometry_cap={} host_geometry_bypasses={}\n", .{ prepare_ns, result.device_ns, timer.read(), result.requested_bytes, result.retained_bytes, prepared.metadata.coefficient_cells, reused_columns, reused_cells, host_geometry.hits, host_geometry.misses, host_geometry.retained_bytes, host_geometry.limit, host_geometry.bypasses });
         return .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = core.pcs.TreeVec(core.vcs_lifted.verifier.MerkleDecommitmentLiftedAux(D.H)).initOwned(&.{}), .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } };
     }
 };

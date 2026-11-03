@@ -61,6 +61,9 @@ pub fn checkpoint(w: anytype, c: Channel) !void {
     try IO.words(w, &.{c.inner.n_draws});
 }
 pub fn friMetadata(plan: F.Plan, descriptions: *std.ArrayList(u32), twiddles: *std.ArrayList(M)) !void {
+    return friMetadataWithAllocator(a, plan, descriptions, twiddles);
+}
+pub fn friMetadataWithAllocator(allocator: std.mem.Allocator, plan: F.Plan, descriptions: *std.ArrayList(u32), twiddles: *std.ArrayList(M)) !void {
     const domain = core.poly.circle.canonic.CanonicCoset.new(plan.initial_log).circleDomain();
     var line = core.poly.line.LineDomain.fromCircleDomain(domain);
     for (plan.layers[0..plan.len], 0..) |layer, li| {
@@ -69,27 +72,27 @@ pub fn friMetadata(plan: F.Plan, descriptions: *std.ArrayList(u32), twiddles: *s
         for (0..layer.fold_step) |step| {
             offsets[step] = @intCast(twiddles.items.len);
             const half = count / 2;
-            const values = try a.alloc(M, half);
-            defer a.free(values);
-            const inverses = try a.alloc(M, half);
-            defer a.free(inverses);
+            const values = try allocator.alloc(M, half);
+            defer allocator.free(values);
+            const inverses = try allocator.alloc(M, half);
+            defer allocator.free(inverses);
             if (li == 0 and step == 0) {
                 F.F.fillBitReversedCosetCoordinate(values, domain.half_coset, .y);
                 try core.fields.batchInverseInPlace(M, values, inverses);
                 for (0..(half + 3) / 4) |pair| {
-                    try twiddles.append(a, if (pair * 4 + 3 < half) inverses[pair * 4 + 3] else M.zero());
-                    try twiddles.append(a, inverses[pair * 4]);
+                    try twiddles.append(allocator, if (pair * 4 + 3 < half) inverses[pair * 4 + 3] else M.zero());
+                    try twiddles.append(allocator, inverses[pair * 4]);
                 }
             } else {
                 F.F.fillBitReversedCosetCoordinate(values, line.coset(), .x);
                 try core.fields.batchInverseInPlace(M, values, inverses);
-                try twiddles.appendSlice(a, inverses);
+                try twiddles.appendSlice(allocator, inverses);
             }
             if (li != 0 or step != 0) line = line.double();
             count /= 2;
         }
-        try descriptions.appendSlice(a, &.{ layer.count, layer.fold_step, layer.leaf_log, layer.shift });
-        try descriptions.appendSlice(a, &offsets);
+        try descriptions.appendSlice(allocator, &.{ layer.count, layer.fold_step, layer.leaf_log, layer.shift });
+        try descriptions.appendSlice(allocator, &offsets);
     }
 }
 fn exportFixture(dir: std.fs.Dir) !void {

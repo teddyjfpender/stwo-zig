@@ -9,6 +9,7 @@ const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Assembly = @import("pcs_assembly.zig");
 const F = @import("fri.zig");
 const C = @import("../rv64_pcs_fixture_main.zig");
+pub const GeometryCache = @import("pcs_geometry_cache.zig").Cache;
 const M = D.M;
 const Point = D.Point;
 const Shift = core.circle.CirclePointM31;
@@ -74,6 +75,11 @@ fn hash(file: std.fs.File, digest: [32]u8) !void {
     try file.writeAll(&digest);
 }
 pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Channel) !Prepared {
+    return prepareRequestWithCache(a, request, initial, null);
+}
+/// Native contexts supply a bounded immutable host cache. Debug exports keep
+/// the uncached entry above; all transcript-derived sections stay fresh.
+pub fn prepareRequestWithCache(a: std.mem.Allocator, request: D.Request, initial: D.Channel, cache: ?*GeometryCache) !Prepared {
     if (request.trees.len == 0 or request.trees.len > 4 or request.points.items.len != request.trees.len or request.lifting_log_size < request.config.fri_config.log_blowup_factor or request.lifting_log_size > 28) return error.InvalidDevicePcsRequest;
     const beta = request.config.fri_config.log_blowup_factor;
     const degree = request.lifting_log_size - beta;
@@ -133,8 +139,14 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
         for (groups.items) |*g| g.terms.deinit(a);
         groups.deinit(a);
     }
-    var twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(maximum_source_log + beta).circleDomain().half_coset);
-    defer engine.poly.twiddles.deinitM31(a, &twiddles);
+    const geometry = if (cache) |owner| try owner.acquire(maximum_source_log + beta, plan) else null;
+    errdefer if (geometry) |borrow| borrow.release();
+    var uncached_twiddles: ?engine.poly.twiddles.TwiddleTree([]M) = null;
+    defer if (uncached_twiddles) |*tw| engine.poly.twiddles.deinitM31(a, tw);
+    const forward: []const M = if (geometry) |borrow| borrow.forward() else blk: {
+        uncached_twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(maximum_source_log + beta).circleDomain().half_coset);
+        break :blk uncached_twiddles.?.twiddles;
+    };
     var coefficient_words: u64 = 0;
     var evaluation_words: u64 = 0;
     var source_base: u32 = 0;
@@ -159,7 +171,7 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
             }
             const ev = pair(eval_start);
             const twiddle_count: u32 = @as(u32, 1) << @intCast(log + beta - 1);
-            try source_groups.appendSlice(a, &.{ ev[0], ev[1], log, log + beta, source_base + try count32(first_sorted), try count32(sorted - first_sorted), try count32(twiddles.twiddles.len - twiddle_count), twiddle_count });
+            try source_groups.appendSlice(a, &.{ ev[0], ev[1], log, log + beta, source_base + try count32(first_sorted), try count32(sorted - first_sorted), try count32(forward.len - twiddle_count), twiddle_count });
         }
         try tree_info.appendSlice(a, &.{ source_base, try count32(tree.columns.len), first_group, try count32(source_groups.items.len / 8) - first_group, std.mem.max(u32, meta.coefficient_logs) + beta, 0 });
         // Powers follow ORIGINAL tree/column/sample order, not height sorting.
@@ -203,7 +215,7 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
         try deep_groups.appendSlice(a, &.{ first, try count32(terms.items.len / 4), g.log, g.log + beta, coeff[0], coeff[1], eval[0], eval[1] });
         try recipes.appendSlice(a, &.{ g.shift.x.v, g.shift.y.v, request.lifting_log_size - (g.log + beta), g.log });
         const count: u32 = @as(u32, 1) << @intCast(g.log + beta - 1);
-        try deep_tw.appendSlice(a, &.{ try count32(twiddles.twiddles.len - count), count });
+        try deep_tw.appendSlice(a, &.{ try count32(forward.len - count), count });
         combined_coefficients += @as(u64, 8) << @intCast(g.log);
         combined_evaluations += @as(u64, 8) << @intCast(g.log + beta);
     }
@@ -214,10 +226,15 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
     defer fri_desc.deinit(std.heap.page_allocator);
     var fri_tw: std.ArrayList(M) = .empty;
     defer fri_tw.deinit(std.heap.page_allocator);
-    try C.friMetadata(plan, &fri_desc, &fri_tw);
-    const h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), try count32(coefficient_words), try count32(evaluation_words), try count32(combined_coefficients), try count32(combined_evaluations), try count32(twiddles.twiddles.len), try count32(fri_tw.items.len), 1, request.config.pow_bits, 0 };
-    var section_storage: [17][]u32 = @splat(&.{});
-    errdefer for (section_storage) |section| a.free(section);
+    if (geometry == null) try C.friMetadata(plan, &fri_desc, &fri_tw);
+    const fri_descriptions: []const u32 = if (geometry) |borrow| borrow.descriptions() else fri_desc.items;
+    const fri_coordinates: []const M = if (geometry) |borrow| borrow.coordinates() else fri_tw.items;
+    const h = [_]u32{ 0x52564d53, 2, 0, degree, request.lifting_log_size, beta, try count32(request.config.fri_config.n_queries), request.config.fri_config.fold_step, try count32(source_count), exponent, try count32(groups.items.len), try count32(source_groups.items.len / 8), try count32(trees.len), try count32(sample_count), try count32(plan.len), try count32(coefficient_words), try count32(evaluation_words), try count32(combined_coefficients), try count32(combined_evaluations), try count32(forward.len), try count32(fri_coordinates.len), 1, request.config.pow_bits, 0 };
+    var section_storage: [17][]const u32 = @splat(&.{});
+    var section_owned: [17]bool = @splat(true);
+    errdefer for (section_storage, section_owned) |section, owned| {
+        if (owned) a.free(section);
+    };
     var seed: [9]u32 = undefined;
     for (seed[0..8], 0..) |*v, i| v.* = std.mem.readInt(u32, initial.inner.digest[i * 4 ..][0..4], .little);
     seed[8] = initial.inner.n_draws;
@@ -231,8 +248,13 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
     };
     const half = core.poly.circle.canonic.CanonicCoset.new(request.lifting_log_size).circleDomain().half_coset;
     const domain_parameters = [4]u32{ half.initial.x.v, half.initial.y.v, half.step.x.v, half.step.y.v };
-    const sections = [_][]const u32{ &h, &seed, &point_words, sources.items, terms.items, deep_groups.items, source_groups.items, tree_info.items, recipes.items, deep_tw.items, sample_map, sample_counts.items, mWords(twiddles.twiddles), fri_desc.items, mWords(fri_tw.items), expected_roots, &domain_parameters };
-    for (sections, &section_storage) |section, *storage| storage.* = try a.dupe(u32, section);
+    const sections = [_][]const u32{ &h, &seed, &point_words, sources.items, terms.items, deep_groups.items, source_groups.items, tree_info.items, recipes.items, deep_tw.items, sample_map, sample_counts.items, mWords(forward), fri_descriptions, mWords(fri_coordinates), expected_roots, &domain_parameters };
+    for (sections, &section_storage, &section_owned, 0..) |section, *storage, *owned, i| {
+        if (geometry != null and i >= 12 and i <= 14) {
+            storage.* = section;
+            owned.* = false;
+        } else storage.* = try a.dupe(u32, section);
+    }
     const coefficients = try a.alloc(Native.Column, source_count);
     errdefer a.free(coefficients);
     var ci: usize = 0;
@@ -240,7 +262,7 @@ pub fn prepareRequest(a: std.mem.Allocator, request: D.Request, initial: D.Chann
         coefficients[ci] = nativeColumn(tree.columns[original]);
         ci += 1;
     };
-    return .{ .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .coefficients = coefficients, .scope = requestScope(request) };
+    return .{ .metadata = .{ .shape = .{ .config = request.config, .degree_log = degree, .trees = trees }, .sources = try count32(source_count), .terms = exponent, .groups = try count32(groups.items.len), .source_groups = try count32(source_groups.items.len / 8), .sample_count = try count32(sample_count), .degree_log = degree, .eval_log = request.lifting_log_size, .coefficient_cells = coefficient_words }, .section_storage = section_storage, .section_owned = section_owned, .geometry = geometry, .coefficients = coefficients, .scope = requestScope(request) };
 }
 
 fn columnCount(column: D.Column) u64 {
@@ -269,7 +291,9 @@ fn mWords(values: []const M) []const u32 {
 }
 pub const Prepared = struct {
     metadata: Metadata,
-    section_storage: [17][]u32,
+    section_storage: [17][]const u32,
+    section_owned: [17]bool = @splat(true),
+    geometry: ?GeometryCache.Borrow = null,
     coefficients: []Native.Column,
     owns_metadata: bool = true,
     scope: [8]u32 = @splat(0),
@@ -285,7 +309,8 @@ pub const Prepared = struct {
     }
     pub fn deinit(self: *Prepared, a: std.mem.Allocator) void {
         if (self.owns_metadata) self.metadata.deinit(a);
-        for (self.section_storage) |section| a.free(section);
+        for (self.section_storage, self.section_owned) |section, owned| if (owned) a.free(section);
+        if (self.geometry) |borrow| borrow.release();
         a.free(self.coefficients);
         self.* = undefined;
     }

@@ -33,6 +33,12 @@ pub fn build(b: *std.Build) void {
     router_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     const router_tests = b.addTest(.{ .root_module = router_root });
     b.step("test-rv64-resident-router", "Test concrete multi-device RV64 routing and bounded custody without a GPU").dependOn(&b.addRunArtifact(router_tests).step);
+    const pcs_geometry_root = b.createModule(.{ .root_source_file = b.path("rv64_pcs_geometry_test_root.zig"), .target = target, .optimize = optimize });
+    pcs_geometry_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    pcs_geometry_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    pcs_geometry_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const pcs_geometry_tests = b.addTest(.{ .root_module = pcs_geometry_root });
+    b.step("test-rv64-pcs-geometry", "Check bounded immutable PCS geometry and fresh request framing without a GPU").dependOn(&b.addRunArtifact(pcs_geometry_tests).step);
     const gkr_plan_root = b.createModule(.{ .root_source_file = b.path("rv64_gkr_plan_test_root.zig"), .target = target, .optimize = optimize });
     gkr_plan_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     gkr_plan_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
