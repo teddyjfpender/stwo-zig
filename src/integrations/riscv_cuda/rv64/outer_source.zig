@@ -254,7 +254,7 @@ pub const Owner = struct {
         // INTER evaluations; MAIN coefficients already have independent custody.
         try self.run(dropMainEvaluations);
         const commit = self.backend.trace_commit.stage();
-        const tree = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 2, .columns = self.inter_columns });
+        const tree = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 2, .columns = self.inter_columns, .retire_input = .{ .context = self, .scope = scope, .retire = retireInteractionInputs } });
         self.inter_ready = true;
         try self.run(dropEvaluations);
         self.backend.service.finishProofScope(self.initial_scope);
@@ -264,6 +264,16 @@ pub const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         if (!self.inter_ready) return error.OuterInteractionsNotReady;
         return @import("outer_source_composition.zig").evaluate(self, a, randomness, log, split, total, trace);
+    }
+    fn retireInteractionInputs(raw: *anyopaque, native_context: *anyopaque, token: u64, scope: D.Scope) !void {
+        const self: *Owner = @ptrCast(@alignCast(raw));
+        if (self.inter_ready or !std.meta.eql(self.scope, scope) or self.main_evaluations.words != null) return error.InvalidOuterInteractionScope;
+        var bytes: u64 = 0;
+        for (self.leases.items) |lease| if (lease.words != null) {
+            bytes = try std.math.add(u64, bytes, try std.math.mul(u64, lease.count, 4));
+        };
+        try self.dropEvaluations(native_context, token);
+        std.log.info("GPU_OUTER released_INTER_evaluation_bytes={d} after_joined_coefficient_ingress=true before_LDE_scratch=true", .{bytes});
     }
     fn dropMainEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
         const main = self.main_evaluations;
@@ -411,4 +421,46 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     Owner.release(owner);
     try std.testing.expect(backend.active == null);
     try std.testing.expect(backend.assignment == null);
+}
+
+test "outer INTER retirement preserves headers and failure cleanup retains remaining custody" {
+    const a = std.testing.allocator;
+    const Fake = struct {
+        calls: usize = 0,
+        fail_on: usize = 2,
+        fn release(raw: *anyopaque, lease: *Native.Lease) callconv(.c) c_int {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.calls += 1;
+            if (self.calls == self.fail_on) return 1;
+            lease.* = .{};
+            return 0;
+        }
+    };
+    var fake: Fake = .{};
+    var service: Service.Context = undefined;
+    service.session = &fake;
+    service.lease_release = Fake.release;
+    var backend: Context = undefined;
+    backend.service = &service;
+    var owner: Owner = undefined;
+    owner.backend = &backend;
+    owner.inter_ready = false;
+    owner.scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 4 };
+    owner.main_evaluations = .{};
+    owner.leases = .empty;
+    defer owner.leases.deinit(a);
+    try owner.leases.append(a, .{ .words = @ptrFromInt(4096), .count = 8, .context_token = 7, .generation = 1, .kind = 1 });
+    try owner.leases.append(a, .{ .words = @ptrFromInt(8192), .count = 16, .context_token = 7, .generation = 2, .kind = 1 });
+    var headers = [_]D.TraceColumn{.{ .log_size = 3, .encoding = .evaluations, .device = .{ .words = @ptrFromInt(4096), .count = 8, .context_token = 7, .generation = 1 } }};
+    owner.inter_columns = &headers;
+    try std.testing.expectError(error.CudaOuterStageFailed, Owner.retireInteractionInputs(&owner, &fake, 7, owner.scope));
+    try std.testing.expect(owner.leases.items[0].words == null);
+    try std.testing.expect(owner.leases.items[1].words != null);
+    // Cleanup retries only the remaining owner lease; no successful release is
+    // repeated, and scalar headers survive until the commit's metadata finishes.
+    try Owner.retireInteractionInputs(&owner, &fake, 7, owner.scope);
+    try std.testing.expectEqual(@as(usize, 3), fake.calls);
+    try std.testing.expectEqual(@as(usize, 0), owner.leases.items.len);
+    try std.testing.expectEqual(@as(usize, 1), owner.inter_columns.len);
+    try std.testing.expectEqual(@as(u32, 3), owner.inter_columns[0].log_size);
 }
