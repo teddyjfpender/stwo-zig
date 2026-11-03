@@ -70,6 +70,17 @@ pub fn build(b: *std.Build) void {
         "Run host-independent RISC-V CUDA integration contract tests",
     );
     test_step.dependOn(&tests.step);
+    const prefix_tests = b.addExecutable(.{
+        .name = "rv64-prefix-bank-tests",
+        .root_module = b.createModule(.{ .target = b.graph.host, .optimize = optimize }),
+    });
+    prefix_tests.addCSourceFile(.{ .file = b.path("../../backends/cuda/native/rv64/prefix_banks_test.cpp"), .flags = &.{"-std=c++17"} });
+    prefix_tests.linkLibC();
+    prefix_tests.linkLibCpp();
+    const run_prefix_tests = b.addRunArtifact(prefix_tests);
+    b.step("test-prefix-banks", "Check alternating Merkle prefix workspace geometry without a GPU").dependOn(&run_prefix_tests.step);
+    test_step.dependOn(&run_prefix_tests.step);
+
     const numerical_root = b.createModule(.{
         .root_source_file = b.path("rv64_numerical_test_root.zig"),
         .target = target,
