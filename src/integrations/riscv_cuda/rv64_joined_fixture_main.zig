@@ -169,6 +169,12 @@ fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !voi
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-native-om31")) {
+        try std.fs.cwd().makePath(args[2]);
+        var directory = try std.fs.cwd().openDir(args[2], .{});
+        defer directory.close();
+        return @import("rv64/outer_aot.zig").write(a, directory);
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "--curve-witness-layout")) {
         try std.fs.cwd().makePath(args[2]);
         var d = try std.fs.cwd().openDir(args[2], .{});

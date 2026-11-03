@@ -1,0 +1,247 @@
+//! Concrete resident native-OM31 circuit factory. Builder assignments are the
+//! sole witness ingress. MAIN, lookup histograms, O8 INTER, composition and PCS
+//! remain under one persistent scoped native session; no host-wide fallback.
+const std = @import("std");
+const core = @import("stwo_core");
+const circuit = @import("stwo_circuit_frontend");
+const CPU = @import("stwo_circuit_cpu_integration");
+const Outer = CPU.om31;
+const Dev = Outer.device_prove;
+const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
+const Service = @import("pcs_native.zig");
+const Native = @import("pcs_native_abi.zig");
+const SC = @import("session_context.zig");
+const RC = @import("resident_composition.zig");
+const TC = @import("trace_commit.zig");
+const Aot = @import("outer_aot.zig");
+const Code = @import("composition_codegen.zig");
+const Abi = @import("abi.zig");
+const Base = @import("stwo_cuda_backend").abi.stages.circuit_base;
+pub const BaseFn = *const @TypeOf(Base.stwo_circuit_base_witness_on);
+pub const Memset = *const fn (*anyopaque, *anyopaque, c_int, usize) callconv(.c) c_int;
+pub const Fractions = extern struct { fixed: ?[*]const u32, main: [*]const u32, parameters: [*]const u32, numerators: [*]u32, denominators: [*]u32, status: *u32, fixed_words: u64, main_words: u64, numerator_words: u64, denominator_words: u64, component: u32, row_log: u32, reserved: [2]u32 = .{ 0, 0 } };
+pub const Cumulative = extern struct { output: [*]u32, contributions: [*]const u32, claim: [*]const u32, stride: u64, row_log: u32, pairs: u32 };
+const FractionFn = *const fn (*anyopaque, u32, *const Fractions) callconv(.c) c_int;
+const CumulativeFn = *const fn (*anyopaque, u32, *const Cumulative) callconv(.c) c_int;
+const IdentityFn = *const fn (u32, [*]u8) callconv(.c) c_int;
+pub fn checked(status: c_int) !void {
+    if (status != 0) {
+        std.debug.print("GPU_OUTER native_status={}\n", .{status});
+        return error.CudaOuterStageFailed;
+    }
+}
+fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
+    return lib.lookup(T, name) orelse error.MissingOm31OuterKernel;
+}
+pub const Entry = struct { group: Aot.Group, metadata: RC.KernelMetadata };
+pub const Context = struct {
+    allocator: std.mem.Allocator,
+    service: *Service.Context,
+    trace_commit: *TC.Context,
+    composition: *RC.Context,
+    api: SC.Api,
+    base: BaseFn,
+    clear: Memset,
+    copy: Native.CopyDevice,
+    fractions: FractionFn,
+    cumulative: CumulativeFn,
+    global_pairs: *const @TypeOf(Abi.stwo_rv64_global_pairs_on),
+    identity: IdentityFn,
+    role: *const @TypeOf(Abi.stwo_rv64_composition_role_on),
+    entries: std.ArrayList(Entry) = .empty,
+    body_identity: ?[32]u8 = null,
+    metadata_bytes: usize = 0,
+    metadata_cap_bytes: usize = 4 << 20,
+    active: ?*Owner = null,
+    mutex: std.Thread.Mutex = .{},
+    pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
+        return .{ .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
+    }
+    pub fn deinit(self: *Context) void {
+        std.debug.assert(self.active == null);
+        for (self.entries.items) |*e| e.metadata.deinit();
+        self.entries.deinit(self.allocator);
+        self.* = undefined;
+    }
+    pub fn factory(self: *Context) Dev.Factory {
+        return .{ .context = self, .prepare = prepare };
+    }
+    fn ensureCatalogue(self: *Context, key: *const Outer.prove.Authority) !void {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(CPU.air.bundle_sha256);
+        var word: [8]u8 = undefined;
+        for (key.bound.components) |component| for (component.parts) |part| {
+            std.mem.writeInt(u64, &word, part.program.semanticHash(), .little);
+            hash.update(&word);
+        };
+        const identity = hash.finalResult();
+        if (self.body_identity) |cached| {
+            if (!std.mem.eql(u8, &cached, &identity)) return error.ChangedOm31CircuitProgram;
+            return;
+        }
+        const groups = try Aot.groups(self.allocator, &key.bound);
+        defer self.allocator.free(groups);
+        errdefer {
+            for (self.entries.items) |*e| e.metadata.deinit();
+            self.entries.clearRetainingCapacity();
+            self.metadata_bytes = 0;
+        }
+        for (groups, 0..) |group, id| {
+            var artifact = try Outer.record.record(self.allocator, &key.bound.components[group.component], group.part, group.first, group.count);
+            defer artifact.deinit();
+            var actual: [64]u8 = undefined;
+            try checked(self.identity(@intCast(id), &actual));
+            if (!std.mem.eql(u8, actual[0..32], &artifact.program.identity) or !std.mem.eql(u8, actual[32..], &(try Code.identity(&artifact.program)))) return error.Om31OuterAotIdentityMismatch;
+            const bytes = artifact.program.inputs.len * @sizeOf(@import("stwo_prover_engine").air.secure_polynomial_program_v2.Input) + artifact.program.roots.len * 4 + artifact.parameter_slots.len * 4;
+            if (bytes > self.metadata_cap_bytes - @min(self.metadata_cap_bytes, self.metadata_bytes)) return error.OuterMetadataBudgetExceeded;
+            try self.entries.ensureUnusedCapacity(self.allocator, 1);
+            const metadata = try RC.KernelMetadata.fromProgram(self.allocator, &artifact.program, &artifact.parameter_slots);
+            self.entries.appendAssumeCapacity(.{ .group = group, .metadata = metadata });
+            self.metadata_bytes += bytes;
+        }
+        self.body_identity = identity;
+    }
+    fn prepare(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope) !Dev.Source {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        if (values.len == 0 or values.len > std.math.maxInt(u32) / 4) return error.InvalidOuterAssignment;
+        if (comptime @hasDecl(Outer.prove.Authority, "requireProverData")) try key.requireProverData();
+        self.mutex.lock();
+        if (self.active != null) {
+            self.mutex.unlock();
+            return error.OuterProofAlreadyActive;
+        }
+        self.ensureCatalogue(key) catch |err| {
+            self.mutex.unlock();
+            return err;
+        };
+        const owner = a.create(Owner) catch |err| {
+            self.mutex.unlock();
+            return err;
+        };
+        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = self.service.stage(), .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
+        self.active = owner;
+        self.mutex.unlock();
+        errdefer Owner.release(owner);
+        owner.main_columns = try a.alloc(D.TraceColumn, 114);
+        owner.inter_columns = try a.alloc(D.TraceColumn, 304);
+        try owner.run(@import("outer_source_main.zig").generate);
+        owner.input = &.{};
+        const commit = self.trace_commit.stage();
+        owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
+        owner.scope.main = owner.main.?.root;
+        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
+    }
+};
+pub const Owner = struct {
+    allocator: std.mem.Allocator,
+    backend: *Context,
+    key: *const Outer.prove.Authority,
+    input: []const Outer.protocol.Q,
+    initial_scope: D.Scope,
+    scope: D.Scope,
+    raw_fixed: [45]Native.Lease = undefined,
+    main_evaluations: Native.Lease = .{},
+    main_columns: []D.TraceColumn,
+    inter_columns: []D.TraceColumn,
+    leases: std.ArrayList(Native.Lease) = .empty,
+    main: ?D.Tree = null,
+    claims: Outer.witness.Claims = undefined,
+    z: Outer.protocol.O = undefined,
+    alpha: Outer.protocol.O = undefined,
+    inter_ready: bool = false,
+    pcs: D.Stage,
+    composition_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage,
+    failure: ?anyerror = null,
+    operation: *const fn (*Owner, *anyopaque, u64) anyerror!void = undefined,
+    pub fn run(self: *Owner, operation: *const fn (*Owner, *anyopaque, u64) anyerror!void) !void {
+        self.operation = operation;
+        self.failure = null;
+        const status = self.backend.service.submit(self.backend.service.session, callback, self);
+        if (self.failure) |err| return err;
+        try checked(status);
+    }
+    fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
+        const self: *Owner = @ptrCast(@alignCast(data.?));
+        self.operation(self, raw, token) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        return 0;
+    }
+    pub fn context(self: *Owner, raw: *anyopaque, token: u64, scope: D.Scope) SC.Context {
+        return .{ .session = self.backend.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(scope), .api = &self.backend.api };
+    }
+    pub fn owned(self: *Owner, ctx: *SC.Context, words: usize) !Native.Lease {
+        var lease = try ctx.allocate(words, 1);
+        errdefer ctx.release(&lease) catch {};
+        try self.leases.append(self.allocator, lease);
+        return lease;
+    }
+    fn interact(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, scope: D.Scope, z: Outer.protocol.O, alpha: Outer.protocol.O) !Dev.Interaction {
+        const self: *Owner = @ptrCast(@alignCast(raw));
+        if (self.inter_ready or key != self.key or !std.meta.eql(scope, self.scope)) return error.InvalidOuterInteractionScope;
+        self.z = z;
+        self.alpha = alpha;
+        try self.run(@import("outer_source_interaction.zig").generate);
+        const commit = self.backend.trace_commit.stage();
+        const tree = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 2, .columns = self.inter_columns });
+        self.inter_ready = true;
+        try self.run(dropEvaluations);
+        self.backend.service.finishProofScope(self.initial_scope);
+        return .{ .tree = tree, .claims = self.claims };
+    }
+    fn compose(raw: *anyopaque, a: std.mem.Allocator, randomness: Outer.protocol.O, log: u32, split: u32, total: usize, trace: *const anyopaque) !D.Tree {
+        const self: *Owner = @ptrCast(@alignCast(raw));
+        if (!self.inter_ready) return error.OuterInteractionsNotReady;
+        return @import("outer_source_composition.zig").evaluate(self, a, randomness, log, split, total, trace);
+    }
+    fn dropEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
+        for (self.leases.items) |*lease| if (lease.words != null) try checked(self.backend.service.lease_release(self.backend.service.session, lease));
+        self.leases.clearRetainingCapacity();
+        self.main_evaluations = .{};
+    }
+    fn release(raw: *anyopaque) void {
+        const self: *Owner = @ptrCast(@alignCast(raw));
+        const b = self.backend;
+        const a = self.allocator;
+        _ = b.service.submit(b.service.session, releaseDevice, self);
+        b.service.finishProofScope(self.scope);
+        if (!std.meta.eql(self.scope, self.initial_scope)) b.service.finishProofScope(self.initial_scope);
+        self.leases.deinit(a);
+        a.free(self.main_columns);
+        a.free(self.inter_columns);
+        b.mutex.lock();
+        std.debug.assert(b.active == self);
+        b.active = null;
+        b.mutex.unlock();
+        a.destroy(self);
+    }
+    fn releaseDevice(_: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+        const self: *Owner = @ptrCast(@alignCast(data.?));
+        for (self.leases.items) |*lease| if (lease.words != null) {
+            if (self.backend.service.lease_release(self.backend.service.session, lease) != 0) return 1;
+        };
+        return 0;
+    }
+};
+pub fn lookupIndices(a: std.mem.Allocator, key: *const Outer.prove.Authority, component: usize) ![]u32 {
+    const pp = circuit.common.preprocessed;
+    const list = .{ &pp.EQ_COLUMN_IDS, &pp.QM31_OPS_COLUMN_IDS, &pp.TRIPLE_XOR_COLUMN_IDS, &pp.M31_TO_U32_COLUMN_IDS, &pp.BLAKE_G_GATE_COLUMN_IDS, &.{ "bitwise_xor_8_0", "bitwise_xor_8_1", "bitwise_xor_8_2" }, &.{}, &.{ "bitwise_xor_4_0", "bitwise_xor_4_1", "bitwise_xor_4_2" }, &.{ "bitwise_xor_7_0", "bitwise_xor_7_1", "bitwise_xor_7_2" }, &.{ "bitwise_xor_9_0", "bitwise_xor_9_1", "bitwise_xor_9_2" }, &.{"seq_16"} };
+    inline for (list, 0..) |names, ci| if (component == ci) {
+        const indices = try a.alloc(u32, names.len);
+        errdefer a.free(indices);
+        inline for (names, 0..) |name, local| indices[local] = for (key.layout.entries, 0..) |entry, i| {
+            if (std.mem.eql(u8, entry.id, name)) break @intCast(i);
+        } else return error.MissingOuterFixedColumn;
+        return indices;
+    };
+    return error.InvalidOuterComponent;
+}
+
+test "outer GPU factory is explicit and rejects empty assignment before touching resources" {
+    var backend: Context = undefined;
+    var key: Outer.prove.Authority = undefined;
+    const factory = backend.factory();
+    const scope = D.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(0), .ordinal = 0 };
+    try std.testing.expectError(error.InvalidOuterAssignment, factory.prepare(factory.context, std.testing.allocator, &key, &.{}, scope));
+}

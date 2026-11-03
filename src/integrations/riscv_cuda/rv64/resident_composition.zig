@@ -151,6 +151,7 @@ pub const Context = struct {
     /// Per-owner retained setup cap. Oversized entries remain request-local.
     cache_limit_bytes: usize = 256 << 20,
     artifact_bytes: usize = 0,
+    artifact_count: usize = 0,
     geometry_bytes: usize = 0,
     twiddle_bytes: usize = 0,
     uncached_geometries: u64 = 0,
@@ -159,8 +160,8 @@ pub const Context = struct {
     geometry_misses: u64 = 0,
     log_blowup: u32 = 1,
     result_columns: std.ArrayList([]D.Column) = .empty,
-    pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
-        var result: Context = .{ .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
+    pub fn initNumerical(a: std.mem.Allocator, service: *Service.Context) !Context {
+        return Context{ .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -169,6 +170,9 @@ pub const Context = struct {
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
         }, .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
+    }
+    pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
+        var result = try initNumerical(a, service);
         var made: usize = 0;
         errdefer for (result.artifacts[0..made]) |*item| item.deinit();
         for (Oracle.descriptors(), &result.artifacts) |d, *artifact| {
@@ -177,12 +181,13 @@ pub const Context = struct {
             artifact.* = KernelMetadata.take(&wide);
             result.artifact_bytes += artifact.bytes();
             made += 1;
+            result.artifact_count = made;
         }
         if (result.artifact_bytes > result.cache_limit_bytes) return error.CompositionMetadataCacheCapExceeded;
         return result;
     }
     pub fn deinit(self: *Context) void {
-        for (&self.artifacts) |*artifact| artifact.deinit();
+        for (self.artifacts[0..self.artifact_count]) |*artifact| artifact.deinit();
         for (&self.truth_artifacts) |*artifact| if (artifact.*) |*value| value.deinit();
         for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(self.allocator, value);
         for (self.geometries.items) |*cached_geometry| cached_geometry.deinit(self.allocator);
@@ -379,6 +384,7 @@ pub const Context = struct {
     }
     fn evaluate(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
+        if (self.artifact_count != Oracle.count) return error.CpuCompositionNotInitialized;
         self.mutex.lock();
         defer self.mutex.unlock();
         var timer = try std.time.Timer.start();

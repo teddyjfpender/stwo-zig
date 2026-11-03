@@ -72,3 +72,8 @@ test {
     _ = @import("tests/resident_test.zig");
     _ = @import("tests/sumcheck_test.zig");
 }
+
+pub const outer_source = @import("outer_source.zig");
+test {
+    _ = outer_source;
+}
