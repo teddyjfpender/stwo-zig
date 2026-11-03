@@ -328,8 +328,13 @@ const BuildJob = struct {
         const copy = try symbol(Native.CopyDevice, &o.backend.service.library, "stwo_exec_context_memcpy_d2d_async");
         const from = [_]D.DeviceCoefficients{ cpu.range16, cpu.range8, cpu.pairs, cpu.rom };
         const to = [_]D.DeviceCoefficients{ o.ledgers.range16, o.ledgers.range8, o.ledgers.pairs, o.ledgers.rom };
-        for (from, to) |input, output| {
+        for (from, to, 0..) |input, output, index| {
             if (input.count != output.count or input.context_token != token) return error.InvalidCpuDeviceLedger;
+            // The shared formatter supplies both diagnostic U8 and paired
+            // histograms. In pair mode the AIR emits only the pair queries;
+            // merging ordinary CPU gap counts would create unmatched debt.
+            // This is the native sources.zig CPU c8-zeroing rule as well.
+            if (index == 1 and g.cpu_u8_pairs) continue;
             try checked(copy(raw, @ptrCast(writable(output)), @ptrCast(input.words), input.count * 4));
         }
         try ctx.join();
