@@ -14,6 +14,7 @@ const Results = @import("gkr_result.zig");
 const Sources = @import("gkr_sources.zig");
 const Source = @import("projection_codegen.zig").Source;
 const N = @import("runtime_api.zig");
+const Events = @import("cuda_events.zig");
 const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
 const O = core.fields.om31.OM31;
 const Proof = engine.lookups.gkr_verifier.ForField(O).GkrBatchProof;
@@ -62,6 +63,7 @@ pub const Backend = struct {
     session_api: SC.Api,
     numerical: N.Api,
     functions: Functions,
+    timing: Events.Api,
     catalogue: Sources.Catalogue,
     byte_cap: usize,
     pub fn init(a: std.mem.Allocator, library: *std.DynLib, session: *anyopaque, byte_cap: usize) !Backend {
@@ -90,7 +92,7 @@ pub const Backend = struct {
             .download = try symbol(Native.Download, library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try symbol(Native.Sync, library, "stwo_exec_context_sync"),
             .lane_stream = try symbol(Native.LaneStream, library, "stwo_exec_context_lane_stream"),
-        }, .numerical = try N.Api.load(library), .functions = functions, .catalogue = catalogue, .byte_cap = byte_cap };
+        }, .numerical = try N.Api.load(library), .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .byte_cap = byte_cap };
     }
     pub fn deinit(self: *Backend) void {
         self.catalogue.deinit();
@@ -126,6 +128,11 @@ const Job = struct {
         var timer = try std.time.Timer.start();
         const a = self.allocator;
         const b = self.backend;
+        var events = try Events.Recorder.init(&b.timing);
+        defer events.deinit();
+        var ingress_stream: ?*anyopaque = null;
+        try checked(b.session_api.lane_stream(raw_context, 0, &ingress_stream));
+        const upload_stream = ingress_stream orelse return error.InvalidLane;
         var context = SC.Context{ .session = b.session, .native_context = raw_context, .token = token, .scope = @import("pcs_scope.zig").identity(self.request.scope), .api = &b.session_api };
         defer context.active = false;
         var source = try Sources.Plan.init(a, self.request, &b.catalogue);
@@ -166,25 +173,35 @@ const Job = struct {
         const coefficient_lease = leases.items[0];
         const values = try allocate(a, &context, &leases, source.cells);
         const tw = try allocate(a, &context, &leases, twiddle_words);
+        try events.mark(.ingress, false, upload_stream);
         var offset: usize = 0;
         for (source.columns) |column| {
-            try context.upload(try coeff.sub(offset, column.coefficients.len), @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..column.coefficients.len]);
-            offset += column.coefficients.len;
+            const count = @as(usize, 1) << @intCast(column.log_size);
+            const destination = try coeff.sub(offset, count);
+            if (column.device) |device| {
+                const borrowed = Slice{ .address = @intFromPtr(device.words), .len = count, .owner = std.math.cast(usize, device.context_token) orelse return error.SizeOverflow, .generation = device.generation };
+                const from = try context.deviceSlicePointer(u32, borrowed, count);
+                const to = try context.deviceSlicePointer(u32, destination, count);
+                try checked(b.functions.copy_device(raw_context, @ptrCast(to), @ptrCast(from), count * 4));
+            } else try context.upload(destination, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..count]);
+            offset += count;
         }
         var twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(source.max_log).circleDomain().half_coset);
         defer engine.poly.twiddles.deinitM31(a, &twiddles);
         try context.upload(tw, @as([*]const u32, @ptrCast(twiddles.twiddles.ptr))[0..twiddles.twiddles.len]);
-        try context.join();
         try checked(b.functions.copy_device(raw_context, @ptrFromInt(values.address), @ptrFromInt(coeff.address), source.cells * 4));
+        try events.mark(.ingress, true, upload_stream);
         try context.join();
         var stream: ?*anyopaque = null;
         try checked(b.session_api.lane_stream(raw_context, 1, &stream));
         const assigned_stream = stream orelse return error.InvalidLane;
+        try events.mark(.base_fft, false, assigned_stream);
         for (source.groups) |group| {
             var launches: u32 = 0;
             const count = @as(u32, 1) << @intCast(group.log - 1);
             try checked(b.functions.n2b(@ptrFromInt(values.address + 4 * group.offset), @as(usize, 1) << @intCast(group.log), group.log, group.count, @ptrFromInt(tw.address + 4 * (twiddle_words - count)), count, count, assigned_stream, &launches));
         }
+        try events.mark(.base_fft, true, assigned_stream);
         const seed = try allocate(a, &context, &leases, 9);
         var seed_words: [9]u32 = undefined;
         for (seed_words[0..8], 0..) |*word, i| word.* = std.mem.readInt(u32, self.request.source_channel.inner.digest[4 * i ..][0..4], .little);
@@ -207,6 +224,7 @@ const Job = struct {
         try context.join();
         var step: u32 = 0;
         var chain: u64 = 0x47524b5300000000;
+        try events.mark(.relation_draws, false, assigned_stream);
         try checked(b.functions.channel_init(raw_context, 1, @ptrFromInt(channel.address), @ptrFromInt(seed.address), chain));
         try checked(b.functions.channel_mix(raw_context, 1, @ptrFromInt(channel.address), step, chain, chain + 1, @ptrFromInt(constants.address), 3, 0, @ptrFromInt(boundary.address)));
         step += 1;
@@ -220,6 +238,7 @@ const Job = struct {
             step += 1;
             chain += 1;
         }
+        try events.mark(.relation_draws, true, assigned_stream);
         const fractions = try a.alloc(R.Fraction, source.items.len);
         defer a.free(fractions);
         const packets = try a.alloc(Projection, source.items.len);
@@ -236,14 +255,20 @@ const Job = struct {
         }
         const workspace = try allocate(a, &context, &leases, plan.total_words);
         try context.join();
+        try events.mark(.projection, false, assigned_stream);
         for (source.items, packets) |item, *packet| {
             const artifact = &b.catalogue.artifacts[item.kernel];
             try checked(b.functions.gather(raw_context, 1, @ptrFromInt(reservoir.address), @constCast(packet.parameters), artifact.source_slots.ptr, @intCast(artifact.source_slots.len), relation_count, @ptrFromInt(status.address)));
             try checked(b.functions.launch[item.kernel](assigned_stream, packet));
         }
+        try events.mark(.projection, true, assigned_stream);
         var commands = R.Commands(SC.Context, N.Api){ .context = &context, .api = &b.numerical, .lane_index = 1 };
+        try events.mark(.traversal, false, assigned_stream);
         const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace, cap, chain, status);
+        try events.mark(.traversal, true, assigned_stream);
         try context.join();
+        const numerical_ready_ns = timer.read();
+        try events.mark(.readback, false, upload_stream);
         var verdict: [1]u32 = undefined;
         var header_words: [20]u32 = undefined;
         var channel_words: [16]u32 = undefined;
@@ -271,23 +296,30 @@ const Job = struct {
             if (records.len != 0) try context.download(device.records, records);
             try context.download(device.masks, masks);
         }
+        try events.mark(.readback, true, upload_stream);
         try context.join();
+        const readback_done_ns = timer.read();
         const header: G.Header = @bitCast(header_words);
         try traversal.validate(header, verdict[0]);
         const snapshot: @import("channel.zig").Snapshot = @bitCast(channel_words);
         try snapshot.validate(step, chain);
         for (snapshot.digest, 0..) |word, i| if (word != std.mem.readInt(u32, self.request.channel.inner.digest[4 * i ..][0..4], .little)) return error.InvalidDeviceTranscript;
         if (snapshot.draws != self.request.channel.inner.n_draws) return error.InvalidDeviceTranscript;
+        const decode_start_ns = timer.read();
         var proof = try Results.assemble(a, .{ .variables = variables, .roots = roots, .layers = layers });
         errdefer proof.deinit(a);
-        if (b.coefficient_sink) |sink| {
+        const decode_ns = timer.read() - decode_start_ns;
+        var main_already_resident = true;
+        for (self.request.native_main_columns) |column| main_already_resident = main_already_resident and column.device != null;
+        if (b.coefficient_sink) |sink| if (!main_already_resident) {
             try sink.publish(sink.context, context.scope, coefficient_lease, self.request.native_fixed_columns, self.request.native_main_columns, source.offsets);
             published_generation = coefficient_lease.generation;
-        }
+        };
         self.proof = proof;
         var readback_words: usize = 1 + 20 + 16 + roots.len;
         for (layers) |layer| readback_words += layer.records.len + layer.masks.len;
-        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0 });
+        std.debug.print("GPU_GKR_SPANS ordinal={} ingress_ms={d:.6} base_fft_ms={d:.6} draws_ms={d:.6} projection_ms={d:.6} traversal_ms={d:.6} compact_readback_ms={d:.6} numerical_ready_wall_ns={} readback_wall_ns={} native_decode_ns={}\n", .{ self.request.scope.ordinal, try events.milliseconds(.ingress), try events.milliseconds(.base_fft), try events.milliseconds(.relation_draws), try events.milliseconds(.projection), try events.milliseconds(.traversal), try events.milliseconds(.readback), numerical_ready_ns, readback_done_ns - numerical_ready_ns, decode_ns });
+        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={} gkr_kernel_launches={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0, commands.launches });
     }
 };
 fn allocate(a: std.mem.Allocator, context: *SC.Context, leases: *std.ArrayList(Native.Lease), words: usize) !Slice {

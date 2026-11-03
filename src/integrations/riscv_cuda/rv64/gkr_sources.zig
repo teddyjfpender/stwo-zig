@@ -72,12 +72,16 @@ pub const Plan = struct {
         defer groups.deinit(a);
         for (order, columns, 0..) |original, *column, sorted| {
             column.* = context.at(original);
-            if (column.log_size < 3 or column.log_size > 28 or column.coefficients.len != @as(usize, 1) << @intCast(column.log_size)) return error.InvalidGkrSourceColumn;
+            if (column.log_size < 3 or column.log_size > 28) return error.InvalidGkrSourceColumn;
+            const count = @as(usize, 1) << @intCast(column.log_size);
+            if (column.device) |device| {
+                if (column.coefficients.len != 0 or device.count != count or device.context_token == 0 or device.generation == 0) return error.InvalidGkrSourceColumn;
+            } else if (column.coefficients.len != count) return error.InvalidGkrSourceColumn;
             offsets[original] = cells;
             if (groups.items.len == 0 or groups.items[groups.items.len - 1].log != column.log_size)
                 try groups.append(a, .{ .log = column.log_size, .first = @intCast(sorted), .count = 0, .offset = cells });
             groups.items[groups.items.len - 1].count += 1;
-            cells = try std.math.add(usize, cells, column.coefficients.len);
+            cells = try std.math.add(usize, cells, count);
             max_log = @max(max_log, column.log_size);
         }
         const items = try a.alloc(Item, request.instances.len);
