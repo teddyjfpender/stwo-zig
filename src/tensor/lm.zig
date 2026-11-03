@@ -57,6 +57,10 @@ pub const ModelCfg = struct {
     fused_qkv: bool = true,
     /// weight-table column count (router columns are padded to it)
     weight_log_cols: u32 = 0,
+    /// MoE experts as stacked [E, K, N] weights proved by batched matmuls (one
+    /// weight claim per stack instead of one per expert matrix); false: the
+    /// per-expert transformer.moe layout
+    stacked_experts: bool = true,
 
     pub fn isMoeLayer(self: ModelCfg, l: u32) bool {
         return self.log_experts > 0 and l % self.moe_every == self.moe_every - 1;
@@ -78,9 +82,20 @@ pub const ModelCfg = struct {
         };
     }
 
+    pub fn isStackedLayer(self: ModelCfg, l: u32) bool {
+        return self.stacked_experts and self.isMoeLayer(l);
+    }
+
+    /// weights of layer l: attention, then MLP (dense), or router + experts
+    /// (per expert: gate, up, down; stacked: three [E, ., .] tensors)
+    pub fn weightsOfLayer(self: ModelCfg, l: u32) u32 {
+        const lc = self.layerCfg(l);
+        return if (self.isStackedLayer(l)) lc.wRouter() + 4 else lc.weightsPerLayer();
+    }
+
     pub fn layerBase(self: ModelCfg, l: u32) u32 {
         var s: u32 = 0;
-        for (0..l) |i| s += self.layerCfg(@intCast(i)).weightsPerLayer();
+        for (0..l) |i| s += self.weightsOfLayer(@intCast(i));
         return s;
     }
 
@@ -107,12 +122,40 @@ pub fn weightInfos(a: std.mem.Allocator, cfg: ModelCfg) ![]TensorInfo {
     var out: std.ArrayList(TensorInfo) = .empty;
     errdefer out.deinit(a);
     for (0..cfg.n_layers) |l| {
-        const wi = try tf.layerWeightInfos(a, cfg.layerCfg(@intCast(l)));
+        const lc = cfg.layerCfg(@intCast(l));
+        const wi = try tf.layerWeightInfos(a, lc);
         defer a.free(wi);
-        try out.appendSlice(a, wi);
+        if (cfg.isStackedLayer(@intCast(l))) {
+            // attention + router as in the per-expert layout, then the stacks
+            try out.appendSlice(a, wi[0 .. lc.wRouter() + 1]);
+            const le = lc.log_experts;
+            try out.append(a, .{ .log_dims = .{ le, lc.log_d, lc.log_f }, .n_dims = 3 });
+            try out.append(a, .{ .log_dims = .{ le, lc.log_d, lc.log_f }, .n_dims = 3 });
+            try out.append(a, .{ .log_dims = .{ le, lc.log_f, lc.log_d }, .n_dims = 3 });
+        } else try out.appendSlice(a, wi);
     }
     try out.append(a, TensorInfo.mat(cfg.log_d, cfg.log_vocab));
     return out.toOwnedSlice(a);
+}
+
+/// Weights one token touches: attention and dense MLPs, each MoE layer's
+/// router and one expert, and the LM head.
+pub fn activeWeightsPerToken(cfg: ModelCfg, infos: []const TensorInfo) usize {
+    var n: usize = 0;
+    for (0..cfg.n_layers) |l| {
+        const lc = cfg.layerCfg(@intCast(l));
+        const wb = cfg.layerBase(@intCast(l));
+        const E = @as(usize, 1) << @intCast(lc.log_experts);
+        for (0..cfg.weightsOfLayer(@intCast(l))) |i| {
+            const sz = infos[wb + i].size();
+            if (!lc.isMoe() or i <= lc.wRouter()) {
+                n += sz;
+            } else if (cfg.isStackedLayer(@intCast(l))) {
+                n += sz / E;
+            } else if (i < lc.wExpert(1)) n += sz; // per-expert layout: one expert's three matrices
+        }
+    }
+    return n + infos[cfg.lmHead()].size();
 }
 
 pub fn nWeights(a: std.mem.Allocator, cfg: ModelCfg) !usize {
@@ -146,6 +189,50 @@ pub fn setupWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg, pc: prot
     }
     const ws = try proto.commitWeights(a, pool, pc, winfos, wv);
     return .{ .ws = ws, .wdata = wdata, .winfos = winfos };
+}
+
+const MoeLayer = struct { y: u32, logits: u32, expert_of: []const usize };
+
+/// Y[e] = requant(X[e] . W[e]) for X [E, T, K] and a stacked weight W [E, K, N]
+/// (a core matmul with 3-dim operands; protocol.zig proves it as a batched
+/// matmul with one weight claim).
+pub fn matmul3(b: *tf.Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u32 {
+    const xi = b.infos.items[x];
+    const wi = ws.infos[w];
+    std.debug.assert(xi.n_dims == 3 and wi.n_dims == 3);
+    const acc = try proto.batchedMatmulAcc(b.a, b.pool, xi, b.wit.items[x], ws.matrix(w), null);
+    defer b.a.free(acc);
+    const s = model.chooseShift(acc);
+    const y = try b.a.alloc(i32, acc.len);
+    for (acc, y) |v, *o| o.* = proto.requant(v, s);
+    const id = try b.add(.{ .log_dims = .{ xi.log_dims[0], xi.log_dims[1], wi.log_dims[2] }, .n_dims = 3 }, y);
+    try b.ops.append(b.a, .{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } });
+    return id;
+}
+
+/// Top-1 MoE with stacked experts: the routing of transformer.moe, then
+/// Xe[x, c, d] = sum_t Disp[x, c, t] y[t, d] (one exact einsum), the SwiGLU of
+/// every expert as batched matmuls over the [E, C, .] stacks (g, u, down),
+/// and out[t, d] = sum_{x, c} Disp[x, c, t] MO[x, c, d]. Same semantics as
+/// transformer.moe (each token's output is its expert's SwiGLU).
+pub fn moeStacked(b: *tf.Builder, c: tf.Ctx, wb: u32, y: u32) !struct { out: u32, route: tf.MoeRoute, xe: u32, mo: u32 } {
+    const cfg = c.cfg;
+    const lt = cfg.log_t;
+    const ld = cfg.log_d;
+    const le = cfg.log_experts;
+    const lc = cfg.log_capacity;
+    const r = try tf.moeRoute(b, c, wb, y);
+    const ns = le + lc + ld;
+    const xe = (try b.einsumExact(.{ .log_dims = .{ le, lc, ld }, .n_dims = 3 }, ns, Ref.w(r.disp), Ref.w(y), lt, &.{ ids(0, le + lc), ids(ns, lt) }, &.{ ids(ns, lt), ids(le + lc, ld) })).?;
+    const w0 = wb + cfg.wRouter() + 1;
+    const g = try matmul3(b, c.ws, xe, w0);
+    const u = try matmul3(b, c.ws, xe, w0 + 1);
+    const act = try b.lookup(g, c.silu);
+    const hm = try b.hadamard(act, u);
+    const mo = try matmul3(b, c.ws, hm, w0 + 2);
+    const n_out = lt + ld;
+    const out = (try b.einsumExact(TensorInfo.mat(lt, ld), n_out, Ref.w(r.disp), Ref.w(mo), le + lc, &.{ ids(n_out, le + lc), ids(0, lt) }, &.{ ids(n_out, le + lc), ids(lt, ld) })).?;
+    return .{ .out = out, .route = r, .xe = xe, .mo = mo };
 }
 
 pub const GreedyOut = struct { m: u32, dr: u32, sel: u32, lt: u32 };
@@ -357,13 +444,21 @@ pub fn buildModel(b: *tf.Builder, cfg: ModelCfg, ws: *const proto.WeightStore, s
     for (0..cfg.n_layers) |l| {
         var c = c0;
         c.cfg = cfg.layerCfg(@intCast(l));
-        const o = try tf.decoderLayerAt(b, c, @intCast(l), cfg.layerBase(@intCast(l)), x, l == 0);
-        x = o.out;
-        if (o.moe) |m| {
-            try router_in.append(b.arena.allocator(), o.rms2.y);
-            try router_logits.append(b.arena.allocator(), m.logits);
+        const wb = cfg.layerBase(@intCast(l));
+        var route: ?MoeLayer = null;
+        if (cfg.isStackedLayer(@intCast(l))) {
+            const ab = try tf.attnBlock(b, c, @intCast(l), wb, x, l == 0);
+            const ms = try moeStacked(b, c, wb, ab.rms2.y);
+            x = try tf.residual(b, ab.h, ms.out);
+            route = .{ .y = ab.rms2.y, .logits = ms.route.logits, .expert_of = ms.route.expert_of };
+        } else {
+            const o = try tf.decoderLayerAt(b, c, @intCast(l), wb, x, l == 0);
+            x = o.out;
+            if (o.moe) |m| route = .{ .y = o.rms2.y, .logits = m.logits, .expert_of = m.expert_of };
         }
-        if (o.moe) |m| {
+        if (route) |m| {
+            try router_in.append(b.arena.allocator(), m.y);
+            try router_logits.append(b.arena.allocator(), m.logits);
             var load: [64]usize = [_]usize{0} ** 64;
             for (m.expert_of) |e| load[e] += 1;
             for (load) |n| max_load = @max(max_load, n);
@@ -600,4 +695,171 @@ test "greedy check: least maximiser accepted; later tie, non-maximum and out-of-
     try testing.expectEqual(Outcome.verifier_rejected, try gadgetCase(a, &[_]i32{ -128, -128, -128, 127 }, 0, true));
     // out-of-vocabulary token
     try testing.expectEqual(Outcome.prover_refused, try gadgetCase(a, &row, 8, false));
+}
+
+test "stacked-expert MoE (batched matmuls): matches a direct integer reference; proves, verifies; cheats rejected" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const cfg = ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 1, .moe_every = 1, .log_experts = 2, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 4, .weight_log_cols = 3 };
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, &pool, cfg, pc, 1300);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    const lc = cfg.layerCfg(0);
+    const T = @as(usize, 1) << cfg.log_t;
+    const D = @as(usize, 1) << cfg.log_d;
+    const Fe = @as(usize, 1) << cfg.log_f_expert;
+    const E = @as(usize, 1) << cfg.log_experts;
+    for (0..2) |cheat| {
+        var b = tf.Builder.init(a, &pool);
+        defer b.deinit();
+        var ccfg = lc;
+        ccfg.n_layers = 1;
+        const c = try tf.initCtxPublics(&b, ccfg, &sw.ws, 5);
+        try b.weight_infos.appendSlice(a, sw.winfos);
+        const yv = try model.randomInput(a, T * D, 77);
+        const y = try b.add(TensorInfo.mat(cfg.log_t, cfg.log_d), yv);
+        try b.rangeSigned(y, 8);
+        const ms = try moeStacked(&b, c, 0, y);
+        // shifts of the three batched matmuls
+        var shifts: [3]u5 = undefined;
+        var n_sh: usize = 0;
+        for (b.ops.items) |op| if (op == .matmul and sw.winfos[op.matmul.w].n_dims == 3) {
+            shifts[n_sh] = op.matmul.shift;
+            n_sh += 1;
+        };
+        try testing.expectEqual(@as(usize, 3), n_sh);
+        // direct reference: out[t] = SwiGLU_{x(t)}(y[t]) with the statement's shifts
+        const out = b.wit.items[ms.out];
+        const silu = model.siluTable();
+        const wg = sw.ws.matrix(1 + 2 + 0).data; // layer: qkv, wo, router, Wg, Wu, Wd
+        const wu = sw.ws.matrix(1 + 2 + 1).data;
+        const wd = sw.ws.matrix(1 + 2 + 2).data;
+        for (0..T) |t| {
+            const x = ms.route.expert_of[t];
+            var hrow: [16]i64 = undefined;
+            for (0..Fe) |j| {
+                var ag: i64 = 0;
+                var au: i64 = 0;
+                for (0..D) |d| {
+                    ag += @as(i64, yv[t * D + d]) * wg[(x * D + d) * Fe + j];
+                    au += @as(i64, yv[t * D + d]) * wu[(x * D + d) * Fe + j];
+                }
+                const g = proto.requant(ag, shifts[0]);
+                const u = proto.requant(au, shifts[1]);
+                const act: i64 = silu.values[@intCast(g + 128)];
+                // hadamard shift: from the op list
+                var hs: u5 = 0;
+                for (b.ops.items) |op| if (op == .hadamard) {
+                    hs = op.hadamard.shift;
+                };
+                hrow[j] = proto.requant(act * u, hs);
+            }
+            for (0..D) |d| {
+                var ad: i64 = 0;
+                for (0..Fe) |j| ad += hrow[j] * wd[(x * Fe + j) * D + d];
+                try testing.expectEqual(@as(i32, proto.requant(ad, shifts[2])), out[t * D + d]);
+            }
+        }
+        _ = E;
+        const st = b.statement();
+        const wv = try b.witnessView(a);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        if (cheat == 1) {
+            // token 2's MoE output differs from its expert's slot output (the
+            // combine einsum); core requant keys would already stop the
+            // prover itself on a changed matmul output
+            b.wit.items[ms.out][2 * D + 1] += 1;
+            xt.test_unchecked_prover = true;
+        }
+        defer xt.test_unchecked_prover = false;
+        var proof = try proto.prove(a, &pool, pc, st, &sw.ws, wv, &tm);
+        defer proof.deinit(a);
+        const key = proto.weightKey(&sw.ws);
+        if (cheat == 1) {
+            try testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
+            continue;
+        }
+        try proto.verify(a, pc, st, key, &proof);
+        // one weight claim per stack (3) + router; tamper the batched sumcheck and finals
+        try testing.expect(proof.weight_values.len <= 6);
+        for (proof.op_sumchecks, proof.op_finals) |*p, fin| {
+            if (p.rounds.len == 0) continue;
+            const sv = p.rounds[0].evals[0];
+            p.rounds[0].evals[0] = sv.add(f.QM31.one());
+            try testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
+            p.rounds[0].evals[0] = sv;
+            const s0 = fin[0];
+            fin[0] = s0.add(f.QM31.one());
+            try testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
+            fin[0] = s0;
+        }
+        for (proof.weight_values) |*v| {
+            const sv = v.*;
+            v.* = sv.add(f.QM31.one());
+            try testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
+            v.* = sv;
+        }
+        // statement / key shape mismatches are errors, not crashes
+        {
+            const wi2 = try a.dupe(TensorInfo, st.weights);
+            defer a.free(wi2);
+            for (wi2) |*w| if (w.n_dims == 3) {
+                w.n_dims = 2;
+                break;
+            };
+            var st2 = st;
+            st2.weights = wi2;
+            try testing.expect(std.meta.isError(proto.verify(a, pc, st2, key, &proof)));
+        }
+        {
+            const wi2 = try a.dupe(TensorInfo, st.weights);
+            defer a.free(wi2);
+            for (wi2) |*w| if (w.n_dims == 3) {
+                w.log_dims[0] += 1;
+                break;
+            };
+            var st2 = st;
+            st2.weights = wi2;
+            try testing.expect(std.meta.isError(proto.verify(a, pc, st2, key, &proof)));
+        }
+        try proto.verify(a, pc, st, key, &proof);
+    }
+}
+
+test "model with per-expert MoE layout (stacked_experts = false) still proves per request" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    var cfg = SmallModel;
+    cfg.stacked_experts = false;
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, &pool, cfg, pc, 1700);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 78);
+    defer a.free(x);
+    _ = try buildModel(&b, cfg, &sw.ws, 3, x, null);
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    const reqs = [_]serve.Request{.{ .st = b.statement(), .witness = wv, .salt = serve.testSalt(6) }};
+    var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
+    defer batch.deinit(a);
+    try serve.verifyRequest(a, pc, reqs[0].st, proto.weightKey(&sw.ws), &batch.requests[0], &batch.shared, 0);
 }

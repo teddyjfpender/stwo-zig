@@ -395,7 +395,7 @@ const KV = struct {
 
 /// tensor-bench model [t=8] [d=10] [f=12] [h=3] [kv=1] [layers=4] [e=3] [fe=11] [cap=0] [v=15] [out=0]
 ///   [r=1] [threads=12] [q=54] [lb=2] [pow=20] [depth=2] [iq=54] [ilb=2] [ipow=20] [bm=1] [verify=r]
-///   [seed=1] [calib=1] [key=1] [moe_every=2] [--metal]
+///   [seed=1] [calib=1] [key=1] [moe_every=2] [stacked=1] [--metal]
 /// log2 sizes: t tokens/window, d model, f dense MLP, h query heads, kv KV heads,
 /// e experts (0 = dense), fe expert width, cap slots per expert (0 = fitted per
 /// request), v vocab, out checked output positions; r requests per batch;
@@ -425,6 +425,7 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         .log_vocab = @intCast(try kv.get("v", 15)),
         .log_out = @intCast(try kv.get("out", 0)),
         .moe_every = @intCast(try kv.get("moe_every", 2)),
+        .stacked_experts = (try kv.get("stacked", 1)) != 0,
     };
     const outer = t.pcs.Params{ .n_queries = @intCast(try kv.get("q", 54)), .log_blowup = @intCast(try kv.get("lb", 2)), .pow_bits = @intCast(try kv.get("pow", 20)) };
     var pc = proto.Config{ .pcs = outer, .witness_log_cols_max = 14, .gkr_threads = threads, .batch_matmuls = (try kv.get("bm", 1)) != 0 };
@@ -600,22 +601,13 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const shared_open = batch.shared.openingBytes();
     var n_weights: usize = 0;
     for (sw.winfos) |wi| n_weights += wi.size();
-    // weights touched per token: attention + dense MLP of every layer, router +
-    // one expert of each MoE layer, and the LM head
-    var active: usize = 0;
-    for (0..cfg.n_layers) |l| {
-        const lc = cfg.layerCfg(@intCast(l));
-        const wb = cfg.layerBase(@intCast(l));
-        for (0..lc.weightsPerLayer()) |i| {
-            const sz = sw.winfos[wb + i].size();
-            if (lc.isMoe() and i >= lc.wExpert(0) and i < lc.wExpert(1)) {
-                active += sz; // one expert's three matrices
-            } else if (lc.isMoe() and i >= lc.wExpert(1)) {
-                continue;
-            } else active += sz;
-        }
+    const active = t.lm.activeWeightsPerToken(cfg, sw.winfos);
+    var n_claims: usize = 0;
+    var n_points: usize = 0;
+    for (batch.shared.requests) |cs| {
+        n_claims += cs.w.len;
+        n_points += cs.points.len;
     }
-    active += sw.winfos[cfg.lmHead()].size();
 
     const n_tok: f64 = @floatFromInt(R * T);
     const Rf: f64 = @floatFromInt(R);
@@ -623,7 +615,7 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("{{\"bench\":\"model\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"layers\":{d},\"moe_layers\":{d},\"log_experts\":{d},\"log_f_expert\":{d},\"log_capacity\":{d},\"log_capacity_used\":{d},\"max_expert_load\":{d},\"log_vocab\":{d},\"log_out\":{d},\"requests\":{d},\"threads\":{d},\"accel\":{},\"batch_matmuls\":{},", .{ lt, ld, lf, cfg.log_heads, cfg.log_kv_heads, cfg.n_layers, cfg.nMoeLayers(), le, lfe, cfg.log_capacity, cap_used, max_load, cfg.log_vocab, cfg.log_out, R, threads, pc.accel != null, pc.batch_matmuls });
     try printTl(out, pc);
     try out.print("\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},", .{ outer.n_queries, outer.log_blowup, outer.pow_bits, pc.weight_log_cols });
-    try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems });
+    try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},\"stacked_experts\":{},\"weight_claims_per_request\":{d},\"weight_points_per_request\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems, cfg.stacked_experts, n_claims / R, n_points / R });
     try out.print("\"offline\":{{\"calib_passes\":{d},\"calib_s\":{d:.3},\"commit_s\":{d:.3},\"key_proof_s\":{d:.3},\"key_verify_s\":{d:.4},\"key_bytes\":{d},\"rss_after_commit\":{d},\"rss_after_key\":{d}}},", .{ calib, calib_s, commit_s, key_s, key_verify_s, if (prox) |p| p.byteSize() else 0, rss_after_commit, rss_after_key });
     try out.print("\"forward_s\":{d:.4},\"prove_requests_s\":{d:.4},\"shared_open_s\":{d:.4},\"wall_s\":{d:.4},", .{ nsToS(forward_ns), nsToS(prove_ns), shared_s, total_s });
     // serving cost = forward + per-request proving + shared opening (the
