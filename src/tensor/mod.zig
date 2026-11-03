@@ -18,6 +18,7 @@ pub const prep = @import("prep.zig");
 pub const recycle = @import("recycle.zig");
 
 test {
+    _ = @import("qmul_check_test.zig");
     _ = field;
     _ = transcript;
     _ = sumcheck;

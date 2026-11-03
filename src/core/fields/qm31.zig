@@ -165,7 +165,7 @@ pub const QM31 = struct {
         };
     }
 
-    pub inline fn mul(lhs: QM31, rhs: QM31) QM31 {
+    pub fn mul(lhs: QM31, rhs: QM31) QM31 {
         @setEvalBranchQuota(8_000);
         // Domain evaluators promote committed M31 columns into QM31 so they
         // can share one constraint API with OODS evaluation. Preserve that
@@ -178,19 +178,10 @@ pub const QM31 = struct {
             if (lhs.isBase()) return rhs.mulM31(lhs.c0.a);
         }
 
-        return mulLazy(lhs, rhs);
-    }
-
-    /// Schoolbook product with lazy reduction: each 62-bit limb product is
-    /// folded once to < 2^33, the signed sums are biased by 64p, and each
-    /// output limb is reduced once. With u^2 = R = 2 + i:
-    ///   c0.a = a0b0 - a1b1 + 2(a2b2 - a3b3) - (a2b3 + a3b2)
-    ///   c0.b = a0b1 + a1b0 + (a2b2 - a3b3) + 2(a2b3 + a3b2)
-    ///   c1.a = a0b2 - a1b3 + a2b0 - a3b1
-    ///   c1.b = a0b3 + a1b2 + a2b1 + a3b0
-    /// Equal (as canonical field elements) to the CM31 Karatsuba formula;
-    /// checked against it on 2e7 random pairs including non-canonical p.
-    pub inline fn mulLazy(lhs: QM31, rhs: QM31) QM31 {
+        // Schoolbook product with lazy reduction. `mul` is deliberately not
+        // `inline`: with the lazy body inlined, Zig 0.15.2 ReleaseFast
+        // miscompiled sumcheck callers (tests pass in Debug/ReleaseSafe and
+        // with a non-inline mul; no measurable cost).
         const P: u64 = m31_mod.Modulus;
         const a0: u64 = lhs.c0.a.v;
         const a1: u64 = lhs.c0.b.v;
