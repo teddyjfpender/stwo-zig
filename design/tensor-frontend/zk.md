@@ -310,11 +310,15 @@ uniform QM31 fractions, which is 8 committed M31 cells per data leaf.
   only `max(used)` entries touched.
 - **Batch hats.** Pad: one full row `R_b` per table, evaluated at the batch column point.
   So `(1−γ)·T(r) + γ·R_b(r_col)` is a single group with column vector `eq(r_col)`.
-- **Batch hiding polynomial.** It sits in one row of table 1. Its claims `σ_b` and `u_b`
-  are combined with `ζ`, drawn after `u_b` is mixed; this was a soundness fix during
-  development. They form a second group with an explicit column vector.
-- **Witness opening.** The proximity row plus groups A and B, each with its own 4 mask
-  rows in table 1.
+- **Batch hiding polynomial.** It sits in a tiny per-proof **aux table**, 9 rows × 256
+  columns, committed together with table 1: row 0 holds the coefficients, plus 4 proximity
+  and 4 group mask rows. Its claims `σ_b` and `u_b` are combined with `ζ`, drawn after
+  `u_b` is mixed; this was a soundness fix during development. The aux table is opened
+  separately with its own parameters: lb 4, no PoW, 38 queries, ≥ 128 conjectured bits,
+  about 22 KB. Before this, the claim used a whole combined row of the witness table
+  (`C + S` QM31 values).
+- **Witness opening.** The proximity row plus group A, each with its own 4 mask rows in
+  table 1.
 - **Weight opening.** One group, with the weight table and a fresh per-proof 4-row mask
   table (committed at the start, root in the transcript). No proximity row; that test is
   done at commit time.
@@ -361,6 +365,23 @@ proximity masks, which are shared across proofs. Their exposure is bounded by th
   layer hats and `Q` values, and op-check hats are uniform-looking, within 0.04 of 1/2.
 - Tampering with each proof field is rejected (§6).
 
+### 4.6 Weight re-randomization with a link proof
+
+`rerandomizeWeights` commits the same weights again with fresh `τ`, `R_W` pads and
+proximity masks, then proves a link. The link is a 2-table hiding opening of old, new and
+a fresh 4-row mask table, for the single claim `W_old~(z) − W_new~(z) = 0` at a random `z`
+over the data rows.
+
+- **Soundness.** Both tables are close to the code by their own commit-time proximity
+  proofs, so the claim binds the decoded tables. A non-zero difference has a non-zero MLE
+  at a random `z` except with probability `(lr+lc)/|F|`.
+- **ZK.** The claim value is the public 0, and the opening is simulatable (Lemma 2). It
+  spends `t_w` columns of both budgets.
+
+A chain of links serves an unbounded number of proofs from one set of weights, matching
+FlashProve's "copies of the table with fresh masks, each with a link".
+`ZkWeights.budgetLeft()` tells the operator when to rotate.
+
 ## 5. Measurements
 
 M4 Max, AC power, `ReleaseFast`, memguard. FlashProve CPU numbers are from fp-bench on
@@ -372,19 +393,30 @@ the same machine. Commands:
 | bench | mode | prove | verify | proof | notes |
 |---|---|---|---|---|---|
 | product 20, 1 thread, t 54 | non-hiding | 0.337 s | 1.63 ms | 323,352 B | 128 conj bits |
-| product 20, 1 thread, t 54 | **hiding** | **0.360 s** | **2.31 ms** | **400,824 B** | 125.6 conj bits (rate (4096+128)/16384); 56 queries for 128 |
+| product 20, 1 thread, t 54 | hiding (first version) | 0.360 s | 2.31 ms | 400,824 B | 125.6 conj bits |
+| product 20, 1 thread, t 56, lb 2 | **hiding** | **0.327 s** | **1.92 ms** | **368,520 B** | 129.5 conj bits (rate (4096+128)/16384); aux table |
+| product 20, 1 thread, t 37, lb 3 | **hiding** | 0.505 s | 2.22 ms | **301,304 B** | 129.4 conj bits; smaller than FlashProve's 341 KB |
 | FlashProve toy (`a∘b = c`, 2^20, 1 core, hiding) | hiding | 8.37 s | 14 ms | 341 KB | reference |
 | mlp 8 10 11, 8 threads, t 64 | non-hiding (v1) | 0.195 s | 7.4 ms | 1,966,288 B | stwo fast GKR |
 | mlp 8 10 11 | hiding, committed inverses, weights lb 2 t 64 | 0.74–0.90 s | 13–17 ms | 2,844,720 B | weights only 84 conj bits |
 | mlp 8 10 11 | hiding, committed inverses, weights lb 4 t 36 | 0.72 s | 10.8 ms | 2,136,112 B | weights 128.0 conj bits |
-| mlp 8 10 11 | **hiding, masked GKR (default)**, weights lb 4 t 36 | **0.43–0.46 s** | **10.3 ms** | **1,574,864 B** | GKR 0.26 s; 3 trees, 62 layers, 39 KB; RSS 1.7 GB |
+| mlp 8 10 11 | hiding, masked GKR, weights lb 4 t 36 | 0.43–0.46 s | 10.3 ms | 1,574,864 B | generic GKR prover |
+| mlp 8 10 11 | **hiding, masked GKR (current)** | **0.30–0.32 s** | **9.7–11 ms** | **1,469,504 B** | GKR 0.136 s (eq factored out); aux table; RSS 1.2 GB |
 
-Hiding MLP breakdown with the default GKR:
+Hiding MLP breakdown, current version:
 - witness commit 0.07 s,
-- GKR 0.26 s,
+- GKR 0.136 s,
 - op sumchecks 0.03 s,
 - batch 0.05 s,
-- openings 0.02 s.
+- openings 0.01–0.02 s.
+
+Weights (once per commitment):
+- commit 0.27 s (lb 4);
+- proximity 0.01 s prove, 4 ms verify, 936 KB;
+- re-randomize plus link 0.30 s, link verify 6 ms, link 1.86 MB.
+
+For product 20 the hiding prover now costs the same as the non-hiding one at 128 bits
+(0.327 s vs 0.328 s). Verify is +24% and size +14%, or −7% with lb 3.
 
 History, at the same shape:
 - First version (committed inverses, full zero-extension): 1.01 s, 3.2 GB RSS.
@@ -392,12 +424,15 @@ History, at the same shape:
 - Weight-specific PCS parameters: 2.84 MB → 2.14 MB.
 - Hiding GKR: 0.45 s, 1.57 MB.
 - GKR evaluator with 4 instead of 7 multiplications: GKR 0.38 → 0.26 s.
+- Aux table for the batch hiding polynomial: 1.57 → 1.47 MB (product 401 → 361 KB).
+- Gruen-style GKR layer prover (`eq` never materialized or folded; byte-identical
+  messages): GKR 0.22 → 0.136 s, MLP 0.40 → 0.31 s.
 
 The hiding proof is now smaller than the v1 non-hiding proof. The weight opening's higher
 blowup and fewer queries would shrink the non-hiding proof too: ~0.95 MB instead of
 1.61 MB of weight opening at the same conjectured bits.
 
-## 6. Adversarial tests (all passing, `zig build test -Doptimize=ReleaseSafe`, 18 tests)
+## 6. Adversarial tests (all passing, `zig build test -Doptimize=ReleaseSafe`, 19 tests)
 
 - `zk_pcs`:
   - two tables with groups and masks: wrong claim value, tampered `μ`, salt, column
@@ -407,10 +442,12 @@ blowup and fewer queries would shrink the non-hiding proof too: ~0.95 MB instead
 - `zk_sumcheck`:
   - hiding-polynomial forms against brute force for `d = 2, 3`;
   - masked sumcheck completeness;
-  - a wrong claim and a tampered hat each break the final check.
+  - a wrong claim and a tampered hat each break the final check;
+  - the GKR layer prover sends byte-identical messages to the generic prover
+    (`n = 0, 1, 3, 5, 9`).
 - `zk` product:
-  - tampered hat, `σ`, `u`, round message, batch hat, batch `σ`, opening row, `μ`,
-    column and root are each rejected;
+  - tampered hat, `σ`, `u`, round message, batch hat, batch `σ`, opening row, `μ`, aux
+    opening row, aux `μ`, column and root are each rejected;
   - two proofs differ;
   - a wrong witness is refused by the prover.
 - `zk` MLP:
@@ -422,6 +459,9 @@ blowup and fewer queries would shrink the non-hiding proof too: ~0.95 MB instead
     `u_val`, `Q` value and `σ` are each rejected;
   - committed-inverse mode verifies, and its proof is rejected under the GKR config;
   - separate weight PCS parameters work, and mismatched parameters are rejected;
+  - weight re-randomization: the link verifies and the new commitment serves proofs; a
+    tampered link, swapped roots and a link between different weights are each
+    rejected;
   - after a few proofs the budget is exhausted and the prover refuses
     (`error.OpeningBudgetExceeded`);
   - a wrong forward value is refused.
@@ -430,17 +470,24 @@ blowup and fewer queries would shrink the non-hiding proof too: ~0.95 MB instead
 ## 7. Not done / caveats
 
 - **Weight budget.** About 14 proofs per commitment at `C_w = 1024` and about 56 at
-  `C_w = 4096` with the bench defaults. Then the weights must be re-committed with fresh
-  randomness. A link proof between two commitments of the same weights (a 2-table opening
-  of `T_old − T_new` at a random point, claim 0) is designed but not implemented, so a
-  verifier would need the new root from a trusted source.
+  `C_w = 4096` with the bench defaults. After that, rotate with
+  `rerandomizeWeights` and the link proof (§4.6). Each rotation costs about the weight
+  commit plus 1.9 MB of link and 0.9 MB of proximity proof.
 - **Hiding GKR performance.** Proving costs 2.2–2.4× the non-hiding v1 at mlp 8 10 11.
   Most of it is the generic QM31 masked-sumcheck kernel, without stwo's packed-SIMD GKR
   kernels. Trees are padded to powers of two: one relation with exactly `2^k` keys gets
   2× leaves, because the table and blinder leaves push it over.
-- **Proof size.** Hiding product 20 is 401 KB vs FlashProve's 341 KB. The batch
-  hiding-polynomial group costs one full row (about 66 KB). A tiny separate commitment
-  for it would save about 40 KB. Witness lb 3 with about 39 queries is another option.
+- **Weight opening size.** The weight opening (0.95 MB of 1.47 MB) is column-dominated.
+  The weight table's column count is capped by the smallest matmul output dimension, so
+  all weight claims share one column point. Lifting the cap with one group per matmul
+  would trade about 0.4 MB of columns for 3 combined rows. That table layout is shared
+  with the non-hiding protocol, so the change is left to that stream.
+- **Big shapes not run here** (host rule). Hiding memory is dominated by:
+  - table 1 (witness plus committed remainders);
+  - the GKR layer arrays: 2 × 2 × 16 B per leaf, all layers kept;
+  - the batch vectors (2 QM31 per table-1 cell).
+  Expect several GB at 1024×4096×8192. The remainders could stay virtual: route the GKR
+  remainder-leaf claims through the matmul check, with a `Q`-style pad term.
 - `hiding` is a separate entry point (`zk.prove` / `zk.verify` / `zk.commitWeights`).
   `protocol.prove` ignores the flag; the bench selects with a `zk` argument.
 - **ZK is honest-prover zero knowledge.** It needs fresh OS entropy. A verifier cannot
