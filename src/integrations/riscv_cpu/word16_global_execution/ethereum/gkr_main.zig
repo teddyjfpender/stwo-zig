@@ -346,7 +346,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
     defer if (local_fixed) |*owner| owner.deinit();
     const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
-    var fixed_set: ?FixedSet = if (fixed_cache) |owner| try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
+    var fixed_set: ?FixedSet = if (fixed_cache) |owner| if (session) |shared| try FixedSet.initWithValidatedCatalogue(a, owner, keys.cpus, keys.truths, pcs, &shared.validated_fixed) else try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
     defer if (fixed_set) |*owner| owner.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = request.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     const completed = count == 0;

@@ -7,10 +7,12 @@ const Image = @import("../../word16_execution/expected_image.zig");
 const W = @import("../services/wire.zig");
 const Setup = @import("../../word16_execution/setup.zig");
 const Fixed = @import("../services/gkr_local/fixed_authority.zig").Fixed;
+const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig");
 pub const Session = struct {
     allocator: std.mem.Allocator,
     key_budget: *engine.host_budget_allocator.SharedHostBudget,
     keys: Keys.Owner,
+    validated_fixed: FixedSet.ValidatedCatalogue,
     native: Setup.NativeCache.Cache,
     metadata: Setup.ProgramMetadata.Cache,
     fixed: ?Fixed.Cache = null,
@@ -25,13 +27,14 @@ pub const Session = struct {
         errdefer budget.destroy();
         var native = try Setup.NativeCache.Cache.init(a, 256 << 20);
         errdefer native.deinit();
-        return .{ .allocator = a, .key_budget = budget, .keys = emptyKeys(budget.allocator()), .native = native, .metadata = try Setup.ProgramMetadata.Cache.init(a, 64 << 20) };
+        return .{ .allocator = a, .key_budget = budget, .keys = emptyKeys(budget.allocator()), .validated_fixed = .{ .allocator = budget.allocator() }, .native = native, .metadata = try Setup.ProgramMetadata.Cache.init(a, 64 << 20) };
     }
     fn emptyKeys(a: std.mem.Allocator) Keys.Owner {
         return .{ .allocator = a, .cpus = &.{}, .truths = &.{} };
     }
     pub fn deinit(self: *Session) void {
         std.debug.assert(!self.active);
+        self.validated_fixed.deinit();
         self.keys.deinit();
         if (self.fixed) |*cache| cache.deinit();
         self.native.deinit();
@@ -64,6 +67,7 @@ pub const Session = struct {
         hash.update(encoded);
         const namespace = hash.finalResult();
         if (self.namespace == null or !std.mem.eql(u8, &self.namespace.?, &namespace)) {
+            self.validated_fixed.clear();
             self.keys.deinit();
             self.keys = emptyKeys(self.key_budget.allocator());
             self.namespace = namespace;
@@ -74,6 +78,7 @@ pub const Session = struct {
             if (err != error.OutOfMemory) return err;
             // No previous request holds an owner here. Reclaim cached classes
             // and retry once under the SAME byte cap; never fall back unbounded.
+            self.validated_fixed.clear();
             self.keys.deinit();
             self.keys = emptyKeys(self.key_budget.allocator());
             self.evictions += 1;
