@@ -84,6 +84,14 @@ pub const Builder = struct {
     xtables: std.ArrayList(xt.LookupTable) = .empty,
     tables: std.ArrayList(proto.Table) = .empty,
     weight_infos: std.ArrayList(TensorInfo) = .empty,
+    /// keep the forward pass's integer accumulators (core matmul / hadamard
+    /// ops, requant einsums) for proto.proveWithAllAccumulators
+    keep_accs: bool = false,
+    /// per core op / per ext op: kept accumulator (null when not kept)
+    core_accs: std.ArrayList(?[]i64) = .empty,
+    ext_accs: std.ArrayList(?[]i64) = .empty,
+    /// device hook for the forward matmuls (null: CPU kernel)
+    accel: ?*const @import("accel.zig").Accel = null,
 
     pub fn init(a: std.mem.Allocator, pool: *f.Pool) Builder {
         return .{ .a = a, .arena = std.heap.ArenaAllocator.init(a), .pool = pool };
@@ -100,7 +108,35 @@ pub const Builder = struct {
         self.xtables.deinit(a);
         self.tables.deinit(a);
         self.weight_infos.deinit(a);
+        for (self.core_accs.items) |x| if (x) |v| a.free(v);
+        self.core_accs.deinit(a);
+        for (self.ext_accs.items) |x| if (x) |v| a.free(v);
+        self.ext_accs.deinit(a);
         self.arena.deinit();
+    }
+
+    /// Appends a core op; takes ownership of `acc` (kept if keep_accs).
+    fn pushOp(self: *Builder, op: proto.Op, acc: ?[]i64) !void {
+        try self.core_accs.ensureUnusedCapacity(self.a, 1);
+        try self.ops.append(self.a, op);
+        self.core_accs.appendAssumeCapacity(if (self.keep_accs) acc else null);
+        if (!self.keep_accs) if (acc) |v| self.a.free(v);
+    }
+
+    /// Appends an ext op; takes ownership of `acc` (kept if keep_accs).
+    fn pushXop(self: *Builder, op: xt.Op, acc: ?[]i64) !void {
+        try self.ext_accs.ensureUnusedCapacity(self.a, 1);
+        try self.xops.append(self.a, op);
+        self.ext_accs.appendAssumeCapacity(if (self.keep_accs) acc else null);
+        if (!self.keep_accs) if (acc) |v| self.a.free(v);
+    }
+
+    /// Kept accumulators, aligned with statement().ops / .ext.ops.
+    pub fn coreAccs(self: *const Builder) []const ?[]i64 {
+        return self.core_accs.items;
+    }
+    pub fn extAccs(self: *const Builder) []const ?[]const i64 {
+        return @ptrCast(self.ext_accs.items);
     }
 
     pub fn statement(self: *const Builder) proto.Statement {
@@ -170,7 +206,8 @@ pub const Builder = struct {
     pub fn einsumRequant(self: *Builder, info: TensorInfo, a_: Ref, b_: Ref, n_k: u32, la: []const []const u8, lb: []const []const u8, shift: ?u5, out_bits: u5) !u32 {
         var e = einsumSpec(a_, b_, info.logSize(), n_k, la, lb);
         const acc = try xt.einsumAcc(self.a, self.pool, e, self.vals(a_), self.vals(b_));
-        defer self.a.free(acc);
+        var acc_owned = true;
+        defer if (acc_owned) self.a.free(acc);
         const s = shift orelse try chooseShiftBits(acc, out_bits);
         const y = try self.a.alloc(i32, acc.len);
         const lim = @as(i64, 1) << (out_bits - 1);
@@ -186,7 +223,8 @@ pub const Builder = struct {
         e.y = id;
         e.shift = s;
         e.out_bits = out_bits;
-        try self.xops.append(self.a, .{ .einsum = e });
+        acc_owned = false;
+        try self.pushXop(.{ .einsum = e }, acc);
         return id;
     }
 
@@ -209,7 +247,7 @@ pub const Builder = struct {
             id = try self.add(inf, y);
         }
         e.y = id;
-        try self.xops.append(self.a, .{ .einsum = e });
+        try self.pushXop(.{ .einsum = e }, null);
         return id;
     }
 
@@ -220,15 +258,15 @@ pub const Builder = struct {
         defer self.a.free(acc);
         for (acc, self.wit.items[y]) |v, w| if (v != w) return error.EinsumMismatch;
         e.y = y;
-        try self.xops.append(self.a, .{ .einsum = e });
+        try self.pushXop(.{ .einsum = e }, null);
     }
 
     pub fn key(self: *Builder, n: u32, input: xt.Expr, output: ?xt.Expr, table: xt.TableRef) !void {
-        try self.xops.append(self.a, .{ .key = .{ .n = @intCast(n), .input = input, .output = output, .table = table } });
+        try self.pushXop(.{ .key = .{ .n = @intCast(n), .input = input, .output = output, .table = table } }, null);
     }
 
     pub fn lineq(self: *Builder, n: u32, e: xt.Expr) !void {
-        try self.xops.append(self.a, .{ .lineq = .{ .n = @intCast(n), .expr = e } });
+        try self.pushXop(.{ .lineq = .{ .n = @intCast(n), .expr = e } }, null);
     }
 
     pub fn materialize(self: *Builder, e: xt.Expr, n: u32) ![]i64 {
@@ -287,13 +325,16 @@ pub const Builder = struct {
 
     pub fn matmul(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u32 {
         const xi = self.infos.items[x];
-        const acc = try proto.matmulAcc(self.a, self.pool, xi, self.wit.items[x], ws.matrix(w));
-        defer self.a.free(acc);
+        const acc = try @import("accel.zig").matmulAcc(self.accel, self.a, xi.log_dims[0], self.wit.items[x], ws.matrix(w)) orelse
+            try proto.matmulAcc(self.a, self.pool, xi, self.wit.items[x], ws.matrix(w));
+        var acc_owned = true;
+        defer if (acc_owned) self.a.free(acc);
         const s = model.chooseShift(acc);
         const y = try self.a.alloc(i32, acc.len);
         for (acc, y) |v, *o| o.* = proto.requant(v, s);
         const id = try self.add(TensorInfo.mat(xi.log_dims[0], ws.infos[w].log_dims[1]), y);
-        try self.ops.append(self.a, .{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } });
+        acc_owned = false;
+        try self.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } }, acc);
         return id;
     }
 
@@ -307,21 +348,23 @@ pub const Builder = struct {
         for (self.wit.items[x], out) |v, *o| o.* = self.tables.items[table].values[@intCast(v + 128)];
         const info = self.infos.items[x]; // copy: add() may reallocate infos
         const id = try self.add(info, out);
-        try self.ops.append(self.a, .{ .lookup = .{ .in = x, .out = id, .table = table } });
+        try self.pushOp(.{ .lookup = .{ .in = x, .out = id, .table = table } }, null);
         return id;
     }
 
     pub fn hadamard(self: *Builder, x: u32, y: u32) !u32 {
         const n = self.wit.items[x].len;
         const acc = try self.a.alloc(i64, n);
-        defer self.a.free(acc);
+        var acc_owned = true;
+        defer if (acc_owned) self.a.free(acc);
         for (self.wit.items[x], self.wit.items[y], acc) |p, q, *o| o.* = @as(i64, p) * q;
         const s = model.chooseShift(acc);
         const out = try self.a.alloc(i32, n);
         for (acc, out) |v, *o| o.* = proto.requant(v, s);
         const info = self.infos.items[x]; // copy: add() may reallocate infos
         const id = try self.add(info, out);
-        try self.ops.append(self.a, .{ .hadamard = .{ .a = x, .b = y, .y = id, .shift = s } });
+        acc_owned = false;
+        try self.pushOp(.{ .hadamard = .{ .a = x, .b = y, .y = id, .shift = s } }, acc);
         return id;
     }
 };
@@ -1537,16 +1580,43 @@ const GOLDEN_LAYER_FLAT = "146ac6c30dca6e29b0514fc669cb9360dda1cb2e696d38b3a53b7
 const GOLDEN_LAYER_PCS2_MOE = "4d247ffbc43231bb17a3b03897e068f22b9587d7dfe749164aa472b1b6ea6997";
 
 fn layerDigest(cfg: LayerCfg, pc_in: proto.Config, threads: usize) ![32]u8 {
+    return layerDigestOpt(cfg, pc_in, threads, false);
+}
+
+/// keep: prove from the forward pass's kept accumulators.
+fn layerDigestOpt(cfg: LayerCfg, pc_in: proto.Config, threads: usize, keep: bool) ![32]u8 {
     const a = testing.allocator;
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
     var pc = pc_in;
     pc.gkr_threads = threads;
-    const fx = try Fixture.init(a, &pool, cfg, pc, 4242);
-    defer fx.deinit(a);
-    var proof = try proveVerify(a, &pool, pc, &fx.b, &fx.sw.ws);
+    const fx = try a.create(Fixture);
+    defer a.destroy(fx);
+    fx.sw = try setupWeights(a, &pool, cfg, pc, 4242);
+    defer {
+        fx.sw.ws.deinit(a);
+        for (fx.sw.wdata) |w| a.free(w);
+        a.free(fx.sw.wdata);
+        a.free(fx.sw.winfos);
+    }
+    fx.b = Builder.init(a, &pool);
+    defer fx.b.deinit();
+    fx.b.keep_accs = keep;
+    fx.c = try initCtx(&fx.b, cfg, &fx.sw.ws, 4242 + 1);
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 4242 + 2);
+    defer a.free(x);
+    fx.out = try buildStack(&fx.b, fx.c, x);
+    const st = fx.b.statement();
+    const wv = try fx.b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    var proof = if (keep)
+        try proto.proveWithAllAccumulators(a, &pool, pc, st, &fx.sw.ws, wv, fx.b.coreAccs(), fx.b.extAccs(), &tm)
+    else
+        try proto.prove(a, &pool, pc, st, &fx.sw.ws, wv, &tm);
     defer proof.deinit(a);
+    try proto.verify(a, pc, st, proto.weightKey(&fx.sw.ws), &proof);
     return @import("digest.zig").fullDigest(proof);
 }
 
@@ -1566,6 +1636,8 @@ test "golden decoder layer digests (flat; pcs2 + batched matmuls + MoE), 1 vs 5 
     const d1 = try layerDigest(cfg, pc, 1);
     try checkGolden("flat", GOLDEN_LAYER_FLAT, d1);
     try testing.expectEqualSlices(u8, &d1, &(try layerDigest(cfg, pc, 5)));
+    // forward-pass accumulators (core + ext) give the same proof
+    try testing.expectEqualSlices(u8, &d1, &(try layerDigestOpt(cfg, pc, 5, true)));
 
     var cfg2 = cfg;
     cfg2.log_experts = 1;
@@ -1578,4 +1650,77 @@ test "golden decoder layer digests (flat; pcs2 + batched matmuls + MoE), 1 vs 5 
     const d2 = try layerDigest(cfg2, pc2, 1);
     try checkGolden("pcs2_moe", GOLDEN_LAYER_PCS2_MOE, d2);
     try testing.expectEqualSlices(u8, &d2, &(try layerDigest(cfg2, pc2, 5)));
+    try testing.expectEqualSlices(u8, &d2, &(try layerDigestOpt(cfg2, pc2, 1, true)));
+}
+
+test "forward-pass ext accumulators are untrusted: wrong values refused or rejected, bad shapes refused" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const cfg = LayerCfg{ .log_t = 3, .log_d = 5, .log_f = 6, .log_heads = 2, .log_kv_heads = 1, .fused_qkv = true };
+    var pc = testCfg();
+    pc.weight_log_cols = 5;
+    var sw = try setupWeights(a, &pool, cfg, pc, 77);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var b = Builder.init(a, &pool);
+    defer b.deinit();
+    b.keep_accs = true;
+    const c = try initCtx(&b, cfg, &sw.ws, 78);
+    const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 79);
+    defer a.free(x);
+    _ = try buildStack(&b, c, x);
+    const st = b.statement();
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    // an off-by-one accumulator entry of every requant einsum (one at a time):
+    // the remainder leaves its range (refused) or the einsum sumcheck fails
+    var n_tested: usize = 0;
+    for (b.ext_accs.items) |slot| if (slot) |v| {
+        v[3] += 1;
+        defer v[3] -= 1;
+        n_tested += 1;
+        if (proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), b.extAccs(), &tm)) |proof_c| {
+            var proof = proof_c;
+            defer proof.deinit(a);
+            if (proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof)) |_| return error.WrongAccumulatorAccepted else |_| {}
+        } else |_| {}
+    };
+    try testing.expect(n_tested >= 5);
+    // a remainder kept in range by a consistent shift of 2^s: still rejected
+    for (b.ext_accs.items, st.ext.ops) |slot, op| if (slot) |v| {
+        const sh = op.einsum.shift;
+        // pick an index whose remainder stays in range after +1
+        const y = wv[op.einsum.y.?];
+        var j: usize = 0;
+        while (j < v.len) : (j += 1) {
+            const r = v[j] + (@as(i64, 1) << (sh - 1)) - (@as(i64, y[j]) << sh);
+            if (r + 1 < (@as(i64, 1) << sh)) break;
+        }
+        if (j == v.len) continue;
+        v[j] += 1;
+        defer v[j] -= 1;
+        var proof = try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), b.extAccs(), &tm);
+        defer proof.deinit(a);
+        if (proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof)) |_| return error.WrongAccumulatorAccepted else |_| {}
+        break;
+    };
+    // wrong lengths are refused
+    const short = try a.alloc(?[]const i64, st.ext.ops.len - 1);
+    defer a.free(short);
+    for (short, 0..) |*o, i| o.* = b.extAccs()[i];
+    try testing.expectError(error.AccumulatorShape, proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), short, &tm));
+    const ea = try a.dupe(?[]const i64, b.extAccs());
+    defer a.free(ea);
+    for (ea) |*o| if (o.*) |v| {
+        o.* = v[0 .. v.len / 2];
+        break;
+    };
+    try testing.expectError(error.AccumulatorShape, proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), ea, &tm));
 }

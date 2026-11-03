@@ -681,7 +681,7 @@ fn multiplicities(a: std.mem.Allocator, pool: *f.Pool, st: Statement, rel: Relat
                     mult[@intCast(v)] += 1;
                 }
             },
-            .ext => try xt.addMultiplicities(st, eps, k.op, mult),
+            .ext => try xt.addMultiplicitiesPar(a, pool, st, eps, k.op, mult),
         }
     }
     return out;
@@ -798,6 +798,23 @@ pub fn proveWithAccumulators(
     acc: []const ?[]i64,
     timings: *Timings,
 ) !Proof {
+    return proveWithAllAccumulators(a, pool, cfg, st, ws, witness, acc, null, timings);
+}
+
+/// As `proveWithAccumulators`, plus (optionally) the accumulators of the
+/// requant ext einsums (`ext_acc[i]` for st.ext.ops[i], null = recompute).
+/// Same trust model: wrong values are refused or rejected, never accepted.
+pub fn proveWithAllAccumulators(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: Config,
+    st: Statement,
+    ws: *const WeightStore,
+    witness: []const []const i32,
+    acc: []const ?[]i64,
+    ext_acc: ?[]const ?[]const i64,
+    timings: *Timings,
+) !Proof {
     if (acc.len != st.ops.len) return error.AccumulatorShape;
     for (st.ops, acc) |op, x| switch (op) {
         .matmul => |m| if (x == null or x.?.len != st.witness[m.y].size()) return error.AccumulatorShape,
@@ -807,7 +824,7 @@ pub fn proveWithAccumulators(
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
     const t_init = try std.time.Instant.now();
-    var eps = try xt.proverInit(a, pool, st, witness);
+    var eps = try xt.proverInitWith(a, pool, st, witness, ext_acc);
     defer eps.deinit(a);
     timings.ext_init_ns = nowNs(t_init);
     const tm0 = try std.time.Instant.now();

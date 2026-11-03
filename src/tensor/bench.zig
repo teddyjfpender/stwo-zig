@@ -338,6 +338,11 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var sw = try tf.setupWeights(a, &pool, cfg, pc, 100);
     const commit_s = secs(t0);
     var b = tf.Builder.init(a, &pool);
+    // Default: keep the forward pass's accumulators for the prover
+    // (TENSOR_RECOMPUTE_ACC=1 recomputes them inside prove, as for mlp).
+    const recompute = std.posix.getenv("TENSOR_RECOMPUTE_ACC") != null;
+    b.keep_accs = !recompute;
+    b.accel = pc.accel;
     const c = try tf.initCtx(&b, cfg, &sw.ws, 7);
     const x = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 9);
     t0 = now();
@@ -347,7 +352,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const wview = try b.witnessView(a);
     var tm: proto.Timings = .{};
     t0 = now();
-    var proof = try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm);
+    var proof = if (recompute) try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm) else try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wview, b.coreAccs(), b.extAccs(), &tm);
     var prove_s = secs(t0);
     const prove_first_s = prove_s;
     const pd_first = t.digest.proofDigest(proof);
@@ -357,7 +362,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
         proof.deinit(a);
         var tm2: proto.Timings = .{};
         t0 = now();
-        proof = try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm2);
+        proof = if (recompute) try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm2) else try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wview, b.coreAccs(), b.extAccs(), &tm2);
         const sec = secs(t0);
         if (!std.mem.eql(u8, &t.digest.proofDigest(proof), &pd_first)) return error.NondeterministicProof;
         if (sec < prove_s) {
@@ -375,7 +380,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, queries, lb, pow });
     try printTl(out, pc);
     try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
-    try out.print("\"batch_matmuls\":{},\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"prove_reps\":{d},\"verify_s\":{d:.5},", .{ pc.batch_matmuls, commit_s, forward_s, prove_s, prove_first_s, reps, verify_s });
+    try out.print("\"recompute_acc\":{},\"batch_matmuls\":{},\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"prove_reps\":{d},\"verify_s\":{d:.5},", .{ recompute, pc.batch_matmuls, commit_s, forward_s, prove_s, prove_first_s, reps, verify_s });
     try out.print("\"prep_s\":{{\"accumulators\":{d:.4},\"multiplicities\":{d:.4}}},\"gkr_parts_s\":{{\"input\":{d:.4},\"build\":{d:.4},\"sumcheck\":{d:.4}}},\"terminal_s\":{d:.4},", .{ nsToS(tm.accumulators_ns), nsToS(tm.multiplicities_ns), nsToS(tm.gkr_input_ns), nsToS(tm.gkr_build_ns), nsToS(tm.gkr_sumcheck_ns), nsToS(tm.terminal_ns) });
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
