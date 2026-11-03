@@ -45,9 +45,12 @@ fn pendingCheck(e: M.ExpectedWorker, p: *const M.PendingManifest, i: usize) !voi
     const v = p.entries[i];
     if (v.kind != e.kind or v.local != null or !std.meta.eql(v.mass, e.mass) or !std.meta.eql(v.global_relations, e.global_relations) or !std.mem.eql(u8, &v.scope.statement, &e.statement) or !std.mem.eql(u8, &v.scope.fixed, &e.fixed)) return error.V3TruthManifestMismatch;
 }
-fn local(ch: *W.Channel) O {
+pub fn drawLocal(ch: anytype) @TypeOf(ch.drawSecureFelt()) {
     ch.mixU32s(&.{ 0x56334259, 1, 8 });
     return ch.drawSecureFelt();
+}
+fn local(ch: *W.Channel) O {
+    return drawLocal(ch);
 }
 fn component(truth: R.Truth, wire: @TypeOf(@as(M.Shared, undefined).wire), bytes: O, claim: O) Role {
     return .{ .truth = truth, .wire = wire, .bytes = bytes, .claim = claim };

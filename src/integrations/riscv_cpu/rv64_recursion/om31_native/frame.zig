@@ -91,6 +91,12 @@ const Writer = struct {
     fn constants(ctx: *C.Context, value: [32]u8) !Digest {
         return digestConstants(ctx, value);
     }
+    pub fn fields(self: *Writer, values: []const C.F) void {
+        if (self.failure != null) return;
+        self.channel.mixFelts(self.ctx, values) catch |err| {
+            self.failure = err;
+        };
+    }
     pub fn publicDigest(self: *Writer, value: Digest) void {
         if (self.failure != null) return;
         self.channel.mixU32s(self.ctx, &value) catch |err| {
@@ -98,14 +104,39 @@ const Writer = struct {
         };
     }
 };
-pub fn beginWorker(ctx: *C.Context, config: core.pcs.PcsConfig, kind: M.Kind, ordinal: Word, statement: Digest, binding: ?Binding) !C.Channel {
-    var channel = try C.Channel.init(ctx);
+pub fn mixWorkerBegin(ctx: *C.Context, channel: *C.Channel, config: core.pcs.PcsConfig, kind: M.Kind, ordinal: Word, statement: Digest, binding: ?Binding) !void {
     try channel.mixConfig(ctx, config);
-    var writer = Writer{ .ctx = ctx, .channel = &channel };
+    var writer = Writer{ .ctx = ctx, .channel = channel };
     W.emitBegin(.{ .kind = kind, .ordinal = ordinal, .statement = statement }, &writer);
     if (binding) |authority| Fixed.emitBindingBegin(authority.profile, authority.identity, authority.root, &writer);
     if (writer.failure) |err| return err;
+}
+pub fn beginWorker(ctx: *C.Context, config: core.pcs.PcsConfig, kind: M.Kind, ordinal: Word, statement: Digest, binding: ?Binding) !C.Channel {
+    var channel = try C.Channel.init(ctx);
+    try mixWorkerBegin(ctx, &channel, config, kind, ordinal, statement, binding);
     return channel;
+}
+
+pub fn mixManifestAndClaims(ctx: *C.Context, channel: *C.Channel, manifest: Digest, claims: []const C.F) !void {
+    var writer = Writer{ .ctx = ctx, .channel = channel };
+    // The count is topology, not a producer witness. Reuse the native visitor
+    // while encoding its constant final header word into a constrained wire.
+    const count = try B.wrappers.constU32(C.Q, ctx, @intCast(claims.len));
+    var adapter = struct {
+        writer: *Writer,
+        count: Word,
+        pub fn header(s: *@This(), prefix: []const u32, _: u32) void {
+            s.writer.header(prefix, s.count);
+        }
+        pub fn publicDigest(s: *@This(), value: Digest) void {
+            s.writer.publicDigest(value);
+        }
+        pub fn fields(s: *@This(), values: []const C.F) void {
+            s.writer.fields(values);
+        }
+    }{ .writer = &writer, .count = count };
+    W.emitManifestAndClaims(manifest, claims, &adapter);
+    if (writer.failure) |err| return err;
 }
 /// Generic native draw authorities retain their exact tags and order; builder
 /// failures latch because their channel signatures are intentionally infallible.

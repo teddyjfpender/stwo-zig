@@ -95,10 +95,26 @@ pub fn appendFixed(a: std.mem.Allocator, key: *const @import("../../keccak/share
     errdefer tree.deinit(key.allocator);
     try scheme.appendCommittedTree(a, tree, ch);
 }
+pub fn emitManifestAndClaims(manifest: anytype, claims: anytype, writer: anytype) void {
+    writer.header(&.{ 0x57474b32, 1 }, @as(u32, @intCast(claims.len)));
+    writer.publicDigest(manifest);
+    writer.fields(claims);
+}
 pub fn mixManifestAndClaims(ch: *Channel, manifest: [32]u8, claims: []const O) void {
-    ch.mixU32s(&.{ 0x57474b32, 1, @intCast(claims.len) });
-    digest(ch, manifest);
-    ch.mixFelts(claims);
+    var writer = struct {
+        ch: *Channel,
+        pub fn header(s: *@This(), prefix: []const u32, count: u32) void {
+            std.debug.assert(prefix.len == 2);
+            s.ch.mixU32s(&.{ prefix[0], prefix[1], count });
+        }
+        pub fn publicDigest(s: *@This(), value: [32]u8) void {
+            digest(s.ch, value);
+        }
+        pub fn fields(s: *@This(), values: []const O) void {
+            s.ch.mixFelts(values);
+        }
+    }{ .ch = ch };
+    emitManifestAndClaims(manifest, claims, &writer);
 }
 pub fn encodePhysical(a: std.mem.Allocator, proof: Proof) ![]u8 {
     return Wire.encodeProofBytesBinary(a, proof);
