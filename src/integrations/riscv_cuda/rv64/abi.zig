@@ -291,6 +291,7 @@ comptime {
         @compileError("RV64 OM31 sampling ABI mismatch");
 }
 pub extern "c" fn stwo_rv64_sample_points_on(*anyopaque, u32, *const SamplePoints) c_int;
+pub extern "c" fn stwo_rv64_sample_points_from_point_on(*anyopaque, u32, *const SamplePoints) c_int;
 pub extern "c" fn stwo_rv64_sample_evaluate_on(*anyopaque, u32, *const SampleEvaluation) c_int;
 pub extern "c" fn stwo_rv64_sample_order_on(*anyopaque, u32, [*]const u32, u32, [*]const u32, u32, [*]u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_composition_finalize_on(*anyopaque, u32, [*]u32, [*]u32, u32, u32, [*]const u32, u32, *u32) c_int;

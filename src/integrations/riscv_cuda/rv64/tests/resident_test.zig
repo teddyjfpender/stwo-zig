@@ -116,6 +116,11 @@ const Fake = struct {
         calls += 1;
         return if (failure) 1 else 0;
     }
+    pub fn stwo_rv64_sample_points_from_point_on(_: *anyopaque, lane: u32, j: *const Abi.SamplePoints) c_int {
+        std.debug.assert(lane == 1 and j.count == 1 and j.reserved == 0);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
 fn slice() Slice {
@@ -409,4 +414,24 @@ test "LS-D64 witness validates complete native-event geometry before enqueue" {
     Fake.failure = true;
     try std.testing.expectError(error.CudaEnqueueFailed, commands.witnessDword(job));
     try std.testing.expectError(error.JobPoisoned, commands.witnessDword(job));
+}
+
+test "original-point sampling requires both OM31 coordinates before enqueue" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    var j = @import("../samples.zig").Points{ .parameter = slice(), .recipes = slice(), .points = slice(), .factors = slice(), .ready = slice(), .verdict = slice(), .count = 1 };
+    j.parameter.len = 8;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.samplePointsFromPoint(j));
+    try std.testing.expectEqual(@as(usize, 0), Fake.calls);
+    j.parameter.len = 16;
+    try commands.samplePointsFromPoint(j);
+    try std.testing.expectEqual(@as(u64, 2), commands.launches);
+    j.parameter.generation = 0;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.samplePointsFromPoint(j));
+    j.parameter = slice();
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.samplePointsFromPoint(j));
+    try std.testing.expectError(error.JobPoisoned, commands.samplePointsFromPoint(j));
 }

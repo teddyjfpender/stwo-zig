@@ -23,6 +23,11 @@ export fn rv64_test_samples(context: *Context, lane: u32, points: *const @import
     commands.sampleEvaluate(evaluation.*) catch return 1;
     return 0;
 }
+export fn rv64_test_sample_original_point(context: *Context, lane: u32, points: *const @import("rv64/samples.zig").Points) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.samplePointsFromPoint(points.*) catch return 1;
+    return 0;
+}
 export fn rv64_test_sample_order(context: *Context, lane: u32, order: *const @import("rv64/samples.zig").Order) c_int {
     var commands = R.NativeCommands{ .context = context, .lane_index = lane };
     commands.sampleOrder(order.*) catch return 1;

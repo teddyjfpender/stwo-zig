@@ -32,6 +32,12 @@ static_assert(sizeof(StwoRv64PointRecipe) == 16 &&
 // ready[0] binds the base-point derivation; ready[1..] qualify shifted points.
 extern "C" int stwo_rv64_sample_points_on(void *, uint32_t,
                                           const StwoRv64SamplePoints *);
+// Hybrid seam: parameter contains the canonical original OM31 circle point
+// (x[8], y[8]) already drawn by the native prover. The same shifted-point and
+// normalized sampling-factor kernel is reused; non-circle inputs fail closed.
+extern "C" int
+stwo_rv64_sample_points_from_point_on(void *, uint32_t,
+                                      const StwoRv64SamplePoints *);
 // Uniform coefficient-height batch; term output slots are contiguous and
 // disjoint. Scratch is ceil(2^coefficient_log/1024)*count*8 words per bank.
 // Sample values are AoS OM31 in original term order, suitable for DEEP.

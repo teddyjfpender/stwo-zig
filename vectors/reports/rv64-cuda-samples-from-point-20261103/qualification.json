@@ -1,0 +1,31 @@
+{
+  "schema": "rv64-cuda-original-point-sampling/v1",
+  "scope": "Hybrid native-prover point ingress to existing resident shifted sampling; not full Ethereum proof acceptance",
+  "packet": "Unchanged StwoRv64SamplePoints; parameter points to16words x[8],y[8]",
+  "gates": {
+    "normal": "PASS",
+    "old_and_new_positive_cases": 4,
+    "old_negative_cases": 17,
+    "new_negative_cases": 3,
+    "new_input_alias_and_short_range_rejected": true,
+    "host_release_safe": "79/79 PASS",
+    "sanitizers": "not rerun for this focused seam"
+  },
+  "validations": [
+    "canonical OM31 coordinates",
+    "x^2+y^2=1",
+    "sticky status",
+    "selected context and lane",
+    "complete pointer ranges and disjointness"
+  ],
+  "object_sha256": "e3fbdda22d56445f6617feabd7610841936758988a12ef3585d84f5bb20af400",
+  "executable_sha256": "9627a0c5b2f9ddf8b0d0ccb00b23734db14aaebdcbabfe8d1d630f989a9c1585",
+  "normal_log_sha256": "752e461b87a0e574bc4f511675ac9db1ffc9fac83fb8e2aec1864b5af91e158a",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/samples.cu": "fdc82d2380527b40f24b168bcce572cd11bbab191a2b92b6c959c916e0ad596c",
+    "src/backends/cuda/native/rv64/samples.h": "bd6de2a3df6571b2a9f7dd6c11f802085159950f71e6063bc6553249bb06948f",
+    "tests/cuda/rv64/samples_smoke.cu": "eb8fc990de92e4ce76c2177441dc636430fc3e45ffacdb0ba158c8afb56abeb5",
+    "src/integrations/riscv_cuda/rv64/resident.zig": "15a308aa265e1cb4babe6a75c3e595ad244c9be3519d1c2581b6ca41ce042350"
+  },
+  "full_block_verified": false
+}

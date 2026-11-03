@@ -7,7 +7,8 @@ __global__ void sample_pole(uint32_t *words) {
   for (uint32_t i = 0; i < 8; ++i)
     words[i] = i == 1 ? 1 : 0;
 }
-static void exercise(const std::string &path, uint32_t fault) {
+static void exercise(const std::string &path, uint32_t fault,
+                     bool from_point = false) {
   FixtureWords f(path);
   const auto h = f.take(8);
   if (h[0] != 0x52565350 || h[1] != 1)
@@ -27,6 +28,12 @@ static void exercise(const std::string &path, uint32_t fault) {
              expected_channel = f.take(16);
   if (f.position != f.data.size())
     throw std::runtime_error("trailing sample fixture");
+  std::vector<uint32_t> supplied_point(expected_points.begin(),
+                                       expected_points.begin() + 16);
+  if (fault == 18)
+    supplied_point[0] = 0x7fffffffu;
+  if (fault == 19)
+    std::fill(supplied_point.begin(), supplied_point.end(), 0);
   switch (fault) {
   case 1:
     recipes[0] = 0x7fffffffu;
@@ -74,12 +81,14 @@ static void exercise(const std::string &path, uint32_t fault) {
   padded_sources.resize(sources.size() + 2, 0);
   const auto checkpoint = upload(seed), recipe = upload(recipes),
              source = upload(padded_sources), desc = upload(descriptors),
-             status = upload({fault == 12 ? 32u : 0u}), state = o.plane(16, 1),
-             boundary = o.plane(16, 1), parameter = o.plane(8, 1),
-             alpha = o.plane(8, 1), points = o.plane((groups + 1) * 16, 1),
+             status = upload({fault == 12 || fault == 20 ? 32u : 0u}),
+             state = o.plane(16, 1), boundary = o.plane(16, 1),
+             parameter = o.plane(8, 1), alpha = o.plane(8, 1),
+             points = o.plane((groups + 1) * 16, 1),
              factors = o.plane(groups * 28 * 8, 1),
              ready = o.plane(groups + 1, 1), valid = o.plane(2, 1),
              values = o.plane(terms * 8 + 8, 1);
+  const auto original_point = upload(supplied_point);
   o.upload(values, std::vector<uint32_t>(terms * 8 + 8, 0xdeadbeefu));
   StwoRv64Plane tree_buffers[4]{};
   for (uint32_t i = 0; i < 4; ++i)
@@ -106,7 +115,7 @@ static void exercise(const std::string &path, uint32_t fault) {
   if (fault == 14)
     sample_tamper<<<1, 1, 0, stream>>>(parameter.words, 0x7fffffffu);
   StwoRv64SamplePoints point_job{
-      parameter.words,
+      from_point ? original_point.words : parameter.words,
       reinterpret_cast<const StwoRv64PointRecipe *>(recipe.words),
       points.words,
       factors.words,
@@ -116,9 +125,21 @@ static void exercise(const std::string &path, uint32_t fault) {
       0};
   auto invalid = point_job;
   invalid.factors = points.words;
-  if (!stwo_rv64_sample_points_on(o.ctx, 1, &invalid))
+  auto sample = from_point ? stwo_rv64_sample_points_from_point_on
+                           : stwo_rv64_sample_points_on;
+  if (!sample(o.ctx, 1, &invalid))
     throw std::runtime_error("sample points alias accepted");
-  CHECK(stwo_rv64_sample_points_on(o.ctx, 1, &point_job));
+  if (from_point) {
+    invalid = point_job;
+    invalid.parameter = points.words;
+    if (!sample(o.ctx, 1, &invalid))
+      throw std::runtime_error("original point/output alias accepted");
+    invalid = point_job;
+    invalid.parameter = parameter.words;
+    if (!sample(o.ctx, 1, &invalid))
+      throw std::runtime_error("short original point accepted");
+  }
+  CHECK(sample(o.ctx, 1, &point_job));
   if (fault == 15)
     sample_tamper<<<1, 1, 0, stream>>>(ready.words + 1, 2);
   if (fault == 16)
@@ -189,9 +210,11 @@ static void exercise(const std::string &path, uint32_t fault) {
     throw std::runtime_error("sampling mutant accepted");
   CHECK(stwo_exec_context_dependency_release(o.ctx, &ingress));
   o.close();
-  std::printf("{\"groups\":%u,\"terms\":%u,\"max_coefficient_log\":%u,"
-              "\"fault\":%u,\"status\":%u,\"result\":\"PASS\"}\n",
-              groups, terms, maximum_log, fault, verdict);
+  std::printf(
+      "{\"groups\":%u,\"terms\":%u,\"max_coefficient_log\":%u,"
+      "\"fault\":%u,\"from_point\":%s,\"status\":%u,\"result\":\"PASS\"}\n",
+      groups, terms, maximum_log, fault, from_point ? "true" : "false",
+      verdict);
 }
 int main(int argc, char **argv) {
   try {
@@ -199,8 +222,12 @@ int main(int argc, char **argv) {
       throw std::runtime_error("usage: samples-smoke FIXTURES");
     exercise(std::string(argv[1]) + "/case-0.bin", 0);
     exercise(std::string(argv[1]) + "/case-1.bin", 0);
+    exercise(std::string(argv[1]) + "/case-0.bin", 0, true);
+    exercise(std::string(argv[1]) + "/case-1.bin", 0, true);
     for (uint32_t fault = 1; fault <= 17; ++fault)
       exercise(std::string(argv[1]) + "/case-0.bin", fault);
+    for (uint32_t fault = 18; fault <= 20; ++fault)
+      exercise(std::string(argv[1]) + "/case-0.bin", fault, true);
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "SAMPLES FAIL: %s\n", e.what());

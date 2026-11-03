@@ -338,10 +338,17 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             try self.result(Api.stwo_rv64_binding_eq_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, point, row_log * 8), row_log, try output.bind(self.context), try self.context.deviceSlicePointer(u32, verdict, 1)), 1 + (row_log + 3) / 4);
         }
         pub fn samplePoints(self: *Self, j: @import("samples.zig").Points) !void {
+            return self.samplePointsImpl(j, false);
+        }
+        /// Hybrid entry: parameter is the original circle point x[8],y[8].
+        pub fn samplePointsFromPoint(self: *Self, j: @import("samples.zig").Points) !void {
+            return self.samplePointsImpl(j, true);
+        }
+        fn samplePointsImpl(self: *Self, j: @import("samples.zig").Points, comptime from_point: bool) !void {
             if (j.count == 0 or j.count > 1024) return error.InvalidGeometry;
             const owner = try self.handle();
             const packet = abi.SamplePoints{
-                .parameter = try self.context.deviceSlicePointer(u32, j.parameter, 8),
+                .parameter = try self.context.deviceSlicePointer(u32, j.parameter, if (from_point) 16 else 8),
                 .recipes = try self.context.deviceSlicePointer(u32, j.recipes, @as(usize, j.count) * 4),
                 .points = try self.context.deviceSlicePointer(u32, j.points, @as(usize, j.count + 1) * 16),
                 .factors = try self.context.deviceSlicePointer(u32, j.factors, @as(usize, j.count) * @import("samples.zig").factor_stride * 8),
@@ -349,7 +356,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .status = try self.context.deviceSlicePointer(u32, j.verdict, 1),
                 .count = j.count,
             };
-            try self.result(Api.stwo_rv64_sample_points_on(owner, self.lane_index, &packet), 2);
+            const status = if (from_point) Api.stwo_rv64_sample_points_from_point_on(owner, self.lane_index, &packet) else Api.stwo_rv64_sample_points_on(owner, self.lane_index, &packet);
+            try self.result(status, 2);
         }
         pub fn sampleEvaluate(self: *Self, j: @import("samples.zig").Evaluation) !void {
             if (j.source_count == 0 or j.source_count > 65536 or j.term_capacity > 65536 or j.group_count == 0 or j.group_count > 1024 or j.first > j.term_capacity or j.count > j.term_capacity - j.first or j.sources.address % 8 != 0) return error.InvalidGeometry;

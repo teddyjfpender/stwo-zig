@@ -28,6 +28,25 @@ __global__ void sample_base(StwoRv64SamplePoints j) {
   sample_put(j.points + 8, mul(add(t, t), reciprocal));
   *j.ready = 1;
 }
+__global__ void sample_base_from_point(StwoRv64SamplePoints j) {
+  *j.ready = 0;
+  sample_put(j.points, zero());
+  sample_put(j.points + 8, zero());
+  const OM31 x = from_words(j.parameter), y = from_words(j.parameter + 8);
+  if (!canonical(x) || !canonical(y)) {
+    atomicOr(j.status, 2u);
+    return;
+  }
+  if (atomicOr(j.status, 0u))
+    return;
+  if (!is_zero(sub(add(mul(x, x), mul(y, y)), one()))) {
+    atomicOr(j.status, 4u);
+    return;
+  }
+  sample_put(j.points, x);
+  sample_put(j.points + 8, y);
+  *j.ready = 1;
+}
 __global__ void sample_points(StwoRv64SamplePoints j) {
   const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i >= j.count)
@@ -209,23 +228,36 @@ __global__ void sample_store(StwoRv64SampleEvaluation j,
                              : zero());
 }
 } // namespace stwo::cuda::rv64
-extern "C" int stwo_rv64_sample_points_on(void *ctx, uint32_t lane,
-                                          const StwoRv64SamplePoints *input) {
+static int sample_points_dispatch(void *ctx, uint32_t lane,
+                                  const StwoRv64SamplePoints *input,
+                                  bool from_point) {
   using namespace stwo::cuda::rv64;
   if (!input || input->reserved || !input->count || input->count > 1024)
     return int(cudaErrorInvalidValue);
   const auto j = *input;
   RangeCustody<8> c(ctx, lane);
-  if (!c.range(j.parameter, 8, false) ||
+  if (!c.range(j.parameter, from_point ? 16 : 8, false) ||
       !c.range(reinterpret_cast<const uint32_t *>(j.recipes),
                uint64_t(j.count) * 4, false) ||
       !c.range(j.points, uint64_t(j.count + 1) * 16, true) ||
       !c.range(j.factors, uint64_t(j.count) * factor_stride * 8, true) ||
       !c.range(j.ready, j.count + 1, true) || !c.range(j.status, 1, true))
     return c.status;
-  sample_base<<<1, 1, 0, c.stream>>>(j);
+  if (from_point)
+    sample_base_from_point<<<1, 1, 0, c.stream>>>(j);
+  else
+    sample_base<<<1, 1, 0, c.stream>>>(j);
   sample_points<<<(j.count + 127) / 128, 128, 0, c.stream>>>(j);
   return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_rv64_sample_points_on(void *ctx, uint32_t lane,
+                                          const StwoRv64SamplePoints *input) {
+  return sample_points_dispatch(ctx, lane, input, false);
+}
+extern "C" int
+stwo_rv64_sample_points_from_point_on(void *ctx, uint32_t lane,
+                                      const StwoRv64SamplePoints *input) {
+  return sample_points_dispatch(ctx, lane, input, true);
 }
 extern "C" int
 stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
