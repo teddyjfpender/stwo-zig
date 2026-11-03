@@ -45,3 +45,9 @@ test "ready helper and coordinator stacks share budget without charging borrowed
     try std.testing.expectError(error.OutOfMemory, Execution.StackReservations.init(tight.allocator(), .{ .lanes = &lanes, .pool_worker_budget = 3 }));
     try std.testing.expectEqual(@as(usize, 0), tight.snapshot().external_live_bytes);
 }
+
+test "strict receiver public API refuses incomplete physical nodes before graph construction" {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    try std.testing.expectError(error.MissingRecursiveNodeProof, Execution.verifyExisting(std.testing.allocator, &.{undefined}, &.{}, undefined, undefined, undefined, null, temporary.dir));
+}

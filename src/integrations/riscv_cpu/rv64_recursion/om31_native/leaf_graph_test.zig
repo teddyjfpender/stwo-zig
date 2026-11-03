@@ -36,6 +36,19 @@ test "OM31 native PCS concrete leaf orchestration admits actual CPU and truth fr
         var actual = try @import("outer_wrap.zig").wrapGraph(a, cpu.ctx, cpu.digest);
         defer actual.deinit();
         std.debug.print("OM31_ACTUAL_CPU_WRAP vars={} preprocess_ns={} prove_ns={} verify_ns={}\n", .{ cpu.ctx.circuit.n_vars, actual.timings.preprocess_ns, actual.timings.prove_ns, actual.timings.verify_ns });
+        const bytes = try actual.serialize(a);
+        defer a.free(bytes);
+        var receiver_graph = try G.cpuTraceOnly(a, cpu_input);
+        defer receiver_graph.deinit();
+        var restored = try @import("outer_wrap.zig").wrapGraphOrLoad(a, receiver_graph.ctx, receiver_graph.digest, bytes);
+        defer restored.deinit();
+        try std.testing.expect(restored.restored);
+        try std.testing.expectEqual(@as(u64, 0), restored.timings.prove_ns);
+        try std.testing.expectEqual(@as(usize, 0), receiver_graph.ctx.value_table.capacity);
+        try std.testing.expectEqual(actual.authority.identity, restored.authority.identity);
+        const restored_bytes = try restored.serialize(a);
+        defer a.free(restored_bytes);
+        try std.testing.expectEqualSlices(u8, bytes, restored_bytes);
     }
     const ordinal = setups.len;
     const truth_input = G.TruthInput{ .truth = truths[0], .expected = inventory.workers[ordinal], .manifest = &manifest, .config = config, .encoded = &fixture.bundle.truths[0] };
