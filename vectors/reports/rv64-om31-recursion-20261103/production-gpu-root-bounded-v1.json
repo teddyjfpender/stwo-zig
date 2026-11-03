@@ -1,0 +1,366 @@
+{
+  "report": {
+    "schema": 2,
+    "accepted": true,
+    "outer_backend": "cuda_from_host_assignment",
+    "leaf_proofs": 17,
+    "restored_leaves": 0,
+    "fold_proofs": 16,
+    "restored_folds": 0,
+    "peak_pending_authorities": 6,
+    "retired_preprocessed_bytes": 18589649920,
+    "gpu_new_leaf_proofs": 17,
+    "gpu_new_fold_proofs": 16,
+    "assignment_source": "cpu_circuit_builder",
+    "root_node": 32,
+    "root_digest": [
+      216,
+      144,
+      50,
+      210,
+      238,
+      151,
+      29,
+      97,
+      140,
+      208,
+      24,
+      10,
+      170,
+      79,
+      175,
+      57,
+      217,
+      38,
+      124,
+      143,
+      71,
+      233,
+      173,
+      123,
+      135,
+      60,
+      9,
+      218,
+      59,
+      66,
+      177,
+      175
+    ],
+    "root_authority": [
+      127,
+      0,
+      48,
+      83,
+      212,
+      2,
+      122,
+      171,
+      238,
+      203,
+      99,
+      165,
+      36,
+      101,
+      252,
+      217,
+      245,
+      246,
+      205,
+      133,
+      222,
+      71,
+      138,
+      122,
+      87,
+      26,
+      174,
+      35,
+      154,
+      160,
+      135,
+      8
+    ],
+    "manifest": [
+      228,
+      171,
+      8,
+      40,
+      5,
+      69,
+      136,
+      158,
+      169,
+      156,
+      150,
+      102,
+      39,
+      22,
+      36,
+      49,
+      95,
+      48,
+      103,
+      221,
+      54,
+      90,
+      245,
+      200,
+      131,
+      168,
+      57,
+      47,
+      34,
+      115,
+      246,
+      164
+    ],
+    "native_prove_ns": null,
+    "graph_ns": 17233820966,
+    "wrap_ns": 53099599992,
+    "fold_ns": 62661043509,
+    "root_verify_ns": 1176689108,
+    "total_ns": 136316771207,
+    "root_proof_bytes": 717048,
+    "portable_root_key_admission": false
+  },
+  "process": {
+    "exit_code": 0,
+    "wall_seconds": 247.53567270096391,
+    "user_seconds": 465.729123,
+    "system_seconds": 31.586803,
+    "max_rss_bytes": 8559747072
+  },
+  "proofs": {
+    "leaf-000000.proof": {
+      "bytes": 747608,
+      "sha256": "34e1e118dfec4a2a76536e0a828172f71da6174889b9b9e941351933c6484c5a"
+    },
+    "leaf-000001.proof": {
+      "bytes": 752824,
+      "sha256": "8d87e7d32f3c176ebf2f3c80f213fbf2558ab48a0d24bb11ce7705065efb6ebe"
+    },
+    "fold-000002.proof": {
+      "bytes": 748760,
+      "sha256": "72a465aabd4562a670bc2a5908cc7f50a0d6349bda6a69cf98670266b6e03baf"
+    },
+    "leaf-000002.proof": {
+      "bytes": 746296,
+      "sha256": "68b25ca55d5d717c5a562830b5ac630e8bba5eadf8ccbe32626bd22b410ca9e6"
+    },
+    "leaf-000003.proof": {
+      "bytes": 751384,
+      "sha256": "c088391ffa4e6f38336ce1d353edd64b5dc855113ad8ba79498d744fd2eb46ca"
+    },
+    "fold-000005.proof": {
+      "bytes": 747800,
+      "sha256": "dafe94c086807c1057306f966640ff93a2ccd357e2a97052fa59c0bb89ba56e8"
+    },
+    "fold-000006.proof": {
+      "bytes": 746776,
+      "sha256": "f02c2013ce6992f860421fda1925236864083486484d0297126c9f9eefe34851"
+    },
+    "leaf-000004.proof": {
+      "bytes": 743448,
+      "sha256": "bd052e517578a5cbf9e21109a5ad72b85f4e3834def47ee77dcce5b3edfac770"
+    },
+    "leaf-000005.proof": {
+      "bytes": 752760,
+      "sha256": "9389d5f7475b1f868b6972c106c4e90ffd6742e875bef813073bfce5311ba4cd"
+    },
+    "fold-000009.proof": {
+      "bytes": 747416,
+      "sha256": "4bc230a5727c96d9f89c1a768a75721f8d7b3f795d90754469cb21f9249e73b4"
+    },
+    "leaf-000006.proof": {
+      "bytes": 750744,
+      "sha256": "ce0ab3f19e6f8ebf4bb0eec007139af711da1e6efdd284c64916e6750b2999c0"
+    },
+    "leaf-000007.proof": {
+      "bytes": 745880,
+      "sha256": "3d536577dac296638559052165007616a2b4f633ec6a11dcf2b500ffa3ea52cc"
+    },
+    "fold-000012.proof": {
+      "bytes": 755704,
+      "sha256": "7a862d8f5970f5eb932dfaabd38d0f577edb432412bcedee1f75c1ed857ed543"
+    },
+    "fold-000013.proof": {
+      "bytes": 745464,
+      "sha256": "c589b2f9ff47828a46e45a9ade68c7af1fef03eb2d5c058b08f4ec76fe8c34ba"
+    },
+    "fold-000014.proof": {
+      "bytes": 742392,
+      "sha256": "41acafcc36aac39131351099590ad1edd9e2defc8a30593113e67fa995c714c2"
+    },
+    "leaf-000008.proof": {
+      "bytes": 755960,
+      "sha256": "e9cca429817ce22af9503cacd16398a8b7c6f2c6270a63ea9167ee6a94c28604"
+    },
+    "leaf-000009.proof": {
+      "bytes": 748088,
+      "sha256": "a4024ab2fa20d7c266c613a0ee9122b06131061048605ff39100df4bead68728"
+    },
+    "fold-000017.proof": {
+      "bytes": 753528,
+      "sha256": "2a740a27950d6ea5933feafabe9a10e8e20893af6d117a96c7a7137b1108a9fc"
+    },
+    "leaf-000010.proof": {
+      "bytes": 751416,
+      "sha256": "d1889b6f9f82212650dfa16c794af8b32ec81e75b2d1b129176ee41a77f18e14"
+    },
+    "leaf-000011.proof": {
+      "bytes": 741784,
+      "sha256": "3146443be137ad3292ad2f80ebe53d1d848f2be3e32d5b89948a854a25aec8c5"
+    },
+    "fold-000020.proof": {
+      "bytes": 747928,
+      "sha256": "559ad28848e574acd8e15c5d14d07ec09008174777a4c3bfb6beb31927479acb"
+    },
+    "fold-000021.proof": {
+      "bytes": 738296,
+      "sha256": "c61c12dda6ae684244303134682bc3083280849468d36aea477c3e3eddf8c3d0"
+    },
+    "leaf-000012.proof": {
+      "bytes": 746680,
+      "sha256": "bb302d0a22afa81c8e183d2eac3b0cfabe7cdfe420cf30f1d2009c2ae748e3e4"
+    },
+    "leaf-000013.proof": {
+      "bytes": 747896,
+      "sha256": "702ec67149ea34902445f2b291396632ff2f88922d3c8d8bfadea1e56ebcca0e"
+    },
+    "fold-000024.proof": {
+      "bytes": 748664,
+      "sha256": "c41ae7d9f5a21a1d5c48b8f8668720e829401c8e275830df9e231bc6219dbb1d"
+    },
+    "leaf-000014.proof": {
+      "bytes": 753496,
+      "sha256": "4b67d33794445dbba55f1ae3ef17991d1c19b1b47c9306dfd6faa51c664133e2"
+    },
+    "leaf-000015.proof": {
+      "bytes": 747448,
+      "sha256": "9e8ebfb51dd7a36e27181e4d3b781612bd2b645c10b33e2a630336418a0b246c"
+    },
+    "fold-000027.proof": {
+      "bytes": 746904,
+      "sha256": "8ed07cb3b15102faed932a4cf26821aae7327f4888f83cd7956e7d0eedfccb05"
+    },
+    "fold-000028.proof": {
+      "bytes": 750680,
+      "sha256": "6a0cb0510bbe2aaf266afe2f0c800b09c76f7bea2614312249bbff1ef79476cc"
+    },
+    "fold-000029.proof": {
+      "bytes": 748760,
+      "sha256": "04fc01cf99194f6d645b6ddba3c6ba705eebd92f80ab44cdf8eaa5a38a581c6b"
+    },
+    "fold-000030.proof": {
+      "bytes": 749688,
+      "sha256": "8e3ac2ee369157f83a70532ac824c119ee75e4f944374a593847e9aa90f9c637"
+    },
+    "leaf-000016.proof": {
+      "bytes": 674296,
+      "sha256": "df9547993b9d3e33cb2aa02c9363ad4f4e1c30f231462fca21b10f2049367e43"
+    },
+    "fold-000032.proof": {
+      "bytes": 717048,
+      "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+    },
+    "root.proof": {
+      "bytes": 717048,
+      "sha256": "b82a740f62829dbf795e711e686c3b8e90be88b877005552786eb8459ddb538f"
+    }
+  },
+  "library_build": {
+    "schema": "rv64-cuda-owned-rolling-pcs-build/v1",
+    "library": "/workspace/rv64-gpu-session/build/pcs-rolling-owned/libstwo-numeric-ownedrolling-62f4e557f369fae1.so",
+    "sha256": "62f4e557f369fae15fdcf0508946e5d0e1c9a0c38795ab22cc161fc2e9978a0c",
+    "source_commit": "7ba0f8873",
+    "original_exports": 177,
+    "candidate_exports": 177,
+    "objects": {
+      "/workspace/rv64-gpu-session/build/resident-full15/native/circuit-base_witness.cu.o": "d04c1fd6776c0649c0a9328dffccc5d81e7a9e349e3c1ad46bd1f60ca3e1363f",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/commitment-merkle.cu.o": "a15b771535352a5670a071d479fb064327395c46277cdeeb472c085db40d2ac7",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/commitment-progressive.cu.o": "02290e5001e85d69bee2a32faa12d81e382fc07e50a5e31a9e64b36096b73cec",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/pow-search.cu.o": "e161a20119859dbd9d86d06b42aae602a38107b05f6915c3edbb10d8d7e4fa42",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/runtime-context.cu.o": "2fe4f917adbabd0decfd503b7ff6734855327b1409538b3a5490c1bd664aaffe",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-arith256_witness.cu.o": "e2e96959a1c8de6d1f649939d7986aa0c79cc7a3f81f3cc2a9e6fd39105fa4a2",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-arithmetic_witness.cu.o": "bac185e0870bc37637afe47d4068b9761ba4641465a2759a19d7ed4b0b6237ac",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-batch.cu.o": "ee025bac600876cf16be7a5fb82c0d9b630305b423a62cb6d41a7eff31cd5e14",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-batch_oracles.cu.o": "3417099a3d5991b6d80ebe1035c67b4864daa2718ad2776987fa22609e65bc19",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-binding.cu.o": "65bdfea4f544a428ef59e953e2e3c236ef1681dd58d63044129985b8cfae05e4",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-bridge_witness.cu.o": "99913672213c28da6b45c1322ecde3729b4caed65d2bb6872c9df4e0e3182fe4",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-bulk_witness.cu.o": "f690661dd8cfe35dd74c5c3626d5cc917ddbdc701f31fe4d61f18055760e697b",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-channel.cu.o": "87e0dd3da8bb0b6418c547b76c6028157c49e0afcb48cf1db5403fc815457f21",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-circuit_interaction.cu.o": "611d7bc6ed0ccbfc9cd477a6cd8e143566a7ccbe165ef6ea1a16dfb668489847",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-closure.cu.o": "e6457472f1ac1523229519ad440fa5a5b5a965499dceb5479ab2813f464dbf01",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-composition_finalize.cu.o": "7c7d96aa95e7264e2cecfd258119b5140e4204984b0a93d143b5ddb73c2aad3a",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-cpu_witness.cu.o": "072036178ccd76671172180f6a83689f9f59f1aa94dbb9718780f3581e594681",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-curve_witness.cu.o": "77a85ee548958c709c4ecb84872b46c8f0d382bca44d0a500ddc89d3d79572c5",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-deep.cu.o": "d0b043406e1e5bf0f32d0f7a9e13c36c25b6138f7bc58f578ace6bcffeeec1fa",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-events.cu.o": "89af0c2fd48a3068c6940c9c49a8ed5dd17e03d79d05d6ab9af69932acc2df9c",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-family_witness.cu.o": "97ff4f07780d3b9fec1d80cbab73c56f363364f790fde84bc5a89b7d458a107b",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-fri.cu.o": "5eb3208f193d391b581925d40492e6c628a7e117eb8d69c7e2cb45c7c4764ef4",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-gkr.cu.o": "9da8c932a5326783c8183ada57444f408e6495c30aebb94769ffaed29b23e7d1",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-gkr_loop.cu.o": "607d2097dbd20947f53f364eff4bde13a2649c4dee4bdce01197b6f4ac7ae82a",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-global.cu.o": "66ff4226960f4d5b12a453a2e06c72028c268a8c7d1b256342c0ea8ae4120580",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-keccak_witness.cu.o": "63c2505524d373b06349330b6a10a642138a365f245ce1e072facafbbbd7e801",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-ls_dword_witness.cu.o": "6add6b4fb3216415f60092928e1c75aa7d34b5c89664224f4c18559e6b8a3cdd",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-memory_witness.cu.o": "6e6f939b702bde2d8779cad3419ca9ecaa180ba195a83e5aec33b8643a7352b1",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-parameters.cu.o": "0675e3af6014d50679f4fd1f8b7a5bb4f711c31a21a62163296903491937d25a",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-pcs.cu.o": "26fe1589ee90ffd79def6c316e611cf9e9f00a26220e48f51d2e206d430ddb74",
+      "/workspace/rv64-gpu-session/build/pcs-rolling-owned/pcs_native.o": "c3e3840faa57d15fdf2f9398ec6c6f0880e07b9f2204927ee6111c20a09e0118",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-round.cu.o": "8e004ab50b36d80545b4d5e277693c4b588bc80165832669a0457b400b1515de",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-sample_order.cu.o": "e93fda4a24eb10e7f544821f39f4c71e75d6b1db5e1706d8c1f3a7d2e3f10a5f",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-samples.cu.o": "75afe7e500903553e34230e09e75b8146d1793bdf017d7d017211c6625293a97",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-secp_witness.cu.o": "1465638a971af33044c06bb1d61ed4389865665005861e0e5c15a9a3196991fa",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-sha256_witness.cu.o": "1162c34faebf71a72ae140d1dc3e30f19ee42aacd4ab6d3219f5e5679b54cbac",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-sponge_witness.cu.o": "5b2906d3a4c758d5a00c8d919cb76cc3646d3c557337c7febce1fb7e085c9a55",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-tail.cu.o": "305cdc423ef939bc114a1c50f1d5d8dbfe3992ebf2f1bc5591a914aa5e0cf527",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/rv64-trace.cu.o": "b23a4bac3e66889ba64748d139b211a8b8bd09e2a3d224cf3791d237eddc24dc",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/transform-b2n_retained.cu.o": "a745fe756b74d48d121fb5bddf151e9d2f6db6bfb3a340fb5a78df4fdb2bd652",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/transform-composition_split.cu.o": "7bd4e778be3d3c6ffdaa00510e8bc53ed87099998c6534043078e6d0600d5d43",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/transform-lde.cu.o": "30569a61c0854919f3455d294772c06b3a4e5aea845e4160c642eb1cc827c0e9",
+      "/workspace/rv64-gpu-session/build/resident-full15/native/transform-n2b.cu.o": "76a08c0a73167a3f7aed02af9b6a2210ad78fdd95b56ccb5aba802a22bf62589",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-dispatch-6f9d1d31ffb7.o": "798ecd94dc14e7cc266939bd0168f998fa63362a2fe253cba09a5ab0ec15c54e",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-0-fdcb357bcccc.o": "db8e2f031443f00ee2ecb1da6839b29af10ea0a4e094ce48ba56f44ceeaec8ea",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-1-fa40042d0568.o": "8e21a6e6521d2c92b9de60765e53d758587516fd04b93e4bc3b823689bc37c01",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-10-1edd9a9be041.o": "0b882d427d2608accaa17b73993ca7f704df1b70fc0d97446da6acc2d2ee25ff",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-11-3e710b850e42.o": "0d91b1d3f9ae134e05fe3766df9fd32d274b933f48eaf61e90496b01297db215",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-2-172929d3c540.o": "f20b92fea706c1fc8880be41330093e1b1c1d1aa64070957cd65606086afcc78",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-3-b33901801e50.o": "b254213c5ae50ae0eaaa22ac52f52999c6a9907c09dd47b31426061e8025ccb5",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-4-2c5727cbb023.o": "9dd2269b3cf637df489b076af11a229ecc4acf31edbdcb47eff8f173b9522da2",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-5-13c81a63a90b.o": "789903d8c90a28572aab217361b593f91fdf5e8bbee9927d3c86de9b0f14fbe9",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-6-38cdbcff926d.o": "8ed370a6f252362e332236ac3138b4a0fece72558ca2f0b974eb415268eccede",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-7-a543db5fb6c8.o": "c165609ef77733c55f4bdbab97fc33d0d5c1d360ea316c69e2bef84996b76cde",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-8-27fb7dbbf001.o": "59364447a99aa29a1e6475e82bf2e874ce8759333d55dbf5fe05ab4dd60f5c8b",
+      "/workspace/rv64-gpu-session/build/resident-full15/aot-objects/outer-group-9-07e73cdf9c56.o": "580a26a552491d64827fb7a23545638cb6a3f38d612ea791cbed5b411b7821eb"
+    },
+    "scope": "offline compile/link/export gate; GPU proof pending"
+  },
+  "schema": "rv64-gpu-om31-production-root-bounded/v1",
+  "source_commit": "7ba0f8873",
+  "all_34_proofs_exact_cpu_reference": true,
+  "device_admission": {
+    "cap_bytes": 30064771072,
+    "owned_merkle_prefix_scratch": true,
+    "source_lde": "one maximum-tree buffer",
+    "coefficients": "scope/generation checked per-tree device borrowing",
+    "cap_increased": false,
+    "host_proving_fallback": false,
+    "scope": "All17realCPU/truthleafgraphs and16folds accepted ontestblock24628607, profileq108/P20/fold4."
+  },
+  "aggregate_pcs": {
+    "calls": 33,
+    "prepare_ns": 865586850,
+    "gpu_ns": 7057026533,
+    "wall_ns": 9028781131,
+    "max_retained_bytes": 28550912488,
+    "max_requested_bytes": 15727747012
+  },
+  "qualification_notes": [
+    "EveryGPUproducedproof freshlyverifiednatively before folding; all34bytes exactly match priorCPU proofs.",
+    "CPU circuit graph/assignment and independently authenticatedPP/Authorityconstruction remain; GPU MAIN/INTER/composition/PCS.",
+    "Native input proofs reused. Process wall includes independentnativeauthority/capture setup. Nativeprove_ns isnull, so this is not whole-block nativeplusrecursive wall.",
+    "Portable rootkeyadmission remainsfalse. 128-bit security target under documented assumptions, not whole-protocol certification.",
+    "Separate malformed legacy sourcegroupindex guard dbef41abe is a sourcefollowup; production rollingpath partitions alreadyvalidated."
+  ]
+}
