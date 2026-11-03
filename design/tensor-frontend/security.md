@@ -203,6 +203,15 @@ round with work / without.
 | MLP base "proven-query" (160/160) | 914 848 | 1.05-1.28 | 6.4 | 93.7 | 93.7 | 95.0 | 95.0 | 514 024 |
 | **MLP Johnson+OOD, balanced** (97 / 61 lb3 / 61 lb3, weights 53, key 900) | **640 116** | 1.07 | 4.6 | **94.5** | 86.1 | 95.0 | 88.1 | 1 891 208 |
 | MLP Johnson+OOD (122 / 76 / 76, weights 66, key 900) | 763 672 | 1.08-1.55 | 6.2 | 94.5 | 93.5 | 95.0 | 95.0 | 1 931 048 |
+| layer 256 tok, D 512, F 1024, 8q/2kv heads, conj (54/54) | 321 816 | 0.26 | 5.2 | 54.0 | 34.0 | 56.5 | 36.5 | |
+| layer, base "proven-query" (160/160) | 705 152 | 0.28 | 7.2 | 98.0 | 98.0 | 98.6 | 98.6 | |
+| layer, Johnson+OOD balanced (97 / 61 lb3 / 61 lb3, weights 53, key 900) | 518 996 | 0.27 | 6.2 | 98.6 | 86.8 | 98.6 | 88.1 | |
+
+Layer rows: `tensor-bench layer 8 9 10 3 12 <q> 2 20 1 1 0 8 1 2 ...`; bits are
+the request only (the layer bench makes no key proof). The 1024-token layer
+command from the brief (`layer 10 11 12 4 12 54 2 20 2 1 0 10 1 2 54`) fails
+with `error.ExtStatement` on the base branch `61ba1ce6c` as well. That is
+pre-existing and was not investigated in this stream.
 
 FlashProve's CPU toy on this machine: 341 KB, 8.37 s, 14 ms. Its printed
 accounting: 128 (largest round, work counted) / 96.23 (without work); its
