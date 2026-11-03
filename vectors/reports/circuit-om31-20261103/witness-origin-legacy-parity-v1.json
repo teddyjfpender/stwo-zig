@@ -1,0 +1,23 @@
+{
+  "schema": "circuit-witness-origins/legacy-parity/v1",
+  "source_checkpoint": "8106fe236",
+  "command": "zig build circuit-parity -Doptimize=ReleaseFast -j2",
+  "exit_code": 0,
+  "wall_ns": 600997902000,
+  "log_sha256": "b793498763db154e5eee748b2a084c7fc9fca79b92ad194f886ea44fe6d1817f",
+  "previous_surface_pin": "970de55400f9b443e1dc7556cf9c25e1d4462a59c04c851e05060b1f9284d398",
+  "qualified_surface_pin": "c4c0c121014b2ecac9ccba1d873952348fdf6deb22788e0d73c2466691990b87",
+  "qualification": "All available local and large parity ladder rungs passed, including original circuit fixtures, registry, leaf wrapping and reduction trees.",
+  "explicit_skip": {
+    "target": "circuit-parity-r7-multiverifier",
+    "reason": "External STWO_CIRCUIT_MULTIVERIFIER_INPUTS oracle input file unavailable",
+    "qualified": false
+  },
+  "changes": "Opt-in witness origins, explicit naming of existing sort permutation, and generation-only schedule over original gates. Default topology and original constraint authority retained.",
+  "does_not_qualify": [
+    "Trace-only builder branch (not integrated at this checkpoint)",
+    "Production Ethereum GPU recursion",
+    "128-bit whole-protocol certificate"
+  ],
+  "notes": "This is legacy circuit compatibility evidence. GPU assignment reconstruction and native OM31 outer proof gates have separate receipts."
+}
