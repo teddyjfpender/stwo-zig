@@ -31,6 +31,7 @@ const builtin = @import("builtin");
 const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const eqsum = @import("eqsum.zig");
+const accel = @import("accel.zig");
 const proto = @import("protocol.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
@@ -1306,7 +1307,7 @@ fn hasFoldVars(lay: Layout, lab: Labels, nb: u32) bool {
     return false;
 }
 
-fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []const []const i32, e: Einsum, rho: []const QM31, claim: QM31, tr: *Transcript, claims: *std.ArrayList(proto.WitnessClaim), sumchecks: *std.ArrayList(sc.Proof), finals: *std.ArrayList([2]QM31)) !void {
+fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, hook: ?*const accel.Accel, st: proto.Statement, w: []const []const i32, e: Einsum, rho: []const QM31, claim: QM31, tr: *Transcript, claims: *std.ArrayList(proto.WitnessClaim), sumchecks: *std.ArrayList(sc.Proof), finals: *std.ArrayList([2]QM31)) !void {
     const lay = Layout.init(e);
     const av = refValues(st, w, e.a);
     const bv = refValues(st, w, e.b);
@@ -1319,7 +1320,14 @@ fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []co
         defer if (ob.owned) a.free(ob.v);
         var bpt: [MAXB]QM31 = undefined;
         for (0..lay.n_batch) |i| bpt[i] = rho[lay.batch[i]];
-        var res = try eqsum.proveEqPrefix(.hadamard, a, pool, tr, claim, bpt[0..lay.n_batch], lay.ns, .{ oa.v, ob.v });
+        const len = @as(usize, 1) << @intCast(lay.ns);
+        const on_device = if (hook) |A| A.sc_begin_lazy != null and len / 2 >= A.sc_min_work else false;
+        var res = if (on_device)
+            // device: lazy factors {eq(rho_B) broadcast over k, A, B}; same
+            // proof as the generic prover (and hence as proveEqPrefix)
+            try accel.proveFactors(hook, 3, &T_EQ3, a, pool, tr, claim, .{ .{ .eq_prefix = .{ .point = bpt[0..lay.n_batch], .free_bits = e.n_k } }, .{ .int = oa.v }, .{ .int = ob.v } }, len, len)
+        else
+            try eqsum.proveEqPrefix(.hadamard, a, pool, tr, claim, bpt[0..lay.n_batch], lay.ns, .{ oa.v, ob.v });
         defer a.free(res.point);
         const fin: [2]QM31 = .{ res.finals[1], res.finals[2] };
         a.free(res.finals);
@@ -1338,7 +1346,7 @@ fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []co
     var res: sc.ProveResult = undefined;
     var fin: [2]QM31 = undefined;
     if (lay.n_batch == 0) {
-        res = try sc.proveActive(2, &T_PROD2, a, pool, tr, claim, .{ fa, fb }, fa.len);
+        res = try accel.proveActive(hook, 2, &T_PROD2, a, pool, tr, claim, .{ fa, fb }, fa.len);
         fin = .{ res.finals[0], res.finals[1] };
     } else {
         var bpt: [MAXB]QM31 = undefined;
@@ -1354,7 +1362,7 @@ fn proveEinsum(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []co
                 for (s..end) |i| c.eqf[i] = c.eqb[i >> @intCast(c.nk)];
             }
         }.run);
-        res = try sc.proveActive(3, &T_EQ3, a, pool, tr, claim, .{ eqf, fa, fb }, fa.len);
+        res = try accel.proveActive(hook, 3, &T_EQ3, a, pool, tr, claim, .{ eqf, fa, fb }, fa.len);
         fin = .{ res.finals[1], res.finals[2] };
     }
     defer a.free(res.point);
@@ -1401,14 +1409,14 @@ fn remainderKey(keys: []const Key, op: usize) usize {
     unreachable;
 }
 
-pub fn proveOps(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []const []const i32, ps: *const ProverState, g: GkrView, alpha: QM31, tr: *Transcript, claims: *std.ArrayList(proto.WitnessClaim), values: *std.ArrayList(QM31), sumchecks: *std.ArrayList(sc.Proof), finals: *std.ArrayList([2]QM31)) !void {
+pub fn proveOps(a: std.mem.Allocator, pool: *f.Pool, hook: ?*const accel.Accel, st: proto.Statement, w: []const []const i32, ps: *const ProverState, g: GkrView, alpha: QM31, tr: *Transcript, claims: *std.ArrayList(proto.WitnessClaim), values: *std.ArrayList(QM31), sumchecks: *std.ArrayList(sc.Proof), finals: *std.ArrayList([2]QM31)) !void {
     for (st.ext.ops, 0..) |op, oi| switch (op) {
         .einsum => |e| {
             if (e.shift > 0) {
                 const ki = remainderKey(ps.keys, oi);
                 const rho = g.ood[g.ood.len - e.n_out ..];
                 const claim = requantAccClaim(e, g.cv[g.key_base + ki][1], g.cv[g.key_base + ki + 1][1], alpha);
-                try proveEinsum(a, pool, st, w, e, rho, claim, tr, claims, sumchecks, finals);
+                try proveEinsum(a, pool, hook, st, w, e, rho, claim, tr, claims, sumchecks, finals);
             } else {
                 const rho = try a.alloc(QM31, e.n_out);
                 defer a.free(rho);
@@ -1420,7 +1428,7 @@ pub fn proveOps(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, w: []c
                     try values.append(a, claim);
                     try claims.append(a, .{ .tensor = y, .point = try a.dupe(QM31, rho), .value = claim });
                 }
-                try proveEinsum(a, pool, st, w, e, rho, claim, tr, claims, sumchecks, finals);
+                try proveEinsum(a, pool, hook, st, w, e, rho, claim, tr, claims, sumchecks, finals);
             }
         },
         .lineq => |l| {

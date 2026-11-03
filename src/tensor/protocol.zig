@@ -1114,7 +1114,7 @@ pub fn proveWithAllAccumulators(
         else => {},
     };
     const t_ext_ops = try std.time.Instant.now();
-    try xt.proveOps(a, pool, st, all, &eps, gview, alpha, &tr, &claims, &ext_values, &ext_sumchecks, &ext_finals);
+    try xt.proveOps(a, pool, cfg.accel, st, all, &eps, gview, alpha, &tr, &claims, &ext_values, &ext_sumchecks, &ext_finals);
     timings.ext_ops_ns = nowNs(t_ext_ops);
     timings.op_sumcheck_ns = nowNs(t0);
 

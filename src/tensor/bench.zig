@@ -340,6 +340,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
         .weight_log_cols = wlc,
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
+        .gkr_min_parallel = if (std.posix.getenv("TENSOR_GKR_MINPAR")) |v| try std.fmt.parseInt(usize, v, 10) else (proto.Config{}).gkr_min_parallel,
     };
     pc.two_level = try twoLevel(args, 15, pc.pcs);
     pc.accel = accelFor();

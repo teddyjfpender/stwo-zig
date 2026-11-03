@@ -921,6 +921,12 @@ pub const Gpu = struct {
         var n_claims: usize = 0;
         for (specs) |sp| switch (sp) {
             .int => |v| if (v.len != len) return null,
+            .eq_prefix => |ep| {
+                const sp_ = prefixSplit(ep) orelse return null;
+                if ((@as(usize, 1) << @intCast(ep.point.len + ep.free_bits)) != len) return null;
+                total_tab += (@as(usize, 1) << @intCast(sp_.n_pre)) + (@as(usize, 1) << @intCast(sp_.lo_bits));
+                n_claims += 1;
+            },
             .eq => |cs| for (cs) |c| {
                 if (c.offset + (@as(usize, 1) << @intCast(c.point.len)) > len) return error.BatchClaimRange;
                 const lo = c.point.len / 2;
@@ -942,6 +948,25 @@ pub const Gpu = struct {
             .int => |v| {
                 lp.fac[j] = .{ .kind = 0, .claim0 = 0, .n_claims = 0 };
                 srcs[j] = try g.view(@constCast(std.mem.sliceAsBytes(v)), true);
+            },
+            .eq_prefix => |ep| {
+                // one claim at offset 0: pre = eq(point[..n_pre]) over the high
+                // eq bits, suf[j] = eq(point[n_pre..], j >> free_bits) over the
+                // low eq bits and the free bits, so pre[i >> lo] * suf[i & mask]
+                // = eq(point, i >> free_bits)
+                const sp_ = prefixSplit(ep).?;
+                lp.fac[j] = .{ .kind = 1, .claim0 = @intCast(ci), .n_claims = 1 };
+                const ca = std.heap.c_allocator;
+                const pre = try f.eqTable(ca, ep.point[0..sp_.n_pre], QM31.one());
+                defer ca.free(pre);
+                const eql = try f.eqTable(ca, ep.point[sp_.n_pre..], QM31.one());
+                defer ca.free(eql);
+                @memcpy(tq[at..][0..pre.len], pre);
+                const suf_len = @as(usize, 1) << @intCast(sp_.lo_bits);
+                for (0..suf_len) |q| tq[at + pre.len + q] = eql[q >> @intCast(ep.free_bits)];
+                cq[ci] = .{ .offset = 0, .count = @intCast(len), .lo_bits = sp_.lo_bits, .pre_off = @intCast(at), .suf_off = @intCast(at + pre.len) };
+                at += pre.len + suf_len;
+                ci += 1;
             },
             .eq => |cs| {
                 lp.fac[j] = .{ .kind = 1, .claim0 = @intCast(ci), .n_claims = @intCast(cs.len) };
@@ -974,6 +999,16 @@ pub const Gpu = struct {
         return s;
     }
 
+    /// pre/suf split of an eq_prefix factor: the suffix table covers the low
+    /// eq bits plus the free bits (both tables at most 2^20 entries).
+    fn prefixSplit(ep: t.accel.EqPrefix) ?struct { n_pre: usize, lo_bits: u32 } {
+        const nb = ep.point.len;
+        const l2 = nb / 2;
+        const lo = l2 + ep.free_bits;
+        if (lo > 20 or nb - l2 > 20 or nb + ep.free_bits >= 31) return null;
+        return .{ .n_pre = nb - l2, .lo_bits = @intCast(lo) };
+    }
+
     /// Segment index of the eq factors' claims: per factor j, the breakpoints
     /// {offset, offset + count} of its claims cut the table into disjoint
     /// intervals; each interval covered by at least one claim becomes a
@@ -990,6 +1025,14 @@ pub const Gpu = struct {
         var ci: u32 = 0;
         for (specs, 0..) |sp, j| switch (sp) {
             .int => {},
+            .eq_prefix => |ep| {
+                const n = @as(usize, 1) << @intCast(ep.point.len + ep.free_bits);
+                lp.fac[j].claim0 = @intCast(segs.items.len);
+                lp.fac[j].n_claims = 1;
+                try lists.append(a, ci);
+                try segs.append(a, .{ 0, @intCast(n), @intCast(lists.items.len - 1), 1 });
+                ci += 1;
+            },
             .eq => |cs| {
                 bps.clearRetainingCapacity();
                 for (cs) |c| {
