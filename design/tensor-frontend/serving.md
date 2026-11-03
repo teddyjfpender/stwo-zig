@@ -187,6 +187,35 @@ Bytes per request:
 (*) One request's routing needed capacity 2^7 instead of 2^6, which grew its
 MoE stacks. The expert capacity is fitted per request.
 
+The rows above were measured before commit `5f77f7d2a`. After it, the
+reduction reads the committed i8 table directly; before it, the table was
+first widened to an i32 copy at 4 B per entry. Proofs are unchanged. The
+re-measured points are below; the host load average was about 6 from other
+jobs, so the prove times are noisier.
+
+| config | shared opening | peak RSS |
+|---|---|---|
+| L=4, T=256, R=1 | 0.77-0.79 -> **0.68 s** | 10.13 -> **9.43 GB** |
+| L=4, T=256, R=2 | 0.94 -> 0.92 s | 11.31 -> **10.50 GB** |
+| L=2, T=256, R=1 / R=4 | 0.41 / 0.50 -> 0.36 / 0.47 s | about 6.3 / 7.4 GB (the request phase sets the peak here) |
+
+### 2.2b Width scaling (L=2, T=256, R=1)
+
+D, F and the expert width are all halved (`d=9 f=11 fe=10`), with the head
+count unchanged:
+
+| config | weights | witness/req | prove | shared | s/req | tok/s | own bytes | shared opening bytes | verify | peak RSS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| D=512, V=32768 | 34.3M | 14.2M | 0.58 s | 0.17 s | 0.80 | 319 | 306 KB | 156 KB | 12.8 ms | 3.2 GB |
+| D=512, V=16384 | 26.0M | 14.1M | 0.62 s | 0.10 s | 0.78 | 328 | 305 KB | 143 KB | 12.1 ms | 2.4 GB |
+| D=1024 (from 2.1) | 103.8M | 22.5M | 0.96-1.06 s | 0.41 s | 1.51-1.61 | 159-170 | 320 KB | 205 KB | 18 ms | 6.2 GB |
+
+Split the witness into an attention-pair term and a width-linear term. The
+pair term is about 40 per token pair per layer at 8 heads, which is 5.2M at
+L=2 and T=256, and it does not depend on width. The width-linear part then
+goes from 8.9M to 17.3M, a ratio of 1.94 when the widths double, so it scales
+linearly with width. The prove cost per element stays at 41 ns.
+
 **L=4, R=4 was not run.** The R=2 run's peak RSS, 11.3 GB, was already above
 memguard's 1.3 x 8 GB kill line. memguard samples RSS and missed that peak.
 The R=4 attempt was killed at 11.0 GB.
@@ -233,13 +262,13 @@ s/request(R) = (f + p) * n_w + c * |W| + s1 + S0 * |W| / R
 | p: prove per witness element | 39-41 ns (T=256); 46 ns (T=512); 54 ns (T=128, fixed costs) | L=2 and L=4 prove / n_w |
 | f: forward per witness element | 6-8 ns | forward / n_w |
 | c: per-request weight fold per **total** weight | 0.15 ns | `weight_fold` stage: 15.6 ms / 103.8M, 25.2 ms / 174M |
-| S0: shared opening per weight, per batch | 3.7-4.3 ns | 0.38 s / 103.8M, 0.74 s / 174M |
+| S0: shared opening per weight, per batch | 3.7-4.8 ns (before `5f77f7d2a`; about 10% lower after) | 0.38 s / 103.8M, 0.74 s / 174M, 0.17 s / 34.3M |
 | s1: shared opening per request | ~0.03 s at 12 claims (grows with claims per request) | slope of shared(R) |
 | own proof bytes | ~80 KB / layer + ~160 KB; +~15% per doubling of T | L=2 vs 4, T=128-512 |
 | shared claim bytes per request | ~0.7 KB / layer + ~1.9 KB | 3.3 KB (L=2), 4.7 KB (L=4) |
 | shared opening bytes per batch | ~205-212 KB, logarithmic in |W|, flat in R | |
 | verify per request (1 thread) | ~3.5 ms / layer + ~11 ms, flat in R; ~+80% from T=256 to 512 | |
-| witness elements per token, per layer | ~34K + ~40 * T (at D=1024, 8 heads) | fit to T=128/256/512, L=2 |
+| witness elements per token, per layer | ~34K * (D/1024) + ~40 * T * (heads/8) | T fit at T=128/256/512 and width check at D=512 (L=2); the head scaling is assumed |
 
 Check: at L=2, T=256 the model gives s/request(4) = 1.056 + 0.38/4 = 1.15 s,
 against 1.13-1.14 s measured. As R grows, it tends to about 1.06 s per request,
@@ -277,8 +306,8 @@ The request is 1024 tokens.
 | prove, p * n_w | 9.3e9 x 40 ns = 370 s | 2.0e10 x 50 ns = 1000 s | 2.6e10 x 55 ns = 1430 s |
 | forward, f * n_w | 60 s | 140 s | 210 s |
 | weight fold, c * 400.7B (whole expert stacks, every request) | 60 s | 60 s | 120 s |
-| shared opening, S0 * 400.7B / 24 | 62 s | 67 s | 72 s |
-| **s/request** | **~550 s** | **~1270 s** | **~1830 s** |
+| shared opening, S0 * 400.7B / 24 | 62 s | 67 s | 80 s |
+| **s/request** | **~550 s** | **~1270 s** | **~1840 s** |
 | **tokens/s (1024 tokens per request)** | **~1.9** | **~0.8** | **~0.56** |
 
 Proof bytes per request:
@@ -309,14 +338,18 @@ Verify per request: about 0.2-0.3 s on one thread.
 * The weight fold is O(total weights) per request, because a batched matmul
   folds the whole `[E K, N]` stack. Fewer tokens per request still pay for all
   of it.
-* The width scaling of the witness was not measured. Only T and L were
-  varied; D, F and the head count stayed fixed.
+* Width scaling was checked at only one point, D=512 against D=1024, and
+  only downward. The heads-scaling of the attention-pair term (x5 for 40
+  heads) is assumed, not measured.
 
 ## 5. Not done
 
-* Memory: the shared-opening table E is not streamed, and peak RSS grows with
-  R (about +1 GB from R = 1 to R = 4 at L = 2). L = 4 with R >= 4 does not
-  fit in 8 GB.
+* Memory: the shared-opening table E (16 B per padded table entry) is not
+  streamed. The i32 widened copy is gone (`5f77f7d2a`). Peak RSS still grows
+  with R, by about 1 GB from R = 1 to R = 4 at L = 2. It looks like
+  allocator retention rather than a leak: an earlier L=4, R=24 run peaked at
+  10 GB. That was not investigated further. L = 4 with R >= 4 does not fit
+  under the 8 GB budget.
 * The serving split has no zero-knowledge treatment (`codex/tensor-zk`), and
   capacity leaks through slot shapes (section 1.1).
 * The per-request weight fold costs O(total expert weights), even though
