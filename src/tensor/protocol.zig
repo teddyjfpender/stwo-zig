@@ -24,6 +24,7 @@ const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const linalg = @import("linalg.zig");
+const batch = @import("batch.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const M31 = f.M31;
@@ -787,19 +788,16 @@ pub fn prove(
     const gammas = try a.alloc(QM31, claims.items.len);
     defer a.free(gammas);
     tr.drawN(gammas);
+    // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
     const E = try a.alloc(QM31, total);
-    @memset(E, QM31.zero());
+    @memset(E[0..lay.used], QM31.zero());
     var batch_claim = QM31.zero();
     for (claims.items, gammas) |c, g| {
         const off = lay.offsets[c.tensor];
-        const eq = try f.eqTablePar(a, pool, c.point, g);
-        defer a.free(eq);
-        for (E[off..][0..eq.len], eq) |*e, v| e.* = e.add(v);
+        try batch.addEqScaled(a, pool, E[off..][0 .. @as(usize, 1) << @intCast(c.point.len)], c.point, g);
         batch_claim = batch_claim.add(g.mul(c.value));
     }
-    const F = try toQM31Vec(a, pool, wtab);
-    const bres = try sc.proveActive(2, &T_PROD2, a, pool, &tr, batch_claim, .{ F, E }, lay.used);
-    a.free(F);
+    const bres = try batch.proveBaseTimesExt(a, pool, &tr, batch_claim, wtab, E, lay.used);
     a.free(E);
     defer a.free(bres.point);
     const wval = bres.finals[0];

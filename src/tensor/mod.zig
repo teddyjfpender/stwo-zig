@@ -6,6 +6,7 @@ pub const linalg = @import("linalg.zig");
 pub const protocol = @import("protocol.zig");
 pub const model = @import("model.zig");
 pub const proof_digest = @import("proof_digest.zig");
+pub const batch = @import("batch.zig");
 
 test {
     _ = field;
@@ -16,4 +17,5 @@ test {
     _ = protocol;
     _ = model;
     _ = proof_digest;
+    _ = batch;
 }
