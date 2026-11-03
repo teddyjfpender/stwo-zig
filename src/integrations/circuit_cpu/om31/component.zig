@@ -96,17 +96,7 @@ pub const Component = struct {
         return Air.MaskPoints.initOwned(try a.dupe([][]Point, &.{ fixed, main, inter }));
     }
     pub fn extensionParameters(self: *const Component) ![]O {
-        const out = try self.allocator.alloc(O, self.captured.ext_sources.len);
-        errdefer self.allocator.free(out);
-        const scale = try M.fromCanonical(@as(u32, 1) << @intCast(self.captured.trace_log_size)).inv();
-        for (out, self.captured.ext_sources) |*v, source| v.* = switch (source) {
-            .constant => |words| E.embed(P.Q.fromU32Unchecked(words[0], words[1], words[2], words[3])),
-            .lookup_z => self.z,
-            .lookup_alpha_power => |power| self.alpha.pow(power),
-            .lookup_alpha_power_scaled => |x| self.alpha.pow(x.power).mulM31(M.fromCanonical(x.scale)),
-            .claimed_sum_scaled => self.claim.mulM31(scale),
-        };
-        return out;
+        return E.parameters(self.allocator, self.captured, self.z, self.alpha, self.claim);
     }
     const PointRead = struct {
         component: *const Component,
