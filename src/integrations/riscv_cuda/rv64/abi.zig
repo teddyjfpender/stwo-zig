@@ -368,7 +368,10 @@ pub extern "c" fn stwo_rv64_composition_auxiliary_on(*anyopaque, u32, [*]const u
 
 pub const BatchSumJob = extern struct { n: Plane, d: Plane, a: Plane, b: Plane, out: Plane };
 pub const BatchFoldJob = extern struct { n: Plane, d: Plane, out_n: Plane, out_d: Plane };
+pub const BatchMaskJob = extern struct { n: Plane, d: Plane, output: [*]u32 };
+pub extern "c" fn stwo_rv64_batch_masks_on(*anyopaque, u32, [*]const BatchMaskJob, u32) c_int;
 comptime {
+    if (@sizeOf(BatchMaskJob) != 56) @compileError("batched mask job ABI changed");
     if (@sizeOf(BatchSumJob) != 120 or @sizeOf(BatchFoldJob) != 96) @compileError("batched oracle job ABI changed");
 }
 pub extern "c" fn stwo_rv64_batch_sum_on(*anyopaque, u32, [*]const BatchSumJob, u32, u32, Plane, [*]const u32, *u32) c_int;

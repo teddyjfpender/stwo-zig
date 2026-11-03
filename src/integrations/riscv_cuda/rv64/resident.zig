@@ -374,6 +374,25 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const owner = try self.handle();
             try self.result(self.callApi("stwo_rv64_batch_mask_on", .{ owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32) }), 1);
         }
+        /// Every terminal mask is independent. Preserve oracle order and exact
+        /// packing, using one launch per layer when the native image supports it.
+        pub fn packBatchMasks(self: *Self, inputs: []const Fraction, outputs: []const Slice) !void {
+            if (inputs.len == 0 or inputs.len > abi.batch_max_oracles or inputs.len != outputs.len) return error.InvalidGeometry;
+            if (comptime @hasField(Api, "stwo_rv64_batch_masks_on") or @hasDecl(Api, "stwo_rv64_batch_masks_on")) {
+                if (self.batched_oracles and self.apiPointer("stwo_rv64_batch_masks_on") != null) {
+                    var packets: [abi.batch_max_oracles]abi.BatchMaskJob = undefined;
+                    for (inputs, outputs, 0..) |input, output, i| {
+                        try input.validate();
+                        if (input.count != 2) return error.InvalidGeometry;
+                        packets[i] = .{ .n = try input.n.bind(self.context), .d = try input.d.bind(self.context), .output = try self.context.deviceSlicePointer(u32, output, 32) };
+                    }
+                    const owner = try self.handle();
+                    try self.result(self.callApi("stwo_rv64_batch_masks_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(inputs.len)) }), 1);
+                    return;
+                }
+            }
+            for (inputs, outputs) |input, output| try self.packBatchMask(input, output);
+        }
         pub fn gatherParameters(self: *Self, reservoir: Slice, output: Slice, slots: []const u32, namespaces: u32, verdict: Slice) !void {
             const total = abi.relation_count * abi.relation_slot_stride;
             if (slots.len == 0 or slots.len > total or (namespaces != 9 and namespaces != 10)) return error.InvalidGeometry;

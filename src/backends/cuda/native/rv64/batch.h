@@ -28,6 +28,10 @@ extern "C" int stwo_rv64_batch_mask_on(void *, uint32_t, StwoRv64Plane,
 // oracle, so batching adds no mixed-height padding or numerical interaction.
 struct StwoRv64BatchSumJob { StwoRv64Plane n, d, a, b, out; };
 struct StwoRv64BatchFoldJob { StwoRv64Plane n, d, out_n, out_d; };
+struct StwoRv64BatchMaskJob { StwoRv64Plane n, d; uint32_t *output; };
+static_assert(sizeof(StwoRv64BatchMaskJob) == 56, "batched mask job ABI");
+extern "C" int stwo_rv64_batch_masks_on(void *, uint32_t,
+    const StwoRv64BatchMaskJob *, uint32_t jobs);
 static_assert(sizeof(StwoRv64BatchSumJob) == 120 && sizeof(StwoRv64BatchFoldJob) == 96,
               "batched oracle job ABI");
 extern "C" int stwo_rv64_batch_sum_on(void *, uint32_t,

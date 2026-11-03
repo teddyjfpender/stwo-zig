@@ -152,6 +152,21 @@ static void exercise(const std::string &directory, uint32_t id,
   }
   for (auto &job : oracles)
     CHECK(stwo_rv64_batch_mask_on(o.ctx, 1, job.n, job.d, job.mask.words));
+  std::vector<std::vector<uint32_t>> individual_masks;
+  std::vector<StwoRv64BatchMaskJob> mask_jobs;
+  for (auto &job : oracles) {
+    individual_masks.push_back(o.read(job.mask));
+    mask_jobs.push_back({job.n, job.d, job.mask.words});
+  }
+  if (stwo_rv64_batch_masks_on(o.ctx, 1, mask_jobs.data(), 0) != int(cudaErrorInvalidValue))
+    throw std::runtime_error("empty mask batch admitted");
+  auto bad_masks = mask_jobs;
+  bad_masks.back().output = bad_masks.front().n.words;
+  if (stwo_rv64_batch_masks_on(o.ctx, 1, bad_masks.data(), count) != int(cudaErrorInvalidValue))
+    throw std::runtime_error("aliased terminal mask admitted");
+  CHECK(stwo_rv64_batch_masks_on(o.ctx, 1, mask_jobs.data(), count));
+  for (uint32_t i = 0; i < count; ++i)
+    equal(o.read(oracles[i].mask), individual_masks[i], "batched_mask", id);
   const auto final = o.read(state);
   if (attack) {
     const uint32_t expected_status = attack == 2   ? round_pole

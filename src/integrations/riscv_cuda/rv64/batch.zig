@@ -136,6 +136,10 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
             if (commands.batched_oracles) try commands.foldBatch(fold_jobs[0..active_folds], challenge) else for (fold_jobs[0..active_folds]) |job| try commands.fold(job.input, challenge, job.output);
         } else for (fold_jobs[0..active_folds]) |job| try commands.fold(job.input, challenge, job.output);
     }
-    for (work.oracles, 0..) |o, j| try commands.packBatchMask(current[j], o.terminal_mask);
+    if (comptime @hasDecl(@TypeOf(commands.*), "packBatchMasks")) {
+        var masks: [abi.batch_max_oracles]Slice = undefined;
+        for (work.oracles, 0..) |o, j| masks[j] = o.terminal_mask;
+        try commands.packBatchMasks(current[0..input.oracles.len], masks[0..input.oracles.len]);
+    } else for (work.oracles, 0..) |o, j| try commands.packBatchMask(current[j], o.terminal_mask);
     return .{ .rounds = largest, .oracles = input.oracles.len, .state = work.state, .records = try work.records.sub(0, largest * abi.round_record_words) };
 }

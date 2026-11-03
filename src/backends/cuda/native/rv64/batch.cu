@@ -2,6 +2,7 @@
 #include "batch_state.cuh"
 #include "custody.cuh"
 #include "round.cuh"
+#include <algorithm>
 namespace stwo::cuda::rv64 {
 struct BatchJobs {
   StwoRv64BatchOracle oracles[max_oracles];
@@ -98,7 +99,7 @@ __global__ void batch_round(uint32_t *words, BatchJobs jobs, uint32_t expected,
   }
   s->round.correction = one();
 }
-__global__ void batch_mask(StwoRv64Plane n, StwoRv64Plane d, uint32_t *output) {
+__device__ __forceinline__ void write_batch_mask(StwoRv64Plane n, StwoRv64Plane d, uint32_t *output) {
   const uint32_t c = threadIdx.x;
   if (c >= 8)
     return;
@@ -107,6 +108,14 @@ __global__ void batch_mask(StwoRv64Plane n, StwoRv64Plane d, uint32_t *output) {
                                              : n.words[c * n.stride + row];
     output[16 + 8 * row + c] = d.words[c * d.stride + row];
   }
+}
+__global__ void batch_mask(StwoRv64Plane n, StwoRv64Plane d, uint32_t *output) {
+  write_batch_mask(n, d, output);
+}
+struct MaskPacket { StwoRv64BatchMaskJob jobs[max_oracles]; };
+__global__ void batch_masks(const __grid_constant__ MaskPacket packet) {
+  const auto &job = packet.jobs[blockIdx.x];
+  write_batch_mask(job.n, job.d, job.output);
 }
 using BatchCustody = RangeCustody<max_oracles + 8>;
 inline int jobs_for(BatchCustody &c, const StwoRv64BatchOracle *oracles,
@@ -182,5 +191,18 @@ extern "C" int stwo_rv64_batch_mask_on(void *ctx, uint32_t lane,
       !c.range(output, 32, true))
     return c.status;
   batch_mask<<<1, 32, 0, c.stream>>>(n, d, output);
+  return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_rv64_batch_masks_on(void *ctx, uint32_t lane,
+    const StwoRv64BatchMaskJob *jobs, uint32_t count) {
+  if (!jobs || !count || count > max_oracles) return int(cudaErrorInvalidValue);
+  RangeCustody<3 * max_oracles> c(ctx, lane);
+  for (uint32_t i = 0; i < count; ++i) {
+    if (!c.numerator(jobs[i].n, 2) || !c.plane(jobs[i].d, 2, 8, false) ||
+        !c.range(jobs[i].output, 32, true)) return c.status;
+  }
+  MaskPacket packet{};
+  std::copy(jobs, jobs + count, packet.jobs);
+  batch_masks<<<count, 32, 0, c.stream>>>(packet);
   return int(cudaPeekAtLastError());
 }
