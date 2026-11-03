@@ -348,7 +348,23 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var tm: proto.Timings = .{};
     t0 = now();
     var proof = try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm);
-    const prove_s = secs(t0);
+    var prove_s = secs(t0);
+    const prove_first_s = prove_s;
+    const pd_first = t.digest.proofDigest(proof);
+    // TENSOR_PROVE_REPS=n: prove n times (steady state with TENSOR_RECYCLE=1), report the fastest
+    const reps: usize = if (std.posix.getenv("TENSOR_PROVE_REPS")) |v| try std.fmt.parseInt(usize, v, 10) else 1;
+    for (1..@max(reps, 1)) |_| {
+        proof.deinit(a);
+        var tm2: proto.Timings = .{};
+        t0 = now();
+        proof = try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm2);
+        const sec = secs(t0);
+        if (!std.mem.eql(u8, &t.digest.proofDigest(proof), &pd_first)) return error.NondeterministicProof;
+        if (sec < prove_s) {
+            prove_s = sec;
+            tm = tm2;
+        }
+    }
     t0 = now();
     try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
     const verify_s = secs(t0);
@@ -359,8 +375,11 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, queries, lb, pow });
     try printTl(out, pc);
     try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
-    try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
-    try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns) });
+    try out.print("\"batch_matmuls\":{},\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"prove_reps\":{d},\"verify_s\":{d:.5},", .{ pc.batch_matmuls, commit_s, forward_s, prove_s, prove_first_s, reps, verify_s });
+    try out.print("\"prep_s\":{{\"accumulators\":{d:.4},\"multiplicities\":{d:.4}}},\"gkr_parts_s\":{{\"input\":{d:.4},\"build\":{d:.4},\"sumcheck\":{d:.4}}},\"terminal_s\":{d:.4},", .{ nsToS(tm.accumulators_ns), nsToS(tm.multiplicities_ns), nsToS(tm.gkr_input_ns), nsToS(tm.gkr_build_ns), nsToS(tm.gkr_sumcheck_ns), nsToS(tm.terminal_ns) });
+    try printGpuStats(out);
+    try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
+    try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4},\"ext_ops\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns), nsToS(tm.ext_ops_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
     proof.deinit(a);
     a.free(wview);

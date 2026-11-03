@@ -480,6 +480,8 @@ pub const Timings = struct {
     ext_init_ns: u64 = 0,
     /// ext terminal claims (MLE evaluations after GKR)
     ext_terminal_ns: u64 = 0,
+    /// ext op sumchecks (part of op_sumcheck_ns)
+    ext_ops_ns: u64 = 0,
 };
 
 fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
@@ -1084,7 +1086,9 @@ pub fn proveWithAccumulators(
         },
         else => {},
     };
+    const t_ext_ops = try std.time.Instant.now();
     try xt.proveOps(a, pool, st, all, &eps, gview, alpha, &tr, &claims, &ext_values, &ext_sumchecks, &ext_finals);
+    timings.ext_ops_ns = nowNs(t_ext_ops);
     timings.op_sumcheck_ns = nowNs(t0);
 
     // --- batch witness claims into one point
@@ -1440,9 +1444,12 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     var op_i: usize = 0;
     for (rel.keys, 0..) |k, i| {
         if (k.kind != .remainder) continue;
+        // members of an already verified matmul class consume no sumcheck;
+        // skip them before the bounds check (a statement whose last
+        // remainder keys belong to an earlier class was rejected otherwise)
+        if (cfg.batch_matmuls and st.ops[k.op] == .matmul and vclass_done[i]) continue;
         if (op_i >= proof.op_sumchecks.len) return error.ProofShape;
         if (cfg.batch_matmuls and st.ops[k.op] == .matmul) {
-            if (vclass_done[i]) continue;
             const members = try classMembers(a, st, rel, i);
             defer a.free(members);
             for (members) |mi| vclass_done[mi] = true;

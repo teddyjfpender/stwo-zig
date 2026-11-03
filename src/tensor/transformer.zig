@@ -129,7 +129,13 @@ pub const Builder = struct {
 
     /// Takes ownership of `data` (allocated with self.a).
     pub fn add(self: *Builder, info_in: TensorInfo, data: []i32) !u32 {
-        const info = info_in; // by-value copy before the list may reallocate
+        // Zig may pass `info_in` by reference, and callers pass elements of
+        // `self.infos` (which ensureUnusedCapacity may reallocate). Copy the
+        // bytes explicitly before growing the list; a plain `const info =
+        // info_in` can be elided into the same reference.
+        var info: TensorInfo = undefined;
+        @memcpy(std.mem.asBytes(&info), std.mem.asBytes(&info_in));
+        std.mem.doNotOptimizeAway(&info);
         std.debug.assert(data.len == info.size());
         try self.infos.ensureUnusedCapacity(self.a, 1);
         try self.wit.ensureUnusedCapacity(self.a, 1);
@@ -1518,4 +1524,58 @@ test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads th
         var proof = try proveVerify(a, &pool, pc, &fx.b, &fx.sw.ws);
         proof.deinit(a);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Golden proof digests of a decoder layer (stream `speed`): recorded on the
+// unmodified prover (base 61ba1ce6c + the Builder.add aliasing fix). Every
+// prover optimisation must reproduce these bytes. The shapes reach the GEMM
+// einsum accumulator (score and PV contractions of 2^4 terms), the split-eq
+// einsum sumcheck (sel * sel, sel * D) and the split-eq MLE evaluations.
+
+const GOLDEN_LAYER_FLAT = "146ac6c30dca6e29b0514fc669cb9360dda1cb2e696d38b3a53b7424ba35f1a0";
+const GOLDEN_LAYER_PCS2_MOE = "4d247ffbc43231bb17a3b03897e068f22b9587d7dfe749164aa472b1b6ea6997";
+
+fn layerDigest(cfg: LayerCfg, pc_in: proto.Config, threads: usize) ![32]u8 {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, threads);
+    defer pool.deinit();
+    var pc = pc_in;
+    pc.gkr_threads = threads;
+    const fx = try Fixture.init(a, &pool, cfg, pc, 4242);
+    defer fx.deinit(a);
+    var proof = try proveVerify(a, &pool, pc, &fx.b, &fx.sw.ws);
+    defer proof.deinit(a);
+    return @import("digest.zig").fullDigest(proof);
+}
+
+fn checkGolden(name: []const u8, golden: []const u8, d: [32]u8) !void {
+    const hx = std.fmt.bytesToHex(d, .lower);
+    if (golden.len == 0) {
+        std.debug.print("GOLDEN {s} = {s}\n", .{ name, hx });
+        return;
+    }
+    try testing.expectEqualStrings(golden, &hx);
+}
+
+test "golden decoder layer digests (flat; pcs2 + batched matmuls + MoE), 1 vs 5 threads" {
+    const cfg = LayerCfg{ .log_t = 4, .log_d = 6, .log_f = 7, .log_heads = 2, .log_kv_heads = 1, .fused_qkv = true };
+    var pc = testCfg();
+    pc.weight_log_cols = 6;
+    const d1 = try layerDigest(cfg, pc, 1);
+    try checkGolden("flat", GOLDEN_LAYER_FLAT, d1);
+    try testing.expectEqualSlices(u8, &d1, &(try layerDigest(cfg, pc, 5)));
+
+    var cfg2 = cfg;
+    cfg2.log_experts = 1;
+    cfg2.log_capacity = 4;
+    cfg2.router_log_cols = 6;
+    var pc2 = testCfg();
+    pc2.weight_log_cols = 6;
+    pc2.batch_matmuls = true;
+    pc2.two_level = .{ .outer = pc2.pcs, .depth = 2, .inner = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 } };
+    const d2 = try layerDigest(cfg2, pc2, 1);
+    try checkGolden("pcs2_moe", GOLDEN_LAYER_PCS2_MOE, d2);
+    try testing.expectEqualSlices(u8, &d2, &(try layerDigest(cfg2, pc2, 5)));
 }
