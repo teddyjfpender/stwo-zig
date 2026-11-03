@@ -11,8 +11,8 @@ __host__ __device__ __forceinline__ q::QM31 packed(uint32_t v){return{{v&65535,v
 __host__ __device__ __forceinline__ uint32_t ror(uint32_t x,unsigned n){return(x>>n)|(x<<(32-n));}
 __device__ void fail(uint32_t*p){atomicOr(p,1u);}
 __device__ void at(const StwoCircuitAssignmentJob &j,const StwoCircuitAssignmentTask &t){
-  if(t.kind>11||t.out>=j.value_count){fail(j.status);return;}
-  unsigned arity=t.kind<=3?2:t.kind==4?3:t.kind==6?6:t.kind==9?2:1;
+  if(t.kind>15||t.out>=j.value_count){fail(j.status);return;}
+  unsigned arity=t.kind==15?0:t.kind<=3?2:t.kind==4?3:t.kind==6?6:t.kind==9?2:1;
   if(t.kind==7){
     const uint32_t base=t.args[0],count=t.args[1];
     if(uint64_t(base)+uint64_t(count)*2>j.index_count){fail(j.status);return;}
@@ -44,6 +44,9 @@ __device__ void at(const StwoCircuitAssignmentJob &j,const StwoCircuitAssignment
     case 9:if(zero(x[1])){fail(j.status);return;}v=q::mul(x[0],q::inverse(x[1]));break;
     case 10:{const auto a=x[0];v={{a.a.a?q::inverse(a.a.a):0,a.a.b?q::inverse(a.a.b):0},{a.b.a?q::inverse(a.b.a):0,a.b.b?q::inverse(a.b.b):0}};break;}
     case 11:{const auto a=x[0];v={{a.a.a&1,a.a.b&1},{a.b.a&1,a.b.b&1}};break;}
+    case 12:case 13:{if(t.args[1]>3){fail(j.status);return;}const auto octet=(word(x[0])>>(t.args[1]*8))&255u;v={{t.kind==12?octet:255u-octet,0},{0,0}};break;}
+    case 14:v={{zero(x[0])?0u:1u,0},{0,0}};break;
+    case 15:v=q::zero();break;
     default:fail(j.status);return;
   }
   store(j.values,t.out,v);
@@ -64,3 +67,5 @@ extern "C" int stwo_circuit_assignment_level_on(void*ctx,uint32_t lane,const Stw
   if(!c.range(j->values,uint64_t(j->value_count)*4,true)||!c.range(static_cast<const uint32_t*>(j->records),uint64_t(j->record_count)*8,false)||!c.range(j->status,1,true)||(j->index_count&&!c.range(j->indices,j->index_count,false)))return c.status;
   stwo::cuda::circuit_assignment::level<<<(j->count+127)/128,128,0,c.stream>>>(*j);return int(cudaPeekAtLastError());
 }
+
+extern "C" uint32_t stwo_circuit_assignment_capabilities(){return 0xffffu;}

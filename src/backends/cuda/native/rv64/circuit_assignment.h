@@ -16,3 +16,5 @@ static_assert(sizeof(StwoCircuitAssignmentSeed)==20);
 static_assert(sizeof(StwoCircuitAssignmentJob)==56);
 extern "C" int stwo_circuit_assignment_seed_on(void*,uint32_t,const StwoCircuitAssignmentJob*);
 extern "C" int stwo_circuit_assignment_level_on(void*,uint32_t,const StwoCircuitAssignmentJob*);
+
+extern "C" uint32_t stwo_circuit_assignment_capabilities();

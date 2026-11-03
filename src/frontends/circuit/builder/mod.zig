@@ -17,7 +17,7 @@ pub const circuit = @import("circuit.zig");
 pub const ivalue = @import("ivalue.zig");
 /// `crates/circuits/src/context.rs` and the primitive gates of `ops.rs`.
 pub const context = @import("context.zig");
-pub const witness_plan = @import("witness_plan.zig");
+pub const witness_plan = @import("../witness_generation/plan.zig");
 /// `crates/circuits/src/ops.rs`: composite operations.
 pub const ops = @import("ops.zig");
 /// `crates/circuits/src/wrappers.rs`: M31, U16 and U32 wires.

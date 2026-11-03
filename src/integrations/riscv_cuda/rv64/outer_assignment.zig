@@ -51,9 +51,19 @@ pub const Prepared = struct {
                     .divide => 9,
                     .pointwise_inverse_or_zero => 10,
                     .pointwise_lsb => 11,
+                    .byte => 12,
+                    .byte_complement => 13,
+                    .is_nonzero => 14,
+                    .zero => 15,
                 };
+                if (task.kind == .hint) {
+                    const hint = ctx.witness_metadata.?.origins.items[task.index];
+                    if (hint.kind == .byte or hint.kind == .byte_complement) out.args[1] = hint.b;
+                }
             }
         }
+        const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+        for (tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
         const seeds = try a.alloc(Seed, plan.seeds.len);
         errdefer a.free(seeds);
         for (plan.seeds, seeds) |input, *out| out.* = .{ .out = input.variable, .value = Circuit.builder.ivalue.limbs(input.value) };

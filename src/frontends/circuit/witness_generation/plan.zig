@@ -2,9 +2,9 @@
 //! Constants and explicit external guesses are seeds. Every deterministic hint
 //! has an explicit origin; anonymous permutation algorithms are rejected.
 const std = @import("std");
-const C = @import("context.zig");
-const G = @import("circuit.zig");
-const W = @import("witness_origins.zig");
+const C = @import("../builder/context.zig");
+const G = @import("../builder/circuit.zig");
+const W = @import("origins.zig");
 const Q = @import("stwo_core").fields.qm31.QM31;
 pub const Kind = enum(u8) { add, sub, mul, pointwise_mul, triple_xor, m31_to_u32, blake_g, permutation, hint };
 pub const Task = struct { kind: Kind, index: u32, level: u32 = 0 };
@@ -55,6 +55,7 @@ pub fn inputs(ctx: *const C.Context(Q), task: Task, buf: *[6]u32) []const u32 {
         .permutation => return circuit.permutation.get(task.index).inputs,
         .hint => {
             const hint = ctx.witness_metadata.?.origins.items[task.index];
+            if (hint.kind == .zero) return buf[0..0];
             buf[0] = hint.a;
             buf[1] = hint.b;
             return buf[0..if (hint.kind == .divide) @as(usize, 2) else 1];
@@ -206,7 +207,7 @@ pub fn evaluate(a: std.mem.Allocator, ctx: *const C.Context(Q), plan: Plan) ![]Q
         if (seed.variable >= value.len) return error.InvalidWitnessVariable;
         value[seed.variable] = seed.value;
     }
-    const iv = @import("ivalue.zig");
+    const iv = @import("../builder/ivalue.zig");
     for (plan.tasks) |task| switch (task.kind) {
         .add, .sub, .mul, .pointwise_mul => {
             const gate = switch (task.kind) {
@@ -234,7 +235,7 @@ pub fn evaluate(a: std.mem.Allocator, ctx: *const C.Context(Q), plan: Plan) ![]Q
             const gate = ctx.circuit.blake_g_gate.items[task.index];
             var words: [6]u32 = undefined;
             for (gate.inputs(), &words) |v, *out| out.* = iv.unpackU32(Q, value[v]);
-            const result = @import("blake.zig").blake2sG(words[0], words[1], words[2], words[3], words[4], words[5]);
+            const result = @import("../builder/blake.zig").blake2sG(words[0], words[1], words[2], words[3], words[4], words[5]);
             for (gate.outputs(), result) |v, word| value[v] = iv.packU32(Q, word);
         },
         .permutation => {
@@ -257,6 +258,13 @@ pub fn evaluate(a: std.mem.Allocator, ctx: *const C.Context(Q), plan: Plan) ![]Q
                 .divide => try value[hint.a].div(value[hint.b]),
                 .pointwise_inverse_or_zero => iv.pointwiseInvOrZero(Q, value[hint.a]),
                 .pointwise_lsb => iv.pointwiseLsb(Q, value[hint.a]),
+                .zero => Q.zero(),
+                .is_nonzero => if (value[hint.a].isZero()) Q.zero() else Q.one(),
+                .byte, .byte_complement => blk: {
+                    if (hint.b > 3) return error.InvalidWitnessByteIndex;
+                    const byte: u8 = @truncate(iv.unpackU32(Q, value[hint.a]) >> @intCast(hint.b * 8));
+                    break :blk Q.fromU32Unchecked(if (hint.kind == .byte) byte else 255 - @as(u32, byte), 0, 0, 0);
+                },
             };
         },
     };
@@ -273,7 +281,7 @@ test "witness schedule: compact seeds reproduce finalized reserved outputs and d
     const inverse = try ctx.inv(denominator);
     const quotient = try ctx.div(seed, denominator);
     const sum = try ctx.add(quotient, inverse);
-    const simd = @import("simd.zig");
+    const simd = @import("../builder/simd.zig");
     const lanes = simd.Simd.fromPacked(&.{seed}, 4);
     _ = try simd.guessInvOrZero(Q, &ctx, lanes);
     _ = try simd.guessLsb(Q, &ctx, lanes);
@@ -327,20 +335,20 @@ test "witness schedule: skipped self-yields and seeded outputs still validate in
 }
 
 fn traceOnlyFixture(ctx: *C.Context(Q)) !void {
-    const iv = @import("ivalue.zig");
-    const simd = @import("simd.zig");
-    const wrappers = @import("wrappers.zig");
+    const iv = @import("../builder/ivalue.zig");
+    const simd = @import("../builder/simd.zig");
+    const wrappers = @import("../builder/wrappers.zig");
     const x = try ctx.guess(Q.fromU32Unchecked(11, 3, 7, 9));
     const denominator = try ctx.guess(Q.fromU32Unchecked(17, 0, 0, 0));
     _ = try ctx.div(x, denominator);
     _ = try ctx.inv(denominator);
     const lanes = simd.Simd.fromPacked(&.{x}, 4);
     _ = try simd.guessInvOrZero(Q, ctx, lanes);
-    _ = try @import("extract_bits.zig").extractBits(Q, ctx, lanes, 31);
+    _ = try @import("../builder/extract_bits.zig").extractBits(Q, ctx, lanes, 31);
     _ = try ctx.permuteNamed(&.{ x, denominator }, .sort_by_u_coordinate);
     const nonce = try wrappers.guessU32(Q, ctx, wrappers.u32Value(Q, 0xdeadbeef));
     const message = [_]wrappers.U32Wrapper(G.Var){ nonce, try wrappers.constU32(Q, ctx, 0x12345678) };
-    const digest = try @import("blake.zig").blake2sU32s(Q, ctx, &message, 8);
+    const digest = try @import("../builder/blake.zig").blake2sU32s(Q, ctx, &message, 8);
     var out: [8]G.Var = undefined;
     for (&out, digest.words) |*v, word| v.* = word.get();
     try ctx.setOutputs(&out);

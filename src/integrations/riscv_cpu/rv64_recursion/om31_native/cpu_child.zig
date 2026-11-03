@@ -79,12 +79,14 @@ const Writer = struct {
         try self.data.append(self.ctx.scratch(), try self.ctx.constant(C.Q.fromU32Unchecked(value, 0, 0, 0)));
     }
     fn word(self: *@This(), value: Public.Word) !void {
-        const native = B.ivalue.unpackU32(C.Q, self.ctx.get(value.get()));
+        const native = if (self.ctx.trace_only) 0 else B.ivalue.unpackU32(C.Q, self.ctx.get(value.get()));
         var octets: [4]C.Var = undefined;
         for (&octets, 0..) |*byte, i| {
             const n: u8 = @truncate(native >> @intCast(i * 8));
             byte.* = (try B.wrappers.guessU16(C.Q, self.ctx, .newUnsafe(C.Q.fromU32Unchecked(n, 0, 0, 0)))).get();
             const complement = (try B.wrappers.guessU16(C.Q, self.ctx, .newUnsafe(C.Q.fromU32Unchecked(255 - n, 0, 0, 0)))).get();
+            try self.ctx.noteWitnessByte(byte.*, value.get(), @intCast(i), false);
+            try self.ctx.noteWitnessByte(complement, value.get(), @intCast(i), true);
             try self.ctx.eq(try self.ctx.add(byte.*, complement), try self.ctx.constant(C.Q.fromU32Unchecked(255, 0, 0, 0)));
         }
         const k = try self.ctx.constant(C.Q.fromU32Unchecked(256, 0, 0, 0));
