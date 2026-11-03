@@ -343,7 +343,10 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
     for (st.weights) |t| for (t.log_dims) |d| tr.mixU64(d);
     for (st.tables) |t| {
         var w: [64]u32 = undefined;
-        for (0..64) |i| w[i] = @as(u32, @bitCast(@as(i32, t.values[i * 4]))) ^ (@as(u32, @bitCast(@as(i32, t.values[i * 4 + 1]))) << 8) ^ (@as(u32, @bitCast(@as(i32, t.values[i * 4 + 2]))) << 16) ^ (@as(u32, @bitCast(@as(i32, t.values[i * 4 + 3]))) << 24);
+        for (0..64) |i| {
+            w[i] = 0;
+            for (0..4) |j| w[i] |= @as(u32, @as(u8, @bitCast(t.values[i * 4 + j]))) << @intCast(8 * j);
+        }
         tr.mixU32s(&w);
     }
     for (st.ops) |op| switch (op) {
@@ -863,7 +866,54 @@ pub fn weightKey(ws: *const WeightStore) WeightKey {
     return .{ .root = ws.com.root(), .infos = ws.infos, .offsets = ws.offsets, .log_rows = ws.log_rows, .log_cols = ws.log_cols, .rows_used = ws.rows_used };
 }
 
+/// Public well-formedness checks the soundness argument relies on:
+/// - every matmul/hadamard operand is int8-bounded by a proved relation
+///   (output of matmul/hadamard requant, lookup output, or range8 input);
+/// - K <= 2^15 so |acc| <= 2^14 K < 2^30 never wraps mod p;
+/// - 1 <= shift <= 22 so 2^s * 129 < 2^30 and the requant identity mod p is an
+///   integer identity;
+/// - shapes are consistent.
+pub fn validateStatement(st: Statement) !void {
+    const n = st.witness.len;
+    var is_bounded: [4096]bool = undefined;
+    if (n > is_bounded.len) return error.StatementTooLarge;
+    @memset(is_bounded[0..n], false);
+    for (st.ops) |op| switch (op) {
+        .matmul => |m| is_bounded[m.y] = true,
+        .hadamard => |h| is_bounded[h.y] = true,
+        .lookup => |l| is_bounded[l.out] = true,
+        .range8 => |r| is_bounded[r.in] = true,
+        .product => {},
+    };
+    for (st.ops) |op| switch (op) {
+        .matmul => |m| {
+            if (m.x >= n or m.y >= n or m.w >= st.weights.len) return error.StatementShape;
+            if (!is_bounded[m.x]) return error.StatementUnboundedOperand;
+            if (m.shift < 1 or m.shift > 22) return error.StatementShift;
+            const xi = st.witness[m.x];
+            const wi = st.weights[m.w];
+            if (xi.n_dims != 2 or wi.n_dims != 2) return error.StatementShape;
+            if (xi.log_dims[1] != wi.log_dims[0] or xi.log_dims[1] > 15) return error.StatementShape;
+            if (st.witness[m.y].logSize() != xi.log_dims[0] + wi.log_dims[1]) return error.StatementShape;
+        },
+        .hadamard => |h| {
+            if (h.a >= n or h.b >= n or h.y >= n) return error.StatementShape;
+            if (!is_bounded[h.a] or !is_bounded[h.b]) return error.StatementUnboundedOperand;
+            if (h.shift < 1 or h.shift > 22) return error.StatementShift;
+            const ls = st.witness[h.y].logSize();
+            if (st.witness[h.a].logSize() != ls or st.witness[h.b].logSize() != ls) return error.StatementShape;
+        },
+        .lookup => |l| {
+            if (l.in >= n or l.out >= n or l.table >= st.tables.len) return error.StatementShape;
+            if (st.witness[l.in].logSize() != st.witness[l.out].logSize()) return error.StatementShape;
+        },
+        .range8 => |r| if (r.in >= n) return error.StatementShape,
+        .product => |q| if (q.a >= n or q.b >= n or q.c >= n) return error.StatementShape,
+    };
+}
+
 pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof) !void {
+    try validateStatement(st);
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
     const ext = try extendedInfos(a, st, rel);

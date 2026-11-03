@@ -196,6 +196,15 @@ test "mlp block proves and verifies; tampering rejected" {
     var st2 = st;
     st2.ops = ops2;
     try std.testing.expect(std.meta.isError(proto.verify(a, pc, st2, key, &proof)));
+    // statement validation: unbounded matmul operand rejected
+    {
+        const ops3 = try a.dupe(proto.Op, st.ops);
+        defer a.free(ops3);
+        ops3[0] = .{ .range8 = .{ .in = 1 } }; // x (0) no longer range-checked
+        var st3 = st;
+        st3.ops = ops3;
+        try std.testing.expectError(error.StatementUnboundedOperand, proto.validateStatement(st3));
+    }
     // tamper: different weights root
     var key2 = key;
     key2.root[0] ^= 1;
