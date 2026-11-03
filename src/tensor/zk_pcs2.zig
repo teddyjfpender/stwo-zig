@@ -74,6 +74,20 @@ pub const Opening = struct {
         self.inner.deinit(a);
     }
 
+    /// Bytes per part: [outer columns + salts, outer multiproof, outer rest, level 1, level 2, ...].
+    pub fn levelSizes(self: Opening, out: []usize) []usize {
+        out[0] = 0;
+        out[1] = 0;
+        for (self.tables) |t| {
+            out[0] += t.values.len * 4 + t.salts.len * SALT;
+            out[1] += t.decommit.len * 32;
+        }
+        out[2] = 8 + self.mus.len * 16 + 32 + self.sumcheck.byteSize() + 4 * 16;
+        const nl = self.inner.levels.len;
+        for (self.inner.levels[1..], 1..) |l, i| out[2 + i] = l.byteSize(i + 1 == nl);
+        return out[0 .. 2 + nl];
+    }
+
     pub fn byteSize(self: Opening) usize {
         var s: usize = 8 + self.mus.len * 16 + 32 + self.sumcheck.byteSize() + 4 * 16;
         for (self.tables) |t| s += t.values.len * 4 + t.salts.len * SALT + t.decommit.len * 32;

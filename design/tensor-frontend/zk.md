@@ -162,6 +162,152 @@ its rows are much longer.
 Weights also carry 4 pad rows `R_W` (`C_w` cells each) for the masked weight evaluations
 of §4.2. They tolerate about `4·C_w` revealed functionals, which never binds.
 
+### 3.5 Recursive hiding PCS (`zk_pcs2.zig`, `Config.two_level`)
+
+The flat hiding opening sends every masked combined row `u_o` (`C + S` QM31 values each),
+plus `t` full columns with full Merkle paths. That is most of the hiding proof. The
+recursive mode keeps the outer tables and the combination rows of §3.3 exactly as they are,
+and opens them the pcs2 way (size.md §1): the rows are committed, not sent.
+
+**Construction.** After `zkp.drawCoeffs` (claim values and `μ_g` mixed, `γ`, `β`, `β_μ`)
+and the combined rows `u_o` (proximity row first, then one row per group, each carrying
+`c·Σ_k e_k M_k` of its own 4 mask rows):
+
+1. The prover commits `V[g][c][k] = limb_c(u_g[k])`. The rows are zero-padded to
+   `G' = 2^⌈log G⌉` and to a `2C`-coefficient message; `S ≤ C` is required. This is a
+   plain `pcs.commit` with the inner parameters. The inner root is mixed.
+2. `ρ` (log G' coordinates), then `λ = eq(ρ, ·)`, PoW, then `t` query positions shared
+   by all outer tables. **Lifetime budgets are charged here**, before anything is
+   released.
+3. Opened outer columns: values plus salt per table, with one Merkle **multiproof** per
+   table (sorted, deduplicated positions; leaf `Blake2s(column ‖ salt)`). The verifier
+   computes `y_j = ⟨Σ_o λ_o A_o, col_j⟩`.
+4. Claims on `U`:
+   - the eval checks `⟨u_g[0..C), b_g⟩ = Σ_c γ_c v_c + γ_μ μ_g`;
+   - the **head-restricted** encodings `Σ_g λ_g Enc_head(u_g)[j] = y_j`, where
+     `Enc_head(u)[j] = Σ_{k < C+S} u_k b_k(P_j)`.
+
+   Both are batched with `γ'`. One degree-2 sumcheck over the `G' × 2C` cube reduces them
+   to `U~(r)`. The verifier evaluates `W~(r)` in `O(t·lc)`:
+   - the eval part is `(1 − r_k0)·b~_g(r_k[1..])`;
+   - the head is two aligned blocks, `[0, C)` and `[C, C+S)`, each a product of
+     per-variable factors (`zk_pcs2.headEval`, tested against brute force).
+5. The four limb values `V~(r_g, c, r_k)` are sent and form one claim group of the
+   committed-row table. Levels ≥ 1 are **plain pcs2 levels** (`pcs2.openRec` /
+   `verifyRec`): unsalted, no slots, no masks, proximity at every level.
+
+Wiring:
+
+| opening | outer tables | proximity row |
+|---|---|---|
+| witness | tables 1 (+2) | yes, mask rows of table 1 |
+| weights | weight table + per-proof mask table | **new**: 4 extra mask rows, covers both tables |
+| weight proximity (once) | weight table | yes |
+| re-randomization link | old, new, per-proof mask table (8 rows) | yes, covers all three |
+
+The mode and the inner parameters (depth, inner queries / blowup / PoW, work shift,
+proximity rows) are mixed into the statement transcript. A flat-mode verifier rejects a
+recursive proof and vice versa (`error.ProofShape`), and so does a verifier with another
+depth. With `two_level = null` every hiding proof is byte-identical to before.
+
+**Witness column split.** `recLogCols` picks `lc` to minimize the predicted opening bytes
+(`zk_pcs2.predictBytes`: outer columns, salts, multiproof, and pcs2's model for the levels
+below). The committed-row encoding (`2 · 4 · 2C` cells at the inner blowup) must stay
+within `max(used >> inner_work_shift, 2^14)`, as in pcs2. The choice depends only on
+public sizes, so prover and verifier agree.
+
+**Lemma 4 (zero knowledge of the recursive opening).** Fix the claim values and the outer
+query set `Q`, with `|Q| ≤ S/2` per table over the table's lifetime. The view of the
+opening is
+
+    (μ, inner root, ρ, PoW, Q, cols_Q, y, γ', sumcheck messages, limb values, inner levels)
+
+Every component after `cols_Q` is a deterministic function of the combined rows
+`U = (u_o)`, the public coins and public data:
+- `y` is computed from `cols_Q`;
+- `V = limbs(U)`, so the inner root, the sumcheck messages, the limbs and every pcs2
+  level are functions of `U` and of coins;
+- PoW nonces are functions of the transcript.
+
+Lemma 2 (§3.3) already simulates `(μ, U, cols_Q)` jointly: in the flat mode exactly these
+values are revealed, `U` row by row. The simulator therefore:
+1. samples `(μ, U, cols_Q)` with Lemma 2's simulator;
+2. runs the honest recursive prover on the simulated `U` with the simulated coins.
+
+The output has the real distribution: the real view is the same function applied to the
+real `(μ, U, cols_Q)`. ∎
+
+Consequences:
+- **Inner levels need no masks, slots, salts or budget of their own.** Opening any number
+  of inner columns reveals only functions of `U`. "Per-level budgets" are therefore:
+  - outer per-proof tables: `t ≤ S/2`, by `slotsFor(t)`;
+  - the long-lived weight table: the union of all its opened positions, over the proximity
+    proof, every proof and every link, is ≤ `S_w/2`. This is enforced by
+    `Commitment.budget`, as before; the recursive mode spends `t_w` per proof, like the
+    flat mode;
+  - inner tables: none needed.
+- Masking every level, with salted leaves, slots and mask rows, would be redundant. It
+  would cost about `(S_l + 4·rows)` extra cells per level and inner opening bytes, and
+  would not improve the simulator.
+- **Fiat–Shamir.** Standard compilation of a public-coin HVZK argument in the ROM:
+  - the simulator programs the oracle at the challenge points;
+  - unopened salted outer leaves and their multiproof siblings are uniform strings;
+  - the inner Merkle tree is computed honestly from the simulated `U`, so its unsalted
+    leaves need no programming.
+
+**Soundness.**
+1. **Proximity of the outer tables.** Treat the outer tables as one stacked table: same
+   columns, same query positions. Every outer table is close to the code of message
+   length `C + S` (rate `ρ_c = (C+S)/E`), in the correlated-agreement sense:
+   - the witness tables, by the per-proof proximity row;
+   - the weight table, by its commit-time proximity proof;
+   - the per-proof weight-mask and link-mask tables, by the proximity rows above. These
+     tables are not tested anywhere else. The flat mode instead argues them through the
+     consistency check (§3.3).
+
+   Mask rows are ordinary committed rows. Each `μ_g` is an ordinary claim on them, mixed
+   before `γ`.
+2. **Committed rows.** This is size.md §4.1, items 1–3, with the decoded outer rows of
+   message length `C + S` and with `U*` the decoded limb table read as QM31 rows. The check
+   only involves the head `[0, C+S)` of each `U*` row, because `W` is zero on the tail.
+   So a non-zero tail, which the prover controls, never enters an equation. Without the
+   head restriction, the binding argument would be over the code of message length `2C`:
+   rate 1/2 at lb 2, about 1 bit per query instead of about 1.9.
+
+   If the heads differ from `Σ A·rows°`:
+
+       Pr[all t queries pass] ≤ (ρ_c + δ)^t · 2^-pow + t·log G'/|F|
+
+   That is the conjectured `t·log2(E/(C+S)) + pow` bits, as in the flat mode.
+3. **Reductions.** The `γ'` batching costs `1/|F|`. The sumcheck over `log G' + lc + 1`
+   variables costs `2(log G' + lc + 1)/|F|`. Each inner level contributes its own pcs2
+   error, with conjectured `t_in·lb_in + pow_in` bits (`inner_conjectured_bits` in the
+   bench).
+
+**Tests.** `zk_pcs2.zig`:
+- `headEval` against brute force;
+- `Enc` of `C + S` coefficients against the `2C` circle tensor;
+- depth 1/2 roundtrips. Tampering with `μ`, salts, column values, multiproof siblings,
+  the inner root, the sumcheck, the limbs, PoW, the inner columns, the final rows, the
+  placeholder level or the depth is rejected, and so is a wrong claim value;
+- a corrupted committed table (half a row's symbols changed, tree rebuilt) is rejected;
+- lifetime budget enforcement;
+- statistical sanity with zero data rows: every revealed value at every level, outer
+  columns, committed-row sumcheck, limbs, inner columns and final rows, has a top-bit
+  ratio within 0.03 of 1/2 and no zeros. Inner-table rows lying wholly in the public zero
+  tail are excluded.
+
+`zk.zig` (recursive mode):
+- product at depth 1/2: verifies; every recursive field tampered, the batch hat and the
+  root each rejected; the flat verifier and another depth reject; depth 0 is refused;
+- MLP with public IO: weight proximity, the proof, the weight and witness openings
+  (including the per-proof mask table's columns), the W hat, a GKR hat, a wrong weight
+  root;
+- the re-randomization link: tampered, swapped, or between different weights;
+- the outer weight budget is exhausted after a few proofs (`error.OpeningBudgetExceeded`);
+- statistical sanity, zero vs random witness: all recursive-opening values and batch hats
+  are within 0.02 of uniform, with no zeros, and alike.
+
 ## 4. Masked sumchecks and the protocol (`zk_sumcheck.zig`, `zk.zig`)
 
 ### 4.1 Masked sumcheck

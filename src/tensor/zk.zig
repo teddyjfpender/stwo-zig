@@ -28,6 +28,8 @@ const std = @import("std");
 const f = @import("field.zig");
 const pcs = @import("pcs.zig");
 const zkp = @import("zk_pcs.zig");
+const zkp2 = @import("zk_pcs2.zig");
+const pcs2 = @import("pcs2.zig");
 const zks = @import("zk_sumcheck.zig");
 const proto = @import("protocol.zig");
 const linalg = @import("linalg.zig");
@@ -149,6 +151,39 @@ const Plan = struct {
         return .{ .log_cols = self.lc, .log_blowup = log_blowup, .slots = self.slots, .n_rows = self.rowsUsed(t) };
     }
 };
+
+/// Witness column split of the recursive hiding mode: minimizes the predicted
+/// opening bytes (outer columns + committed-row levels, zk_pcs2.predictBytes)
+/// over 2^lc >= slots, with the committed-row encoding (2 rows x 4 limbs x 2C
+/// coefficients at the inner blowup) bounded by the table size as in pcs2
+/// (`inner_work_shift`). A deterministic function of public sizes.
+fn recLogCols(cfg: proto.Config, p2: pcs2.Params, used0: usize, log_total: u32, slots: u32) u32 {
+    const lo = log2Ceil(slots);
+    var best_lc = lo;
+    var best = std.math.inf(f64);
+    var l = lo;
+    while (l <= @max(lo, log_total + 1)) : (l += 1) {
+        const C = @as(usize, 1) << @intCast(l);
+        const used = used0 + 9 * C; // + batch pad row and 8 mask rows
+        const rows = (used + C - 1) / C;
+        const budget = @max(used >> @intCast(p2.inner_work_shift), @as(usize, 1) << 14);
+        if (l > lo and ((8 * C) << @intCast(p2.inner.log_blowup)) > budget) break;
+        const b = zkp2.predictBytes(cfg.pcs, p2, rows, l, 2);
+        if (b < best) {
+            best = b;
+            best_lc = l;
+        }
+    }
+    return best_lc;
+}
+
+/// Column split (log2) and slots of the witness tables for a statement (both sides).
+pub fn witnessShape(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey) !struct { log_cols: u32, slots: u32 } {
+    var arena_state = std.heap.ArenaAllocator.init(a);
+    defer arena_state.deinit();
+    const plan = try makePlan(arena_state.allocator(), st, wkey, cfg);
+    return .{ .log_cols = plan.lc, .slots = plan.slots };
+}
 
 /// PCS parameters of the (committed-once) hiding weight table.
 pub fn wpcs(cfg: proto.Config) pcs.Params {
@@ -350,6 +385,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
     if (lc > cfg.witness_log_cols_max) lc = cfg.witness_log_cols_max;
     const slots = zkp.slotsFor(cfg.pcs.n_queries);
     lc = @max(lc, log2Ceil(slots));
+    if (try zk2(cfg)) |p2| lc = recLogCols(cfg, p2, est.used, est.log_total, slots);
     {
         const rb1: u32 = @intCast(inf1.items.len);
         try inf1.append(a, TensorInfo.vec(lc));
@@ -610,6 +646,73 @@ fn nSpecs(kind: CheckKind) usize {
 }
 
 // ---------------------------------------------------------------------------
+// Openings: flat (zk_pcs: combined rows sent) or recursive (zk_pcs2: combined
+// rows committed and opened with pcs2 levels; selected by `Config.two_level`).
+
+pub const Opening = union(enum) {
+    flat: zkp.Opening,
+    rec: zkp2.Opening,
+
+    pub fn deinit(self: *Opening, a: std.mem.Allocator) void {
+        switch (self.*) {
+            inline else => |*o| o.deinit(a),
+        }
+    }
+    pub fn byteSize(self: Opening) usize {
+        return switch (self) {
+            inline else => |o| o.byteSize(),
+        };
+    }
+};
+
+/// Recursive hiding PCS parameters, or null for the flat hiding PCS.
+fn zk2(cfg: proto.Config) !?pcs2.Params {
+    const p = cfg.two_level orelse return null;
+    if (p.depth == 0) return error.ZkTwoLevelDepth;
+    return p;
+}
+
+/// Prover side of an opening after `zkp.drawCoeffs` and combining the rows
+/// (takes ownership of `mus` and `rows`).
+fn finishAny(a: std.mem.Allocator, pool: *f.Pool, tr: *Transcript, cfg: proto.Config, outer: pcs.Params, coms: []const *const zkp.Commitment, co: *const zkp.Coeffs, groups: []const zkp.Group, k0: usize, mus: []QM31, rows: [][]QM31) !Opening {
+    if (try zk2(cfg)) |p2| return .{ .rec = try zkp2.finish(a, pool, tr, outer, p2, coms, co, groups, k0, mus, rows) };
+    return .{ .flat = try zkp.finish(a, tr, outer, coms, mus, rows) };
+}
+
+fn verifyAny(a: std.mem.Allocator, tr: *Transcript, cfg: proto.Config, outer: pcs.Params, shapes: []const zkp.Shape, roots: []const Hash, groups: []const zkp.Group, prox: ?zkp.MaskRef, op: Opening) !void {
+    if (try zk2(cfg)) |p2| {
+        if (op != .rec) return error.ProofShape;
+        return zkp2.verify(a, tr, outer, p2, shapes, roots, groups, prox, op.rec);
+    }
+    if (op != .flat or shapes.len == 0) return error.ProofShape;
+    var tw = try pcs.Twiddles.init(a, shapes[0].logExt());
+    defer tw.deinit(a);
+    return zkp.verifyOpening(a, tr, outer, &tw, shapes, roots, groups, prox, op.flat);
+}
+
+/// Combined rows over several tables: rows[o] = sum_t combine(table t, co.v[o][t]).
+fn combineMulti(a: std.mem.Allocator, pool: *f.Pool, co: zkp.Coeffs, parts: anytype) ![][]QM31 {
+    const n_out = co.v.len;
+    var out: [][]QM31 = undefined;
+    inline for (parts, 0..) |pt, t| {
+        const cv = try a.alloc([]const QM31, n_out);
+        defer a.free(cv);
+        for (0..n_out) |o| cv[o] = co.v[o][t];
+        const r = try zkp.combine(std.meta.Elem(@TypeOf(pt.m.data)), a, pool, pt.com, pt.m, pt.extra, cv);
+        if (t == 0) {
+            out = r;
+        } else {
+            for (out, r) |x, y| {
+                for (x, y) |*u, v| u.* = u.*.add(v);
+                a.free(y);
+            }
+            a.free(r);
+        }
+    }
+    return out;
+}
+
+// ---------------------------------------------------------------------------
 // Hiding weight store.
 
 pub const WeightKey = struct {
@@ -698,7 +801,7 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, inf
 }
 
 /// Proximity of the hiding weight table, once per commitment (consumes n_queries of the budget).
-pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, zw: *const ZkWeights) !zkp.Opening {
+pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, zw: *const ZkWeights) !Opening {
     var tr = Transcript.initDomain("stwo-tensor-zk-weights-v1");
     tr.mixDigest(zw.com.root());
     const shapes = [_]zkp.Shape{zw.com.shape};
@@ -708,17 +811,15 @@ pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Conf
     const cv = [_][]const QM31{co.v[0][0]};
     const rows = try zkp.combine(i8, a, pool, &zw.com, zw.tableMatrix(), zw.extra, &cv);
     const coms = [_]*const zkp.Commitment{&zw.com};
-    return zkp.finish(a, &tr, wpcs(cfg), &coms, try a.alloc(QM31, 0), rows);
+    return finishAny(a, pool, &tr, cfg, wpcs(cfg), &coms, &co, &.{}, 1, try a.alloc(QM31, 0), rows);
 }
 
-pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: proto.Config, key: WeightKey, proof: zkp.Opening) !void {
+pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: proto.Config, key: WeightKey, proof: Opening) !void {
     var tr = Transcript.initDomain("stwo-tensor-zk-weights-v1");
     tr.mixDigest(key.root);
-    var tw = try pcs.Twiddles.init(a, key.log_cols + wpcs(cfg).log_blowup);
-    defer tw.deinit(a);
     const shapes = [_]zkp.Shape{key.shape(wpcs(cfg).log_blowup)};
     const roots = [_]Hash{key.root};
-    try zkp.verifyOpening(a, &tr, wpcs(cfg), &tw, &shapes, &roots, &.{}, .{ .table = 0, .row = key.rows_used + WPAD_ROWS }, proof);
+    try verifyAny(a, &tr, cfg, wpcs(cfg), &shapes, &roots, &.{}, .{ .table = 0, .row = key.rows_used + WPAD_ROWS }, proof);
 }
 
 // ---------------------------------------------------------------------------
@@ -737,7 +838,7 @@ pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: proto.Config, key: Weigh
 
 pub const WeightLink = struct {
     mask_root: Hash,
-    opening: zkp.Opening,
+    opening: Opening,
 
     pub fn deinit(self: *WeightLink, a: std.mem.Allocator) void {
         self.opening.deinit(a);
@@ -802,8 +903,12 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
     var rng = zkp.Rng.initOs();
     var tw = try pcs.Twiddles.init(a, old.log_cols + wp.log_blowup);
     defer tw.deinit(a);
-    const mdata = try randVec(ar, &rng, @as(usize, 4) << @intCast(old.log_cols));
-    const mm = pcs.Matrix(i32){ .data = mdata, .log_rows = 2, .log_cols = old.log_cols };
+    // mask table: 4 group mask rows (+ 4 proximity mask rows in the recursive mode,
+    // whose proximity row also covers this otherwise untested table)
+    const rec = (try zk2(cfg)) != null;
+    const mrows: u32 = if (rec) 3 else 2;
+    const mdata = try randVec(ar, &rng, @as(usize, 1) << @intCast(old.log_cols + mrows));
+    const mm = pcs.Matrix(i32){ .data = mdata, .log_rows = mrows, .log_cols = old.log_cols };
     var mcom = try zkp.commit(i32, a, pool, &tw, &rng, mm, &.{}, old.com.shape.slots, wp.log_blowup);
     defer mcom.deinit(a);
     var tr = linkTranscript(old.key(), new.key(), mcom.root());
@@ -811,21 +916,16 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
     const mus = try a.alloc(QM31, 1);
     mus[0] = zkp.maskValue(i32, mm, 0, groups[0].col);
     const shapes = [_]zkp.Shape{ old.com.shape, new.com.shape, mcom.shape };
-    var co = try zkp.drawCoeffs(a, &tr, &shapes, groups, mus, null);
+    const prox: ?zkp.MaskRef = if (rec) .{ .table = 2, .row = 4 } else null;
+    var co = try zkp.drawCoeffs(a, &tr, &shapes, groups, mus, prox);
     defer co.deinit(a);
-    const c0 = [_][]const QM31{co.v[0][0]};
-    const c1 = [_][]const QM31{co.v[0][1]};
-    const c2 = [_][]const QM31{co.v[0][2]};
-    const r0 = try zkp.combine(i8, a, pool, &old.com, old.tableMatrix(), old.extra, &c0);
-    const r1 = try zkp.combine(i8, a, pool, &new.com, new.tableMatrix(), new.extra, &c1);
-    const r2 = try zkp.combine(i32, a, pool, &mcom, mm, &.{}, &c2);
-    for (r0[0], r1[0], r2[0]) |*x, y, w| x.* = x.*.add(y).add(w);
-    a.free(r1[0]);
-    a.free(r1);
-    a.free(r2[0]);
-    a.free(r2);
+    const rows = try combineMulti(a, pool, co, .{
+        .{ .com = &old.com, .m = old.tableMatrix(), .extra = old.extra },
+        .{ .com = &new.com, .m = new.tableMatrix(), .extra = new.extra },
+        .{ .com = &mcom, .m = mm, .extra = @as([]const M31, &.{}) },
+    });
     const coms = [_]*const zkp.Commitment{ &old.com, &new.com, &mcom };
-    const opening = try zkp.finish(a, &tr, wp, &coms, mus, r0);
+    const opening = try finishAny(a, pool, &tr, cfg, wp, &coms, &co, groups, @intFromBool(rec), mus, rows);
     return .{ .mask_root = mcom.root(), .opening = opening };
 }
 
@@ -836,12 +936,12 @@ pub fn verifyWeightLink(a: std.mem.Allocator, cfg: proto.Config, old: WeightKey,
     const wp = wpcs(cfg);
     var tr = linkTranscript(old, new, link.mask_root);
     const groups = try linkGroup(ar, &tr, old, new);
-    var tw = try pcs.Twiddles.init(a, old.log_cols + wp.log_blowup);
-    defer tw.deinit(a);
-    const mshape = zkp.Shape{ .log_cols = old.log_cols, .log_blowup = wp.log_blowup, .slots = old.slots, .n_rows = 4 };
+    const rec = (try zk2(cfg)) != null;
+    const mshape = zkp.Shape{ .log_cols = old.log_cols, .log_blowup = wp.log_blowup, .slots = old.slots, .n_rows = if (rec) 8 else 4 };
     const shapes = [_]zkp.Shape{ old.shape(wp.log_blowup), new.shape(wp.log_blowup), mshape };
     const roots = [_]Hash{ old.root, new.root, link.mask_root };
-    try zkp.verifyOpening(ar, &tr, wp, &tw, &shapes, &roots, groups, null, link.opening);
+    const prox: ?zkp.MaskRef = if (rec) .{ .table = 2, .row = 4 } else null;
+    try verifyAny(ar, &tr, cfg, wp, &shapes, &roots, groups, prox, link.opening);
 }
 
 // ---------------------------------------------------------------------------
@@ -853,8 +953,8 @@ pub const Proof = struct {
     wmask_root: ?Hash,
     checks: []zks.MaskedProof,
     batch: zks.MaskedProof,
-    opening: zkp.Opening,
-    weight_opening: ?zkp.Opening,
+    opening: Opening,
+    weight_opening: ?Opening,
     /// hiding GKR: root denominators (numerators are 0) and layer sumchecks, relation-major
     gkr_roots: []QM31 = &.{},
     gkr_layers: []zks.MaskedProof = &.{},
@@ -895,6 +995,16 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: Hash, cfg: proto.Co
     tr.mixU64(cfg.pcs.log_blowup);
     tr.mixU64(wpcs(cfg).n_queries);
     tr.mixU64(wpcs(cfg).log_blowup);
+    if (cfg.two_level) |p| {
+        // recursive hiding PCS: bind its shape parameters (flat mode transcript unchanged)
+        tr.mixU64(0x7a6b_7063_7332); // "zkpcs2"
+        tr.mixU64(p.depth);
+        tr.mixU64(p.inner.n_queries);
+        tr.mixU64(p.inner.log_blowup);
+        tr.mixU64(p.inner.pow_bits);
+        tr.mixU64(p.inner_work_shift);
+        tr.mixU64(p.prox_rows);
+    }
     tr.mixU64(st.witness.len);
     for (st.witness) |t| {
         tr.mixU64(t.n_dims);
@@ -1241,6 +1351,7 @@ pub fn provePublic(
     const ar = arena_state.allocator();
     const wkey: ?WeightKey = if (zw) |w| w.key() else null;
     const plan = try makePlan(ar, st, wkey, cfg);
+    const rec = (try zk2(cfg)) != null;
     var rng = zkp.Rng.initOs();
 
     // --- accumulators, remainders, multiplicities
@@ -1344,7 +1455,7 @@ pub fn provePublic(
     if (has_matmul) {
         const w = zw.?;
         wtw = try pcs.Twiddles.init(a, w.log_cols + wpcs(cfg).log_blowup);
-        const wmr = 4 * weightGroupCount(st, w.key());
+        const wmr = wmaskRows(st, w.key(), rec);
         wmask_data = try randVec(ar, &rng, wmr << @intCast(w.log_cols));
         const mm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = log2Ceil(wmr), .log_cols = w.log_cols, .rows_used = wmr };
         wmask_com = try zkp.commit(i32, a, pool, &wtw.?, &rng, mm, &.{}, w.com.shape.slots, wpcs(cfg).log_blowup);
@@ -1546,7 +1657,7 @@ pub fn provePublic(
     const rows = try combineTables(a, pool, co, .{ &com1, if (com2) |*c| c else null }, .{ m1, pcs.Matrix(i32){ .data = tab2, .log_rows = if (plan.has2) plan.lay[1].log_total - plan.lc else 0, .log_cols = plan.lc, .rows_used = plan.rowsUsed(1) } }, n_tabs);
     var coms_buf: [2]*const zkp.Commitment = .{ &com1, &com1 };
     if (com2) |*c| coms_buf[1] = c;
-    var opening = try zkp.finish(a, &tr, cfg.pcs, coms_buf[0..n_tabs], mus, rows);
+    var opening = try finishAny(a, pool, &tr, cfg, cfg.pcs, coms_buf[0..n_tabs], &co, ospec.groups, 1, mus, rows);
     errdefer opening.deinit(a);
     // aux opening: sigma_b + zeta u_b on row 0 (zeta drawn after u_b is mixed)
     var aux_open: zkp.Opening = undefined;
@@ -1568,32 +1679,25 @@ pub fn provePublic(
 
     // --- weight opening
     t0 = try std.time.Instant.now();
-    var wopen: ?zkp.Opening = null;
+    var wopen: ?Opening = null;
     if (has_matmul) {
         const w = zw.?;
-        const wmr = 4 * weightGroupCount(st, w.key());
-        const wg = try weightGroup(ar, w.key(), wclaims.items, wmr / 4);
+        const wmr = wmaskRows(st, w.key(), rec);
+        const ng = weightGroupCount(st, w.key());
+        const wg = try weightGroup(ar, w.key(), wclaims.items, ng);
         const wmm = pcs.Matrix(i32){ .data = wmask_data, .log_rows = log2Ceil(wmr), .log_cols = w.log_cols, .rows_used = wmr };
         const wmus = try a.alloc(QM31, wg.len);
         for (wg, 0..) |g, gi| wmus[gi] = zkp.maskValue(i32, wmm, g.mask.row, g.col);
         const wshapes = [_]zkp.Shape{ w.key().shape(wpcs(cfg).log_blowup), wmask_com.?.shape };
-        var wco = try zkp.drawCoeffs(a, &tr, &wshapes, wg, wmus, null);
+        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = 4 * ng } else null;
+        var wco = try zkp.drawCoeffs(a, &tr, &wshapes, wg, wmus, wprox);
         defer wco.deinit(a);
-        const c0 = try ar.alloc([]const QM31, wg.len);
-        const c1 = try ar.alloc([]const QM31, wg.len);
-        for (0..wg.len) |o| {
-            c0[o] = wco.v[o][0];
-            c1[o] = wco.v[o][1];
-        }
-        const r0 = try zkp.combine(i8, a, pool, &w.com, w.tableMatrix(), w.extra, c0);
-        const r1 = try zkp.combine(i32, a, pool, &wmask_com.?, wmm, &.{}, c1);
-        for (r0, r1) |x, y| {
-            for (x, y) |*u, v| u.* = u.*.add(v);
-            a.free(y);
-        }
-        a.free(r1);
+        const r0 = try combineMulti(a, pool, wco, .{
+            .{ .com = &w.com, .m = w.tableMatrix(), .extra = @as([]const M31, w.extra) },
+            .{ .com = &wmask_com.?, .m = wmm, .extra = @as([]const M31, &.{}) },
+        });
         const wcoms = [_]*const zkp.Commitment{ &w.com, &wmask_com.? };
-        wopen = try zkp.finish(a, &tr, wpcs(cfg), &wcoms, wmus, r0);
+        wopen = try finishAny(a, pool, &tr, cfg, wpcs(cfg), &wcoms, &wco, wg, @intFromBool(rec), wmus, r0);
     }
     timings.weight_open_ns = nowNs(t0);
 
@@ -1788,6 +1892,12 @@ fn weightGroupCount(st: Statement, key: WeightKey) usize {
     return own + @intFromBool(shared);
 }
 
+/// Rows of the per-proof weight mask table: 4 per group, plus 4 proximity mask
+/// rows in the recursive mode (its proximity row also tests the mask table).
+fn wmaskRows(st: Statement, key: WeightKey, rec: bool) usize {
+    return 4 * weightGroupCount(st, key) + @as(usize, if (rec) 4 else 0);
+}
+
 fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, max_groups: usize) ![]zkp.Group {
     const lr = key.log_rows;
     const nr = key.rows_used + 2 * WPAD_ROWS;
@@ -1913,11 +2023,9 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
 
     // witness opening
     const ospec = try openingSpec(ar, plan, bv.point, proof.batch);
-    var tw = try pcs.Twiddles.init(a, plan.lc + cfg.pcs.log_blowup);
-    defer tw.deinit(a);
     const shapes = [2]zkp.Shape{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) };
     const roots = [2]Hash{ proof.root1, proof.root2 orelse proof.root1 };
-    try zkp.verifyOpening(ar, &tr, cfg.pcs, &tw, shapes[0..n_tabs], roots[0..n_tabs], ospec.groups, .{ .table = 0, .row = plan.maskRow() }, proof.opening);
+    try verifyAny(ar, &tr, cfg, cfg.pcs, shapes[0..n_tabs], roots[0..n_tabs], ospec.groups, .{ .table = 0, .row = plan.maskRow() }, proof.opening);
     {
         const aop = proof.aux_opening orelse return error.ProofShape;
         const zeta = tr.draw();
@@ -1932,15 +2040,16 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     // weight opening
     if (proof.weight_opening) |wop| {
         const wk = wkey.?;
-        const wmr = 4 * weightGroupCount(st, wk);
-        const wg = try weightGroup(ar, wk, wclaims.items, wmr / 4);
-        var wtw = try pcs.Twiddles.init(a, wk.log_cols + wpcs(cfg).log_blowup);
-        defer wtw.deinit(a);
+        const rec = (try zk2(cfg)) != null;
+        const ng = weightGroupCount(st, wk);
+        const wmr = wmaskRows(st, wk, rec);
+        const wg = try weightGroup(ar, wk, wclaims.items, ng);
         const wshape = wk.shape(wpcs(cfg).log_blowup);
         const mshape = zkp.Shape{ .log_cols = wk.log_cols, .log_blowup = wpcs(cfg).log_blowup, .slots = wk.slots, .n_rows = wmr };
         const wshapes = [_]zkp.Shape{ wshape, mshape };
         const wroots = [_]Hash{ wk.root, proof.wmask_root.? };
-        try zkp.verifyOpening(ar, &tr, wpcs(cfg), &wtw, &wshapes, &wroots, wg, null, wop);
+        const wprox: ?zkp.MaskRef = if (rec) .{ .table = 1, .row = 4 * ng } else null;
+        try verifyAny(ar, &tr, cfg, wpcs(cfg), &wshapes, &wroots, wg, wprox, wop);
     } else if (wclaims.items.len != 0) return error.ProofShape;
 }
 
@@ -2376,14 +2485,14 @@ test "zk product: proves, verifies, rejects tampering, randomized" {
     };
     const one = QM31.one();
     inline for (.{ "hat", "sigma", "u_val", "round", "bhat", "bsigma", "row", "mu", "auxrow", "auxmu" }) |what| {
-        const ptr: *QM31 = if (comptime std.mem.eql(u8, what, "hat")) &proof.checks[0].hats[1] else if (comptime std.mem.eql(u8, what, "sigma")) &proof.checks[0].sigma else if (comptime std.mem.eql(u8, what, "u_val")) &proof.checks[0].u_val else if (comptime std.mem.eql(u8, what, "round")) &proof.checks[0].rounds[2][1] else if (comptime std.mem.eql(u8, what, "bhat")) &proof.batch.hats[0] else if (comptime std.mem.eql(u8, what, "bsigma")) &proof.batch.sigma else if (comptime std.mem.eql(u8, what, "row")) &proof.opening.rows[1][3] else if (comptime std.mem.eql(u8, what, "auxrow")) &proof.aux_opening.?.rows[1][2] else if (comptime std.mem.eql(u8, what, "auxmu")) &proof.aux_opening.?.mus[0] else &proof.opening.mus[0];
+        const ptr: *QM31 = if (comptime std.mem.eql(u8, what, "hat")) &proof.checks[0].hats[1] else if (comptime std.mem.eql(u8, what, "sigma")) &proof.checks[0].sigma else if (comptime std.mem.eql(u8, what, "u_val")) &proof.checks[0].u_val else if (comptime std.mem.eql(u8, what, "round")) &proof.checks[0].rounds[2][1] else if (comptime std.mem.eql(u8, what, "bhat")) &proof.batch.hats[0] else if (comptime std.mem.eql(u8, what, "bsigma")) &proof.batch.sigma else if (comptime std.mem.eql(u8, what, "row")) &proof.opening.flat.rows[1][3] else if (comptime std.mem.eql(u8, what, "auxrow")) &proof.aux_opening.?.rows[1][2] else if (comptime std.mem.eql(u8, what, "auxmu")) &proof.aux_opening.?.mus[0] else &proof.opening.flat.mus[0];
         ptr.* = ptr.*.add(one);
         try H.expectReject(a, cfg, st, &proof);
         ptr.* = ptr.*.sub(one);
     }
-    proof.opening.tables[0].values[5] = proof.opening.tables[0].values[5].add(M31.one());
+    proof.opening.flat.tables[0].values[5] = proof.opening.flat.tables[0].values[5].add(M31.one());
     try H.expectReject(a, cfg, st, &proof);
-    proof.opening.tables[0].values[5] = proof.opening.tables[0].values[5].sub(M31.one());
+    proof.opening.flat.tables[0].values[5] = proof.opening.flat.tables[0].values[5].sub(M31.one());
     proof.root1[0] ^= 1;
     try H.expectReject(a, cfg, st, &proof);
     proof.root1[0] ^= 1;
@@ -2417,7 +2526,7 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     defer prox.deinit(a);
     const key = zw.key();
     try verifyWeightProximity(a, cfg, key, prox);
-    prox.rows[0][2] = prox.rows[0][2].add(QM31.one());
+    prox.flat.rows[0][2] = prox.flat.rows[0][2].add(QM31.one());
     try std.testing.expect(std.meta.isError(verifyWeightProximity(a, cfg, key, prox)));
 
     const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 9);
@@ -2455,9 +2564,9 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
         try verify(a, cfg, st, key, &proof);
     }
     // tamper: weight opening row
-    proof.weight_opening.?.rows[0][1] = proof.weight_opening.?.rows[0][1].add(QM31.one());
+    proof.weight_opening.?.flat.rows[0][1] = proof.weight_opening.?.flat.rows[0][1].add(QM31.one());
     try std.testing.expect(std.meta.isError(verify(a, cfg, st, key, &proof)));
-    proof.weight_opening.?.rows[0][1] = proof.weight_opening.?.rows[0][1].sub(QM31.one());
+    proof.weight_opening.?.flat.rows[0][1] = proof.weight_opening.?.flat.rows[0][1].sub(QM31.one());
     // statement change (shift) and wrong weight root are rejected
     const ops2 = try a.dupe(proto.Op, st.ops);
     defer a.free(ops2);
@@ -2541,9 +2650,9 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
         defer pn.deinit(a);
         try verify(a, cfg, st, rr.new.key(), &pn);
         // tampered link / swapped roots rejected
-        rr.link.opening.rows[0][0] = rr.link.opening.rows[0][0].add(QM31.one());
+        rr.link.opening.flat.rows[0][0] = rr.link.opening.flat.rows[0][0].add(QM31.one());
         try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, zw0.key(), rr.new.key(), rr.link)));
-        rr.link.opening.rows[0][0] = rr.link.opening.rows[0][0].sub(QM31.one());
+        rr.link.opening.flat.rows[0][0] = rr.link.opening.flat.rows[0][0].sub(QM31.one());
         try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, rr.new.key(), zw0.key(), rr.link)));
         // a link between commitments of different weights is rejected
         const other = try model.randomWeights(a, winfos[1].size(), 999, -8, 7);
@@ -2579,14 +2688,14 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
         var pw = try prove(a, &pool, cfgw, st, &zww, wv, &tm);
         defer pw.deinit(a);
         try verify(a, cfgw, st, zww.key(), &pw);
-        try std.testing.expectEqual(@as(usize, 3), pw.weight_opening.?.rows.len);
-        pw.weight_opening.?.rows[2][5] = pw.weight_opening.?.rows[2][5].add(QM31.one());
+        try std.testing.expectEqual(@as(usize, 3), pw.weight_opening.?.flat.rows.len);
+        pw.weight_opening.?.flat.rows[2][5] = pw.weight_opening.?.flat.rows[2][5].add(QM31.one());
         try std.testing.expect(std.meta.isError(verify(a, cfgw, st, zww.key(), &pw)));
-        pw.weight_opening.?.rows[2][5] = pw.weight_opening.?.rows[2][5].sub(QM31.one());
+        pw.weight_opening.?.flat.rows[2][5] = pw.weight_opening.?.flat.rows[2][5].sub(QM31.one());
         pw.checks[0].hats[1] = pw.checks[0].hats[1].add(QM31.one());
         try std.testing.expect(std.meta.isError(verify(a, cfgw, st, zww.key(), &pw)));
     }
-    try std.testing.expectEqual(@as(usize, 6), proof3.weight_opening.?.tables[0].salts.len);
+    try std.testing.expectEqual(@as(usize, 6), proof3.weight_opening.?.flat.tables[0].salts.len);
 }
 
 // Best-effort statistical sanity check: everything a verifier sees from the
@@ -2626,8 +2735,8 @@ test "zk statistical sanity: opened values of zero vs random witness look unifor
                     m.* += @as(f64, @floatFromInt(v)) / @as(f64, @floatFromInt(f.P));
                 }
             };
-            for (proof.opening.tables[0].values) |v| Acc.add(&n_vals, &top, &zeros, &mean, v.v);
-            for (proof.opening.rows) |r| for (r) |q| for (f.limbs(q)) |l| Acc.add(&n_vals, &top, &zeros, &mean, l);
+            for (proof.opening.flat.tables[0].values) |v| Acc.add(&n_vals, &top, &zeros, &mean, v.v);
+            for (proof.opening.flat.rows) |r| for (r) |q| for (f.limbs(q)) |l| Acc.add(&n_vals, &top, &zeros, &mean, l);
             for (proof.checks[0].hats) |q| for (f.limbs(q)) |l| Acc.add(&n_vals, &top, &zeros, &mean, l);
             for (proof.batch.hats) |q| for (f.limbs(q)) |l| Acc.add(&n_vals, &top, &zeros, &mean, l);
         }
@@ -2765,4 +2874,256 @@ test "zk plan: relations share one tagged GKR tree when that pads less" {
         }
     }
     try std.testing.expect(saw_tagged);
+}
+
+// ---------------------------------------------------------------------------
+// Recursive hiding PCS mode (Config.two_level).
+
+fn testCfgRec(depth: u32) proto.Config {
+    var c = testCfg();
+    c.two_level = .{ .inner = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .depth = depth, .inner_work_shift = 0 };
+    return c;
+}
+
+fn tamperRec(op: *zkp2.Opening, comptime what: []const u8, undo: bool) void {
+    const one = QM31.one();
+    const d = if (undo) one.neg() else one;
+    if (comptime std.mem.eql(u8, what, "col")) {
+        op.tables[0].values[5] = if (undo) op.tables[0].values[5].sub(M31.one()) else op.tables[0].values[5].add(M31.one());
+    } else if (comptime std.mem.eql(u8, what, "salt")) {
+        op.tables[0].salts[0][3] ^= 1;
+    } else if (comptime std.mem.eql(u8, what, "mu")) {
+        op.mus[0] = op.mus[0].add(d);
+    } else if (comptime std.mem.eql(u8, what, "root")) {
+        op.inner_root[7] ^= 1;
+    } else if (comptime std.mem.eql(u8, what, "round")) {
+        op.sumcheck.rounds[1].evals[1] = op.sumcheck.rounds[1].evals[1].add(d);
+    } else if (comptime std.mem.eql(u8, what, "limb")) {
+        op.limb_vals[3] = op.limb_vals[3].add(d);
+    } else if (comptime std.mem.eql(u8, what, "inner_col")) {
+        const lp = &op.inner.levels[1];
+        lp.col_values[2] = if (undo) lp.col_values[2].sub(M31.one()) else lp.col_values[2].add(M31.one());
+    } else if (comptime std.mem.eql(u8, what, "final_row")) {
+        const lp = &op.inner.levels[op.inner.levels.len - 1];
+        lp.rows[0][1] = lp.rows[0][1].add(d);
+    } else @compileError("unknown");
+}
+
+const REC_FIELDS = .{ "col", "salt", "root", "round", "limb", "inner_col", "final_row" };
+
+test "zk recursive PCS: product proves, verifies, rejects tampering and mode mismatch" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var built = try model.buildProduct(a, 9, 3);
+    defer built.deinit(a);
+    const st = built.statement();
+    const wv = try wview(a, built.witness);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    for ([_]u32{ 1, 2 }) |depth| {
+        const cfg = testCfgRec(depth);
+        var proof = try prove(a, &pool, cfg, st, null, wv, &tm);
+        defer proof.deinit(a);
+        try verify(a, cfg, st, null, &proof);
+        try std.testing.expect(proof.opening == .rec);
+        try std.testing.expectEqual(@as(usize, depth + 1), proof.opening.rec.inner.levels.len);
+        inline for (REC_FIELDS ++ .{"mu"}) |what| {
+            tamperRec(&proof.opening.rec, what, false);
+            try std.testing.expect(std.meta.isError(verify(a, cfg, st, null, &proof)));
+            tamperRec(&proof.opening.rec, what, true);
+        }
+        // the batch hat and an op hat still bind through the recursive opening
+        proof.batch.hats[0] = proof.batch.hats[0].add(QM31.one());
+        try std.testing.expect(std.meta.isError(verify(a, cfg, st, null, &proof)));
+        proof.batch.hats[0] = proof.batch.hats[0].sub(QM31.one());
+        proof.root1[0] ^= 1;
+        try std.testing.expect(std.meta.isError(verify(a, cfg, st, null, &proof)));
+        proof.root1[0] ^= 1;
+        try verify(a, cfg, st, null, &proof);
+        // a flat-mode verifier and a verifier with another depth reject it
+        try std.testing.expect(std.meta.isError(verify(a, testCfg(), st, null, &proof)));
+        try std.testing.expect(std.meta.isError(verify(a, testCfgRec(depth + 1), st, null, &proof)));
+    }
+    // depth 0 is not a recursive mode
+    try std.testing.expectError(error.ZkTwoLevelDepth, prove(a, &pool, testCfgRec(0), st, null, wv, &tm));
+}
+
+test "zk recursive PCS: mlp weights, proximity, link, budget, tampering" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const cfg = testCfgRec(1);
+    const mc = model.Mlp{ .log_t = 3, .log_d = 6, .log_f = 7, .fused = false };
+    const winfos = model.mlpWeightInfos(mc);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var zw = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+    defer zw.deinit(a);
+    var prox = try proveWeightProximity(a, &pool, cfg, &zw);
+    defer prox.deinit(a);
+    const key = zw.key();
+    try verifyWeightProximity(a, cfg, key, prox);
+    try std.testing.expect(prox == .rec);
+    inline for (REC_FIELDS) |what| {
+        tamperRec(&prox.rec, what, false);
+        try std.testing.expect(std.meta.isError(verifyWeightProximity(a, cfg, key, prox)));
+        tamperRec(&prox.rec, what, true);
+    }
+    try verifyWeightProximity(a, cfg, key, prox);
+    try std.testing.expect(std.meta.isError(verifyWeightProximity(a, testCfg(), key, prox)));
+
+    const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 9);
+    defer a.free(x);
+    const pv = zw.plainView();
+    var built = try model.buildMlp(a, &pool, &pv, mc, x);
+    defer built.deinit(a);
+    const st = built.statement();
+    const wv = try wview(a, built.witness);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+    var proof = try provePublic(a, &pool, cfg, st, &zw, wv, &pubs, &tm);
+    defer proof.deinit(a);
+    try verifyPublic(a, cfg, st, key, &pubs, &proof);
+    try std.testing.expect(proof.weight_opening.? == .rec);
+    inline for (REC_FIELDS ++ .{"mu"}) |what| {
+        tamperRec(&proof.weight_opening.?.rec, what, false);
+        try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+        tamperRec(&proof.weight_opening.?.rec, what, true);
+        tamperRec(&proof.opening.rec, what, false);
+        try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+        tamperRec(&proof.opening.rec, what, true);
+    }
+    // the weight table (2nd outer table: the per-proof mask table) is opened too
+    proof.weight_opening.?.rec.tables[1].values[0] = proof.weight_opening.?.rec.tables[1].values[0].add(M31.one());
+    try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+    proof.weight_opening.?.rec.tables[1].values[0] = proof.weight_opening.?.rec.tables[1].values[0].sub(M31.one());
+    // W hat and a GKR hat still bind
+    proof.checks[0].hats[1] = proof.checks[0].hats[1].add(QM31.one());
+    try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+    proof.checks[0].hats[1] = proof.checks[0].hats[1].sub(QM31.one());
+    proof.gkr_layers[2].hats[0] = proof.gkr_layers[2].hats[0].add(QM31.one());
+    try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+    proof.gkr_layers[2].hats[0] = proof.gkr_layers[2].hats[0].sub(QM31.one());
+    try verifyPublic(a, cfg, st, key, &pubs, &proof);
+    var key2 = key;
+    key2.root[1] ^= 1;
+    try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key2, &pubs, &proof)));
+
+    // re-randomization link (recursive): verifies, tampering / swapped roots / other weights rejected
+    {
+        var zw0 = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+        defer zw0.deinit(a);
+        var rr = try rerandomizeWeights(a, &pool, cfg, &zw0);
+        defer rr.new.deinit(a);
+        defer rr.link.deinit(a);
+        try verifyWeightLink(a, cfg, zw0.key(), rr.new.key(), rr.link);
+        try std.testing.expect(rr.link.opening == .rec);
+        inline for (REC_FIELDS ++ .{"mu"}) |what| {
+            tamperRec(&rr.link.opening.rec, what, false);
+            try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, zw0.key(), rr.new.key(), rr.link)));
+            tamperRec(&rr.link.opening.rec, what, true);
+        }
+        try verifyWeightLink(a, cfg, zw0.key(), rr.new.key(), rr.link);
+        try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, rr.new.key(), zw0.key(), rr.link)));
+        var pn = try prove(a, &pool, cfg, st, &rr.new, wv, &tm);
+        defer pn.deinit(a);
+        try verify(a, cfg, st, rr.new.key(), &pn);
+        const other = try model.randomWeights(a, winfos[1].size(), 999, -8, 7);
+        defer a.free(other);
+        const wvo = [_][]const i8{ wdata[0], other, wdata[2] };
+        var zo = try commitWeights(a, &pool, cfg, &winfos, &wvo);
+        defer zo.deinit(a);
+        var bad = try proveWeightLink(a, &pool, cfg, &zw0, &zo);
+        defer bad.deinit(a);
+        try std.testing.expect(std.meta.isError(verifyWeightLink(a, cfg, zw0.key(), zo.key(), bad)));
+    }
+
+    // the outer weight budget (slots/2 = 32 columns) is enforced in the recursive mode too
+    var n_ok: usize = 1;
+    while (n_ok < 10) : (n_ok += 1) {
+        var p = prove(a, &pool, cfg, st, &zw, wv, &tm) catch |e| {
+            try std.testing.expectEqual(error.OpeningBudgetExceeded, e);
+            break;
+        };
+        defer p.deinit(a);
+        try verify(a, cfg, st, key, &p);
+    }
+    try std.testing.expect(n_ok >= 3 and n_ok < 10);
+    const used = zw.budgetUsed();
+    try std.testing.expect(used[0] <= used[1]);
+}
+
+test "zk recursive PCS statistical sanity: zero vs random witness, every level" {
+    // Everything the recursive opening reveals (outer columns, committed-row
+    // sumcheck, limb values, inner columns, final rows) must look uniform for an
+    // all-zero witness, and alike for zero and random witnesses.
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var cfg = testCfgRec(2);
+    cfg.pcs.n_queries = 16;
+    var stats: [2][3]f64 = undefined;
+    for (0..2) |case| {
+        var built = try model.buildProduct(a, 10, 21);
+        defer built.deinit(a);
+        if (case == 0) for (built.witness) |w| @memset(w, 0);
+        const st = built.statement();
+        const wv = try wview(a, built.witness);
+        defer a.free(wv);
+        const ws = try witnessShape(a, cfg, st, null);
+        const ish = zkp2.innerShapeFor(cfg.pcs, cfg.two_level.?, 2, ws.log_cols);
+        const C = @as(usize, 1) << @intCast(ws.log_cols);
+        const C1 = @as(usize, 1) << @intCast(ish.log_cols);
+        var tm: proto.Timings = .{};
+        var acc = [_]f64{0} ** 4; // n, top, zeros, mean
+        const Acc = struct {
+            fn add(x: *[4]f64, v: u32) void {
+                x[0] += 1;
+                if (v >= f.P / 2) x[1] += 1;
+                if (v == 0) x[2] += 1;
+                x[3] += @as(f64, @floatFromInt(v)) / @as(f64, @floatFromInt(f.P));
+            }
+            fn addQ(x: *[4]f64, q: QM31) void {
+                for (f.limbs(q)) |l| add(x, l);
+            }
+        };
+        for (0..4) |_| {
+            var proof = try prove(a, &pool, cfg, st, null, wv, &tm);
+            defer proof.deinit(a);
+            try verify(a, cfg, st, null, &proof);
+            const op = proof.opening.rec;
+            for (op.tables[0].values) |v| Acc.add(&acc, v.v);
+            for (op.sumcheck.rounds) |r| for (r.evals[0..2]) |e| Acc.addQ(&acc, e);
+            for (op.limb_vals) |l| Acc.addQ(&acc, l);
+            const nl = op.inner.levels.len;
+            for (op.inner.levels[1..], 1..) |lp, li| {
+                if (li == 1) {
+                    // level-1 rows lying in the public zero tail [C + S, 2C) of a U row are skipped
+                    const R1 = ish.rows_used;
+                    for (0..lp.col_values.len / R1) |q| for (0..R1) |row| {
+                        if ((row * C1) % (2 * C) < C + ws.slots) Acc.add(&acc, lp.col_values[q * R1 + row].v);
+                    };
+                } else for (lp.col_values) |v| Acc.add(&acc, v.v);
+                for (lp.rows) |row| for (row) |q| Acc.addQ(&acc, q);
+                for (lp.sumcheck.rounds) |r| for (r.evals[0..2]) |e| Acc.addQ(&acc, e);
+                if (li + 1 < nl) for (lp.limb_vals) |l| Acc.addQ(&acc, l);
+            }
+            for (proof.batch.hats) |q| Acc.addQ(&acc, q);
+        }
+        stats[case] = .{ acc[1] / acc[0], acc[2] / acc[0], acc[3] / acc[0] };
+    }
+    for (stats) |s| {
+        try std.testing.expect(@abs(s[0] - 0.5) < 0.02);
+        try std.testing.expect(s[1] < 0.001);
+        try std.testing.expect(@abs(s[2] - 0.5) < 0.02);
+    }
+    try std.testing.expect(@abs(stats[0][0] - stats[1][0]) < 0.03);
+    try std.testing.expect(@abs(stats[0][2] - stats[1][2]) < 0.03);
 }

@@ -43,6 +43,37 @@ fn provenBits(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
     return -@as(f64, @floatFromInt(queries)) * std.math.log2(1.0 - delta) + @as(f64, @floatFromInt(pow));
 }
 
+fn envU(name: []const u8, default: u64) !u64 {
+    return if (std.posix.getenv(name)) |v| try std.fmt.parseInt(u64, v, 10) else default;
+}
+
+/// Recursive hiding PCS (zk_pcs2) from ZK_DEPTH [ZK_INNER_Q ZK_INNER_LB ZK_INNER_POW ZK_WORK_SHIFT];
+/// unset or 0 = flat hiding PCS.
+fn twoLevelFromEnv() !?t.pcs2.Params {
+    const depth = try envU("ZK_DEPTH", 0);
+    if (depth == 0) return null;
+    return .{
+        .inner = .{ .n_queries = @intCast(try envU("ZK_INNER_Q", 54)), .log_blowup = @intCast(try envU("ZK_INNER_LB", 2)), .pow_bits = @intCast(try envU("ZK_INNER_POW", 20)) },
+        .depth = @intCast(depth),
+        .inner_work_shift = @intCast(try envU("ZK_WORK_SHIFT", 3)),
+    };
+}
+
+fn pcsJson(out: anytype, tl: ?t.pcs2.Params) !void {
+    if (tl) |p| {
+        try out.print("\"pcs\":\"zk_pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"inner_conjectured_bits\":{d:.1},\"inner_proven_bits\":{d:.1},", .{ p.depth, p.inner.n_queries, p.inner.log_blowup, p.inner.pow_bits, p.inner.conjecturedBits(), p.inner.provenBits() });
+    } else try out.print("\"pcs\":\"zk_pcs\",", .{});
+}
+
+fn levelsJson(out: anytype, name: []const u8, op: zk.Opening) !void {
+    if (op != .rec) return;
+    var buf: [16]usize = undefined;
+    const ls = op.rec.levelSizes(&buf);
+    try out.print("\"{s}\":[", .{name});
+    for (ls, 0..) |x, i| try out.print("{s}{d}", .{ if (i == 0) "" else ",", x });
+    try out.print("],", .{});
+}
+
 fn stagesJson(out: anytype, tm: proto.Timings) !void {
     try out.print("\"stage_s\":{{\"commit\":{d:.4},\"logup_checks\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
 }
@@ -62,7 +93,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .hiding = true };
+    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .hiding = true, .two_level = try twoLevelFromEnv() };
     var built = try model.buildProduct(a, ln, 5);
     defer built.deinit(a);
     const st = built.statement();
@@ -75,6 +106,8 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     var size: usize = 0;
     var sz: zk.Proof.Sizes = undefined;
     var msg_len: usize = 0;
+    var lvbuf: [16]usize = undefined;
+    var lvs: []usize = lvbuf[0..0];
     for (0..3) |_| {
         tm = .{};
         var t0 = now();
@@ -85,12 +118,20 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
         best_verify = @min(best_verify, secs(t0));
         sz = proof.sizes();
         size = sz.total;
-        msg_len = proof.opening.rows[0].len;
+        if (proof.opening == .rec) lvs = proof.opening.rec.levelSizes(&lvbuf);
         proof.deinit(a);
     }
-    const lc = std.math.log2_int(usize, msg_len - t.zk_pcs.slotsFor(queries));
+    const ws = try zk.witnessShape(a, pc, st, null);
+    msg_len = (@as(usize, 1) << @intCast(ws.log_cols)) + ws.slots;
+    const lc = ws.log_cols;
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"product\",\"hiding\":true,\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, queries, lb, pow });
+    try out.print("{{\"bench\":\"product\",\"hiding\":true,\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"witness_log_cols\":{d},", .{ ln, threads, queries, lb, pow, lc });
+    try pcsJson(out, pc.two_level);
+    if (lvs.len > 0) {
+        try out.print("\"witness_levels\":[", .{});
+        for (lvs, 0..) |x, i| try out.print("{s}{d}", .{ if (i == 0) "" else ",", x });
+        try out.print("],", .{});
+    }
     try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ conjBits(queries, msg_len, @intCast(lc + lb), pow), provenBits(queries, msg_len, @intCast(lc + lb), pow) });
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"proof_parts\":{{\"sumchecks\":{d},\"witness_opening\":{d}}},\"prove_ns_per_entry\":{d:.2},", .{ best_prove, best_verify, size, sz.sumchecks, sz.witness_opening, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))) });
     try stagesJson(out, tm);
@@ -125,6 +166,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
         .hiding = true,
         .weight_mask_slots = wslots,
         .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = pow },
+        .two_level = try twoLevelFromEnv(),
     };
     const winfos = model.mlpWeightInfos(cfg);
     var wdata: [3][]i8 = undefined;
@@ -178,17 +220,21 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     t0 = now();
     try zk.verifyWeightLink(a, pc, key, rr.new.key(), rr.link);
     const link_verify_s = secs(t0);
-    const wml = proof.opening.rows[0].len;
-    const wtlc = std.math.log2_int(usize, wml - t.zk_pcs.slotsFor(queries));
+    const ws = try zk.witnessShape(a, pc, st, key);
+    const wml = (@as(usize, 1) << @intCast(ws.log_cols)) + ws.slots;
+    const wtlc = ws.log_cols;
     const kml = (@as(usize, 1) << @intCast(key.log_cols)) + key.slots;
     const cw = conjBits(queries, wml, @intCast(wtlc + lb), pow);
     const ck = conjBits(wq, kml, key.log_cols + wlb, pow);
     const pw = provenBits(queries, wml, @intCast(wtlc + lb), pow);
     const pk = provenBits(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"public_io\":{},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, public_io });
+    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io });
+    try pcsJson(out, pc.two_level);
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
+    try levelsJson(out, "witness_levels", proof.opening);
+    if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
     try stagesJson(out, tm);
     try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"rerandomize_link_s\":{d:.4},\"link_verify_s\":{d:.5},\"link_bytes\":{d},\"gkr_trees\":{d},\"gkr_layers\":{d},\"logup_bytes\":{d},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, rerand_s, link_verify_s, rr.link.byteSize(), proof.gkr_roots.len, proof.gkr_layers.len, sz.logup, budget[0], budget[1], tm.witness_table_elems, peakRssBytes() });
 }
