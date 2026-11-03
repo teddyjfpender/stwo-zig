@@ -1,0 +1,23 @@
+{
+  "schema": "rv64-native-idle-pcs-cache-recovery-build/v1",
+  "date": "2026-11-03",
+  "library": "/workspace/rv64-gpu-session/build/resident-oom-trim/libstwo-rv64-native-7020905a70bfbcf3.so",
+  "sha256": "7020905a70bfbcf3e360d94e6f11356c4977b4e479cb5c901995286951cb8dde",
+  "previous_library_sha256": "6cac625979bfb09dea2306d587fc96632e71c0cdaf849088b135a8f98e28bad3",
+  "runtime_fix_commits": [
+    "95116f769",
+    "180953659"
+  ],
+  "changed_objects": {
+    "/workspace/rv64-gpu-session/build/resident-oom-trim/rv64-pcs_native.cu.o": "9c52fb46e067a834ebe1b95cfbceaf139bd357964b6df888c8dae2e7e0f9b965"
+  },
+  "unchanged_native_objects": 36,
+  "unchanged_aot_objects": 268,
+  "original_exports_verified": 446,
+  "source_sha256": "7a8f29ee99e7263b804d929f63ca47c09f00390baa7669d100fbcaed7f008ff0",
+  "behavior": "On allocation OOM, synchronize and evict only unused native PCS cache blocks, retain all live leases/domains/active blocks, clear recoverable CUDA last error and retry once. Context private-pool recovery remains enabled.",
+  "qualification": "Actual GPU owner-recovery regression passed; see pcs idle-cache recovery receipt from trace workstream.",
+  "full_block": "pending parent proof and fresh receiver; build receipt makes no performance or acceptance claim",
+  "build_manifest": "/workspace/rv64-gpu-session/build/resident-oom-trim/build.json",
+  "build_manifest_sha256": "d46733ec8ac3223336c9fc2225cfa2368064dc6c2b157bbaebebf7c54ff6ba54"
+}
