@@ -1,0 +1,71 @@
+{
+  "schema": "stwo.circuit.om31.production-trace-generation/v1",
+  "source_commits": [
+    "6b4c7b8dc",
+    "ef3797bdd",
+    "0717769ca"
+  ],
+  "status": "qualified constructors and small physical GPU proof; production execution root pending",
+  "profile": "native-om31-q108-p20-fold4",
+  "security": "128-bit security target under documented assumptions; not certified",
+  "architecture": {
+    "generation_directory": "src/frontends/circuit/witness_generation",
+    "constraint_authority": "unchanged original Circuit and original AIR; generation metadata is not a new constraint IR",
+    "stable_aliases": [
+      "builder.witness_plan",
+      "builder.context.witness_origins"
+    ],
+    "atomic_source": "Factory.prepare_from_circuit receives original graph and independently constructed authority/scope",
+    "production_constructors": [
+      "CPU leaf",
+      "V3/secp/curve truth leaf",
+      "Keccak truth leaf",
+      "ordered two-child fold"
+    ],
+    "cpu_value_table_words": 0,
+    "full_assignment_upload_words": 0,
+    "full_assignment_readback_words": 0,
+    "remaining_host_work": [
+      "compact proof/public input parsing",
+      "static topology and immutable preprocessed authority construction",
+      "independent native receiver qualification"
+    ]
+  },
+  "missing_origins_resolved": {
+    "circuit_lane.Lane.inv": "explicit constrained inverse from source wire; zero rejected by device generator",
+    "cpu_child.Writer.word": "four packed-u32 byte hints and their 255-byte complements",
+    "cpu_leaf.flag": "canonical admitted base-count nonzero, inverse-or-zero and constant-zero upper coordinates"
+  },
+  "native_gate": {
+    "generation_kinds": 16,
+    "capability_bitmap": "0xffff",
+    "unsupported_image_policy": "reject unsupported generation hint before enqueue; no CPU witness fallback",
+    "gpu": "RTX 5090",
+    "variables": 605,
+    "seed_words": 100,
+    "static_words": 4286,
+    "levels": 254,
+    "proof_bytes": 626832,
+    "proof_sha256": "f5c8c4bb0283cf2788f189e1df2c063cdf8ddf8c68921bd50396323b537d7640",
+    "cpu_control_gpu_cold_gpu_warm_identical": true,
+    "fresh_cpu_receiver": true,
+    "wrong_public_outputs_rejected": "InvalidOm31CircuitLookupSum",
+    "object_sha256": "5fe7846dce7e5dba6e6540185f629a4c8af228ff44094142fe160ff8440a2152",
+    "isolated_overlay_sha256": "5b8f61a6b7386db932b5ec3b17abbcd4a2729b2d07c53a4d9e975604bd25826a",
+    "overlay_dependency": "qualified numeric7f85bf706d5b053e; canonical image unchanged"
+  },
+  "host_gates": {
+    "whole_production_cli_semantic": "PASS",
+    "frontend_trace_only_assignment_parity": "PASS",
+    "full_test_riscv64_om31_native_pcs": "PASS; includes existing actual CPU outer proof, fresh verify, wire restore and retirement",
+    "actual_cpu_leaf_trace_topology_and_every_assignment": "PASS against independently built full-value graph",
+    "actual_keccak_leaf_trace_topology_and_every_assignment": "PASS against independently built full-value graph",
+    "two_actual_native_children_fold_trace_topology_and_every_assignment": "PASS with STWO_OM31_OUTER_GRAPH_ONLY=1; native child was freshly proved and verified; folded root was not re-proved in this gate"
+  },
+  "limits": [
+    "No production GPU recursion root with this new trace-only constructor batch has been qualified yet.",
+    "Full legacy circuit parity and intentional surface repin are required after integrating this batch.",
+    "No performance or sanitizer claim for the new hint cases.",
+    "Constructor fixtures use compact native child shapes; they are not the real Ethereum performance benchmark."
+  ]
+}
