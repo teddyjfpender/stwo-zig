@@ -16,6 +16,13 @@ fn outputDirectory(args: []const [:0]const u8) ![]const u8 {
     if (args.len != mode + 6 or !std.mem.eql(u8, args[mode], "produce-and-recurse-candidate")) return error.ExpectedCombinedModeConfigJobsOutputCountResources;
     return args[mode + 3];
 }
+fn publishEntryReport(path: []const u8, json: []const u8) !void {
+    // Linux O_PATH descriptors support openat but cannot be fsync'd.
+    var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
+    defer dir.close();
+    try dir.writeFile(.{ .sub_path = "combined-entry.json", .data = json });
+    try std.posix.fsync(dir.fd);
+}
 pub fn main() !void {
     var timer = try std.time.Timer.start();
     const a = std.heap.page_allocator;
@@ -61,10 +68,7 @@ pub fn main() !void {
     const full_entry_ns = timer.read();
     const entry_report = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .accepted = true, .gpu_init_ns = gpu_init_ns, .full_entry_ns = full_entry_ns, .native_authority_handoff = "live in process; no reload or reconstruction", .device_byte_cap = config.caps[0], .immutable_device_bytes = @as(u64, 2 << 30), .host_byte_cap = host_bytes, .device_lifecycle_audit = "all request leases released", .scope = "Entry wall includes native GPU pool initialization, native capture/proving/verification/publication and fresh GPU recursion; excludes operating-system process startup." }, .{ .whitespace = .indent_2 });
     defer a.free(entry_report);
-    var dir = try std.fs.cwd().openDir(output_path, .{});
-    defer dir.close();
-    try dir.writeFile(.{ .sub_path = "combined-entry.json", .data = entry_report });
-    try std.posix.fsync(dir.fd);
+    try publishEntryReport(output_path, entry_report);
     std.log.info("GPU_COMBINED_COMPLETE gpu_init_ns={} full_entry_ns={}", .{ gpu_init_ns, full_entry_ns });
 }
 
@@ -74,4 +78,16 @@ test "combined output dispatch preserves the native producer argument contract" 
     const selected = [_][:0]const u8{ "combined", "--security-profile", "conjectured128_b2_q108_p20_fold4", "produce-and-recurse-candidate", "config", "-", "out", "0", "resources" };
     try std.testing.expectEqualStrings("out", try outputDirectory(&selected));
     try std.testing.expectError(error.ExpectedCombinedModeConfigJobsOutputCountResources, outputDirectory(plain[0..6]));
+}
+
+test "combined entry publication uses a descriptor that supports durability" {
+    const a = std.testing.allocator;
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const path = try temporary.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    try publishEntryReport(path, "{\"accepted\":true}");
+    const bytes = try temporary.dir.readFileAlloc(a, "combined-entry.json", 1024);
+    defer a.free(bytes);
+    try std.testing.expectEqualStrings("{\"accepted\":true}", bytes);
 }
