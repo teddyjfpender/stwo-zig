@@ -40,6 +40,24 @@ extern "C" __global__ void rv64_joined_domain_8(void){uint32_t i=0;switch(blockI
             self.assertIn("rv64_joined_domain_8_shard_1,32u,1u", header)
             self.assertNotIn("(const void*)rv64_joined_domain_8,", header)
 
+    def test_cold_ssa_lowering_keeps_original_manifest_source_and_stable_cache_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "role.cu"
+            text = "__device__ __noinline__ void role_part_0() {" + " " * 100 + "}"
+            source.write_text(text)
+            obj = root / "role.o"
+            with mock.patch.object(B.Grouped, "bound_ssa_module", return_value={"instruction_slices": 2}):
+                lowered, metadata = B.bounded_compile_source(source, obj, root, 16)
+                self.assertNotEqual(lowered, source)
+                self.assertEqual(source.read_text(), text)
+                self.assertEqual(metadata["source_sha256"], B.N.sha(source))
+                obj.write_bytes(b"candidate")
+                self.assertEqual(B.bounded_compile_source(source, obj, root, 16)[0], lowered)
+            other = root / "existing.cu"
+            other.write_text(text)
+            self.assertEqual(B.bounded_compile_source(other, obj, root, 16), (other, None))
+
     def test_all_core_roles_required_and_group_geometry_preserved(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

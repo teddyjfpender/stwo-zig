@@ -115,6 +115,25 @@ extern "C" int stwo_rv64_composition_role_on(void *ctx,uint32_t lane,
     return sources + [dispatcher]
 
 
+def bounded_compile_source(source, obj, build, max_bytes=32768):
+    """Lower cold single-group units without mutating admitted source manifests.
+
+    Existing object candidates still undergo compile_native's full dependency
+    validation. Keep the selected lowered path stable on subsequent builds.
+    """
+    text = source.read_text()
+    if len(text.encode()) <= max_bytes or text.count("__device__ __noinline__ void ") != 1 or "volatile OM31 *ext_bank" in text:
+        return source, None
+    name = source.stem + "-" + hashlib.sha256((str(source) + N.sha(source)).encode()).hexdigest()[:16]
+    lowered = build / "bounded-aot" / (name + ".cu")
+    if obj.is_file() and not lowered.is_file():
+        return source, None
+    lowered.parent.mkdir(parents=True, exist_ok=True)
+    lowered.write_text(text)
+    metadata = Grouped.bound_ssa_module(lowered)
+    return lowered, {"source_sha256": N.sha(source), "lowered_source": str(lowered), "lowered_sha256": N.sha(lowered), **metadata}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("source-root", "core-domain", "core-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
@@ -157,12 +176,17 @@ def main():
     objects = build / "aot-objects"
     objects.mkdir(exist_ok=True)
 
+    lowering = {}
+
     def compile_one(source):
         # Full path distinguishes role-local dispatch.cpp names; source/dependency
         # and compiler pins are validated by the shared atomic cache publisher.
         name = source.stem + "-" + hashlib.sha256(str(source).encode()).hexdigest()[:12]
         obj = objects / (name + ".o")
-        cached = N.compile_native(args.nvcc, version, flags, source, obj, logs / (name + ".log"), args.compile_timeout)
+        actual, lowered = bounded_compile_source(source, obj, build)
+        if lowered:
+            lowering[str(source)] = lowered
+        cached = N.compile_native(args.nvcc, version, flags, actual, obj, logs / (name + ".log"), args.compile_timeout)
         print(json.dumps({"aot": str(source), "cached": cached}), flush=True)
         return obj
 
@@ -178,7 +202,7 @@ def main():
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "bounded_aot_sources": lowering, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 
