@@ -190,3 +190,45 @@ test "metal proof digest equals CPU: small MLP (GPU weight commitment too)" {
     for (built.witness, 0..) |w, i| wview[i] = w;
     try proveBoth(a, &pool, pc, built.statement(), &ws, &ws_gpu, wview);
 }
+
+test "metal batch sumcheck (device-built factors) matches CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const g = try gpu();
+    const n = 15;
+    const total = @as(usize, 1) << n;
+    const used = total - 777;
+    var prng = std.Random.DefaultPrng.init(42);
+    const r = prng.random();
+    const wtab = try a.alloc(i32, total);
+    defer a.free(wtab);
+    for (wtab, 0..) |*x, i| x.* = if (i < used) @intCast(r.intRangeLessThan(i64, -(@as(i64, 1) << 30), f.P)) else 0;
+    // overlapping claims of several sizes (incl. a 0-variable one)
+    const sizes = [_]u32{ 13, 13, 10, 0, 14, 7 };
+    const offs = [_]usize{ 0, 0, 1 << 13, 5, 1 << 14, (1 << 14) + 128 };
+    var pts: [sizes.len][]QM31 = undefined;
+    var claims: [sizes.len]t.accel.BatchClaim = undefined;
+    for (sizes, offs, 0..) |sz, off, i| {
+        pts[i] = try a.alloc(QM31, sz);
+        for (pts[i]) |*p| p.* = randQ(r);
+        claims[i] = .{ .offset = off, .point = pts[i], .gamma = randQ(r) };
+    }
+    defer for (pts) |p| a.free(p);
+    const claim = randQ(r); // value is irrelevant to prover determinism
+    var tc = Transcript.initDomain("b");
+    var rc = try t.accel.batchProve(null, a, &pool, &tc, wtab, used, &claims, claim);
+    defer rc.deinit(a);
+    var acc = g.accel().*;
+    acc.sc_min_work = 64;
+    const before = g.stats.sc_rounds;
+    var td = Transcript.initDomain("b");
+    var rd = try t.accel.batchProve(&acc, a, &pool, &td, wtab, used, &claims, claim);
+    defer rd.deinit(a);
+    try std.testing.expect(g.stats.sc_rounds > before);
+    for (rc.proof.rounds, rd.proof.rounds) |x, y| for (0..sc.MAX_DEG) |k| try std.testing.expect(x.evals[k].eql(y.evals[k]));
+    for (rc.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
+    for (rc.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
+    try std.testing.expect(tc.draw().eql(td.draw()));
+}

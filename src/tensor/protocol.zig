@@ -879,20 +879,14 @@ pub fn prove(
     const gammas = try a.alloc(QM31, claims.items.len);
     defer a.free(gammas);
     tr.drawN(gammas);
-    const E = try a.alloc(QM31, total);
-    @memset(E, QM31.zero());
+    const bclaims = try a.alloc(accel.BatchClaim, claims.items.len);
+    defer a.free(bclaims);
     var batch_claim = QM31.zero();
-    for (claims.items, gammas) |c, g| {
-        const off = lay.offsets[c.tensor];
-        const eq = try f.eqTablePar(a, pool, c.point, g);
-        defer a.free(eq);
-        for (E[off..][0..eq.len], eq) |*e, v| e.* = e.add(v);
+    for (claims.items, gammas, bclaims) |c, g, *b| {
+        b.* = .{ .offset = lay.offsets[c.tensor], .point = c.point, .gamma = g };
         batch_claim = batch_claim.add(g.mul(c.value));
     }
-    const F = try toQM31Vec(a, pool, wtab);
-    const bres = try accel.proveActive(cfg.accel, 2, &T_PROD2, a, pool, &tr, batch_claim, .{ F, E }, lay.used);
-    a.free(F);
-    a.free(E);
+    const bres = try accel.batchProve(cfg.accel, a, pool, &tr, wtab, lay.used, bclaims, batch_claim);
     defer a.free(bres.point);
     const wval = bres.finals[0];
     a.free(bres.finals);

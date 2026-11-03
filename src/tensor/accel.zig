@@ -25,9 +25,12 @@ pub const Accel = struct {
     /// Folds the previous round with `r_prev` (if any), then returns the round
     /// sums {s(0), s(2), s(3)} of the current round.
     sc_round: *const fn (ctx: *anyopaque, s: *anyopaque, r_prev: ?QM31) anyerror![3]QM31,
-    /// Applies the last fold and leaves factors[j][0 .. len/2] (the folded
-    /// prefix) in host memory; releases the session.
-    sc_finish: *const fn (ctx: *anyopaque, s: *anyopaque, r_last: QM31) anyerror!void,
+    /// Applies the last fold, copies the folded prefix of every factor into
+    /// out[j][0 .. len] (len = current length) and releases the session.
+    sc_finish: *const fn (ctx: *anyopaque, s: *anyopaque, r_last: QM31, out: []const []QM31) anyerror!void,
+    /// Device-resident batch sumcheck factors: F = wtab (as QM31) and
+    /// E = sum_c gamma_c eq(point_c, . - offset_c). Null = not handled.
+    sc_begin_batch: ?*const fn (ctx: *anyopaque, wtab: []const i32, claims: []const BatchClaim, active: usize) anyerror!?*anyopaque = null,
     sc_abort: *const fn (ctx: *anyopaque, s: *anyopaque) void,
     /// Device rounds run while the round's work (min(half, active)) is at
     /// least this; the remaining small rounds run on the CPU.
@@ -71,6 +74,25 @@ pub fn proveActive(
         return sc.proveActive(NF, terms, a, pool, tr, claim, factors_in, active_in);
     const s = (try A.sc_begin(A.ctx, &factors_in, terms, @min(active_in, len0))) orelse
         return sc.proveActive(NF, terms, a, pool, tr, claim, factors_in, active_in);
+    return deviceRounds(A, s, NF, terms, a, pool, tr, claim, len0, @min(active_in, len0), factors_in);
+}
+
+/// Device rounds while the work is large, then the CPU prover on the folded
+/// prefix (written to `tail_out[j][0 .. len]`). Consumes the session.
+fn deviceRounds(
+    A: *const Accel,
+    s: *anyopaque,
+    comptime NF: usize,
+    comptime terms: []const sc.Term,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    len0: usize,
+    active0: usize,
+    tail_out: [NF][]QM31,
+) !sc.ProveResult {
+    const deg = comptime termDegree(terms);
     var done = false;
     errdefer if (!done) A.sc_abort(A.ctx, s);
 
@@ -80,7 +102,7 @@ pub fn proveActive(
     var k: usize = 0;
     var cur_claim = claim;
     var len = len0;
-    var active = @min(active_in, len0);
+    var active = active0;
     var r_prev: ?QM31 = null;
     while (k < n) {
         const half = len / 2;
@@ -102,12 +124,17 @@ pub fn proveActive(
         active = work;
         k += 1;
     }
-    std.debug.assert(r_prev != null);
+    if (r_prev == null) {
+        // no device round ran (work below threshold): copy everything back
+        done = true;
+        A.sc_abort(A.ctx, s);
+        return error.AccelNoRounds;
+    }
     done = true;
-    try A.sc_finish(A.ctx, s, r_prev.?);
-
     var tail_f: [NF][]QM31 = undefined;
-    inline for (0..NF) |j| tail_f[j] = factors_in[j][0..len];
+    inline for (0..NF) |j| tail_f[j] = tail_out[j][0..len];
+    try A.sc_finish(A.ctx, s, r_prev.?, &tail_f);
+
     const tail = try sc.proveActive(NF, terms, a, pool, tr, cur_claim, tail_f, active);
     defer {
         a.free(tail.proof.rounds);
@@ -121,4 +148,56 @@ pub fn proveActive(
     @memcpy(point[0..k], head_point[0..k]);
     @memcpy(point[k..], tail.point);
     return .{ .proof = .{ .rounds = rounds, .deg = deg }, .point = point, .finals = tail.finals };
+}
+
+pub const BatchClaim = struct {
+    /// offset of the claimed tensor in the witness table
+    offset: usize,
+    point: []const QM31,
+    gamma: QM31,
+};
+
+const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
+
+/// Claim-batching sumcheck: proves sum_x F(x) E(x) = batch_claim with
+/// F = wtab (as QM31) and E = sum_c gamma_c eq(point_c, x - offset_c);
+/// entries >= `active` are zero. Identical output on every path.
+pub fn batchProve(
+    acc: ?*const Accel,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    wtab: []const i32,
+    active: usize,
+    claims: []const BatchClaim,
+    batch_claim: QM31,
+) !sc.ProveResult {
+    const total = wtab.len;
+    if (acc) |A| if (A.sc_begin_batch) |begin| if (total >= 2 and @min(total / 2, active) >= A.sc_min_work) {
+        if (try begin(A.ctx, wtab, claims, @min(active, total))) |s| {
+            const tail_len = @max(1, A.sc_min_work * 2);
+            const tf = try a.alloc(QM31, 2 * @min(total, tail_len));
+            defer a.free(tf);
+            const half = tf.len / 2;
+            return deviceRounds(A, s, 2, &T_PROD2, a, pool, tr, batch_claim, total, @min(active, total), .{ tf[0..half], tf[half..] });
+        }
+    };
+    const E = try a.alloc(QM31, total);
+    defer a.free(E);
+    @memset(E, QM31.zero());
+    for (claims) |c| {
+        const eq = try f.eqTablePar(a, pool, c.point, c.gamma);
+        defer a.free(eq);
+        for (E[c.offset..][0..eq.len], eq) |*e, v| e.* = e.add(v);
+    }
+    const F = try a.alloc(QM31, total);
+    defer a.free(F);
+    const Ctx = struct { v: []const i32, out: []QM31 };
+    const ctx = Ctx{ .v = wtab, .out = F };
+    pool.parallelFor(total, 8192, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            for (s..e) |i| c.out[i] = QM31.fromBase(f.fromI32(c.v[i]));
+        }
+    }.run);
+    return proveActive(acc, 2, &T_PROD2, a, pool, tr, batch_claim, .{ F, E }, active);
 }

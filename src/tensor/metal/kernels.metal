@@ -286,3 +286,30 @@ kernel void tm_sc_fold(
         tm_store(fs[j], x, qm_add(lo, qm_mul(p.r, qm_sub(hi, lo))));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Batch-sumcheck factor construction (device resident).
+
+kernel void tm_zero4(device uint4 *dst [[buffer(0)]], constant uint &n [[buffer(1)]], uint i [[thread_position_in_grid]]) {
+    if (i < n) dst[i] = uint4(0u);
+}
+
+kernel void tm_i32_to_qm31(device const int *src [[buffer(0)]], device uint4 *dst [[buffer(1)]], constant uint &n [[buffer(2)]], uint i [[thread_position_in_grid]]) {
+    if (i < n) dst[i] = uint4(tm_from_i32(src[i]), 0u, 0u, 0u);
+}
+
+struct TmEqParams { uint offset; uint lo_bits; uint count; };
+
+// E[offset + x] += P[x >> lo_bits] * S[x & (2^lo_bits - 1)]  (= gamma eq(point, x))
+kernel void tm_eq_accum(
+    device uint *e [[buffer(0)]],
+    device const uint *pre [[buffer(1)]],
+    device const uint *suf [[buffer(2)]],
+    constant TmEqParams &p [[buffer(3)]],
+    uint x [[thread_position_in_grid]]
+) {
+    if (x >= p.count) return;
+    Qm31Value v = qm_mul(tm_load(pre, x >> p.lo_bits), tm_load(suf, x & ((1u << p.lo_bits) - 1u)));
+    ulong i = ulong(p.offset) + x;
+    tm_store(e, i, qm_add(tm_load(e, i), v));
+}
