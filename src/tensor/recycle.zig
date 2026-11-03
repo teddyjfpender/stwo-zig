@@ -27,6 +27,13 @@ pub const Recycler = struct {
     cached_bytes: usize = 0,
     hits: usize = 0,
     misses: usize = 0,
+    /// On an exact-size miss, hand out the smallest cached block of at most
+    /// `fit_ratio` times the rounded size (0 or 1: exact sizes only). This
+    /// lets one proof reuse blocks freed by earlier stages of different sizes.
+    fit_ratio: usize = 2,
+    fit_hits: usize = 0,
+    /// blocks handed out larger than requested: address -> actual block size
+    lent: std.AutoHashMapUnmanaged(usize, usize) = .empty,
 
     const PAGE: usize = 16 * 1024;
     const BIG_ALIGN = Alignment.fromByteUnits(PAGE);
@@ -61,6 +68,22 @@ pub const Recycler = struct {
                     return p;
                 }
             }
+            if (self.fit_ratio > 1) fit: {
+                var best: usize = 0;
+                var it = self.free_lists.iterator();
+                while (it.next()) |e| {
+                    const bs = e.key_ptr.*;
+                    if (bs <= size or bs / self.fit_ratio > size or e.value_ptr.items.len == 0) continue;
+                    if (best == 0 or bs < best) best = bs;
+                }
+                if (best == 0) break :fit;
+                self.lent.ensureUnusedCapacity(self.backing, 1) catch break :fit;
+                const p = self.free_lists.getPtr(best).?.pop().?;
+                self.lent.putAssumeCapacity(@intFromPtr(p), best);
+                self.cached_bytes -= best;
+                self.fit_hits += 1;
+                return p;
+            }
             self.misses += 1;
         }
         return self.backing.rawAlloc(size, BIG_ALIGN, ret_addr);
@@ -87,9 +110,9 @@ pub const Recycler = struct {
     fn free(ctx: *anyopaque, memory: []u8, alignment: Alignment, ret_addr: usize) void {
         const self: *Recycler = @ptrCast(@alignCast(ctx));
         if (!self.isBig(memory.len, alignment)) return self.backing.rawFree(memory, alignment, ret_addr);
-        const size = rounded(memory.len);
         self.mutex.lock();
         defer self.mutex.unlock();
+        const size = if (self.lent.fetchRemove(@intFromPtr(memory.ptr))) |kv| kv.value else rounded(memory.len);
         const gop = self.free_lists.getOrPut(self.backing, size) catch {
             self.backing.rawFree(memory.ptr[0..size], BIG_ALIGN, ret_addr);
             return;
@@ -115,8 +138,10 @@ pub const Recycler = struct {
         self.cached_bytes = 0;
     }
 
+    /// Trims the cache. Blocks still live (never freed) are the caller's leak.
     pub fn deinit(self: *Recycler) void {
         self.trim();
+        self.lent.deinit(self.backing);
     }
 };
 
@@ -124,6 +149,7 @@ test "recycler reuses large blocks and passes small ones through" {
     var r = Recycler.init(std.testing.allocator);
     defer r.deinit();
     r.threshold = 1 << 16;
+    r.fit_ratio = 1;
     const a = r.allocator();
     const x = try a.alloc(u32, 100_000);
     const xp = x.ptr;
@@ -145,4 +171,31 @@ test "recycler reuses large blocks and passes small ones through" {
     v = try a.realloc(v, 1 << 18);
     try std.testing.expectEqual(@as(u8, 42), v[0]);
     a.free(v);
+}
+
+test "recycler best fit: a smaller request takes a cached block of at most fit_ratio x" {
+    var r = Recycler.init(std.testing.allocator);
+    defer r.deinit();
+    r.threshold = 1 << 16;
+    const a = r.allocator();
+    const big = try a.alloc(u8, 1 << 20);
+    const bp = big.ptr;
+    const huge = try a.alloc(u8, 1 << 22);
+    a.free(big);
+    a.free(huge);
+    // 1.5 MiB request: the 4 MiB block is too large, the 1 MiB too small -> miss
+    const m = try a.alloc(u8, (1 << 20) + (1 << 19));
+    try std.testing.expectEqual(@as(usize, 0), r.fit_hits);
+    // 600 KiB request: best fit is the 1 MiB block
+    const s = try a.alloc(u8, 600 * 1024);
+    try std.testing.expectEqual(bp, s.ptr);
+    try std.testing.expectEqual(@as(usize, 1), r.fit_hits);
+    @memset(s, 1);
+    a.free(s); // returns to the 1 MiB list, not a 608 KiB one
+    try std.testing.expectEqual(@as(usize, 0), r.lent.count());
+    const again = try a.alloc(u8, 1 << 20);
+    try std.testing.expectEqual(bp, again.ptr);
+    a.free(again);
+    a.free(m);
+    try std.testing.expectEqual(@as(usize, (1 << 20) + (1 << 22) + (3 << 19)), r.cached_bytes);
 }
