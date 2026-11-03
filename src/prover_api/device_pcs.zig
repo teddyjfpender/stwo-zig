@@ -27,3 +27,36 @@ pub const Stage = struct {
     /// an error is terminal and must never silently execute the CPU path.
     prove: *const fn (*anyopaque, std.mem.Allocator, Request, *Channel) anyerror!P.ExtendedCommitmentSchemeProof(H),
 };
+
+/// Native authority chooses the exact column roster and geometry. The device
+/// may consume either base evaluations or coefficients; these are distinct
+/// encodings, never interchangeable host polynomial placeholders.
+pub const TraceEncoding = enum { evaluations, coefficients };
+pub const TraceColumn = struct {
+    log_size: u32,
+    encoding: TraceEncoding,
+    host: []const M = &.{},
+    device: ?DeviceCoefficients = null,
+    pub fn validate(self: TraceColumn) !void {
+        if (self.log_size < 3 or self.log_size > 28) return error.InvalidDeviceTraceColumn;
+        const count = @as(u64, 1) << @intCast(self.log_size);
+        if (self.device) |value| {
+            if (self.host.len != 0 or value.count != count or value.context_token == 0 or value.generation == 0) return error.InvalidDeviceTraceColumn;
+        } else if (self.host.len != count) return error.InvalidDeviceTraceColumn;
+    }
+};
+pub const TraceCommitRequest = struct {
+    /// MAIN uses main=zero before its commitment exists. The successful device
+    /// owner promotes its leases to the same scope with main=result.root.
+    /// INTER already carries the final authenticated MAIN scope.
+    scope: Scope,
+    tree_index: u32,
+    config: core.pcs.PcsConfig,
+    columns: []const TraceColumn,
+};
+pub const TraceCommitStage = struct {
+    context: *anyopaque,
+    /// Synchronous: all writes/commitment status join before returning. Returned
+    /// device coefficients stay owned until PCS completion or proof failure.
+    commit: *const fn (*anyopaque, std.mem.Allocator, TraceCommitRequest) anyerror!Tree,
+};
