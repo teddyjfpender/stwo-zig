@@ -466,6 +466,59 @@ layers).
 the leaves uniform, so only the bottom layer would need masking. But the pads must be
 uniform QM31 fractions, which is 8 committed M31 cells per data leaf.
 
+### 4.3b Fused SwiGLU (`glu`) in hiding mode
+
+`glu{g, u, h, table, shift}` states `h = clamp8(requant_shift(table[g] · u))`. It is one
+LogUp key per element into the public 2^16-entry table
+`T(idx) = (vg, vu, glu(vg, vu))`, with `idx = (vg+128)·256 + (vu+128)`, exactly as in the
+non-hiding protocol (`proto.gluValue`). In hiding mode:
+
+- **Key.** `key(x) = g(x) + β·u(x) + β²·h(x)`. The leaf denominator is `α − key(x)` (minus
+  the tag `τ·rel` in a tagged tree). `keyFactorD` gives the affine form
+  `α − g − βu − β²h`, so the masked GKR (§4.3) needs no new mechanism: the leaf-layer hats
+  become linear claims on the committed, hatted tensors `g, u, h`.
+- **Table.** The relation `glu{table, shift}` has `log_size 16` and its own committed
+  multiplicity tensor. The verifier evaluates the table-key MLE
+  `vg~ + β·vu~ + β²·glu~`:
+  - `vg~` and `vu~` are `identityMle − 128` on the two coordinate bytes;
+  - `glu~` is the MLE of the 2^16 public values, `O(2^16)` once per proof.
+- **Implied ranges.** The y-range key of a requant output is dropped when that output is
+  `g` or `u` of a glu, as for lookup inputs.
+- **Statement checks.** The table index must exist, `shift ≥ 1`, and `g, u, h` must have
+  equal sizes; otherwise `error.StatementShape`. The prover refuses values outside the
+  table domain (`ValueOutOfRange`) or a wrong `h` (`LookupMismatch`).
+
+**Soundness.** Table 1 holds `g, u, h` and the multiplicities, and is committed before
+`α, β, τ`.
+1. LogUp (§4.3, root numerator 0, `d_0 ≠ 0`) gives the multiset inclusion
+   `{key(x)} ⊆ {T(idx)}` with multiplicities, except with the usual
+   `(#keys + 2^16)/|F|`.
+2. For fixed committed values, `key` is a polynomial of degree 2 in `β`. Two distinct
+   triples collide with probability ≤ 2/|F|. A union bound over the at most
+   `#distinct witness triples × 2^16` pairs (≤ 2^36 at the 1024-token shape) gives
+   ≤ 2^-87, so triple inclusion holds.
+3. So every `(g, u, h)` is a table triple: `g, u ∈ [-128, 128)` and `h = glu(g, u)`.
+   Hence `h ∈ [-128, 127]`, which keeps the down matmul's accumulator bound.
+
+**Zero knowledge.** Unchanged from §4.3:
+- the triple only changes the public affine form of the leaf denominators;
+- `g, u, h` are hatted table-1 tensors with their own pads;
+- the multiplicity tensor is an ordinary committed tensor, seen only through masked
+  leaf-layer hats and the batch.
+
+The fused graph is the bench default (`ZK_FUSED=0` gives the silu lookup + hadamard
+graph).
+
+**Tests.**
+- Fused MLP under the flat and the recursive PCS:
+  - the proof verifies with public IO;
+  - only the 3 matmul checks remain;
+  - a tampered GKR root or leaf-layer hat is rejected;
+  - a changed glu shift or table value in the statement is rejected;
+  - the prover refuses a wrong `h` and a gate value outside int8;
+  - `shift = 0` gives `StatementShape`.
+- The MLP statistical sanity test runs on both graphs.
+
 ### 4.4 Batch and openings
 
 - **Batch.** All linear claims on the witness table(s) are combined with `γ`s drawn after

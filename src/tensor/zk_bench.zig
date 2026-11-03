@@ -149,7 +149,9 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf , .fused = false };
+    // fused SwiGLU (one glu triple lookup) by default; ZK_FUSED=0 for silu lookup + hadamard
+    const fused = (try envU("ZK_FUSED", 1)) != 0;
+    const cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf, .fused = fused };
     // Weight table (committed once): higher blowup, slots = C_w, queries for 128 conjectured bits.
     // hiding weight table may be wider than the smallest output dim (one opening group per such matmul)
     const wlc: u32 = if (std.posix.getenv("ZK_WEIGHT_LC")) |v| try std.fmt.parseInt(u32, v, 10) else @min(ld + 2, 14);
@@ -229,7 +231,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const pw = provenBits(queries, wml, @intCast(wtlc + lb), pow);
     const pk = provenBits(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io });
+    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},\"fused\":{},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io, fused });
     try pcsJson(out, pc.two_level);
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });

@@ -84,9 +84,9 @@ fn shiftHalf(s: u5) i64 {
 // ---------------------------------------------------------------------------
 // Plan: tensor ids, sumchecks and layouts (shared by prover and verifier).
 
-const RelKind = union(enum) { range: u5, act: u32 };
+const RelKind = union(enum) { range: u5, act: u32, glu: struct { table: u32, shift: u5 } };
 const Rel = struct { kind: RelKind, log_size: u32, mult: u32 };
-const KeyKind = enum { remainder, y_range, plain_range, lookup_pair };
+const KeyKind = enum { remainder, y_range, plain_range, lookup_pair, glu_triple };
 const Key = struct { kind: KeyKind, op: u32, log_size: u32, rel: u32, h: u32 };
 const CheckKind = enum { product, hadamard, matmul, key };
 const Check = struct { kind: CheckKind, idx: u32, n: u32, deg: u32, u: u32 };
@@ -199,6 +199,7 @@ fn findRel(rels: *std.ArrayList(Rel), a: std.mem.Allocator, inf1: *std.ArrayList
     const log_size: u32 = switch (kind) {
         .range => |s| @max(@as(u32, s), 1),
         .act => 8,
+        .glu => 16,
     };
     const id: u32 = @intCast(inf1.items.len);
     try inf1.append(a, TensorInfo.vec(log_size));
@@ -247,7 +248,14 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
     for (st.ops, 0..) |op, i| {
         const oi: u32 = @intCast(i);
         switch (op) {
-            .glu => return error.ZkUnsupportedOp,
+            .glu => |g| {
+                // fused gated activation: one LogUp key (g, u, h) into the public
+                // 2^16-entry table {(vg, vu, glu(vg, vu))}; it also range-checks g and u.
+                if (g.table >= st.tables.len or g.shift == 0) return error.StatementShape;
+                const lsz = st.witness[g.h].logSize();
+                if (st.witness[g.g].logSize() != lsz or st.witness[g.u].logSize() != lsz) return error.StatementShape;
+                try keys.append(a, .{ .kind = .glu_triple, .op = oi, .log_size = lsz, .rel = try findRel(&rels, a, &inf1, .{ .glu = .{ .table = g.table, .shift = g.shift } }), .h = 0 });
+            },
             .matmul, .hadamard => {
                 const s = opShift(op);
                 if (s == 0) return error.StatementShape;
@@ -258,6 +266,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
                 var implied = false;
                 for (st.ops) |o2| switch (o2) {
                     .lookup => |l| implied = implied or l.in == opY(op),
+                    .glu => |g2| implied = implied or g2.g == opY(op) or g2.u == opY(op),
                     else => {},
                 };
                 if (!implied) try keys.append(a, .{ .kind = .y_range, .op = oi, .log_size = lsz, .rel = try findRel(&rels, a, &inf1, .{ .range = 8 }), .h = 0 });
@@ -553,6 +562,12 @@ fn keyFactorD(a: std.mem.Allocator, plan: Plan, st: Statement, k: Key, alpha: QM
             parts = try a.alloc(Part, 2);
             parts[0] = .{ .table = 0, .id = op.lookup.in, .coeff = qi(-1) };
             parts[1] = .{ .table = 0, .id = op.lookup.out, .coeff = beta.neg() };
+        },
+        .glu_triple => {
+            parts = try a.alloc(Part, 3);
+            parts[0] = .{ .table = 0, .id = op.glu.g, .coeff = qi(-1) };
+            parts[1] = .{ .table = 0, .id = op.glu.u, .coeff = beta.neg() };
+            parts[2] = .{ .table = 0, .id = op.glu.h, .coeff = beta.mul(beta).neg() };
         },
     }
     return .{ .konst = konst, .parts = parts, .m = n };
@@ -1035,6 +1050,11 @@ fn relKey(st: Statement, kind: RelKind, t: usize, beta: QM31) QM31 {
     return switch (kind) {
         .range => qi(@intCast(t)),
         .act => |ti| qi(@as(i64, @intCast(t)) - 128).add(beta.mul(qi(st.tables[ti].values[t]))),
+        .glu => |g| blk: {
+            const vg = @as(i64, @intCast(t >> 8)) - 128;
+            const vu = @as(i64, @intCast(t & 255)) - 128;
+            break :blk qi(vg).add(beta.mul(qi(vu))).add(beta.mul(beta).mul(qi(proto.gluValue(st, g.table, g.shift, vg, vu))));
+        },
     };
 }
 
@@ -1412,6 +1432,14 @@ pub fn provePublic(
                     mult[@intCast(v + 128)] += 1;
                 }
             },
+            .glu_triple => {
+                const g = op.glu;
+                for (witness[g.g], witness[g.u], witness[g.h]) |vg, vu, vh| {
+                    if (vg < -128 or vg > 127 or vu < -128 or vu > 127) return error.ValueOutOfRange;
+                    if (proto.gluValue(st, g.table, g.shift, vg, vu) != vh) return error.LookupMismatch;
+                    mult[@intCast((vg + 128) * 256 + (vu + 128))] += 1;
+                }
+            },
         }
     }
     for (st.ops) |op| if (op == .product) {
@@ -1726,8 +1754,8 @@ fn keyDenomsShift(a: std.mem.Allocator, pool: *f.Pool, plan: Plan, st: Statement
     const n = @as(usize, 1) << @intCast(k.log_size);
     const out = try a.alloc(QM31, n);
     const op = st.ops[k.op];
-    const Ctx = struct { out: []QM31, k: Key, x: []const i32, y: []const i32, alpha: QM31, beta: QM31 };
-    var ctx = Ctx{ .out = out, .k = k, .x = &.{}, .y = &.{}, .alpha = alpha, .beta = beta };
+    const Ctx = struct { out: []QM31, k: Key, x: []const i32, y: []const i32, z: []const i32 = &.{}, alpha: QM31, beta: QM31, beta2: QM31 };
+    var ctx = Ctx{ .out = out, .k = k, .x = &.{}, .y = &.{}, .alpha = alpha, .beta = beta, .beta2 = beta.mul(beta) };
     switch (k.kind) {
         .remainder => ctx.x = vecs1[plan.rem[k.op]],
         .y_range => ctx.x = witness[opY(op)],
@@ -1735,6 +1763,11 @@ fn keyDenomsShift(a: std.mem.Allocator, pool: *f.Pool, plan: Plan, st: Statement
         .lookup_pair => {
             ctx.x = witness[op.lookup.in];
             ctx.y = witness[op.lookup.out];
+        },
+        .glu_triple => {
+            ctx.x = witness[op.glu.g];
+            ctx.y = witness[op.glu.u];
+            ctx.z = witness[op.glu.h];
         },
     }
     pool.parallelFor(n, 4096, &ctx, struct {
@@ -1744,6 +1777,7 @@ fn keyDenomsShift(a: std.mem.Allocator, pool: *f.Pool, plan: Plan, st: Statement
                     .remainder => qi(c.x[i]),
                     .y_range, .plain_range => qi(@as(i64, c.x[i]) + 128),
                     .lookup_pair => qi(c.x[i]).add(c.beta.mul(qi(c.y[i]))),
+                    .glu_triple => qi(c.x[i]).add(c.beta.mul(qi(c.y[i]))).add(c.beta2.mul(qi(c.z[i]))),
                 };
                 c.out[i] = c.alpha.sub(key);
             }
@@ -2139,6 +2173,15 @@ fn relKeyMle(a: std.mem.Allocator, st: Statement, rel: Rel, local: []const QM31,
             var outv: [256]i32 = undefined;
             for (0..256) |i| outv[i] = st.tables[ti].values[i];
             return f.identityMle(local).sub(qi(128)).add(beta.mul(try f.mleEvalI32(a, &outv, local)));
+        },
+        .glu => |g| {
+            // key(idx) = vg + beta vu + beta^2 glu(vg, vu), idx = (vg + 128) * 256 + (vu + 128)
+            const fv = try a.alloc(i32, 1 << 16);
+            defer a.free(fv);
+            for (fv, 0..) |*o, idx| o.* = @intCast(proto.gluValue(st, g.table, g.shift, @as(i64, @intCast(idx >> 8)) - 128, @as(i64, @intCast(idx & 255)) - 128));
+            const vg = f.identityMle(local[0..8]).sub(qi(128));
+            const vu = f.identityMle(local[8..16]).sub(qi(128));
+            return vg.add(beta.mul(vu)).add(beta.mul(beta).mul(try f.mleEvalI32(a, fv, local)));
         },
     }
 }
@@ -2756,6 +2799,12 @@ test "zk statistical sanity: opened values of zero vs random witness look unifor
 // random input. GKR roots, all layer hats (incl. Q values) and op-check hats
 // should look uniform in both cases.
 test "zk statistical sanity: MLP GKR / sumcheck values for zero vs random input" {
+    // both graphs: unfused (silu lookup + hadamard) and fused (one glu triple lookup)
+    try mlpStatSanity(false);
+    try mlpStatSanity(true);
+}
+
+fn mlpStatSanity(fused: bool) !void {
     const a = std.testing.allocator;
     var pool: f.Pool = undefined;
     try pool.init(a, 2);
@@ -2763,7 +2812,7 @@ test "zk statistical sanity: MLP GKR / sumcheck values for zero vs random input"
     var cfg = testCfg();
     cfg.weight_mask_slots = 64;
     cfg.weight_pcs = .{ .log_blowup = 3, .n_queries = 4, .pow_bits = 1 };
-    const mc = model.Mlp{ .log_t = 3, .log_d = 6, .log_f = 7 , .fused = false };
+    const mc = model.Mlp{ .log_t = 3, .log_d = 6, .log_f = 7, .fused = fused };
     const winfos = model.mlpWeightInfos(mc);
     var wdata: [3][]i8 = undefined;
     for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 300 + i, -8, 7);
@@ -2771,7 +2820,7 @@ test "zk statistical sanity: MLP GKR / sumcheck values for zero vs random input"
     const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
     var stats: [2][2]f64 = undefined;
     for (0..2) |case| {
-        const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 77);
+        const x = try model.randomInput(a, @as(usize, 1) << @intCast(mc.log_t + mc.log_d), 77);
         defer a.free(x);
         if (case == 0) @memset(x, 0);
         var n_vals: f64 = 0;
@@ -3126,4 +3175,111 @@ test "zk recursive PCS statistical sanity: zero vs random witness, every level" 
     }
     try std.testing.expect(@abs(stats[0][0] - stats[1][0]) < 0.03);
     try std.testing.expect(@abs(stats[0][2] - stats[1][2]) < 0.03);
+}
+
+// ---------------------------------------------------------------------------
+// Fused SwiGLU (glu triple lookup) in hiding mode.
+
+test "zk fused glu MLP (flat and recursive PCS): verifies, binds the glu statement, refuses wrong outputs" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const mc = model.Mlp{ .log_t = 3, .log_d = 6, .log_f = 7, .fused = true };
+    const winfos = model.mlpWeightInfos(mc);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    for ([_]proto.Config{ testCfg(), testCfgRec(1) }) |cfg| {
+        var zw = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+        defer zw.deinit(a);
+        const key = zw.key();
+        const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 9);
+        defer a.free(x);
+        const pv = zw.plainView();
+        var built = try model.buildMlp(a, &pool, &pv, mc, x);
+        defer built.deinit(a);
+        const st = built.statement();
+        var n_glu: usize = 0;
+        for (st.ops) |op| n_glu += @intFromBool(op == .glu);
+        try std.testing.expectEqual(@as(usize, 1), n_glu);
+        const wv = try wview(a, built.witness);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+        var proof = try provePublic(a, &pool, cfg, st, &zw, wv, &pubs, &tm);
+        defer proof.deinit(a);
+        try verifyPublic(a, cfg, st, key, &pubs, &proof);
+        // the fused graph needs no y-range keys for gate/up (implied by the glu table)
+        // and no hadamard remainder: only the 3 matmul checks remain
+        try std.testing.expectEqual(@as(usize, 3), proof.checks.len);
+        // a GKR leaf-layer hat and root bind the triple
+        {
+            const L = proof.gkr_layers.len;
+            const targets = [_]*QM31{ &proof.gkr_roots[0], &proof.gkr_layers[L - 1].hats[1], &proof.gkr_layers[L - 1].hats[3] };
+            for (targets) |ptr| {
+                ptr.* = ptr.*.add(QM31.one());
+                try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+                ptr.* = ptr.*.sub(QM31.one());
+            }
+        }
+        // the glu statement (shift, table values) is bound
+        {
+            const ops2 = try a.dupe(proto.Op, st.ops);
+            defer a.free(ops2);
+            for (ops2) |*op| if (op.* == .glu) {
+                op.glu.shift += 1;
+            };
+            var st2 = st;
+            st2.ops = ops2;
+            try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st2, key, &pubs, &proof)));
+            var tv = st.tables[0].values;
+            tv[200] +%= 1;
+            const tabs2 = [_]proto.Table{.{ .values = tv }};
+            var st3 = st;
+            st3.tables = &tabs2;
+            try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st3, key, &pubs, &proof)));
+        }
+        try verifyPublic(a, cfg, st, key, &pubs, &proof);
+        // a wrong glu output, and gate values outside int8, are refused by the prover
+        {
+            var hid: u32 = 0;
+            var gid: u32 = 0;
+            for (st.ops) |op| if (op == .glu) {
+                hid = op.glu.h;
+                gid = op.glu.g;
+            };
+            // (the down matmul's remainder check or the glu table check refuses it)
+            built.witness[hid][5] +%= 1;
+            try std.testing.expect(std.meta.isError(prove(a, &pool, cfg, st, &zw, wv, &tm)));
+            built.witness[hid][5] -%= 1;
+            // gate value pushed outside the glu table domain
+            built.witness[gid][3] = 300;
+            try std.testing.expect(std.meta.isError(prove(a, &pool, cfg, st, &zw, wv, &tm)));
+        }
+    }
+    // a malformed glu statement (shift 0) is rejected by the plan
+    {
+        const cfg = testCfg();
+        var zw = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+        defer zw.deinit(a);
+        const x = try model.randomInput(a, @as(usize, 1) << (mc.log_t + mc.log_d), 9);
+        defer a.free(x);
+        const pv = zw.plainView();
+        var built = try model.buildMlp(a, &pool, &pv, mc, x);
+        defer built.deinit(a);
+        const st = built.statement();
+        const ops2 = try a.dupe(proto.Op, st.ops);
+        defer a.free(ops2);
+        for (ops2) |*op| if (op.* == .glu) {
+            op.glu.shift = 0;
+        };
+        var st2 = st;
+        st2.ops = ops2;
+        const wv = try wview(a, built.witness);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        try std.testing.expectError(error.StatementShape, prove(a, &pool, cfg, st2, &zw, wv, &tm));
+    }
 }
