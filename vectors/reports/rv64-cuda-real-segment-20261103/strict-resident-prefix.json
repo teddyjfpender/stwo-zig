@@ -13,7 +13,7 @@
   "completed_block": false,
   "cpu_proof_sha256": "9752fd800a763ea0cb528cebea5ec6282b159b8b0ad4697e1925de8e37e6c048",
   "cpu_proof_exact_native_parity": true,
-  "all_artifacts_parity": "not yet independently compared for this prefix",
+  "all_artifacts_parity": true,
   "capture_ns": 5593473103,
   "setup_ns": 27215587930,
   "prove_ns": 6841114557,
@@ -46,5 +46,17 @@
     "Complete-block timings",
     "Additional curve families and retention coverage for15-block basket",
     "2/4GPU stock availability"
-  ]
+  ],
+  "artifact_hashes": {
+    "cpu-0.bin": "9752fd800a763ea0cb528cebea5ec6282b159b8b0ad4697e1925de8e37e6c048",
+    "truth-0.bin": "ca52573ce7068fe5ffbc98c8970859bb9f853efddec6877955eb4806520df1b6",
+    "truth-1.bin": "5186f1b19f1645b6572830d77843d67923673422ee7a4e96424351b6ac0d1611",
+    "truth-2.bin": "f3526011ad70aa59f65d0490e7f39fb42b11bee19b31727f1ce50d6f606b93ed",
+    "truth-3.bin": "0120221534f5e869c266281c27b872bdad76832c771d2296c76083f03b6da221",
+    "truth-4.bin": "b9b2c29a04ebf0bcefa576b7277f36fbaf356666cf1980f4737ee839108e26c4",
+    "truth-5.bin": "afba3bb04e0b5492e1f296a19929c9fc23efc6d6903d474ff2f795deb85a2d85",
+    "cells.bin": "e1be140a9a6a82fcf27305343e2d7ddf3cb88e42f5d6fdc430aa430af16e1b28",
+    "stage-one.bin": "6a8f579401ad970b6725727eff358688dba74988f873b3b1a2328dfb482719fb",
+    "bundle.json": "5d5883550e6cdd9ea759f27523757988a09c039617e2406ef9bf9ac05e068eb8"
+  }
 }
