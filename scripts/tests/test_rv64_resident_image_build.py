@@ -1,0 +1,58 @@
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import rv64_cuda_resident_image_build as B
+
+
+class ImagePlan(unittest.TestCase):
+    def test_all_core_roles_required_and_group_geometry_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for i in range(49):
+                text = f'extern "C" __global__ void rv64_joined_domain_{i}(void){{}}'
+                if i == 41:
+                    text += f'void rv64_joined_domain_{i}_part_0(void){{}}'
+                (root / f"case-{i}-domain.cu").write_text(text)
+            sources, header = B.core_catalog(root)
+            self.assertEqual(len(sources), 49)
+            self.assertEqual(header.count("(const void*)"), 49)
+            groups = header.split("real_root_group_sizes[]={")[1].split("}")[0].split(",")
+            self.assertEqual(groups[41], "32")
+            self.assertEqual(groups[0], "0")
+            sources[48].unlink()
+            with self.assertRaises(FileNotFoundError):
+                B.core_catalog(root)
+
+    def test_catalogue_exact_coverage_hashes_and_no_ambiguous_sources(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            raw, parts = root / "raw", root / "parts"
+            raw.mkdir()
+            parts.mkdir()
+            roles = []
+            for i in range(15):
+                source = parts / f"role-{i}.cu"
+                source.write_text(str(i))
+                roles.append({"input": f"/producer/case-{i}-domain.cu", "modules": [{"source": str(source), "sha256": B.N.sha(source)}]})
+            manifest = parts / "partition.json"
+            manifest.write_text(json.dumps({"roles": roles}))
+            self.assertEqual(len(B.truth_sources(raw, parts)), 15)
+            (parts / "role-14.cu").write_text("changed")
+            with self.assertRaisesRegex(ValueError, "partition changed"):
+                B.truth_sources(raw, parts)
+            (parts / "role-14.cu").write_text("14")
+            (raw / "role-14.cu").write_text("14")
+            with self.assertRaisesRegex(ValueError, "ambiguous"):
+                B.truth_sources(raw, parts)
+            (raw / "role-14.cu").unlink()
+            manifest.write_text(json.dumps({"roles": roles[:14]}))
+            with self.assertRaisesRegex(ValueError, "fifteen"):
+                B.truth_sources(raw, parts)
+
+
+if __name__ == "__main__":
+    unittest.main()
