@@ -194,12 +194,20 @@ const Job = struct {
             first = end;
         }
         const tree_words = ((@as(usize, 2) << @intCast(eval_log)) - 1) * 8;
-        var tree = try ctx.allocate(tree_words, 0);
+        // Two 96-byte native prefix-state banks at the largest nonfinal
+        // height. This scratch is admitted with the tree lease, so it shares
+        // the context pool and idle-PCS eviction rather than cudaMallocAsync's
+        // unrelated default pool.
+        var prefix_rows: usize = 0;
+        for (segments.items[0 .. segments.items.len - 1]) |segment| prefix_rows = @max(prefix_rows, segment.source_size);
+        const prefix_words = try std.math.mul(usize, prefix_rows, 48);
+        const tree_capacity = try std.math.add(usize, tree_words, prefix_words);
+        var tree = try ctx.allocate(tree_capacity, 0);
         defer {
             ctx.join() catch {};
             _ = b.api.release(b.service.session, &tree);
         }
-        try check(b.tree(raw, 1, @ptrCast(segments.items.ptr), @intCast(segments.items.len), eval_log, tree.words.?, tree_words));
+        try check(b.tree(raw, 1, @ptrCast(segments.items.ptr), @intCast(segments.items.len), eval_log, tree.words.?, tree_capacity));
         try ctx.join();
         var root_words: [8]u32 = undefined;
         try check(b.api.download(raw, &root_words, tree.words.? + tree_words - 8, 32));

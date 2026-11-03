@@ -50,11 +50,16 @@ static void exercise(const std::string &fixtures, const std::string &outputs,
   const uint64_t tree_words = ((uint64_t(2) << log) - 1) * 8,
                  value_words = uint64_t(columns) * queries,
                  path_words = uint64_t(queries) * log * 8;
-  auto tree = o.plane(tree_words + 8, 1), values = o.plane(value_words + 8, 1),
+  uint64_t prefix_rows = 0;
+  for (uint32_t i = 0; i + 1 < segments; ++i)
+    if (metadata[6 * i + 4] != metadata[6 * (i + 1) + 4])
+      prefix_rows = metadata[6 * i + 4];
+  const uint64_t tree_capacity = tree_words + 48 * prefix_rows;
+  auto tree = o.plane(tree_capacity + 8, 1), values = o.plane(value_words + 8, 1),
        paths = o.plane(path_words + 8, 1), raw = o.plane(queries, 1),
        state = o.plane(16, 1), boundary = o.plane(16, 1),
        status = o.plane(1, 1);
-  o.upload(tree, std::vector<uint32_t>(tree_words + 8, 0x1234567));
+  o.upload(tree, std::vector<uint32_t>(tree_capacity + 8, 0x1234567));
   o.upload(values, std::vector<uint32_t>(value_words + 8, 0x1234567));
   o.upload(paths, std::vector<uint32_t>(path_words + 8, 0x1234567));
   o.upload(status, {fault == 3 ? 0x40000000u : 0u});
@@ -69,7 +74,7 @@ static void exercise(const std::string &fixtures, const std::string &outputs,
   }
   CHECK(stwo_exec_context_sync(o.ctx));
   CHECK(stwo_rv64_trace_tree_on(o.ctx, 1, input.data(), segments, log,
-                                tree.words, tree_words));
+                                tree.words, tree_capacity));
   CHECK(stwo_rv64_channel_init_on(o.ctx, 1, state.words, checkpoint.words, 1));
   CHECK(stwo_rv64_channel_mix_on(o.ctx, 1, state.words, 0, 1, 2,
                                  tree.words + tree_words - 8, 8, 0,
@@ -104,7 +109,7 @@ static void exercise(const std::string &fixtures, const std::string &outputs,
                   actual_tree.begin() + tree_words - 8) ||
       actual_raw != expected_queries || actual_channel != expected_channel)
     throw std::runtime_error("native trace root/channel/query mismatch");
-  for (uint64_t i = tree_words; i < actual_tree.size(); ++i)
+  for (uint64_t i = tree_capacity; i < actual_tree.size(); ++i)
     if (actual_tree[i] != 0x1234567)
       throw std::runtime_error("trace tree guard overwritten");
   for (uint64_t i = value_words; i < actual_values.size(); ++i)
@@ -113,6 +118,13 @@ static void exercise(const std::string &fixtures, const std::string &outputs,
   for (uint64_t i = path_words; i < actual_paths.size(); ++i)
     if (actual_paths[i] != 0x1234567)
       throw std::runtime_error("trace path guard overwritten");
+  // The compatibility path must produce the exact same complete Merkle tree.
+  CHECK(stwo_rv64_trace_tree_on(o.ctx, 1, input.data(), segments, log,
+                               tree.words, tree_words));
+  const auto compatibility_tree = o.read(tree);
+  if (!std::equal(actual_tree.begin(), actual_tree.begin() + tree_words,
+                  compatibility_tree.begin()))
+    throw std::runtime_error("owned scratch changed native Merkle tree");
   if (!stwo_rv64_trace_tree_on(o.ctx, 1, input.data(), segments, log,
                                tree.words, tree_words - 1))
     throw std::runtime_error("short tree accepted");

@@ -1,0 +1,33 @@
+{
+  "schema": "rv64-trace-owned-prefix-scratch/v1",
+  "status": "native kernel parity qualified; real replay rerun pending",
+  "failure": {
+    "producer": "source-replay-v3/source0-replay1",
+    "error": "CudaTraceCommitFailed native_status=2",
+    "physical_peak_mib": 31986,
+    "restored_ordinals_before_failure": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "diagnosis": "Raw cudaMallocAsync prefix scratch used a different pool from context-owned trace/PCS leases; trace scratch was not admitted through NativeOwner idle-cache eviction."
+  },
+  "change": {
+    "tree_lease": "tree words plus two 96-byte prefix banks at largest nonfinal height",
+    "device_cap": "unchanged",
+    "host_wide_readback": false,
+    "success_path_extra_joins": 0,
+    "compatibility": "Existing exact-sized tree API calls retain their existing implementation; production supplies the admitted scratch tail."
+  },
+  "validation": {
+    "production_semantic": "pass",
+    "native_trace_fixture_cases": 6,
+    "native_trace_mutants": 3,
+    "whole_merkle_tree_owned_vs_legacy": "exact",
+    "roots_openings_queries_channel_and_tail_guards": "pass",
+    "gpu": "RTX 5090 sm120",
+    "full_replay_parity": "pending"
+  },
+  "benchmark_scope": "No performance claim; kernel-only qualification."
+}

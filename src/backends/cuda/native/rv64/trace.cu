@@ -103,9 +103,10 @@ __global__ void open_paths(StwoRv64TraceOpen j) {
 // Scratch is stream-owned and never aliases caller allocations.
 static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
                                 uint32_t leaves, b::Hash *hashes,
-                                cudaStream_t stream) {
+                                cudaStream_t stream, b::ProgressiveState *scratch = nullptr,
+                                uint32_t scratch_rows = 0) {
   b::ProgressiveState *seed = nullptr;
-  uint32_t seed_size = 0, absorbed = 0;
+  uint32_t seed_size = 0, absorbed = 0, bank = 0;
   for (uint32_t first = 0; first < count;) {
     uint32_t end = first + 1;
     while (end < count && segments[end].source_size == segments[first].source_size)
@@ -114,19 +115,22 @@ static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
     const uint32_t size = final ? leaves : segments[first].source_size;
     b::ProgressiveState *next = nullptr;
     int status = 0;
-    if (!final)
+    if (!final && scratch) {
+      next = scratch + uint64_t(bank) * scratch_rows;
+      bank ^= 1u;
+    } else if (!final)
       status = int(cudaMallocAsync(reinterpret_cast<void **>(&next),
                                    uint64_t(size) * sizeof(*next), stream));
     if (!status)
       status = stwo_blake2s_mixed_seeded_on(
           size, end - first, segments + first, absorbed, seed_size, seed,
           next, final ? hashes : nullptr, stream);
-    if (seed) {
+    if (seed && !scratch) {
       const int freed = int(cudaFreeAsync(seed, stream));
       if (!status) status = freed;
     }
     if (status) {
-      if (next) cudaFreeAsync(next, stream);
+      if (next && !scratch) cudaFreeAsync(next, stream);
       return status;
     }
     for (uint32_t i = first; i < end; ++i)
@@ -149,11 +153,24 @@ extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
   const uint64_t leaves = uint64_t(1) << log, need = (2 * leaves - 1) * 8;
   if (tree_words < need || reinterpret_cast<uintptr_t>(tree) % 32)
     return int(cudaErrorInvalidValue);
-  if (!c.range(tree, need, true))
+  // An optional tail is caller-owned, admitted scratch from the same context
+  // pool as the tree and evaluations. Two banks preserve the previous prefix
+  // until the next height has consumed it, without cross-pool allocations.
+  uint32_t scratch_rows = 0;
+  for (uint32_t i = 0; i + 1 < count; ++i)
+    if (segments[i].source_size != segments[i + 1].source_size)
+      scratch_rows = segments[i].source_size;
+  const uint64_t scratch_words = uint64_t(scratch_rows) * 2 *
+                                (sizeof(b::ProgressiveState) / sizeof(uint32_t));
+  const bool owned_scratch = tree_words >= need + scratch_words;
+  if (!c.range(tree, need + (owned_scratch ? scratch_words : 0), true))
     return c.status;
+  auto *scratch = owned_scratch && scratch_words
+                      ? reinterpret_cast<b::ProgressiveState *>(tree + need)
+                      : nullptr;
   auto *hashes = reinterpret_cast<b::Hash *>(tree);
   int status = native_height_leaves(input.segments, count, uint32_t(leaves),
-                                    hashes, c.stream);
+                                    hashes, c.stream, scratch, scratch_rows);
   uint64_t offset = 0, next_offset = leaves;
   for (uint32_t nodes = leaves; !status && nodes > 1; nodes >>= 1) {
     status = stwo_blake2s_layer_on(hashes + offset, nodes / 2,
