@@ -358,14 +358,14 @@ def run_job(plan, job):
                 trials[0]["bundle_sha256"] != reference["trials"][0]["bundle_sha256"]):
             raise ValueError("cross-device exact proof parity failed")
         cross_device_parity = True
-    return {"schema": SCHEMA, "status": "accepted", "block": job["block"], "device_count": job["device_count"],
+    return {"schema": SCHEMA, "combined": plan.get("combined", False), "status": "accepted", "block": job["block"], "device_count": job["device_count"],
             "coordinator_schedule": job["resources"]["schedule"],
             "request_sha256": job["request_sha256"], "input_sha256": job["input_sha256"], "asset_sha256": plan["asset_sha256"],
             "single_device_proof_byte_parity": cross_device_parity,
             "profile": plan["profile"], "trials": trials,
             "environment": {k: v for k, v in environment.items() if k.startswith(("STWO_RV64_", "CUDA_"))}, "producer_process": usage, "gpu": gpu, "physical_gpu_memory": memory,
             "process_unattributed_wall_ns": usage["wall_ns"] - sum(markers.values()),
-            "wall_scope": "Request wall includes execution/capture/setup/prove/native verification; process-unattributed wall includes device-pool startup/teardown and outer CLI work. Fresh receiver wall is separate.",
+            "wall_scope": ("Request wall includes execution/capture/setup, native proving and verification, fresh recursion and the device lifecycle audit. Process remainder includes pool startup/teardown and reporting. Independent verification is separate." if plan.get("combined") else "Request wall includes execution/capture/setup/prove/native verification; process-unattributed wall includes device-pool startup/teardown and outer CLI work. Fresh receiver wall is separate."),
             "residency_scope": "Strict resident-batch rejects host-retained mode; device trace/binding required. No CPU fallback. Wide-transfer absence is a production contract, not a CUPTI measurement."}
 
 
@@ -380,6 +380,8 @@ def render(plan, results):
             a, b = r["trials"]
             values = [f"{v / 1e9:.3f}" for v in (a["prove_ns"], b["prove_ns"], a["request_wall_ns"], b["request_wall_ns"])]
         lines.append(f"| {job['device_count']} | {job['block']} | {r.get('status') if r else 'not run'} | " + " | ".join(values) + " |")
+    if plan.get("combined"):
+        lines[4] = lines[4].replace("Cold prove s", "Cold native prove s").replace("Warm prove s", "Warm native prove s")
     accepted = sum(r.get("status") == "accepted" for r in results)
     lines += ["", f"Freshly accepted configurations: {accepted}/{len(plan['jobs'])}. A partial matrix is not a complete basket result.", "", plan["measurement_scope"], "",
               "| GPUs | Block | Process wall s | Startup/outer wall s | Peak RSS GiB | Sampled peak GPU GiB |", "|---:|---:|---:|---:|---:|---|"]
