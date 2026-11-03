@@ -70,6 +70,10 @@ pub const Op = union(enum) {
     range8: struct { in: u32 },
     /// c = a (.) b over the field (arbitrary M31 values, canonical in [0, p))
     product: struct { a: u32, b: u32, c: u32 },
+    /// fused gated activation: h = clamp8(requant_s(table[g] * u)); one lookup
+    /// of the triple (g, u, h) into a public 2^16-entry table. Proves g, u in
+    /// int8 (table domain) and h, without committing table[g] or a remainder.
+    glu: struct { g: u32, u: u32, h: u32, table: u32, shift: u5 },
 };
 
 pub const Statement = struct {
@@ -168,7 +172,7 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
 // ---------------------------------------------------------------------------
 // Relations derived from the statement (shared by prover and verifier).
 
-const KeyKind = enum { remainder, y_range, lookup_pair, plain_range };
+const KeyKind = enum { remainder, y_range, lookup_pair, plain_range, glu_triple };
 
 const KeyInst = struct {
     kind: KeyKind,
@@ -177,7 +181,7 @@ const KeyInst = struct {
     table: usize, // index into `tables` list below
 };
 
-const TableKind = union(enum) { range: u5, act: u32 };
+const TableKind = union(enum) { range: u5, act: u32, glu: struct { table: u32, shift: u5 } };
 
 const RelTable = struct {
     kind: TableKind,
@@ -202,9 +206,26 @@ fn tableIndex(list: *std.ArrayList(RelTable), a: std.mem.Allocator, kind: TableK
     const log_size: u32 = switch (kind) {
         .range => |s| @max(@as(u32, s), 1),
         .act => 8,
+        .glu => 16,
     };
     try list.append(a, .{ .kind = kind, .log_size = log_size, .mult_tensor = n_witness + list.items.len });
     return list.items.len - 1;
+}
+
+/// Tensors whose int8 range is implied by a lookup (inputs of lookup/glu).
+fn rangeImplied(st: Statement, id: u32) bool {
+    for (st.ops) |op| switch (op) {
+        .lookup => |l| if (l.in == id) return true,
+        .glu => |g| if (g.g == id or g.u == id) return true,
+        else => {},
+    };
+    return false;
+}
+
+pub fn gluValue(st: Statement, table: u32, shift: u5, vg: i64, vu: i64) i64 {
+    const act: i64 = st.tables[table].values[@intCast(vg + 128)];
+    const q = @divFloor(act * vu + shiftHalf(shift), @as(i64, 1) << shift);
+    return std.math.clamp(q, -128, 127);
 }
 
 fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
@@ -216,12 +237,12 @@ fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
             .matmul => |m| {
                 const ls = st.witness[m.y].logSize();
                 try keys.append(a, .{ .kind = .remainder, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = m.shift }, nw) });
-                try keys.append(a, .{ .kind = .y_range, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
+                if (!rangeImplied(st, m.y)) try keys.append(a, .{ .kind = .y_range, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
             },
             .hadamard => |h| {
                 const ls = st.witness[h.y].logSize();
                 try keys.append(a, .{ .kind = .remainder, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = h.shift }, nw) });
-                try keys.append(a, .{ .kind = .y_range, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
+                if (!rangeImplied(st, h.y)) try keys.append(a, .{ .kind = .y_range, .op = i, .log_size = ls, .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
             },
             .lookup => |l| {
                 try keys.append(a, .{ .kind = .lookup_pair, .op = i, .log_size = st.witness[l.in].logSize(), .table = try tableIndex(&tabs, a, .{ .act = l.table }, nw) });
@@ -230,6 +251,9 @@ fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
                 try keys.append(a, .{ .kind = .plain_range, .op = i, .log_size = st.witness[r.in].logSize(), .table = try tableIndex(&tabs, a, .{ .range = 8 }, nw) });
             },
             .product => {},
+            .glu => |g| {
+                try keys.append(a, .{ .kind = .glu_triple, .op = i, .log_size = st.witness[g.h].logSize(), .table = try tableIndex(&tabs, a, .{ .glu = .{ .table = g.table, .shift = g.shift } }, nw) });
+            },
         }
     }
     return .{ .keys = try keys.toOwnedSlice(a), .tables = try tabs.toOwnedSlice(a) };
@@ -246,10 +270,15 @@ fn shiftHalf(s: u5) i64 {
     return @as(i64, 1) << (s - 1);
 }
 
-fn tableValue(st: Statement, kind: TableKind, idx: usize) struct { key: i64, out: i64 } {
+fn tableValue(st: Statement, kind: TableKind, idx: usize) struct { key: i64, out: i64, out2: i64 = 0 } {
     return switch (kind) {
         .range => .{ .key = @intCast(idx), .out = 0 },
         .act => |t| .{ .key = @as(i64, @intCast(idx)) - 128, .out = st.tables[t].values[idx] },
+        .glu => |g| blk: {
+            const vg = @as(i64, @intCast(idx >> 8)) - 128;
+            const vu = @as(i64, @intCast(idx & 255)) - 128;
+            break :blk .{ .key = vg, .out = vu, .out2 = gluValue(st, g.table, g.shift, vg, vu) };
+        },
     };
 }
 
@@ -262,6 +291,15 @@ fn tableKeyMle(st: Statement, a: std.mem.Allocator, t: RelTable, point: []const 
             for (0..256) |i| outv[i] = st.tables[ti].values[i];
             const out_mle = try f.mleEvalI32(a, &outv, point);
             return f.identityMle(point).sub(f.qFromI64(128)).add(beta.mul(out_mle));
+        },
+        .glu => |g| {
+            const fv = try a.alloc(i32, 1 << 16);
+            defer a.free(fv);
+            for (0..1 << 16) |idx| fv[idx] = @intCast(tableValue(st, .{ .glu = g }, idx).out2);
+            const f_mle = try f.mleEvalI32(a, fv, point);
+            const vg = f.identityMle(point[0..8]).sub(f.qFromI64(128));
+            const vu = f.identityMle(point[8..16]).sub(f.qFromI64(128));
+            return vg.add(beta.mul(vu)).add(beta.mul(beta).mul(f_mle));
         },
     }
 }
@@ -355,6 +393,7 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
         .lookup => |l| tr.mixU32s(&.{ 3, l.in, l.out, l.table }),
         .range8 => |r| tr.mixU32s(&.{ 4, r.in }),
         .product => |q| tr.mixU32s(&.{ 5, q.a, q.b, q.c }),
+        .glu => |g| tr.mixU32s(&.{ 6, g.g, g.u, g.h, g.table, g.shift }),
     };
 }
 
@@ -403,6 +442,10 @@ fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []co
                         const l = c.st.ops[c.k.op].lookup;
                         break :blk f.qFromI64(c.w[l.in][i]).add(c.beta.mul(f.qFromI64(c.w[l.out][i])));
                     },
+                    .glu_triple => blk: {
+                        const g = c.st.ops[c.k.op].glu;
+                        break :blk f.qFromI64(c.w[g.g][i]).add(c.beta.mul(f.qFromI64(c.w[g.u][i]))).add(c.beta.mul(c.beta).mul(f.qFromI64(c.w[g.h][i])));
+                    },
                 };
                 c.out[i] = c.alpha.sub(key);
             }
@@ -416,7 +459,7 @@ fn tableDen(a: std.mem.Allocator, st: Statement, t: RelTable, alpha: QM31, beta:
     const out = try a.alloc(QM31, n);
     for (0..n) |i| {
         const v = tableValue(st, t.kind, i);
-        out[i] = alpha.sub(f.qFromI64(v.key).add(beta.mul(f.qFromI64(v.out))));
+        out[i] = alpha.sub(f.qFromI64(v.key).add(beta.mul(f.qFromI64(v.out))).add(beta.mul(beta).mul(f.qFromI64(v.out2))));
     }
     return out;
 }
@@ -462,6 +505,16 @@ fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []cons
                     const v = @as(i64, w[y_id][i]) + 128;
                     if (v < 0 or v >= 256) return error.ValueOutOfRange;
                     mult[@intCast(v)] += 1;
+                }
+            },
+            .glu_triple => {
+                const g = st.ops[k.op].glu;
+                for (0..n) |i| {
+                    const vg = @as(i64, w[g.g][i]);
+                    const vu = @as(i64, w[g.u][i]);
+                    if (vg < -128 or vg > 127 or vu < -128 or vu > 127) return error.ValueOutOfRange;
+                    if (gluValue(st, g.table, g.shift, vg, vu) != w[g.h][i]) return error.LookupMismatch;
+                    mult[@intCast((vg + 128) * 256 + (vu + 128))] += 1;
                 }
             },
             .lookup_pair => {
@@ -650,10 +703,43 @@ pub fn prove(
 
     // terminal claims -> witness claims
     var lookup_vals: std.ArrayList(QM31) = .empty;
+    const y_vals = try a.alloc(QM31, rel.keys.len);
+    defer a.free(y_vals);
     for (rel.keys, 0..) |k, i| {
         const pt = art.ood_point[L - k.log_size ..];
         switch (k.kind) {
+            .glu_triple => {
+                const g = st.ops[k.op].glu;
+                const vg = try f.mleEvalI32(a, all[g.g], pt);
+                const vu = try f.mleEvalI32(a, all[g.u], pt);
+                try lookup_vals.append(a, vg);
+                try lookup_vals.append(a, vu);
+                tr.mixFelts(&.{ vg, vu });
+                const den = art.claims_to_verify_by_instance[i][1];
+                const b2 = beta.mul(beta);
+                const vh = alpha.sub(den).sub(vg).sub(beta.mul(vu)).mul(b2.inv() catch unreachable);
+                try claims.append(a, .{ .tensor = g.g, .point = try a.dupe(QM31, pt), .value = vg });
+                try claims.append(a, .{ .tensor = g.u, .point = try a.dupe(QM31, pt), .value = vu });
+                try claims.append(a, .{ .tensor = g.h, .point = try a.dupe(QM31, pt), .value = vh });
+            },
             .remainder, .y_range => {
+                if (k.kind == .remainder) {
+                    const has_range = i + 1 < rel.keys.len and rel.keys[i + 1].kind == .y_range and rel.keys[i + 1].op == k.op;
+                    if (has_range) {
+                        y_vals[i] = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(128));
+                    } else {
+                        const y_id: u32 = switch (st.ops[k.op]) {
+                            .matmul => |m| m.y,
+                            .hadamard => |h| h.y,
+                            else => unreachable,
+                        };
+                        const yv = try f.mleEvalI32(a, all[y_id], pt);
+                        try lookup_vals.append(a, yv);
+                        tr.mixFelt(yv);
+                        y_vals[i] = yv;
+                        try claims.append(a, .{ .tensor = y_id, .point = try a.dupe(QM31, pt), .value = yv });
+                    }
+                }
                 if (k.kind == .y_range) {
                     const y_id: u32 = switch (st.ops[k.op]) {
                         .matmul => |m| m.y,
@@ -695,7 +781,7 @@ pub fn prove(
         const pt = art.ood_point[L - k.log_size ..];
         // acc(rho) = r(rho) - 2^(s-1) + 2^s y(rho), with r = alpha - den_r, y = alpha - den_y - 128
         const r_val = alpha.sub(art.claims_to_verify_by_instance[i][1]);
-        const y_val = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(128));
+        const y_val = y_vals[i];
         switch (st.ops[k.op]) {
             .matmul => |m| {
                 const sh = m.shift;
@@ -881,9 +967,17 @@ pub fn validateStatement(st: Statement) !void {
     for (st.ops) |op| switch (op) {
         .matmul => |m| is_bounded[m.y] = true,
         .hadamard => |h| is_bounded[h.y] = true,
-        .lookup => |l| is_bounded[l.out] = true,
+        .lookup => |l| {
+            is_bounded[l.out] = true;
+            is_bounded[l.in] = true; // table domain is int8
+        },
         .range8 => |r| is_bounded[r.in] = true,
         .product => {},
+        .glu => |g| {
+            is_bounded[g.h] = true;
+            is_bounded[g.g] = true;
+            is_bounded[g.u] = true;
+        },
     };
     for (st.ops) |op| switch (op) {
         .matmul => |m| {
@@ -909,6 +1003,12 @@ pub fn validateStatement(st: Statement) !void {
         },
         .range8 => |r| if (r.in >= n) return error.StatementShape,
         .product => |q| if (q.a >= n or q.b >= n or q.c >= n) return error.StatementShape,
+        .glu => |g| {
+            if (g.g >= n or g.u >= n or g.h >= n or g.table >= st.tables.len) return error.StatementShape;
+            if (g.shift < 1 or g.shift > 22) return error.StatementShift;
+            const ls = st.witness[g.h].logSize();
+            if (st.witness[g.g].logSize() != ls or st.witness[g.u].logSize() != ls) return error.StatementShape;
+        },
     };
 }
 
@@ -971,13 +1071,45 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         claims.deinit(a);
     }
     var lk_i: usize = 0;
+    const y_vals = try a.alloc(QM31, rel.keys.len);
+    defer a.free(y_vals);
     for (rel.keys, 0..) |k, i| {
         const pt = art.ood_point[L - k.log_size ..];
         const cv = art.claims_to_verify_by_instance[i];
         if (cv.len != 2) return error.GkrShape;
         if (!cv[0].eql(QM31.one())) return error.GkrTerminal; // singles: numerator MLE is 1
         switch (k.kind) {
-            .remainder => {},
+            .remainder => {
+                const has_range = i + 1 < rel.keys.len and rel.keys[i + 1].kind == .y_range and rel.keys[i + 1].op == k.op;
+                if (has_range) {
+                    y_vals[i] = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(128));
+                } else {
+                    const y_id: u32 = switch (st.ops[k.op]) {
+                        .matmul => |m| m.y,
+                        .hadamard => |h| h.y,
+                        else => unreachable,
+                    };
+                    if (lk_i >= proof.lookup_in_values.len) return error.ProofShape;
+                    const yv = proof.lookup_in_values[lk_i];
+                    lk_i += 1;
+                    tr.mixFelt(yv);
+                    y_vals[i] = yv;
+                    try claims.append(a, .{ .tensor = y_id, .point = try a.dupe(QM31, pt), .value = yv });
+                }
+            },
+            .glu_triple => {
+                const g = st.ops[k.op].glu;
+                if (lk_i + 2 > proof.lookup_in_values.len) return error.ProofShape;
+                const vg = proof.lookup_in_values[lk_i];
+                const vu = proof.lookup_in_values[lk_i + 1];
+                lk_i += 2;
+                tr.mixFelts(&.{ vg, vu });
+                const b2 = beta.mul(beta);
+                const vh = alpha.sub(cv[1]).sub(vg).sub(beta.mul(vu)).mul(b2.inv() catch return error.ProofShape);
+                try claims.append(a, .{ .tensor = g.g, .point = try a.dupe(QM31, pt), .value = vg });
+                try claims.append(a, .{ .tensor = g.u, .point = try a.dupe(QM31, pt), .value = vu });
+                try claims.append(a, .{ .tensor = g.h, .point = try a.dupe(QM31, pt), .value = vh });
+            },
             .y_range => {
                 const y_id: u32 = switch (st.ops[k.op]) {
                     .matmul => |m| m.y,
@@ -1020,7 +1152,7 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         if (op_i >= proof.op_sumchecks.len) return error.ProofShape;
         const pt = art.ood_point[L - k.log_size ..];
         const r_val = alpha.sub(art.claims_to_verify_by_instance[i][1]);
-        const y_val = alpha.sub(art.claims_to_verify_by_instance[i + 1][1]).sub(f.qFromI64(128));
+        const y_val = y_vals[i];
         const sh: u5 = switch (st.ops[k.op]) {
             .matmul => |m| m.shift,
             .hadamard => |h| h.shift,

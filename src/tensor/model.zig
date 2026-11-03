@@ -34,6 +34,8 @@ pub const Mlp = struct {
     log_t: u32,
     log_d: u32,
     log_f: u32,
+    /// fused SwiGLU gate: one glu lookup instead of silu lookup + hadamard
+    fused: bool = true,
 };
 
 pub const Built = struct {
@@ -107,8 +109,38 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
     try wit.append(a, try requantAll(a, acc_u, su));
     try ops.append(a, .{ .matmul = .{ .x = 0, .w = 1, .y = 2, .shift = su } });
-    // act = silu(gate) (3)
     const n_tf = wit.items[1].len;
+    if (cfg.fused) {
+        // h = clamp8(requant(silu(gate) * up)) (3), one glu lookup
+        const acc_h = try a.alloc(i64, n_tf);
+        defer a.free(acc_h);
+        for (wit.items[1], wit.items[2], acc_h) |g, q, *o| o.* = @as(i64, tables[0].values[@intCast(g + 128)]) * q;
+        const sh = chooseShift(acc_h);
+        const tmp_st = proto.Statement{ .witness = &.{}, .weights = &.{}, .tables = tables, .ops = &.{} };
+        const hv = try a.alloc(i32, n_tf);
+        for (wit.items[1], wit.items[2], hv) |g, q, *o| o.* = @intCast(proto.gluValue(tmp_st, 0, sh, g, q));
+        try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
+        try wit.append(a, hv);
+        try ops.append(a, .{ .glu = .{ .g = 1, .u = 2, .h = 3, .table = 0, .shift = sh } });
+        const acc_o = try proto.matmulAcc(a, pool, infos.items[3], wit.items[3], ws.matrix(2));
+        defer a.free(acc_o);
+        const so = chooseShift(acc_o);
+        try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_d));
+        try wit.append(a, try requantAll(a, acc_o, so));
+        try ops.append(a, .{ .matmul = .{ .x = 3, .w = 2, .y = 4, .shift = so } });
+        const winfos_f = try a.alloc(TensorInfo, 3);
+        winfos_f[0] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+        winfos_f[1] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+        winfos_f[2] = TensorInfo.mat(cfg.log_f, cfg.log_d);
+        return .{
+            .witness_infos = try infos.toOwnedSlice(a),
+            .weight_infos = winfos_f,
+            .tables = tables,
+            .ops = try ops.toOwnedSlice(a),
+            .witness = try wit.toOwnedSlice(a),
+        };
+    }
+    // act = silu(gate) (3)
     const act = try a.alloc(i32, n_tf);
     for (wit.items[1], act) |g, *o| o.* = tables[0].values[@intCast(g + 128)];
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
@@ -145,6 +177,35 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
 
 pub fn mlpWeightInfos(cfg: Mlp) [3]TensorInfo {
     return .{ TensorInfo.mat(cfg.log_d, cfg.log_f), TensorInfo.mat(cfg.log_d, cfg.log_f), TensorInfo.mat(cfg.log_f, cfg.log_d) };
+}
+
+test "unfused mlp block proves and verifies" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const cfg = Mlp{ .log_t = 4, .log_d = 6, .log_f = 7, .fused = false };
+    const pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 2 }, .weight_log_cols = 5, .witness_log_cols_max = 6, .gkr_threads = 2 };
+    const winfos = mlpWeightInfos(cfg);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try randomWeights(a, winfos[i].size(), 200 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var ws = try proto.commitWeights(a, &pool, pc, &winfos, &wv);
+    defer ws.deinit(a);
+    const x = try randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 4);
+    defer a.free(x);
+    var built = try buildMlp(a, &pool, &ws, cfg, x);
+    defer built.deinit(a);
+    const wview = try a.alloc([]const i32, built.witness.len);
+    defer a.free(wview);
+    for (built.witness, 0..) |w, i| wview[i] = w;
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, pc, built.statement(), &ws, wview, &tm);
+    defer proof.deinit(a);
+    try proto.verify(a, pc, built.statement(), proto.weightKey(&ws), &proof);
+    proof.lookup_in_values[0] = proof.lookup_in_values[0].add(f.QM31.one());
+    try std.testing.expect(std.meta.isError(proto.verify(a, pc, built.statement(), proto.weightKey(&ws), &proof)));
 }
 
 test "mlp block proves and verifies; tampering rejected" {
@@ -184,6 +245,13 @@ test "mlp block proves and verifies; tampering rejected" {
     proof.witness_value = saved.add(f.QM31.one());
     try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
     proof.witness_value = saved;
+    // tamper: a prover-sent terminal value (glu / implied-range y)
+    {
+        const sv = proof.lookup_in_values[0];
+        proof.lookup_in_values[0] = sv.add(f.QM31.one());
+        try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
+        proof.lookup_in_values[0] = sv;
+    }
     // tamper: a weight value
     const wsaved = proof.weight_values[0];
     proof.weight_values[0] = wsaved.add(f.QM31.one());
@@ -231,7 +299,7 @@ test "prover refuses a wrong witness (requant mismatch)" {
     defer a.free(x);
     var built = try buildMlp(a, &pool, &ws, cfg, x);
     defer built.deinit(a);
-    built.witness[5][3] += 1; // wrong output
+    built.witness[built.witness.len - 1][3] += 1; // wrong output
     const wview = try a.alloc([]const i32, built.witness.len);
     defer a.free(wview);
     for (built.witness, 0..) |w, i| wview[i] = w;
