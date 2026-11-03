@@ -97,16 +97,20 @@ __global__ void deep_validate(StwoRv64DeepPrepare j) {
   *j.valid = 1;
 }
 __global__ void deep_lines(StwoRv64DeepPrepare j) {
-  const uint32_t group = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint32_t group = blockIdx.x, lane = threadIdx.x;
   if (group >= j.group_count)
     return;
+  // One group can contain thousands of terms even for a tiny row domain.
+  // Weights are term-independent; reduce their two field sums within a CTA
+  // rather than serializing the entire group onto one GPU thread.
+  __shared__ OM31 a_partial[128], b_partial[128];
   OM31 a_sum = zero(), b_sum = zero();
   if (*j.valid) {
     const auto g = j.groups[group];
     const OM31 y = from_words(j.points + 16 * group + 8);
     const OM31 c = sub(conjugate(y), y);
     const OM31 alpha = from_words(j.alpha);
-    for (uint32_t t = g.begin; t < g.end; ++t) {
+    for (uint32_t t = g.begin + lane; t < g.end; t += blockDim.x) {
       const OM31 value = from_words(j.values + uint64_t(t) * 8);
       const OM31 power = deep_power(alpha, j.terms[t].exponent);
       const OM31 a = mul(power, sub(conjugate(value), value));
@@ -118,9 +122,20 @@ __global__ void deep_lines(StwoRv64DeepPrepare j) {
         j.weights[uint64_t(t) * 8 + k] = coordinate(weight, k);
     }
   }
+  a_partial[lane] = a_sum;
+  b_partial[lane] = b_sum;
+  __syncthreads();
+  for (uint32_t width = blockDim.x / 2; width; width >>= 1) {
+    if (lane < width) {
+      a_partial[lane] = add(a_partial[lane], a_partial[lane + width]);
+      b_partial[lane] = add(b_partial[lane], b_partial[lane + width]);
+    }
+    __syncthreads();
+  }
+  if (lane) return;
   for (uint32_t k = 0; k < 8; ++k) {
-    j.linear[uint64_t(group) * 16 + k] = coordinate(a_sum, k);
-    j.linear[uint64_t(group) * 16 + 8 + k] = coordinate(b_sum, k);
+    j.linear[uint64_t(group) * 16 + k] = coordinate(a_partial[0], k);
+    j.linear[uint64_t(group) * 16 + 8 + k] = coordinate(b_partial[0], k);
   }
 }
 __global__ void deep_aggregate(StwoRv64DeepPrepare j) {
@@ -284,7 +299,7 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
   if (cleared)
     return cleared;
   deep_validate<<<1, 1, 0, c.stream>>>(j);
-  deep_lines<<<(j.group_count + 127) / 128, 128, 0, c.stream>>>(j);
+  deep_lines<<<j.group_count, 128, 0, c.stream>>>(j);
   // Launch geometry is independent of device metadata. Grid-stride rows
   // preserve parallelism for large compact groups without host feedback.
   deep_aggregate<<<dim3(64, j.group_count), 128, 0, c.stream>>>(j);
