@@ -96,6 +96,35 @@ inline fn evalTermsAt(comptime terms: []const Term, comptime NF: usize, cur: *co
     return v;
 }
 
+const PQ = f.PackedQM31;
+const LANES = f.PACK_WIDTH;
+
+inline fn evalTermsAtP(comptime terms: []const Term, comptime NF: usize, cur: *const [NF]PQ) PQ {
+    @setEvalBranchQuota(100_000);
+    var v = PQ.zero();
+    inline for (terms) |term| {
+        var p = cur[term.factors[0]];
+        inline for (term.factors[1..]) |fi| p = p.mul(cur[fi]);
+        if (comptime !isOne(term.coeff)) p = p.mul(PQ.splat(term.coeff));
+        v = v.add(p);
+    }
+    return v;
+}
+
+inline fn loadP(src: []const QM31, at: usize) PQ {
+    return PQ.fromLanes(src[at..][0..LANES].*);
+}
+
+inline fn storeP(dst: []QM31, at: usize, v: PQ) void {
+    inline for (0..LANES) |l| dst[at + l] = v.lane(l);
+}
+
+fn sumLanes(v: PQ) QM31 {
+    var s = QM31.zero();
+    inline for (0..LANES) |l| s = s.add(v.lane(l));
+    return s;
+}
+
 fn isOne(c: QM31) bool {
     return c.eql(QM31.one());
 }
@@ -103,11 +132,37 @@ fn isOne(c: QM31) bool {
 fn roundChunkT(comptime NF: usize, comptime terms: []const Term, comptime deg: u8) fn (*const RoundCtx(NF), usize, usize) void {
     return struct {
         fn run(c: *const RoundCtx(NF), s: usize, e: usize) void {
+            @setEvalBranchQuota(100_000);
             var acc: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
+            // Packed fast path: LANES consecutive x's whose high partners are
+            // all active (exact field arithmetic, so lane order is irrelevant).
+            var x = s;
+            if (LANES > 1) {
+                var pacc: [MAX_DEG + 1]PQ = [_]PQ{PQ.zero()} ** (MAX_DEG + 1);
+                const hi_end = if (c.active > c.half) @min(e, c.active - c.half) else s;
+                while (x + LANES <= hi_end) : (x += LANES) {
+                    var diff: [NF]PQ = undefined;
+                    var cur: [NF]PQ = undefined;
+                    inline for (0..NF) |j| {
+                        cur[j] = loadP(c.factors[j], x);
+                        diff[j] = loadP(c.factors[j], x + c.half).sub(cur[j]);
+                    }
+                    pacc[0] = pacc[0].add(evalTermsAtP(terms, NF, &cur));
+                    inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
+                    pacc[2] = pacc[2].add(evalTermsAtP(terms, NF, &cur));
+                    if (deg >= 3) {
+                        inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
+                        pacc[3] = pacc[3].add(evalTermsAtP(terms, NF, &cur));
+                    }
+                }
+                acc[0] = sumLanes(pacc[0]);
+                acc[2] = sumLanes(pacc[2]);
+                if (deg >= 3) acc[3] = sumLanes(pacc[3]);
+            }
             var lo: [NF]QM31 = undefined;
             var diff: [NF]QM31 = undefined;
             var cur: [NF]QM31 = undefined;
-            for (s..e) |x| {
+            while (x < e) : (x += 1) {
                 const has_hi = x + c.half < c.active;
                 inline for (0..NF) |j| {
                     lo[j] = c.factors[j][x];
@@ -135,9 +190,20 @@ fn FoldCtxT(comptime NF: usize) type {
 fn foldChunkT(comptime NF: usize) fn (*const FoldCtxT(NF), usize, usize) void {
     return struct {
         fn run(c: *const FoldCtxT(NF), s: usize, e: usize) void {
+            @setEvalBranchQuota(100_000);
+            const rp = PQ.splat(c.r);
+            const hi_end = if (c.active > c.half) @min(e, c.active - c.half) else s;
             inline for (0..NF) |j| {
                 const fac = c.factors[j];
-                for (s..e) |x| {
+                var x = s;
+                if (LANES > 1) {
+                    while (x + LANES <= hi_end) : (x += LANES) {
+                        const lo = loadP(fac, x);
+                        const hi = loadP(fac, x + c.half);
+                        storeP(fac, x, lo.add(rp.mul(hi.sub(lo))));
+                    }
+                }
+                while (x < e) : (x += 1) {
                     const hi = if (x + c.half < c.active) fac[x + c.half] else QM31.zero();
                     fac[x] = fac[x].add(c.r.mul(hi.sub(fac[x])));
                 }
