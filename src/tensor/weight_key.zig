@@ -102,7 +102,7 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const 
         .{ .num = .ones, .den = den, .owned = true },
         .{ .num = .{ .base = &mult }, .den = &tden, .owned = false },
     };
-    var res = try Fast.proveBatch(a, &tr.ch, &inputs, .{ .threads = cfg.gkr_threads }, null);
+    var res = try @import("accel.zig").gkrProveBatch(cfg.accel, a, &tr.ch, &inputs, cfg.gkr_threads);
     defer res.artifact.deinit(a);
     const L = res.artifact.ood_point.len;
     const rho = res.artifact.ood_point[L - (key.log_rows + key.log_cols) ..];

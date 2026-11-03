@@ -29,6 +29,7 @@ const linalg = @import("linalg.zig");
 const batch = @import("batch.zig");
 const eqsum = @import("eqsum.zig");
 const prep = @import("prep.zig");
+const accel = @import("accel.zig");
 const Transcript = @import("transcript.zig").Transcript;
 pub const xt = @import("ext.zig");
 
@@ -171,6 +172,8 @@ pub const Config = struct {
     /// 2^10 measured best for the MLP: the many small late-round loops of
     /// every layer otherwise run serially)
     gkr_min_parallel: usize = 1 << 10,
+    /// Optional device accelerator (e.g. Metal); proofs are identical either way.
+    accel: ?*const accel.Accel = null,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
@@ -187,7 +190,7 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
     defer tw.deinit(a);
     const ru = (lay.used + (@as(usize, 1) << @intCast(lc)) - 1) >> @intCast(lc);
     const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
-    const com = try pcs.commit(i8, a, pool, &tw, m, lb);
+    const com = try accel.commit(cfg.accel, i8, a, pool, &tw, m, lb);
     return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
 }
 
@@ -453,7 +456,11 @@ pub const Proof = struct {
 };
 
 pub const Timings = struct {
+    /// matmul/hadamard accumulators, multiplicities (before the commitment)
+    prep_ns: u64 = 0,
     witness_commit_ns: u64 = 0,
+    /// GKR terminal claims -> witness claims (MLE evaluations)
+    terminal_ns: u64 = 0,
     gkr_ns: u64 = 0,
     op_sumcheck_ns: u64 = 0,
     weight_fold_ns: u64 = 0,
@@ -679,12 +686,13 @@ fn multiplicities(a: std.mem.Allocator, pool: *f.Pool, st: Statement, rel: Relat
 }
 
 /// Integer accumulators for matmul/hadamard ops (prover side).
-pub fn computeAccumulators(a: std.mem.Allocator, pool: *f.Pool, st: Statement, ws: *const WeightStore, w: []const []const i32) ![]?[]i64 {
+pub fn computeAccumulators(a: std.mem.Allocator, pool: *f.Pool, st: Statement, ws: *const WeightStore, w: []const []const i32, hook: ?*const accel.Accel) ![]?[]i64 {
     const out = try a.alloc(?[]i64, st.ops.len);
     for (st.ops, 0..) |op, i| {
         out[i] = null;
         switch (op) {
-            .matmul => |m| out[i] = try matmulAcc(a, pool, st.witness[m.x], w[m.x], ws.matrix(m.w)),
+            .matmul => |m| out[i] = try accel.matmulAcc(hook, a, st.witness[m.x].log_dims[0], w[m.x], ws.matrix(m.w)) orelse
+                try matmulAcc(a, pool, st.witness[m.x], w[m.x], ws.matrix(m.w)),
             .hadamard => |h| {
                 const n = st.witness[h.y].size();
                 const acc = try a.alloc(i64, n);
@@ -764,7 +772,7 @@ pub fn prove(
     timings: *Timings,
 ) !Proof {
     const tp = try std.time.Instant.now();
-    const acc = try computeAccumulators(a, pool, st, ws, witness);
+    const acc = try computeAccumulators(a, pool, st, ws, witness, cfg.accel);
     defer {
         for (acc) |x| if (x) |v| a.free(v);
         a.free(acc);
@@ -829,7 +837,7 @@ pub fn proveWithAccumulators(
     defer wtw.deinit(a);
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
     const wm = pcs.Matrix(i32){ .data = wtab, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru };
-    var wcom = try pcs.commit(i32, a, pool, &wtw, wm, olb);
+    var wcom = try accel.commit(cfg.accel, i32, a, pool, &wtw, wm, olb);
     defer wcom.deinit(a);
     timings.witness_commit_ns = nowNs(t0);
     timings.witness_table_elems = w_ru << @intCast(split.lc);
@@ -862,7 +870,7 @@ pub fn proveWithAccumulators(
     var gkr_stats: Fast.Stats = .{};
     timings.gkr_input_ns = nowNs(t0);
     if (n_inst > 0) {
-        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads, .min_parallel = cfg.gkr_min_parallel }, &gkr_stats);
+        const gkr_res = if (cfg.accel != null) try accel.gkrProveBatch(cfg.accel, a, &tr.ch, inputs, cfg.gkr_threads) else try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads, .min_parallel = cfg.gkr_min_parallel }, &gkr_stats);
         gkr_proof = gkr_res.proof;
         art = gkr_res.artifact;
     }
@@ -885,6 +893,7 @@ pub fn proveWithAccumulators(
         weight_claims.deinit(a);
     }
 
+    const t_term = try std.time.Instant.now();
     // terminal claims -> witness claims
     var lookup_vals: std.ArrayList(QM31) = .empty;
     const y_vals = try a.alloc(QM31, rel.keys.len);
@@ -894,8 +903,8 @@ pub fn proveWithAccumulators(
         switch (k.kind) {
             .glu_triple => {
                 const g = st.ops[k.op].glu;
-                const vg = try f.mleEvalI32(a, all[g.g], pt);
-                const vu = try f.mleEvalI32(a, all[g.u], pt);
+                const vg = try accel.mleEvalI32(cfg.accel, a, all[g.g], pt);
+                const vu = try accel.mleEvalI32(cfg.accel, a, all[g.u], pt);
                 try lookup_vals.append(a, vg);
                 try lookup_vals.append(a, vu);
                 tr.mixFelts(&.{ vg, vu });
@@ -917,7 +926,7 @@ pub fn proveWithAccumulators(
                             .hadamard => |h| h.y,
                             else => unreachable,
                         };
-                        const yv = try f.mleEvalI32(a, all[y_id], pt);
+                        const yv = try accel.mleEvalI32(cfg.accel, a, all[y_id], pt);
                         try lookup_vals.append(a, yv);
                         tr.mixFelt(yv);
                         y_vals[i] = yv;
@@ -940,7 +949,7 @@ pub fn proveWithAccumulators(
             },
             .lookup_pair => {
                 const l = st.ops[k.op].lookup;
-                const vin = try f.mleEvalI32(a, all[l.in], pt);
+                const vin = try accel.mleEvalI32(cfg.accel, a, all[l.in], pt);
                 try lookup_vals.append(a, vin);
                 tr.mixFelt(vin);
                 const den = art.claims_to_verify_by_instance[i][1];
@@ -963,11 +972,12 @@ pub fn proveWithAccumulators(
     var ext_finals: std.ArrayList([2]QM31) = .empty;
     errdefer ext_finals.deinit(a);
     const gview = xt.GkrView{ .ood = art.ood_point, .cv = @ptrCast(art.claims_to_verify_by_instance), .key_base = rel.ext_base };
-    const t_term = try std.time.Instant.now();
+    const t_ext_term = try std.time.Instant.now();
     try xt.proveTerminal(a, pool, st, all, &eps, gview, alpha, beta, &tr, &claims, &ext_values);
-    timings.ext_terminal_ns = nowNs(t_term);
+    timings.ext_terminal_ns = nowNs(t_ext_term);
 
     // --- op sumchecks (matmul / hadamard), in key order (one per remainder key)
+    timings.terminal_ns = nowNs(t_term);
     t0 = try std.time.Instant.now();
     var op_proofs: std.ArrayList(sc.Proof) = .empty;
     var op_finals: std.ArrayList([]QM31) = .empty;
@@ -1001,16 +1011,16 @@ pub fn proveWithAccumulators(
                 const eq_t = try f.eqTablePar(a, pool, rho_t, QM31.one());
                 defer a.free(eq_t);
                 const xm = pcs.Matrix(i32){ .data = all[m.x], .log_rows = lt, .log_cols = lk };
-                const fx = try linalg.colCombine(i32, a, pool, xm, eq_t, 8);
+                const fx = try accel.colCombine(cfg.accel, i32, a, pool, xm, eq_t, 8);
                 defer a.free(fx);
                 // g(k) = W(k, rho_n): the weight pass
                 const tw0 = try std.time.Instant.now();
                 const eq_n = try f.eqTablePar(a, pool, rho_n, QM31.one());
                 defer a.free(eq_n);
-                const gw = try linalg.rowDots(i8, a, pool, ws.matrix(m.w), eq_n, 7);
+                const gw = try accel.rowDots(cfg.accel, a, pool, ws.matrix(m.w), eq_n, 7);
                 defer a.free(gw);
                 timings.weight_fold_ns += nowNs(tw0);
-                const res = try sc.proveActive(2, &T_PROD2, a, pool, &tr, acc_val, .{ fx, gw }, fx.len);
+                const res = try accel.proveActive(cfg.accel, 2, &T_PROD2, a, pool, &tr, acc_val, .{ fx, gw }, fx.len);
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals);
@@ -1027,8 +1037,16 @@ pub fn proveWithAccumulators(
             .hadamard => |h| {
                 const sh = h.shift;
                 const acc_val = r_val.sub(f.qFromI64(shiftHalf(sh))).add(y_val.mulM31(M31.fromCanonical(@as(u32, 1) << sh)));
-                // same transcript as proveActive(3, T_EQ3, {eq(pt), A, B}) (split-eq prover)
-                var res = try eqsum.prove(.hadamard, a, pool, &tr, acc_val, pt, .{ all[h.a], all[h.b] });
+                // identical transcripts: device path (accel) or split-eq CPU prover
+                var res = if (cfg.accel != null) blk: {
+                    const eq = try f.eqTablePar(a, pool, pt, QM31.one());
+                    const fa = try toQM31Vec(a, pool, all[h.a]);
+                    const fb = try toQM31Vec(a, pool, all[h.b]);
+                    defer a.free(eq);
+                    defer a.free(fa);
+                    defer a.free(fb);
+                    break :blk try accel.proveActive(cfg.accel, 3, &T_EQ3, a, pool, &tr, acc_val, .{ eq, fa, fb }, eq.len);
+                } else try eqsum.prove(.hadamard, a, pool, &tr, acc_val, pt, .{ all[h.a], all[h.b] });
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals[1..]);
@@ -1047,8 +1065,12 @@ pub fn proveWithAccumulators(
             const rho = try a.alloc(QM31, ls);
             defer a.free(rho);
             tr.drawN(rho);
-            // same transcript as proveActive(4, T_PRODUCT, {eq(rho), A, B, C}) (split-eq prover)
-            var res = try eqsum.prove(.product, a, pool, &tr, QM31.zero(), rho, .{ all[q.a], all[q.b], all[q.c] });
+            // identical transcripts: device path (accel) or split-eq CPU prover
+            var res = if (cfg.accel != null) blk: {
+                const eqc = [_]accel.BatchClaim{.{ .offset = 0, .point = rho, .gamma = QM31.one() }};
+                const n_prod = @as(usize, 1) << @intCast(ls);
+                break :blk try accel.proveFactors(cfg.accel, 4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ .{ .eq = &eqc }, .{ .int = all[q.a] }, .{ .int = all[q.b] }, .{ .int = all[q.c] } }, n_prod, n_prod);
+            } else try eqsum.prove(.product, a, pool, &tr, QM31.zero(), rho, .{ all[q.a], all[q.b], all[q.c] });
             defer a.free(res.point);
             try op_proofs.append(a, res.proof);
             const fin = try a.dupe(QM31, res.finals[1..]);
@@ -1071,12 +1093,17 @@ pub fn proveWithAccumulators(
     const gammas = try a.alloc(QM31, claims.items.len);
     defer a.free(gammas);
     tr.drawN(gammas);
-    // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
-    // E block of each tensor = sum of its claims' gamma * eq(point, .), one write pass per block.
-    const E = try a.alloc(QM31, total);
     var batch_claim = QM31.zero();
     for (claims.items, gammas) |c, g| batch_claim = batch_claim.add(g.mul(c.value));
-    {
+    const bres = if (cfg.accel != null) blk: {
+        const bclaims = try a.alloc(accel.BatchClaim, claims.items.len);
+        defer a.free(bclaims);
+        for (claims.items, gammas, bclaims) |c, g, *bc| bc.* = .{ .offset = lay.offsets[c.tensor], .point = c.point, .gamma = g };
+        break :blk try accel.batchProve(cfg.accel, a, pool, &tr, wtab, lay.used, bclaims, batch_claim);
+    } else blk: {
+        // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
+        const E = try a.alloc(QM31, total);
+        defer a.free(E);
         var rc: std.ArrayList(batch.RegionClaim) = .empty;
         defer rc.deinit(a);
         for (ext, 0..) |info, t| {
@@ -1087,9 +1114,8 @@ pub fn proveWithAccumulators(
             };
             try batch.fillRegion(a, pool, E[lay.offsets[t]..][0..info.size()], rc.items);
         }
-    }
-    const bres = try batch.proveBaseTimesExt(a, pool, &tr, batch_claim, wtab, E, lay.used);
-    a.free(E);
+        break :blk try batch.proveBaseTimesExt(a, pool, &tr, batch_claim, wtab, E, lay.used);
+    };
     defer a.free(bres.point);
     const wval = bres.finals[0];
     a.free(bres.finals);

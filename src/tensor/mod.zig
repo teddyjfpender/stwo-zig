@@ -16,6 +16,8 @@ pub const ext = @import("ext.zig");
 pub const transformer = @import("transformer.zig");
 pub const prep = @import("prep.zig");
 pub const recycle = @import("recycle.zig");
+pub const accel = @import("accel.zig");
+pub const digest = @import("digest.zig");
 
 test {
     _ = @import("qmul_check_test.zig");
@@ -37,4 +39,6 @@ test {
     _ = transformer;
     _ = prep;
     _ = recycle;
+    _ = accel;
+    _ = digest;
 }

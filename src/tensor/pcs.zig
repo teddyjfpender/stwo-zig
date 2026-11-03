@@ -140,7 +140,25 @@ pub fn verifyPath(root_h: Hash, leaf_h: Hash, leaf: usize, log_leaves: u32, sibs
 // ---------------------------------------------------------------------------
 // Commitment.
 
+/// Optional device implementation of `combineRows` for one committed table
+/// (set by a device commit; null = CPU). Must return the same field values.
+pub const CombineHook = struct {
+    ctx: *anyopaque,
+    i8: *const fn (ctx: *anyopaque, a: std.mem.Allocator, m: Matrix(i8), coeffs: []const []const QM31) anyerror!?[][]QM31,
+    i32: *const fn (ctx: *anyopaque, a: std.mem.Allocator, m: Matrix(i32), coeffs: []const []const QM31) anyerror!?[][]QM31,
+};
+
+/// Owner of a codeword that is not allocator memory (e.g. a device buffer
+/// in unified memory); `release` frees it.
+pub const EncOwner = struct {
+    ctx: *anyopaque,
+    handle: *anyopaque,
+    release: *const fn (ctx: *anyopaque, handle: *anyopaque) void,
+};
+
 pub const Committed = struct {
+    combine: ?CombineHook = null,
+    enc_owner: ?EncOwner = null,
     log_rows: u32,
     log_cols: u32,
     log_blowup: u32,
@@ -151,7 +169,7 @@ pub const Committed = struct {
     tree: Merkle,
 
     pub fn deinit(self: *Committed, a: std.mem.Allocator) void {
-        a.free(self.enc);
+        if (self.enc_owner) |o| o.release(o.ctx, o.handle) else a.free(self.enc);
         self.tree.deinit(a);
     }
 
@@ -464,7 +482,12 @@ pub fn open(
     const cview = try a.alloc([]const QM31, n_rows_out);
     defer a.free(cview);
     for (coeffs, 0..) |c, i| cview[i] = c;
-    const rows = try combineRows(T, a, pool, m, cview, if (@bitSizeOf(T) <= 8) 7 else 30);
+    const dev_rows: ?[][]QM31 = if (com.combine) |h| switch (T) {
+        i8 => try h.i8(h.ctx, a, m, cview),
+        i32 => try h.i32(h.ctx, a, m, cview),
+        else => null,
+    } else null;
+    const rows = dev_rows orelse try combineRows(T, a, pool, m, cview, if (@bitSizeOf(T) <= 8) 7 else 30);
     for (rows) |r| tr.mixFelts(r);
     const nonce = tr.grind(params.pow_bits);
     const idx = try a.alloc(usize, params.n_queries);
