@@ -1,0 +1,50 @@
+{
+  "schema": "rv64-strict-resident-prefix/v1",
+  "scope": "One real CPU segment plus six device truth proofs; NOT complete Ethereum block",
+  "block": 24628607,
+  "source_commit": "7b29cf4dd",
+  "hardware": "1x RTX5090 sm120; rented Xeon6530 13.6 CPU cgroup; GNU x86_64_v4 ReleaseFast",
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "whole_protocol_certified": false,
+  "instructions": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 6,
+  "fresh_receiver_accepted": true,
+  "completed_block": false,
+  "cpu_proof_sha256": "9752fd800a763ea0cb528cebea5ec6282b159b8b0ad4697e1925de8e37e6c048",
+  "cpu_proof_exact_native_parity": true,
+  "all_artifacts_parity": "not yet independently compared for this prefix",
+  "capture_ns": 5593473103,
+  "setup_ns": 27215587930,
+  "prove_ns": 6841114557,
+  "same_process_verify_ns": 1271381899,
+  "producer_wall_seconds": 43.34000736800954,
+  "fresh_receiver_setup_ns": 28863579313,
+  "fresh_receiver_verify_ns": 1271113824,
+  "host_peak_rss_bytes": 4623552512,
+  "sampled_gpu_peak_bytes": 31377588224,
+  "gpu_memory_scope": "Whole-device sampled at200ms, includes driver/context, not exact process peak",
+  "gpu_hard_cap_bytes": 30064771072,
+  "host_parking": false,
+  "device_pipeline": [
+    "CPU+service MAIN generation",
+    "shared multiplicities",
+    "trace commitment",
+    "local GKR and deferred binding",
+    "global RAM/KIO/Wire INTER",
+    "CPU and truth composition",
+    "DEEP/FRI/Merkle openings"
+  ],
+  "observed_hot_transfers": {
+    "pcs_wide_h2d_bytes": 0,
+    "pcs_wide_d2h_bytes": 0
+  },
+  "native_library_sha256": "1b6ec267524022e099643515fad9836b52267f5eea7e8003996c69c87b43c8d9",
+  "producer_binary_sha256": "82f4b24ac7469e84dbfd5baa4e1d341554007df2fb19c88932ef35e3633721e7",
+  "remaining": [
+    "Complete block18proofs freshverification/artifact parity",
+    "Complete-block timings",
+    "Additional curve families and retention coverage for15-block basket",
+    "2/4GPU stock availability"
+  ]
+}
