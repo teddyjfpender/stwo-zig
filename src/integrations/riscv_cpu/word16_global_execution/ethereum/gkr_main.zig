@@ -9,6 +9,7 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Driver = @import("../../word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
+const DirectCapture = @import("direct.zig");
 const Plan = @import("plan.zig");
 const Keys = @import("keys.zig").Owner;
 const Admission = @import("receiver.zig");
@@ -147,7 +148,7 @@ pub fn main() !void {
     const security_profile = selection.profile;
     const args = selection.args;
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const candidate = std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
@@ -234,13 +235,21 @@ pub fn main() !void {
     }
     if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
     const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
-    var jobs = try std.fs.cwd().openDir(args[3], .{});
-    defer jobs.close();
+    const direct_capture = std.mem.eql(u8, args[3], "-");
+    const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
+    if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
     const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
     // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
     const import_start = timer.read();
-    var captured = try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, (if (resources) |r| r.capture_options else CaptureOptions{}).forPool(&pool));
+    var direct_stats: DirectCapture.Stats = .{};
+    var captured = if (direct_capture)
+        try DirectCapture.captureWithSegments(a, &image, &program, request.value, count, capture_options.max_inflight_packets, capture_options.execution_workers, &direct_stats)
+    else capture: {
+        var jobs = try std.fs.cwd().openDir(args[3], .{});
+        defer jobs.close();
+        break :capture try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, capture_options.forPool(&pool));
+    };
     defer captured.deinit();
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
@@ -255,7 +264,7 @@ pub fn main() !void {
     if (capture_only) {
         const digest_start = timer.read();
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
-        return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = packet_import_ns, .image_and_import_ns = capture_ns, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .diagnostic_digest_ns = timer.read() - digest_start });
+        return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
     }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
@@ -311,7 +320,7 @@ pub fn main() !void {
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
@@ -468,4 +477,14 @@ test "deferred local binding resource defaults off and candidate forwards operat
     try std.testing.expect(decoded.value.defer_local_binding);
     const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 6, .defer_local_binding = true, .schedule = .{ .memory_cap_bytes = 5 } };
     try std.testing.expect(candidate.operational().defer_local_binding);
+}
+
+test "direct execution worker count is explicit bounded operational metadata" {
+    var options: CaptureOptions = .{};
+    try std.testing.expectEqual(@as(u8, 0), options.execution_workers);
+    options.execution_workers = 2;
+    try options.validate();
+    try std.testing.expect(!options.isDefault());
+    options.execution_workers = 33;
+    try std.testing.expectError(error.InvalidEthereumCaptureOptions, options.validate());
 }
