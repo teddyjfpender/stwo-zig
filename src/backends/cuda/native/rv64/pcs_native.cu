@@ -125,7 +125,40 @@ struct ResidentOwner {
       throw std::runtime_error("invalid device allocation");
     ensure(words * 4);
     uint32_t *ptr = nullptr;
-    CHECK(stwo_exec_context_alloc_u32(ctx, words, &ptr));
+    int status = stwo_exec_context_alloc_u32(ctx, words, &ptr);
+    if (status == int(cudaErrorMemoryAllocation)) {
+      (void)cudaGetLastError();
+      uint64_t idle = 0, active = 0, leased = 0;
+      for (const auto &block : blocks)
+        (block.used ? active : idle) += block.words * 4;
+      for (const auto &lease : leases)
+        leased += lease.value.count * 4;
+      size_t free_bytes = 0, total_bytes = 0;
+      const auto memory_status = cudaMemGetInfo(&free_bytes, &total_bytes);
+      std::fprintf(stderr,
+          "GPU_OWNER_OOM requested_bytes=%llu retained_bytes=%llu "
+          "lease_bytes=%llu idle_cache_bytes=%llu active_cache_bytes=%llu "
+          "physical_free_bytes=%zu physical_total_bytes=%zu memory_rc=%d\n",
+          static_cast<unsigned long long>(words * 4),
+          static_cast<unsigned long long>(retained),
+          static_cast<unsigned long long>(leased),
+          static_cast<unsigned long long>(idle),
+          static_cast<unsigned long long>(active), free_bytes, total_bytes,
+          int(memory_status));
+      // Logical admission can succeed while idle PCS cache allocations still
+      // occupy physical pages. They are not live witnesses: release only the
+      // unused blocks, then let the context's bounded pool recovery retry.
+      sync();
+      for (size_t i = 0; i < blocks.size();) {
+        if (blocks[i].used) { ++i; continue; }
+        CHECK(stwo_exec_context_free_u32(ctx, blocks[i].ptr));
+        retained -= blocks[i].words * 4;
+        blocks.erase(blocks.begin() + i);
+      }
+      sync();
+      status = stwo_exec_context_alloc_u32(ctx, words, &ptr);
+    }
+    CHECK(status);
     retained += words * 4;
     return ptr;
   }
