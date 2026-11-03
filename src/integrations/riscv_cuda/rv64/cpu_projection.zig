@@ -179,6 +179,10 @@ const Job = struct {
         try ctx.join();
         const job = A.CpuWitness{ .metadata = if (metadata.len != 0) scratch.words.? else null, .rom = rom_lease.words.?, .main = eval.words.?, .counts16 = scratch.words.? + count_base, .counts8 = scratch.words.? + c8_base, .rom_counts = scratch.words.? + rom_base, .status = scratch.words.? + status_base, .count = @intCast(source.metadata.len), .log = source.log_size, .rom_log = source.program.log_size, .final_pc = @intCast(source.public.final_pc), .pair_counts = scratch.words.? + pair_base };
         try checked(b.kernel(raw, 1, &job));
+        // Downloads use the coordination stream, while the formatter writes
+        // on lane1. A join after the download cannot establish that ordering.
+        // This is the narrow host histogram boundary, never a MAIN readback.
+        try ctx.join();
         const readback = try a.alloc(u32, pair_base + 65536 - count_base);
         defer a.free(readback);
         try ctx.download(try (try ctx.borrow(scratch)).sub(count_base, readback.len), readback);

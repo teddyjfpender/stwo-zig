@@ -156,12 +156,26 @@ const Job = struct {
         try check(b.api.lane_stream(raw, 1, &stream));
         const lane = stream orelse return error.InvalidLane;
         var launches: u32 = 0;
-        for (order) |original| {
+        var interpolation_first: usize = 0;
+        while (interpolation_first < order.len) {
+            const original = order[interpolation_first];
             const column = r.columns[original];
-            if (column.encoding != .evaluations) continue;
+            if (column.encoding != .evaluations) {
+                interpolation_first += 1;
+                continue;
+            }
+            // Sorting preserves native order within a height. Batch only
+            // adjacent evaluation columns; a coefficient column splits a run
+            // and must never be interpolated a second time.
+            var interpolation_end = interpolation_first + 1;
+            while (interpolation_end < order.len and
+                r.columns[order[interpolation_end]].log_size == column.log_size and
+                r.columns[order[interpolation_end]].encoding == .evaluations) : (interpolation_end += 1)
+            {}
             const rows = @as(usize, 1) << @intCast(column.log_size);
             const inverse_offset = inverse_base + tw.itwiddles.len - rows / 2;
-            try check(b.b2n(ptr + offsets[original], rows, ptr + offsets[original], rows, column.log_size, 1, ptr + inverse_offset, @intCast(rows / 2), @intCast(rows / 2), lane, &launches));
+            try check(b.b2n(ptr + offsets[original], rows, ptr + offsets[original], rows, column.log_size, @intCast(interpolation_end - interpolation_first), ptr + inverse_offset, @intCast(rows / 2), @intCast(rows / 2), lane, &launches));
+            interpolation_first = interpolation_end;
         }
         var first: usize = 0;
         while (first < order.len) {

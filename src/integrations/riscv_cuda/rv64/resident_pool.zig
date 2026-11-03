@@ -60,11 +60,12 @@ pub const Pool = struct {
         for (self.devices, config.ids, config.caps) |*device, id, cap| {
             try device.init(a, library, id, cap);
             initialized += 1;
+            try device.native.configureRetention(config.scope_limit);
         }
         self.endpoints = try a.alloc(Endpoint, config.ids.len);
         errdefer a.free(self.endpoints);
         for (self.endpoints, self.devices, config.ids, config.caps) |*endpoint, *device, id, cap| endpoint.* = .{ .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage() };
-        self.router = try Router.init(self.endpoints, cpu_workers);
+        self.router = try Router.initWithCapacity(self.endpoints, cpu_workers, config.scope_limit);
         self.pcs = self.router.pcsStage();
         self.truth_pcs = self.router.truthPcsStage();
         self.numerical = self.router.numericalStage();

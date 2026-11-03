@@ -1,7 +1,8 @@
 //! Concrete RV64 resident-device routing. Native physical worker ordinals select
 //! one GPU for every stage, including both sides of the global-manifest barrier.
-//! Two retained CPU scopes per device is a planning bound, not a semaphore:
-//! stage one cannot wait for stage two to release memory before that barrier.
+//! Retained scope counts are explicit planning bounds, not semaphores: stage
+//! one cannot wait for phase two to release memory before that barrier. The
+//! native byte allocator independently enforces actual device residency.
 const std = @import("std");
 const CPU = @import("stwo_riscv_cpu_integration");
 const D = CPU.rv64_device_pcs;
@@ -15,10 +16,12 @@ const BindingRequest = if (@hasDecl(Child, "DeviceBinding")) Child.DeviceBinding
 const BindingOwner = if (@hasDecl(Child, "DeviceBinding")) Child.DeviceBinding.Owner else void;
 pub const MAX_DEVICES = 8;
 pub const SCOPES_PER_DEVICE = 2;
+pub const MAX_SCOPES_PER_DEVICE = 64;
 pub const DEFAULT_BYTES: u64 = 24 * 1024 * 1024 * 1024;
 pub const Config = struct {
     ids: []u32,
     caps: []u64,
+    scope_limit: usize = SCOPES_PER_DEVICE,
     pub fn deinit(self: *Config, a: std.mem.Allocator) void {
         a.free(self.ids);
         a.free(self.caps);
@@ -65,11 +68,21 @@ pub const Config = struct {
             else => return err,
         };
         defer if (caps) |value| a.free(value);
-        return parse(a, ids orelse "0", caps);
+        var config = try parse(a, ids orelse "0", caps);
+        errdefer config.deinit(a);
+        const scopes = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_RETAINED_SCOPES") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => null,
+            else => return err,
+        };
+        defer if (scopes) |value| a.free(value);
+        if (scopes) |value| config.scope_limit = std.fmt.parseInt(usize, value, 10) catch return error.InvalidResidentScopeLimit;
+        if (config.scope_limit == 0 or config.scope_limit > MAX_SCOPES_PER_DEVICE) return error.InvalidResidentScopeLimit;
+        return config;
     }
     pub fn validatePlan(self: Config, cpu_workers: usize) !void {
         if (self.ids.len == 0 or self.ids.len > MAX_DEVICES or self.caps.len != self.ids.len or cpu_workers == 0) return error.InvalidResidentPlan;
-        if (cpu_workers > SCOPES_PER_DEVICE * self.ids.len) return error.InsufficientResidentCapacity;
+        if (self.scope_limit == 0 or self.scope_limit > MAX_SCOPES_PER_DEVICE) return error.InvalidResidentScopeLimit;
+        if (cpu_workers > self.scope_limit * self.ids.len) return error.InsufficientResidentCapacity;
         for (self.ids, self.caps, 0..) |id, cap, i| {
             if (cap == 0) return error.InvalidResidentDeviceCaps;
             for (self.ids[0..i]) |previous| if (id == previous) return error.DuplicateResidentDevice;
@@ -99,16 +112,21 @@ fn zeroRoot(root: [32]u8) bool {
 pub const Router = struct {
     endpoints: []const Endpoint,
     planned_cpu_workers: usize,
-    records: [MAX_DEVICES][SCOPES_PER_DEVICE]?Record = @splat(@splat(null)),
+    scope_limit: usize = SCOPES_PER_DEVICE,
+    records: [MAX_DEVICES][MAX_SCOPES_PER_DEVICE]?Record = @splat(@splat(null)),
     mutex: std.Thread.Mutex = .{},
     pub fn init(endpoints: []const Endpoint, cpu_workers: usize) !Router {
+        return initWithCapacity(endpoints, cpu_workers, SCOPES_PER_DEVICE);
+    }
+    pub fn initWithCapacity(endpoints: []const Endpoint, cpu_workers: usize, scope_limit: usize) !Router {
+        if (scope_limit == 0 or scope_limit > MAX_SCOPES_PER_DEVICE) return error.InvalidResidentScopeLimit;
         if (endpoints.len == 0 or endpoints.len > MAX_DEVICES or cpu_workers == 0) return error.InvalidResidentPlan;
-        if (cpu_workers > SCOPES_PER_DEVICE * endpoints.len) return error.InsufficientResidentCapacity;
+        if (cpu_workers > scope_limit * endpoints.len) return error.InsufficientResidentCapacity;
         for (endpoints, 0..) |endpoint, i| {
             if (endpoint.byte_cap == 0) return error.InvalidResidentDeviceCaps;
             for (endpoints[0..i]) |prior| if (prior.device == endpoint.device) return error.DuplicateResidentDevice;
         }
-        return .{ .endpoints = endpoints, .planned_cpu_workers = cpu_workers };
+        return .{ .endpoints = endpoints, .planned_cpu_workers = cpu_workers, .scope_limit = scope_limit };
     }
     pub fn deviceFor(self: *const Router, ordinal: u32) u32 {
         return self.endpoints[ordinal % self.endpoints.len].device;
@@ -121,7 +139,7 @@ pub const Router = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         var empty: ?usize = null;
-        for (&self.records[index], 0..) |*slot, slot_index| {
+        for (self.records[index][0..self.scope_limit], 0..) |*slot, slot_index| {
             if (slot.*) |record| {
                 if (record.scope.ordinal != scope.ordinal) continue;
                 if (!sameWorker(record.scope, scope)) return error.ResidentWorkerIdentityMismatch;
@@ -317,6 +335,29 @@ test "resident router config plans seven CPU workers on four devices before open
     defer one.deinit(a);
     try std.testing.expectError(error.InsufficientResidentCapacity, one.validatePlan(7));
     try one.validatePlan(2);
+}
+
+test "explicit retention plans route seven MAIN obligations across one two or four GPUs" {
+    for ([_]usize{ 1, 2, 4 }) |count| {
+        var fake = [_]Fake{ .{}, .{}, .{}, .{} };
+        const endpoints = [_]Endpoint{ fake[0].endpoint(0), fake[1].endpoint(1), fake[2].endpoint(2), fake[3].endpoint(3) };
+        const limit = (7 + count - 1) / count;
+        var router = try Router.initWithCapacity(endpoints[0..count], 7, limit);
+        var scopes: [7]D.Scope = undefined;
+        // All stage-one roots precede any phase-two consumer. A reduced GPU
+        // count must never silently discard a still-live MAIN obligation.
+        for (&scopes, 0..) |*scope, i| {
+            scope.* = testScope(@intCast(i));
+            _ = try router.admit(scope.*, .capture);
+            try router.promote(scope.*, @splat(@intCast(i + 1)));
+            scope.main = @splat(@intCast(i + 1));
+        }
+        for (scopes) |scope| {
+            try std.testing.expectEqual(@as(usize, scope.ordinal) % count, try router.admit(scope, .retained));
+            router.drop(scope);
+        }
+        try std.testing.expectError(error.InvalidResidentScopeLimit, Router.initWithCapacity(endpoints[0..count], 7, MAX_SCOPES_PER_DEVICE + 1));
+    }
 }
 
 test "resident router keeps all seven worker stages on their GPU across the manifest barrier" {

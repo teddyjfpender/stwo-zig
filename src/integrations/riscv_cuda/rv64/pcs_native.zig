@@ -9,6 +9,9 @@ const CachedColumn = struct { host: usize, tree: u32, column: usize, count: usiz
 const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false, extra: std.ArrayList(Abi.Lease) = .empty };
 pub const Context = struct {
     cache_mutex: std.Thread.Mutex = .{},
+    /// Count admission is separate from the native byte cap. Required device
+    /// trees cannot be evicted across the global challenge barrier.
+    max_retained_scopes: usize = 2,
     cache: std.ArrayList(Cached) = .empty,
     library: std.DynLib,
     session: *anyopaque,
@@ -43,7 +46,7 @@ pub const Context = struct {
         for (self.cache.items) |entry| if (std.mem.eql(u32, &entry.scope, &scope)) return error.DuplicateRetainedCoefficientScope;
         // Keep at most two proofs' immutable columns. Pinned consumers cannot
         // be evicted while preparing/running PCS or resident composition.
-        if (self.cache.items.len >= 2) {
+        if (self.cache.items.len >= self.max_retained_scopes) {
             var victim: ?usize = null;
             for (self.cache.items, 0..) |entry, i| if (!entry.in_use) {
                 victim = i;
@@ -70,7 +73,7 @@ pub const Context = struct {
             entry.in_use = true;
             return;
         };
-        if (self.cache.items.len >= 2) return error.RetainedCoefficientAdmissionExceeded;
+        if (self.cache.items.len >= self.max_retained_scopes) return error.RetainedCoefficientAdmissionExceeded;
         try self.cache.append(std.heap.page_allocator, .{ .scope = scope, .lease = lease, .columns = &.{}, .in_use = true });
     }
     /// Stable original tree/column identity survives retained MAIN remapping.
@@ -148,6 +151,13 @@ pub const Context = struct {
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
         self.library.close();
         self.* = undefined;
+    }
+    pub fn configureRetention(self: *Context, limit: usize) !void {
+        if (limit == 0 or limit > 64) return error.InvalidRetainedScopeLimit;
+        self.cache_mutex.lock();
+        defer self.cache_mutex.unlock();
+        if (self.cache.items.len != 0) return error.RetentionPolicyAlreadyInUse;
+        self.max_retained_scopes = limit;
     }
     pub fn stage(self: *Context) D.Stage {
         return .{ .context = self, .prove = prove };
