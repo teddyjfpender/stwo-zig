@@ -66,12 +66,15 @@ extern "C" __global__ void rv64_joined_domain_8(void){uint32_t i=0;switch(blockI
                               '__device__ __noinline__ void rv64_truth_domain_0_part_0(){}\nextern "C" __global__ void original_kernel(){}')
             original = source.read_text()
             (root / "case-0-domain.cu").write_text(
-                '__device__ __noinline__ void rv64_truth_domain_0_part_0(){use(powers+1136u); }\nextern "C" __global__ void raw_kernel(){}')
+                'using namespace stwo::cuda::rv64;\n__device__ __noinline__ void rv64_truth_domain_0_part_0(){use(powers+1136u);mul(a,b);q::mul(1,2); }\nextern "C" __global__ void raw_kernel(){}')
             with mock.patch.object(B.Grouped, "bound_ssa_module", return_value={"instruction_slices": 1}) as lower:
                 actual, metadata = B.bounded_compile_source(source, root / "missing.o", root, raw_directory=root)
             self.assertEqual(lower.call_args.args[1], 64)
             self.assertEqual(metadata["recovered_original_group"], 0)
             self.assertIn("powers+1136u", actual.read_text())
+            self.assertIn("rv64_bounded_mul(a,b)", actual.read_text())
+            self.assertIn("q::mul(1,2)", actual.read_text())
+            self.assertEqual(metadata["bounded_multiply_calls"], 1)
             self.assertNotIn("volatile OM31 *ext_bank", actual.read_text())
             self.assertEqual(source.read_text(), original)
 

@@ -171,6 +171,19 @@ def bounded_compile_source(source, obj, build, max_bytes=32768, raw_directory=No
     if raw_sha:
         metadata["raw_source_sha256"] = raw_sha
         metadata["recovered_original_group"] = group
+        # Keep the identical field multiplication behind one compiler call
+        # boundary instead of replicating its force-inlined quartic tower in
+        # every instruction slice. Qualified full native proofs gate this
+        # storage/optimization choice; base-field q::mul remains untouched.
+        text, calls = re.subn(r"(?<![:\w])mul\(", "rv64_bounded_mul(", lowered.read_text())
+        helper = "static __device__ __noinline__ OM31 rv64_bounded_mul(OM31 a,OM31 b){return stwo::cuda::rv64::mul(a,b); }\n"
+        prefix = "using namespace stwo::cuda::rv64;\n"
+        if calls:
+            if prefix not in text:
+                raise ValueError("bounded multiply namespace missing")
+            text = text.replace(prefix, prefix + helper, 1)
+            lowered.write_text(text)
+        metadata["bounded_multiply_calls"] = calls
     return lowered, {"source_sha256": N.sha(source), "lowered_source": str(lowered), "lowered_sha256": N.sha(lowered), **metadata}
 
 
