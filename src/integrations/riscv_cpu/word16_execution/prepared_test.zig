@@ -481,3 +481,61 @@ test "Constructor recorder allocation failures preserve pre-transfer owners and 
     try std.testing.checkAllAllocationFailures(a, exerciseConstructorRecorderOom, .{ &setup, &fixture, false });
     try std.testing.checkAllAllocationFailures(a, exerciseConstructorRecorderOom, .{ &setup, &fixture, true });
 }
+
+test "device CPU projection adopts only typed geometry and never builds host MAIN" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+    defer program.deinit();
+    try program.makeCompact();
+    var prepared = try Prepared.Prepared.capture(a, &program, fixture.boundary, 1, 8, &fixture.tape, .{});
+    defer prepared.deinit();
+    const D = @import("stwo_prover_api").device_pcs;
+    const Mock = struct {
+        columns: []D.TraceColumn,
+        counts16: []u64,
+        counts8: []u64,
+        pairs: []u64,
+        releases: usize = 0,
+        fn release(raw: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.releases += 1;
+        }
+        fn project(raw: *anyopaque, source: *const CPU.Source, scope: D.Scope) !CPU.DeviceProjection {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            try std.testing.expectEqual(@as(u32, 7), scope.ordinal);
+            try std.testing.expectEqual(@as(usize, 0), source.main.len);
+            try std.testing.expect(!source.main_projection_closed);
+            return .{ .owner = .{ .context = self, .release = release }, .columns = self.columns, .counts16 = self.counts16, .counts8 = self.counts8, .pair_counts = self.pairs };
+        }
+    };
+    const columns = try a.alloc(D.TraceColumn, X.layout.mainCount(true));
+    defer a.free(columns);
+    for (columns) |*column| column.* = .{ .log_size = 8, .encoding = .evaluations, .device = .{ .words = @ptrFromInt(4096), .count = 256, .context_token = 1, .generation = 2 } };
+    const c16 = try a.alloc(u64, 65536);
+    defer a.free(c16);
+    @memset(c16, 0);
+    const c8 = try a.alloc(u64, 256);
+    defer a.free(c8);
+    @memset(c8, 0);
+    var mock = Mock{ .columns = columns, .counts16 = c16, .counts8 = c8, .pairs = c16 };
+    prepared.device_cpu_projection = .{ .context = &mock, .project = Mock.project };
+    prepared.device_cpu_scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(0), .ordinal = 7 };
+    columns[0].device.?.count = 128;
+    try std.testing.expectError(error.InvalidDeviceTraceColumn, prepared.ensureCpuMain(&program, 8));
+    try std.testing.expectEqual(@as(usize, 1), mock.releases);
+    try std.testing.expect(!prepared.cpu.?.main_projection_closed);
+    try std.testing.expectEqual(@as(usize, 0), prepared.cpu.?.device_main.len);
+    columns[0].device.?.count = 256;
+    try prepared.ensureCpuMain(&program, 8);
+    try std.testing.expect(prepared.cpu.?.main_projection_closed);
+    try std.testing.expectEqual(@as(usize, 0), prepared.cpu.?.main.len);
+    try std.testing.expectEqual(columns.len, prepared.cpu.?.device_main.len);
+    try std.testing.expectEqual(@as(usize, 65536), prepared.cpu.?.device_pair_counts.len);
+    try prepared.ensureCpuMain(&program, 8); // no second callback/projection
+    try std.testing.expectEqual(@as(usize, 1), mock.releases);
+    prepared.cpu.?.releaseMain();
+    try std.testing.expectEqual(@as(usize, 2), mock.releases);
+    prepared.cpu.?.releaseMain();
+    try std.testing.expectEqual(@as(usize, 2), mock.releases);
+}

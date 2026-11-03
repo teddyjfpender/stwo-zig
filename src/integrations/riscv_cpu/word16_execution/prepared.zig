@@ -23,6 +23,8 @@ pub const Options = struct {
 };
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
+    device_cpu_projection: ?CPU.ProjectionStage = null,
+    device_cpu_scope: ?@import("stwo_prover_api").device_pcs.Scope = null,
     program_identity: [32]u8,
     cpu: ?CPU.Source,
     jalr: ?J.Source,
@@ -198,8 +200,8 @@ pub const Prepared = struct {
         if (cpu.compact != program.compact) return error.PreparedGeometryMismatch;
         cpu.program = program;
         if (cpu.main_projection_closed) {
-            if (cpu.main.len == 0) return error.ExecutionMainUnavailable;
-        } else try cpu.materializeMain();
+            if (cpu.main.len == 0 and cpu.device_main.len == 0) return error.ExecutionMainUnavailable;
+        } else if (self.device_cpu_projection) |stage| try cpu.projectDevice(stage, self.device_cpu_scope orelse return error.DeviceProjectionScopeRequired) else try cpu.materializeMain();
     }
     pub fn takeCpu(self: *Prepared, program: *const Program, expected_cpu_log: u32) !CPU.Source {
         if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;

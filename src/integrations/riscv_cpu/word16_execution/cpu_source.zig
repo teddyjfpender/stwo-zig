@@ -32,6 +32,26 @@ comptime {
     std.debug.assert(@offsetOf(Metadata, "clocks") == 40);
     std.debug.assert(@offsetOf(Metadata, "rom_row") == 52);
 }
+const Device = @import("stwo_prover_api").device_pcs;
+pub const ProjectionOwner = struct {
+    context: *anyopaque,
+    /// Must join/release on the device owner thread. Invoked exactly once on
+    /// failure, MAIN handoff, or Source destruction before handoff.
+    release: *const fn (*anyopaque) void,
+};
+pub const DeviceProjection = struct {
+    owner: ?ProjectionOwner = null,
+    columns: []const Device.TraceColumn,
+    counts16: []const u64,
+    counts8: []const u64,
+    pair_counts: []const u64,
+};
+pub const ProjectionStage = struct {
+    context: *anyopaque,
+    /// Synchronous narrow ingress. The stage owns returned device evaluations
+    /// through MAIN commitment and transfers their custody to its proof scope.
+    project: *const fn (*anyopaque, *const Source, Device.Scope) anyerror!DeviceProjection,
+};
 pub const Source = struct {
     allocator: std.mem.Allocator,
     program: *const Program,
@@ -40,6 +60,9 @@ pub const Source = struct {
     log_size: u32,
     metadata: []Metadata,
     main: []M = &.{},
+    device_main: []const Device.TraceColumn = &.{},
+    device_projection_owner: ?ProjectionOwner = null,
+    device_pair_counts: []u64 = &.{},
     /// Sticky after successful projection or explicit retirement. A cleared
     /// MAIN never authorizes a second wide projection from the same capture.
     main_projection_closed: bool = false,
@@ -132,6 +155,29 @@ pub const Source = struct {
         if (program.compact) try X.types.validateCompactInputs(try X.types.inputs(public, epoch, log_size), log_size);
         return .{ .allocator = a, .program = program, .compact = program.compact, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
     }
+    pub fn projectDevice(self: *Source, stage: ProjectionStage, scope: Device.Scope) !void {
+        if (self.main_projection_closed or self.main.len != 0 or self.device_main.len != 0) return error.ExecutionMainProjectionClosed;
+        const projected = try stage.project(stage.context, self, scope);
+        var adopted = false;
+        defer if (!adopted) {
+            if (projected.owner) |owner| owner.release(owner.context);
+        };
+        if (projected.columns.len != L.mainCount(self.compact) or projected.counts16.len != self.counts16.len or projected.counts8.len != self.counts8.len or projected.pair_counts.len != 65536) return error.InvalidCpuDeviceProjection;
+        for (projected.columns) |column| {
+            try column.validate();
+            if (column.log_size != self.log_size or column.encoding != .evaluations or column.device == null) return error.InvalidCpuDeviceProjection;
+        }
+        for (projected.counts16) |count| if (count >= core.fields.m31.Modulus) return error.InvalidCpuDeviceProjection;
+        for (projected.counts8) |count| if (count >= core.fields.m31.Modulus) return error.InvalidCpuDeviceProjection;
+        const pairs = try self.allocator.dupe(u64, projected.pair_counts);
+        @memcpy(self.counts16, projected.counts16);
+        @memcpy(self.counts8, projected.counts8);
+        self.device_pair_counts = pairs;
+        self.device_main = projected.columns;
+        self.device_projection_owner = projected.owner;
+        adopted = true;
+        self.main_projection_closed = true;
+    }
     /// A failed allocation/projection leaves the capture reusable: MAIN stays
     /// empty, range histograms stay zero, metadata/facts/ROM counts stay owned.
     /// No Tape access or instruction replay occurs here.
@@ -190,6 +236,11 @@ pub const Source = struct {
         self.main_projection_closed = true;
         self.allocator.free(self.main);
         self.main = &.{};
+        self.device_main = &.{};
+        if (self.device_projection_owner) |owner| {
+            self.device_projection_owner = null;
+            owner.release(owner.context);
+        }
     }
     pub fn takeMainForCommit(self: *Source) ![]M {
         if (self.main.len == 0) return error.ExecutionMainUnavailable;
@@ -225,6 +276,7 @@ pub const Source = struct {
         self.allocator.free(self.rom_counts);
         self.allocator.free(self.counts16);
         self.allocator.free(self.counts8);
+        self.allocator.free(self.device_pair_counts);
         self.* = undefined;
     }
     pub fn columns(self: *const Source, a: std.mem.Allocator, tree: u2) ![]engine.pcs.ColumnEvaluation {

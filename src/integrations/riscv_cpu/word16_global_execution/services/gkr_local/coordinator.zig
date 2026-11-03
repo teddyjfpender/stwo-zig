@@ -54,6 +54,8 @@ pub const WorkerTiming = struct {
     completed_worker_retired: bool = false,
 };
 pub const Options = struct {
+    device_cpu_projection: ?@import("../../../word16_execution/cpu_source.zig").ProjectionStage = null,
+    device_trace_commit_stage: ?*const @import("stwo_prover_api").device_pcs.TraceCommitStage = null,
     numerical_gkr_stage: ?*const @import("child.zig").NumericalStage = null,
     device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     /// Explicit opt-in until each truth geometry has real memory qualification.
@@ -85,6 +87,8 @@ pub const Options = struct {
     stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
+        if (self.device_cpu_projection != null and self.device_trace_commit_stage == null) return error.DeviceProjectionRequiresDeviceTraceCommit;
+        if (self.device_trace_commit_stage != null and (self.device_pcs_stage == null or self.numerical_gkr_stage == null or self.resident_composition_stage == null)) return error.DeviceTraceRequiresResidentStages;
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
         if (self.native_profiles.len != 0 and self.native_profiles.len != count) return error.InvalidWideNativeProfiles;
@@ -200,6 +204,8 @@ const Run = struct {
             timing.?.stage1_ns = clock.read();
         };
         if (index < self.setups.len) {
+            self.native[index].device_cpu_projection = self.options.device_cpu_projection;
+            self.native[index].device_cpu_scope = if (self.options.device_cpu_projection != null) .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(self.inventory.workers[index].ordinal) } else null;
             var source = blk: {
                 // Observation only (lane rusage); never proof authority.
                 var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
@@ -212,6 +218,7 @@ const Run = struct {
             const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
+            self.workers[index].?.cpu.device_trace_commit_stage = if (self.options.device_trace_commit_stage) |stage| stage.* else null;
             self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];
             self.workers[index].?.cpu.defer_local_binding = self.options.defer_local_binding;
             self.workers[index].?.cpu.scheme.device_om31_pcs_stage = self.options.device_pcs_stage;

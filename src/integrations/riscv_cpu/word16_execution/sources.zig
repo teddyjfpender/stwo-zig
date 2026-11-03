@@ -367,30 +367,55 @@ pub const Source = struct {
         errdefer a.free(out);
         for (shapes) |s| {
             if (s.widths[tree] == 0) continue;
-            const data: []const M = switch (s.role) {
-                .cpu => if (tree == 1) self.cpu.main else self.cpu.interaction,
-                .rom => if (tree == 1) self.rom.main else self.rom.interaction,
-                .boundary => if (tree == 1) &.{} else self.boundary,
-                .alu => if (tree == 1) self.alu.main else self.alu.interaction,
-                .alu_tail => if (self.tails.alu) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
-                .binary => if (tree == 1) self.binary.main else self.binary.interaction,
-                .binary_tail => if (self.tails.binary) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
-                .shift => if (tree == 1) self.shift.main else self.shift.interaction,
-                .shift_tail => if (self.tails.shift) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
-                .jalr => if (tree == 1) self.jalr.main else self.jalr.interaction,
-                .division => if (tree == 1) self.division.main else self.division.interaction,
-                .multiplication => if (tree == 1) self.multiplication.main else self.multiplication.interaction,
-                .range16 => if (tree == 1) self.range16.main else self.range16.interaction,
-                .range8 => if (tree == 1) self.range8.main else self.range8.interaction,
-                .and_table => if (tree == 1) self.and_table.main else self.and_table.interaction,
-                .shift_table => if (tree == 1) self.shift_table.main else self.shift_table.interaction,
-                .ls => if (tree == 1) self.memory.ls.main else self.memory.ls.interaction,
-                .ls_tail => if (self.memory.ls_tail) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingLsTail,
-                .initial => if (tree == 1) self.memory.initial.main else self.memory.initial.interaction,
-                .terminal => if (tree == 1) self.memory.terminal.main else self.memory.terminal.interaction,
-                .selection => if (tree == 1) self.memory.selection.main else self.memory.selection.interaction,
-            };
+            const data = try self.roleData(s.role, tree);
             try @import("../word16/cpu_materials.zig").fillColumns(out[s.offsets[tree]..][0..s.widths[tree]], data, s.log);
+        }
+        return out;
+    }
+    fn roleData(self: *const Source, role: @import("geometry.zig").Role, tree: usize) ![]const M {
+        return switch (role) {
+            .cpu => if (tree == 1) self.cpu.main else self.cpu.interaction,
+            .rom => if (tree == 1) self.rom.main else self.rom.interaction,
+            .boundary => if (tree == 1) &.{} else self.boundary,
+            .alu => if (tree == 1) self.alu.main else self.alu.interaction,
+            .alu_tail => if (self.tails.alu) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
+            .binary => if (tree == 1) self.binary.main else self.binary.interaction,
+            .binary_tail => if (self.tails.binary) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
+            .shift => if (tree == 1) self.shift.main else self.shift.interaction,
+            .shift_tail => if (self.tails.shift) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
+            .jalr => if (tree == 1) self.jalr.main else self.jalr.interaction,
+            .division => if (tree == 1) self.division.main else self.division.interaction,
+            .multiplication => if (tree == 1) self.multiplication.main else self.multiplication.interaction,
+            .range16 => if (tree == 1) self.range16.main else self.range16.interaction,
+            .range8 => if (tree == 1) self.range8.main else self.range8.interaction,
+            .and_table => if (tree == 1) self.and_table.main else self.and_table.interaction,
+            .shift_table => if (tree == 1) self.shift_table.main else self.shift_table.interaction,
+            .ls => if (tree == 1) self.memory.ls.main else self.memory.ls.interaction,
+            .ls_tail => if (self.memory.ls_tail) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingLsTail,
+            .initial => if (tree == 1) self.memory.initial.main else self.memory.initial.interaction,
+            .terminal => if (tree == 1) self.memory.terminal.main else self.memory.terminal.interaction,
+            .selection => if (tree == 1) self.memory.selection.main else self.memory.selection.interaction,
+        };
+    }
+    pub fn mainTraceColumns(self: *const Source, a: std.mem.Allocator) ![]@import("stwo_prover_api").device_pcs.TraceColumn {
+        const D = @import("stwo_prover_api").device_pcs;
+        const shapes = self.materials.shapes();
+        var count: usize = 0;
+        for (shapes) |shape| count += shape.widths[1];
+        const out = try a.alloc(D.TraceColumn, count);
+        errdefer a.free(out);
+        for (shapes) |shape| {
+            const target = out[shape.offsets[1]..][0..shape.widths[1]];
+            if (target.len == 0) continue;
+            if (shape.role == .cpu and self.cpu.device_main.len != 0) {
+                if (target.len != self.cpu.device_main.len) return error.InvalidCpuDeviceProjection;
+                @memcpy(target, self.cpu.device_main);
+                continue;
+            }
+            const data = try self.roleData(shape.role, 1);
+            const n = @as(usize, 1) << @intCast(shape.log);
+            if (data.len != target.len * n) return error.InvalidExecutionSourcePhase;
+            for (target, 0..) |*column, i| column.* = .{ .log_size = shape.log, .encoding = .evaluations, .host = data[i * n ..][0..n] };
         }
         return out;
     }
@@ -447,6 +472,10 @@ fn cpuPairCounts(a: std.mem.Allocator, cpu: *const CPU.Source) ![]u64 {
     const n = cpu.size();
     const XL = A.word16_execution.layout;
     const gap8: usize = if (cpu.compact) XL.compact.gap8 else XL.main.gap8;
+    if (cpu.device_main.len != 0) {
+        if (cpu.device_pair_counts.len != 65536) return error.InvalidExecutionSourcePhase;
+        return a.dupe(u64, cpu.device_pair_counts);
+    }
     if (cpu.main.len != XL.mainCount(cpu.compact) * n) return error.InvalidExecutionSourcePhase;
     const counts = try a.alloc(u64, 65536);
     errdefer a.free(counts);
