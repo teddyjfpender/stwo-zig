@@ -40,10 +40,11 @@ FP_TOY_SAME_MACHINE = {  # L: (prove_s, verify_s, proof_bytes), deep staging, 1 
 }
 
 TOY_CONFIGS = {
-    # name: (queries, log_blowup, pow_bits)
-    "proven128": (130, 3, 20),   # unique decoding, rate 1/8: 130 * 0.83 + 20 = 128 bits
-    "conj128": (54, 2, 20),      # up-to-capacity conjecture, rate 1/4: 54 * 2 + 20 = 128 bits
+    # name: (queries, log_blowup, pow_bits, extra pcs2 args)
+    "proven128": (160, 2, 20, [2, 160, 2, 20, 2]),  # unique decoding, rate 1/4: 160 * 0.678 + 20 = 128.5 bits; pcs2 depth 2
+    "conj128": (54, 2, 20, [2, 54]),                # up-to-capacity conjecture, rate 1/4: 54 * 2 + 20 = 128 bits; pcs2 depth 2
 }
+os.environ["TENSOR_BATCH_MATMULS"] = "1"
 
 
 def run_one(binary, args, gb, label):
@@ -70,16 +71,18 @@ def cmd_run(ns):
     if "prims" in suites:
         emit("prims-1t", run_one(ns.bin, ["prims", 1], 4, "cmp-prims"))
     if "toy" in suites:
-        for name, (q, lb, pw) in TOY_CONFIGS.items():
+        for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for L in (16, 18, 20, 22):
-                emit(f"toy-{name}-L{L}-1t", run_one(ns.bin, ["product", L, 1, q, lb, pw], 6, "cmp-toy"))
-            emit(f"toy-{name}-L20-12t", run_one(ns.bin, ["product", 20, 12, q, lb, pw], 6, "cmp-toy"))
+                emit(f"toy-{name}-L{L}-1t", run_one(ns.bin, ["product", L, 1, q, lb, pw] + ex, 6, "cmp-toy"))
+            emit(f"toy-{name}-L20-12t", run_one(ns.bin, ["product", 20, 12, q, lb, pw] + ex, 6, "cmp-toy"))
     if "mlp" in suites:
-        for lt in (8, 9, 10):
-            emit(f"mlp-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, 64, 2, 20], 12 if lt < 11 else 16, "cmp-mlp"))
+        for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
+            for lt in (8, 9, 10, 11):
+                emit(f"mlp-{name}-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, q, lb, pw] + ex, 10 if lt < 11 else 14, "cmp-mlp"))
     if "layer" in suites:
-        for lt in (8, 9, 10):
-            emit(f"layer-t{lt}", run_one(ns.bin, ["layer", lt, 12, 13, 5, 12], 12, "cmp-layer"))
+        for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
+            for lt in (9, 10):
+                emit(f"layer-{name}-t{lt}", run_one(ns.bin, ["layer", lt, 11, 12, 4, 12, q, lb, pw, 2, 1] + ex, 12, "cmp-layer"))
 
 
 def fmt_bytes(b):
@@ -119,14 +122,22 @@ def cmd_report(ns):
             fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
             md.append(f"| {L} | {name} ({r['queries']}q, rate 1/{2**r['log_blowup']}, {r['pow_bits']} PoW) | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes'])} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
     md.append("")
-    mlp = [by[k] for k in sorted(by) if k.startswith("mlp-t") and "prove_s" in by[k]]
+    mlp = [by[k] for k in sorted(by, key=lambda k: (k.split("-")[1], by[k].get("tokens", 0))) if k.startswith("mlp-") and "prove_s" in by[k]]
     if mlp:
         md += ["## SwiGLU MLP layer (D=4096, F=8192, 100.7M int8 weights), 12 threads", "",
-               "| tokens | prove | verify | proof | proved MAC/s | prove us/token | committed bits/token | stage split (commit/GKR/op/batch/open) |",
-               "|---|---|---|---|---|---|---|---|"]
+               "| config | tokens | prove (+ integer forward) | verify | proof | proved MAC/s | prove us/token | committed bits/token | stage split (commit/GKR/op/batch/open) |",
+               "|---|---|---|---|---|---|---|---|---|"]
         for r in mlp:
             s = r["stage_s"]
-            md.append(f"| {int(r['tokens'])} | {r['prove_s']:.2f} s | {r['verify_s']*1e3:.0f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['proved_macs_per_s']:.2e} | {r['prove_ns_per_token']/1e3:.0f} | {r['committed_bits_per_token']:.0f} | {s['witness_commit']:.2f}/{s['gkr']:.2f}/{s['op_sumchecks']:.2f}/{s['batch']:.2f}/{s['witness_open']+s['weight_open']:.2f} |")
+            cfgname = r["tag"].split("-")[1]
+            md.append(f"| {cfgname} | {int(r['tokens'])} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['proved_macs_per_s']:.2e} | {r['prove_ns_per_token']/1e3:.0f} | {r['committed_bits_per_token']:.0f} | {s['witness_commit']:.2f}/{s['gkr']:.2f}/{s['op_sumchecks']:.2f}/{s['batch']:.2f}/{s['witness_open']+s['weight_open']:.2f} |")
+        md.append("")
+    lay = [by[k] for k in sorted(by) if k.startswith("layer-") and "prove_s" in by[k]]
+    if lay:
+        md += ["## Llama-style decoder layer (GQA attention + RoPE + softmax + RMSNorm + SwiGLU), 12 threads", "",
+               "| config | tokens | D | F | heads (q/kv) | weights | prove (+fwd) | verify | proof | prove ms/token |", "|---|---|---|---|---|---|---|---|---|---|"]
+        for r in lay:
+            md.append(f"| {r['tag'].split('-')[1]} | {2**r['log_t']} | {2**r['log_d']} | {2**r['log_f']} | {2**r['log_heads']}/{2**r['log_kv_heads']} | {r['weights']/1e6:.1f}M | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['prove_s']*1e3/2**r['log_t']:.2f} |")
         md.append("")
     open(os.path.join(ns.out, "COMPARISON.md"), "w").write("\n".join(md) + "\n")
     print("\n".join(md))
