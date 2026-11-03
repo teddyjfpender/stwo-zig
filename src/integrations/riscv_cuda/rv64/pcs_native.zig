@@ -32,6 +32,21 @@ pub const Context = struct {
     lease_validate: Abi.LeaseValidate,
     lease_validate_range: Abi.LeaseValidateRange,
     lease_release: Abi.LeaseRelease,
+    /// Failure-only owner-thread diagnostics. Optional runtime exports keep
+    /// older images usable; query failures must never replace the stage error.
+    pub fn logMemoryFailure(self: *Context, native_context: *anyopaque, operation_label: []const u8) void {
+        const Info = *const fn (*anyopaque, *usize, *usize) callconv(.c) c_int;
+        var free: usize = 0;
+        var total: usize = 0;
+        var used: usize = 0;
+        var reserved: usize = 0;
+        var live: [5]u64 = @splat(0);
+        var tracked: u64 = 0;
+        const memory_status = if (self.library.lookup(Info, "stwo_exec_context_memory_info")) |query| query(native_context, &free, &total) else -1;
+        const pool_status = if (self.library.lookup(Info, "stwo_exec_context_pool_current")) |query| query(native_context, &used, &reserved) else -1;
+        const lease_status = if (self.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases")) |query| query(self.session, &live, &tracked) else -1;
+        std.debug.print("GPU_MEMORY_FAILURE stage={s} cap_bytes={} memory_status={} free_bytes={} total_bytes={} pool_status={} pool_used_bytes={} pool_reserved_bytes={} lease_status={} tracked_bytes={} live_kinds={any}\n", .{ operation_label, self.byte_cap, memory_status, free, total, pool_status, used, reserved, lease_status, tracked, live });
+    }
     pub fn enableImmutableSetup(self: *Context, bytes: u64) !void {
         if (bytes == 0 or bytes > self.byte_cap) return error.InvalidImmutableSetupBudget;
         if (self.immutable_setup) |cache| {

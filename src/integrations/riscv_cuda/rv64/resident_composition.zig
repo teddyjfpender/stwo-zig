@@ -453,14 +453,18 @@ const Job = struct {
     result: ?D.Tree = null,
     failure: ?anyerror = null,
     active_role: u32 = 999,
+    native_context: ?*anyopaque = null,
     fn checked(self: *Job, comptime operation: []const u8, status: c_int) !void {
         if (status != 0) {
             std.debug.print("GPU_COMPOSITION_FAILED ordinal={} role={} operation={s} native_status={}\n", .{ self.scope.ordinal, self.active_role, operation, status });
+            if (self.native_context) |raw| self.backend.service.logMemoryFailure(raw, operation);
             return error.CudaResidentCompositionFailed;
         }
     }
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(data.?));
+        self.native_context = raw;
+        defer self.native_context = null;
         self.run(raw, token) catch |err| {
             self.failure = err;
             return 1;
