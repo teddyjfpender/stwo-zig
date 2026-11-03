@@ -12,6 +12,7 @@ const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
 const M = D.M;
 const N2b = *const fn ([*]u32, usize, ?*const anyopaque, u32, usize, u32, [*]const u32, u32, u32, *anyopaque, u32, *u32) callconv(.c) c_int;
+const N2bColumns = *const @TypeOf(@import("stwo_cuda_backend").abi.stages.transform.stwo_lde_n2b_columns_on);
 const B2n = *const fn ([*]const u32, usize, [*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;
 fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
     return lib.lookup(T, name) orelse error.MissingTraceCommitSymbol;
@@ -29,6 +30,7 @@ pub const Context = struct {
     service: *Service.Context,
     api: SC.Api,
     n2b: N2b,
+    n2b_columns: ?N2bColumns,
     b2n: B2n,
     copy: Native.CopyDevice,
     tree: *const @TypeOf(A.stwo_rv64_trace_tree_on),
@@ -45,7 +47,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind") };
+        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind") };
     }
     pub fn deinit(self: *Context) void {
         for (self.returned.items) |columns| std.heap.page_allocator.free(columns);
@@ -128,10 +130,21 @@ const Job = struct {
         const eval_cells = try std.math.mul(usize, coefficient_cells, @as(usize, 1) << @intCast(beta));
         const eval_log = max_log + beta;
         const tw = try b.tw(eval_log);
-        const tw_base = try std.math.add(usize, coefficient_cells, eval_cells);
+        // The established column LDE ABI accepts a compact coefficient stride
+        // when beta=1. Keep these coefficients in their final owned lease:
+        // committing must not allocate and copy a second full coefficient slab.
+        const separate_coefficients = beta == 1 and b.n2b_columns != null;
+        var coefficients = Native.Lease{};
+        var transferred = false;
+        defer if (!transferred and coefficients.words != null) {
+            ctx.join() catch {};
+            _ = b.api.release(b.service.session, &coefficients);
+        };
+        if (separate_coefficients) coefficients = try ctx.allocate(coefficient_cells, 2);
+        const tw_base = try std.math.add(usize, if (separate_coefficients) 0 else coefficient_cells, eval_cells);
         const inverse_base = try std.math.add(usize, tw_base, tw.twiddles.len);
         const desc_base = std.mem.alignForward(usize, try std.math.add(usize, inverse_base, tw.itwiddles.len), 2);
-        const arena_cells = try std.math.add(usize, desc_base, try std.math.mul(usize, r.columns.len, 6));
+        const arena_cells = try std.math.add(usize, desc_base, try std.math.mul(usize, r.columns.len, 7));
         var arena = try ctx.allocate(arena_cells, 0);
         defer {
             ctx.join() catch {};
@@ -139,9 +152,11 @@ const Job = struct {
         }
         const ptr = arena.words.?;
         const arena_slice = try ctx.borrow(arena);
-        const descriptors = try a.alloc(u32, 6 * order.len);
+        const coefficient_slice = if (separate_coefficients) try ctx.borrow(coefficients) else arena_slice;
+        const coefficient_ptr = if (separate_coefficients) coefficients.words.? else ptr;
+        const descriptors = try a.alloc(u32, 7 * order.len);
         defer a.free(descriptors);
-        var eval_offset = coefficient_cells;
+        var eval_offset: usize = if (separate_coefficients) 0 else coefficient_cells;
         var segments: std.ArrayList(A.MixedSegment) = .empty;
         defer segments.deinit(a);
         var pending_copy: ?DeviceCopy.Run = null;
@@ -154,20 +169,21 @@ const Job = struct {
                 const next = try DeviceCopy.Run.init(@intFromPtr(device.words), offsets[original], count, device.context_token, device.generation);
                 if (pending_copy) |*copy_run| {
                     if (!try copy_run.append(next)) {
-                        try DeviceCopy.execute(&ctx, b.copy, arena_slice, copy_run.*);
+                        try DeviceCopy.execute(&ctx, b.copy, coefficient_slice, copy_run.*);
                         pending_copy = next;
                     }
                 } else pending_copy = next;
             } else {
-                if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, arena_slice, copy_run);
+                if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, coefficient_slice, copy_run);
                 pending_copy = null;
-                try check(b.api.upload(raw, ptr + offsets[original], column.host.ptr, count * 4));
+                try check(b.api.upload(raw, coefficient_ptr + offsets[original], column.host.ptr, count * 4));
             }
+            descriptors[6 * order.len + i] = column.log_size;
             descriptors[6 * i ..][0..6].* = .{ @truncate(offsets[original]), @truncate(@as(u64, offsets[original]) >> 32), @truncate(eval_offset), @truncate(@as(u64, eval_offset) >> 32), column.log_size, 0 };
             if (segments.items.len != 0 and segments.items[segments.items.len - 1].source_size == rows) segments.items[segments.items.len - 1].capacity_words += rows else try segments.append(a, .{ .columns = ptr + eval_offset, .stride_words = rows, .capacity_words = rows, .source_size = @intCast(rows), .reserved = 0 });
             eval_offset += rows;
         }
-        if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, arena_slice, copy_run);
+        if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, coefficient_slice, copy_run);
         try check(b.api.upload(raw, ptr + tw_base, tw.twiddles.ptr, tw.twiddles.len * 4));
         try check(b.api.upload(raw, ptr + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
         try check(b.api.upload(raw, ptr + desc_base, descriptors.ptr, descriptors.len * 4));
@@ -194,7 +210,7 @@ const Job = struct {
             {}
             const rows = @as(usize, 1) << @intCast(column.log_size);
             const inverse_offset = inverse_base + tw.itwiddles.len - rows / 2;
-            try check(b.b2n(ptr + offsets[original], rows, ptr + offsets[original], rows, column.log_size, @intCast(interpolation_end - interpolation_first), ptr + inverse_offset, @intCast(rows / 2), @intCast(rows / 2), lane, &launches));
+            try check(b.b2n(coefficient_ptr + offsets[original], rows, coefficient_ptr + offsets[original], rows, column.log_size, @intCast(interpolation_end - interpolation_first), ptr + inverse_offset, @intCast(rows / 2), @intCast(rows / 2), lane, &launches));
             interpolation_first = interpolation_end;
         }
         var first: usize = 0;
@@ -204,7 +220,10 @@ const Job = struct {
             while (end < order.len and r.columns[order[end]].log_size + beta == log) : (end += 1) {}
             const rows = @as(usize, 1) << @intCast(log);
             const destination = @as(u64, descriptors[6 * first + 2]) | (@as(u64, descriptors[6 * first + 3]) << 32);
-            try check(b.n2b(ptr, arena.count, ptr + desc_base + 6 * first, @intCast(end - first), @intCast(destination), log, ptr + tw_base + tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), lane, 1, &launches));
+            if (separate_coefficients) {
+                const count = @as(usize, 1) << @intCast(r.columns[order[first]].log_size);
+                try check(b.n2b_columns.?(coefficient_ptr + offsets[order[first]], count, ptr + desc_base + 6 * order.len + first, ptr + @as(usize, @intCast(destination)), rows, log, @intCast(end - first), ptr + tw_base + tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), lane, &launches));
+            } else try check(b.n2b(ptr, arena.count, ptr + desc_base + 6 * first, @intCast(end - first), @intCast(destination), log, ptr + tw_base + tw.twiddles.len - rows / 2, @intCast(rows / 2), @intCast(rows / 2), lane, 1, &launches));
             first = end;
         }
         const tree_words = ((@as(usize, 2) << @intCast(eval_log)) - 1) * 8;
@@ -232,14 +251,12 @@ const Job = struct {
         var final_scope = r.scope;
         if (r.tree_index == 1) final_scope.main = root;
         const promoted = @import("pcs_scope.zig").identity(final_scope);
-        var coefficients = try ctx.allocate(coefficient_cells, 2);
-        var transferred = false;
-        defer if (!transferred) {
-            ctx.join() catch {};
-            _ = b.api.release(b.service.session, &coefficients);
-        };
-        try check(b.copy(raw, coefficients.words.?, ptr, coefficient_cells * 4));
-        try ctx.join();
+        if (!separate_coefficients) {
+            coefficients = try ctx.allocate(coefficient_cells, 2);
+            try check(b.copy(raw, coefficients.words.?, ptr, coefficient_cells * 4));
+            try ctx.join();
+        }
+        std.debug.print("GPU_TRACE_OWNERSHIP tree={} coefficient_words={} scratch_words={} final_coefficient_copy_words={}\n", .{ r.tree_index, coefficient_cells, arena_cells, if (separate_coefficients) @as(usize, 0) else coefficient_cells });
         const columns = try std.heap.page_allocator.alloc(D.Column, r.columns.len);
         errdefer std.heap.page_allocator.free(columns);
         for (columns, r.columns, 0..) |*column, input, i| column.* = .{ .log_size = input.log_size, .device = .{ .words = coefficients.words.? + offsets[i], .count = @as(u64, 1) << @intCast(input.log_size), .context_token = coefficients.context_token, .generation = coefficients.generation } };
