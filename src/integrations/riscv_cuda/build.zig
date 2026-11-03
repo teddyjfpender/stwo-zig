@@ -138,7 +138,10 @@ pub fn build(b: *std.Build) void {
     joined_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     joined_root.addImport("stwo_cuda_backend", backend);
     joined_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    joined_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
+    joined_root.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api") orelse @panic("missing native prover API"));
     const joined_fixture = b.addExecutable(.{ .name = "rv64-joined-fixtures", .root_module = joined_root });
+    b.step("build-rv64-joined-tool", "Build existing joined AIR tool without running it").dependOn(&b.addInstallArtifact(joined_fixture, .{}).step);
     const run_joined = b.addRunArtifact(joined_fixture);
     if (b.args) |args| run_joined.addArgs(args);
     b.step("rv64-joined-fixtures", "Export complete joined native AIR fixtures and cold CUDA kernels").dependOn(&run_joined.step);
