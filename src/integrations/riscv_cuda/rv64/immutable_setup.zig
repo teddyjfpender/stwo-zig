@@ -6,7 +6,7 @@ const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Bind = *const fn (*anyopaque, *const A.Lease, *const [8]u32, *const [8]u32) callconv(.c) c_int;
 const Seal = *const fn (*anyopaque, *const A.Lease, *const [8]u32) callconv(.c) c_int;
 const Unbind = *const fn (*anyopaque, *const [8]u32) callconv(.c) c_int;
-const Entry = struct { key: [8]u32, lease: A.Lease, users: usize = 0, columns: []D.Column = &.{}, fixed_root: ?[32]u8 = null };
+const Entry = struct { key: [8]u32, lease: A.Lease, users: usize = 0, last_used: u64 = 0, columns: []D.Column = &.{}, fixed_root: ?[32]u8 = null };
 const Borrow = struct { scope: [8]u32, key: [8]u32 };
 pub const Cache = struct {
     session: *anyopaque,
@@ -26,6 +26,7 @@ pub const Cache = struct {
     hits: u64 = 0,
     uploads: u64 = 0,
     evictions: u64 = 0,
+    access_clock: u64 = 0,
     const allocator = std.heap.page_allocator;
     pub fn init(library: *std.DynLib, session: *anyopaque, allocate: A.LeaseAllocate, release: A.LeaseRelease, limit: u64) !Cache {
         if (limit == 0) return error.InvalidImmutableSetupBudget;
@@ -63,6 +64,15 @@ pub const Cache = struct {
         return null;
     }
     fn acquire(self: *Cache, index_: usize, scope: [8]u32) !A.Lease {
+        // Entry storage uses swapRemove, so array order is not recency order.
+        // Protect hot immutable ROM/setup even when the previous victim swaps
+        // a just-used forest into the first slot.
+        if (self.access_clock == std.math.maxInt(u64)) {
+            for (self.entries.items) |*cached| cached.last_used = 0;
+            self.access_clock = 0;
+        }
+        self.access_clock += 1;
+        self.entries.items[index_].last_used = self.access_clock;
         const entry = &self.entries.items[index_];
         for (self.borrows.items) |borrow| if (std.mem.eql(u32, &borrow.scope, &scope) and std.mem.eql(u32, &borrow.key, &entry.key)) return entry.lease;
         if (self.borrows.items.len >= 65536) return error.ImmutableSetupBorrowLimit;
@@ -77,8 +87,7 @@ pub const Cache = struct {
         while (self.bytes > self.limit - required or self.entries.items.len >= 256) {
             var victim: ?usize = null;
             for (self.entries.items, 0..) |entry, i| if (entry.users == 0) {
-                victim = i;
-                break;
+                if (victim == null or entry.last_used < self.entries.items[victim.?].last_used) victim = i;
             };
             const i = victim orelse return error.ImmutableSetupStillBorrowed;
             var entry = self.entries.items[i];
@@ -315,6 +324,29 @@ test "immutable FIXED forest reuses geometry across statements without host copi
     try std.testing.expect((try cache.fixedColumn(scope, 0, columns[0])) != null);
     try cache.releaseScope(prior);
     try cache.releaseScope(@import("pcs_scope.zig").identity(scope));
+    try cache.deinit();
+    try std.testing.expectEqual(fake.allocations, fake.frees);
+}
+
+test "immutable setup retains recently reused identity when cold entries compete" {
+    var fake = Fake{};
+    var cache = fake.cache(3 * 64);
+    const data = [_]u32{7} ** 16;
+    const scope = [_]u32{1} ** 8;
+    for (2..5) |id| {
+        _ = try cache.words(&fake, scope, @splat(@intCast(id)), &data);
+        try cache.releaseScope(scope);
+    }
+    const hot = (try cache.lookup(scope, @splat(2), data.len)).?;
+    try cache.releaseScope(scope);
+    _ = try cache.words(&fake, scope, @splat(5), &data);
+    try cache.releaseScope(scope);
+    try std.testing.expect((try cache.lookup(scope, @splat(3), data.len)) == null);
+    const retained = (try cache.lookup(scope, @splat(2), data.len)).?;
+    try std.testing.expectEqual(hot.generation, retained.generation);
+    try std.testing.expectEqual(@as(u64, 1), cache.evictions);
+    try std.testing.expectEqual(@as(u64, 3 * 64), cache.bytes);
+    try cache.releaseScope(scope);
     try cache.deinit();
     try std.testing.expectEqual(fake.allocations, fake.frees);
 }
