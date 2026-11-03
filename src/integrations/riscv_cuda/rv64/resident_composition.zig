@@ -2,6 +2,7 @@
 //! are ingress only; quotient buckets, interpolation and final coefficients never
 //! return to the host. The sole numerical readback is the committed root.
 const std = @import("std");
+const CopyRun = @import("device_copy_run.zig").Run;
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const CPU = @import("stwo_riscv_cpu_integration");
@@ -417,6 +418,13 @@ const Job = struct {
         };
         return 0;
     }
+    fn copyRun(self: *Job, raw: *anyopaque, context: *SC.Context, arena: [*]u32, segment: CopyRun) !void {
+        const b = self.backend;
+        // Check the WHOLE merged range in this proof's namespace. Adjacency
+        // alone is never allocation authority or permission to cross scopes.
+        try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, @ptrFromInt(segment.source), segment.words, segment.context_token, segment.generation, &context.scope));
+        try self.checked("copy", b.copy(raw, @ptrCast(arena + segment.target_word), @ptrFromInt(segment.source), try std.math.mul(usize, segment.words, 4)));
+    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const a = self.allocator;
         const b = self.backend;
@@ -438,6 +446,7 @@ const Job = struct {
         const immutable_fixed = try b.service.immutableFixed(raw, self.scope, fixed_columns);
         var host_cells: u64 = 0;
         var device_cells: u64 = 0;
+        var device_copy_calls: usize = 0;
         var domain_cells: u64 = 0;
         var leases: std.ArrayList(Native.Lease) = .empty;
         defer {
@@ -496,6 +505,7 @@ const Job = struct {
             }
             const arena_ptr = arena.words.?;
             var coefficient_offset: usize = 0;
+            var copy_run: ?CopyRun = null;
             try events.mark(.coefficients, false, stream0.?);
             for (source_metadata, 0..) |original, i| {
                 const values = original.coefficients;
@@ -509,14 +519,29 @@ const Job = struct {
                 };
                 const immutable = if (source_tree == 0 and original.device == null) immutable_fixed[original_index].device else null;
                 if (if (original.device != null) original.device else immutable orelse b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
-                    try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
-                    try self.checked("copy", b.copy(raw, @ptrCast(target), @ptrCast(device.words), length * 4));
+                    const next_run = try CopyRun.init(@intFromPtr(device.words), coefficient_offset, length, device.context_token, device.generation);
+                    if (copy_run) |*pending| {
+                        if (!try pending.append(next_run)) {
+                            try self.copyRun(raw, &context, arena_ptr, pending.*);
+                            device_copy_calls += 1;
+                            copy_run = next_run;
+                        }
+                    } else copy_run = next_run;
                     device_cells += length;
                 } else {
+                    if (copy_run) |pending| {
+                        try self.copyRun(raw, &context, arena_ptr, pending);
+                        device_copy_calls += 1;
+                        copy_run = null;
+                    }
                     try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(target), values.ptr, values.len * 4));
                     host_cells += values.len;
                 }
                 coefficient_offset += length;
+            }
+            if (copy_run) |pending| {
+                try self.copyRun(raw, &context, arena_ptr, pending);
+                device_copy_calls += 1;
             }
             try events.mark(.coefficients, true, stream0.?);
             if (aux != 0) {
@@ -653,7 +678,7 @@ const Job = struct {
         self.result = .{ .root = root, .columns = columns };
         var kernel_ms: f64 = 0;
         for (spans[1..]) |value| kernel_ms += value;
-        std.debug.print("GPU_COMPOSITION_TIMING ordinal={} coefficient_stream_ms={d:.3} auxiliary_ms={d:.3} domain_fft_ms={d:.3} rows_ms={d:.3} finalize_ms={d:.3} commit_fft_ms={d:.3} commit_hash_ms={d:.3} gpu_enqueued_kernel_spans_ms={d:.3} host_coefficient_cells={} device_coefficient_cells={} domain_cells={} geometry_hits={} geometry_misses={} retained_setup_bytes={} retained_geometry_bytes={} retained_twiddle_bytes={} retained_artifact_bytes={} setup_cache_cap_bytes={} uncached_geometries={} uncached_twiddles={}\n", .{ self.scope.ordinal, spans[0], spans[1], spans[2], spans[3], spans[4], spans[5], spans[6], kernel_ms, host_cells, device_cells, domain_cells, b.geometry_hits, b.geometry_misses, b.retainedBytes(), b.geometry_bytes, b.twiddle_bytes, b.artifact_bytes, b.cache_limit_bytes, b.uncached_geometries, b.uncached_twiddles });
+        std.debug.print("GPU_COMPOSITION_TIMING ordinal={} coefficient_stream_ms={d:.3} auxiliary_ms={d:.3} domain_fft_ms={d:.3} rows_ms={d:.3} finalize_ms={d:.3} commit_fft_ms={d:.3} commit_hash_ms={d:.3} gpu_enqueued_kernel_spans_ms={d:.3} host_coefficient_cells={} device_coefficient_cells={} device_copy_calls={} domain_cells={} geometry_hits={} geometry_misses={} retained_setup_bytes={} retained_geometry_bytes={} retained_twiddle_bytes={} retained_artifact_bytes={} setup_cache_cap_bytes={} uncached_geometries={} uncached_twiddles={}\n", .{ self.scope.ordinal, spans[0], spans[1], spans[2], spans[3], spans[4], spans[5], spans[6], kernel_ms, host_cells, device_cells, device_copy_calls, domain_cells, b.geometry_hits, b.geometry_misses, b.retainedBytes(), b.geometry_bytes, b.twiddle_bytes, b.artifact_bytes, b.cache_limit_bytes, b.uncached_geometries, b.uncached_twiddles });
     }
 };
 fn allocate(a: std.mem.Allocator, c: *SC.Context, list: *std.ArrayList(Native.Lease), n: usize, kind: u32) !Native.Lease {
@@ -753,4 +778,8 @@ test "truth stages retain typed authority with the same resident numerical pipel
     try std.testing.expectEqual(@intFromPtr(&context), @intFromPtr(stage.context));
     try std.testing.expect(@intFromPtr(stage.evaluate_and_commit) != 0);
     _ = Context.truthStage;
+}
+
+test {
+    _ = @import("device_copy_run.zig");
 }
