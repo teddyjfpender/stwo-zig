@@ -24,6 +24,7 @@ def main():
     p.add_argument("--sanitizer", default="/usr/local/cuda/bin/compute-sanitizer")
     p.add_argument("--arch", choices=["89", "90", "100", "120"], default="120")
     p.add_argument("--jobs", type=int, default=4)
+    p.add_argument("--domain", action="store_true", help="Qualify base-field domain kernels instead of secure OODS kernels")
     args = p.parse_args()
     if args.jobs < 1 or args.jobs > 16:
         p.error("--jobs must be between 1 and 16")
@@ -34,13 +35,13 @@ def main():
     logs = build / "logs"
     logs.mkdir(exist_ok=True)
     native = root / "src/backends/cuda/native"
-    driver = root / "tests/cuda/rv64/joined_smoke.cu"
+    driver = root / ("tests/cuda/rv64/joined_domain_smoke.cu" if args.domain else "tests/cuda/rv64/joined_smoke.cu")
     flags = ["-O3", "-std=c++17", "-lineinfo", "-gencode", f"arch=compute_{args.arch},code=sm_{args.arch}",
              f"-I{native}", f"-I{root / 'tests/cuda/rv64'}", f"-I{fixtures}", "-Xcompiler=-pthread"]
     version = subprocess.check_output([args.nvcc, "--version"], text=True)
     headers = sorted(native.rglob("*.h")) + sorted(native.rglob("*.cuh")) + sorted((root / "tests/cuda/rv64").glob("*.cuh")) + sorted((root / "tests/cuda/rv64").glob("*.h")) + sorted(fixtures.glob("*.h"))
     header_digest = hashlib.sha256("".join(str(x.relative_to(root) if x.is_relative_to(root) else x.name) + sha(x) for x in headers).encode()).hexdigest()
-    sources = sorted(fixtures.glob("case-*-oods.cu")) + [native / "rv64/parameters.cu"]
+    sources = sorted(fixtures.glob("case-*-domain.cu" if args.domain else "case-*-oods.cu")) + [native / "rv64/parameters.cu"]
     if not sources or len(sources) != len(list(fixtures.glob("case-*.bin"))) + 1:
         p.error("fixture source/data inventory is incomplete")
 
@@ -95,6 +96,7 @@ def main():
             subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
         print(json.dumps({"gate": name, "status": "PASS"}), flush=True)
     receipt = {"schema": "rv64-cuda-joined-numerical/v1", "full_block_verified": False,
+               "evaluation": "domain" if args.domain else "oods",
                "scope": "synthetic native joined polynomial parity, not authenticated execution acceptance",
                "build_seconds": build_seconds, "jobs": args.jobs, "arch": args.arch,
                "compiler": version, "builder_sha256": sha(Path(__file__).resolve()), "header_digest": header_digest,

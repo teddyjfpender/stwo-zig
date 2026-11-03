@@ -138,6 +138,10 @@ pub fn ForField(comptime Secure: type) type {
                 /// commits every tree at its largest column, the Native and Cairo
                 /// lanes' rule; `config` then defines the whole protocol.
                 revision_config: ?revision_lifting.PcsConfigV2 = null,
+                /// Explicit hybrid/native OM31 offload selected by this proof's
+                /// worker. Other hash/field/revision families reject it.
+                device_om31_pcs_stage: ?*const prover_api.device_pcs.Stage = null,
+                device_om31_scope: ?prover_api.device_pcs.Scope = null,
 
                 const Self = @This();
 
@@ -392,6 +396,37 @@ pub fn ForField(comptime Secure: type) type {
                     );
 
                     const lifting_log_size = try scheme.proofLiftingLogSize();
+                    if (scheme.device_om31_pcs_stage) |stage| {
+                        const D = prover_api.device_pcs;
+                        if (comptime Secure == D.O and H == D.H and @TypeOf(channel.*) == D.Channel) {
+                            if (scheme.revision_config != null) return error.UnsupportedDevicePcsRevision;
+                            const trees = try allocator.alloc(D.Tree, scheme.trees.items.len);
+                            defer allocator.free(trees);
+                            var made: usize = 0;
+                            defer for (trees[0..made]) |tree| allocator.free(tree.columns);
+                            for (scheme.trees.items, trees) |tree, *out| {
+                                const coefficients = tree.coefficients orelse return error.DevicePcsCoefficientsRequired;
+                                const columns = try allocator.alloc(D.Column, coefficients.len);
+                                out.* = .{ .root = tree.root(), .columns = columns };
+                                made += 1;
+                                for (coefficients, columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+                            }
+                            var after = channel.*;
+                            var result = try stage.prove(stage.context, allocator, .{ .scope = scheme.device_om31_scope, .config = scheme.config, .lifting_log_size = lifting_log_size, .trees = trees, .points = sampled_points_owned }, &after);
+                            errdefer result.deinit(allocator);
+                            if (!std.meta.eql(result.proof.config, scheme.config) or result.proof.commitments.items.len != trees.len or result.proof.sampled_values.items.len != trees.len) return error.DevicePcsOutputMismatch;
+                            for (trees, result.proof.commitments.items, result.proof.sampled_values.items, sampled_points_owned.items) |tree, root, values, points| {
+                                if (!std.mem.eql(u8, &tree.root, &root) or values.len != tree.columns.len or points.len != values.len) return error.DevicePcsOutputMismatch;
+                                for (values, points) |v, p| if (v.len != p.len) return error.DevicePcsOutputMismatch;
+                            }
+                            channel.* = after;
+                            scheme.deinit(allocator);
+                            owns_scheme = false;
+                            sampled_points_owned.deinitDeep(allocator);
+                            owns_sampled_points = false;
+                            return result;
+                        } else return error.UnsupportedDevicePcsProtocol;
+                    }
                     const sampled_values = blk: {
                         var sampled_value_eval_stage = try stage_profile.StageScope.begin(
                             recorder,

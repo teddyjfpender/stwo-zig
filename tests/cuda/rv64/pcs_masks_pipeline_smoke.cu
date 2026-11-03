@@ -12,6 +12,10 @@ extern "C" int stwo_lde_n2b_addressed_on(uint32_t *, size_t, const void *,
                                          uint32_t, size_t, uint32_t,
                                          const uint32_t *, uint32_t, uint32_t,
                                          void *, uint32_t, uint32_t *);
+extern "C" int stwo_blake2s_pow_persistent_on(const uint32_t *, uint32_t,
+                                              unsigned long long, uint32_t *,
+                                              unsigned long long *, uint32_t *,
+                                              uint32_t *, void *);
 namespace b = stwo::cuda::blake2s;
 static void write_words(std::ofstream &f, const std::vector<uint32_t> &data) {
   for (auto word : data) {
@@ -33,24 +37,28 @@ static void exercise(const std::string &input_path,
                      const std::string &output_path) {
   FixtureWords f(input_path);
   const auto h = f.take(24);
-  if (h[0] != 0x52564d53 || h[1] != 2 || h[2] || h[21] || h[22] || h[23])
+  if (h[0] != 0x52564d53 || h[1] != 2 || h[2] || h[21] > 1 || h[22] > 32 ||
+      h[23])
     throw std::runtime_error("masked PCS header");
   const uint32_t degree = h[3], log = h[4], queries = h[6], sc = h[8],
                  tc = h[9], gc = h[10], sgc = h[11], nt = h[12],
-                 sample_count = h[13], layers = h[14], rows = 1u << log;
+                 sample_count = h[13], layers = h[14];
   if (log > 28 || !nt || nt > 4 || !sc || sc > 65536 || !tc || tc > 65536 ||
       !gc || gc > 1024 || !sgc || sgc > 96 || !sample_count ||
       sample_count > 65536)
     throw std::runtime_error("masked PCS shape");
-  const auto initial_seed = f.take(9), sources = f.take(sc * 4),
-             terms = f.take(tc * 4), groups = f.take(gc * 8),
-             source_groups = f.take(sgc * 8), tree_info = f.take(nt * 6),
-             recipes = f.take(gc * 4), deep_tw = f.take(gc * 2),
-             sample_map = f.take(sample_count), sample_counts = f.take(sc),
-             source_coefficients = f.take(h[15]), twiddles = f.take(h[19]),
-             descriptions = f.take(layers * 8), fri_twiddles = f.take(h[20]),
-             domain = f.take(rows * 2), expected_roots = f.take(nt * 8),
-             expected_hash = f.take(8), expected_channel = f.take(9);
+  const uint32_t rows = 1u << log;
+  const auto initial_seed = f.take(9);
+  const auto imported_point = h[21] ? f.take(16) : std::vector<uint32_t>{};
+  const auto sources = f.take(sc * 4), terms = f.take(tc * 4),
+             groups = f.take(gc * 8), source_groups = f.take(sgc * 8),
+             tree_info = f.take(nt * 6), recipes = f.take(gc * 4),
+             deep_tw = f.take(gc * 2), sample_map = f.take(sample_count),
+             sample_counts = f.take(sc), source_coefficients = f.take(h[15]),
+             twiddles = f.take(h[19]), descriptions = f.take(layers * 8),
+             fri_twiddles = f.take(h[20]), domain = f.take(rows * 2),
+             expected_roots = f.take(nt * 8), expected_hash = f.take(8),
+             expected_channel = f.take(9);
   if (f.position != f.data.size())
     throw std::runtime_error("masked PCS fixture trailing words");
   Owner o(0);
@@ -129,7 +137,8 @@ static void exercise(const std::string &input_path,
              recipe = upload(recipes), xy = upload(domain),
              fri_tw = upload(fri_twiddles);
   const auto state = o.plane(16, 1), boundary = o.plane(16, 1),
-             parameter = o.plane(8, 1), point_arena = o.plane((gc + 1) * 16, 1),
+             parameter = h[21] ? upload(imported_point) : o.plane(8, 1),
+             point_arena = o.plane((gc + 1) * 16, 1),
              factors = o.plane(gc * 28 * 8, 1),
              point_ready = o.plane(gc + 1, 1),
              sample_scratch_a = o.plane(sample_scratch_words, 1),
@@ -139,7 +148,9 @@ static void exercise(const std::string &input_path,
              weights = o.plane(tc * 8, 1), linear = o.plane(gc * 16, 1),
              deep_valid = o.plane(2, 1), deep = o.plane(rows, 8),
              terminal = o.plane(8, 1), raw = o.plane(queries, 1),
-             nonce = upload({0, 0}), status = upload({0});
+             nonce = upload({0, 0}), status = upload({0}),
+             pow_prefix = o.plane(8, 1), pow_best = o.plane(2, 1),
+             pow_blocks = o.plane(1, 1);
   struct TraceStorage {
     StwoRv64Plane tree, values, paths;
     uint32_t first, columns, group, groups, log;
@@ -223,9 +234,11 @@ static void exercise(const std::string &input_path,
                                     18 + step, 1, p, boundary.words));
     ++step;
   };
-  for (const auto &t : traces)
-    mix(t.tree.words + t.tree_words - 8, 8, 0);
-  draw(parameter.words);
+  if (!h[21]) {
+    for (const auto &t : traces)
+      mix(t.tree.words + t.tree_words - 8, 8, 0);
+    draw(parameter.words);
+  }
   StwoRv64SamplePoints point_job{
       parameter.words,
       reinterpret_cast<const StwoRv64PointRecipe *>(recipe.words),
@@ -235,7 +248,8 @@ static void exercise(const std::string &input_path,
       status.words,
       gc,
       0};
-  CHECK(stwo_rv64_sample_points_on(o.ctx, 1, &point_job));
+  CHECK(h[21] ? stwo_rv64_sample_points_from_point_on(o.ctx, 1, &point_job)
+              : stwo_rv64_sample_points_on(o.ctx, 1, &point_job));
   for (uint32_t g = 0; g < gc; ++g) {
     const auto *d = groups.data() + g * 8;
     StwoRv64SampleEvaluation sample{};
@@ -323,6 +337,12 @@ static void exercise(const std::string &input_path,
   CHECK(stwo_rv64_fri_terminal_on(o.ctx, 1, last, 1u << h[5], terminal.words,
                                   status.words));
   mix(terminal.words, 8, 1);
+  if (h[22]) {
+    CHECK(stwo_blake2s_pow_persistent_on(
+        state.words, h[22], 1ull << 40, pow_prefix.words,
+        reinterpret_cast<unsigned long long *>(pow_best.words),
+        pow_blocks.words, nonce.words, stream_raw));
+  }
   mix(nonce.words, 2, 0);
   CHECK(stwo_rv64_channel_queries_on(o.ctx, 1, state.words, step, 17 + step,
                                      18 + step, log, queries, raw.words,

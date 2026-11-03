@@ -1,0 +1,275 @@
+{
+  "schema": "rv64-real-segment-gkr-capacity/v1",
+  "block": 24628607,
+  "segment": 0,
+  "origin": "Current SourceAuthority.Descriptor.terms() compiled for compact CPU/U8-pair mode; row heights from fresh accepted native prefix. INIT/TEARDOWN are global RAM, not local GKR instances.",
+  "instances": [
+    {
+      "role": "cpu",
+      "row_log": 22,
+      "terms": 14,
+      "variables": 26,
+      "facts": 67108864
+    },
+    {
+      "role": "rom",
+      "row_log": 18,
+      "terms": 1,
+      "variables": 18,
+      "facts": 262144
+    },
+    {
+      "role": "boundary",
+      "row_log": 5,
+      "terms": 2,
+      "variables": 6,
+      "facts": 64
+    },
+    {
+      "role": "alu",
+      "row_log": 18,
+      "terms": 13,
+      "variables": 22,
+      "facts": 4194304
+    },
+    {
+      "role": "binary",
+      "row_log": 17,
+      "terms": 9,
+      "variables": 21,
+      "facts": 2097152
+    },
+    {
+      "role": "shift",
+      "row_log": 16,
+      "terms": 11,
+      "variables": 20,
+      "facts": 1048576
+    },
+    {
+      "role": "jalr",
+      "row_log": 16,
+      "terms": 3,
+      "variables": 18,
+      "facts": 262144
+    },
+    {
+      "role": "division",
+      "row_log": 11,
+      "terms": 26,
+      "variables": 16,
+      "facts": 65536
+    },
+    {
+      "role": "multiplication",
+      "row_log": 16,
+      "terms": 97,
+      "variables": 23,
+      "facts": 8388608
+    },
+    {
+      "role": "shift_table",
+      "row_log": 16,
+      "terms": 16,
+      "variables": 20,
+      "facts": 1048576
+    },
+    {
+      "role": "and_table",
+      "row_log": 16,
+      "terms": 2,
+      "variables": 17,
+      "facts": 131072
+    },
+    {
+      "role": "range16",
+      "row_log": 16,
+      "terms": 1,
+      "variables": 16,
+      "facts": 65536
+    },
+    {
+      "role": "range8",
+      "row_log": 8,
+      "terms": 1,
+      "variables": 8,
+      "facts": 256
+    },
+    {
+      "role": "ls",
+      "row_log": 18,
+      "terms": 10,
+      "variables": 22,
+      "facts": 4194304
+    },
+    {
+      "role": "selection",
+      "row_log": 16,
+      "terms": 2,
+      "variables": 17,
+      "facts": 131072
+    },
+    {
+      "role": "ls_tail",
+      "row_log": 14,
+      "terms": 10,
+      "variables": 18,
+      "facts": 262144
+    },
+    {
+      "role": "alu_tail",
+      "row_log": 17,
+      "terms": 13,
+      "variables": 21,
+      "facts": 2097152
+    },
+    {
+      "role": "shift_tail",
+      "row_log": 13,
+      "terms": 11,
+      "variables": 17,
+      "facts": 131072
+    },
+    {
+      "role": "keccak",
+      "row_log": 15,
+      "terms": 42,
+      "variables": 21,
+      "facts": 2097152
+    },
+    {
+      "role": "add",
+      "row_log": 11,
+      "terms": 100,
+      "variables": 18,
+      "facts": 262144
+    },
+    {
+      "role": "double",
+      "row_log": 10,
+      "terms": 100,
+      "variables": 17,
+      "facts": 131072
+    },
+    {
+      "role": "sha256",
+      "row_log": 5,
+      "terms": 100,
+      "variables": 12,
+      "facts": 4096
+    },
+    {
+      "role": "arith256_mod",
+      "row_log": 9,
+      "terms": 100,
+      "variables": 16,
+      "facts": 65536
+    },
+    {
+      "role": "bulk_desc",
+      "row_log": 12,
+      "terms": 20,
+      "variables": 17,
+      "facts": 131072
+    },
+    {
+      "role": "bulk_copy",
+      "row_log": 16,
+      "terms": 7,
+      "variables": 19,
+      "facts": 524288
+    },
+    {
+      "role": "bulk_set",
+      "row_log": 18,
+      "terms": 4,
+      "variables": 20,
+      "facts": 1048576
+    },
+    {
+      "role": "bulk_ucopy",
+      "row_log": 18,
+      "terms": 19,
+      "variables": 23,
+      "facts": 8388608
+    },
+    {
+      "role": "bulk_cdesc",
+      "row_log": 8,
+      "terms": 19,
+      "variables": 13,
+      "facts": 8192
+    },
+    {
+      "role": "bulk_cmp",
+      "row_log": 8,
+      "terms": 15,
+      "variables": 12,
+      "facts": 4096
+    },
+    {
+      "role": "bulk_jdesc",
+      "row_log": 5,
+      "terms": 17,
+      "variables": 10,
+      "facts": 1024
+    },
+    {
+      "role": "bulk_jscan",
+      "row_log": 12,
+      "terms": 92,
+      "variables": 19,
+      "facts": 524288
+    },
+    {
+      "role": "bulk_jtab",
+      "row_log": 14,
+      "terms": 1,
+      "variables": 14,
+      "facts": 16384
+    },
+    {
+      "role": "sponge_call",
+      "row_log": 12,
+      "terms": 69,
+      "variables": 19,
+      "facts": 524288
+    },
+    {
+      "role": "sponge_perm",
+      "row_log": 15,
+      "terms": 245,
+      "variables": 23,
+      "facts": 8388608
+    },
+    {
+      "role": "ls_dword",
+      "row_log": 20,
+      "terms": 7,
+      "variables": 23,
+      "facts": 8388608
+    },
+    {
+      "role": "ls_dword_tail",
+      "row_log": 18,
+      "terms": 7,
+      "variables": 21,
+      "facts": 2097152
+    }
+  ],
+  "totals": {
+    "instances": 36,
+    "facts": 124093760,
+    "max_variables": 26,
+    "workspace_bytes": 14466605568,
+    "base_n_secure_d_input_bytes": 4467375360,
+    "workspace_plus_input_bytes": 18933980928,
+    "workspace_regions": 1595
+  },
+  "limits": [
+    "Workspace payload modeled exactly from current gkr.Plan.init append geometry; no GPU allocation/timing claim.",
+    "Native MAIN and bindings are additional retained owners.",
+    "Full PCS arena must be allocated after GKR scratch release; simultaneous dense GKR+PCS can exhaust32GB.",
+    "Current GPU traversal max28 variables; this segment requires26. Other segments must be admitted independently."
+  ]
+}

@@ -116,6 +116,47 @@ pub fn emit(a: std.mem.Allocator, w: anytype, program: *const Program, name: []c
     );
 }
 
+/// Bound compiler live ranges in wide providers. Every fragment uses the same
+/// native reverse RLC powers; canonical field addition is order independent.
+/// No large intermediate matrix is committed or retained. The caller launches
+/// ceil(roots/group_size) blocks in grid.y and joins before reading output.
+pub fn emitGrouped(a: std.mem.Allocator, w: anytype, program: *const Program, name: []const u8, group_size: u32) !void {
+    try program.validate();
+    if (name.len == 0 or std.ascii.isDigit(name[0]) or group_size == 0 or group_size > 64) return error.InvalidKernelName;
+    for (name) |c| if (!std.ascii.isAlphanumeric(c) and c != '_') return error.InvalidKernelName;
+    const sorts = try program.sorts(a);
+    defer a.free(sorts);
+    try w.writeAll("#include \"rv64/composition.cuh\"\nusing namespace stwo::cuda::rv64;\n");
+    try w.print("__device__ __forceinline__ void {s}_add(uint32_t *p,uint32_t v){{ uint32_t old=atomicCAS(p,0u,0u); for(;;){{uint32_t got=atomicCAS(p,old,q::add(old,v));if(got==old)return;old=got;}}}}\n", .{name});
+    const groups = (program.roots.len + group_size - 1) / group_size;
+    for (0..groups) |group| {
+        const first = group * group_size;
+        const end = @min(program.roots.len, first + group_size);
+        try w.print("__device__ __noinline__ void {s}_part_{}(const uint32_t *tree0,const uint32_t *tree1,const uint32_t *tree2,const uint64_t *column_offsets,const uint32_t *parameters,const uint32_t *powers,const uint32_t *denominator_inverses,uint32_t *output,uint32_t trace_log,uint32_t eval_log,uint32_t row){{\n OM31 folded=zero();\n", .{ name, group });
+        var subset = program.*;
+        subset.roots = program.roots[first..end];
+        const order = try schedule(a, &subset);
+        defer a.free(order);
+        for (order) |i| {
+            const node = program.nodes[i];
+            if (node.op == .input) {
+                const input = program.inputs[node.value];
+                try w.print(" const uint32_t v{}=tree{}[column_offsets[{}]+composition_mask_row(row,trace_log,eval_log,{})];\n", .{ i, input.tree, node.value, input.offset });
+            } else try emitValue(w, program, sorts, i);
+            for (first..end) |root| if (program.roots[root] == i) {
+                const power = 8 * (program.roots.len - 1 - root);
+                if (sorts[i] == .base) try w.print(" folded=add(folded,scale(from_words(powers+{}u),v{}));\n", .{ power, i }) else try w.print(" folded=add(folded,mul(from_words(powers+{}u),v{}));\n", .{ power, i });
+            };
+        }
+        try w.writeAll(" const OM31 result=scale(folded,denominator_inverses[row>>trace_log]); const uint64_t stride=uint64_t(1)<<eval_log;\n");
+        for (0..8) |coordinate| try w.print(" {s}_add(output+{}u*stride+row,coordinate(result,{}u));\n", .{ name, coordinate, coordinate });
+        try w.writeAll("}\n");
+    }
+    try w.print("extern \"C\" __global__ void {s}(const uint32_t *a,const uint32_t *b,const uint32_t *c,const uint64_t *offsets,const uint32_t *p,const uint32_t *powers,const uint32_t *inv,uint32_t *out,uint32_t tl,uint32_t el,uint32_t first,uint32_t rows){{uint32_t i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=rows)return;switch(blockIdx.y){{\n", .{name});
+    for (0..groups) |group| try w.print(" case {}u:{s}_part_{}(a,b,c,offsets,p,powers,inv,out,tl,el,first+i);return;\n", .{ group, name, group });
+    try w.writeAll("}}\n");
+}
+
 /// Emit one arithmetic DAG node. Callers own input addressing and output laws.
 pub fn emitValue(w: anytype, program: *const Program, sorts: []const ir.Sort, i: u32) !void {
     return emitValueWithMultiply(w, program, sorts, i, "mul");

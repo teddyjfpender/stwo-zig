@@ -13,6 +13,8 @@ const Sponge = @import("sponge_projection.zig");
 pub const GlobalWitness = @import("classic_witness.zig");
 pub const LocalClosure = @import("closure.zig");
 pub const Manifest = @import("manifest.zig");
+pub const PublicAux = @import("public_aux.zig");
+pub const RoleGeometry = @import("role_geometry.zig");
 
 /// Raw native global tuple authority for resident witness construction. The
 /// public sponge ID is a wire, not a host-specialized challenge or row value.

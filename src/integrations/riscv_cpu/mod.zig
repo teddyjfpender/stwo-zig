@@ -1,8 +1,14 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
 const std = @import("std");
+pub const rv64_device_pcs = @import("stwo_prover_api").device_pcs;
+pub const rv64_gkr_child = @import("word16_global_execution/services/gkr_local/child.zig");
+pub const rv64_ethereum_gkr_main = @import("word16_global_execution/ethereum/gkr_main.zig");
+pub const rv64_gkr_truth_role = @import("word16_global_execution/services/gkr_local/truth_role.zig");
 pub const rv64_gkr_constraints = @import("word16_global_execution/services/gkr_local/constraint_authority.zig");
 pub const rv64_gkr_source = @import("word16_global_execution/services/gkr_local/source_authority.zig");
+pub const rv64_gkr_cpu_components = @import("word16_global_execution/services/gkr_local/cpu_components.zig");
+pub const rv64_gkr_cpu_worker = @import("word16_global_execution/services/gkr_local/cpu_worker.zig");
 pub const rv64 = @import("rv64.zig");
 pub const rv64_full = @import("rv64_full.zig");
 const frontend = @import("stwo_riscv_frontend");

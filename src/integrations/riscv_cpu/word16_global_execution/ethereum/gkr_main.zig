@@ -139,6 +139,15 @@ fn config() !Worker.PcsConfig {
     return value;
 }
 pub fn main() !void {
+    return mainWithPcs(null);
+}
+pub fn mainWithPcs(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage) !void {
+    return mainWithStages(device_pcs_stage, null);
+}
+pub fn mainWithStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../services/gkr_local/cpu_worker.zig").CompositionStage) !void {
+    return mainWithDeviceStages(device_pcs_stage, om31_composition_stage, null);
+}
+pub fn mainWithDeviceStages(device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage, om31_composition_stage: ?*const @import("../services/gkr_local/cpu_worker.zig").CompositionStage, numerical_gkr_stage: ?*const @import("../services/gkr_local/child.zig").NumericalStage) !void {
     var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
     const base = recycler.allocator();
@@ -293,7 +302,9 @@ pub fn main() !void {
     const completed = count == 0;
     if (completed and expected.final_pc != image.terminal_pc) return error.MissingEthereumTerminalPacket;
     try std.fs.cwd().makeDir(args[4]);
-    var dir = try std.fs.cwd().openDir(args[4], .{});
+    // Linux's path-only descriptor cannot be fsync'd. The producer publishes
+    // durable bundle entries, so keep an ordinary readable directory handle.
+    var dir = try std.fs.cwd().openDir(args[4], .{ .iterate = true });
     defer dir.close();
     var store: ?Store = if (operational.park_main) try Store.initFullyParked(args[4], operational.disk_bytes) else null;
     defer if (store) |*value| value.deinit();
@@ -307,7 +318,7 @@ pub fn main() !void {
     const capture_before_proving = captured.ownership();
     var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .device_pcs_stage = device_pcs_stage, .om31_composition_stage = om31_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const capture_after_proving = captured.ownership();

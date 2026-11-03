@@ -194,6 +194,15 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const hybrid_root = b.createModule(.{ .root_source_file = b.path("rv64_hybrid_ethereum_main.zig"), .target = target, .optimize = optimize });
+    hybrid_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    hybrid_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    hybrid_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    hybrid_root.addImport("stwo_cuda_backend", backend);
+    hybrid_root.addImport("stwo_riscv_frontend", frontend);
+    const hybrid = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu", .root_module = hybrid_root });
+    hybrid.linkLibC();
+    b.step("build-rv64-ethereum-gpu", "Build real Ethereum hybrid producer with explicit GPU PCS offload").dependOn(&b.addInstallArtifact(hybrid, .{}).step);
     binding_root.addImport("stwo_cuda_backend", backend);
     binding_root.addImport("stwo_riscv_frontend", frontend);
     const binding_object = b.addObject(.{ .name = "rv64-cuda-binding-check", .root_module = binding_root });

@@ -163,7 +163,23 @@ fn releaseBridgeLocals(source: anytype) void {
 /// Optional caller-owned diagnostics. gkr_ns includes metadata projection and
 /// durable terminal-binding construction; these times never enter a transcript.
 pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0, inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0, numerical_requested_peak_bytes: usize = 0, including_binding_requested_peak_bytes: usize = 0, admitted_gkr_peak_bytes: usize = 0, gkr_allocator_limit_bytes: usize = 0 };
+/// Frontend-owned hybrid bridge. Items contain receiver-derived public/local/
+/// shared metadata; the callback never reconstructs it from producer bytes.
+pub const CompositionStage = struct {
+    context: *anyopaque,
+    evaluate: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, usize, *const anyopaque, *anyopaque) anyerror!bool,
+};
+const CompositionInvocation = struct {
+    stage: CompositionStage,
+    items: []const Components.Item,
+    fn evaluate(ctx: *anyopaque, a: std.mem.Allocator, alpha: O, log: u32, total: usize, trace: *const anyopaque, result: *anyopaque) anyerror!bool {
+        const invocation: *const CompositionInvocation = @ptrCast(@alignCast(ctx));
+        return invocation.stage.evaluate(invocation.stage.context, a, invocation.items, alpha, log, total, trace, result);
+    }
+};
 pub const CpuWorker = struct {
+    om31_composition_stage: ?CompositionStage = null,
+    numerical_gkr_stage: ?Child.NumericalStage = null,
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
     request: P.Request,
@@ -262,12 +278,33 @@ pub const CpuWorker = struct {
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         const root = self.scheme.trees.items[1].root();
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
+        // Borrow the actual committed coefficients. A numerical device stage
+        // reconstructs native physical rows itself; no raw N/D matrices are
+        // allocated or uploaded by this seam. The scheme retains every owner
+        // until the synchronous stage and terminal binding return.
+        var native_columns = Child.NativeColumns{};
+        defer if (self.numerical_gkr_stage != null) {
+            a.free(native_columns.fixed);
+            a.free(native_columns.main);
+        };
+        if (self.numerical_gkr_stage != null) {
+            const D = @import("stwo_prover_api").device_pcs;
+            const fixed_coefficients = self.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+            const main_coefficients = self.scheme.trees.items[1].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+            const fixed_columns = try a.alloc(D.Column, fixed_coefficients.len);
+            native_columns.fixed = fixed_columns;
+            const main_columns = try a.alloc(D.Column, main_coefficients.len);
+            native_columns.main = main_columns;
+            for (fixed_coefficients, fixed_columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+            for (main_coefficients, main_columns) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+        }
         var phase_timing = Child.PhaseTiming{};
         const policy = if (self.tree_policy) |value| value else try Child.readTreePolicy(a);
         // Observation only (lane rusage); never proof authority.
         var gkr_scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "local_gkr_prove", "Local GKR inputs, layers and sumchecks");
         defer gkr_scope.end();
-        self.child = try Child.Unbound.proveTimedWithBindingStorage(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, self.defer_local_binding, if (self.seal_timing != null) &phase_timing else null);
+        self.scheme.device_om31_scope = .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = @intCast(self.expected.ordinal) };
+        self.child = try Child.Unbound.proveTimedWithNumericalStage(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, policy, self.defer_local_binding, if (self.seal_timing != null) &phase_timing else null, self.numerical_gkr_stage, native_columns);
         if (self.seal_timing) |timing| {
             timing.inputs_ns = phase_timing.inputs_ns;
             timing.numerical_ns = phase_timing.numerical_ns;
@@ -363,7 +400,12 @@ pub const CpuWorker = struct {
         const scheme = self.scheme;
         self.scheme = undefined;
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder });
+        var invocation: CompositionInvocation = undefined;
+        const stage: ?@import("stwo_prover_api").device_composition.Om31Stage = if (self.om31_composition_stage) |selected| blk: {
+            invocation = .{ .stage = selected, .items = set.items };
+            break :blk .{ .context = &invocation, .evaluate = CompositionInvocation.evaluate };
+        } else null;
+        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder, .om31_composition_stage = stage });
         defer proof.deinit(a);
         return .{ .bytes = try W.encodePhysical(a, proof.proof), .claims = claims };
     }

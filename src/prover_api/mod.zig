@@ -8,6 +8,7 @@ const std = @import("std");
 
 pub const column = @import("column.zig");
 pub const device_composition = @import("device_composition.zig");
+pub const device_pcs = @import("device_pcs.zig");
 pub const engine = @import("engine.zig");
 pub const stage_profile = @import("stage_profile.zig");
 pub const task_profile = @import("task_profile.zig");

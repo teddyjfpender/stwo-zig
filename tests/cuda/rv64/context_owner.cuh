@@ -48,7 +48,9 @@ struct Owner {
             check(status, "context create");
         }
     }
-    StwoRv64Plane plane(uint32_t count, uint32_t coordinates) {
+    StwoRv64Plane plane(uint64_t count, uint32_t coordinates) {
+        if (!coordinates || count > SIZE_MAX / sizeof(uint32_t) / coordinates)
+            throw std::runtime_error("device allocation overflow");
         uint32_t* p = nullptr;
         CHECK(stwo_exec_context_alloc_u32(ctx, size_t(count) * coordinates, &p));
         allocations.push_back(p);

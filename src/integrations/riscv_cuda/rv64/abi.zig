@@ -320,3 +320,5 @@ comptime {
 pub extern "c" fn stwo_rv64_fri_tree_on(*anyopaque, u32, Plane, u32, u32, [*]u32, u64) c_int;
 pub extern "c" fn stwo_rv64_fri_terminal_on(*anyopaque, u32, Plane, u32, [*]u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_fri_open_on(*anyopaque, u32, *const FriOpen) c_int;
+
+pub extern "c" fn stwo_rv64_composition_lift_add_on(*anyopaque, u32, [*]const u32, u32, [*]u32, u32, *u32) c_int;

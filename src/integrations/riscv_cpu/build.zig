@@ -37,6 +37,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_artifact_store", artifact_store);
     integration.addImport("stwo_core", core);
     integration.addImport("stwo_prover_api", prover_api);
+    integration.addImport("stwo_proof_wire", postcard.import_table.get("stwo_proof_wire") orelse @panic("canonical postcard module is missing proof wire"));
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);

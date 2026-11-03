@@ -60,6 +60,9 @@ pub const NativeCommands = Commands(runtime.NativeContext, abi);
 pub fn Commands(comptime Context: type, comptime Api: type) type {
     return struct {
         context: *Context,
+        /// Empty for the statically linked ABI. Dynamic sessions provide a
+        /// typed per-owner function table; never process-global dispatch.
+        api: if (std.meta.fields(Api).len == 0) void else ?*const Api = if (std.meta.fields(Api).len == 0) {} else null,
         lane_index: u32,
         poisoned: bool = false,
         /// Explicit tuning choice; preserve the established route by default.
@@ -71,6 +74,19 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         launches: u64 = 0,
         const Self = @This();
 
+        fn apiFunction(comptime name: []const u8) type {
+            const T = if (@hasField(Api, name)) @FieldType(Api, name) else @TypeOf(@field(Api, name));
+            return switch (@typeInfo(T)) {
+                .pointer => |p| p.child,
+                .@"fn" => T,
+                else => @compileError("numerical API entry must be a function"),
+            };
+        }
+        fn callApi(self: *Self, comptime name: []const u8, args: std.meta.ArgsTuple(apiFunction(name))) c_int {
+            if (comptime @hasField(Api, name))
+                return @call(.auto, @field((self.api orelse return 400).*, name), args);
+            return @call(.auto, @field(Api, name), args);
+        }
         fn handle(self: *Self) !*anyopaque {
             if (self.poisoned) return error.JobPoisoned;
             if (comptime @hasDecl(Context, "prepareKernelEnqueue")) try self.context.prepareKernelEnqueue();
@@ -97,7 +113,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             try active.shape(output.count, 1);
             try output.n.shape(output.count, 1);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_project_on(
+            try self.result(self.callApi("stwo_rv64_gkr_project_on", .{
                 owner,
                 self.lane_index,
                 try tuples.bind(self.context),
@@ -109,7 +125,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try output.n.bind(self.context),
                 try output.d.bind(self.context),
                 try self.context.deviceSlicePointer(u32, verdict, 1),
-            ), 1);
+            }), 1);
         }
         pub fn layer(self: *Self, input: Fraction, levels: u32, output: Fraction) !void {
             try input.validate();
@@ -118,7 +134,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 return error.InvalidGeometry;
             try output.n.shape(output.count, 8);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_layer_on(
+            try self.result(self.callApi("stwo_rv64_gkr_layer_on", .{
                 owner,
                 self.lane_index,
                 try input.n.bind(self.context),
@@ -127,7 +143,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 levels,
                 try output.n.bind(self.context),
                 try output.d.bind(self.context),
-            ), 1);
+            }), 1);
         }
         pub fn fold(self: *Self, input: Fraction, challenge: Slice, output: Fraction) !void {
             try input.validate();
@@ -135,7 +151,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             if (input.count < 2 or output.count != input.count / 2) return error.InvalidGeometry;
             try output.n.shape(output.count, 8);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_fold_on(
+            try self.result(self.callApi("stwo_rv64_gkr_fold_on", .{
                 owner,
                 self.lane_index,
                 try input.n.bind(self.context),
@@ -144,7 +160,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try self.context.deviceSlicePointer(u32, challenge, 8),
                 try output.n.bind(self.context),
                 try output.d.bind(self.context),
-            ), 1);
+            }), 1);
         }
         pub fn eq(self: *Self, point: Slice, variables: u32, output: Plane) !void {
             if (variables == 0 or variables > 28) return error.InvalidGeometry;
@@ -198,7 +214,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             var waves: u64 = 1;
             while (groups > 1) : (groups = (groups + 127) / 128) waves += 1;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_fold_sum_on(
+            try self.result(self.callApi("stwo_rv64_gkr_fold_sum_on", .{
                 owner,
                 self.lane_index,
                 try input.n.bind(self.context),
@@ -212,7 +228,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try scratch_a.bind(self.context),
                 try scratch_b.bind(self.context),
                 try output.bind(self.context),
-            ), waves);
+            }), waves);
         }
 
         pub fn tail(self: *Self, job: TailJob) !void {
@@ -248,7 +264,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                     .first = j.first,
                 };
             }
-            try self.result(Api.stwo_rv64_sumcheck_tail_on(owner, self.lane_index, &packet, @intCast(jobs.len)), 1);
+            try self.result(self.callApi("stwo_rv64_sumcheck_tail_on", .{ owner, self.lane_index, &packet, @intCast(jobs.len) }), 1);
         }
 
         fn batchDescriptors(self: *Self, oracles: []const BatchOracle, variables: u32) ![abi.batch_max_oracles]abi.BatchOracle {
@@ -274,26 +290,26 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         pub fn initBatch(self: *Self, state: Slice, seed: Slice, claims: Slice, alpha: Slice, oracles: []const BatchOracle, variables: u32) !void {
             const desc = try self.batchDescriptors(oracles, variables);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_batch_init_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.batch_state_words), try self.context.deviceSlicePointer(u32, seed, 9), try self.context.deviceSlicePointer(u32, claims, 8 * oracles.len), try self.context.deviceSlicePointer(u32, alpha, 8), &desc, @intCast(oracles.len), variables), 1);
+            try self.result(self.callApi("stwo_rv64_batch_init_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.batch_state_words), try self.context.deviceSlicePointer(u32, seed, 9), try self.context.deviceSlicePointer(u32, claims, 8 * oracles.len), try self.context.deviceSlicePointer(u32, alpha, 8), &desc, @intCast(oracles.len), variables }), 1);
         }
         pub fn batchRound(self: *Self, state: Slice, oracles: []const BatchOracle, variables: u32, expected: u32, point: Slice, record: Slice) !void {
             if (expected >= variables) return error.InvalidGeometry;
             const desc = try self.batchDescriptors(oracles, variables);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_batch_round_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.batch_state_words), &desc, @intCast(oracles.len), variables, expected, try self.context.deviceSlicePointer(u32, point, 8 * variables), try self.context.deviceSlicePointer(u32, record, abi.round_record_words)), 1);
+            try self.result(self.callApi("stwo_rv64_batch_round_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.batch_state_words), &desc, @intCast(oracles.len), variables, expected, try self.context.deviceSlicePointer(u32, point, 8 * variables), try self.context.deviceSlicePointer(u32, record, abi.round_record_words) }), 1);
         }
         pub fn packBatchMask(self: *Self, input: Fraction, output: Slice) !void {
             try input.validate();
             if (input.count != 2) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_batch_mask_on(owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32)), 1);
+            try self.result(self.callApi("stwo_rv64_batch_mask_on", .{ owner, self.lane_index, try input.n.bind(self.context), try input.d.bind(self.context), try self.context.deviceSlicePointer(u32, output, 32) }), 1);
         }
         pub fn gatherParameters(self: *Self, reservoir: Slice, output: Slice, slots: []const u32, namespaces: u32, verdict: Slice) !void {
             const total = abi.relation_count * abi.relation_slot_stride;
             if (slots.len == 0 or slots.len > total or (namespaces != 9 and namespaces != 10)) return error.InvalidGeometry;
             for (slots) |slot| if (slot >= total) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_parameter_gather_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, reservoir, total * 8), try self.context.deviceSlicePointer(u32, output, slots.len * 8), slots.ptr, @intCast(slots.len), namespaces, try self.context.deviceSlicePointer(u32, verdict, 1)), 1);
+            try self.result(self.callApi("stwo_rv64_parameter_gather_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, reservoir, total * 8), try self.context.deviceSlicePointer(u32, output, slots.len * 8), slots.ptr, @intCast(slots.len), namespaces, try self.context.deviceSlicePointer(u32, verdict, 1) }), 1);
         }
         /// Immutable address map is retained GPU setup. Numerical sources stay
         /// resident in five independently owned protocol namespaces.
@@ -307,7 +323,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             job.status = try self.context.deviceSlicePointer(u32, verdict, 1);
             job.count = count;
             job.reserved = 0;
-            try self.result(Api.stwo_rv64_joined_parameter_gather_on(owner, self.lane_index, &job), 1);
+            try self.result(self.callApi("stwo_rv64_joined_parameter_gather_on", .{ owner, self.lane_index, &job }), 1);
         }
         pub fn packRoots(self: *Self, roots: []const Fraction, output: Slice) !void {
             if (roots.len == 0 or roots.len > abi.batch_max_oracles) return error.InvalidGeometry;
@@ -318,7 +334,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 sources[i] = .{ .n = try root.n.bind(self.context), .d = try root.d.bind(self.context) };
             }
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_pack_roots_on(owner, self.lane_index, &sources, @intCast(roots.len), try self.context.deviceSlicePointer(u32, output, roots.len * 16)), 1);
+            try self.result(self.callApi("stwo_rv64_gkr_pack_roots_on", .{ owner, self.lane_index, &sources, @intCast(roots.len), try self.context.deviceSlicePointer(u32, output, roots.len * 16) }), 1);
         }
         pub fn initGkr(self: *Self, state: Slice, seed: Slice, variables: []const u32, layers: u32, chain: u64) !void {
             if (variables.len == 0 or variables.len > abi.batch_max_oracles or layers == 0 or layers > 28 or state.address % 8 != 0) return error.InvalidGeometry;
@@ -329,13 +345,13 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             }
             if (largest != layers) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_init_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, seed, 9), variables.ptr, @intCast(variables.len), layers, chain), 1);
+            try self.result(self.callApi("stwo_rv64_gkr_init_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, seed, 9), variables.ptr, @intCast(variables.len), layers, chain }), 1);
         }
         pub fn buildBindingEq(self: *Self, point: Slice, row_log: u32, output: Plane, verdict: Slice) !void {
             if (row_log == 0 or row_log > 22) return error.InvalidGeometry;
             try output.shape(@as(u32, 1) << @intCast(row_log), 8);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_binding_eq_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, point, row_log * 8), row_log, try output.bind(self.context), try self.context.deviceSlicePointer(u32, verdict, 1)), 1 + (row_log + 3) / 4);
+            try self.result(self.callApi("stwo_rv64_binding_eq_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, point, row_log * 8), row_log, try output.bind(self.context), try self.context.deviceSlicePointer(u32, verdict, 1) }), 1 + (row_log + 3) / 4);
         }
         pub fn samplePoints(self: *Self, j: @import("samples.zig").Points) !void {
             return self.samplePointsImpl(j, false);
@@ -356,7 +372,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .status = try self.context.deviceSlicePointer(u32, j.verdict, 1),
                 .count = j.count,
             };
-            const status = if (from_point) Api.stwo_rv64_sample_points_from_point_on(owner, self.lane_index, &packet) else Api.stwo_rv64_sample_points_on(owner, self.lane_index, &packet);
+            const status = if (from_point) self.callApi("stwo_rv64_sample_points_from_point_on", .{ owner, self.lane_index, &packet }) else self.callApi("stwo_rv64_sample_points_on", .{ owner, self.lane_index, &packet });
             try self.result(status, 2);
         }
         pub fn sampleEvaluate(self: *Self, j: @import("samples.zig").Evaluation) !void {
@@ -392,12 +408,19 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .count = j.count,
                 .coefficient_log = j.coefficient_log,
             };
-            try self.result(Api.stwo_rv64_sample_evaluate_on(owner, self.lane_index, &packet), plan.dispatches);
+            try self.result(self.callApi("stwo_rv64_sample_evaluate_on", .{ owner, self.lane_index, &packet }), plan.dispatches);
         }
         pub fn sampleOrder(self: *Self, j: @import("samples.zig").Order) !void {
             if (j.source_count == 0 or j.source_count > 65536 or j.count == 0 or j.count > 65536) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_sample_order_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, j.input, @as(usize, j.source_count) * 8), j.source_count, try self.context.deviceSlicePointer(u32, j.map, j.count), j.count, try self.context.deviceSlicePointer(u32, j.output, @as(usize, j.count) * 8), try self.context.deviceSlicePointer(u32, j.verdict, 1)), 1);
+            try self.result(self.callApi("stwo_rv64_sample_order_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, j.input, @as(usize, j.source_count) * 8), j.source_count, try self.context.deviceSlicePointer(u32, j.map, j.count), j.count, try self.context.deviceSlicePointer(u32, j.output, @as(usize, j.count) * 8), try self.context.deviceSlicePointer(u32, j.verdict, 1) }), 1);
+        }
+        pub fn compositionLiftAdd(self: *Self, input: Slice, source_log: u32, output: Slice, target_log: u32) !void {
+            if (source_log < 3 or target_log < source_log or target_log > 28) return error.InvalidGeometry;
+            const owner = try self.handle();
+            var launches: u32 = 0;
+            const status = self.callApi("stwo_rv64_composition_lift_add_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, input, @as(usize, 8) << @intCast(source_log)), source_log, try self.context.deviceSlicePointer(u32, output, @as(usize, 8) << @intCast(target_log)), target_log, &launches });
+            try self.result(status, launches);
         }
         /// Interpolate an OM31 accumulator and emit native composition chunks.
         /// Input is consumed in place; coefficients and twiddles are disjoint.
@@ -406,7 +429,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const words = @as(usize, 8) << @intCast(log);
             const owner = try self.handle();
             var launches: u32 = 0;
-            const status = Api.stwo_rv64_composition_finalize_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, input, words), try self.context.deviceSlicePointer(u32, output, words), log, depth, try self.context.deviceSlicePointer(u32, twiddles, twiddles.len), @intCast(twiddles.len), &launches);
+            const status = self.callApi("stwo_rv64_composition_finalize_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, input, words), try self.context.deviceSlicePointer(u32, output, words), log, depth, try self.context.deviceSlicePointer(u32, twiddles, twiddles.len), @intCast(twiddles.len), &launches });
             try self.result(status, launches);
         }
         pub fn witnessDword(self: *Self, j: @import("dword_witness.zig").Job) !void {
@@ -416,7 +439,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try self.context.deviceSlicePointer(u32, j.events orelse return error.InvalidDeviceAddress, p.event_words)
             else
                 null;
-            try self.result(Api.stwo_rv64_ls_dword_witness_on(owner, self.lane_index, input, j.count, j.log, try self.context.deviceSlicePointer(u32, j.output, p.main_words), try self.context.deviceSlicePointer(u32, j.verdict, 1)), 1);
+            try self.result(self.callApi("stwo_rv64_ls_dword_witness_on", .{ owner, self.lane_index, input, j.count, j.log, try self.context.deviceSlicePointer(u32, j.output, p.main_words), try self.context.deviceSlicePointer(u32, j.verdict, 1) }), 1);
         }
         pub fn projectBinding(self: *Self, input: Fraction, eq_column: Plane, prefix_column: Plane, metadata: Slice, verdict: Slice, row_log: u32, lane_log: u32) !void {
             if (row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > 28) return error.InvalidGeometry;
@@ -436,7 +459,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .row_log = row_log,
                 .lane_log = lane_log,
             };
-            try self.result(Api.stwo_rv64_binding_project_on(owner, self.lane_index, &job), 1);
+            try self.result(self.callApi("stwo_rv64_binding_project_on", .{ owner, self.lane_index, &job }), 1);
         }
         /// One independently claimed global relation. output initially contains
         /// its paired denominators; contributions initially contains numerators.
@@ -457,14 +480,14 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .row_log = row_log,
                 .pairs = pairs,
             };
-            try self.result(Api.stwo_rv64_global_pairs_on(owner, self.lane_index, &job), 2 + plan.dispatches(true));
+            try self.result(self.callApi("stwo_rv64_global_pairs_on", .{ owner, self.lane_index, &job }), 2 + plan.dispatches(true));
         }
         pub fn closeLocalRoots(self: *Self, roots: Slice, count: u32, verdict: Slice) !void {
             if (count == 0 or count > abi.batch_max_oracles) return error.InvalidGeometry;
             const owner = try self.handle();
             const source = try self.context.deviceSlicePointer(u32, roots, @as(usize, count) * 16);
             const status = try self.context.deviceSlicePointer(u32, verdict, 1);
-            try self.result(Api.stwo_rv64_local_close_on(owner, self.lane_index, source, count, status), 1);
+            try self.result(self.callApi("stwo_rv64_local_close_on", .{ owner, self.lane_index, source, count, status }), 1);
         }
         pub fn closeGlobalClaims(self: *Self, claims: Slice, masks: Slice, count: u32, verdict: Slice) !void {
             if (count == 0 or count > 65535) return error.InvalidGeometry;
@@ -472,7 +495,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const source = try self.context.deviceSlicePointer(u32, claims, @as(usize, count) * 24);
             const relations = try self.context.deviceSlicePointer(u32, masks, count);
             const status = try self.context.deviceSlicePointer(u32, verdict, 1);
-            try self.result(Api.stwo_rv64_global_close_on(owner, self.lane_index, source, relations, count, status), 1);
+            try self.result(self.callApi("stwo_rv64_global_close_on", .{ owner, self.lane_index, source, relations, count, status }), 1);
         }
         pub fn scanPrefix(self: *Self, data: Plane, scratch: Slice, claim: Slice, verdict: Slice, row_log: u32, center: bool) !void {
             const plan = try @import("prefix_plan.zig").Plan.init(row_log);
@@ -487,7 +510,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .row_log = row_log,
                 .center = @intFromBool(center),
             };
-            try self.result(Api.stwo_rv64_prefix_scan_on(owner, self.lane_index, &job), plan.dispatches(center));
+            try self.result(self.callApi("stwo_rv64_prefix_scan_on", .{ owner, self.lane_index, &job }), plan.dispatches(center));
         }
         pub fn deriveBindingMetadata(self: *Self, state: Slice, reservoir: Slice, row_point: Slice, carry: Slice, seed: Slice, verdict: Slice, instance: u32, row_log: u32, lane_log: u32, count: u32, layers: u32, chain: u64) !void {
             if (count == 0 or count > abi.batch_max_oracles or instance >= count or layers == 0 or layers > 28 or row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > layers or state.address % 8 != 0) return error.InvalidGeometry;
@@ -506,35 +529,35 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .count = count,
                 .layers = layers,
             };
-            try self.result(Api.stwo_rv64_gkr_binding_metadata_on(owner, self.lane_index, &job), 1);
+            try self.result(self.callApi("stwo_rv64_gkr_binding_metadata_on", .{ owner, self.lane_index, &job }), 1);
         }
         pub fn beginGkr(self: *Self, state: Slice, depth: u32, count: u32, active: u32, roots: Slice, claims: Slice) !void {
             if (count == 0 or count > abi.batch_max_oracles or active == 0 or active > count or depth >= 28 or state.address % 8 != 0) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_begin_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), depth, count, active, try self.context.deviceSlicePointer(u32, roots, 16 * count), try self.context.deviceSlicePointer(u32, claims, 8 * active)), 1);
+            try self.result(self.callApi("stwo_rv64_gkr_begin_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), depth, count, active, try self.context.deviceSlicePointer(u32, roots, 16 * count), try self.context.deviceSlicePointer(u32, claims, 8 * active) }), 1);
         }
         pub fn closeGkr(self: *Self, state: Slice, batch: Slice, records: Slice, masks: Slice, depth: u32, count: u32, active: u32) !void {
             if (count == 0 or count > abi.batch_max_oracles or active == 0 or active > count or depth >= 28 or state.address % 8 != 0) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_close_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, batch, abi.batch_state_words), if (depth == 0) null else try self.context.deviceSlicePointer(u32, records, depth * abi.round_record_words), try self.context.deviceSlicePointer(u32, masks, 32 * active), depth, count, active), 1);
+            try self.result(self.callApi("stwo_rv64_gkr_close_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, state, abi.gkr_state_words), try self.context.deviceSlicePointer(u32, batch, abi.batch_state_words), if (depth == 0) null else try self.context.deviceSlicePointer(u32, records, depth * abi.round_record_words), try self.context.deviceSlicePointer(u32, masks, 32 * active), depth, count, active }), 1);
         }
         pub fn initSumcheck(self: *Self, state: Slice, seed: Slice, claim: Slice, variables: u32) !void {
             if (variables == 0 or variables > 27) return error.InvalidGeometry;
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_sumcheck_init_on(
+            try self.result(self.callApi("stwo_rv64_sumcheck_init_on", .{
                 owner,
                 self.lane_index,
                 try self.context.deviceSlicePointer(u32, state, abi.round_state_words),
                 try self.context.deviceSlicePointer(u32, seed, 9),
                 try self.context.deviceSlicePointer(u32, claim, 8),
                 variables,
-            ), 1);
+            }), 1);
         }
         pub fn round(self: *Self, state: Slice, variables: u32, expected: u32, sums: Plane, point: Slice, record: Slice) !void {
             if (variables == 0 or variables > 27 or expected >= variables) return error.InvalidGeometry;
             try sums.shape(2, 8);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_sumcheck_round_on(
+            try self.result(self.callApi("stwo_rv64_sumcheck_round_on", .{
                 owner,
                 self.lane_index,
                 try self.context.deviceSlicePointer(u32, state, abi.round_state_words),
@@ -543,7 +566,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try sums.bind(self.context),
                 try self.context.deviceSlicePointer(u32, point, 8 * @as(usize, variables)),
                 try self.context.deviceSlicePointer(u32, record, abi.round_record_words),
-            ), 1);
+            }), 1);
         }
 
         pub fn packMask(self: *Self, input: Fraction, output: Slice) !void {
@@ -551,13 +574,13 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             try input.n.shape(2, 8);
             try input.d.shape(2, 8);
             const owner = try self.handle();
-            try self.result(Api.stwo_rv64_gkr_pack_mask_on(
+            try self.result(self.callApi("stwo_rv64_gkr_pack_mask_on", .{
                 owner,
                 self.lane_index,
                 try input.n.bind(self.context),
                 try input.d.bind(self.context),
                 try self.context.deviceSlicePointer(u32, output, 32),
-            ), 1);
+            }), 1);
         }
     };
 }

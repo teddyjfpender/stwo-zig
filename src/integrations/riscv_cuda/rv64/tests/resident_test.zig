@@ -435,3 +435,32 @@ test "original-point sampling requires both OM31 coordinates before enqueue" {
     try std.testing.expectError(error.CudaEnqueueFailed, commands.samplePointsFromPoint(j));
     try std.testing.expectError(error.JobPoisoned, commands.samplePointsFromPoint(j));
 }
+
+test "per-owner numerical function tables dispatch independently and fail closed" {
+    const Table = struct {
+        stwo_rv64_gkr_layer_on: *const fn (*anyopaque, u32, Abi.Plane, Abi.Plane, u32, u32, Abi.Plane, Abi.Plane) callconv(.c) c_int,
+        fn accept(_: *anyopaque, _: u32, _: Abi.Plane, _: Abi.Plane, _: u32, _: u32, _: Abi.Plane, _: Abi.Plane) callconv(.c) c_int {
+            return 0;
+        }
+        fn reject(_: *anyopaque, _: u32, _: Abi.Plane, _: Abi.Plane, _: u32, _: u32, _: Abi.Plane, _: Abi.Plane) callconv(.c) c_int {
+            return 1;
+        }
+    };
+    var context = Context{};
+    const good_table = Table{ .stwo_rv64_gkr_layer_on = Table.accept };
+    const bad_table = Table{ .stwo_rv64_gkr_layer_on = Table.reject };
+    var good = R.Commands(Context, Table){ .context = &context, .lane_index = 1, .api = &good_table };
+    var bad = R.Commands(Context, Table){ .context = &context, .lane_index = 1, .api = &bad_table };
+    var absent = R.Commands(Context, Table){ .context = &context, .lane_index = 1 };
+    const input = R.Fraction{ .n = .{ .data = .{ .address = 4096, .len = 128, .owner = 1, .generation = 2 }, .stride = 16, .coordinates = 8 }, .d = .{ .data = .{ .address = 8192, .len = 128, .owner = 1, .generation = 2 }, .stride = 16, .coordinates = 8 }, .count = 16 };
+    const output = R.Fraction{ .n = .{ .data = .{ .address = 12288, .len = 64, .owner = 1, .generation = 2 }, .stride = 8, .coordinates = 8 }, .d = .{ .data = .{ .address = 16384, .len = 64, .owner = 1, .generation = 2 }, .stride = 8, .coordinates = 8 }, .count = 8 };
+    try good.layer(input, 1, output);
+    try std.testing.expectEqual(@as(u64, 1), good.launches);
+    try std.testing.expectError(error.CudaEnqueueFailed, bad.layer(input, 1, output));
+    try std.testing.expectError(error.CudaEnqueueFailed, absent.layer(input, 1, output));
+    try good.layer(input, 1, output);
+    try std.testing.expect(!good.poisoned and bad.poisoned and absent.poisoned);
+    var stale = input;
+    stale.n.data.generation += 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, good.layer(stale, 1, output));
+}
