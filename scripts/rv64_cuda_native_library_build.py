@@ -4,6 +4,7 @@ import argparse
 import concurrent.futures
 import hashlib
 import json
+import os
 from pathlib import Path
 import shlex
 import subprocess
@@ -60,8 +61,15 @@ def main():
         objects = [first, *pool.map(compile_one, sources[1:])]
     objects += [p.resolve(strict=True) for p in args.extra_object]
     library = build / "libstwo-rv64-native.so"
-    with (logs / "link.log").open("w") as log:
-        subprocess.run([args.nvcc, "-shared", "-Xcompiler=-pthread", "-Xlinker=-Bsymbolic", *map(str, objects), "-o", str(library)], check=True, stdout=log, stderr=subprocess.STDOUT)
+    pending = build / f".libstwo-rv64-native-{os.getpid()}.so"
+    try:
+        with (logs / "link.log").open("w") as log:
+            subprocess.run([args.nvcc, "-shared", "-Xcompiler=-pthread", "-Xlinker=-Bsymbolic", *map(str, objects), "-o", str(pending)], check=True, stdout=log, stderr=subprocess.STDOUT)
+        # Existing native producers may still map the old inode. Never truncate
+        # their library or publish a partially linked file to a new dlopen.
+        os.replace(pending, library)
+    finally:
+        pending.unlink(missing_ok=True)
     receipt = {"schema": "rv64-cuda-native-library-build/v1", "seconds": time.monotonic() - started, "compiler": version,
                "library_sha256": sha(library), "builder_sha256": sha(Path(__file__).resolve()),
                "objects": {p.name: sha(p) for p in objects}, "scope": "AOT build only; no proof or residency qualification"}
