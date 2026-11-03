@@ -161,6 +161,24 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(result["gpu_device_ns_per_native_cell"], 500)
         self.assertEqual(result["worker"]["device"], 1)
 
+    def test_physical_disk_preflight_fails_before_producer(self):
+        job = self.job(False)
+        job["disk_reservation_bytes"] = 1 << 100
+        with self.assertRaisesRegex(ValueError, "insufficient physical disk"):
+            B.execute(job, "cpu", B.Admission([{"device": None, "capacity_bytes": 1}]))
+        self.assertFalse((Path(job["output"]) / "proof").exists())
+
+    def test_cleanup_only_after_fresh_acceptance_preserves_hashes_and_report(self):
+        job = self.job(False)
+        job["remove_verified_proof_binaries"] = True
+        result = B.execute(job, "cpu", B.Admission([{"device": None, "capacity_bytes": 1}]))
+        proof = Path(job["output"]) / "proof"
+        self.assertFalse((proof / "cpu-0.bin").exists())
+        self.assertTrue((proof / "bundle.json").is_file())
+        self.assertTrue((proof / "report.json").is_file())
+        self.assertIn("cpu-0.bin", result["artifact_sha256"])
+        self.assertFalse(result["proof_binaries_retained"])
+
     def test_failed_producer_preserves_its_process_usage(self):
         job = self.job(False)
         job["produce"] = [sys.executable, "-c", "raise SystemExit(3)"]

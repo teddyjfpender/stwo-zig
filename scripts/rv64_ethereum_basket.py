@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import threading
 import time
@@ -266,6 +267,13 @@ def execute(job, backend, admission, nsys=None):
             worker_environment(worker, environment)
             monitor = DeviceMonitor(worker["device"])
             monitor.thread.start()
+        disk_reservation = job.get("disk_reservation_bytes", 0)
+        disk_floor = job.get("disk_free_floor_bytes", 0)
+        if type(disk_reservation) is not int or disk_reservation < 0 or type(disk_floor) is not int or disk_floor < 0:
+            raise ValueError("disk reservation and free floor must be nonnegative byte counts")
+        free_disk = shutil.disk_usage(target).free
+        if free_disk < disk_reservation + disk_floor:
+            raise ValueError(f"insufficient physical disk: {free_disk} free, {disk_reservation} reserved plus {disk_floor} free floor required")
         argv = job["produce"]
         if nsys:
             argv = [nsys, "profile", "--trace=cuda,nvtx,osrt", "--force-overwrite=false", "--stats=false", "--output=" + str(target / "nsight"), *argv]
@@ -324,7 +332,16 @@ def execute(job, backend, admission, nsys=None):
                   "artifact_sha256": {p.name: sha(p) for p in proof.glob("*.bin")},
                   "bundle_sha256": sha(proof / "bundle.json"),
                   "report_sha256": sha(proof / "report.json")}
+        result["disk_admission"] = {"free_before_producer_bytes": free_disk, "reservation_bytes": disk_reservation, "free_floor_bytes": disk_floor}
+        result["proof_binaries_retained"] = True
         atomic_json(target / "result.json", result)
+        if job.get("remove_verified_proof_binaries"):
+            # Only files already hashed above, after a fresh receiver accepted.
+            # JSON statements, stage profiles, report, hashes and measurements stay.
+            for name in result["artifact_sha256"]:
+                (proof / name).unlink()
+            result["proof_binaries_retained"] = False
+            atomic_json(target / "result.json", result)
         return result
     except Exception as error:
         if monitor:

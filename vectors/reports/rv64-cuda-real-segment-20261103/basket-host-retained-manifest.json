@@ -158,5 +158,7 @@
     24628611,
     26235159
   ],
-  "control_scope": "Host-retained hybrid control: CPU trace/MAIN commit and bounded host spill; GPU GKR/composition/PCS; not fully GPU resident."
+  "control_scope": "Host-retained hybrid control: CPU trace/MAIN commit and bounded host spill; GPU GKR/composition/PCS; not fully GPU resident.",
+  "disk_free_floor_bytes": 4294967296,
+  "remove_verified_proof_binaries": true
 }
