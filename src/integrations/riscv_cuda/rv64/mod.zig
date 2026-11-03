@@ -2,6 +2,7 @@
 //! dispatch remains unavailable until witness/PCS/transcript parity qualifies.
 pub const truth_codegen = @import("truth_codegen.zig");
 pub const cpu_witness = @import("cpu_witness.zig");
+pub const resident_composition = @import("resident_composition.zig");
 pub const real_composition = @import("real_composition.zig");
 pub const joined_codegen = @import("joined_codegen.zig");
 pub const symbolic_external = @import("symbolic_external.zig");
@@ -35,6 +36,7 @@ test {
     _ = gkr_stage;
     _ = session_context;
     _ = real_composition;
+    _ = resident_composition;
     _ = dword_witness;
     _ = samples;
     _ = fri;

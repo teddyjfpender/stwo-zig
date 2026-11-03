@@ -171,14 +171,15 @@ pub const CompositionStage = struct {
 };
 pub const ResidentCompositionStage = struct {
     context: *anyopaque,
-    evaluate_and_commit: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, u32, usize, *const anyopaque) anyerror!@import("stwo_prover_api").device_pcs.Tree,
+    evaluate_and_commit: *const fn (*anyopaque, std.mem.Allocator, []const Components.Item, O, u32, u32, usize, *const anyopaque, @import("stwo_prover_api").device_pcs.Scope) anyerror!@import("stwo_prover_api").device_pcs.Tree,
 };
 const ResidentCompositionInvocation = struct {
     stage: ResidentCompositionStage,
     items: []const Components.Item,
+    scope: @import("stwo_prover_api").device_pcs.Scope,
     fn evaluateAndCommit(ctx: *anyopaque, a: std.mem.Allocator, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque) anyerror!@import("stwo_prover_api").device_pcs.Tree {
         const invocation: *const @This() = @ptrCast(@alignCast(ctx));
-        return invocation.stage.evaluate_and_commit(invocation.stage.context, a, invocation.items, alpha, log, split, total, trace);
+        return invocation.stage.evaluate_and_commit(invocation.stage.context, a, invocation.items, alpha, log, split, total, trace, invocation.scope);
     }
 };
 const CompositionInvocation = struct {
@@ -416,7 +417,7 @@ pub const CpuWorker = struct {
         var resident_invocation: ResidentCompositionInvocation = undefined;
         var resident_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage = undefined;
         if (self.resident_composition_stage) |selected| {
-            resident_invocation = .{ .stage = selected, .items = set.items };
+            resident_invocation = .{ .stage = selected, .items = set.items, .scope = scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired };
             resident_stage = .{ .context = &resident_invocation, .evaluate_and_commit = ResidentCompositionInvocation.evaluateAndCommit };
             scheme.device_om31_composition_stage = &resident_stage;
         }

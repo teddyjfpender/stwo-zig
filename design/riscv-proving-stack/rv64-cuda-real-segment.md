@@ -109,3 +109,14 @@ native domain and interpolation fixtures; end-to-end resident segment
 qualification is still required. Classic truth recording now uses the same
 parameterized Keccak/secp equation authority with dense native OM31 residual
 parity, not copied GPU-specific cryptographic equations.
+
+The resident composition callback now drives these operations on the same
+in-process service owner thread. It reuses scoped retained FIXED/MAIN coefficient
+leases, constructs public auxiliary columns on device from narrow checked
+transcript metadata, evaluates every admitted joined layout, retains the
+composition coefficient lease through PCS, and reads back only its 32-byte
+Merkle root. The callback is compiled and its numerical pieces pass their native
+fixtures; a complete segment through this callback is the next acceptance gate.
+It still accepts host coefficient ingress for columns not retained on device,
+and CPU witness construction, binding, global-interaction generation and initial
+commitments remain separate work. `log_blowup` must match the chosen PCS profile.

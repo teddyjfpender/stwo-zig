@@ -25,3 +25,8 @@ extern "C" int stwo_rv64_composition_finish_on(
     void *, uint32_t, const StwoRv64CompositionBucket *, uint32_t,
     uint32_t *, uint32_t *, uint32_t, uint32_t, const uint32_t *, uint32_t,
     uint32_t *);
+
+// Checked transcript-derived half-coset carry metadata, [half][log][8].
+// Output is IR-ordered first,second,carry[8], each a column of 2^log rows.
+extern "C" int stwo_rv64_composition_auxiliary_on(void *, uint32_t,
+    const uint32_t *, uint32_t *, uint32_t, uint32_t *);

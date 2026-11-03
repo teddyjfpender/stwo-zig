@@ -835,7 +835,7 @@ pub fn ForField(comptime Secure: type) type {
                         if (tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
                         const log = tree.columns[0].log_size;
                         for (tree.columns) |column| if (column.log_size != log) return CommitmentSchemeError.ShapeMismatch;
-                        return log;
+                        return std.math.add(u32, log, self.config.fri_config.log_blowup_factor) catch CommitmentSchemeError.ShapeMismatch;
                     }
                     if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
                     const final_tree = self.trees.items[self.trees.items.len - 1];

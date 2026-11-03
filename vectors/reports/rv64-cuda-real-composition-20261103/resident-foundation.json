@@ -19,5 +19,8 @@
     "degree_and_mask_bounds": true
   },
   "residency_scope": "Composition role evaluation, lifting and finalization numerical entry points use borrowed context-owned device arrays without field-data readback. Engine resident-tree handoff is implemented; fresh real-segment integration remains pending.",
-  "security": "Native proof protocol and 128-bit target profile unchanged; no new security claim."
+  "security": "Native proof protocol and 128-bit target profile unchanged; no new security claim.",
+  "host_tests": 87,
+  "resident_auxiliary_fill_geometries": 2,
+  "resident_callback": "implemented; complete real-segment acceptance pending"
 }

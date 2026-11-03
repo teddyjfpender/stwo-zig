@@ -11,6 +11,28 @@ extern "C" int stwo_ntt_b2n_composition_split_compact_on(
 extern "C" int stwo_ntt_b2n_composition_split_depth_two_on(
     uint32_t *, size_t, size_t, uint32_t *, size_t, size_t, uint32_t,
     const uint32_t *, uint32_t, uint32_t, void *, uint32_t *);
+static void exercise_auxiliary() {
+  for(uint32_t log : {5u,8u}) {
+    const uint32_t n=1u<<log;
+    Owner o(0); const auto hc=o.plane(16*log,1), out=o.plane(10*n,1);
+    std::vector<uint32_t> metadata(16*log), expected(10*n);
+    for(uint32_t i=0;i<metadata.size();++i) metadata[i]=i*151+3;
+    for(uint32_t row=0;row<n;++row) {
+      const uint32_t half=row&1, bits=half?row:((n-1)^row);
+      const uint32_t carry=__builtin_clz(bits)-(32-log);
+      expected[row]=row==0; expected[n+row]=row+1==n;
+      for(uint32_t c=0;c<8;++c) expected[(c+2)*n+row]=metadata[(half*log+carry)*8+c];
+    }
+    o.upload(hc,metadata); StwoCudaDependency ready{};
+    CHECK(stwo_exec_context_dependency_record(o.ctx,0,0,&ready));
+    CHECK(stwo_exec_context_dependency_wait(o.ctx,1,&ready));
+    uint32_t launches=0;
+    CHECK(stwo_rv64_composition_auxiliary_on(o.ctx,1,hc.words,out.words,log,&launches));
+    if(launches!=1) throw std::runtime_error("auxiliary launch receipt");
+    fixture_equal("IR ordered public auxiliary",o.read(out),expected);
+    CHECK(stwo_exec_context_dependency_release(o.ctx,&ready));o.close();
+  }
+}
 static void exercise_lift() {
   for (uint32_t source_log : {3u, 5u, 7u})
     for (uint32_t target_log : {7u, 9u}) {
@@ -100,6 +122,7 @@ int main(int argc, char **argv) {
     if (argc != 2)
       throw std::runtime_error("expected split fixtures");
     exercise_lift();
+    exercise_auxiliary();
     uint32_t count = 0;
     for (const auto &file : std::filesystem::directory_iterator(argv[1]))
       if (file.path().extension() == ".bin") {

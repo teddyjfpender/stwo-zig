@@ -23,7 +23,7 @@ fn literal(x: u32) O {
 fn word(out: []O, value: u64) void {
     for (out[0..4], 0..) |*v, i| v.* = literal(@as(u16, @truncate(value >> @as(u6, @intCast(16 * i)))));
 }
-fn metadata(comptime T: type, c: *const T, d: G.Source.Descriptor) [P.count]O {
+pub fn metadata(comptime T: type, c: *const T, d: G.Source.Descriptor) [P.count]O {
     var out: [P.count]O = @splat(O.zero());
     if (comptime @hasField(T, "data")) {
         const data = &c.data;
@@ -89,7 +89,7 @@ fn metadata(comptime T: type, c: *const T, d: G.Source.Descriptor) [P.count]O {
     _ = d;
     return out;
 }
-fn descriptor(comptime T: type, c: *const T) G.Source.Descriptor {
+pub fn descriptor(comptime T: type, c: *const T) G.Source.Descriptor {
     if (comptime @hasField(T, "data")) {
         var result = G.Source.Descriptor{ .origin = c.data.instance.origin };
         if (comptime @hasField(@TypeOf(c.data), "cpu_u8_pairs")) {
@@ -102,7 +102,7 @@ fn descriptor(comptime T: type, c: *const T) G.Source.Descriptor {
     }
     return .{ .origin = c.origin };
 }
-fn caseId(d: G.Source.Descriptor) !u32 {
+pub fn caseId(d: G.Source.Descriptor) !u32 {
     for (Oracle.descriptors(), 0..) |candidate, i| if (std.meta.eql(d, candidate)) return @intCast(i);
     std.debug.print("UNSUPPORTED_REAL_COMPOSITION origin={any} cpu_u8_pairs={} cpu_compact_decode={}\n", .{ d.origin, d.cpu_u8_pairs, d.cpu_compact_decode });
     return error.UnsupportedRealCompositionDescriptor;

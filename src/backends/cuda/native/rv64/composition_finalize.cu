@@ -92,3 +92,29 @@ extern "C" int stwo_rv64_composition_finish_on(
   *launches += split_launches;
   return status;
 }
+namespace {
+__global__ void fill_auxiliary(const uint32_t *hc, uint32_t *out, uint32_t log) {
+  const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x, n = 1u << log;
+  if (row >= n) return;
+  const uint32_t half = row & 1, bits = half ? row : (n - 1) ^ row;
+  // Exactly public_aux.zig carryIndex: these bits are always odd/nonzero.
+  const uint32_t carry = __clz(bits) - (32 - log);
+  out[row] = row == 0;
+  out[uint64_t(n) + row] = row + 1 == n;
+  for (uint32_t c = 0; c < 8; ++c)
+    out[uint64_t(c + 2) * n + row] = hc[(half * log + carry) * 8 + c];
+}
+}
+extern "C" int stwo_rv64_composition_auxiliary_on(
+    void *ctx, uint32_t lane, const uint32_t *hc, uint32_t *output,
+    uint32_t log, uint32_t *launches) {
+  using namespace stwo::cuda::rv64;
+  if (launches) *launches = 0;
+  if (!launches || log < 3 || log > 22) return int(cudaErrorInvalidValue);
+  Custody c(ctx, lane);
+  if (!c.range(hc, 16 * log, false) || !c.range(output, uint64_t(10) << log, true)) return c.status;
+  fill_auxiliary<<<((1u << log) + 127) / 128, 128, 0, c.stream>>>(hc, output, log);
+  const int status = int(cudaGetLastError());
+  if (!status) *launches = 1;
+  return status;
+}
