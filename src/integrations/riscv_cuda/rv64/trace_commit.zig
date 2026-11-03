@@ -101,6 +101,15 @@ const Job = struct {
         };
         return 0;
     }
+    fn allocate(self: *Job, ctx: *SC.Context, words: usize, kind: u32, phase: []const u8) !Native.Lease {
+        return ctx.allocate(words, kind) catch |err| {
+            // Capture the live peak before run's deferred lease cleanup. A
+            // callback-level snapshot would describe the unwound allocation set.
+            std.debug.print("GPU_TRACE_ALLOCATION_FAILURE tree={} columns={} phase={s} requested_words={} kind={} error={s}\n", .{ self.request.tree_index, self.request.columns.len, phase, words, kind, @errorName(err) });
+            self.backend.service.logMemoryFailure(ctx.native_context, "trace_commit");
+            return err;
+        };
+    }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
         const a = self.a;
@@ -140,12 +149,12 @@ const Job = struct {
             ctx.join() catch {};
             _ = b.api.release(b.service.session, &coefficients);
         };
-        if (separate_coefficients) coefficients = try ctx.allocate(coefficient_cells, 2);
+        if (separate_coefficients) coefficients = try self.allocate(&ctx, coefficient_cells, 2, "coefficients");
         const tw_base = try std.math.add(usize, if (separate_coefficients) 0 else coefficient_cells, eval_cells);
         const inverse_base = try std.math.add(usize, tw_base, tw.twiddles.len);
         const desc_base = std.mem.alignForward(usize, try std.math.add(usize, inverse_base, tw.itwiddles.len), 2);
         const arena_cells = try std.math.add(usize, desc_base, try std.math.mul(usize, r.columns.len, 7));
-        var arena = try ctx.allocate(arena_cells, 0);
+        var arena = try self.allocate(&ctx, arena_cells, 0, "lde_arena");
         defer {
             ctx.join() catch {};
             _ = b.api.release(b.service.session, &arena);
@@ -235,7 +244,7 @@ const Job = struct {
         for (segments.items[0 .. segments.items.len - 1]) |segment| prefix_rows = @max(prefix_rows, segment.source_size);
         const prefix_words = try std.math.mul(usize, prefix_rows, 48);
         const tree_capacity = try std.math.add(usize, tree_words, prefix_words);
-        var tree = try ctx.allocate(tree_capacity, 0);
+        var tree = try self.allocate(&ctx, tree_capacity, 0, "merkle_tree_and_prefix");
         defer {
             ctx.join() catch {};
             _ = b.api.release(b.service.session, &tree);
@@ -252,7 +261,7 @@ const Job = struct {
         if (r.tree_index == 1) final_scope.main = root;
         const promoted = @import("pcs_scope.zig").identity(final_scope);
         if (!separate_coefficients) {
-            coefficients = try ctx.allocate(coefficient_cells, 2);
+            coefficients = try self.allocate(&ctx, coefficient_cells, 2, "coefficients");
             try check(b.copy(raw, coefficients.words.?, ptr, coefficient_cells * 4));
             try ctx.join();
         }
