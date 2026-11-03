@@ -422,7 +422,13 @@ test "candidate operational budget cannot select protocol and control resource s
     const capture_roundtrip = try std.json.parseFromSlice(CaptureOptions, a, options_json, .{});
     defer capture_roundtrip.deinit();
     try std.testing.expectEqualDeep(capture_resources.capture_options, capture_roundtrip.value);
-    capture_resources.capture_options.max_inflight_packets = 3;
+    for ([_]u8{ 1, 2, 3, 4, 8, @import("capture_prefetch.zig").MAX_INFLIGHT }) |window| {
+        capture_resources.capture_options.max_inflight_packets = window;
+        try capture_resources.validate();
+    }
+    capture_resources.capture_options.max_inflight_packets = 0;
+    try std.testing.expectError(error.InvalidEthereumCaptureOptions, capture_resources.validate());
+    capture_resources.capture_options.max_inflight_packets = @import("capture_prefetch.zig").MAX_INFLIGHT + 1;
     try std.testing.expectError(error.InvalidEthereumCaptureOptions, capture_resources.validate());
     const forbidden_capture = "{\"max_inflight_packets\":2,\"security_qualified\":true}";
     try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CaptureOptions, a, forbidden_capture, .{}));
