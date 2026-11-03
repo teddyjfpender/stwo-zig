@@ -120,3 +120,80 @@ test "product under pcs2; wrong c rejected" {
     proof.op_finals[0][2] = proof.op_finals[0][2].add(f.QM31.one());
     try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, proto.weightKey(&ws), &proof)));
 }
+
+fn batchedCase(pc: proto.Config) !void {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const cfg = model.Mlp{ .log_t = 4, .log_d = 6, .log_f = 7 };
+    var pcb = pc;
+    pcb.batch_matmuls = true;
+    const winfos = model.mlpWeightInfos(cfg);
+    pcb.weight_log_cols = try proto.chooseWeightLogCols(pcb, a, &winfos, 2);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 300 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var ws = try proto.commitWeights(a, &pool, pcb, &winfos, &wv);
+    defer ws.deinit(a);
+    const key = proto.weightKey(&ws);
+    const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 4);
+    defer a.free(x);
+    var built = try model.buildMlp(a, &pool, &ws, cfg, x);
+    defer built.deinit(a);
+    const st = built.statement();
+    const wview = try a.alloc([]const i32, built.witness.len);
+    defer a.free(wview);
+    for (built.witness, 0..) |w, i| wview[i] = w;
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, pcb, st, &ws, wview, &tm);
+    defer proof.deinit(a);
+    try proto.verify(a, pcb, st, key, &proof);
+    // gate/up form one class (one sumcheck with 4 finals), down its own, plus hadamard
+    try std.testing.expectEqual(@as(usize, 3), proof.op_sumchecks.len);
+    try std.testing.expectEqual(@as(usize, 4), proof.op_finals[0].len);
+    // the unbatched verifier must reject a batched proof
+    var pcu = pcb;
+    pcu.batch_matmuls = false;
+    try std.testing.expect(std.meta.isError(proto.verify(a, pcu, st, key, &proof)));
+    // tamper each final of the batched class (x and w values of both members)
+    for (0..4) |j| {
+        const sv = proof.op_finals[0][j];
+        proof.op_finals[0][j] = sv.add(f.QM31.one());
+        try std.testing.expect(std.meta.isError(proto.verify(a, pcb, st, key, &proof)));
+        proof.op_finals[0][j] = sv;
+    }
+    // weight value of the second class member
+    const wsv = proof.weight_values[1];
+    proof.weight_values[1] = wsv.add(f.QM31.one());
+    try std.testing.expect(std.meta.isError(proto.verify(a, pcb, st, key, &proof)));
+    proof.weight_values[1] = wsv;
+    // sumcheck round of the batched class
+    proof.op_sumchecks[0].rounds[1].evals[1] = proof.op_sumchecks[0].rounds[1].evals[1].add(f.QM31.one());
+    try std.testing.expect(std.meta.isError(proto.verify(a, pcb, st, key, &proof)));
+    proof.op_sumchecks[0].rounds[1].evals[1] = proof.op_sumchecks[0].rounds[1].evals[1].sub(f.QM31.one());
+    // statement: shift of the second member (up projection)
+    const ops2 = try a.dupe(proto.Op, st.ops);
+    defer a.free(ops2);
+    ops2[2].matmul.shift += 1;
+    var st2 = st;
+    st2.ops = ops2;
+    try std.testing.expect(std.meta.isError(proto.verify(a, pcb, st2, key, &proof)));
+    // statement: swap which weight the up projection uses
+    const ops3 = try a.dupe(proto.Op, st.ops);
+    defer a.free(ops3);
+    ops3[2].matmul.w = 0;
+    var st3 = st;
+    st3.ops = ops3;
+    try std.testing.expect(std.meta.isError(proto.verify(a, pcb, st3, key, &proof)));
+    try proto.verify(a, pcb, st, key, &proof);
+}
+
+test "batched matmul classes: flat PCS" {
+    try batchedCase(.{ .pcs = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 2 }, .weight_log_cols = 6, .witness_log_cols_max = 6, .gkr_threads = 2 });
+}
+
+test "batched matmul classes: pcs2 depth 1 (gate/up share one weight group)" {
+    try batchedCase(tlConfig(1));
+}

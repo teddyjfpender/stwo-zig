@@ -478,6 +478,7 @@ fn openRec(
     const p = params.level(lvl);
     var su = try setup(a, tr, com.log_rows, groups, params.nProx(with_proximity));
     defer su.deinit(a);
+    if (su.coeffs.len == 0) return error.OpeningShape;
     const cview = try a.alloc([]const QM31, su.coeffs.len);
     defer a.free(cview);
     for (su.coeffs, 0..) |c, i| cview[i] = c;
@@ -791,6 +792,7 @@ fn verifyRec(
     };
     var su = try setup(a, tr, shape.log_rows, groups, params.nProx(with_proximity));
     defer su.deinit(a);
+    if (su.coeffs.len == 0) return error.OpeningShape;
     const n_rows = su.coeffs.len;
     const k0 = params.nProx(with_proximity);
     const fac = try a.alloc(M31, log_c);

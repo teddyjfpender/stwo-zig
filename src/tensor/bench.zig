@@ -91,9 +91,11 @@ pub fn main() !void {
         .gkr_threads = threads,
     };
     pc.two_level = try twoLevel(args, 9, pc.pcs);
+    // TENSOR_BATCH_MATMULS=1: shape-class batched matmul sumchecks (gate/up share)
+    pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
 
     const winfos = model.mlpWeightInfos(cfg);
-    pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, &winfos, 3);
+    pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, &winfos, if (pc.batch_matmuls) 2 else 3);
     var wdata: [3][]i8 = undefined;
     for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
     const wv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
@@ -132,6 +134,7 @@ pub fn main() !void {
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"mlp\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, threads, queries, lb, pow });
     try printTl(out, pc);
+    try out.print("\"batch_matmuls\":{},", .{pc.batch_matmuls});
     try out.print("\"weight_log_cols\":{d},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.weight_log_cols, n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });

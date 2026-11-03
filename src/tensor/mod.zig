@@ -3,6 +3,7 @@ pub const transcript = @import("transcript.zig");
 pub const sumcheck = @import("sumcheck.zig");
 pub const pcs = @import("pcs.zig");
 pub const pcs2 = @import("pcs2.zig");
+pub const batch_sumcheck = @import("batch_sumcheck.zig");
 pub const linalg = @import("linalg.zig");
 pub const protocol = @import("protocol.zig");
 pub const model = @import("model.zig");
@@ -14,6 +15,7 @@ test {
     _ = sumcheck;
     _ = pcs;
     _ = pcs2;
+    _ = batch_sumcheck;
     _ = linalg;
     _ = protocol;
     _ = model;
