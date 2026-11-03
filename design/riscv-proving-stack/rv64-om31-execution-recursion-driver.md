@@ -26,3 +26,24 @@ After fresh verification and durable serialization, the driver now also calls ex
 The new root artifact does **not** carry authority to replace its verifier key. The current receiver owns the regenerated immutable key in process; `portable_root_key_admission=false` states that an independent new-process root-only key admission/cache still needs qualification. The output sidecar is accepted only alongside the proof-authenticated ordered frame digest. Arbitrary sidecar words alone are not execution acceptance.
 
 The native and outer profile names express a 128-bit security target under documented assumptions, not a whole-protocol certificate. Legacy QM31 proof codecs and registry keys are not accepted by the new OM31 wrapper.
+
+## Explicit CUDA outer controller
+
+A separate CUDA-linked product selects the concrete device factory. The CPU product and ordinary resident native producer retain their default paths.
+
+```sh
+zig build --build-file src/integrations/riscv_cuda/build.zig \
+  build-rv64-ethereum-gpu-recursion -Doptimize=ReleaseFast \
+  -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4 -j2
+STWO_RV64_GPU_LIBRARY=/absolute/path/qualified-native-image.so \
+STWO_RV64_GPU_DEVICE=0 STWO_RV64_GPU_BYTE_CAP=30064771072 \
+  src/integrations/riscv_cuda/zig-out/bin/rv64-word16-ethereum-gpu-recursion \
+  --security-profile conjectured128_b2_q108_p20_fold4 \
+  recurse-candidate REQUEST.json NATIVE_PROOF_DIRECTORY 12884901888 51539607552
+```
+
+The factory is explicit and receives a deterministic unique stream-node ordinal for both leaves and parents. GPU refusals propagate; the controller never switches to CPU proving. Missing library/kernel capabilities fail closed. The current product supports one selected device and rejects the multi-device-list variable rather than silently ignoring it. Every generated proof still receives independent native CPU verification before durable admission.
+
+This is **CUDA proving from CPU-built circuit assignments**: MAIN, INTER, composition and PCS are device stages, while circuit graph/assignment construction and immutable key derivation remain CPU work. It is not yet compact-proof-input-to-GPU-witness residency. Reports label `cuda_from_host_assignment`, and count actual newly proved GPU leaves/folds separately. Restored bytes bypass proving and are never presented as a GPU proving measurement.
+
+Host qualification covers terminal device refusal, correct unique ordinal forwarding, cached-proof backend bypass, the CPU path, and native producer dependency/type-check parity. The concrete factory has an independently qualified tiny native-OM31 proof with exact CPU bytes and fresh receivers. Real production CPU0/complete-root GPU qualification is the next gate; the previously accepted real root remains the CPU outer reference.

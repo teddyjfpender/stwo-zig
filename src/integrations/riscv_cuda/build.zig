@@ -18,6 +18,11 @@ pub fn build(b: *std.Build) void {
     ).module("stwo_riscv_frontend");
     const circuit_cpu = b.dependency("stwo_circuit_cpu_integration", options).module("stwo_circuit_cpu_integration");
     const cpu_integration = b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration");
+    // Only recursion-linked entry points reach these lazy imports. Native
+    // resident production does not instantiate circuit construction/proving.
+    cpu_integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    cpu_integration.addImport("stwo_cairo_frontend", circuit_cpu.import_table.get("stwo_cairo_frontend") orelse @panic("circuit native authority is missing recorded AIR types"));
+    cpu_integration.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
     // These two concrete native families share the package-owned wire module;
     // Zig must not instantiate the same proof-wire source twice in one binary.
     circuit_cpu.addImport("stwo_proof_wire", cpu_integration.import_table.get("stwo_proof_wire") orelse @panic("native CPU module is missing proof wire"));
@@ -280,6 +285,22 @@ pub fn build(b: *std.Build) void {
     resident_check.linkLibC();
     b.step("check-rv64-ethereum-gpu", "Type-check the production GPU route without emitting a binary").dependOn(&resident_check.step);
     b.step("build-rv64-ethereum-gpu", "Build real Ethereum hybrid producer with explicit GPU PCS offload").dependOn(&b.addInstallArtifact(hybrid, .{}).step);
+    const outer_root = b.createModule(.{ .root_source_file = b.path("rv64_outer_recursion_main.zig"), .target = target, .optimize = optimize });
+    outer_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    outer_root.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api").?);
+    outer_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    outer_root.addImport("stwo_riscv_cpu_integration", cpu_integration);
+    outer_root.addImport("stwo_riscv_frontend", frontend);
+    outer_root.addImport("stwo_cuda_backend", backend);
+    outer_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    outer_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
+    const outer = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu-recursion", .root_module = outer_root });
+    outer.linkLibC();
+    b.step("build-rv64-ethereum-gpu-recursion", "Build explicit CUDA native-OM31 outer recursion, no CPU fallback").dependOn(&b.addInstallArtifact(outer, .{}).step);
+    const outer_check = b.addExecutable(.{ .name = "rv64-outer-gpu-check", .root_module = outer_root });
+    outer_check.linkLibC();
+    b.step("check-rv64-ethereum-gpu-recursion", "Type-check CUDA outer recursion without a GPU or binary output").dependOn(&outer_check.step);
+
     binding_root.addImport("stwo_cuda_backend", backend);
     binding_root.addImport("stwo_riscv_frontend", frontend);
     const binding_object = b.addObject(.{ .name = "rv64-cuda-binding-check", .root_module = binding_root });

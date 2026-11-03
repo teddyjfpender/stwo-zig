@@ -4,6 +4,7 @@ const std = @import("std");
 const circuit = @import("stwo_circuit_frontend");
 const Outer = @import("stwo_circuit_cpu_integration").om31.prove;
 const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
+pub const Device = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
 pub const Timings = struct { preprocess_ns: u64, prove_ns: u64, verify_ns: u64, restore_ns: u64 = 0 };
@@ -52,6 +53,11 @@ pub fn wrapGraph(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8) !Wrapped
 /// Encoded authority is never admitted; decode and fresh verification bind the
 /// bytes to the receiver-derived topology and expected public digest.
 pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8) !Wrapped {
+    return wrapGraphOrLoadWithFactory(a, ctx, digest, encoded, 0, null);
+}
+/// Explicit device selection is terminal on refusal; cached bytes still use
+/// independent native reception and never invoke a proving backend.
+pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
     if (!try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
@@ -65,6 +71,7 @@ pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, en
     authority.* = try Outer.Authority.init(a, pp);
     errdefer authority.deinit();
     const preprocess_ns = timer.lap();
+    if (factory != null) std.log.info("CUDA_OUTER_AUTHORITY ordinal={d} vars={d} row_logs={any}", .{ ordinal, ctx.circuit.n_vars, authority.logs.toArray() });
     var produced = if (encoded) |bytes| blk: {
         var decoded = try Wire.decode(a, authority.identity, 8, bytes);
         errdefer decoded.deinit();
@@ -72,7 +79,7 @@ pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, en
         // Restored proofs need no such caches; all containers are owned-safe
         // empty values so Produced.deinit remains the single cleanup path.
         break :blk Outer.Produced{ .allocator = a, .outputs = decoded.outputs, .claims = decoded.claims, .proof = .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = .{ .items = &.{} }, .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } } };
-    } else try Outer.prove(a, authority, ctx.values());
+    } else if (factory) |gpu| try Device.prove(a, authority, ctx.values(), ordinal, gpu) else try Outer.prove(a, authority, ctx.values());
     errdefer produced.deinit();
     const source_ns = timer.lap();
     try requireDigest(produced.outputs, digest);

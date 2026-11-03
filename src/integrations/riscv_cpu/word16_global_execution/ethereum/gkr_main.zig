@@ -181,16 +181,20 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const base = recycler.allocator();
     const all_args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, all_args);
-    return runArguments(&recycler, all_args, stages, null, false);
+    return runArguments(&recycler, all_args, stages, null, false, {});
 }
 /// Separate linked product: the resident native executable does not pull the
 /// circuit stack into every GPU build merely to expose an unavailable mode.
 pub fn mainWithRecursion() !void {
+    return mainWithRecursionFactory(null);
+}
+/// Linked GPU-recursion product supplies one explicitly owned device factory.
+pub fn mainWithRecursionFactory(factory: ?@import("stwo_circuit_cpu_integration").om31.device_prove.Factory) !void {
     var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
     const all_args = try std.process.argsAlloc(recycler.allocator());
     defer std.process.argsFree(recycler.allocator(), all_args);
-    return runArguments(&recycler, all_args, .{}, null, true);
+    return runArguments(&recycler, all_args, .{}, null, true, factory);
 }
 /// Same producer authority and CLI contract, with caller-owned persistent caches.
 /// The caller keeps one GPU pool/session alive and serializes complete requests.
@@ -198,9 +202,9 @@ pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages
     if (session.active) return error.ResidentRequestAlreadyActive;
     session.active = true;
     defer session.active = false;
-    return runArguments(recycler, all_args, stages, session, false);
+    return runArguments(recycler, all_args, stages, session, false, {});
 }
-fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool) !void {
+fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession, comptime enable_recursion: bool, recursion_factory: if (enable_recursion) ?@import("stwo_circuit_cpu_integration").om31.device_prove.Factory else void) !void {
     const base = recycler.allocator();
     const device_pcs_stage = stages.pcs;
     const om31_composition_stage = stages.composition;
@@ -284,7 +288,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
             };
             var recursive_dir = try dir.openDir("recursion-om31", .{});
             defer recursive_dir.close();
-            const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, resume_recursion);
+            const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, resume_recursion, recursion_factory);
             const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
             const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
             return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domain, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .recursive = recursion });

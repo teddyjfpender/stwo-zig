@@ -2,6 +2,16 @@ const std = @import("std");
 const circuit = @import("stwo_circuit_frontend");
 const Wrap = @import("outer_wrap.zig");
 const C = @import("common.zig");
+const Refusal = struct {
+    calls: usize = 0,
+    fn prepare(raw: *anyopaque, a: std.mem.Allocator, key: *const @import("stwo_circuit_cpu_integration").om31.prove.Authority, values: []const C.Q, scope: @import("stwo_prover_api").device_pcs.Scope) anyerror!Wrap.Device.Source {
+        _ = a;
+        const self: *Refusal = @ptrCast(@alignCast(raw));
+        if (scope.ordinal != 42 or key.pp.n_outputs != 8 or values.len == 0) return error.BadGpuDispatch;
+        self.calls += 1;
+        return error.ExpectedGpuRefusal;
+    }
+};
 test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded wire" {
     const a = std.testing.allocator;
     var ctx = try C.Context.init(a, circuit.common.component_list.N_RESERVED);
@@ -14,6 +24,10 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     }
     try ctx.setOutputs(&outputs);
     try ctx.finalize(false);
+    var refusal = Refusal{};
+    const factory = Wrap.Device.Factory{ .context = &refusal, .prepare = Refusal.prepare };
+    try std.testing.expectError(error.ExpectedGpuRefusal, Wrap.wrapGraphOrLoadWithFactory(a, &ctx, digest, null, 42, factory));
+    try std.testing.expectEqual(@as(usize, 1), refusal.calls);
     var wrapped = try Wrap.wrapGraph(a, &ctx, digest);
     defer wrapped.deinit();
     const bytes = try wrapped.serialize(a);
@@ -29,6 +43,10 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     const replay = try restored.serialize(a);
     defer a.free(replay);
     try std.testing.expectEqualSlices(u8, bytes, replay);
+    var device_selected_restore = try Wrap.wrapGraphOrLoadWithFactory(a, &ctx, digest, bytes, 99, factory);
+    defer device_selected_restore.deinit();
+    try std.testing.expect(device_selected_restore.restored);
+    try std.testing.expectEqual(@as(usize, 1), refusal.calls);
     const mutant = try a.dupe(u8, bytes);
     defer a.free(mutant);
     mutant[40] ^= 1;
