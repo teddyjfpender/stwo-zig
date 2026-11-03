@@ -4,7 +4,7 @@
 extern "C" int stwo_rv64_truth_composition_role_on(void *ctx,uint32_t lane,
     const StwoRv64CompositionRole *job,uint32_t *launches) {
   if (launches) *launches=0;
-  if (!job || !launches || job->role>=7) return int(cudaErrorInvalidValue);
+  if (!job || !launches || job->role>=sizeof(truth_catalog)/sizeof(truth_catalog[0])) return int(cudaErrorInvalidValue);
   const auto &catalog=truth_catalog[job->role];
   StwoRv64CompositionRole local=*job;
   local.role=0;

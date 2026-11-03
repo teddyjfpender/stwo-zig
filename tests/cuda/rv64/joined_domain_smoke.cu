@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <fstream>
 #include <iterator>
+#ifndef STWO_RV64_FIRST_CASE
+#define STWO_RV64_FIRST_CASE 0
+#endif
 static void exercise(const std::string &directory, uint32_t index,
                      uint32_t tiles, uint32_t parts = 1) {
   const auto file = directory + "/case-" + std::to_string(index) + ".bin";
@@ -145,13 +148,13 @@ int main(int argc, char **argv) {
         (argc == 3 && std::string(argv[2]) != "--paired"))
       throw std::runtime_error("expected joined domain fixtures [--paired]");
     const uint32_t parts = argc == 3 ? 2 : 1;
-    for (uint32_t id = 0; id < composition_case_count; ++id)
+    for (uint32_t id = STWO_RV64_FIRST_CASE; id < composition_case_count; ++id)
       for (uint32_t tiles : {1u, 3u})
         exercise(argv[1], id, tiles, parts);
     std::printf(
         "PASS joined DOMAIN layouts=%u tile_cases=%u "
         "native_parity=true full_block_verified=false paired_cosets=%u\n",
-        composition_case_count, composition_case_count * 2, parts);
+        composition_case_count - STWO_RV64_FIRST_CASE, (composition_case_count - STWO_RV64_FIRST_CASE) * 2, parts);
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "%s\n", e.what());

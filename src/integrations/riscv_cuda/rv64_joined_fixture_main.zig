@@ -175,6 +175,12 @@ pub fn main() !void {
         defer d.close();
         return @import("rv64/curve_witness_codegen.zig").write(a, d);
     }
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--truth-interaction-fixtures")) {
+        try std.fs.cwd().makePath(args[2]);
+        var directory = try std.fs.cwd().openDir(args[2], .{});
+        defer directory.close();
+        return @import("rv64/truth_rational_fixtures.zig").write(a, directory);
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "--truth-interactions")) {
         try std.fs.cwd().makePath(args[2]);
         var directory = try std.fs.cwd().openDir(args[2], .{});

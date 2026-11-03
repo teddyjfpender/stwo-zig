@@ -128,17 +128,33 @@ def partition(source: Path, destination: Path, groups_per_module: int, max_modul
             "groups": len(parts), "modules": modules}
 
 
-def truth_catalog(source: Path, destination: Path, groups_per_module: int, max_module_bytes: int):
+def truth_catalog(source: Path, destination: Path, groups_per_module: int, max_module_bytes: int, tail_first_group: int | None = None):
     signature = "const uint32_t*,const uint32_t*,const uint32_t*,const uint64_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t,uint32_t,uint32_t,uint32_t"
     lines = ["#pragma once", "#include <cuda_runtime.h>", "#include <cstdint>",
              "struct StwoTruthKernelPart { const void *kernel; uint32_t groups; };",
              "struct StwoTruthKernelSpan { const StwoTruthKernelPart *parts; uint32_t count; };"]
     catalogs = []
-    for role in range(7):
+    roles = sorted(int(match[1]) for path in source.glob("case-*-domain.cu")
+                   if (match := re.fullmatch(r"case-(\d+)-domain\.cu", path.name)))
+    if roles not in [list(range(7)), list(range(10))]:
+        raise ValueError("truth catalogue must contain the admitted seven or ten contiguous cases")
+    for role in roles:
         original = source / f"case-{role}-domain.cu"
-        if role in (0, 5, 6):
+        if role in (0, 5, 6, 7):
             item = partition(original, destination / f"role-{role}", groups_per_module, max_module_bytes)
             modules = item["modules"]
+            if role == 7 and tail_first_group is not None:
+                # Keep an already compiled prefix while bounding cold inverse/
+                # prefix roots independently. Global RLC indices never move.
+                single_dir = destination / "role-7-single"
+                single_dir.mkdir(parents=True, exist_ok=True)
+                single = partition(original, single_dir, 1, min(max_module_bytes, 131072))
+                prefix = [m for m in modules if m["first_group"] + m["groups"] <= tail_first_group]
+                if not prefix or prefix[-1]["first_group"] + prefix[-1]["groups"] != tail_first_group or tail_first_group >= item["groups"]:
+                    raise ValueError("truth tail must begin at an existing partition boundary")
+                modules = prefix + single["modules"][tail_first_group:]
+                item["modules"] = modules
+                item["tail_first_group"] = tail_first_group
         else:
             text = original.read_text()
             symbol = re.search(r'extern "C" __global__ void ([A-Za-z0-9_]+)\(', text).group(1)
@@ -161,11 +177,12 @@ def main():
     ap.add_argument("--groups-per-module", type=int, default=8)
     ap.add_argument("--truth-catalog", action="store_true")
     ap.add_argument("--max-module-bytes", type=int, default=524288)
+    ap.add_argument("--truth-tail-first-group", type=int, help="Keep role7 prefix partitions and split its cold suffix into individual constraint groups")
     args = ap.parse_args()
     args.destination.mkdir(parents=True, exist_ok=True)
-    for role in (0,5,6):
+    for role in (0,5,6,7):
         if args.truth_catalog: (args.destination / f"role-{role}").mkdir(parents=True, exist_ok=True)
-    manifest = truth_catalog(args.source, args.destination, args.groups_per_module, args.max_module_bytes) if args.truth_catalog else partition(args.source, args.destination, args.groups_per_module, args.max_module_bytes)
+    manifest = truth_catalog(args.source, args.destination, args.groups_per_module, args.max_module_bytes, args.truth_tail_first_group) if args.truth_catalog else partition(args.source, args.destination, args.groups_per_module, args.max_module_bytes)
     target = args.destination / "partition.json"
     target.write_text(json.dumps(manifest, indent=2) + "\n")
     print(json.dumps({"manifest": str(target), "roles": len(manifest["roles"])} if args.truth_catalog else {"manifest": str(target), "groups": manifest["groups"], "modules": len(manifest["modules"])}))
