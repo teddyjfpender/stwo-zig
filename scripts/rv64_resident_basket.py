@@ -397,9 +397,8 @@ def qualification_view(original, requested, recorded=None):
     return requested
 
 
-def qualify_job(plan, job, pending=None, production_plan=None):
+def validate_pending(plan, job, pending, production_plan=None):
     target = Path(job["target"])
-    pending = B.load(target / "produced.json") if pending is None else pending
     original = plan if production_plan is None else production_plan
     if production_identity(original) != production_identity(plan):
         raise ValueError("qualification changed the original production authority")
@@ -417,6 +416,26 @@ def qualify_job(plan, job, pending=None, production_plan=None):
     for name, expected in pending["log_sha256"].items():
         if B.sha(target / name) != expected:
             raise ValueError("production log changed before qualification")
+
+
+def continuation_result(plan, job, production_plan=None):
+    target = Path(job["target"])
+    result_path, pending_path = target / "result.json", target / "produced.json"
+    if pending_path.is_file():
+        pending = B.load(pending_path)
+        validate_pending(plan, job, pending, production_plan)
+        if result_path.is_file() and B.load(result_path).get("status") == "accepted":
+            return B.load(result_path)
+        return pending
+    if result_path.is_file() and B.load(result_path).get("status") == "failed":
+        return B.load(result_path)
+    return None
+
+
+def qualify_job(plan, job, pending=None, production_plan=None):
+    target = Path(job["target"])
+    pending = B.load(target / "produced.json") if pending is None else pending
+    validate_pending(plan, job, pending, production_plan)
     environment = dict(os.environ)
     environment.update(pending["environment"])
     usage, memory, gpu = pending["producer_process"], pending["physical_gpu_memory"], pending["gpu"]
@@ -555,11 +574,14 @@ def main():
     p.add_argument("--library-sha256", default=RUNTIME)
     p.add_argument("--devices", default="0,1,2,3")
     p.add_argument("--gpu-lock", type=Path, help="Exclusive advisory GPU lease per complete producer request; CPU qualification never holds it")
+    p.add_argument("--continue-existing", action="store_true", help="With --keep-going, validate and retain sealed cases and failed artifacts; never re-prove them")
     p.add_argument("--keep-going", action="store_true", help="Record failed cases and continue; final status remains failed")
     p.add_argument("--counts", default="1,2,4")
     p.add_argument("--repeat", type=int, choices=(1, 2), default=2, help="1: fresh cold proof and receivers per case; 2: additionally prove warm and require exact parity")
     p.add_argument("--device-cap-bytes", type=int, default=28 << 30)
     args = p.parse_args()
+    if args.continue_existing and not args.keep_going:
+        p.error("--continue-existing requires --keep-going")
     args.output.mkdir(parents=True, exist_ok=True)
     plan = build_plan(B.load(args.basket), B.load(args.inputs), args.inputs.resolve().parent,
                       args.driver.resolve(), args.receiver.resolve(), args.library.resolve(), args.output.resolve(),
@@ -588,8 +610,12 @@ def main():
         for job in plan["jobs"]:
             path = Path(job["target"]) / "result.json"
             try:
-                result = (produce_job(plan, job) if args.mode == "produce" else
-                          qualify_job(plan, job, production_plan=production_plan) if args.mode == "qualify" else run_job(plan, job))
+                retained = continuation_result(plan, job, production_plan) if args.continue_existing else None
+                if retained is not None and (args.mode == "produce" or retained["status"] in ("accepted", "failed")):
+                    result = retained
+                else:
+                    result = (produce_job(plan, job) if args.mode == "produce" else
+                              qualify_job(plan, job, production_plan=production_plan) if args.mode == "qualify" else run_job(plan, job))
             except Exception as error:
                 result = {"schema": SCHEMA, "status": "failed", "block": job["block"], "device_count": job["device_count"], "error": str(error),
                           "process_measurement": getattr(error, "measurement", None)}

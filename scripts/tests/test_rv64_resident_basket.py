@@ -147,11 +147,15 @@ class ResidentBasket(unittest.TestCase):
                     self.assertEqual(calls, ["producer"])
                     self.assertEqual(pending["status"], "produced_pending_verification")
                     self.assertIs(pending["accepted"], False)
+                    self.assertEqual(R.continuation_result(plan, job), R.B.load(target / "produced.json"))
+                    self.assertEqual(calls, ["producer"])
                     self.assertFalse((target / "receiver-0.stdout").exists())
                     if corrupt_pending:
                         (target / "batch/trial-0/1/proof/physical-0.bin").write_bytes(b"changed")
                         with self.assertRaisesRegex(ValueError, "artifacts changed"):
                             R.qualify_job(plan, job)
+                        with self.assertRaisesRegex(ValueError, "artifacts changed"):
+                            R.continuation_result(plan, job)
                         self.assertEqual(calls, ["producer"])
                         return
                     result = R.qualify_job(plan, job)
