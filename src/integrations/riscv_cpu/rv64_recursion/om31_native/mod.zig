@@ -9,6 +9,7 @@ pub const shape = @import("shape.zig");
 pub const proof = @import("proof.zig");
 pub const fri = @import("fri.zig");
 pub const deep = @import("deep.zig");
+pub const frame = @import("frame.zig");
 pub const Shape = shape.Shape;
 pub const Captured = proof.Captured;
 pub const Proof = proof.Proof;

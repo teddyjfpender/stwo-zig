@@ -195,7 +195,7 @@ fn mixDigest(ch: *C, digest: [32]u8) void {
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
     ch.mixU32s(&words);
 }
-fn drawShared(digest: [32]u8) Shared {
+pub fn drawShared(digest: [32]u8) Shared {
     var ch = C.init();
     ch.mixU32s(&.{ 0x53474d31, 1, 8 });
     mixDigest(&ch, digest);

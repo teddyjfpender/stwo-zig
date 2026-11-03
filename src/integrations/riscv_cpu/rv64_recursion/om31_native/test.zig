@@ -288,3 +288,62 @@ test "OM31 native PCS nonconstant last polynomial and nonzero proof of work acce
     @constCast(values.last_layer_coefs)[1] = values.last_layer_coefs[1].add(delta(5));
     try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
 }
+
+test "OM31 frame worker framing shared draws and public digest match native authorities" {
+    const Frame = V.frame;
+    const W = @import("../../word16_global_execution/services/gkr_local/worker_protocol.zig");
+    const Manifest = @import("../../word16_global_execution/services/gkr_local/manifest.zig");
+    const Fixed = @import("../../word16_global_execution/services/gkr_local/fixed_authority.zig");
+    const cfg = try config(4);
+    const expected = Manifest.ExpectedWorker{ .kind = .delegation, .ordinal = 3, .statement = @splat(17), .fixed = @splat(11), .local_instances = null, .global_relations = .{ .ram = false, .kio = false, .wire = true }, .mass = .{ .ram = 0, .kio = 0, .wire = 5 } };
+    var ctx = try C.Context.init(a, 0);
+    defer ctx.deinit();
+    C.lane.begin(&ctx);
+    var active = true;
+    defer if (active) C.lane.finish() catch {};
+    var frame = Frame.Frame.init(&ctx);
+    const ordinal = try frame.guessU32(expected.ordinal);
+    const statement = try frame.guessDigest(expected.statement);
+    const manifest = try frame.guessDigest(@splat(19));
+    const om_value = delta(7).add(O.fromBase(M.fromCanonical(23)));
+    _ = try frame.guessOm(om_value);
+    var legacy = W.begin(cfg, expected);
+    const channel = try Frame.beginWorker(&ctx, cfg, expected.kind, ordinal.word, statement, null);
+    try std.testing.expectEqual(legacy.digestBytes(), channel.raw.inner.debugDigest(&ctx));
+    const fixed = Frame.Binding{ .identity = @splat(31), .root = @splat(37), .profile = .conjectured128_b2_q108_p20_fold4 };
+    var writer = struct {
+        ch: *W.Channel,
+        pub fn constantDigest(self: *@This(), value: [32]u8) void {
+            W.digest(self.ch, value);
+        }
+    }{ .ch = &legacy };
+    Fixed.emitBindingBegin(fixed.profile, fixed.identity, fixed.root, &writer);
+    const bound = try Frame.beginWorker(&ctx, cfg, expected.kind, ordinal.word, statement, fixed);
+    try std.testing.expectEqual(legacy.digestBytes(), bound.raw.inner.debugDigest(&ctx));
+    const shared = try Frame.drawShared(&ctx, manifest);
+    const native = Manifest.drawShared(@splat(19));
+    try std.testing.expect(shared.ram.offset.value().eql(native.ram.offset));
+    for (shared.ram.coefficients, native.ram.coefficients) |wire, value| try std.testing.expect(wire.value().eql(value));
+    try std.testing.expect(shared.kio.offset.value().eql(native.kio.offset));
+    for (shared.kio.coefficients, native.kio.coefficients) |wire, value| try std.testing.expect(wire.value().eql(value));
+    try std.testing.expect(shared.wire.offset.value().eql(native.wire.offset));
+    for (shared.wire.coefficients, native.wire.coefficients) |wire, value| try std.testing.expect(wire.value().eql(value));
+    const digest = try frame.finish();
+    var hash = std.crypto.hash.blake2.Blake2s256.init(.{});
+    var word: [4]u8 = undefined;
+    std.mem.writeInt(u32, &word, expected.ordinal, .little);
+    hash.update(&word);
+    hash.update(&expected.statement);
+    hash.update(&@as([32]u8, @splat(19)));
+    for (om_value.toM31Array()) |v| {
+        std.mem.writeInt(u32, &word, v.v, .little);
+        hash.update(&word);
+    }
+    var expected_digest: [32]u8 = undefined;
+    hash.final(&expected_digest);
+    try Frame.requireDigest(&ctx, digest, expected_digest);
+    try C.lane.finish();
+    active = false;
+    try ctx.finalize(false);
+    try std.testing.expect(try ctx.isCircuitValid());
+}
