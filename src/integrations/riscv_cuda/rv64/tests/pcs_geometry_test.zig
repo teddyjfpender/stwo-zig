@@ -97,3 +97,33 @@ fn allocationFailures(a: std.mem.Allocator) !void {
 test "PCS geometry cache cold allocation failures preserve admitted entries and ownership" {
     try std.testing.checkAllAllocationFailures(std.testing.allocator, allocationFailures, .{});
 }
+
+test "PCS request framing admits over-u32 lifted totals without materializing witnesses" {
+    const a = std.testing.allocator;
+    var cache = E.GeometryCache.init(a, 64 << 20);
+    defer cache.deinit();
+    const rows = @as(u64, 1) << 22;
+    const columns = [_]D.Column{.{ .log_size = 22, .device = .{ .words = @ptrFromInt(4096), .count = rows, .context_token = 7, .generation = 9 } }} ** 513;
+    var points = [_]D.Point{.{ .x = D.O.one(), .y = D.O.zero() }};
+    var column_points = [_][]D.Point{&points} ** columns.len;
+    var tree_points = [_][][]D.Point{&column_points};
+    var trees = [_]D.Tree{.{ .root = @splat(7), .columns = &columns }};
+    const request = D.Request{ .config = config(4), .lifting_log_size = 23, .trees = &trees, .points = .initOwned(&tree_points) };
+    const channel = D.Channel.init();
+    try std.testing.expectError(error.DevicePcsWideFramingUnsupported, E.prepareRequestWithCache(a, request, channel, &cache));
+    var wide = try E.prepareRequestWithFraming(a, request, channel, &cache, true);
+    defer wide.deinit(a);
+    const h = wide.section_storage[0];
+    try std.testing.expectEqual(@as(usize, 28), h.len);
+    try std.testing.expectEqual(@as(u32, 3), h[1]);
+    try std.testing.expectEqual(rows * columns.len, wide.metadata.coefficient_cells);
+    try std.testing.expectEqual(rows * columns.len * 2, @as(u64, h[16]) | (@as(u64, h[25]) << 32));
+    // An advertised new runtime still receives the exact legacy header for
+    // representable requests. No device pointer is dereferenced by framing.
+    trees[0].columns = columns[0..511];
+    tree_points[0] = column_points[0..511];
+    var compact = try E.prepareRequestWithFraming(a, request, channel, &cache, true);
+    defer compact.deinit(a);
+    try std.testing.expectEqual(@as(usize, 24), compact.section_storage[0].len);
+    try std.testing.expectEqual(@as(u32, 2), compact.section_storage[0][1]);
+}

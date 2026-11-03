@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 #define STWO_RV64_PCS_NATIVE_VERSION 1u
+// Highest supported metadata header; outer native request ABI remains version1.
+uint32_t stwo_rv64_pcs_request_version(void);
 #define STWO_RV64_PCS_SECTIONS 17u
 typedef struct StwoRv64HostWords {
   const uint32_t *words;

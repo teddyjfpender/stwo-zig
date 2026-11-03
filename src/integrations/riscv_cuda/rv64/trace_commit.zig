@@ -34,6 +34,7 @@ pub const Context = struct {
     b2n: B2n,
     copy: Native.CopyDevice,
     tree: *const @TypeOf(A.stwo_rv64_trace_tree_on),
+    prefix_workspace: ?*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int = null,
     rebind: Native.LeaseRebind,
     returned: std.ArrayList([]D.Column) = .empty,
     twiddles: [29]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
@@ -47,7 +48,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind") };
+        }, .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .n2b_columns = service.library.lookup(N2bColumns, "stwo_lde_n2b_columns_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .tree = try sym(*const @TypeOf(A.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .prefix_workspace = service.library.lookup(*const fn ([*]const A.MixedSegment, u32, *u64) callconv(.c) c_int, "stwo_rv64_trace_prefix_workspace_words"), .rebind = try sym(Native.LeaseRebind, &service.library, "stwo_rv64_gpu_lease_rebind") };
     }
     pub fn deinit(self: *Context) void {
         for (self.returned.items) |columns| std.heap.page_allocator.free(columns);
@@ -259,7 +260,16 @@ const Job = struct {
         // unrelated default pool.
         var prefix_rows: usize = 0;
         for (segments.items[0 .. segments.items.len - 1]) |segment| prefix_rows = @max(prefix_rows, segment.source_size);
-        const prefix_words = try std.math.mul(usize, prefix_rows, 48);
+        var prefix_words = try std.math.mul(usize, prefix_rows, 48);
+        // Older images need two equal-size banks. Shrink only when the loaded
+        // runtime explicitly supplies its exact scratch geometry, so it cannot
+        // fall back to an untracked allocation because of a smaller caller tail.
+        if (b.prefix_workspace) |query| {
+            var words: u64 = 0;
+            try check(query(segments.items.ptr, @intCast(segments.items.len), &words));
+            if (words > prefix_words) return error.InvalidTracePrefixWorkspace;
+            prefix_words = std.math.cast(usize, words) orelse return error.SizeOverflow;
+        }
         const tree_capacity = try std.math.add(usize, tree_words, prefix_words);
         var tree = try self.allocate(&ctx, tree_capacity, 0, "merkle_tree_and_prefix");
         defer {

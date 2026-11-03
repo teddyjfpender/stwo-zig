@@ -9,6 +9,7 @@
 #include "rv64/gkr_loop.h"
 #include "rv64/round.cuh"
 #include <algorithm>
+#include <cstdlib>
 using namespace stwo::cuda::rv64;
 using rv64_fixture::equal;
 using rv64_fixture::Fixture;
@@ -227,8 +228,40 @@ static void exercise(const std::string &directory, uint32_t id,
     const auto *lambda = state.words + STWO_RV64_GKR_LAMBDA_WORD;
     if (l.depth)
       CHECK(stwo_rv64_gkr_eq_on(o.ctx, 1, point, l.depth, eq));
+    bool tail_packed_masks = false;
     for (uint32_t round = 0; round < l.depth; ++round) {
       const auto left = l.depth - round;
+      if (std::getenv("STWO_RV64_TEST_BATCH_TAIL") && left <= 4) {
+        std::vector<StwoRv64BatchTailOracle> jobs;
+        for (uint32_t j = 0; j < l.active; ++j) {
+          const auto c = current[j]; auto &w = workers[ids[j]];
+          const bool folds_more = descriptors[j].variables != 0;
+          const uint32_t bank = folds[j] % 2;
+          if (c.n.stride != c.d.stride || c.n.stride > UINT32_MAX)
+            throw std::runtime_error("tail input stride");
+          jobs.push_back({c.n.words,c.d.words,
+              folds_more ? w.banks_n[bank].words : nullptr,
+              folds_more ? w.banks_d[bank].words : nullptr,
+              l.masks.words + 32*j, uint32_t(c.n.stride),
+              folds_more ? uint32_t(w.banks_n[bank].stride) : 0u,
+              descriptors[j].variables,c.n.coordinates});
+        }
+        // A failed preflight must leave the shared transcript untouched.
+        if (!stwo_rv64_batch_tail_on(o.ctx,1,batch.words,jobs.data(),l.active,
+                                     l.depth,round,point,eq,lambda,batch.words))
+          throw std::runtime_error("tail accepted record/state alias");
+        auto bad = jobs;
+        bad[0].variables = l.depth + 1;
+        if (!stwo_rv64_batch_tail_on(o.ctx,1,batch.words,bad.data(),l.active,
+                                     l.depth,round,point,eq,lambda,
+                                     l.records.words+round*round_record_words))
+          throw std::runtime_error("tail accepted invalid oracle height");
+        CHECK(stwo_rv64_batch_tail_on(o.ctx,1,batch.words,jobs.data(),l.active,
+                                      l.depth,round,point,eq,lambda,
+                                      l.records.words+round*round_record_words));
+        tail_packed_masks = true;
+        break;
+      }
       for (uint32_t j = 0; j < l.active; ++j)
         if (descriptors[j].variables >= left) {
           auto &w = workers[ids[j]];
@@ -249,7 +282,7 @@ static void exercise(const std::string &directory, uint32_t id,
           c = {w.banks_n[bank], w.banks_d[bank], c.count / 2};
         }
     }
-    for (uint32_t j = 0; j < l.active; ++j)
+    if (!tail_packed_masks) for (uint32_t j = 0; j < l.active; ++j)
       CHECK(stwo_rv64_batch_mask_on(o.ctx, 1, current[j].n, current[j].d,
                                     l.masks.words + 32 * j));
     if (l.depth == 1) {

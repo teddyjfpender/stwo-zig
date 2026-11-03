@@ -7,6 +7,8 @@
 #include "rv64/sample_order.h"
 #include "rv64/samples.h"
 #include "rv64/trace.h"
+#include "rv64/prefix_banks.h"
+#include "rv64/pcs_framing.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -104,9 +106,8 @@ struct FriStorage {
 };
 template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   const auto h = input.sections[0];
-  sizeIs(h, 24);
-  if (h[0] != 0x52564d53 || h[1] != 2 || h[2] || h[21] > 1 || h[22] > 32 ||
-      h[23])
+  stwo::cuda::rv64::PcsAggregateCounts aggregate{};
+  if (!stwo::cuda::rv64::decodePcsCounts(h.data(), h.size(), &aggregate))
     throw std::runtime_error("masked PCS header");
   const uint32_t degree = h[3], log = h[4], queries = h[6], sc = h[8],
                  tc = h[9], gc = h[10], sgc = h[11], nt = h[12],
@@ -127,7 +128,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
              descriptions = input.sections[13],
              fri_twiddles = input.sections[14],
              expected_roots = input.sections[15];
-  const size_t sizes[] = {24,
+  const size_t sizes[] = {h.size(),
                           9,
                           h[21] ? 16u : 0u,
                           size_t(sc) * 4,
@@ -170,7 +171,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
       if(d[0]!=next_source || d[2]!=next_group || d[1]>sc-next_source || d[3]>sgc-next_group || d[4]>log || d[5])
         throw std::runtime_error("rolling tree partition");
       next_source+=d[1]; next_group+=d[3];
-      uint64_t count=0, eval_count=0, prefix_rows=0;
+      uint64_t count=0, eval_count=0;
+      stwo::cuda::rv64::PrefixBanks prefix;
       std::vector<CoefficientTransfer> transfers;
       for(uint32_t j=0;j<d[1];++j) {
         const uint32_t c=d[0]+j;
@@ -194,17 +196,17 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         if(v[3]>28 || v[2]+h[5]!=v[3] || v[4]<d[0] || v[4]>d[0]+d[1] || v[5]>d[0]+d[1]-v[4]) throw std::runtime_error("rolling source groups");
         eval_count+=(uint64_t(1)<<v[3])*v[5];
         if (g + 1 < d[2] + d[3] && v[3] != source_groups[(g + 1) * 8 + 3])
-          prefix_rows = std::max(prefix_rows, uint64_t(1) << v[3]);
+          if (!prefix.addHeight(uint32_t(1) << v[3])) throw std::runtime_error("rolling prefix geometry");
       }
       max_tree_evaluations=std::max(max_tree_evaluations,eval_count);
-      max_tree_nodes=std::max(max_tree_nodes,((uint64_t(2)<<d[4])-1)*8 + prefix_rows*48);
+      max_tree_nodes=std::max(max_tree_nodes,((uint64_t(2)<<d[4])-1)*8 + prefix.words());
     }
     if(next_source!=sc || next_group!=sgc) throw std::runtime_error("rolling tree coverage");
   }
-  const uint64_t source_eval_base = rolling_sources ? 0 : h[15],
-                 combined_coeff_base = rolling_sources ? 0 : source_eval_base + h[16],
-                 combined_eval_base = combined_coeff_base + h[17],
-                 twiddle_base = combined_eval_base + h[18],
+  const uint64_t source_eval_base = rolling_sources ? 0 : aggregate.coefficients,
+                 combined_coeff_base = rolling_sources ? 0 : source_eval_base + aggregate.evaluations,
+                 combined_eval_base = combined_coeff_base + aggregate.combined_coefficients,
+                 twiddle_base = combined_eval_base + aggregate.combined_evaluations,
                  descriptor_base = twiddle_base + h[19];
   const uint64_t arena_words = descriptor_base + uint64_t(sc + 8 * gc) * 6;
   const auto arena = o.plane(arena_words, 1);
@@ -217,7 +219,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     const auto coefficients = input.coefficients[c];
     if (sources[4*c+3]>28 ||
         coefficients.size() != (uint64_t(1) << sources[4 * c + 3]) ||
-        offset > h[15] || coefficients.size() > h[15] - offset)
+        offset > aggregate.coefficients || coefficients.size() > aggregate.coefficients - offset)
       throw std::runtime_error("coefficient span geometry");
     const uint32_t lease_kind=o.validateCoefficient(coefficients,input.scope.data());
     device_columns += coefficients.kind==1;
@@ -336,15 +338,15 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     v.groups = d[3];
     v.log = d[4];
     v.tree_words = ((uint64_t(2) << v.log) - 1) * 8;
-    uint64_t prefix_rows = 0;
+    stwo::cuda::rv64::PrefixBanks prefix;
     for (uint32_t i = 0; i + 1 < v.groups; ++i) {
       const auto &segment = trace_segments[v.group + i];
       if (segment.source_size != trace_segments[v.group + i + 1].source_size)
-        prefix_rows = std::max(prefix_rows, uint64_t(segment.source_size));
+        if (!prefix.addHeight(segment.source_size)) throw std::runtime_error("trace prefix geometry");
     }
     // The shared rolling allocation includes both prefix-state banks. Logical
     // Merkle offsets exclude this admitted tail, exactly as in the legacy path.
-    v.tree_capacity = v.tree_words + prefix_rows * 48;
+    v.tree_capacity = v.tree_words + prefix.words();
     v.tree = rolling_sources ? StwoRv64Plane{rolling_tree.words,v.tree_capacity,1,0} : o.plane(v.tree_capacity, 1);
     v.values = o.plane(uint64_t(v.columns) * queries, 1);
     v.paths = o.plane(uint64_t(queries) * v.log * 8, 1);
@@ -461,7 +463,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     const auto *d = groups.data() + g * 8;
     StwoRv64SampleEvaluation sample{};
     if(rolling_sources) for(uint32_t t=0;t<nt;++t) { sample.trees[t]=coefficient_trees[t].words; sample.tree_words[t]=coefficient_trees[t].stride; }
-    else { sample.trees[0] = arena.words; sample.tree_words[0] = h[15]; }
+    else { sample.trees[0] = arena.words; sample.tree_words[0] = aggregate.coefficients; }
     sample.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
     sample.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
     sample.recipes =
@@ -491,7 +493,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   phase_mark(3);
   StwoRv64DeepPrepare prepare{};
   if(rolling_sources) for(uint32_t t=0;t<nt;++t) { prepare.trees[t]=coefficient_trees[t].words; prepare.tree_words[t]=coefficient_trees[t].stride; }
-  else { prepare.trees[0] = arena.words; prepare.tree_words[0] = h[15]; }
+  else { prepare.trees[0] = arena.words; prepare.tree_words[0] = aggregate.coefficients; }
   prepare.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
   prepare.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
   prepare.groups = reinterpret_cast<const StwoRv64DeepGroup *>(grp.words);
@@ -503,7 +505,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   prepare.coefficients = arena.words + combined_coeff_base;
   prepare.valid = deep_valid.words;
   prepare.status = status.words;
-  prepare.coefficient_words = h[17];
+  prepare.coefficient_words = aggregate.combined_coefficients;
   prepare.source_count = sc;
   prepare.term_count = tc;
   prepare.group_count = gc;
@@ -519,7 +521,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   combine.valid = deep_valid.words;
   combine.output = deep;
   combine.status = status.words;
-  combine.evaluation_words = h[18];
+  combine.evaluation_words = aggregate.combined_evaluations;
   combine.group_count = gc;
   combine.output_log = log;
   CHECK(stwo_rv64_deep_combine_on(o.ctx, 1, &combine));

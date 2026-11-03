@@ -12,6 +12,7 @@ const Setup = @import("immutable_setup.zig");
 const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 pub const Context = struct {
     byte_cap: u64,
+    wide_pcs_framing: bool = false,
     /// Immutable host FFT/FRI geometry only; request/transcript data never enter.
     host_geometry: Export.GeometryCache = Export.GeometryCache.init(std.heap.page_allocator, Export.GeometryCache.default_bytes),
     immutable_setup: ?*Setup.Cache = null,
@@ -299,7 +300,9 @@ pub const Context = struct {
         const lease_release = library.lookup(Abi.LeaseRelease, "stwo_rv64_gpu_lease_release") orelse return error.MissingGpuPcsSymbol;
         var session: ?*anyopaque = null;
         if (create(device, capacity, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
-        return .{ .byte_cap = capacity, .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
+        const Version = *const fn () callconv(.c) u32;
+        const wide = if (library.lookup(Version, "stwo_rv64_pcs_request_version")) |version| version() >= 3 else false;
+        return .{ .byte_cap = capacity, .wide_pcs_framing = wide, .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn deinit(self: *Context) void {
         self.host_geometry.deinit();
@@ -380,7 +383,7 @@ pub const Context = struct {
         }
         var resident_request = request;
         resident_request.trees = trees;
-        var prepared = try Export.prepareRequestWithCache(a, resident_request, channel.*, &self.host_geometry);
+        var prepared = try Export.prepareRequestWithFraming(a, resident_request, channel.*, &self.host_geometry, self.wide_pcs_framing);
         defer prepared.deinit(a);
         const prepare_ns = timer.read();
         const descriptor = prepared.descriptor();

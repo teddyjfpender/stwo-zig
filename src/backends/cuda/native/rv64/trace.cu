@@ -1,6 +1,7 @@
 #include "../commitment/blake2s_core.cuh"
 #include "custody.cuh"
 #include "trace.h"
+#include "prefix_banks.h"
 namespace b = stwo::cuda::blake2s;
 extern "C" int stwo_blake2s_mixed_leaf_on(uint32_t, uint32_t,
                                           const b::MixedSegment *, b::Hash *,
@@ -104,7 +105,7 @@ __global__ void open_paths(StwoRv64TraceOpen j) {
 static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
                                 uint32_t leaves, b::Hash *hashes,
                                 cudaStream_t stream, b::ProgressiveState *scratch = nullptr,
-                                uint32_t scratch_rows = 0) {
+                                const stwo::cuda::rv64::PrefixBanks &banks = {}) {
   b::ProgressiveState *seed = nullptr;
   uint32_t seed_size = 0, absorbed = 0, bank = 0;
   for (uint32_t first = 0; first < count;) {
@@ -116,7 +117,8 @@ static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
     b::ProgressiveState *next = nullptr;
     int status = 0;
     if (!final && scratch) {
-      next = scratch + uint64_t(bank) * scratch_rows;
+      if (size > banks.rows[bank]) return int(cudaErrorInvalidValue);
+      next = scratch + banks.offset(bank);
       bank ^= 1u;
     } else if (!final)
       status = int(cudaMallocAsync(reinterpret_cast<void **>(&next),
@@ -141,6 +143,29 @@ static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
   }
   return 0;
 }
+static int prefix_bank_layout(const b::MixedSegment *segments, uint32_t count,
+                              stwo::cuda::rv64::PrefixBanks *banks) {
+  if (!segments || !count || count > b::kMaxMixedSegments || !banks)
+    return int(cudaErrorInvalidValue);
+  uint32_t previous = 0;
+  for (uint32_t i = 0; i < count; ++i) {
+    const uint32_t size = segments[i].source_size;
+    if (!size || (size & (size - 1)) || size > (1u << 28) || size < previous)
+      return int(cudaErrorInvalidValue);
+    if (i + 1 < count && size != segments[i + 1].source_size && !banks->addHeight(size))
+      return int(cudaErrorInvalidValue);
+    previous = size;
+  }
+  return 0;
+}
+extern "C" int stwo_rv64_trace_prefix_workspace_words(
+    const b::MixedSegment *segments, uint32_t count, uint64_t *words) {
+  if (!words) return int(cudaErrorInvalidValue);
+  stwo::cuda::rv64::PrefixBanks banks;
+  const int status = prefix_bank_layout(segments, count, &banks);
+  if (!status) *words = banks.words();
+  return status;
+}
 extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
                                        const b::MixedSegment *segments,
                                        uint32_t count, uint32_t log,
@@ -156,12 +181,12 @@ extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
   // An optional tail is caller-owned, admitted scratch from the same context
   // pool as the tree and evaluations. Two banks preserve the previous prefix
   // until the next height has consumed it, without cross-pool allocations.
-  uint32_t scratch_rows = 0;
-  for (uint32_t i = 0; i + 1 < count; ++i)
-    if (segments[i].source_size != segments[i + 1].source_size)
-      scratch_rows = segments[i].source_size;
-  const uint64_t scratch_words = uint64_t(scratch_rows) * 2 *
-                                (sizeof(b::ProgressiveState) / sizeof(uint32_t));
+  static_assert(sizeof(b::ProgressiveState) == PrefixBanks::state_words * 4,
+                "prefix bank state representation");
+  PrefixBanks banks;
+  const int layout_status = prefix_bank_layout(segments, count, &banks);
+  if (layout_status) return layout_status;
+  const uint64_t scratch_words = banks.words();
   const bool owned_scratch = tree_words >= need + scratch_words;
   if (!c.range(tree, need + (owned_scratch ? scratch_words : 0), true))
     return c.status;
@@ -170,7 +195,7 @@ extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
                       : nullptr;
   auto *hashes = reinterpret_cast<b::Hash *>(tree);
   int status = native_height_leaves(input.segments, count, uint32_t(leaves),
-                                    hashes, c.stream, scratch, scratch_rows);
+                                    hashes, c.stream, scratch, banks);
   uint64_t offset = 0, next_offset = leaves;
   for (uint32_t nodes = leaves; !status && nodes > 1; nodes >>= 1) {
     status = stwo_blake2s_layer_on(hashes + offset, nodes / 2,

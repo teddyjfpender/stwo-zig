@@ -46,4 +46,16 @@ extern "C" int stwo_rv64_batch_layer_on(void *, uint32_t,
     const StwoRv64BatchFoldJob *, uint32_t jobs, uint32_t count,
     uint32_t *launches);
 
+// Persistent shared-transcript tail. Inputs are immutable; only the separately
+// owned output banks are folded in place after their first write.
+struct StwoRv64BatchTailOracle {
+  const uint32_t *n, *d;
+  uint32_t *out_n, *out_d, *mask;
+  uint32_t input_stride, output_stride, variables, numerator_coordinates;
+};
+static_assert(sizeof(StwoRv64BatchTailOracle) == 56, "batch tail oracle ABI");
+extern "C" int stwo_rv64_batch_tail_on(void *, uint32_t, uint32_t *,
+    const StwoRv64BatchTailOracle *, uint32_t, uint32_t, uint32_t,
+    const uint32_t *, StwoRv64Plane, const uint32_t *, uint32_t *);
+
 #endif

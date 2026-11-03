@@ -51,6 +51,8 @@ pub const TailJob = struct {
     variables: u32,
     first: u32,
 };
+pub const BatchTailOracle = struct { input: Fraction, output: ?Fraction, mask: Slice, variables: u32 };
+pub const BatchTail = struct { state: Slice, point: Slice, lambda: Slice, eq: Plane, records: Slice, variables: u32, first: u32 };
 pub const BatchSum = struct { input: Fraction, a: Plane, b: Plane, output: Plane };
 pub const BatchFold = struct { input: Fraction, output: Fraction };
 pub const BatchOracle = struct { raw: ?Plane = null, variables: u32 };
@@ -72,6 +74,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         fused_eq: bool = false,
         batched_oracles: bool = false,
         batched_trees: bool = false,
+        batched_tail: bool = false,
         fused_fold_sum: bool = false,
         /// Zero disables; otherwise a power of two in4..256. Profile on device.
         tail_count: u32 = 0,
@@ -214,6 +217,36 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
 
         pub fn requireBatchedOracles(self: *Self) !void {
             if (self.apiPointer("stwo_rv64_batch_sum_on") == null or self.apiPointer("stwo_rv64_batch_fold_on") == null) return error.MissingCudaBatchedOracleSymbol;
+        }
+        pub fn supportsBatchTail(self: *Self) bool {
+            if (comptime @hasField(Api, "stwo_rv64_batch_tail_on") or @hasDecl(Api, "stwo_rv64_batch_tail_on"))
+                return self.batched_oracles and self.batched_tail and self.apiPointer("stwo_rv64_batch_tail_on") != null;
+            return false;
+        }
+        pub fn batchTail(self: *Self, oracles: []const BatchTailOracle, job: BatchTail) !void {
+            if (oracles.len == 0 or oracles.len > abi.batch_max_oracles or job.variables == 0 or job.variables > 27 or job.first >= job.variables or job.variables - job.first > 4) return error.InvalidGeometry;
+            const remaining = job.variables - job.first;
+            var packets: [abi.batch_max_oracles]abi.BatchTailOracle = undefined;
+            for (oracles, 0..) |oracle, i| {
+                try oracle.input.validate();
+                if (oracle.variables > job.variables or oracle.input.count != @as(u32, 2) << @as(u5, @intCast(@min(oracle.variables, remaining))) or oracle.input.n.stride != oracle.input.d.stride) return error.InvalidGeometry;
+                const n = try oracle.input.n.bind(self.context);
+                const d = try oracle.input.d.bind(self.context);
+                packets[i] = .{ .n = n.words, .d = d.words, .out_n = null, .out_d = null, .mask = try self.context.deviceSlicePointer(u32, oracle.mask, 32), .input_stride = std.math.cast(u32, n.stride) orelse return error.SizeOverflow, .output_stride = 0, .variables = oracle.variables, .numerator_coordinates = n.coordinates };
+                if (oracle.variables != 0) {
+                    const output = oracle.output orelse return error.InvalidGeometry;
+                    try output.validate();
+                    if (output.count != oracle.input.count / 2 or output.n.coordinates != 8 or output.n.stride != output.d.stride) return error.InvalidGeometry;
+                    packets[i].out_n = (try output.n.bind(self.context)).words;
+                    packets[i].out_d = (try output.d.bind(self.context)).words;
+                    packets[i].output_stride = std.math.cast(u32, output.n.stride) orelse return error.SizeOverflow;
+                } else if (oracle.output != null) return error.InvalidGeometry;
+            }
+            try job.eq.shape(@as(u32, 1) << @as(u5, @intCast(remaining - 1)), 8);
+            if (comptime @hasField(Api, "stwo_rv64_batch_tail_on") or @hasDecl(Api, "stwo_rv64_batch_tail_on")) {
+                const owner = try self.handle();
+                try self.result(self.callApi("stwo_rv64_batch_tail_on", .{ owner, self.lane_index, try self.context.deviceSlicePointer(u32, job.state, abi.batch_state_words), &packets, @as(u32, @intCast(oracles.len)), job.variables, job.first, try self.context.deviceSlicePointer(u32, job.point, 8 * @as(usize, job.variables)), try job.eq.bind(self.context), try self.context.deviceSlicePointer(u32, job.lambda, 8), try self.context.deviceSlicePointer(u32, job.records, @as(usize, remaining) * abi.round_record_words) }), 1);
+            } else return error.MissingCudaBatchedTailSymbol;
         }
         pub fn requireBatchedTrees(self: *Self) !void {
             if (self.apiPointer("stwo_rv64_batch_layer_on") == null) return error.MissingCudaBatchedTreeSymbol;

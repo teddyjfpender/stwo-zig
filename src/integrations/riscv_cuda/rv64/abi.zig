@@ -108,6 +108,22 @@ pub extern "c" fn stwo_rv64_batch_init_on(*anyopaque, u32, [*]u32, [*]const u32,
 pub extern "c" fn stwo_rv64_batch_round_on(*anyopaque, u32, [*]u32, [*]const BatchOracle, u32, u32, u32, [*]const u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_batch_mask_on(*anyopaque, u32, Plane, Plane, [*]u32) c_int;
 
+pub const BatchTailOracle = extern struct {
+    n: [*]const u32,
+    d: [*]const u32,
+    out_n: ?[*]u32,
+    out_d: ?[*]u32,
+    mask: [*]u32,
+    input_stride: u32,
+    output_stride: u32,
+    variables: u32,
+    numerator_coordinates: u32,
+};
+comptime {
+    if (@sizeOf(BatchTailOracle) != 56) @compileError("mixed tail oracle ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_batch_tail_on(*anyopaque, u32, [*]u32, [*]const BatchTailOracle, u32, u32, u32, [*]const u32, Plane, [*]const u32, [*]u32) c_int;
+
 pub const gkr_state_words = 1428;
 pub const gkr_alpha_word = 152;
 pub const gkr_lambda_word = 160;
