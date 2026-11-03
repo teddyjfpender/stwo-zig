@@ -42,7 +42,11 @@ pub fn createModule(
         .target = b.graph.host,
         .optimize = .ReleaseFast,
     });
-    surface.addImport("stwo_core", core);
+    // Generator executes on the build host. Reusing a cross-target core here
+    // leaks its CPU model/features into the native executable (e.g. AVX512
+    // into an ARM generator). Its source has no external imports.
+    const host_core = b.createModule(.{ .root_source_file = core.root_source_file, .target = b.graph.host, .optimize = .ReleaseFast });
+    surface.addImport("stwo_core", host_core);
     generator.root_module.addImport("stwo_cairo", surface);
     const generate = b.addRunArtifact(generator);
     generate.addFileArg(b.path(b.fmt("{s}{s}", .{ repository_root, bundle_path })));
