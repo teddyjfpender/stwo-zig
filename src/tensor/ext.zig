@@ -39,6 +39,25 @@ const M31 = f.M31;
 pub const MAXB = 32;
 /// Label: this index bit is summed over (only in Expr terms).
 pub const SUM: u8 = 0xFE;
+/// Labels: this index bit is fixed to 0 / 1 (slicing; einsum operands and Expr terms).
+pub const FIX0: u8 = 0xFC;
+pub const FIX1: u8 = 0xFD;
+
+pub inline fn isFix(l: u8) bool {
+    return l == FIX0 or l == FIX1;
+}
+
+/// Constant part of an operand index from its fixed bits: (mask, value).
+fn fixConst(lab: Labels, nb: u32) struct { mask: usize, val: usize } {
+    var m: usize = 0;
+    var v: usize = 0;
+    for (0..nb) |p| if (isFix(lab[p])) {
+        const bit = @as(usize, 1) << @intCast(nb - 1 - p);
+        m |= bit;
+        if (lab[p] == FIX1) v |= bit;
+    };
+    return .{ .mask = m, .val = v };
+}
 /// Label: unused (bits beyond the tensor's size).
 pub const NONE: u8 = 0xFF;
 pub const Labels = [MAXB]u8;
@@ -155,6 +174,7 @@ fn checkLabels(lab: Labels, nb: u32, n_vars: u32, allow_sum: bool) !void {
             if (!allow_sum) return error.ExtStatement;
             continue;
         }
+        if (isFix(l)) continue;
         if (l >= n_vars) return error.ExtStatement;
         const bit = @as(u64, 1) << @intCast(l);
         if (seen & bit != 0) return error.ExtStatement;
@@ -341,6 +361,7 @@ fn opIndexMasks(a: std.mem.Allocator, nv: u32, nb: u32, lab: Labels) ![]u64 {
     @memset(m, 0);
     for (0..nb) |pbit| {
         const v = lab[pbit];
+        if (isFix(v)) continue; // constant bit (fixConst)
         // var v is x bit (MSB-first) v -> LSB-first position nv-1-v
         m[nv - 1 - v] |= @as(u64, 1) << @intCast(nb - 1 - pbit);
     }
@@ -374,15 +395,15 @@ pub fn einsumAcc(a: std.mem.Allocator, pool: *f.Pool, e: Einsum, av: []const i32
         offs[k] = @intCast(ga.get(k));
         offs[kn + k] = @intCast(gb.get(k));
     }
-    const Ctx = struct { ga: *const Gather, gb: *const Gather, av: []const i32, bv: []const i32, acc: []i64, nk: u32, offa: []const u32, offb: []const u32 };
-    const ctx = Ctx{ .ga = &ga, .gb = &gb, .av = av, .bv = bv, .acc = acc, .nk = e.n_k, .offa = offs[0..kn], .offb = offs[kn..] };
+    const Ctx = struct { ga: *const Gather, gb: *const Gather, av: []const i32, bv: []const i32, acc: []i64, nk: u32, offa: []const u32, offb: []const u32, ca: usize, cb: usize };
+    const ctx = Ctx{ .ga = &ga, .gb = &gb, .av = av, .bv = bv, .acc = acc, .nk = e.n_k, .offa = offs[0..kn], .offb = offs[kn..], .ca = fixConst(e.a_labels, f.log2Exact(av.len)).val, .cb = fixConst(e.b_labels, f.log2Exact(bv.len)).val };
     pool.parallelFor(n_o, 16, &ctx, struct {
         fn run(c: *const Ctx, s: usize, end: usize) void {
             for (s..end) |o| {
                 var sum: i64 = 0;
                 const base = o << @intCast(c.nk);
-                const ba = c.ga.get(base);
-                const bb = c.gb.get(base);
+                const ba = c.ga.get(base) | c.ca;
+                const bb = c.gb.get(base) | c.cb;
                 for (c.offa, c.offb) |oa, ob| {
                     sum += @as(i64, c.av[ba | oa]) * @as(i64, c.bv[bb | ob]);
                 }
@@ -404,7 +425,7 @@ pub fn materialize(a: std.mem.Allocator, st: proto.Statement, w: []const []const
         const nb = f.log2Exact(vals.len);
         // reduced tensor R over the mapped vars (in var order), summing SUM bits
         var mapped: u64 = 0;
-        for (t.labels[0..nb]) |l| if (l != SUM) {
+        for (t.labels[0..nb]) |l| if (l != SUM and !isFix(l)) {
             mapped |= @as(u64, 1) << @intCast(l);
         };
         const nm: u32 = @popCount(mapped);
@@ -423,12 +444,16 @@ pub fn materialize(a: std.mem.Allocator, st: proto.Statement, w: []const []const
         @memset(m1, 0);
         for (0..nb) |pb| {
             const l = t.labels[pb];
-            if (l == SUM) continue;
+            if (l == SUM or isFix(l)) continue;
             m1[nb - 1 - pb] = @as(u64, 1) << @intCast(nm - 1 - pos[l]);
         }
         var g1 = try Gather.init(a, m1);
         defer g1.deinit(a);
-        for (vals, 0..) |v, i| R[g1.get(i)] += v;
+        const fc = fixConst(t.labels, nb);
+        for (vals, 0..) |v, i| {
+            if (i & fc.mask != fc.val) continue;
+            R[g1.get(i)] += v;
+        }
         // broadcast into key space
         const m2 = try a.alloc(u64, n);
         defer a.free(m2);
@@ -451,7 +476,12 @@ const HALF = QM31.fromU32Unchecked(1 << 30, 0, 0, 0);
 /// Point for a term's tensor at key point rho (SUM bits -> 1/2).
 fn termPoint(a: std.mem.Allocator, t: Term, nb: u32, rho: []const QM31) ![]QM31 {
     const pt = try a.alloc(QM31, nb);
-    for (0..nb) |i| pt[i] = if (t.labels[i] == SUM) HALF else rho[t.labels[i]];
+    for (0..nb) |i| pt[i] = switch (t.labels[i]) {
+        SUM => HALF,
+        FIX0 => QM31.zero(),
+        FIX1 => QM31.one(),
+        else => |l| rho[l],
+    };
     return pt;
 }
 
@@ -789,7 +819,7 @@ const Layout = struct {
         const pt = try a.alloc(QM31, nb);
         for (0..nb) |i| {
             const v = lab[i];
-            pt[i] = if (self.sc_pos[v] != NONE) r[self.sc_pos[v]] else rho[v];
+            pt[i] = if (v == FIX0) QM31.zero() else if (v == FIX1) QM31.one() else if (self.sc_pos[v] != NONE) r[self.sc_pos[v]] else rho[v];
         }
         return pt;
     }
@@ -801,7 +831,7 @@ fn foldOperand(a: std.mem.Allocator, pool: *f.Pool, lay: Layout, vals: []const i
     const nb = f.log2Exact(vals.len);
     var upt: [MAXB]QM31 = undefined;
     var nu: u32 = 0;
-    for (0..nb) |pb| if (lay.sc_pos[lab[pb]] == NONE) {
+    for (0..nb) |pb| if (!isFix(lab[pb]) and lay.sc_pos[lab[pb]] == NONE) {
         upt[nu] = rho[lab[pb]];
         nu += 1;
     };
@@ -814,6 +844,7 @@ fn foldOperand(a: std.mem.Allocator, pool: *f.Pool, lay: Layout, vals: []const i
     var ui: u32 = 0;
     for (0..nb) |pb| {
         const v = lab[pb];
+        if (isFix(v)) continue;
         const src = @as(u64, 1) << @intCast(nb - 1 - pb);
         if (lay.sc_pos[v] != NONE) {
             mt[lay.ns - 1 - lay.sc_pos[v]] = src;
@@ -835,12 +866,12 @@ fn foldOperand(a: std.mem.Allocator, pool: *f.Pool, lay: Layout, vals: []const i
     const equ = try f.eqTable(a, upt[0..nu], QM31.one());
     defer a.free(equ);
     const out = try a.alloc(QM31, @as(usize, 1) << @intCast(lay.ns));
-    const Ctx = struct { gt: *const Gather, uoff: []const u32, equ: []const QM31, vals: []const i32, out: []QM31 };
-    const ctx = Ctx{ .gt = &gt, .uoff = uoff, .equ = equ, .vals = vals, .out = out };
+    const Ctx = struct { gt: *const Gather, uoff: []const u32, equ: []const QM31, vals: []const i32, out: []QM31, cst: usize };
+    const ctx = Ctx{ .gt = &gt, .uoff = uoff, .equ = equ, .vals = vals, .out = out, .cst = fixConst(lab, nb).val };
     pool.parallelFor(out.len, 1024, &ctx, struct {
         fn run(c: *const Ctx, s: usize, e: usize) void {
             for (s..e) |t| {
-                const base = c.gt.get(t);
+                const base = c.gt.get(t) | c.cst;
                 var acc = QM31.zero();
                 for (c.uoff, c.equ) |uo, w| {
                     const v = c.vals[base | uo];
@@ -1021,4 +1052,51 @@ test "gather and einsum acc match naive" {
         for (0..4) |ee| s += @as(i64, q[(t * 2 + h) * 4 + ee]) * k[j * 4 + ee];
         try std.testing.expectEqual(s, acc[(h * 4 + t) * 4 + j]);
     };
+}
+
+test "fixed-bit labels: einsum on a slice and an expression on a slice prove/verify" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    // W [4 rows, 8 cols] witness; use only cols 4..7 (first col bit fixed 1):
+    // y[r] = sum_c W[r, 1, c] * v[c]  (c: 2 bits)
+    var wv: [32]i32 = undefined;
+    for (&wv, 0..) |*x, i| x.* = @as(i32, @intCast(i % 7)) - 3;
+    var vv: [4]i32 = .{ 1, -2, 3, 5 };
+    var y: [4]i32 = undefined;
+    for (0..4) |r| {
+        var s: i32 = 0;
+        for (0..4) |c| s += wv[r * 8 + 4 + c] * vv[c];
+        y[r] = s;
+    }
+    // z[r, c] = W[r, 0, c] (slice copy via lineq)
+    var z: [16]i32 = undefined;
+    for (0..4) |r| for (0..4) |c| {
+        z[r * 4 + c] = wv[r * 8 + c];
+    };
+    const infos = [_]proto.TensorInfo{ proto.TensorInfo.vec(5), proto.TensorInfo.vec(2), proto.TensorInfo.vec(2), proto.TensorInfo.vec(4) };
+    const ops = [_]Op{
+        .{ .einsum = .{ .a = Ref.w(0), .b = Ref.w(1), .y = 2, .n_out = 2, .n_k = 2, .a_labels = labels(&.{ 0, 1, FIX1, 2, 3 }), .b_labels = labels(&.{ 2, 3 }) } },
+        .{ .lineq = .{ .n = 4, .expr = .{ .terms = &.{ .{ .coeff = 1, .t = Ref.w(3), .labels = labels(&.{ 0, 1, 2, 3 }) }, .{ .coeff = -1, .t = Ref.w(0), .labels = labels(&.{ 0, 1, FIX0, 2, 3 }) } } } } },
+    };
+    const st = proto.Statement{ .witness = &infos, .weights = &.{proto.TensorInfo.mat(2, 2)}, .tables = &.{}, .ops = &.{}, .ext = .{ .ops = &ops } };
+    const pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .weight_log_cols = 2, .witness_log_cols_max = 4, .gkr_threads = 1 };
+    var dummy: [16]i8 = [_]i8{0} ** 16;
+    const dv = [_][]const i8{&dummy};
+    var ws = try proto.commitWeights(a, &pool, pc, st.weights, &dv);
+    defer ws.deinit(a);
+    const wit = [_][]const i32{ &wv, &vv, &y, &z };
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, pc, st, &ws, &wit, &tm);
+    defer proof.deinit(a);
+    try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
+    // the other slice must not verify (statement tamper)
+    var ops2 = ops;
+    ops2[0].einsum.a_labels[2] = FIX0;
+    var st2 = st;
+    st2.ext.ops = &ops2;
+    if (proto.verify(a, pc, st2, proto.weightKey(&ws), &proof)) |_| return error.TamperAccepted else |_| {}
+    // and the honest prover refuses the wrong slice
+    try std.testing.expectError(error.EinsumMismatch, proto.prove(a, &pool, pc, st2, &ws, &wit, &tm));
 }
