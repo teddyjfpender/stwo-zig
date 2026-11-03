@@ -1,0 +1,35 @@
+{
+  "schema": "rv64-native-lease-diagnostics/v1",
+  "date": "2026-11-03",
+  "scope": "optional forwarding diagnostic library; no cryptographic or allocation-policy changes",
+  "base_sha256": "1b6ec267524022e099643515fad9836b52267f5eea7e8003996c69c87b43c8d9",
+  "exports": [
+    "stwo_rv64_gpu_lease_allocate",
+    "stwo_rv64_gpu_lease_release",
+    "stwo_rv64_gpu_lease_rebind"
+  ],
+  "tests": [
+    "native allocation and exact scope accepted",
+    "scope promotion accepted and old scope rejected",
+    "native cap failure logged and all leases released"
+  ],
+  "result": "3/3 native checks passed",
+  "failure_output": [
+    "exact native error before callback cleanup overwrites it",
+    "requested words/bytes and lease kind/scope",
+    "native live lease bytes and five kind counts",
+    "bounded external lease ledger per scope",
+    "driver physical free and total bytes",
+    "failure-only host backtrace"
+  ],
+  "bounds": {
+    "ledger_records": 16384,
+    "reported_scopes": 64,
+    "backtrace_frames": 32
+  },
+  "limitation": "native live lease count excludes cached nonlease PCS buffers/domains; driver free memory includes CUDA pool backing",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/lease_diagnostics.cpp": "e4d61d2333c2d6c418a7ee28ed101d489be6d32acc5d8a3e1ae7f06b0762061a",
+    "tests/cuda/rv64/lease_diagnostics_smoke.cpp": "c77bc40241d5b8d21c48d984d8b47f5461e4cad58e173135806e0ae3060a83df"
+  }
+}
