@@ -554,7 +554,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         /// its paired denominators; contributions initially contains numerators.
         /// Successful dispatch is not transcript binding or global acceptance.
         pub fn generateGlobalPairs(self: *Self, output: Slice, contributions: Slice, scratch: Slice, claim: Slice, verdict: Slice, row_log: u32, pairs: u32, stride: u32) !void {
-            if (row_log < 4 or row_log > 22 or pairs == 0 or pairs > 640) return error.InvalidGeometry;
+            if (row_log < 4 or row_log > 27 or pairs == 0 or pairs > 640) return error.InvalidGeometry;
             const plan = try @import("prefix_plan.zig").Plan.init(row_log);
             if (stride < plan.rows) return error.InvalidGeometry;
             const owner = try self.handle();

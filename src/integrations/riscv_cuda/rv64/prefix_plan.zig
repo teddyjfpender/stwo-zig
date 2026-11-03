@@ -5,7 +5,7 @@ pub const Plan = struct {
     levels: u32,
     scratch_words: usize,
     pub fn init(row_log: u32) !Plan {
-        if (row_log == 0 or row_log > 22) return error.InvalidGeometry;
+        if (row_log == 0 or row_log > 27) return error.InvalidGeometry;
         const rows = @as(u32, 1) << @intCast(row_log);
         var n = rows;
         var words: usize = 0;
@@ -21,3 +21,14 @@ pub const Plan = struct {
         return 2 * @as(u64, self.levels) + @intFromBool(self.levels == 1 and center);
     }
 };
+
+test "numeric prefix geometry supports circuit rows independently of ISA clock caps" {
+    const std = @import("std");
+    for ([_]u32{ 4, 22, 23, 24, 27 }) |log| {
+        const plan = try Plan.init(log);
+        try std.testing.expectEqual(@as(u32, 1) << @intCast(log), plan.rows);
+        try std.testing.expect(plan.levels <= 4);
+        try std.testing.expect(plan.scratch_words >= 8);
+    }
+    try std.testing.expectError(error.InvalidGeometry, Plan.init(28));
+}

@@ -266,7 +266,7 @@ extern "C" int stwo_rv64_binding_finalize_on(
 extern "C" int stwo_rv64_prefix_scan_on(void *ctx, uint32_t lane,
                                         const StwoRv64PrefixScan *input) {
   if (!input || input->reserved[0] || input->reserved[1] || !input->row_log ||
-      input->row_log > 22 || input->center > 1)
+      input->row_log > 27 || input->center > 1)
     return int(cudaErrorInvalidValue);
   const auto job = *input;
   const uint32_t rows = 1u << job.row_log;
