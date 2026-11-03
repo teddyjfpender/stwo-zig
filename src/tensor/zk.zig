@@ -182,6 +182,11 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
     var inf1: std.ArrayList(TensorInfo) = .empty;
     var inf2: std.ArrayList(TensorInfo) = .empty;
     const nw: u32 = @intCast(st.witness.len);
+    // the statement's weight shapes must be those of the weight key
+    if (wkey) |wk| {
+        if (st.weights.len != wk.infos.len) return error.StatementShape;
+        for (st.weights, wk.infos) |x, y| if (!std.meta.eql(x.log_dims, y.log_dims) or x.n_dims != y.n_dims) return error.StatementShape;
+    }
     try inf1.appendSlice(a, st.witness);
     const rem = try a.alloc(u32, st.ops.len);
     @memset(rem, NONE);
@@ -2287,6 +2292,12 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     var st2 = st;
     st2.ops = ops2;
     try std.testing.expect(std.meta.isError(verify(a, cfg, st2, key, &proof)));
+    // statement weight shapes must match the key
+    var winfos_bad = winfos;
+    winfos_bad[2].log_dims[1] -= 1;
+    var st3 = st;
+    st3.weights = &winfos_bad;
+    try std.testing.expectError(error.StatementShape, verify(a, cfg, st3, key, &proof));
     var key2 = key;
     key2.root[3] ^= 1;
     try std.testing.expect(std.meta.isError(verify(a, cfg, st, key2, &proof)));
