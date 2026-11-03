@@ -60,6 +60,16 @@ pub const Shape = struct {
     max_local_instances: usize = 0,
     max_tuple_arity: usize = 0,
     max_gkr_variables: u32 = 0,
+    /// Source-derived M31 coefficient cells, in FIXED/MAIN/INTER order.
+    /// Includes padding and repeated fixed commitments; excludes composition,
+    /// GKR working planes, openings and allocations. Reporting only.
+    native_trace_cells: [3]u64 = @splat(0),
+    fn includeCells(self: *Shape, log: u32, widths: [3]usize) !void {
+        const n = try rows(log);
+        for (&self.native_trace_cells, widths) |*total, width| {
+            total.* = try plus(total.*, try times(n, std.math.cast(u64, width) orelse return error.SizeOverflow));
+        }
+    }
     pub fn validate(self: Shape) !void {
         if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > Policy.MAX_TRACE_LOG or self.max_public_boundary_log < 5 or self.max_public_boundary_log > Policy.MAX_PUBLIC_BOUNDARY_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
     }
@@ -187,7 +197,7 @@ fn addCpuRoleMode(scope: *CpuScope, origin: Frame.Origin, log: u32, pairs: bool)
     }
 }
 fn includeRole(shape: *Shape, origin: Frame.Origin, log: u32, descriptor: Meta.Descriptor, columns: *usize, constraints: *usize, instances: *usize) !void {
-    _ = try rows(log);
+    try shape.includeCells(log, descriptor.widths);
     for (descriptor.widths) |width| columns.* = try std.math.add(usize, columns.*, width);
     constraints.* = try std.math.add(usize, constraints.*, descriptor.constraints);
     if (origin == .core and (origin.core == .initial or origin.core == .terminal)) {
@@ -346,6 +356,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
             const Cat = @import("truth_v3_catalog.zig");
             const descriptor = try Cat.descriptorForDeclaration(declaration);
             const counts = try Cat.lookupCountsForDeclaration(declaration);
+            try shape.includeCells(descriptor.log_size, descriptor.widths());
             for (std.enums.values(TF.Relation), &scope.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .consumer_sign = if (relation == .byte) .positive else .negative };
             const bytes = &scope.relations[@intFromEnum(TF.Relation.byte)];
             bytes.unit_consumer_mass = counts.byte_unit_consumers;
@@ -372,6 +383,7 @@ pub fn derive(a: std.mem.Allocator, program_log: u32, cpu: []const Wire.CpuDecla
         for (std.enums.values(TF.Relation), &scope.relations) |relation, *bound| bound.* = .{ .arity = relation.arity(), .consumer_sign = if (relation == .byte) .positive else .negative };
         for (descriptors) |part| {
             const n = try rows(part.log_size);
+            try shape.includeCells(part.log_size, part.widths());
             for (part.widths()) |width| columns = try std.math.add(usize, columns, width);
             constraints = try std.math.add(usize, constraints, part.nConstraints());
             shape.max_trace_log = @max(shape.max_trace_log, part.log_size);
