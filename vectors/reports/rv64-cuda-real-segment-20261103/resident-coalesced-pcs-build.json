@@ -1,0 +1,17 @@
+{
+  "schema": "rv64-native-coalesced-pcs-build/v1",
+  "date": "2026-11-03",
+  "library": "/workspace/rv64-gpu-session/build/resident-oom-trim/libstwo-rv64-native-2875eb3f3881266d.so",
+  "sha256": "2875eb3f3881266d7e5b47aee79a74ae55b0c4ac5b3ca610db8e74e4b2cf8046",
+  "previous_library_sha256": "7020905a70bfbcf3e360d94e6f11356c4977b4e479cb5c901995286951cb8dde",
+  "changed_objects": {
+    "/workspace/rv64-gpu-session/build/resident-oom-trim/rv64-pcs_native.cu.o": "198544a4e27d9f08d0d3ec85fb2c519b8032002a3c09a294a78c456559bac8d0"
+  },
+  "unchanged_native_objects": 36,
+  "unchanged_aot_objects": 268,
+  "original_exports_verified": 446,
+  "scope": "Coalesce adjacent admitted device coefficient columns inside one physical lease. Each input column and the complete merged range are validated; host/device/token/generation/kind/scope boundaries remain distinct. No transcript or native ABI changes.",
+  "qualification": "G5 coefficient coalescing regression passed separately. Combined host-cache/GKR/native full-block performance and all-proof parity are pending.",
+  "build_manifest": "/workspace/rv64-gpu-session/build/resident-oom-trim/build.json",
+  "build_manifest_sha256": "d4f1414c65c5db226d7e7c254f7bca5323a9f04a7a8d6b030e2fd0e319e29994"
+}
