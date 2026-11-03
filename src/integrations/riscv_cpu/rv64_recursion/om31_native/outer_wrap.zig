@@ -28,6 +28,20 @@ pub const Wrapped = struct {
     pub fn serialize(self: *const Wrapped, a: std.mem.Allocator) ![]u8 {
         return Wire.encode(a, self.authority.identity, self.produced.outputs, self.produced.claims, &self.produced.proof.proof);
     }
+    /// Call after fresh verification and durable serialization. A parent needs
+    /// the child's original verifier metadata and proof, not its wide proving
+    /// setup. Repeated calls are harmless; proving again is explicitly refused.
+    pub fn retireProverData(self: *Wrapped) usize {
+        if (self.authority.retired) return 0;
+        self.authority.retireProverData();
+        var bytes: usize = 0;
+        for (&self.pp.columns) |*column| {
+            bytes += column.values.len * @sizeOf(@import("stwo_core").fields.m31.M31);
+            self.allocator.free(column.values);
+            column.values = &.{};
+        }
+        return bytes;
+    }
 };
 /// Context must already be finalized by its concrete statement authority. Padding follows its exact graph counts; no external registry or legacy
 /// profile is accepted here.

@@ -36,4 +36,18 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     var bad = digest;
     bad[31] ^= 1;
     try std.testing.expectError(error.CurrentOm31OutputDigest, Wrap.requireDigest(decoded.outputs, bad));
+    const root_before = wrapped.authority.fixedRoot();
+    const identity_before = wrapped.authority.identity;
+    try std.testing.expect(wrapped.retireProverData() > 0);
+    try std.testing.expectEqual(@as(usize, 0), wrapped.retireProverData());
+    try std.testing.expect(wrapped.authority.fixed == null);
+    for (wrapped.pp.columns) |column| try std.testing.expectEqual(@as(usize, 0), column.values.len);
+    try std.testing.expectEqual(root_before, wrapped.authority.fixedRoot());
+    try std.testing.expectEqual(identity_before, wrapped.authority.identity);
+    try std.testing.expectError(error.Om31CircuitProverDataRetired, @import("stwo_circuit_cpu_integration").om31.prove.prove(a, wrapped.authority, ctx.values()));
+    var retired_fresh = try @import("stwo_circuit_cpu_integration").om31.prove.verify(a, wrapped.authority, decoded.outputs, decoded.claims, &decoded.proof);
+    defer retired_fresh.deinit(a);
+    const retired_bytes = try wrapped.serialize(a);
+    defer a.free(retired_bytes);
+    try std.testing.expectEqualSlices(u8, bytes, retired_bytes);
 }

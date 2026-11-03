@@ -31,7 +31,9 @@ pub const Authority = struct {
     logs: List.PerComponent(u32),
     fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32,
     bound: Air.Bundle,
-    fixed: P.Scheme.CommittedTree,
+    fixed: ?P.Scheme.CommittedTree,
+    fixed_root: P.H.Hash,
+    retired: bool = false,
     identity: [32]u8,
     pub fn init(a: std.mem.Allocator, pp: *const Preprocessed) !Authority {
         const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
@@ -67,12 +69,30 @@ pub const Authority = struct {
         }
         std.mem.writeInt(u32, &word, @intCast(pp.n_outputs), .little);
         hash.update(&word);
-        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .identity = hash.finalResult() };
+        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .fixed_root = fixed.root(), .identity = hash.finalResult() };
     }
     pub fn deinit(self: *Authority) void {
-        self.fixed.deinit(self.allocator);
+        if (self.fixed) |*fixed| fixed.deinit(self.allocator);
         self.bound.deinit();
         self.* = undefined;
+    }
+    pub fn fixedRoot(self: *const Authority) P.H.Hash {
+        return self.fixed_root;
+    }
+    pub fn requireProverData(self: *const Authority) !void {
+        if (self.retired or self.fixed == null) return error.Om31CircuitProverDataRetired;
+    }
+    pub fn retainFixed(self: *const Authority) !P.Scheme.CommittedTree {
+        try self.requireProverData();
+        return self.fixed.?.retainShared();
+    }
+    /// Keep the original verifier root, geometry and bound AIR, while releasing
+    /// FIXED polynomial buffers no longer needed after a completed proof.
+    /// The caller separately owns and may retire its PP column values.
+    pub fn retireProverData(self: *Authority) void {
+        if (self.fixed) |*fixed| fixed.deinit(self.allocator);
+        self.fixed = null;
+        self.retired = true;
     }
     pub fn treeLogs(self: *const Authority, a: std.mem.Allocator, tree: usize) ![]u32 {
         if (tree == 0) return a.dupe(u32, &self.fixed_logs);
@@ -129,6 +149,7 @@ pub fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims:
     return out;
 }
 pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Produced {
+    try key.requireProverData();
     var base = try circuit.witness.trace.writeTrace(a, values, key.pp);
     defer base.deinit();
     if (!std.meta.eql(base.log_sizes, key.logs)) return error.InvalidOm31CircuitGeometry;
@@ -139,8 +160,8 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
     var owns = true;
     defer if (owns) scheme.deinit(a);
     try scheme.trees.ensureUnusedCapacity(a, 1);
-    scheme.trees.appendAssumeCapacity(key.fixed.retainShared());
-    P.MC.mixRoot(&channel, key.fixed.root());
+    scheme.trees.appendAssumeCapacity(try key.retainFixed());
+    P.MC.mixRoot(&channel, key.fixedRoot());
     // MAIN is generated and committed exactly once. Lookup arithmetic does not
     // rebuild the builder assignment or its table multiplicities.
     try scheme.commit(a, base.columns, &channel);
@@ -163,12 +184,12 @@ pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Pr
 pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, claims: W.Claims, proof: *const P.Proof) !Capture {
     const pcs = &proof.commitment_scheme_proof;
     if (pcs.commitments.items.len != 4 or !std.meta.eql(pcs.config, try P.targetConfig())) return error.InvalidOm31CircuitProof;
-    if (!std.mem.eql(u8, &pcs.commitments.items[0], &key.fixed.root())) return error.InvalidOm31CircuitFixedRoot;
+    if (!std.mem.eql(u8, &pcs.commitments.items[0], &key.fixedRoot())) return error.InvalidOm31CircuitFixedRoot;
     var channel = try begin(a, key, outputs);
     const V = core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(P.H, P.MC);
     var receiver = try V.init(a, try P.targetConfig());
     defer receiver.deinit(a);
-    try receiver.commit(a, key.fixed.root(), &key.fixed_logs, &channel);
+    try receiver.commit(a, key.fixedRoot(), &key.fixed_logs, &channel);
     const main_logs = try key.treeLogs(a, 1);
     defer a.free(main_logs);
     try receiver.commit(a, pcs.commitments.items[1], main_logs, &channel);

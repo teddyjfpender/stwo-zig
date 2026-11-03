@@ -20,6 +20,9 @@ test "om31 outer bridge actual child verifies in shared lane" {
     defer produced.deinit();
     var capture = try Outer.prove.verify(a, &authority, produced.outputs, produced.claims, &produced.proof.proof);
     defer capture.deinit(a);
+    authority.retireProverData();
+    try std.testing.expect(authority.fixed == null);
+    try std.testing.expectError(error.Om31CircuitProverDataRetired, Outer.prove.prove(a, &authority, ctx.values()));
     const child = Bridge.Child{ .authority = &authority, .produced = &produced, .capture = &capture };
     produced.outputs[0] = produced.outputs[0].add(Outer.protocol.Q.one());
     try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, .{ child, child }));

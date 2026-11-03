@@ -56,11 +56,12 @@ pub fn validateTree(logs: []const u32, tree: D.Tree) !void {
     }
 }
 pub fn prove(a: std.mem.Allocator, key: *const Native.Authority, values: []const P.Q, ordinal: u32, factory: Factory) !Native.Produced {
+    try key.requireProverData();
     const start = circuit.witness.trace.U_VAR_IDX + 1;
     if (values.len < start or key.pp.n_outputs > values.len - start) return error.InvalidOm31CircuitOutputCount;
     const outputs = try a.dupe(P.Q, values[start..][0..key.pp.n_outputs]);
     errdefer a.free(outputs);
-    const requested = D.Scope{ .statement = statement(key, outputs), .fixed = key.fixed.root(), .main = @splat(0), .ordinal = ordinal };
+    const requested = D.Scope{ .statement = statement(key, outputs), .fixed = key.fixedRoot(), .main = @splat(0), .ordinal = ordinal };
     const source = try factory.prepare(factory.context, a, key, values, requested);
     defer source.release(source.context);
     if (!std.mem.eql(u8, &source.scope.statement, &requested.statement) or !std.mem.eql(u8, &source.scope.fixed, &requested.fixed) or source.scope.ordinal != ordinal or !std.mem.eql(u8, &source.scope.main, &source.main.root)) return error.InvalidOm31CircuitDeviceScope;
@@ -75,8 +76,8 @@ pub fn prove(a: std.mem.Allocator, key: *const Native.Authority, values: []const
     scheme.device_om31_composition_stage = source.composition;
     scheme.device_om31_scope = source.scope;
     try scheme.trees.ensureUnusedCapacity(a, 1);
-    scheme.trees.appendAssumeCapacity(key.fixed.retainShared());
-    P.MC.mixRoot(&channel, key.fixed.root());
+    scheme.trees.appendAssumeCapacity(try key.retainFixed());
+    P.MC.mixRoot(&channel, key.fixedRoot());
     try scheme.adoptDeviceOm31TraceTree(1, source.main, &channel);
     const challenges = Native.draw(&channel);
     const interaction = try source.generate(source.context, a, key, source.scope, challenges.z, challenges.alpha);

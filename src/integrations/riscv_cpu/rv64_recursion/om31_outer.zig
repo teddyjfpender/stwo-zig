@@ -205,7 +205,7 @@ pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
         const geometry = try shape(ctx.scratch(), child.authority);
         const captured = try V.proof.fromNative(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry);
         const guessed = try V.proof.guess(&ctx, &captured, &geometry);
-        const trusted_fixed = try B.blake.constantHash(Q, &ctx, B.blake.hashValueFromDigest(Q, child.authority.fixed.root()));
+        const trusted_fixed = try B.blake.constantHash(Q, &ctx, B.blake.hashValueFromDigest(Q, child.authority.fixedRoot()));
         for (guessed.commitments[0].words, trusted_fixed.words) |actual, expected| try ctx.eq(actual.get(), expected.get());
         const outputs = try ctx.scratch().alloc(C.Var, child.produced.outputs.len);
         for (outputs, child.produced.outputs) |*out, value| out.* = try ctx.guess(value);
