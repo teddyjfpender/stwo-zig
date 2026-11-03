@@ -67,6 +67,58 @@ test "Program metadata outlives original image and cache manager without retaini
     try std.testing.expectEqual(@as(usize, 1), try second.lookup(4100));
     try std.testing.expectEqual(@as(u64, 4104), second.entries[1].staticNext(false));
 }
+test "session-retained program owns raw authority after image and metadata manager teardown" {
+    var cache = try Cache.init(a, 1024 * 1024);
+    var expected = try authority(a);
+    var program = try Program.initWithAuthorityAndMetadataCache(a, &expected, &cache);
+    defer program.deinit();
+    const identity = program.identity;
+    const entries = program.entries.ptr;
+    try program.retainRawAuthority();
+    try std.testing.expect(program.owns_raw);
+    try std.testing.expect(program.words.ptr != expected.words.ptr);
+    try std.testing.expect(program.addresses.ptr != expected.program.addresses.ptr);
+    const raw = program.words.ptr;
+    try program.retainRawAuthority();
+    try std.testing.expectEqual(raw, program.words.ptr);
+    try std.testing.expectEqual(entries, program.entries.ptr);
+    expected.deinit();
+    cache.deinit();
+    try std.testing.expectEqual(identity, program.identity);
+    try std.testing.expectEqualSlices(u32, &words, program.expectedProgram().words);
+    try std.testing.expectEqual(@as(usize, 1), try program.lookup(4100));
+    try std.testing.expectEqual(@as(u64, 4104), program.entries[1].staticNext(false));
+    try program.validateFixedWitness();
+}
+test "session-retained raw authority copies are charged to the immutable owner budget" {
+    const Budget = engine.host_budget_allocator.SharedHostBudget;
+    const budget = try Budget.create(a, 1024 * 1024);
+    defer budget.destroy();
+    var expected = try authority(a);
+    defer expected.deinit();
+    var program = try Program.initWithAuthority(budget.allocator(), &expected);
+    defer program.deinit();
+    const before = budget.snapshot().live_bytes;
+    try program.retainRawAuthority();
+    try std.testing.expectEqual(before + words.len * (@sizeOf(u32) + @sizeOf(u64)), budget.snapshot().live_bytes);
+}
+fn retainedRawAllocationFailure(allocator: std.mem.Allocator) !void {
+    var expected = try authority(allocator);
+    defer expected.deinit();
+    var program = try Program.initWithAuthority(allocator, &expected);
+    defer program.deinit();
+    const old_words = program.words;
+    const old_addresses = program.addresses;
+    program.retainRawAuthority() catch |err| {
+        try std.testing.expect(!program.owns_raw);
+        try std.testing.expectEqual(old_words.ptr, program.words.ptr);
+        try std.testing.expectEqual(old_addresses.ptr, program.addresses.ptr);
+        return err;
+    };
+}
+test "session-retained raw authority allocation failure leaves borrowed custody intact" {
+    try std.testing.checkAllAllocationFailures(a, retainedRawAllocationFailure, .{});
+}
 test "Program metadata exact full64 sparse raw profile and branch map identity" {
     const sparse_words = [_]u32{ 0x00000463, 0xffffffff, 0x00008067 };
     const addresses = [_]u64{ 0x1_0000_1000, 0xffff_ffff_ffff_fff8, 0xffff_ffff_ffff_fffc };

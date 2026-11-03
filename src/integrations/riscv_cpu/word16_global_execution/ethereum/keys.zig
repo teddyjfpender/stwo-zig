@@ -194,6 +194,11 @@ pub const Owner = struct {
             },
         };
         if (shared) |cached| {
+            // New session-owned keys outlive this request's Image. Decoded
+            // metadata is already leased; the raw ROM arrays also need custody.
+            // All copies use the SAME bounded key allocator and finish before
+            // transferring any owner into the persistent cache.
+            for (self.cpu_owners.items[self.borrowed_prefix[0]..]) |setup| try setup.materials.program.retainRawAuthority();
             // Reserve every list before transferring any newly constructed owner.
             // Failure leaves both original cache and request cleanup ownership intact.
             inline for (owner_fields, 0..) |name, index| {
