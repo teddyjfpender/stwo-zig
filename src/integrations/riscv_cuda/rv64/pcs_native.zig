@@ -5,7 +5,7 @@ const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
 const Abi = @import("pcs_native_abi.zig");
 const Export = @import("pcs_request_export.zig");
 const Decode = @import("hybrid_pcs.zig");
-const CachedColumn = struct { host: usize, count: usize, log: u32, device: D.DeviceCoefficients };
+const CachedColumn = struct { host: usize, tree: u32, column: usize, count: usize, log: u32, device: D.DeviceCoefficients };
 const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false };
 pub const Context = struct {
     cache_mutex: std.Thread.Mutex = .{},
@@ -34,7 +34,7 @@ pub const Context = struct {
             const column = if (i < fixed.len) fixed[i] else main[i - fixed.len];
             const count = column.coefficients.len;
             if (column.device != null or count == 0 or offset > lease.count or count > lease.count - offset) return error.InvalidRetainedCoefficientLease;
-            item.* = .{ .host = @intFromPtr(column.coefficients.ptr), .count = count, .log = column.log_size, .device = .{ .words = lease.words.? + offset, .count = count, .context_token = lease.context_token, .generation = lease.generation } };
+            item.* = .{ .host = @intFromPtr(column.coefficients.ptr), .tree = if (i < fixed.len) 0 else 1, .column = if (i < fixed.len) i else i - fixed.len, .count = count, .log = column.log_size, .device = .{ .words = lease.words.? + offset, .count = count, .context_token = lease.context_token, .generation = lease.generation } };
             total += count;
         }
         if (total != lease.count) return error.InvalidRetainedCoefficientLease;
@@ -55,6 +55,16 @@ pub const Context = struct {
             a.free(retired.columns);
         }
         try self.cache.append(a, .{ .scope = scope, .lease = lease, .columns = mapped });
+    }
+    /// Stable original tree/column identity survives retained MAIN remapping.
+    pub fn retainedColumn(self: *Context, scope: [8]u32, tree: u32, index: usize, column: D.Column) ?D.DeviceCoefficients {
+        self.cache_mutex.lock();
+        defer self.cache_mutex.unlock();
+        for (self.cache.items) |*entry| if (std.mem.eql(u32, &entry.scope, &scope)) {
+            entry.in_use = true;
+            for (entry.columns) |item| if (item.tree == tree and item.column == index and item.count == column.coefficients.len and item.log == column.log_size) return item.device;
+        };
+        return null;
     }
     pub fn retainedCoefficient(self: *Context, scope: [8]u32, column: D.Column) ?D.DeviceCoefficients {
         self.cache_mutex.lock();
@@ -128,12 +138,12 @@ pub const Context = struct {
         var reused_cells: usize = 0;
         var made: usize = 0;
         defer for (trees[0..made]) |tree| a.free(tree.columns);
-        for (request.trees, trees) |tree, *replacement| {
+        for (request.trees, trees, 0..) |tree, *replacement, tree_index| {
             const columns = try a.dupe(D.Column, tree.columns);
             replacement.columns = columns;
             made += 1;
-            for (columns) |*column| if (column.device == null) {
-                if (self.retainedCoefficient(scope, column.*)) |device| {
+            for (columns, 0..) |*column, column_index| if (column.device == null) {
+                if (self.retainedColumn(scope, @intCast(tree_index), column_index, column.*)) |device| {
                     column.device = device;
                     reused_columns += 1;
                     reused_cells += column.coefficients.len;
