@@ -1,0 +1,32 @@
+final1 prove=46.41s steps=16777212 cpu=4 truth=8 stage-core=362.1s
+  witness          wall=    6.07  core=     6.8  ( 1.9% of stage core)
+  gkr              wall=   20.01  core=    79.9  (22.1% of stage core)
+  main_lde         wall=    3.27  core=    13.7  ( 3.8% of stage core)
+  main_hash        wall=    3.32  core=    15.7  ( 4.3% of stage core)
+  binding          wall=    1.25  core=     6.0  ( 1.7% of stage core)
+  inter_gen        wall=    2.93  core=    17.5  ( 4.8% of stage core)
+  inter_lde        wall=    2.15  core=     9.6  ( 2.6% of stage core)
+  inter_hash       wall=    2.80  core=    12.0  ( 3.3% of stage core)
+  comp_eval        wall=   24.10  core=   129.2  (35.7% of stage core)
+  comp_interp      wall=    1.54  core=     1.3  ( 0.4% of stage core)
+  comp_commit      wall=    1.61  core=     7.6  ( 2.1% of stage core)
+  oods             wall=    1.67  core=    10.9  ( 3.0% of stage core)
+  deep_fri_commit  wall=    6.80  core=    41.2  (11.4% of stage core)
+  pow              wall=    0.13  core=     0.0  ( 0.0% of stage core)
+  fri_decommit     wall=    0.38  core=     2.0  ( 0.5% of stage core)
+  trace_decommit   wall=    2.58  core=     8.7  ( 2.4% of stage core)
+  spill            wall=    5.30  core=     0.0  ( 0.0% of stage core)
+  other            wall=    0.02  core=     0.0  ( 0.0% of stage core)
+    {'file': 'physical-0000.stages.json', 'wall_s': 17.58, 'core_s': 64.35, 'top': [('gkr', 22.61), ('comp_eval', 13.65), ('deep_fri_commit', 8.28), ('main_hash', 3.35)]}
+    {'file': 'physical-0001.stages.json', 'wall_s': 14.48, 'core_s': 51.86, 'top': [('gkr', 19.23), ('comp_eval', 10.66), ('deep_fri_commit', 6.82), ('main_hash', 2.62)]}
+    {'file': 'physical-0002.stages.json', 'wall_s': 12.53, 'core_s': 53.73, 'top': [('gkr', 19.37), ('comp_eval', 11.09), ('deep_fri_commit', 7.82), ('main_hash', 2.71)]}
+    {'file': 'physical-0003.stages.json', 'wall_s': 13.17, 'core_s': 56.84, 'top': [('gkr', 18.66), ('comp_eval', 12.25), ('deep_fri_commit', 9.13), ('main_hash', 2.78)]}
+    {'file': 'physical-0004.stages.json', 'wall_s': 19.03, 'core_s': 103.55, 'top': [('comp_eval', 66.9), ('inter_gen', 11.18), ('deep_fri_commit', 5.28), ('oods', 4.49)]}
+    {'file': 'physical-0005.stages.json', 'wall_s': 2.87, 'core_s': 9.77, 'top': [('comp_eval', 3.43), ('deep_fri_commit', 1.82), ('comp_commit', 0.94), ('inter_gen', 0.7)]}
+    {'file': 'physical-0006.stages.json', 'wall_s': 4.83, 'core_s': 20.7, 'top': [('comp_eval', 10.6), ('deep_fri_commit', 2.07), ('inter_gen', 1.82), ('comp_commit', 1.11)]}
+    {'file': 'physical-0007.stages.json', 'wall_s': 0.68, 'core_s': 0.62, 'top': [('comp_eval', 0.33), ('inter_gen', 0.11), ('inter_lde', 0.04), ('trace_decommit', 0.04)]}
+    {'file': 'physical-0008.stages.json', 'wall_s': 0.15, 'core_s': 0.15, 'top': [('comp_eval', 0.08), ('inter_lde', 0.02), ('main_lde', 0.01), ('inter_gen', 0.01)]}
+    {'file': 'physical-0009.stages.json', 'wall_s': 0.5, 'core_s': 0.46, 'top': [('comp_eval', 0.25), ('inter_gen', 0.08), ('inter_lde', 0.03), ('oods', 0.03)]}
+    {'file': 'physical-0010.stages.json', 'wall_s': 0.06, 'core_s': 0.03, 'top': [('main_lde', 0.01), ('main_hash', 0.0), ('inter_gen', 0.0), ('inter_lde', 0.0)]}
+    {'file': 'physical-0011.stages.json', 'wall_s': 0.05, 'core_s': 0.02, 'top': [('main_lde', 0.0), ('main_hash', 0.0), ('inter_gen', 0.0), ('inter_lde', 0.0)]}
+  committed MAIN cells 1741M  INTER 1229M
