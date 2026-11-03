@@ -133,8 +133,17 @@ pub const CombineHook = struct {
     i32: *const fn (ctx: *anyopaque, a: std.mem.Allocator, m: Matrix(i32), coeffs: []const []const QM31) anyerror!?[][]QM31,
 };
 
+/// Owner of a codeword that is not allocator memory (e.g. a device buffer
+/// in unified memory); `release` frees it.
+pub const EncOwner = struct {
+    ctx: *anyopaque,
+    handle: *anyopaque,
+    release: *const fn (ctx: *anyopaque, handle: *anyopaque) void,
+};
+
 pub const Committed = struct {
     combine: ?CombineHook = null,
+    enc_owner: ?EncOwner = null,
     log_rows: u32,
     log_cols: u32,
     log_blowup: u32,
@@ -145,7 +154,7 @@ pub const Committed = struct {
     tree: Merkle,
 
     pub fn deinit(self: *Committed, a: std.mem.Allocator) void {
-        a.free(self.enc);
+        if (self.enc_owner) |o| o.release(o.ctx, o.handle) else a.free(self.enc);
         self.tree.deinit(a);
     }
 

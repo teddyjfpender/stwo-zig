@@ -45,7 +45,15 @@ pub const source: [:0]const u8 = @import("tensor_metal_shaders").source;
 const POOL_MIN: usize = 1 << 20;
 /// one-off huge buffers (e.g. the offline weight-key GKR layers) are not
 /// pooled: they would crowd out the per-proof working set
-const POOL_MAX: usize = 512 << 20;
+const POOL_MAX: usize = 1 << 30;
+
+/// Pool size classes: 8 classes per power of two (<= 12.5% slack).
+fn sizeClass(len: usize) usize {
+    const p2 = std.math.ceilPowerOfTwo(usize, len) catch return len;
+    if (p2 <= (1 << 20)) return p2;
+    const step = p2 / 16;
+    return std.mem.alignForward(usize, len, step);
+}
 
 pub const Error = error{ MetalInit, MetalPipeline, MetalAlloc, MetalCommand };
 
@@ -125,7 +133,7 @@ pub const Gpu = struct {
     pool: std.ArrayList(struct { handle: *anyopaque, cap: usize }) = .empty,
     pooled_bytes: usize = 0,
     /// bytes kept in the buffer pool (0 disables pooling)
-    pool_limit: usize = 2 << 30,
+    pool_limit: usize = 3 << 30,
     page: usize,
     stats: Stats = .{},
     /// rows per streamed commitment chunk are capped so a chunk is <= this
@@ -223,12 +231,12 @@ pub const Gpu = struct {
     }
 
     /// Device-allocated shared buffer. Large buffers come from a small
-    /// power-of-two bucket pool, so repeated proofs do not pay first-touch
+    /// size-class pool (8 classes per power of two), so repeated proofs do not pay first-touch
     /// page faults on fresh multi-hundred-MB allocations. Contents of a
     /// recycled buffer are arbitrary: every user writes before it reads.
     pub fn alloc(self: *Gpu, len: usize) !Buf {
         if (len >= POOL_MIN) {
-            const cap = std.math.ceilPowerOfTwo(usize, len) catch len;
+            const cap = sizeClass(len);
             for (self.pool.items, 0..) |e, i| if (e.cap == cap) {
                 _ = self.pool.swapRemove(i);
                 self.pooled_bytes -= cap;
@@ -314,6 +322,13 @@ pub const Gpu = struct {
     const LeafParams = extern struct { log_e: u32, rows: u32, row0: u32, total_rows: u32, last_chunk: u32 };
     const TILE_LOG: u32 = 12;
 
+    fn releaseEnc(ctx: *anyopaque, handle: *anyopaque) void {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        const box: *Buf = @ptrCast(@alignCast(handle));
+        g.free(box.*);
+        std.heap.c_allocator.destroy(box);
+    }
+
     fn commitI32(ctx: *anyopaque, a: std.mem.Allocator, tw: *const pcs.Twiddles, m: pcs.Matrix(i32), lb: u32) anyerror!?pcs.Committed {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
         return g.commit(i32, a, tw, m, lb);
@@ -334,17 +349,21 @@ pub const Gpu = struct {
         if (log_e < 3 or R == 0 or R * E >= (1 << 32) or tw.domain.logSize() != log_e) return null;
         const tw_len: u32 = @intCast(tw.tree.twiddles.len);
 
-        const enc = try a.alloc(M31, R * E);
-        errdefer a.free(enc);
+        // The codeword lives in a (pooled, already resident) device buffer
+        // owned by the commitment; the opening reads its columns directly.
+        const enc_box = try std.heap.c_allocator.create(Buf);
+        errdefer std.heap.c_allocator.destroy(enc_box);
+        const enc_buf = try self.alloc(R * E * 4);
+        enc_box.* = enc_buf;
+        var enc_owned = false;
+        errdefer if (!enc_owned) self.free(enc_buf);
+        const enc: []M31 = @as([*]M31, @ptrCast(@alignCast(enc_buf.ptr())))[0 .. R * E];
         const nodes = try a.alloc(Hash, 2 * E);
         errdefer a.free(nodes);
 
         const in_bytes = std.mem.sliceAsBytes(m.data[0 .. R * C]);
         const in_buf = try self.view(@constCast(in_bytes), true);
         defer self.release(in_buf, null);
-        const enc_buf = try self.view(std.mem.sliceAsBytes(enc), false);
-        var enc_released = false;
-        defer if (!enc_released) self.release(enc_buf, null);
         const tw_buf = try self.view(@constCast(std.mem.sliceAsBytes(tw.tree.twiddles)), true);
         defer self.release(tw_buf, null);
         const nodes_buf = try self.view(std.mem.sliceAsBytes(nodes), false);
@@ -426,12 +445,12 @@ pub const Gpu = struct {
         }
         self.stats.commit_gpu_ms += try end(cmd);
         self.stats.commit_calls += 1;
-        enc_released = true;
-        self.release(enc_buf, enc.len * 4);
+        enc_owned = true;
         nodes_released = true;
         self.release(nodes_buf, nodes.len * 32);
         return .{
             .combine = .{ .ctx = self, .i8 = combineI8, .i32 = combineI32 },
+            .enc_owner = .{ .ctx = self, .handle = enc_box, .release = releaseEnc },
             .log_rows = m.log_rows,
             .log_cols = m.log_cols,
             .log_blowup = lb,
