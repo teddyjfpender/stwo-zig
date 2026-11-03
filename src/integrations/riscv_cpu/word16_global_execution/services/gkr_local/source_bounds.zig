@@ -50,6 +50,7 @@ pub const CpuScope = struct {
 pub const TruthScope = struct { relations: [std.meta.fields(TF.Relation).len]Bound };
 pub const Shape = struct {
     native_proofs: usize = 0,
+    /// General CPU/provider maximum; public boundaries have their own cap.
     max_trace_log: u32 = 0,
     max_public_boundary_log: u32 = 5,
     max_columns: usize = 0,
@@ -60,7 +61,7 @@ pub const Shape = struct {
     max_tuple_arity: usize = 0,
     max_gkr_variables: u32 = 0,
     pub fn validate(self: Shape) !void {
-        if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > @max(Policy.MAX_TRACE_LOG, self.max_public_boundary_log) or self.max_public_boundary_log > Policy.MAX_PUBLIC_BOUNDARY_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
+        if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > Policy.MAX_TRACE_LOG or self.max_public_boundary_log < 5 or self.max_public_boundary_log > Policy.MAX_PUBLIC_BOUNDARY_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
     }
 };
 pub const ConditionalDegrees = struct {
@@ -191,8 +192,10 @@ fn includeRole(shape: *Shape, origin: Frame.Origin, log: u32, descriptor: Meta.D
     constraints.* = try std.math.add(usize, constraints.*, descriptor.constraints);
     if (origin == .core and (origin.core == .initial or origin.core == .terminal)) {
         shape.max_public_boundary_log = @max(shape.max_public_boundary_log, log);
-    } else if (log > Policy.MAX_TRACE_LOG) return error.CandidateSourceShapeExceeded;
-    shape.max_trace_log = @max(shape.max_trace_log, log);
+    } else {
+        if (log > Policy.MAX_TRACE_LOG) return error.CandidateSourceShapeExceeded;
+        shape.max_trace_log = @max(shape.max_trace_log, log);
+    }
     shape.max_samples_per_column = @max(shape.max_samples_per_column, descriptor.max_samples);
     shape.max_air_degree = @max(shape.max_air_degree, descriptor.degree);
     if (descriptor.local_terms != 0) {
@@ -456,6 +459,9 @@ test "public boundary log23 source summary needs typed boundary provenance" {
     var shape = Shape{ .native_proofs = 1, .max_trace_log = 23, .max_columns = 1, .max_constraints = 1 };
     try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
     shape.max_public_boundary_log = 23;
+    // A valid boundary must never raise the summary cap of another provider.
+    try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
+    shape.max_trace_log = 22;
     try shape.validate();
     shape.max_public_boundary_log = 24;
     try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
