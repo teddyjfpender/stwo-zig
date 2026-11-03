@@ -18,7 +18,7 @@ Default bench mode: one proof per process, system allocator. This is what
 
 | bench | before prove | after prove | speedup |
 |---|---|---|---|
-| product 20, 1 thread | 0.337 s (321 ns/entry) | 0.131 s (125 ns/entry) | 2.6x |
+| product 20, 1 thread | 0.337 s (321 ns/entry) | 0.126 s (120 ns/entry) | 2.7x |
 | product 20, 12 threads | 0.067 s | 0.032 s | 2.1x |
 | mlp 8 10 11, 12 threads | 0.176 s | 0.110 s | 1.6x |
 | mlp 9 11 12, 12 threads | 0.583 s (23.2 ns/weight) | 0.334 s (13.3 ns/weight) | 1.75x |
@@ -127,6 +127,13 @@ are 23, 142 and 630 ms.
     Batching the layer *build* the same way was tried; it gave no measurable
     gain and was reverted. So was an 8-lane Blake2s leaf hash, at about 2%.
 
+11. **Fused fold and next-round sums** in the generic sumcheck
+    (`foldRoundChunkT`). Index y owns folded positions y and y + half/2, so
+    one in-place pass replaces two. This is used by the matmul op sumchecks
+    and by rounds 1.. of the batch sumcheck. For product 20 on 1 thread,
+    batch went from 0.043 to 0.036 s and prove from 0.132 to 0.126 s. For
+    mlp it is within noise.
+
 Timings: `Timings` gains `accumulators_ns`, `multiplicities_ns`,
 `gkr_input_ns`, `gkr_build_ns` and `gkr_sumcheck_ns`. `tensor-bench mlp`
 prints `prep_s`, `gkr_parts_s`, `prove_first_s` and `prove_reps`. The
@@ -207,11 +214,11 @@ These tests guard the changes:
    mlp 9 11 12 is 0.185 s against 0.334 s single shot. The coordinator can
    reproduce this with
    `TENSOR_RECYCLE=1 TENSOR_PROVE_REPS=3 tensor-bench mlp …`.
-3. **The remaining batch sumcheck cost** in mlp 9 11 12 is split into an E
-   build of about 15 ms, which is now one pass, fold 0 at about 9 ms
-   (first-touch faults) and generic rounds 1.. at about 14 ms. A further step
-   would fuse fold(k) with round(k+1)'s sums as the GKR prover does, halving
-   memory passes.
+3. **The remaining batch sumcheck cost** in mlp 9 11 12 (12 threads) is
+   split into an E build of about 15 ms, which is now one pass, fold 0 at
+   about 9 ms (first-touch faults) and generic rounds 1.., now fused. A
+   further step would build E lazily for the first few (block-selecting)
+   variables instead of materialising it.
 4. **Weight passes are small.** At mlp 4 11 12 (25M weights), weight fold +
    open take 3.4 + 4.2 ms on 12 threads (≈0.3 ns/weight) and 32 + 27 ms on 1
    thread. An i32-accumulating 16-bit-limb or `sdot` kernel would help the
