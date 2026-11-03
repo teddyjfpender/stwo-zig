@@ -1198,6 +1198,9 @@ pub fn weightKey(ws: *const WeightStore) WeightKey {
 /// - 1 <= shift <= 22 so 2^s * 129 < 2^30 and the requant identity mod p is an
 ///   integer identity;
 /// - shapes are consistent.
+/// Marker bound for tensors defined by an exact ext einsum (see validateStatement).
+const EXT_EXACT_BOUND: u8 = 254;
+
 pub fn validateStatement(st: Statement) !void {
     const n = st.witness.len;
     // bound[t] = b means |t[i]| <= 2^b is proved by some relation (255 = unbounded)
@@ -1228,7 +1231,16 @@ pub fn validateStatement(st: Statement) !void {
     // ext ops: requantized einsum outputs and single-term range/lookup keys
     for (st.ext.ops) |op| switch (op) {
         .einsum => |e| if (e.y) |y| {
-            if (e.shift > 0 and e.out_bits >= 1) setb(bound, y, e.out_bits - 1);
+            if (e.shift > 0 and e.out_bits >= 1) {
+                setb(bound, y, e.out_bits - 1);
+            } else if (bound[y] == 255) {
+                // exact einsum output: its magnitude is the ext builder's
+                // responsibility (transformer.md section 4, LayerCfg.validate;
+                // e.g. MoE dispatch of int8 rows by a proved one-hot selector).
+                // Marked as relation-defined; numeric checks below use the
+                // conservative cap EXT_EXACT_BOUND.
+                bound[y] = EXT_EXACT_BOUND;
+            }
         },
         .key => |k| {
             if (k.input.terms.len == 1 and (k.input.terms[0].coeff == 1 or k.input.terms[0].coeff == -1) and !k.input.terms[0].t.public) {
@@ -1253,13 +1265,13 @@ pub fn validateStatement(st: Statement) !void {
             if (xi.log_dims[1] != wi.log_dims[0]) return error.StatementShape;
             // |acc| <= 2^(bx + 7 + logK) must stay < 2^30 (weights are int8 by the key proof)
             if (bound[m.x] == 255) return error.StatementUnboundedOperand;
-            if (@as(u32, bound[m.x]) + 7 + xi.log_dims[1] > 30) return error.StatementAccumulatorBound;
+            if (bound[m.x] != EXT_EXACT_BOUND and @as(u32, bound[m.x]) + 7 + xi.log_dims[1] > 30) return error.StatementAccumulatorBound;
             if (st.witness[m.y].logSize() != xi.log_dims[0] + wi.log_dims[1]) return error.StatementShape;
         },
         .hadamard => |h| {
             if (h.a >= n or h.b >= n or h.y >= n) return error.StatementShape;
             if (bound[h.a] == 255 or bound[h.b] == 255) return error.StatementUnboundedOperand;
-            if (@as(u32, bound[h.a]) + bound[h.b] > 30) return error.StatementAccumulatorBound;
+            if (bound[h.a] != EXT_EXACT_BOUND and bound[h.b] != EXT_EXACT_BOUND and @as(u32, bound[h.a]) + bound[h.b] > 30) return error.StatementAccumulatorBound;
             if (h.shift < 1 or h.shift > 22) return error.StatementShift;
             const ls = st.witness[h.y].logSize();
             if (st.witness[h.a].logSize() != ls or st.witness[h.b].logSize() != ls) return error.StatementShape;
