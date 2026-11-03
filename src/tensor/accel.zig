@@ -281,6 +281,14 @@ pub fn mleEvalI32(acc: ?*const Accel, a: std.mem.Allocator, values: []const i32,
     return f.mleEvalI32(a, values, point);
 }
 
+/// As mleEvalI32, with a parallel split-eq CPU fallback.
+pub fn mleEvalI32Pool(acc: ?*const Accel, a: std.mem.Allocator, pool: *f.Pool, values: []const i32, point: []const QM31) !QM31 {
+    if (acc) |A| if (A.mle_eval_i32) |ev| if (values.len >= A.mle_min_len) {
+        if (try ev(A.ctx, values, point)) |v| return v;
+    };
+    return f.mleEvalI32Par(a, pool, values, point);
+}
+
 /// LogUp-GKR batch proof on the device when available (identical proof).
 pub fn gkrProveBatch(acc: ?*const Accel, a: std.mem.Allocator, ch: *Channel, inputs: []const GkrInput, threads: usize) !GkrResult {
     if (acc) |A| if (A.gkr_prove) |prove| {

@@ -191,6 +191,37 @@ pub fn mleEvalI32(allocator: std.mem.Allocator, values: []const i32, point: []co
     return acc;
 }
 
+/// MLE of an integer vector at pt, with eq split into a high table (one entry
+/// per chunk) and a low table (shared, in cache): no full-size eq table.
+pub fn mleEvalI32Par(a: std.mem.Allocator, pool: *Pool, vals: []const i32, pt: []const QM31) !QM31 {
+    const n = pt.len;
+    std.debug.assert(vals.len == @as(usize, 1) << @intCast(n));
+    const lo_bits = @min(n, 12);
+    const eq_hi = try eqTable(a, pt[0 .. n - lo_bits], QM31.one());
+    defer a.free(eq_hi);
+    const eq_lo = try eqTable(a, pt[n - lo_bits ..], QM31.one());
+    defer a.free(eq_lo);
+    const parts = try a.alloc(QM31, eq_hi.len);
+    defer a.free(parts);
+    const Ctx = struct { vals: []const i32, hi: []const QM31, lo: []const QM31, parts: []QM31 };
+    const ctx = Ctx{ .vals = vals, .hi = eq_hi, .lo = eq_lo, .parts = parts };
+    pool.parallelFor(eq_hi.len, @max(1, @as(usize, 1 << 14) >> @intCast(lo_bits)), &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            const L = c.lo.len;
+            for (s..e) |h| {
+                var acc = QM31.zero();
+                for (c.vals[h * L ..][0..L], c.lo) |v, wv| {
+                    if (v != 0) acc = acc.add(wv.mulM31(fromI32(v)));
+                }
+                c.parts[h] = acc.mul(c.hi[h]);
+            }
+        }
+    }.run);
+    var acc = QM31.zero();
+    for (parts) |x| acc = acc.add(x);
+    return acc;
+}
+
 test "eq table matches eqEval and mle folding" {
     const a = std.testing.allocator;
     var pts: [5]QM31 = undefined;
@@ -210,4 +241,22 @@ test "eq table matches eqEval and mle folding" {
     var idv: [32]QM31 = undefined;
     for (&idv, 0..) |*v, i| v.* = QM31.fromBase(M31.fromCanonical(@intCast(i)));
     try std.testing.expect(identityMle(&pts).eql(try mleEval(a, &idv, &pts)));
+}
+
+test "parallel split-eq mleEvalI32Par equals mleEvalI32" {
+    const a = std.testing.allocator;
+    var pool: Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    var prng = std.Random.DefaultPrng.init(7);
+    const rnd = prng.random();
+    for ([_]usize{ 0, 1, 5, 12, 13, 17 }) |n| {
+        const vals = try a.alloc(i32, @as(usize, 1) << @intCast(n));
+        defer a.free(vals);
+        for (vals) |*v| v.* = rnd.intRangeAtMost(i32, std.math.minInt(i32), std.math.maxInt(i32));
+        const pt = try a.alloc(QM31, n);
+        defer a.free(pt);
+        for (pt) |*p| p.* = QM31.fromU32Unchecked(rnd.uintLessThan(u32, P), rnd.uintLessThan(u32, P), rnd.uintLessThan(u32, P), rnd.uintLessThan(u32, P));
+        try std.testing.expect((try mleEvalI32(a, vals, pt)).eql(try mleEvalI32Par(a, &pool, vals, pt)));
+    }
 }

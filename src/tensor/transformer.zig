@@ -232,7 +232,7 @@ pub const Builder = struct {
     }
 
     pub fn materialize(self: *Builder, e: xt.Expr, n: u32) ![]i64 {
-        return xt.materialize(self.a, self.statement(), self.view(), e, n);
+        return xt.materializePar(self.a, self.pool, self.statement(), self.view(), e, n);
     }
 
     /// expr in [0, 2^bits) over {0,1}^n. Above 16 bits: committed 16-bit limbs

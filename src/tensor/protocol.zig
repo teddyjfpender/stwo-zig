@@ -905,8 +905,8 @@ pub fn proveWithAccumulators(
         switch (k.kind) {
             .glu_triple => {
                 const g = st.ops[k.op].glu;
-                const vg = try accel.mleEvalI32(cfg.accel, a, all[g.g], pt);
-                const vu = try accel.mleEvalI32(cfg.accel, a, all[g.u], pt);
+                const vg = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[g.g], pt);
+                const vu = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[g.u], pt);
                 try lookup_vals.append(a, vg);
                 try lookup_vals.append(a, vu);
                 tr.mixFelts(&.{ vg, vu });
@@ -928,7 +928,7 @@ pub fn proveWithAccumulators(
                             .hadamard => |h| h.y,
                             else => unreachable,
                         };
-                        const yv = try accel.mleEvalI32(cfg.accel, a, all[y_id], pt);
+                        const yv = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[y_id], pt);
                         try lookup_vals.append(a, yv);
                         tr.mixFelt(yv);
                         y_vals[i] = yv;
@@ -951,7 +951,7 @@ pub fn proveWithAccumulators(
             },
             .lookup_pair => {
                 const l = st.ops[k.op].lookup;
-                const vin = try accel.mleEvalI32(cfg.accel, a, all[l.in], pt);
+                const vin = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[l.in], pt);
                 try lookup_vals.append(a, vin);
                 tr.mixFelt(vin);
                 const den = art.claims_to_verify_by_instance[i][1];
