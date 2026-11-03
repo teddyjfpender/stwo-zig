@@ -31,6 +31,13 @@ const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
+/// Test-only: a cheating prover (adversarial tests) skips its own claim-consistency
+/// asserts so that the verifier is exercised on false claims.
+pub var test_cheating_prover: bool = false;
+fn cheating() bool {
+    return @import("builtin").is_test and test_cheating_prover;
+}
+
 const QM31 = f.QM31;
 const M31 = f.M31;
 pub const Term = sc.Term;
@@ -361,7 +368,7 @@ pub fn proveWith(
         gy[t] = evalTerms(terms, NF, &vals);
         qy[t] = before.add(hp.wEval(n, Y)).add(eps.mul(gy[t]));
     }
-    std.debug.assert(gy[0].eql(g_claim));
+    if (!cheating()) std.debug.assert(gy[0].eql(g_claim));
     var msg = [_]QM31{QM31.zero()} ** MAX_DEG;
     for (1..deg + 1) |t| msg[t - 1] = qy[t];
     tr.mixFelts(msg[0..deg]);
@@ -598,7 +605,7 @@ pub fn proveGkrLayer(
         gy[tt] = evalTerms(terms, 7, &vals);
         qy[tt] = before.add(hp.wEval(n, Y)).add(eps.mul(gy[tt]));
     }
-    std.debug.assert(gy[0].eql(g_claim));
+    if (!cheating()) std.debug.assert(gy[0].eql(g_claim));
     var msg = [_]QM31{QM31.zero()} ** MAX_DEG;
     for (1..deg + 1) |tt| msg[tt - 1] = qy[tt];
     tr.mixFelts(msg[0..deg]);

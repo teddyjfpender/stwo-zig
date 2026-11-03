@@ -33,6 +33,7 @@ const pcs2 = @import("pcs2.zig");
 const zks = @import("zk_sumcheck.zig");
 const proto = @import("protocol.zig");
 const linalg = @import("linalg.zig");
+const xt = @import("ext.zig");
 const Transcript = @import("transcript.zig").Transcript;
 const core = @import("stwo_core");
 
@@ -84,11 +85,13 @@ fn shiftHalf(s: u5) i64 {
 // ---------------------------------------------------------------------------
 // Plan: tensor ids, sumchecks and layouts (shared by prover and verifier).
 
-const RelKind = union(enum) { range: u5, act: u32, glu: struct { table: u32, shift: u5 } };
+const RelKind = union(enum) { range: u5, act: u32, glu: struct { table: u32, shift: u5 }, ext_lookup: u32 };
 const Rel = struct { kind: RelKind, log_size: u32, mult: u32 };
-const KeyKind = enum { remainder, y_range, plain_range, lookup_pair, glu_triple };
+/// `.ext`: an ext-op key (`op` indexes `plan.xkeys`): einsum remainder (virtual),
+/// einsum output range, or a linear-expression key (ext.zig).
+const KeyKind = enum { remainder, y_range, plain_range, lookup_pair, glu_triple, ext };
 const Key = struct { kind: KeyKind, op: u32, log_size: u32, rel: u32, h: u32 };
-const CheckKind = enum { product, hadamard, matmul, key, matmul_v, hadamard_v };
+const CheckKind = enum { product, hadamard, matmul, key, matmul_v, hadamard_v, einsum_v, einsum_x };
 /// A masked sumcheck. `matmul_v` / `hadamard_v` (virtual remainders) run after the
 /// GKR at their remainder leaf point: `key` is the remainder key, `apad` the
 /// 16-cell pad of the accumulator hat, `tree` the GKR tree holding the key.
@@ -139,6 +142,9 @@ const Plan = struct {
     vchecks: []Check = &.{},
     /// GKR tree of each op's remainder key (virtual mode, NONE otherwise)
     op_tree: []u32 = &.{},
+    /// ext ops: derived keys and the exact-einsum checks (run after the virtual checks)
+    xkeys: []xt.Key = &.{},
+    xchecks: []Check = &.{},
 
     fn nCols(self: Plan) usize {
         return @as(usize, 1) << @intCast(self.lc);
@@ -203,11 +209,16 @@ fn uLog(n: u32, deg: u32) u32 {
 }
 
 fn findRel(rels: *std.ArrayList(Rel), a: std.mem.Allocator, inf1: *std.ArrayList(TensorInfo), kind: RelKind) !u32 {
+    return findRelX(rels, a, inf1, kind, .{});
+}
+
+fn findRelX(rels: *std.ArrayList(Rel), a: std.mem.Allocator, inf1: *std.ArrayList(TensorInfo), kind: RelKind, x: xt.Ext) !u32 {
     for (rels.items, 0..) |r, i| if (std.meta.eql(r.kind, kind)) return @intCast(i);
     const log_size: u32 = switch (kind) {
         .range => |s| @max(@as(u32, s), 1),
         .act => 8,
         .glu => 16,
+        .ext_lookup => |id| @max(@as(u32, x.tables[id].log_size), 1),
     };
     const id: u32 = @intCast(inf1.items.len);
     try inf1.append(a, TensorInfo.vec(log_size));
@@ -291,6 +302,21 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
                 const lsz = st.witness[p.c].logSize();
                 if (st.witness[p.a].logSize() != lsz or st.witness[p.b].logSize() != lsz) return error.StatementShape;
             },
+        }
+    }
+    // ext ops: validated, their keys appended after the core keys (masked GKR only;
+    // requant-einsum remainders are always virtual)
+    var xkeys: []xt.Key = &.{};
+    if (!st.ext.isEmpty()) {
+        try xt.validate(st);
+        if (!cfg.zk_logup_gkr) return error.ZkVirtualNeedsGkr;
+        xkeys = try xt.deriveKeys(a, st.ext);
+        for (xkeys, 0..) |xk, xi| {
+            const kind: RelKind = switch (xk.table) {
+                .range => |b| .{ .range = b },
+                .lookup => |id| .{ .ext_lookup = id },
+            };
+            try keys.append(a, .{ .kind = .ext, .op = @intCast(xi), .log_size = xk.log_size, .rel = try findRelX(&rels, a, &inf1, kind, st.ext), .h = 0 });
         }
     }
     // pads for hatted table-1 tensors (witness + remainders)
@@ -401,10 +427,20 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
     var vchecks: std.ArrayList(Check) = .empty;
     const op_tree = try a.alloc(u32, st.ops.len);
     @memset(op_tree, NONE);
-    if (virt) for (grels.items, 0..) |g, ti| for (g.segs) |sg| {
+    for (grels.items, 0..) |g, ti| for (g.segs) |sg| {
         if (sg.kind != .key) continue;
         const k = keys.items[sg.idx];
-        if (k.kind != .remainder) continue;
+        if (k.kind == .ext and xkeys[k.op].kind == .remainder) {
+            const lay = xt.Layout.init(st.ext.ops[xkeys[k.op].op].einsum);
+            var c: Check = .{ .kind = .einsum_v, .idx = xkeys[k.op].op, .n = lay.ns, .deg = 3, .u = 0, .key = sg.idx, .tree = @intCast(ti) };
+            c.u = @intCast(inf1.items.len);
+            try inf1.append(a, TensorInfo.vec(uLog(c.n, c.deg)));
+            c.apad = @intCast(inf1.items.len);
+            try inf1.append(a, TensorInfo.vec(PAD_LOG));
+            try vchecks.append(a, c);
+            continue;
+        }
+        if (!virt or k.kind != .remainder) continue;
         const op = st.ops[k.op];
         var c: Check = .{ .kind = .hadamard_v, .idx = k.op, .n = k.log_size, .deg = 3, .u = 0, .key = sg.idx, .tree = @intCast(ti) };
         if (op == .matmul) {
@@ -418,6 +454,20 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
         try inf1.append(a, TensorInfo.vec(PAD_LOG));
         op_tree[k.op] = @intCast(ti);
         try vchecks.append(a, c);
+    };
+    // exact einsums: masked output hat + sumcheck at a fresh point
+    var xchecks: std.ArrayList(Check) = .empty;
+    for (st.ext.ops, 0..) |xop, oi| switch (xop) {
+        .einsum => |e| if (e.shift == 0) {
+            const lay = xt.Layout.init(e);
+            var c: Check = .{ .kind = .einsum_x, .idx = @intCast(oi), .n = lay.ns, .deg = 3, .u = 0 };
+            c.u = @intCast(inf1.items.len);
+            try inf1.append(a, TensorInfo.vec(uLog(c.n, c.deg)));
+            c.apad = @intCast(inf1.items.len);
+            try inf1.append(a, TensorInfo.vec(PAD_LOG));
+            try xchecks.append(a, c);
+        },
+        else => {},
     };
     const has2 = !gkr and keys.items.len > 0;
     // column split from table 1 without the C-dependent tensors
@@ -465,6 +515,8 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             .virt = virt,
             .vchecks = try vchecks.toOwnedSlice(a),
             .op_tree = op_tree,
+            .xkeys = xkeys,
+            .xchecks = try xchecks.toOwnedSlice(a),
         };
     }
 }
@@ -480,7 +532,11 @@ const LClaim = struct { terms: []const LTerm, value: QM31 };
 /// Weight-table hat claim: c_data * W_w(local) + c_pad * R_W(s, colpoint).
 const WClaim = struct { w: u32, local: []const QM31, c_data: QM31, s: [2]QM31, c_pad: QM31, value: QM31 };
 
-const Part = struct { table: u8, id: u32, coeff: QM31, prefix: []const QM31 = &.{}, suffix: []const QM31 = &.{}, weight: bool = false };
+/// Operand point of an ext einsum factor: rho on folded output vars, the sumcheck point elsewhere.
+const LabMap = struct { labels: xt.Labels, nb: u32, rho: []const QM31, lay: xt.Layout };
+const Part = struct { table: u8, id: u32, coeff: QM31, prefix: []const QM31 = &.{}, suffix: []const QM31 = &.{}, weight: bool = false, lab: ?LabMap = null };
+/// A public ext tensor read at a label point.
+const PubMle = struct { id: u32, lab: LabMap };
 const FSpec = struct {
     public: bool = false,
     pub_point: []const QM31 = &.{},
@@ -492,7 +548,29 @@ const FSpec = struct {
     /// 16-cell pad `qpad`; its hat is its own value (a pad functional, no data part)
     qpad: ?u32 = null,
     qlead: []const QM31 = &.{},
+    /// public eq over the leading pub_point.len sumcheck coordinates (einsum batch vars)
+    pub_prefix: bool = false,
+    /// public ext operand
+    pub_mle: ?PubMle = null,
 };
+
+/// Value of a public factor at the sumcheck point r (verifier).
+fn publicValue(a: std.mem.Allocator, st: Statement, sp: FSpec, r: []const QM31) !QM31 {
+    if (sp.pub_mle) |pm| return xt.publicMle(a, st.ext, pm.id, try pm.lab.lay.operandPoint(a, pm.lab.labels, pm.lab.nb, pm.lab.rho, r));
+    if (sp.pub_prefix) return f.eqEval(sp.pub_point, r[0..sp.pub_point.len]);
+    return zeroExtScale(r, sp.m).mul(f.eqEval(sp.pub_point, r[r.len - sp.m ..]));
+}
+
+/// Pad point of a hatted part: the last plog coordinates of its local point, or for
+/// label-driven (ext) parts of (local ++ r), so that every hat's pad point carries
+/// fresh sumcheck coordinates.
+fn padPoint(a: std.mem.Allocator, p: Part, loc: []const QM31, r: []const QM31, plog: u32) ![]const QM31 {
+    if (p.lab == null) return loc[loc.len - plog ..];
+    const cat = try a.alloc(QM31, loc.len + r.len);
+    @memcpy(cat[0..loc.len], loc);
+    @memcpy(cat[loc.len..], r);
+    return cat[cat.len - plog ..];
+}
 
 /// Q~(r) of a Q factor: eq(r_head, 0) * P~(qlead, r_tail).
 fn qPoint(a: std.mem.Allocator, sp: FSpec, r: []const QM31) !struct { scale: QM31, pt: []QM31 } {
@@ -510,6 +588,7 @@ fn zeroExtScale(r: []const QM31, m: u32) QM31 {
 }
 
 fn localPoint(a: std.mem.Allocator, p: Part, r: []const QM31, m: u32) ![]QM31 {
+    if (p.lab) |l| return l.lay.operandPoint(a, l.labels, l.nb, l.rho, r);
     const out = try a.alloc(QM31, p.prefix.len + m + p.suffix.len);
     @memcpy(out[0..p.prefix.len], p.prefix);
     @memcpy(out[p.prefix.len..][0..m], r[r.len - m ..]);
@@ -588,17 +667,19 @@ fn checkClaims(
             const pid = plan.pad[p.table][p.id];
             const plog = plan.ls(p.table, pid);
             terms[2 * pi] = .{ .table = p.table, .id = p.id, .coeff = p.coeff.mul(one_m_g).mul(scale), .form = .{ .eq = loc } };
-            terms[2 * pi + 1] = .{ .table = p.table, .id = pid, .coeff = p.coeff.mul(g), .form = .{ .eq = loc[loc.len - plog ..] } };
+            terms[2 * pi + 1] = .{ .table = p.table, .id = pid, .coeff = p.coeff.mul(g), .form = .{ .eq = try padPoint(a, p, loc, r, plog) } };
         }
         try claims.append(a, .{ .terms = terms, .value = hat.sub(sp.konst) });
     }
 }
 
 fn keyFactorD(a: std.mem.Allocator, plan: Plan, st: Statement, k: Key, alpha: QM31, beta: QM31, n: u32) !FSpec {
+    if (k.kind == .ext) return error.StatementShape; // ext keys: GKR leaf claims only
     const op = st.ops[k.op];
     var parts: []Part = undefined;
     var konst = alpha;
     switch (k.kind) {
+        .ext => unreachable,
         .remainder => {
             parts = try a.alloc(Part, 1);
             parts[0] = .{ .table = 0, .id = plan.rem[k.op], .coeff = qi(-1) };
@@ -669,7 +750,7 @@ fn checkSpecs(a: std.mem.Allocator, plan: Plan, st: Statement, wkey: ?WeightKey,
             sp[4] = .{ .parts = try a.dupe(Part, &.{.{ .table = 0, .id = plan.rem[c.idx], .coeff = qi(-1) }}), .m = lt + ln };
             return sp;
         },
-        .matmul_v, .hadamard_v => unreachable, // vcheckSpecs
+        .matmul_v, .hadamard_v, .einsum_v, .einsum_x => unreachable, // vcheckSpecs
         .key => {
             const k = plan.keys[c.idx];
             const sp = try a.alloc(FSpec, 3);
@@ -707,6 +788,26 @@ fn vcheckSpecs(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, c: Check, 
             sp[3] = .{ .qpad = c.apad, .qlead = lead, .m = n };
             return sp;
         },
+        .einsum_v, .einsum_x => {
+            // eq(rho_B, r_B) * A'(r) * B'(r) + et * Q   (rho = vr.local: the leaf point / fresh point)
+            const e = st.ext.ops[c.idx].einsum;
+            const lay = xt.Layout.init(e);
+            const sp = try a.alloc(FSpec, 5);
+            const bpt = try a.alloc(QM31, lay.n_batch);
+            for (bpt, 0..) |*x, i| x.* = vr.local[lay.batch[i]];
+            sp[0] = .{ .public = true, .pub_point = bpt, .pub_prefix = true, .m = n };
+            inline for (.{ .{ e.a, e.a_labels, 1 }, .{ e.b, e.b_labels, 2 } }) |op| {
+                const ref: xt.Ref = op[0];
+                const lm = LabMap{ .labels = op[1], .nb = try xt.refBits(st, ref), .rho = vr.local, .lay = lay };
+                sp[op[2]] = if (ref.public)
+                    .{ .public = true, .pub_mle = .{ .id = ref.id, .lab = lm }, .m = n }
+                else
+                    .{ .parts = try a.dupe(Part, &.{.{ .table = 0, .id = ref.id, .coeff = QM31.one(), .lab = lm }}), .m = n };
+            }
+            sp[3] = .{ .public = true, .pub_point = et, .m = n };
+            sp[4] = .{ .qpad = c.apad, .qlead = lead, .m = n };
+            return sp;
+        },
         .hadamard_v => {
             const h = st.ops[c.idx].hadamard;
             const sp = try a.alloc(FSpec, 5);
@@ -723,7 +824,7 @@ fn vcheckSpecs(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, c: Check, 
 
 /// Verifier side of one masked check: sumcheck, final-value check from the hats and
 /// public factors, then the hats' linear claims.
-fn verifyCheck(ar: std.mem.Allocator, tr: *Transcript, plan: Plan, c: Check, specs: []const FSpec, claim: QM31, cp: zks.MaskedProof, claims: *std.ArrayList(LClaim), wclaims: *std.ArrayList(WClaim), wkey: ?WeightKey) !void {
+fn verifyCheck(ar: std.mem.Allocator, tr: *Transcript, plan: Plan, st: Statement, c: Check, specs: []const FSpec, claim: QM31, cp: zks.MaskedProof, claims: *std.ArrayList(LClaim), wclaims: *std.ArrayList(WClaim), wkey: ?WeightKey) !void {
     var n_hats: usize = 0;
     for (specs) |s| n_hats += @intFromBool(!s.public);
     const vo = try zks.verify(ar, tr, claim, c.n, @intCast(c.deg), n_hats, cp);
@@ -732,8 +833,9 @@ fn verifyCheck(ar: std.mem.Allocator, tr: *Transcript, plan: Plan, c: Check, spe
     var hi: usize = 0;
     for (specs, 0..) |s, j| {
         if (s.public) {
-            vals[j] = zeroExtScale(r, s.m).mul(f.eqEval(s.pub_point, r[r.len - s.m ..]));
+            vals[j] = try publicValue(ar, st, s, r);
         } else {
+            if (hi >= cp.hats.len) return error.ProofShape;
             vals[j] = cp.hats[hi];
             hi += 1;
         }
@@ -747,7 +849,7 @@ fn checkClaim(st: Statement, c: Check) QM31 {
         .product => QM31.zero(),
         .hadamard, .matmul => qi(-shiftHalf(opShift(st.ops[c.idx]))),
         .key => QM31.one(),
-        .matmul_v, .hadamard_v => unreachable, // claim = the accumulator hat
+        .matmul_v, .hadamard_v, .einsum_v, .einsum_x => unreachable, // claim = the accumulator / output hat
 
     };
 }
@@ -769,14 +871,14 @@ fn evalCheckTerms(kind: CheckKind, vals: []const QM31) QM31 {
         .matmul => zks.evalTermsRt(&T_MM, 5, vals[0..5].*),
         .key => zks.evalTermsRt(&T_KEY, 3, vals[0..3].*),
         .matmul_v => zks.evalTermsRt(&T_MMV, 4, vals[0..4].*),
-        .hadamard_v => zks.evalTermsRt(&T_HADV, 5, vals[0..5].*),
+        .hadamard_v, .einsum_v, .einsum_x => zks.evalTermsRt(&T_HADV, 5, vals[0..5].*),
     };
 }
 
 fn nSpecs(kind: CheckKind) usize {
     return switch (kind) {
         .product, .matmul_v => 4,
-        .hadamard, .matmul, .hadamard_v => 5,
+        .hadamard, .matmul, .hadamard_v, .einsum_v, .einsum_x => 5,
         .key => 3,
     };
 }
@@ -1100,8 +1202,14 @@ pub const Proof = struct {
     /// virtual remainders: accumulator hats and the post-GKR checks (plan.vchecks order)
     vrem_hats: []QM31 = &.{},
     vchecks: []zks.MaskedProof = &.{},
+    /// exact ext einsums: output hats and their checks (plan.xchecks order)
+    xhats: []QM31 = &.{},
+    xchecks: []zks.MaskedProof = &.{},
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
+        for (self.xchecks) |*c| c.deinit(a);
+        a.free(self.xchecks);
+        a.free(self.xhats);
         for (self.vchecks) |*c| c.deinit(a);
         a.free(self.vchecks);
         a.free(self.vrem_hats);
@@ -1119,9 +1227,10 @@ pub const Proof = struct {
     pub const Sizes = struct { sumchecks: usize, logup: usize, witness_opening: usize, weight_opening: usize, total: usize };
 
     pub fn sizes(self: Proof) Sizes {
-        var s: usize = self.batch.byteSize() + self.vrem_hats.len * 16;
+        var s: usize = self.batch.byteSize() + (self.vrem_hats.len + self.xhats.len) * 16;
         for (self.checks) |c| s += c.byteSize();
         for (self.vchecks) |c| s += c.byteSize();
+        for (self.xchecks) |c| s += c.byteSize();
         var lg: usize = self.gkr_roots.len * 16;
         for (self.gkr_layers) |c| lg += c.byteSize();
         s += lg;
@@ -1139,6 +1248,7 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: Hash, cfg: proto.Co
     tr.mixU64(wpcs(cfg).n_queries);
     tr.mixU64(wpcs(cfg).log_blowup);
     if (cfg.zk_virtual_remainders) tr.mixU64(0x7672_656d); // "vrem"
+    if (!st.ext.isEmpty()) xt.mixStatement(tr, st.ext);
     if (cfg.two_level) |p| {
         // recursive hiding PCS: bind its shape parameters (flat mode transcript unchanged)
         tr.mixU64(0x7a6b_7063_7332); // "zkpcs2"
@@ -1179,6 +1289,7 @@ fn relKey(st: Statement, kind: RelKind, t: usize, beta: QM31) QM31 {
     return switch (kind) {
         .range => qi(@intCast(t)),
         .act => |ti| qi(@as(i64, @intCast(t)) - 128).add(beta.mul(qi(st.tables[ti].values[t]))),
+        .ext_lookup => |id| qi(@intCast(t)).add(beta.mul(qi(st.ext.tables[id].values[t]))),
         .glu => |g| blk: {
             const vg = @as(i64, @intCast(t >> 8)) - 128;
             const vu = @as(i64, @intCast(t & 255)) - 128;
@@ -1373,7 +1484,7 @@ const ProverCtx = struct {
             } else {
                 const pid = self.plan.pad[p.table][p.id];
                 const plog = self.plan.ls(p.table, pid);
-                const pv = f.mleEvalI32(self.a, self.vecs[p.table][pid], loc[loc.len - plog ..]) catch @panic("oom");
+                const pv = f.mleEvalI32(self.a, self.vecs[p.table][pid], padPoint(self.a, p, loc, r, plog) catch @panic("oom")) catch @panic("oom");
                 v = v.add(p.coeff.mul(pv));
             }
         }
@@ -1528,6 +1639,13 @@ pub fn provePublic(
     const vecs1 = try ar.alloc([]const i32, plan.infos[0].len);
     @memset(vecs1, &.{});
     for (0..plan.nw) |i| vecs1[i] = witness[i];
+    // ext ops: accumulators and key columns (refuses violated exact einsums / lineqs)
+    var xps_store: xt.ProverState = undefined;
+    var xps: ?*const xt.ProverState = null;
+    if (!st.ext.isEmpty()) {
+        xps_store = try xt.proverInit(ar, pool, st, witness);
+        xps = &xps_store;
+    }
     // requant remainders (committed in table 1, or kept by the prover only when virtual)
     const rvals = try ar.alloc([]const i32, st.ops.len);
     @memset(rvals, &.{});
@@ -1551,7 +1669,7 @@ pub fn provePublic(
     }
     for (plan.keys) |k| {
         const mult: []i32 = @constCast(vecs1[plan.rels[k.rel].mult]);
-        const op = st.ops[k.op];
+        const op = if (k.kind == .ext) undefined else st.ops[k.op];
         switch (k.kind) {
             .remainder => for (rvals[k.op]) |v| {
                 mult[@intCast(v)] += 1;
@@ -1571,6 +1689,7 @@ pub fn provePublic(
                     mult[@intCast(v + 128)] += 1;
                 }
             },
+            .ext => try xt.addMultiplicities(st, xps.?, k.op, mult),
             .glu_triple => {
                 const g = op.glu;
                 for (witness[g.g], witness[g.u], witness[g.h]) |vg, vu, vh| {
@@ -1755,7 +1874,7 @@ pub fn provePublic(
                 defer a.free(d);
                 out = try runMasked(3, &T_KEY, a, pool, &tr, claim, .{ eq, h, d }, len, specs, hp, &pc);
             },
-            .matmul_v, .hadamard_v => unreachable, // run after the GKR
+            .matmul_v, .hadamard_v, .einsum_v, .einsum_x => unreachable, // run after the GKR
         }
         defer a.free(out.point);
         check_proofs[n_done] = out.proof;
@@ -1774,7 +1893,7 @@ pub fn provePublic(
     var vrems: std.ArrayList(VRem) = .empty;
     if (plan.grels.len > 0) {
         const tg = try std.time.Instant.now();
-        for (plan.grels) |g| try gkrProveRel(a, ar, pool, &tr, plan, st, witness, vecs1, rvals, alpha, beta, tau, g, &claims, &gkr_roots, &gkr_layers, &vrems);
+        for (plan.grels) |g| try gkrProveRel(a, ar, pool, &tr, plan, st, witness, vecs1, rvals, xps, alpha, beta, tau, g, &claims, &gkr_roots, &gkr_layers, &vrems);
         timings.gkr_ns += nowNs(tg);
     } else try logupClaims(ar, plan, st, alpha, beta, &claims);
     // --- virtual remainders: matmul / hadamard checks at the remainder leaf points
@@ -1834,6 +1953,7 @@ pub fn provePublic(
                 defer a.free(fb);
                 out = try runMasked(5, &T_HADV, a, pool, &tr, vr.ahat, .{ eq, fa, fb, et, Q }, len, specs, hp, &pc);
             },
+            .einsum_v => out = try proveEinsumMasked(a, pool, &tr, st, witness, c, vr, et, Q, specs, hp, &pc),
             else => unreachable,
         }
         defer a.free(out.point);
@@ -1845,6 +1965,42 @@ pub fn provePublic(
     const vrem_hats = try a.alloc(QM31, vrems.items.len);
     errdefer a.free(vrem_hats);
     for (vrem_hats, vrems.items) |*o, vr| o.* = vr.ahat;
+    // --- exact einsums: Y^ = Y~(rho) + P(t) and sum eq A' B' + et Q = Y^ at a fresh rho
+    const xcheck_proofs = try a.alloc(zks.MaskedProof, plan.xchecks.len);
+    var n_xdone: usize = 0;
+    errdefer {
+        for (xcheck_proofs[0..n_xdone]) |*c| c.deinit(a);
+        a.free(xcheck_proofs);
+    }
+    const xhats = try a.alloc(QM31, plan.xchecks.len);
+    errdefer a.free(xhats);
+    for (plan.xchecks, 0..) |c, ci| {
+        const tc = try std.time.Instant.now();
+        const e = st.ext.ops[c.idx].einsum;
+        const rho_x = try ar.alloc(QM31, e.n_out);
+        tr.drawN(rho_x);
+        var t_a: [4]QM31 = undefined;
+        tr.drawN(&t_a);
+        var yv = QM31.zero();
+        if (e.y) |y| yv = try xt.mlePar(a, pool, witness[y], rho_x);
+        const yhat = yv.add(try f.mleEvalI32(a, vecs1[c.apad], &t_a));
+        tr.mixFelt(yhat);
+        xhats[ci] = yhat;
+        const vr = VRem{ .local = rho_x, .t_a = t_a, .ahat = yhat };
+        try exactHatClaim(ar, e, c, vr, &claims);
+        const specs = try vcheckSpecs(ar, st, wkey, c, vr);
+        const hp = hpOf(plan, vecs1, c.u, c.n, c.deg, hpbuf[0..zks.Hp.entries(c.n, c.deg)]);
+        const qv = try qVectors(a, c.n, vr.t_a, vecs1[c.apad]);
+        defer a.free(qv.et);
+        defer a.free(qv.q);
+        const out = try proveEinsumMasked(a, pool, &tr, st, witness, c, vr, qv.et, qv.q, specs, hp, &pc);
+        defer a.free(out.point);
+        xcheck_proofs[n_xdone] = out.proof;
+        n_xdone += 1;
+        try checkClaims(ar, plan, specs, c.u, c.n, c.deg, out.point, out.proof, &claims, &wclaims, wkey);
+        timings.op_sumcheck_ns += nowNs(tc);
+    }
+    try lineqClaims(ar, &tr, st, &claims);
     try publicClaims(ar, &tr, st, public, &claims);
 
     // --- masked batch sumcheck
@@ -1952,6 +2108,8 @@ pub fn provePublic(
         .aux_opening = aux_open,
         .vrem_hats = vrem_hats,
         .vchecks = vcheck_proofs,
+        .xhats = xhats,
+        .xchecks = xcheck_proofs,
     };
 }
 
@@ -1965,7 +2123,7 @@ fn keyDenomsShift(a: std.mem.Allocator, pool: *f.Pool, plan: Plan, st: Statement
     _ = plan;
     const n = @as(usize, 1) << @intCast(k.log_size);
     const out = try a.alloc(QM31, n);
-    const op = st.ops[k.op];
+    const op = if (k.kind == .ext) undefined else st.ops[k.op];
     const Ctx = struct { out: []QM31, k: Key, x: []const i32, y: []const i32, z: []const i32 = &.{}, alpha: QM31, beta: QM31, beta2: QM31 };
     var ctx = Ctx{ .out = out, .k = k, .x = &.{}, .y = &.{}, .alpha = alpha, .beta = beta, .beta2 = beta.mul(beta) };
     switch (k.kind) {
@@ -1981,6 +2139,7 @@ fn keyDenomsShift(a: std.mem.Allocator, pool: *f.Pool, plan: Plan, st: Statement
             ctx.y = witness[op.glu.u];
             ctx.z = witness[op.glu.h];
         },
+        .ext => unreachable, // xt.keyDen
     }
     pool.parallelFor(n, 4096, &ctx, struct {
         fn run(c: *const Ctx, s: usize, e: usize) void {
@@ -1990,6 +2149,7 @@ fn keyDenomsShift(a: std.mem.Allocator, pool: *f.Pool, plan: Plan, st: Statement
                     .y_range, .plain_range => qi(@as(i64, c.x[i]) + 128),
                     .lookup_pair => qi(c.x[i]).add(c.beta.mul(qi(c.y[i]))),
                     .glu_triple => qi(c.x[i]).add(c.beta.mul(qi(c.y[i]))).add(c.beta2.mul(qi(c.z[i]))),
+                    .ext => unreachable,
                 };
                 c.out[i] = c.alpha.sub(key);
             }
@@ -2221,7 +2381,7 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     var vrems: std.ArrayList(VRem) = .empty;
     for (plan.checks, proof.checks) |c, cp| {
         const specs = try checkSpecs(ar, plan, st, wkey, c, rho, alpha, beta);
-        try verifyCheck(ar, &tr, plan, c, specs, checkClaim(st, c), cp, &claims, &wclaims, wkey);
+        try verifyCheck(ar, &tr, plan, st, c, specs, checkClaim(st, c), cp, &claims, &wclaims, wkey);
     }
     if (plan.grels.len > 0) {
         if (proof.gkr_roots.len != plan.grels.len) return error.ProofShape;
@@ -2241,8 +2401,23 @@ pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey
     if (vrems.items.len != plan.vchecks.len or proof.vrem_hats.len != plan.vchecks.len or proof.vchecks.len != plan.vchecks.len) return error.ProofShape;
     for (plan.vchecks, vrems.items, proof.vchecks) |c, vr, cp| {
         const specs = try vcheckSpecs(ar, st, wkey, c, vr);
-        try verifyCheck(ar, &tr, plan, c, specs, vr.ahat, cp, &claims, &wclaims, wkey);
+        try verifyCheck(ar, &tr, plan, st, c, specs, vr.ahat, cp, &claims, &wclaims, wkey);
     }
+    // exact einsums and linear equalities
+    if (proof.xhats.len != plan.xchecks.len or proof.xchecks.len != plan.xchecks.len) return error.ProofShape;
+    for (plan.xchecks, proof.xhats, proof.xchecks) |c, yhat, cp| {
+        const e = st.ext.ops[c.idx].einsum;
+        const rho_x = try ar.alloc(QM31, e.n_out);
+        tr.drawN(rho_x);
+        var t_a: [4]QM31 = undefined;
+        tr.drawN(&t_a);
+        tr.mixFelt(yhat);
+        const vr = VRem{ .local = rho_x, .t_a = t_a, .ahat = yhat };
+        try exactHatClaim(ar, e, c, vr, &claims);
+        const specs = try vcheckSpecs(ar, st, wkey, c, vr);
+        try verifyCheck(ar, &tr, plan, st, c, specs, yhat, cp, &claims, &wclaims, wkey);
+    }
+    try lineqClaims(ar, &tr, st, &claims);
     try publicClaims(ar, &tr, st, public, &claims);
 
     // batch
@@ -2382,6 +2557,7 @@ fn relKeyMle(a: std.mem.Allocator, st: Statement, rel: Rel, local: []const QM31,
             for (0..256) |i| outv[i] = st.tables[ti].values[i];
             return f.identityMle(local).sub(qi(128)).add(beta.mul(try f.mleEvalI32(a, &outv, local)));
         },
+        .ext_lookup => |id| return f.identityMle(local).add(beta.mul(try f.mleEvalI32(a, st.ext.tables[id].values, local))),
         .glu => |g| {
             // key(idx) = vg + beta vu + beta^2 glu(vg, vu), idx = (vg + 128) * 256 + (vu + 128)
             const fv = try a.alloc(i32, 1 << 16);
@@ -2392,6 +2568,21 @@ fn relKeyMle(a: std.mem.Allocator, st: Statement, rel: Rel, local: []const QM31,
             return vg.add(beta.mul(vu)).add(beta.mul(beta).mul(try f.mleEvalI32(a, fv, local)));
         },
     }
+}
+
+/// Linear terms of an ext expression at a key point: appends coef * mult * scale * T~(pt) for
+/// witness terms and returns mult * (constant + public terms) (both sides).
+fn exprLeaf(a: std.mem.Allocator, st: Statement, e: xt.Expr, local: []const QM31, mult: QM31, coef: QM31, terms: *std.ArrayList(LTerm)) !QM31 {
+    var pub_v = qi(e.constant);
+    for (e.terms) |t| {
+        const nb = try xt.refBits(st, t.t);
+        const pt = try xt.termPoint(a, t, nb, local);
+        const sc_ = xt.termScale(t, nb);
+        if (t.t.public) {
+            pub_v = pub_v.add(sc_.mul(try xt.publicMle(a, st.ext, t.t.id, pt)));
+        } else try terms.append(a, .{ .table = 0, .id = t.t.id, .coeff = coef.mul(mult).mul(sc_), .form = .{ .eq = pt } });
+    }
+    return mult.mul(pub_v);
 }
 
 /// Claims on the committed tensors from the last layer's hats (both sides).
@@ -2412,17 +2603,38 @@ fn gkrLeafClaims(a: std.mem.Allocator, plan: Plan, st: Statement, g: GRel, alpha
         sum_blk = sum_blk.add(blk);
         const shift = relTag(g, tau, sg.rel);
         switch (sg.kind) {
-            .key => if (plan.virt and plan.keys[sg.idx].kind == .remainder) {
+            .key => if (isVirtualRem(plan, plan.keys[sg.idx])) {
                 // virtual remainder r = acc + 2^(s-1) - 2^s Y with acc~(local) = A^ - P_A~(t_a):
                 // leaf denominator alpha - tag - r = (alpha - tag - 2^(s-1) - A^) + 2^s Y~ + P_A~(t_a)
                 const k = plan.keys[sg.idx];
                 const vr = vrems[vi];
                 vi += 1;
-                const sh = opShift(st.ops[k.op]);
+                const ys = remYShift(plan, st, k);
+                const sh = ys.s;
                 num_pub = num_pub.add(blk);
                 den_pub = den_pub.add(blk.mul(alpha.sub(shift).sub(qi(shiftHalf(sh))).sub(vr.ahat)));
-                try dterms.append(a, .{ .table = 0, .id = opY(st.ops[k.op]), .coeff = omg.mul(blk).mul(qi(@as(i64, 1) << sh)), .form = .{ .eq = local } });
+                try dterms.append(a, .{ .table = 0, .id = ys.y, .coeff = omg.mul(blk).mul(qi(@as(i64, 1) << sh)), .form = .{ .eq = local } });
                 try dterms.append(a, .{ .table = 0, .id = vcheckOf(plan, sg.idx).apad, .coeff = omg.mul(blk), .form = .{ .eq = try a.dupe(QM31, &vr.t_a) } });
+            } else if (plan.keys[sg.idx].kind == .ext) {
+                // ext keys: alpha - tag - (in~(local) + beta out~(local)); einsum output range:
+                // alpha - tag - (Y~(local) + 2^(ob-1))
+                const xk = plan.xkeys[plan.keys[sg.idx].op];
+                num_pub = num_pub.add(blk);
+                var konst = alpha.sub(shift);
+                switch (xk.kind) {
+                    .y_range => {
+                        const e = st.ext.ops[xk.op].einsum;
+                        konst = konst.sub(qi(@as(i64, 1) << (e.out_bits - 1)));
+                        try dterms.append(a, .{ .table = 0, .id = e.y.?, .coeff = omg.mul(blk).neg(), .form = .{ .eq = local } });
+                    },
+                    .key => {
+                        const ko = st.ext.ops[xk.op].key;
+                        konst = konst.sub(try exprLeaf(a, st, ko.input, local, QM31.one(), omg.mul(blk).neg(), &dterms));
+                        if (ko.output) |oe| konst = konst.sub(try exprLeaf(a, st, oe, local, beta, omg.mul(blk).neg(), &dterms));
+                    },
+                    .remainder => unreachable,
+                }
+                den_pub = den_pub.add(blk.mul(konst));
             } else {
                 const k = plan.keys[sg.idx];
                 const d = try keyFactorD(a, plan, st, k, alpha, beta, k.log_size);
@@ -2489,6 +2701,7 @@ fn gkrProveRel(
     witness: []const []const i32,
     vecs1: []const []const i32,
     rvals: []const []const i32,
+    xps: ?*const xt.ProverState,
     alpha: QM31,
     beta: QM31,
     tau: QM31,
@@ -2520,7 +2733,11 @@ fn gkrProveRel(
     @memset(lden[n], QM31.one());
     for (g.segs, g.seg_off) |sg, o| switch (sg.kind) {
         .key => {
-            const d = try keyDenomsShift(a, pool, plan, st, witness, rvals, plan.keys[sg.idx], alpha.sub(relTag(g, tau, sg.rel)), beta);
+            const kk_ = plan.keys[sg.idx];
+            const d = if (kk_.kind == .ext)
+                try xt.keyDen(a, pool, xps.?, kk_.op, alpha.sub(relTag(g, tau, sg.rel)), beta)
+            else
+                try keyDenomsShift(a, pool, plan, st, witness, rvals, kk_, alpha.sub(relTag(g, tau, sg.rel)), beta);
             defer a.free(d);
             @memcpy(lden[n][o..][0..d.len], d);
             @memset(lnum[n][o..][0..d.len], QM31.one());
@@ -2555,7 +2772,9 @@ fn gkrProveRel(
             }
         }.run);
     }
-    if (!lnum[0][0].isZero()) return error.LogUpMismatch;
+    // (test builds with xt.test_unchecked_prover: a cheating prover continues, so that
+    // adversarial tests reach the verifier)
+    if (!lnum[0][0].isZero() and !(@import("builtin").is_test and xt.test_unchecked_prover)) return error.LogUpMismatch;
     const d_root = lden[0][0];
     tr.mixFelt(d_root);
     try roots.append(a, d_root);
@@ -2645,20 +2864,109 @@ fn gkrProveRel(
     // virtual remainders of this tree: A^ = acc~(local) + P_A~(t_a), with
     // acc~ = r~ - 2^(s-1) + 2^s Y~ at the remainder leaf point
     const v0 = vrems.items.len;
-    if (plan.virt) for (g.segs) |sg| {
-        if (sg.kind != .key or plan.keys[sg.idx].kind != .remainder) continue;
+    for (g.segs) |sg| {
+        if (sg.kind != .key or !isVirtualRem(plan, plan.keys[sg.idx])) continue;
         const rk = plan.keys[sg.idx];
         const vc = vcheckOf(plan, sg.idx);
         const local = r_prev[g.n - rk.log_size ..];
         var t_a: [4]QM31 = undefined;
         tr.drawN(&t_a);
-        const sh = opShift(st.ops[rk.op]);
-        const accv = (try f.mleEvalI32(a, rvals[rk.op], local)).sub(qi(shiftHalf(sh))).add(qi(@as(i64, 1) << sh).mul(try f.mleEvalI32(a, witness[opY(st.ops[rk.op])], local)));
+        var accv: QM31 = undefined;
+        if (rk.kind == .ext) {
+            accv = try mleI64(a, pool, xps.?.acc[plan.xkeys[rk.op].op].?, local);
+        } else {
+            const sh = opShift(st.ops[rk.op]);
+            accv = (try f.mleEvalI32(a, rvals[rk.op], local)).sub(qi(shiftHalf(sh))).add(qi(@as(i64, 1) << sh).mul(try f.mleEvalI32(a, witness[opY(st.ops[rk.op])], local)));
+        }
         const ahat = accv.add(try f.mleEvalI32(a, vecs1[vc.apad], &t_a));
         tr.mixFelt(ahat);
         try vrems.append(ar, .{ .local = try ar.dupe(QM31, local), .t_a = t_a, .ahat = ahat });
-    };
+    }
     try gkrLeafClaims(ar, plan, st, g, alpha, beta, tau, r_prev, gam, c_prev, t_prev, pads_prev, ca, cb, vrems.items[v0..], claims);
+}
+
+/// et = eq((0, t_tail), .) and Q = [head = 0] P(t_lead, tail), supported on the first 2^mp entries.
+fn qVectors(a: std.mem.Allocator, n: u32, t_a: [4]QM31, pad_cells: []const i32) !struct { et: []QM31, q: []QM31 } {
+    const len = @as(usize, 1) << @intCast(n);
+    const qs = qShape(n, &t_a);
+    const et = try a.alloc(QM31, len);
+    errdefer a.free(et);
+    @memset(et, QM31.zero());
+    const ett = try f.eqTable(a, qs.t_tail, QM31.one());
+    defer a.free(ett);
+    @memcpy(et[0..ett.len], ett);
+    const q = try a.alloc(QM31, len);
+    @memset(q, QM31.zero());
+    const part = try padPartial(a, pad_cells, qs.t_lead);
+    defer a.free(part.ptr[0..16]);
+    @memcpy(q[0..part.len], part);
+    return .{ .et = et, .q = q };
+}
+
+/// Masked einsum sumcheck  sum_{b,k} eq(rho_B, b) A'(b,k) B'(b,k) + sum et Q = claim
+/// at rho = vr.local (prover).
+fn proveEinsumMasked(a: std.mem.Allocator, pool: *f.Pool, tr: *Transcript, st: Statement, witness: []const []const i32, c: Check, vr: VRem, et: []QM31, Q: []QM31, specs: []const FSpec, hp: zks.Hp, pc: *const ProverCtx) !zks.ProveOut {
+    const e = st.ext.ops[c.idx].einsum;
+    const lay = xt.Layout.init(e);
+    const fa = try xt.foldOperand(a, pool, lay, xt.refValues(st, witness, e.a), e.a_labels, vr.local);
+    defer a.free(fa);
+    const fb = try xt.foldOperand(a, pool, lay, xt.refValues(st, witness, e.b), e.b_labels, vr.local);
+    defer a.free(fb);
+    var bpt: [xt.MAXB]QM31 = undefined;
+    for (0..lay.n_batch) |i| bpt[i] = vr.local[lay.batch[i]];
+    const eqb = try f.eqTablePar(a, pool, bpt[0..lay.n_batch], QM31.one());
+    defer a.free(eqb);
+    const eqf = try a.alloc(QM31, fa.len);
+    defer a.free(eqf);
+    for (eqf, 0..) |*o, i| o.* = eqb[i >> @intCast(e.n_k)];
+    std.debug.assert(fa.len == (@as(usize, 1) << @intCast(c.n)) and et.len == fa.len);
+    return runMasked(5, &T_HADV, a, pool, tr, vr.ahat, .{ eqf, fa, fb, et, Q }, fa.len, specs, hp, pc);
+}
+
+/// Linear claim binding an exact einsum's output hat: Y~(rho) + P(t) = Y^ (Y absent: P(t) = Y^).
+fn exactHatClaim(a: std.mem.Allocator, e: xt.Einsum, c: Check, vr: VRem, claims: *std.ArrayList(LClaim)) !void {
+    var terms: std.ArrayList(LTerm) = .empty;
+    if (e.y) |y| try terms.append(a, .{ .table = 0, .id = y, .coeff = QM31.one(), .form = .{ .eq = vr.local } });
+    try terms.append(a, .{ .table = 0, .id = c.apad, .coeff = QM31.one(), .form = .{ .eq = try a.dupe(QM31, &vr.t_a) } });
+    try claims.append(a, .{ .terms = try terms.toOwnedSlice(a), .value = vr.ahat });
+}
+
+/// Ext linear equalities expr == 0: one public-valued (0) linear claim each at a fresh point.
+fn lineqClaims(a: std.mem.Allocator, tr: *Transcript, st: Statement, claims: *std.ArrayList(LClaim)) !void {
+    for (st.ext.ops) |op| switch (op) {
+        .lineq => |l| {
+            const rho = try a.alloc(QM31, l.n);
+            tr.drawN(rho);
+            var terms: std.ArrayList(LTerm) = .empty;
+            const pub_v = try exprLeaf(a, st, l.expr, rho, QM31.one(), QM31.one(), &terms);
+            try claims.append(a, .{ .terms = try terms.toOwnedSlice(a), .value = pub_v.neg() });
+        },
+        else => {},
+    };
+}
+
+/// Virtual remainder keys: core requant remainders (virtual mode) and every ext
+/// requant-einsum remainder.
+fn isVirtualRem(plan: Plan, k: Key) bool {
+    return (plan.virt and k.kind == .remainder) or (k.kind == .ext and plan.xkeys[k.op].kind == .remainder);
+}
+
+/// (Y tensor, shift) of a virtual remainder key.
+fn remYShift(plan: Plan, st: Statement, k: Key) struct { y: u32, s: u5 } {
+    if (k.kind == .ext) {
+        const e = st.ext.ops[plan.xkeys[k.op].op].einsum;
+        return .{ .y = e.y.?, .s = e.shift };
+    }
+    return .{ .y = opY(st.ops[k.op]), .s = opShift(st.ops[k.op]) };
+}
+
+/// MLE of an integer vector at a point.
+fn mleI64(a: std.mem.Allocator, pool: *f.Pool, vals: []const i64, pt: []const QM31) !QM31 {
+    const eq = try f.eqTablePar(a, pool, pt, QM31.one());
+    defer a.free(eq);
+    var acc = QM31.zero();
+    for (vals, eq) |v, w| acc = acc.add(w.mul(qi(v)));
+    return acc;
 }
 
 /// The post-GKR check of remainder key `key` (virtual mode).
@@ -2721,8 +3029,8 @@ fn gkrVerifyRel(ar: std.mem.Allocator, tr: *Transcript, plan: Plan, st: Statemen
         c_prev = c;
     }
     const v0 = vrems.items.len;
-    if (plan.virt) for (g.segs) |sg| {
-        if (sg.kind != .key or plan.keys[sg.idx].kind != .remainder) continue;
+    for (g.segs) |sg| {
+        if (sg.kind != .key or !isVirtualRem(plan, plan.keys[sg.idx])) continue;
         const k = plan.keys[sg.idx];
         var t_a: [4]QM31 = undefined;
         tr.drawN(&t_a);
@@ -2730,7 +3038,7 @@ fn gkrVerifyRel(ar: std.mem.Allocator, tr: *Transcript, plan: Plan, st: Statemen
         const ahat = vhats[vrems.items.len];
         tr.mixFelt(ahat);
         try vrems.append(ar, .{ .local = r_prev[g.n - k.log_size ..], .t_a = t_a, .ahat = ahat });
-    };
+    }
     try gkrLeafClaims(ar, plan, st, g, alpha, beta, tau, r_prev, gam, c_prev, t_prev, pads_prev, ca, cb, vrems.items[v0..], claims);
 }
 
@@ -3689,4 +3997,190 @@ test "zk virtual remainders statistical sanity: accumulator hats and check hats,
         try std.testing.expect(@abs(s[0] - 0.5) < 0.06);
         try std.testing.expect(@abs(s[1] - 0.5) < 0.06);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Ext ops (attention, softmax, RMSNorm, RoPE, residual, MoE) in hiding mode.
+
+const tfm = @import("transformer.zig");
+
+const LayerFixture = struct {
+    zw: ZkWeights,
+    wdata: [][]i8,
+    winfos: []TensorInfo,
+    b: tfm.Builder,
+    out: tfm.LayerOut = undefined,
+
+    fn init(self: *LayerFixture, a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, lc: tfm.LayerCfg, seed: u64) !void {
+        self.winfos = try tfm.layerWeightInfos(a, lc);
+        self.wdata = try a.alloc([]i8, self.winfos.len);
+        const wv = try a.alloc([]const i8, self.winfos.len);
+        defer a.free(wv);
+        for (self.wdata, 0..) |*w, i| {
+            w.* = try model.randomWeights(a, self.winfos[i].size(), seed + i, -8, 7);
+            wv[i] = w.*;
+        }
+        self.zw = try commitWeights(a, pool, cfg, self.winfos, wv);
+        self.b = tfm.Builder.init(a, pool);
+        const pv = self.zw.plainView();
+        const c = try tfm.initCtx(&self.b, lc, &pv, 1);
+        const x = try model.randomInput(a, @as(usize, 1) << @intCast(lc.log_t + lc.log_d), 17);
+        defer a.free(x);
+        self.out = try tfm.buildStack(&self.b, c, x);
+    }
+
+    fn deinit(self: *LayerFixture, a: std.mem.Allocator) void {
+        self.b.deinit();
+        self.zw.deinit(a);
+        for (self.wdata) |w| a.free(w);
+        a.free(self.wdata);
+        a.free(self.winfos);
+    }
+};
+
+fn layerCfgZk() proto.Config {
+    var c = testCfg();
+    c.weight_log_cols = 6;
+    c.zk_virtual_remainders = true;
+    return c;
+}
+
+test "zk decoder layer (GQA attention, RoPE, softmax, RMSNorm, SwiGLU): verifies, tampering rejected" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const lc = tfm.LayerCfg{ .log_t = 3, .log_d = 5, .log_f = 6, .log_heads = 2, .log_kv_heads = 1 };
+    for ([_]bool{ false, true }) |rec| {
+        var cfg = layerCfgZk();
+        if (rec) cfg.two_level = .{ .inner = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .depth = 1, .inner_work_shift = 0 };
+        var fx: LayerFixture = undefined;
+        try fx.init(a, &pool, cfg, lc, 300);
+        defer fx.deinit(a);
+        const st = fx.b.statement();
+        try std.testing.expect(st.ext.ops.len > 0);
+        const wv = try fx.b.witnessView(a);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        const key = fx.zw.key();
+        const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+        var proof = try provePublic(a, &pool, cfg, st, &fx.zw, wv, &pubs, &tm);
+        defer proof.deinit(a);
+        try verifyPublic(a, cfg, st, key, &pubs, &proof);
+        try std.testing.expect(proof.xchecks.len > 0 and proof.vchecks.len > 0);
+        // tamper: ext output hats, einsum check hats / rounds, accumulator hats, GKR
+        {
+            var targets: std.ArrayList(*QM31) = .empty;
+            defer targets.deinit(a);
+            try targets.append(a, &proof.xhats[0]);
+            try targets.append(a, &proof.xhats[proof.xhats.len - 1]);
+            try targets.append(a, &proof.vrem_hats[proof.vrem_hats.len - 1]);
+            for (proof.xchecks, 0..) |*c, i| if (i % 2 == 0) {
+                try targets.append(a, &c.hats[0]);
+                try targets.append(a, &c.hats[c.hats.len - 1]);
+                try targets.append(a, &c.rounds[0][0]);
+            };
+            for (proof.vchecks, 0..) |*c, i| if (i % 3 == 0) {
+                try targets.append(a, &c.hats[0]);
+                try targets.append(a, &c.u_val);
+            };
+            try targets.append(a, &proof.gkr_layers[proof.gkr_layers.len - 1].hats[2]);
+            for (targets.items) |ptr| {
+                ptr.* = ptr.*.add(QM31.one());
+                try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, key, &pubs, &proof)));
+                ptr.* = ptr.*.sub(QM31.one());
+            }
+        }
+        try verifyPublic(a, cfg, st, key, &pubs, &proof);
+        // public operands are bound: a changed causal mask / RoPE table is rejected
+        {
+            const pubv = try a.alloc(xt.Public, st.ext.publics.len);
+            defer a.free(pubv);
+            @memcpy(pubv, st.ext.publics);
+            const vals = try a.dupe(i32, pubv[0].values);
+            defer a.free(vals);
+            vals[1] +%= 1;
+            pubv[0].values = vals;
+            var st2 = st;
+            st2.ext.publics = pubv;
+            try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st2, key, &pubs, &proof)));
+        }
+        // a witness that violates an attention / softmax relation is refused by the prover
+        {
+            const wid = st.witness.len / 2;
+            fx.b.wit.items[wid][0] +%= 1;
+            const wv2 = try fx.b.witnessView(a);
+            defer a.free(wv2);
+            try std.testing.expect(std.meta.isError(prove(a, &pool, cfg, st, &fx.zw, wv2, &tm)));
+            fx.b.wit.items[wid][0] -%= 1;
+        }
+    }
+}
+
+const ZkCheat = enum { prob_plus_one, rden_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value, sel_nonbinary };
+
+fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
+    const lc = tfm.LayerCfg{ .log_t = 2, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = 1 };
+    const cfg = layerCfgZk();
+    var fx: LayerFixture = undefined;
+    try fx.init(a, pool, cfg, lc, 77);
+    defer fx.deinit(a);
+    const b = &fx.b;
+    const at = fx.out.attn;
+    const T = @as(usize, 1) << @intCast(lc.log_t);
+    const row = T - 1; // head 0, last token: no masked positions
+    const sel = b.wit.items[at.sel];
+    var jstar: usize = 0;
+    for (0..T) |j| if (sel[row * T + j] == 1) {
+        jstar = j;
+    };
+    switch (cheat) {
+        .prob_plus_one => b.wit.items[at.probs][row * T] += 1,
+        .rden_plus_one => b.wit.items[at.rden][row] += 1,
+        .rt_plus_one => b.wit.items[fx.out.rms1.rt][0] += 1,
+        .residual => b.wit.items[fx.out.h][0] += 1,
+        .exp_value => b.wit.items[at.e][row * T + jstar] -= 1,
+        .masked_exp => b.wit.items[at.e][1] = 3, // (t = 0, j = 1) is masked
+        .score => b.wit.items[at.scores][row * T] += 1,
+        .ss_value => b.wit.items[fx.out.rms2.ss][0] += 1,
+        .sel_nonbinary => {
+            const jo = (jstar + 1) % T;
+            sel[row * T + jstar] = 2;
+            sel[row * T + jo] = -1;
+        },
+    }
+    xt.test_unchecked_prover = true;
+    defer xt.test_unchecked_prover = false;
+    zks.test_cheating_prover = true;
+    defer zks.test_cheating_prover = false;
+    const st = b.statement();
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    var proof = prove(a, pool, cfg, st, &fx.zw, wv, &tm) catch |e| {
+        // some cheats break a core relation the hiding prover always checks (not a verifier test)
+        if (e == error.RemainderOutOfRange or e == error.ValueOutOfRange or e == error.LookupMismatch) return error.SkipZkCheat;
+        return e;
+    };
+    defer proof.deinit(a);
+    if (verify(a, cfg, st, fx.zw.key(), &proof)) |_| return error.TamperAccepted else |_| {}
+}
+
+test "zk decoder layer: verifier rejects invalid attention / softmax / RMSNorm / residual witnesses (cheating prover)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var n_run: usize = 0;
+    inline for (@typeInfo(ZkCheat).@"enum".fields) |fld| {
+        if (zkCheatCase(a, &pool, @enumFromInt(fld.value))) |_| {
+            n_run += 1;
+        } else |err| {
+            if (err != error.SkipZkCheat) {
+                std.debug.print("zk cheat case {s} failed: {}\n", .{ fld.name, err });
+                return err;
+            }
+        }
+    }
+    try std.testing.expect(n_run >= 6);
 }

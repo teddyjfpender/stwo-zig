@@ -81,6 +81,7 @@ fn stagesJson(out: anytype, tm: proto.Timings) !void {
 pub fn main(a: std.mem.Allocator, args: [][:0]u8) !void {
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 5 and std.mem.eql(u8, args[1], "mlp")) return runMlp(a, args);
+    if (args.len >= 6 and std.mem.eql(u8, args[1], "layer")) return runLayer(a, args);
     std.debug.print("usage: tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow] zk\n       tensor-bench product <log_n> [threads] [queries] [log_blowup] [pow] zk\n", .{});
 }
 
@@ -240,4 +241,91 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
     try stagesJson(out, tm);
     try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"rerandomize_link_s\":{d:.4},\"link_verify_s\":{d:.5},\"link_bytes\":{d},\"gkr_trees\":{d},\"gkr_layers\":{d},\"logup_bytes\":{d},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, rerand_s, link_verify_s, rr.link.byteSize(), proof.gkr_roots.len, proof.gkr_layers.len, sz.logup, budget[0], budget[1], tm.witness_table_elems, peakRssBytes() });
+}
+
+/// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] zk
+/// Hiding decoder layer (GQA attention, RoPE, softmax, RMSNorm, fused QKV, SwiGLU);
+/// virtual remainders always on (ext ops require them); ZK_DEPTH etc. select the recursive PCS.
+fn runLayer(a: std.mem.Allocator, args: [][:0]u8) !void {
+    const tf = t.transformer;
+    const lt = try std.fmt.parseInt(u32, args[2], 10);
+    const ld = try std.fmt.parseInt(u32, args[3], 10);
+    const lf = try std.fmt.parseInt(u32, args[4], 10);
+    const lh = try std.fmt.parseInt(u32, args[5], 10);
+    const threads: usize = if (args.len > 6) try std.fmt.parseInt(usize, args[6], 10) else 12;
+    const queries: usize = if (args.len > 7) try std.fmt.parseInt(usize, args[7], 10) else 64;
+    const lb: u32 = if (args.len > 8) try std.fmt.parseInt(u32, args[8], 10) else 2;
+    const pow: u32 = if (args.len > 9) try std.fmt.parseInt(u32, args[9], 10) else 20;
+    const lkv: u32 = if (args.len > 10) try std.fmt.parseInt(u32, args[10], 10) else lh;
+    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .fused_qkv = true };
+    try cfg.validate();
+    var pool: f.Pool = undefined;
+    try pool.init(a, threads);
+    defer pool.deinit();
+    const wlc: u32 = @intCast(try envU("ZK_WEIGHT_LC", @min(ld + 2, 14)));
+    const wlb: u32 = @intCast(try envU("ZK_WEIGHT_LB", 4));
+    const wslots: u32 = @intCast(try envU("ZK_WEIGHT_SLOTS", @as(u64, 1) << @intCast(wlc - 2)));
+    const wbits = std.math.log2(@as(f64, @floatFromInt(@as(u64, 1) << @intCast(wlc + wlb))) / @as(f64, @floatFromInt((@as(u64, 1) << @intCast(wlc)) + wslots)));
+    const wq: usize = @intCast(try envU("ZK_WEIGHT_Q", @intFromFloat(@ceil((128.0 - @as(f64, @floatFromInt(pow))) / wbits))));
+    const pc = proto.Config{
+        .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
+        .weight_log_cols = wlc,
+        .witness_log_cols_max = 14,
+        .gkr_threads = threads,
+        .hiding = true,
+        .weight_mask_slots = wslots,
+        .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = pow },
+        .two_level = try twoLevelFromEnv(),
+        .zk_virtual_remainders = true,
+    };
+    const winfos = try tf.layerWeightInfos(a, cfg);
+    defer a.free(winfos);
+    const wdata = try a.alloc([]i8, winfos.len);
+    defer {
+        for (wdata) |w| a.free(w);
+        a.free(wdata);
+    }
+    const wv = try a.alloc([]const i8, winfos.len);
+    defer a.free(wv);
+    for (wdata, 0..) |*w, i| {
+        w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+        wv[i] = w.*;
+    }
+    var t0 = now();
+    var zw = try zk.commitWeights(a, &pool, pc, winfos, wv);
+    defer zw.deinit(a);
+    const commit_s = secs(t0);
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    const pv = zw.plainView();
+    const c = try tf.initCtx(&b, cfg, &pv, 7);
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 9);
+    defer a.free(x);
+    t0 = now();
+    _ = try tf.buildStack(&b, c, x);
+    const forward_s = secs(t0);
+    const st = b.statement();
+    const wview = try b.witnessView(a);
+    defer a.free(wview);
+    var tm: proto.Timings = .{};
+    const pubs = [_]zk.PublicTensor{ .{ .id = 0, .values = wview[0] }, .{ .id = @intCast(wview.len - 1), .values = wview[wview.len - 1] } };
+    t0 = now();
+    var proof = try zk.provePublic(a, &pool, pc, st, &zw, wview, &pubs, &tm);
+    defer proof.deinit(a);
+    const prove_s = secs(t0);
+    t0 = now();
+    try zk.verifyPublic(a, pc, st, zw.key(), &pubs, &proof);
+    const verify_s = secs(t0);
+    const sz = proof.sizes();
+    var n_weights: usize = 0;
+    for (winfos) |wi| n_weights += wi.size();
+    const out = std.fs.File.stdout().deprecatedWriter();
+    try out.print("{{\"bench\":\"layer\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},", .{ lt, ld, lf, lh, lkv, threads, queries, lb, pow, wlc, wlb, wq });
+    try pcsJson(out, pc.two_level);
+    try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
+    try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
+    try levelsJson(out, "witness_levels", proof.opening);
+    if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
+    try stagesJson(out, tm);
+    try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"logup\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.logup, sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
 }

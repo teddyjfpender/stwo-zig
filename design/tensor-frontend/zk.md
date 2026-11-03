@@ -700,6 +700,70 @@ and proofs with and without it are not interchangeable.
 - `ZkVirtualNeedsGkr` without the masked GKR;
 - statistical sanity, zero vs random input: `Â`, the check hats and `σ` are uniform-looking.
 
+### 4.8 Ext ops in hiding mode (attention, softmax, RMSNorm, RoPE, residual, MoE)
+
+The generic ops of `ext.zig` (transformer.md §1) are proven in hiding mode with the
+devices above. Ext statements require the masked GKR (`error.ZkVirtualNeedsGkr`
+otherwise). They are validated by `xt.validate`. Their public operands and tables are
+mixed by `xt.mixStatement`, whose output is unchanged for statements without ext ops.
+
+- **Keys.** Each ext key, from `xt.deriveKeys`, is a GKR leaf segment of a relation
+  `range b` (b ≤ 20, shared with core ranges) or `ext_lookup id` (key `i + β·values[i]`,
+  table-key MLE `identityMle + β·values~`). The prover's leaves and multiplicities come
+  from `xt.keyDen` / `xt.addMultiplicities`. Leaf claims (`exprLeaf`):
+  - **linear-expression key:** `α − tag − (in~(local) + β·out~(local))`. Each witness term
+    is a linear term `−(1−γ)·blk·coef·2^#SUM·T~(termPoint)`, with SUM bits at ½ and FIX
+    bits at 0/1. Constants and public terms are evaluated by both sides.
+  - **einsum output range:** `α − tag − (Y~(local) + 2^(ob−1))`.
+  - **requant-einsum remainder:** always virtual, as in §4.7. The accumulator hat is
+    `Â = acc~(local) + P_A~(t_A)`. The check `einsum_v` at the leaf point is
+    `Σ_{b,k} eq(ρ_B, b)·A'(b,k)·B'(b,k) + Σ et·Q = Â`, with `ρ = local`. `A'` and `B'`
+    are folded by `xt.foldOperand`.
+- **Exact einsums** (`einsum_x`, `s = 0`). After the virtual checks, draw a fresh `ρ`
+  (output vars) and `t`. The prover sends the **output hat** `Ŷ = Y~(ρ) + P_Y~(t)` (just
+  `P_Y~(t)` when `y = null`). The same masked einsum sumcheck runs with claim `Ŷ`, plus
+  the linear claim `Y~(ρ) + P_Y~(t) = Ŷ` on committed cells.
+- **Linear equalities.** At a fresh `ρ`, one linear claim `Σ coef·2^#SUM·T~(termPoint) =
+  −(c0 + public terms)`. The value is public, so nothing is revealed.
+- **Einsum factor hats.** The operand points are label-driven (`LabMap`, via
+  `Layout.operandPoint`). The batch eq factor is a public factor on the leading sumcheck
+  coordinates (`pub_prefix`). Public operands are public factors evaluated by the
+  verifier (`pub_mle`). A witness operand's hat is padded at the last 4 coordinates of
+  `(operand point ‖ r)`, so every pad point carries fresh sumcheck coordinates. The
+  operand point alone may end in fixed or `ρ` coordinates shared between hats.
+
+**Soundness.** These are the arguments of transformer.md §1, with each revealed value
+replaced by a masked hat and a linear claim on committed cells:
+- **keys:** LogUp with `α, β, τ` drawn after table 1. The leaf claims are the exact affine
+  key MLEs.
+- **requant einsums:** §4.7, with the einsum fold identity
+  `Y_acc(ρ) = Σ eq(ρ_B, b)·A'·B'`.
+- **exact einsums:** the masked sumcheck proves `Σ eq·A'·B' = Ŷ − P_Y~(t)`, and the
+  linear claim proves `Y~(ρ) = Ŷ − P_Y~(t)`, so `Y_acc~(ρ) = Y~(ρ)`. Schwartz–Zippel over
+  `ρ`, which is drawn after the commitment, adds `n_out/|F|`.
+- **lineqs:** Schwartz–Zippel, `n/|F|`.
+
+**Zero knowledge.**
+- `Â` and `Ŷ` each carry a fresh pad functional. The pad then sees one more functional,
+  the `Q` value, at an independent point.
+- Sumcheck messages are uniform given the public claim (Lemma 3). Hats are padded.
+- Key and lineq claims are batch claims with public values.
+
+**Tests.**
+- Hiding decoder layer (GQA attention, RoPE, causal softmax, RMSNorm, SwiGLU), under the
+  flat and the recursive PCS, with public IO:
+  - the proof verifies;
+  - tampering is rejected for the output hats, accumulator hats, einsum hats / rounds /
+    `u` and a GKR leaf hat;
+  - a changed public operand (causal mask) is rejected;
+  - the prover refuses a corrupted witness.
+- **Cheating prover** (`xt.test_unchecked_prover`, `zks.test_cheating_prover`: the prover
+  skips its own witness, LogUp-root and claim-consistency checks, test builds only). The
+  verifier rejects invalid probabilities, reciprocals, RMSNorm roots, residuals, exp
+  values, masked exps, scores, sums of squares and non-binary argmax selectors. Cases
+  that a core relation the hiding prover always checks would refuse are skipped. At
+  least 6 must reach the verifier.
+
 ## 5. Measurements
 
 M4 Max, AC power, `ReleaseFast`, memguard. FlashProve CPU numbers are from fp-bench on

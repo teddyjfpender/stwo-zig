@@ -153,7 +153,7 @@ pub fn tableLogSize(x: Ext, t: TableRef) u32 {
 // Statement validation (verifier-side; malformed statements are rejected
 // before any indexing).
 
-fn refBits(st: proto.Statement, r: Ref) !u32 {
+pub fn refBits(st: proto.Statement, r: Ref) !u32 {
     if (r.public) {
         if (r.id >= st.ext.publics.len) return error.ExtStatement;
         return st.ext.publics[r.id].log_size;
@@ -471,10 +471,10 @@ pub fn materialize(a: std.mem.Allocator, st: proto.Statement, w: []const []const
 // ---------------------------------------------------------------------------
 // MLE helpers.
 
-const HALF = QM31.fromU32Unchecked(1 << 30, 0, 0, 0);
+pub const HALF = QM31.fromU32Unchecked(1 << 30, 0, 0, 0);
 
 /// Point for a term's tensor at key point rho (SUM bits -> 1/2).
-fn termPoint(a: std.mem.Allocator, t: Term, nb: u32, rho: []const QM31) ![]QM31 {
+pub fn termPoint(a: std.mem.Allocator, t: Term, nb: u32, rho: []const QM31) ![]QM31 {
     const pt = try a.alloc(QM31, nb);
     for (0..nb) |i| pt[i] = switch (t.labels[i]) {
         SUM => HALF,
@@ -485,13 +485,13 @@ fn termPoint(a: std.mem.Allocator, t: Term, nb: u32, rho: []const QM31) ![]QM31 
     return pt;
 }
 
-fn termScale(t: Term, nb: u32) QM31 {
+pub fn termScale(t: Term, nb: u32) QM31 {
     var n_sum: u32 = 0;
     for (t.labels[0..nb]) |l| n_sum += @intFromBool(l == SUM);
     return f.qFromI64(t.coeff).mulM31(M31.fromCanonical(@as(u32, 1) << @intCast(n_sum)));
 }
 
-fn mlePar(a: std.mem.Allocator, pool: *f.Pool, vals: []const i32, pt: []const QM31) !QM31 {
+pub fn mlePar(a: std.mem.Allocator, pool: *f.Pool, vals: []const i32, pt: []const QM31) !QM31 {
     const eq = try f.eqTablePar(a, pool, pt, QM31.one());
     defer a.free(eq);
     const CH = 1 << 14;
@@ -518,7 +518,7 @@ fn mlePar(a: std.mem.Allocator, pool: *f.Pool, vals: []const i32, pt: []const QM
     return acc;
 }
 
-fn publicMle(a: std.mem.Allocator, x: Ext, id: u32, pt: []const QM31) !QM31 {
+pub fn publicMle(a: std.mem.Allocator, x: Ext, id: u32, pt: []const QM31) !QM31 {
     return f.mleEvalI32(a, x.publics[id].values, pt);
 }
 
@@ -793,14 +793,14 @@ pub fn verifyTerminal(a: std.mem.Allocator, st: proto.Statement, keys: []const K
 // ---------------------------------------------------------------------------
 // Einsum sumcheck layout.
 
-const Layout = struct {
+pub const Layout = struct {
     /// var -> sumcheck position (NONE for operand-only output vars)
     sc_pos: [MAXB]u8,
     batch: [MAXB]u8,
     n_batch: u32,
     ns: u32,
 
-    fn init(e: Einsum) Layout {
+    pub fn init(e: Einsum) Layout {
         var l: Layout = .{ .sc_pos = [_]u8{NONE} ** MAXB, .batch = undefined, .n_batch = 0, .ns = 0 };
         const ma = labelMask(e.a_labels);
         const mb = labelMask(e.b_labels);
@@ -815,7 +815,7 @@ const Layout = struct {
     }
 
     /// Operand point after the sumcheck (rho for folded output vars, r otherwise).
-    fn operandPoint(self: Layout, a: std.mem.Allocator, lab: Labels, nb: u32, rho: []const QM31, r: []const QM31) ![]QM31 {
+    pub fn operandPoint(self: Layout, a: std.mem.Allocator, lab: Labels, nb: u32, rho: []const QM31, r: []const QM31) ![]QM31 {
         const pt = try a.alloc(QM31, nb);
         for (0..nb) |i| {
             const v = lab[i];
@@ -827,7 +827,7 @@ const Layout = struct {
 
 /// A'(b, k) = sum over operand-only output bits u of eq(rho_u, u) * A[..].
 /// Parallel over the target index t: source(t, u) = gT(t) | gU(u).
-fn foldOperand(a: std.mem.Allocator, pool: *f.Pool, lay: Layout, vals: []const i32, lab: Labels, rho: []const QM31) ![]QM31 {
+pub fn foldOperand(a: std.mem.Allocator, pool: *f.Pool, lay: Layout, vals: []const i32, lab: Labels, rho: []const QM31) ![]QM31 {
     const nb = f.log2Exact(vals.len);
     var upt: [MAXB]QM31 = undefined;
     var nu: u32 = 0;
