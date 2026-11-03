@@ -36,6 +36,7 @@ const pcs = @import("pcs.zig");
 const pcs2 = @import("pcs2.zig");
 const zkp = @import("zk_pcs.zig");
 const sc = @import("sumcheck.zig");
+const accel = @import("accel.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const M31 = f.M31;
@@ -214,6 +215,8 @@ pub fn finish(
     k0: usize,
     mus: []QM31,
     rows: [][]QM31,
+    /// optional device for the committed-row commitment (plain pcs.commit; identical output)
+    acc: ?*const accel.Accel,
 ) !Opening {
     defer {
         for (rows) |r| a.free(r);
@@ -256,7 +259,7 @@ pub fn finish(
     var itw = try pcs.Twiddles.init(a, ish.log_cols + pi.log_blowup);
     defer itw.deinit(a);
     const vm = pcs.Matrix(i32){ .data = vdata, .log_rows = ish.log_rows, .log_cols = ish.log_cols, .rows_used = ish.rows_used };
-    var vcom = try pcs.commit(i32, a, pool, &itw, vm, pi.log_blowup);
+    var vcom = try accel.commit(acc, i32, a, pool, &itw, vm, pi.log_blowup);
     defer vcom.deinit(a);
     tr.mixDigest(vcom.root());
 
@@ -689,7 +692,7 @@ const Fixture = struct {
             }
         }
         const coms = [_]*const zkp.Commitment{ &self.c0, &self.c1 };
-        return finish(a, pool, &tp, outer, p2, &coms, &co, &self.groups, 1, mus, rows);
+        return finish(a, pool, &tp, outer, p2, &coms, &co, &self.groups, 1, mus, rows, null);
     }
 
     fn check(self: *Fixture, a: std.mem.Allocator, outer: pcs.Params, p2: pcs2.Params, groups: []const zkp.Group, proof: Opening) !void {

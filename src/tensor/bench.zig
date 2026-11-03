@@ -104,7 +104,7 @@ pub fn main() !void {
     }
     if (use_metal and !build_options.metal) return error.MetalNotBuilt;
     const args = kept.items;
-    if (@import("zk_bench.zig").takeFlag(args)) |zargs| return @import("zk_bench.zig").main(a, zargs);
+    if (@import("zk_bench.zig").takeFlag(args)) |zargs| return @import("zk_bench.zig").mainAccel(a, zargs, accelFor());
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 2 and std.mem.eql(u8, args[1], "prims")) return @import("bench_prims.zig").run(a, if (args.len > 2) try std.fmt.parseInt(usize, args[2], 10) else 1);
     if (args.len >= 9 and std.mem.eql(u8, args[1], "model")) return runModel(args);

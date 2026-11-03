@@ -78,6 +78,14 @@ fn stagesJson(out: anytype, tm: proto.Timings) !void {
     try out.print("\"stage_s\":{{\"commit\":{d:.4},\"logup_checks\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
 }
 
+/// Optional device accelerator (`--metal`): hiding proofs are byte-identical to the CPU path.
+var bench_accel: ?*const t.accel.Accel = null;
+
+pub fn mainAccel(a: std.mem.Allocator, args: [][:0]u8, acc: ?*const t.accel.Accel) !void {
+    bench_accel = acc;
+    return main(a, args);
+}
+
 pub fn main(a: std.mem.Allocator, args: [][:0]u8) !void {
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 5 and std.mem.eql(u8, args[1], "mlp")) return runMlp(a, args);
@@ -94,7 +102,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .hiding = true, .two_level = try twoLevelFromEnv() };
+    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .hiding = true, .two_level = try twoLevelFromEnv(), .accel = bench_accel };
     var built = try model.buildProduct(a, ln, 5);
     defer built.deinit(a);
     const st = built.statement();
@@ -171,6 +179,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
         .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = pow },
         .two_level = try twoLevelFromEnv(),
         .zk_virtual_remainders = (try envU("ZK_VIRTUAL", 0)) != 0,
+        .accel = bench_accel,
     };
     const winfos = model.mlpWeightInfos(cfg);
     var wdata: [3][]i8 = undefined;
@@ -233,7 +242,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const pw = provenBits(queries, wml, @intCast(wtlc + lb), pow);
     const pk = provenBits(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},\"fused\":{},\"virtual_remainders\":{},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io, fused, pc.zk_virtual_remainders });
+    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"metal\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"witness_log_cols\":{d},\"public_io\":{},\"fused\":{},\"virtual_remainders\":{},", .{ bench_accel != null, lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, wtlc, public_io, fused, pc.zk_virtual_remainders });
     try pcsJson(out, pc.two_level);
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
@@ -277,6 +286,7 @@ fn runLayer(a: std.mem.Allocator, args: [][:0]u8) !void {
         .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = pow },
         .two_level = try twoLevelFromEnv(),
         .zk_virtual_remainders = true,
+        .accel = bench_accel,
     };
     const winfos = try tf.layerWeightInfos(a, cfg);
     defer a.free(winfos);

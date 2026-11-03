@@ -34,6 +34,7 @@ const zks = @import("zk_sumcheck.zig");
 const proto = @import("protocol.zig");
 const linalg = @import("linalg.zig");
 const xt = @import("ext.zig");
+const accel = @import("accel.zig");
 const Transcript = @import("transcript.zig").Transcript;
 const core = @import("stwo_core");
 
@@ -884,6 +885,31 @@ fn nSpecs(kind: CheckKind) usize {
 }
 
 // ---------------------------------------------------------------------------
+// Prover randomness.
+
+/// Test builds only: fixed prover randomness, for CPU / device proof-equality tests.
+/// Ignored outside test builds: production proofs always draw fresh OS entropy
+/// (zk.md §1), and the proving API has no seed parameter.
+pub var test_rng_seed: ?[32]u8 = null;
+var test_rng_ctr: u8 = 0;
+
+/// Sets (or clears) the test seed and restarts its stream counter.
+pub fn setTestSeed(seed: ?[32]u8) void {
+    test_rng_seed = seed;
+    test_rng_ctr = 0;
+}
+
+fn proverRng() zkp.Rng {
+    if (@import("builtin").is_test) if (test_rng_seed) |sd| {
+        var x = sd;
+        x[31] ^= test_rng_ctr;
+        test_rng_ctr +%= 1;
+        return zkp.Rng.initSeed(x);
+    };
+    return zkp.Rng.initOs();
+}
+
+// ---------------------------------------------------------------------------
 // Openings: flat (zk_pcs: combined rows sent) or recursive (zk_pcs2: combined
 // rows committed and opened with pcs2 levels; selected by `Config.two_level`).
 
@@ -913,7 +939,7 @@ fn zk2(cfg: proto.Config) !?pcs2.Params {
 /// Prover side of an opening after `zkp.drawCoeffs` and combining the rows
 /// (takes ownership of `mus` and `rows`).
 fn finishAny(a: std.mem.Allocator, pool: *f.Pool, tr: *Transcript, cfg: proto.Config, outer: pcs.Params, coms: []const *const zkp.Commitment, co: *const zkp.Coeffs, groups: []const zkp.Group, k0: usize, mus: []QM31, rows: [][]QM31) !Opening {
-    if (try zk2(cfg)) |p2| return .{ .rec = try zkp2.finish(a, pool, tr, outer, p2, coms, co, groups, k0, mus, rows) };
+    if (try zk2(cfg)) |p2| return .{ .rec = try zkp2.finish(a, pool, tr, outer, p2, coms, co, groups, k0, mus, rows, cfg.accel) };
     return .{ .flat = try zkp.finish(a, tr, outer, coms, mus, rows) };
 }
 
@@ -1028,7 +1054,7 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, inf
     var tw = try pcs.Twiddles.init(a, lc + wpcs(cfg).log_blowup);
     defer tw.deinit(a);
     const ru = (lay.used + C - 1) >> @intCast(lc);
-    var rng = zkp.Rng.initOs();
+    var rng = proverRng();
     const extra = try a.alloc(M31, 2 * WPAD_ROWS * C);
     errdefer a.free(extra);
     rng.fillM31(extra);
@@ -1138,7 +1164,7 @@ pub fn proveWeightLink(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, o
     defer arena_state.deinit();
     const ar = arena_state.allocator();
     const wp = wpcs(cfg);
-    var rng = zkp.Rng.initOs();
+    var rng = proverRng();
     var tw = try pcs.Twiddles.init(a, old.log_cols + wp.log_blowup);
     defer tw.deinit(a);
     // mask table: 4 group mask rows (+ 4 proximity mask rows in the recursive mode,
@@ -1240,6 +1266,75 @@ pub const Proof = struct {
         return .{ .sumchecks = s, .logup = lg, .witness_opening = wo, .weight_opening = wto, .total = roots + s + wo + wto };
     }
 };
+
+/// Blake2s digest of every proof field (CPU / device proof-equality tests).
+pub fn proofDigest(p: *const Proof) Hash {
+    const H = core.vcs.blake2_hash.Blake2sHasher;
+    var h = H.init();
+    const W = struct {
+        fn q(hh: *H, v: []const QM31) void {
+            hh.update(std.mem.sliceAsBytes(v));
+        }
+        fn mp(hh: *H, m: zks.MaskedProof) void {
+            q(hh, &.{ m.sigma, m.u_val });
+            for (m.rounds) |r| q(hh, &r);
+            q(hh, m.hats);
+        }
+        fn flat(hh: *H, o: zkp.Opening) void {
+            q(hh, o.mus);
+            for (o.rows) |r| q(hh, r);
+            hh.update(std.mem.asBytes(&o.pow_nonce));
+            for (o.tables) |t| {
+                hh.update(std.mem.sliceAsBytes(t.values));
+                hh.update(std.mem.sliceAsBytes(t.salts));
+                hh.update(std.mem.sliceAsBytes(t.paths));
+            }
+        }
+        fn rec(hh: *H, o: zkp2.Opening) void {
+            q(hh, o.mus);
+            hh.update(std.mem.asBytes(&o.pow_nonce));
+            for (o.tables) |t| {
+                hh.update(std.mem.sliceAsBytes(t.values));
+                hh.update(std.mem.sliceAsBytes(t.salts));
+                hh.update(std.mem.sliceAsBytes(t.decommit));
+            }
+            hh.update(&o.inner_root);
+            for (o.sumcheck.rounds) |r| q(hh, &r.evals);
+            q(hh, &o.limb_vals);
+            for (o.inner.levels) |l| {
+                hh.update(std.mem.asBytes(&l.pow_nonce));
+                hh.update(std.mem.sliceAsBytes(l.col_values));
+                hh.update(std.mem.sliceAsBytes(l.decommit));
+                for (l.rows) |r| q(hh, r);
+                hh.update(&l.inner_root);
+                for (l.sumcheck.rounds) |r| q(hh, &r.evals);
+                q(hh, &l.limb_vals);
+            }
+        }
+        fn any(hh: *H, o: Opening) void {
+            switch (o) {
+                .flat => |x| flat(hh, x),
+                .rec => |x| rec(hh, x),
+            }
+        }
+    };
+    h.update(&p.root1);
+    if (p.root2) |r| h.update(&r);
+    if (p.wmask_root) |r| h.update(&r);
+    for (p.checks) |c| W.mp(&h, c);
+    W.mp(&h, p.batch);
+    W.any(&h, p.opening);
+    if (p.weight_opening) |o| W.any(&h, o);
+    W.q(&h, p.gkr_roots);
+    for (p.gkr_layers) |c| W.mp(&h, c);
+    h.update(&p.aux_root);
+    if (p.aux_opening) |o| W.flat(&h, o);
+    W.q(&h, p.vrem_hats);
+    for (p.vchecks) |c| W.mp(&h, c);
+    W.q(&h, p.xhats);
+    for (p.xchecks) |c| W.mp(&h, c);
+    return h.finalize();
+}
 
 fn mixStatement(tr: *Transcript, st: Statement, weight_root: Hash, cfg: proto.Config) void {
     tr.mixDigest(weight_root);
@@ -1453,6 +1548,7 @@ const ProverCtx = struct {
     plan: Plan,
     vecs: [2][]const []const i32,
     zw: ?*const ZkWeights,
+    acc: ?*const accel.Accel = null,
 
     fn padValue(self: *const ProverCtx, sp: FSpec, r: []const QM31) QM31 {
         if (sp.qpad) |qp| {
@@ -1526,7 +1622,7 @@ fn runMasked(
 ) !zks.ProveOut {
     var public: [NF]bool = undefined;
     for (0..NF) |j| public[j] = specs[j].public;
-    return zks.prove(NF, terms, a, pool, tr, claim, fac, active, public, hp, PadCtx(NF){ .pc = pc, .specs = specs });
+    return zks.proveAccel(pc.acc, NF, terms, a, pool, tr, claim, fac, active, public, hp, PadCtx(NF){ .pc = pc, .specs = specs });
 }
 
 /// A witness tensor whose values are public (e.g. the model's input and output):
@@ -1618,7 +1714,7 @@ pub fn provePublic(
     const wkey: ?WeightKey = if (zw) |w| w.key() else null;
     const plan = try makePlan(ar, st, wkey, cfg);
     const rec = (try zk2(cfg)) != null;
-    var rng = zkp.Rng.initOs();
+    var rng = proverRng();
 
     // --- accumulators, remainders, multiplicities
     var t0 = try std.time.Instant.now();
@@ -1626,7 +1722,7 @@ pub fn provePublic(
     for (st.ops, 0..) |op, i| {
         acc[i] = null;
         switch (op) {
-            .matmul => |m| acc[i] = try proto.matmulAcc(ar, pool, st.witness[m.x], witness[m.x], zw.?.matrix(m.w)),
+            .matmul => |m| acc[i] = (try accel.matmulAcc(cfg.accel, ar, st.witness[m.x].log_dims[0], witness[m.x], zw.?.matrix(m.w))) orelse try proto.matmulAcc(ar, pool, st.witness[m.x], witness[m.x], zw.?.matrix(m.w)),
             .hadamard => |h| {
                 const n = st.witness[h.y].size();
                 const v = try ar.alloc(i64, n);
@@ -1793,7 +1889,7 @@ pub fn provePublic(
 
     const rho = try ar.alloc(QM31, plan.rho_len);
     tr.drawN(rho);
-    const pc = ProverCtx{ .a = ar, .plan = plan, .vecs = .{ vecs1, vecs2 }, .zw = zw };
+    const pc = ProverCtx{ .a = ar, .plan = plan, .vecs = .{ vecs1, vecs2 }, .zw = zw, .acc = cfg.accel };
 
     var claims: std.ArrayList(LClaim) = .empty;
     var wclaims: std.ArrayList(WClaim) = .empty;
@@ -1849,11 +1945,11 @@ pub fn provePublic(
                 const eq_t = try f.eqTablePar(a, pool, pt[0..lt], QM31.one());
                 defer a.free(eq_t);
                 const xm = pcs.Matrix(i32){ .data = witness[m.x], .log_rows = lt, .log_cols = lk };
-                const fx = try zeroExt(a, try linalg.colCombine(i32, a, pool, xm, eq_t, 8), len);
+                const fx = try zeroExt(a, try accel.colCombine(cfg.accel, i32, a, pool, xm, eq_t, 8), len);
                 defer a.free(fx);
                 const eq_n = try f.eqTablePar(a, pool, pt[lt..], QM31.one());
                 defer a.free(eq_n);
-                const gw = try zeroExt(a, try linalg.rowDots(i8, a, pool, w.matrix(m.w), eq_n, 7), len);
+                const gw = try zeroExt(a, try accel.rowDots(cfg.accel, a, pool, w.matrix(m.w), eq_n, 7), len);
                 defer a.free(gw);
                 timings.weight_fold_ns += nowNs(tw0);
                 const eq = try zeroExt(a, try f.eqTablePar(a, pool, pt, QM31.one()), len);
@@ -1934,11 +2030,11 @@ pub fn provePublic(
                 const eq_t = try f.eqTablePar(a, pool, vr.local[0..lt], QM31.one());
                 defer a.free(eq_t);
                 const xm = pcs.Matrix(i32){ .data = witness[m.x], .log_rows = lt, .log_cols = xi.log_dims[1] };
-                const fx = try linalg.colCombine(i32, a, pool, xm, eq_t, 8);
+                const fx = try accel.colCombine(cfg.accel, i32, a, pool, xm, eq_t, 8);
                 defer a.free(fx);
                 const eq_n = try f.eqTablePar(a, pool, vr.local[lt..], QM31.one());
                 defer a.free(eq_n);
-                const gw = try linalg.rowDots(i8, a, pool, w.matrix(m.w), eq_n, 7);
+                const gw = try accel.rowDots(cfg.accel, a, pool, w.matrix(m.w), eq_n, 7);
                 defer a.free(gw);
                 timings.weight_fold_ns += nowNs(tw0);
                 out = try runMasked(4, &T_MMV, a, pool, &tr, vr.ahat, .{ fx, gw, et, Q }, len, specs, hp, &pc);
@@ -2031,9 +2127,9 @@ pub fn provePublic(
     const bpad = BatchPad{ .plan = plan, .tabs = .{ vecs1[plan.rb[0]], if (plan.has2) vecs2[plan.rb[1]] else &.{} }, .a = ar };
     var bout: zks.ProveOut = undefined;
     if (plan.has2) {
-        bout = try zks.prove(4, &T_B4, a, pool, &tr, batch_claim, .{ Tv[0], Ev[0], Tv[1], Ev[1] }, active, .{ false, true, false, true }, bhp, bpad);
+        bout = try zks.proveAccel(cfg.accel, 4, &T_B4, a, pool, &tr, batch_claim, .{ Tv[0], Ev[0], Tv[1], Ev[1] }, active, .{ false, true, false, true }, bhp, bpad);
     } else {
-        bout = try zks.prove(2, &T_B2, a, pool, &tr, batch_claim, .{ Tv[0], Ev[0] }, active, .{ false, true }, bhp, bpad);
+        bout = try zks.proveAccel(cfg.accel, 2, &T_B2, a, pool, &tr, batch_claim, .{ Tv[0], Ev[0] }, active, .{ false, true }, bhp, bpad);
     }
     defer a.free(bout.point);
     errdefer bout.proof.deinit(a);
