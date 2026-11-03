@@ -264,7 +264,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   struct TraceStorage {
     StwoRv64Plane tree, values, paths;
     uint32_t first, columns, group, groups, log;
-    uint64_t tree_words;
+    uint64_t tree_words, tree_capacity;
   };
   std::vector<TraceStorage> traces;
   for (uint32_t t = 0; t < nt; ++t) {
@@ -278,7 +278,16 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     v.groups = d[3];
     v.log = d[4];
     v.tree_words = ((uint64_t(2) << v.log) - 1) * 8;
-    v.tree = o.plane(v.tree_words, 1);
+    uint64_t prefix_rows = 0;
+    for (uint32_t i = 0; i + 1 < v.groups; ++i) {
+      const auto &segment = trace_segments[v.group + i];
+      if (segment.source_size != trace_segments[v.group + i + 1].source_size)
+        prefix_rows = segment.source_size;
+    }
+    // Prefix state is admitted through the same owner/pool as PCS, while all
+    // Merkle offsets retain the exact tree size (the tail is scratch only).
+    v.tree_capacity = v.tree_words + prefix_rows * 48;
+    v.tree = o.plane(v.tree_capacity, 1);
     v.values = o.plane(uint64_t(v.columns) * queries, 1);
     v.paths = o.plane(uint64_t(queries) * v.log * 8, 1);
     traces.push_back(v);
@@ -351,7 +360,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   phase_mark(1);
   for (auto &t : traces)
     CHECK(stwo_rv64_trace_tree_on(o.ctx, 1, trace_segments.data() + t.group,
-                                  t.groups, t.log, t.tree.words, t.tree_words));
+                                  t.groups, t.log, t.tree.words, t.tree_capacity));
   phase_mark(2);
   CHECK(stwo_rv64_channel_init_on(o.ctx, 1, state.words, seed.words, 17));
   uint32_t step = 0;
