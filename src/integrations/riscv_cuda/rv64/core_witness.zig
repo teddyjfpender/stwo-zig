@@ -12,6 +12,7 @@ const Native = @import("pcs_native_abi.zig");
 const Service = @import("pcs_native.zig");
 const SC = @import("session_context.zig");
 const Projection = @import("cpu_projection.zig");
+const Staging = @import("source_staging.zig");
 const FamilyJob = extern struct {
     facts: ?[*]const u32,
     main: [*]u32,
@@ -74,6 +75,8 @@ pub const Ledgers = struct {
 };
 pub const Context = struct {
     service: *Service.Context,
+    single_stream_ingress: bool = false,
+    staging_byte_cap: usize = 64 << 20,
     cpu: *Projection.Context,
     api: SC.Api,
     family: FamilyFn,
@@ -84,7 +87,7 @@ pub const Context = struct {
     memset: Memset,
     pub fn init(service: *Service.Context, cpu: *Projection.Context) !Context {
         cpu.retain_ledgers = true;
-        return .{ .service = service, .cpu = cpu, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .family = try symbol(FamilyFn, &service.library, "stwo_rv64_family_witness_on"), .memory = try symbol(MemoryFn, &service.library, "stwo_rv64_memory_witness_on"), .arithmetic = try symbol(ArithmeticFn, &service.library, "stwo_rv64_arithmetic_witness_on"), .boundary = try symbol(BoundaryFn, &service.library, "stwo_rv64_boundary_witness_on"), .table = try symbol(TableFn, &service.library, "stwo_rv64_multiplicity_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
+        return .{ .service = service, .single_stream_ingress = std.process.hasEnvVarConstant("STWO_RV64_CORE_SINGLE_STREAM"), .cpu = cpu, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try symbol(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try symbol(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try symbol(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try symbol(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .family = try symbol(FamilyFn, &service.library, "stwo_rv64_family_witness_on"), .memory = try symbol(MemoryFn, &service.library, "stwo_rv64_memory_witness_on"), .arithmetic = try symbol(ArithmeticFn, &service.library, "stwo_rv64_arithmetic_witness_on"), .boundary = try symbol(BoundaryFn, &service.library, "stwo_rv64_boundary_witness_on"), .table = try symbol(TableFn, &service.library, "stwo_rv64_multiplicity_witness_on"), .memset = try symbol(Memset, &service.library, "stwo_exec_context_memset_async") };
     }
     pub fn buildCore(self: *Context, a: std.mem.Allocator, request: Pipeline.Request) !*CoreProjection {
         const out = try a.create(CoreProjection);
@@ -116,6 +119,8 @@ pub const CoreProjection = struct {
     leases: std.ArrayList(Native.Lease) = .empty,
     general_events: []Memory.Event = &.{},
     finished: bool = false,
+    skipped_source_joins: usize = 0,
+    staging_flushes: usize = 0,
     ledger_lease: Native.Lease = .{},
     table_outputs: std.ArrayList(TableOutput) = .empty,
     const TableOutput = struct { kind: u32, log: u32, pointer: [*]u32 };
@@ -179,15 +184,21 @@ pub const CoreProjection = struct {
         for (out, 0..) |*column, i| column.* = .{ .log_size = log, .encoding = .evaluations, .device = descriptor(lease, i * n, n) };
         return out;
     }
+    fn kernelLane(self: *const CoreProjection) u32 {
+        return if (self.backend.single_stream_ingress) 0 else 1;
+    }
+    fn ingressJoin(self: *CoreProjection, ctx: *SC.Context) !void {
+        if (self.backend.single_stream_ingress) self.skipped_source_joins += 1 else try ctx.join();
+    }
     fn familyOutput(self: *CoreProjection, ctx: *SC.Context, batch: *const Inputs.Batch, width: usize) ![]D.TraceColumn {
         errdefer ctx.join() catch {};
         const input = try self.upload(ctx, batch.words());
         const out = try self.output(ctx, batch.log, width);
         errdefer self.allocator.free(out);
-        try ctx.join();
+        try self.ingressJoin(ctx);
         const job = FamilyJob{ .facts = if (batch.facts.len == 0) null else input.words, .main = writable(out[0].device.?), .range16 = writable(self.ledgers.range16), .and_ = writable(self.ledgers.and_), .shift = writable(self.ledgers.shift), .status = writable(self.ledgers.status), .count = @intCast(batch.facts.len), .log = batch.log, .kind = @intFromEnum(batch.kind) };
-        try checked(self.backend.family(ctx.native_context, 1, &job));
-        try ctx.join();
+        try checked(self.backend.family(ctx.native_context, self.kernelLane(), &job));
+        try self.ingressJoin(ctx);
         return out;
     }
     pub fn formatZbb(self: *CoreProjection, facts: []const Front.word16_v1.binary_zbb_source.Fact, weights: []const u32, log: u32) ![]D.TraceColumn {
@@ -215,11 +226,11 @@ pub const CoreProjection = struct {
         const input = try self.upload(ctx, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(events)));
         const out = try self.output(ctx, log, if (dword) 39 else 70);
         errdefer self.allocator.free(out);
-        try ctx.join();
+        try self.ingressJoin(ctx);
         const g = self.request.setup.materials.geometry;
         const job = MemoryJob{ .events = if (events.len == 0) null else input.words, .main = writable(out[0].device.?), .range16 = writable(self.ledgers.range16), .range8 = writable(self.ledgers.range8), .pairs = writable(self.ledgers.pairs), .selection = writable(self.ledgers.selection), .status = writable(self.ledgers.status), .count = @intCast(events.len), .log = log, .dword = @intFromBool(dword), .fused_pairs = @intFromBool(if (dword) g.ls_dword_fused_pairs else g.ls_fused_pairs) };
-        try checked(self.backend.memory(ctx.native_context, 1, &job));
-        try ctx.join();
+        try checked(self.backend.memory(ctx.native_context, self.kernelLane(), &job));
+        try self.ingressJoin(ctx);
         return out;
     }
 };
@@ -242,6 +253,10 @@ const ExtraFamily = struct {
             ctx.join() catch {};
             return 1;
         };
+        if (self.owner.backend.single_stream_ingress) ctx.join() catch |err| {
+            self.failure = err;
+            return 1;
+        };
         return 0;
     }
 };
@@ -257,6 +272,10 @@ const ExtraMemory = struct {
         self.output = self.owner.memoryOutput(&ctx, self.events, self.log, true) catch |err| {
             self.failure = err;
             ctx.join() catch {};
+            return 1;
+        };
+        if (self.owner.backend.single_stream_ingress) ctx.join() catch |err| {
+            self.failure = err;
             return 1;
         };
         return 0;
@@ -310,7 +329,12 @@ const BuildJob = struct {
     fn run(self: *BuildJob, raw: *anyopaque, token: u64) !void {
         const o = self.owner;
         var ctx = context(o, raw, token);
-        defer ctx.join() catch {};
+        var joined = false;
+        var staging = Staging.Owner{ .allocator = o.allocator, .byte_cap = o.backend.staging_byte_cap };
+        defer {
+            if (!joined) ctx.join() catch {};
+            staging.deinitAfterJoin();
+        }
         const source = &o.source.?;
         const g = source.materials.geometry;
         const p = o.request.native;
@@ -340,7 +364,7 @@ const BuildJob = struct {
             if (index == 1 and g.cpu_u8_pairs) continue;
             try checked(copy(raw, @ptrCast(writable(output)), @ptrCast(input.words), input.count * 4));
         }
-        try ctx.join();
+        try o.ingressJoin(&ctx);
         const shapes = source.materials.shapes();
         var columns: usize = 0;
         for (shapes) |shape| columns += shape.widths[1];
@@ -358,16 +382,16 @@ const BuildJob = struct {
         defer div_batch.deinit();
         errdefer ctx.join() catch {};
         const div_input = try o.upload(&ctx, div_batch.words());
-        try ctx.join();
+        try o.ingressJoin(&ctx);
         // Arithmetic first, regardless of physical roster ordering.
         for (shapes) |shape| if (shape.role == .division and shape.widths[1] != 0) {
             const cols = try o.output(&ctx, shape.log, shape.widths[1]);
             defer o.allocator.free(cols);
             @memcpy(o.columns[shape.offsets[1]..][0..cols.len], cols);
             const job = ArithmeticJob{ .requests = if (p.division.len == 0) null else div_input.words, .main = writable(cols[0].device.?), .range16 = writable(o.ledgers.range16), .range8 = writable(o.ledgers.range8), .pairs = writable(o.ledgers.pairs), .status = writable(o.ledgers.status), .mul_support = if (p.division.len == 0) null else mul_input.words.? + raw_mul * 8, .count = @intCast(p.division.len), .log = shape.log, .division = 1, .fused_pairs = 0 };
-            try checked(o.backend.arithmetic(raw, 1, &job));
+            try checked(o.backend.arithmetic(raw, o.kernelLane(), &job));
         };
-        try ctx.join();
+        try o.ingressJoin(&ctx);
         for (shapes) |shape| {
             if (shape.widths[1] == 0 or shape.role == .division) continue;
             const target = o.columns[shape.offsets[1]..][0..shape.widths[1]];
@@ -384,6 +408,7 @@ const BuildJob = struct {
                     var batch = try Inputs.Batch.alu(o.allocator, p.alu.facts[start..][0..count], p.alu.weights[start..][0..count], shape.log);
                     defer batch.deinit();
                     output = try o.familyOutput(&ctx, &batch, shape.widths[1]);
+                    try keepBatch(o, &ctx, &staging, &batch);
                 },
                 .binary, .binary_tail => {
                     const start: usize = if (shape.role == .binary) 0 else source.binary.fact_count;
@@ -391,6 +416,7 @@ const BuildJob = struct {
                     var batch = try Inputs.Batch.binary(o.allocator, p.binary.facts[start..][0..count], p.binary.weights[start..][0..count], shape.log);
                     defer batch.deinit();
                     output = try o.familyOutput(&ctx, &batch, shape.widths[1]);
+                    try keepBatch(o, &ctx, &staging, &batch);
                 },
                 .shift, .shift_tail => {
                     const start: usize = if (shape.role == .shift) 0 else source.shift.fact_count;
@@ -398,11 +424,13 @@ const BuildJob = struct {
                     var batch = try Inputs.Batch.shift(o.allocator, p.shift[start..][0..count], if (p.shift_weights.len == 0) null else p.shift_weights[start..][0..count], shape.log);
                     defer batch.deinit();
                     output = try o.familyOutput(&ctx, &batch, shape.widths[1]);
+                    try keepBatch(o, &ctx, &staging, &batch);
                 },
                 .jalr => {
                     var batch = try Inputs.Batch.jalr(o.allocator, source.jalr.facts, shape.log);
                     defer batch.deinit();
                     output = try o.familyOutput(&ctx, &batch, shape.widths[1]);
+                    try keepBatch(o, &ctx, &staging, &batch);
                 },
                 .ls, .ls_tail => {
                     const start: usize = if (shape.role == .ls) 0 else source.memory.ls.rows;
@@ -411,20 +439,21 @@ const BuildJob = struct {
                 },
                 .initial, .terminal => {
                     const cells = if (shape.role == .initial) source.memory.statement.initial else source.memory.statement.terminal;
-                    const encoded = try Memory.cells(o.allocator, cells);
+                    var encoded = try Memory.cells(o.allocator, cells);
                     defer o.allocator.free(encoded);
                     errdefer ctx.join() catch {};
                     const input = try o.upload(&ctx, std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(encoded)));
                     output = try o.output(&ctx, shape.log, shape.widths[1]);
-                    try ctx.join();
-                    try checked(o.backend.boundary(raw, 1, if (cells.len == 0) null else input.words, @intCast(cells.len), shape.log, writable(output[0].device.?), writable(o.ledgers.status)));
-                    try ctx.join();
+                    try o.ingressJoin(&ctx);
+                    try checked(o.backend.boundary(raw, o.kernelLane(), if (cells.len == 0) null else input.words, @intCast(cells.len), shape.log, writable(output[0].device.?), writable(o.ledgers.status)));
+                    try keepCells(o, &ctx, &staging, &encoded);
+                    try o.ingressJoin(&ctx);
                 },
                 .multiplication => {
                     output = try o.output(&ctx, shape.log, shape.widths[1]);
                     const job = ArithmeticJob{ .requests = if (p.multiplication.len == 0) null else mul_input.words, .main = writable(output[0].device.?), .range16 = writable(o.ledgers.range16), .range8 = writable(o.ledgers.range8), .pairs = writable(o.ledgers.pairs), .status = writable(o.ledgers.status), .mul_support = null, .count = @intCast(p.multiplication.len), .log = shape.log, .division = 0, .fused_pairs = @intFromBool(g.mul_u8_pairs) };
-                    try checked(o.backend.arithmetic(raw, 1, &job));
-                    try ctx.join();
+                    try checked(o.backend.arithmetic(raw, o.kernelLane(), &job));
+                    try o.ingressJoin(&ctx);
                 },
                 .rom, .range16, .range8, .and_table, .shift_table, .selection => {
                     output = try o.output(&ctx, shape.log, shape.widths[1]);
@@ -445,6 +474,10 @@ const BuildJob = struct {
             if (output.len != target.len) return error.InvalidDeviceCoreWidth;
             @memcpy(target, output);
         }
+        try ctx.join();
+        joined = true;
+        std.debug.print("GPU_CORE_INGRESS ordinal={} single_stream={} staged_peak_bytes={} skipped_full_joins={} cap_flushes={}\n", .{ o.request.ordinal, o.backend.single_stream_ingress, staging.peak_bytes, o.skipped_source_joins, o.staging_flushes });
+        staging.clearAfterJoin();
     }
 };
 comptime {
@@ -461,4 +494,80 @@ test "resident core family factory bodies are fully typed" {
 
 fn writable(value: D.DeviceCoefficients) [*]u32 {
     return @constCast(value.words);
+}
+
+fn keepBatch(o: *CoreProjection, ctx: *SC.Context, owner: *Staging.Owner, batch: *Inputs.Batch) !void {
+    if (!o.backend.single_stream_ingress) return;
+    const held = owner.adoptBatch(batch) catch |err| {
+        ctx.join() catch {};
+        return err;
+    };
+    if (!held) {
+        o.staging_flushes += 1;
+        try ctx.join();
+        owner.clearAfterJoin();
+        _ = owner.adoptBatch(batch) catch |err| {
+            ctx.join() catch {};
+            return err;
+        };
+    }
+}
+fn keepCells(o: *CoreProjection, ctx: *SC.Context, owner: *Staging.Owner, cells: *[]Memory.Cell) !void {
+    if (!o.backend.single_stream_ingress) return;
+    const held = owner.adoptCells(cells) catch |err| {
+        ctx.join() catch {};
+        return err;
+    };
+    if (!held) {
+        o.staging_flushes += 1;
+        try ctx.join();
+        owner.clearAfterJoin();
+        _ = owner.adoptCells(cells) catch |err| {
+            ctx.join() catch {};
+            return err;
+        };
+    }
+}
+test {
+    _ = @import("source_staging.zig");
+}
+
+test "single-stream source staging joins before releasing capacity-bound inputs" {
+    const Mock = struct {
+        owner: *Staging.Owner,
+        joins: usize = 0,
+        expected: u64 = 18,
+        fn sync(raw: *anyopaque) callconv(.c) c_int {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.joins += 1;
+            if (self.owner.batches.items.len != 1 or self.owner.batches.items[0].facts[0].c != self.expected) return 1;
+            return 0;
+        }
+    };
+    const a = std.testing.allocator;
+    var owner = Staging.Owner{ .allocator = a, .byte_cap = 32 };
+    defer owner.deinitAfterJoin();
+    var state = Mock{ .owner = &owner };
+    const api = SC.Api{ .allocate = undefined, .release = undefined, .validate_range = undefined, .upload = undefined, .download = undefined, .lane_stream = undefined, .sync = Mock.sync };
+    var ctx = SC.Context{ .session = @ptrFromInt(1), .native_context = &state, .token = 1, .scope = @splat(0), .api = &api };
+    var backend: Context = undefined;
+    backend.single_stream_ingress = true;
+    var projection: CoreProjection = undefined;
+    projection.backend = &backend;
+    projection.staging_flushes = 0;
+    var first = try Inputs.Batch.alu(a, &.{.{ .op = .add, .a = 7, .b = 11, .c = 18 }}, null, 5);
+    defer first.deinit();
+    try keepBatch(&projection, &ctx, &owner, &first);
+    try std.testing.expectEqual(@as(usize, 0), state.joins);
+    var second = try Inputs.Batch.alu(a, &.{.{ .op = .add, .a = 11, .b = 13, .c = 24 }}, null, 5);
+    defer second.deinit();
+    try keepBatch(&projection, &ctx, &owner, &second);
+    try std.testing.expectEqual(@as(usize, 1), state.joins);
+    try std.testing.expectEqual(@as(usize, 1), projection.staging_flushes);
+    try std.testing.expectEqual(@as(usize, 0), second.facts.len);
+    state.expected = 24;
+    try ctx.join();
+    owner.clearAfterJoin();
+    try std.testing.expectEqual(@as(usize, 2), state.joins);
+    try std.testing.expectEqual(@as(usize, 0), owner.retained_bytes);
 }
