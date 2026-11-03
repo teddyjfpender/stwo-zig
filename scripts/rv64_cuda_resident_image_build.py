@@ -65,6 +65,22 @@ def truth_sources(raw, partitions):
     return sources
 
 
+def global_sources(directory):
+    manifest = json.loads((directory / "required-symbols.json").read_text())
+    names = manifest.get("symbols", [])
+    if manifest.get("schema") != "rv64-resident-global-aot/v1" or not names or len(set(names)) != len(names):
+        raise ValueError("complete distinct global projection catalogue required")
+    sources = []
+    for name in names:
+        if not re.fullmatch(r"stwo_rv64_global_contiguous_[0-9a-f]{64}", name):
+            raise ValueError("invalid global projection identity")
+        source = directory / (name + ".cu")
+        if not re.search(r"\bint\s+" + name + r"\(", source.read_text()):
+            raise ValueError("missing global projection entry")
+        sources.append(source)
+    return sources, names
+
+
 def outer_sources(directory):
     manifest = json.loads((directory / "outer-manifest.json").read_text())
     groups = manifest.get("groups", [])
@@ -191,7 +207,7 @@ def bounded_compile_source(source, obj, build, max_bytes=32768, raw_directory=No
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("source-root", "core-domain", "core-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
+    for name in ("source-root", "core-domain", "core-projection", "global-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--outer-circuit-dir", type=Path, help="Include the exact twelve-group OM31 outer circuit catalogue")
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
@@ -220,6 +236,8 @@ def main():
     if ids != set(range(47)):
         raise ValueError("complete image requires all 47 source projections")
     sources.extend(projections)
+    global_kernels, global_symbols = global_sources(args.global_projection.resolve())
+    sources.extend(global_kernels)
     if args.outer_circuit_dir:
         sources.extend(outer_sources(args.outer_circuit_dir.resolve()))
     for role in range(15):
@@ -285,10 +303,11 @@ def main():
     required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on", "stwo_rv64_curve_witness_on", "stwo_rv64_secp_witness_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)] + [f"launch_{i}" for i in range(47)]
     if args.outer_circuit_dir:
         required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on"]
+    required += global_symbols
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "bounded_aot_sources": lowering, "separable_device_sources": device_link, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "global_projection_symbols": global_symbols, "bounded_aot_sources": lowering, "separable_device_sources": device_link, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 

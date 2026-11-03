@@ -78,6 +78,24 @@ extern "C" __global__ void rv64_joined_domain_8(void){uint32_t i=0;switch(blockI
             self.assertNotIn("volatile OM31 *ext_bank", actual.read_text())
             self.assertEqual(source.read_text(), original)
 
+    def test_global_catalogue_is_required_distinct_and_exports_declared_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            name = "stwo_rv64_global_contiguous_" + "a" * 64
+            source = root / (name + ".cu")
+            source.write_text("extern \"C\" int " + name + "(void){return 0;}")
+            path = root / "required-symbols.json"
+            manifest = {"schema": "rv64-resident-global-aot/v1", "symbols": [name]}
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(B.global_sources(root), ([source], [name]))
+            source.write_text("extern \"C\" int different(void){return 0;}")
+            with self.assertRaisesRegex(ValueError, "missing global"):
+                B.global_sources(root)
+            manifest["symbols"] = [name, name]
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "distinct"):
+                B.global_sources(root)
+
     def test_outer_catalogue_requires_complete_order_and_authority_identities(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
