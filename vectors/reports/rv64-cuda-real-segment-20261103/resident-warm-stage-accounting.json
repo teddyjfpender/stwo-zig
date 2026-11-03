@@ -79,7 +79,8 @@
     "SourceGPUprojection total.256938s is callback wall, not kernel-only time.",
     "Otherstage2 includes INTERcommit, encoding andcleanup not independently timed.",
     "Producer stdout/stderr interleave; extraction matches embedded GPU_PCS_NATIVE tags, preserving all17records.",
-    "Source labels inherited CPU naming even though trace/witness generation is resident."
+    "Source labels inherited CPU naming even though trace/witness generation is resident.",
+    "producer_before_report_seconds excludes final report publication/destruction and is not total process wall time"
   ],
   "records_count": {
     "PCS": 17,
@@ -111,7 +112,7 @@
   },
   "capture_direct_execution_seconds": 1.59536971,
   "capture_nonexecution_seconds": 7.398207501,
-  "request_wall_seconds": 21.613902881,
   "raw_log": "remote:fully-resident-block-24628607-parallel-deep/producer.log",
-  "raw_stages": "remote:fully-resident-block-24628607-parallel-deep/batch/trial-1/24628607/proof/*.stages.json"
+  "raw_stages": "remote:fully-resident-block-24628607-parallel-deep/batch/trial-1/24628607/proof/*.stages.json",
+  "producer_before_report_seconds": 21.613902881
 }

@@ -1,0 +1,75 @@
+{
+  "schema": "rv64-deep-subkernel-diagnostic/v1",
+  "date_utc": "2026-11-03",
+  "scope": "Realprefix1, oneCPU plus6truths; diagnosticend-sync enabled, NOT performancebenchmark",
+  "native_library_sha256": "f03cc7a658fd10897dd2e7471fb202558977e4e63f5703391164630161b1acd2",
+  "kernel_rows": [
+    {
+      "validate_ms": 5.922944,
+      "lines_ms": 0.146912,
+      "aggregate_ms": 18.205696,
+      "groups": 68,
+      "terms": 7815,
+      "sources": 5845,
+      "profile_only_end_sync": 1
+    },
+    {
+      "validate_ms": 6.957824,
+      "lines_ms": 0.301056,
+      "aggregate_ms": 105.539581,
+      "groups": 11,
+      "terms": 10065,
+      "sources": 3595,
+      "profile_only_end_sync": 1
+    },
+    {
+      "validate_ms": 6.94592,
+      "lines_ms": 0.299008,
+      "aggregate_ms": 13.129728,
+      "groups": 11,
+      "terms": 10065,
+      "sources": 3595,
+      "profile_only_end_sync": 1
+    },
+    {
+      "validate_ms": 2.660352,
+      "lines_ms": 0.577536,
+      "aggregate_ms": 3.383296,
+      "groups": 2,
+      "terms": 7067,
+      "sources": 7033,
+      "profile_only_end_sync": 1
+    },
+    {
+      "validate_ms": 2.087936,
+      "lines_ms": 0.444416,
+      "aggregate_ms": 2.651136,
+      "groups": 2,
+      "terms": 5549,
+      "sources": 5515,
+      "profile_only_end_sync": 1
+    },
+    {
+      "validate_ms": 2.809344,
+      "lines_ms": 0.610304,
+      "aggregate_ms": 3.581952,
+      "groups": 2,
+      "terms": 7462,
+      "sources": 7444,
+      "profile_only_end_sync": 1
+    },
+    {
+      "validate_ms": 0.540128,
+      "lines_ms": 0.106496,
+      "aggregate_ms": 0.673792,
+      "groups": 2,
+      "terms": 1431,
+      "sources": 1397,
+      "profile_only_end_sync": 1
+    }
+  ],
+  "result": "Coefficientaggregation dominatesafterparallel lineweights; motivated qualified scalar-coordinate kernel",
+  "ncu_status": "ERR_NVGPUCTRPERM; no hardwarecountermeasurements",
+  "experiment_branch": "https://github.com/teddyjfpender/stwo-zig/tree/codex/rv64-keccak-prefix-lowering",
+  "keccak_experiment_qualified": false
+}
