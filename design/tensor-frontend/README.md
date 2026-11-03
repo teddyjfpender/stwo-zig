@@ -68,7 +68,7 @@ Package: `src/tensor/` (standalone `build.zig`; `zig build test`,
 | weight-pass ns per weight | int8 x QM31 fold and combine kernels |
 | proof bytes per batch / request | split into GKR, sumchecks, witness opening, weight opening |
 | verify time | single thread |
-| conjectured / proven security bits | see `pcs.Params` |
+| conjectured / proven security bits | `security.zig` sums every error term (bench `"security"`); see `security.md` |
 
 ## Benchmarks
 

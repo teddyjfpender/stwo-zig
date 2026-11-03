@@ -63,20 +63,44 @@ pub const Params = struct {
     /// The correlated-agreement error of one row is ~ E/|F| (BCIKS20, unique
     /// decoding), i.e. ~2^-105 at E = 2^19 over QM31; k rows give its k-th power.
     prox_rows: u32 = 1,
+    /// parameters of the committed-row levels >= 2 (null = `inner`). These
+    /// tables are tiny, so a high blowup there costs no prover time and buys
+    /// security per query (design/tensor-frontend/security.md).
+    deep: ?pcs.Params = null,
+    /// Out-of-domain samples on every committed-row table: right after an
+    /// inner root, the verifier draws a point zeta and the prover sends the
+    /// table's MLE at zeta; the claim is opened as its own group at the next
+    /// level. This binds each inner table to one member of its list, which is
+    /// what the soundness argument beyond unique decoding (Johnson regime)
+    /// needs (security.md, section 3). The caller adds the outer table's own
+    /// OOD claim (see protocol.zig).
+    ood: bool = false,
 
     pub fn nProx(self: Params, with_proximity: bool) usize {
         return if (with_proximity) self.prox_rows else 0;
     }
 
+    /// claim groups of a committed-row level: the limb claims (+ OOD claim)
+    pub fn innerGroups(self: Params) usize {
+        return 1 + @as(usize, @intFromBool(self.ood));
+    }
+
     pub fn level(self: Params, i: usize) pcs.Params {
-        return if (i == 0) self.outer else self.inner;
+        return if (i == 0) self.outer else if (i == 1) self.inner else self.deep orelse self.inner;
     }
 
     pub fn conjecturedBits(self: Params) f64 {
-        return if (self.depth == 0) self.outer.conjecturedBits() else @min(self.outer.conjecturedBits(), self.inner.conjecturedBits());
+        var b = self.outer.conjecturedBits();
+        var i: usize = 1;
+        while (i <= self.depth) : (i += 1) b = @min(b, self.level(i).conjecturedBits());
+        return b;
     }
+    /// Query term only, unique decoding (see security.zig for the full bound).
     pub fn provenBits(self: Params) f64 {
-        return if (self.depth == 0) self.outer.provenBits() else @min(self.outer.provenBits(), self.inner.provenBits());
+        var b = self.outer.provenBits();
+        var i: usize = 1;
+        while (i <= self.depth) : (i += 1) b = @min(b, self.level(i).provenBits());
+        return b;
     }
 };
 
@@ -243,6 +267,9 @@ pub const LevelProof = struct {
     inner_root: Hash = [_]u8{0} ** 32,
     sumcheck: sc.Proof = .{ .rounds = &.{}, .deg = 2 },
     limb_vals: [4]QM31 = [_]QM31{QM31.zero()} ** 4,
+    /// non-final levels with Params.ood: MLE of the committed-row table at
+    /// the out-of-domain point drawn right after `inner_root`
+    ood_value: ?QM31 = null,
 
     pub fn deinit(self: *LevelProof, a: std.mem.Allocator) void {
         a.free(self.col_values);
@@ -256,6 +283,7 @@ pub const LevelProof = struct {
         var s: usize = 8 + self.col_values.len * 4 + self.decommit.len * 32;
         for (self.rows) |r| s += r.len * 16;
         if (!final) s += 32 + self.sumcheck.byteSize() + 4 * 16;
+        if (self.ood_value != null) s += 16;
         return s;
     }
 };
@@ -323,6 +351,7 @@ pub fn predictLevel(params: Params, lvl: usize, log_total: u32, used: usize, log
         if ((4 * C) << @intCast(lbi) > budget) return std.math.inf(f64);
         const best = bestInner(params, lvl + 1, n_rows, log_cols, depth - 1);
         bytes += 32 + 64 + @as(f64, @floatFromInt(ceilLog2(n_rows) + log_cols)) * 32 + best.bytes;
+        if (params.ood) bytes += 16;
     }
     return bytes;
 }
@@ -333,7 +362,7 @@ pub fn bestInner(params: Params, lvl: usize, n_rows: usize, log_c: u32, depth: u
     var lc: u32 = 1;
     while (lc <= log_c) : (lc += 1) {
         const sh = innerShape(n_rows, log_c, lc);
-        const b = predictLevel(params, lvl, sh.log_total, (n_rows * 4) << @intCast(log_c), lc, 1 + params.prox_rows, depth);
+        const b = predictLevel(params, lvl, sh.log_total, (n_rows * 4) << @intCast(log_c), lc, params.innerGroups() + params.prox_rows, depth);
         if (b < best) {
             best = b;
             best_lc = lc;
@@ -526,6 +555,16 @@ fn openRec(
     defer vcom.deinit(a);
     levels.items[li].inner_root = vcom.root();
     tr.mixDigest(vcom.root());
+    // OOD sample of the committed rows (before rho, so the decoded table is
+    // fixed before any challenge that the claims on it depend on)
+    const ood_pt = try a.alloc(QM31, if (params.ood) ish.log_total else 0);
+    defer a.free(ood_pt);
+    if (params.ood) {
+        tr.drawN(ood_pt);
+        const v = try oodValue(a, pool, rows, ood_pt, ish.log_g);
+        levels.items[li].ood_value = v;
+        tr.mixFelt(v);
+    }
 
     const rho = try a.alloc(QM31, ish.log_g);
     defer a.free(rho);
@@ -636,11 +675,34 @@ fn openRec(
     levels.items[li].limb_vals = try limbMles(a, pool, rows, res.point, ish.log_g);
     for (0..4) |c| lc[c] = .{ .point = pts[c], .value = levels.items[li].limb_vals[c] };
     tr.mixFelts(&levels.items[li].limb_vals);
-    const ngroups = [_]Group{.{ .claims = &lc }};
-    try openRec(i32, a, pool, tr, params, lvl + 1, &vcom, vm, &ngroups, true, levels);
+    const oc = [_]Claim{.{ .point = ood_pt, .value = levels.items[li].ood_value orelse QM31.zero() }};
+    const ngroups = [_]Group{ .{ .claims = &lc }, .{ .claims = &oc } };
+    try openRec(i32, a, pool, tr, params, lvl + 1, &vcom, vm, ngroups[0..params.innerGroups()], true, levels);
 }
 
 const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
+
+/// MLE of the limb table V[g][c][k] = limb_c(rows[g][k]) (G' x 4 x C, zero
+/// padded) at pt = (z_g, z_c, z_k).
+fn oodValue(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, pt: []const QM31, log_g: u32) !QM31 {
+    const gk = try a.alloc(QM31, pt.len - 2);
+    defer a.free(gk);
+    @memcpy(gk[0..log_g], pt[0..log_g]);
+    @memcpy(gk[log_g..], pt[log_g + 2 ..]);
+    const limbs = try limbMles(a, pool, rows, gk, log_g);
+    return combineLimbs(limbs, pt[log_g..][0..2]);
+}
+
+/// sum_c eq(z_c, c) limbs[c] (c in MSB-first bit order)
+fn combineLimbs(limbs: [4]QM31, zc: []const QM31) QM31 {
+    var v = QM31.zero();
+    var bits: [2]QM31 = undefined;
+    for (0..4) |c| {
+        bitsPoint(&bits, c);
+        v = v.add(f.eqEval(zc, &bits).mul(limbs[c]));
+    }
+    return v;
+}
 
 fn countEval(groups: []const Group) usize {
     var n: usize = 0;
@@ -799,6 +861,7 @@ fn verifyRec(
     defer a.free(fac);
 
     if (lvl == params.depth) {
+        if (lp.ood_value != null) return error.OpeningShape;
         if (lp.rows.len != n_rows) return error.OpeningShape;
         for (lp.rows) |r| {
             if (r.len != C) return error.OpeningShape;
@@ -828,6 +891,13 @@ fn verifyRec(
     const best = bestInner(params, lvl + 1, n_rows, log_c, sub_depth);
     const ish = innerShape(n_rows, log_c, best.log_cols);
     tr.mixDigest(lp.inner_root);
+    if ((lp.ood_value != null) != params.ood) return error.OpeningShape;
+    const ood_pt = try a.alloc(QM31, if (params.ood) ish.log_total else 0);
+    defer a.free(ood_pt);
+    if (lp.ood_value) |v| {
+        tr.drawN(ood_pt);
+        tr.mixFelt(v);
+    }
     const rho = try a.alloc(QM31, ish.log_g);
     defer a.free(rho);
     tr.drawN(rho);
@@ -902,10 +972,49 @@ fn verifyRec(
     defer for (pts) |pt| a.free(pt);
     var lc: [4]Claim = undefined;
     for (0..4) |c| lc[c] = .{ .point = pts[c], .value = lp.limb_vals[c] };
-    const ngroups = [_]Group{.{ .claims = &lc }};
+    const oc = [_]Claim{.{ .point = ood_pt, .value = lp.ood_value orelse QM31.zero() }};
+    const ngroups_all = [_]Group{ .{ .claims = &lc }, .{ .claims = &oc } };
+    const ngroups = ngroups_all[0..params.innerGroups()];
     const pi = params.level(lvl + 1);
     const ishape = Shape{ .log_rows = ish.log_rows, .log_cols = ish.log_cols, .log_blowup = pi.log_blowup, .rows_used = ish.rows_used };
-    try verifyRec(a, tr, params, lvl + 1, ishape, lp.inner_root, &ngroups, true, proof);
+    try verifyRec(a, tr, params, lvl + 1, ishape, lp.inner_root, ngroups, true, proof);
+}
+
+/// Shape of one opening level, as the verifier derives it (security.zig).
+pub const LevelInfo = struct {
+    log_rows: u32,
+    log_cols: u32,
+    rows_used: usize,
+    params: pcs.Params,
+    /// combined rows at this level (proximity rows + claim groups)
+    n_rows: usize,
+    n_prox: usize,
+    n_groups: usize,
+    final: bool,
+    /// log2 of U's padded row count (the lambda / inner sumcheck size)
+    log_g: u32 = 0,
+};
+
+/// The per-level shapes `verify` walks (same deterministic size model).
+pub fn levelInfos(a: std.mem.Allocator, params: Params, shape: Shape, n_groups: usize, with_proximity: bool) ![]LevelInfo {
+    const out = try a.alloc(LevelInfo, params.depth + 1);
+    var sh = shape;
+    var ng = n_groups;
+    var prox = with_proximity;
+    for (out, 0..) |*li, lvl| {
+        const n_prox = params.nProx(prox);
+        const n_rows = ng + n_prox;
+        const R = @as(usize, 1) << @intCast(sh.log_rows);
+        li.* = .{ .log_rows = sh.log_rows, .log_cols = sh.log_cols, .rows_used = sh.rows_used orelse R, .params = params.level(lvl), .n_rows = n_rows, .n_prox = n_prox, .n_groups = ng, .final = lvl == params.depth };
+        if (lvl == params.depth) break;
+        const best = bestInner(params, lvl + 1, n_rows, sh.log_cols, params.depth - @as(u32, @intCast(lvl)) - 1);
+        const ish = innerShape(n_rows, sh.log_cols, best.log_cols);
+        li.log_g = ish.log_g;
+        sh = .{ .log_rows = ish.log_rows, .log_cols = ish.log_cols, .log_blowup = params.level(lvl + 1).log_blowup, .rows_used = ish.rows_used };
+        ng = params.innerGroups();
+        prox = true;
+    }
+    return out;
 }
 
 /// Groups claims by identical column part of their point (order preserving).
@@ -1030,6 +1139,10 @@ fn runRoundtrip(depth: u32) !void {
 }
 
 fn runRoundtripProx(depth: u32, prox_rows: u32) !void {
+    try runRoundtripCfg(depth, prox_rows, false, null);
+}
+
+fn runRoundtripCfg(depth: u32, prox_rows: u32, ood: bool, deep: ?pcs.Params) !void {
     const a = std.testing.allocator;
     var pool: f.Pool = undefined;
     try pool.init(a, 4);
@@ -1048,6 +1161,8 @@ fn runRoundtripProx(depth: u32, prox_rows: u32) !void {
         .inner = .{ .log_blowup = 3, .n_queries = 16, .pow_bits = 2 },
         .depth = depth,
         .prox_rows = prox_rows,
+        .ood = ood,
+        .deep = deep,
     };
     var tw = try pcs.Twiddles.init(a, lc + 2);
     defer tw.deinit(a);
@@ -1122,6 +1237,18 @@ fn runRoundtripProx(depth: u32, prox_rows: u32) !void {
                 var t3 = Transcript.initDomain("pcs2");
                 try std.testing.expect(std.meta.isError(verify(a, &t3, params, shape, com.root(), groups, prox, proof)));
                 lp.sumcheck.rounds[0].evals[0] = lp.sumcheck.rounds[0].evals[0].sub(QM31.one());
+                if (ood) {
+                    // a wrong OOD answer is caught by the next level's OOD group
+                    lp.ood_value = lp.ood_value.?.add(QM31.one());
+                    var t4 = Transcript.initDomain("pcs2");
+                    try std.testing.expect(std.meta.isError(verify(a, &t4, params, shape, com.root(), groups, prox, proof)));
+                    // a missing OOD answer is a shape error
+                    const saved = lp.ood_value.?.sub(QM31.one());
+                    lp.ood_value = null;
+                    var t5 = Transcript.initDomain("pcs2");
+                    try std.testing.expectError(error.OpeningShape, verify(a, &t5, params, shape, com.root(), groups, prox, proof));
+                    lp.ood_value = saved;
+                }
             }
             lp.pow_nonce +%= 1;
             var t = Transcript.initDomain("pcs2");
@@ -1151,6 +1278,42 @@ test "pcs2 with two proximity rows (depth 0 and 2)" {
     try runRoundtripProx(2, 2);
 }
 
+test "pcs2 with OOD samples and level-specific parameters (depth 1, 2, 3)" {
+    const deep = pcs.Params{ .log_blowup = 5, .n_queries = 9, .pow_bits = 1 };
+    try runRoundtripCfg(1, 1, true, null);
+    try runRoundtripCfg(2, 2, true, deep);
+    try runRoundtripCfg(3, 2, true, deep);
+    try runRoundtripCfg(2, 1, false, deep);
+}
+
+test "pcs2 OOD value is the MLE of the committed limb table" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const log_c = 4;
+    const C = 1 << log_c;
+    var r0: [C]QM31 = undefined;
+    var r1: [C]QM31 = undefined;
+    var r2: [C]QM31 = undefined;
+    for (0..C) |k| {
+        r0[k] = QM31.fromU32Unchecked(@intCast(k + 1), @intCast(3 * k), 7, @intCast(k * k));
+        r1[k] = QM31.fromU32Unchecked(@intCast(2 * k), 5, @intCast(k), 11);
+        r2[k] = QM31.fromU32Unchecked(9, @intCast(k), @intCast(k + 4), 1);
+    }
+    const rows = [_][]const QM31{ &r0, &r1, &r2 };
+    const log_g = 2; // G' = 4 (one zero row)
+    const total = log_g + 2 + log_c;
+    var table: [1 << total]i32 = [_]i32{0} ** (1 << total);
+    for (rows, 0..) |r, g| for (0..4) |c| for (0..C) |k| {
+        table[(g * 4 + c) * C + k] = @intCast(f.limbs(r[k])[c]);
+    };
+    var pt: [total]QM31 = undefined;
+    for (&pt, 0..) |*x, i| x.* = QM31.fromU32Unchecked(@intCast(i * 17 + 3), @intCast(i), 2, 5);
+    const want = try f.mleEvalI32(a, &table, &pt);
+    try std.testing.expect((try oodValue(a, &pool, &rows, &pt, log_g)).eql(want));
+}
+
 test "pcs2 depth 3 roundtrip and tampering" {
     try runRoundtrip(3);
 }
@@ -1178,12 +1341,18 @@ test "pcs2 rejects a committed table that is not a codeword" {
     while (j < (com.enc.len / R)) : (j += 2) com.enc[j * R] = com.enc[j * R].add(M31.one());
     com.tree.deinit(a);
     com.tree = try rebuildTree(a, &pool, com.enc, R, com.enc.len / R);
-    const params = Params{ .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 0 }, .inner = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 0 }, .depth = 1 };
-    var tp = Transcript.initDomain("prox");
-    var proof = try open(i8, a, &pool, &tp, params, &com, m, &.{}, true);
-    defer proof.deinit(a);
-    var tv = Transcript.initDomain("prox");
-    try std.testing.expect(std.meta.isError(verify(a, &tv, params, .{ .log_rows = lr, .log_cols = lc, .log_blowup = 2 }, com.root(), &.{}, true, proof)));
+    // unique decoding (1 proximity row) and beyond (2 rows, OOD on the
+    // committed rows): both reject
+    for ([_]Params{
+        .{ .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 0 }, .inner = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 0 }, .depth = 1 },
+        .{ .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 0 }, .inner = .{ .log_blowup = 3, .n_queries = 12, .pow_bits = 0 }, .depth = 2, .prox_rows = 2, .ood = true },
+    }) |params| {
+        var tp = Transcript.initDomain("prox");
+        var proof = try open(i8, a, &pool, &tp, params, &com, m, &.{}, true);
+        defer proof.deinit(a);
+        var tv = Transcript.initDomain("prox");
+        try std.testing.expect(std.meta.isError(verify(a, &tv, params, .{ .log_rows = lr, .log_cols = lc, .log_blowup = 2 }, com.root(), &.{}, true, proof)));
+    }
 }
 
 fn rebuildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E: usize) !pcs.Merkle {

@@ -69,6 +69,11 @@ fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Pa
     if (args.len > first + 3) p.inner.pow_bits = try std.fmt.parseInt(u32, args[first + 3], 10);
     if (args.len > first + 4) p.inner_work_shift = try std.fmt.parseInt(u32, args[first + 4], 10);
     if (args.len > first + 5) p.prox_rows = try std.fmt.parseInt(u32, args[first + 5], 10);
+    // beyond unique decoding / level-specific parameters (security.md):
+    //   TENSOR_OOD=1                      OOD samples on witness + committed rows
+    //   TENSOR_DEEP=<q>,<lb>[,<pow>]      parameters of committed-row levels >= 2
+    if (std.posix.getenv("TENSOR_OOD")) |v| p.ood = std.mem.eql(u8, v, "1");
+    if (std.posix.getenv("TENSOR_DEEP")) |v| p.deep = try parseParams(v, p.inner.pow_bits, null);
     return p;
 }
 
@@ -90,6 +95,39 @@ fn prefault() bool {
 fn warmLayers() bool {
     if (std.posix.getenv("TENSOR_RECYCLE")) |v| if (std.mem.eql(u8, v, "0")) return false;
     return if (std.posix.getenv("TENSOR_WARM_GKR")) |v| !std.mem.eql(u8, v, "0") else true;
+}
+
+/// "<q>,<lb>[,<pow>]" (or "<q>[,<pow>]" when the blowup is fixed)
+fn parseParams(v: []const u8, pow_default: u32, fixed_lb: ?u32) !t.pcs.Params {
+    var it = std.mem.splitScalar(u8, v, ',');
+    var p = t.pcs.Params{ .pow_bits = pow_default };
+    p.n_queries = try std.fmt.parseInt(usize, it.next() orelse return error.BadParams, 10);
+    if (fixed_lb) |lb| p.log_blowup = lb else p.log_blowup = try std.fmt.parseInt(u32, it.next() orelse return error.BadParams, 10);
+    if (it.next()) |x| p.pow_bits = try std.fmt.parseInt(u32, x, 10);
+    return p;
+}
+
+/// TENSOR_WEIGHT_Q=<q>[,<pow>] (per-batch weight openings), TENSOR_KEY_Q=<q>[,<pow>]
+/// (weight-key proximity): outer-level parameters at the outer blowup.
+fn weightParams(pc: *proto.Config) !void {
+    const o = proto.outerParams(pc.*);
+    if (std.posix.getenv("TENSOR_WEIGHT_Q")) |v| pc.weight_outer = try parseParams(v, o.pow_bits, o.log_blowup);
+    if (std.posix.getenv("TENSOR_KEY_Q")) |v| pc.key_outer = try parseParams(v, o.pow_bits, o.log_blowup);
+    // TENSOR_KEY_ALPHAS=2: two independent LogUp alpha in the weight-key proof
+    if (std.posix.getenv("TENSOR_KEY_ALPHAS")) |v| pc.key_alphas = try std.fmt.parseInt(u32, v, 10);
+}
+
+fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, kp: ?*const t.weight_key.KeyProof) !void {
+    var rep = try t.security.accountProof(a, pc, st, key, proof, kp);
+    defer rep.deinit();
+    try t.security.writeReport(rep, out);
+    if (pc.weight_outer) |w| try out.print("\"weight_queries\":{d},", .{w.n_queries});
+    if (pc.key_outer) |k| try out.print("\"key_queries\":{d},", .{k.n_queries});
+    try out.print("\"key_alphas\":{d},", .{pc.key_alphas});
+    if (pc.two_level) |tl| {
+        try out.print("\"ood\":{},", .{tl.ood});
+        if (tl.deep) |d| try out.print("\"deep\":[{d},{d},{d}],", .{ d.n_queries, d.log_blowup, d.pow_bits });
+    }
 }
 
 fn printTl(out: anytype, pc: proto.Config) !void {
@@ -171,6 +209,7 @@ pub fn main() !void {
         .accel = accelFor(),
     };
     pc.two_level = try twoLevel(args, 9, pc.pcs);
+    try weightParams(&pc);
     // TENSOR_BATCH_MATMULS=1: shape-class batched matmul sumchecks (gate/up share)
     pc.batch_matmuls = batchMatmuls();
     pc.prefault_gkr_inputs = prefault();
@@ -255,6 +294,7 @@ pub fn main() !void {
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });
     try printLevels(out, "witness_levels", proof.witness_opening);
     if (proof.weight_opening) |wo| try printLevels(out, "weight_levels", wo);
+    try printSecurity(out, a, pc, st, key, &proof, &prox);
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",\"key_proof_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd, .lower), std.fmt.bytesToHex(kd, .lower) });
     try out.print("\"proved_macs_per_s\":{d:.4},\"prove_ns_per_weight\":{d:.4},\"prove_ns_per_token\":{d:.1},\"committed_bits_per_token\":{d:.1},\"peak_rss_bytes\":{d}}}\n", .{ macs / prove_s, prove_s * 1e9 / n_weights, prove_s * 1e9 / T, @as(f64, @floatFromInt(tm.witness_table_elems)) * 32.0 / T, peakRssBytes() });
@@ -276,6 +316,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     defer pool.deinit();
     var pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads };
     pc.two_level = try twoLevel(args, 7, pc.pcs);
+    try weightParams(&pc);
     pc.accel = accelFor();
     const dummy_info = [_]proto.TensorInfo{proto.TensorInfo.mat(2, 2)};
     var dummy: [16]i8 = [_]i8{0} ** 16;
@@ -293,6 +334,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var size: usize = 0;
     var digest: [32]u8 = undefined;
     var rep: usize = 0;
+    var last: ?proto.Proof = null;
     while (rep < 3) : (rep += 1) {
         tm = .{};
         var t0 = now();
@@ -303,11 +345,23 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
         best_verify = @min(best_verify, secs(t0));
         size = proof.sizes().total;
         digest = t.digest.proofDigest(proof);
-        proof.deinit(a);
+        if (rep + 1 < 3) proof.deinit(a) else last = proof;
     }
+    defer last.?.deinit(a);
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, queries, lb, pow });
     try printTl(out, pc);
+    try printSecurity(out, a, pc, st, proto.weightKey(&ws), &last.?, null);
+    try printLevels(out, "witness_levels", last.?.witness_opening);
+    if (last.?.witness_opening == .two) {
+        var inf: proto.VerifyInfo = .{};
+        try proto.verifyInfo(a, pc, st, proto.weightKey(&ws), &last.?, &inf);
+        const li = try t.security.openingInfos(a, pc, inf.witness_shape, inf.witness_groups, true);
+        defer a.free(li);
+        try out.print("\"witness_shapes\":[", .{});
+        for (li, 0..) |l, i| try out.print("{s}[{d},{d},{d},{d}]", .{ if (i == 0) "" else ",", l.log_rows, l.log_cols, l.rows_used, l.n_rows });
+        try out.print("],", .{});
+    }
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",", .{std.fmt.bytesToHex(digest, .lower)});
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"prove_ns_per_entry\":{d:.2},\"stage_s\":{{\"witness_commit\":{d:.4},\"op_sumchecks\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4}}},\"peak_rss_bytes\":{d}}}\n", .{ best_prove, best_verify, size, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))), nsToS(tm.witness_commit_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), peakRssBytes() });
@@ -367,6 +421,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
         .gkr_min_parallel = if (std.posix.getenv("TENSOR_GKR_MINPAR")) |v| try std.fmt.parseInt(usize, v, 10) else (proto.Config{}).gkr_min_parallel,
     };
     pc.two_level = try twoLevel(args, 15, pc.pcs);
+    try weightParams(&pc);
     pc.accel = accelFor();
     pc.batch_matmuls = batchMatmuls();
     pc.prefault_gkr_inputs = prefault();
@@ -427,6 +482,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try printGpuStats(out);
     try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4},\"ext_ops\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns), nsToS(tm.ext_ops_ns) });
+    try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, null);
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
     proof.deinit(a);
     a.free(wview);

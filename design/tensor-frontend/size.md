@@ -208,6 +208,9 @@ class partition from the public statement, so prover and verifier agree.
 
 ### 4.3 What "proven 128" means here (caveat)
 
+> Superseded by `security.md`: the calculator (`security.zig`) counts every
+> term; the 160q configs below account to ~100 bits (toy) / ~94 bits (MLP).
+
 Query error at 160 queries, blowup 4: `(1 - delta)^160 * 2^-20 ~ 2^-128.5`
 per level (`Params.provenBits`). The field-size terms do not reach 2^-128 with
 QM31 (124 bits): the proximity-gap term of one proximity row is ~E/|F|

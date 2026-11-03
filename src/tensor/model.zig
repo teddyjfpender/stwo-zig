@@ -282,11 +282,13 @@ test "mlp block proves and verifies; tampering rejected" {
         try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
         proof.lookup_in_values[0] = sv;
     }
-    // tamper: a weight value
-    const wsaved = proof.weight_values[0];
-    proof.weight_values[0] = wsaved.add(f.QM31.one());
-    try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
-    proof.weight_values[0] = wsaved;
+    // tamper: every op final (the weight claims' values are op finals)
+    for (proof.op_finals) |fin| for (fin) |*fv| {
+        const sv = fv.*;
+        fv.* = sv.add(f.QM31.one());
+        try std.testing.expect(std.meta.isError(proto.verify(a, pc, st, key, &proof)));
+        fv.* = sv;
+    };
     // tamper: statement (different shift) must be rejected
     const ops2 = try a.dupe(proto.Op, st.ops);
     defer a.free(ops2);

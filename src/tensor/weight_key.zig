@@ -23,6 +23,13 @@
 //! element), the LogUp identity fails with probability >= 1 - O(N/|QM31|) over
 //! alpha (sum m_v < p). The GKR soundness error is then added, plus the PCS
 //! binding of W(rho) to the committed table.
+//!
+//! With Config.key_alphas = 2, step 3 draws alpha_1, alpha_2 back to back
+//! (one round) and the GKR batch has 4 instances (keys and table for each
+//! alpha); both sums must vanish, so the identity error is squared. The key
+//! instances share the output point rho, and the verifier requires both to
+//! give the same W(rho) (alpha_j - den_j(rho) - 128), which is the single
+//! opened claim.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
@@ -74,7 +81,9 @@ fn histMle(a: std.mem.Allocator, h: [256]u32, point: []const QM31) !QM31 {
     return f.mleEvalI32(a, &v, point);
 }
 
-pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const proto.WeightStore) !KeyProof {
+pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const proto.WeightStore) !KeyProof {
+    // the key's opening runs at the key-time outer parameters (Config.key_outer)
+    const cfg = try proto.keyConfig(cfg0);
     const key = proto.weightKey(ws);
     var tr = startTranscript(key);
     const n = ws.table.len;
@@ -82,27 +91,29 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const 
     for (ws.table) |w| hist[@intCast(@as(i32, w) + 128)] += 1;
     var hw: [256]u32 = hist;
     tr.mixU32s(&hw);
-    const alpha = tr.draw();
+    const n_alpha = try alphaCount(cfg);
+    var alphas: [2]QM31 = undefined;
+    for (alphas[0..n_alpha]) |*al| al.* = tr.draw();
+    const alpha = alphas[0];
 
-    const den = try a.alloc(QM31, n);
-    const Ctx = struct { t: []const i8, den: []QM31, alpha: QM31 };
-    const ctx = Ctx{ .t = ws.table, .den = den, .alpha = alpha };
-    pool.parallelFor(n, 8192, &ctx, struct {
-        fn run(c: *const Ctx, s: usize, e: usize) void {
-            for (s..e) |i| c.den[i] = c.alpha.sub(f.qFromI64(@as(i64, c.t[i]) + 128));
-        }
-    }.run);
     var mult: [256]M31 = undefined;
-    var tden: [256]QM31 = undefined;
-    for (0..256) |v| {
-        mult[v] = M31.fromCanonical(hist[v] % f.P);
-        tden[v] = alpha.sub(QM31.fromBase(M31.fromCanonical(@intCast(v))));
+    for (0..256) |v| mult[v] = M31.fromCanonical(hist[v] % f.P);
+    var tden: [2][256]QM31 = undefined;
+    var inputs: [4]Fast.Input = undefined;
+    for (alphas[0..n_alpha], 0..) |al, j| {
+        const den = try a.alloc(QM31, n);
+        const Ctx = struct { t: []const i8, den: []QM31, alpha: QM31 };
+        const ctx = Ctx{ .t = ws.table, .den = den, .alpha = al };
+        pool.parallelFor(n, 8192, &ctx, struct {
+            fn run(c: *const Ctx, s: usize, e: usize) void {
+                for (s..e) |i| c.den[i] = c.alpha.sub(f.qFromI64(@as(i64, c.t[i]) + 128));
+            }
+        }.run);
+        for (0..256) |v| tden[j][v] = al.sub(QM31.fromBase(M31.fromCanonical(@intCast(v))));
+        inputs[2 * j] = .{ .num = .ones, .den = den, .owned = true };
+        inputs[2 * j + 1] = .{ .num = .{ .base = &mult }, .den = &tden[j], .owned = false };
     }
-    const inputs = [_]Fast.Input{
-        .{ .num = .ones, .den = den, .owned = true },
-        .{ .num = .{ .base = &mult }, .den = &tden, .owned = false },
-    };
-    var res = try @import("accel.zig").gkrProveBatch(cfg.accel, a, &tr.ch, &inputs, cfg.gkr_threads);
+    var res = try @import("accel.zig").gkrProveBatch(cfg.accel, a, &tr.ch, inputs[0 .. 2 * n_alpha], cfg.gkr_threads);
     defer res.artifact.deinit(a);
     const L = res.artifact.ood_point.len;
     const rho = res.artifact.ood_point[L - (key.log_rows + key.log_cols) ..];
@@ -116,7 +127,16 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const 
     return .{ .histogram = hist, .gkr = res.proof, .value = value, .opening = opening };
 }
 
-pub fn verify(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
+/// Number of independent LogUp challenges of the key proof (1 or 2).
+pub fn alphaCount(cfg: proto.Config) !usize {
+    return switch (cfg.key_alphas) {
+        1, 2 => cfg.key_alphas,
+        else => error.KeyAlphas,
+    };
+}
+
+pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
+    const cfg = try proto.keyConfig(cfg0);
     var tr = startTranscript(key);
     var total: u64 = 0;
     for (proof.histogram) |h| total += h;
@@ -124,27 +144,37 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, pro
     if (total != (@as(u64, 1) << @intCast(n_vars))) return error.KeyHistogram;
     var hw: [256]u32 = proof.histogram;
     tr.mixU32s(&hw);
-    const alpha = tr.draw();
-    const gates = [_]GkrVerifier.Gate{ .LogUp, .LogUp };
-    if (proof.gkr.output_claims_by_instance.len != 2) return error.KeyShape;
-    var art = try GkrVerifier.partiallyVerifyBatch(a, &gates, &proof.gkr, &tr.ch);
+    const n_alpha = try alphaCount(cfg);
+    var alphas: [2]QM31 = undefined;
+    for (alphas[0..n_alpha]) |*al| al.* = tr.draw();
+    const gates = [_]GkrVerifier.Gate{ .LogUp, .LogUp, .LogUp, .LogUp };
+    if (proof.gkr.output_claims_by_instance.len != 2 * n_alpha) return error.KeyShape;
+    var art = try GkrVerifier.partiallyVerifyBatch(a, gates[0 .. 2 * n_alpha], &proof.gkr, &tr.ch);
     defer art.deinit(a);
-    if (art.n_variables_by_instance[0] != n_vars or art.n_variables_by_instance[1] != 8) return error.KeyShape;
-    // LogUp sum: keys - table = 0
-    const k = proof.gkr.output_claims_by_instance[0];
-    const t = proof.gkr.output_claims_by_instance[1];
-    if (k.len != 2 or t.len != 2 or k[1].isZero() or t[1].isZero()) return error.KeyShape;
-    if (!k[0].mul(t[1]).sub(t[0].mul(k[1])).isZero()) return error.KeyLogUp;
+    if (art.n_variables_by_instance.len != 2 * n_alpha or art.claims_to_verify_by_instance.len != 2 * n_alpha) return error.KeyShape;
     const L = art.ood_point.len;
+    if (L < n_vars or L < 8) return error.KeyShape;
     const rho = art.ood_point[L - n_vars ..];
     const rho_t = art.ood_point[L - 8 ..];
-    const ck = art.claims_to_verify_by_instance[0];
-    const ct = art.claims_to_verify_by_instance[1];
-    if (ck.len != 2 or ct.len != 2) return error.KeyShape;
-    if (!ck[0].eql(QM31.one())) return error.KeyTerminal;
-    if (!ct[0].eql(try histMle(a, proof.histogram, rho_t))) return error.KeyTerminal;
-    if (!ct[1].eql(alpha.sub(f.identityMle(rho_t)))) return error.KeyTerminal;
-    const value = alpha.sub(ck[1]).sub(f.qFromI64(128));
+    const hist_mle = try histMle(a, proof.histogram, rho_t);
+    var value: QM31 = undefined;
+    for (alphas[0..n_alpha], 0..) |alpha, j| {
+        if (art.n_variables_by_instance[2 * j] != n_vars or art.n_variables_by_instance[2 * j + 1] != 8) return error.KeyShape;
+        // LogUp sum: keys - table = 0, for every alpha
+        const k = proof.gkr.output_claims_by_instance[2 * j];
+        const t = proof.gkr.output_claims_by_instance[2 * j + 1];
+        if (k.len != 2 or t.len != 2 or k[1].isZero() or t[1].isZero()) return error.KeyShape;
+        if (!k[0].mul(t[1]).sub(t[0].mul(k[1])).isZero()) return error.KeyLogUp;
+        const ck = art.claims_to_verify_by_instance[2 * j];
+        const ct = art.claims_to_verify_by_instance[2 * j + 1];
+        if (ck.len != 2 or ct.len != 2) return error.KeyShape;
+        if (!ck[0].eql(QM31.one())) return error.KeyTerminal;
+        if (!ct[0].eql(hist_mle)) return error.KeyTerminal;
+        if (!ct[1].eql(alpha.sub(f.identityMle(rho_t)))) return error.KeyTerminal;
+        // every alpha's key instance must give the same W(rho)
+        const v = alpha.sub(ck[1]).sub(f.qFromI64(128));
+        if (j == 0) value = v else if (!v.eql(value)) return error.KeyTerminal;
+    }
     if (!value.eql(proof.value)) return error.KeyTerminal;
     const claims = [_]pcs.Claim{.{ .point = rho, .value = value }};
     const groups = [_]pcs.Group{.{ .claims = &claims }};
@@ -181,4 +211,52 @@ test "weight key: range proof verifies, tampering rejected" {
     try std.testing.expect(std.meta.isError(verify(a, pc, key, &kp)));
     kp.value = kp.value.sub(QM31.one());
     try verify(a, pc, key, &kp);
+}
+
+test "weight key: two independent alpha (one round, one batched GKR)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const pc1 = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 2 }, .weight_log_cols = 5, .gkr_threads = 1 };
+    var pc = pc1;
+    pc.key_alphas = 2;
+    const infos = [_]proto.TensorInfo{proto.TensorInfo.mat(5, 6)};
+    var prng = std.Random.DefaultPrng.init(7);
+    var w0: [1 << 11]i8 = undefined;
+    for (&w0) |*x| x.* = prng.random().int(i8);
+    const wv = [_][]const i8{&w0};
+    var ws = try proto.commitWeights(a, &pool, pc, &infos, &wv);
+    defer ws.deinit(a);
+    const key = proto.weightKey(&ws);
+    var kp = try prove(a, &pool, pc, &ws);
+    defer kp.deinit(a);
+    try std.testing.expectEqual(@as(usize, 4), kp.gkr.output_claims_by_instance.len);
+    try verify(a, pc, key, &kp);
+    // the verifier's alpha count is part of the statement
+    try std.testing.expect(std.meta.isError(verify(a, pc1, key, &kp)));
+    var bad = pc;
+    bad.key_alphas = 3;
+    try std.testing.expectError(error.KeyAlphas, verify(a, bad, key, &kp));
+    // histogram and value tampering
+    kp.histogram[3] += 1;
+    kp.histogram[4] -= 1;
+    try std.testing.expect(std.meta.isError(verify(a, pc, key, &kp)));
+    kp.histogram[3] -= 1;
+    kp.histogram[4] += 1;
+    kp.value = kp.value.add(QM31.one());
+    try std.testing.expect(std.meta.isError(verify(a, pc, key, &kp)));
+    kp.value = kp.value.sub(QM31.one());
+    // every output claim of the second alpha's instances is checked
+    for (2..4) |inst| for (0..2) |c| {
+        kp.gkr.output_claims_by_instance[inst][c] = kp.gkr.output_claims_by_instance[inst][c].add(QM31.one());
+        try std.testing.expect(std.meta.isError(verify(a, pc, key, &kp)));
+        kp.gkr.output_claims_by_instance[inst][c] = kp.gkr.output_claims_by_instance[inst][c].sub(QM31.one());
+    };
+    try verify(a, pc, key, &kp);
+    // with one alpha the proof is the old one (2 instances)
+    var kp1 = try prove(a, &pool, pc1, &ws);
+    defer kp1.deinit(a);
+    try std.testing.expectEqual(@as(usize, 2), kp1.gkr.output_claims_by_instance.len);
+    try verify(a, pc1, key, &kp1);
 }
