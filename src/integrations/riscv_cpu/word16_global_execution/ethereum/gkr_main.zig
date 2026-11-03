@@ -111,6 +111,9 @@ const Resources = struct {
 /// Separate operational schema keeps historical control resource/report bytes
 /// unchanged. No field in either schema selects a security construction.
 const CandidateResources = struct {
+    /// Geometry-only producer option. Every emitted policy/shape remains bound
+    /// by the existing statement and independently rebuilt by the receiver.
+    keccak_uniform_throughput: bool = false,
     gkr_bytes: usize,
     global_bytes: usize,
     retained_frontend_bytes: usize,
@@ -283,6 +286,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         }
     }
     if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
+    const uniform_throughput = if (candidate_resource_owner) |owner| owner.value.keccak_uniform_throughput else false;
+    if (uniform_throughput and request.value.execution_profile != .ethereum_services_v3) return error.UniformThroughputRequiresServicesV3;
     const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
     const direct_capture = std.mem.eql(u8, args[3], "-");
     const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
@@ -308,7 +313,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     try @import("../services/gkr_local/service_scope.zig").advice(&captured.advice);
     const cpu = try Plan.cpus(a, &captured, cpu_layout);
     defer a.free(cpu);
-    const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3 }, if (resources) |limits| limits.keccak_max_log else 18);
+    const truths = try Plan.truthsWithOptions(a, &captured, .{ .v3 = request.value.execution_profile == .ethereum_services_v3, .uniform_throughput = uniform_throughput }, if (resources) |limits| limits.keccak_max_log else 18);
     defer a.free(truths);
     if (capture_only) {
         const digest_start = timer.read();
@@ -376,7 +381,7 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .keccak_uniform_throughput = uniform_throughput, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
@@ -552,4 +557,24 @@ test "direct execution worker count is explicit bounded operational metadata" {
     try std.testing.expect(!options.isDefault());
     options.execution_workers = 33;
     try std.testing.expectError(error.InvalidEthereumCaptureOptions, options.validate());
+}
+
+test "uniform resident Keccak resource is opt-in and cannot select security" {
+    const a = std.testing.allocator;
+    const original = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":5,\"schedule\":{\"memory_cap_bytes\":6}}";
+    const parsed = try std.json.parseFromSlice(CandidateResources, a, original, .{});
+    defer parsed.deinit();
+    try parsed.value.validate();
+    try std.testing.expect(!parsed.value.keccak_uniform_throughput);
+    var selected = parsed.value;
+    selected.keccak_uniform_throughput = true;
+    const encoded = try std.json.Stringify.valueAlloc(a, selected, .{});
+    defer a.free(encoded);
+    const reloaded = try std.json.parseFromSlice(CandidateResources, a, encoded, .{});
+    defer reloaded.deinit();
+    try reloaded.value.validate();
+    try std.testing.expect(reloaded.value.keccak_uniform_throughput);
+    try std.testing.expectEqualDeep(parsed.value.operational(), selected.operational());
+    const injection = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":5,\"keccak_uniform_throughput\":true,\"security_profile\":\"weaker\",\"schedule\":{\"memory_cap_bytes\":6}}";
+    try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CandidateResources, a, injection, .{}));
 }

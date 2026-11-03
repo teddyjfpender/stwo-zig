@@ -171,6 +171,10 @@ pub fn keccakTruthPolicy(v3: bool, log: u32) KeccakPolicy {
 /// transcript; the receiver admits any v3 profile it can rebuild.
 pub const KeccakTruthOptions = struct {
     v3: bool = false,
+    /// Producer geometry preference, not a new AIR or security construction.
+    /// Reuse the qualified throughput family for every span on resident GPUs.
+    /// The default preserves the cost-minimized mixed-policy native roster.
+    uniform_throughput: bool = false,
     /// Throughput tables cleared four per degree-five batch
     /// (`throughput_quartet_v1`, 456 instead of 608 interaction columns).
     /// v3 default since it proved and fresh-verified a real 4-packet prefix
@@ -189,7 +193,7 @@ pub const KeccakTruthOptions = struct {
 pub fn keccakTruthPolicyFor(options: KeccakTruthOptions, log: u32) KeccakPolicy {
     if (!options.v3) return .triple_v2;
     const throughput = options.throughput();
-    return if (keccakTruthCells(throughput, log) < keccakTruthCells(.triple_v2, log)) throughput else .triple_v2;
+    return if (options.uniform_throughput or keccakTruthCells(throughput, log) < keccakTruthCells(.triple_v2, log)) throughput else .triple_v2;
 }
 /// Smallest log holding `calls` permutations in `geometry` (>= 5).
 fn keccakLogFor(geometry: A.crypto.keccak.layout.Geometry, calls: u32) u32 {
@@ -231,7 +235,7 @@ fn keccakSingle(options: KeccakTruthOptions, calls: u32, max_log: u32) ?KeccakPi
     const clog = keccakLogFor(.pair29, calls);
     var best: ?KeccakPiece = null;
     if (tlog <= max_log) best = .{ .calls = calls, .log = tlog, .policy = throughput };
-    if (clog <= max_log and (best == null or keccakTruthCells(.triple_v2, clog) <= keccakTruthCells(throughput, tlog))) best = .{ .calls = calls, .log = clog, .policy = .triple_v2 };
+    if (!options.uniform_throughput and clog <= max_log and (best == null or keccakTruthCells(.triple_v2, clog) <= keccakTruthCells(throughput, tlog))) best = .{ .calls = calls, .log = clog, .policy = .triple_v2 };
     return best;
 }
 /// v3 truth sizing of a remainder of at most one full shard: the cheapest
@@ -601,4 +605,44 @@ test "bounded Keccak shard experiment preserves full-block call spans and report
         try std.testing.expectEqual(if (max_log == 18) @as(u64, 524288) else 491520, permutation_rows);
         std.debug.print("KECCAK_SHARD_COST max_log={d} proofs={d} permutation_rows={d} active_rows={d} fixed_cells={d} main_cells={d} interaction_cells={d} opening_samples={d} max_main_bytes={d} max_interaction_bytes={d} narrow_metadata_bytes={d} packed_row_bytes={d}\n", .{ max_log, declarations.len, permutation_rows, active_rows, cells[0], cells[1], cells[2], opening_samples, max_main_bytes, max_interaction_bytes, narrow_metadata_bytes, @sizeOf(A.crypto.keccak.trace.PackedRow) });
     }
+}
+
+test "uniform resident Keccak keeps the small tail on admitted r27 geometry" {
+    const options = KeccakTruthOptions{ .v3 = true, .uniform_throughput = true };
+    const tail = keccakSingle(options, 266, 18) orelse return error.ExpectedKeccakTail;
+    try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, tail.policy);
+    try std.testing.expectEqual(@as(u32, 12), tail.log);
+    try std.testing.expectEqual(@as(u32, 266), tail.calls);
+    try A.crypto.keccak.layout.validateGeometryFor(.pair27, tail.calls, 29_733, tail.log);
+    const original = keccakSingle(.{ .v3 = true }, 266, 18) orelse return error.ExpectedKeccakTail;
+    try std.testing.expectEqual(KeccakPolicy.triple_v2, original.policy);
+    try std.testing.expectEqual(@as(u32, 12), original.log);
+}
+
+test "uniform resident Keccak covers the real block without changing the default mixed roster" {
+    const a = std.testing.allocator;
+    var original: std.ArrayList(W.TruthDeclaration) = .empty;
+    defer original.deinit(a);
+    try appendKeccakSecp(a, &original, .{ 29_998, 0, 0 }, 18, .{ .v3 = true });
+    try std.testing.expectEqual(@as(usize, 4), original.items.len);
+    const original_calls = [_]u32{ 19_418, 606, 9_708, 266 };
+    const original_logs = [_]u32{ 18, 13, 17, 12 };
+    for (original.items, original_calls, original_logs, 0..) |piece, calls, log, i| {
+        try std.testing.expectEqual(calls, piece.calls);
+        try std.testing.expectEqual(log, piece.logs[0]);
+        try std.testing.expectEqual(if (i == 3) KeccakPolicy.triple_v2 else KeccakPolicy.throughput_r27_v1, try W.keccakPolicy(piece.logs[1]));
+    }
+    var resident: std.ArrayList(W.TruthDeclaration) = .empty;
+    defer resident.deinit(a);
+    try appendKeccakSecp(a, &resident, .{ 29_998, 0, 0 }, 18, .{ .v3 = true, .uniform_throughput = true });
+    try std.testing.expect(resident.items.len != 0);
+    var next: u32 = 1;
+    for (resident.items) |piece| {
+        try std.testing.expectEqual(next, piece.first_id);
+        try std.testing.expect(piece.calls != 0 and piece.logs[0] <= 18);
+        try std.testing.expectEqual(KeccakPolicy.throughput_r27_v1, try W.keccakPolicy(piece.logs[1]));
+        try A.crypto.keccak.layout.validateGeometryFor(.pair27, piece.calls, piece.first_id, piece.logs[0]);
+        next += piece.calls;
+    }
+    try std.testing.expectEqual(@as(u32, 29_999), next);
 }
