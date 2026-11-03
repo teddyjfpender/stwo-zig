@@ -18,8 +18,11 @@ Both candidate and conjectured profile identity domains advance from v1 to
 v2 and hash `MAX_PUBLIC_BOUNDARY_LOG = 23` alongside the existing caps. PCS
 parameters remain q108/P20/fold4 for the conjectured target and q256/P0/fold4
 for the separate candidate. Facts distinguish general trace log and public
-boundary log; conditional degree accounting uses their maximum. Source
-summaries can report trace log 23 only with typed boundary provenance. The
+boundary log; conditional degree accounting uses their maximum. Current source
+summaries report the general trace maximum (at most 22) separately from the
+public-boundary maximum (at most 23). The first pinned v2 receipt used an
+inclusive trace maximum together with typed boundary provenance; that report
+field was subsequently tightened without changing the admitted proof bytes. The
 source-derived relation-support, multiplicity, global characteristic/mass,
 proof-count and transcript-round admission checks remain mandatory. Larger
 real blocks must pass those checks; this change supplies no universal
