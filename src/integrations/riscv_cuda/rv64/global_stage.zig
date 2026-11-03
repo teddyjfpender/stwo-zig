@@ -66,7 +66,7 @@ pub const Context = struct {
     pairs: *const @TypeOf(Abi.stwo_rv64_global_pairs_on),
     cumulative: ?CumulativeFn,
     entries: std.ArrayList(*Entry) = .empty,
-    twiddles: [23]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
+    twiddles: @import("global_twiddle_cache.zig").Table(engine.poly.twiddles.TwiddleTree([]M)) = @splat(null),
     mutex: std.Thread.Mutex = .{},
     pub fn init(service: *Service.Context) !Context {
         return .{ .service = service, .profile_ingress = std.process.hasEnvVarConstant("STWO_RV64_GLOBAL_PROFILE"), .api = .{
@@ -139,7 +139,7 @@ pub const Context = struct {
     }
     fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request) !DG.Witness {
         const log = request.log_size;
-        if (log < 5 or log > (if (request.public_boundary) @as(u32, 23) else @as(u32, 22)) or request.fixed.len == 0 or request.main.len == 0 or request.parameters.len == 0 or request.parameters.len > 65536 or request.groups[0] == 0 or request.groups[0] > 640 or request.groups[1] > 640) return error.InvalidGlobalGeometry;
+        if (log >= self.twiddles.len or log < 5 or log > (if (request.public_boundary) @as(u32, DG.MAX_PUBLIC_BOUNDARY_LOG) else @as(u32, 22)) or request.fixed.len == 0 or request.main.len == 0 or request.parameters.len == 0 or request.parameters.len > 65536 or request.groups[0] == 0 or request.groups[0] > 640 or request.groups[1] > 640) return error.InvalidGlobalGeometry;
         if (request.layout == .cumulative_batches and self.cumulative == null) return error.MissingResidentCumulativeCapability;
         for (request.fixed) |column| if (column.log_size != log) {
             return error.InvalidGlobalGeometry;

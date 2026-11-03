@@ -8,6 +8,7 @@ const Source = @import("source_authority.zig");
 const Global = @import("global_cpu.zig");
 const Manifest = @import("manifest.zig");
 pub const Shared = Manifest.Shared;
+pub const MAX_PUBLIC_BOUNDARY_LOG = @import("../../../word16_execution/om31_security_candidate.zig").MAX_PUBLIC_BOUNDARY_LOG;
 pub const Item = struct {
     descriptor: Source.Descriptor,
     log_size: u32,
