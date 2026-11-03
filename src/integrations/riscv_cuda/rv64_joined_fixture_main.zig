@@ -169,6 +169,9 @@ fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !voi
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-dag-control")) return @import("rv64/outer_proof_fixture.zig").run(a, .control_dag, "", args[2]);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-dag-proof")) return @import("rv64/outer_proof_fixture.zig").run(a, .gpu_dag, args[2], args[3]);
+    if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-dag-check")) return @import("rv64/outer_proof_fixture.zig").run(a, .verify_dag, args[2], args[3]);
     if (args.len == 3 and std.mem.eql(u8, args[1], "--outer-control")) return @import("rv64/outer_proof_fixture.zig").run(a, .control, "", args[2]);
     if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-proof")) return @import("rv64/outer_proof_fixture.zig").run(a, .gpu, args[2], args[3]);
     if (args.len == 4 and std.mem.eql(u8, args[1], "--outer-check")) return @import("rv64/outer_proof_fixture.zig").run(a, .verify, args[2], args[3]);

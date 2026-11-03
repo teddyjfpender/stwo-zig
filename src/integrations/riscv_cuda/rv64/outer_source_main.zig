@@ -40,10 +40,12 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
     const counts_start = @intFromPtr(owner.main_columns[92].device.?.words);
     const counts_bytes = @intFromPtr(owner.main_evaluations.words.? + cells) - counts_start;
     try S.checked(b.clear(raw, @ptrFromInt(counts_start), 0, counts_bytes));
-    var values = try ctx.allocate(owner.input.len * 4, 0);
+    var values = if (b.assignment) |*assignment| try assignment.generate(owner, &ctx) else try ctx.allocate(owner.input.len * 4, 0);
     defer ctx.release(&values) catch {};
-    const values_words = @as([*]const u32, @ptrCast(owner.input.ptr))[0 .. owner.input.len * 4];
-    try ctx.upload(try ctx.borrow(values), values_words);
+    if (b.assignment == null) {
+        const values_words = @as([*]const u32, @ptrCast(owner.input.ptr))[0 .. owner.input.len * 4];
+        try ctx.upload(try ctx.borrow(values), values_words);
+    }
     var status = try ctx.allocate(1, 0);
     defer ctx.release(&status) catch {};
     try S.checked(b.clear(raw, status.words.?, 0, 4));

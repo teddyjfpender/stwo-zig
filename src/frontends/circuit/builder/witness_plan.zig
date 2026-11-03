@@ -25,7 +25,7 @@ pub const Plan = struct {
 const missing = std.math.maxInt(u32);
 const seeded = missing - 1;
 const visiting = missing - 2;
-fn inputs(ctx: *const C.Context(Q), task: Task, buf: *[6]u32) []const u32 {
+pub fn inputs(ctx: *const C.Context(Q), task: Task, buf: *[6]u32) []const u32 {
     const circuit = &ctx.circuit;
     switch (task.kind) {
         .add, .sub, .mul, .pointwise_mul => {
@@ -61,7 +61,7 @@ fn inputs(ctx: *const C.Context(Q), task: Task, buf: *[6]u32) []const u32 {
         },
     }
 }
-fn outputs(ctx: *const C.Context(Q), task: Task, buf: *[4]u32) []const u32 {
+pub fn outputs(ctx: *const C.Context(Q), task: Task, buf: *[4]u32) []const u32 {
     const circuit = &ctx.circuit;
     buf[0] = switch (task.kind) {
         .add => circuit.add.items[task.index].out,
