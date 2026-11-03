@@ -30,7 +30,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit_mod = @import("circuit.zig");
 const ivalue = @import("ivalue.zig");
-pub const witness_origins = @import("witness_origins.zig");
+pub const witness_origins = @import("../witness_generation/origins.zig");
 const finalize_constants = @import("finalize_constants.zig");
 
 const Allocator = std.mem.Allocator;
@@ -195,6 +195,12 @@ pub fn Context(comptime V: type) type {
 
         pub fn noteWitnessHint(self: *Self, out: circuit_mod.Var, kind: witness_origins.Kind, a: circuit_mod.Var, b: circuit_mod.Var) Error!void {
             if (self.witness_metadata) |*metadata| try metadata.hint(out.idx, kind, a.idx, b.idx);
+        }
+
+        /// Generation-only byte hint of an existing packed-u32 wire. The
+        /// original packing/range constraints remain the only proof authority.
+        pub fn noteWitnessByte(self: *Self, out: circuit_mod.Var, source: circuit_mod.Var, index: u2, complement: bool) Error!void {
+            if (self.witness_metadata) |*metadata| try metadata.hint(out.idx, if (complement) .byte_complement else .byte, source.idx, index);
         }
 
         pub fn deinit(self: *Self) void {

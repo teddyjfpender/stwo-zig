@@ -22,8 +22,13 @@ const W = @import("../../word16_global_execution/services/gkr_local/worker_proto
 const T = @import("../../word16_global_execution/services/types.zig");
 const F = C.F;
 fn flag(ctx: *C.Context, count: F, native: u32) !F {
-    const nonzero = try F.guess(ctx, if (native == 0) C.O.zero() else C.O.one());
-    const inverse = try F.guess(ctx, if (native == 0) C.O.zero() else try C.O.fromBase(core.fields.m31.M31.fromCanonical(native)).inv());
+    const nonzero = try F.guess(ctx, if (ctx.trace_only or native == 0) C.O.zero() else C.O.one());
+    const inverse = try F.guess(ctx, if (ctx.trace_only or native == 0) C.O.zero() else try C.O.fromBase(core.fields.m31.M31.fromCanonical(native)).inv());
+    try ctx.noteWitnessHint(nonzero.c0.v, .is_nonzero, count.c0.v, ctx.zero());
+    try ctx.noteWitnessHint(nonzero.c1.v, .zero, ctx.zero(), ctx.zero());
+    // count is the canonical M31 projection of an admitted public count.
+    try ctx.noteWitnessHint(inverse.c0.v, .pointwise_inverse_or_zero, count.c0.v, ctx.zero());
+    try ctx.noteWitnessHint(inverse.c1.v, .zero, ctx.zero(), ctx.zero());
     try C.eq(ctx, nonzero.mul(nonzero.sub(F.one())), F.zero());
     try C.eq(ctx, count.mul(F.one().sub(nonzero)), F.zero());
     try C.eq(ctx, count.mul(inverse), nonzero);

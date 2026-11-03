@@ -3,7 +3,7 @@
 //! origins distinguish external inputs from deterministic, constrained hints.
 const std = @import("std");
 const Q = @import("stwo_core").fields.qm31.QM31;
-pub const Kind = enum { seed, inverse, divide, pointwise_inverse_or_zero, pointwise_lsb };
+pub const Kind = enum { seed, inverse, divide, pointwise_inverse_or_zero, pointwise_lsb, byte, byte_complement, is_nonzero, zero };
 pub const Origin = struct { out: u32, kind: Kind = .seed, a: u32 = 0, b: u32 = 0, value: Q = Q.zero() };
 pub const Permutation = enum(u8) { sort_by_u_coordinate };
 pub const Metadata = struct {
