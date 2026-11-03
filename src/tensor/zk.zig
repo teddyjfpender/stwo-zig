@@ -1929,14 +1929,7 @@ const T_GKR = [_]zks.Term{
     .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 3, 4 } },
     .{ .coeff = QM31.one(), .factors = &[_]u8{ 5, 6 } },
 };
-const GKR_PUBLIC = [7]bool{ true, false, false, false, false, true, false };
 
-/// eq (A0 D1 + A1 D0 + D0 D1) + et Q with 4 multiplications (T_GKR uses 7).
-const GkrEval = struct {
-    pub inline fn eval(c: *const [7]QM31) QM31 {
-        return c[0].mul(c[1].mul(c[4]).add(c[3].mul(c[2].add(c[4])))).add(c[5].mul(c[6]));
-    }
-};
 
 fn gkrPadPoint(aux: [4]QM31, r: []const QM31) [4]QM31 {
     var t: [4]QM31 = undefined;
