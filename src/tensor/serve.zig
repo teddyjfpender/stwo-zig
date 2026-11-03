@@ -159,65 +159,97 @@ fn nowNs(t0: std.time.Instant) u64 {
 
 /// Proves every request of a batch (in order) with one shared weight opening.
 pub fn proveRequests(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const proto.WeightStore, reqs: []const Request, timings: ?*BatchTimings) !Batch {
-    const R = reqs.len;
-    const rproofs = try a.alloc(RequestProof, R);
-    var n_done: usize = 0;
-    errdefer {
-        for (rproofs[0..n_done]) |*p| p.deinit(a);
-        a.free(rproofs);
-    }
-    const sets = try a.alloc(ClaimSet, R);
-    var n_sets: usize = 0;
-    errdefer {
-        for (sets[0..n_sets]) |*s| s.deinit(a);
-        a.free(sets);
-    }
-    var all: std.ArrayList(proto.WeightClaimP) = .empty;
-    defer all.deinit(a); // points are owned by `sets`
-
+    var bp = BatchProver.init(a, pool, cfg, ws);
+    defer bp.deinit();
     for (reqs, 0..) |rq, j| {
         const t0 = try std.time.Instant.now();
         var tm: proto.Timings = .{};
-        var tr = requestTranscript(rq.salt);
-        var wc: std.ArrayList(proto.WeightClaimP) = .empty;
-        defer proto.freeWeightClaims(a, &wc);
-        const core = if (rq.acc) |acc|
-            try proto.proveCore(a, pool, cfg, rq.st, ws, rq.witness, acc, &tm, &tr, &wc)
-        else blk: {
-            const acc = try proto.computeAccumulators(a, pool, rq.st, ws, rq.witness, cfg.accel);
-            defer {
-                for (acc) |x| if (x) |v| a.free(v);
-                a.free(acc);
-            }
-            break :blk try proto.proveCore(a, pool, cfg, rq.st, ws, rq.witness, acc, &tm, &tr, &wc);
-        };
-        rproofs[j] = .{ .salt = rq.salt, .core = core };
-        n_done += 1;
-        // move the claims into the slot (points change owner)
-        const n = wc.items.len;
-        var cs = ClaimSet{ .digest = tr.ch.digestBytes(), .w = try a.alloc(u32, n), .points = try a.alloc([]QM31, n), .values = try a.alloc(QM31, n) };
-        for (wc.items, 0..) |c, k| {
-            cs.w[k] = @intCast(c.w);
-            cs.points[k] = c.point;
-            cs.values[k] = c.value;
-        }
-        wc.clearRetainingCapacity();
-        sets[j] = cs;
-        n_sets += 1;
+        try bp.add(rq, &tm);
         if (timings) |bt| {
             bt.requests[j] = tm;
             bt.request_ns[j] = nowNs(t0);
         }
     }
-    for (sets) |s| for (s.w, s.points, s.values) |w, p, v| try all.append(a, .{ .w = w, .point = p, .value = v });
-
     const t0 = try std.time.Instant.now();
-    var tr = batchTranscript(ws.com.root(), sets);
-    const op = try proto.openWeightClaims(a, pool, cfg, &tr, ws, all.items);
-    a.free(op.values);
+    const batch = try bp.finish();
     if (timings) |bt| bt.shared_open_ns = nowNs(t0);
-    return .{ .requests = rproofs, .shared = .{ .requests = sets, .opening = op.opening } };
+    return batch;
 }
+
+/// Streaming batch prover: `add` proves one request's own part right away (the
+/// caller may then free its witness); `finish` produces the shared opening.
+pub const BatchProver = struct {
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: proto.Config,
+    ws: *const proto.WeightStore,
+    rproofs: std.ArrayList(RequestProof) = .empty,
+    sets: std.ArrayList(ClaimSet) = .empty,
+
+    pub fn init(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const proto.WeightStore) BatchProver {
+        return .{ .a = a, .pool = pool, .cfg = cfg, .ws = ws };
+    }
+
+    /// Frees whatever `finish` did not hand out.
+    pub fn deinit(self: *BatchProver) void {
+        for (self.rproofs.items) |*p| p.deinit(self.a);
+        self.rproofs.deinit(self.a);
+        for (self.sets.items) |*s| s.deinit(self.a);
+        self.sets.deinit(self.a);
+    }
+
+    pub fn add(self: *BatchProver, rq: Request, tm: *proto.Timings) !void {
+        const a = self.a;
+        try self.rproofs.ensureUnusedCapacity(a, 1);
+        try self.sets.ensureUnusedCapacity(a, 1);
+        var tr = requestTranscript(rq.salt);
+        var wc: std.ArrayList(proto.WeightClaimP) = .empty;
+        defer proto.freeWeightClaims(a, &wc);
+        var core = if (rq.acc) |acc|
+            try proto.proveCore(a, self.pool, self.cfg, rq.st, self.ws, rq.witness, acc, tm, &tr, &wc)
+        else blk: {
+            const acc = try proto.computeAccumulators(a, self.pool, rq.st, self.ws, rq.witness, self.cfg.accel);
+            defer {
+                for (acc) |x| if (x) |v| a.free(v);
+                a.free(acc);
+            }
+            break :blk try proto.proveCore(a, self.pool, self.cfg, rq.st, self.ws, rq.witness, acc, tm, &tr, &wc);
+        };
+        errdefer core.deinit(a);
+        const n = wc.items.len;
+        const w = try a.alloc(u32, n);
+        errdefer a.free(w);
+        const points = try a.alloc([]QM31, n);
+        errdefer a.free(points);
+        const values = try a.alloc(QM31, n);
+        // move the claims into the slot (points change owner)
+        for (wc.items, 0..) |c, k| {
+            w[k] = @intCast(c.w);
+            points[k] = c.point;
+            values[k] = c.value;
+        }
+        wc.clearRetainingCapacity();
+        self.rproofs.appendAssumeCapacity(.{ .salt = rq.salt, .core = core });
+        self.sets.appendAssumeCapacity(.{ .digest = tr.ch.digestBytes(), .w = w, .points = points, .values = values });
+    }
+
+    pub fn finish(self: *BatchProver) !Batch {
+        const a = self.a;
+        var all: std.ArrayList(proto.WeightClaimP) = .empty;
+        defer all.deinit(a); // points are owned by `sets`
+        for (self.sets.items) |s| for (s.w, s.points, s.values) |w, p, v| try all.append(a, .{ .w = w, .point = p, .value = v });
+        var tr = batchTranscript(self.ws.com.root(), self.sets.items);
+        var op = try proto.openWeightClaims(a, self.pool, self.cfg, &tr, self.ws, all.items);
+        a.free(op.values);
+        errdefer if (op.opening) |*o| o.deinit(a);
+        const rp = try self.rproofs.toOwnedSlice(a);
+        const sets = self.sets.toOwnedSlice(a) catch |e| {
+            self.rproofs = .fromOwnedSlice(rp);
+            return e;
+        };
+        return .{ .requests = rp, .shared = .{ .requests = sets, .opening = op.opening } };
+    }
+};
 
 pub fn initTimings(a: std.mem.Allocator, n: usize) !BatchTimings {
     const t = BatchTimings{ .requests = try a.alloc(proto.Timings, n), .request_ns = try a.alloc(u64, n) };

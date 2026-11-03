@@ -133,6 +133,17 @@ pub fn setupWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg, pc: prot
         w.* = try model.randomWeights(a, winfos[i].size(), seed + i, -8, 7);
         wv[i] = w.*;
     }
+    // router padding columns (>= E) are zero, as in a padded real router: they
+    // must not inflate the router's requant shift (coarse logits -> ties ->
+    // everything routed to expert 0)
+    for (0..cfg.n_layers) |l| {
+        const lc = cfg.layerCfg(@intCast(l));
+        if (!lc.isMoe()) continue;
+        const r = wdata[cfg.layerBase(@intCast(l)) + lc.wRouter()];
+        const ncol = @as(usize, 1) << @intCast(lc.routerLogCols());
+        const E = @as(usize, 1) << @intCast(lc.log_experts);
+        for (0..r.len / ncol) |row| @memset(r[row * ncol + E .. (row + 1) * ncol], 0);
+    }
     const ws = try proto.commitWeights(a, pool, pc, winfos, wv);
     return .{ .ws = ws, .wdata = wdata, .winfos = winfos };
 }
@@ -142,11 +153,15 @@ pub const GreedyOut = struct { m: u32, dr: u32, sel: u32, lt: u32 };
 /// The greedy-token check on int8 logits [2^lp, 2^lv] for public tokens.
 /// `tokens[t]` must be the least maximiser of row t (else the honest prover
 /// refuses at proving time: the range key fails).
+/// `logits` may have 2^lr >= 2^lp rows; the check covers its last 2^lp rows.
 pub fn greedyCheck(b: *tf.Builder, logits: u32, lp: u32, lv: u32, tokens: []const u32) !GreedyOut {
     const P = @as(usize, 1) << @intCast(lp);
     const V = @as(usize, 1) << @intCast(lv);
-    std.debug.assert(tokens.len == P and b.infos.items[logits].logSize() == lp + lv);
-    const L = b.wit.items[logits];
+    const lr = b.infos.items[logits].logSize() - lv;
+    std.debug.assert(tokens.len == P and lr >= lp);
+    const rows = @as(usize, 1) << @intCast(lr);
+    const L = b.wit.items[logits][(rows - P) * V ..];
+    const rowfix = tf.fixesOf(rows - 1, lr - lp); // top row bits = 1: the last 2^lp rows
     const sel = try b.a.alloc(i32, P * V);
     defer b.a.free(sel);
     const ltv = try b.a.alloc(i32, P * V);
@@ -176,7 +191,7 @@ pub fn greedyCheck(b: *tf.Builder, logits: u32, lp: u32, lv: u32, tokens: []cons
     const dr_id = try b.addVec(n, dr);
     const all = ids(0, n);
     // (1) Dr - m + logits = 0
-    try b.lineq(n, try b.expr(&.{ term(1, Ref.w(dr_id), &.{all}), term(-1, Ref.w(m_id), &.{ids(0, lp)}), term(1, Ref.w(logits), &.{all}) }, 0));
+    try b.lineq(n, try b.expr(&.{ term(1, Ref.w(dr_id), &.{all}), term(-1, Ref.w(m_id), &.{ids(0, lp)}), term(1, Ref.w(logits), &.{ rowfix, all }) }, 0));
     // (2) Dr - Lt in [0, 256)
     try b.key(n, try b.expr(&.{ term(1, Ref.w(dr_id), &.{all}), term(-1, Ref.p(lt_id), &.{all}) }, 0), null, .{ .range = 8 });
     // (3) sum_v Sel Dr = 0 per row
@@ -206,7 +221,113 @@ pub const ModelOut = struct {
     greedy: GreedyOut,
     /// greedy tokens of the last 2^log_out positions (owned by the builder arena)
     tokens: []u32,
+    /// largest number of tokens routed to one expert (any MoE layer)
+    max_expert_load: usize = 0,
+    /// router input (RMSNorm output) of each MoE layer, in layer order
+    router_in: []const u32 = &.{},
+    router_logits: []const u32 = &.{},
 };
+
+/// Synthetic-weight calibration (offline, before the commitment): with random
+/// weights the router inputs of all tokens share one dominant direction (with
+/// a per-token sign and scale), so a random router sends most tokens to one
+/// expert, unlike a trained, load-balanced router. For each MoE layer and
+/// pass, remove from every used router column its projection on the 2E
+/// dominant directions of a calibration window's router inputs
+/// (w_x -= sum_k mu_k (mu_k . w_x), |mu_k| = 1, then rounded); routing then
+/// follows the rest of the token's features. Edits `ws.table` in place; the caller re-commits.
+pub fn calibrateRouters(a: std.mem.Allocator, pool: *f.Pool, cfg: ModelCfg, ws: *proto.WeightStore, x: []const i32, passes: usize) !void {
+    if (cfg.log_experts == 0) return;
+    var full = cfg;
+    full.log_capacity = cfg.log_t;
+    const T = @as(usize, 1) << @intCast(cfg.log_t);
+    const D = @as(usize, 1) << @intCast(cfg.log_d);
+    const E = @as(usize, 1) << @intCast(cfg.log_experts);
+    for (0..passes) |_| {
+        var moe_i: usize = 0;
+        for (0..cfg.n_layers) |l| {
+            if (!cfg.isMoeLayer(@intCast(l))) continue;
+            var b = tf.Builder.init(a, pool);
+            defer b.deinit();
+            const mo = try buildModel(&b, full, ws, 7, x, null);
+            const y = b.wit.items[mo.router_in[moe_i]];
+            moe_i += 1;
+            // the K dominant directions of the router inputs (top right
+            // singular vectors of Y [T, D], uncentered): power iteration with
+            // Gram-Schmidt against the earlier ones
+            const K = @min(2 * E, D);
+            const mus = try a.alloc(f64, K * D);
+            defer a.free(mus);
+            const tmp = try a.alloc(f64, T);
+            defer a.free(tmp);
+            for (0..K) |k| {
+                const mu = mus[k * D ..][0..D];
+                for (mu, 0..) |*v, d| v.* = 1.0 + @as(f64, @floatFromInt((d * (k + 3)) % 11)) * 0.1;
+                for (0..40) |_| {
+                    for (0..T) |t| {
+                        var acc: f64 = 0;
+                        for (0..D) |d| acc += @as(f64, @floatFromInt(y[t * D + d])) * mu[d];
+                        tmp[t] = acc;
+                    }
+                    @memset(mu, 0);
+                    for (0..T) |t| for (0..D) |d| {
+                        mu[d] += tmp[t] * @as(f64, @floatFromInt(y[t * D + d]));
+                    };
+                    for (0..k) |q| {
+                        const u = mus[q * D ..][0..D];
+                        var dot: f64 = 0;
+                        for (u, mu) |p, v| dot += p * v;
+                        for (u, mu) |p, *v| v.* -= dot * p;
+                    }
+                    var nrm: f64 = 0;
+                    for (mu) |v| nrm += v * v;
+                    if (nrm == 0) break;
+                    nrm = @sqrt(nrm);
+                    for (mu) |*v| v.* /= nrm;
+                }
+            }
+            const lc = cfg.layerCfg(@intCast(l));
+            const wr = ws.matrix(cfg.layerBase(@intCast(l)) + lc.wRouter());
+            const ncol = wr.nCols();
+            const data = @constCast(wr.data);
+            const col_f = try a.alloc(f64, D);
+            defer a.free(col_f);
+            for (0..E) |col| {
+                for (0..D) |d| col_f[d] = @floatFromInt(data[d * ncol + col]);
+                for (0..K) |k| {
+                    const mu = mus[k * D ..][0..D];
+                    var sx: f64 = 0;
+                    for (0..D) |d| sx += mu[d] * col_f[d];
+                    for (0..D) |d| col_f[d] -= mu[d] * sx;
+                }
+                for (0..D) |d| data[d * ncol + col] = @intFromFloat(std.math.clamp(@round(col_f[d]), -128, 127));
+            }
+        }
+    }
+}
+
+/// Re-commits a weight store after its table was edited in place.
+pub fn recommit(a: std.mem.Allocator, pool: *f.Pool, pc: proto.Config, ws: *proto.WeightStore) !void {
+    const n = ws.infos.len;
+    const views = try a.alloc([]const i8, n);
+    defer a.free(views);
+    const copies = try a.alloc([]i8, n);
+    defer a.free(copies);
+    for (0..n) |i| {
+        copies[i] = try a.dupe(i8, ws.matrix(i).data);
+        views[i] = copies[i];
+    }
+    defer for (copies) |c| a.free(c);
+    const infos = ws.infos;
+    ws.deinit(a);
+    ws.* = try proto.commitWeights(a, pool, pc, infos, views);
+}
+
+/// Smallest log capacity that holds every expert's tokens of a forward pass
+/// with full capacity (statement parameter chosen per request by the prover).
+pub fn fitCapacity(max_load: usize) u32 {
+    return std.math.log2_int_ceil(usize, @max(max_load, 1));
+}
 
 /// Builds a request: public input embeddings x_in [T, D] (int8), the layer
 /// stack, the LM head and the greedy check. `claim` overrides the output
@@ -230,28 +351,42 @@ pub fn buildModel(b: *tf.Builder, cfg: ModelCfg, ws: *const proto.WeightStore, s
     var x = try b.add(TensorInfo.mat(lt, ld), try b.a.dupe(i32, x_in));
     const x_id = x;
     try b.lineq(n_x, try b.expr(&.{ term(1, Ref.w(x), &.{ids(0, n_x)}), term(-1, Ref.p(x_pub), &.{ids(0, n_x)}) }, 0));
+    var max_load: usize = 0;
+    var router_in: std.ArrayList(u32) = .empty;
+    var router_logits: std.ArrayList(u32) = .empty;
     for (0..cfg.n_layers) |l| {
         var c = c0;
         c.cfg = cfg.layerCfg(@intCast(l));
         const o = try tf.decoderLayerAt(b, c, @intCast(l), cfg.layerBase(@intCast(l)), x, l == 0);
         x = o.out;
+        if (o.moe) |m| {
+            try router_in.append(b.arena.allocator(), o.rms2.y);
+            try router_logits.append(b.arena.allocator(), m.logits);
+        }
+        if (o.moe) |m| {
+            var load: [64]usize = [_]usize{0} ** 64;
+            for (m.expert_of) |e| load[e] += 1;
+            for (load) |n| max_load = @max(max_load, n);
+        }
     }
-    // last 2^lp positions
+    // last 2^lh positions go through the head (lh >= 1: GKR instances need >= 2
+    // entries); the greedy check covers the last 2^lp of them
     const lp = cfg.log_out;
+    const lh = @max(lp, @min(lt, 1));
     var hs = x;
-    if (lp < lt) {
+    if (lh < lt) {
         const D = @as(usize, 1) << @intCast(ld);
-        const P = @as(usize, 1) << @intCast(lp);
+        const Ph = @as(usize, 1) << @intCast(lh);
         const T = @as(usize, 1) << @intCast(lt);
-        const sl = try b.a.dupe(i32, b.wit.items[x][(T - P) * D ..][0 .. P * D]);
-        hs = try b.add(TensorInfo.mat(lp, ld), sl);
-        const ones = tf.fixesOf((@as(usize, 1) << @intCast(lt - lp)) - 1, lt - lp);
-        try b.lineq(lp + ld, try b.expr(&.{ term(1, Ref.w(hs), &.{ids(0, lp + ld)}), term(-1, Ref.w(x), &.{ ones, ids(0, lp + ld) }) }, 0));
+        const sl = try b.a.dupe(i32, b.wit.items[x][(T - Ph) * D ..][0 .. Ph * D]);
+        hs = try b.add(TensorInfo.mat(lh, ld), sl);
+        const ones = tf.fixesOf((@as(usize, 1) << @intCast(lt - lh)) - 1, lt - lh);
+        try b.lineq(lh + ld, try b.expr(&.{ term(1, Ref.w(hs), &.{ids(0, lh + ld)}), term(-1, Ref.w(x), &.{ ones, ids(0, lh + ld) }) }, 0));
     }
     // final RMSNorm (public gamma) and LM head
     var ch = c0;
     ch.cfg = cfg.layerCfg(0);
-    ch.cfg.log_t = lp;
+    ch.cfg.log_t = lh;
     var prng = std.Random.DefaultPrng.init(seed ^ 0x5eed);
     const g = try b.a.alloc(i32, @as(usize, 1) << @intCast(ld));
     defer b.a.free(g);
@@ -261,11 +396,12 @@ pub fn buildModel(b: *tf.Builder, cfg: ModelCfg, ws: *const proto.WeightStore, s
     const logits = try b.matmul(ws, r.y, cfg.lmHead());
     const P = @as(usize, 1) << @intCast(lp);
     const V = @as(usize, 1) << @intCast(cfg.log_vocab);
-    const greedy = try greedyTokens(b.a, b.wit.items[logits], P, V);
+    const Ph = @as(usize, 1) << @intCast(lh);
+    const greedy = try greedyTokens(b.a, b.wit.items[logits][(Ph - P) * V ..], P, V);
     defer b.a.free(greedy);
     const toks = try b.arena.allocator().dupe(u32, claim orelse greedy);
     const gc = try greedyCheck(b, logits, lp, cfg.log_vocab, toks);
-    return .{ .x = x_id, .hidden = x, .logits = logits, .greedy = gc, .tokens = toks };
+    return .{ .x = x_id, .hidden = x, .logits = logits, .greedy = gc, .tokens = toks, .max_expert_load = max_load, .router_in = router_in.items, .router_logits = router_logits.items };
 }
 
 // ---------------------------------------------------------------------------
@@ -284,6 +420,36 @@ fn testPc() proto.Config {
         .gkr_threads = 2,
         .batch_matmuls = true,
     };
+}
+
+test "model with one checked output token (log_out = 0) proves and verifies" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    var cfg = SmallModel;
+    cfg.log_out = 0;
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, &pool, cfg, pc, 900);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 77);
+    defer a.free(x);
+    const mo = try buildModel(&b, cfg, &sw.ws, 3, x, null);
+    try testing.expectEqual(@as(usize, 1), mo.tokens.len);
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    const reqs = [_]serve.Request{.{ .st = b.statement(), .witness = wv, .salt = serve.testSalt(5) }};
+    var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
+    defer batch.deinit(a);
+    try serve.verifyRequest(a, pc, reqs[0].st, proto.weightKey(&sw.ws), &batch.requests[0], &batch.shared, 0);
 }
 
 const SmallModel = ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 6, .log_out = 1, .weight_log_cols = 3 };
@@ -316,8 +482,9 @@ test "model stack (dense + MoE interleaved), LM head and greedy output: per-requ
         defer a.free(x);
         outs[j] = try buildModel(&bs[j], cfg, &sw.ws, 3, x, null);
         // the claimed tokens are the least maximisers (direct reference)
-        const L = bs[j].wit.items[outs[j].logits];
         const V = @as(usize, 1) << cfg.log_vocab;
+        const Lall = bs[j].wit.items[outs[j].logits];
+        const L = Lall[Lall.len - (outs[j].tokens.len * V) ..];
         for (outs[j].tokens, 0..) |tok, t| {
             for (0..V) |v| {
                 try testing.expect(L[t * V + v] <= L[t * V + tok]);

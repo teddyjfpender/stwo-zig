@@ -2,6 +2,8 @@
 //!
 //!   tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]
 //!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity] [fused_qkv=1]
+//!   tensor-bench model key=value ...   (model-scale serving bench; see runServe)
+//!   tensor-bench size-model ...        (pcs2 size model, no proving)
 //!
 //! Prints one JSON object with timings, sizes and derived metrics.
 const std = @import("std");
@@ -106,7 +108,8 @@ pub fn main() !void {
     const args = kept.items;
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 2 and std.mem.eql(u8, args[1], "prims")) return @import("bench_prims.zig").run(a, if (args.len > 2) try std.fmt.parseInt(usize, args[2], 10) else 1);
-    if (args.len >= 9 and std.mem.eql(u8, args[1], "model")) return runModel(args);
+    if (args.len >= 9 and std.mem.eql(u8, args[1], "size-model")) return runModel(args);
+    if (args.len >= 2 and std.mem.eql(u8, args[1], "model")) return runServe(a, args);
     if (args.len >= 6 and std.mem.eql(u8, args[1], "layer")) return runLayer(a, args);
     if (args.len < 5 or !std.mem.eql(u8, args[1], "mlp")) {
         std.debug.print("usage: tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]\n", .{});
@@ -277,7 +280,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     a.free(wview);
 }
 
-/// tensor-bench model <log_total> <used> <n_rows> <queries> <log_blowup> <depth> <inner_queries> <inner_log_blowup> [inner_work_shift]
+/// tensor-bench size-model <log_total> <used> <n_rows> <queries> <log_blowup> <depth> <inner_queries> <inner_log_blowup> [inner_work_shift]
 /// Prints the pcs2 size model's chosen outer split and predicted opening bytes
 /// (no proving; used for extrapolation).
 fn runModel(args: []const [:0]u8) !void {
@@ -374,4 +377,264 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
 
 fn cfg0Dkv(lh: u32, lkv: u32, ld: u32) u32 {
     return lkv + (ld - lh);
+}
+
+// ---------------------------------------------------------------------------
+// tensor-bench model: per-request serving at model scale (lm.zig + serve.zig).
+
+const KV = struct {
+    args: []const [:0]u8,
+    fn get(self: KV, k: []const u8, default: u64) !u64 {
+        for (self.args[2..]) |arg| {
+            const eq = std.mem.indexOfScalar(u8, arg, '=') orelse continue;
+            if (std.mem.eql(u8, arg[0..eq], k)) return std.fmt.parseInt(u64, arg[eq + 1 ..], 10);
+        }
+        return default;
+    }
+};
+
+/// tensor-bench model [t=8] [d=10] [f=12] [h=3] [kv=1] [layers=4] [e=3] [fe=11] [cap=0] [v=15] [out=0]
+///   [r=1] [threads=12] [q=54] [lb=2] [pow=20] [depth=2] [iq=54] [ilb=2] [ipow=20] [bm=1] [verify=r]
+///   [seed=1] [calib=1] [key=1] [moe_every=2] [--metal]
+/// log2 sizes: t tokens/window, d model, f dense MLP, h query heads, kv KV heads,
+/// e experts (0 = dense), fe expert width, cap slots per expert (0 = fitted per
+/// request), v vocab, out checked output positions; r requests per batch;
+/// depth=0 selects flat Ligero; calib = router calibration passes; key=0 skips
+/// the offline weight-key proof.
+fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
+    const kv = KV{ .args = args };
+    const lt: u32 = @intCast(try kv.get("t", 8));
+    const ld: u32 = @intCast(try kv.get("d", 10));
+    const lf: u32 = @intCast(try kv.get("f", 12));
+    const le: u32 = @intCast(try kv.get("e", 3));
+    const lfe: u32 = @intCast(try kv.get("fe", 11));
+    const R: usize = @intCast(try kv.get("r", 1));
+    const threads: usize = @intCast(try kv.get("threads", 12));
+    const cap_arg = try kv.get("cap", 0);
+    const n_verify: usize = @min(R, @as(usize, @intCast(try kv.get("verify", R))));
+    var cfg = t.lm.ModelCfg{
+        .log_t = lt,
+        .log_d = ld,
+        .log_f = lf,
+        .log_heads = @intCast(try kv.get("h", 3)),
+        .log_kv_heads = @intCast(try kv.get("kv", 1)),
+        .n_layers = @intCast(try kv.get("layers", 4)),
+        .log_experts = le,
+        .log_f_expert = lfe,
+        .log_capacity = if (cap_arg == 0) lt else @intCast(cap_arg),
+        .log_vocab = @intCast(try kv.get("v", 15)),
+        .log_out = @intCast(try kv.get("out", 0)),
+        .moe_every = @intCast(try kv.get("moe_every", 2)),
+    };
+    const outer = t.pcs.Params{ .n_queries = @intCast(try kv.get("q", 54)), .log_blowup = @intCast(try kv.get("lb", 2)), .pow_bits = @intCast(try kv.get("pow", 20)) };
+    var pc = proto.Config{ .pcs = outer, .witness_log_cols_max = 14, .gkr_threads = threads, .batch_matmuls = (try kv.get("bm", 1)) != 0 };
+    const depth: u32 = @intCast(try kv.get("depth", 2));
+    if (depth > 0) {
+        pc.two_level = .{ .outer = outer, .depth = depth, .inner = .{ .n_queries = @intCast(try kv.get("iq", 54)), .log_blowup = @intCast(try kv.get("ilb", 2)), .pow_bits = @intCast(try kv.get("ipow", 20)) } };
+    }
+    // every matmul output is >= min(D, F, F_e) wide (fused QKV); the router is padded to it
+    var wlc = @min(@min(ld, lf), 13);
+    if (le > 0) wlc = @min(wlc, lfe);
+    cfg.weight_log_cols = wlc;
+    pc.weight_log_cols = wlc;
+    try cfg.validate();
+    pc.accel = accelFor();
+    var pool: f.Pool = undefined;
+    try pool.init(a, threads);
+    defer pool.deinit();
+    if (pc.two_level != null) {
+        const wi = try t.lm.weightInfos(a, cfg);
+        defer a.free(wi);
+        pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, wi, wi.len * R);
+    }
+    const seed = try kv.get("seed", 1);
+
+    // --- offline: commit the weights, weight key proof
+    var t0 = now();
+    var sw = try t.lm.setupWeights(a, &pool, cfg, pc, 100 + seed);
+    const commit_s = secs(t0);
+    for (sw.wdata) |w| a.free(w); // the store keeps its own table
+    a.free(sw.wdata);
+    sw.wdata = &.{};
+    // calib=n: n passes of router calibration (balanced routing, as a trained
+    // MoE router), then re-commit (not timed as commit)
+    const calib: usize = @intCast(try kv.get("calib", 1));
+    t0 = now();
+    if (le > 0 and calib > 0) {
+        const xc = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 999_999);
+        defer a.free(xc);
+        try t.lm.calibrateRouters(a, &pool, cfg, &sw.ws, xc, calib);
+        try t.lm.recommit(a, &pool, pc, &sw.ws);
+    }
+    const calib_s = secs(t0);
+    const rss_after_commit = peakRssBytes();
+    // key=0 skips the offline weight-key proof (its GKR over every weight sets
+    // the offline memory peak; the online numbers do not depend on it)
+    const with_key = (try kv.get("key", 1)) != 0;
+    t0 = now();
+    var pc_key = pc;
+    if (std.posix.getenv("TENSOR_KEY_CPU") != null) pc_key.accel = null;
+    var prox: ?t.weight_key.KeyProof = if (with_key) try t.weight_key.prove(a, &pool, pc_key, &sw.ws) else null;
+    const key_s = secs(t0);
+    const key = proto.weightKey(&sw.ws);
+    t0 = now();
+    if (prox) |*p| try t.weight_key.verify(a, pc, key, p);
+    const key_verify_s = secs(t0);
+    const rss_after_key = peakRssBytes();
+
+    // --- online: R requests, each built (forward pass) and proved, witness dropped
+    const builders = try a.alloc(tf.Builder, R);
+    defer a.free(builders);
+    const stmts = try a.alloc(proto.Statement, R);
+    defer a.free(stmts);
+    var n_built: usize = 0;
+    defer for (builders[0..n_built]) |*b| b.deinit();
+    var bp = t.serve.BatchProver.init(a, &pool, pc, &sw.ws);
+    defer bp.deinit();
+    var forward_ns: u64 = 0;
+    var max_load: usize = 0;
+    var cap_used: u32 = 0;
+    var prove_ns: u64 = 0;
+    var tm_sum: proto.Timings = .{};
+    var tm_first: proto.Timings = .{};
+    var witness_elems: usize = 0;
+    var table_elems: usize = 0;
+    var n_wit: usize = 0;
+    var n_core: usize = 0;
+    var n_ext: usize = 0;
+    const tokens = try a.alloc(u32, R << @intCast(cfg.log_out));
+    defer a.free(tokens);
+    const D = @as(usize, 1) << @intCast(ld);
+    const T = @as(usize, 1) << @intCast(lt);
+    const t_all = now();
+    for (0..R) |j| {
+        builders[j] = tf.Builder.init(a, &pool);
+        n_built += 1;
+        const b = &builders[j];
+        // the window's embedding rows (public input; int8)
+        const x = try model.randomInput(a, T * D, 1000 * seed + j);
+        defer a.free(x);
+        // The expert capacity is a per-request statement parameter. cap=0
+        // (default): the smallest power of two holding the request's largest
+        // expert load, found by an untimed full-capacity forward pass (a
+        // serving prover knows the routing after its forward pass anyway).
+        // cap=c > 0: fixed, refit only on overflow.
+        var rcfg = cfg;
+        if (cap_arg == 0 and le > 0) {
+            rcfg.log_capacity = lt;
+            var probe = tf.Builder.init(a, &pool);
+            defer probe.deinit();
+            const full = try t.lm.buildModel(&probe, rcfg, &sw.ws, 7, x, null);
+            rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
+        }
+        t0 = now();
+        const mo = t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null) catch |e| blk: {
+            if (e != error.CapacityExceeded) return e;
+            b.deinit();
+            builders[j] = tf.Builder.init(a, &pool);
+            rcfg.log_capacity = lt;
+            const full = try t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null);
+            rcfg.log_capacity = t.lm.fitCapacity(full.max_expert_load);
+            b.deinit();
+            builders[j] = tf.Builder.init(a, &pool);
+            t0 = now();
+            break :blk try t.lm.buildModel(b, rcfg, &sw.ws, 7, x, null);
+        };
+        forward_ns += now().since(t0);
+        max_load = @max(max_load, mo.max_expert_load);
+        cap_used = @max(cap_used, rcfg.log_capacity);
+        @memcpy(tokens[j << @intCast(cfg.log_out) ..][0..mo.tokens.len], mo.tokens);
+        stmts[j] = b.statement();
+        const wv = try b.witnessView(a);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        t0 = now();
+        try bp.add(.{ .st = stmts[j], .witness = wv, .salt = t.serve.testSalt(seed * 1000 + j) }, &tm);
+        prove_ns += now().since(t0);
+        if (j == 0) tm_first = tm;
+        inline for (@typeInfo(proto.Timings).@"struct".fields) |fld| {
+            if (fld.type == u64) @field(tm_sum, fld.name) += @field(tm, fld.name);
+        }
+        witness_elems = tm.witness_elems;
+        table_elems = tm.witness_table_elems;
+        n_wit = stmts[j].witness.len;
+        n_core = stmts[j].ops.len;
+        n_ext = stmts[j].ext.ops.len;
+        // drop the witness (the statement stays for verification)
+        for (b.wit.items) |*w| {
+            a.free(w.*);
+            w.* = w.*[0..0];
+        }
+    }
+    t0 = now();
+    var batch = try bp.finish();
+    defer batch.deinit(a);
+    const shared_s = secs(t0);
+    const total_s = secs(t_all);
+    const peak_rss = peakRssBytes();
+
+    // --- verify (single thread): every request, or the first `verify`
+    var v_min: f64 = 1e30;
+    var v_max: f64 = 0;
+    var v_sum: f64 = 0;
+    for (0..n_verify) |j| {
+        t0 = now();
+        try t.serve.verifyRequest(a, pc, stmts[j], key, &batch.requests[j], &batch.shared, j);
+        const s = secs(t0);
+        v_min = @min(v_min, s);
+        v_max = @max(v_max, s);
+        v_sum += s;
+    }
+
+    // --- sizes
+    var own_sum: usize = 0;
+    var own_max: usize = 0;
+    for (batch.requests) |rp| {
+        own_sum += rp.byteSize();
+        own_max = @max(own_max, rp.byteSize());
+    }
+    const sz0 = batch.requests[0].core.sizes();
+    const shared_claims = batch.shared.claimBytes();
+    const shared_open = batch.shared.openingBytes();
+    var n_weights: usize = 0;
+    for (sw.winfos) |wi| n_weights += wi.size();
+    // weights touched per token: attention + dense MLP of every layer, router +
+    // one expert of each MoE layer, and the LM head
+    var active: usize = 0;
+    for (0..cfg.n_layers) |l| {
+        const lc = cfg.layerCfg(@intCast(l));
+        const wb = cfg.layerBase(@intCast(l));
+        for (0..lc.weightsPerLayer()) |i| {
+            const sz = sw.winfos[wb + i].size();
+            if (lc.isMoe() and i >= lc.wExpert(0) and i < lc.wExpert(1)) {
+                active += sz; // one expert's three matrices
+            } else if (lc.isMoe() and i >= lc.wExpert(1)) {
+                continue;
+            } else active += sz;
+        }
+    }
+    active += sw.winfos[cfg.lmHead()].size();
+
+    const n_tok: f64 = @floatFromInt(R * T);
+    const Rf: f64 = @floatFromInt(R);
+    const out = std.fs.File.stdout().deprecatedWriter();
+    try out.print("{{\"bench\":\"model\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"layers\":{d},\"moe_layers\":{d},\"log_experts\":{d},\"log_f_expert\":{d},\"log_capacity\":{d},\"log_capacity_used\":{d},\"max_expert_load\":{d},\"log_vocab\":{d},\"log_out\":{d},\"requests\":{d},\"threads\":{d},\"metal\":{},\"batch_matmuls\":{},", .{ lt, ld, lf, cfg.log_heads, cfg.log_kv_heads, cfg.n_layers, cfg.nMoeLayers(), le, lfe, cfg.log_capacity, cap_used, max_load, cfg.log_vocab, cfg.log_out, R, threads, pc.accel != null, pc.batch_matmuls });
+    try printTl(out, pc);
+    try out.print("\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},", .{ outer.n_queries, outer.log_blowup, outer.pow_bits, pc.weight_log_cols });
+    try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems });
+    try out.print("\"offline\":{{\"calib_passes\":{d},\"calib_s\":{d:.3},\"commit_s\":{d:.3},\"key_proof_s\":{d:.3},\"key_verify_s\":{d:.4},\"key_bytes\":{d},\"rss_after_commit\":{d},\"rss_after_key\":{d}}},", .{ calib, calib_s, commit_s, key_s, key_verify_s, if (prox) |p| p.byteSize() else 0, rss_after_commit, rss_after_key });
+    try out.print("\"forward_s\":{d:.4},\"prove_requests_s\":{d:.4},\"shared_open_s\":{d:.4},\"total_s\":{d:.4},", .{ nsToS(forward_ns), nsToS(prove_ns), shared_s, total_s });
+    try out.print("\"s_per_request\":{d:.4},\"prove_s_per_request\":{d:.4},\"tokens_per_s\":{d:.2},\"tokens_per_s_prove_only\":{d:.2},", .{ total_s / Rf, (nsToS(prove_ns) + shared_s) / Rf, n_tok / total_s, n_tok / (nsToS(prove_ns) + shared_s) });
+    try out.print("\"stage_s_sum\":{{\"ext_init\":{d:.4},\"multiplicities\":{d:.4},\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"ext_terminal\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"shared_weight_open\":{d:.4}}},", .{ nsToS(tm_sum.ext_init_ns), nsToS(tm_sum.multiplicities_ns), nsToS(tm_sum.witness_commit_ns), nsToS(tm_sum.gkr_ns), nsToS(tm_sum.ext_terminal_ns), nsToS(tm_sum.op_sumcheck_ns), nsToS(tm_sum.weight_fold_ns), nsToS(tm_sum.batch_ns), nsToS(tm_sum.witness_open_ns), shared_s });
+    try out.print("\"request_bytes\":{{\"own\":{d},\"own_max\":{d},\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"shared_claims\":{d},\"shared_opening\":{d},\"per_request_total\":{d},\"amortized\":{d:.0}}},", .{ own_sum / R, own_max, sz0.gkr, sz0.sumchecks, batch.requests[0].core.ext.byteSize(), sz0.witness_opening, shared_claims, shared_open, own_max + shared_claims + shared_open, @as(f64, @floatFromInt(own_sum + shared_claims + shared_open)) / Rf });
+    if (batch.shared.opening) |wo| try printLevels(out, "shared_levels", wo);
+    try out.print("\"verify_s\":{{\"n\":{d},\"min\":{d:.4},\"mean\":{d:.4},\"max\":{d:.4}}},", .{ n_verify, v_min, v_sum / @as(f64, @floatFromInt(@max(n_verify, 1))), v_max });
+    try out.print("\"first_tokens\":[", .{});
+    for (tokens[0..@min(tokens.len, 8)], 0..) |tok, i| try out.print("{s}{d}", .{ if (i == 0) "" else ",", tok });
+    try out.print("],", .{});
+    try printGpuStats(out);
+    try out.print("\"peak_rss_bytes\":{d}}}\n", .{peak_rss});
+    if (prox) |*p| p.deinit(a);
+    sw.ws.deinit(a);
+    a.free(sw.winfos);
 }
