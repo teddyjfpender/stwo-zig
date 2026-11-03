@@ -32,6 +32,13 @@ test "om31 outer actual q108 P20 circuit proof fresh receiver and mutations" {
     var capture = try Prove.verify(a, &key, proof.outputs, proof.claims, &proof.proof.proof);
     defer capture.deinit(a);
     const verify_ns = timer.lap();
+    const Wire = @import("wire.zig");
+    const encoded = try Wire.encode(a, key.identity, proof.outputs, proof.claims, &proof.proof.proof);
+    defer a.free(encoded);
+    var decoded = try Wire.decode(a, key.identity, key.pp.n_outputs, encoded);
+    defer decoded.deinit();
+    var received = try Prove.verify(a, &key, decoded.outputs, decoded.claims, &decoded.proof);
+    defer received.deinit(a);
     try std.testing.expectEqual(@as(u32, 108), proof.proof.proof.commitment_scheme_proof.config.fri_config.n_queries);
     try std.testing.expectEqual(@as(u32, 20), proof.proof.proof.commitment_scheme_proof.config.pow_bits);
     proof.claims.eq = proof.claims.eq.add(P.O.basis());
