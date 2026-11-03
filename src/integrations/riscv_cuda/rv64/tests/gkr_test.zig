@@ -165,3 +165,83 @@ test "closure GKR path reserves its verdict before any launch and requires it af
     try done.validate(header, 0);
     try std.testing.expectError(error.LocalGkrClosureRejected, done.validate(header, 8));
 }
+
+fn regionOverlaps(x: @import("../plan.zig").Region, y: @import("../plan.zig").Region) bool {
+    if (x.words == 0 or y.words == 0) return false;
+    return x.offset_words < y.offset_words + y.words and y.offset_words < x.offset_words + x.words;
+}
+test "consumed GKR tree levels are the exact fold banks and never overlap live gate inputs" {
+    const heights = [_]u32{ 1, 2, 3, 4, 7, 10, 12 };
+    const plan = try G.Plan.init(&heights, std.math.maxInt(usize));
+    for (heights, 0..) |height, oracle| {
+        var remaining = height;
+        while (remaining != 0) : (remaining -= 1) {
+            const banks = try plan.foldingBanks(oracle, remaining);
+            const source_count = (@as(u32, 1) << @intCast(height)) >> @intCast(remaining - 1);
+            try std.testing.expectEqual(@max(1, source_count / 2), banks[0].count);
+            try std.testing.expectEqual(@max(1, source_count / 4), banks[1].count);
+            // At zero/one sumcheck variables the unused second bank may be the
+            // same root; B.enqueue does not reserve or touch that unused bank.
+            const used_banks: usize = if (source_count == 2) 0 else if (source_count == 4) 1 else 2;
+            for (banks[0..used_banks]) |bank| {
+                try std.testing.expectEqual(@as(u64, 8) * bank.count, bank.n.words);
+                try std.testing.expectEqual(@as(u64, 8) * bank.count, bank.d.words);
+                try std.testing.expect(!regionOverlaps(bank.n, bank.d));
+                for (plan.oracles[oracle].tree[0 .. remaining - 1]) |live| {
+                    for ([_]@import("../plan.zig").Region{ bank.n, bank.d }) |target| {
+                        try std.testing.expect(!regionOverlaps(target, live.n));
+                        try std.testing.expect(!regionOverlaps(target, live.d));
+                    }
+                }
+                for (heights, 0..) |other_height, other| {
+                    if (other == oracle) continue;
+                    for (plan.oracles[other].tree[0..other_height]) |foreign| {
+                        try std.testing.expect(!regionOverlaps(bank.n, foreign.n));
+                        try std.testing.expect(!regionOverlaps(bank.n, foreign.d));
+                        try std.testing.expect(!regionOverlaps(bank.d, foreign.n));
+                        try std.testing.expect(!regionOverlaps(bank.d, foreign.d));
+                    }
+                }
+                for ([_]@import("../plan.zig").Region{ plan.state, plan.batch_state, plan.roots, plan.eq, plan.projected }) |authority| {
+                    try std.testing.expect(!regionOverlaps(bank.n, authority));
+                    try std.testing.expect(!regionOverlaps(bank.d, authority));
+                }
+            }
+            if (used_banks == 2) {
+                try std.testing.expect(!regionOverlaps(banks[0].n, banks[1].n));
+                try std.testing.expect(!regionOverlaps(banks[0].n, banks[1].d));
+                try std.testing.expect(!regionOverlaps(banks[0].d, banks[1].n));
+                try std.testing.expect(!regionOverlaps(banks[0].d, banks[1].d));
+            }
+        }
+    }
+    try std.testing.expectError(error.InvalidGeometry, plan.foldingBanks(heights.len, 1));
+    try std.testing.expectError(error.InvalidGeometry, plan.foldingBanks(0, 0));
+    try std.testing.expectError(error.InvalidGeometry, plan.foldingBanks(0, 2));
+}
+
+test "GKR consumed-bank arena removes independent maximum fold allocations" {
+    const height: u32 = 26;
+    const plan = try G.Plan.init(&.{height}, std.math.maxInt(usize));
+    const input_rows = @as(u64, 1) << height;
+    const removed_bytes = 48 * input_rows;
+    // Eq plus the full reduction tree dominate what remains. Dedicated fold
+    // banks formerly cost another48bytes per input fact, independent of proof.
+    try std.testing.expect(plan.total_words * 4 < removed_bytes * 2);
+    try std.testing.expect(plan.total_words * 4 > removed_bytes);
+}
+
+test "accepted CPU0 GKR geometry uses8.51GB after consumed-level bank reuse" {
+    // Native accepted CPU0 authority, gkr-capacity.json. No Ethereum execution
+    // or GPU timing is inferred from this exact allocation model.
+    const variables = [_]u32{ 26, 18, 6, 22, 21, 20, 18, 16, 23, 20, 17, 16, 8, 22, 17, 18, 21, 17, 21, 18, 17, 12, 16, 17, 19, 20, 23, 13, 12, 10, 19, 14, 19, 23, 23, 21 };
+    const plan = try G.Plan.init(&variables, std.math.maxInt(usize));
+    var facts: u64 = 0;
+    for (variables) |v| facts += @as(u64, 1) << @intCast(v);
+    try std.testing.expectEqual(@as(u64, 124093760), facts);
+    try std.testing.expectEqual(@as(usize, 8510105088), plan.total_words * 4);
+    try std.testing.expectEqual(@as(u64, 5956500480), 48 * facts);
+    try std.testing.expectEqual(@as(u64, 14466605568), plan.total_words * 4 + 48 * facts);
+    _ = try G.Plan.init(&variables, 8510105088);
+    try std.testing.expectError(error.GkrWorkspaceBudgetExceeded, G.Plan.init(&variables, 8510105087));
+}

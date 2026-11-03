@@ -33,6 +33,12 @@ pub fn build(b: *std.Build) void {
     router_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     const router_tests = b.addTest(.{ .root_module = router_root });
     b.step("test-rv64-resident-router", "Test concrete multi-device RV64 routing and bounded custody without a GPU").dependOn(&b.addRunArtifact(router_tests).step);
+    const gkr_plan_root = b.createModule(.{ .root_source_file = b.path("rv64_gkr_plan_test_root.zig"), .target = target, .optimize = optimize });
+    gkr_plan_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    gkr_plan_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    gkr_plan_root.addImport("stwo_cuda_backend", backend);
+    const gkr_plan_tests = b.addTest(.{ .root_module = gkr_plan_root });
+    b.step("test-rv64-gkr-plan", "Check consumed-tree GKR workspace custody without CUDA or a full prover build").dependOn(&b.addRunArtifact(gkr_plan_tests).step);
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
     const test_step = b.step(
         "test",

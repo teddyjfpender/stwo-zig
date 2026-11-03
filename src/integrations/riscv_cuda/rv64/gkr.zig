@@ -13,7 +13,6 @@ pub const max_instances = A.batch_max_oracles;
 const Pair = struct { n: Region, d: Region, count: u32 };
 const Oracle = struct {
     tree: [max_variables]Pair = undefined,
-    banks: [2]Pair = undefined,
     scratch_a: Region,
     scratch_b: Region,
     sums: Region,
@@ -31,6 +30,16 @@ pub const Plan = struct {
     projected: Region,
     eq: Region,
     total_words: usize,
+    /// At top-down `remaining`, the current gate input is tree[remaining-2]
+    /// (or the immutable raw input at one). Smaller tree levels have already
+    /// completed their gate proofs and their claims are retained in GKR state.
+    /// Reuse only those consumed levels as alternating sumcheck fold banks.
+    /// Roots were copied before traversal; original fractions are never reused.
+    pub fn foldingBanks(self: *const Plan, oracle: usize, remaining: u32) ![2]Pair {
+        if (oracle >= self.count or remaining == 0 or remaining > self.variables[oracle]) return error.InvalidGeometry;
+        const height = self.variables[oracle];
+        return .{ self.oracles[oracle].tree[remaining - 1], self.oracles[oracle].tree[@min(remaining, height - 1)] };
+    }
     /// Requested workspace payload only: excludes input fractions, MAIN/PCS,
     /// driver allocations and diagnostics. Reject before any device mutation.
     pub fn init(variables: []const u32, byte_cap: usize) !Plan {
@@ -55,7 +64,6 @@ pub const Plan = struct {
             const n = @as(u32, 1) << @as(u5, @intCast(v));
             var o: Oracle = undefined;
             for (0..v) |level| o.tree[level] = try pair(&cursor, n >> @as(u5, @intCast(level + 1)));
-            for (0..2) |bank| o.banks[bank] = try pair(&cursor, @max(1, n >> @as(u5, @intCast(bank + 1))));
             const groups = @max(1, (n / 4 + 127) / 128);
             o.scratch_a = try append(&cursor, 16 * @as(u64, groups));
             o.scratch_b = try append(&cursor, 16 * @as(u64, groups));
@@ -181,10 +189,10 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
             if (variables[i] < remaining) continue;
             const o = plan.oracles[i];
             sources[active] = if (remaining == 1) input else try fraction(arena, o.tree[remaining - 2]);
-            var bank0 = try fraction(arena, o.banks[0]);
-            var bank1 = try fraction(arena, o.banks[1]);
-            bank0.count = @max(1, sources[active].count / 2);
-            bank1.count = @max(1, sources[active].count / 4);
+            const banks = try plan.foldingBanks(i, @intCast(remaining));
+            const bank0 = try fraction(arena, banks[0]);
+            const bank1 = try fraction(arena, banks[1]);
+            if (bank0.count != @max(1, sources[active].count / 2) or bank1.count != @max(1, sources[active].count / 4)) return error.InvalidConsumedTreeBank;
             work[active] = .{ .banks = .{ bank0, bank1 }, .scratch_a = try plane(arena, o.scratch_a, @intCast(o.scratch_a.words / 8)), .scratch_b = try plane(arena, o.scratch_b, @intCast(o.scratch_b.words / 8)), .sums = try plane(arena, o.sums, 2), .terminal_mask = try masks.sub(32 * active, 32) };
             active += 1;
         }
