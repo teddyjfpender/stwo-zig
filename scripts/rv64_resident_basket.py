@@ -226,6 +226,16 @@ def check_recursive_report(report, leaf_count, restored=False):
         raise ValueError("CPU assignment or proving fallback rejected")
 
 
+def receiver_environment(environment):
+    """Fresh receivers cannot allocate CUDA memory or invoke a PCS helper."""
+    result = dict(environment)
+    result.pop("STWO_RV64_GPU_LIBRARY", None)
+    result.pop("STWO_RV64_GPU_DEVICES", None)
+    result["CUDA_VISIBLE_DEVICES"] = ""
+    result["STWO_RV64_GPU_PCS_HELPER"] = "/bin/false"
+    return result
+
+
 def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log, environment):
     combined = B.load(proof / "combined-report.json")
     entry = B.load(proof / "combined-entry.json")
@@ -250,10 +260,7 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
     snapshot = recursive_snapshot(proof, count)
     usage = None
     if trial == 0:
-        verify_env = dict(environment)
-        verify_env.pop("STWO_RV64_GPU_DEVICES", None)
-        verify_env["STWO_RV64_GPU_DEVICE"] = str(job["devices"][0])
-        verify_env["STWO_RV64_GPU_BYTE_CAP"] = str(plan["device_cap_bytes"])
+        verify_env = receiver_environment(environment)
         command = B.command(plan["assets"]["recursive_receiver"], plan["profile"], "resume-recursion-candidate", job["request"], proof,
                             job["resources"]["fixed_setup_bytes"], plan["combined_host_bytes"])
         usage = B.measure(command, target, "recursive-receiver-0", verify_env)
@@ -325,7 +332,7 @@ def run_job(plan, job):
         if not artifacts:
             raise ValueError("proof binaries missing")
         if trial == 0:
-            receiver_usage = B.measure(command, target, "receiver-0")
+            receiver_usage = B.measure(command, target, "receiver-0", receiver_environment(environment))
             accepted_receiver = B.load(target / "receiver-0.stdout")
         else:
             if artifacts != trials[0]["artifact_sha256"] or bundle_hash != trials[0]["bundle_sha256"]:

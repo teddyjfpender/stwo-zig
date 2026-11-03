@@ -156,6 +156,17 @@ class ResidentBasket(unittest.TestCase):
         self.exercise_run(corrupt_warm=True)
 
 
+    def test_receivers_cannot_create_gpu_context_or_change_producer_environment(self):
+        producer = {"CUDA_VISIBLE_DEVICES": "0", "STWO_RV64_GPU_LIBRARY": "qualified.so",
+                    "STWO_RV64_GPU_DEVICES": "0", "STWO_RV64_GPU_PCS_HELPER": "helper"}
+        receiver = R.receiver_environment(producer)
+        self.assertEqual(producer["CUDA_VISIBLE_DEVICES"], "0")
+        self.assertEqual(producer["STWO_RV64_GPU_LIBRARY"], "qualified.so")
+        self.assertEqual(receiver["CUDA_VISIBLE_DEVICES"], "")
+        self.assertEqual(receiver["STWO_RV64_GPU_PCS_HELPER"], "/bin/false")
+        self.assertNotIn("STWO_RV64_GPU_LIBRARY", receiver)
+        self.assertNotIn("STWO_RV64_GPU_DEVICES", receiver)
+
     def test_combined_plan_requires_one_gpu_and_pinned_recursive_receiver(self):
         kwargs = dict(expected_runtime=R.B.sha(self.assets[2]), combined=True, recursive_receiver=self.assets[1])
         def make(counts):
@@ -264,10 +275,16 @@ class ResidentBasket(unittest.TestCase):
                 (target / "producer.stdout").write_text("")
                 (target / "producer.stderr").write_text("\n".join(lines) + "\nGPU_GKR gkr_kernel_launches=2\nGPU_PCS_NATIVE device_ns=1000\n")
             elif name == "receiver-0":
+                self.assertEqual(environment["CUDA_VISIBLE_DEVICES"], "")
+                self.assertEqual(environment["STWO_RV64_GPU_PCS_HELPER"], "/bin/false")
+                self.assertNotIn("STWO_RV64_GPU_LIBRARY", environment)
                 (target / (name + ".stdout")).write_text(json.dumps({"accepted": True, "completed_ethereum_block": True,
                     "security_profile": R.PROFILE, "output": [171, 205], "cpu_proofs": 1, "truth_proofs": 1}))
             elif name == "recursive-receiver-0":
                 self.assertNotIn("STWO_RV64_GPU_DEVICES", environment)
+                self.assertEqual(environment["CUDA_VISIBLE_DEVICES"], "")
+                self.assertEqual(environment["STWO_RV64_GPU_PCS_HELPER"], "/bin/false")
+                self.assertNotIn("STWO_RV64_GPU_LIBRARY", environment)
                 restored = dict(recursive, restored_leaves=2, restored_folds=1, gpu_new_leaf_proofs=0, gpu_new_fold_proofs=0)
                 if corruption == "reprove":
                     restored["restored_leaves"] = 1
