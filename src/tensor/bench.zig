@@ -84,6 +84,14 @@ fn prefault() bool {
     return if (std.posix.getenv("TENSOR_PREFAULT")) |v| !std.mem.eql(u8, v, "0") else true;
 }
 
+/// Warm the CPU GKR layer blocks during the witness commitment. It only pays
+/// with the recycler, so it follows it (on unless TENSOR_RECYCLE=0);
+/// TENSOR_WARM_GKR=0 turns it off.
+fn warmLayers() bool {
+    if (std.posix.getenv("TENSOR_RECYCLE")) |v| if (std.mem.eql(u8, v, "0")) return false;
+    return if (std.posix.getenv("TENSOR_WARM_GKR")) |v| !std.mem.eql(u8, v, "0") else true;
+}
+
 fn printTl(out: anytype, pc: proto.Config) !void {
     if (pc.two_level) |tl| {
         try out.print("\"prox_rows\":{d},", .{tl.prox_rows});
@@ -165,6 +173,7 @@ pub fn main() !void {
     // TENSOR_BATCH_MATMULS=1: shape-class batched matmul sumchecks (gate/up share)
     pc.batch_matmuls = batchMatmuls();
     pc.prefault_gkr_inputs = prefault();
+    pc.warm_gkr_layers = warmLayers();
     if (pc.accel != null) {
         // warm the device (pipeline state, first-dispatch costs) off the clock
         var wt = try t.pcs.Twiddles.init(a, 4);
@@ -360,6 +369,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     pc.accel = accelFor();
     pc.batch_matmuls = batchMatmuls();
     pc.prefault_gkr_inputs = prefault();
+    pc.warm_gkr_layers = warmLayers();
     if (pc.two_level != null) {
         const wi = try tf.layerWeightInfos(a, cfg);
         defer a.free(wi);

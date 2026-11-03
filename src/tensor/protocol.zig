@@ -176,6 +176,11 @@ pub const Config = struct {
     /// fault their pages in on a helper thread meanwhile (prover memory
     /// scheduling only; proofs are identical either way).
     prefault_gkr_inputs: bool = true,
+    /// Also allocate, fault in and free the CPU GKR prover's layer blocks
+    /// during the witness commitment. Only useful when the allocator caches
+    /// freed blocks (recycle.Recycler); ignored with an accelerator. Proofs
+    /// are identical either way.
+    warm_gkr_layers: bool = false,
     /// Optional device accelerator (e.g. Metal); proofs are identical either way.
     accel: ?*const accel.Accel = null,
 };
@@ -623,12 +628,21 @@ fn keyValuesInto(out: []QM31, pool: *f.Pool, st: Statement, w: []const []const i
 /// denominators at 512 tokens); the overlap moves that cost off the critical
 /// path. Values are written later, after alpha and beta are drawn, so the
 /// proof is unchanged.
+///
+/// With `warm_layers`, a second helper also allocates, touches and frees
+/// blocks of the sizes the CPU GKR prover allocates for its layers (num and
+/// den, 2^(k-1) QM31 each, k = n..1 per instance). With a caching allocator
+/// (`recycle.Recycler`) those blocks are then handed back, already faulted
+/// in, to the GKR build; with a plain allocator the warm-up is wasted work on
+/// the helper thread, which is why it is opt-in.
 const KeyBufs = struct {
     bufs: [][]QM31,
     handed: usize = 0,
     thread: ?std.Thread = null,
+    warm_thread: ?std.Thread = null,
+    warm_logs: []u32 = &.{},
 
-    fn init(a: std.mem.Allocator, rel: Relations, eps: *const xt.ProverState, prefault: bool) !KeyBufs {
+    fn init(a: std.mem.Allocator, rel: Relations, eps: *const xt.ProverState, prefault: bool, warm_layers: bool) !KeyBufs {
         const bufs = try a.alloc([]QM31, rel.keys.len);
         var n: usize = 0;
         errdefer {
@@ -643,7 +657,42 @@ const KeyBufs = struct {
         var self = KeyBufs{ .bufs = bufs };
         // best effort: without the thread the pages fault when written
         if (prefault) self.thread = std.Thread.spawn(.{}, touch, .{bufs}) catch null;
+        if (warm_layers) warm: {
+            const logs = a.alloc(u32, rel.keys.len + rel.tables.len) catch break :warm;
+            for (bufs, 0..) |b, i| logs[i] = std.math.log2_int(usize, b.len);
+            for (rel.tables, 0..) |t, i| logs[rel.keys.len + i] = t.log_size;
+            self.warm_logs = logs;
+            self.warm_thread = std.Thread.spawn(.{}, warm, .{ a, logs }) catch null;
+        }
         return self;
+    }
+
+    /// Allocate and touch the GKR layer blocks in gkr_prover_fast's build
+    /// order and sizes, holding them all (freeing each at once would cache a
+    /// single block per size), then free them. Allocation failure stops early.
+    fn warm(a: std.mem.Allocator, logs: []const u32) void {
+        var held: std.ArrayList([]QM31) = .empty;
+        defer {
+            for (held.items) |b| a.free(b);
+            held.deinit(a);
+        }
+        for (logs) |n| {
+            var k = n;
+            while (k > 0) : (k -= 1) {
+                const size = @as(usize, 1) << @intCast(k - 1);
+                for (0..2) |_| {
+                    held.ensureUnusedCapacity(a, 1) catch return;
+                    const b = a.alloc(QM31, size) catch return;
+                    held.appendAssumeCapacity(b);
+                    touch(&.{b});
+                }
+            }
+        }
+    }
+
+    fn joinWarm(self: *KeyBufs) void {
+        if (self.warm_thread) |t| t.join();
+        self.warm_thread = null;
     }
 
     fn touch(bufs: []const []QM31) void {
@@ -664,6 +713,8 @@ const KeyBufs = struct {
     /// prover (which consumes owned inputs).
     fn deinit(self: *KeyBufs, a: std.mem.Allocator) void {
         self.join();
+        self.joinWarm();
+        if (self.warm_logs.len > 0) a.free(self.warm_logs);
         for (self.bufs[self.handed..]) |b| a.free(b);
         a.free(self.bufs);
     }
@@ -908,7 +959,7 @@ pub fn proveWithAllAccumulators(
     for (witness, 0..) |w, i| all[i] = w;
     for (mults, 0..) |m, i| all[witness.len + i] = m;
 
-    var key_bufs = try KeyBufs.init(a, rel, &eps, cfg.prefault_gkr_inputs);
+    var key_bufs = try KeyBufs.init(a, rel, &eps, cfg.prefault_gkr_inputs, cfg.warm_gkr_layers and cfg.accel == null);
     defer key_bufs.deinit(a);
 
     // --- witness table + commitment
@@ -962,6 +1013,7 @@ pub fn proveWithAllAccumulators(
     var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
     var gkr_stats: Fast.Stats = .{};
     timings.gkr_input_ns = nowNs(t0);
+    key_bufs.joinWarm();
     // the GKR prover consumes (frees) the owned key inputs on every exit
     key_bufs.handed = key_bufs.bufs.len;
     if (n_inst > 0) {

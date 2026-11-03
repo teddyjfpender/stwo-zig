@@ -1642,6 +1642,10 @@ test "golden decoder layer digests (flat; pcs2 + batched matmuls + MoE), 1 vs 5 
     var pc_np = pc;
     pc_np.prefault_gkr_inputs = false;
     try testing.expectEqualSlices(u8, &d1, &(try layerDigest(cfg, pc_np, 5)));
+    // GKR layer blocks warmed (allocated, touched, freed) during the commitment: same proof
+    var pc_w = pc;
+    pc_w.warm_gkr_layers = true;
+    try testing.expectEqualSlices(u8, &d1, &(try layerDigest(cfg, pc_w, 5)));
 
     var cfg2 = cfg;
     cfg2.log_experts = 1;
@@ -1658,6 +1662,8 @@ test "golden decoder layer digests (flat; pcs2 + batched matmuls + MoE), 1 vs 5 
     var pc2_np = pc2;
     pc2_np.prefault_gkr_inputs = false;
     try testing.expectEqualSlices(u8, &d2, &(try layerDigest(cfg2, pc2_np, 5)));
+    pc2_np.warm_gkr_layers = true;
+    try testing.expectEqualSlices(u8, &d2, &(try layerDigest(cfg2, pc2_np, 1)));
 }
 
 test "forward-pass ext accumulators are untrusted: wrong values refused or rejected, bad shapes refused" {
