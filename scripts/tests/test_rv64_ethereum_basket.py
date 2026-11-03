@@ -49,7 +49,7 @@ class BasketTests(unittest.TestCase):
         self.assertEqual((self.root / "one.stdout").read_text().strip(), "finished")
 
     def test_memory_admission_serializes_credit_and_rejects_oversize(self):
-        admission = B.Admission([{"device": 0, "capacity_bytes": 100}])
+        admission = B.Admission([{"device": 0, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}])
         with self.assertRaises(ValueError):
             admission.acquire(101)
         first, _ = admission.acquire(70)
@@ -69,7 +69,7 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(admission.live, [0])
 
     def test_host_memory_is_admitted_across_devices(self):
-        admission = B.Admission([{"device": 0, "capacity_bytes": 100}, {"device": 1, "capacity_bytes": 100}], host_capacity=150)
+        admission = B.Admission([{"device": 0, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}, {"device": 1, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}], host_capacity=150)
         first, _ = admission.acquire(80, 100)
         with self.assertRaisesRegex(ValueError, "host memory"):
             admission.acquire(50, 151)
@@ -85,6 +85,25 @@ class BasketTests(unittest.TestCase):
         thread.join(2)
         self.assertTrue(acquired.is_set())
         self.assertEqual(admission.host, [0, 0])
+
+    def test_multigpu_group_maps_physical_devices_to_local_ordinals(self):
+        env = B.worker_environment({"device": "2,5", "device_caps_bytes": [20, 30], "planned_cpu_workers": 7, "retained_scopes": 4}, {})
+        self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "2,5")
+        self.assertEqual(env["STWO_RV64_GPU_DEVICES"], "0,1")
+        self.assertEqual(env["STWO_RV64_GPU_DEVICE_CAPS"], "20,30")
+        self.assertEqual(env["STWO_RV64_GPU_PLANNED_CPU_WORKERS"], "7")
+        with self.assertRaises(ValueError):
+            B.worker_environment({"device": "0,1", "device_caps_bytes": [20, 30], "planned_cpu_workers": 7, "retained_scopes": 3}, {})
+
+    def test_gpu_log_evidence_preserves_scope_and_does_not_infer_wall(self):
+        log = self.root / "producer.stderr"
+        log.write_text("GPU_GKR_SPANS ordinal=0 ingress_ms=2.0 traversal_ms=3.5\nGPU_GKR ordinal=0 native_stage_wall_ns=90000000 gkr_kernel_launches=42\nGPU_PCS_NATIVE device_ns=2500000 total_ns=8000000\n")
+        result = B.gpu_diagnostics(log)
+        self.assertEqual(result["kernel_launches"], 42)
+        self.assertEqual(result["device_ms"], 8.0)
+        self.assertIn("not CUPTI", result["launch_count_scope"])
+        log.write_text("CPU work finished in1ms\n")
+        self.assertEqual(B.gpu_diagnostics(log)["kernel_launches"], 0)
 
     def job(self, gpu):
         target = self.root / "run"
@@ -104,13 +123,13 @@ class BasketTests(unittest.TestCase):
                 "prefix_count": 0, "resident_bytes": 50, "request": str(request), "block": 1, "profile": B.PROFILES[0]}
 
     def test_gpu_fallback_rejects_and_releases_worker(self):
-        admission = B.Admission([{"device": 0, "capacity_bytes": 100}])
+        admission = B.Admission([{"device": 0, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}])
         with self.assertRaisesRegex(ValueError, "CPU fallback"):
             B.execute(self.job(False), "gpu", admission)
         self.assertEqual(admission.live, [0])
 
     def test_gpu_adapter_requires_fresh_receiver_and_records_cost_scope(self):
-        admission = B.Admission([{"device": 1, "capacity_bytes": 100}])
+        admission = B.Admission([{"device": 1, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}])
         result = B.execute(self.job(True), "gpu", admission)
         self.assertTrue(result["fresh_receiver_accepted"])
         self.assertTrue(result["execution_included"])
@@ -121,7 +140,7 @@ class BasketTests(unittest.TestCase):
     def test_rejected_receiver_never_publishes_result(self):
         job = self.job(True)
         job["verify"] = [sys.executable, "-c", "print('{\"accepted\": false}')"]
-        admission = B.Admission([{"device": 0, "capacity_bytes": 100}])
+        admission = B.Admission([{"device": 0, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}])
         with self.assertRaisesRegex(ValueError, "fresh receiver"):
             B.execute(job, "gpu", admission)
         self.assertFalse((Path(job["output"]) / "result.json").exists())

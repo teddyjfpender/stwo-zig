@@ -28,11 +28,12 @@ pub const Pool = struct {
         composition: @import("resident_composition.zig").Context,
         trace: @import("trace_commit.zig").Context,
         projection: @import("cpu_projection.zig").Context,
-        fn init(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64) !void {
+        fn init(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64, device_binding: bool) !void {
             self.native = try @import("pcs_native.zig").Context.init(library, id, cap);
             errdefer self.native.deinit();
             self.gkr = try @import("gkr_stage.zig").Backend.init(a, &self.native.library, self.native.session, std.math.cast(usize, cap) orelse return error.InvalidResidentDeviceCaps);
             errdefer self.gkr.deinit();
+            if (device_binding) try self.gkr.enableDeviceBinding(&self.native.library);
             self.gkr.coefficient_sink = .{ .context = &self.native, .publish = @import("pcs_native.zig").Context.publishCoefficients };
             self.composition = try @import("resident_composition.zig").Context.init(a, &self.native);
             errdefer self.composition.deinit();
@@ -49,6 +50,9 @@ pub const Pool = struct {
         }
     };
     pub fn create(a: std.mem.Allocator, library: []const u8, config: Config, cpu_workers: usize) !*Pool {
+        return createWithBinding(a, library, config, cpu_workers, false);
+    }
+    pub fn createWithBinding(a: std.mem.Allocator, library: []const u8, config: Config, cpu_workers: usize, device_binding: bool) !*Pool {
         try config.validatePlan(cpu_workers);
         const self = try a.create(Pool);
         errdefer a.destroy(self);
@@ -58,7 +62,7 @@ pub const Pool = struct {
         var initialized: usize = 0;
         errdefer for (self.devices[0..initialized]) |*device| device.deinit();
         for (self.devices, config.ids, config.caps) |*device, id, cap| {
-            try device.init(a, library, id, cap);
+            try device.init(a, library, id, cap, device_binding);
             initialized += 1;
             try device.native.configureRetention(config.scope_limit);
         }

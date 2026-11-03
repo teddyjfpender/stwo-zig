@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import threading
 import time
@@ -157,24 +158,106 @@ def job_for(block, entry, manifest, root, backend, output, profile):
     return result
 
 
+def gpu_diagnostics(path):
+    """Actual backend evidence; GPU time is never inferred from process wall."""
+    records = []
+    for line in Path(path).read_text(errors="replace").splitlines():
+        if not line.startswith(("GPU_GKR_SPANS ", "GPU_GKR ", "GPU_COMPOSITION_TIMING ", "GPU_PCS_NATIVE ", "GPU_CPU_PROJECTION ")):
+            continue
+        fields = {key: float(value) if "." in value else int(value)
+                  for key, value in re.findall(r"(\w+)=([0-9]+(?:\.[0-9]+)?)", line)}
+        records.append({"stage": line.split()[0], **fields})
+    launches = sum(r.get("gkr_kernel_launches", 0) for r in records)
+    device_ms = 0.0
+    for r in records:
+        if r["stage"] == "GPU_GKR_SPANS":
+            device_ms += sum(value for key, value in r.items() if key.endswith("_ms"))
+        elif r["stage"] == "GPU_COMPOSITION_TIMING":
+            device_ms += r.get("gpu_enqueued_kernel_spans_ms", 0)
+        elif r["stage"] == "GPU_PCS_NATIVE":
+            device_ms += r.get("device_ns", 0) / 1e6
+    return {"kernel_launches": launches, "device_ms": device_ms, "records": records,
+            "launch_count_scope": "Source-derived GKR traversal only, not CUPTI; excludes other stages",
+            "device_time_scope": "Summed GKR/composition CUDA-event spans and PCS resident time; includes enqueue gaps; excludes untimed stages and overlaps",
+            "memory_scope": "Native logical counters; physical device peak is sampled separately"}
+
+
+class DeviceMonitor:
+    """Whole-device sampling, explicitly not process-exclusive allocation."""
+    def __init__(self, devices):
+        self.devices = {int(x) for x in str(devices).split(",")}
+        self.stop = threading.Event()
+        self.samples = []
+        self.errors = []
+        self.thread = threading.Thread(target=self.run, daemon=True)
+
+    def run(self):
+        while not self.stop.is_set():
+            try:
+                result = subprocess.run(["nvidia-smi", "--query-gpu=index,uuid,memory.used,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=3, check=True)
+                for line in result.stdout.splitlines():
+                    index, uuid, memory, utilization = [part.strip() for part in line.split(",")]
+                    if int(index) in self.devices:
+                        self.samples.append({"device": int(index), "uuid": uuid, "memory_used_bytes": int(memory) * 1024 * 1024})
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                if not self.errors:
+                    self.errors.append(str(error))
+            self.stop.wait(.2)
+
+    def finish(self):
+        self.stop.set()
+        self.thread.join()
+        return {"scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+                "samples": len(self.samples), "errors": self.errors,
+                "peak_used_bytes": {str(device): max((s["memory_used_bytes"] for s in self.samples if s["device"] == device), default=None) for device in sorted(self.devices)}}
+
+
+def worker_environment(worker, environment):
+    visible = str(worker["device"])
+    devices = visible.split(",")
+    if any(not value.isdecimal() for value in devices) or len({int(value) for value in devices}) != len(devices):
+        raise ValueError("GPU groups require distinct nonnegative physical ordinals")
+    caps = worker.get("device_caps_bytes", [])
+    if (len(devices) not in (1, 2, 4) or len(caps) != len(devices)
+            or any(type(cap) is not int or cap <= 0 for cap in caps)
+            or type(worker.get("planned_cpu_workers")) is not int or worker["planned_cpu_workers"] <= 0
+            or type(worker.get("retained_scopes")) is not int or worker["retained_scopes"] <= 0
+            or worker["planned_cpu_workers"] > len(devices) * worker["retained_scopes"]):
+        raise ValueError("GPU groups require 1/2/4 devices, explicit device_caps_bytes, planned_cpu_workers and sufficient retained_scopes")
+    environment.update({"CUDA_VISIBLE_DEVICES": visible,
+                        "STWO_RV64_GPU_DEVICES": ",".join(map(str, range(len(devices)))),
+                        "STWO_RV64_GPU_PLANNED_CPU_WORKERS": str(worker["planned_cpu_workers"]),
+                        "STWO_RV64_GPU_RETAINED_SCOPES": str(worker["retained_scopes"]),
+                        "STWO_RV64_GPU_DEVICE_CAPS": ",".join(map(str, caps)),
+                        "STWO_RV64_GPU_DEVICE_TRACE": "1", "STWO_RV64_GPU_DEVICE_BINDING": "1"})
+    return environment
+
+
 def execute(job, backend, admission, nsys=None):
     target = Path(job["output"])
     target.mkdir(parents=True, exist_ok=False)
     if "resources" in job:
         atomic_json(target / "resources.json", job["resources"])
     worker_index = None
+    monitor = None
     try:
         environment = os.environ.copy()
         worker = None
         if backend == "gpu":
             worker_index, worker = admission.acquire(job["resident_bytes"], job.get("host_bytes", 0))
-            environment["CUDA_VISIBLE_DEVICES"] = str(worker["device"])
+            worker_environment(worker, environment)
+            monitor = DeviceMonitor(worker["device"])
+            monitor.thread.start()
         argv = job["produce"]
         if nsys:
             argv = [nsys, "profile", "--trace=cuda,nvtx,osrt", "--force-overwrite=false", "--stats=false", "--output=" + str(target / "nsight"), *argv]
         producer = measure(argv, target, "producer", environment)
         report = load(target / "proof/report.json")
         gpu = report.get("gpu")
+        if backend == "gpu" and gpu is None:
+            gpu = gpu_diagnostics(target / "producer.stderr")
+        physical_memory = monitor.finish() if monitor else None
+        monitor = None
         if backend == "gpu" and (not isinstance(gpu, dict) or gpu.get("kernel_launches", 0) <= 0 or gpu.get("device_ms", -1) < 0):
             raise ValueError("GPU producer did not report actual kernel launches/device time; CPU fallback rejected")
         receiver_usage = measure(job["verify"], target, "receiver")
@@ -217,7 +300,9 @@ def execute(job, backend, admission, nsys=None):
                   "native_reference_byte_parity": reference_parity,
                   "summed_worker_stage_seconds": stage_seconds,
                   "stage_scope": "Top-level stage elapsed summed over physical workers; overlaps are not block wall time",
-                  "gpu": gpu, "profiled": bool(nsys),
+                  "gpu": gpu, "physical_gpu_memory": physical_memory, "profiled": bool(nsys),
+                  "memory_budgets": {"host_job_bytes": job.get("host_bytes"), "aggregate_gpu_job_credit_bytes": job.get("resident_bytes"),
+                                     "per_device_gpu_caps_bytes": worker.get("device_caps_bytes") if worker else None},
                   "artifact_sha256": {p.name: sha(p) for p in proof.glob("*.bin")},
                   "bundle_sha256": sha(proof / "bundle.json"),
                   "report_sha256": sha(proof / "report.json")}
@@ -227,6 +312,8 @@ def execute(job, backend, admission, nsys=None):
         atomic_json(target / "failure.json", {"block": job["block"], "backend": backend, "error": str(error), "accepted": False})
         raise
     finally:
+        if monitor:
+            monitor.finish()
         if worker_index is not None:
             admission.release(worker_index)
 
@@ -266,6 +353,16 @@ def main():
         p.error("GPU workers require distinct admitted device ordinals")
     if args.backend == "gpu" and (type(manifest.get("host_capacity_bytes")) is not int or manifest["host_capacity_bytes"] <= 0 or any(type(j["resident_bytes"]) is not int or j["resident_bytes"] <= 0 or type(j["host_bytes"]) is not int or j["host_bytes"] <= 0 for j in jobs)):
         p.error("GPU jobs require positive resident_bytes, host_bytes and fleet host_capacity_bytes admission")
+    if args.backend == "gpu":
+        physical = []
+        try:
+            for worker in workers:
+                worker_environment(worker, {})
+                physical.extend(str(worker["device"]).split(","))
+        except ValueError as error:
+            p.error(str(error))
+        if len(set(physical)) != len(physical):
+            p.error("concurrent GPU groups must not overlap physical devices")
     admission = Admission(workers, manifest.get("host_capacity_bytes") if args.backend == "gpu" else None)
     start = time.monotonic_ns()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(workers)) as pool:

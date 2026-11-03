@@ -16,6 +16,19 @@ pub fn main() !void {
     };
     defer if (native_library) |path| a.free(path);
     if (native_library) |path| {
+        if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) {
+            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.ResidentPoolRequiresDeviceTrace;
+            const planned_text = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS");
+            defer a.free(planned_text);
+            const planned = std.fmt.parseInt(usize, planned_text, 10) catch return error.InvalidResidentPlan;
+            var config = try @import("rv64/resident_router.zig").Config.fromEnv(a);
+            defer config.deinit(a);
+            const pool = try @import("rv64/resident_pool.zig").Pool.createWithBinding(a, path, config, planned, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
+            defer pool.deinit();
+            std.debug.print("GPU_RESIDENT_PLAN devices={d} planned_cpu_workers={d} retained_scopes_per_device={d} host_budget=resource_file gpu_caps_bytes={any}\n", .{ config.ids.len, planned, config.scope_limit, config.caps });
+            try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(pool.stages());
+            return;
+        }
         const cap_text = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_BYTE_CAP") catch |err| switch (err) {
             error.EnvironmentVariableNotFound => null,
             else => return err,
