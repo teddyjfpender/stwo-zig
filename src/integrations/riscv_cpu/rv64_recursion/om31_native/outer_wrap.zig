@@ -7,7 +7,16 @@ const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
 pub const Device = @import("stwo_circuit_cpu_integration").om31.device_prove;
 const C = @import("common.zig");
 const PP = circuit.common.preprocessed.PreprocessedCircuit;
-pub const Timings = struct { preprocess_ns: u64, prove_ns: u64, verify_ns: u64, restore_ns: u64 = 0 };
+pub const Timings = struct {
+    preprocess_ns: u64,
+    prove_ns: u64,
+    verify_ns: u64,
+    restore_ns: u64 = 0,
+    // Host-only setup attribution; never enters a proof or authority identity.
+    finalize_ns: u64 = 0,
+    preprocessed_columns_ns: u64 = 0,
+    authority_ns: u64 = 0,
+};
 pub const Wrapped = struct {
     allocator: std.mem.Allocator,
     pp: *PP,
@@ -63,15 +72,20 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
     try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    const finalize_ns = timer.read();
     const pp = try a.create(PP);
     errdefer a.destroy(pp);
     pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
     errdefer pp.deinit(a);
+    const columns_end_ns = timer.read();
     const authority = try a.create(Outer.Authority);
     errdefer a.destroy(authority);
     authority.* = try Outer.Authority.init(a, pp);
     errdefer authority.deinit();
     const preprocess_ns = timer.lap();
+    const columns_ns = columns_end_ns - finalize_ns;
+    const authority_ns = preprocess_ns - columns_end_ns;
+    if (factory != null) std.log.info("CUDA_OUTER_PREPROCESS ordinal={d} finalize_ns={d} columns_ns={d} authority_ns={d} total_ns={d}", .{ ordinal, finalize_ns, columns_ns, authority_ns, preprocess_ns });
     if (factory != null) std.log.info("CUDA_OUTER_AUTHORITY ordinal={d} vars={d} row_logs={any}", .{ ordinal, ctx.circuit.n_vars, authority.logs.toArray() });
     var produced = if (encoded) |bytes| blk: {
         var decoded = try Wire.decode(a, authority.identity, 8, bytes);
@@ -91,7 +105,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     try requireDigest(produced.outputs, digest);
     var capture = try Outer.verify(a, authority, produced.outputs, produced.claims, &produced.proof.proof);
     errdefer capture.deinit(a);
-    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .timings = .{ .preprocess_ns = preprocess_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
+    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .timings = .{ .preprocess_ns = preprocess_ns, .finalize_ns = finalize_ns, .preprocessed_columns_ns = columns_ns, .authority_ns = authority_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
 }
 /// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
 /// that happen to reduce to the same field value.
