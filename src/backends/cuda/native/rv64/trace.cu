@@ -5,6 +5,9 @@ namespace b = stwo::cuda::blake2s;
 extern "C" int stwo_blake2s_mixed_leaf_on(uint32_t, uint32_t,
                                           const b::MixedSegment *, b::Hash *,
                                           void *);
+extern "C" int stwo_blake2s_mixed_seeded_on(
+    uint32_t, uint32_t, const b::MixedSegment *, uint32_t, uint32_t,
+    const b::ProgressiveState *, b::ProgressiveState *, b::Hash *, void *);
 extern "C" int stwo_blake2s_layer_on(const b::Hash *, uint32_t, b::Hash *,
                                      void *);
 namespace stwo::cuda::rv64 {
@@ -94,6 +97,46 @@ __global__ void open_paths(StwoRv64TraceOpen j) {
   j.paths[(uint64_t(qi) * j.tree_log) * 8 + i] = value;
 }
 } // namespace stwo::cuda::rv64
+// Absorb sorted column groups once at their native height. A seed contains
+// the unfinalized Blake state, including its pending block. Lifting that seed
+// is exactly equivalent to repeating the low-height words in every final leaf.
+// Scratch is stream-owned and never aliases caller allocations.
+static int native_height_leaves(const b::MixedSegment *segments, uint32_t count,
+                                uint32_t leaves, b::Hash *hashes,
+                                cudaStream_t stream) {
+  b::ProgressiveState *seed = nullptr;
+  uint32_t seed_size = 0, absorbed = 0;
+  for (uint32_t first = 0; first < count;) {
+    uint32_t end = first + 1;
+    while (end < count && segments[end].source_size == segments[first].source_size)
+      ++end;
+    const bool final = end == count;
+    const uint32_t size = final ? leaves : segments[first].source_size;
+    b::ProgressiveState *next = nullptr;
+    int status = 0;
+    if (!final)
+      status = int(cudaMallocAsync(reinterpret_cast<void **>(&next),
+                                   uint64_t(size) * sizeof(*next), stream));
+    if (!status)
+      status = stwo_blake2s_mixed_seeded_on(
+          size, end - first, segments + first, absorbed, seed_size, seed,
+          next, final ? hashes : nullptr, stream);
+    if (seed) {
+      const int freed = int(cudaFreeAsync(seed, stream));
+      if (!status) status = freed;
+    }
+    if (status) {
+      if (next) cudaFreeAsync(next, stream);
+      return status;
+    }
+    for (uint32_t i = first; i < end; ++i)
+      absorbed += segments[i].capacity_words / segments[i].stride_words;
+    seed = next;
+    seed_size = final ? 0 : size;
+    first = end;
+  }
+  return 0;
+}
 extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
                                        const b::MixedSegment *segments,
                                        uint32_t count, uint32_t log,
@@ -109,8 +152,8 @@ extern "C" int stwo_rv64_trace_tree_on(void *ctx, uint32_t lane,
   if (!c.range(tree, need, true))
     return c.status;
   auto *hashes = reinterpret_cast<b::Hash *>(tree);
-  int status = stwo_blake2s_mixed_leaf_on(uint32_t(leaves), count,
-                                          input.segments, hashes, c.stream);
+  int status = native_height_leaves(input.segments, count, uint32_t(leaves),
+                                    hashes, c.stream);
   uint64_t offset = 0, next_offset = leaves;
   for (uint32_t nodes = leaves; !status && nodes > 1; nodes >>= 1) {
     status = stwo_blake2s_layer_on(hashes + offset, nodes / 2,
