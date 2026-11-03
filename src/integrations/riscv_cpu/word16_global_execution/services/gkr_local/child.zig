@@ -158,6 +158,7 @@ pub const NumericalStage = struct {
     prove: *const fn (*anyopaque, std.mem.Allocator, Request) anyerror!GV.GkrBatchProof,
     bind: ?*const fn (*anyopaque, std.mem.Allocator, DeviceBinding.Request) anyerror!DeviceBinding.Owner = null,
     abort: ?*const fn (*anyopaque, Receipt.Scope) void = null,
+    replay_binding: ?*const fn (*anyopaque, std.mem.Allocator, Request, *DeviceBinding.Owner) anyerror!void = null,
     pub const Request = struct {
         scope: Receipt.Scope,
         instances: []const Frame.Instance,
@@ -317,6 +318,22 @@ pub const Unbound = struct {
         self.binding_reserved_bytes = final_bytes;
         self.projection_pending = false;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+    }
+    pub fn parkDeviceBinding(self: *Unbound) !void {
+        if (!self.projection_pending) return error.DeviceBindingAlreadyFinalized;
+        try (if (self.device_binding) |*owner| owner else return error.DeviceBindingUnavailable).park();
+    }
+    pub fn replayDeviceBinding(self: *Unbound, a: std.mem.Allocator, limit: usize, stage: NumericalStage, instances: []const Frame.Instance, provider: anytype, native_columns: NativeColumns) !void {
+        const owner = if (self.device_binding) |*value| value else return error.DeviceBindingUnavailable;
+        if (!self.projection_pending or !owner.parked) return error.DeviceBindingReplayPhase;
+        const replay = stage.replay_binding orelse return error.DeviceBindingReplayUnavailable;
+        var channel = begin(owner.scope, instances);
+        const source_channel = channel;
+        const challenges = Challenges.drawForInstances(&channel, instances);
+        var inputs = try @import("source_inputs.zig").Batch(@TypeOf(provider)).init(a, instances, &challenges, provider);
+        defer inputs.deinit();
+        try replay(stage.context, a, .{ .scope = owner.scope, .instances = instances, .challenges = &challenges, .sources = inputs.sources, .native_source = if (@TypeOf(provider) == @import("native_provider.zig").Provider) provider.source else null, .native_fixed_columns = native_columns.fixed, .native_main_columns = native_columns.main, .source_channel = source_channel, .channel = channel, .byte_cap = limit }, owner);
+        if (owner.parked) return error.DeviceBindingReplayRequired;
     }
     pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
         if (self.projection_pending) return error.LocalGkrBindingUnavailable;

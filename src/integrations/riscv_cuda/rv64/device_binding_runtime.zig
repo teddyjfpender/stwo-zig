@@ -47,13 +47,14 @@ pub const Runtime = struct {
     deferred: DeferredFn,
     finish: FinalizeFn,
     b2n: B2n,
+    trace_tree: *const @TypeOf(A.stwo_rv64_trace_tree_on),
     mutex: std.Thread.Mutex = .{},
     locked_scope: ?@TypeOf(@as(Pending, undefined).scope) = null,
     pending: ?Pending = null,
     pub fn create(a: std.mem.Allocator, library: *std.DynLib, session: *anyopaque, session_api: SC.Api, numerical: N.Api) !*Runtime {
         const out = try a.create(Runtime);
         errdefer a.destroy(out);
-        out.* = .{ .allocator = a, .session = session, .session_api = session_api, .numerical = numerical, .submit = try symbol(Native.Submit, library, "stwo_rv64_gpu_session_submit"), .deferred = try symbol(DeferredFn, library, "stwo_rv64_binding_deferred_on"), .finish = try symbol(FinalizeFn, library, "stwo_rv64_binding_finalize_on"), .b2n = try symbol(B2n, library, "stwo_ntt_b2n_columns_compact_on") };
+        out.* = .{ .allocator = a, .session = session, .session_api = session_api, .numerical = numerical, .submit = try symbol(Native.Submit, library, "stwo_rv64_gpu_session_submit"), .deferred = try symbol(DeferredFn, library, "stwo_rv64_binding_deferred_on"), .finish = try symbol(FinalizeFn, library, "stwo_rv64_binding_finalize_on"), .b2n = try symbol(B2n, library, "stwo_ntt_b2n_columns_compact_on"), .trace_tree = try symbol(*const @TypeOf(A.stwo_rv64_trace_tree_on), library, "stwo_rv64_trace_tree_on") };
         return out;
     }
     pub fn destroy(self: *Runtime) void {
@@ -110,7 +111,34 @@ pub const Runtime = struct {
         self.mutex.unlock();
         success = true;
         _ = a;
-        return .{ .context = owner, .scope = request.scope, .receipt_digest = request.receipt_digest, .authority_digest = owner.authority, .retained_bytes = owner.retainedBytes(), .finalize_fn = Owner.finalize, .release_fn = Owner.release };
+        return .{ .context = owner, .scope = request.scope, .receipt_digest = request.receipt_digest, .authority_digest = owner.authority, .retained_bytes = owner.retainedBytes(), .park_fn = Owner.park, .finalize_fn = Owner.finalize, .release_fn = Owner.release };
+    }
+    /// Called only on this session's owner thread after the original MAIN root
+    /// has been re-established and the source-channel replay has been checked.
+    /// On successful adoption the owner, including its failure teardown, owns
+    /// every regenerated fraction lease. No terminal proof is recomputed.
+    pub fn adoptReplay(self: *Runtime, handle: *anyopaque, ctx: *anyopaque, token: u64, scope: @TypeOf(@as(Pending, undefined).scope), instances: []const Frame.Instance, fractions: []const R.Fraction, leases: []const Native.Lease, adopted: *bool) !usize {
+        const owner: *Owner = @ptrCast(@alignCast(handle));
+        if (owner.runtime != self or !std.meta.eql(owner.pending.scope, scope) or owner.projection != null or owner.coefficients != null or owner.pending.fractions.len != 0 or owner.pending.leases.len != 1) return error.DeviceBindingReplayPhase;
+        if (owner.pending.instances.len != instances.len or fractions.len != instances.len) return error.DeviceBindingAuthorityMismatch;
+        for (owner.pending.instances, instances) |expected, actual| if (!std.meta.eql(expected, actual)) return error.DeviceBindingAuthorityMismatch;
+        for (instances, fractions) |instance, fraction| if (fraction.count != try instance.facts()) return error.DeviceBindingAuthorityMismatch;
+        const own_fractions = try self.allocator.dupe(R.Fraction, fractions);
+        const own_leases = self.allocator.alloc(Native.Lease, leases.len + owner.pending.leases.len) catch |err| {
+            self.allocator.free(own_fractions);
+            return err;
+        };
+        @memcpy(own_leases[0..owner.pending.leases.len], owner.pending.leases);
+        @memcpy(own_leases[owner.pending.leases.len..], leases);
+        self.allocator.free(owner.pending.fractions);
+        self.allocator.free(owner.pending.leases);
+        owner.pending.fractions = own_fractions;
+        owner.pending.leases = own_leases;
+        adopted.* = true;
+        var call = Call{ .owner = owner, .kind = .project };
+        // Once adopted, failure cleanup belongs to owner as well.
+        try call.run(ctx, token);
+        return owner.retainedBytes();
     }
 };
 fn validateArtifact(pending: Pending, request: B.Request) !void {
@@ -153,12 +181,22 @@ const Owner = struct {
     receipt: [32]u8,
     projection: ?Native.Lease = null,
     coefficients: ?Native.Lease = null,
+    projection_digest: ?[32]u8 = null,
+    metadata_released: bool = false,
     fn retainedBytes(self: *Owner) usize {
         var n: usize = 0;
         for (self.pending.leases) |l| n += @intCast(l.count * 4);
         if (self.projection) |l| n += @intCast(l.count * 4);
         if (self.coefficients) |l| n += @intCast(l.count * 4);
         return n;
+    }
+    fn park(raw: *anyopaque) !usize {
+        const self: *Owner = @ptrCast(@alignCast(raw));
+        var call = Call{ .owner = self, .kind = .park };
+        const status = self.runtime.submit(self.runtime.session, Call.callback, &call);
+        if (call.failure) |err| return err;
+        try check(status);
+        return self.retainedBytes();
     }
     fn finalize(raw: *anyopaque, a: std.mem.Allocator, request: B.Request) !B.Completion {
         const self: *Owner = @ptrCast(@alignCast(raw));
@@ -186,12 +224,20 @@ const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(raw));
         var call = Call{ .owner = self, .kind = .release };
         _ = self.runtime.submit(self.runtime.session, Call.callback, &call);
+        // A failed replay poisons native execution. The native owner still
+        // destroys its device leases; host-only custody metadata must not leak
+        // merely because it refuses another callback during teardown.
+        if (!self.metadata_released) {
+            self.runtime.allocator.free(self.pending.leases);
+            self.runtime.allocator.free(self.pending.fractions);
+            self.runtime.allocator.free(self.pending.instances);
+        }
         self.runtime.allocator.destroy(self);
     }
 };
 const Call = struct {
     owner: *Owner,
-    kind: enum { project, finalize, release },
+    kind: enum { project, finalize, park, release },
     failure: ?anyerror = null,
     fn callback(ctx: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Call = @ptrCast(@alignCast(raw.?));
@@ -206,6 +252,23 @@ const Call = struct {
         const runtime = owner.runtime;
         const a = runtime.allocator;
         var context = makeContext(runtime, owner.pending.scope, ctx, token);
+        if (self.kind == .park or (self.kind == .project and owner.projection_digest != null)) {
+            var actual: [A.gkr_state_words]u32 = undefined;
+            try context.join();
+            try context.download(owner.pending.state, &actual);
+            try context.join();
+            try requireSavedState(&owner.pending.state_words, &actual);
+        }
+        if (self.kind == .park) {
+            if (owner.coefficients != null or owner.projection == null) return error.DeviceBindingReplayPhase;
+            const digest = try projectionDigest(&context, owner, owner.projection.?);
+            if (owner.projection_digest) |expected| if (!std.mem.eql(u8, &expected, &digest)) return error.DeviceBindingReplayDigestMismatch;
+            owner.projection_digest = digest;
+            var lease = owner.projection.?;
+            try context.release(&lease);
+            owner.projection = null;
+            return;
+        }
         if (self.kind == .release) {
             // Teardown must visit all owners even if one lease is stale or
             // the CUDA context is already poisoned.
@@ -219,6 +282,7 @@ const Call = struct {
             }
             var cleanup = Cleanup{ .runtime = runtime, .pending = owner.pending };
             _ = Cleanup.callback(ctx, token, &cleanup);
+            owner.metadata_released = true;
             return;
         }
         var temporary: std.ArrayList(Native.Lease) = .empty;
@@ -298,6 +362,10 @@ const Call = struct {
         try context.join();
         if (verdict[0] != 0) return error.DeviceBindingWitnessRejected;
         if (self.kind == .project) {
+            if (owner.projection_digest) |expected| {
+                const digest = try projectionDigest(&context, owner, output_lease);
+                if (!std.mem.eql(u8, &expected, &digest)) return error.DeviceBindingReplayDigestMismatch;
+            }
             const kept = try a.alloc(Native.Lease, 1);
             errdefer a.free(kept);
             var state_found = false;
@@ -323,6 +391,74 @@ const Call = struct {
         }
     }
 };
+fn requireSavedState(expected: []const u32, actual: []const u32) !void {
+    if (expected.len != A.gkr_state_words or !std.mem.eql(u32, expected, actual)) return error.DeviceBindingReplayStateMismatch;
+}
+test "binding replay rejects altered authenticated terminal point claims and transcript" {
+    var expected: [A.gkr_state_words]u32 = @splat(0);
+    expected[A.gkr_point_word] = 17;
+    expected[A.gkr_claims_word] = 23;
+    try requireSavedState(&expected, &expected);
+    for ([_]usize{ 0, 8, A.gkr_point_word, A.gkr_claims_word, A.gkr_state_words - 1 }) |at| {
+        var changed = expected;
+        changed[at] ^= 1;
+        try std.testing.expectError(error.DeviceBindingReplayStateMismatch, requireSavedState(&expected, &changed));
+    }
+    try std.testing.expectError(error.DeviceBindingReplayStateMismatch, requireSavedState(&expected, expected[0 .. expected.len - 1]));
+}
+test "binding replay failure frees host custody when poisoned native session rejects cleanup" {
+    const a = std.testing.allocator;
+    const Fake = struct {
+        fn reject(_: *anyopaque, _: Native.Callback, _: ?*anyopaque) callconv(.c) c_int {
+            return 1;
+        }
+    };
+    var runtime: Runtime = undefined;
+    runtime.allocator = a;
+    runtime.session = @ptrFromInt(1);
+    runtime.submit = Fake.reject;
+    const owner = try a.create(Owner);
+    owner.* = .{ .runtime = &runtime, .pending = undefined, .authority = @splat(0), .receipt = @splat(0) };
+    owner.pending.leases = try a.alloc(Native.Lease, 2);
+    owner.pending.fractions = try a.alloc(R.Fraction, 1);
+    owner.pending.instances = try a.alloc(Frame.Instance, 1);
+    Owner.release(owner);
+}
+/// Narrow replay checkpoint: roots of the physical eight-column projection
+/// planes, framed by the original native-verified binding authority. Numeric
+/// planes never leave the GPU, and the scratch tree is released before return.
+fn projectionDigest(context: *SC.Context, owner: *Owner, projection: Native.Lease) ![32]u8 {
+    var max_log: u32 = 0;
+    for (owner.pending.instances) |instance| max_log = @max(max_log, instance.row_log);
+    const maximum_words = ((@as(usize, 2) << @intCast(max_log)) - 1) * 8;
+    var tree = try context.allocate(maximum_words, 0);
+    defer {
+        context.join() catch {};
+        context.release(&tree) catch {};
+    }
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo/rv64/device-binding/replay-projection/v1\x00");
+    hash.update(&owner.authority);
+    var offset: usize = 0;
+    for (owner.pending.instances) |instance| {
+        const rows = try instance.rows();
+        const segment = A.MixedSegment{ .columns = projection.words.? + offset, .stride_words = rows, .capacity_words = rows * 8, .source_size = @intCast(rows) };
+        const words = (rows * 2 - 1) * 8;
+        try check(owner.runtime.trace_tree(context.native_context, 1, @ptrCast(&segment), 1, instance.row_log, tree.words.?, words));
+        try context.join();
+        var root: [8]u32 = undefined;
+        try context.download(try (try context.borrow(tree)).sub(words - 8, 8), &root);
+        try context.join();
+        for (root) |value| {
+            var encoded: [4]u8 = undefined;
+            std.mem.writeInt(u32, &encoded, value, .little);
+            hash.update(&encoded);
+        }
+        offset += rows * 8;
+    }
+    if (offset != projection.count) return error.DeviceBindingColumnShape;
+    return hash.finalResult();
+}
 fn alloc(a: std.mem.Allocator, context: *SC.Context, leases: *std.ArrayList(Native.Lease), words: usize, kind: u32) !Slice {
     var lease = try context.allocate(words, kind);
     errdefer context.release(&lease) catch {};

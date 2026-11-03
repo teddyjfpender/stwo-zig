@@ -62,9 +62,12 @@ pub const Owner = struct {
     retained_bytes: usize,
     columns: []D.Column = &.{},
     finalized: bool = false,
+    parked: bool = false,
+    park_fn: ?*const fn (*anyopaque) anyerror!usize = null,
     finalize_fn: *const fn (*anyopaque, std.mem.Allocator, Request) anyerror!Completion,
     release_fn: *const fn (*anyopaque) void,
     pub fn finalize(self: *Owner, a: std.mem.Allocator, request: Request) !void {
+        if (self.parked) return error.DeviceBindingReplayRequired;
         if (!std.meta.eql(self.scope, request.scope) or !std.mem.eql(u8, &self.receipt_digest, &request.receipt_digest)) return error.DeviceBindingScopeMismatch;
         if (!std.mem.eql(u8, &self.authority_digest, &(try authority(request)))) return error.DeviceBindingAuthorityMismatch;
         if (self.finalized) return;
@@ -79,6 +82,14 @@ pub const Owner = struct {
         self.retained_bytes = completed.retained_bytes;
         self.finalized = true;
     }
+    /// Release only the wide deferred projection. The authenticated receipt,
+    /// artifact authority and narrow terminal state must remain owned.
+    pub fn park(self: *Owner) !void {
+        if (self.finalized or self.columns.len != 0) return error.DeviceBindingAlreadyFinalized;
+        if (self.parked) return;
+        self.retained_bytes = try (self.park_fn orelse return error.DeviceBindingReplayUnavailable)(self.context);
+        self.parked = true;
+    }
     pub fn deinit(self: *Owner, a: std.mem.Allocator) void {
         self.release_fn(self.context);
         a.free(self.columns);
@@ -91,6 +102,13 @@ test "device binding ownership rejects changed authority and finalizes atomicall
     const Fake = struct {
         bad: bool = false,
         released: bool = false,
+        parked: bool = false,
+        fn park(ctx: *anyopaque) !usize {
+            const self: *@This() = @ptrCast(@alignCast(ctx));
+            if (self.bad) return error.InjectedParkFailure;
+            self.parked = true;
+            return 4096;
+        }
         fn complete(ctx: *anyopaque, allocator: std.mem.Allocator, _: Request) !Completion {
             const self: *@This() = @ptrCast(@alignCast(ctx));
             const columns = try allocator.alloc(D.Column, 16);
@@ -111,8 +129,17 @@ test "device binding ownership rejects changed authority and finalizes atomicall
     const artifact = Artifact{ .ood_point = &point, .claims_to_verify_by_instance = &claim_slices, .n_variables_by_instance = &variables };
     const request = Request{ .scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 }, .receipt_digest = @splat(4), .instances = &instances, .artifact = &artifact, .eta = O.one(), .deferred = false };
     var fake = Fake{ .bad = true };
-    var owner = Owner{ .context = &fake, .scope = request.scope, .receipt_digest = request.receipt_digest, .authority_digest = try authority(request), .retained_bytes = 8 * 32 * 4, .finalize_fn = Fake.complete, .release_fn = Fake.release };
+    var owner = Owner{ .context = &fake, .scope = request.scope, .receipt_digest = request.receipt_digest, .authority_digest = try authority(request), .retained_bytes = 8 * 32 * 4, .park_fn = Fake.park, .finalize_fn = Fake.complete, .release_fn = Fake.release };
     defer owner.deinit(a);
+    try std.testing.expectError(error.InjectedParkFailure, owner.park());
+    try std.testing.expect(!owner.parked);
+    fake.bad = false;
+    try owner.park();
+    try std.testing.expect(owner.parked and fake.parked and owner.retained_bytes == 4096);
+    try std.testing.expectError(error.DeviceBindingReplayRequired, owner.finalize(a, request));
+    // Only an authenticated replay backend can restore the parked projection.
+    owner.parked = false;
+    fake.bad = true;
     try std.testing.expectError(error.DeviceBindingColumnShape, owner.finalize(a, request));
     try std.testing.expect(!owner.finalized and owner.columns.len == 0 and !fake.released);
     fake.bad = false;

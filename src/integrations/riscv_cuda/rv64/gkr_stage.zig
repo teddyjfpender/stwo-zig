@@ -128,7 +128,7 @@ pub const Backend = struct {
     }
     pub fn stage(self: *Backend) Child.NumericalStage {
         self.configuration_sealed = true;
-        return .{ .context = self, .prove = prove, .bind = if (self.binding_runtime != null) bind else null, .abort = if (self.binding_runtime != null) abort else null };
+        return .{ .context = self, .prove = prove, .bind = if (self.binding_runtime != null) bind else null, .abort = if (self.binding_runtime != null) abort else null, .replay_binding = if (self.binding_runtime != null) replayBinding else null };
     }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
         const self: *Backend = @ptrCast(@alignCast(raw));
@@ -143,6 +143,18 @@ pub const Backend = struct {
         const self: *Backend = @ptrCast(@alignCast(raw));
         return (self.binding_runtime orelse return error.DeviceBindingUnavailable).bind(a, request);
     }
+    fn replayBinding(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request, owner: *Child.DeviceBinding.Owner) !void {
+        const self: *Backend = @ptrCast(@alignCast(raw));
+        if (!owner.parked or !std.meta.eql(owner.scope, request.scope)) return error.DeviceBindingReplayPhase;
+        const runtime = self.binding_runtime orelse return error.DeviceBindingUnavailable;
+        runtime.acquire(request.scope);
+        defer runtime.abort(request.scope);
+        var job = Job{ .backend = self, .allocator = a, .request = request, .replay_owner = owner };
+        const status = self.functions.submit(self.session, Job.callback, &job);
+        if (job.failure) |err| return err;
+        try checked(status);
+        if (owner.parked) return error.DeviceBindingReplayRequired;
+    }
     fn abort(raw: *anyopaque, scope: @TypeOf(@as(Child.NumericalStage.Request, undefined).scope)) void {
         const self: *Backend = @ptrCast(@alignCast(raw));
         if (self.binding_runtime) |runtime| runtime.abort(scope);
@@ -154,6 +166,7 @@ const Job = struct {
     request: Child.NumericalStage.Request,
     proof: ?Proof = null,
     failure: ?anyerror = null,
+    replay_owner: ?*Child.DeviceBinding.Owner = null,
     fn callback(raw_context: *anyopaque, token: u64, raw: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(raw orelse return 1));
         self.execute(raw_context, token) catch |err| {
@@ -217,7 +230,8 @@ const Job = struct {
             metadata_words = try std.math.add(usize, metadata_words, item_words);
         }
         const source_words = try std.math.mul(usize, source.cells, if (publish_coefficients) @as(usize, 2) else 1);
-        const requested = try std.math.add(usize, metadata_words, try std.math.add(usize, plan.total_words, try std.math.add(usize, input_words, try std.math.add(usize, source_words, twiddle_words))));
+        const workspace_words = if (self.replay_owner != null) 0 else plan.total_words;
+        const requested = try std.math.add(usize, metadata_words, try std.math.add(usize, workspace_words, try std.math.add(usize, input_words, try std.math.add(usize, source_words, twiddle_words))));
         if (try std.math.mul(usize, requested, 4) > cap) return error.GkrWorkspaceBudgetExceeded;
         var leases: std.ArrayList(Native.Lease) = .empty;
         var published_generation: u64 = 0;
@@ -326,7 +340,7 @@ const Job = struct {
             packet.* = .{ .fixed = @ptrFromInt(values.address), .main = @ptrFromInt(values.address), .public_values = @ptrFromInt(public.address), .offsets = @ptrFromInt(offsets.address), .parameters = @ptrFromInt(parameters.address), .n = @ptrFromInt(numerator.address), .d = @ptrFromInt(denominator.address), .status = @ptrFromInt(status.address), .log = item.log, .first = 0, .rows = @as(u32, 1) << @intCast(item.log) };
             fraction.* = .{ .n = .{ .data = numerator, .stride = item.facts, .coordinates = 1 }, .d = .{ .data = denominator, .stride = item.facts, .coordinates = 8 }, .count = item.facts };
         }
-        const workspace = try allocate(a, &context, &leases, plan.total_words);
+        const workspace = if (self.replay_owner == null) try allocate(a, &context, &leases, plan.total_words) else null;
         try context.join();
         try events.mark(.projection, false, assigned_stream);
         for (source.items, packets) |item, *packet| {
@@ -335,10 +349,39 @@ const Job = struct {
             try checked(b.functions.launch[item.kernel](assigned_stream, packet));
         }
         try events.mark(.projection, true, assigned_stream);
+        if (self.replay_owner) |owner| {
+            try context.join();
+            var verdict: [1]u32 = undefined;
+            var channel_words: [16]u32 = undefined;
+            try context.download(status, &verdict);
+            try context.download(channel, &channel_words);
+            try context.join();
+            fixed_joined = true;
+            if (verdict[0] != 0) return error.DeviceBindingReplayRejected;
+            const snapshot: @import("channel.zig").Snapshot = @bitCast(channel_words);
+            try snapshot.validate(step, chain);
+            for (snapshot.digest, 0..) |word, i| if (word != std.mem.readInt(u32, self.request.channel.inner.digest[4 * i ..][0..4], .little)) return error.InvalidDeviceTranscript;
+            if (snapshot.draws != self.request.channel.inner.n_draws) return error.InvalidDeviceTranscript;
+            var owned: [2 * A.batch_max_oracles]Native.Lease = undefined;
+            var count: usize = 0;
+            for (fractions) |fraction| for ([_]u64{ fraction.n.data.generation, fraction.d.data.generation }) |generation| {
+                owned[count] = try findLease(leases.items, generation);
+                count += 1;
+            };
+            var adopted = false;
+            defer if (adopted) {
+                for (owned[0..count], pending_generations[0..count]) |lease, *generation| generation.* = lease.generation;
+                pending_count = count;
+            };
+            owner.retained_bytes = try b.binding_runtime.?.adoptReplay(owner.context, raw_context, token, self.request.scope, self.request.instances, fractions, owned[0..count], &adopted);
+            owner.parked = false;
+            std.debug.print("GPU_GKR_BINDING_REPLAY ordinal={} wall_ns={} facts={} requested_payload_bytes={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, requested * 4 });
+            return;
+        }
         var commands = R.Commands(SC.Context, N.Api){ .context = &context, .api = &b.numerical, .lane_index = 1 };
         try events.mark(.traversal, false, assigned_stream);
         commands.batched_oracles = b.batched_oracles;
-        const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace, cap, chain, status);
+        const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace.?, cap, chain, status);
         try events.mark(.traversal, true, assigned_stream);
         try context.join();
         const numerical_ready_ns = timer.read();
