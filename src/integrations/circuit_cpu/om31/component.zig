@@ -159,6 +159,12 @@ pub const Component = struct {
         }
     };
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const ProverAir.Trace, acc: *Domain.DomainEvaluationAccumulator) !void {
+        return self.evaluateDomainWithPool(trace, acc, prover.work_pool.getGlobalPool());
+    }
+    /// The octic engine currently visits components in order. Split each large
+    /// domain through the caller's bounded pool without changing that order or
+    /// allocating an independent full composition plane per worker.
+    pub fn evaluateDomainWithPool(self: *const Component, trace: *const ProverAir.Trace, acc: *Domain.DomainEvaluationAccumulator, pool: ?*prover.work_pool.WorkPool) !void {
         const a = acc.allocator;
         const requests = [_]Domain.ColumnRequest{.{ .log_size = self.captured.evaluation_log_size, .n_cols = self.captured.n_constraints }};
         const columns = try acc.columns(a, &requests);
@@ -166,30 +172,84 @@ pub const Component = struct {
         const column = &columns[0];
         const params = try self.extensionParameters();
         defer self.allocator.free(params);
-        const scratch = try a.alloc(E.Scratch, self.captured.parts.len);
-        defer a.free(scratch);
-        var made: usize = 0;
-        defer for (scratch[0..made]) |*item| item.deinit();
-        var max_roots: usize = 0;
-        for (scratch, self.captured.parts) |*item, part| {
-            item.* = try E.Scratch.init(a, part.program);
-            made += 1;
-            max_roots = @max(max_roots, part.program.constraint_roots.len);
-        }
-        const roots = try a.alloc(O, max_roots);
-        defer a.free(roots);
         const n = @as(usize, 1) << @intCast(self.captured.evaluation_log_size);
-        var read = DomainRead{ .component = self, .trace = trace, .row = 0 };
-        for (0..n) |r| {
-            read.row = r;
-            var value = O.zero();
-            for (scratch, self.captured.parts) |*item, part| {
-                const values = roots[0..part.program.constraint_roots.len];
-                try item.evaluateInto(part.program, .{ .context = &read, .get = DomainRead.get }, params, values);
-                for (values, 0..) |root, i| value = value.add(root.mul(column.random_coeff_powers[self.captured.n_constraints - 1 - part.rc_base - i]));
-            }
-            const inv = M.fromCanonical(self.captured.denominator_inverses[r >> @intCast(self.captured.trace_log_size)]);
-            column.accumulate(r, value.mulM31(inv));
+        const workers = if (pool) |p| @min(p.workerCount(), @max(1, n / 4096)) else 1;
+        if (workers == 1) {
+            var job = try Rows.init(a, self, trace, params, column.*, 0, n);
+            defer job.deinit(a);
+            return job.evaluate();
         }
+        var lease = try pool.?.acquire(try prover.work_pool.WorkerBudget.init(workers));
+        defer lease.deinit();
+        // Every job writes a disjoint row range into the already zeroed bucket.
+        // Disable the sequential fresh cursor before copying it to helpers.
+        column.next_fresh_index = null;
+        var jobs: [prover.work_pool.MAX_WORKERS]Rows = undefined;
+        var prepared: usize = 0;
+        defer for (jobs[0..prepared]) |*job| job.deinit(a);
+        for (jobs[0..workers], 0..) |*job, i| {
+            job.* = try Rows.init(a, self, trace, params, column.*, n * i / workers, n * (i + 1) / workers);
+            prepared += 1;
+        }
+        var group = std.Thread.WaitGroup{};
+        var joined = false;
+        defer {
+            if (!joined) group.wait();
+            lease.completeWave();
+        }
+        for (jobs[1..workers]) |*job| try lease.spawnWg(&group, Rows.run, .{job});
+        jobs[0].run();
+        group.wait();
+        joined = true;
+        for (jobs[0..workers]) |job| if (job.failure) |err| return err;
     }
+    const Rows = struct {
+        component: *const Component,
+        trace: *const ProverAir.Trace,
+        parameters: []const O,
+        column: Domain.ColumnAccumulator,
+        scratch: []E.Scratch,
+        roots: []O,
+        first: usize,
+        end: usize,
+        failure: ?anyerror = null,
+        fn init(a: std.mem.Allocator, component: *const Component, trace: *const ProverAir.Trace, parameters: []const O, column: Domain.ColumnAccumulator, first: usize, end: usize) !Rows {
+            const scratch = try a.alloc(E.Scratch, component.captured.parts.len);
+            errdefer a.free(scratch);
+            var made: usize = 0;
+            errdefer for (scratch[0..made]) |*item| item.deinit();
+            var max_roots: usize = 0;
+            for (scratch, component.captured.parts) |*item, part| {
+                item.* = try E.Scratch.init(a, part.program);
+                made += 1;
+                max_roots = @max(max_roots, part.program.constraint_roots.len);
+            }
+            return .{ .component = component, .trace = trace, .parameters = parameters, .column = column, .scratch = scratch, .roots = try a.alloc(O, max_roots), .first = first, .end = end };
+        }
+        fn deinit(self: *Rows, a: std.mem.Allocator) void {
+            for (self.scratch) |*item| item.deinit();
+            a.free(self.scratch);
+            a.free(self.roots);
+        }
+        fn run(self: *Rows) void {
+            self.evaluate() catch |err| {
+                self.failure = err;
+            };
+        }
+        fn evaluate(self: *Rows) !void {
+            const component = self.component;
+            var read = DomainRead{ .component = component, .trace = self.trace, .row = self.first };
+            for (self.first..self.end) |r| {
+                read.row = r;
+                var value = O.zero();
+                for (self.scratch, component.captured.parts) |*item, part| {
+                    const values = self.roots[0..part.program.constraint_roots.len];
+                    try item.evaluateInto(part.program, .{ .context = &read, .get = DomainRead.get }, self.parameters, values);
+                    for (values, 0..) |root, i| value = value.add(root.mul(self.column.random_coeff_powers[component.captured.n_constraints - 1 - part.rc_base - i]));
+                }
+                const inv = M.fromCanonical(component.captured.denominator_inverses[r >> @intCast(component.captured.trace_log_size)]);
+                self.column.accumulate(r, value.mulM31(inv));
+            }
+        }
+    };
 };

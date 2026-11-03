@@ -81,6 +81,17 @@ pub fn build(b: *std.Build) void {
     om31_proof_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
     b.step("test-circuit-om31-proof", "Prove and freshly verify an actual circuit under native octic q108/P20").dependOn(&om31_proof_tests.step);
 
+    const om31_parallel_root = b.createModule(.{ .root_source_file = b.path("om31_parallel_test_root.zig"), .target = target, .optimize = optimize });
+    om31_parallel_root.addImport("stwo_core", core);
+    om31_parallel_root.addImport("stwo_prover_engine", prover);
+    om31_parallel_root.addImport("stwo_cpu_backend", cpu_backend);
+    om31_parallel_root.addImport("stwo_circuit_frontend", circuit);
+    om31_parallel_root.addImport("stwo_cairo_frontend", cairo);
+    om31_parallel_root.addImport("stwo_proof_wire", proof_wire);
+    const om31_parallel_tests = b.addRunArtifact(b.addTest(.{ .root_module = om31_parallel_root }));
+    om31_parallel_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-circuit-om31-parallel", "Compare serial and bounded-pool native OM31 outer proofs").dependOn(&om31_parallel_tests.step);
+
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
 
