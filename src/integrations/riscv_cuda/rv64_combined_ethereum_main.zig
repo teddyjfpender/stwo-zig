@@ -20,7 +20,10 @@ fn publishEntryReport(path: []const u8, json: []const u8) !void {
     // Linux O_PATH descriptors support openat but cannot be fsync'd.
     var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
     defer dir.close();
-    try dir.writeFile(.{ .sub_path = "combined-entry.json", .data = json });
+    var file = try dir.createFile("combined-entry.json", .{ .exclusive = true, .truncate = false });
+    defer file.close();
+    try file.writeAll(json);
+    try std.posix.fsync(file.handle);
     try std.posix.fsync(dir.fd);
 }
 pub fn main() !void {
@@ -87,6 +90,7 @@ test "combined entry publication uses a descriptor that supports durability" {
     const path = try temporary.dir.realpathAlloc(a, ".");
     defer a.free(path);
     try publishEntryReport(path, "{\"accepted\":true}");
+    try std.testing.expectError(error.PathAlreadyExists, publishEntryReport(path, "{\"accepted\":false}"));
     const bytes = try temporary.dir.readFileAlloc(a, "combined-entry.json", 1024);
     defer a.free(bytes);
     try std.testing.expectEqualStrings("{\"accepted\":true}", bytes);
