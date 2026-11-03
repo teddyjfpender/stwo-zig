@@ -28,8 +28,11 @@ fn peakRssBytes() u64 {
 
 pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
-    const a = std.heap.c_allocator;
     _ = &gpa;
+    // TENSOR_RECYCLE=1: keep freed large buffers for reuse (steady-state prover).
+    var recycler = t.recycle.Recycler.init(std.heap.c_allocator);
+    defer recycler.deinit();
+    const a = if (std.posix.getenv("TENSOR_RECYCLE") != null) recycler.allocator() else std.heap.c_allocator;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
@@ -82,8 +85,22 @@ pub fn main() !void {
     t0 = now();
     // Default: reuse the forward pass's accumulators (TENSOR_RECOMPUTE_ACC=1 recomputes them inside prove).
     const recompute = std.posix.getenv("TENSOR_RECOMPUTE_ACC") != null;
+    // TENSOR_PROVE_REPS=n: prove n times, report the fastest (first one separately).
+    const reps: usize = if (std.posix.getenv("TENSOR_PROVE_REPS")) |v| try std.fmt.parseInt(usize, v, 10) else 1;
     var proof = if (recompute) try proto.prove(a, &pool, pc, st, &ws, wview, &tm) else try proto.proveWithAccumulators(a, &pool, pc, st, &ws, wview, built.accs, &tm);
-    const prove_s = secs(t0);
+    var prove_s = secs(t0);
+    const prove_first_s = prove_s;
+    for (1..@max(reps, 1)) |_| {
+        proof.deinit(a);
+        var tm2: proto.Timings = .{};
+        t0 = now();
+        proof = if (recompute) try proto.prove(a, &pool, pc, st, &ws, wview, &tm2) else try proto.proveWithAccumulators(a, &pool, pc, st, &ws, wview, built.accs, &tm2);
+        const sec = secs(t0);
+        if (sec < prove_s) {
+            prove_s = sec;
+            tm = tm2;
+        }
+    }
     t0 = now();
     try proto.verify(a, pc, st, key, &proof);
     const verify_s = secs(t0);
@@ -98,6 +115,7 @@ pub fn main() !void {
     try out.print("{{\"bench\":\"mlp\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, threads, queries, lb, pow });
     try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits(), n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
+    try out.print("\"prove_reps\":{d},\"prove_first_s\":{d:.4},", .{ reps, prove_first_s });
     try out.print("\"recompute_acc\":{},\"prep_s\":{{\"accumulators\":{d:.4},\"multiplicities\":{d:.4}}},", .{ recompute, nsToS(tm.accumulators_ns), nsToS(tm.multiplicities_ns) });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });

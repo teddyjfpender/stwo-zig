@@ -9,6 +9,7 @@ pub const proof_digest = @import("proof_digest.zig");
 pub const batch = @import("batch.zig");
 pub const eqsum = @import("eqsum.zig");
 pub const prep = @import("prep.zig");
+pub const recycle = @import("recycle.zig");
 
 test {
     _ = field;
@@ -22,4 +23,5 @@ test {
     _ = batch;
     _ = eqsum;
     _ = prep;
+    _ = recycle;
 }

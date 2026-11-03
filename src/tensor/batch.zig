@@ -65,6 +65,86 @@ pub fn eqScaledInto(a: std.mem.Allocator, pool: *f.Pool, dst: []QM31, point: []c
     }.run);
 }
 
+pub const RegionClaim = struct { point: []const QM31, gamma: QM31 };
+
+/// dst[i] = sum_c gamma_c * eq(point_c, i) in one write pass (every point must
+/// have log2(dst.len) coordinates). Claims at identical points are merged
+/// (gammas added) first; with no claims dst is zeroed.
+pub fn fillRegion(a: std.mem.Allocator, pool: *f.Pool, dst: []QM31, claims_in: []const RegionClaim) !void {
+    const n = f.log2Exact(dst.len);
+    var merged: std.ArrayList(RegionClaim) = .empty;
+    defer merged.deinit(a);
+    outer: for (claims_in) |c| {
+        std.debug.assert(c.point.len == n);
+        for (merged.items) |*m| {
+            var same = true;
+            for (m.point, c.point) |x, y| same = same and x.eql(y);
+            if (same) {
+                m.gamma = m.gamma.add(c.gamma);
+                continue :outer;
+            }
+        }
+        try merged.append(a, c);
+    }
+    const m = merged.items.len;
+    if (m == 0) {
+        const Z = struct { dst: []QM31 };
+        const z = Z{ .dst = dst };
+        pool.parallelFor(dst.len, 1 << 14, &z, struct {
+            fn run(c: *const Z, s: usize, e: usize) void {
+                @memset(c.dst[s..e], QM31.zero());
+            }
+        }.run);
+        return;
+    }
+    const top: usize = @min(n, 8);
+    const P = @as(usize, 1) << @intCast(top);
+    const S = dst.len / P;
+    const prefixes = try a.alloc(QM31, m * P);
+    defer a.free(prefixes);
+    const suffixes = try a.alloc(QM31, m * S);
+    defer a.free(suffixes);
+    for (merged.items, 0..) |c, ci| {
+        const pre = try f.eqTable(a, c.point[0..top], c.gamma);
+        defer a.free(pre);
+        @memcpy(prefixes[ci * P ..][0..P], pre);
+        const suf = try f.eqTable(a, c.point[top..], QM31.one());
+        defer a.free(suf);
+        @memcpy(suffixes[ci * S ..][0..S], suf);
+    }
+    const Ctx = struct { dst: []QM31, pre: []const QM31, suf: []const QM31, m: usize, P: usize, S: usize };
+    const ctx = Ctx{ .dst = dst, .pre = prefixes, .suf = suffixes, .m = m, .P = P, .S = S };
+    // work items: (prefix index, suffix block) pairs so small prefixes still parallelise
+    const SB: usize = @min(S, 1024);
+    const n_items = P * (S / SB);
+    pool.parallelFor(n_items, @max(1, (@as(usize, 1) << 14) / SB), &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            const sb = @min(c.S, 1024);
+            const per = c.S / sb;
+            for (s..e) |item| {
+                const hi = item / per;
+                const lo0 = (item % per) * sb;
+                const base = hi * c.S;
+                var lo = lo0;
+                if (LANES > 1 and sb >= LANES) {
+                    while (lo + LANES <= lo0 + sb) : (lo += LANES) {
+                        var acc = PQ.splat(c.pre[hi]).mul(PQ.fromLanes(c.suf[lo..][0..LANES].*));
+                        for (1..c.m) |ci| {
+                            acc = acc.add(PQ.splat(c.pre[ci * c.P + hi]).mul(PQ.fromLanes(c.suf[ci * c.S + lo ..][0..LANES].*)));
+                        }
+                        inline for (0..LANES) |l| c.dst[base + lo + l] = acc.lane(l);
+                    }
+                }
+                while (lo < lo0 + sb) : (lo += 1) {
+                    var acc = c.pre[hi].mul(c.suf[lo]);
+                    for (1..c.m) |ci| acc = acc.add(c.pre[ci * c.P + hi].mul(c.suf[ci * c.S + lo]));
+                    c.dst[base + lo] = acc;
+                }
+            }
+        }
+    }.run);
+}
+
 inline fn m31FromI32(x: i32) M31 {
     return f.fromI32(x);
 }
@@ -309,6 +389,33 @@ test "proveBaseTimesExt matches generic sumcheck exactly" {
             for (r1.finals, r2.finals) |x, y| try std.testing.expect(x.eql(y));
             try std.testing.expect(t1.draw().eql(t2.draw()));
         }
+    }
+}
+
+test "fillRegion matches summed eq tables (with merged duplicate points)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    for ([_]usize{ 0, 1, 5, 9, 12 }) |n| {
+        var pts: [3][12]QM31 = undefined;
+        for (0..3) |c| for (0..n) |i| {
+            pts[c][i] = QM31.fromU32Unchecked(@intCast(i * 7 + 3 + c), @intCast(i + 1), 5, @intCast(i * i + c));
+        };
+        const gam = [4]QM31{ QM31.fromU32Unchecked(9, 8, 7, 6), QM31.fromU32Unchecked(1, 2, 3, 4), QM31.fromU32Unchecked(5, 0, 0, 1), QM31.fromU32Unchecked(11, 0, 2, 0) };
+        // claims 0 and 3 share a point
+        const cl = [_]RegionClaim{ .{ .point = pts[0][0..n], .gamma = gam[0] }, .{ .point = pts[1][0..n], .gamma = gam[1] }, .{ .point = pts[2][0..n], .gamma = gam[2] }, .{ .point = pts[0][0..n], .gamma = gam[3] } };
+        const len = @as(usize, 1) << @intCast(n);
+        const ref = try a.alloc(QM31, len);
+        defer a.free(ref);
+        @memset(ref, QM31.zero());
+        for (cl) |c| try addEqScaled(a, &pool, ref, c.point, c.gamma);
+        const dst = try a.alloc(QM31, len);
+        defer a.free(dst);
+        try fillRegion(a, &pool, dst, &cl);
+        for (dst, ref) |d, r| try std.testing.expect(d.eql(r));
+        try fillRegion(a, &pool, dst, &.{});
+        for (dst) |d| try std.testing.expect(d.isZero());
     }
 }
 
