@@ -1,0 +1,92 @@
+{
+  "schema": "rv64-real-segment-pcs-nsight/v1",
+  "date_utc": "2026-11-03",
+  "block": 24628607,
+  "segment": 0,
+  "steps": 4194303,
+  "security_profile": "conjectured128_b2_q108_p20_fold4",
+  "security_scope": "128-bit target under documented assumptions; not certified whole-protocol security",
+  "scope": "Actual Ethereum CPU segment PCS only: coefficients, sample evaluation, trace commitments, DEEP, FRI, openings. CPU capture, local GKR, composition and six truth proofs are excluded from the resident GPU interval.",
+  "device": "NVIDIA RTX 5090",
+  "coefficient_columns": 5845,
+  "point_height_groups": 68,
+  "lifting_eval_log": 23,
+  "queries": 108,
+  "correctness": {
+    "profile_output_byte_identical_to_unprofiled": true,
+    "fresh_prefix_receiver_accepted": true,
+    "complete_block": false,
+    "cpu_proof_byte_parity": "Parent owns comparison; this receipt establishes profiled/unprofiled GPU output parity and fresh prefix acceptance only."
+  },
+  "native_main_inter_cells": 562386016,
+  "all_four_tree_coefficient_cells": 667400960,
+  "source_lde_cells": 1334801920,
+  "unprofiled": {
+    "gpu_resident_ns": 224408829,
+    "coefficient_export_ns": 1206730870,
+    "external_helper_process_ns": 8671042726,
+    "callback_total_ns": 9896601595,
+    "device_allocation_bytes": 12681778464,
+    "hot_feedback_h2d_bytes": 0,
+    "hot_feedback_d2h_bytes": 0,
+    "resident_ns_per_native_main_inter_cell": 0.39902988804045936,
+    "resident_ns_per_coefficient_cell": 0.3362428921288936
+  },
+  "profiled": {
+    "gpu_resident_ns": 230993469,
+    "kernel_summed_ns": 220961676,
+    "kernel_launches": 1136,
+    "kernel_categories_ns": {
+      "trace_leaf_hash": 107174227,
+      "deep_quotient": 61247632,
+      "fft_and_lde_staging": 31812248,
+      "sample_evaluation": 12298026,
+      "transcript": 5201956,
+      "merkle_parent_hash": 2171265,
+      "fri_pow_openings_other": 1056322
+    },
+    "cuda_api_summed_ns": 582376307,
+    "h2d_transfer_summed_ns": 268318767,
+    "h2d_transfer_count": 124,
+    "d2h_transfer_summed_ns": 99264,
+    "d2h_transfer_count": 36,
+    "memset_summed_ns": 368800
+  },
+  "measurement_limits": [
+    "Nsight perturbs timings; use unprofiled resident time for checkpoint.",
+    "GPU kernel, CUDA API and transfer sums overlap; do not add them as wall contributions.",
+    "Resident timing excludes initial upload; H2D time is about268ms in the profiled run.",
+    "External helper8.67s includes file framing, CPU preparation, CUDA startup and transfers; no host-phase attribution is established by CUDA summary alone.",
+    "This is not end-to-end block throughput or a bandwidth roofline; achieved DRAM bandwidth and occupancy require kernel counters."
+  ],
+  "priorities": [
+    {
+      "item": "Native-height progressive leaf absorption",
+      "measured_ns": 107174227,
+      "source": "src/backends/cuda/native/rv64/trace.cu:112; src/backends/cuda/native/commitment/progressive.cu:393",
+      "finding": "Current leaf call hashes every mixed-height column at maximum tree height; source-row lifting repeats small-table hashing. Existing progressive seed interface permits absorbing sorted prefixes at native height then lifting states, preserving exact leaf roots. Benefit and scratch cost remain unmeasured."
+    },
+    {
+      "item": "Parallelize DEEP validation and line preparation",
+      "measured_ns": 20621456,
+      "source": "src/backends/cuda/native/rv64/deep.cu:292",
+      "finding": "Validation uses one thread over all terms. Line preparation uses one thread per group, only68 threads here, and computes alpha powers independently per term. Preserve exact field order/term powers and adversarial metadata checks."
+    },
+    {
+      "item": "Remove external helper/file handoff",
+      "measured_ns": 8671042726,
+      "finding": "Helper wall far exceeds224ms GPU work. Connect resident context and coefficients directly to the production process before interpreting GPU stage time as a prover result."
+    },
+    {
+      "item": "DEEP combine/aggregate",
+      "measured_ns": 40526719,
+      "finding": "Coefficient aggregation already precedes LDE. No per-column quotient re-expansion exists to remove."
+    }
+  ],
+  "artifacts": {
+    "segment0-pcs-stats_cuda_api_sum.csv": "f8f3532106e6b7ece5a34e6f177e783a30c8699b2f1c752f62247aa31941e590",
+    "segment0-pcs-stats_cuda_gpu_kern_sum.csv": "a3f79ba025c387285c27c694f95ddd3900fbee7a3c50ff34809b92e83b80b9ba",
+    "segment0-pcs-stats_cuda_gpu_mem_time_sum.csv": "c59397fb4e2aeb247880791ab72d1ef552ccc20a1087def838a1e73248df0d70"
+  },
+  "raw_profile": "/workspace/rv64-gpu-session/build/hybrid-real/segment0-pcs-nsys.nsys-rep (scratch only; compact CSV summaries retained)"
+}
