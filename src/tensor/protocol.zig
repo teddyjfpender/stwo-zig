@@ -25,6 +25,7 @@ const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const linalg = @import("linalg.zig");
 const Transcript = @import("transcript.zig").Transcript;
+pub const xt = @import("ext.zig");
 
 const M31 = f.M31;
 const QM31 = f.QM31;
@@ -77,6 +78,8 @@ pub const Statement = struct {
     weights: []const TensorInfo, // matrices [K, N]
     tables: []const Table,
     ops: []const Op,
+    /// transformer-coverage ops (einsum / key / lineq), see ext.zig
+    ext: xt.Ext = .{},
 };
 
 /// Committed weights (prover side): concatenated int8 table + commitment.
@@ -168,16 +171,16 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
 // ---------------------------------------------------------------------------
 // Relations derived from the statement (shared by prover and verifier).
 
-const KeyKind = enum { remainder, y_range, lookup_pair, plain_range };
+const KeyKind = enum { remainder, y_range, lookup_pair, plain_range, ext };
 
 const KeyInst = struct {
     kind: KeyKind,
-    op: usize,
+    op: usize, // for .ext: index into Relations.ext_keys
     log_size: u32,
     table: usize, // index into `tables` list below
 };
 
-const TableKind = union(enum) { range: u5, act: u32 };
+const TableKind = union(enum) { range: u5, act: u32, ext_lookup: u32 };
 
 const RelTable = struct {
     kind: TableKind,
@@ -188,20 +191,29 @@ const RelTable = struct {
 const Relations = struct {
     keys: []KeyInst,
     tables: []RelTable,
+    ext_keys: []xt.Key = &.{},
+    /// index of the first ext key in `keys`
+    ext_base: usize = 0,
 
     fn deinit(self: *Relations, a: std.mem.Allocator) void {
         a.free(self.keys);
         a.free(self.tables);
+        a.free(self.ext_keys);
     }
 };
 
 fn tableIndex(list: *std.ArrayList(RelTable), a: std.mem.Allocator, kind: TableKind, n_witness: usize) !usize {
+    return tableIndexX(list, a, kind, n_witness, .{});
+}
+
+fn tableIndexX(list: *std.ArrayList(RelTable), a: std.mem.Allocator, kind: TableKind, n_witness: usize, x: xt.Ext) !usize {
     for (list.items, 0..) |t, i| {
         if (std.meta.eql(t.kind, kind)) return i;
     }
     const log_size: u32 = switch (kind) {
         .range => |s| @max(@as(u32, s), 1),
         .act => 8,
+        .ext_lookup => |id| x.tables[id].log_size,
     };
     try list.append(a, .{ .kind = kind, .log_size = log_size, .mult_tensor = n_witness + list.items.len });
     return list.items.len - 1;
@@ -232,7 +244,16 @@ fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
             .product => {},
         }
     }
-    return .{ .keys = try keys.toOwnedSlice(a), .tables = try tabs.toOwnedSlice(a) };
+    const ext_base = keys.items.len;
+    const ext_keys = try xt.deriveKeys(a, st.ext);
+    for (ext_keys, 0..) |k, i| {
+        const kind: TableKind = switch (k.table) {
+            .range => |b| .{ .range = b },
+            .lookup => |id| .{ .ext_lookup = id },
+        };
+        try keys.append(a, .{ .kind = .ext, .op = i, .log_size = k.log_size, .table = try tableIndexX(&tabs, a, kind, nw, st.ext) });
+    }
+    return .{ .keys = try keys.toOwnedSlice(a), .tables = try tabs.toOwnedSlice(a), .ext_keys = ext_keys, .ext_base = ext_base };
 }
 
 fn extendedInfos(a: std.mem.Allocator, st: Statement, rel: Relations) ![]TensorInfo {
@@ -250,6 +271,7 @@ fn tableValue(st: Statement, kind: TableKind, idx: usize) struct { key: i64, out
     return switch (kind) {
         .range => .{ .key = @intCast(idx), .out = 0 },
         .act => |t| .{ .key = @as(i64, @intCast(idx)) - 128, .out = st.tables[t].values[idx] },
+        .ext_lookup => |t| .{ .key = @intCast(idx), .out = st.ext.tables[t].values[idx] },
     };
 }
 
@@ -262,6 +284,10 @@ fn tableKeyMle(st: Statement, a: std.mem.Allocator, t: RelTable, point: []const 
             for (0..256) |i| outv[i] = st.tables[ti].values[i];
             const out_mle = try f.mleEvalI32(a, &outv, point);
             return f.identityMle(point).sub(f.qFromI64(128)).add(beta.mul(out_mle));
+        },
+        .ext_lookup => |ti| {
+            const out_mle = try f.mleEvalI32(a, st.ext.tables[ti].values, point);
+            return f.identityMle(point).add(beta.mul(out_mle));
         },
     }
 }
@@ -284,6 +310,7 @@ pub const Proof = struct {
     witness_opening: pcs.OpeningProof,
     weight_values: []QM31,
     weight_opening: ?pcs.OpeningProof,
+    ext: xt.ProofPart = .{},
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
         if (self.gkr) |*g| g.deinit(a);
@@ -296,6 +323,7 @@ pub const Proof = struct {
         self.witness_opening.deinit(a);
         a.free(self.weight_values);
         if (self.weight_opening) |*w| w.deinit(a);
+        self.ext.deinit(a);
     }
 
     pub const Sizes = struct { gkr: usize, sumchecks: usize, witness_opening: usize, weight_opening: usize, total: usize };
@@ -314,6 +342,7 @@ pub const Proof = struct {
         var s: usize = self.lookup_in_values.len * 16 + self.batch_sumcheck.byteSize() + 16 + self.weight_values.len * 16;
         for (self.op_sumchecks) |p| s += p.byteSize();
         for (self.op_finals) |x| s += x.len * 16;
+        s += self.ext.byteSize();
         const wo = self.witness_opening.byteSize();
         const wto = if (self.weight_opening) |w| w.byteSize() else 0;
         return .{ .gkr = gk, .sumchecks = s, .witness_opening = wo, .weight_opening = wto, .total = 32 + gk + s + wo + wto };
@@ -353,6 +382,7 @@ fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
         .range8 => |r| tr.mixU32s(&.{ 4, r.in }),
         .product => |q| tr.mixU32s(&.{ 5, q.a, q.b, q.c }),
     };
+    xt.mixStatement(tr, st.ext);
 }
 
 fn fullPoint(a: std.mem.Allocator, log_total: u32, offset: usize, log_size: u32, local: []const QM31) ![]QM31 {
@@ -400,6 +430,7 @@ fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []co
                         const l = c.st.ops[c.k.op].lookup;
                         break :blk f.qFromI64(c.w[l.in][i]).add(c.beta.mul(f.qFromI64(c.w[l.out][i])));
                     },
+                    .ext => unreachable, // xt.keyDen
                 };
                 c.out[i] = c.alpha.sub(key);
             }
@@ -419,7 +450,7 @@ fn tableDen(a: std.mem.Allocator, st: Statement, t: RelTable, alpha: QM31, beta:
 }
 
 /// Compute multiplicities for all tables from witness values.
-fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []const []const i32, acc: []const ?[]i64) ![][]i32 {
+fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []const []const i32, acc: []const ?[]i64, eps: *const xt.ProverState) ![][]i32 {
     const out = try a.alloc([]i32, rel.tables.len);
     var n_alloc: usize = 0;
     errdefer {
@@ -470,6 +501,7 @@ fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []cons
                     mult[@intCast(v)] += 1;
                 }
             },
+            .ext => try xt.addMultiplicities(st, eps, k.op, mult),
         }
     }
     return out;
@@ -567,7 +599,9 @@ pub fn prove(
         for (acc) |x| if (x) |v| a.free(v);
         a.free(acc);
     }
-    const mults = try multiplicities(a, st, rel, witness, acc);
+    var eps = try xt.proverInit(a, pool, st, witness);
+    defer eps.deinit(a);
+    const mults = try multiplicities(a, st, rel, witness, acc, &eps);
     defer {
         for (mults) |m| a.free(m);
         a.free(mults);
@@ -610,7 +644,7 @@ pub fn prove(
     const n_inst = rel.keys.len + rel.tables.len;
     const inputs = try a.alloc(Fast.Input, n_inst);
     defer a.free(inputs);
-    for (rel.keys, 0..) |k, i| inputs[i] = .{ .num = .ones, .den = try keyValues(a, pool, st, all, acc, k, alpha, beta), .owned = true };
+    for (rel.keys, 0..) |k, i| inputs[i] = .{ .num = .ones, .den = if (k.kind == .ext) try xt.keyDen(a, &eps, k.op, alpha, beta) else try keyValues(a, pool, st, all, acc, k, alpha, beta), .owned = true };
     const mult_m31 = try a.alloc([]M31, rel.tables.len);
     defer {
         for (mult_m31) |m| a.free(m);
@@ -675,6 +709,7 @@ pub fn prove(
                 try claims.append(a, .{ .tensor = l.in, .point = try a.dupe(QM31, pt), .value = vin });
                 try claims.append(a, .{ .tensor = l.out, .point = try a.dupe(QM31, pt), .value = vout });
             },
+            .ext => {},
         }
     }
     for (rel.tables, 0..) |t, ti| {
@@ -682,6 +717,14 @@ pub fn prove(
         const num = art.claims_to_verify_by_instance[rel.keys.len + ti][0];
         try claims.append(a, .{ .tensor = t.mult_tensor, .point = try a.dupe(QM31, pt), .value = num });
     }
+    var ext_values: std.ArrayList(QM31) = .empty;
+    errdefer ext_values.deinit(a);
+    var ext_sumchecks: std.ArrayList(sc.Proof) = .empty;
+    errdefer ext_sumchecks.deinit(a);
+    var ext_finals: std.ArrayList([2]QM31) = .empty;
+    errdefer ext_finals.deinit(a);
+    const gview = xt.GkrView{ .ood = art.ood_point, .cv = @ptrCast(art.claims_to_verify_by_instance), .key_base = rel.ext_base };
+    try xt.proveTerminal(a, pool, st, all, &eps, gview, alpha, beta, &tr, &claims, &ext_values);
 
     // --- op sumchecks (matmul / hadamard), in key order (one per remainder key)
     t0 = try std.time.Instant.now();
@@ -779,6 +822,7 @@ pub fn prove(
         },
         else => {},
     };
+    try xt.proveOps(a, pool, st, all, &eps, gview, alpha, &tr, &claims, &ext_values, &ext_sumchecks, &ext_finals);
     timings.op_sumcheck_ns = nowNs(t0);
 
     // --- batch witness claims into one point
@@ -844,6 +888,7 @@ pub fn prove(
         .witness_opening = wopen,
         .weight_values = wvals,
         .weight_opening = wtopen,
+        .ext = .{ .values = try ext_values.toOwnedSlice(a), .sumchecks = try ext_sumchecks.toOwnedSlice(a), .finals = try ext_finals.toOwnedSlice(a) },
     };
 }
 
@@ -864,6 +909,7 @@ pub fn weightKey(ws: *const WeightStore) WeightKey {
 }
 
 pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof) !void {
+    try xt.validate(st);
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
     const ext = try extendedInfos(a, st, rel);
@@ -947,6 +993,7 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
                 try claims.append(a, .{ .tensor = l.in, .point = try a.dupe(QM31, pt), .value = vin });
                 try claims.append(a, .{ .tensor = l.out, .point = try a.dupe(QM31, pt), .value = vout });
             },
+            .ext => {},
         }
     }
     if (lk_i != proof.lookup_in_values.len) return error.ProofShape;
@@ -958,6 +1005,9 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         if (!cv[1].eql(expect_den)) return error.GkrTerminal;
         try claims.append(a, .{ .tensor = t.mult_tensor, .point = try a.dupe(QM31, pt), .value = cv[0] });
     }
+    const gview = xt.GkrView{ .ood = art.ood_point, .cv = @ptrCast(art.claims_to_verify_by_instance), .key_base = rel.ext_base };
+    var ext_cur: usize = 0;
+    try xt.verifyTerminal(a, st, rel.ext_keys, gview, alpha, beta, &tr, &claims, &proof.ext, &ext_cur);
 
     var weight_pts: std.ArrayList([]QM31) = .empty;
     defer {
@@ -1035,6 +1085,7 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         else => {},
     };
     if (op_i != proof.op_sumchecks.len) return error.ProofShape;
+    try xt.verifyOps(a, st, rel.ext_keys, gview, alpha, &tr, &claims, &proof.ext, &ext_cur);
 
     // batch reduction
     for (claims.items) |c| tr.mixFelt(c.value);

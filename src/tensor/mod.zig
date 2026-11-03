@@ -5,6 +5,8 @@ pub const pcs = @import("pcs.zig");
 pub const linalg = @import("linalg.zig");
 pub const protocol = @import("protocol.zig");
 pub const model = @import("model.zig");
+pub const ext = @import("ext.zig");
+pub const transformer = @import("transformer.zig");
 
 test {
     _ = field;
@@ -14,4 +16,6 @@ test {
     _ = linalg;
     _ = protocol;
     _ = model;
+    _ = ext;
+    _ = transformer;
 }
