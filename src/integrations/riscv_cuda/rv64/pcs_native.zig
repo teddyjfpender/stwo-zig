@@ -6,7 +6,7 @@ const Abi = @import("pcs_native_abi.zig");
 const Export = @import("pcs_request_export.zig");
 const Decode = @import("hybrid_pcs.zig");
 const CachedColumn = struct { host: usize, tree: u32, column: usize, count: usize, log: u32, device: D.DeviceCoefficients };
-const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false };
+const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false, extra: std.ArrayList(Abi.Lease) = .empty };
 pub const Context = struct {
     cache_mutex: std.Thread.Mutex = .{},
     cache: std.ArrayList(Cached) = .empty,
@@ -52,9 +52,26 @@ pub const Context = struct {
             const index = victim orelse return error.RetainedCoefficientAdmissionExceeded;
             var retired = self.cache.swapRemove(index);
             if (self.lease_release(self.session, &retired.lease) != 0) return error.InvalidRetainedCoefficientLease;
+            for (retired.extra.items) |*extra| if (self.lease_release(self.session, extra) != 0) return error.InvalidRetainedCoefficientLease;
+            retired.extra.deinit(a);
             a.free(retired.columns);
         }
         try self.cache.append(a, .{ .scope = scope, .lease = lease, .columns = mapped });
+    }
+    /// Called inside the same owner-thread callback; transfers only on success.
+    pub fn retainDeviceLease(self: *Context, scope: [8]u32, lease: Abi.Lease) !void {
+        if (lease.kind != 2 or self.lease_validate(self.session, &lease, &scope) != 0) return error.InvalidRetainedCoefficientLease;
+        self.cache_mutex.lock();
+        defer self.cache_mutex.unlock();
+        for (self.cache.items) |*entry| if (std.mem.eql(u32, &entry.scope, &scope)) {
+            if (entry.lease.generation == lease.generation) return error.DuplicateRetainedCoefficientLease;
+            for (entry.extra.items) |previous| if (previous.generation == lease.generation) return error.DuplicateRetainedCoefficientLease;
+            try entry.extra.append(std.heap.page_allocator, lease);
+            entry.in_use = true;
+            return;
+        };
+        if (self.cache.items.len >= 2) return error.RetainedCoefficientAdmissionExceeded;
+        try self.cache.append(std.heap.page_allocator, .{ .scope = scope, .lease = lease, .columns = &.{}, .in_use = true });
     }
     /// Stable original tree/column identity survives retained MAIN remapping.
     pub fn retainedColumn(self: *Context, scope: [8]u32, tree: u32, index: usize, column: D.Column) ?D.DeviceCoefficients {
@@ -85,19 +102,27 @@ pub const Context = struct {
         const entry: ?Cached = if (index) |i| self.cache.swapRemove(i) else null;
         self.cache_mutex.unlock();
         if (entry) |cached| {
-            var release_job = ReleaseJob{ .self = self, .lease = cached.lease };
+            var release_job = ReleaseJob{ .self = self, .lease = cached.lease, .extra = cached.extra.items };
             _ = self.submit(self.session, ReleaseJob.run, &release_job);
             // A poisoned context is terminal; destroy still owns any lease
             // that could not be released by the owner-thread callback.
+            var extra = cached.extra;
+            extra.deinit(std.heap.page_allocator);
             std.heap.page_allocator.free(cached.columns);
         }
     }
     const ReleaseJob = struct {
         self: *Context,
         lease: Abi.Lease,
+        extra: []const Abi.Lease,
         fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
             const job: *@This() = @ptrCast(@alignCast(raw.?));
-            return job.self.lease_release(job.self.session, &job.lease);
+            if (job.self.lease_release(job.self.session, &job.lease) != 0) return 1;
+            for (job.extra) |lease| {
+                var owned = lease;
+                if (job.self.lease_release(job.self.session, &owned) != 0) return 1;
+            }
+            return 0;
         }
     };
     pub fn init(path: []const u8, device: u32, capacity: u64) !Context {
