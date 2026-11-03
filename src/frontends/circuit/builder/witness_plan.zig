@@ -124,7 +124,7 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     for (metadata.origins.items) |origin| if (origin.kind == .seed) {
         if (origin.out >= producer.len or producer[origin.out] != missing) return error.DuplicateWitnessSeed;
         producer[origin.out] = seeded;
-        try seeds.append(a, .{ .variable = origin.out, .value = ctx.values()[origin.out] });
+        try seeds.append(a, .{ .variable = origin.out, .value = origin.value });
     };
     var tasks: std.ArrayList(Task) = .empty;
     defer tasks.deinit(a);
@@ -324,4 +324,46 @@ test "witness schedule: skipped self-yields and seeded outputs still validate in
     try std.testing.expectError(error.InvalidWitnessVariable, build(a, &ctx));
     ctx.circuit.add.items[ctx.circuit.add.items.len - 1] = .{ .in0 = ctx.circuit.n_vars, .in1 = ctx.zero().idx, .out = ctx.one().idx };
     try std.testing.expectError(error.InvalidWitnessVariable, build(a, &ctx));
+}
+
+fn traceOnlyFixture(ctx: *C.Context(Q)) !void {
+    const iv = @import("ivalue.zig");
+    const simd = @import("simd.zig");
+    const wrappers = @import("wrappers.zig");
+    const x = try ctx.guess(Q.fromU32Unchecked(11, 3, 7, 9));
+    const denominator = try ctx.guess(Q.fromU32Unchecked(17, 0, 0, 0));
+    _ = try ctx.div(x, denominator);
+    _ = try ctx.inv(denominator);
+    const lanes = simd.Simd.fromPacked(&.{x}, 4);
+    _ = try simd.guessInvOrZero(Q, ctx, lanes);
+    _ = try @import("extract_bits.zig").extractBits(Q, ctx, lanes, 31);
+    _ = try ctx.permuteNamed(&.{ x, denominator }, .sort_by_u_coordinate);
+    const nonce = try wrappers.guessU32(Q, ctx, wrappers.u32Value(Q, 0xdeadbeef));
+    const message = [_]wrappers.U32Wrapper(G.Var){ nonce, try wrappers.constU32(Q, ctx, 0x12345678) };
+    const digest = try @import("blake.zig").blake2sU32s(Q, ctx, &message, 8);
+    var out: [8]G.Var = undefined;
+    for (&out, digest.words) |*v, word| v.* = word.get();
+    try ctx.setOutputs(&out);
+    try ctx.finalize(false);
+    _ = iv;
+}
+
+test "witness trace-only: exact original topology and assignments without CPU value storage" {
+    const a = std.testing.allocator;
+    var original = try C.Context(Q).initWithWitnessOrigins(a, 8);
+    defer original.deinit();
+    var trace = try C.Context(Q).initTraceOnly(a, 8);
+    defer trace.deinit();
+    try traceOnlyFixture(&original);
+    try traceOnlyFixture(&trace);
+    try std.testing.expectEqualDeep(original.circuit, trace.circuit);
+    try std.testing.expectEqual(@as(usize, 0), trace.value_table.items.len);
+    try std.testing.expectEqual(@as(usize, 0), trace.value_table.capacity);
+    var plan = try build(a, &trace);
+    defer plan.deinit();
+    const reconstructed = try evaluate(a, &trace, plan);
+    defer a.free(reconstructed);
+    try std.testing.expectEqualDeep(original.values(), reconstructed);
+    // Only four true external proof words: x, denominator, and nonce limbs.
+    try std.testing.expectEqual(trace.constants.count() + 4, plan.seeds.len);
 }

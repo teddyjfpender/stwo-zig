@@ -195,7 +195,7 @@ pub fn blake2sU32s(comptime V: type, ctx: *context_mod.Context(V), message: []co
 
 /// Adds a TripleXor gate: `a ^ b ^ c` over `u32` wires.
 pub fn tripleXor(comptime V: type, ctx: *context_mod.Context(V), a: U32Wrapper(Var), b: U32Wrapper(Var), c: U32Wrapper(Var)) Error!U32Wrapper(Var) {
-    const x = ivalue.unpackU32(V, ctx.get(a.get())) ^ ivalue.unpackU32(V, ctx.get(b.get())) ^ ivalue.unpackU32(V, ctx.get(c.get()));
+    const x = if (ctx.trace_only) 0 else ivalue.unpackU32(V, ctx.get(a.get())) ^ ivalue.unpackU32(V, ctx.get(b.get())) ^ ivalue.unpackU32(V, ctx.get(c.get()));
     const out = try ctx.newVar(ivalue.packU32(V, x));
     ctx.stats.triple_xor += 1;
     ctx.gate_counts.triple_xor += 1;
@@ -220,7 +220,7 @@ pub fn blake2sG(a0: u32, b0: u32, c0: u32, d0: u32, f0: u32, f1: u32) [4]u32 {
 /// Adds an M31ToU32 gate: the M31 `(x, 0, 0, 0)` as the `u32` wire
 /// `(x & 0xFFFF, x >> 16, 0, 0)`.
 pub fn m31ToU32(comptime V: type, ctx: *context_mod.Context(V), input: Var) Error!U32Wrapper(Var) {
-    const out = try ctx.newVar(ivalue.m31ToU32(V, ctx.get(input)));
+    const out = try ctx.newVar(if (ctx.trace_only) ivalue.placeholder(V) else ivalue.m31ToU32(V, ctx.get(input)));
     try ctx.m31ToU32Into(input, out);
     return .newUnsafe(out);
 }
@@ -239,8 +239,8 @@ pub fn blakeGGate(
 ) Error![4]U32Wrapper(Var) {
     const inputs = [6]U32Wrapper(Var){ a, b, c, d, f0, f1 };
     var words: [6]u32 = undefined;
-    for (&words, inputs) |*word, input| word.* = ivalue.unpackU32(V, ctx.get(input.get()));
-    const out_words = blake2sG(words[0], words[1], words[2], words[3], words[4], words[5]);
+    for (&words, inputs) |*word, input| word.* = if (ctx.trace_only) 0 else ivalue.unpackU32(V, ctx.get(input.get()));
+    const out_words = if (ctx.trace_only) @as([4]u32, @splat(0)) else blake2sG(words[0], words[1], words[2], words[3], words[4], words[5]);
     var outputs: [4]U32Wrapper(Var) = undefined;
     for (&outputs, out_words) |*out, word| out.* = .newUnsafe(try ctx.newVar(ivalue.packU32(V, word)));
     const out_base = outputs[0].get().idx;
