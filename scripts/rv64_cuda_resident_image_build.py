@@ -63,6 +63,22 @@ def truth_sources(raw, partitions):
     return sources
 
 
+def outer_sources(directory):
+    manifest = json.loads((directory / "outer-manifest.json").read_text())
+    groups = manifest.get("groups", [])
+    if manifest.get("profile") != "native-om31-circuit" or manifest.get("geometry_independent") is not True or len(groups) != 12:
+        raise ValueError("complete geometry-independent outer catalogue required")
+    sources = []
+    for i, group in enumerate(groups):
+        if group.get("id") != i or group.get("filename") != f"outer-group-{i}.cu":
+            raise ValueError("outer group coverage/order mismatch")
+        for key in ("program_identity", "source_identity"):
+            if not re.fullmatch(r"[0-9a-f]{64}", group.get(key, "")):
+                raise ValueError("outer authority identity missing")
+        sources.append((directory / group["filename"]).resolve(strict=True))
+    return sources + [(directory / "outer-dispatch.cu").resolve(strict=True)]
+
+
 def split_core(directory, build, roles, max_module_bytes=128 << 10):
     """Keep global RLC indices while bounding individual optimizer units."""
     original, _ = core_catalog(directory)
@@ -115,22 +131,46 @@ extern "C" int stwo_rv64_composition_role_on(void *ctx,uint32_t lane,
     return sources + [dispatcher]
 
 
-def bounded_compile_source(source, obj, build, max_bytes=32768):
+def bounded_compile_source(source, obj, build, max_bytes=32768, raw_directory=None):
     """Lower cold single-group units without mutating admitted source manifests.
 
     Existing object candidates still undergo compile_native's full dependency
     validation. Keep the selected lowered path stable on subsequent builds.
     """
     text = source.read_text()
-    if len(text.encode()) <= max_bytes or text.count("__device__ __noinline__ void ") != 1 or "volatile OM31 *ext_bank" in text:
+    if len(text.encode()) <= max_bytes or text.count("__device__ __noinline__ void ") != 1:
+        return source, None
+    prebounded = "volatile OM31 *ext_bank" in text
+    if prebounded and (raw_directory is None or len(text.encode()) < 512 << 10):
         return source, None
     name = source.stem + "-" + hashlib.sha256((str(source) + N.sha(source)).encode()).hexdigest()[:16]
     lowered = build / "bounded-aot" / (name + ".cu")
     if obj.is_file() and not lowered.is_file():
         return source, None
     lowered.parent.mkdir(parents=True, exist_ok=True)
+    raw_sha = None
+    if prebounded:
+        match = re.fullmatch(r"rv64_truth_domain_(\d+)_shard_(\d+)\.cu", source.name)
+        if not match:
+            return source, None
+        raw = raw_directory / f"case-{match[1]}-domain.cu"
+        raw_text = raw.read_text()
+        parts = list(re.finditer(r"__device__ __noinline__ void ([A-Za-z0-9_]+)_part_(\d+)\(", raw_text))
+        kernel = raw_text.index('extern "C" __global__ void')
+        selected = list(re.finditer(r"__device__ __noinline__ void ([A-Za-z0-9_]+)_part_(\d+)\(", text))
+        group = int(selected[0][2])
+        if group >= len(parts) or int(parts[group][2]) != group or parts[group][1] != selected[0][1]:
+            raise ValueError("bounded recovery raw group does not match admitted source")
+        end = parts[group + 1].start() if group + 1 < len(parts) else kernel
+        # Recover the exact original SSA function; never transform an already
+        # lowered register-bank program a second time.
+        text = raw_text[:parts[0].start()] + raw_text[parts[group].start():end] + text[text.index('extern "C" __global__ void'):]
+        raw_sha = N.sha(raw)
     lowered.write_text(text)
-    metadata = Grouped.bound_ssa_module(lowered)
+    metadata = Grouped.bound_ssa_module(lowered, 64 if prebounded else 192)
+    if raw_sha:
+        metadata["raw_source_sha256"] = raw_sha
+        metadata["recovered_original_group"] = group
     return lowered, {"source_sha256": N.sha(source), "lowered_source": str(lowered), "lowered_sha256": N.sha(lowered), **metadata}
 
 
@@ -138,6 +178,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("source-root", "core-domain", "core-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--outer-circuit-dir", type=Path, help="Include the exact twelve-group OM31 outer circuit catalogue")
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     parser.add_argument("--jobs", type=int, default=6)
     parser.add_argument("--compile-timeout", type=float, default=180)
@@ -164,6 +205,8 @@ def main():
     if ids != set(range(47)):
         raise ValueError("complete image requires all 47 source projections")
     sources.extend(projections)
+    if args.outer_circuit_dir:
+        sources.extend(outer_sources(args.outer_circuit_dir.resolve()))
     for role in range(15):
         source = args.truth_rational / f"stwo_rv64_truth_projection_{role}.cu"
         result = Rational.partition(source.resolve(), build / "rational" / str(role), 16)
@@ -183,7 +226,7 @@ def main():
         # and compiler pins are validated by the shared atomic cache publisher.
         name = source.stem + "-" + hashlib.sha256(str(source).encode()).hexdigest()[:12]
         obj = objects / (name + ".o")
-        actual, lowered = bounded_compile_source(source, obj, build)
+        actual, lowered = bounded_compile_source(source, obj, build, raw_directory=args.truth_domain.resolve())
         if lowered:
             lowering[str(source)] = lowered
         cached = N.compile_native(args.nvcc, version, flags, actual, obj, logs / (name + ".log"), args.compile_timeout)
@@ -193,16 +236,20 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         compiled = list(pool.map(compile_one, sources))
     command = [sys.executable, str(root / "scripts/rv64_cuda_native_library_build.py"), "--source-root", str(root), "--build", str(build / "native"), "--nvcc", args.nvcc, "--jobs", str(args.jobs), "--compile-timeout", str(args.compile_timeout), "--extra-native-source", "rv64/curve_witness.cu"]
+    if args.outer_circuit_dir:
+        command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu"]
     for obj in compiled:
         command += ["--extra-object", str(obj)]
     subprocess.run(command, check=True)
     library = build / "native/libstwo-rv64-native.so"
     image = ctypes.CDLL(str(library))
     required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on", "stwo_rv64_curve_witness_on", "stwo_rv64_secp_witness_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)] + [f"launch_{i}" for i in range(47)]
+    if args.outer_circuit_dir:
+        required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on"]
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "bounded_aot_sources": lowering, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "bounded_aot_sources": lowering, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 

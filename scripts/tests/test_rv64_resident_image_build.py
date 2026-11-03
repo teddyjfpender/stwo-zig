@@ -58,6 +58,41 @@ extern "C" __global__ void rv64_joined_domain_8(void){uint32_t i=0;switch(blockI
             other.write_text(text)
             self.assertEqual(B.bounded_compile_source(other, obj, root, 16), (other, None))
 
+    def test_prebounded_recovery_uses_original_authority_group_with_smaller_slices(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "rv64_truth_domain_0_shard_0.cu"
+            source.write_text("// volatile OM31 *ext_bank\n" + " " * (512 << 10) +
+                              '__device__ __noinline__ void rv64_truth_domain_0_part_0(){}\nextern "C" __global__ void original_kernel(){}')
+            original = source.read_text()
+            (root / "case-0-domain.cu").write_text(
+                '__device__ __noinline__ void rv64_truth_domain_0_part_0(){use(powers+1136u); }\nextern "C" __global__ void raw_kernel(){}')
+            with mock.patch.object(B.Grouped, "bound_ssa_module", return_value={"instruction_slices": 1}) as lower:
+                actual, metadata = B.bounded_compile_source(source, root / "missing.o", root, raw_directory=root)
+            self.assertEqual(lower.call_args.args[1], 64)
+            self.assertEqual(metadata["recovered_original_group"], 0)
+            self.assertIn("powers+1136u", actual.read_text())
+            self.assertNotIn("volatile OM31 *ext_bank", actual.read_text())
+            self.assertEqual(source.read_text(), original)
+
+    def test_outer_catalogue_requires_complete_order_and_authority_identities(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            groups = []
+            for i in range(12):
+                filename = f"outer-group-{i}.cu"
+                (root / filename).write_text(str(i))
+                groups.append({"id": i, "filename": filename, "program_identity": "a" * 64, "source_identity": "b" * 64})
+            (root / "outer-dispatch.cu").write_text("dispatch")
+            manifest = {"profile": "native-om31-circuit", "geometry_independent": True, "groups": groups}
+            path = root / "outer-manifest.json"
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(len(B.outer_sources(root)), 13)
+            groups[11]["id"] = 10
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "coverage"):
+                B.outer_sources(root)
+
     def test_all_core_roles_required_and_group_geometry_preserved(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
