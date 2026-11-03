@@ -250,7 +250,15 @@ pub const Router = struct {
         return stage.generate(stage.context, a, scope, item, shared, @min(budget, self.endpoints[index].byte_cap));
     }
     pub fn truthSourceStage(self: *Router) CPU.rv64_gkr_truth_device_source.Stage {
-        return .{ .context = self, .prepare = truthPrepare };
+        return .{ .context = self, .prepare = truthPrepare, .retained_upper_bound = truthRetained };
+    }
+    fn truthRetained(raw: *anyopaque, request: CPU.rv64_gkr_truth_device_source.RetentionRequest) !CPU.rv64_gkr_truth_device_source.Retained {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (request.expected.ordinal < self.planned_cpu_workers or zeroRoot(request.expected.statement) or zeroRoot(request.expected.fixed)) return error.InvalidTruthResidentScope;
+        const endpoint = self.endpoints[request.expected.ordinal % self.endpoints.len];
+        const stage = endpoint.truth_source orelse return error.ResidentTruthSourceRequired;
+        const bound = stage.retained_upper_bound orelse return error.ResidentTruthRetainedContractRequired;
+        return bound(stage.context, request);
     }
     fn truthPrepare(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_gkr_truth_device_source.Prepare) !CPU.rv64_gkr_truth_device_source.Owner {
         const self: *Router = @ptrCast(@alignCast(raw));

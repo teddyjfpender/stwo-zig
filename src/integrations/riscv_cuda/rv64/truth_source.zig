@@ -41,6 +41,23 @@ fn logSize(truth: Truth) !u32 {
 fn mainWidth(truth: Truth) !usize {
     return if (truth == .keccak) A.crypto.keccak.layout.MAIN else (try T.V3Catalog.shape(truth)).main;
 }
+/// No CUDA work or wide witness construction is needed for admission. Charge
+/// narrow descriptor/cache capacity conservatively; native context byte caps
+/// independently govern transient planes, idle allocation caches and setup.
+pub fn retainedForTruth(a: std.mem.Allocator, truth: Truth, replay: bool) !S.Retained {
+    const compact = try S.compactInputBytes(truth);
+    var header_count: usize = 0;
+    var main_bytes: usize = 0;
+    for (0..3) |tree| {
+        const logs = try truth.logs(a, @intCast(tree));
+        defer a.free(logs);
+        header_count = try std.math.add(usize, header_count, logs.len);
+        if (tree == 1) for (logs) |log| {
+            main_bytes = try std.math.add(usize, main_bytes, try std.math.mul(usize, try rows(log), 4));
+        };
+    }
+    return .{ .compact_input_bytes = compact, .narrow_metadata_bytes = try std.math.add(usize, @sizeOf(Owner) + 65536, try std.math.mul(usize, header_count, 256)), .kept_device_bytes = if (replay) 0 else main_bytes, .main_replayed = replay };
+}
 pub const Context = struct {
     allocator: std.mem.Allocator,
     service: *Native.Context,
@@ -64,7 +81,11 @@ pub const Context = struct {
         self.* = undefined;
     }
     pub fn stage(self: *Context) S.Stage {
-        return .{ .context = self, .prepare = prepare };
+        return .{ .context = self, .prepare = prepare, .retained_upper_bound = retainedUpperBound };
+    }
+    fn retainedUpperBound(raw: *anyopaque, request: S.RetentionRequest) !S.Retained {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        return retainedForTruth(self.allocator, request.truth, self.replay_main);
     }
     fn entry(self: *Context, id: u32) !*const Entry {
         self.mutex.lock();
@@ -438,4 +459,23 @@ test "device truth source factory exposes a typed owner without a CPU witness fa
     try std.testing.expectEqual(@intFromPtr(&context), @intFromPtr(stage.context));
     try std.testing.expect(@intFromPtr(stage.prepare) != 0);
     _ = Context.init;
+}
+
+test "truth replay retention is compact and nonreplay still charges native MAIN" {
+    const Setup = @typeInfo(@FieldType(@FieldType(Truth, "curve"), "setup")).pointer.child;
+    const ops = [_]A.crypto.curves.spec.Op{ .bn254_g1_add, .bn254_g1_double, .bn254_fp2_mul, .bls12_381_fp2_mul, .arith384_mont };
+    inline for (ops) |op| {
+        var setup = Setup{ .allocator = std.testing.allocator, .op = op, .log = 8, .fixed = &.{}, .key = undefined };
+        const truth = Truth{ .curve = .{ .setup = &setup, .first_id = 1, .calls = 9 } };
+        const replay = try retainedForTruth(std.testing.allocator, truth, true);
+        const native = try retainedForTruth(std.testing.allocator, truth, false);
+        const expected_main = A.crypto.curves.Layout(op).MAIN * 256 * 4;
+        try std.testing.expectEqual(@as(usize, A.crypto.curves.Layout(op).PACKET_BYTES * 9), replay.compact_input_bytes);
+        try std.testing.expectEqual(@as(usize, 0), replay.kept_device_bytes);
+        try std.testing.expectEqual(@as(usize, expected_main), native.kept_device_bytes);
+        try std.testing.expectEqual(try replay.total(replay.compact_input_bytes, expected_main) + expected_main, try native.total(replay.compact_input_bytes, expected_main));
+        setup.log = 9;
+        const taller = try retainedForTruth(std.testing.allocator, truth, true);
+        try std.testing.expectEqual(try replay.total(replay.compact_input_bytes, expected_main), try taller.total(replay.compact_input_bytes, 2 * expected_main));
+    }
 }
