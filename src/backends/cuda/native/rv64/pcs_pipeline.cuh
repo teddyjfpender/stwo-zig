@@ -32,6 +32,7 @@ extern "C" int stwo_lde_n2b_addressed_on(uint32_t *, size_t, const void *,
                                          uint32_t, size_t, uint32_t,
                                          const uint32_t *, uint32_t, uint32_t,
                                          void *, uint32_t, uint32_t *);
+extern "C" int stwo_lde_n2b_columns_on(const uint32_t *, size_t, const uint32_t *, uint32_t *, size_t, uint32_t, uint32_t, const uint32_t *, uint32_t, uint32_t, void *, uint32_t *);
 extern "C" int stwo_blake2s_pow_persistent_on(const uint32_t *, uint32_t,
                                               unsigned long long, uint32_t *,
                                               unsigned long long *, uint32_t *,
@@ -156,8 +157,52 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     o.upload(p, values);
     return p;
   };
-  const uint64_t source_eval_base = h[15],
-                 combined_coeff_base = source_eval_base + h[16],
+  // Imported OODS already authenticates all trace roots in the transcript.
+  // Keep only one source tree's LDE live, and borrow admitted device coefficients.
+  const bool rolling_sources = h[21] && h[5] == 1;
+  std::array<StwoRv64Plane,4> coefficient_trees{};
+  std::vector<uint32_t> source_words(sources.begin(), sources.end());
+  uint64_t max_tree_evaluations=0, max_tree_nodes=0;
+  if (rolling_sources) {
+    uint32_t next_source=0, next_group=0;
+    for (uint32_t t=0;t<nt;++t) {
+      const auto *d=tree_info.data()+t*6;
+      if(d[0]!=next_source || d[2]!=next_group || d[1]>sc-next_source || d[3]>sgc-next_group || d[4]>log || d[5])
+        throw std::runtime_error("rolling tree partition");
+      next_source+=d[1]; next_group+=d[3];
+      uint64_t count=0, eval_count=0, prefix_rows=0;
+      std::vector<CoefficientTransfer> transfers;
+      for(uint32_t j=0;j<d[1];++j) {
+        const uint32_t c=d[0]+j;
+        auto v=input.coefficients[c];
+        if(sources[4*c+3]>28 || v.size()!=(uint64_t(1)<<sources[4*c+3]))
+          throw std::runtime_error("rolling coefficient shape");
+        const auto kind=o.validateCoefficient(v,input.scope.data());
+        appendCoefficientTransfer(transfers,v,count,kind,input.scope);
+        source_words[4*c]=uint32_t(count); source_words[4*c+1]=uint32_t(count>>32); source_words[4*c+2]=t;
+        count+=v.size();
+      }
+      if(transfers.size()==1 && transfers[0].source.kind==1) {
+        (void)o.validateCoefficient(transfers[0].source,input.scope.data());
+        coefficient_trees[t]={const_cast<uint32_t*>(transfers[0].source.data()),count,1,0};
+      } else {
+        coefficient_trees[t]=o.plane(count,1);
+        for(const auto &v:transfers) o.uploadCoefficient({coefficient_trees[t].words+v.destination,v.source.size(),1,0},v.source,input.scope.data());
+      }
+      for(uint32_t g=d[2];g<d[2]+d[3];++g) {
+        const auto *v=source_groups.data()+g*8;
+        if(v[3]>28 || v[2]+h[5]!=v[3] || v[4]<d[0] || v[4]>d[0]+d[1] || v[5]>d[0]+d[1]-v[4]) throw std::runtime_error("rolling source groups");
+        eval_count+=(uint64_t(1)<<v[3])*v[5];
+        if (g + 1 < d[2] + d[3] && v[3] != source_groups[(g + 1) * 8 + 3])
+          prefix_rows = std::max(prefix_rows, uint64_t(1) << v[3]);
+      }
+      max_tree_evaluations=std::max(max_tree_evaluations,eval_count);
+      max_tree_nodes=std::max(max_tree_nodes,((uint64_t(2)<<d[4])-1)*8 + prefix_rows*48);
+    }
+    if(next_source!=sc || next_group!=sgc) throw std::runtime_error("rolling tree coverage");
+  }
+  const uint64_t source_eval_base = rolling_sources ? 0 : h[15],
+                 combined_coeff_base = rolling_sources ? 0 : source_eval_base + h[16],
                  combined_eval_base = combined_coeff_base + h[17],
                  twiddle_base = combined_eval_base + h[18],
                  descriptor_base = twiddle_base + h[19];
@@ -180,12 +225,17 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   }
   // uploadCoefficient revalidates the COMPLETE merged range against the same
   // live lease; adjacency alone never establishes ownership of the gap/span.
-  for (const auto &transfer:coefficient_transfers)
+  if (!rolling_sources) for (const auto &transfer:coefficient_transfers)
     o.uploadCoefficient({arena.words+transfer.destination,transfer.source.size(),1,0},
                         transfer.source,transfer.scope.data());
   o.uploadBorrowed({arena.words + twiddle_base, h[19], 1, 0}, twiddles.data(),
                    twiddles.size());
+  const auto rolling_evaluations = rolling_sources ? o.plane(max_tree_evaluations,1) : StwoRv64Plane{};
+  const auto rolling_tree = rolling_sources ? o.plane(max_tree_nodes,1) : StwoRv64Plane{};
+  const auto trace_roots = rolling_sources ? o.plane(nt*8,1) : StwoRv64Plane{};
   std::vector<StwoRv64Plane> source_descriptors, combined_descriptors;
+  std::vector<uint32_t> group_trees(sgc), group_logs;
+  for(uint32_t t=0;t<nt;++t) for(uint32_t g=tree_info[t*6+2];g<tree_info[t*6+2]+tree_info[t*6+3];++g) group_trees[g]=t;
   std::vector<b::MixedSegment> trace_segments;
   uint64_t descriptor_offset = descriptor_base;
   auto descriptor = [&](uint64_t source, uint64_t destination,
@@ -196,15 +246,19 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   };
   uint64_t sample_scratch_words = 0;
   uint32_t max_group_terms = 0;
+  uint64_t local_eval_offset=0;
   for (uint32_t g = 0; g < sgc; ++g) {
     const auto *s = source_groups.data() + g * 8;
-    const uint64_t eval_offset = uint64_t(s[0]) | (uint64_t(s[1]) << 32);
+    if (rolling_sources && (!g || group_trees[g]!=group_trees[g-1])) local_eval_offset=0;
+    const uint64_t eval_offset = rolling_sources ? local_eval_offset : uint64_t(s[0]) | (uint64_t(s[1]) << 32);
+    if (rolling_sources && s[4] != group_logs.size()) throw std::runtime_error("rolling source group coverage");
     const uint32_t m = 1u << s[3];
     if (s[4] + s[5] > sc || s[3] != s[2] + h[5])
       throw std::runtime_error("source group geometry");
     std::vector<uint32_t> packets;
     for (uint32_t j = 0; j < s[5]; ++j) {
-      const auto *c = sources.data() + (s[4] + j) * 4;
+      const auto *c = (rolling_sources ? source_words.data() : sources.data()) + (s[4] + j) * 4;
+      if (rolling_sources && c[3]!=s[2]) throw std::runtime_error("rolling column degree mismatch");
       descriptor(uint64_t(c[0]) | (uint64_t(c[1]) << 32),
                  source_eval_base + eval_offset + uint64_t(j) * m, s[2],
                  packets);
@@ -213,9 +267,12 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     o.upload(p, packets);
     source_descriptors.push_back(p);
     descriptor_offset += packets.size();
-    trace_segments.push_back({arena.words + source_eval_base + eval_offset, m,
+    trace_segments.push_back({(rolling_sources ? rolling_evaluations.words : arena.words+source_eval_base)+eval_offset, m,
                               uint64_t(m) * s[5], m, 0});
+    local_eval_offset+=uint64_t(m)*s[5];
+    group_logs.insert(group_logs.end(),s[5],s[2]);
   }
+  if (rolling_sources && group_logs.size()!=sc) throw std::runtime_error("rolling source group coverage");
   for (uint32_t g = 0; g < gc; ++g) {
     const auto *d = groups.data() + g * 8;
     const uint32_t n = 1u << d[2], m = 1u << d[3], count = d[1] - d[0];
@@ -241,7 +298,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     throw std::runtime_error("PCS arena plan mismatch");
   const auto permutation = upload(sample_map),
              ordered_values = o.plane(sample_count * 8, 1);
-  const auto seed = upload(initial_seed), src = upload(sources),
+  const auto coefficient_logs=uploadOwned(group_logs);
+  const auto seed = upload(initial_seed), src = rolling_sources ? uploadOwned(source_words) : upload(sources),
              term = upload(terms), grp = upload(groups),
              recipe = upload(recipes),
              xy = o.domain(log, input.domain, input.sections[16]),
@@ -282,12 +340,12 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     for (uint32_t i = 0; i + 1 < v.groups; ++i) {
       const auto &segment = trace_segments[v.group + i];
       if (segment.source_size != trace_segments[v.group + i + 1].source_size)
-        prefix_rows = segment.source_size;
+        prefix_rows = std::max(prefix_rows, uint64_t(segment.source_size));
     }
-    // Prefix state is admitted through the same owner/pool as PCS, while all
-    // Merkle offsets retain the exact tree size (the tail is scratch only).
+    // The shared rolling allocation includes both prefix-state banks. Logical
+    // Merkle offsets exclude this admitted tail, exactly as in the legacy path.
     v.tree_capacity = v.tree_words + prefix_rows * 48;
-    v.tree = o.plane(v.tree_capacity, 1);
+    v.tree = rolling_sources ? StwoRv64Plane{rolling_tree.words,v.tree_capacity,1,0} : o.plane(v.tree_capacity, 1);
     v.values = o.plane(uint64_t(v.columns) * queries, 1);
     v.paths = o.plane(uint64_t(queries) * v.log * 8, 1);
     traces.push_back(v);
@@ -340,6 +398,15 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   auto extend_source = [&](uint32_t g) {
     const auto *d = source_groups.data() + g * 8;
     uint32_t launches = 0;
+    if(rolling_sources) {
+      const uint32_t t=group_trees[g];
+      const auto *source=source_words.data()+4*d[4];
+      const uint64_t offset=uint64_t(source[0])|(uint64_t(source[1])<<32);
+      CHECK(stwo_lde_n2b_columns_on(coefficient_trees[t].words+offset, uint64_t(1)<<d[2],
+        coefficient_logs.words+d[4], const_cast<uint32_t*>(trace_segments[g].columns), uint64_t(1)<<d[3], d[3], d[5],
+        arena.words+twiddle_base+d[6],d[7],1u<<(d[3]-1),stream_raw,&launches));
+      return;
+    }
     CHECK(stwo_lde_n2b_addressed_on(
         arena.words, arena_words, source_descriptors[g].words, d[5],
         source_eval_base + (uint64_t(d[0]) | (uint64_t(d[1]) << 32)), d[3],
@@ -355,10 +422,10 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         arena.words + twiddle_base + deep_tw[g * 2], deep_tw[g * 2 + 1],
         1u << (d[3] - 1), stream_raw, 1, &launches));
   };
-  for (uint32_t g = 0; g < sgc; ++g)
+  if(!rolling_sources) for (uint32_t g = 0; g < sgc; ++g)
     extend_source(g);
   phase_mark(1);
-  for (auto &t : traces)
+  if(!rolling_sources) for (auto &t : traces)
     CHECK(stwo_rv64_trace_tree_on(o.ctx, 1, trace_segments.data() + t.group,
                                   t.groups, t.log, t.tree.words, t.tree_capacity));
   phase_mark(2);
@@ -393,8 +460,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   for (uint32_t g = 0; g < gc; ++g) {
     const auto *d = groups.data() + g * 8;
     StwoRv64SampleEvaluation sample{};
-    sample.trees[0] = arena.words;
-    sample.tree_words[0] = h[15];
+    if(rolling_sources) for(uint32_t t=0;t<nt;++t) { sample.trees[t]=coefficient_trees[t].words; sample.tree_words[t]=coefficient_trees[t].stride; }
+    else { sample.trees[0] = arena.words; sample.tree_words[0] = h[15]; }
     sample.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
     sample.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
     sample.recipes =
@@ -423,8 +490,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   draw(alpha.words);
   phase_mark(3);
   StwoRv64DeepPrepare prepare{};
-  prepare.trees[0] = arena.words;
-  prepare.tree_words[0] = h[15];
+  if(rolling_sources) for(uint32_t t=0;t<nt;++t) { prepare.trees[t]=coefficient_trees[t].words; prepare.tree_words[t]=coefficient_trees[t].stride; }
+  else { prepare.trees[0] = arena.words; prepare.tree_words[0] = h[15]; }
   prepare.sources = reinterpret_cast<const StwoRv64DeepSource *>(src.words);
   prepare.terms = reinterpret_cast<const StwoRv64DeepTerm *>(term.words);
   prepare.groups = reinterpret_cast<const StwoRv64DeepGroup *>(grp.words);
@@ -501,6 +568,11 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     CHECK(stwo_rv64_fri_open_on(o.ctx, 1, &open));
   }
   for (auto &t : traces) {
+    if(rolling_sources) {
+      for(uint32_t g=t.group;g<t.group+t.groups;++g) extend_source(g);
+      CHECK(stwo_rv64_trace_tree_on(o.ctx,1,trace_segments.data()+t.group,t.groups,t.log,t.tree.words,t.tree_capacity));
+      CHECK(cudaMemcpyAsync(trace_roots.words+(&t-traces.data())*8,t.tree.words+t.tree_words-8,8*sizeof(uint32_t),cudaMemcpyDeviceToDevice,stream));
+    }
     StwoRv64TraceOpen open{t.tree.words,
                            raw.words,
                            t.values.words,
@@ -523,7 +595,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   // stable result allocation and join once; no value feeds a prover kernel.
   std::vector<StwoRv64Plane> readbacks{status, state};
   for (const auto &t : traces)
-    readbacks.push_back({t.tree.words + t.tree_words - 8, 8, 1, 0});
+    readbacks.push_back({rolling_sources ? trace_roots.words+(&t-traces.data())*8 : t.tree.words+t.tree_words-8,8,1,0});
   readbacks.push_back(ordered_values);
   readbacks.push_back(nonce);
   readbacks.push_back(terminal);
