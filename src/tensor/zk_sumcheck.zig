@@ -425,6 +425,274 @@ pub fn verify(a: std.mem.Allocator, tr: *Transcript, claim: QM31, n: usize, deg:
 }
 
 // ---------------------------------------------------------------------------
+// Specialized GKR-layer prover (eq factored out, Gruen-style).
+
+const GCtx = struct { fac: [4][]QM31, E: []const QM31, half: usize, partial: [][2]QM31, chunk: usize };
+
+inline fn gkrH(a0: QM31, a1: QM31, d0: QM31, d1: QM31) QM31 {
+    return a0.mul(d1).add(d0.mul(a1.add(d1)));
+}
+
+fn gkrKernel(c: *const GCtx, s: usize, e: usize) void {
+    var acc0 = QM31.zero();
+    var acc2 = QM31.zero();
+    for (s..e) |x| {
+        const l0 = c.fac[0][x];
+        const l1 = c.fac[1][x];
+        const l2 = c.fac[2][x];
+        const l3 = c.fac[3][x];
+        const h0 = c.fac[0][x + c.half];
+        const h1 = c.fac[1][x + c.half];
+        const h2 = c.fac[2][x + c.half];
+        const h3 = c.fac[3][x + c.half];
+        const ex = c.E[x];
+        acc0 = acc0.add(ex.mul(gkrH(l0, l1, l2, l3)));
+        acc2 = acc2.add(ex.mul(gkrH(h0.add(h0).sub(l0), h1.add(h1).sub(l1), h2.add(h2).sub(l2), h3.add(h3).sub(l3))));
+    }
+    c.partial[s / c.chunk] = .{ acc0, acc2 };
+}
+
+const GFold = struct { fac: [4][]QM31, half: usize, r: QM31 };
+
+fn gkrFold(c: *const GFold, s: usize, e: usize) void {
+    inline for (0..4) |j| {
+        const v = c.fac[j];
+        for (s..e) |x| v[x] = v[x].add(c.r.mul(v[x + c.half].sub(v[x])));
+    }
+}
+
+/// Prover for the GKR layer summand
+///   G(x) = eq(p, x) (A0 D1 + A1 D0 + D0 D1)(x) + et(x) Q(x)
+/// (factor order {eq, A0, A1, D0, D1, et, Q}, eq and et public) where et and Q
+/// are supported on their first `small` entries. It sends exactly the messages
+/// of `prove(7, terms, ...)` on the materialized factors (same polynomials,
+/// computed differently): eq is never materialized or folded; per round the
+/// inner sum s(X) = sum_rest eq(p_rest, rest) H(X, rest) (degree 2) is evaluated
+/// at X = 0, 2, and s(1) follows from the running claim.
+pub fn proveGkrLayer(
+    comptime terms: []const Term,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    p: []const QM31,
+    fac: [4][]QM31,
+    et: []QM31,
+    q: []QM31,
+    small_in: usize,
+    hp: Hp,
+    pad_ctx: anytype,
+) !ProveOut {
+    const deg = comptime termDegree(terms);
+    comptime std.debug.assert(deg == 3);
+    const n = hp.n;
+    std.debug.assert(p.len == n and hp.d == 3);
+    const sigma = hp.sum();
+    tr.mixFelt(sigma);
+    const eps = tr.draw();
+    var after: [64]QM31 = undefined;
+    hp.afters(after[0 .. n + 1]);
+    const rounds = try a.alloc([MAX_DEG]QM31, n + 1);
+    errdefer a.free(rounds);
+    const point = try a.alloc(QM31, n + 1);
+    errdefer a.free(point);
+    var g_claim = claim;
+    var before = QM31.zero();
+    var pre = QM31.one();
+    var len = @as(usize, 1) << @intCast(n);
+    var small = @min(small_in, len);
+    const max_chunks = pool.n_threads * 4 + 2;
+    const partial = try a.alloc([2]QM31, max_chunks);
+    defer a.free(partial);
+    const three = smallQ(3);
+    for (0..n) |round| {
+        const half = len / 2;
+        const E = try f.eqTablePar(a, pool, p[round + 1 ..], QM31.one());
+        defer a.free(E);
+        var s0 = QM31.zero();
+        var s2 = QM31.zero();
+        {
+            const target = pool.n_threads * 4;
+            var chunk = (half + target - 1) / target;
+            if (chunk < 2048) chunk = 2048;
+            if (chunk > half) chunk = half;
+            const n_chunks = (half + chunk - 1) / chunk;
+            const ctx = GCtx{ .fac = fac, .E = E, .half = half, .partial = partial, .chunk = chunk };
+            if (n_chunks <= 1) {
+                gkrKernel(&ctx, 0, half);
+            } else {
+                var wg: std.Thread.WaitGroup = .{};
+                var s: usize = 0;
+                while (s < half) : (s += chunk) pool.pool.spawnWg(&wg, gkrKernel, .{ &ctx, s, @min(half, s + chunk) });
+                pool.pool.waitAndWork(&wg);
+            }
+            for (partial[0..n_chunks]) |pp| {
+                s0 = s0.add(pp[0]);
+                s2 = s2.add(pp[1]);
+            }
+        }
+        // small term et * Q
+        var t: [4]QM31 = [_]QM31{QM31.zero()} ** 4;
+        for (0..@min(small, half)) |x| {
+            const el = et[x];
+            const ql = q[x];
+            const eh = if (x + half < small) et[x + half] else QM31.zero();
+            const qh = if (x + half < small) q[x + half] else QM31.zero();
+            for (0..4) |X| {
+                const xx = smallQ(@intCast(X));
+                t[X] = t[X].add(el.add(xx.mul(eh.sub(el))).mul(ql.add(xx.mul(qh.sub(ql)))));
+            }
+        }
+        const pi = p[round];
+        const inv_pre = pre.inv() catch return error.GkrChallenge;
+        const inv_pi = pi.inv() catch return error.GkrChallenge;
+        const s1 = g_claim.sub(t[0]).sub(t[1]).mul(inv_pre).sub(QM31.one().sub(pi).mul(s0)).mul(inv_pi);
+        const s3 = s0.sub(three.mul(s1)).add(three.mul(s2));
+        const sv = [4]QM31{ s0, s1, s2, s3 };
+        var g: [MAX_DEG + 1]QM31 = undefined;
+        for (0..4) |X| {
+            const xx = smallQ(@intCast(X));
+            // eq(p_i, X) = 1 - p_i - X + 2 p_i X
+            const eqi = QM31.one().sub(pi).sub(xx).add(pi.mul(xx).mul(smallQ(2)));
+            g[X] = pre.mul(eqi).mul(sv[X]).add(t[X]);
+        }
+        var qm: [MAX_DEG + 1]QM31 = undefined;
+        for (0..deg + 1) |tt| {
+            const X = smallQ(@intCast(tt));
+            const uq = before.mul(X).add(hp.wEval(round, X)).add(after[round]);
+            qm[tt] = uq.add(eps.mul(g[tt]));
+        }
+        var msg = [_]QM31{QM31.zero()} ** MAX_DEG;
+        msg[0] = qm[0];
+        for (2..deg + 1) |tt| msg[tt - 1] = qm[tt];
+        tr.mixFelts(msg[0..deg]);
+        rounds[round] = msg;
+        const r = tr.draw();
+        point[round] = r;
+        g_claim = sc.interpolateAt(g[0 .. deg + 1], r);
+        before = before.mul(r).add(hp.wEval(round, r));
+        pre = pre.mul(QM31.one().sub(pi).sub(r).add(pi.mul(r).mul(smallQ(2))));
+        const fctx = GFold{ .fac = fac, .half = half, .r = r };
+        pool.parallelFor(half, 4096, &fctx, gkrFold);
+        for (0..@min(small, half)) |x| {
+            const eh = if (x + half < small) et[x + half] else QM31.zero();
+            const qh = if (x + half < small) q[x + half] else QM31.zero();
+            et[x] = et[x].add(r.mul(eh.sub(et[x])));
+            q[x] = q[x].add(r.mul(qh.sub(q[x])));
+        }
+        small = @min(small, half);
+        len = half;
+    }
+    const fin = [7]QM31{ pre, fac[0][0], fac[1][0], fac[2][0], fac[3][0], et[0], q[0] };
+    const public = [7]bool{ true, false, false, false, false, true, false };
+    var pads: [7]QM31 = pad_ctx.pads(point[0..n], fin);
+    inline for (0..7) |j| {
+        if (public[j]) pads[j] = fin[j];
+    }
+    var gy: [MAX_DEG + 1]QM31 = undefined;
+    var qy: [MAX_DEG + 1]QM31 = undefined;
+    for (0..deg + 1) |tt| {
+        const Y = smallQ(@intCast(tt));
+        var vals: [7]QM31 = undefined;
+        inline for (0..7) |j| vals[j] = fin[j].add(Y.mul(pads[j].sub(fin[j])));
+        gy[tt] = evalTerms(terms, 7, &vals);
+        qy[tt] = before.add(hp.wEval(n, Y)).add(eps.mul(gy[tt]));
+    }
+    std.debug.assert(gy[0].eql(g_claim));
+    var msg = [_]QM31{QM31.zero()} ** MAX_DEG;
+    for (1..deg + 1) |tt| msg[tt - 1] = qy[tt];
+    tr.mixFelts(msg[0..deg]);
+    rounds[n] = msg;
+    const gam = tr.draw();
+    point[n] = gam;
+    const hats = try a.alloc(QM31, 5);
+    var k: usize = 0;
+    inline for (0..7) |j| {
+        if (!public[j]) {
+            hats[k] = fin[j].add(gam.mul(pads[j].sub(fin[j])));
+            k += 1;
+        }
+    }
+    tr.mixFelts(hats);
+    const u_val = before.add(hp.wEval(n, gam));
+    tr.mixFelt(u_val);
+    return .{ .proof = .{ .sigma = sigma, .rounds = rounds, .hats = hats, .u_val = u_val, .deg = @intCast(deg) }, .point = point, .eps = eps };
+}
+
+const TG = [_]Term{
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1, 4 } },
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 2, 3 } },
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 3, 4 } },
+    .{ .coeff = QM31.one(), .factors = &[_]u8{ 5, 6 } },
+};
+
+const Pad7 = struct {
+    p: [7]QM31,
+    pub fn pads(self: @This(), _: []const QM31, _: [7]QM31) [7]QM31 {
+        return self.p;
+    }
+};
+
+test "gkr layer prover sends exactly the generic masked-sumcheck messages" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    var prng = std.Random.DefaultPrng.init(17);
+    const rnd = prng.random();
+    inline for (.{ 0, 1, 3, 5, 9 }) |n| {
+        const len = 1 << n;
+        const R = struct {
+            fn q(r: std.Random) QM31 {
+                return QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P));
+            }
+        };
+        var p: [n]QM31 = undefined;
+        for (&p) |*x| x.* = R.q(rnd);
+        var base: [6][len]QM31 = undefined;
+        for (&base) |*v| for (v) |*x| {
+            x.* = R.q(rnd);
+        };
+        const small = @min(len, 16);
+        for (small..len) |x| {
+            base[4][x] = QM31.zero();
+            base[5][x] = QM31.zero();
+        }
+        // claim = sum_x G(x)
+        const eq = try f.eqTable(a, &p, QM31.one());
+        defer a.free(eq);
+        var claim = QM31.zero();
+        for (0..len) |x| claim = claim.add(eq[x].mul(gkrH(base[0][x], base[1][x], base[2][x], base[3][x]))).add(base[4][x].mul(base[5][x]));
+        const c = try a.alloc(QM31, Hp.entries(n, 3));
+        defer a.free(c);
+        for (c) |*x| x.* = R.q(rnd);
+        const hp = Hp{ .n = n, .d = 3, .c = c };
+        var pads: [7]QM31 = undefined;
+        for (&pads) |*x| x.* = R.q(rnd);
+        // generic
+        var g: [7][]QM31 = undefined;
+        g[0] = try a.dupe(QM31, eq);
+        for (0..6) |j| g[j + 1] = try a.dupe(QM31, &base[j]);
+        defer for (g) |v| a.free(v);
+        var t1 = Transcript.initDomain("gkr-eq");
+        var o1 = try prove(7, &TG, a, &pool, &t1, claim, g, len, .{ true, false, false, false, false, true, false }, hp, Pad7{ .p = pads });
+        defer o1.proof.deinit(a);
+        defer a.free(o1.point);
+        // specialized
+        var s: [6][]QM31 = undefined;
+        for (0..6) |j| s[j] = try a.dupe(QM31, &base[j]);
+        defer for (s) |v| a.free(v);
+        var t2 = Transcript.initDomain("gkr-eq");
+        var o2 = try proveGkrLayer(&TG, a, &pool, &t2, claim, &p, .{ s[0], s[1], s[2], s[3] }, s[4], s[5], small, hp, Pad7{ .p = pads });
+        defer o2.proof.deinit(a);
+        defer a.free(o2.point);
+        try std.testing.expect(o1.proof.sigma.eql(o2.proof.sigma) and o1.proof.u_val.eql(o2.proof.u_val));
+        for (o1.proof.rounds, o2.proof.rounds) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        for (o1.proof.hats, o2.proof.hats) |x, y| try std.testing.expect(x.eql(y));
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tests.
 
 const TT = [_]Term{ .{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1, 2 } }, .{ .coeff = QM31.fromU32Unchecked(f.P - 1, 0, 0, 0), .factors = &[_]u8{ 0, 3 } } };

@@ -2036,23 +2036,26 @@ fn gkrProveRel(
         const half = @as(usize, 1) << @intCast(m);
         const inv_omg = QM31.one().sub(gam).inv() catch return error.GkrChallenge;
         const claim = lam.mul(ca).add(cb).mul(inv_omg);
-        const eq = try f.eqTablePar(a, pool, r_prev, QM31.one());
-        defer a.free(eq);
-        const A0 = try a.alloc(QM31, half);
-        defer a.free(A0);
-        const A1 = try a.alloc(QM31, half);
-        defer a.free(A1);
-        for (A0, A1, lnum[kk][0..half], lnum[kk][half..]) |*x, *y, u, v| {
-            x.* = lam.mul(u);
-            y.* = lam.mul(v);
+        // layer kk is consumed exactly once: fold its halves in place
+        const A0 = lnum[kk][0..half];
+        const A1 = lnum[kk][half..];
+        const D0 = lden[kk][0..half];
+        const D1 = lden[kk][half..];
+        {
+            const SC = struct { x: []QM31, lam: QM31 };
+            const sc0 = SC{ .x = lnum[kk], .lam = lam };
+            pool.parallelFor(lnum[kk].len, 8192, &sc0, struct {
+                fn run(c: *const SC, s0: usize, e0: usize) void {
+                    for (c.x[s0..e0]) |*v| v.* = c.lam.mul(v.*);
+                }
+            }.run);
         }
-        const D0 = try a.dupe(QM31, lden[kk][0..half]);
-        defer a.free(D0);
-        const D1 = try a.dupe(QM31, lden[kk][half..]);
-        defer a.free(D1);
-        const et = try a.alloc(QM31, half);
+        // et and Q are supported on the first 2^min(m,4) entries
+        const small = @min(half, 16);
+        const et = try a.alloc(QM31, small);
         defer a.free(et);
-        const Q = try a.alloc(QM31, half);
+        @memset(et, QM31.zero());
+        const Q = try a.alloc(QM31, small);
         defer a.free(Q);
         @memset(Q, QM31.zero());
         var qs: QShape = undefined;
@@ -2062,11 +2065,9 @@ fn gkrProveRel(
             et[0] = QM31.one();
         } else {
             qs = qShape(m, &t_prev);
-            const etp = try etPoint(a, m, qs);
-            defer a.free(etp);
-            const ett = try f.eqTable(a, etp, QM31.one());
+            const ett = try f.eqTable(a, qs.t_tail, QM31.one());
             defer a.free(ett);
-            @memcpy(et, ett);
+            @memcpy(et[0..ett.len], ett);
             coef_q = gam.mul(inv_omg);
             w = gkrWeights(lam, c_prev);
             for (0..4) |j| {
@@ -2078,7 +2079,7 @@ fn gkrProveRel(
         const layer = g.layers[m];
         const hp = hpOf(plan, vecs1, layer.u, @intCast(m), 3, hpbuf[0..zks.Hp.entries(m, 3)]);
         const pctx = GkrPad{ .a = ar, .vecs1 = vecs1, .pad_ids = layer.pads, .lam = lam, .aux = aux };
-        var out = try zks.proveWith(7, &T_GKR, GkrEval, a, pool, tr, claim, .{ eq, A0, A1, D0, D1, et, Q }, half, GKR_PUBLIC, hp, pctx);
+        var out = try zks.proveGkrLayer(&T_GKR, a, pool, tr, claim, r_prev, .{ A0, A1, D0, D1 }, et, Q, small, hp, pctx);
         defer a.free(out.point);
         errdefer out.proof.deinit(a);
         const hats = out.proof.hats;
