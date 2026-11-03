@@ -175,6 +175,11 @@ pub const Config = struct {
     /// Weight-key proximity proof (one-time): outer-level query/PoW
     /// parameters (null = the witness outer parameters). Same blowup rule.
     key_outer: ?pcs.Params = null,
+    /// Weight-key LogUp: number of independent alpha (1 or 2). Both are drawn
+    /// in one round (no prover message between them) and run as one batched
+    /// LogUp-GKR, so the LogUp error is squared also round by round
+    /// (security.md 4.1). 1 keeps the key proof unchanged.
+    key_alphas: u32 = 1,
     /// max log columns of the weight table (must be <= min log N over matmuls)
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,

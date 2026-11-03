@@ -500,7 +500,12 @@ pub fn accountProof(a: std.mem.Allocator, cfg: proto.Config, st: proto.Statement
         var k = Account.init(a);
         errdefer k.deinit();
         const n_weights = std.math.exp2(@as(f64, @floatFromInt(key.log_rows + key.log_cols)));
-        try accountLogup(&k, "key logup alpha", n_weights + 256, 1);
+        // key_alphas independent alpha drawn in one round: the error is the
+        // single-alpha bound to that power (weight_key.zig, security.md 4.1)
+        const ka = try weight_key.alphaCount(cfg);
+        if (kp.gkr.output_claims_by_instance.len != 2 * ka) return error.KeyShape;
+        const single = std.math.log2(2 * (n_weights + 256)) - LOG2_F;
+        try k.add(if (ka == 1) "key logup alpha" else "key logup alpha x2", .logup, @as(f64, @floatFromInt(ka)) * single, 0, 1);
         try accountGkr(&k, "key gkr", &kp.gkr);
         // key opening: level 0 at delta_key (unique decoding), inner levels fresh
         var buf: [32]u8 = undefined;

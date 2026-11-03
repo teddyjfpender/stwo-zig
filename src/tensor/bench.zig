@@ -82,6 +82,8 @@ fn weightParams(pc: *proto.Config) !void {
     const o = proto.outerParams(pc.*);
     if (std.posix.getenv("TENSOR_WEIGHT_Q")) |v| pc.weight_outer = try parseParams(v, o.pow_bits, o.log_blowup);
     if (std.posix.getenv("TENSOR_KEY_Q")) |v| pc.key_outer = try parseParams(v, o.pow_bits, o.log_blowup);
+    // TENSOR_KEY_ALPHAS=2: two independent LogUp alpha in the weight-key proof
+    if (std.posix.getenv("TENSOR_KEY_ALPHAS")) |v| pc.key_alphas = try std.fmt.parseInt(u32, v, 10);
 }
 
 fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, kp: ?*const t.weight_key.KeyProof) !void {
@@ -90,6 +92,7 @@ fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto
     try t.security.writeReport(rep, out);
     if (pc.weight_outer) |w| try out.print("\"weight_queries\":{d},", .{w.n_queries});
     if (pc.key_outer) |k| try out.print("\"key_queries\":{d},", .{k.n_queries});
+    try out.print("\"key_alphas\":{d},", .{pc.key_alphas});
     if (pc.two_level) |tl| {
         try out.print("\"ood\":{},", .{tl.ood});
         if (tl.deep) |d| try out.print("\"deep\":[{d},{d},{d}],", .{ d.n_queries, d.log_blowup, d.pow_bits });
