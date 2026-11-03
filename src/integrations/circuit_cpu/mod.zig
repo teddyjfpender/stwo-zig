@@ -4,6 +4,7 @@
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230) on both channel profiles.
 
+pub const om31 = @import("om31/mod.zig");
 pub const air = @import("air.zig");
 pub const prove = @import("prove.zig");
 pub const verifier_proof = @import("verifier_proof.zig");

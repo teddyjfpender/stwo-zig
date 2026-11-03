@@ -1,0 +1,190 @@
+//! Independent native-OM31 circuit prover and receiver. Legacy V2 circuit proof
+//! codecs, roots and registries are not accepted or silently converted here.
+const std = @import("std");
+const core = @import("stwo_core");
+const prover = @import("stwo_prover_engine");
+const circuit = @import("stwo_circuit_frontend");
+const P = @import("protocol.zig");
+const Air = @import("../air.zig");
+const W = @import("witness.zig");
+const C = @import("component.zig").Component;
+const O = P.O;
+const Q = P.Q;
+const List = circuit.common.component_list;
+const Preprocessed = circuit.common.preprocessed.PreprocessedCircuit;
+const Col = prover.pcs.ColumnEvaluation;
+const Components = prover.air.component_prover.ForField(O);
+const CoreAir = core.air.components.ForField(O);
+pub const Capture = core.pcs.ForField(O).verifier.VerifiedProofCapture(P.H);
+/// External proof material never selects a replacement AIR recording.
+pub fn parsePinnedAir(a: std.mem.Allocator, bytes: []const u8) !Air.Bundle {
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
+    const actual = std.fmt.bytesToHex(digest, .lower);
+    if (!std.mem.eql(u8, &actual, Air.bundle_sha256)) return error.InvalidOm31CircuitAirAuthority;
+    return Air.parse(a, bytes);
+}
+pub const Authority = struct {
+    allocator: std.mem.Allocator,
+    pp: *const Preprocessed,
+    layout: circuit.common.preprocessed.ColumnLayout,
+    logs: List.PerComponent(u32),
+    fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32,
+    bound: Air.Bundle,
+    fixed: P.Scheme.CommittedTree,
+    identity: [32]u8,
+    pub fn init(a: std.mem.Allocator, pp: *const Preprocessed) !Authority {
+        const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
+        defer a.free(bytes);
+        var template = try parsePinnedAir(a, bytes);
+        defer template.deinit();
+        const layout = pp.layout();
+        const logs = try List.circuitComponentLogSizes(&layout);
+        var bound = try Air.bind(a, &template, logs, &layout);
+        errdefer bound.deinit();
+        var scheme = try P.Engine.init(a, try P.targetConfig());
+        defer scheme.deinit(a);
+        var channel = P.Channel.init();
+        const columns = try a.alloc(Col, pp.columns.len);
+        defer a.free(columns);
+        var fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32 = undefined;
+        for (columns, pp.columns, &fixed_logs) |*out, column, *log| {
+            log.* = column.logSize();
+            out.* = .{ .log_size = log.*, .values = column.values };
+        }
+        try scheme.commit(a, columns, &channel);
+        var fixed = scheme.trees.orderedRemove(0);
+        errdefer fixed.deinit(a);
+        try fixed.share(a);
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(P.domain);
+        hash.update(Air.bundle_sha256);
+        hash.update(&fixed.root());
+        var word: [4]u8 = undefined;
+        for (logs.toArray()) |log| {
+            std.mem.writeInt(u32, &word, log, .little);
+            hash.update(&word);
+        }
+        std.mem.writeInt(u32, &word, @intCast(pp.n_outputs), .little);
+        hash.update(&word);
+        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .identity = hash.finalResult() };
+    }
+    pub fn deinit(self: *Authority) void {
+        self.fixed.deinit(self.allocator);
+        self.bound.deinit();
+        self.* = undefined;
+    }
+    pub fn treeLogs(self: *const Authority, a: std.mem.Allocator, tree: usize) ![]u32 {
+        if (tree == 0) return a.dupe(u32, &self.fixed_logs);
+        if (tree > 2) return error.InvalidOm31CircuitTree;
+        const widths = if (tree == 1) circuit.witness.trace.traceWidths() else circuit.witness.trace.interactionWidths();
+        var count: usize = 0;
+        for (widths) |width| count += if (tree == 2) width * 2 else width;
+        const out = try a.alloc(u32, count);
+        var at: usize = 0;
+        for (widths, self.logs.toArray()) |width, log| {
+            const n = if (tree == 2) width * 2 else width;
+            @memset(out[at..][0..n], log);
+            at += n;
+        }
+        return out;
+    }
+};
+pub const Produced = struct {
+    allocator: std.mem.Allocator,
+    outputs: []Q,
+    claims: W.Claims,
+    proof: P.Engine.ExtendedProof,
+    pub fn deinit(self: *Produced) void {
+        self.proof.deinit(self.allocator);
+        self.allocator.free(self.outputs);
+        self.* = undefined;
+    }
+};
+fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !P.Channel {
+    if (outputs.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+    var channel = P.Channel.init();
+    (try P.targetConfig()).mixInto(&channel);
+    P.mixProfile(&channel);
+    const words = try a.alloc(u32, 8 + 1 + 4 * outputs.len);
+    defer a.free(words);
+    for (0..8) |i| words[i] = std.mem.readInt(u32, key.identity[4 * i ..][0..4], .little);
+    words[8] = @intCast(outputs.len);
+    for (outputs, 0..) |q, i| {
+        for (q.toM31Array(), 0..) |m, j| words[9 + 4 * i + j] = m.v;
+    }
+    channel.mixU32s(words);
+    return channel;
+}
+fn draw(channel: *P.Channel) struct { z: O, alpha: O } {
+    return .{ .z = channel.drawSecureFelt(), .alpha = channel.drawSecureFelt() };
+}
+fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims: W.Claims) ![]C {
+    const out = try a.alloc(C, List.N_COMPONENTS);
+    errdefer a.free(out);
+    for (out, key.bound.components, claims.toArray()) |*component, *captured, claim| {
+        component.* = .{ .allocator = a, .captured = captured, .preprocessed_logs = &key.fixed_logs, .z = z, .alpha = alpha, .claim = claim };
+        try component.validate();
+    }
+    return out;
+}
+pub fn prove(a: std.mem.Allocator, key: *const Authority, values: []const Q) !Produced {
+    var base = try circuit.witness.trace.writeTrace(a, values, key.pp);
+    defer base.deinit();
+    if (!std.meta.eql(base.log_sizes, key.logs)) return error.InvalidOm31CircuitGeometry;
+    const outputs = try a.dupe(Q, base.output_values);
+    errdefer a.free(outputs);
+    var channel = try begin(a, key, outputs);
+    var scheme = try P.Engine.init(a, try P.targetConfig());
+    var owns = true;
+    defer if (owns) scheme.deinit(a);
+    try scheme.trees.ensureUnusedCapacity(a, 1);
+    scheme.trees.appendAssumeCapacity(key.fixed.retainShared());
+    P.MC.mixRoot(&channel, key.fixed.root());
+    // MAIN is generated and committed exactly once. Lookup arithmetic does not
+    // rebuild the builder assignment or its table multiplicities.
+    try scheme.commit(a, base.columns, &channel);
+    const elements = draw(&channel);
+    var interaction = try W.writeReleasing(a, &base, key.pp, elements.z, elements.alpha);
+    defer interaction.deinit();
+    channel.mixFelts(&interaction.claimed_sums.toArray());
+    try scheme.commit(a, interaction.columns, &channel);
+    const bound = try bind(a, key, elements.z, elements.alpha, interaction.claimed_sums);
+    defer a.free(bound);
+    const components = try a.alloc(Components.ComponentProver, bound.len);
+    defer a.free(components);
+    for (components, bound) |*out, *c| out.* = c.asProverComponent();
+    owns = false;
+    const proof = try P.Engine.prove(a, components, &channel, scheme, .{});
+    return .{ .allocator = a, .outputs = outputs, .claims = interaction.claimed_sums, .proof = proof };
+}
+/// Independent fresh verifier state; published capture exists only on complete
+/// success. Authority is supplied by the receiver, not rebuilt from proof logs.
+pub fn verify(a: std.mem.Allocator, key: *const Authority, outputs: []const Q, claims: W.Claims, proof: *const P.Proof) !Capture {
+    const pcs = &proof.commitment_scheme_proof;
+    if (pcs.commitments.items.len != 4 or !std.meta.eql(pcs.config, try P.targetConfig())) return error.InvalidOm31CircuitProof;
+    if (!std.mem.eql(u8, &pcs.commitments.items[0], &key.fixed.root())) return error.InvalidOm31CircuitFixedRoot;
+    var channel = try begin(a, key, outputs);
+    const V = core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(P.H, P.MC);
+    var receiver = try V.init(a, try P.targetConfig());
+    defer receiver.deinit(a);
+    try receiver.commit(a, key.fixed.root(), &key.fixed_logs, &channel);
+    const main_logs = try key.treeLogs(a, 1);
+    defer a.free(main_logs);
+    try receiver.commit(a, pcs.commitments.items[1], main_logs, &channel);
+    const elements = draw(&channel);
+    const terms = W.Elements.init(elements.z, elements.alpha);
+    if (!(try W.lookupSum(outputs, claims, &terms)).isZero()) return error.InvalidOm31CircuitLookupSum;
+    channel.mixFelts(&claims.toArray());
+    const inter_logs = try key.treeLogs(a, 2);
+    defer a.free(inter_logs);
+    try receiver.commit(a, pcs.commitments.items[2], inter_logs, &channel);
+    const bound = try bind(a, key, elements.z, elements.alpha, claims);
+    defer a.free(bound);
+    const components = try a.alloc(CoreAir.Component, bound.len);
+    defer a.free(components);
+    for (components, bound) |*out, *c| out.* = c.asVerifierComponent();
+    var capture: Capture = undefined;
+    try core.verifier.ForField(O).verifyBorrowedWithProofCapture(P.H, P.MC, a, components, &channel, &receiver, proof, &capture);
+    return capture;
+}
