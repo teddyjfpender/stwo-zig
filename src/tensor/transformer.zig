@@ -338,6 +338,10 @@ pub const LayerCfg = struct {
     /// router weight columns are padded to 2^max(log_experts, router_log_cols)
     /// (set to the weight table's column count so the core matmul applies)
     router_log_cols: u32 = 0,
+    /// one fused projection W_qkv [D, 2^qkvLogCols] (Q | K | V | zero pad) with
+    /// Q, K, V consumed as fixed-bit column slices; lets the weight table use
+    /// 2^min(log_d, log_f) columns instead of 2^logDkv
+    fused_qkv: bool = false,
     /// RMSNorm reciprocal precision: inv = floor(2^INV_BITS / rt)
     pub const INV_BITS = 15;
 
@@ -347,8 +351,45 @@ pub const LayerCfg = struct {
     pub fn routerLogCols(self: LayerCfg) u32 {
         return @max(self.log_experts, self.router_log_cols);
     }
+    pub fn qkvLogCols(self: LayerCfg) u32 {
+        const w = (@as(usize, 1) << @intCast(self.log_d)) + 2 * (@as(usize, 1) << @intCast(self.logDkv()));
+        return std.math.log2_int_ceil(usize, w);
+    }
+    fn nAttn(self: LayerCfg) u32 {
+        return if (self.fused_qkv) 2 else 4;
+    }
     pub fn weightsPerLayer(self: LayerCfg) u32 {
-        return if (self.isMoe()) 5 + 3 * (@as(u32, 1) << @intCast(self.log_experts)) else 7;
+        return self.nAttn() + if (self.isMoe()) 1 + 3 * (@as(u32, 1) << @intCast(self.log_experts)) else 3;
+    }
+    // weight indices within a layer
+    pub fn wQ(_: LayerCfg) u32 {
+        return 0; // W_qkv when fused
+    }
+    pub fn wK(self: LayerCfg) u32 {
+        std.debug.assert(!self.fused_qkv);
+        return 1;
+    }
+    pub fn wV(self: LayerCfg) u32 {
+        std.debug.assert(!self.fused_qkv);
+        return 2;
+    }
+    pub fn wO(self: LayerCfg) u32 {
+        return self.nAttn() - 1;
+    }
+    pub fn wGate(self: LayerCfg) u32 {
+        return self.nAttn();
+    }
+    pub fn wUp(self: LayerCfg) u32 {
+        return self.nAttn() + 1;
+    }
+    pub fn wDown(self: LayerCfg) u32 {
+        return self.nAttn() + 2;
+    }
+    pub fn wRouter(self: LayerCfg) u32 {
+        return self.nAttn();
+    }
+    pub fn wExpert(self: LayerCfg, x: u32) u32 {
+        return self.nAttn() + 1 + 3 * x;
     }
 
     pub fn logDh(self: LayerCfg) u32 {
@@ -367,41 +408,31 @@ pub const LayerCfg = struct {
     }
 };
 
-pub const W = struct {
-    pub const router = 4;
-    pub fn expert(x: u32) u32 {
-        return 5 + 3 * x;
-    }
-    pub const q = 0;
-    pub const k = 1;
-    pub const v = 2;
-    pub const o = 3;
-    pub const gate = 4;
-    pub const up = 5;
-    pub const down = 6;
-};
-
 pub fn layerWeightInfos(a: std.mem.Allocator, cfg: LayerCfg) ![]TensorInfo {
     const wpl = cfg.weightsPerLayer();
     const out = try a.alloc(TensorInfo, wpl * cfg.n_layers);
     for (0..cfg.n_layers) |l| {
         const b = out[l * wpl ..];
-        b[W.q] = TensorInfo.mat(cfg.log_d, cfg.log_d);
-        b[W.k] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
-        b[W.v] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
-        b[W.o] = TensorInfo.mat(cfg.log_d, cfg.log_d);
+        if (cfg.fused_qkv) {
+            b[cfg.wQ()] = TensorInfo.mat(cfg.log_d, cfg.qkvLogCols());
+        } else {
+            b[cfg.wQ()] = TensorInfo.mat(cfg.log_d, cfg.log_d);
+            b[cfg.wK()] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
+            b[cfg.wV()] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
+        }
+        b[cfg.wO()] = TensorInfo.mat(cfg.log_d, cfg.log_d);
         if (cfg.isMoe()) {
-            b[W.router] = TensorInfo.mat(cfg.log_d, cfg.routerLogCols());
+            b[cfg.wRouter()] = TensorInfo.mat(cfg.log_d, cfg.routerLogCols());
             for (0..@as(u32, 1) << @intCast(cfg.log_experts)) |x| {
-                const e = W.expert(@intCast(x));
+                const e = cfg.wExpert(@intCast(x));
                 b[e] = TensorInfo.mat(cfg.log_d, cfg.log_f);
                 b[e + 1] = TensorInfo.mat(cfg.log_d, cfg.log_f);
                 b[e + 2] = TensorInfo.mat(cfg.log_f, cfg.log_d);
             }
         } else {
-            b[W.gate] = TensorInfo.mat(cfg.log_d, cfg.log_f);
-            b[W.up] = TensorInfo.mat(cfg.log_d, cfg.log_f);
-            b[W.down] = TensorInfo.mat(cfg.log_f, cfg.log_d);
+            b[cfg.wGate()] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+            b[cfg.wUp()] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+            b[cfg.wDown()] = TensorInfo.mat(cfg.log_f, cfg.log_d);
         }
     }
     return out;
@@ -561,7 +592,7 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
 
 /// RoPE on x [T, heads * dh] (layout t, head, i, b): out[.., i, b'] =
 /// requant_7(sum_b x[.., i, b] R[t, i, b', b]), 9-bit output.
-pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
+pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32, colfix: []const u8) !u32 {
     const lt = c.cfg.log_t;
     const ldh = c.cfg.logDh();
     const n_out = lt + log_heads + ldh;
@@ -571,7 +602,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
         Ref.w(x),
         Ref.p(c.rope),
         1,
-        &.{ ids(0, lt), ids(lt, log_heads), i_vars, ids(n_out, 1) },
+        &.{ ids(0, lt), colfix, ids(lt, log_heads), i_vars, ids(n_out, 1) },
         &.{ ids(0, lt), i_vars, ids(n_out - 1, 1), ids(n_out, 1) },
         7,
         9,
@@ -581,7 +612,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
 pub const AttnOut = struct { o: u32, scores: u32, probs: u32, rden: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
 
 /// Causal GQA attention core: qr [T, H dh], kr / v [T, Hkv dh] -> O [T, H dh].
-pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
+pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8) !AttnOut {
     const cfg = c.cfg;
     const lt = cfg.log_t;
     const lh = cfg.log_heads;
@@ -683,7 +714,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
         Ref.w(v),
         lt,
         &.{ ids(lt, lkv), ids(lt + lkv, lg), ids(0, lt), ids(n_o, lt) },
-        &.{ ids(n_o, lt), ids(lt, lkv), ids(lt + lh, ldh) },
+        &.{ ids(n_o, lt), vfix, ids(lt, lkv), ids(lt + lh, ldh) },
         null,
         8,
     );
@@ -719,7 +750,7 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
     const D = @as(usize, 1) << @intCast(ld);
     const Ncol = @as(usize, 1) << @intCast(lrc);
     const ar = b.arena.allocator();
-    const logits = try b.matmul(c.ws, y, wb + W.router);
+    const logits = try b.matmul(c.ws, y, wb + cfg.wRouter());
     const lg = b.wit.items[logits];
     // routing (first argmax; test hook: last)
     const nr = lt + le; // vars (t, x)
@@ -796,7 +827,7 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
     var mo_ids: [64]u32 = undefined;
     for (0..E) |x| {
         const xe = (try b.einsumExact(TensorInfo.mat(lc, ld), lc + ld, Ref.w(disp_id), Ref.w(y), lt, &.{ fixesOf(x, le), ids(0, lc), ids(lc + ld, lt) }, &.{ ids(lc + ld, lt), ids(lc, ld) })).?;
-        const we = wb + W.expert(@intCast(x));
+        const we = wb + cfg.wExpert(@intCast(x));
         const g = try b.matmul(c.ws, xe, we);
         const u = try b.matmul(c.ws, xe, we + 1);
         const act = try b.lookup(g, c.silu);
@@ -818,6 +849,16 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
 }
 
 const FIX0S = [_]u8{xt.FIX0} ** xt.MAXB;
+
+/// FIX labels selecting the column block [off, off + 2^width_log) of a
+/// 2^total_log-wide index (off a multiple of the block width).
+pub fn sliceFix(buf: *[xt.MAXB]u8, total_log: u32, off: usize, width_log: u32) []const u8 {
+    const n = total_log - width_log;
+    const blk = off >> @intCast(width_log);
+    std.debug.assert(blk << @intCast(width_log) == off);
+    for (0..n) |i| buf[i] = if ((blk >> @intCast(n - 1 - i)) & 1 == 1) xt.FIX1 else xt.FIX0;
+    return buf[0..n];
+}
 
 pub fn fixes(_: u32, n: u32) []const u8 {
     return FIX0S[0..n];
@@ -843,24 +884,47 @@ pub fn decoderLayer(b: *Builder, c: Ctx, layer: u32, x: u32, x_int8: bool) !Laye
     const wb = layer * cfg.weightsPerLayer();
     const r1 = try rmsnorm(b, c, x, c.gammas[2 * layer], x_int8);
     const y1 = r1.y;
-    const q = try b.matmul(c.ws, y1, wb + W.q);
-    const k = try b.matmul(c.ws, y1, wb + W.k);
-    const v = try b.matmul(c.ws, y1, wb + W.v);
-    const qr = try rope(b, c, q, cfg.log_heads);
-    const kr = try rope(b, c, k, cfg.log_kv_heads);
-    const at = try attention(b, c, qr, kr, v);
-    const ao = try b.matmul(c.ws, at.o, wb + W.o);
+    var q: u32 = undefined;
+    var k: u32 = undefined;
+    var v: u32 = undefined;
+    var qf: [xt.MAXB]u8 = undefined;
+    var kf: [xt.MAXB]u8 = undefined;
+    var vf: [xt.MAXB]u8 = undefined;
+    var qfix: []const u8 = &.{};
+    var kfix: []const u8 = &.{};
+    var vfix: []const u8 = &.{};
+    if (cfg.fused_qkv) {
+        // columns: Q [0, D), K [D, D + Dkv), V [D + Dkv, D + 2 Dkv)
+        const qkv = try b.matmul(c.ws, y1, wb + cfg.wQ());
+        const D = @as(usize, 1) << @intCast(cfg.log_d);
+        const Dkv = @as(usize, 1) << @intCast(cfg.logDkv());
+        const lq = cfg.qkvLogCols();
+        qfix = sliceFix(&qf, lq, 0, cfg.log_d);
+        kfix = sliceFix(&kf, lq, D, cfg.logDkv());
+        vfix = sliceFix(&vf, lq, D + Dkv, cfg.logDkv());
+        q = qkv;
+        k = qkv;
+        v = qkv;
+    } else {
+        q = try b.matmul(c.ws, y1, wb + cfg.wQ());
+        k = try b.matmul(c.ws, y1, wb + cfg.wK());
+        v = try b.matmul(c.ws, y1, wb + cfg.wV());
+    }
+    const qr = try rope(b, c, q, cfg.log_heads, qfix);
+    const kr = try rope(b, c, k, cfg.log_kv_heads, kfix);
+    const at = try attention(b, c, qr, kr, v, vfix);
+    const ao = try b.matmul(c.ws, at.o, wb + cfg.wO());
     const h = try residual(b, x, ao);
     const r2 = try rmsnorm(b, c, h, c.gammas[2 * layer + 1], false);
     if (cfg.isMoe()) {
         const mo = try moe(b, c, wb, r2.y);
         return .{ .out = try residual(b, h, mo.out), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr, .moe = mo };
     }
-    const g = try b.matmul(c.ws, r2.y, wb + W.gate);
-    const u = try b.matmul(c.ws, r2.y, wb + W.up);
+    const g = try b.matmul(c.ws, r2.y, wb + cfg.wGate());
+    const u = try b.matmul(c.ws, r2.y, wb + cfg.wUp());
     const act = try b.lookup(g, c.silu);
     const hm = try b.hadamard(act, u);
-    const mo = try b.matmul(c.ws, hm, wb + W.down);
+    const mo = try b.matmul(c.ws, hm, wb + cfg.wDown());
     return .{ .out = try residual(b, h, mo), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
 }
 
@@ -914,7 +978,7 @@ pub fn setupWeightsWith(a: std.mem.Allocator, pool: *f.Pool, cfg: LayerCfg, pc: 
     }
     if (tie_router and cfg.isMoe()) {
         for (0..cfg.n_layers) |l| {
-            const r = wdata[l * cfg.weightsPerLayer() + W.router];
+            const r = wdata[l * cfg.weightsPerLayer() + cfg.wRouter()];
             const ncol = @as(usize, 1) << @intCast(cfg.routerLogCols());
             for (0..r.len / ncol) |row| r[row * ncol + 1] = r[row * ncol];
         }
@@ -1409,4 +1473,49 @@ test "MoE with tied router columns: first-argmax routing verifies" {
     defer fx.deinit(a);
     var proof = try proveVerify(a, &pool, moePc(), &fx.b, &fx.sw.ws);
     defer proof.deinit(a);
+}
+
+test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads the right slice" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    inline for (.{ @as(u32, 1), @as(u32, 2) }) |lkv| { // GQA (2 Dkv < D) and MHA (3 D -> 4 D)
+        const cfg = LayerCfg{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = lkv, .fused_qkv = true };
+        var pc = testCfg();
+        pc.weight_log_cols = 4; // = log_d: no longer capped by logDkv
+        const fx = try a.create(Fixture);
+        defer a.destroy(fx);
+        fx.sw = try setupWeights(a, &pool, cfg, pc, 700);
+        fx.b = Builder.init(a, &pool);
+        fx.c = try initCtx(&fx.b, cfg, &fx.sw.ws, 701);
+        const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 702);
+        defer a.free(x);
+        fx.out = try buildStack(&fx.b, fx.c, x);
+        defer {
+            fx.b.deinit();
+            fx.sw.ws.deinit(a);
+            for (fx.sw.wdata) |w| a.free(w);
+            a.free(fx.sw.wdata);
+            a.free(fx.sw.winfos);
+        }
+        // q = qkv[:, 0:D] fed RoPE: compare against the direct rotation
+        const T = 8;
+        const D = 16;
+        const dh = 4;
+        const W = @as(usize, 1) << @intCast(cfg.qkvLogCols());
+        const qkv = fx.b.wit.items[fx.out.q];
+        const qr = fx.b.wit.items[fx.out.qr];
+        const rt = try ropeTable(a, cfg.log_t, cfg.logDh());
+        defer a.free(rt);
+        for (0..T) |t| for (0..D / 2) |hi| for (0..2) |bo| {
+            const h = hi / (dh / 2);
+            const i = hi % (dh / 2);
+            var sum: i64 = 0;
+            for (0..2) |bi| sum += @as(i64, qkv[t * W + h * dh + 2 * i + bi]) * rt[((t * dh / 2 + i) * 2 + bo) * 2 + bi];
+            try testing.expectEqual(rq(sum, 7), qr[t * D + h * dh + 2 * i + bo]);
+        };
+        var proof = try proveVerify(a, &pool, pc, &fx.b, &fx.sw.ws);
+        proof.deinit(a);
+    }
 }

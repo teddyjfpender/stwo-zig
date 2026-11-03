@@ -154,6 +154,14 @@ an integer function of range-checked integers).
 for RMSNorm (step 1) but the residual uses the full-precision stream
 (|x_l| <= 128 + 256 l).
 
+**Fused QKV** (`fused_qkv`, bench default): one core matmul
+qkv = rq(y1 W_qkv) with W_qkv [D, 2^ceil(log2(D + 2 Dkv))] = [Wq | Wk | Wv | 0]
+(one shared requant shift for Q, K, V). RoPE reads Q and K, and PV reads V,
+as fixed-bit column slices of qkv. Every matmul output is then >= D wide, so
+the weight table's column count is 2^min(ld, lf) (capped at 2^13) instead of
+2^logDkv: the weight opening (queries x rows) shrinks by D / Dkv. Cost: the
+zero padding columns are committed weights ((2^ceil - D - 2 Dkv) x D).
+
 **MoE (top-1)** (`log_experts > 0`), replacing the dense SwiGLU MLP:
 * logits = rq(y2 Wr) (core matmul, int8). Wr has 2^max(le, wlc) columns so
   the weight-table column constraint holds; only the first E columns are
@@ -242,6 +250,8 @@ All inequality operands therefore satisfy the range-to-integer lemma.
   rden + 1, wrong rt, residual, exp value, masked-position exp leak,
   score, sum of squares -> all rejected by the verifier;
 * honest prover refuses an invalid witness (error, no proof);
+* fused QKV (GQA and MHA padding cases): RoPE reads the right slice
+  (direct reference) and the layer proves/verifies with the wider table;
 * MoE: routing / dispatch / combine match a direct reference; prove/verify
   (also with tied router columns); unchecked-prover cheats rejected: wrong
   expert in sel, dropped token, duplicated slot, combine output, and a fully
