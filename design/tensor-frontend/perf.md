@@ -18,21 +18,21 @@ Default bench mode: one proof per process, system allocator. This is what
 
 | bench | before prove | after prove | speedup |
 |---|---|---|---|
-| product 20, 1 thread | 0.337 s (321 ns/entry) | 0.136 s (130 ns/entry) | 2.5x |
+| product 20, 1 thread | 0.337 s (321 ns/entry) | 0.131 s (125 ns/entry) | 2.6x |
 | product 20, 12 threads | 0.067 s | 0.032 s | 2.1x |
-| mlp 8 10 11, 12 threads | 0.176 s | 0.118 s | 1.5x |
-| mlp 9 11 12, 12 threads | 0.583 s (23.2 ns/weight) | 0.372 s (14.8 ns/weight) | 1.57x |
+| mlp 8 10 11, 12 threads | 0.176 s | 0.110 s | 1.6x |
+| mlp 9 11 12, 12 threads | 0.583 s (23.2 ns/weight) | 0.334 s (13.3 ns/weight) | 1.75x |
 
 Steady state means the prover runs repeatedly in one process with the
 recycling allocator (`TENSOR_RECYCLE=1 TENSOR_PROVE_REPS=3`, best of 3):
 
 | bench | before (single shot) | after (steady state) |
 |---|---|---|
-| mlp 8 10 11 | 0.176 s | 0.077 s |
-| mlp 9 11 12 | 0.583 s | 0.212 s (8.4 ns/weight, 2.75x) |
+| mlp 8 10 11 | 0.176 s | 0.069 s |
+| mlp 9 11 12 | 0.583 s | 0.185 s (7.3 ns/weight, 3.15x) |
 
 Proof sizes and verify times are unchanged: product 20 is 323,352 B and
-1.6 ms; mlp 9 11 12 is 3,859,600 B and 14 ms.
+1.5 ms; mlp 9 11 12 is 3,859,600 B and 13-14 ms.
 
 Per-stage breakdown in seconds, single shot (the before/after pairs are
 separated by `→`):
@@ -40,15 +40,16 @@ separated by `→`):
 | stage | product 20 / 1 thr | product 20 / 12 thr | mlp 9 11 12 / 12 thr | mlp 9 11 12 steady |
 |---|---|---|---|---|
 | accumulators (recompute) | – | – | ≈0.07 → 0 (reused) | 0 |
-| witness commit | 0.168 → 0.062 | 0.026 → 0.014 | 0.110 → 0.067 | 0.027 |
-| GKR (input+build+sumcheck) | – | – | 0.204 → 0.202 | 0.108 |
-| op sumchecks | 0.053 → 0.017 | 0.012 → 0.006 | 0.024 → 0.011 | 0.009 |
-| batch sumcheck | 0.102 → 0.044 | 0.024 → 0.008 | 0.124 → 0.045 | 0.025 |
-| witness open (PoW) | 0.014 → 0.013 | 0.003 → 0.005 | 0.008 → 0.007 | 0.007 |
-| weight fold + open | – | – | 0.017 → 0.017 | 0.013 |
+| witness commit | 0.168 → 0.059 | 0.026 → 0.016 | 0.110 → 0.070 | 0.025 |
+| GKR (input+build+sumcheck) | – | – | 0.204 → 0.161 | 0.087 |
+| op sumchecks | 0.053 → 0.016 | 0.012 → 0.005 | 0.024 → 0.011 | 0.008 |
+| batch sumcheck | 0.102 → 0.042 | 0.024 → 0.008 | 0.124 → 0.045 | 0.024 |
+| witness open (PoW) | 0.014 → 0.013 | 0.003 → 0.003 | 0.008 → 0.007 | 0.006 |
+| weight fold + open | – | – | 0.017 → 0.016 | 0.011 |
 
 GKR breakdown for mlp 9 11 12, steady state, 12 threads: input 2 ms, layer
-build 15 ms, layer sumchecks 87 ms. On 1 thread these are 23, 142 and 630 ms.
+build 15 ms, layer sumchecks 72 ms (87 ms before item 10). On 1 thread these
+are 23, 142 and 630 ms.
 
 ## What changed (in commit order)
 
@@ -111,6 +112,21 @@ build 15 ms, layer sumchecks 87 ms. On 1 thread these are 23, 142 and 630 ms.
    fill and is bit-identical. The verifier's `encodeSecure` batches its four
    coordinates.
 
+10. **GKR: one barrier per round for all instances**
+    (`src/prover/lookups/gkr_prover_fast.zig`). Before, each instance's fused
+    fold + next-round sum, and each layer's first-round sums, were separate
+    pool dispatches. They are now prepared per instance, dispatched together
+    with the same per-instance chunking, and finished in the same order. Each
+    instance has its own partial-sum slice. The output is
+    transcript-identical. `zig build test-riscv64-logup-gkr-prototype` (27
+    tests) passes; these include byte-for-byte equality with the reference
+    prover over QM31/OM31, sizes and pools. A deliberate mutation of the
+    batched path makes 3 of them fail. The GKR layer sumchecks went from
+    0.086–0.095 to 0.072–0.074 s.
+
+    Batching the layer *build* the same way was tried; it gave no measurable
+    gain and was reverted. So was an 8-lane Blake2s leaf hash, at about 2%.
+
 Timings: `Timings` gains `accumulators_ns`, `multiplicities_ns`,
 `gkr_input_ns`, `gkr_build_ns` and `gkr_sumcheck_ns`. `tensor-bench mlp`
 prints `prep_s`, `gkr_parts_s`, `prove_first_s` and `prove_reps`. The
@@ -169,15 +185,14 @@ These tests guard the changes:
 
 ## Remaining hot spots and recommendations
 
-1. **The GKR is now about 50% of MLP prover time** (mlp 9 11 12 steady state:
-   0.108 of 0.212 s). Its layer sumchecks scale only about 6x on 12 threads.
-   The time goes to the per-round, per-instance dispatch of small loops and
-   to first-touch faults on its upfront layer allocations. There are two
-   options:
-   - Prover-side, inside `gkr_prover_fast`: run the small instances' rounds
-     concurrently, one task per instance instead of one barrier per instance
-     per round. Also allocate each layer lazily, since today every layer of
-     every instance is allocated before round 0.
+1. **The GKR is now about 47% of MLP prover time** (mlp 9 11 12 steady state:
+   0.087 of 0.185 s; single shot 0.161 of 0.334 s). Item 10 removed the
+   per-instance barriers. What remains is first-touch faults on the GKR's
+   upfront layer allocations in single-shot runs, and memory traffic. There
+   are two options:
+   - Prover-side: allocate each layer lazily, since today every layer of
+     every instance is allocated before round 0. Also fuse the layer build
+     into the input preparation.
    - Protocol-side, needing coordination with the protocol owners:
      - drop the `y_range` key of a matmul/hadamard output that is also a
        lookup input. The lookup key `(in, T(in))` already forces
@@ -189,7 +204,7 @@ These tests guard the changes:
        table). This halves those instances, but a larger table is needed.
 2. **Page faults dominate single-shot runs.** A long-lived prover should pass
    `recycle.Recycler.allocator()` as `prove`'s allocator. Steady-state
-   mlp 9 11 12 is 0.21 s against 0.37 s single shot. The coordinator can
+   mlp 9 11 12 is 0.185 s against 0.334 s single shot. The coordinator can
    reproduce this with
    `TENSOR_RECYCLE=1 TENSOR_PROVE_REPS=3 tensor-bench mlp …`.
 3. **The remaining batch sumcheck cost** in mlp 9 11 12 is split into an E
