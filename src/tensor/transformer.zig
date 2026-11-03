@@ -129,7 +129,13 @@ pub const Builder = struct {
 
     /// Takes ownership of `data` (allocated with self.a).
     pub fn add(self: *Builder, info_in: TensorInfo, data: []i32) !u32 {
-        const info = info_in; // by-value copy before the list may reallocate
+        // Copy into mutable storage before the lists may reallocate: callers
+        // pass `self.infos.items[x]`, and Zig may pass a struct parameter by
+        // reference, so a `const` copy can be elided and alias freed memory
+        // after the reallocation (seen at T = 512: zeroed infos).
+        var info: TensorInfo = undefined;
+        info.log_dims = info_in.log_dims;
+        info.n_dims = info_in.n_dims;
         std.debug.assert(data.len == info.size());
         try self.infos.ensureUnusedCapacity(self.a, 1);
         try self.wit.ensureUnusedCapacity(self.a, 1);

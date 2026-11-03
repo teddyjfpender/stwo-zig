@@ -447,6 +447,8 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         defer a.free(wi);
         pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, wi, wi.len * R);
     }
+    // wlc=n overrides the weight-table column count
+    if (try kv.get("wlc", 0) != 0) pc.weight_log_cols = @intCast(try kv.get("wlc", 0));
     const seed = try kv.get("seed", 1);
 
     // --- offline: commit the weights, weight key proof
@@ -618,13 +620,16 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const n_tok: f64 = @floatFromInt(R * T);
     const Rf: f64 = @floatFromInt(R);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"model\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"layers\":{d},\"moe_layers\":{d},\"log_experts\":{d},\"log_f_expert\":{d},\"log_capacity\":{d},\"log_capacity_used\":{d},\"max_expert_load\":{d},\"log_vocab\":{d},\"log_out\":{d},\"requests\":{d},\"threads\":{d},\"metal\":{},\"batch_matmuls\":{},", .{ lt, ld, lf, cfg.log_heads, cfg.log_kv_heads, cfg.n_layers, cfg.nMoeLayers(), le, lfe, cfg.log_capacity, cap_used, max_load, cfg.log_vocab, cfg.log_out, R, threads, pc.accel != null, pc.batch_matmuls });
+    try out.print("{{\"bench\":\"model\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"layers\":{d},\"moe_layers\":{d},\"log_experts\":{d},\"log_f_expert\":{d},\"log_capacity\":{d},\"log_capacity_used\":{d},\"max_expert_load\":{d},\"log_vocab\":{d},\"log_out\":{d},\"requests\":{d},\"threads\":{d},\"accel\":{},\"batch_matmuls\":{},", .{ lt, ld, lf, cfg.log_heads, cfg.log_kv_heads, cfg.n_layers, cfg.nMoeLayers(), le, lfe, cfg.log_capacity, cap_used, max_load, cfg.log_vocab, cfg.log_out, R, threads, pc.accel != null, pc.batch_matmuls });
     try printTl(out, pc);
     try out.print("\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_log_cols\":{d},", .{ outer.n_queries, outer.log_blowup, outer.pow_bits, pc.weight_log_cols });
     try out.print("\"weights\":{d},\"active_weights_per_token\":{d},\"witness_tensors\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_elems_per_request\":{d},\"witness_table_elems\":{d},", .{ n_weights, active, n_wit, n_core, n_ext, witness_elems, table_elems });
     try out.print("\"offline\":{{\"calib_passes\":{d},\"calib_s\":{d:.3},\"commit_s\":{d:.3},\"key_proof_s\":{d:.3},\"key_verify_s\":{d:.4},\"key_bytes\":{d},\"rss_after_commit\":{d},\"rss_after_key\":{d}}},", .{ calib, calib_s, commit_s, key_s, key_verify_s, if (prox) |p| p.byteSize() else 0, rss_after_commit, rss_after_key });
-    try out.print("\"forward_s\":{d:.4},\"prove_requests_s\":{d:.4},\"shared_open_s\":{d:.4},\"total_s\":{d:.4},", .{ nsToS(forward_ns), nsToS(prove_ns), shared_s, total_s });
-    try out.print("\"s_per_request\":{d:.4},\"prove_s_per_request\":{d:.4},\"tokens_per_s\":{d:.2},\"tokens_per_s_prove_only\":{d:.2},", .{ total_s / Rf, (nsToS(prove_ns) + shared_s) / Rf, n_tok / total_s, n_tok / (nsToS(prove_ns) + shared_s) });
+    try out.print("\"forward_s\":{d:.4},\"prove_requests_s\":{d:.4},\"shared_open_s\":{d:.4},\"wall_s\":{d:.4},", .{ nsToS(forward_ns), nsToS(prove_ns), shared_s, total_s });
+    // serving cost = forward + per-request proving + shared opening (the
+    // untimed capacity probe and witness dropping are excluded)
+    const serve_s = nsToS(forward_ns) + nsToS(prove_ns) + shared_s;
+    try out.print("\"s_per_request\":{d:.4},\"prove_s_per_request\":{d:.4},\"tokens_per_s\":{d:.2},\"tokens_per_s_prove_only\":{d:.2},", .{ serve_s / Rf, (nsToS(prove_ns) + shared_s) / Rf, n_tok / serve_s, n_tok / (nsToS(prove_ns) + shared_s) });
     try out.print("\"stage_s_sum\":{{\"ext_init\":{d:.4},\"multiplicities\":{d:.4},\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"ext_terminal\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"shared_weight_open\":{d:.4}}},", .{ nsToS(tm_sum.ext_init_ns), nsToS(tm_sum.multiplicities_ns), nsToS(tm_sum.witness_commit_ns), nsToS(tm_sum.gkr_ns), nsToS(tm_sum.ext_terminal_ns), nsToS(tm_sum.op_sumcheck_ns), nsToS(tm_sum.weight_fold_ns), nsToS(tm_sum.batch_ns), nsToS(tm_sum.witness_open_ns), shared_s });
     try out.print("\"request_bytes\":{{\"own\":{d},\"own_max\":{d},\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"shared_claims\":{d},\"shared_opening\":{d},\"per_request_total\":{d},\"amortized\":{d:.0}}},", .{ own_sum / R, own_max, sz0.gkr, sz0.sumchecks, batch.requests[0].core.ext.byteSize(), sz0.witness_opening, shared_claims, shared_open, own_max + shared_claims + shared_open, @as(f64, @floatFromInt(own_sum + shared_claims + shared_open)) / Rf });
     if (batch.shared.opening) |wo| try printLevels(out, "shared_levels", wo);

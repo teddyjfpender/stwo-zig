@@ -54,25 +54,29 @@ pub const RequestProof = struct {
     }
 };
 
-/// One request's slot in the shared opening.
+/// One request's slot in the shared opening. Claims reference distinct local
+/// points by index (matmuls of one shape class share their point).
 pub const ClaimSet = struct {
     digest: [32]u8,
-    w: []u32,
-    /// local points (in the weight matrix's own index space)
+    /// distinct local points (in the weight matrices' own index space)
     points: [][]QM31,
+    /// per claim: weight id, index into `points`, value
+    w: []u32,
+    point_of: []u32,
     values: []QM31,
 
     pub fn deinit(self: *ClaimSet, a: std.mem.Allocator) void {
         for (self.points) |p| a.free(p);
         a.free(self.points);
         a.free(self.w);
+        a.free(self.point_of);
         a.free(self.values);
     }
 
     pub fn byteSize(self: ClaimSet) usize {
-        var s: usize = 32 + 4;
-        for (self.points) |p| s += 4 + 16 + p.len * 16;
-        return s;
+        var s: usize = 32 + 8;
+        for (self.points) |p| s += 4 + p.len * 16;
+        return s + self.w.len * (4 + 4 + 16);
     }
 };
 
@@ -143,9 +147,13 @@ fn batchTranscript(key_root: [32]u8, reqs: []const ClaimSet) Transcript {
     for (reqs) |r| {
         tr.mixDigest(r.digest);
         tr.mixU64(r.points.len);
-        for (r.w, r.points, r.values) |w, p, v| {
-            tr.mixU32s(&.{ w, @intCast(p.len) });
+        for (r.points) |p| {
+            tr.mixU64(p.len);
             tr.mixFelts(p);
+        }
+        tr.mixU64(r.w.len);
+        for (r.w, r.point_of, r.values) |w, pi, v| {
+            tr.mixU32s(&.{ w, pi });
             tr.mixFelt(v);
         }
     }
@@ -216,28 +224,17 @@ pub const BatchProver = struct {
             break :blk try proto.proveCore(a, self.pool, self.cfg, rq.st, self.ws, rq.witness, acc, tm, &tr, &wc);
         };
         errdefer core.deinit(a);
-        const n = wc.items.len;
-        const w = try a.alloc(u32, n);
-        errdefer a.free(w);
-        const points = try a.alloc([]QM31, n);
-        errdefer a.free(points);
-        const values = try a.alloc(QM31, n);
-        // move the claims into the slot (points change owner)
-        for (wc.items, 0..) |c, k| {
-            w[k] = @intCast(c.w);
-            points[k] = c.point;
-            values[k] = c.value;
-        }
-        wc.clearRetainingCapacity();
+        var cs = try claimSet(a, tr.ch.digestBytes(), wc.items);
+        errdefer cs.deinit(a);
         self.rproofs.appendAssumeCapacity(.{ .salt = rq.salt, .core = core });
-        self.sets.appendAssumeCapacity(.{ .digest = tr.ch.digestBytes(), .w = w, .points = points, .values = values });
+        self.sets.appendAssumeCapacity(cs);
     }
 
     pub fn finish(self: *BatchProver) !Batch {
         const a = self.a;
         var all: std.ArrayList(proto.WeightClaimP) = .empty;
         defer all.deinit(a); // points are owned by `sets`
-        for (self.sets.items) |s| for (s.w, s.points, s.values) |w, p, v| try all.append(a, .{ .w = w, .point = p, .value = v });
+        for (self.sets.items) |s| for (s.w, s.point_of, s.values) |w, pi, v| try all.append(a, .{ .w = w, .point = s.points[pi], .value = v });
         var tr = batchTranscript(self.ws.com.root(), self.sets.items);
         var op = try proto.openWeightClaims(a, self.pool, self.cfg, &tr, self.ws, all.items);
         a.free(op.values);
@@ -256,6 +253,34 @@ pub fn initTimings(a: std.mem.Allocator, n: usize) !BatchTimings {
     @memset(t.requests, .{});
     @memset(t.request_ns, 0);
     return t;
+}
+
+/// Builds a slot from a request's weight claims (copies distinct points).
+fn claimSet(a: std.mem.Allocator, digest: [32]u8, claims: []const proto.WeightClaimP) !ClaimSet {
+    const n = claims.len;
+    var pts: std.ArrayList([]QM31) = .empty;
+    errdefer {
+        for (pts.items) |p| a.free(p);
+        pts.deinit(a);
+    }
+    const w = try a.alloc(u32, n);
+    errdefer a.free(w);
+    const point_of = try a.alloc(u32, n);
+    errdefer a.free(point_of);
+    const values = try a.alloc(QM31, n);
+    errdefer a.free(values);
+    for (claims, 0..) |c, k| {
+        w[k] = @intCast(c.w);
+        values[k] = c.value;
+        const idx = for (pts.items, 0..) |p, i| {
+            if (eqlPoint(p, c.point)) break i;
+        } else blk: {
+            try pts.append(a, try a.dupe(QM31, c.point));
+            break :blk pts.items.len - 1;
+        };
+        point_of[k] = @intCast(idx);
+    }
+    return .{ .digest = digest, .points = try pts.toOwnedSlice(a), .w = w, .point_of = point_of, .values = values };
 }
 
 /// Verifies request `index` of a batch: its own part, that the shared
@@ -281,11 +306,11 @@ fn verifySharedOpening(a: std.mem.Allocator, cfg: proto.Config, key: proto.Weigh
     const log_total = key.log_rows + key.log_cols;
     var n_all: usize = 0;
     for (shared.requests) |r| {
-        if (r.w.len != r.points.len or r.values.len != r.points.len) return error.ProofShape;
-        for (r.w, r.points) |w, p| {
-            if (w >= key.infos.len or p.len != key.infos[w].logSize()) return error.ProofShape;
+        if (r.point_of.len != r.w.len or r.values.len != r.w.len) return error.ProofShape;
+        for (r.w, r.point_of) |w, pi| {
+            if (w >= key.infos.len or pi >= r.points.len or r.points[pi].len != key.infos[w].logSize()) return error.ProofShape;
         }
-        n_all += r.points.len;
+        n_all += r.w.len;
     }
     const full = try a.alloc([]QM31, n_all);
     var n_full: usize = 0;
@@ -296,9 +321,9 @@ fn verifySharedOpening(a: std.mem.Allocator, cfg: proto.Config, key: proto.Weigh
     const wcl = try a.alloc(pcs.Claim, n_all);
     defer a.free(wcl);
     for (shared.requests, 0..) |r, j| {
-        if (j == e.index and r.points.len != e.points.len) return error.WeightClaimMismatch;
-        for (r.w, r.points, r.values, 0..) |w, p, v, k| {
-            full[n_full] = try fullPointOf(a, log_total, key.offsets[w], key.infos[w].logSize(), p);
+        if (j == e.index and r.w.len != e.points.len) return error.WeightClaimMismatch;
+        for (r.w, r.point_of, r.values, 0..) |w, pi, v, k| {
+            full[n_full] = try fullPointOf(a, log_total, key.offsets[w], key.infos[w].logSize(), r.points[pi]);
             if (j == e.index) {
                 if (!eqlPoint(full[n_full], e.points[k]) or !v.eql(e.values[k])) {
                     n_full += 1;
@@ -446,6 +471,17 @@ test "per-request proofs with one shared weight opening: every request verifies;
         s.points[0][0] = sp.add(QM31.one());
         try expectReject(verifyRequest(a, pc, fx.reqs[1].st, key, &batch.requests[1], &batch.shared, 1));
         s.points[0][0] = sp;
+        // point index redirected (classes share points; a claim may not move)
+        if (s.points.len > 1) {
+            const pi = s.point_of[0];
+            s.point_of[0] = if (pi == 0) 1 else 0;
+            try expectReject(verifyRequest(a, pc, fx.reqs[1].st, key, &batch.requests[1], &batch.shared, 1));
+            s.point_of[0] = pi;
+        }
+        const spi = s.point_of[0];
+        s.point_of[0] = @intCast(s.points.len); // out of range: error, no crash
+        try expectReject(verifyRequest(a, pc, fx.reqs[1].st, key, &batch.requests[1], &batch.shared, 1));
+        s.point_of[0] = spi;
         s.digest[3] ^= 1;
         try expectReject(verifyRequest(a, pc, fx.reqs[1].st, key, &batch.requests[1], &batch.shared, 1));
         s.digest[3] ^= 1;
