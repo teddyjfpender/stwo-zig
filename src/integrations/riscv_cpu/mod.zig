@@ -289,3 +289,5 @@ test {
     _ = @import("guest_precompile_proof_test.zig");
     _ = @import("split_pcs_prepare_test.zig");
 }
+
+pub const rv64_om31_outer = @import("rv64_recursion/om31_outer.zig");
