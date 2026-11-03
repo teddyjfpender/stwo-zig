@@ -67,11 +67,6 @@ static void exercise(const std::string &directory, uint32_t id,
       w.tree.push_back(
           {o.plane(n >> level, 8), o.plane(n >> level, 8), n >> level});
     roots[i] = {w.tree.back().n, w.tree.back().d};
-    for (uint32_t bank = 0; bank < 2; ++bank) {
-      const uint32_t capacity = std::max(1u, n >> (bank + 1));
-      w.banks_n[bank] = o.plane(capacity, 8);
-      w.banks_d[bank] = o.plane(capacity, 8);
-    }
     w.raw = o.plane(2, 8);
     const uint32_t groups = std::max(1u, (n / 4 + 127) / 128);
     w.a = o.plane(2 * groups, 8);
@@ -202,6 +197,14 @@ static void exercise(const std::string &directory, uint32_t id,
       if (variables[i] >= remaining) {
         ids.push_back(i);
         current.push_back(workers[i].tree[remaining - 1]);
+        // tree[0] is immutable raw input here (unlike Zig Plan.tree). Only
+        // already proved smaller levels may become destructive fold banks.
+        auto &w = workers[i];
+        const uint32_t bank_levels[2] = {remaining, std::min(remaining + 1, w.variables)};
+        for (uint32_t bank = 0; bank < 2; ++bank) {
+          w.banks_n[bank] = w.tree[bank_levels[bank]].n;
+          w.banks_d[bank] = w.tree[bank_levels[bank]].d;
+        }
         folds.push_back(0);
         const auto v = variables[i] - remaining;
         descriptors.push_back(v ? StwoRv64BatchOracle{workers[i].raw.words,
