@@ -366,7 +366,7 @@ pub fn proveBatch(g: *Gpu, a: std.mem.Allocator, channel: anytype, inputs: []con
     const polys = try a.alloc(Poly, n_inst);
     defer a.free(polys);
     const partials = try g.alloc(n_inst * MAX_GROUPS * 32);
-    defer gpu_mod.tm_release(partials.handle);
+    defer g.free(partials);
 
     for (0..n_layers) |layer_idx| {
         const n_remaining = n_layers - layer_idx;
@@ -378,7 +378,7 @@ pub fn proveBatch(g: *Gpu, a: std.mem.Allocator, channel: anytype, inputs: []con
         };
         for (claims) |c| if (c) |v| channel.mixFelts(&v);
         const eq = try eqTabs(g, ood.items);
-        defer gpu_mod.tm_release(eq.buf.handle);
+        defer g.free(eq.buf);
         const alpha = channel.drawSecureFelt();
         const lambda = channel.drawSecureFelt();
 

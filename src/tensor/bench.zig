@@ -31,7 +31,7 @@ fn accelFor() ?*const t.accel.Accel {
 
 fn printGpuStats(out: anytype) !void {
     if (!build_options.metal) return;
-    if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"gkr_gpu_ms\":{d:.2},\"gkr_rounds\":{d},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.gkr_gpu_ms, g.stats.gkr_rounds, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0 });
+    if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"gkr_gpu_ms\":{d:.2},\"gkr_rounds\":{d},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1},\"pool_hits\":{d}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.gkr_gpu_ms, g.stats.gkr_rounds, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0, g.stats.pool_hits });
 }
 
 fn now() std.time.Instant {
@@ -121,10 +121,35 @@ pub fn main() !void {
     const st = built.statement();
     const wview = try a.alloc([]const i32, built.witness.len);
     for (built.witness, 0..) |w, i| wview[i] = w;
+    // TENSOR_REPS=n proves n times (fresh witness copies are not needed:
+    // prove does not mutate its inputs) and reports the fastest run; every
+    // repetition must produce the same proof digest.
+    const reps: usize = if (std.posix.getenv("TENSOR_REPS")) |v| std.fmt.parseInt(usize, v, 10) catch 1 else 1;
     var tm: proto.Timings = .{};
-    t0 = now();
-    var proof = try proto.prove(a, &pool, pc, st, &ws, wview, &tm);
-    const prove_s = secs(t0);
+    var prove_s: f64 = 1e30;
+    var first_s: f64 = 0;
+    var proof: proto.Proof = undefined;
+    var have_proof = false;
+    var rep_digest: ?[32]u8 = null;
+    for (0..@max(1, reps)) |rep| {
+        var tm_r: proto.Timings = .{};
+        t0 = now();
+        var p_r = try proto.prove(a, &pool, pc, st, &ws, wview, &tm_r);
+        const s_r = secs(t0);
+        if (rep == 0) first_s = s_r;
+        const d_r = t.digest.proofDigest(p_r);
+        if (rep_digest) |d| {
+            if (!std.mem.eql(u8, &d, &d_r)) return error.NondeterministicProof;
+        } else rep_digest = d_r;
+        if (s_r < prove_s) {
+            prove_s = s_r;
+            tm = tm_r;
+        }
+        if (have_proof) p_r.deinit(a) else {
+            proof = p_r;
+            have_proof = true;
+        }
+    }
     t0 = now();
     try proto.verify(a, pc, st, key, &proof);
     const verify_s = secs(t0);
@@ -139,7 +164,7 @@ pub fn main() !void {
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"mlp\",\"fused\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ fused, lt, ld, lf, threads, queries, lb, pow });
     try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits(), n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
-    try out.print("\"commit_weights_s\":{d:.4},\"weight_key_proof_s\":{d:.4},\"weight_key_verify_s\":{d:.4},\"weight_key_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
+    try out.print("\"commit_weights_s\":{d:.4},\"weight_key_proof_s\":{d:.4},\"weight_key_verify_s\":{d:.4},\"weight_key_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"reps\":{d},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, first_s, @max(1, reps), verify_s });
     try out.print("\"stage_s\":{{\"prep\":{d:.4},\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"terminal\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.prep_ns), nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.terminal_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });
     try printGpuStats(out);

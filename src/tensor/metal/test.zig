@@ -220,20 +220,24 @@ test "metal batch sumcheck (device-built factors) matches CPU" {
     }
     defer for (pts) |p| a.free(p);
     const claim = randQ(r); // value is irrelevant to prover determinism
-    var tc = Transcript.initDomain("b");
-    var rc = try t.accel.batchProve(null, a, &pool, &tc, wtab, used, &claims, claim);
-    defer rc.deinit(a);
-    var acc = g.accel().*;
-    acc.sc_min_work = 64;
-    const before = g.stats.sc_rounds;
-    var td = Transcript.initDomain("b");
-    var rd = try t.accel.batchProve(&acc, a, &pool, &td, wtab, used, &claims, claim);
-    defer rd.deinit(a);
-    try std.testing.expect(g.stats.sc_rounds > before);
-    for (rc.proof.rounds, rd.proof.rounds) |x, y| for (0..sc.MAX_DEG) |k| try std.testing.expect(x.evals[k].eql(y.evals[k]));
-    for (rc.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
-    for (rc.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
-    try std.testing.expect(tc.draw().eql(td.draw()));
+    // many device rounds, and exactly one (the lazy round-0 fold then finishes)
+    for ([_]usize{ 64, 1 << 14 }) |mw| {
+        var acc = g.accel().*;
+        acc.sc_min_work = mw;
+        const before = g.stats.sc_rounds;
+        var tc2 = Transcript.initDomain("b");
+        var rc2 = try t.accel.batchProve(null, a, &pool, &tc2, wtab, used, &claims, claim);
+        defer rc2.deinit(a);
+        var td = Transcript.initDomain("b");
+        var rd = try t.accel.batchProve(&acc, a, &pool, &td, wtab, used, &claims, claim);
+        defer rd.deinit(a);
+        try std.testing.expect(g.stats.sc_rounds > before);
+        if (mw == 1 << 14) try std.testing.expectEqual(before + 1, g.stats.sc_rounds);
+        for (rc2.proof.rounds, rd.proof.rounds) |x, y| for (0..sc.MAX_DEG) |k| try std.testing.expect(x.evals[k].eql(y.evals[k]));
+        for (rc2.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
+        for (rc2.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
+        try std.testing.expect(tc2.draw().eql(td.draw()));
+    }
 }
 
 test "metal matmul accumulators match CPU" {
@@ -242,20 +246,27 @@ test "metal matmul accumulators match CPU" {
     try pool.init(a, 4);
     defer pool.deinit();
     const g = try gpu();
-    const shapes = [_][3]u32{ .{ 0, 5, 3 }, .{ 4, 6, 7 }, .{ 7, 9, 6 }, .{ 6, 12, 8 } };
+    const shapes = [_][3]u32{ .{ 0, 5, 3 }, .{ 4, 6, 7 }, .{ 7, 9, 6 }, .{ 6, 12, 8 }, .{ 7, 11, 7 } };
     var prng = std.Random.DefaultPrng.init(11);
     const r = prng.random();
-    for (shapes) |sh| {
+    // int8-range activations take the fp32 matrix units; wider ones the int32
+    // kernel. For int8, row 0 x column 0 is the worst case (every partial sum
+    // at its bound 2^14 k).
+    for (shapes) |sh| for ([_]bool{ false, true }) |int8| {
         const T = @as(usize, 1) << @intCast(sh[0]);
         const K = @as(usize, 1) << @intCast(sh[1]);
         const N = @as(usize, 1) << @intCast(sh[2]);
         const x = try a.alloc(i32, T * K);
         defer a.free(x);
-        // extreme values included: |x| up to 2^15 - 1, w in [-128, 127]
-        for (x) |*v| v.* = if (r.boolean()) r.intRangeAtMost(i32, -128, 127) else r.intRangeAtMost(i32, -(1 << 15) + 1, (1 << 15) - 1);
+        for (x) |*v| v.* = if (int8 or r.boolean()) r.intRangeAtMost(i32, -128, 127) else r.intRangeAtMost(i32, -(1 << 15) + 1, (1 << 15) - 1);
+        // (the CPU kernel's i32 accumulator bounds the wide case to random rows)
+        if (int8) for (0..K) |k| {
+            x[k] = -127; // odd products: fp32 sums past 2^24 would round
+        };
         const w = try a.alloc(i8, K * N + 3);
         defer a.free(w);
         for (w) |*v| v.* = r.int(i8);
+        for (0..K) |k| w[3 + k * N] = -127;
         // unaligned weight view (offset 3), like a tensor inside the weight table
         const wm = pcs.Matrix(i8){ .data = w[3..], .log_rows = sh[1], .log_cols = sh[2] };
         const xi = proto.TensorInfo.mat(sh[0], sh[1]);
@@ -264,7 +275,7 @@ test "metal matmul accumulators match CPU" {
         const dev = (try t.accel.matmulAcc(g.accel(), a, sh[0], x, wm)).?;
         defer a.free(dev);
         try std.testing.expectEqualSlices(i64, cpu, dev);
-    }
+    };
     // out-of-bound activations are declined (CPU fallback)
     var big = [_]i32{1 << 15} ** 4;
     var wsmall = [_]i8{1} ** 4;

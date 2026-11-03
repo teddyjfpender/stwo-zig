@@ -290,33 +290,6 @@ kernel void tm_sc_fold(
 }
 
 // ---------------------------------------------------------------------------
-// Batch-sumcheck factor construction (device resident).
-
-kernel void tm_zero4(device uint *dst [[buffer(0)]], constant uint &n [[buffer(1)]], uint i [[thread_position_in_grid]]) {
-    if (i < n) tm_store(dst, i, tm_zero());
-}
-
-kernel void tm_i32_to_qm31(device const int *src [[buffer(0)]], device uint *dst [[buffer(1)]], constant uint &n [[buffer(2)]], uint i [[thread_position_in_grid]]) {
-    if (i < n) tm_store(dst, i, { tm_from_i32(src[i]), 0u, 0u, 0u });
-}
-
-struct TmEqParams { uint offset; uint lo_bits; uint count; };
-
-// E[offset + x] += P[x >> lo_bits] * S[x & (2^lo_bits - 1)]  (= gamma eq(point, x))
-kernel void tm_eq_accum(
-    device uint *e [[buffer(0)]],
-    device const uint *pre [[buffer(1)]],
-    device const uint *suf [[buffer(2)]],
-    constant TmEqParams &p [[buffer(3)]],
-    uint x [[thread_position_in_grid]]
-) {
-    if (x >= p.count) return;
-    Qm31Value v = qm_mul(tm_load(pre, x >> p.lo_bits), tm_load(suf, x & ((1u << p.lo_bits) - 1u)));
-    ulong i = ulong(p.offset) + x;
-    tm_store(e, i, qm_add(tm_load(e, i), v));
-}
-
-// ---------------------------------------------------------------------------
 // Integer matmul accumulators: acc[t][n] = sum_k X[t][k] W[k][n], X int32
 // (|x| < 2^15, checked by the host), W int8. Exact: products are < 2^22, so
 // int32 partial sums over 256-wide K chunks cannot overflow; chunks are added
@@ -537,4 +510,154 @@ kernel void tm_gkr_fold(
         Qm31Value n = tm_load(num, j);
         tm_store(num_out, j, qm_add(qm_mul(p.r, qm_sub(tm_load(num, j + p.half_len), n)), n));
     }
+}
+
+// Same accumulators on the simdgroup matrix units, for |x| <= 128 (host
+// checked): fp32 holds every partial sum exactly (|x w| <= 2^14, 512-wide K
+// chunks stay below 2^23 < 2^24), and each chunk is added into int64.
+// 64x64 output tile per threadgroup, 8 simdgroups each owning a 16x32 region
+// (2 x 4 fragments of 8x8). Threadgroup memory: one 16 KiB float array used
+// as the X (64x32) and W (32x64) tiles, and as the 64x64 flush scratch.
+#include <metal_simdgroup_matrix>
+
+kernel void tm_pack_i8(device const int *x [[buffer(0)]], device char *out [[buffer(1)]], constant uint &n [[buffer(2)]], uint i [[thread_position_in_grid]]) {
+    if (i < n) out[i] = char(x[i]);
+}
+
+kernel void tm_matmul_simd(
+    device const char *x [[buffer(0)]],
+    device const char *w [[buffer(1)]],
+    device long *acc [[buffer(2)]],
+    constant TmMatmulParams &p [[buffer(3)]],
+    uint2 tg [[threadgroup_position_in_grid]],
+    uint tid [[thread_index_in_threadgroup]],
+    uint sg [[simdgroup_index_in_threadgroup]]
+) {
+    threadgroup float mem[4096];
+    threadgroup float *xs = mem;          // [64][32]
+    threadgroup float *ws = mem + 2048;   // [32][64]
+    uint t0 = tg.y * 64u;
+    uint n0 = tg.x * 64u;
+    uint sr = (sg / 2u) * 16u;  // simdgroup row offset in tile (0,16,32,48)
+    uint sc = (sg % 2u) * 32u;  // simdgroup col offset (0,32)
+    simdgroup_float8x8 c[2][4];
+    for (uint i = 0u; i < 2u; ++i) for (uint j = 0u; j < 4u; ++j) c[i][j] = simdgroup_float8x8(0.0f);
+    long tot[16];
+    for (uint i = 0u; i < 16u; ++i) tot[i] = 0;
+    uint steps = 0u;
+    for (uint k0 = 0u; k0 < p.K; k0 += 32u) {
+        for (uint e = tid; e < 2048u; e += 256u) {
+            uint r = e / 32u, cc = e % 32u;
+            uint gt = t0 + r, gk = k0 + cc;
+            xs[e] = (gt < p.T && gk < p.K) ? float(x[ulong(gt) * p.K + gk]) : 0.0f;
+            uint r2 = e / 64u, c2 = e % 64u;
+            uint gk2 = k0 + r2, gn = n0 + c2;
+            ws[e] = (gk2 < p.K && gn < p.N) ? float(w[ulong(gk2) * p.N + gn]) : 0.0f;
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        for (uint kk = 0u; kk < 32u; kk += 8u) {
+            simdgroup_float8x8 a[2], b[4];
+            for (uint i = 0u; i < 2u; ++i) simdgroup_load(a[i], xs + (sr + i * 8u) * 32u + kk, 32);
+            for (uint j = 0u; j < 4u; ++j) simdgroup_load(b[j], ws + kk * 64u + sc + j * 8u, 64);
+            for (uint i = 0u; i < 2u; ++i) for (uint j = 0u; j < 4u; ++j) simdgroup_multiply_accumulate(c[i][j], a[i], b[j], c[i][j]);
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        bool last = k0 + 32u >= p.K;
+        if (++steps == 16u || last) {
+            steps = 0u;
+            for (uint i = 0u; i < 2u; ++i) for (uint j = 0u; j < 4u; ++j) {
+                simdgroup_store(c[i][j], mem + (sr + i * 8u) * 64u + sc + j * 8u, 64);
+                c[i][j] = simdgroup_float8x8(0.0f);
+            }
+            threadgroup_barrier(mem_flags::mem_threadgroup);
+            for (uint q = 0u; q < 16u; ++q) tot[q] += long(mem[tid + q * 256u]);
+            threadgroup_barrier(mem_flags::mem_threadgroup);
+        }
+    }
+    for (uint q = 0u; q < 16u; ++q) {
+        uint e = tid + q * 256u;
+        uint gt = t0 + e / 64u, gn = n0 + e % 64u;
+        if (gt < p.T && gn < p.N) acc[ulong(gt) * p.N + gn] = tot[q];
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Claim-batching sumcheck, round 0 without materialising F or E:
+// F(x) = wtab[x] (base field), E(x) = sum over claims c covering x of
+// pre_c[(x - off_c) >> lo_c] * suf_c[(x - off_c) & mask_c] (gamma folded into
+// pre_c). Round 0 sums and the round-0 fold (into half-size QM31 buffers)
+// evaluate E on the fly; later rounds use the generic kernels.
+struct TmBatchClaim { uint offset; uint count; uint lo_bits; uint pre_off; uint suf_off; };
+struct TmBatchParams { uint half_len; uint active; uint work; uint n_claims; Qm31Value r; };
+
+inline Qm31Value tm_batch_e(device const uint *tabs, device const TmBatchClaim *cl, uint n, uint x) {
+    Qm31Value e = tm_zero();
+    for (uint c = 0u; c < n; ++c) {
+        uint i = x - cl[c].offset;
+        if (x < cl[c].offset || i >= cl[c].count) continue;
+        uint mask = (1u << cl[c].lo_bits) - 1u;
+        e = qm_add(e, qm_mul(tm_load(tabs, cl[c].pre_off + (i >> cl[c].lo_bits)), tm_load(tabs, cl[c].suf_off + (i & mask))));
+    }
+    return e;
+}
+
+kernel void tm_batch_round0(
+    device const int *wtab [[buffer(0)]],
+    device const uint *tabs [[buffer(1)]],
+    device const TmBatchClaim *cl [[buffer(2)]],
+    device uint *partials [[buffer(4)]],
+    constant TmBatchParams &p [[buffer(5)]],
+    threadgroup Qm31Value *scratch [[threadgroup(0)]],
+    uint gid [[thread_position_in_grid]],
+    uint tg [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint tgsize [[threads_per_threadgroup]],
+    uint grid [[threads_per_grid]]
+) {
+    Qm31Value acc0 = tm_zero(), acc2 = tm_zero();
+    for (uint x = gid; x < p.work; x += grid) {
+        bool has_hi = x + p.half_len < p.active;
+        uint f_lo = tm_from_i32(wtab[x]);
+        uint f_hi = has_hi ? tm_from_i32(wtab[x + p.half_len]) : 0u;
+        Qm31Value e_lo = tm_batch_e(tabs, cl, p.n_claims, x);
+        Qm31Value e_hi = has_hi ? tm_batch_e(tabs, cl, p.n_claims, x + p.half_len) : tm_zero();
+        acc0 = qm_add(acc0, qm_mul_m31(e_lo, f_lo));
+        uint f2 = m31_sub(m31_add(f_hi, f_hi), f_lo);
+        Qm31Value e2 = qm_sub(qm_add(e_hi, e_hi), e_lo);
+        acc2 = qm_add(acc2, qm_mul_m31(e2, f2));
+    }
+    scratch[tid * 3u] = acc0;
+    scratch[tid * 3u + 1u] = acc2;
+    scratch[tid * 3u + 2u] = tm_zero();
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint s = tgsize >> 1u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            scratch[tid * 3u] = qm_add(scratch[tid * 3u], scratch[(tid + s) * 3u]);
+            scratch[tid * 3u + 1u] = qm_add(scratch[tid * 3u + 1u], scratch[(tid + s) * 3u + 1u]);
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (tid == 0u) {
+        for (uint k = 0u; k < 3u; ++k) tm_store(partials, tg * 3u + k, scratch[k]);
+    }
+}
+
+// F1[x] = F[x] + r (F[x + half] - F[x]), same for E (x < work; hi = 0 past active).
+kernel void tm_batch_fold0(
+    device const int *wtab [[buffer(0)]],
+    device const uint *tabs [[buffer(1)]],
+    device const TmBatchClaim *cl [[buffer(2)]],
+    device uint *f1 [[buffer(3)]],
+    device uint *e1 [[buffer(4)]],
+    constant TmBatchParams &p [[buffer(5)]],
+    uint x [[thread_position_in_grid]]
+) {
+    if (x >= p.work) return;
+    bool has_hi = x + p.half_len < p.active;
+    uint f_lo = tm_from_i32(wtab[x]);
+    uint f_hi = has_hi ? tm_from_i32(wtab[x + p.half_len]) : 0u;
+    Qm31Value e_lo = tm_batch_e(tabs, cl, p.n_claims, x);
+    Qm31Value e_hi = has_hi ? tm_batch_e(tabs, cl, p.n_claims, x + p.half_len) : tm_zero();
+    tm_store(f1, x, qm_add(qm_mul_m31(p.r, m31_sub(f_hi, f_lo)), Qm31Value{ f_lo, 0u, 0u, 0u }));
+    tm_store(e1, x, qm_add(e_lo, qm_mul(p.r, qm_sub(e_hi, e_lo))));
 }

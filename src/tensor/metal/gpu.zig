@@ -42,6 +42,8 @@ pub extern fn tm_cmd_end(cmd: *anyopaque, gpu_ms: *f64, err: [*]u8, err_len: usi
 
 pub const source: [:0]const u8 = @import("tensor_metal_shaders").source;
 
+const POOL_MIN: usize = 1 << 20;
+
 pub const Error = error{ MetalInit, MetalPipeline, MetalAlloc, MetalCommand };
 
 // ---------------------------------------------------------------------------
@@ -55,6 +57,8 @@ pub const Buf = struct {
     aliased: bool = false,
     /// byte offset of `host` inside the (page-aligned) device buffer
     offset: usize = 0,
+    /// capacity of a device-allocated buffer (pool bucket), 0 for views
+    cap: usize = 0,
 
     pub fn ptr(self: Buf) [*]u8 {
         const base: [*]u8 = @ptrCast(tm_buffer_contents(self.handle));
@@ -81,6 +85,7 @@ pub const Stats = struct {
     sc_calls: usize = 0,
     wrapped_bytes: usize = 0,
     copied_bytes: usize = 0,
+    pool_hits: usize = 0,
 };
 
 pub const Gpu = struct {
@@ -93,20 +98,27 @@ pub const Gpu = struct {
     p_parents: *anyopaque,
     p_sc_round: *anyopaque,
     p_sc_fold: *anyopaque,
-    p_to_qm31: *anyopaque,
-    p_zero4: *anyopaque,
-    p_eq_accum: *anyopaque,
     p_matmul: *anyopaque,
+    p_matmul_simd: *anyopaque,
+    p_pack_i8: *anyopaque,
     p_mle: *anyopaque,
     p_gkr_next: *anyopaque,
     p_gkr_sum: *anyopaque,
     p_gkr_fold: *anyopaque,
+    p_batch_round0: *anyopaque,
+    p_batch_fold0: *anyopaque,
     /// GKR layers at most this size are summed / folded by the CPU directly in
     /// the shared (unified-memory) buffers, saving a device round trip.
     gkr_cpu_sum_max: usize = 1 << 9,
     gkr_cpu_fold_max: usize = 1 << 10,
+    /// force the int32 matmul kernel (tests)
+    matmul_int_only: bool = false,
     /// buffers whose release waits for the in-flight command to complete
-    retired: std.ArrayList(*anyopaque) = .empty,
+    retired: std.ArrayList(Buf) = .empty,
+    pool: std.ArrayList(struct { handle: *anyopaque, cap: usize }) = .empty,
+    pooled_bytes: usize = 0,
+    /// bytes kept in the buffer pool (0 disables pooling)
+    pool_limit: usize = 2 << 30,
     page: usize,
     stats: Stats = .{},
     /// rows per streamed commitment chunk are capped so a chunk is <= this
@@ -132,14 +144,15 @@ pub const Gpu = struct {
             .p_parents = try pipeline(rt, "stwo_zig_blake2s_parents_plain_sparse"),
             .p_sc_round = try pipeline(rt, "tm_sc_round"),
             .p_sc_fold = try pipeline(rt, "tm_sc_fold"),
-            .p_to_qm31 = try pipeline(rt, "tm_i32_to_qm31"),
-            .p_zero4 = try pipeline(rt, "tm_zero4"),
-            .p_eq_accum = try pipeline(rt, "tm_eq_accum"),
             .p_matmul = try pipeline(rt, "tm_matmul_i32_i8"),
+            .p_matmul_simd = try pipeline(rt, "tm_matmul_simd"),
+            .p_pack_i8 = try pipeline(rt, "tm_pack_i8"),
             .p_mle = try pipeline(rt, "tm_mle_i32"),
             .p_gkr_next = try pipeline(rt, "tm_gkr_next"),
             .p_gkr_sum = try pipeline(rt, "tm_gkr_sum"),
             .p_gkr_fold = try pipeline(rt, "tm_gkr_fold"),
+            .p_batch_round0 = try pipeline(rt, "tm_batch_round0"),
+            .p_batch_fold0 = try pipeline(rt, "tm_batch_fold0"),
             .page = std.heap.pageSize(),
         };
         g.vt = .{
@@ -159,20 +172,22 @@ pub const Gpu = struct {
     }
 
     pub fn deinit(self: *Gpu, a: std.mem.Allocator) void {
-        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_to_qm31", "p_zero4", "p_eq_accum", "p_matmul", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold" }) |name|
+        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_batch_round0", "p_batch_fold0" }) |name|
             tm_release(@field(self, name));
         self.releaseRetired();
         self.retired.deinit(std.heap.c_allocator);
+        self.trim();
+        self.pool.deinit(std.heap.c_allocator);
         tm_destroy(self.rt);
         a.destroy(self);
     }
 
     pub fn retire(self: *Gpu, b: Buf) !void {
-        try self.retired.append(std.heap.c_allocator, b.handle);
+        try self.retired.append(std.heap.c_allocator, b);
     }
 
     pub fn releaseRetired(self: *Gpu) void {
-        for (self.retired.items) |h| tm_release(h);
+        for (self.retired.items) |b| self.free(b);
         self.retired.clearRetainingCapacity();
     }
 
@@ -195,8 +210,42 @@ pub const Gpu = struct {
         };
     }
 
+    /// Device-allocated shared buffer. Large buffers come from a small
+    /// power-of-two bucket pool, so repeated proofs do not pay first-touch
+    /// page faults on fresh multi-hundred-MB allocations. Contents of a
+    /// recycled buffer are arbitrary: every user writes before it reads.
     pub fn alloc(self: *Gpu, len: usize) !Buf {
-        return .{ .handle = tm_buffer_alloc(self.rt, len) orelse return Error.MetalAlloc };
+        if (len >= POOL_MIN) {
+            const cap = std.math.ceilPowerOfTwo(usize, len) catch len;
+            for (self.pool.items, 0..) |e, i| if (e.cap == cap) {
+                _ = self.pool.swapRemove(i);
+                self.pooled_bytes -= cap;
+                self.stats.pool_hits += 1;
+                return .{ .handle = e.handle, .cap = cap };
+            };
+            return .{ .handle = tm_buffer_alloc(self.rt, cap) orelse return Error.MetalAlloc, .cap = cap };
+        }
+        return .{ .handle = tm_buffer_alloc(self.rt, len) orelse return Error.MetalAlloc, .cap = len };
+    }
+
+    /// Returns a buffer (device-allocated or view) once no command uses it.
+    pub fn free(self: *Gpu, b: Buf) void {
+        if (b.aliased or b.cap < POOL_MIN) return tm_release(b.handle);
+        while (self.pooled_bytes + b.cap > self.pool_limit and self.pool.items.len > 0) {
+            const old = self.pool.orderedRemove(0);
+            self.pooled_bytes -= old.cap;
+            tm_release(old.handle);
+        }
+        if (b.cap > self.pool_limit) return tm_release(b.handle);
+        self.pool.append(std.heap.c_allocator, .{ .handle = b.handle, .cap = b.cap }) catch return tm_release(b.handle);
+        self.pooled_bytes += b.cap;
+    }
+
+    /// Drops every pooled buffer.
+    pub fn trim(self: *Gpu) void {
+        for (self.pool.items) |e| tm_release(e.handle);
+        self.pool.clearRetainingCapacity();
+        self.pooled_bytes = 0;
     }
 
     /// Device view of host memory. Unified memory: the pages spanning `host`
@@ -231,7 +280,7 @@ pub const Gpu = struct {
                 self.stats.copied_bytes += n;
             }
         };
-        tm_release(b.handle);
+        self.free(b);
     }
 
     pub fn end(cmd: *anyopaque) !f64 {
@@ -290,13 +339,13 @@ pub const Gpu = struct {
         var nodes_released = false;
         defer if (!nodes_released) self.release(nodes_buf, null);
         const states = try self.alloc(E * 32);
-        defer tm_release(states.handle);
+        defer self.free(states);
 
         var ch = (self.chunk_bytes / (E * 4)) & ~@as(usize, 15);
         if (ch < 16) ch = 16;
         if (ch > R) ch = R;
         const scratch = try self.alloc(ch * E * 4);
-        defer tm_release(scratch.handle);
+        defer self.free(scratch);
 
         const tile_log = @min(TILE_LOG, log_e);
         const cmd = tm_cmd_begin(self.rt);
@@ -389,8 +438,12 @@ pub const Gpu = struct {
         const K = wm.nRows();
         const N = wm.nCols();
         if (x.len != T * K or T * N >= (1 << 32) or T * K >= (1 << 32) or K * N >= (1 << 32)) return null;
-        // exactness bound for the int32 chunk sums
-        for (x) |v| if (v <= -(1 << 15) or v >= (1 << 15)) return null;
+        // exactness bounds: fp32 matrix units for |x| <= 128, int32 chunk
+        // sums for |x| < 2^15, CPU otherwise
+        var max_abs: u32 = 0;
+        for (x) |v| max_abs = @max(max_abs, @abs(v));
+        if (max_abs >= (1 << 15)) return null;
+        const simd = max_abs <= 128 and !g.matmul_int_only;
         const out = try a.alloc(i64, T * N);
         errdefer a.free(out);
         const xb = try g.view(@constCast(std.mem.sliceAsBytes(x)), true);
@@ -402,8 +455,19 @@ pub const Gpu = struct {
         defer if (!ob_released) g.release(ob, null);
         const mp = MatmulParams{ .T = @intCast(T), .K = @intCast(K), .N = @intCast(N) };
         const cmd = tm_cmd_begin(g.rt);
-        tm_cmd_pipeline(cmd, g.p_matmul);
-        bind(cmd, 0, xb);
+        // int8 activations are packed once (X is re-read N/64 times)
+        const x8: ?Buf = if (simd) try g.alloc(T * K) else null;
+        defer if (x8) |b| g.free(b);
+        if (x8) |b| {
+            const n32: u32 = @intCast(T * K);
+            tm_cmd_pipeline(cmd, g.p_pack_i8);
+            bind(cmd, 0, xb);
+            bind(cmd, 1, b);
+            tm_cmd_bytes(cmd, 2, &n32, 4);
+            tm_cmd_dispatch(cmd, (n32 + 255) / 256, 1, 1, 256, 1, 1);
+        }
+        tm_cmd_pipeline(cmd, if (simd) g.p_matmul_simd else g.p_matmul);
+        bind(cmd, 0, x8 orelse xb);
         bind(cmd, 1, wb);
         bind(cmd, 2, ob);
         tm_cmd_bytes(cmd, 3, &mp, @sizeOf(MatmulParams));
@@ -431,13 +495,13 @@ pub const Gpu = struct {
         const suf = try f.eqTable(ca, point[n - lo ..], QM31.one());
         defer ca.free(suf);
         const tabs = try g.alloc((pre.len + suf.len) * 16);
-        defer tm_release(tabs.handle);
+        defer g.free(tabs);
         const tq: [*]QM31 = @ptrCast(@alignCast(tabs.ptr()));
         @memcpy(tq[0..pre.len], pre);
         @memcpy(tq[pre.len..][0..suf.len], suf);
         const groups: u32 = @intCast(@max(1, @min(SC_MAX_GROUPS, (values.len + SC_TG * 8 - 1) / (SC_TG * 8))));
         const parts = try g.alloc(groups * 16);
-        defer tm_release(parts.handle);
+        defer g.free(parts);
         const vb = try g.view(@constCast(std.mem.sliceAsBytes(values)), true);
         defer g.release(vb, null);
         const mp = MleParams{ .count = @intCast(values.len), .lo_bits = @intCast(lo) };
@@ -497,7 +561,40 @@ pub const Gpu = struct {
         prev_half: usize = 0,
         prev_active: usize = 0,
         a: std.mem.Allocator,
+        /// batch sumcheck before its first fold: factors are implicit
+        lazy: ?Lazy = null,
     };
+
+    const Lazy = struct { wtab: Buf, tabs: Buf, claims: Buf, n_claims: u32 };
+    const BatchClaimGpu = extern struct { offset: u32, count: u32, lo_bits: u32, pre_off: u32, suf_off: u32 };
+    const BatchParams = extern struct { half_len: u32, active: u32, work: u32, n_claims: u32, r: Q };
+
+    /// Encodes the round-0 fold of a lazy batch session into fresh F1/E1.
+    fn lazyFold(g: *Gpu, s: *Session, cmd: *anyopaque, r: QM31) !void {
+        const lz = s.lazy.?;
+        const half = s.prev_half;
+        const work = s.active;
+        // full half length: the tail copy reads [0, len); entries >= work are
+        // never read by the prover
+        s.bufs[0] = try g.alloc(half * 16);
+        s.bufs[1] = try g.alloc(half * 16);
+        const bp = BatchParams{ .half_len = @intCast(half), .active = @intCast(s.prev_active), .work = @intCast(work), .n_claims = lz.n_claims, .r = toQ(r) };
+        tm_cmd_pipeline(cmd, g.p_batch_fold0);
+        bind(cmd, 0, lz.wtab);
+        bind(cmd, 1, lz.tabs);
+        bind(cmd, 2, lz.claims);
+        bind(cmd, 3, s.bufs[0]);
+        bind(cmd, 4, s.bufs[1]);
+        tm_cmd_bytes(cmd, 5, &bp, @sizeOf(BatchParams));
+        const w: u32 = @intCast(work);
+        if (w > 0) tm_cmd_dispatch(cmd, (w + 255) / 256, 1, 1, 256, 1, 1);
+        s.nf = 2;
+        // the lazy inputs are referenced by this command: retire them
+        try g.retire(lz.wtab);
+        try g.retire(lz.tabs);
+        try g.retire(lz.claims);
+        s.lazy = null;
+    }
 
     fn scBegin(ctx: *anyopaque, factors: []const []QM31, terms: []const sc.Term, active: usize) anyerror!?*anyopaque {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
@@ -550,13 +647,34 @@ pub const Gpu = struct {
         p.work = @intCast(work);
         const groups: u32 = @intCast(@max(1, @min(SC_MAX_GROUPS, (work + SC_TG * 4 - 1) / (SC_TG * 4))));
         const cmd = tm_cmd_begin(g.rt);
-        tm_cmd_pipeline(cmd, g.p_sc_round);
-        bindFactors(s, cmd);
-        bind(cmd, 4, s.partials);
-        tm_cmd_bytes(cmd, 5, &p, @sizeOf(ScParams));
-        tm_cmd_threadgroup_memory(cmd, 0, SC_TG * 3 * 16);
-        tm_cmd_dispatch(cmd, groups, 1, 1, SC_TG, 1, 1);
+        if (s.lazy) |lz| {
+            if (r_prev) |r| {
+                // first fold materialises half-size F1/E1, then a plain round
+                try lazyFold(g, s, cmd, r);
+                p.prev_half = 0;
+                p.prev_active = 0;
+            } else {
+                const bp = BatchParams{ .half_len = @intCast(half), .active = @intCast(s.active), .work = @intCast(work), .n_claims = lz.n_claims, .r = toQ(QM31.zero()) };
+                tm_cmd_pipeline(cmd, g.p_batch_round0);
+                bind(cmd, 0, lz.wtab);
+                bind(cmd, 1, lz.tabs);
+                bind(cmd, 2, lz.claims);
+                bind(cmd, 4, s.partials);
+                tm_cmd_bytes(cmd, 5, &bp, @sizeOf(BatchParams));
+                tm_cmd_threadgroup_memory(cmd, 0, SC_TG * 3 * 16);
+                tm_cmd_dispatch(cmd, groups, 1, 1, SC_TG, 1, 1);
+            }
+        }
+        if (s.lazy == null) {
+            tm_cmd_pipeline(cmd, g.p_sc_round);
+            bindFactors(s, cmd);
+            bind(cmd, 4, s.partials);
+            tm_cmd_bytes(cmd, 5, &p, @sizeOf(ScParams));
+            tm_cmd_threadgroup_memory(cmd, 0, SC_TG * 3 * 16);
+            tm_cmd_dispatch(cmd, groups, 1, 1, SC_TG, 1, 1);
+        }
         g.stats.sc_gpu_ms += try end(cmd);
+        g.releaseRetired();
         g.stats.sc_rounds += 1;
         const parts: [*]const Q = @ptrCast(@alignCast(s.partials.ptr()));
         var out = [3]QM31{ QM31.zero(), QM31.zero(), QM31.zero() };
@@ -582,12 +700,17 @@ pub const Gpu = struct {
         p.work = @intCast(s.active);
         p.r = toQ(r_last);
         const cmd = tm_cmd_begin(g.rt);
-        tm_cmd_pipeline(cmd, g.p_sc_fold);
-        bindFactors(s, cmd);
-        tm_cmd_bytes(cmd, 5, &p, @sizeOf(ScParams));
-        const w: u32 = @intCast(s.active);
-        if (w > 0) tm_cmd_dispatch(cmd, (w + 255) / 256, 1, 1, 256, 1, 1);
+        if (s.lazy != null) {
+            try lazyFold(g, s, cmd, r_last);
+        } else {
+            tm_cmd_pipeline(cmd, g.p_sc_fold);
+            bindFactors(s, cmd);
+            tm_cmd_bytes(cmd, 5, &p, @sizeOf(ScParams));
+            const w: u32 = @intCast(s.active);
+            if (w > 0) tm_cmd_dispatch(cmd, (w + 255) / 256, 1, 1, 256, 1, 1);
+        }
         g.stats.sc_gpu_ms += try end(cmd);
+        g.releaseRetired();
         for (s.bufs[0..s.nf], out) |*b, o| {
             const dst = std.mem.sliceAsBytes(o[0..s.len]);
             const src = b.ptr();
@@ -598,13 +721,16 @@ pub const Gpu = struct {
         }
     }
 
-    /// Batch sumcheck sum_x F(x) E(x) with both factors built on the device:
-    /// F = wtab as QM31, E = sum_c gamma_c eq(point_c, x - off_c) (each eq
-    /// table factored as prefix (x) suffix, computed on the CPU).
+    /// Batch sumcheck sum_x F(x) E(x): F = wtab (base field), E = sum_c
+    /// gamma_c eq(point_c, x - off_c) with each eq table factored as a CPU
+    /// prefix (x) suffix. Neither factor is materialised at full size: round 0
+    /// and its fold evaluate them on the fly (tm_batch_round0/fold0), and the
+    /// fold writes half-size QM31 factors for the generic rounds.
     fn scBeginBatch(ctx: *anyopaque, wtab: []const i32, claims: []const t.accel.BatchClaim, active: usize) anyerror!?*anyopaque {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
         const len = wtab.len;
-        if (len >= (1 << 32)) return null;
+        if (len >= (1 << 31) or claims.len == 0) return null;
+        for (claims) |c| if (c.offset + (@as(usize, 1) << @intCast(c.point.len)) > len) return error.BatchClaimRange;
         var p = std.mem.zeroes(ScParams);
         p.n_factors = 2;
         p.n_terms = 1;
@@ -612,81 +738,49 @@ pub const Gpu = struct {
         p.term_len[0] = 2;
         p.term_fac[0] = .{ 0, 1, 0 };
         p.coeff[0] = toQ(QM31.one());
-        const s = try std.heap.c_allocator.create(Session);
-        s.* = .{ .bufs = undefined, .nf = 2, .partials = undefined, .base = p, .len = len, .active = active, .a = std.heap.c_allocator };
-        var made: usize = 0;
-        errdefer {
-            for (s.bufs[0..made]) |b| g.release(b, null);
-            std.heap.c_allocator.destroy(s);
-        }
-        s.bufs[0] = try g.alloc(len * 16);
-        made += 1;
-        s.bufs[1] = try g.alloc(len * 16);
-        made += 1;
-        s.partials = try g.alloc(SC_MAX_GROUPS * 3 * 16);
-        errdefer tm_release(s.partials.handle);
-
-        // prefix/suffix eq tables for every claim, packed into one buffer
         var total_tab: usize = 0;
         for (claims) |c| {
             const n = c.point.len;
             const lo = n / 2;
             total_tab += (@as(usize, 1) << @intCast(n - lo)) + (@as(usize, 1) << @intCast(lo));
         }
-        const tabs = try g.alloc(@max(1, total_tab) * 16);
-        defer tm_release(tabs.handle);
+        const tabs = try g.alloc(total_tab * 16);
+        errdefer g.free(tabs);
+        const cbuf = try g.alloc(claims.len * @sizeOf(BatchClaimGpu));
+        errdefer g.free(cbuf);
         const tq: [*]QM31 = @ptrCast(@alignCast(tabs.ptr()));
-        const offs = try std.heap.c_allocator.alloc([2]usize, claims.len);
-        defer std.heap.c_allocator.free(offs);
+        const cq: [*]BatchClaimGpu = @ptrCast(@alignCast(cbuf.ptr()));
         var at: usize = 0;
-        for (claims, offs) |c, *o| {
+        for (claims, 0..) |c, i| {
             const n = c.point.len;
             const lo = n / 2;
             const pre = try f.eqTable(std.heap.c_allocator, c.point[0 .. n - lo], c.gamma);
             defer std.heap.c_allocator.free(pre);
             const suf = try f.eqTable(std.heap.c_allocator, c.point[n - lo ..], QM31.one());
             defer std.heap.c_allocator.free(suf);
-            o.* = .{ at, at + pre.len };
             @memcpy(tq[at..][0..pre.len], pre);
             @memcpy(tq[at + pre.len ..][0..suf.len], suf);
+            cq[i] = .{ .offset = @intCast(c.offset), .count = @intCast(@as(usize, 1) << @intCast(n)), .lo_bits = @intCast(lo), .pre_off = @intCast(at), .suf_off = @intCast(at + pre.len) };
             at += pre.len + suf.len;
         }
-
         const wbuf = try g.view(@constCast(std.mem.sliceAsBytes(wtab)), true);
-        defer g.release(wbuf, null);
-        const cmd = tm_cmd_begin(g.rt);
-        const n32: u32 = @intCast(len);
-        tm_cmd_pipeline(cmd, g.p_to_qm31);
-        bind(cmd, 0, wbuf);
-        bind(cmd, 1, s.bufs[0]);
-        tm_cmd_bytes(cmd, 2, &n32, 4);
-        tm_cmd_dispatch(cmd, (n32 + 255) / 256, 1, 1, 256, 1, 1);
-        tm_cmd_pipeline(cmd, g.p_zero4);
-        bind(cmd, 0, s.bufs[1]);
-        tm_cmd_bytes(cmd, 1, &n32, 4);
-        tm_cmd_dispatch(cmd, (n32 + 255) / 256, 1, 1, 256, 1, 1);
-        for (claims, offs) |c, o| {
-            const n = c.point.len;
-            const ep = EqParams{ .offset = @intCast(c.offset), .lo_bits = @intCast(n / 2), .count = @intCast(@as(usize, 1) << @intCast(n)) };
-            if (c.offset + ep.count > len) return error.BatchClaimRange;
-            tm_cmd_pipeline(cmd, g.p_eq_accum);
-            bind(cmd, 0, s.bufs[1]);
-            tm_cmd_buffer(cmd, 1, tabs.handle, o[0] * 16);
-            tm_cmd_buffer(cmd, 2, tabs.handle, o[1] * 16);
-            tm_cmd_bytes(cmd, 3, &ep, @sizeOf(EqParams));
-            tm_cmd_dispatch(cmd, (ep.count + 255) / 256, 1, 1, 256, 1, 1);
-        }
-        g.stats.sc_gpu_ms += try end(cmd);
+        errdefer g.release(wbuf, null);
+        const s = try std.heap.c_allocator.create(Session);
+        errdefer std.heap.c_allocator.destroy(s);
+        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .wtab = wbuf, .tabs = tabs, .claims = cbuf, .n_claims = @intCast(claims.len) } };
         g.stats.sc_calls += 1;
         return s;
     }
-    const EqParams = extern struct { offset: u32, lo_bits: u32, count: u32 };
 
     fn scAbort(ctx: *anyopaque, sp: *anyopaque) void {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
         const s: *Session = @ptrCast(@alignCast(sp));
-        for (s.bufs[0..s.nf]) |b| g.release(b, null);
-        tm_release(s.partials.handle);
+        if (s.lazy) |lz| {
+            g.release(lz.wtab, null);
+            g.free(lz.tabs);
+            g.free(lz.claims);
+        } else for (s.bufs[0..s.nf]) |b| g.release(b, null);
+        g.free(s.partials);
         s.a.destroy(s);
     }
 };
