@@ -1,0 +1,37 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6414fri_open_pathsE15StwoRv64FriOpenj' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6414fri_open_pathsE15StwoRv64FriOpenj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 16 registers, used 0 barriers
+ptxas info    : Compile time = 7.418 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415fri_open_valuesE15StwoRv64FriOpen' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415fri_open_valuesE15StwoRv64FriOpen
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 14 registers, used 0 barriers
+ptxas info    : Compile time = 4.680 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6412fri_terminalE13StwoRv64PlanejPjS3_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6412fri_terminalE13StwoRv64PlanejPjS3_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 4 bytes smem
+ptxas info    : Compile time = 10.581 ms
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6415channel_queriesEPjjmmjjS2_S2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6415channel_queriesEPjjmmjjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 1 barriers, 37 bytes smem
+ptxas info    : Compile time = 51.210 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6412channel_drawEPjjmmjS2_S2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6412channel_drawEPjjmmjS2_S2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 1 barriers, 37 bytes smem
+ptxas info    : Compile time = 48.155 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6411channel_mixEPjjmmPKjjjS2_' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6411channel_mixEPjjmmPKjjjS2_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 56 registers, used 0 barriers
+ptxas info    : Compile time = 115.648 ms
+ptxas info    : Compiling entry function '_ZN4stwo4cuda4rv6412channel_initEPjPKjm' for 'sm_120'
+ptxas info    : Function properties for _ZN4stwo4cuda4rv6412channel_initEPjPKjm
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 0 barriers
+ptxas info    : Compile time = 2.300 ms

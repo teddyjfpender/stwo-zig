@@ -18,8 +18,11 @@ def main():
     p.add_argument("--fixtures", required=True, type=Path)
     p.add_argument("--build", required=True, type=Path)
     p.add_argument("--context-object", required=True, type=Path)
-    p.add_argument("--mode", choices=["deep", "samples"], default="deep")
+    p.add_argument("--mode", choices=["deep", "samples", "fri"], default="deep")
     p.add_argument("--channel-object", type=Path)
+    p.add_argument("--pcs-object", type=Path)
+    p.add_argument("--merkle-object", type=Path)
+    p.add_argument("--native-verifier", type=Path)
     p.add_argument("--lde-object", type=Path)
     p.add_argument("--n2b-object", type=Path)
     p.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
@@ -32,6 +35,11 @@ def main():
             p.error("deep mode requires --lde-object, --n2b-object and --channel-object")
         objects = [args.context_object.resolve(), args.lde_object.resolve(), args.n2b_object.resolve(), args.channel_object.resolve()]
         honest, mutants = 5, 19
+    elif args.mode == "fri":
+        if args.pcs_object is None or args.merkle_object is None or args.native_verifier is None:
+            p.error("fri mode requires --pcs-object, --merkle-object and --native-verifier")
+        objects = [args.context_object.resolve(), args.pcs_object.resolve(), args.merkle_object.resolve()]
+        honest, mutants = 6, 4
     else:
         if args.channel_object is None:
             p.error("samples mode requires --channel-object")
@@ -46,7 +54,7 @@ def main():
     kind = args.mode
     source = root / f"src/backends/cuda/native/rv64/{kind}.cu"
     driver = root / f"tests/cuda/rv64/{kind}_smoke.cu"
-    sources = [source] if kind == "samples" else [source, root / "src/backends/cuda/native/rv64/samples.cu"]
+    sources = [source] if kind == "samples" else [source, root / f"src/backends/cuda/native/rv64/{'channel' if kind == 'fri' else 'samples'}.cu"]
     inputs = objects + bins + sources + [driver, Path(__file__).resolve(),
         root / "src/backends/cuda/native/rv64/deep.h",
         root / "src/backends/cuda/native/rv64/om31.cuh",
@@ -56,6 +64,10 @@ def main():
         root / "src/backends/cuda/native/rv64/custody.cuh",
         root / "src/backends/cuda/native/rv64/gkr.h"]
     inputs.append(root / "src/backends/cuda/native/rv64/samples.h")
+    if kind == "fri":
+        inputs.extend([args.native_verifier.resolve(), root / "src/backends/cuda/native/rv64/fri.h",
+                       root / "src/backends/cuda/native/rv64/channel.h",
+                       root / "src/integrations/riscv_cuda/rv64/fri.zig"])
     pinned = {str(path): sha(path) for path in inputs}
     executable = build / f"{kind}-smoke"
     started = time.monotonic()
@@ -70,6 +82,9 @@ def main():
     gates = {}
     for tool in ["normal", "memcheck", "racecheck", "initcheck", "synccheck"]:
         command = [str(executable), str(fixtures)]
+        readback = build / f"readback-{tool}"
+        if kind == "fri":
+            command.append(str(readback))
         if tool != "normal":
             command = [args.sanitizer, "--tool", tool, "--error-exitcode", "97", *command]
         path = build / f"{tool}.log"
@@ -84,12 +99,28 @@ def main():
         if tool != "normal" and not any(marker in text for marker in ["ERROR SUMMARY: 0 errors", "RACECHECK SUMMARY: 0 hazards displayed"]):
             raise RuntimeError(f"missing sanitizer success summary: {tool}")
         gates[tool] = {"status": "PASS", "sha256": sha(path)}
+        if kind == "fri":
+            native_log = build / f"native-{tool}.log"
+            with native_log.open("w") as log:
+                subprocess.run([str(args.native_verifier.resolve()), "verify", str(fixtures), str(readback)],
+                               check=True, stdout=log, stderr=subprocess.STDOUT)
+            result = native_log.read_text()
+            if result.count("FRI_NATIVE_VERIFY case=") != 6 or result.count("FRI_NATIVE_TAMPER fault=") != 10:
+                raise RuntimeError(f"incomplete native FRI verification: {tool}")
+            gates[tool]["native_receiver_sha256"] = sha(native_log)
+            if tool != "normal":
+                for i in range(honest):
+                    if sha(readback / f"case-{i}.bin") != sha(build / "readback-normal" / f"case-{i}.bin"):
+                        raise RuntimeError(f"nondeterministic FRI capture under {tool}")
         print(json.dumps({"gate": tool, "status": "PASS"}), flush=True)
     receipt = {
         "schema": f"rv64-cuda-om31-{kind}/v2", "full_block_verified": False,
-        "scope": "Native numerical PCS parity; no proof or execution admission",
+        "scope": ("Native FRI proof construction and fresh verification; no execution or whole-block admission" if kind == "fri" else "Native numerical PCS parity; no proof or execution admission"),
+        "native_receiver_cases_verified": 6 if kind == "fri" else 0,
+        "native_receiver_mutants_rejected": 10 if kind == "fri" else 0,
         "arch": args.arch, "compiler": subprocess.check_output([args.nvcc, "--version"], text=True),
         "compile_seconds": compile_seconds, "honest_cases": honest, "mutants_rejected": mutants,
+        "native_fri_verified": kind == "fri",
         "intermediate_field_transfers": 0, "source_sha256": sha(source), "driver_sha256": sha(driver),
         "fixture_generator_sha256": sha(root / f"src/integrations/riscv_cuda/rv64_{kind}_fixture_main.zig"),
         "dependency_objects": {str(path): sha(path) for path in objects},

@@ -1,0 +1,10 @@
+{"case":0,"layers":2,"queries":65,"fault":0,"status":0,"result":"PASS"}
+{"case":1,"layers":3,"queries":256,"fault":0,"status":0,"result":"PASS"}
+{"case":2,"layers":2,"queries":108,"fault":0,"status":0,"result":"PASS"}
+{"case":3,"layers":3,"queries":64,"fault":0,"status":0,"result":"PASS"}
+{"case":4,"layers":5,"queries":32,"fault":0,"status":0,"result":"PASS"}
+{"case":5,"layers":5,"queries":256,"fault":0,"status":0,"result":"PASS"}
+{"case":0,"layers":2,"queries":65,"fault":1,"status":8,"result":"PASS"}
+{"case":0,"layers":2,"queries":65,"fault":2,"status":10,"result":"PASS"}
+{"case":0,"layers":2,"queries":65,"fault":3,"status":1,"result":"PASS"}
+{"case":0,"layers":2,"queries":65,"fault":4,"status":32,"result":"PASS"}

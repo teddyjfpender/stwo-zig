@@ -80,6 +80,13 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             self.step += 1;
             self.chain = next;
         }
+        pub fn drawQueries(self: *Self, log: u32, count: u32, output: Slice, next: u64, boundary: Slice) !void {
+            if (log == 0 or log > 28 or count == 0 or count > 1024) return error.InvalidGeometry;
+            const owner = try self.begin();
+            try self.finish(Api.stwo_rv64_channel_queries_on(owner, self.lane_index, try self.statePointer(), self.step, self.chain, next, log, count, try self.context.deviceSlicePointer(u32, output, count), try self.context.deviceSlicePointer(u32, boundary, abi.channel_state_words)));
+            self.step += 1;
+            self.chain = next;
+        }
         pub fn validateCompleted(self: *const Self, snapshot: Snapshot) !void {
             if (self.poisoned or !self.initialized) return error.JobPoisoned;
             try snapshot.validate(self.step, self.chain);

@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded
+build-rv64-fri-tool success
++- install rv64-fri-fixtures success
+   +- compile exe rv64-fri-fixtures ReleaseSafe x86_64-linux-musl success 5s MaxRSS:683M
+

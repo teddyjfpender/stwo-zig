@@ -248,3 +248,27 @@ comptime {
 }
 pub extern "c" fn stwo_rv64_sample_points_on(*anyopaque, u32, *const SamplePoints) c_int;
 pub extern "c" fn stwo_rv64_sample_evaluate_on(*anyopaque, u32, *const SampleEvaluation) c_int;
+pub extern "c" fn stwo_rv64_channel_queries_on(*anyopaque, u32, [*]u32, u32, u64, u64, u32, u32, [*]u32, [*]u32) c_int;
+pub const FriOpen = extern struct {
+    input: Plane,
+    tree: [*]const u32,
+    queries: [*]const u32,
+    values: [*]u32,
+    paths: [*]u32,
+    status: [*]u32,
+    tree_words: u64,
+    value_words: u64,
+    path_words: u64,
+    count: u32,
+    query_count: u32,
+    fold_step: u32,
+    leaf_log: u32,
+    shift: u32,
+    reserved: u32 = 0,
+};
+comptime {
+    if (@sizeOf(FriOpen) != 112 or @offsetOf(FriOpen, "tree_words") != 64) @compileError("OM31 FRI opening ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_fri_tree_on(*anyopaque, u32, Plane, u32, u32, [*]u32, u64) c_int;
+pub extern "c" fn stwo_rv64_fri_terminal_on(*anyopaque, u32, Plane, u32, [*]u32, [*]u32) c_int;
+pub extern "c" fn stwo_rv64_fri_open_on(*anyopaque, u32, *const FriOpen) c_int;

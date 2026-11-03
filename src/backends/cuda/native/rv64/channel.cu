@@ -76,6 +76,39 @@ inline bool channel_state(Custody &c, uint32_t *state) {
   }
   return c.range(state, t::kStateWords, true);
 }
+__global__ void channel_queries(uint32_t *words, uint32_t step, uint64_t chain,
+                                uint64_t next, uint32_t log, uint32_t count,
+                                uint32_t *output, uint32_t *boundary) {
+  auto *s = t::as_state(words);
+  __shared__ uint32_t digest[8], first_draw;
+  __shared__ bool valid;
+  const uint32_t blocks = (count + 7) / 8;
+  if (!threadIdx.x) {
+    valid = t::begin_step(s, step, chain);
+    if (valid &&
+        (s->reserved || step == UINT32_MAX || s->draws > UINT32_MAX - blocks)) {
+      valid = false;
+      s->status = t::kOrder;
+    }
+    first_draw = s->draws;
+  }
+  if (threadIdx.x < 8)
+    digest[threadIdx.x] = s->digest[threadIdx.x];
+  __syncthreads();
+  for (uint32_t block = threadIdx.x; block < blocks; block += blockDim.x) {
+    const auto raw =
+        valid ? t::hash_draw(digest, first_draw + block) : t::Hash{};
+    for (uint32_t i = 0; i < 8; ++i)
+      if (block * 8 + i < count)
+        output[block * 8 + i] = valid ? raw.words[i] & ((1u << log) - 1) : 0;
+  }
+  __syncthreads();
+  if (!threadIdx.x) {
+    if (valid)
+      s->draws += blocks;
+    t::finish_step(s, next, boundary);
+  }
+}
 } // namespace stwo::cuda::rv64
 using namespace stwo::cuda::rv64;
 extern "C" int stwo_rv64_channel_init_on(void *ctx, uint32_t lane,
@@ -115,5 +148,21 @@ extern "C" int stwo_rv64_channel_draw_on(void *ctx, uint32_t lane,
     return c.status;
   channel_draw<<<1, 128, 0, c.stream>>>(state, step, chain, next, count, output,
                                         boundary);
+  return int(cudaPeekAtLastError());
+}
+extern "C" int stwo_rv64_channel_queries_on(void *ctx, uint32_t lane,
+                                            uint32_t *state, uint32_t step,
+                                            uint64_t chain, uint64_t next,
+                                            uint32_t log, uint32_t count,
+                                            uint32_t *output,
+                                            uint32_t *boundary) {
+  if (!log || log > 28 || !count || count > 1024)
+    return int(cudaErrorInvalidValue);
+  Custody c(ctx, lane);
+  if (!channel_state(c, state) || !c.range(output, count, true) ||
+      !c.range(boundary, t::kStateWords, true))
+    return c.status;
+  channel_queries<<<1, 128, 0, c.stream>>>(state, step, chain, next, log, count,
+                                           output, boundary);
   return int(cudaPeekAtLastError());
 }

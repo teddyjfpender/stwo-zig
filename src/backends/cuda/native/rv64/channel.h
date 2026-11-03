@@ -12,4 +12,10 @@ extern "C" int stwo_rv64_channel_mix_on(void *, uint32_t, uint32_t *, uint32_t,
 extern "C" int stwo_rv64_channel_draw_on(void *, uint32_t, uint32_t *, uint32_t,
                                          uint64_t, uint64_t, uint32_t,
                                          uint32_t *, uint32_t *);
+// Native drawQueries: eight RAW words per hash, masked to the domain.
+// These must not pass through the modulo-M31 secure-field draw.
+extern "C" int stwo_rv64_channel_queries_on(void *, uint32_t, uint32_t *,
+                                            uint32_t, uint64_t, uint64_t,
+                                            uint32_t, uint32_t, uint32_t *,
+                                            uint32_t *);
 #endif

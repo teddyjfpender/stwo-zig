@@ -123,6 +123,15 @@ pub fn build(b: *std.Build) void {
     const run_samples = b.addRunArtifact(samples_fixture);
     if (b.args) |args| run_samples.addArgs(args);
     b.step("rv64-samples-fixtures", "Export native OM31 transcript/point/polynomial sampling fixtures").dependOn(&run_samples.step);
+    const fri_root = b.createModule(.{ .root_source_file = b.path("rv64_fri_fixture_main.zig"), .target = target, .optimize = optimize });
+    fri_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    fri_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    fri_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const fri_fixture = b.addExecutable(.{ .name = "rv64-fri-fixtures", .root_module = fri_root });
+    b.step("build-rv64-fri-tool", "Build the independent native FRI fixture receiver").dependOn(&b.addInstallArtifact(fri_fixture, .{}).step);
+    const run_fri = b.addRunArtifact(fri_fixture);
+    if (b.args) |args| run_fri.addArgs(args);
+    b.step("rv64-fri-fixtures", "Export native FRI fixtures or verify GPU compact proof readback").dependOn(&run_fri.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

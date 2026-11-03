@@ -17,6 +17,16 @@ pub const Fold = struct {
     accumulate_circle: bool = false,
 };
 pub const NativeCommands = Commands(runtime.NativeContext, abi);
+pub const Open = struct {
+    input: R.Plane,
+    tree: Slice,
+    queries: Slice,
+    values: Slice,
+    paths: Slice,
+    verdict: Slice,
+    layout: @import("fri.zig").Layer,
+    query_count: u32,
+};
 pub fn Commands(comptime Context: type, comptime Api: type) type {
     return struct {
         const Self = @This();
@@ -31,16 +41,16 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             try self.context.validateLane(lane);
             return @ptrFromInt(lane.owner);
         }
-        fn finish(self: *Self, status: c_int) !void {
+        fn finish(self: *Self, status: c_int, count: u32) !void {
             if (status != 0) {
                 self.poisoned = true;
                 return error.CudaEnqueueFailed;
             }
-            if (comptime @hasDecl(Context, "recordKernels")) self.context.recordKernels(1) catch |err| {
+            if (comptime @hasDecl(Context, "recordKernels")) self.context.recordKernels(count) catch |err| {
                 self.poisoned = true;
                 return err;
             };
-            self.launches +|= 1;
+            self.launches +|= count;
         }
         pub fn fold(self: *Self, job: Fold) !void {
             if (job.count == 0 or job.count > 1 << 28 or !std.math.isPowerOfTwo(job.count) or job.steps < 1 or job.steps > 4 or job.count < @as(u32, 1) << @intCast(job.steps)) return error.InvalidGeometry;
@@ -64,7 +74,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 .first_is_circle = @intFromBool(job.first_is_circle),
                 .accumulate_circle = @intFromBool(job.accumulate_circle),
             };
-            try self.finish(Api.stwo_rv64_fri_fold_on(owner, self.lane_index, &packet));
+            try self.finish(Api.stwo_rv64_fri_fold_on(owner, self.lane_index, &packet), 1);
         }
         pub fn leaves(self: *Self, input: R.Plane, count: u32, leaf_log: u32, prefixed: bool, hashes: Slice) !void {
             if (count == 0 or count > 1 << 28 or !std.math.isPowerOfTwo(count) or leaf_log > 4 or count < @as(u32, 1) << @intCast(leaf_log)) return error.InvalidGeometry;
@@ -72,7 +82,45 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const hash_count = count >> @intCast(leaf_log);
             if (hashes.len < @as(usize, hash_count) * 8 or hashes.address % 32 != 0) return error.InvalidDeviceAddress;
             const owner = try self.handle();
-            try self.finish(Api.stwo_rv64_fri_leaves_on(owner, self.lane_index, try input.bind(self.context), count, leaf_log, @intFromBool(prefixed), try self.context.deviceSlicePointer(u32, hashes, @as(usize, hash_count) * 8), hash_count));
+            try self.finish(Api.stwo_rv64_fri_leaves_on(owner, self.lane_index, try input.bind(self.context), count, leaf_log, @intFromBool(prefixed), try self.context.deviceSlicePointer(u32, hashes, @as(usize, hash_count) * 8), hash_count), 1);
+        }
+        pub fn tree(self: *Self, input: R.Plane, count: u32, leaf_log: u32, nodes: Slice) !void {
+            if (count == 0 or count > 1 << 28 or !std.math.isPowerOfTwo(count) or (leaf_log != 0 and leaf_log != 2) or count < @as(u32, 1) << @intCast(leaf_log) or input.coordinates != 8 or input.stride < count) return error.InvalidGeometry;
+            if (nodes.address % 32 != 0) return error.InvalidDeviceAddress;
+            const leaves_count = count >> @intCast(leaf_log);
+            const words = (@as(usize, leaves_count) * 2 - 1) * 8;
+            const owner = try self.handle();
+            try self.finish(Api.stwo_rv64_fri_tree_on(owner, self.lane_index, try input.bind(self.context), count, leaf_log, try self.context.deviceSlicePointer(u32, nodes, words), words), 1 + std.math.log2_int(u32, leaves_count));
+        }
+        pub fn terminal(self: *Self, input: R.Plane, count: u32, coefficient: Slice, verdict: Slice) !void {
+            if (count < 2 or count > 65536 or !std.math.isPowerOfTwo(count) or input.coordinates != 8 or input.stride < count) return error.InvalidGeometry;
+            const owner = try self.handle();
+            try self.finish(Api.stwo_rv64_fri_terminal_on(owner, self.lane_index, try input.bind(self.context), count, try self.context.deviceSlicePointer(u32, coefficient, 8), try self.context.deviceSlicePointer(u32, verdict, 1)), 1);
+        }
+        pub fn open(self: *Self, j: Open) !void {
+            try j.layout.validate();
+            if (j.query_count == 0 or j.query_count > 1024 or j.input.coordinates != 8 or j.input.stride < j.layout.count) return error.InvalidGeometry;
+            const owner = try self.handle();
+            const tw = j.layout.treeWords();
+            const vw = j.layout.valueWords(j.query_count);
+            const pw = j.layout.pathWords(j.query_count);
+            const packet = abi.FriOpen{
+                .input = try j.input.bind(self.context),
+                .tree = try self.context.deviceSlicePointer(u32, j.tree, tw),
+                .queries = try self.context.deviceSlicePointer(u32, j.queries, j.query_count),
+                .values = try self.context.deviceSlicePointer(u32, j.values, vw),
+                .paths = try self.context.deviceSlicePointer(u32, j.paths, @max(pw, 1)),
+                .status = try self.context.deviceSlicePointer(u32, j.verdict, 1),
+                .tree_words = tw,
+                .value_words = vw,
+                .path_words = pw,
+                .count = j.layout.count,
+                .query_count = j.query_count,
+                .fold_step = j.layout.fold_step,
+                .leaf_log = j.layout.leaf_log,
+                .shift = j.layout.shift,
+            };
+            try self.finish(Api.stwo_rv64_fri_open_on(owner, self.lane_index, &packet), if (pw == 0) 1 else 2);
         }
     };
 }

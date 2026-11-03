@@ -3,6 +3,19 @@
 const R = @import("rv64/resident.zig");
 const S = @import("rv64/sumcheck.zig");
 const Context = @import("stwo_cuda_backend").runtime.NativeContext;
+export fn rv64_test_fri(context: *Context, lane: u32, job: *const @import("rv64/pcs.zig").Open, coefficient: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = @import("rv64/pcs.zig").NativeCommands{ .context = context, .lane_index = lane };
+    commands.tree(job.input, job.layout.count, job.layout.leaf_log, job.tree) catch return 1;
+    commands.open(job.*) catch return 1;
+    commands.terminal(job.input, job.layout.count, coefficient.*, job.verdict) catch return 1;
+    return 0;
+}
+export fn rv64_test_fri_queries(context: *Context, lane: u32, regions: *const [4]@import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = @import("rv64/channel.zig").NativeCommands{ .context = context, .lane_index = lane, .state = regions[0] };
+    commands.initialize(regions[1], 17) catch return 1;
+    commands.drawQueries(22, 256, regions[2], 18, regions[3]) catch return 1;
+    return 0;
+}
 
 export fn rv64_test_samples(context: *Context, lane: u32, points: *const @import("rv64/samples.zig").Points, evaluation: *const @import("rv64/samples.zig").Evaluation) c_int {
     var commands = R.NativeCommands{ .context = context, .lane_index = lane };
