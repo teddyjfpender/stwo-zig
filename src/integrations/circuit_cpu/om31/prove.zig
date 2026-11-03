@@ -101,7 +101,7 @@ pub const Produced = struct {
         self.* = undefined;
     }
 };
-fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !P.Channel {
+pub fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !P.Channel {
     if (outputs.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
     var channel = P.Channel.init();
     (try P.targetConfig()).mixInto(&channel);
@@ -116,10 +116,10 @@ fn begin(a: std.mem.Allocator, key: *const Authority, outputs: []const Q) !P.Cha
     channel.mixU32s(words);
     return channel;
 }
-fn draw(channel: *P.Channel) struct { z: O, alpha: O } {
+pub fn draw(channel: *P.Channel) struct { z: O, alpha: O } {
     return .{ .z = channel.drawSecureFelt(), .alpha = channel.drawSecureFelt() };
 }
-fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims: W.Claims) ![]C {
+pub fn bind(a: std.mem.Allocator, key: *const Authority, z: O, alpha: O, claims: W.Claims) ![]C {
     const out = try a.alloc(C, List.N_COMPONENTS);
     errdefer a.free(out);
     for (out, key.bound.components, claims.toArray()) |*component, *captured, claim| {

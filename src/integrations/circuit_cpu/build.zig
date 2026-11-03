@@ -45,6 +45,7 @@ pub fn build(b: *std.Build) void {
 
     const om31_root = b.createModule(.{ .root_source_file = b.path("om31_test_root.zig"), .target = target, .optimize = optimize });
     om31_root.addImport("stwo_core", core);
+    om31_root.addImport("stwo_prover_api", prover_api);
     om31_root.addImport("stwo_prover_engine", prover);
     om31_root.addImport("stwo_cpu_backend", cpu_backend);
     om31_root.addImport("stwo_circuit_frontend", circuit);
