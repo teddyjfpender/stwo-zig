@@ -174,14 +174,19 @@ const Job = struct {
         const relation_count: u32 = if (v3) @intCast(relations.len) else @intFromEnum(Source.Fractions.Relation.byte_pair);
         const cap = @min(b.byte_cap, self.request.byte_cap);
         const plan = try G.Plan.init(variables, cap);
+        var main_already_resident = true;
+        for (self.request.native_main_columns) |column| main_already_resident = main_already_resident and column.device != null;
+        const publish_coefficients = b.coefficient_sink != null and !main_already_resident;
         const twiddle_words = @as(usize, 1) << @intCast(source.max_log - 1);
         var metadata_words: usize = 9 + 16 + 16 + 310 * 8 + 1 + 3 + 2 * @as(usize, relation_count);
+        if (b.binding_runtime != null) metadata_words += A.gkr_state_words;
         for (source.items) |item| {
             const parameter_words = try std.math.mul(usize, b.catalogue.artifacts[item.kernel].source_slots.len, 8);
             const item_words = try std.math.add(usize, try std.math.mul(usize, item.offsets.len, 2), try std.math.add(usize, item.public.len, parameter_words));
             metadata_words = try std.math.add(usize, metadata_words, item_words);
         }
-        const requested = try std.math.add(usize, metadata_words, try std.math.add(usize, plan.total_words, try std.math.add(usize, input_words, try std.math.add(usize, source.cells * 2, twiddle_words))));
+        const source_words = try std.math.mul(usize, source.cells, if (publish_coefficients) @as(usize, 2) else 1);
+        const requested = try std.math.add(usize, metadata_words, try std.math.add(usize, plan.total_words, try std.math.add(usize, input_words, try std.math.add(usize, source_words, twiddle_words))));
         if (try std.math.mul(usize, requested, 4) > cap) return error.GkrWorkspaceBudgetExceeded;
         var leases: std.ArrayList(Native.Lease) = .empty;
         var published_generation: u64 = 0;
@@ -196,9 +201,12 @@ const Job = struct {
             }
             leases.deinit(a);
         }
-        const coeff = try allocateKind(a, &context, &leases, source.cells, 2);
+        // Device MAIN already has a durable coefficient owner. Decode directly
+        // into the base-evaluation warehouse instead of cloning another1.56GB
+        // of immutable coefficients merely to discard it after this traversal.
+        const coeff = try allocateKind(a, &context, &leases, source.cells, if (publish_coefficients) 2 else 0);
         const coefficient_lease = leases.items[0];
-        const values = try allocate(a, &context, &leases, source.cells);
+        const values = if (publish_coefficients) try allocate(a, &context, &leases, source.cells) else coeff;
         const tw = try allocate(a, &context, &leases, twiddle_words);
         try events.mark(.ingress, false, upload_stream);
         var offset: usize = 0;
@@ -220,7 +228,7 @@ const Job = struct {
             engine.poly.twiddles.deinitM31(a, &twiddles);
         }
         try context.upload(tw, @as([*]const u32, @ptrCast(twiddles.twiddles.ptr))[0..twiddles.twiddles.len]);
-        try checked(b.functions.copy_device(raw_context, @ptrFromInt(values.address), @ptrFromInt(coeff.address), source.cells * 4));
+        if (publish_coefficients) try checked(b.functions.copy_device(raw_context, @ptrFromInt(values.address), @ptrFromInt(coeff.address), source.cells * 4));
         try events.mark(.ingress, true, upload_stream);
         try context.join();
         twiddles_ingress_joined = true;
@@ -350,8 +358,6 @@ const Job = struct {
         var proof = try Results.assemble(a, .{ .variables = variables, .roots = roots, .layers = layers });
         errdefer proof.deinit(a);
         const decode_ns = timer.read() - decode_start_ns;
-        var main_already_resident = true;
-        for (self.request.native_main_columns) |column| main_already_resident = main_already_resident and column.device != null;
         if (b.coefficient_sink) |sink| if (!main_already_resident) {
             try sink.publish(sink.context, context.scope, coefficient_lease, self.request.native_fixed_columns, self.request.native_main_columns, source.offsets);
             published_generation = coefficient_lease.generation;
