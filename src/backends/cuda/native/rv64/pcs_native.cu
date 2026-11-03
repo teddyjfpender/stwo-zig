@@ -229,6 +229,19 @@ struct ResidentOwner {
     }
     throw std::runtime_error("stale, foreign or wrong-scope device lease");
   }
+  uint32_t validateCoefficient(rv64_pcs_pipeline::Coefficient source,
+                               const uint32_t *scope) const {
+    if (!source.kind) {
+      if(source.size() && !source.data())throw std::runtime_error("missing host coefficients");
+      return 0;
+    }
+    if(source.kind!=1)throw std::runtime_error("unsupported device column encoding");
+    const auto &record=find(source.data(),source.size(),source.token,
+                            source.generation,scope_of(scope));
+    if(record.value.kind!=2 && record.value.kind!=4)
+      throw std::runtime_error("device column is not coefficient storage");
+    return record.value.kind;
+  }
   void uploadCoefficient(StwoRv64Plane destination,
                          rv64_pcs_pipeline::Coefficient source,
                          const uint32_t *scope) {
@@ -236,12 +249,8 @@ struct ResidentOwner {
       uploadBorrowed(destination, source.data(), source.size());
       return;
     }
-    if (source.kind != 1)
-      throw std::runtime_error("unsupported device column encoding");
-    const auto &record = find(source.data(), source.size(), source.token,
-                              source.generation, scope_of(scope));
-    if (record.value.kind != 2 && record.value.kind != 4)
-      throw std::runtime_error("device column is not coefficient storage");
+    // This also validates the whole coalesced range, not only its endpoints.
+    (void)validateCoefficient(source,scope);
     CHECK(stwo_exec_context_memcpy_d2d_async(ctx, destination.words,
                                              source.data(), source.size() * 4));
   }

@@ -61,6 +61,11 @@ struct FileOwner : Owner {
     if (words)
       CHECK(stwo_exec_context_memcpy_h2d_async(ctx, p.words, data, words * 4));
   }
+  uint32_t validateCoefficient(rv64_pcs_pipeline::Coefficient source,const uint32_t *) const {
+    if(source.kind)throw std::runtime_error("device coefficients require a native session");
+    if(source.size()&&!source.data())throw std::runtime_error("missing host coefficients");
+    return 0;
+  }
   void uploadCoefficient(StwoRv64Plane destination,
                          rv64_pcs_pipeline::Coefficient source,
                          const uint32_t *) {

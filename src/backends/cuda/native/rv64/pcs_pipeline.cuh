@@ -52,6 +52,33 @@ struct Coefficient : Words {
   uint32_t kind = 0;
   uint64_t token = 0, generation = 0;
 };
+// A transfer is an address span inside ONE admitted physical lease. Columns
+// retain their individual shape/custody checks before any span is submitted.
+struct CoefficientTransfer {
+  Coefficient source;
+  uint64_t destination;
+  uint32_t lease_kind;
+  std::array<uint32_t,8> scope;
+};
+inline void appendCoefficientTransfer(std::vector<CoefficientTransfer>& plan,
+    Coefficient source, uint64_t destination, uint32_t lease_kind,
+    const std::array<uint32_t,8>& scope) {
+  if (!plan.empty() && source.kind == 1) {
+    auto &last=plan.back();
+    const uintptr_t base=reinterpret_cast<uintptr_t>(last.source.data());
+    if (last.source.kind==source.kind && last.source.token==source.token &&
+        last.source.generation==source.generation && last.lease_kind==lease_kind &&
+        last.scope==scope && last.source.size() <= (UINTPTR_MAX-base)/sizeof(uint32_t) &&
+        source.size() <= SIZE_MAX-last.source.size() &&
+        last.destination <= UINT64_MAX-last.source.size() &&
+        last.destination+last.source.size()==destination &&
+        base+last.source.size()*sizeof(uint32_t)==reinterpret_cast<uintptr_t>(source.data())) {
+      last.source.count+=source.size();
+      return;
+    }
+  }
+  plan.push_back({source,destination,lease_kind,scope});
+}
 struct Input {
   std::array<Words, 17> sections{};
   std::vector<Coefficient> coefficients;
@@ -133,16 +160,26 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                  descriptor_base = twiddle_base + h[19];
   const uint64_t arena_words = descriptor_base + uint64_t(sc + 8 * gc) * 6;
   const auto arena = o.plane(arena_words, 1);
+  std::vector<CoefficientTransfer> coefficient_transfers;
+  coefficient_transfers.reserve(sc);
+  uint32_t device_columns=0;
   for (uint32_t c = 0; c < sc; ++c) {
     const uint64_t offset =
         uint64_t(sources[4 * c]) | (uint64_t(sources[4 * c + 1]) << 32);
     const auto coefficients = input.coefficients[c];
-    if (coefficients.size() != (uint64_t(1) << sources[4 * c + 3]) ||
+    if (sources[4*c+3]>28 ||
+        coefficients.size() != (uint64_t(1) << sources[4 * c + 3]) ||
         offset > h[15] || coefficients.size() > h[15] - offset)
       throw std::runtime_error("coefficient span geometry");
-    o.uploadCoefficient({arena.words + offset, coefficients.size(), 1, 0},
-                        coefficients, input.scope.data());
+    const uint32_t lease_kind=o.validateCoefficient(coefficients,input.scope.data());
+    device_columns += coefficients.kind==1;
+    appendCoefficientTransfer(coefficient_transfers,coefficients,offset,lease_kind,input.scope);
   }
+  // uploadCoefficient revalidates the COMPLETE merged range against the same
+  // live lease; adjacency alone never establishes ownership of the gap/span.
+  for (const auto &transfer:coefficient_transfers)
+    o.uploadCoefficient({arena.words+transfer.destination,transfer.source.size(),1,0},
+                        transfer.source,transfer.scope.data());
   o.uploadBorrowed({arena.words + twiddle_base, h[19], 1, 0}, twiddles.data(),
                    twiddles.size());
   std::vector<StwoRv64Plane> source_descriptors, combined_descriptors;
@@ -497,9 +534,9 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   result.device_ns = uint64_t(ms * 1000000.0);
   result.requested_bytes = o.allocated_bytes;
   std::printf("MASKED_PCS columns=%u groups=%u log=%u q=%u resident_ms=%.6f "
-              "device_bytes=%llu hot_d2h=0 hot_h2d=0\n",
+              "device_bytes=%llu hot_d2h=0 hot_h2d=0 coefficient_copy_calls=%zu device_columns=%u\n",
               sc, gc, log, queries, ms,
-              static_cast<unsigned long long>(o.allocated_bytes));
+              static_cast<unsigned long long>(o.allocated_bytes),coefficient_transfers.size(),device_columns);
   return result;
 }
 } // namespace rv64_pcs_pipeline
