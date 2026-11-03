@@ -294,7 +294,7 @@ def main():
     if device_link:
         command += ["--device-link"]
     if args.outer_circuit_dir:
-        command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu"]
+        command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu", "--extra-native-source", "rv64/circuit_assignment.cu"]
     for obj in compiled:
         command += ["--extra-object", str(obj)]
     subprocess.run(command, check=True)
@@ -302,11 +302,15 @@ def main():
     image = ctypes.CDLL(str(library))
     required = ["stwo_rv64_composition_role_on", "stwo_rv64_truth_composition_role_on", "stwo_rv64_curve_witness_on", "stwo_rv64_secp_witness_on"] + [f"stwo_rv64_truth_projection_{i}" for i in range(15)] + [f"launch_{i}" for i in range(47)]
     if args.outer_circuit_dir:
-        required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on"]
+        required += ["stwo_circuit_base_witness_on", "stwo_circuit_om31_fractions_on", "stwo_circuit_om31_cumulative_on", "stwo_circuit_om31_composition_identity", "stwo_circuit_om31_composition_role_on", "stwo_circuit_assignment_seed_on", "stwo_circuit_assignment_level_on", "stwo_circuit_assignment_capabilities"]
     required += global_symbols
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
+    if args.outer_circuit_dir:
+        image.stwo_circuit_assignment_capabilities.restype = ctypes.c_uint32
+        if image.stwo_circuit_assignment_capabilities() & 0xffff != 0xffff:
+            raise RuntimeError("native outer assignment executor lacks sixteen required kinds")
     receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "global_projection_symbols": global_symbols, "bounded_aot_sources": lowering, "separable_device_sources": device_link, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
