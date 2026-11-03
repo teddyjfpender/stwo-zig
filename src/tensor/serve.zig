@@ -22,6 +22,8 @@ const std = @import("std");
 const f = @import("field.zig");
 const proto = @import("protocol.zig");
 const pcs = @import("pcs.zig");
+const sc = @import("sumcheck.zig");
+const batch_sc = @import("batch.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const QM31 = f.QM31;
@@ -82,11 +84,17 @@ pub const ClaimSet = struct {
 
 pub const SharedOpening = struct {
     requests: []ClaimSet,
+    /// cross-request claim reduction: one sumcheck over the weight table
+    /// reduces every slot's claims to W~(r) (absent when there are no claims)
+    reduction: ?sc.Proof = null,
+    reduced_value: QM31 = QM31.zero(),
+    /// opening of the committed weight table at the single point r
     opening: ?proto.Opening,
 
     pub fn deinit(self: *SharedOpening, a: std.mem.Allocator) void {
         for (self.requests) |*r| r.deinit(a);
         a.free(self.requests);
+        if (self.reduction) |*p| p.deinit(a);
         if (self.opening) |*o| o.deinit(a);
     }
 
@@ -97,7 +105,8 @@ pub const SharedOpening = struct {
     }
 
     pub fn openingBytes(self: SharedOpening) usize {
-        return if (self.opening) |o| o.byteSize() else 0;
+        const red = if (self.reduction) |p| p.byteSize() + 16 else 0;
+        return red + if (self.opening) |o| o.byteSize() else 0;
     }
 
     pub fn byteSize(self: SharedOpening) usize {
@@ -232,21 +241,76 @@ pub const BatchProver = struct {
 
     pub fn finish(self: *BatchProver) !Batch {
         const a = self.a;
-        var all: std.ArrayList(proto.WeightClaimP) = .empty;
-        defer all.deinit(a); // points are owned by `sets`
-        for (self.sets.items) |s| for (s.w, s.point_of, s.values) |w, pi, v| try all.append(a, .{ .w = w, .point = s.points[pi], .value = v });
         var tr = batchTranscript(self.ws.com.root(), self.sets.items);
-        var op = try proto.openWeightClaims(a, self.pool, self.cfg, &tr, self.ws, all.items);
-        a.free(op.values);
-        errdefer if (op.opening) |*o| o.deinit(a);
+        var red = try reduceAndOpen(a, self.pool, self.cfg, &tr, self.ws, self.sets.items);
+        errdefer red.deinit(a);
         const rp = try self.rproofs.toOwnedSlice(a);
         const sets = self.sets.toOwnedSlice(a) catch |e| {
             self.rproofs = .fromOwnedSlice(rp);
             return e;
         };
-        return .{ .requests = rp, .shared = .{ .requests = sets, .opening = op.opening } };
+        return .{ .requests = rp, .shared = .{ .requests = sets, .reduction = red.reduction, .reduced_value = red.value, .opening = red.opening } };
     }
 };
+
+const Reduced = struct {
+    reduction: ?sc.Proof = null,
+    value: QM31 = QM31.zero(),
+    opening: ?proto.Opening = null,
+
+    fn deinit(self: *Reduced, a: std.mem.Allocator) void {
+        if (self.reduction) |*p| p.deinit(a);
+        if (self.opening) |*o| o.deinit(a);
+    }
+};
+
+/// Cross-request weight-claim reduction (prover). With gamma_c drawn after
+/// every slot is absorbed:
+///   sum_c gamma_c v_c = sum_x W(x) E(x),  E(x) = sum_c gamma_c eq(z_c, x)
+/// over the whole weight table (z_c the claim's full table point); one
+/// degree-2 sumcheck reduces it to W~(r) E~(r), and W~(r) is opened once.
+/// E is materialised (16 B per table entry) block by block from each claim's
+/// local point, as the witness claim batching does.
+fn reduceAndOpen(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, tr: *Transcript, ws: *const proto.WeightStore, sets: []const ClaimSet) !Reduced {
+    var n_all: usize = 0;
+    for (sets) |cs| n_all += cs.w.len;
+    if (n_all == 0) return .{};
+    const gammas = try a.alloc(QM31, n_all);
+    defer a.free(gammas);
+    tr.drawN(gammas);
+    const total = @as(usize, 1) << @intCast(ws.log_rows + ws.log_cols);
+    const E = try a.alloc(QM31, total);
+    defer a.free(E);
+    @memset(E, QM31.zero());
+    var claim = QM31.zero();
+    var rc: std.ArrayList(batch_sc.RegionClaim) = .empty;
+    defer rc.deinit(a);
+    for (0..ws.infos.len) |w| {
+        rc.clearRetainingCapacity();
+        var gi: usize = 0;
+        for (sets) |cs| for (cs.w, cs.point_of, cs.values) |cw, pi, v| {
+            if (cw == w) {
+                try rc.append(a, .{ .point = cs.points[pi], .gamma = gammas[gi] });
+                claim = claim.add(gammas[gi].mul(v));
+            }
+            gi += 1;
+        };
+        if (rc.items.len > 0) try batch_sc.fillRegion(a, pool, E[ws.offsets[w]..][0..ws.infos[w].size()], rc.items);
+    }
+    const F = try a.alloc(i32, total);
+    defer a.free(F);
+    for (F, ws.table) |*o, v| o.* = v;
+    const used = @min(total, ws.rows_used << @intCast(ws.log_cols));
+    var res = try batch_sc.proveBaseTimesExt(a, pool, tr, claim, F, E, used);
+    defer a.free(res.point);
+    errdefer res.proof.deinit(a);
+    const value = res.finals[0];
+    a.free(res.finals);
+    tr.mixFelt(value);
+    const cl = [_]pcs.Claim{.{ .point = res.point, .value = value }};
+    const opening = try proto.openWeightFull(a, pool, cfg, tr, ws, &cl);
+    return .{ .reduction = res.proof, .value = value, .opening = opening };
+}
 
 pub fn initTimings(a: std.mem.Allocator, n: usize) !BatchTimings {
     const t = BatchTimings{ .requests = try a.alloc(proto.Timings, n), .request_ns = try a.alloc(u64, n) };
@@ -334,9 +398,23 @@ fn verifySharedOpening(a: std.mem.Allocator, cfg: proto.Config, key: proto.Weigh
             n_full += 1;
         }
     }
-    if ((n_all == 0) != (shared.opening == null)) return error.ProofShape;
+    if ((n_all == 0) != (shared.opening == null) or (n_all == 0) != (shared.reduction == null)) return error.ProofShape;
+    if (n_all == 0) return;
     var tr = batchTranscript(key.root, shared.requests);
-    if (shared.opening) |op| try proto.verifyWeightOpening(a, &tr, cfg, key, wcl, op);
+    // cross-request reduction: sum_c gamma_c v_c = sum_x W(x) E(x)
+    const gammas = try a.alloc(QM31, n_all);
+    defer a.free(gammas);
+    tr.drawN(gammas);
+    var claim = QM31.zero();
+    for (wcl, gammas) |c, g| claim = claim.add(g.mul(c.value));
+    const vr = try sc.verify(a, &tr, claim, log_total, 2, shared.reduction.?);
+    defer a.free(vr.point);
+    var e_at = QM31.zero();
+    for (wcl, gammas) |c, g| e_at = e_at.add(g.mul(f.eqEval(c.point, vr.point)));
+    if (!vr.final_claim.eql(shared.reduced_value.mul(e_at))) return error.WeightReduction;
+    tr.mixFelt(shared.reduced_value);
+    const one = [_]pcs.Claim{.{ .point = vr.point, .value = shared.reduced_value }};
+    try proto.verifyWeightOpening(a, &tr, cfg, key, &one, shared.opening.?);
 }
 
 fn eqlPoint(x: []const QM31, y: []const QM31) bool {
@@ -502,6 +580,18 @@ test "per-request proofs with one shared weight opening: every request verifies;
         s.w[0] = 99;
         try expectReject(verifyRequest(a, pc, fx.reqs[2].st, key, &batch.requests[2], &batch.shared, 2));
         s.w[0] = sw;
+    }
+    // cross-request reduction tampered: a round, the reduced value
+    {
+        const p = &batch.shared.reduction.?;
+        const sv = p.rounds[1].evals[0];
+        p.rounds[1].evals[0] = sv.add(QM31.one());
+        try expectReject(verifyRequest(a, pc, fx.reqs[0].st, key, &batch.requests[0], &batch.shared, 0));
+        p.rounds[1].evals[0] = sv;
+        const rv = batch.shared.reduced_value;
+        batch.shared.reduced_value = rv.add(QM31.one());
+        try expectReject(verifyRequest(a, pc, fx.reqs[2].st, key, &batch.requests[2], &batch.shared, 2));
+        batch.shared.reduced_value = rv;
     }
     // opening tampered
     {

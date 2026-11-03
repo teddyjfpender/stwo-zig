@@ -871,19 +871,17 @@ pub fn openWeightClaims(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, tr: *T
         wcl[i] = .{ .point = full_pts[i], .value = c.value };
         wvals[i] = c.value;
     }
-    var wtopen: ?Opening = null;
-    if (wcl.len > 0) {
-        // one claim group per distinct column point (a single batch has one;
-        // per-request serving has one per request and shape class)
-        const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
-        defer pcs2.freeGroups(a, gs);
-        if (cfg.two_level) |tl| {
-            wtopen = .{ .two = try pcs2.open(i8, a, pool, tr, tl, &ws.com, ws.tableMatrix(), gs, false) };
-        } else {
-            wtopen = .{ .flat = try pcs.open(i8, a, pool, tr, cfg.pcs, &ws.com, ws.tableMatrix(), gs, false) };
-        }
-    }
-    return .{ .values = wvals, .opening = wtopen };
+    return .{ .values = wvals, .opening = try openWeightFull(a, pool, cfg, tr, ws, wcl) };
+}
+
+/// Opens the committed weight table at claims with full table points (one
+/// claim group per distinct column point); null when there are no claims.
+pub fn openWeightFull(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, tr: *Transcript, ws: *const WeightStore, wcl: []const pcs.Claim) !?Opening {
+    if (wcl.len == 0) return null;
+    const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
+    defer pcs2.freeGroups(a, gs);
+    if (cfg.two_level) |tl| return .{ .two = try pcs2.open(i8, a, pool, tr, tl, &ws.com, ws.tableMatrix(), gs, false) };
+    return .{ .flat = try pcs.open(i8, a, pool, tr, cfg.pcs, &ws.com, ws.tableMatrix(), gs, false) };
 }
 
 /// The per-batch (or per-request) part of the prover: witness commitment,

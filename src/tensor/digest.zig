@@ -66,6 +66,8 @@ pub fn batchDigest(b: @import("serve.zig").Batch) [32]u8 {
         h.update(std.mem.sliceAsBytes(s.point_of));
         hashFelts(&h, s.values);
     }
+    if (b.shared.reduction) |p| for (p.rounds) |rp| hashFelts(&h, rp.evals[0..p.deg]);
+    hashFelts(&h, &.{b.shared.reduced_value});
     if (b.shared.opening) |op| hashOpening(&h, op);
     var out: [32]u8 = undefined;
     h.final(&out);
