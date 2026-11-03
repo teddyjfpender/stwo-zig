@@ -207,13 +207,15 @@ const Call = struct {
         const a = runtime.allocator;
         var context = makeContext(runtime, owner.pending.scope, ctx, token);
         if (self.kind == .release) {
+            // Teardown must visit all owners even if one lease is stale or
+            // the CUDA context is already poisoned.
             if (owner.projection) |lease| {
                 var v = lease;
-                try context.release(&v);
+                context.release(&v) catch {};
             }
             if (owner.coefficients) |lease| {
                 var v = lease;
-                try context.release(&v);
+                context.release(&v) catch {};
             }
             var cleanup = Cleanup{ .runtime = runtime, .pending = owner.pending };
             _ = Cleanup.callback(ctx, token, &cleanup);
@@ -242,9 +244,16 @@ const Call = struct {
         var tw: Slice = undefined;
         var scratch: Slice = undefined;
         var claim: Slice = undefined;
+        var host_twiddles: ?engine.poly.twiddles.TwiddleTree([]core.fields.m31.M31) = null;
+        defer if (host_twiddles) |*tree| {
+            // H2D borrows the host tree until its stream joins, including
+            // allocation/error exits before the normal join below.
+            context.join() catch {};
+            engine.poly.twiddles.deinitM31(a, tree);
+        };
         if (self.kind == .finalize) {
-            var tree = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(max_log).circleDomain().half_coset);
-            defer engine.poly.twiddles.deinitM31(a, &tree);
+            host_twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(max_log).circleDomain().half_coset);
+            const tree = &host_twiddles.?;
             tw = try alloc(a, &context, &temporary, tree.itwiddles.len, 0);
             try context.upload(tw, @as([*]const u32, @ptrCast(tree.itwiddles.ptr))[0..tree.itwiddles.len]);
             const p = try @import("prefix_plan.zig").Plan.init(max_log);
