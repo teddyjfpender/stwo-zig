@@ -101,5 +101,8 @@ Comparability rules:
 * The weight range proof (weights in [-128, 128)) is required for the
   accumulator-bound argument when the weight committer is malicious. Not yet
   added; tracked.
-* Per-request proofs: v1 proves one batch per proof. A FlashProve-style variant
-  (independent per-request proofs that share one weight opening) is planned.
+* Per-request proofs: `serve.zig` proves R requests as independent request
+  proofs sharing one weight opening (one cross-request claim reduction, one
+  opened point per batch); `lm.zig` adds the dense/MoE model stack, LM head and
+  greedy-token output check. Measurements, scaling law and a conservative
+  Maverick extrapolation: `serving.md`.
