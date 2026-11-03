@@ -235,7 +235,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   const auto trace_roots = rolling_sources ? o.plane(nt*8,1) : StwoRv64Plane{};
   std::vector<StwoRv64Plane> source_descriptors, combined_descriptors;
   std::vector<uint32_t> group_trees(sgc), group_logs;
-  for(uint32_t t=0;t<nt;++t) for(uint32_t g=tree_info[t*6+2];g<tree_info[t*6+2]+tree_info[t*6+3];++g) group_trees[g]=t;
+  if(rolling_sources) for(uint32_t t=0;t<nt;++t) for(uint32_t g=tree_info[t*6+2];g<tree_info[t*6+2]+tree_info[t*6+3];++g) group_trees[g]=t;
   std::vector<b::MixedSegment> trace_segments;
   uint64_t descriptor_offset = descriptor_base;
   auto descriptor = [&](uint64_t source, uint64_t destination,
