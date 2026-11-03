@@ -12,6 +12,9 @@ const Context = struct {
 const Commands = struct {
     context: *Context,
     poisoned: bool = false,
+    batched_oracles: bool = false,
+    sum_batches: usize = 0,
+    fold_batches: usize = 0,
     calls: usize = 0,
     sums: [16]u32 = undefined,
     sum_count: usize = 0,
@@ -38,6 +41,20 @@ const Commands = struct {
         }
         s.sums[s.sum_count] = input.count;
         s.sum_count += 1;
+    }
+    pub fn sumBatch(self: *@This(), jobs: []const R.BatchSum, eq_values: R.Plane, lambda: Slice) !void {
+        self.sum_batches += 1;
+        for (jobs) |job| {
+            try std.testing.expectEqual(jobs[0].input.count, job.input.count);
+            try self.sum(job.input, eq_values, lambda, job.a, job.b, job.output);
+        }
+    }
+    pub fn foldBatch(self: *@This(), jobs: []const R.BatchFold, challenge: Slice) !void {
+        self.fold_batches += 1;
+        for (jobs) |job| {
+            try std.testing.expectEqual(jobs[0].input.count, job.input.count);
+            try self.fold(job.input, challenge, job.output);
+        }
     }
     pub fn batchRound(s: *@This(), _: Slice, _: []const R.BatchOracle, _: u32, expected: u32, _: Slice, _: Slice) !void {
         try std.testing.expectEqual(s.rounds, expected);
@@ -165,4 +182,20 @@ test "constant mixed batch requires no point, Eq or round workspace" {
     try std.testing.expectEqual(@as(usize, 0), queued.records.len);
     try std.testing.expectEqual(@as(usize, 4), commands.calls);
     try std.testing.expectEqual(@as(usize, 0), commands.sum_count);
+}
+
+test "mixed batch groups only equal-height active oracles without padding or transcript changes" {
+    var fixture = Fixture.init();
+    fixture.bind();
+    var context = Context{};
+    var serial = Commands{ .context = &context };
+    var batched = Commands{ .context = &context, .batched_oracles = true };
+    const before = try B.enqueue(&serial, fixture.request, fixture.shared);
+    const after = try B.enqueue(&batched, fixture.request, fixture.shared);
+    try std.testing.expectEqual(before.rounds, after.rounds);
+    try std.testing.expectEqual(serial.rounds, batched.rounds);
+    try std.testing.expectEqualSlices(u32, serial.sums[0..serial.sum_count], batched.sums[0..batched.sum_count]);
+    try std.testing.expectEqual(@as(usize, 3), batched.sum_batches);
+    try std.testing.expectEqual(@as(usize, 3), batched.fold_batches);
+    try std.testing.expectEqual(@as(u32, 3), batched.masks);
 }

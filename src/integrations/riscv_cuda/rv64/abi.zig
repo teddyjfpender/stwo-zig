@@ -365,3 +365,11 @@ pub extern "c" fn stwo_rv64_composition_role_on(*anyopaque, u32, *const Composit
 pub const CompositionBucket = extern struct { words: [*]const u32, log: u32, reserved: u32 = 0 };
 pub extern "c" fn stwo_rv64_composition_finish_on(*anyopaque, u32, [*]const CompositionBucket, u32, [*]u32, [*]u32, u32, u32, [*]const u32, u32, *u32) c_int;
 pub extern "c" fn stwo_rv64_composition_auxiliary_on(*anyopaque, u32, [*]const u32, [*]u32, u32, *u32) c_int;
+
+pub const BatchSumJob = extern struct { n: Plane, d: Plane, a: Plane, b: Plane, out: Plane };
+pub const BatchFoldJob = extern struct { n: Plane, d: Plane, out_n: Plane, out_d: Plane };
+comptime {
+    if (@sizeOf(BatchSumJob) != 120 or @sizeOf(BatchFoldJob) != 96) @compileError("batched oracle job ABI changed");
+}
+pub extern "c" fn stwo_rv64_batch_sum_on(*anyopaque, u32, [*]const BatchSumJob, u32, u32, Plane, [*]const u32, *u32) c_int;
+pub extern "c" fn stwo_rv64_batch_fold_on(*anyopaque, u32, [*]const BatchFoldJob, u32, u32, [*]const u32, *u32) c_int;

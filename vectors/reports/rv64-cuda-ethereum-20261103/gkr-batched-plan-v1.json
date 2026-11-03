@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-gkr-batched-plan/v1",
+  "scope": "Launch batching source and host enqueue qualification; GPU proof parity and timing pending",
+  "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-batch-plan -Doptimize=ReleaseFast -j4",
+  "host_tests_passed": 5,
+  "opt_in_environment": "STWO_RV64_GKR_BATCH_ORACLES",
+  "default_enabled": false,
+  "changes": ["one 2D sum grid over active equal-height oracles", "one 2D grid per reduction wave", "one 2D fold grid", "same per-oracle arithmetic and reduction topology", "unchanged batchRound shared transcript"],
+  "preflight": "all ranges and all cross-oracle writable overlaps checked before first launch",
+  "expected_dispatch_model": {"serial_sum": "active_oracles * (1 + reduction_waves)", "batched_sum": "1 + reduction_waves", "serial_fold": "active_oracles", "batched_fold": 1},
+  "not_claimed": ["measured speedup", "GPU fixture acceptance", "real segment proof parity", "persistent tail completion"],
+  "next_gate": "compile one new TU, run existing native mixed-height golden fixtures, then real CPU0 A/B with fresh receiver"
+}

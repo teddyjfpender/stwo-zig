@@ -97,21 +97,41 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     if (largest != 0) try commands.eq(input.point, largest, work.eq);
     for (0..largest) |round| {
         const remaining = largest - @as(u32, @intCast(round));
-        for (work.oracles, 0..) |o, j| {
+        if (comptime @hasDecl(@TypeOf(commands.*), "sumBatch")) {
+            if (commands.batched_oracles) {
+                var jobs: [abi.batch_max_oracles]R.BatchSum = undefined;
+                var count: usize = 0;
+                for (work.oracles, 0..) |o, j| {
+                    if (variables[j] < remaining) continue;
+                    jobs[count] = .{ .input = current[j], .a = o.scratch_a, .b = o.scratch_b, .output = o.sums };
+                    count += 1;
+                }
+                try commands.sumBatch(jobs[0..count], work.eq, input.lambda);
+            } else for (work.oracles, 0..) |o, j| {
+                if (variables[j] < remaining) continue;
+                try commands.sum(current[j], work.eq, input.lambda, o.scratch_a, o.scratch_b, o.sums);
+            }
+        } else for (work.oracles, 0..) |o, j| {
             if (variables[j] < remaining) continue;
             try commands.sum(current[j], work.eq, input.lambda, o.scratch_a, o.scratch_b, o.sums);
         }
         const record = try work.records.sub(round * abi.round_record_words, abi.round_record_words);
         try commands.batchRound(work.state, active, largest, @intCast(round), input.point, record);
         const challenge = try record.sub(32, 8);
+        var fold_jobs: [abi.batch_max_oracles]R.BatchFold = undefined;
+        var active_folds: usize = 0;
         for (work.oracles, 0..) |o, j| {
             if (variables[j] < remaining) continue;
             var next = o.banks[folds[j] % 2];
             folds[j] += 1;
             next.count = current[j].count / 2;
-            try commands.fold(current[j], challenge, next);
+            fold_jobs[active_folds] = .{ .input = current[j], .output = next };
+            active_folds += 1;
             current[j] = next;
         }
+        if (comptime @hasDecl(@TypeOf(commands.*), "foldBatch")) {
+            if (commands.batched_oracles) try commands.foldBatch(fold_jobs[0..active_folds], challenge) else for (fold_jobs[0..active_folds]) |job| try commands.fold(job.input, challenge, job.output);
+        } else for (fold_jobs[0..active_folds]) |job| try commands.fold(job.input, challenge, job.output);
     }
     for (work.oracles, 0..) |o, j| try commands.packBatchMask(current[j], o.terminal_mask);
     return .{ .rounds = largest, .oracles = input.oracles.len, .state = work.state, .records = try work.records.sub(0, largest * abi.round_record_words) };

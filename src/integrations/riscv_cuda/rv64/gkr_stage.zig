@@ -61,6 +61,7 @@ pub const CoefficientSink = struct {
 pub const Backend = struct {
     coefficient_sink: ?CoefficientSink = null,
     binding_runtime: ?*DeviceBindingRuntime.Runtime = null,
+    configuration_sealed: bool = false,
     allocator: std.mem.Allocator,
     session: *anyopaque,
     session_api: SC.Api,
@@ -98,6 +99,7 @@ pub const Backend = struct {
         }, .numerical = try N.Api.load(library), .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .byte_cap = byte_cap };
     }
     pub fn enableDeviceBinding(self: *Backend, library: *std.DynLib) !void {
+        if (self.configuration_sealed) return error.DeviceBindingConfigurationSealed;
         if (self.binding_runtime != null) return error.DeviceBindingAlreadyEnabled;
         self.binding_runtime = try DeviceBindingRuntime.Runtime.create(self.allocator, library, self.session, self.session_api, self.numerical);
     }
@@ -107,6 +109,7 @@ pub const Backend = struct {
         self.* = undefined;
     }
     pub fn stage(self: *Backend) Child.NumericalStage {
+        self.configuration_sealed = true;
         return .{ .context = self, .prove = prove, .bind = if (self.binding_runtime != null) bind else null, .abort = if (self.binding_runtime != null) abort else null };
     }
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
@@ -286,6 +289,7 @@ const Job = struct {
         try events.mark(.projection, true, assigned_stream);
         var commands = R.Commands(SC.Context, N.Api){ .context = &context, .api = &b.numerical, .lane_index = 1 };
         try events.mark(.traversal, false, assigned_stream);
+        commands.batched_oracles = std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_ORACLES");
         const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace, cap, chain, status);
         try events.mark(.traversal, true, assigned_stream);
         try context.join();

@@ -51,6 +51,8 @@ pub const TailJob = struct {
     variables: u32,
     first: u32,
 };
+pub const BatchSum = struct { input: Fraction, a: Plane, b: Plane, output: Plane };
+pub const BatchFold = struct { input: Fraction, output: Fraction };
 pub const BatchOracle = struct { raw: ?Plane = null, variables: u32 };
 pub const NativeCommands = Commands(runtime.NativeContext, abi);
 
@@ -68,6 +70,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         /// Explicit tuning choice; preserve the established route by default.
         split_secure_sum: bool = false,
         fused_eq: bool = false,
+        batched_oracles: bool = false,
         fused_fold_sum: bool = false,
         /// Zero disables; otherwise a power of two in4..256. Profile on device.
         tail_count: u32 = 0,
@@ -203,6 +206,43 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 try scratch_b.bind(self.context),
                 try output.bind(self.context),
             ), waves);
+        }
+
+        pub fn sumBatch(self: *Self, jobs: []const BatchSum, eq_values: Plane, lambda: Slice) !void {
+            if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            const count = jobs[0].input.count;
+            if (count < 4) return error.InvalidGeometry;
+            const groups = (count / 4 + 127) / 128;
+            try eq_values.shape(count / 4, 8);
+            var packets: [abi.batch_max_oracles]abi.BatchSumJob = undefined;
+            for (jobs, packets[0..jobs.len]) |job, *packet| {
+                try job.input.validate();
+                if (job.input.count != count) return error.InvalidGeometry;
+                try job.a.shape(2 * groups, 8);
+                try job.b.shape(2 * groups, 8);
+                try job.output.shape(2, 8);
+                packet.* = .{ .n = try job.input.n.bind(self.context), .d = try job.input.d.bind(self.context), .a = try job.a.bind(self.context), .b = try job.b.bind(self.context), .out = try job.output.bind(self.context) };
+            }
+            const owner = try self.handle();
+            var launches: u32 = 0;
+            const status = self.callApi("stwo_rv64_batch_sum_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, try eq_values.bind(self.context), try self.context.deviceSlicePointer(u32, lambda, 8), &launches });
+            try self.result(status, launches);
+        }
+        pub fn foldBatch(self: *Self, jobs: []const BatchFold, challenge: Slice) !void {
+            if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            const count = jobs[0].input.count;
+            var packets: [abi.batch_max_oracles]abi.BatchFoldJob = undefined;
+            for (jobs, packets[0..jobs.len]) |job, *packet| {
+                try job.input.validate();
+                try job.output.validate();
+                if (job.input.count != count or count < 2 or job.output.count != count / 2) return error.InvalidGeometry;
+                try job.output.n.shape(count / 2, 8);
+                packet.* = .{ .n = try job.input.n.bind(self.context), .d = try job.input.d.bind(self.context), .out_n = try job.output.n.bind(self.context), .out_d = try job.output.d.bind(self.context) };
+            }
+            const owner = try self.handle();
+            var launches: u32 = 0;
+            const status = self.callApi("stwo_rv64_batch_fold_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, try self.context.deviceSlicePointer(u32, challenge, 8), &launches });
+            try self.result(status, launches);
         }
 
         pub fn foldSum(self: *Self, input: Fraction, challenge: Slice, folded: Fraction, eq_values: Plane, lambda: Slice, scratch_a: Plane, scratch_b: Plane, output: Plane) !void {

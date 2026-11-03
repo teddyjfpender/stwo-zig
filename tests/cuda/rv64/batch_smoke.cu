@@ -108,25 +108,32 @@ static void exercise(const std::string &directory, uint32_t id,
     CHECK(stwo_rv64_gkr_eq_on(o.ctx, 1, point.words, variables, eq));
   for (uint32_t round = 0; round < variables; ++round) {
     const uint32_t remaining = variables - round;
+    std::vector<StwoRv64BatchSumJob> sum_jobs;
     for (auto &job : oracles)
-      if (job.variables >= remaining)
-        CHECK(stwo_rv64_gkr_sum_on(o.ctx, 1, job.n, job.d, job.count, eq,
-                                   lambda.words, job.a, job.b, job.raw));
+      if (job.variables >= remaining) {
+        if (job.count != (2u << remaining)) throw std::runtime_error("active count mismatch");
+        sum_jobs.push_back({job.n, job.d, job.a, job.b, job.raw});
+      }
+    uint32_t sum_launches = 0;
+    CHECK(stwo_rv64_batch_sum_on(o.ctx, 1, sum_jobs.data(), sum_jobs.size(),
+        2u << remaining, eq, lambda.words, &sum_launches));
+    if (!sum_launches) throw std::runtime_error("missing sum launch");
     auto *record = records.words + round * round_record_words;
     CHECK(stwo_rv64_batch_round_on(
         o.ctx, 1, state.words, round_descriptors.data(), count, variables,
         (attack == 5 && round == 0) ? 1 : round, point.words, record));
     const auto *challenge = record + 32;
+    std::vector<StwoRv64BatchFoldJob> fold_jobs;
     for (auto &job : oracles)
       if (job.variables >= remaining) {
         const uint32_t bank = job.folds++ % 2;
-        CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, job.n, job.d, job.count,
-                                    challenge, job.banks_n[bank],
-                                    job.banks_d[bank]));
-        job.n = job.banks_n[bank];
-        job.d = job.banks_d[bank];
-        job.count /= 2;
+        fold_jobs.push_back({job.n, job.d, job.banks_n[bank], job.banks_d[bank]});
+        job.n = job.banks_n[bank]; job.d = job.banks_d[bank]; job.count /= 2;
       }
+    uint32_t fold_launches = 0;
+    CHECK(stwo_rv64_batch_fold_on(o.ctx, 1, fold_jobs.data(), fold_jobs.size(),
+        2u << remaining, challenge, &fold_launches));
+    if (fold_launches != 1) throw std::runtime_error("missing fold launch");
   }
   for (auto &job : oracles)
     CHECK(stwo_rv64_batch_mask_on(o.ctx, 1, job.n, job.d, job.mask.words));
