@@ -13,11 +13,13 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import threading
 import sys
 
 import rv64_cuda_native_library_build as N
 import rv64_cuda_partition_rational as Rational
 import rv64_cuda_partition_grouped as Grouped
+import rv64_cuda_partition_instruction_slices as Instructions
 
 
 def core_catalog(directory):
@@ -233,6 +235,8 @@ def main():
     objects.mkdir(exist_ok=True)
 
     lowering = {}
+    device_link = []
+    compiler_slots = threading.BoundedSemaphore(args.jobs)
 
     def compile_one(source):
         # Full path distinguishes role-local dispatch.cpp names; source/dependency
@@ -242,13 +246,30 @@ def main():
         actual, lowered = bounded_compile_source(source, obj, build, raw_directory=args.truth_domain.resolve())
         if lowered:
             lowering[str(source)] = lowered
-        cached = N.compile_native(args.nvcc, version, flags, actual, obj, logs / (name + ".log"), args.compile_timeout)
+        if lowered and lowered.get("raw_source_sha256"):
+            modules = Instructions.partition(actual, build / "rdc-aot" / name)
+            device_link.append(str(source))
+            lowered["device_modules"] = [{"source": str(p), "sha256": N.sha(p)} for p in modules["sources"]]
+            def compile_slice(path):
+                output = objects / (path.stem + ".o")
+                with compiler_slots:
+                    N.compile_native(args.nvcc, version, flags + ["-rdc=true"], path, output, logs / (path.stem + ".log"), args.compile_timeout)
+                return output
+            with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as slices:
+                outputs = list(slices.map(compile_slice, modules["sources"]))
+            print(json.dumps({"aot": str(source), "device_modules": len(outputs)}), flush=True)
+            return outputs
+        with compiler_slots:
+            cached = N.compile_native(args.nvcc, version, flags, actual, obj, logs / (name + ".log"), args.compile_timeout)
         print(json.dumps({"aot": str(source), "cached": cached}), flush=True)
-        return obj
+        return [obj]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        compiled = list(pool.map(compile_one, sources))
+        compiled = [obj for group in pool.map(compile_one, sources) for obj in group]
+
     command = [sys.executable, str(root / "scripts/rv64_cuda_native_library_build.py"), "--source-root", str(root), "--build", str(build / "native"), "--nvcc", args.nvcc, "--jobs", str(args.jobs), "--compile-timeout", str(args.compile_timeout), "--extra-native-source", "rv64/curve_witness.cu"]
+    if device_link:
+        command += ["--device-link"]
     if args.outer_circuit_dir:
         command += ["--extra-native-source", "circuit/base_witness.cu", "--extra-native-source", "rv64/circuit_interaction.cu"]
     for obj in compiled:
@@ -262,7 +283,7 @@ def main():
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "bounded_aot_sources": lowering, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "core_module_max_bytes": args.core_module_max_bytes, "truth_roles": 15, "bounded_aot_sources": lowering, "separable_device_sources": device_link, "outer_manifest_sha256": N.sha(args.outer_circuit_dir / "outer-manifest.json") if args.outer_circuit_dir else None, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 

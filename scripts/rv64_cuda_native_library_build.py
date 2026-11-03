@@ -80,6 +80,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--build", type=Path, required=True)
+    parser.add_argument("--device-link", action="store_true", help="Link bounded separable device instruction modules")
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     parser.add_argument("--extra-object", action="append", type=Path, default=[], help="Additional AOT dispatcher/projection objects")
@@ -99,7 +100,7 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     logs = build / "logs"
     logs.mkdir(exist_ok=True)
-    sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu", "transform/b2n_retained.cu",
+    sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu", "transform/b2n_retained.cu", "transform/composition_split.cu",
                "commitment/merkle.cu", "commitment/progressive.cu", "pow/search.cu"]
     sources += ["rv64/" + name + ".cu" for name in ["deep", "samples", "fri", "channel", "pcs", "trace", "sample_order", "composition_finalize",
                 "gkr", "round", "tail", "batch", "batch_oracles", "gkr_loop", "binding", "parameters", "closure", "global", "ls_dword_witness", "cpu_witness", "family_witness", "memory_witness", "arithmetic_witness", "bridge_witness", "bulk_witness", "sponge_witness", "keccak_witness", "sha256_witness", "arith256_witness", "secp_witness", "events"]]
@@ -132,7 +133,7 @@ def main():
     pending = build / f".libstwo-rv64-native-{os.getpid()}.so"
     try:
         with (logs / "link.log").open("w") as log:
-            run_checked([args.nvcc, "-shared", "-Xcompiler=-pthread", "-Xlinker=-Bsymbolic", *map(str, objects), "-o", str(pending)], log, args.link_timeout)
+            run_checked([args.nvcc, "-shared", "-Xcompiler=-pthread", "-Xlinker=-Bsymbolic", *(["-rdc=true", "-gencode", "arch=compute_120,code=sm_120"] if args.device_link else []), *map(str, objects), "-o", str(pending)], log, args.link_timeout)
         # Check the candidate inode before replacing the live library. This
         # catches hidden symbols and missing TUs without a producer rebuild or
         # capture/setup run. Existing sessions keep their admitted old inode.
