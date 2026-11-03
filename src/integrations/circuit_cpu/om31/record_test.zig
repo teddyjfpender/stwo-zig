@@ -28,6 +28,13 @@ test "outer OM31 GPU polynomial groups exactly match all original native AIR roo
                 const count = @min(R.MAX_ROOTS, @as(u32, @intCast(expected.len)) - start);
                 var artifact = try R.record(a, component, pi, start, count);
                 defer artifact.deinit();
+                if (pi == 0 and start == 0) {
+                    var resized = component.*;
+                    resized.trace_log_size = if (component.trace_log_size > 4) component.trace_log_size - 1 else component.trace_log_size + 1;
+                    var same_code = try R.record(a, &resized, pi, start, count);
+                    defer same_code.deinit();
+                    try std.testing.expectEqual(artifact.program.identity, same_code.program.identity);
+                }
                 const invocation = try artifact.parameters(a, parameters);
                 defer a.free(invocation);
                 @memcpy(artifact.program.parameters, invocation);

@@ -102,12 +102,11 @@ pub fn record(a: std.mem.Allocator, component: *const Comp, part_index: usize, r
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo/circuit/om31/original-air-polynomial/v1\x00");
     hash.update(Air.bundle_sha256);
-    var metadata: [24]u8 = undefined;
+    var metadata: [20]u8 = undefined;
     std.mem.writeInt(u64, metadata[0..8], source.semanticHash(), .little);
     std.mem.writeInt(u32, metadata[8..12], @intCast(part_index), .little);
     std.mem.writeInt(u32, metadata[12..16], root_start, .little);
     std.mem.writeInt(u32, metadata[16..20], root_count, .little);
-    std.mem.writeInt(u32, metadata[20..24], component.trace_log_size, .little);
     hash.update(&metadata);
     var program = try builder.finish(hash.finalResult(), ids);
     errdefer program.deinit();
