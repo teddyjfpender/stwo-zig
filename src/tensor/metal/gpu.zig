@@ -704,7 +704,7 @@ pub const Gpu = struct {
         lazy: ?Lazy = null,
     };
 
-    const Lazy = struct { srcs: [4]?Buf, tabs: Buf, claims: Buf, params: LazyParams };
+    const Lazy = struct { srcs: [4]?Buf, tabs: Buf, claims: Buf, segs: Buf, params: LazyParams };
     const BatchClaimGpu = extern struct { offset: u32, count: u32, lo_bits: u32, pre_off: u32, suf_off: u32 };
     const LazyFactor = extern struct { kind: u32, claim0: u32, n_claims: u32, _pad: u32 = 0 };
     const LazyParams = extern struct {
@@ -732,6 +732,7 @@ pub const Gpu = struct {
         for (0..4) |j| bind(cmd, @intCast(j), lz.srcs[j] orelse first orelse lz.tabs);
         bind(cmd, 4, lz.tabs);
         bind(cmd, 5, lz.claims);
+        bind(cmd, 11, lz.segs);
     }
 
     /// Encodes the round-0 fold of a lazy session into fresh half-size
@@ -760,6 +761,7 @@ pub const Gpu = struct {
         for (lz.srcs) |b| if (b) |x| try g.retire(x);
         try g.retire(lz.tabs);
         try g.retire(lz.claims);
+        try g.retire(lz.segs);
         s.lazy = null;
     }
 
@@ -958,11 +960,68 @@ pub const Gpu = struct {
                 }
             },
         };
+        // segment index per eq factor (claim0 / n_claims become seg0 / n_segs)
+        const sxl = try buildSegments(std.heap.c_allocator, specs, &lp);
+        defer std.heap.c_allocator.free(sxl);
+        const sbuf = try g.alloc(@max(1, sxl.len) * 4);
+        errdefer g.free(sbuf);
+        const sq: [*]u32 = @ptrCast(@alignCast(sbuf.ptr()));
+        @memcpy(sq[0..sxl.len], sxl);
         const s = try std.heap.c_allocator.create(Session);
         errdefer std.heap.c_allocator.destroy(s);
-        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .params = lp } };
+        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .segs = sbuf, .params = lp } };
         g.stats.sc_calls += 1;
         return s;
+    }
+
+    /// Segment index of the eq factors' claims: per factor j, the breakpoints
+    /// {offset, offset + count} of its claims cut the table into disjoint
+    /// intervals; each interval covered by at least one claim becomes a
+    /// segment (start, end, list0, nlist) listing exactly the (global) claim
+    /// indices that cover it. Segments of all factors come first, then the
+    /// lists. lp.fac[j].claim0 / n_claims are rewritten to (seg0, n_segs).
+    fn buildSegments(a: std.mem.Allocator, specs: []const t.accel.FactorSpec, lp: *LazyParams) ![]u32 {
+        var segs: std.ArrayList([4]u32) = .empty;
+        defer segs.deinit(a);
+        var lists: std.ArrayList(u32) = .empty;
+        defer lists.deinit(a);
+        var bps: std.ArrayList(usize) = .empty;
+        defer bps.deinit(a);
+        var ci: u32 = 0;
+        for (specs, 0..) |sp, j| switch (sp) {
+            .int => {},
+            .eq => |cs| {
+                bps.clearRetainingCapacity();
+                for (cs) |c| {
+                    try bps.append(a, c.offset);
+                    try bps.append(a, c.offset + (@as(usize, 1) << @intCast(c.point.len)));
+                }
+                std.mem.sort(usize, bps.items, {}, std.sort.asc(usize));
+                const seg0: u32 = @intCast(segs.items.len);
+                var k: usize = 0;
+                while (k + 1 < bps.items.len) : (k += 1) {
+                    const lo = bps.items[k];
+                    const hi = bps.items[k + 1];
+                    if (lo == hi) continue;
+                    const l0 = lists.items.len;
+                    for (cs, 0..) |c, q| {
+                        const c_end = c.offset + (@as(usize, 1) << @intCast(c.point.len));
+                        if (c.offset <= lo and hi <= c_end) try lists.append(a, ci + @as(u32, @intCast(q)));
+                    }
+                    const nl = lists.items.len - l0;
+                    if (nl == 0) continue;
+                    try segs.append(a, .{ @intCast(lo), @intCast(hi), @intCast(l0), @intCast(nl) });
+                }
+                lp.fac[j].claim0 = seg0;
+                lp.fac[j].n_claims = @intCast(segs.items.len - seg0);
+                ci += @intCast(cs.len);
+            },
+        };
+        const base: u32 = @intCast(4 * segs.items.len);
+        const out = try a.alloc(u32, 4 * segs.items.len + lists.items.len);
+        for (segs.items, 0..) |sg, i| out[4 * i ..][0..4].* = .{ sg[0], sg[1], sg[2] + base, sg[3] };
+        @memcpy(out[4 * segs.items.len ..], lists.items);
+        return out;
     }
 
     fn scAbort(ctx: *anyopaque, sp: *anyopaque) void {
@@ -972,6 +1031,7 @@ pub const Gpu = struct {
             for (lz.srcs) |b| if (b) |x| g.release(x, null);
             g.free(lz.tabs);
             g.free(lz.claims);
+            g.free(lz.segs);
         } else for (s.bufs[0..s.nf]) |b| g.release(b, null);
         g.free(s.partials);
         s.a.destroy(s);
