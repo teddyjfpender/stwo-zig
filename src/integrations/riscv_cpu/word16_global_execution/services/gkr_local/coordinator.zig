@@ -104,7 +104,12 @@ pub const Options = struct {
         if ((self.stage1_trace.len != 0 and self.stage1_trace.len != count) or (self.stage2_trace.len != 0 and self.stage2_trace.len != count)) return error.InvalidWideScheduleTrace;
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
-        } else if (self.max_workers > 8) return error.BoundedWideCoordinatorLimit;
+        } else if (self.max_workers > 8) {
+            // The old bound protected retained host-wide witnesses. A complete
+            // device route uses independently admitted device leases instead;
+            // never lift it for partial offload or a producer-controlled flag.
+            if (self.device_source_stage == null or self.device_global_stage == null or self.device_cpu_projection == null or self.device_trace_commit_stage == null or self.numerical_gkr_stage == null or self.numerical_gkr_stage.?.bind == null or self.device_pcs_stage == null or self.truth_device_source_stage == null or self.truth_device_composition_stage == null or self.truth_device_pcs_stage == null or self.resident_composition_stage == null) return error.BoundedWideCoordinatorLimit;
+        }
     }
 };
 pub const Bundle = struct {
