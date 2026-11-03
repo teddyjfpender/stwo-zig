@@ -4,6 +4,7 @@
 //! owns terminal binding and final acceptance; this is not that admission gate.
 const std = @import("std");
 const DeviceCopy = @import("scoped_device_copy.zig");
+const ProjectionLifetime = @import("projection_lifetime.zig");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const Child = @import("stwo_riscv_cpu_integration").rv64_gkr_child;
@@ -244,9 +245,8 @@ const Job = struct {
             const item_words = try std.math.add(usize, try std.math.mul(usize, item.offsets.len, 2), try std.math.add(usize, item.public.len, parameter_words));
             metadata_words = try std.math.add(usize, metadata_words, item_words);
         }
-        const source_words = try std.math.mul(usize, source.cells, if (publish_coefficients) @as(usize, 2) else 1);
         const workspace_words = if (self.replay_owner != null) 0 else plan.total_words;
-        const requested = try std.math.add(usize, metadata_words, try std.math.add(usize, workspace_words, try std.math.add(usize, input_words, try std.math.add(usize, source_words, twiddle_words))));
+        const requested = try ProjectionLifetime.peakWords(metadata_words, input_words, source.cells, twiddle_words, workspace_words, publish_coefficients);
         if (try std.math.mul(usize, requested, 4) > cap) return error.GkrWorkspaceBudgetExceeded;
         var leases: std.ArrayList(Native.Lease) = .empty;
         var published_generation: u64 = 0;
@@ -365,7 +365,6 @@ const Job = struct {
             packet.* = .{ .fixed = @ptrFromInt(values.address), .main = @ptrFromInt(values.address), .public_values = @ptrFromInt(public.address), .offsets = @ptrFromInt(offsets.address), .parameters = @ptrFromInt(parameters.address), .n = @ptrFromInt(numerator.address), .d = @ptrFromInt(denominator.address), .status = @ptrFromInt(status.address), .log = item.log, .first = 0, .rows = @as(u32, 1) << @intCast(item.log) };
             fraction.* = .{ .n = .{ .data = numerator, .stride = item.facts, .coordinates = 1 }, .d = .{ .data = denominator, .stride = item.facts, .coordinates = 8 }, .count = item.facts };
         }
-        const workspace = if (self.replay_owner == null) try allocate(a, &context, &leases, plan.total_words) else null;
         try context.join();
         try events.mark(.projection, false, assigned_stream);
         for (source.items, packets) |item, *packet| {
@@ -374,6 +373,13 @@ const Job = struct {
             try checked(b.functions.launch[item.kernel](assigned_stream, packet));
         }
         try events.mark(.projection, true, assigned_stream);
+        // Projection is the last reader of decoded MAIN/FIXED and FFT scratch.
+        // Join before releasing those exact scoped leases, then admit the large
+        // traversal workspace. Original published coefficients keep custody.
+        try context.join();
+        try ProjectionLifetime.retire(&context, &leases, values);
+        try ProjectionLifetime.retire(&context, &leases, tw);
+        std.debug.print("GPU_GKR_RETIRE ordinal={} projection_temporary_bytes={} before_workspace_bytes={}\n", .{ self.request.scope.ordinal, (source.cells + twiddle_words) * 4, workspace_words * 4 });
         if (self.replay_owner) |owner| {
             try context.join();
             var verdict: [1]u32 = undefined;
@@ -404,10 +410,11 @@ const Job = struct {
             return;
         }
         var commands = R.Commands(SC.Context, N.Api){ .context = &context, .api = &b.numerical, .lane_index = 1 };
+        const workspace = try allocate(a, &context, &leases, plan.total_words);
         try events.mark(.traversal, false, assigned_stream);
         commands.batched_oracles = b.batched_oracles;
         commands.batched_trees = b.batched_trees;
-        const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace.?, cap, chain, status);
+        const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace, cap, chain, status);
         try events.mark(.traversal, true, assigned_stream);
         try context.join();
         const numerical_ready_ns = timer.read();
