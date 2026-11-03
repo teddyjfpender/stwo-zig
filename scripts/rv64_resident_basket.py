@@ -397,7 +397,12 @@ def qualification_view(original, requested, recorded=None):
     return requested
 
 
-def validate_pending(plan, job, pending, production_plan=None):
+def validate_pending(plan, job, pending, production_plan=None, *, asset_paths=None, request_path=None):
+    """Validate immutable production authority; overrides select I/O only.
+
+    Off-host copies keep the original plan's declared paths/identity intact.
+    Local paths never supply replacement expected hashes or production fields.
+    """
     target = Path(job["target"])
     original = plan if production_plan is None else production_plan
     if production_identity(original) != production_identity(plan):
@@ -406,10 +411,13 @@ def validate_pending(plan, job, pending, production_plan=None):
             or pending.get("plan_sha256") != plan_identity(original) or pending.get("block") != job["block"]
             or pending.get("device_count") != job["device_count"]):
         raise ValueError("pending production authority differs from the pinned plan")
+    if asset_paths is not None and set(asset_paths) - set(plan["assets"]):
+        raise ValueError("unknown qualification asset mapping")
     for key, path in plan["assets"].items():
-        if B.sha(path) != plan["asset_sha256"][key]:
+        actual = asset_paths.get(key, path) if asset_paths is not None else path
+        if B.sha(actual) != plan["asset_sha256"][key]:
             raise ValueError("asset changed before qualification: " + key)
-    if B.sha(job["request"]) != job["request_sha256"]:
+    if B.sha(job["request"] if request_path is None else request_path) != job["request_sha256"]:
         raise ValueError("request changed before qualification")
     if produced_snapshot(plan, job) != pending["artifact_snapshot"]:
         raise ValueError("produced artifacts changed before independent qualification")
