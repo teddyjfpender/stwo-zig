@@ -8,6 +8,8 @@ cases stay explicit failures; a partial matrix is never called complete.
 import argparse
 import copy
 import hashlib
+import fcntl
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -290,6 +292,20 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
             "combined_report_sha256": B.sha(proof / "combined-report.json"), "entry_sha256": B.sha(proof / "combined-entry.json")}
 
 
+@contextmanager
+def gpu_lease(plan):
+    """Keep numerical producers exclusive, yielding between whole blocks."""
+    if not plan.get("gpu_lock"):
+        yield
+        return
+    with Path(plan["gpu_lock"]).open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 def produce_job(plan, job):
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
@@ -319,13 +335,14 @@ def produce_job(plan, job):
     for key in ("STWO_RV64_GPU_HOST_RETAINED", "STWO_RV64_DEEP_TIMING", "STWO_RV64_DEEP_COORDINATES", "STWO_RV64_PCS_PHASE_TIMING"):
         environment.pop(key, None)
     environment["STWO_RV64_GPU_LIBRARY"] = plan["assets"]["library"]
-    monitor = B.DeviceMonitor(worker["device"])
-    monitor.thread.start()
-    try:
-        usage = B.measure([plan["assets"]["driver"], "combined-batch" if plan.get("combined") else "resident-batch", str(target / "manifest.json"), str(target / "batch")], target, "producer", environment)
-    finally:
-        memory = monitor.finish()
-        B.atomic_json(target / "gpu-memory.json", memory)
+    with gpu_lease(plan):
+        monitor = B.DeviceMonitor(worker["device"])
+        monitor.thread.start()
+        try:
+            usage = B.measure([plan["assets"]["driver"], "combined-batch" if plan.get("combined") else "resident-batch", str(target / "manifest.json"), str(target / "batch")], target, "producer", environment)
+        finally:
+            memory = monitor.finish()
+            B.atomic_json(target / "gpu-memory.json", memory)
     log = (target / "producer.stdout").read_text(errors="replace") + (target / "producer.stderr").read_text(errors="replace")
     markers = request_markers(log, job["block"], job["device_count"], plan.get("repeat", 2))
     gpu = B.gpu_diagnostics(target / "producer.stderr")
@@ -537,6 +554,7 @@ def main():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--library-sha256", default=RUNTIME)
     p.add_argument("--devices", default="0,1,2,3")
+    p.add_argument("--gpu-lock", type=Path, help="Exclusive advisory GPU lease per complete producer request; CPU qualification never holds it")
     p.add_argument("--keep-going", action="store_true", help="Record failed cases and continue; final status remains failed")
     p.add_argument("--counts", default="1,2,4")
     p.add_argument("--repeat", type=int, choices=(1, 2), default=2, help="1: fresh cold proof and receivers per case; 2: additionally prove warm and require exact parity")
@@ -547,6 +565,8 @@ def main():
                       args.driver.resolve(), args.receiver.resolve(), args.library.resolve(), args.output.resolve(),
                       list(map(int, args.devices.split(","))), list(map(int, args.counts.split(","))), args.device_cap_bytes, args.library_sha256, args.combined, args.recursive_receiver.resolve() if args.recursive_receiver else None, args.repeat, args.strict_recursive_receiver)
     plan.update(basket_sha256=B.sha(args.basket), inputs_sha256=B.sha(args.inputs))
+    if args.gpu_lock:
+        plan["gpu_lock"] = str(args.gpu_lock.resolve())
     production_plan = None
     if args.mode == "qualify":
         production_plan = B.load(args.output / "plan.json")
