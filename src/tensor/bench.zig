@@ -3,6 +3,10 @@
 //!   tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]
 //!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity] [fused_qkv=1]
 //!
+//! Default configuration: pcs2 (depth 2, inner 54 queries) + batched matmuls
+//! (proto.recommendedConfig). TENSOR_PCS=flat / TENSOR_BATCH_MATMULS=0 select
+//! the legacy flat Ligero / per-matmul sumchecks for comparison.
+//!
 //! Prints one JSON object with timings, sizes and derived metrics.
 const std = @import("std");
 const t = @import("stwo_tensor");
@@ -22,6 +26,8 @@ fn accelFor() ?*const t.accel.Accel {
     if (gpu_ctx == null) {
         gpu_ctx = metal.Gpu.init(std.heap.c_allocator) catch |e| std.debug.panic("metal init: {s}", .{@errorName(e)});
         if (std.posix.getenv("TENSOR_GKR_FUSED")) |v| gpu_ctx.?.gkr_fused_fold_sum = !std.mem.eql(u8, v, "0");
+        // TENSOR_LAZY_ROUNDS=k: lazy (on-the-fly folded) rounds before the first materialised fold
+        if (std.posix.getenv("TENSOR_LAZY_ROUNDS")) |v| gpu_ctx.?.lazy_rounds = std.fmt.parseInt(u32, v, 10) catch 1;
         // tuning knob: TENSOR_GKR_CPU_LOG=k runs GKR layers of <= 2^k terms on the CPU
         if (std.posix.getenv("TENSOR_GKR_CPU_LOG")) |v| {
             const k = std.fmt.parseInt(u6, v, 10) catch 12;
@@ -48,9 +54,14 @@ fn nsToS(ns: u64) f64 {
 }
 
 /// Optional trailing args `<depth> [inner_queries] [inner_log_blowup] [inner_pow]`
-/// select the recursive PCS (pcs2); absent = legacy flat Ligero.
+/// select the recursive PCS (pcs2). Absent: the recommended configuration
+/// (proto.recommendedConfig: depth 2, inner 54 queries, the outer blowup and
+/// PoW), unless TENSOR_PCS=flat selects the legacy flat Ligero.
 fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Params {
-    if (args.len <= first) return null;
+    if (args.len <= first) {
+        if (std.posix.getenv("TENSOR_PCS")) |v| if (std.mem.eql(u8, v, "flat")) return null;
+        return proto.recommendedConfig(outer, .{ .n_queries = 54, .log_blowup = outer.log_blowup, .pow_bits = outer.pow_bits }).two_level;
+    }
     var p = t.pcs2.Params{ .outer = outer, .depth = try std.fmt.parseInt(u32, args[first], 10) };
     p.inner.pow_bits = outer.pow_bits;
     if (args.len > first + 1) p.inner.n_queries = try std.fmt.parseInt(usize, args[first + 1], 10);
@@ -59,6 +70,26 @@ fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Pa
     if (args.len > first + 4) p.inner_work_shift = try std.fmt.parseInt(u32, args[first + 4], 10);
     if (args.len > first + 5) p.prox_rows = try std.fmt.parseInt(u32, args[first + 5], 10);
     return p;
+}
+
+/// Batched matmul sumchecks: on by default (recommended config);
+/// TENSOR_BATCH_MATMULS=0 turns them off.
+fn batchMatmuls() bool {
+    return if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| !std.mem.eql(u8, v, "0") else true;
+}
+
+/// TENSOR_PREFAULT=0: allocate and fault the GKR key inputs at the GKR stage
+/// (as before) instead of during the witness commitment.
+fn prefault() bool {
+    return if (std.posix.getenv("TENSOR_PREFAULT")) |v| !std.mem.eql(u8, v, "0") else true;
+}
+
+/// Warm the CPU GKR layer blocks during the witness commitment. It only pays
+/// with the recycler, so it follows it (on unless TENSOR_RECYCLE=0);
+/// TENSOR_WARM_GKR=0 turns it off.
+fn warmLayers() bool {
+    if (std.posix.getenv("TENSOR_RECYCLE")) |v| if (std.mem.eql(u8, v, "0")) return false;
+    return if (std.posix.getenv("TENSOR_WARM_GKR")) |v| !std.mem.eql(u8, v, "0") else true;
 }
 
 fn printTl(out: anytype, pc: proto.Config) !void {
@@ -91,10 +122,15 @@ fn peakRssBytes() u64 {
 pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
     _ = &gpa;
-    // TENSOR_RECYCLE=1: keep freed large buffers for reuse (steady-state prover).
+    // Large buffers go through the recycling allocator by default: blocks freed
+    // by the weight commitment, the forward pass and earlier prover stages are
+    // reused instead of faulting in fresh pages (CPU single shot: layer 512
+    // 1.09-1.16 -> 0.96 s, peak RSS +0.1 GB; see speed.md). TENSOR_RECYCLE=0
+    // uses the system allocator directly. Allocation only; proofs are unchanged.
     var recycler = t.recycle.Recycler.init(std.heap.c_allocator);
     defer recycler.deinit();
-    const a = if (std.posix.getenv("TENSOR_RECYCLE") != null) recycler.allocator() else std.heap.c_allocator;
+    const no_recycle = if (std.posix.getenv("TENSOR_RECYCLE")) |v| std.mem.eql(u8, v, "0") else false;
+    const a = if (no_recycle) std.heap.c_allocator else recycler.allocator();
     const all_args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, all_args);
     var kept: std.ArrayList([:0]u8) = .empty;
@@ -136,7 +172,9 @@ pub fn main() !void {
     };
     pc.two_level = try twoLevel(args, 9, pc.pcs);
     // TENSOR_BATCH_MATMULS=1: shape-class batched matmul sumchecks (gate/up share)
-    pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
+    pc.batch_matmuls = batchMatmuls();
+    pc.prefault_gkr_inputs = prefault();
+    pc.warm_gkr_layers = warmLayers();
     if (pc.accel != null) {
         // warm the device (pipeline state, first-dispatch costs) off the clock
         var wt = try t.pcs.Twiddles.init(a, 4);
@@ -326,10 +364,13 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
         .weight_log_cols = wlc,
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
+        .gkr_min_parallel = if (std.posix.getenv("TENSOR_GKR_MINPAR")) |v| try std.fmt.parseInt(usize, v, 10) else (proto.Config{}).gkr_min_parallel,
     };
     pc.two_level = try twoLevel(args, 15, pc.pcs);
     pc.accel = accelFor();
-    pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
+    pc.batch_matmuls = batchMatmuls();
+    pc.prefault_gkr_inputs = prefault();
+    pc.warm_gkr_layers = warmLayers();
     if (pc.two_level != null) {
         const wi = try tf.layerWeightInfos(a, cfg);
         defer a.free(wi);
@@ -339,6 +380,11 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var sw = try tf.setupWeights(a, &pool, cfg, pc, 100);
     const commit_s = secs(t0);
     var b = tf.Builder.init(a, &pool);
+    // Default: keep the forward pass's accumulators for the prover
+    // (TENSOR_RECOMPUTE_ACC=1 recomputes them inside prove, as for mlp).
+    const recompute = std.posix.getenv("TENSOR_RECOMPUTE_ACC") != null;
+    b.keep_accs = !recompute;
+    b.accel = pc.accel;
     const c = try tf.initCtx(&b, cfg, &sw.ws, 7);
     const x = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 9);
     t0 = now();
@@ -348,8 +394,24 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const wview = try b.witnessView(a);
     var tm: proto.Timings = .{};
     t0 = now();
-    var proof = try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm);
-    const prove_s = secs(t0);
+    var proof = if (recompute) try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm) else try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wview, b.coreAccs(), b.extAccs(), &tm);
+    var prove_s = secs(t0);
+    const prove_first_s = prove_s;
+    const pd_first = t.digest.proofDigest(proof);
+    // TENSOR_PROVE_REPS=n: prove n times (steady state; the recycler is on unless TENSOR_RECYCLE=0), report the fastest
+    const reps: usize = if (std.posix.getenv("TENSOR_PROVE_REPS")) |v| try std.fmt.parseInt(usize, v, 10) else 1;
+    for (1..@max(reps, 1)) |_| {
+        proof.deinit(a);
+        var tm2: proto.Timings = .{};
+        t0 = now();
+        proof = if (recompute) try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm2) else try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wview, b.coreAccs(), b.extAccs(), &tm2);
+        const sec = secs(t0);
+        if (!std.mem.eql(u8, &t.digest.proofDigest(proof), &pd_first)) return error.NondeterministicProof;
+        if (sec < prove_s) {
+            prove_s = sec;
+            tm = tm2;
+        }
+    }
     t0 = now();
     try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
     const verify_s = secs(t0);
@@ -360,8 +422,11 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, queries, lb, pow });
     try printTl(out, pc);
     try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
-    try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
-    try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns) });
+    try out.print("\"recompute_acc\":{},\"batch_matmuls\":{},\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"prove_reps\":{d},\"verify_s\":{d:.5},", .{ recompute, pc.batch_matmuls, commit_s, forward_s, prove_s, prove_first_s, reps, verify_s });
+    try out.print("\"prep_s\":{{\"accumulators\":{d:.4},\"multiplicities\":{d:.4}}},\"gkr_parts_s\":{{\"input\":{d:.4},\"build\":{d:.4},\"sumcheck\":{d:.4}}},\"terminal_s\":{d:.4},", .{ nsToS(tm.accumulators_ns), nsToS(tm.multiplicities_ns), nsToS(tm.gkr_input_ns), nsToS(tm.gkr_build_ns), nsToS(tm.gkr_sumcheck_ns), nsToS(tm.terminal_ns) });
+    try printGpuStats(out);
+    try out.print("\"proof_digest\":\"{s}\",\"full_digest\":\"{s}\",", .{ std.fmt.bytesToHex(pd_first, .lower), std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower) });
+    try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4},\"ext_init\":{d:.4},\"ext_terminal\":{d:.4},\"ext_ops\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns), nsToS(tm.ext_init_ns), nsToS(tm.ext_terminal_ns), nsToS(tm.ext_ops_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
     proof.deinit(a);
     a.free(wview);

@@ -606,22 +606,58 @@ struct TmLazyParams {
     Qm31Value coeff[4];
     Qm31Value r;
     TmLazyFactor fac[4];
+    // lazy rounds after the first: the factors are folded at n_fold earlier
+    // challenges on the fly. v_j(y) = sum_c wts[c] f(c * fold_len + y), with
+    // f(idx) = 0 for idx >= active0 and wts[c] = eq(r_0..r_{n_fold-1}, c).
+    uint n_fold;
+    uint fold_len;
+    uint active0;
+    uint _pad2;
+    Qm31Value wts[8];
 };
 
-inline Qm31Value tm_batch_e(device const uint *tabs, device const TmBatchClaim *cl, uint c0, uint n, uint x) {
+// E(x) for an eq-sum factor. `sx` indexes the factor's claims by disjoint
+// segments of the table: segment i is sx[4i..4i+3] = (start, end, list0,
+// nlist), sorted by start; sx[list0 + k] are the claims covering it. A binary
+// search finds x's segment, so the cost per element is the number of claims
+// on that tensor, not the total number of claims.
+inline Qm31Value tm_batch_e(device const uint *tabs, device const TmBatchClaim *cl, device const uint *sx, uint s0, uint ns, uint x) {
     Qm31Value e = tm_zero();
-    for (uint c = c0; c < c0 + n; ++c) {
+    if (ns == 0u) return e;
+    uint lo = s0, hi = s0 + ns;
+    while (hi - lo > 1u) {
+        uint mid = (lo + hi) >> 1u;
+        if (sx[4u * mid] <= x) lo = mid; else hi = mid;
+    }
+    if (x < sx[4u * lo] || x >= sx[4u * lo + 1u]) return e;
+    uint l0 = sx[4u * lo + 2u], nl = sx[4u * lo + 3u];
+    for (uint k = 0u; k < nl; ++k) {
+        uint c = sx[l0 + k];
         uint i = x - cl[c].offset;
-        if (x < cl[c].offset || i >= cl[c].count) continue;
         uint mask = (1u << cl[c].lo_bits) - 1u;
         e = qm_add(e, qm_mul(tm_load(tabs, cl[c].pre_off + (i >> cl[c].lo_bits)), tm_load(tabs, cl[c].suf_off + (i & mask))));
     }
     return e;
 }
 
-inline Qm31Value tm_lazy_value(constant TmLazyParams &p, uint j, device const int *src, device const uint *tabs, device const TmBatchClaim *cl, uint x) {
+inline Qm31Value tm_lazy_value(constant TmLazyParams &p, uint j, device const int *src, device const uint *tabs, device const TmBatchClaim *cl, device const uint *sx, uint x) {
     if (p.fac[j].kind == 0u) return { tm_from_i32(src[x]), 0u, 0u, 0u };
-    return tm_batch_e(tabs, cl, p.fac[j].claim0, p.fac[j].n_claims, x);
+    return tm_batch_e(tabs, cl, sx, p.fac[j].claim0, p.fac[j].n_claims, x);
+}
+
+inline Qm31Value tm_lazy_folded(constant TmLazyParams &p, uint j, device const int *src, device const uint *tabs, device const TmBatchClaim *cl, device const uint *sx, uint y) {
+    Qm31Value acc = tm_zero();
+    uint nc = 1u << p.n_fold;
+    for (uint c = 0u; c < nc; ++c) {
+        uint idx = c * p.fold_len + y;
+        if (idx >= p.active0) break;  // idx increases with c
+        if (p.fac[j].kind == 0u) {
+            acc = qm_add(acc, qm_mul_m31(p.wts[c], tm_from_i32(src[idx])));
+        } else {
+            acc = qm_add(acc, qm_mul(p.wts[c], tm_batch_e(tabs, cl, sx, p.fac[j].claim0, p.fac[j].n_claims, idx)));
+        }
+    }
+    return acc;
 }
 
 inline Qm31Value tm_lazy_terms(constant TmLazyParams &p, thread const Qm31Value *cur) {
@@ -645,6 +681,7 @@ kernel void tm_lazy_round0(
     device const TmBatchClaim *cl [[buffer(5)]],
     device uint *partials [[buffer(6)]],
     constant TmLazyParams &p [[buffer(10)]],
+    device const uint *sx [[buffer(11)]],
     threadgroup Qm31Value *scratch [[threadgroup(0)]],
     uint gid [[thread_position_in_grid]],
     uint tg [[threadgroup_position_in_grid]],
@@ -658,8 +695,14 @@ kernel void tm_lazy_round0(
         bool has_hi = x + p.half_len < p.active;
         Qm31Value diff[4], cur[4];
         for (uint j = 0u; j < p.n_factors; ++j) {
-            Qm31Value lo = tm_lazy_value(p, j, srcs[j], tabs, cl, x);
-            Qm31Value hi = has_hi ? tm_lazy_value(p, j, srcs[j], tabs, cl, x + p.half_len) : tm_zero();
+            Qm31Value lo, hi;
+            if (p.n_fold == 0u) {
+                lo = tm_lazy_value(p, j, srcs[j], tabs, cl, sx, x);
+                hi = has_hi ? tm_lazy_value(p, j, srcs[j], tabs, cl, sx, x + p.half_len) : tm_zero();
+            } else {
+                lo = tm_lazy_folded(p, j, srcs[j], tabs, cl, sx, x);
+                hi = tm_lazy_folded(p, j, srcs[j], tabs, cl, sx, x + p.half_len);
+            }
             cur[j] = lo;
             diff[j] = qm_sub(hi, lo);
         }
@@ -700,6 +743,7 @@ kernel void tm_lazy_fold0(
     device uint *o2 [[buffer(8)]],
     device uint *o3 [[buffer(9)]],
     constant TmLazyParams &p [[buffer(10)]],
+    device const uint *sx [[buffer(11)]],
     uint x [[thread_position_in_grid]]
 ) {
     if (x >= p.work) return;
@@ -707,13 +751,15 @@ kernel void tm_lazy_fold0(
     device uint *outs[4] = { o0, o1, o2, o3 };
     bool has_hi = x + p.half_len < p.active;
     for (uint j = 0u; j < p.n_factors; ++j) {
-        if (p.fac[j].kind == 0u) {
+        if (p.n_fold >= 2u) {
+            tm_store(outs[j], x, tm_lazy_folded(p, j, srcs[j], tabs, cl, sx, x));
+        } else if (p.fac[j].kind == 0u) {
             uint lo = tm_from_i32(srcs[j][x]);
             uint hi = has_hi ? tm_from_i32(srcs[j][x + p.half_len]) : 0u;
             tm_store(outs[j], x, qm_add(qm_mul_m31(p.r, m31_sub(hi, lo)), Qm31Value{ lo, 0u, 0u, 0u }));
         } else {
-            Qm31Value lo = tm_batch_e(tabs, cl, p.fac[j].claim0, p.fac[j].n_claims, x);
-            Qm31Value hi = has_hi ? tm_batch_e(tabs, cl, p.fac[j].claim0, p.fac[j].n_claims, x + p.half_len) : tm_zero();
+            Qm31Value lo = tm_batch_e(tabs, cl, sx, p.fac[j].claim0, p.fac[j].n_claims, x);
+            Qm31Value hi = has_hi ? tm_batch_e(tabs, cl, sx, p.fac[j].claim0, p.fac[j].n_claims, x + p.half_len) : tm_zero();
             tm_store(outs[j], x, qm_add(lo, qm_mul(p.r, qm_sub(hi, lo))));
         }
     }

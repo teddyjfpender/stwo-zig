@@ -33,6 +33,31 @@ pub fn proofDigest(p: proto.Proof) [32]u8 {
     return out;
 }
 
+/// Digest over the ext (transformer op) part of a proof: values, sumchecks, finals.
+pub fn extDigest(p: proto.Proof) [32]u8 {
+    var h = Blake2s.init(.{});
+    h.update(std.mem.asBytes(&p.ext.values.len));
+    hashFelts(&h, p.ext.values);
+    for (p.ext.sumchecks) |s| {
+        h.update(std.mem.asBytes(&s.rounds.len));
+        for (s.rounds) |r| hashFelts(&h, r.evals[0..s.deg]);
+    }
+    for (p.ext.finals) |x| hashFelts(&h, &x);
+    var out: [32]u8 = undefined;
+    h.final(&out);
+    return out;
+}
+
+/// proofDigest and extDigest together.
+pub fn fullDigest(p: proto.Proof) [32]u8 {
+    var h = Blake2s.init(.{});
+    h.update(&proofDigest(p));
+    h.update(&extDigest(p));
+    var out: [32]u8 = undefined;
+    h.final(&out);
+    return out;
+}
+
 fn hashGkr(h: *Blake2s, g: anytype) void {
     for (g.sumcheck_proofs) |sp| for (sp.round_polys) |rp| hashFelts(h, rp.coeffsSlice());
     for (g.layer_masks_by_instance) |ms| for (ms) |m| for (m.columnsSlice()) |c| hashFelts(h, &c);

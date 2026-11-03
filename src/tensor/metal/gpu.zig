@@ -126,6 +126,11 @@ pub const Gpu = struct {
     /// GKR layers at most this size are summed / folded by the CPU directly in
     /// the shared (unified-memory) buffers, saving a device round trip.
     gkr_cpu_sum_max: usize = 1 << 9,
+    /// lazy sumcheck sessions (claim batching, lazy factors) evaluate their
+    /// implicit factors on the fly for this many rounds (1..3; larger values
+    /// act as 3: the fold weights cover 2^3 corners) before the
+    /// first fold materialises QM31 factors of 1/2^lazy_rounds the length
+    lazy_rounds: u32 = 1,
     gkr_cpu_fold_max: usize = 1 << 10,
     /// fuse GKR device folds with the next round's sums. Off by default:
     /// measured 50 vs 45 ms device time per MLP proof (the rounds are
@@ -704,7 +709,34 @@ pub const Gpu = struct {
         lazy: ?Lazy = null,
     };
 
-    const Lazy = struct { srcs: [4]?Buf, tabs: Buf, claims: Buf, params: LazyParams };
+    const Lazy = struct {
+        srcs: [4]?Buf,
+        tabs: Buf,
+        claims: Buf,
+        segs: Buf,
+        params: LazyParams,
+        /// challenges of the lazy rounds run so far (folded on the fly)
+        rs: [3]QM31 = undefined,
+        n_rs: u32 = 0,
+        active0: usize = 0,
+    };
+
+    /// wts[c] = eq(rs, c) over n = rs.len bits, c MSB-first (rs[0] <-> MSB):
+    /// the weight of f(c * fold_len + y) in the n-times folded factor at y.
+    fn cornerWeights(rs: []const QM31) [8]Q {
+        var out: [8]Q = undefined;
+        const n = rs.len;
+        for (0..@as(usize, 1) << @intCast(n)) |c| {
+            var w = QM31.one();
+            for (0..n) |i| {
+                const bit = (c >> @intCast(n - 1 - i)) & 1;
+                w = w.mul(if (bit == 1) rs[i] else QM31.one().sub(rs[i]));
+            }
+            out[c] = toQ(w);
+        }
+        for ((@as(usize, 1) << @intCast(n))..8) |c| out[c] = toQ(QM31.zero());
+        return out;
+    }
     const BatchClaimGpu = extern struct { offset: u32, count: u32, lo_bits: u32, pre_off: u32, suf_off: u32 };
     const LazyFactor = extern struct { kind: u32, claim0: u32, n_claims: u32, _pad: u32 = 0 };
     const LazyParams = extern struct {
@@ -721,6 +753,11 @@ pub const Gpu = struct {
         coeff: [4]Q,
         r: Q,
         fac: [4]LazyFactor,
+        n_fold: u32 = 0,
+        fold_len: u32 = 0,
+        active0: u32 = 0,
+        _pad2: u32 = 0,
+        wts: [8]Q = undefined,
     };
 
     fn bindLazy(s: *Session, cmd: *anyopaque) void {
@@ -732,6 +769,7 @@ pub const Gpu = struct {
         for (0..4) |j| bind(cmd, @intCast(j), lz.srcs[j] orelse first orelse lz.tabs);
         bind(cmd, 4, lz.tabs);
         bind(cmd, 5, lz.claims);
+        bind(cmd, 11, lz.segs);
     }
 
     /// Encodes the round-0 fold of a lazy session into fresh half-size
@@ -749,6 +787,17 @@ pub const Gpu = struct {
         lp.active = @intCast(s.prev_active);
         lp.work = @intCast(work);
         lp.r = toQ(r);
+        lp.n_fold = 0;
+        if (lz.n_rs > 0) {
+            // fold at all lazy challenges and r: out(y) = sum_c eq(rs ++ r, c) f(c * half + y)
+            var all: [4]QM31 = undefined;
+            @memcpy(all[0..lz.n_rs], lz.rs[0..lz.n_rs]);
+            all[lz.n_rs] = r;
+            lp.n_fold = lz.n_rs + 1;
+            lp.fold_len = @intCast(half);
+            lp.active0 = @intCast(lz.active0);
+            lp.wts = cornerWeights(all[0 .. lz.n_rs + 1]);
+        }
         tm_cmd_pipeline(cmd, g.p_lazy_fold0);
         bindLazy(s, cmd);
         for (0..4) |j| bind(cmd, @intCast(6 + j), s.bufs[if (j < nf) j else 0]);
@@ -760,6 +809,7 @@ pub const Gpu = struct {
         for (lz.srcs) |b| if (b) |x| try g.retire(x);
         try g.retire(lz.tabs);
         try g.retire(lz.claims);
+        try g.retire(lz.segs);
         s.lazy = null;
     }
 
@@ -814,17 +864,32 @@ pub const Gpu = struct {
         p.work = @intCast(work);
         const groups: u32 = @intCast(@max(1, @min(SC_MAX_GROUPS, (work + SC_TG * 4 - 1) / (SC_TG * 4))));
         const cmd = tm_cmd_begin(g.rt);
-        if (s.lazy) |lz| {
+        if (s.lazy) |*lz| {
+            var lazy_round = r_prev == null;
             if (r_prev) |r| {
-                // first fold materialises half-size F1/E1, then a plain round
-                try lazyFold(g, s, cmd, r);
-                p.prev_half = 0;
-                p.prev_active = 0;
-            } else {
+                if (lz.n_rs + 1 < @min(g.lazy_rounds, 3)) {
+                    // another lazy round: fold at r on the fly
+                    lz.rs[lz.n_rs] = r;
+                    lz.n_rs += 1;
+                    lazy_round = true;
+                } else {
+                    // first fold materialises the folded factors, then a plain round
+                    try lazyFold(g, s, cmd, r);
+                    p.prev_half = 0;
+                    p.prev_active = 0;
+                }
+            }
+            if (lazy_round) {
                 var lp = lz.params;
                 lp.half_len = @intCast(half);
                 lp.active = @intCast(s.active);
                 lp.work = @intCast(work);
+                lp.n_fold = lz.n_rs;
+                if (lz.n_rs > 0) {
+                    lp.fold_len = @intCast(s.len);
+                    lp.active0 = @intCast(lz.active0);
+                    lp.wts = cornerWeights(lz.rs[0..lz.n_rs]);
+                }
                 tm_cmd_pipeline(cmd, g.p_lazy_round0);
                 bindLazy(s, cmd);
                 bind(cmd, 6, s.partials);
@@ -919,6 +984,12 @@ pub const Gpu = struct {
         var n_claims: usize = 0;
         for (specs) |sp| switch (sp) {
             .int => |v| if (v.len != len) return null,
+            .eq_prefix => |ep| {
+                const sp_ = prefixSplit(ep) orelse return null;
+                if ((@as(usize, 1) << @intCast(ep.point.len + ep.free_bits)) != len) return null;
+                total_tab += (@as(usize, 1) << @intCast(sp_.n_pre)) + (@as(usize, 1) << @intCast(sp_.lo_bits));
+                n_claims += 1;
+            },
             .eq => |cs| for (cs) |c| {
                 if (c.offset + (@as(usize, 1) << @intCast(c.point.len)) > len) return error.BatchClaimRange;
                 const lo = c.point.len / 2;
@@ -941,6 +1012,25 @@ pub const Gpu = struct {
                 lp.fac[j] = .{ .kind = 0, .claim0 = 0, .n_claims = 0 };
                 srcs[j] = try g.view(@constCast(std.mem.sliceAsBytes(v)), true);
             },
+            .eq_prefix => |ep| {
+                // one claim at offset 0: pre = eq(point[..n_pre]) over the high
+                // eq bits, suf[j] = eq(point[n_pre..], j >> free_bits) over the
+                // low eq bits and the free bits, so pre[i >> lo] * suf[i & mask]
+                // = eq(point, i >> free_bits)
+                const sp_ = prefixSplit(ep).?;
+                lp.fac[j] = .{ .kind = 1, .claim0 = @intCast(ci), .n_claims = 1 };
+                const ca = std.heap.c_allocator;
+                const pre = try f.eqTable(ca, ep.point[0..sp_.n_pre], QM31.one());
+                defer ca.free(pre);
+                const eql = try f.eqTable(ca, ep.point[sp_.n_pre..], QM31.one());
+                defer ca.free(eql);
+                @memcpy(tq[at..][0..pre.len], pre);
+                const suf_len = @as(usize, 1) << @intCast(sp_.lo_bits);
+                for (0..suf_len) |q| tq[at + pre.len + q] = eql[q >> @intCast(ep.free_bits)];
+                cq[ci] = .{ .offset = 0, .count = @intCast(len), .lo_bits = sp_.lo_bits, .pre_off = @intCast(at), .suf_off = @intCast(at + pre.len) };
+                at += pre.len + suf_len;
+                ci += 1;
+            },
             .eq => |cs| {
                 lp.fac[j] = .{ .kind = 1, .claim0 = @intCast(ci), .n_claims = @intCast(cs.len) };
                 for (cs) |c| {
@@ -958,11 +1048,86 @@ pub const Gpu = struct {
                 }
             },
         };
+        // segment index per eq factor (claim0 / n_claims become seg0 / n_segs)
+        const sxl = try buildSegments(std.heap.c_allocator, specs, &lp);
+        defer std.heap.c_allocator.free(sxl);
+        const sbuf = try g.alloc(@max(1, sxl.len) * 4);
+        errdefer g.free(sbuf);
+        const sq: [*]u32 = @ptrCast(@alignCast(sbuf.ptr()));
+        @memcpy(sq[0..sxl.len], sxl);
         const s = try std.heap.c_allocator.create(Session);
         errdefer std.heap.c_allocator.destroy(s);
-        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .params = lp } };
+        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .segs = sbuf, .params = lp, .active0 = active } };
         g.stats.sc_calls += 1;
         return s;
+    }
+
+    /// pre/suf split of an eq_prefix factor: the suffix table covers the low
+    /// eq bits plus the free bits (both tables at most 2^20 entries).
+    fn prefixSplit(ep: t.accel.EqPrefix) ?struct { n_pre: usize, lo_bits: u32 } {
+        const nb = ep.point.len;
+        const l2 = nb / 2;
+        const lo = l2 + ep.free_bits;
+        if (lo > 20 or nb - l2 > 20 or nb + ep.free_bits >= 31) return null;
+        return .{ .n_pre = nb - l2, .lo_bits = @intCast(lo) };
+    }
+
+    /// Segment index of the eq factors' claims: per factor j, the breakpoints
+    /// {offset, offset + count} of its claims cut the table into disjoint
+    /// intervals; each interval covered by at least one claim becomes a
+    /// segment (start, end, list0, nlist) listing exactly the (global) claim
+    /// indices that cover it. Segments of all factors come first, then the
+    /// lists. lp.fac[j].claim0 / n_claims are rewritten to (seg0, n_segs).
+    fn buildSegments(a: std.mem.Allocator, specs: []const t.accel.FactorSpec, lp: *LazyParams) ![]u32 {
+        var segs: std.ArrayList([4]u32) = .empty;
+        defer segs.deinit(a);
+        var lists: std.ArrayList(u32) = .empty;
+        defer lists.deinit(a);
+        var bps: std.ArrayList(usize) = .empty;
+        defer bps.deinit(a);
+        var ci: u32 = 0;
+        for (specs, 0..) |sp, j| switch (sp) {
+            .int => {},
+            .eq_prefix => |ep| {
+                const n = @as(usize, 1) << @intCast(ep.point.len + ep.free_bits);
+                lp.fac[j].claim0 = @intCast(segs.items.len);
+                lp.fac[j].n_claims = 1;
+                try lists.append(a, ci);
+                try segs.append(a, .{ 0, @intCast(n), @intCast(lists.items.len - 1), 1 });
+                ci += 1;
+            },
+            .eq => |cs| {
+                bps.clearRetainingCapacity();
+                for (cs) |c| {
+                    try bps.append(a, c.offset);
+                    try bps.append(a, c.offset + (@as(usize, 1) << @intCast(c.point.len)));
+                }
+                std.mem.sort(usize, bps.items, {}, std.sort.asc(usize));
+                const seg0: u32 = @intCast(segs.items.len);
+                var k: usize = 0;
+                while (k + 1 < bps.items.len) : (k += 1) {
+                    const lo = bps.items[k];
+                    const hi = bps.items[k + 1];
+                    if (lo == hi) continue;
+                    const l0 = lists.items.len;
+                    for (cs, 0..) |c, q| {
+                        const c_end = c.offset + (@as(usize, 1) << @intCast(c.point.len));
+                        if (c.offset <= lo and hi <= c_end) try lists.append(a, ci + @as(u32, @intCast(q)));
+                    }
+                    const nl = lists.items.len - l0;
+                    if (nl == 0) continue;
+                    try segs.append(a, .{ @intCast(lo), @intCast(hi), @intCast(l0), @intCast(nl) });
+                }
+                lp.fac[j].claim0 = seg0;
+                lp.fac[j].n_claims = @intCast(segs.items.len - seg0);
+                ci += @intCast(cs.len);
+            },
+        };
+        const base: u32 = @intCast(4 * segs.items.len);
+        const out = try a.alloc(u32, 4 * segs.items.len + lists.items.len);
+        for (segs.items, 0..) |sg, i| out[4 * i ..][0..4].* = .{ sg[0], sg[1], sg[2] + base, sg[3] };
+        @memcpy(out[4 * segs.items.len ..], lists.items);
+        return out;
     }
 
     fn scAbort(ctx: *anyopaque, sp: *anyopaque) void {
@@ -972,6 +1137,7 @@ pub const Gpu = struct {
             for (lz.srcs) |b| if (b) |x| g.release(x, null);
             g.free(lz.tabs);
             g.free(lz.claims);
+            g.free(lz.segs);
         } else for (s.bufs[0..s.nf]) |b| g.release(b, null);
         g.free(s.partials);
         s.a.destroy(s);

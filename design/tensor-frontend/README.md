@@ -94,6 +94,10 @@ Comparability rules:
   projection on this Mac, and any cross-hardware ratio is labelled as an
   estimate.
 
+Performance notes: `perf.md` (CPU prover), `metal.md` (Metal path),
+`speed.md` (round 2: ext ops, Metal batch and einsums, recommended
+pcs2 + batched-matmul config as the bench default, decoder-layer numbers).
+
 ## Status and caveats
 
 * v1 is **non-hiding**. Zero knowledge (salted leaves, masked encodings,

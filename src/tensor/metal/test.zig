@@ -247,7 +247,9 @@ test "metal batch sumcheck (device-built factors) matches CPU" {
     defer for (pts) |p| a.free(p);
     const claim = randQ(r); // value is irrelevant to prover determinism
     // many device rounds, and exactly one (the lazy round-0 fold then finishes)
-    for ([_]usize{ 64, 1 << 14 }) |mw| {
+    defer g.lazy_rounds = 1;
+    for ([_]u32{ 1, 2, 3, 5 }) |lr| for ([_]usize{ 64, 1 << 12, 1 << 14 }) |mw| {
+        g.lazy_rounds = lr;
         var acc = g.accel().*;
         acc.sc_min_work = mw;
         const before = g.stats.sc_rounds;
@@ -263,7 +265,7 @@ test "metal batch sumcheck (device-built factors) matches CPU" {
         for (rc2.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
         for (rc2.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
         try std.testing.expect(tc2.draw().eql(td.draw()));
-    }
+    };
 }
 
 test "metal matmul accumulators match CPU" {
@@ -445,7 +447,9 @@ test "metal lazy-factor sumcheck (eq sums and int vectors, degree 3) matches CPU
     for (&p1) |*p| p.* = randQ(r);
     const claims = [_]t.accel.BatchClaim{ .{ .offset = 0, .point = &p0, .gamma = randQ(r) }, .{ .offset = 1 << 13, .point = &p1, .gamma = randQ(r) } };
     const specs = [4]t.accel.FactorSpec{ .{ .eq = &claims }, .{ .int = ints[0] }, .{ .int = ints[1] }, .{ .int = ints[2] } };
-    for ([_]usize{ len, len - 3001 }) |active| for ([_]usize{ 32, 1 << 13 }) |mw| {
+    defer g.lazy_rounds = 1;
+    for ([_]u32{ 1, 2, 3, 5 }) |lr| for ([_]usize{ len, len - 3001 }) |active| for ([_]usize{ 32, 1 << 11, 1 << 13 }) |mw| {
+        g.lazy_rounds = lr;
         const claim = randQ(r);
         var tc = Transcript.initDomain("lz");
         var rc = try t.accel.proveFactors(null, 4, &T_PRODUCT, a, &pool, &tc, claim, specs, len, active);
@@ -515,4 +519,88 @@ test "metal weight passes (combine rows, row dots) match CPU" {
         defer a.free(got);
         for (want, got) |x, y| try std.testing.expect(x.eql(y));
     }
+}
+
+test "metal lazy eq-prefix factor (eq over leading vars, broadcast over trailing) matches CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const g = try gpu();
+    const n = 14;
+    const len = @as(usize, 1) << n;
+    var prng = std.Random.DefaultPrng.init(1234);
+    const r = prng.random();
+    var ints: [2][]i32 = undefined;
+    for (&ints) |*v| {
+        v.* = try a.alloc(i32, len);
+        for (v.*) |*x| x.* = @intCast(r.intRangeLessThan(i64, -(@as(i64, 1) << 30), f.P));
+    }
+    defer for (ints) |v| a.free(v);
+    const T3 = T_EQ3;
+    var pt: [n]QM31 = undefined;
+    for (&pt) |*p| p.* = randQ(r);
+    for ([_]u32{ 0, 1, 4, 8, 11 }) |free| {
+        const specs = [3]t.accel.FactorSpec{ .{ .eq_prefix = .{ .point = pt[0 .. n - free], .free_bits = free } }, .{ .int = ints[0] }, .{ .int = ints[1] } };
+        defer g.lazy_rounds = 1;
+        for ([_]u32{ 1, 3 }) |lr| for ([_]usize{ len, len - 777 }) |active| for ([_]usize{ 32, 1 << 13 }) |mw| {
+            g.lazy_rounds = lr;
+            const claim = randQ(r);
+            var tc = Transcript.initDomain("ep");
+            var rc = try t.accel.proveFactors(null, 3, &T3, a, &pool, &tc, claim, specs, len, active);
+            defer rc.deinit(a);
+            var acc = g.accel().*;
+            acc.sc_min_work = mw;
+            const before = g.stats.sc_rounds;
+            var td = Transcript.initDomain("ep");
+            var rd = try t.accel.proveFactors(&acc, 3, &T3, a, &pool, &td, claim, specs, len, active);
+            defer rd.deinit(a);
+            try std.testing.expect(g.stats.sc_rounds > before);
+            for (rc.proof.rounds, rd.proof.rounds) |x, y| for (0..sc.MAX_DEG) |k| try std.testing.expect(x.evals[k].eql(y.evals[k]));
+            for (rc.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
+            for (rc.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
+            try std.testing.expect(tc.draw().eql(td.draw()));
+        };
+    }
+}
+
+test "metal decoder layer proof equals the CPU golden digest (ext einsums on the device)" {
+    const a = std.testing.allocator;
+    const tf = t.transformer;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const g = try gpu();
+    var acc = g.accel().*;
+    acc.sc_min_work = 32; // push the small layer's sumchecks onto the device
+    const cfg = tf.LayerCfg{ .log_t = 4, .log_d = 6, .log_f = 7, .log_heads = 2, .log_kv_heads = 1, .fused_qkv = true };
+    var pc = proto.Config{ .pcs = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .weight_log_cols = 6, .witness_log_cols_max = 8, .gkr_threads = 4 };
+    var sw = try tf.setupWeights(a, &pool, cfg, pc, 4242);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var b = tf.Builder.init(a, &pool);
+    defer b.deinit();
+    b.keep_accs = true;
+    b.accel = &acc;
+    const c = try tf.initCtx(&b, cfg, &sw.ws, 4243);
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 4244);
+    defer a.free(x);
+    _ = try tf.buildStack(&b, c, x);
+    const st = b.statement();
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    pc.accel = &acc;
+    var tm: proto.Timings = .{};
+    const sc_before = g.stats.sc_calls;
+    var proof = try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), b.extAccs(), &tm);
+    defer proof.deinit(a);
+    try std.testing.expect(g.stats.sc_calls > sc_before + 3);
+    pc.accel = null;
+    try proto.verify(a, pc, st, proto.weightKey(&sw.ws), &proof);
+    const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
+    try std.testing.expectEqualStrings("146ac6c30dca6e29b0514fc669cb9360dda1cb2e696d38b3a53b7424ba35f1a0", &hx);
 }

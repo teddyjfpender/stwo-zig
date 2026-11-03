@@ -186,7 +186,13 @@ const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 } }};
 pub const FactorSpec = union(enum) {
     int: []const i32,
     eq: []const BatchClaim,
+    /// E(x) = eq(point, x >> free_bits) over x in [0, 2^(point.len + free_bits)):
+    /// eq over the leading variables, broadcast over the trailing free_bits
+    /// (an einsum's batch vars followed by its contracted vars)
+    eq_prefix: EqPrefix,
 };
+
+pub const EqPrefix = struct { point: []const QM31, free_bits: u32 };
 
 fn materialize(a: std.mem.Allocator, pool: *f.Pool, spec: FactorSpec, len: usize) ![]QM31 {
     // a single full-length eq table: build it directly
@@ -211,6 +217,12 @@ fn materialize(a: std.mem.Allocator, pool: *f.Pool, spec: FactorSpec, len: usize
                 defer a.free(eq);
                 for (out[c.offset..][0..eq.len], eq) |*e, v| e.* = e.add(v);
             }
+        },
+        .eq_prefix => |ep| {
+            if ((@as(usize, 1) << @intCast(ep.point.len + ep.free_bits)) != len) return error.FactorShape;
+            const eq = try f.eqTablePar(a, pool, ep.point, QM31.one());
+            defer a.free(eq);
+            for (out, 0..) |*o, i| o.* = eq[i >> @intCast(ep.free_bits)];
         },
     }
     return out;
@@ -279,6 +291,14 @@ pub fn mleEvalI32(acc: ?*const Accel, a: std.mem.Allocator, values: []const i32,
         if (try ev(A.ctx, values, point)) |v| return v;
     };
     return f.mleEvalI32(a, values, point);
+}
+
+/// As mleEvalI32, with a parallel split-eq CPU fallback.
+pub fn mleEvalI32Pool(acc: ?*const Accel, a: std.mem.Allocator, pool: *f.Pool, values: []const i32, point: []const QM31) !QM31 {
+    if (acc) |A| if (A.mle_eval_i32) |ev| if (values.len >= A.mle_min_len) {
+        if (try ev(A.ctx, values, point)) |v| return v;
+    };
+    return f.mleEvalI32Par(a, pool, values, point);
 }
 
 /// LogUp-GKR batch proof on the device when available (identical proof).

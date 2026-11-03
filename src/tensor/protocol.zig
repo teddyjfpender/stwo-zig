@@ -172,6 +172,15 @@ pub const Config = struct {
     /// 2^10 measured best for the MLP: the many small late-round loops of
     /// every layer otherwise run serially)
     gkr_min_parallel: usize = 1 << 10,
+    /// Allocate the LogUp-GKR key inputs before the witness commitment and
+    /// fault their pages in on a helper thread meanwhile (prover memory
+    /// scheduling only; proofs are identical either way).
+    prefault_gkr_inputs: bool = true,
+    /// Also allocate, fault in and free the CPU GKR prover's layer blocks
+    /// during the witness commitment. Only useful when the allocator caches
+    /// freed blocks (recycle.Recycler); ignored with an accelerator. Proofs
+    /// are identical either way.
+    warm_gkr_layers: bool = false,
     /// Optional device accelerator (e.g. Metal); proofs are identical either way.
     accel: ?*const accel.Accel = null,
     /// zero-knowledge mode (zk.zig): hiding commitments, masked sumchecks, no GKR
@@ -183,6 +192,16 @@ pub const Config = struct {
     /// hiding mode LogUp: masked GKR (true) or committed inverses (false)
     zk_logup_gkr: bool = true,
 };
+
+/// Recommended configuration (stream `speed`): the recursive committed-row
+/// PCS (pcs2, depth 2) and shape-class batched matmul sumchecks. `outer` is
+/// the big table's opening, `inner` every committed-row level's. The flat
+/// Ligero mode stays available (two_level = null, batch_matmuls = false) for
+/// comparison; Config's field defaults are unchanged so explicit `.pcs`
+/// settings keep their meaning.
+pub fn recommendedConfig(outer: pcs.Params, inner: pcs.Params) Config {
+    return .{ .pcs = outer, .two_level = .{ .outer = outer, .depth = 2, .inner = inner }, .batch_matmuls = true };
+}
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
     const lay = try layout(a, infos, &.{});
@@ -488,6 +507,8 @@ pub const Timings = struct {
     ext_init_ns: u64 = 0,
     /// ext terminal claims (MLE evaluations after GKR)
     ext_terminal_ns: u64 = 0,
+    /// ext op sumchecks (part of op_sumcheck_ns)
+    ext_ops_ns: u64 = 0,
 };
 
 fn mixStatement(tr: *Transcript, st: Statement, weight_root: [32]u8) void {
@@ -558,9 +579,11 @@ fn keySrc(st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst
 
 /// Denominators alpha - key(i) for a key instance (prover side). Must run
 /// after `multiplicities` accepted the witness (keys in range).
-fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31) ![]QM31 {
+/// Denominators `alpha - key` of core key instance `k` into `out`
+/// (length 2^k.log_size).
+fn keyValuesInto(out: []QM31, pool: *f.Pool, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31) void {
     const n = @as(usize, 1) << @intCast(k.log_size);
-    const out = try a.alloc(QM31, n);
+    std.debug.assert(out.len == n);
     switch (k.kind) {
         .glu_triple, .ext => {
     const Ctx = struct { out: []QM31, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31 };
@@ -605,8 +628,144 @@ fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []co
         },
         else => prep.denominators(pool, out, keySrc(st, w, acc, k), alpha, beta),
     }
-    return out;
 }
+
+/// One buffer whose first `touch_len` entries a helper thread faults in.
+const PrefaultBuf = struct {
+    buf: ?[]QM31 = null,
+    thread: ?std.Thread = null,
+
+    fn start(self: *PrefaultBuf, a: std.mem.Allocator, len: usize, touch_len: usize) !void {
+        const b = try a.alloc(QM31, len);
+        self.buf = b;
+        // the slice is copied into the thread's arguments (no stack temporaries)
+        self.thread = std.Thread.spawn(.{}, touchOne, .{b[0..touch_len]}) catch null;
+    }
+
+    fn touchOne(b: []QM31) void {
+        KeyBufs.touch(&.{b});
+    }
+
+    /// The buffer (ownership passes to the caller), or a fresh one.
+    fn take(self: *PrefaultBuf, a: std.mem.Allocator, len: usize) ![]QM31 {
+        self.join();
+        if (self.buf) |b| {
+            std.debug.assert(b.len == len);
+            self.buf = null;
+            return b;
+        }
+        return a.alloc(QM31, len);
+    }
+
+    fn join(self: *PrefaultBuf) void {
+        if (self.thread) |t| t.join();
+        self.thread = null;
+    }
+
+    fn deinit(self: *PrefaultBuf, a: std.mem.Allocator) void {
+        self.join();
+        if (self.buf) |b| a.free(b);
+        self.buf = null;
+    }
+};
+
+/// GKR key-input buffers allocated before the witness commitment, with their
+/// pages touched by a helper thread while the commitment runs. Fresh pages
+/// cost a serialized zero-fill fault each (≈9 GB/s for the 0.9 GB of key
+/// denominators at 512 tokens); the overlap moves that cost off the critical
+/// path. Values are written later, after alpha and beta are drawn, so the
+/// proof is unchanged.
+///
+/// With `warm_layers`, a second helper also allocates, touches and frees
+/// blocks of the sizes the CPU GKR prover allocates for its layers (num and
+/// den, 2^(k-1) QM31 each, k = n..1 per instance). With a caching allocator
+/// (`recycle.Recycler`) those blocks are then handed back, already faulted
+/// in, to the GKR build; with a plain allocator the warm-up is wasted work on
+/// the helper thread, which is why it is opt-in.
+const KeyBufs = struct {
+    bufs: [][]QM31,
+    handed: usize = 0,
+    thread: ?std.Thread = null,
+    warm_thread: ?std.Thread = null,
+    warm_logs: []u32 = &.{},
+
+    fn init(a: std.mem.Allocator, rel: Relations, eps: *const xt.ProverState, prefault: bool, warm_layers: bool) !KeyBufs {
+        const bufs = try a.alloc([]QM31, rel.keys.len);
+        var n: usize = 0;
+        errdefer {
+            for (bufs[0..n]) |b| a.free(b);
+            a.free(bufs);
+        }
+        for (rel.keys) |k| {
+            const len = if (k.kind == .ext) xt.keyLen(eps, k.op) else @as(usize, 1) << @intCast(k.log_size);
+            bufs[n] = try a.alloc(QM31, len);
+            n += 1;
+        }
+        var self = KeyBufs{ .bufs = bufs };
+        // best effort: without the thread the pages fault when written
+        if (prefault) self.thread = std.Thread.spawn(.{}, touch, .{bufs}) catch null;
+        if (warm_layers) warm: {
+            const logs = a.alloc(u32, rel.keys.len + rel.tables.len) catch break :warm;
+            for (bufs, 0..) |b, i| logs[i] = std.math.log2_int(usize, b.len);
+            for (rel.tables, 0..) |t, i| logs[rel.keys.len + i] = t.log_size;
+            self.warm_logs = logs;
+            self.warm_thread = std.Thread.spawn(.{}, warm, .{ a, logs }) catch null;
+        }
+        return self;
+    }
+
+    /// Allocate and touch the GKR layer blocks in gkr_prover_fast's build
+    /// order and sizes, holding them all (freeing each at once would cache a
+    /// single block per size), then free them. Allocation failure stops early.
+    fn warm(a: std.mem.Allocator, logs: []const u32) void {
+        var held: std.ArrayList([]QM31) = .empty;
+        defer {
+            for (held.items) |b| a.free(b);
+            held.deinit(a);
+        }
+        for (logs) |n| {
+            var k = n;
+            while (k > 0) : (k -= 1) {
+                const size = @as(usize, 1) << @intCast(k - 1);
+                for (0..2) |_| {
+                    held.ensureUnusedCapacity(a, 1) catch return;
+                    const b = a.alloc(QM31, size) catch return;
+                    held.appendAssumeCapacity(b);
+                    touch(&.{b});
+                }
+            }
+        }
+    }
+
+    fn joinWarm(self: *KeyBufs) void {
+        if (self.warm_thread) |t| t.join();
+        self.warm_thread = null;
+    }
+
+    fn touch(bufs: []const []QM31) void {
+        const page = 16 * 1024;
+        for (bufs) |b| {
+            const bytes = std.mem.sliceAsBytes(b);
+            var i: usize = 0;
+            while (i < bytes.len) : (i += page) @as(*volatile u8, &bytes[i]).* = 0;
+        }
+    }
+
+    fn join(self: *KeyBufs) void {
+        if (self.thread) |t| t.join();
+        self.thread = null;
+    }
+
+    /// Joins the helper and frees every buffer not yet handed to the GKR
+    /// prover (which consumes owned inputs).
+    fn deinit(self: *KeyBufs, a: std.mem.Allocator) void {
+        self.join();
+        self.joinWarm();
+        if (self.warm_logs.len > 0) a.free(self.warm_logs);
+        for (self.bufs[self.handed..]) |b| a.free(b);
+        a.free(self.bufs);
+    }
+};
 
 fn tableDen(a: std.mem.Allocator, st: Statement, t: RelTable, alpha: QM31, beta: QM31) ![]QM31 {
     const n = @as(usize, 1) << @intCast(t.log_size);
@@ -687,7 +846,7 @@ fn multiplicities(a: std.mem.Allocator, pool: *f.Pool, st: Statement, rel: Relat
                     mult[@intCast(v)] += 1;
                 }
             },
-            .ext => try xt.addMultiplicities(st, eps, k.op, mult),
+            .ext => try xt.addMultiplicitiesPar(a, pool, st, eps, k.op, mult),
         }
     }
     return out;
@@ -806,6 +965,23 @@ pub fn proveWithAccumulators(
     acc: []const ?[]i64,
     timings: *Timings,
 ) !Proof {
+    return proveWithAllAccumulators(a, pool, cfg, st, ws, witness, acc, null, timings);
+}
+
+/// As `proveWithAccumulators`, plus (optionally) the accumulators of the
+/// requant ext einsums (`ext_acc[i]` for st.ext.ops[i], null = recompute).
+/// Same trust model: wrong values are refused or rejected, never accepted.
+pub fn proveWithAllAccumulators(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: Config,
+    st: Statement,
+    ws: *const WeightStore,
+    witness: []const []const i32,
+    acc: []const ?[]i64,
+    ext_acc: ?[]const ?[]const i64,
+    timings: *Timings,
+) !Proof {
     if (acc.len != st.ops.len) return error.AccumulatorShape;
     for (st.ops, acc) |op, x| switch (op) {
         .matmul => |m| if (x == null or x.?.len != st.witness[m.y].size()) return error.AccumulatorShape,
@@ -815,7 +991,7 @@ pub fn proveWithAccumulators(
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
     const t_init = try std.time.Instant.now();
-    var eps = try xt.proverInit(a, pool, st, witness);
+    var eps = try xt.proverInitWith(a, pool, st, witness, ext_acc);
     defer eps.deinit(a);
     timings.ext_init_ns = nowNs(t_init);
     const tm0 = try std.time.Instant.now();
@@ -831,6 +1007,9 @@ pub fn proveWithAccumulators(
     defer a.free(all);
     for (witness, 0..) |w, i| all[i] = w;
     for (mults, 0..) |m, i| all[witness.len + i] = m;
+
+    var key_bufs = try KeyBufs.init(a, rel, &eps, cfg.prefault_gkr_inputs, cfg.warm_gkr_layers and cfg.accel == null);
+    defer key_bufs.deinit(a);
 
     // --- witness table + commitment
     var t0 = try std.time.Instant.now();
@@ -864,7 +1043,11 @@ pub fn proveWithAccumulators(
     const n_inst = rel.keys.len + rel.tables.len;
     const inputs = try a.alloc(Fast.Input, n_inst);
     defer a.free(inputs);
-    for (rel.keys, 0..) |k, i| inputs[i] = .{ .num = .ones, .den = if (k.kind == .ext) try xt.keyDen(a, pool, &eps, k.op, alpha, beta) else try keyValues(a, pool, st, all, acc, k, alpha, beta), .owned = true };
+    key_bufs.join();
+    for (rel.keys, key_bufs.bufs, 0..) |k, buf, i| {
+        if (k.kind == .ext) xt.keyDenInto(buf, pool, &eps, k.op, alpha, beta) else keyValuesInto(buf, pool, st, all, acc, k, alpha, beta);
+        inputs[i] = .{ .num = .ones, .den = buf, .owned = true };
+    }
     const mult_m31 = try a.alloc([]M31, rel.tables.len);
     defer {
         for (mult_m31) |m| a.free(m);
@@ -879,6 +1062,9 @@ pub fn proveWithAccumulators(
     var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
     var gkr_stats: Fast.Stats = .{};
     timings.gkr_input_ns = nowNs(t0);
+    key_bufs.joinWarm();
+    // the GKR prover consumes (frees) the owned key inputs on every exit
+    key_bufs.handed = key_bufs.bufs.len;
     if (n_inst > 0) {
         const gkr_res = if (cfg.accel != null) try accel.gkrProveBatch(cfg.accel, a, &tr.ch, inputs, cfg.gkr_threads) else try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads, .min_parallel = cfg.gkr_min_parallel }, &gkr_stats);
         gkr_proof = gkr_res.proof;
@@ -888,6 +1074,11 @@ pub fn proveWithAccumulators(
     for (rel.tables, 0..) |_, i| a.free(inputs[rel.keys.len + i].den);
     defer if (n_inst > 0) art.deinit(a);
     timings.gkr_ns = nowNs(t0);
+    // CPU batch stage: allocate its E table now (the GKR layers are gone) and
+    // fault in the pages it will write while the terminal and op sumchecks run.
+    var e_pre = PrefaultBuf{};
+    defer e_pre.deinit(a);
+    if (cfg.accel == null and cfg.prefault_gkr_inputs) try e_pre.start(a, total, lay.used);
     timings.gkr_build_ns = gkr_stats.build_ns;
     timings.gkr_sumcheck_ns = gkr_stats.sumcheck_ns;
     const L = art.ood_point.len;
@@ -913,8 +1104,8 @@ pub fn proveWithAccumulators(
         switch (k.kind) {
             .glu_triple => {
                 const g = st.ops[k.op].glu;
-                const vg = try accel.mleEvalI32(cfg.accel, a, all[g.g], pt);
-                const vu = try accel.mleEvalI32(cfg.accel, a, all[g.u], pt);
+                const vg = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[g.g], pt);
+                const vu = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[g.u], pt);
                 try lookup_vals.append(a, vg);
                 try lookup_vals.append(a, vu);
                 tr.mixFelts(&.{ vg, vu });
@@ -936,7 +1127,7 @@ pub fn proveWithAccumulators(
                             .hadamard => |h| h.y,
                             else => unreachable,
                         };
-                        const yv = try accel.mleEvalI32(cfg.accel, a, all[y_id], pt);
+                        const yv = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[y_id], pt);
                         try lookup_vals.append(a, yv);
                         tr.mixFelt(yv);
                         y_vals[i] = yv;
@@ -959,7 +1150,7 @@ pub fn proveWithAccumulators(
             },
             .lookup_pair => {
                 const l = st.ops[k.op].lookup;
-                const vin = try accel.mleEvalI32(cfg.accel, a, all[l.in], pt);
+                const vin = try accel.mleEvalI32Pool(cfg.accel, a, pool, all[l.in], pt);
                 try lookup_vals.append(a, vin);
                 tr.mixFelt(vin);
                 const den = art.claims_to_verify_by_instance[i][1];
@@ -1094,7 +1285,9 @@ pub fn proveWithAccumulators(
         },
         else => {},
     };
-    try xt.proveOps(a, pool, st, all, &eps, gview, alpha, &tr, &claims, &ext_values, &ext_sumchecks, &ext_finals);
+    const t_ext_ops = try std.time.Instant.now();
+    try xt.proveOps(a, pool, cfg.accel, st, all, &eps, gview, alpha, &tr, &claims, &ext_values, &ext_sumchecks, &ext_finals);
+    timings.ext_ops_ns = nowNs(t_ext_ops);
     timings.op_sumcheck_ns = nowNs(t0);
 
     // --- batch witness claims into one point
@@ -1112,7 +1305,7 @@ pub fn proveWithAccumulators(
         break :blk try accel.batchProve(cfg.accel, a, pool, &tr, wtab, lay.used, bclaims, batch_claim);
     } else blk: {
         // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
-        const E = try a.alloc(QM31, total);
+        const E = try e_pre.take(a, total);
         defer a.free(E);
         var rc: std.ArrayList(batch.RegionClaim) = .empty;
         defer rc.deinit(a);
@@ -1450,9 +1643,12 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     var op_i: usize = 0;
     for (rel.keys, 0..) |k, i| {
         if (k.kind != .remainder) continue;
+        // members of an already verified matmul class consume no sumcheck;
+        // skip them before the bounds check (a statement whose last
+        // remainder keys belong to an earlier class was rejected otherwise)
+        if (cfg.batch_matmuls and st.ops[k.op] == .matmul and vclass_done[i]) continue;
         if (op_i >= proof.op_sumchecks.len) return error.ProofShape;
         if (cfg.batch_matmuls and st.ops[k.op] == .matmul) {
-            if (vclass_done[i]) continue;
             const members = try classMembers(a, st, rel, i);
             defer a.free(members);
             for (members) |mi| vclass_done[mi] = true;

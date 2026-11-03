@@ -16,6 +16,14 @@
 //! only. q_k has degree 2; q_k(1) follows from the running claim
 //! (s(0) + s(1) = claim) when C_k rho_k != 0, otherwise it is summed directly.
 //! Round 0 runs in the base field straight from the i32 inputs.
+//!
+//! `proveEqPrefix` generalises the weight to eq(rho, x_0..x_{m-1}) * 1 over
+//! the trailing n - m variables (an einsum's batch vars followed by its
+//! contracted vars). Rounds k >= m have weight w(t) = 1 instead of e_k(t):
+//! s_k(t) = C q_k(t), C stays fixed, and T is the constant 1. In rounds k < m,
+//! T_k is indexed by x' >> (n - m), since T does not depend on the trailing
+//! variables. The transcript equals the generic prover's on
+//! {eq(rho) (x) 1, A_1, .., A_K}.
 const std = @import("std");
 const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
@@ -79,6 +87,18 @@ inline fn storeP(dst: []QM31, at: usize, v: PQ) void {
     inline for (0..LANES) |l| dst[at + l] = v.lane(l);
 }
 
+const LOG_LANES = std.math.log2_int(usize, LANES);
+
+/// T value(s) for packed index x: T[x >> shift] per lane.
+inline fn loadT(T: []const QM31, x: usize, shift: u6) PQ {
+    if (shift == 0) return loadP(T, x);
+    // x need not be lane-aligned (parallel chunks have arbitrary starts)
+    if ((x >> shift) == ((x + LANES - 1) >> shift)) return PQ.splat(T[x >> shift]);
+    var l: [LANES]QM31 = undefined;
+    inline for (0..LANES) |i| l[i] = T[(x + i) >> shift];
+    return PQ.fromLanes(l);
+}
+
 inline fn sumLanes(v: PQ) QM31 {
     var s = QM31.zero();
     inline for (0..LANES) |l| s = s.add(v.lane(l));
@@ -89,7 +109,7 @@ inline fn sumLanes(v: PQ) QM31 {
 const Sums = [3]QM31;
 
 fn Round0Ctx(comptime kind: Kind) type {
-    return struct { ins: [nIn(kind)][]const i32, T: []const QM31, half: usize, partial: []Sums, chunk: usize, with_q1: bool };
+    return struct { ins: [nIn(kind)][]const i32, T: []const QM31, half: usize, partial: []Sums, chunk: usize, with_q1: bool, shift: u6 = 0 };
 }
 
 fn round0(comptime kind: Kind) fn (*const Round0Ctx(kind), usize, usize) void {
@@ -112,7 +132,7 @@ fn round0(comptime kind: Kind) fn (*const Round0Ctx(kind), usize, usize) void {
                         hi[j] = packedFromI32(c.ins[j], x + c.half);
                         two[j] = f.subPackedM31(f.addPackedM31(hi[j], hi[j]), lo[j]);
                     }
-                    const t = loadP(c.T, x);
+                    const t = loadT(c.T, x, c.shift);
                     p0 = p0.add(t.mulBase(gBaseP(kind, &lo)));
                     p2 = p2.add(t.mulBase(gBaseP(kind, &two)));
                     if (c.with_q1) p1 = p1.add(t.mulBase(gBaseP(kind, &hi)));
@@ -128,7 +148,7 @@ fn round0(comptime kind: Kind) fn (*const Round0Ctx(kind), usize, usize) void {
                     hi[j] = f.fromI32(c.ins[j][x + c.half]);
                     two[j] = hi[j].add(hi[j]).sub(lo[j]);
                 }
-                const t = c.T[x];
+                const t = c.T[x >> c.shift];
                 out[0] = out[0].add(t.mulM31(gBase(kind, &lo)));
                 out[2] = out[2].add(t.mulM31(gBase(kind, &two)));
                 if (c.with_q1) out[1] = out[1].add(t.mulM31(gBase(kind, &hi)));
@@ -168,7 +188,7 @@ fn fold0(comptime kind: Kind) fn (*const Fold0Ctx(kind), usize, usize) void {
 }
 
 fn RoundCtx(comptime kind: Kind) type {
-    return struct { facs: [nIn(kind)][]QM31, T: []const QM31, half: usize, partial: []Sums, chunk: usize, with_q1: bool };
+    return struct { facs: [nIn(kind)][]QM31, T: []const QM31, half: usize, partial: []Sums, chunk: usize, with_q1: bool, shift: u6 = 0 };
 }
 
 fn roundK(comptime kind: Kind) fn (*const RoundCtx(kind), usize, usize) void {
@@ -191,7 +211,7 @@ fn roundK(comptime kind: Kind) fn (*const RoundCtx(kind), usize, usize) void {
                         hi[j] = loadP(c.facs[j], x + c.half);
                         two[j] = hi[j].add(hi[j]).sub(lo[j]);
                     }
-                    const t = loadP(c.T, x);
+                    const t = loadT(c.T, x, c.shift);
                     p0 = p0.add(t.mul(gExtP(kind, &lo)));
                     p2 = p2.add(t.mul(gExtP(kind, &two)));
                     if (c.with_q1) p1 = p1.add(t.mul(gExtP(kind, &hi)));
@@ -207,7 +227,7 @@ fn roundK(comptime kind: Kind) fn (*const RoundCtx(kind), usize, usize) void {
                     hi[j] = c.facs[j][x + c.half];
                     two[j] = hi[j].add(hi[j]).sub(lo[j]);
                 }
-                const t = c.T[x];
+                const t = c.T[x >> c.shift];
                 out[0] = out[0].add(t.mul(gExt(kind, &lo)));
                 out[2] = out[2].add(t.mul(gExt(kind, &two)));
                 if (c.with_q1) out[1] = out[1].add(t.mul(gExt(kind, &hi)));
@@ -288,8 +308,26 @@ pub fn prove(
     rho: []const QM31,
     ins: [nIn(kind)][]const i32,
 ) !sc.ProveResult {
+    return proveEqPrefix(kind, a, pool, tr, claim, rho, rho.len, ins);
+}
+
+/// Same transcript/result as proveActive(K+1, {E*g}, claim, {E, A..}, 2^n)
+/// with E(x) = eq(rho, x_0..x_{m-1}) for m = rho.len <= n (the weight does not
+/// depend on the trailing n - m variables). finals = [E(point), A_1(point), ..].
+pub fn proveEqPrefix(
+    comptime kind: Kind,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    rho: []const QM31,
+    n: usize,
+    ins: [nIn(kind)][]const i32,
+) !sc.ProveResult {
     const K = comptime nIn(kind);
-    const n = rho.len;
+    const m = rho.len;
+    std.debug.assert(m <= n);
+    const free_bits = n - m;
     const len = @as(usize, 1) << @intCast(n);
     inline for (0..K) |j| std.debug.assert(ins[j].len == len);
     if (n == 0) {
@@ -305,12 +343,13 @@ pub fn prove(
         const terms = if (kind == .product) &T_PRODUCT else &T_EQ3;
         return sc.proveActive(K + 1, terms, a, pool, tr, claim, gf, 1);
     }
+    if (m == 0) return error.EqPrefixEmpty;
 
     const rounds = try a.alloc(sc.RoundPoly, n);
     errdefer a.free(rounds);
     const point = try a.alloc(QM31, n);
     errdefer a.free(point);
-    const T = try f.eqTablePar(a, pool, rho[1..], QM31.one());
+    const T = try f.eqTablePar(a, pool, rho[1..m], QM31.one());
     defer a.free(T);
     var facs: [K][]QM31 = undefined;
     inline for (0..K) |j| facs[j] = try a.alloc(QM31, len / 2);
@@ -322,29 +361,37 @@ pub fn prove(
     var cur = claim;
     var half = len / 2;
     for (0..n) |k| {
-        const rk = rho[k];
-        const cr = C.mul(rk);
+        const is_eq = k < m;
+        // weight w(t) = e_k(t) in eq rounds, 1 in free rounds
+        const two = QM31.fromBase(M31.fromCanonical(2));
+        const three = QM31.fromBase(M31.fromCanonical(3));
+        const w0 = if (is_eq) QM31.one().sub(rho[k]) else QM31.one();
+        const w1 = if (is_eq) rho[k] else QM31.one();
+        const w2 = if (is_eq) e1(rho[k], two) else QM31.one();
+        const w3 = if (is_eq) e1(rho[k], three) else QM31.one();
+        const cr = C.mul(w1);
         const derive_q1 = !cr.isZero();
+        // T index of x' (n-k-1 bits): x' >> free_bits in eq rounds; T = [1] after
+        const shift: u6 = if (is_eq) @intCast(free_bits) else 63;
+        const t_len = if (is_eq) (half >> @intCast(free_bits)) else 1;
         var q: Sums = undefined;
         if (k == 0) {
-            var ctx = Round0Ctx(kind){ .ins = ins, .T = T[0..half], .half = half, .partial = partial, .chunk = 1, .with_q1 = !derive_q1 };
+            var ctx = Round0Ctx(kind){ .ins = ins, .T = T[0..t_len], .half = half, .partial = partial, .chunk = 1, .with_q1 = !derive_q1, .shift = shift };
             q = reduceParallel(Round0Ctx(kind), comptime round0(kind), pool, partial, &ctx, half);
         } else {
             var fv: [K][]QM31 = undefined;
             inline for (0..K) |j| fv[j] = facs[j][0 .. 2 * half];
-            var ctx = RoundCtx(kind){ .facs = fv, .T = T[0..half], .half = half, .partial = partial, .chunk = 1, .with_q1 = !derive_q1 };
+            var ctx = RoundCtx(kind){ .facs = fv, .T = T[0..t_len], .half = half, .partial = partial, .chunk = 1, .with_q1 = !derive_q1, .shift = shift };
             q = reduceParallel(RoundCtx(kind), comptime roundK(kind), pool, partial, &ctx, half);
         }
-        const one_m = QM31.one().sub(rk);
-        // s(0) = C (1 - rho) q(0); s(1) = claim - s(0) = C rho q(1)
-        const s0 = C.mul(one_m).mul(q[0]);
+        // s(0) = C w(0) q(0); s(1) = claim - s(0) = C w(1) q(1)
+        const s0 = C.mul(w0).mul(q[0]);
         const s1 = cur.sub(s0);
         if (derive_q1) q[1] = s1.mul(cr.inv() catch unreachable);
         // q has degree <= 2: q(3) = q(0) - 3 q(1) + 3 q(2)
-        const three = QM31.fromBase(M31.fromCanonical(3));
         const q3 = q[0].sub(three.mul(q[1])).add(three.mul(q[2]));
-        const s2 = C.mul(e1(rk, QM31.fromBase(M31.fromCanonical(2)))).mul(q[2]);
-        const s3 = C.mul(e1(rk, three)).mul(q3);
+        const s2 = C.mul(w2).mul(q[2]);
+        const s3 = C.mul(w3).mul(q3);
         var rp = sc.RoundPoly{ .evals = [_]QM31{QM31.zero()} ** sc.MAX_DEG };
         rp.evals[0] = s0;
         rp.evals[1] = s2;
@@ -365,11 +412,11 @@ pub fn prove(
             const fctx = FoldCtx(kind){ .facs = fv, .T = T, .half = half, .r = r };
             pool.parallelFor(half, 4096, &fctx, comptime foldK(kind));
         }
-        if (half >= 2) {
-            const tctx = TCtx{ .T = T, .q = half / 2 };
-            pool.parallelFor(half / 2, 8192, &tctx, halveT);
+        if (is_eq and t_len >= 2) {
+            const tctx = TCtx{ .T = T, .q = t_len / 2 };
+            pool.parallelFor(t_len / 2, 8192, &tctx, halveT);
         }
-        C = C.mul(e1(rk, r));
+        if (is_eq) C = C.mul(e1(rho[k], r));
         half /= 2;
     }
     const finals = try a.alloc(QM31, K + 1);
@@ -446,6 +493,76 @@ fn checkAgainstGeneric(comptime kind: Kind, n: usize, seed: u64, zero_rho0: bool
     for (r1.point, r2.point) |x, y| try std.testing.expect(x.eql(y));
     for (r1.finals, r2.finals) |x, y| try std.testing.expect(x.eql(y));
     try std.testing.expect(t1.draw().eql(t2.draw()));
+}
+
+fn checkPrefixAgainstGeneric(n: usize, m: usize, seed: u64, zero_rho0: bool) !void {
+    return checkPrefixThreads(n, m, seed, zero_rho0, 3);
+}
+
+fn checkPrefixThreads(n: usize, m: usize, seed: u64, zero_rho0: bool, threads: usize) !void {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, threads);
+    defer pool.deinit();
+    var prng = std.Random.DefaultPrng.init(seed);
+    const rnd = prng.random();
+    const len = @as(usize, 1) << @intCast(n);
+    var ins: [2][]i32 = undefined;
+    for (&ins) |*x| {
+        x.* = try a.alloc(i32, len);
+        for (x.*) |*v| v.* = rnd.intRangeAtMost(i32, -(1 << 30), 1 << 30);
+    }
+    defer for (ins) |x| a.free(x);
+    const rho = try a.alloc(QM31, m);
+    defer a.free(rho);
+    for (rho) |*r| r.* = QM31.fromU32Unchecked(rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P));
+    if (zero_rho0) rho[0] = QM31.zero();
+    const eqm = try f.eqTablePar(a, &pool, rho, QM31.one());
+    defer a.free(eqm);
+    var gf: [3][]QM31 = undefined;
+    for (&gf) |*g| g.* = try a.alloc(QM31, len);
+    defer for (gf) |g| a.free(g);
+    for (0..len) |x| {
+        gf[0][x] = eqm[x >> @intCast(n - m)];
+        gf[1][x] = QM31.fromBase(f.fromI32(ins[0][x]));
+        gf[2][x] = QM31.fromBase(f.fromI32(ins[1][x]));
+    }
+    var claim = QM31.zero();
+    for (0..len) |x| claim = claim.add(gf[0][x].mul(gf[1][x]).mul(gf[2][x]));
+    var t1 = Transcript.initDomain("p");
+    var t2 = Transcript.initDomain("p");
+    var r1 = try proveEqPrefix(.hadamard, a, &pool, &t1, claim, rho, n, .{ ins[0], ins[1] });
+    defer r1.deinit(a);
+    var r2 = try sc.proveActive(3, &T_EQ3, a, &pool, &t2, claim, gf, len);
+    defer r2.deinit(a);
+    for (r1.proof.rounds, r2.proof.rounds) |x, y| for (0..3) |i| try std.testing.expect(x.evals[i].eql(y.evals[i]));
+    for (r1.point, r2.point) |x, y| try std.testing.expect(x.eql(y));
+    for (r1.finals, r2.finals) |x, y| try std.testing.expect(x.eql(y));
+    try std.testing.expect(t1.draw().eql(t2.draw()));
+    // a false claim is rejected by the verifier
+    var t3 = Transcript.initDomain("p");
+    const bad = claim.add(QM31.one());
+    var r3 = try proveEqPrefix(.hadamard, a, &pool, &t3, bad, rho, n, .{ ins[0], ins[1] });
+    defer r3.deinit(a);
+    var tv = Transcript.initDomain("p");
+    const vr = try sc.verify(a, &tv, bad, n, 3, r3.proof);
+    defer a.free(vr.point);
+    try std.testing.expect(!vr.final_claim.eql(f.eqEval(rho, vr.point[0..m]).mul(r3.finals[1]).mul(r3.finals[2])));
+}
+
+test "split-eq over a variable prefix matches generic prover exactly" {
+    // (n, m): eq rounds then free rounds; free_bits 0, 1 (< log lanes), 2, many
+    const cases = [_][2]usize{ .{ 1, 1 }, .{ 2, 1 }, .{ 3, 2 }, .{ 5, 4 }, .{ 6, 3 }, .{ 9, 2 }, .{ 10, 7 }, .{ 12, 1 } };
+    for (cases, 0..) |c, i| {
+        try checkPrefixAgainstGeneric(c[0], c[1], 100 + i, false);
+        try checkPrefixAgainstGeneric(c[0], c[1], 200 + i, true);
+    }
+}
+
+test "split-eq prefix: parallel chunks that are not lane-aligned" {
+    // 12 threads: reduceParallel chunks of ceil(2^18 / 48) = 5462 (2 mod 4)
+    try checkPrefixThreads(19, 9, 7, false, 12);
+    try checkPrefixThreads(19, 17, 8, false, 12);
 }
 
 test "split-eq sumcheck matches generic prover exactly" {
