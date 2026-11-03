@@ -82,7 +82,7 @@ pub fn main() !void {
     try pool.init(a, threads);
     defer pool.deinit();
     const fused: bool = if (args.len > 9) !std.mem.eql(u8, args[9], "0") else true;
-    const cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf, .fused = fused };
+    var cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf, .fused = fused };
     const pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
         .weight_log_cols = @min(ld, 13),
@@ -118,6 +118,7 @@ pub fn main() !void {
     try t.weight_key.verify(a, pc, key, &prox);
     const prox_verify_s = secs(t0);
 
+    cfg.accel = pc.accel;
     const x = try model.randomInput(a, @as(usize, 1) << @intCast(lt + ld), 9);
     t0 = now();
     var built = try model.buildMlp(a, &pool, &ws, cfg, x);

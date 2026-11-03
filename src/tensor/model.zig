@@ -3,6 +3,7 @@ const std = @import("std");
 const f = @import("field.zig");
 const pcs = @import("pcs.zig");
 const proto = @import("protocol.zig");
+const accel = @import("accel.zig");
 
 const TensorInfo = proto.TensorInfo;
 
@@ -36,7 +37,13 @@ pub const Mlp = struct {
     log_f: u32,
     /// fused SwiGLU gate: one glu lookup instead of silu lookup + hadamard
     fused: bool = true,
+    /// optional device accelerator for the forward matmuls (same witness)
+    accel: ?*const accel.Accel = null,
 };
+
+fn fwdMatmul(cfg: Mlp, a: std.mem.Allocator, pool: *f.Pool, xi: TensorInfo, x: []const i32, wm: pcs.Matrix(i8)) ![]i64 {
+    return (try accel.matmulAcc(cfg.accel, a, xi.log_dims[0], x, wm)) orelse proto.matmulAcc(a, pool, xi, x, wm);
+}
 
 pub const Built = struct {
     witness_infos: []TensorInfo,
@@ -97,13 +104,13 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
     try ops.append(a, .{ .range8 = .{ .in = 0 } });
     // gate (1), up (2)
     const xi = infos.items[0];
-    const acc_g = try proto.matmulAcc(a, pool, xi, wit.items[0], ws.matrix(0));
+    const acc_g = try fwdMatmul(cfg, a, pool, xi, wit.items[0], ws.matrix(0));
     defer a.free(acc_g);
     const sg = chooseShift(acc_g);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
     try wit.append(a, try requantAll(a, acc_g, sg));
     try ops.append(a, .{ .matmul = .{ .x = 0, .w = 0, .y = 1, .shift = sg } });
-    const acc_u = try proto.matmulAcc(a, pool, xi, wit.items[0], ws.matrix(1));
+    const acc_u = try fwdMatmul(cfg, a, pool, xi, wit.items[0], ws.matrix(1));
     defer a.free(acc_u);
     const su = chooseShift(acc_u);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
@@ -122,7 +129,7 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
         try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_f));
         try wit.append(a, hv);
         try ops.append(a, .{ .glu = .{ .g = 1, .u = 2, .h = 3, .table = 0, .shift = sh } });
-        const acc_o = try proto.matmulAcc(a, pool, infos.items[3], wit.items[3], ws.matrix(2));
+        const acc_o = try fwdMatmul(cfg, a, pool, infos.items[3], wit.items[3], ws.matrix(2));
         defer a.free(acc_o);
         const so = chooseShift(acc_o);
         try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_d));
@@ -155,7 +162,7 @@ pub fn buildMlp(a: std.mem.Allocator, pool: *f.Pool, ws: *const proto.WeightStor
     try wit.append(a, try requantAll(a, acc_h, sh));
     try ops.append(a, .{ .hadamard = .{ .a = 3, .b = 2, .y = 4, .shift = sh } });
     // out = requant(h Wd) (5)
-    const acc_o = try proto.matmulAcc(a, pool, infos.items[4], wit.items[4], ws.matrix(2));
+    const acc_o = try fwdMatmul(cfg, a, pool, infos.items[4], wit.items[4], ws.matrix(2));
     defer a.free(acc_o);
     const so = chooseShift(acc_o);
     try infos.append(a, TensorInfo.mat(cfg.log_t, cfg.log_d));

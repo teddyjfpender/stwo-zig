@@ -203,6 +203,17 @@ test "metal proof digest equals CPU: small MLP (GPU weight commitment too)" {
     defer a.free(x);
     var built = try model.buildMlp(a, &pool, &ws, cfg, x);
     defer built.deinit(a);
+    // forward pass with device matmuls: identical witness
+    {
+        var cfg_d = cfg;
+        cfg_d.accel = g.accel();
+        const before = g.stats.matmul_calls;
+        var built_d = try model.buildMlp(a, &pool, &ws, cfg_d, x);
+        defer built_d.deinit(a);
+        try std.testing.expect(g.stats.matmul_calls >= before + 3);
+        try std.testing.expectEqual(built.witness.len, built_d.witness.len);
+        for (built.witness, built_d.witness) |u, v| try std.testing.expectEqualSlices(i32, u, v);
+    }
     const wview = try a.alloc([]const i32, built.witness.len);
     defer a.free(wview);
     for (built.witness, 0..) |w, i| wview[i] = w;
