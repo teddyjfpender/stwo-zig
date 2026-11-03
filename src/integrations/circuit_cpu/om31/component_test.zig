@@ -36,3 +36,16 @@ test "om31 outer receiver rejects modified original AIR before binding" {
     bytes[bytes.len - 1] ^= 1;
     try std.testing.expectError(error.InvalidOm31CircuitAirAuthority, @import("prove.zig").parsePinnedAir(a, bytes));
 }
+test "om31 outer gather mass stays strictly below base characteristic" {
+    const List = @import("stwo_circuit_frontend").common.component_list;
+    const Native = @import("prove.zig");
+    var logs = List.PerComponent(u32).fromArray([_]u32{4} ** List.N_COMPONENTS);
+    const baseline = try Native.validateGatherMass(logs, 0);
+    const prime = core.fields.m31.Modulus;
+    try std.testing.expectEqual(prime - 1, try Native.validateGatherMass(logs, @intCast(prime - baseline - 1)));
+    try std.testing.expectError(error.Om31CircuitCharacteristicBound, Native.validateGatherMass(logs, @intCast(prime - baseline)));
+    logs.eq = 31;
+    try std.testing.expectError(error.Om31CircuitCharacteristicBound, Native.validateGatherMass(logs, 8));
+    logs.eq = 30;
+    try std.testing.expectError(error.Om31CircuitCharacteristicBound, Native.validateGatherMass(logs, 8));
+}

@@ -16,6 +16,21 @@ const Col = prover.pcs.ColumnEvaluation;
 const Components = prover.air.component_prover.ForField(O);
 const CoreAir = core.air.components.ForField(O);
 pub const Capture = core.pcs.ForField(O).verifier.VerifiedProofCapture(P.H);
+/// OM31 widens challenges, not the characteristic of M31 multiplicities.
+/// The independently constructed circuit topology bounds every positive
+/// gather by a unit request; table/provider multiplicities count those uses.
+pub fn validateGatherMass(logs: List.PerComponent(u32), n_outputs: usize) !u64 {
+    var mass = std.math.add(u64, @intCast(n_outputs), 1) catch return error.Om31CircuitCharacteristicBound;
+    for (std.enums.values(List.ComponentList)[0..5]) |kind| {
+        const log = logs.get(kind);
+        if (log >= 31) return error.Om31CircuitCharacteristicBound;
+        const rows = @as(u64, 1) << @intCast(log);
+        const terms = circuit.witness.trace.RawLookupRows.count(kind);
+        mass = std.math.add(u64, mass, rows * terms) catch return error.Om31CircuitCharacteristicBound;
+    }
+    if (mass >= core.fields.m31.Modulus) return error.Om31CircuitCharacteristicBound;
+    return mass;
+}
 /// External proof material never selects a replacement AIR recording.
 pub fn parsePinnedAir(a: std.mem.Allocator, bytes: []const u8) !Air.Bundle {
     var digest: [32]u8 = undefined;
@@ -42,6 +57,7 @@ pub const Authority = struct {
         defer template.deinit();
         const layout = pp.layout();
         const logs = try List.circuitComponentLogSizes(&layout);
+        _ = try validateGatherMass(logs, pp.n_outputs);
         var bound = try Air.bind(a, &template, logs, &layout);
         errdefer bound.deinit();
         var scheme = try P.Engine.init(a, try P.targetConfig());
