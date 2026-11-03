@@ -54,6 +54,11 @@ fn traceParity(original: *const @import("common.zig").Context, trace: *const @im
     try std.testing.expectEqual(@as(usize, 0), trace.value_table.capacity);
     var plan = try schedule.build(a, trace);
     defer plan.deinit();
+    var reference = try schedule.buildDfsReference(a, trace);
+    defer reference.deinit();
+    try std.testing.expectEqualDeep(reference.tasks, plan.tasks);
+    try std.testing.expectEqualDeep(reference.seeds, plan.seeds);
+    try std.testing.expectEqualSlices(usize, reference.level_ends, plan.level_ends);
     const values = try schedule.evaluate(a, trace, plan);
     defer a.free(values);
     try std.testing.expectEqualDeep(original.values(), values);
