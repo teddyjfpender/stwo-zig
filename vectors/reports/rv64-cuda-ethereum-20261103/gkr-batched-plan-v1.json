@@ -1,6 +1,6 @@
 {
   "schema": "rv64-gkr-batched-plan/v1",
-  "scope": "Launch batching source and host enqueue qualification; GPU proof parity and timing pending",
+  "scope": "Launch batching with native mixed-height GPU golden qualification; real segment timing pending",
   "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-batch-plan -Doptimize=ReleaseFast -j4",
   "host_tests_passed": 6,
   "opt_in_environment": "STWO_RV64_GKR_BATCH_ORACLES",
@@ -21,15 +21,31 @@
   },
   "not_claimed": [
     "measured speedup",
-    "GPU fixture acceptance",
     "real segment proof parity",
     "persistent tail completion"
   ],
-  "next_gate": "compile one new TU, run existing native mixed-height golden fixtures, then real CPU0 A/B with fresh receiver",
+  "next_gate": "Real CPU0 A/B with fresh receiver and kernel counts; keep defaultoff until measured",
   "optional_runtime_symbols": [
     "stwo_rv64_batch_sum_on",
     "stwo_rv64_batch_fold_on"
   ],
   "missing_feature_policy": "default baseline loads qualified libraries without these symbols; explicit flag requires both at backend initialization and before first batch mutation",
-  "new_tu_sm120_compile_passed": true
+  "new_tu_sm120_compile_passed": true,
+  "gpu_fixture": {
+    "command": "/workspace/stwo-rv64-gkr-batched/batch_smoke /workspace/rv64-gpu-session/batch-final/fixtures",
+    "native_golden_cases": 15,
+    "poison_cases": 5,
+    "exact_native_records_checkpoint_claim_masks": true,
+    "largest_fixture_bytes": 5265640,
+    "zero_count_alias_and_in_place_preflight_rejected": true
+  },
+  "static_resource_usage": {
+    "old_secure_sum_registers": 128,
+    "old_base_sum_registers": 72,
+    "new_sum_registers": 128,
+    "old_fold_registers": 56,
+    "new_fold_registers": 54,
+    "new_kernel_spill_bytes": 0
+  },
+  "remaining_performance_risk": "The unified base/secure sum kernel uses128registers for both; nativebase specialization was72. RealCPU0A/B decides impact, with coordinate-specialized batches available as a follow-up."
 }
