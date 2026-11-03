@@ -220,6 +220,12 @@ pub const Gpu = struct {
     fn gkrProve(ctx: *anyopaque, a: std.mem.Allocator, ch: *t.transcript.Channel, inputs: []const t.accel.GkrInput) anyerror!t.accel.GkrResult {
         const g: *Gpu = @ptrCast(@alignCast(ctx));
         g.stats.gkr_calls += 1;
+        var bytes: usize = 0;
+        for (inputs) |in| bytes += in.den.len * 32;
+        // A one-off huge batch (the offline weight-key proof over the whole
+        // weight table) would leave the pool full of its layer sizes, which
+        // the per-batch proofs never reuse: drop them afterwards.
+        defer if (bytes > g.pool_limit / 2) g.trim();
         return @import("gkr.zig").proveBatch(g, a, ch, inputs);
     }
 
