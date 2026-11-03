@@ -108,3 +108,5 @@ pub const cpu_child = @import("cpu_child.zig");
 pub const cpu_oods = @import("cpu_oods.zig");
 pub const cpu_leaf = @import("cpu_leaf.zig");
 pub const cpu_capture = @import("cpu_capture.zig");
+
+pub const services_root = @import("services_root.zig");
