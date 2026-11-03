@@ -128,9 +128,12 @@ pub const Builder = struct {
     }
 
     /// Takes ownership of `data` (allocated with self.a).
-    pub fn add(self: *Builder, info: TensorInfo, data: []i32) !u32 {
+    pub fn add(self: *Builder, info_in: TensorInfo, data: []i32) !u32 {
+        const info = info_in; // by-value copy before the list may reallocate
         std.debug.assert(data.len == info.size());
-        try self.infos.append(self.a, info);
+        try self.infos.ensureUnusedCapacity(self.a, 1);
+        try self.wit.ensureUnusedCapacity(self.a, 1);
+        self.infos.appendAssumeCapacity(info);
         try self.wit.append(self.a, data);
         return @intCast(self.wit.items.len - 1);
     }
@@ -286,7 +289,8 @@ pub const Builder = struct {
     pub fn lookup(self: *Builder, x: u32, table: u32) !u32 {
         const out = try self.a.alloc(i32, self.wit.items[x].len);
         for (self.wit.items[x], out) |v, *o| o.* = self.tables.items[table].values[@intCast(v + 128)];
-        const id = try self.add(self.infos.items[x], out);
+        const info = self.infos.items[x]; // copy: add() may reallocate infos
+        const id = try self.add(info, out);
         try self.ops.append(self.a, .{ .lookup = .{ .in = x, .out = id, .table = table } });
         return id;
     }
@@ -299,7 +303,8 @@ pub const Builder = struct {
         const s = model.chooseShift(acc);
         const out = try self.a.alloc(i32, n);
         for (acc, out) |v, *o| o.* = proto.requant(v, s);
-        const id = try self.add(self.infos.items[x], out);
+        const info = self.infos.items[x]; // copy: add() may reallocate infos
+        const id = try self.add(info, out);
         try self.ops.append(self.a, .{ .hadamard = .{ .a = x, .b = y, .y = id, .shift = s } });
         return id;
     }
@@ -330,7 +335,7 @@ pub const LayerCfg = struct {
         if (self.log_kv_heads > self.log_heads) return error.BadConfig;
         // no-wrap bounds (transformer.md, "Field-size bounds")
         if (self.log_d > 14 or self.log_f > 15 or self.logDh() > 13) return error.BadConfig;
-        if (self.log_heads + 2 * self.log_t > 26 or self.log_t > 13) return error.BadConfig;
+        if (self.log_heads + 2 * self.log_t > 26 or self.log_t > 12) return error.BadConfig;
     }
 };
 
@@ -517,7 +522,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
     );
 }
 
-pub const AttnOut = struct { o: u32, scores: u32, probs: u32, pd: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
+pub const AttnOut = struct { o: u32, scores: u32, probs: u32, rden: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
 
 /// Causal GQA attention core: qr [T, H dh], kr / v [T, Hkv dh] -> O [T, H dh].
 pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
@@ -599,15 +604,20 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
     }
     const den_id = try b.addVec(n2, den);
     try b.lineq(n2, try b.expr(&.{ term(1, Ref.w(den_id), &.{ids(0, n2)}), term(-1, Ref.w(e_id), &.{ ids(0, n2), sums(lt) }) }, 0));
-    // P = floor(2^7 e / den): pd = P * den, 0 <= 2^7 e - pd < den, P in [0, 256)
-    const P = try b.a.alloc(i32, H * T * T);
-    for (P, e, 0..) |*o, x, i| o.* = @divFloor(x << 7, den[i / T]);
-    const p_id = try b.addVec(n3, P);
-    const pd = (try b.einsumExact(TensorInfo.vec(n3), n3, Ref.w(p_id), Ref.w(den_id), 0, &.{all3}, &.{ids(0, n2)})).?;
-    const rem_bits = lt + 9;
-    try b.rangeWide(n3, try b.expr(&.{ term(128, Ref.w(e_id), &.{all3}), term(-1, Ref.w(pd), &.{all3}) }, 0), rem_bits);
-    try b.rangeWide(n3, try b.expr(&.{ term(1, Ref.w(den_id), &.{ids(0, n2)}), term(-128, Ref.w(e_id), &.{all3}), term(1, Ref.w(pd), &.{all3}) }, -1), rem_bits);
-    try b.key(n3, try b.expr(&.{term(1, Ref.w(p_id), &.{all3})}, 0), null, .{ .range = 8 });
+    // per-row reciprocal rden = floor(2^K / den), K = lt + 15, proved on the
+    // [H, T] vector: rden in [0, 2^(lt+8)), pr = rden * den,
+    // 0 <= 2^K - pr < den.
+    const K: u5 = @intCast(lt + 15);
+    const rden = try b.a.alloc(i32, H * T);
+    for (den, rden) |d, *o| o.* = @divFloor(@as(i32, 1) << K, d);
+    const rden_id = try b.addVec(n2, rden);
+    const all2 = ids(0, n2);
+    try b.rangeWide(n2, try b.expr(&.{term(1, Ref.w(rden_id), &.{all2})}, 0), lt + 8);
+    const pr = (try b.einsumExact(TensorInfo.vec(n2), n2, Ref.w(rden_id), Ref.w(den_id), 0, &.{all2}, &.{all2})).?;
+    try b.rangeWide(n2, try b.expr(&.{term(-1, Ref.w(pr), &.{all2})}, @as(i64, 1) << K), lt + 8);
+    try b.rangeWide(n2, try b.expr(&.{ term(1, Ref.w(den_id), &.{all2}), term(1, Ref.w(pr), &.{all2}) }, -1 - (@as(i64, 1) << K)), lt + 8);
+    // P = rq_{lt+8}(e * rden) ~ 128 e / den, in [0, 128] (9-bit signed range)
+    const p_id = try b.einsumRequant(TensorInfo.vec(n3), Ref.w(e_id), Ref.w(rden_id), 0, &.{all3}, &.{all2}, @intCast(lt + 8), 9);
     // O[t, hk, g, e] = requant(sum_j P[hk, g, t, j] V[j, hk, e])
     const n_o = lt + lh + ldh;
     const O = try b.einsumRequant(
@@ -620,7 +630,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
         null,
         8,
     );
-    return .{ .o = O, .scores = S, .probs = p_id, .pd = pd, .m = m_id, .sel = sel_id, .d = dd_id, .e = e_id, .den = den_id };
+    return .{ .o = O, .scores = S, .probs = p_id, .rden = rden_id, .m = m_id, .sel = sel_id, .d = dd_id, .e = e_id, .den = den_id };
 }
 
 /// z = x + y (committed, lineq).
@@ -923,16 +933,21 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
         var den: i64 = 0;
         for (0..t + 1) |j| den += et[@intCast(mx - S[(h * T + t) * T + j])];
         var psum: i64 = 0;
+        const K: u6 = @intCast(cfg.log_t + 15);
+        const rden = @divFloor(@as(i64, 1) << K, den);
         for (0..T) |j| {
             const pv = P[(h * T + t) * T + j];
             if (j > t) {
                 try testing.expectEqual(@as(i32, 0), pv);
             } else {
-                try testing.expectEqual(@divFloor(@as(i64, et[@intCast(mx - S[(h * T + t) * T + j])]) * 128, den), pv);
+                const ev: i64 = et[@intCast(mx - S[(h * T + t) * T + j])];
+                try testing.expectEqual(rq(ev * rden, @intCast(cfg.log_t + 8)), pv);
+                // within 1 of the exact 128 e / den
+                try testing.expect(@abs(pv * den - 128 * ev) <= den);
             }
             psum += pv;
         }
-        try testing.expect(psum <= 128 and psum + @as(i64, @intCast(T)) >= 128);
+        try testing.expect(@abs(psum - 128) <= @as(i64, @intCast(T)));
     };
     // PV: O[t, h, e] = rq(sum_j P[h, t, j] V[j, kvh, e])
     var oops: ?xt.Einsum = null;
@@ -960,7 +975,7 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
     }
 }
 
-const Cheat = enum { sel_moved, max_lowered, prob_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
+const Cheat = enum { rden_plus_one, sel_moved, max_lowered, prob_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
 
 fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
     var pool: f.Pool = undefined;
@@ -1002,11 +1017,8 @@ fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
             sel[row * T + j2] = 1;
             for (0..T) |j| Dd[row * T + j] = nm - S[row * T + j] - bias[(T - 1) * T + j];
         },
-        .prob_plus_one => {
-            const P = b.wit.items[at.probs];
-            P[row * T] += 1;
-            b.wit.items[at.pd][row * T] = P[row * T] * b.wit.items[at.den][row];
-        },
+        .prob_plus_one => b.wit.items[at.probs][row * T] += 1,
+        .rden_plus_one => b.wit.items[at.rden][row] += 1,
         .rt_plus_one => {
             const r = fx.out.rms1;
             b.wit.items[r.rt][0] += 1;

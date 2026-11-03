@@ -135,9 +135,12 @@ signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
 * e = expT(D), expT(d) = round(256 exp(-d/16)) for d < 256, 0 otherwise
   (public 1024-entry lookup). Masked positions have D >= 257, so e = 0.
 * den[h,t] = sum_j e (lineq with a SUM term) in [256, 256 T].
-* P = floor(128 e / den) in [0, 128]: P in [0, 256) (range), pd = P*den
-  (exact einsum, den broadcast over j), 0 <= 128 e - pd and
-  den - 1 - (128 e - pd) >= 0 (ranges of lt+9 bits, limbs if > 16).
+* rden[h,t] = floor(2^K / den), K = lt + 15, proved on the [H, T] vector:
+  rden in [0, 2^(lt+8)), pr = rden * den (exact einsum), 2^K - pr >= 0 and
+  den - 1 - (2^K - pr) >= 0 (ranges of lt+8 bits, limbs if > 16).
+* P = rq_{lt+8}(e * rden) (requant einsum, rden broadcast over j, 9-bit
+  signed range) = round(e * floor(2^(lt+15)/den) / 2^(lt+8)); P in [0, 128]
+  and |P den - 128 e| <= den (tested against the exact quotient).
 * o[t, h, e] = rq_s(sum_j P[h,t,j] v[j, hk(h), e]) int8, s chosen.
 
 Constraints for the rowmax: sel in {0,1} (1-bit range), sum_j sel = 1
@@ -163,17 +166,18 @@ Uniqueness arguments:
 * rowmax: sel in {0,1}, sum sel = 1 over <= T < p terms => exactly one j*;
   D_j in [0,1024) and D_j = m - S_j - Bias_j as integers (bounds below) =>
   m >= Sm_j for all j; sum_j sel D = D_{j*} = 0 => m = Sm_{j*}. So m = max Sm.
-* division: P in [0,256) and pd = P den exactly; with |128 e - pd| < 2^30,
-  0 <= 128 e - P den < den <=> P = floor(128 e / den). Range-checking P is
-  essential: without it P = (128 e - r') / den mod p would satisfy the
-  field equations for any r' in [0, den).
+* division: rden in range and pr = rden den exactly; with |2^K - pr| < 2^30,
+  0 <= 2^K - rden den < den <=> rden = floor(2^K / den). Range-checking rden
+  is essential: without it rden = (2^K - r') / den mod p would satisfy the
+  field equations for any r' in [0, den). P is then a plain requant (its
+  output range check plays the same role for P).
 * isqrt / reciprocal: same pattern; rt >= 0 range-checked so the square root
   is unique; rt >= 1 since N >= 2^s1.
 * requant: core argument (remainder in [0, 2^s), output range).
 
 ## 4. Field-size bounds (no wrap-around)
 
-Enforced by `LayerCfg.validate` (ld <= 14, lf <= 15, ldh <= 13, lt <= 13,
+Enforced by `LayerCfg.validate` (ld <= 14, lf <= 15, ldh <= 13, lt <= 12,
 lh + 2 lt <= 26) and by builder assertions:
 
 | quantity | bound |
@@ -186,7 +190,8 @@ lh + 2 lt <= 26) and by builder assertions:
 | score acc | dh 2^16 <= 2^29 |
 | D, m - S - Bias | |.| < 2^11 |
 | den | <= 2^(lt+8) |
-| pd = P den, 128 e - pd | < 2^(lt+16) <= 2^29 |
+| pr = rden den, 2^K - pr | <= 2^(lt+15) <= 2^27 |
+| P acc = e rden | <= 2^(lt+15) |
 | PV acc | < 2^(lt+15) |
 | core matmul acc | K 2^14 <= 2^29 |
 
@@ -201,8 +206,8 @@ All inequality operands therefore satisfy the range-to-integer lemma.
 * tampering of every ext sumcheck (first round), sampled finals, first/last
   ext values, statement (mask, shift, labels) -> rejected;
 * test-only unchecked prover (`ext.test_unchecked_prover`) with invalid
-  witnesses: moved argmax selector, lowered rowmax (consistent D), P + 1
-  (consistent pd), wrong rt, residual, exp value, masked-position exp leak,
+  witnesses: moved argmax selector, lowered rowmax (consistent D), P + 1,
+  rden + 1, wrong rt, residual, exp value, masked-position exp leak,
   score, sum of squares -> all rejected by the verifier;
 * honest prover refuses an invalid witness (error, no proof).
 
