@@ -1,0 +1,683 @@
+{
+  "schema": "rv64-native-15-block-resident-qualification/v1",
+  "native_basket_complete": true,
+  "recursive_basket_complete": false,
+  "recursion_scope": "Separate workstream; this receipt establishes native GPU proofs and independent native receiver acceptance only.",
+  "security_target": "128-bit target under documented conjectured assumptions; no whole-protocol certificate",
+  "policy_identity_version": 2,
+  "profile": "conjectured128_b2_q108_p20_fold4",
+  "guest_elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+  "hardware": "1x RTX 5090 (SM120)",
+  "driver_sha256": "b475da78c78570ef83a6ec9a9f3d9d2c48692bdb12d103aca19ff203bde5aa50",
+  "library_sha256": "60968c1308448768d78a3587d0077380e6038e93912c0eaa78122f5df92d02a9",
+  "configuration": {
+    "lanes": 1,
+    "workers_per_lane": 8,
+    "device_logical_cap_bytes": 30064771072,
+    "immutable_device_cap_bytes": 2147483648,
+    "immutable_host_key_cap_bytes": 4294967296,
+    "frontend_retained_cap_bytes": 51539607552,
+    "host_stage_cap_bytes": 38654705664,
+    "park_main": false,
+    "cpu_compact_replay": true,
+    "device_main_and_inter_required": true,
+    "core_single_stream_ingress": true,
+    "cuda_module_loading": "runtime default"
+  },
+  "total_cpu_proofs": 347,
+  "total_truth_proofs": 232,
+  "total_instructions": 1424442993,
+  "phase_totals_ns": {
+    "capture_ns": 165834273308,
+    "setup_ns": 1204638289820,
+    "prove_ns": 573655314531,
+    "same_process_verify_ns": 82921022694,
+    "fresh_setup_ns": 1141241077610,
+    "fresh_verify_ns": 85717211967
+  },
+  "physical_observations": {
+    "sampled_device_peak_mib": 32110,
+    "producer_peak_host_rss_bytes": 38239969280
+  },
+  "blocks": [
+    {
+      "block": 24626900,
+      "instructions": 49123899,
+      "cpu_proofs": 12,
+      "truth_proofs": 8,
+      "public_boundary_words": 1674902,
+      "capture_ns": 7331718897,
+      "setup_ns": 35137615237,
+      "prove_ns": 22953298100,
+      "same_process_verify_ns": 3154121782,
+      "fresh_setup_ns": 44162340332,
+      "fresh_verify_ns": 3501540961,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 23,
+      "artifact_manifest_sha256": "ad95aaeeb15fe19ec2fc49ef605f811b27e8a2ad97bb2b1b3632fc0d62d425bb",
+      "bundle_sha256": {
+        "bytes": 118574,
+        "sha256": "73da0b3ac5d0058588ed2a14f2e4a2ebe609fde1f7315a93cd1d5e8db791e133"
+      },
+      "cells_sha256": {
+        "bytes": 77045508,
+        "sha256": "5fda440e704d3205899c6303be5c5c34ad57feb50607dae7a116dca5d762ab79"
+      },
+      "stage_one_sha256": {
+        "bytes": 1410508,
+        "sha256": "593102f176f26112a2a35beffdc5e4ad563b47057177a9928c04f2b6ff0a0628"
+      },
+      "source_shape": {
+        "native_proofs": 20,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 21,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 37,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24626900/proof"
+    },
+    {
+      "block": 24628590,
+      "instructions": 157621394,
+      "cpu_proofs": 38,
+      "truth_proofs": 18,
+      "public_boundary_words": 4386235,
+      "capture_ns": 17199379832,
+      "setup_ns": 171261643114,
+      "prove_ns": 63972803773,
+      "same_process_verify_ns": 9573209420,
+      "fresh_setup_ns": 123361198511,
+      "fresh_verify_ns": 8581232073,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 59,
+      "artifact_manifest_sha256": "48c55501437029bd209ca5dab4b45e8d565b685339f9399541f01a28b7106b39",
+      "bundle_sha256": {
+        "bytes": 354935,
+        "sha256": "e4067f4f01e19fd1144dc269570fc7625e27b83f837982c12c18cd01bd00555e"
+      },
+      "cells_sha256": {
+        "bytes": 201766826,
+        "sha256": "73bd44ff160fafe0624aa586172c168df00a6ba0612276fea4b22485c1ea9f11"
+      },
+      "stage_one_sha256": {
+        "bytes": 4388136,
+        "sha256": "37b7e5c69bb8f5f3ff7746621e7669b239c97d60464f3611cd5128e9868be441"
+      },
+      "source_shape": {
+        "native_proofs": 56,
+        "max_trace_log": 23,
+        "max_public_boundary_log": 23,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 35,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24628590/proof"
+    },
+    {
+      "block": 24628595,
+      "instructions": 172795370,
+      "cpu_proofs": 42,
+      "truth_proofs": 24,
+      "public_boundary_words": 4872291,
+      "capture_ns": 18570027667,
+      "setup_ns": 135296611962,
+      "prove_ns": 70315102615,
+      "same_process_verify_ns": 10553423274,
+      "fresh_setup_ns": 132382035685,
+      "fresh_verify_ns": 9378725658,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 69,
+      "artifact_manifest_sha256": "2c575cdbe8ba6a64876610786775a1f4339db35a5539cc8532138599acf24163",
+      "bundle_sha256": {
+        "bytes": 380995,
+        "sha256": "5bda1dbe96f035a2c79e1964790d37d55f3cad0d69ce78ba485c7f7c9f4efe2a"
+      },
+      "cells_sha256": {
+        "bytes": 224125402,
+        "sha256": "4ec098647508fcd64bb1e2c7b4ed82af785f736b363fa88972ca19f57a24f1eb"
+      },
+      "stage_one_sha256": {
+        "bytes": 4721372,
+        "sha256": "f729e774a9ca23d5b33ce2604e4809dc45a011e149bda430de5b2d37444e7dad"
+      },
+      "source_shape": {
+        "native_proofs": 66,
+        "max_trace_log": 23,
+        "max_public_boundary_log": 23,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 35,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24628595/proof"
+    },
+    {
+      "block": 24628607,
+      "instructions": 26894777,
+      "cpu_proofs": 7,
+      "truth_proofs": 10,
+      "public_boundary_words": 1032216,
+      "capture_ns": 5286546781,
+      "setup_ns": 19363719068,
+      "prove_ns": 11842421023,
+      "same_process_verify_ns": 2232880034,
+      "fresh_setup_ns": 27432078078,
+      "fresh_verify_ns": 2945149779,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 20,
+      "artifact_manifest_sha256": "bcf849f4d03ab0ad364273de43279d41a9cb350965cbe067cbd87a380a1a87db",
+      "bundle_sha256": {
+        "bytes": 75236,
+        "sha256": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf"
+      },
+      "cells_sha256": {
+        "bytes": 47481952,
+        "sha256": "30d932424436d660038614733584d51ecbbef8e166df82458e45a724acb17bf1"
+      },
+      "stage_one_sha256": {
+        "bytes": 823536,
+        "sha256": "7fec3b71d5243d3aae41ae92d80b0b5c6a97eedec3b2a8b04aaf6e5765bd0598"
+      },
+      "source_shape": {
+        "native_proofs": 17,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 20,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 36,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24628607/proof"
+    },
+    {
+      "block": 24628608,
+      "instructions": 38600821,
+      "cpu_proofs": 10,
+      "truth_proofs": 10,
+      "public_boundary_words": 1247221,
+      "capture_ns": 6370575666,
+      "setup_ns": 32289549292,
+      "prove_ns": 14724065542,
+      "same_process_verify_ns": 2583976350,
+      "fresh_setup_ns": 35100737631,
+      "fresh_verify_ns": 3343635819,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 23,
+      "artifact_manifest_sha256": "c7c889cf2faace14c34c880bc4500affc55413d931c16405432fee413fc9c7d4",
+      "bundle_sha256": {
+        "bytes": 98325,
+        "sha256": "919724a321ee2dde0c9162efdcbc4fd8a4f53226204fadd6c756e018a23b62a3"
+      },
+      "cells_sha256": {
+        "bytes": 57372182,
+        "sha256": "f140c45c150bd7bf68a7037f1d966847c0147ca4a554f974eded0a789baaeeae"
+      },
+      "stage_one_sha256": {
+        "bytes": 1140540,
+        "sha256": "e3915a55685c5e7029f74198214e08c1e0c00a4b5481246ca7c415449a35a119"
+      },
+      "source_shape": {
+        "native_proofs": 20,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 21,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 36,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24628608/proof"
+    },
+    {
+      "block": 24628611,
+      "instructions": 187659496,
+      "cpu_proofs": 45,
+      "truth_proofs": 22,
+      "public_boundary_words": 5312502,
+      "capture_ns": 19870789709,
+      "setup_ns": 189374396817,
+      "prove_ns": 73827582366,
+      "same_process_verify_ns": 9977672641,
+      "fresh_setup_ns": 151425628705,
+      "fresh_verify_ns": 12285602499,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 70,
+      "artifact_manifest_sha256": "6cd8a0db67465779226807cbff9969925d09005c352f9b407643b497731bb3f2",
+      "bundle_sha256": {
+        "bytes": 417196,
+        "sha256": "b82d154d641db56e96626418d361d90657699f5d75b2630dbb7b1bd309ad140f"
+      },
+      "cells_sha256": {
+        "bytes": 244375108,
+        "sha256": "70a5dcffc2605e7461b22a6ea72410a1c500172bd979183213f4606964c8c9a2"
+      },
+      "stage_one_sha256": {
+        "bytes": 5139744,
+        "sha256": "c68bd5b054395532f1553f1da2670c1a16b16c37d966ca7d6883d92b25c9df6d"
+      },
+      "source_shape": {
+        "native_proofs": 67,
+        "max_trace_log": 23,
+        "max_public_boundary_log": 23,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 36,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24628611/proof"
+    },
+    {
+      "block": 24647140,
+      "instructions": 24598260,
+      "cpu_proofs": 6,
+      "truth_proofs": 9,
+      "public_boundary_words": 1123887,
+      "capture_ns": 4999256125,
+      "setup_ns": 20693284131,
+      "prove_ns": 11147702315,
+      "same_process_verify_ns": 2195024705,
+      "fresh_setup_ns": 28111354776,
+      "fresh_verify_ns": 2652035294,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 18,
+      "artifact_manifest_sha256": "a5ae408796a3593cdbb32b68447faa33d609eabad2aefc6fee20c104ff79d936",
+      "bundle_sha256": {
+        "bytes": 68545,
+        "sha256": "68c60c7cae68b1c5699287176d6b2f069a3f4c9cb498746cab6e2626826574da"
+      },
+      "cells_sha256": {
+        "bytes": 51698818,
+        "sha256": "ce969cbab3bc772752f5f51de9ac37cf22b050830dd8449f49dcba120b71d49d"
+      },
+      "stage_one_sha256": {
+        "bytes": 726952,
+        "sha256": "f92863825760f77e17d676b6799a97ede099beb04de2907c7188e46c82ac6396"
+      },
+      "source_shape": {
+        "native_proofs": 15,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 21,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 35,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24647140/proof"
+    },
+    {
+      "block": 24697070,
+      "instructions": 57790096,
+      "cpu_proofs": 14,
+      "truth_proofs": 17,
+      "public_boundary_words": 1813382,
+      "capture_ns": 7789193829,
+      "setup_ns": 42609257088,
+      "prove_ns": 23204128063,
+      "same_process_verify_ns": 3771261759,
+      "fresh_setup_ns": 50051644724,
+      "fresh_verify_ns": 4847996619,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 34,
+      "artifact_manifest_sha256": "ac6580581c0b7834fd0dc7a0aa06817845a2881d10a804a91c1cfcb60ef2c0ff",
+      "bundle_sha256": {
+        "bytes": 141843,
+        "sha256": "cf18d417846d4cd045410979a63255447aacebeb1a72dcbe133d634e98fe0d27"
+      },
+      "cells_sha256": {
+        "bytes": 83415588,
+        "sha256": "b184ee3d947fcd99971704f14c6eb5a92b72fb205274a5eb931f56e9f2afa585"
+      },
+      "stage_one_sha256": {
+        "bytes": 1616444,
+        "sha256": "17f41176af34311632272afa84737b27c7efb6b8269272eac141e8c9645f77ec"
+      },
+      "source_shape": {
+        "native_proofs": 31,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 21,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 36,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24697070/proof"
+    },
+    {
+      "block": 24697073,
+      "instructions": 60386659,
+      "cpu_proofs": 15,
+      "truth_proofs": 13,
+      "public_boundary_words": 1560213,
+      "capture_ns": 8367806655,
+      "setup_ns": 43994551669,
+      "prove_ns": 24390481719,
+      "same_process_verify_ns": 4213047631,
+      "fresh_setup_ns": 49225799249,
+      "fresh_verify_ns": 3409096458,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 31,
+      "artifact_manifest_sha256": "057b84beafe788dbc812849cc8a96cad9774fee8c867e50c96116c7bbe94ff0a",
+      "bundle_sha256": {
+        "bytes": 138963,
+        "sha256": "c42db43eb99c4fbaea7401405e15f10e00c402e20d182f8d9f744788b7ffb934"
+      },
+      "cells_sha256": {
+        "bytes": 71769814,
+        "sha256": "0496013ba8e39f406fe06f4d760d7d0e69d30f59e485f2ac1ed74f8f8c7b4624"
+      },
+      "stage_one_sha256": {
+        "bytes": 1693640,
+        "sha256": "2a34d60bd85507d363c271d52fc1f36e7c9a4e949fc73ce7ed779ceb70f3a995"
+      },
+      "source_shape": {
+        "native_proofs": 28,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 21,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 35,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/24697073/proof"
+    },
+    {
+      "block": 25229951,
+      "instructions": 165910998,
+      "cpu_proofs": 40,
+      "truth_proofs": 18,
+      "public_boundary_words": 3948451,
+      "capture_ns": 15909117215,
+      "setup_ns": 144270181917,
+      "prove_ns": 61103483738,
+      "same_process_verify_ns": 7699466337,
+      "fresh_setup_ns": 126512472046,
+      "fresh_verify_ns": 8191794217,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 61,
+      "artifact_manifest_sha256": "c57ebff040e006bd78c00f43b6d39cc657c9cb64196f19a67ecdfb8fc012b71e",
+      "bundle_sha256": {
+        "bytes": 349250,
+        "sha256": "9ff6f294351ed105d9d4d150231c5e9ceb5411e2d60f792d65d38c70ea06d119"
+      },
+      "cells_sha256": {
+        "bytes": 181628762,
+        "sha256": "bc6a877838dd2f698132647de5b3211e7cef2d4f5be8e7b044f026b9be745c8f"
+      },
+      "stage_one_sha256": {
+        "bytes": 4456316,
+        "sha256": "2d7036577ba1bc8df87efc06cd1ddf39ae844f06d47d4150992d7717b4a02b42"
+      },
+      "source_shape": {
+        "native_proofs": 58,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 22,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 36,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/25229951/proof"
+    },
+    {
+      "block": 25229955,
+      "instructions": 122476661,
+      "cpu_proofs": 30,
+      "truth_proofs": 19,
+      "public_boundary_words": 2990369,
+      "capture_ns": 12851139413,
+      "setup_ns": 102337580474,
+      "prove_ns": 47220192317,
+      "same_process_verify_ns": 7717437080,
+      "fresh_setup_ns": 93552010268,
+      "fresh_verify_ns": 7200978158,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 52,
+      "artifact_manifest_sha256": "7da56729eef0cbcdd44a8bd73cb6669044cc01baf65033bb0876ceb9067e8578",
+      "bundle_sha256": {
+        "bytes": 270068,
+        "sha256": "6ea3ce9a45237075291fbbd037bc004d4b01f562cf9db44c0f7d35ea40de2394"
+      },
+      "cells_sha256": {
+        "bytes": 137556990,
+        "sha256": "d7bce60fa8a2b65870d3d5abe03a0ee597d5698e9a3194beaa1e03b84b9f4613"
+      },
+      "stage_one_sha256": {
+        "bytes": 3350696,
+        "sha256": "e3ee4d098f199a605e371f52bbc77df561c3af0192a332b76c7d9321ffefbc22"
+      },
+      "source_shape": {
+        "native_proofs": 49,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 22,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 39,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/25229955/proof"
+    },
+    {
+      "block": 25229957,
+      "instructions": 27077168,
+      "cpu_proofs": 7,
+      "truth_proofs": 10,
+      "public_boundary_words": 1196897,
+      "capture_ns": 5659328116,
+      "setup_ns": 21413260169,
+      "prove_ns": 12597779832,
+      "same_process_verify_ns": 2378468114,
+      "fresh_setup_ns": 27008188810,
+      "fresh_verify_ns": 2447575114,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 20,
+      "artifact_manifest_sha256": "eb922bf82240d9bcdb0dea4b8117573ed2c937904bd61081ea1dc5c5841949f6",
+      "bundle_sha256": {
+        "bytes": 76328,
+        "sha256": "ca0174565d3f608900105ec5b91ba711c19061ba882af512bb2a55c9bad9bc5a"
+      },
+      "cells_sha256": {
+        "bytes": 55057278,
+        "sha256": "00f1fa8966c598e6e1ea1d3294f81f026ad7fa83edf60d2a066263a9393560d8"
+      },
+      "stage_one_sha256": {
+        "bytes": 828460,
+        "sha256": "128d64601a5ba771652d98a27a3751faf3338e581a8cff27f0d6dafc076afe29"
+      },
+      "source_shape": {
+        "native_proofs": 17,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 21,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 35,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/25229957/proof"
+    },
+    {
+      "block": 26235156,
+      "instructions": 15305679,
+      "cpu_proofs": 4,
+      "truth_proofs": 7,
+      "public_boundary_words": 687342,
+      "capture_ns": 4020453213,
+      "setup_ns": 14008100549,
+      "prove_ns": 7832474656,
+      "same_process_verify_ns": 1873637964,
+      "fresh_setup_ns": 17467623935,
+      "fresh_verify_ns": 1600950480,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 14,
+      "artifact_manifest_sha256": "b456a089cca690204a3649d2d4142956947231526eb9e86b75d1d16787de2c6c",
+      "bundle_sha256": {
+        "bytes": 46802,
+        "sha256": "8a391ea6e155f4eed8026682bf4a0de4106252582b39900a09d63b993a8ecbd9"
+      },
+      "cells_sha256": {
+        "bytes": 31617748,
+        "sha256": "7e3e754e7490d801fde48128b372a8d59fb40b80e156a04adbfa8d0c7ef05e1e"
+      },
+      "stage_one_sha256": {
+        "bytes": 487244,
+        "sha256": "6cc9389b6a6cf9e1af312f0975e8b2c90025c00c1fcfe177285142a48e540cf3"
+      },
+      "source_shape": {
+        "native_proofs": 11,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 20,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 35,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/26235156/proof"
+    },
+    {
+      "block": 26235159,
+      "instructions": 204825818,
+      "cpu_proofs": 49,
+      "truth_proofs": 26,
+      "public_boundary_words": 4407202,
+      "capture_ns": 18947341762,
+      "setup_ns": 147234427407,
+      "prove_ns": 83681419577,
+      "same_process_verify_ns": 9226625095,
+      "fresh_setup_ns": 148246919649,
+      "fresh_verify_ns": 9364242285,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 78,
+      "artifact_manifest_sha256": "f550f94f986dd8ff120735070765c0b98f7f0dc546a0bae11813ca5cf4740185",
+      "bundle_sha256": {
+        "bytes": 451712,
+        "sha256": "479d53bfa3ff15f6c899ec93c6cbd566855f19da3abb4c94197eae651bdb89a1"
+      },
+      "cells_sha256": {
+        "bytes": 202731308,
+        "sha256": "bac6b953c8034b39969baac856060e2b20486246ecf475f5bb43cf8edc234c6b"
+      },
+      "stage_one_sha256": {
+        "bytes": 5554512,
+        "sha256": "fb5ccbd96099d356e3aadcca72f9518238eafe2080ee1ba2ac28c6c1e9ee09ea"
+      },
+      "source_shape": {
+        "native_proofs": 75,
+        "max_trace_log": 23,
+        "max_public_boundary_log": 23,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 38,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-largest49-v2-cache-fixed/batch/trial-0/26235159/proof"
+    },
+    {
+      "block": 26235168,
+      "instructions": 113375897,
+      "cpu_proofs": 28,
+      "truth_proofs": 21,
+      "public_boundary_words": 2619878,
+      "capture_ns": 12661598428,
+      "setup_ns": 85354110926,
+      "prove_ns": 44842378895,
+      "same_process_verify_ns": 5770770508,
+      "fresh_setup_ns": 87201045211,
+      "fresh_verify_ns": 5966656553,
+      "fresh_accepted": true,
+      "completed_ethereum_block": true,
+      "artifact_count": 52,
+      "artifact_manifest_sha256": "6bbd0057ec84b66823e0a9ad7d047ebfb6479b281493c27fe66d5c08518d04c4",
+      "bundle_sha256": {
+        "bytes": 272598,
+        "sha256": "2d8df78b91abe8da362868778d6516afb6dbcf5d3fb230513a1b4f81478ff228"
+      },
+      "cells_sha256": {
+        "bytes": 120514404,
+        "sha256": "118e2f836d6b47bb20c043bee031d064f79337c372d5c939a4f9aa7915bccc24"
+      },
+      "stage_one_sha256": {
+        "bytes": 3193188,
+        "sha256": "625f27d4a85f08f44c0213653e37a2c66c2036fd3b171de8df44e7dab8ee9296"
+      },
+      "source_shape": {
+        "native_proofs": 49,
+        "max_trace_log": 22,
+        "max_public_boundary_log": 22,
+        "max_columns": 7444,
+        "max_constraints": 7751,
+        "max_samples_per_column": 5,
+        "max_air_degree": 5,
+        "max_local_instances": 37,
+        "max_tuple_arity": 35,
+        "max_gkr_variables": 26
+      },
+      "artifact_directory": "/workspace/rv64-gpu-session/qualification/native-remaining14-v2-one-lane/batch/trial-0/26235168/proof"
+    }
+  ],
+  "notes": [
+    "All 15 native GPU producers completed, and every block was accepted as completed by a separate fresh CPU receiver.",
+    "The largest block used 49 CPU and 26 truth proofs with 4,407,202 public RAM words. Boundary-only log-23 admission did not widen CPU clocks or ordinary LS.",
+    "The logical 28-GiB GPU cap differs from physical memory usage: CUDA pool and module caches can raise the physical peak. No 1.5x memory saving is claimed.",
+    "This is functional qualification, not a controlled speedup comparison. Setup, capture, proving and verification are reported separately, including cold geometry/key setup.",
+    "Policy v2 changes proof bytes. Historical v1 controls are preserved separately; no cross-version byte parity is claimed.",
+    "Each artifact-manifest hash is SHA256 of compact sorted JSON mapping filename to SHA256. Complete per-file hashes remain in pinned result.json beside all preserved proof artifacts.",
+    "Recursive proving is tracked separately: the complete native basket does not establish a complete recursive basket."
+  ]
+}
