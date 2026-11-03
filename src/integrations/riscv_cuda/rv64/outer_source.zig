@@ -138,10 +138,20 @@ pub const Context = struct {
         var locked = true;
         defer if (locked) self.mutex.unlock();
         if (self.active != null) return error.OuterProofAlreadyActive;
+        var owns_assignment = false;
+        var previous_assignment: ?Assignment.Prepared = null;
+        // Until an Owner takes custody, every failure retires the bounded
+        // request allocation while its allocator is still alive and restores
+        // any explicit persistent legacy plan unchanged.
+        errdefer if (owns_assignment) {
+            self.assignment.?.deinit();
+            self.assignment = previous_assignment;
+        };
         if (graph) |ctx| {
-            const prepared = try Assignment.Prepared.init(self.allocator, ctx, &self.service.library);
-            if (self.assignment) |*old| old.deinit();
+            const prepared = try Assignment.Prepared.init(a, ctx, &self.service.library);
+            previous_assignment = self.assignment;
             self.assignment = prepared;
+            owns_assignment = true;
         }
         const value_count = if (graph != null) blk: {
             const assignment = self.assignment orelse return error.TraceOnlySourceRequired;
@@ -165,14 +175,19 @@ pub const Context = struct {
         std.debug.print("GPU_OUTER fixed_forest_bytes={} immutable_limit_bytes={} device_limit_bytes={} assignment_bytes={} schedule_bytes={} logs={any}\n", .{ fixed_bytes, immutable_limit, self.service.byte_cap, values.len * @sizeOf(Outer.protocol.Q), schedule_bytes, key.logs.toArray() });
         try self.ensureCatalogue(key);
         const owner = try a.create(Owner);
-        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .value_count = value_count, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = self.service.stage(), .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
+        owner.* = .{ .allocator = a, .backend = self, .key = key, .input = values, .value_count = value_count, .owns_assignment = owns_assignment, .previous_assignment = previous_assignment, .initial_scope = scope, .scope = scope, .main_columns = &.{}, .inter_columns = &.{}, .pcs = self.service.stage(), .composition_stage = .{ .context = owner, .evaluate_and_commit = Owner.compose } };
         self.active = owner;
+        owns_assignment = false;
+        previous_assignment = null;
         self.mutex.unlock();
         locked = false;
         errdefer Owner.release(owner);
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
         try owner.run(@import("outer_source_main.zig").generate);
+        // MAIN generation joined every metadata upload and witness kernel.
+        // INTER/PCS retain device columns only; no CPU plan escapes its budget.
+        owner.retireAssignment();
         owner.input = &.{};
         const commit = self.trace_commit.stage();
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
@@ -186,6 +201,8 @@ pub const Owner = struct {
     key: *const Outer.prove.Authority,
     input: []const Outer.protocol.Q,
     value_count: usize,
+    owns_assignment: bool = false,
+    previous_assignment: ?Assignment.Prepared = null,
     initial_scope: D.Scope,
     scope: D.Scope,
     raw_fixed: [45]Native.Lease = undefined,
@@ -268,6 +285,20 @@ pub const Owner = struct {
         self.leases.clearRetainingCapacity();
         self.main_evaluations = .{};
     }
+    fn retireAssignment(self: *Owner) void {
+        self.backend.mutex.lock();
+        defer self.backend.mutex.unlock();
+        self.retireAssignmentLocked();
+    }
+    fn retireAssignmentLocked(self: *Owner) void {
+        if (!self.owns_assignment) return;
+        std.debug.assert(self.backend.active == self);
+        var assignment = self.backend.assignment orelse @panic("missing owned atomic circuit plan");
+        self.backend.assignment = self.previous_assignment;
+        self.previous_assignment = null;
+        self.owns_assignment = false;
+        assignment.deinit();
+    }
     fn release(raw: *anyopaque) void {
         const self: *Owner = @ptrCast(@alignCast(raw));
         const b = self.backend;
@@ -280,6 +311,7 @@ pub const Owner = struct {
         a.free(self.inter_columns);
         b.mutex.lock();
         std.debug.assert(b.active == self);
+        self.retireAssignmentLocked();
         b.active = null;
         b.mutex.unlock();
         a.destroy(self);
@@ -312,4 +344,70 @@ test "outer GPU factory is explicit and rejects empty assignment before touching
     const factory = backend.factory();
     const scope = D.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(0), .ordinal = 0 };
     try std.testing.expectError(error.InvalidOuterAssignment, factory.prepare(factory.context, std.testing.allocator, &key, &.{}, scope));
+}
+
+// Only deinitialization fields are initialized: these tests exercise ownership
+// without constructing a native session or invoking a device callback.
+fn testAssignment(a: std.mem.Allocator, tag: u8) !Assignment.Prepared {
+    var result: Assignment.Prepared = undefined;
+    result.allocator = a;
+    result.plan = .{ .allocator = a, .tasks = &.{}, .seeds = &.{}, .level_ends = &.{} };
+    result.tasks = &.{};
+    result.indices = try a.alloc(u32, 1);
+    result.seeds = &.{};
+    result.identity = @splat(tag);
+    return result;
+}
+
+test "atomic circuit plan retires after MAIN while restoring persistent legacy plan" {
+    const a = std.testing.allocator;
+    var backend: Context = undefined;
+    backend.mutex = .{};
+    backend.assignment = try testAssignment(a, 2);
+    var owner: Owner = undefined;
+    owner.backend = &backend;
+    owner.owns_assignment = true;
+    owner.previous_assignment = try testAssignment(a, 1);
+    backend.active = &owner;
+    owner.retireAssignment();
+    try std.testing.expect(backend.active == &owner);
+    try std.testing.expect(!owner.owns_assignment);
+    try std.testing.expect(owner.previous_assignment == null);
+    try std.testing.expectEqual(@as(u8, 1), backend.assignment.?.identity[0]);
+    owner.retireAssignment();
+    backend.assignment.?.deinit();
+}
+
+test "failed atomic owner releases bounded plan before allowing another proof" {
+    const a = std.testing.allocator;
+    const Fake = struct {
+        fn submit(_: *anyopaque, _: Native.Callback, _: ?*anyopaque) callconv(.c) c_int {
+            return 0;
+        }
+    };
+    var service: Service.Context = undefined;
+    service.submit = Fake.submit;
+    service.session = @ptrCast(&service);
+    service.cache_mutex = .{};
+    service.cache = .empty;
+    service.immutable_setup = null;
+    var backend: Context = undefined;
+    backend.service = &service;
+    backend.mutex = .{};
+    backend.assignment = try testAssignment(a, 3);
+    const owner = try a.create(Owner);
+    owner.* = undefined;
+    owner.allocator = a;
+    owner.backend = &backend;
+    owner.owns_assignment = true;
+    owner.previous_assignment = null;
+    owner.scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    owner.initial_scope = owner.scope;
+    owner.leases = .empty;
+    owner.main_columns = &.{};
+    owner.inter_columns = &.{};
+    backend.active = owner;
+    Owner.release(owner);
+    try std.testing.expect(backend.active == null);
+    try std.testing.expect(backend.assignment == null);
 }
