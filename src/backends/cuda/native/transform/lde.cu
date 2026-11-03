@@ -282,7 +282,7 @@ static int preprocessed_transpose_simd_blocks_on(
     return static_cast<int>(status);
 }
 
-extern "C" int stwo_lde_n2b_addressed_on(
+extern "C" __attribute__((visibility("default"))) int stwo_lde_n2b_addressed_on(
     uint32_t *arena,
     size_t arena_words,
     const void *raw_descriptors,

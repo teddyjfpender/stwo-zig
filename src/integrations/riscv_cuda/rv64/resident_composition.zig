@@ -30,7 +30,10 @@ fn check(status: c_int) !void {
     if (status != 0) return error.CudaResidentCompositionFailed;
 }
 fn sym(comptime T: type, lib: *std.DynLib, name: [:0]const u8) !T {
-    return lib.lookup(T, name) orelse error.MissingResidentCompositionSymbol;
+    return lib.lookup(T, name) orelse {
+        std.debug.print("GPU_COMPOSITION_MISSING_SYMBOL name={s}\n", .{name});
+        return error.MissingResidentCompositionSymbol;
+    };
 }
 fn words(values: []const M) []const u32 {
     return @as([*]const u32, @ptrCast(values.ptr))[0..values.len];
@@ -51,6 +54,34 @@ fn sourceColumn(source: engine.air.component_prover.ForField(O).Poly) !D.Column 
     const p = source.coefficients orelse return error.DevicePcsCoefficientsRequired;
     return .{ .log_size = p.logSize(), .coefficients = p.coefficients() };
 }
+// Retain only authenticated executable metadata, not the cold symbolic DAG.
+const KernelMetadata = struct {
+    allocator: std.mem.Allocator,
+    program: struct { identity: [32]u8, inputs: []engine.air.secure_polynomial_program_v2.Input, roots: []u32 },
+    parameter_slots: []u32,
+    fn take(wide: *G.Artifact) KernelMetadata {
+        const out = KernelMetadata{ .allocator = wide.a, .program = .{ .identity = wide.program.identity, .inputs = wide.program.inputs, .roots = wide.program.roots }, .parameter_slots = wide.parameter_slots };
+        wide.program.inputs = &.{};
+        wide.program.roots = &.{};
+        wide.parameter_slots = &.{};
+        return out;
+    }
+    fn bytes(self: *const KernelMetadata) usize {
+        return self.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + self.program.roots.len * 4 + self.parameter_slots.len * 4;
+    }
+    fn deinit(self: *KernelMetadata) void {
+        self.allocator.free(self.program.inputs);
+        self.allocator.free(self.program.roots);
+        self.allocator.free(self.parameter_slots);
+    }
+};
+const TwiddleBorrow = struct {
+    value: Twiddle,
+    retained: bool,
+    fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        if (!self.retained) engine.poly.twiddles.deinitM31(a, &self.value);
+    }
+};
 const Geometry = struct {
     key: [32]u8,
     source_words: usize,
@@ -61,10 +92,30 @@ const Geometry = struct {
     descriptors: []u32,
     masks: []u64,
     denominators: []M,
+    fn validate(self: *const @This(), log: u32) !void {
+        if (log < 3 or log > 28 or self.descriptors.len % 6 != 0 or self.eval_base != self.source_words or self.desc_base % 2 != 0 or self.arena_words < self.desc_base + self.descriptors.len) return error.InvalidCompositionGeometry;
+        const n = @as(u64, 1) << @intCast(log);
+        for (0..self.descriptors.len / 6) |i| {
+            const d = self.descriptors[i * 6 ..][0..6];
+            const source = @as(u64, d[0]) | (@as(u64, d[1]) << 32);
+            const destination = @as(u64, d[2]) | (@as(u64, d[3]) << 32);
+            if (d[4] >= log or d[5] != 0 or source > self.eval_base or (@as(u64, 1) << @intCast(d[4])) > self.eval_base - source or destination != self.eval_base + i * n) return error.InvalidCompositionGeometry;
+        }
+    }
+    fn bytes(self: *const @This()) usize {
+        return self.descriptors.len * 4 + self.masks.len * 8 + self.denominators.len * 4;
+    }
     fn deinit(self: *@This(), a: std.mem.Allocator) void {
         a.free(self.descriptors);
         a.free(self.masks);
         a.free(self.denominators);
+    }
+};
+const GeometryBorrow = struct {
+    value: Geometry,
+    retained: bool,
+    fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        if (!self.retained) self.value.deinit(a);
     }
 };
 pub const Context = struct {
@@ -80,10 +131,17 @@ pub const Context = struct {
     b2n: B2n,
     copy: Copy,
     clear: Clear,
-    artifacts: [49]G.Artifact,
+    artifacts: [49]KernelMetadata,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
     geometries: std.ArrayList(Geometry) = .empty,
+    /// Per-owner retained setup cap. Oversized entries remain request-local.
+    cache_limit_bytes: usize = 256 << 20,
+    artifact_bytes: usize = 0,
+    geometry_bytes: usize = 0,
+    twiddle_bytes: usize = 0,
+    uncached_geometries: u64 = 0,
+    uncached_twiddles: u64 = 0,
     geometry_hits: u64 = 0,
     geometry_misses: u64 = 0,
     log_blowup: u32 = 1,
@@ -101,9 +159,13 @@ pub const Context = struct {
         var made: usize = 0;
         errdefer for (result.artifacts[0..made]) |*item| item.deinit();
         for (Oracle.descriptors(), &result.artifacts) |d, *artifact| {
-            artifact.* = try G.record(a, d);
+            var wide = try G.record(a, d);
+            defer wide.deinit();
+            artifact.* = KernelMetadata.take(&wide);
+            result.artifact_bytes += artifact.bytes();
             made += 1;
         }
+        if (result.artifact_bytes > result.cache_limit_bytes) return error.CompositionMetadataCacheCapExceeded;
         return result;
     }
     pub fn deinit(self: *Context) void {
@@ -115,11 +177,33 @@ pub const Context = struct {
         self.result_columns.deinit(self.allocator);
         self.* = undefined;
     }
-    fn tw(self: *Context, log: u32) !*const Twiddle {
-        if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(self.allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
-        return &self.twiddles[log].?;
+    fn retainedBytes(self: *const Context) usize {
+        return self.artifact_bytes + self.geometry_bytes + self.twiddle_bytes;
     }
-    fn geometry(self: *Context, artifact: *const G.Artifact, rl: u32, el: u32, widths: [3]usize, sources: []const D.Column, auxiliary_count: usize, twiddle_words: usize) !*const Geometry {
+    fn admitCache(self: *Context, bytes: usize, entry: bool) bool {
+        // Only a new geometry can retire prior geometries. A twiddle request
+        // may occur while the current geometry's arrays are still borrowed.
+        if (!entry) return bytes <= self.cache_limit_bytes - @min(self.cache_limit_bytes, self.retainedBytes());
+        while (self.geometries.items.len != 0 and (bytes > self.cache_limit_bytes - @min(self.cache_limit_bytes, self.retainedBytes()) or (entry and self.geometries.items.len >= 256))) {
+            var old = self.geometries.swapRemove(0);
+            self.geometry_bytes -= old.bytes();
+            old.deinit(self.allocator);
+        }
+        return bytes <= self.cache_limit_bytes - @min(self.cache_limit_bytes, self.retainedBytes());
+    }
+    fn tw(self: *Context, log: u32) !TwiddleBorrow {
+        if (self.twiddles[log]) |value| return .{ .value = value, .retained = true };
+        const value = try engine.poly.twiddles.precomputeM31(self.allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
+        const bytes = (value.twiddles.len + value.itwiddles.len) * @sizeOf(M);
+        if (!self.admitCache(bytes, false)) {
+            self.uncached_twiddles += 1;
+            return .{ .value = value, .retained = false };
+        }
+        self.twiddles[log] = value;
+        self.twiddle_bytes += bytes;
+        return .{ .value = value, .retained = true };
+    }
+    fn geometry(self: *Context, artifact: *const KernelMetadata, rl: u32, el: u32, widths: [3]usize, sources: []const D.Column, auxiliary_count: usize, twiddle_words: usize) !GeometryBorrow {
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
         hash.update("rv64/cuda/composition-immutable-geometry/v1");
         hash.update(&artifact.program.identity);
@@ -136,7 +220,7 @@ pub const Context = struct {
         const key = hash.finalResult();
         for (self.geometries.items) |*cached| if (std.mem.eql(u8, &cached.key, &key)) {
             self.geometry_hits += 1;
-            return cached;
+            return .{ .value = cached.*, .retained = true };
         };
         const a = self.allocator;
         const n = @as(usize, 1) << @intCast(el);
@@ -152,6 +236,13 @@ pub const Context = struct {
             descriptors[i * 6 ..][0..6].* = .{ @truncate(source_words), @truncate(@as(u64, source_words) >> 32), @truncate(dst), @truncate(@as(u64, dst) >> 32), degree, 0 };
             source_words = try std.math.add(usize, source_words, size);
         }
+        // Addressed LDE destinations are absolute arena offsets, not offsets
+        // relative to the evaluation slab. Source extent is known only now.
+        for (0..count) |i| {
+            const destination = try std.math.add(usize, source_words, try std.math.mul(usize, i, n));
+            descriptors[i * 6 + 2] = @truncate(destination);
+            descriptors[i * 6 + 3] = @truncate(@as(u64, destination) >> 32);
+        }
         const masks = try a.alloc(u64, artifact.program.inputs.len);
         errdefer a.free(masks);
         for (masks, artifact.program.inputs) |*off, input| off.* = @as(u64, input.column) * n;
@@ -159,14 +250,18 @@ pub const Context = struct {
         errdefer a.free(denominators);
         const tw_base = try std.math.add(usize, source_words, try std.math.mul(usize, count, n));
         const desc_base = std.mem.alignForward(usize, tw_base + twiddle_words, 2);
-        if (self.geometries.items.len == 256) {
-            var retired = self.geometries.swapRemove(0);
-            retired.deinit(a);
-        }
-        try self.geometries.append(a, .{ .key = key, .source_words = source_words, .eval_base = source_words, .tw_base = tw_base, .desc_base = desc_base, .arena_words = desc_base + count * 6, .descriptors = descriptors, .masks = masks, .denominators = denominators });
+        const value = Geometry{ .key = key, .source_words = source_words, .eval_base = source_words, .tw_base = tw_base, .desc_base = desc_base, .arena_words = desc_base + count * 6, .descriptors = descriptors, .masks = masks, .denominators = denominators };
+        try value.validate(el);
         self.geometry_misses += 1;
-        return &self.geometries.items[self.geometries.items.len - 1];
+        if (!self.admitCache(value.bytes(), true)) {
+            self.uncached_geometries += 1;
+            return .{ .value = value, .retained = false };
+        }
+        try self.geometries.append(a, value);
+        self.geometry_bytes += value.bytes();
+        return .{ .value = value, .retained = true };
     }
+
     pub fn stage(self: *Context) CPU.rv64_gkr_cpu_worker.ResidentCompositionStage {
         return .{ .context = self, .evaluate_and_commit = evaluate };
     }
@@ -266,8 +361,12 @@ const Job = struct {
                 const source_metadata = try a.alloc(D.Column, sources.items.len);
                 defer a.free(source_metadata);
                 for (source_metadata, sources.items) |*column, source| column.* = try sourceColumn(source);
-                const tw = try b.tw(el);
-                const geometry = try b.geometry(artifact, rl, el, widths, source_metadata, aux, tw.twiddles.len);
+                var tw_borrow = try b.tw(el);
+                defer tw_borrow.deinit(b.allocator);
+                const tw = &tw_borrow.value;
+                var geometry_borrow = try b.geometry(artifact, rl, el, widths, source_metadata, aux, tw.twiddles.len);
+                defer geometry_borrow.deinit(b.allocator);
+                const geometry = &geometry_borrow.value;
                 const eval_base = geometry.eval_base;
                 const tw_base = geometry.tw_base;
                 const desc_base = geometry.desc_base;
@@ -306,7 +405,9 @@ const Job = struct {
                         hc[(half * rl + i) * 8 + j] = word.v;
                     };
                     const h = try upload(a, &context, &leases, hc[0 .. 16 * rl]);
-                    const role_tw = try b.tw(rl);
+                    var role_tw_borrow = try b.tw(rl);
+                    defer role_tw_borrow.deinit(b.allocator);
+                    const role_tw = &role_tw_borrow.value;
                     const it = try upload(a, &context, &leases, words(role_tw.itwiddles));
                     try context.join();
                     var stream: ?*anyopaque = null;
@@ -369,8 +470,12 @@ const Job = struct {
         const commit_rows = @as(usize, 1) << @intCast(commit_log);
         const eval_words = count * commit_rows;
         if (commit_log > 28) return error.UnsupportedResidentCompositionBlowup;
-        const tw = try b.tw(commit_log);
-        const composition_tw = try b.tw(self.log);
+        var commit_tw_borrow = try b.tw(commit_log);
+        defer commit_tw_borrow.deinit(b.allocator);
+        const tw = &commit_tw_borrow.value;
+        var composition_tw_borrow = try b.tw(self.log);
+        defer composition_tw_borrow.deinit(b.allocator);
+        const composition_tw = &composition_tw_borrow.value;
         var output = try context.allocate(std.mem.alignForward(usize, coeff_count + eval_words + tw.twiddles.len, 2) + count * 6, 2);
         errdefer context.release(&output) catch {};
         const accumulator = try allocate(a, &context, &leases, coeff_count, 0);
@@ -422,7 +527,7 @@ const Job = struct {
         self.result = .{ .root = root, .columns = columns };
         var kernel_ms: f64 = 0;
         for (spans[1..]) |value| kernel_ms += value;
-        std.debug.print("GPU_COMPOSITION_TIMING ordinal={} coefficient_stream_ms={d:.3} auxiliary_ms={d:.3} domain_fft_ms={d:.3} rows_ms={d:.3} finalize_ms={d:.3} commit_fft_ms={d:.3} commit_hash_ms={d:.3} gpu_enqueued_kernel_spans_ms={d:.3} host_coefficient_cells={} device_coefficient_cells={} domain_cells={} geometry_hits={} geometry_misses={}\n", .{ self.scope.ordinal, spans[0], spans[1], spans[2], spans[3], spans[4], spans[5], spans[6], kernel_ms, host_cells, device_cells, domain_cells, b.geometry_hits, b.geometry_misses });
+        std.debug.print("GPU_COMPOSITION_TIMING ordinal={} coefficient_stream_ms={d:.3} auxiliary_ms={d:.3} domain_fft_ms={d:.3} rows_ms={d:.3} finalize_ms={d:.3} commit_fft_ms={d:.3} commit_hash_ms={d:.3} gpu_enqueued_kernel_spans_ms={d:.3} host_coefficient_cells={} device_coefficient_cells={} domain_cells={} geometry_hits={} geometry_misses={} retained_setup_bytes={} retained_geometry_bytes={} retained_twiddle_bytes={} retained_artifact_bytes={} setup_cache_cap_bytes={} uncached_geometries={} uncached_twiddles={}\n", .{ self.scope.ordinal, spans[0], spans[1], spans[2], spans[3], spans[4], spans[5], spans[6], kernel_ms, host_cells, device_cells, domain_cells, b.geometry_hits, b.geometry_misses, b.retainedBytes(), b.geometry_bytes, b.twiddle_bytes, b.artifact_bytes, b.cache_limit_bytes, b.uncached_geometries, b.uncached_twiddles });
     }
 };
 fn allocate(a: std.mem.Allocator, c: *SC.Context, list: *std.ArrayList(Native.Lease), n: usize, kind: u32) !Native.Lease {
@@ -454,4 +559,59 @@ test "resident composition accepts a scoped device polynomial without host recon
     try std.testing.expectEqual(@as(u64, 3), column.device.?.generation);
     source.device.?.count = 129;
     try std.testing.expectError(error.InvalidColumnLength, sourceColumn(source));
+}
+
+test "setup byte budget does not evict live geometry for a nested twiddle borrow" {
+    const a = std.testing.allocator;
+    // Only the metadata subsystem is exercised; no GPU/session fields are read.
+    var setup: Context = undefined;
+    setup.allocator = a;
+    setup.geometries = .empty;
+    setup.twiddles = @splat(null);
+    setup.artifact_bytes = 0;
+    setup.geometry_bytes = 0;
+    setup.twiddle_bytes = 0;
+    setup.uncached_twiddles = 0;
+    setup.cache_limit_bytes = 8;
+    defer setup.geometries.deinit(a);
+    const descriptors = try a.alloc(u32, 1);
+    const masks = try a.alloc(u64, 1);
+    const denominators = try a.alloc(M, 1);
+    try setup.geometries.append(a, .{ .key = @splat(0), .source_words = 0, .eval_base = 0, .tw_base = 0, .desc_base = 0, .arena_words = 0, .descriptors = descriptors, .masks = masks, .denominators = denominators });
+    setup.geometry_bytes = setup.geometries.items[0].bytes();
+    try std.testing.expect(!setup.admitCache(1, false));
+    try std.testing.expectEqual(@as(usize, 1), setup.geometries.items.len);
+    try std.testing.expect(setup.admitCache(1, true));
+    try std.testing.expectEqual(@as(usize, 0), setup.geometry_bytes);
+    var borrowed = try setup.tw(5);
+    defer borrowed.deinit(a);
+    try std.testing.expect(!borrowed.retained);
+    try std.testing.expectEqual(@as(usize, 0), setup.twiddle_bytes);
+    try std.testing.expectEqual(@as(u64, 1), setup.uncached_twiddles);
+}
+
+test "cold symbolic DAG is released while authenticated kernel metadata remains owned" {
+    const a = std.testing.allocator;
+    var wide = try G.record(a, .{ .origin = .{ .core = .alu } });
+    const identity = wide.program.identity;
+    const input_count = wide.program.inputs.len;
+    const roots = wide.program.roots.len;
+    var narrow = KernelMetadata.take(&wide);
+    defer narrow.deinit();
+    wide.deinit();
+    try std.testing.expectEqualSlices(u8, &identity, &narrow.program.identity);
+    try std.testing.expectEqual(input_count, narrow.program.inputs.len);
+    try std.testing.expectEqual(roots, narrow.program.roots.len);
+    try std.testing.expect(narrow.bytes() != 0);
+}
+
+test "LDE descriptor destinations include the coefficient arena prefix" {
+    var descriptors = [_]u32{ 0, 0, 8, 0, 3, 0 };
+    const geometry = Geometry{ .key = @splat(0), .source_words = 8, .eval_base = 8, .tw_base = 24, .desc_base = 32, .arena_words = 38, .descriptors = &descriptors, .masks = &.{}, .denominators = &.{} };
+    try geometry.validate(4);
+    descriptors[2] = 0;
+    try std.testing.expectError(error.InvalidCompositionGeometry, geometry.validate(4));
+    descriptors[2] = 8;
+    descriptors[0] = 9;
+    try std.testing.expectError(error.InvalidCompositionGeometry, geometry.validate(4));
 }
