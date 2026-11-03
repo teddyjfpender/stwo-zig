@@ -150,6 +150,13 @@ pub fn build(b: *std.Build) void {
     const run_fri = b.addRunArtifact(fri_fixture);
     if (b.args) |args| run_fri.addArgs(args);
     b.step("rv64-fri-fixtures", "Export native FRI fixtures or verify GPU compact proof readback").dependOn(&run_fri.step);
+    const sha_witness_root = b.createModule(.{ .root_source_file = b.path("rv64_sha256_witness_fixture_main.zig"), .target = target, .optimize = optimize });
+    sha_witness_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    sha_witness_root.addImport("stwo_riscv_frontend", frontend);
+    const sha_witness_fixture = b.addExecutable(.{ .name = "rv64-sha256-witness-fixtures", .root_module = sha_witness_root });
+    const run_sha_witness = b.addRunArtifact(sha_witness_fixture);
+    if (b.args) |args| run_sha_witness.addArgs(args);
+    b.step("rv64-sha256-witness-fixtures", "Export compact SHA service inputs and native MAIN digests").dependOn(&run_sha_witness.step);
     const global_root = b.createModule(.{ .root_source_file = b.path("rv64_global_fixture_main.zig"), .target = target, .optimize = optimize });
     global_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     global_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));

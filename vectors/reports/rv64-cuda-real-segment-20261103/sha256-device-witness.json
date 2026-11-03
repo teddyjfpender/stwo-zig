@@ -1,0 +1,73 @@
+{
+  "scope": "SHA256 GPU MAIN native parity, not a resident block benchmark",
+  "cases": [
+    {
+      "id": 0,
+      "calls": 0,
+      "log": 5,
+      "main_columns": 7409,
+      "expected_words": 237088,
+      "expected_sha256": "43d56dd42b53314b78be36e01bb0851350f5a3d808214285598f01da0b40b163",
+      "accepted": true,
+      "seconds": 0.37973237701226026,
+      "actual_sha256": "43d56dd42b53314b78be36e01bb0851350f5a3d808214285598f01da0b40b163"
+    },
+    {
+      "id": 1,
+      "calls": 1,
+      "log": 5,
+      "main_columns": 7409,
+      "expected_words": 237088,
+      "expected_sha256": "0b3afc5f5694839fc168354351b51356b99af60bdb7ec31fb776c492b873e37c",
+      "accepted": true,
+      "seconds": 0.2878178480314091,
+      "actual_sha256": "0b3afc5f5694839fc168354351b51356b99af60bdb7ec31fb776c492b873e37c"
+    },
+    {
+      "id": 2,
+      "calls": 3,
+      "log": 5,
+      "main_columns": 7409,
+      "expected_words": 237088,
+      "expected_sha256": "c58d75c9042cf664cb0f25e079e2008a50a70fa9fcc81a5977e3a67c86b99f34",
+      "accepted": true,
+      "seconds": 0.27146745298523456,
+      "actual_sha256": "c58d75c9042cf664cb0f25e079e2008a50a70fa9fcc81a5977e3a67c86b99f34"
+    },
+    {
+      "id": 3,
+      "calls": 33,
+      "log": 6,
+      "main_columns": 7409,
+      "expected_words": 474176,
+      "expected_sha256": "1aecc8d1b9c4ff366d55c6d11a8774670d76db3b7a13275a6a5af1c77347212e",
+      "accepted": true,
+      "seconds": 0.2684750329935923,
+      "actual_sha256": "1aecc8d1b9c4ff366d55c6d11a8774670d76db3b7a13275a6a5af1c77347212e"
+    },
+    {
+      "id": 4,
+      "calls": 8193,
+      "log": 14,
+      "main_columns": 7409,
+      "expected_words": 121389056,
+      "expected_sha256": "f5fdf86a4035ff8f299e1b2df6e446e094a569fc448d2ebc3a8763fff921a977",
+      "accepted": true,
+      "seconds": 1.1045357519760728,
+      "actual_sha256": "f5fdf86a4035ff8f299e1b2df6e446e094a569fc448d2ebc3a8763fff921a977"
+    }
+  ],
+  "object_sha256": "9d6993b3d69183dbc53f91819a69a02666313b19b1f3822aeb95792ff7aa673f",
+  "schema": "rv64-cuda-sha256-device-witness/v1",
+  "full_resident_block_qualified": false,
+  "date_utc": "2026-11-03",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/sha256_witness.cu": "21b8d49655bb61cde863bf841cf467012018ac628d574f59037d20a0fc464b7a",
+    "src/backends/cuda/native/rv64/sha256_witness.h": "ee2928c17e11a0eada5cd92f16221012ce3100aebf69ec9b125978fffaf3d636",
+    "src/integrations/riscv_cuda/rv64_sha256_witness_fixture_main.zig": "a08f1391d17064c460ffd233037c4e038bace7b65b94db802c9a51e9cacb2379",
+    "src/frontends/riscv/rv64/air/delegations/sha256/native.zig": "5003de1ca2d748896eb92ba90f7f5129b49480a92bff28d2f598b145a649a36b",
+    "src/frontends/riscv/rv64/air/delegations/sha256/layout.zig": "ccd14718135f7f46053dfc3485587c5e649bdc5b474cca2229bec9c8c147822b",
+    "tests/cuda/rv64/sha256_witness_smoke.cu": "a3fbcaed4b4ed7c0f5aca5e2ed00bf116ed627ef2ac84b45c5a5742f147e1b19"
+  },
+  "qualification_note": "Native CPU computes only expected test digests; wide D2H exists only in the qualification executable and is deleted after hash comparison. Production receives compact96-byte call inputs and writes device MAIN directly. No performance claim."
+}
