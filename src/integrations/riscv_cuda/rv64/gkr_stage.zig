@@ -17,6 +17,7 @@ const N = @import("runtime_api.zig");
 const A = @import("abi.zig");
 const Events = @import("cuda_events.zig");
 const DeviceBindingRuntime = @import("device_binding_runtime.zig");
+const TwiddleCache = @import("gkr_twiddles.zig");
 const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
 const O = core.fields.om31.OM31;
 const Proof = engine.lookups.gkr_verifier.ForField(O).GkrBatchProof;
@@ -52,6 +53,11 @@ fn symbol(comptime T: type, library: *std.DynLib, name: [:0]const u8) !T {
 fn checked(status: c_int) !void {
     if (status != 0) return error.CudaGkrStageFailed;
 }
+fn batchEnabled(available: bool, explicit_batch: bool, explicit_serial: bool) !bool {
+    if (explicit_batch and explicit_serial) return error.ConflictingCudaGkrOracleModes;
+    if (explicit_batch and !available) return error.MissingCudaBatchedOracleSymbol;
+    return available and !explicit_serial;
+}
 pub const CoefficientSink = struct {
     context: *anyopaque,
     /// Owner-thread publication. Success adopts the lease and copies only
@@ -75,6 +81,8 @@ pub const Backend = struct {
     functions: Functions,
     timing: Events.Api,
     catalogue: Sources.Catalogue,
+    twiddle_cache: TwiddleCache.Cache,
+    batched_oracles: bool,
     byte_cap: usize,
     pub fn init(a: std.mem.Allocator, library: *std.DynLib, session: *anyopaque, byte_cap: usize) !Backend {
         var catalogue = try Sources.Catalogue.init(a);
@@ -95,7 +103,8 @@ pub const Backend = struct {
             launch.* = try symbol(Launch, library, text);
         }
         const numerical = try N.Api.load(library);
-        if (std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_ORACLES") and (numerical.stwo_rv64_batch_sum_on == null or numerical.stwo_rv64_batch_fold_on == null)) return error.MissingCudaBatchedOracleSymbol;
+        const batch_available = numerical.stwo_rv64_batch_sum_on != null and numerical.stwo_rv64_batch_fold_on != null;
+        const batch_enabled = try batchEnabled(batch_available, std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_ORACLES"), std.process.hasEnvVarConstant("STWO_RV64_GKR_SERIAL_ORACLES"));
         return .{ .allocator = a, .session = session, .session_api = .{
             .allocate = try symbol(Native.LeaseAllocate, library, "stwo_rv64_gpu_lease_allocate"),
             .release = try symbol(Native.LeaseRelease, library, "stwo_rv64_gpu_lease_release"),
@@ -104,7 +113,7 @@ pub const Backend = struct {
             .download = try symbol(Native.Download, library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try symbol(Native.Sync, library, "stwo_exec_context_sync"),
             .lane_stream = try symbol(Native.LaneStream, library, "stwo_exec_context_lane_stream"),
-        }, .numerical = numerical, .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .byte_cap = byte_cap };
+        }, .numerical = numerical, .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .twiddle_cache = .{ .allocator = a }, .batched_oracles = batch_enabled, .byte_cap = byte_cap };
     }
     pub fn enableDeviceBinding(self: *Backend, library: *std.DynLib) !void {
         if (self.configuration_sealed) return error.DeviceBindingConfigurationSealed;
@@ -113,6 +122,7 @@ pub const Backend = struct {
     }
     pub fn deinit(self: *Backend) void {
         if (self.binding_runtime) |runtime| runtime.destroy();
+        self.twiddle_cache.deinit();
         self.catalogue.deinit();
         self.* = undefined;
     }
@@ -242,13 +252,15 @@ const Job = struct {
             } else try context.upload(destination, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..count]);
             offset += count;
         }
-        var twiddles = try engine.poly.twiddles.precomputeM31(a, core.poly.circle.canonic.CanonicCoset.new(source.max_log).circleDomain().half_coset);
+        var twiddle_timer = try std.time.Timer.start();
+        var twiddles = try b.twiddle_cache.acquire(source.max_log);
+        const twiddle_setup_ns = twiddle_timer.read();
         var twiddles_ingress_joined = false;
         defer {
             if (!twiddles_ingress_joined) context.join() catch {};
-            engine.poly.twiddles.deinitM31(a, &twiddles);
+            twiddles.deinit();
         }
-        try context.upload(tw, @as([*]const u32, @ptrCast(twiddles.twiddles.ptr))[0..twiddles.twiddles.len]);
+        try context.upload(tw, @as([*]const u32, @ptrCast(twiddles.values.ptr))[0..twiddles.values.len]);
         if (publish_coefficients) try checked(b.functions.copy_device(raw_context, @ptrFromInt(values.address), @ptrFromInt(coeff.address), source.cells * 4));
         try events.mark(.ingress, true, upload_stream);
         try context.join();
@@ -325,7 +337,7 @@ const Job = struct {
         try events.mark(.projection, true, assigned_stream);
         var commands = R.Commands(SC.Context, N.Api){ .context = &context, .api = &b.numerical, .lane_index = 1 };
         try events.mark(.traversal, false, assigned_stream);
-        commands.batched_oracles = std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_ORACLES");
+        commands.batched_oracles = b.batched_oracles;
         const traversal = try G.enqueueWithClosure(&commands, fractions, try channel.sub(0, 9), workspace, cap, chain, status);
         try events.mark(.traversal, true, assigned_stream);
         try context.join();
@@ -402,7 +414,14 @@ const Job = struct {
         for (layers) |layer| readback_words += layer.records.len + layer.masks.len;
         if (binding_state != null) readback_words += A.gkr_state_words;
         std.debug.print("GPU_GKR_SPANS ordinal={} ingress_ms={d:.6} base_fft_ms={d:.6} draws_ms={d:.6} projection_ms={d:.6} traversal_ms={d:.6} compact_readback_ms={d:.6} numerical_ready_wall_ns={} readback_wall_ns={} native_decode_ns={}\n", .{ self.request.scope.ordinal, try events.milliseconds(.ingress), try events.milliseconds(.base_fft), try events.milliseconds(.relation_draws), try events.milliseconds(.projection), try events.milliseconds(.traversal), try events.milliseconds(.readback), numerical_ready_ns, readback_done_ns - numerical_ready_ns, decode_ns });
-        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={} gkr_kernel_launches={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0, commands.launches });
+        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={} gkr_kernel_launches={} batched_oracles={} twiddle_setup_ns={} twiddle_cache_hit={} twiddle_cache_bytes={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0, commands.launches, b.batched_oracles, twiddle_setup_ns, twiddles.cache_hit, b.twiddle_cache.retained_bytes });
+    }
+    test "GKR batching defaults to qualified capability and keeps an explicit serial control" {
+        try std.testing.expect(try batchEnabled(true, false, false));
+        try std.testing.expect(!try batchEnabled(false, false, false));
+        try std.testing.expect(!try batchEnabled(true, false, true));
+        try std.testing.expectError(error.MissingCudaBatchedOracleSymbol, batchEnabled(false, true, false));
+        try std.testing.expectError(error.ConflictingCudaGkrOracleModes, batchEnabled(true, true, true));
     }
 };
 fn allocate(a: std.mem.Allocator, context: *SC.Context, leases: *std.ArrayList(Native.Lease), words: usize) !Slice {
