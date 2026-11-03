@@ -418,6 +418,18 @@ def validate_pending(plan, job, pending, production_plan=None):
             raise ValueError("production log changed before qualification")
 
 
+def pin_production_plan(path, requested, continuing=False):
+    if continuing:
+        original = B.load(path)
+        if plan_identity(original) != plan_identity(requested):
+            raise ValueError("continuation changed the pinned production plan")
+        # Never replace the original provenance, even when every case failed
+        # before it could seal a produced.json snapshot.
+        return original
+    B.atomic_json(path, requested)
+    return requested
+
+
 def continuation_result(plan, job, production_plan=None):
     target = Path(job["target"])
     result_path, pending_path = target / "result.json", target / "produced.json"
@@ -596,7 +608,7 @@ def main():
         plan = qualification_view(production_plan, plan, B.load(recorded) if recorded.is_file() else None)
         B.atomic_json(recorded, plan)
     elif args.mode != "report":
-        B.atomic_json(args.output / "plan.json", plan)
+        plan = pin_production_plan(args.output / "plan.json", plan, args.continue_existing)
     else:
         recorded = args.output / "qualification-plan.json"
         if B.load(recorded if recorded.is_file() else args.output / "plan.json") != plan:

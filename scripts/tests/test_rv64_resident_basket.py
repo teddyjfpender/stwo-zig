@@ -167,6 +167,28 @@ class ResidentBasket(unittest.TestCase):
                 self.assertIsNone(result["trials"][1]["fresh_receiver"])
         self.assertEqual(calls, ["producer", "receiver-0"])
 
+    def test_continuation_preserves_failed_artifacts_and_original_plan(self):
+        plan = self.plan(counts=[1])
+        pinned = self.root / "plan.json"
+        R.pin_production_plan(pinned, plan)
+        before = pinned.read_bytes()
+        job = plan["jobs"][0]
+        target = Path(job["target"])
+        target.mkdir(parents=True)
+        proof = target / "partial.proof"
+        proof.write_bytes(b"durable partial GPU proof")
+        failure = {"status": "failed", "accepted": False, "block": job["block"], "error": "capacity"}
+        (target / "result.json").write_text(json.dumps(failure))
+        with patch.object(R.B, "atomic_json", side_effect=AssertionError("must not rewrite provenance")):
+            self.assertEqual(R.pin_production_plan(pinned, copy.deepcopy(plan), True), plan)
+            self.assertEqual(R.continuation_result(plan, job), failure)
+            changed = copy.deepcopy(plan)
+            changed["asset_sha256"]["driver"] = "another producer"
+            with self.assertRaisesRegex(ValueError, "pinned production plan"):
+                R.pin_production_plan(pinned, changed, True)
+        self.assertEqual(pinned.read_bytes(), before)
+        self.assertEqual(proof.read_bytes(), b"durable partial GPU proof")
+
     def test_deferred_production_never_accepts_before_cpu_qualification(self):
         self.exercise_run(deferred=True)
 
