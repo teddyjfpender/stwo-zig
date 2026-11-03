@@ -1,0 +1,19 @@
+{
+  "schema": "circuit-production-trace-only/legacy-parity/v1",
+  "source_checkpoint": "9d6179c0e",
+  "command": "zig build circuit-parity -Doptimize=ReleaseFast -j2",
+  "exit_code": 0,
+  "wall_ns": 597670115000,
+  "log_sha256": "d502be5c930543c6d66a8ca7fa0d1d607709af3897e95d3ecd91d4e8a094195b",
+  "qualified_surface_pin": "fc9c1a51418387b20380eb248193e73f9c8bf160d01a2b70865f89c099858246",
+  "scope": "Available local and large legacy circuit parity rungs passed after production trace-only constructors, hint coverage and original-graph generation integration. Generation-only origins and planning modules live outside the pinned builder surface; pinned directory coverage is unchanged.",
+  "explicit_skip": {
+    "target": "circuit-parity-r7-multiverifier",
+    "reason": "External STWO_CIRCUIT_MULTIVERIFIER_INPUTS oracle input unavailable",
+    "qualified": false
+  },
+  "does_not_qualify": [
+    "Full 15-block GPU benchmark suite",
+    "Certified whole-protocol 128-bit security"
+  ]
+}
