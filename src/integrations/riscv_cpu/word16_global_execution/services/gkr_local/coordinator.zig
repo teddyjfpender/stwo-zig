@@ -449,6 +449,7 @@ fn produceFrozen(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths
     return .{ .requests = requests, .stage_one_bytes = stage_bytes, .cpus = cpus, .truths = encoded_truths };
 }
 const Admission = struct {
+    retained_bytes: usize = 0,
     stage1: []u64,
     stage2: []u64,
     cpu_policies: []@import("child.zig").TreePolicy,
@@ -479,6 +480,7 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
             break :blk selected.plan;
         } else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
         const tasks = try Retention.taskEstimates(plan, options.global_budget);
+        const truth_retained: ?usize = if (i >= setups.len and options.truth_device_source_stage != null) try options.truth_device_source_stage.?.retainedUpperBound(.{ .truth = truths[i - setups.len], .expected = inventory.workers[i], .config = config }, plan.coefficient_bytes) else null;
         stage1.* = tasks.stage1;
         stage2.* = tasks.stage2;
         // The full pending inventory remains charged once below, independently
@@ -492,16 +494,62 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
             // No MAIN/P8 planes survive this barrier. Account compact advice,
             // native proof/artifact and narrow authenticated binding metadata.
             break :replay try std.math.add(usize, compact, try std.math.add(usize, plan.local_proof_reserve_bytes + plan.owner_header_bytes + plan.binding_descriptor_bytes, 16 * 1024));
-        } else if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes));
+        } else if (truth_retained) |bytes| bytes else if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes));
         retained = try std.math.add(usize, retained, retained_worker);
-        disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
+        if (truth_retained == null) disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
     }
     if (retained > options.max_retained_frontend_bytes) return error.BoundedWideCoordinatorRetainedLimit;
+    result.retained_bytes = retained;
     if (options.retained_store) |store| {
         const stats = store.stats();
         if (disk > stats.limit_bytes - stats.live_bytes) return error.RetainedMainBudgetExceeded;
     }
     return result;
+}
+test "device truth barrier contract reduces retained admission without reducing transient tasks" {
+    const a = std.testing.allocator;
+    const F = @import("coordinator_fixture.zig");
+    const Original = @import("../fixture.zig");
+    const DS = @import("truth_device_source.zig");
+    var captured = try Original.Captured.init(a);
+    defer captured.deinit();
+    var keys = try F.Keys.init(a);
+    defer keys.deinit();
+    const pointers = [_]*Native{ &captured.native[0], &captured.native[1] };
+    const requests = [_]P.Request{ try requestView(&pointers, &captured.advice, 0), try requestView(&pointers, &captured.advice, 1) };
+    const config = try F.config();
+    const all_truths = keys.truths();
+    var inventory = try Execution.Inventory.initWithAuthority(a, &keys.pointers(), &all_truths, &requests, Original.expectedFor(captured.program.identity), config, null);
+    defer inventory.deinit();
+    // This admission-only view selects the first real Keccak provider; no
+    // incomplete inventory is ever passed to execution or a receiver.
+    var view = inventory;
+    view.workers = inventory.workers[0..3];
+    const truth = all_truths[0..1];
+    const policy = @import("child.zig").TreePolicy{ .stream_bottom = true, .tight_admission = true };
+    var options = Options{ .gkr_budget = 2 << 30, .global_budget = 1 << 30, .max_retained_frontend_bytes = 4 << 30 };
+    var legacy = try admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null);
+    defer legacy.deinit(a);
+    const Fake = struct {
+        fn unused(_: *anyopaque, _: std.mem.Allocator, _: DS.Prepare) !DS.Owner {
+            return error.UnusedTestPrepare;
+        }
+        fn retained(_: *anyopaque, request: DS.RetentionRequest) !DS.Retained {
+            return .{ .compact_input_bytes = try DS.compactInputBytes(request.truth), .narrow_metadata_bytes = 4096, .kept_device_bytes = 0, .main_replayed = true };
+        }
+    };
+    var marker: u8 = 0;
+    options.truth_device_source_stage = .{ .context = &marker, .prepare = Fake.unused, .retained_upper_bound = Fake.retained };
+    var replay = try admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null);
+    defer replay.deinit(a);
+    try std.testing.expect(replay.retained_bytes < legacy.retained_bytes);
+    try std.testing.expectEqualSlices(u64, legacy.stage1, replay.stage1);
+    try std.testing.expectEqualSlices(u64, legacy.stage2, replay.stage2);
+    options.max_retained_frontend_bytes = legacy.retained_bytes - 1;
+    var bounded = try admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null);
+    bounded.deinit(a);
+    options.truth_device_source_stage = null;
+    try std.testing.expectError(error.BoundedWideCoordinatorRetainedLimit, admit(a, &keys.pointers(), truth, &requests, &view, config, options, policy, &.{}, null));
 }
 
 test "hybrid per-CPU policies preserve complete physical proofs fresh verification and admission OOM ownership" {
