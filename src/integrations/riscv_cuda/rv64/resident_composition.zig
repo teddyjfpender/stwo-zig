@@ -56,10 +56,21 @@ fn sourceColumn(source: engine.air.component_prover.ForField(O).Poly) !D.Column 
     return .{ .log_size = p.logSize(), .coefficients = p.coefficients() };
 }
 // Retain only authenticated executable metadata, not the cold symbolic DAG.
-const KernelMetadata = struct {
+pub const KernelMetadata = struct {
     allocator: std.mem.Allocator,
     program: struct { identity: [32]u8, inputs: []engine.air.secure_polynomial_program_v2.Input, roots: []u32 },
     parameter_slots: []u32,
+    /// Transfer the authenticated immutable executable metadata only. The
+    /// frontend releases the wide cold DAG immediately after constructing this.
+    pub fn fromProgram(a: std.mem.Allocator, program: *@import("composition_codegen.zig").Program, slots: *[]u32) !KernelMetadata {
+        try program.validate();
+        if (program.parameters.len != slots.len) return error.InvalidResidentMetadata;
+        const result = KernelMetadata{ .allocator = a, .program = .{ .identity = program.identity, .inputs = program.inputs, .roots = program.roots }, .parameter_slots = slots.* };
+        program.inputs = &.{};
+        program.roots = &.{};
+        slots.* = &.{};
+        return result;
+    }
     fn take(wide: anytype) KernelMetadata {
         const out = KernelMetadata{ .allocator = wide.a, .program = .{ .identity = wide.program.identity, .inputs = wide.program.inputs, .roots = wide.program.roots }, .parameter_slots = wide.parameter_slots };
         wide.program.inputs = &.{};
@@ -67,10 +78,10 @@ const KernelMetadata = struct {
         wide.parameter_slots = &.{};
         return out;
     }
-    fn bytes(self: *const KernelMetadata) usize {
+    pub fn bytes(self: *const KernelMetadata) usize {
         return self.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + self.program.roots.len * 4 + self.parameter_slots.len * 4;
     }
-    fn deinit(self: *KernelMetadata) void {
+    pub fn deinit(self: *KernelMetadata) void {
         self.allocator.free(self.program.inputs);
         self.allocator.free(self.program.roots);
         self.allocator.free(self.parameter_slots);
@@ -335,6 +346,35 @@ pub const Context = struct {
         for (parameters, artifact.parameter_slots) |*value, slot| value.* = metadata[slot];
         return .{ .id = id, .artifact = &self.truth_artifacts[id].?, .evaluate = self.truth_role orelse return error.TruthCompositionNotInitialized, .trace_log = trace_log, .eval_log = eval_log, .widths = widths, .offsets = offsets, .parameters = parameters, .auxiliary = if (anchor) .last else .none };
     }
+    /// The numerical pipeline is shared by independently admitted frontend
+    /// authorities. Parameters, column gathering and root order are explicit;
+    /// caller-owned executable metadata must outlive this synchronous call.
+    pub fn evaluateRoles(self: *Context, a: std.mem.Allocator, roles: []const RuntimeRole, alpha: O, log: u32, split: u32, total: usize, trace_raw: *const anyopaque, scope: D.Scope) !D.Tree {
+        const trace: *const Trace = @ptrCast(@alignCast(trace_raw));
+        if (trace.polys.items.len != 3 or roles.len == 0 or log < 5 or log > 28 or split < 1 or split > 2) return error.InvalidResidentCompositionRoles;
+        var constraints: usize = 0;
+        for (roles) |role| {
+            if (role.trace_log < 4 or role.eval_log < role.trace_log + 1 or role.eval_log > role.trace_log + 2 or role.eval_log > log or role.artifact.program.roots.len == 0 or role.artifact.parameter_slots.len != role.parameters.len) return error.InvalidResidentCompositionRoles;
+            constraints = try std.math.add(usize, constraints, role.artifact.program.roots.len);
+            for (0..3) |tree| {
+                if (tree == 0 and role.fixed_indices != null) {
+                    const indices = role.fixed_indices.?;
+                    if (indices.len != role.widths[0]) return error.InvalidResidentCompositionRoles;
+                    for (indices) |index| if (index >= trace.polys.items[0].len) return error.InvalidResidentCompositionRoles;
+                } else {
+                    if (role.offsets[tree] > trace.polys.items[tree].len or role.widths[tree] > trace.polys.items[tree].len - role.offsets[tree]) return error.InvalidResidentCompositionRoles;
+                }
+            }
+        }
+        if (constraints != total) return error.WrongResidentConstraintCount;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = trace, .scope = scope };
+        if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
+        const result = job.result orelse return error.CudaResidentCompositionFailed;
+        try self.result_columns.append(self.allocator, @constCast(result.columns));
+        return result;
+    }
     pub fn stage(self: *Context) CPU.rv64_gkr_cpu_worker.ResidentCompositionStage {
         return .{ .context = self, .evaluate_and_commit = evaluate };
     }
@@ -380,7 +420,7 @@ pub const Context = struct {
 };
 // Frontend authorities bind runtime parameters and offsets once; the numerical
 // pipeline is monomorphic for CPU and independently sized truth components.
-const RuntimeRole = struct {
+pub const RuntimeRole = struct {
     id: u32,
     artifact: *const KernelMetadata,
     evaluate: *const @TypeOf(Abi.stwo_rv64_composition_role_on),
@@ -388,6 +428,8 @@ const RuntimeRole = struct {
     eval_log: u32,
     widths: [3]usize,
     offsets: [3]usize,
+    /// Original AIR-local FIXED reads may gather non-contiguous sorted columns.
+    fixed_indices: ?[]const u32 = null,
     parameters: []O,
     auxiliary: union(enum) { none, hc: [2 * 22 * 8]u32, last } = .none,
 };
@@ -483,7 +525,9 @@ const Job = struct {
             var sources: std.ArrayList(engine.air.component_prover.ForField(O).Poly) = .empty;
             defer sources.deinit(a);
             const offsets = role.offsets;
-            try sources.appendSlice(a, self.trace.polys.items[0][offsets[0]..][0..widths[0]]);
+            if (role.fixed_indices) |indices| {
+                for (indices) |index| try sources.append(a, self.trace.polys.items[0][index]);
+            } else try sources.appendSlice(a, self.trace.polys.items[0][offsets[0]..][0..widths[0]]);
             try sources.appendSlice(a, self.trace.polys.items[1][offsets[1]..][0..widths[1]]);
             try sources.appendSlice(a, self.trace.polys.items[2][offsets[2]..][0..iw]);
             const source_metadata = try a.alloc(D.Column, sources.items.len);
@@ -513,7 +557,7 @@ const Job = struct {
                 const target = arena_ptr + coefficient_offset;
                 const source_tree: u32 = if (i < widths[0]) 0 else if (i < widths[0] + widths[1]) 1 else 2;
                 const original_index = switch (source_tree) {
-                    0 => offsets[0] + i,
+                    0 => if (role.fixed_indices) |indices| indices[i] else offsets[0] + i,
                     1 => offsets[1] + i - widths[0],
                     else => offsets[2] + i - widths[0] - widths[1],
                 };
@@ -782,4 +826,10 @@ test "truth stages retain typed authority with the same resident numerical pipel
 
 test {
     _ = @import("device_copy_run.zig");
+}
+test "frontend-neutral composition entry rejects absent authority roles before device submission" {
+    var backend: Context = undefined;
+    const trace = Trace{ .polys = .initOwned(&.{}) };
+    const scope = D.Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    try std.testing.expectError(error.InvalidResidentCompositionRoles, backend.evaluateRoles(std.testing.allocator, &.{}, O.one(), 5, 1, 0, &trace, scope));
 }
