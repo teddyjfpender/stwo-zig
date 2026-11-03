@@ -2,13 +2,29 @@
 #include "fixture_words.cuh"
 #include "rv64/cpu_witness.h"
 #include <chrono>
-#ifdef STWO_RV64_SECP_WITNESS
+#if defined(STWO_RV64_SECP_WITNESS) || defined(STWO_RV64_CURVE_WITNESS)
+#ifdef STWO_RV64_CURVE_WITNESS
+#include "rv64/curve_witness.h"
+#define StwoRv64SecpWitness StwoRv64CurveWitness
+#define stwo_rv64_secp_witness_on stwo_rv64_curve_witness_on
+#else
 #include "rv64/secp_witness.h"
+#endif
 static void exercise(const std::string&dir,uint32_t id){
- FixtureWords f(dir+"/case-"+std::to_string(id)+".bin");auto h=f.take(8);if(h[0]!=0x52565357||h[1]!=1||h[2]!=id||h[3]!=8||h[7]>1)throw std::runtime_error("secp fixture shape");
- uint64_t n=1ull<<h[3],count=uint64_t(h[4])*(h[7]?24:48);auto inputs=f.take(count),expected=f.take(n*h[6]),counts=f.take(256);if(f.position!=f.data.size())throw std::runtime_error("secp trailing");
+ FixtureWords f(dir+"/case-"+std::to_string(id)+".bin");auto h=f.take(8);if(h[0]!=0x52565357||h[1]!=1||h[2]!=id||h[3]!=8||h[7]>4)throw std::runtime_error("secp fixture shape");
+ uint64_t n=1ull<<h[3];
+#ifdef STWO_RV64_CURVE_WITNESS
+ const uint32_t packet_words[5]={32,16,32,48,40};uint64_t count=uint64_t(h[4])*packet_words[h[7]];
+#else
+ uint64_t count=uint64_t(h[4])*(h[7]?24:48);
+#endif
+auto inputs=f.take(count),expected=f.take(n*h[6]),counts=f.take(256);if(f.position!=f.data.size())throw std::runtime_error("secp trailing");
  Owner o(0);auto source=o.plane(std::max(uint64_t(1),count),1),main=o.plane(n,h[6]),hist=o.plane(256,1),status=o.plane(1,1);if(count)o.upload(source,inputs);o.upload(status,{0});CHECK(stwo_exec_context_sync(o.ctx));
- StwoRv64SecpWitness j{source.words,main.words,hist.words,status.words,count,n*h[6],h[4],h[5],h[3],h[7]};CHECK(stwo_rv64_secp_witness_on(o.ctx,1,&j));CHECK(stwo_exec_context_sync(o.ctx));if(o.read(status)[0])throw std::runtime_error("secp status "+std::to_string(o.read(status)[0]));fixture_equal("secp wholeMAIN",o.read(main),expected);fixture_equal("secp BYTE",o.read(hist),counts);auto bad=j;bad.kind=2;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp kind accepted");bad=j;bad.calls=1u<<j.log;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp absent padding accepted");bad=j;bad.main=source.words;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp source alias accepted");bad=j;bad.input_words++;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp input width accepted");bad=j;bad.first_id=0;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp zero first id accepted");std::printf("SECP_WITNESS case=%u calls=%u kind=%u native_main_and_histogram_parity=true\n",id,h[4],h[7]);o.close();}
+ StwoRv64SecpWitness j{source.words,main.words,hist.words,status.words,count,n*h[6],h[4],h[5],h[3],h[7]};CHECK(stwo_rv64_secp_witness_on(o.ctx,1,&j));CHECK(stwo_exec_context_sync(o.ctx));if(o.read(status)[0])throw std::runtime_error("secp status "+std::to_string(o.read(status)[0]));fixture_equal("secp wholeMAIN",o.read(main),expected);fixture_equal("secp BYTE",o.read(hist),counts);
+#ifdef STWO_RV64_CURVE_WITNESS
+ if(h[4] && (h[7]==0||h[7]==1||h[7]==4)){auto invalid=inputs;if(h[7]==0)std::copy_n(invalid.begin(),8,invalid.begin()+16);else if(h[7]==1)std::fill_n(invalid.begin()+8,8,0);else invalid[24]&=~1u;o.upload(source,invalid);o.upload(status,{0});CHECK(stwo_exec_context_sync(o.ctx));CHECK(stwo_rv64_secp_witness_on(o.ctx,1,&j));CHECK(stwo_exec_context_sync(o.ctx));if(!o.read(status)[0])throw std::runtime_error("curve domain accepted");}
+#endif
+auto bad=j;bad.kind=99;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp kind accepted");bad=j;bad.calls=1u<<j.log;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp absent padding accepted");bad=j;bad.main=source.words;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp source alias accepted");bad=j;bad.input_words++;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp input width accepted");bad=j;bad.first_id=0;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp zero first id accepted");std::printf("SECP_WITNESS case=%u calls=%u kind=%u native_main_and_histogram_parity=true\n",id,h[4],h[7]);o.close();}
 #elif defined(STWO_RV64_KECCAK_WITNESS)
 #include "rv64/keccak_witness.h"
 static void exercise(const std::string &directory,uint32_t id) {
@@ -104,7 +120,11 @@ static void exercise(const std::string &directory, uint32_t id) {
 int main(int argc, char **argv) {
   try {
     if (argc < 2 || argc > 3) throw std::runtime_error("expected fixture directory [large]");
+#ifdef STWO_RV64_CURVE_WITNESS
+    for(uint32_t i=0;i<15;++i)exercise(argv[1],i);
+#else
     for (uint32_t i = 0; i < (argc == 3 ? 4u : 3u); ++i) exercise(argv[1], i);
+#endif
     return 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "FAIL %s\n", e.what()); return 1;

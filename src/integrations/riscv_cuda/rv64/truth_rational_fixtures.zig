@@ -9,10 +9,11 @@ const IO = @import("fixture_io.zig");
 const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
 pub fn write(a: std.mem.Allocator, dir: std.fs.Dir) !void {
-    for (7..10) |id| {
+    for (7..15) |id| {
         var artifact = try T.record(a, @intCast(id));
         defer artifact.deinit();
-        const widths: [2]u32 = if (id == 7) .{ 32, 1923 } else .{ 7, 1 };
+        const sizes = try T.roleWidths(@intCast(id));
+        const widths: [2]u32 = .{ @intCast(sizes[0]), @intCast(sizes[1]) };
         const log: u32 = 5;
         const n = 32;
         var rng = std.Random.DefaultPrng.init(0x617572 + id);

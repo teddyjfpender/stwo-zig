@@ -51,6 +51,27 @@ pub fn classicKernelId(policy: A.crypto.keccak.equations.BatchPolicy, kind: Role
         else => return error.UnsupportedTruthCompositionRole,
     });
 }
+/// Extended curve IDs are disjoint from both secp and the triple Keccak roster.
+/// Unsupported curve operations stay closed even if a shared library exports a
+/// wider implementation; native Wire35 program kinds remain unchanged.
+pub fn curveKernelId(op: A.crypto.curves.spec.Op) !u32 {
+    return switch (op) {
+        .bn254_g1_add => 10,
+        .bn254_g1_double => 11,
+        .bn254_fp2_mul => 12,
+        .bls12_381_fp2_mul => 13,
+        .arith384_mont => 14,
+        else => error.UnsupportedDeviceTruthFamily,
+    };
+}
+test "curve AOT IDs preserve triple policy and reject unimplemented families" {
+    const ops = [_]A.crypto.curves.spec.Op{ .bn254_g1_add, .bn254_g1_double, .bn254_fp2_mul, .bls12_381_fp2_mul, .arith384_mont };
+    for (ops, 10..) |op, expected| try std.testing.expectEqual(@as(u32, @intCast(expected)), try curveKernelId(op));
+    try std.testing.expectError(error.UnsupportedDeviceTruthFamily, curveKernelId(.bls12_381_g1_add));
+    try std.testing.expectError(error.UnsupportedDeviceTruthFamily, curveKernelId(.bls12_381_g1_double));
+    try std.testing.expectEqual(@as(u32, 7), try classicKernelId(.triple_v2, .keccak));
+    try std.testing.expectEqual(@as(u32, 9), try classicKernelId(.triple_v2, .xor5));
+}
 pub fn nativeMetadata(component: *const Role.Component) [slots.count]O {
     var values: [slots.count]O = @splat(O.zero());
     const M = core.fields.m31.M31;

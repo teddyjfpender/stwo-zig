@@ -136,11 +136,11 @@ def truth_catalog(source: Path, destination: Path, groups_per_module: int, max_m
     catalogs = []
     roles = sorted(int(match[1]) for path in source.glob("case-*-domain.cu")
                    if (match := re.fullmatch(r"case-(\d+)-domain\.cu", path.name)))
-    if roles not in [list(range(7)), list(range(10))]:
-        raise ValueError("truth catalogue must contain the admitted seven or ten contiguous cases")
+    if roles not in [list(range(7)), list(range(10)), list(range(15))]:
+        raise ValueError("truth catalogue must contain the admitted seven, ten or fifteen contiguous cases")
     for role in roles:
         original = source / f"case-{role}-domain.cu"
-        if role in (0, 5, 6, 7):
+        if role in (0, 5, 6, 7) or role >= 10:
             item = partition(original, destination / f"role-{role}", groups_per_module, max_module_bytes)
             modules = item["modules"]
             if role == 7 and tail_first_group is not None:

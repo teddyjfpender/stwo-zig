@@ -77,6 +77,18 @@ fn fixture(dir: std.fs.Dir, id: u32, log: u32, count: u32) !void {
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--curves")) {
+        try std.fs.cwd().makePath(args[2]);
+        var d = try std.fs.cwd().openDir(args[2], .{});
+        defer d.close();
+        const gen = @import("rv64/curve_witness_fixture.zig");
+        inline for (@import("rv64/curve_witness_codegen.zig").EXTENDED, 0..) |op, k| {
+            try gen.write(a, d, @intCast(3 * k), op, 0);
+            try gen.write(a, d, @intCast(3 * k + 1), op, 1);
+            try gen.write(a, d, @intCast(3 * k + 2), op, 9);
+        }
+        return;
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "--bridge")) {
         try std.fs.cwd().makePath(args[2]);
         var d = try std.fs.cwd().openDir(args[2], .{});

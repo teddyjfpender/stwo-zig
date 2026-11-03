@@ -46,11 +46,16 @@ const Collector = struct {
 };
 /// id0=throughput-r27 permutation, id1=chi multiplicities, id2=xor5.
 pub fn record(a: std.mem.Allocator, id: u32) !Artifact {
-    if (id >= 3 and id < 7) return switch (id) {
+    if ((id >= 3 and id < 7) or (id >= 10 and id < 15)) return switch (id) {
         3 => recordV3(a, T.V3Catalog.Sha(), id),
         4 => recordV3(a, T.V3Catalog.Arith(), id),
         5 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add), id),
         6 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double), id),
+        10 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add), id),
+        11 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double), id),
+        12 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul), id),
+        13 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul), id),
+        14 => recordV3(a, T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont), id),
         else => error.UnsupportedTruthInteractionRole,
     };
     if (id >= 10) return error.UnsupportedTruthInteractionRole;
@@ -166,12 +171,12 @@ pub fn emit(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, kernel_
 }
 test "truth rational projection keeps native triple and strict IO groups" {
     const a = std.testing.allocator;
-    for (0..10) |id| {
+    for (0..15) |id| {
         var artifact = try record(a, @intCast(id));
         defer artifact.deinit();
         try artifact.program.validate();
-        const first = [10]u32{ 143, 1, 1, 2, @intCast(T.V3Catalog.Arith().byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).byte_batches), 640, 1, 1 };
-        const second = [10]u32{ 50, 0, 0, 0, @intCast(T.V3Catalog.Arith().wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).wire_batches), 25, 0, 0 };
+        const first = [15]u32{ 143, 1, 1, 2, @intCast(T.V3Catalog.Arith().byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).byte_batches), 640, 1, 1, @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul).byte_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont).byte_batches) };
+        const second = [15]u32{ 50, 0, 0, 0, @intCast(T.V3Catalog.Arith().wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).wire_batches), 25, 0, 0, @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul).wire_batches), @intCast(T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont).wire_batches) };
         try std.testing.expectEqual(first[id], artifact.groups[0]);
         try std.testing.expectEqual(second[id], artifact.groups[1]);
         try std.testing.expectEqual(@as(usize, 2) * (artifact.groups[0] + artifact.groups[1]), artifact.program.roots.len);
@@ -183,11 +188,27 @@ test "truth rational projection keeps native triple and strict IO groups" {
 }
 
 pub fn name(a: std.mem.Allocator, id: u32) ![]u8 {
-    if (id > 9) return error.UnsupportedTruthInteractionRole;
+    if (id > 14) return error.UnsupportedTruthInteractionRole;
     return std.fmt.allocPrint(a, "stwo_rv64_truth_projection_{}", .{id});
 }
+pub fn roleWidths(id: u32) ![2]usize {
+    return switch (id) {
+        0, 7 => .{ 32, 1923 },
+        1, 2, 8, 9 => .{ 7, 1 },
+        3 => .{ T.V3Catalog.Sha().fixed, T.V3Catalog.Sha().L.MAIN },
+        4 => .{ T.V3Catalog.Arith().fixed, T.V3Catalog.Arith().L.MAIN },
+        5 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).L.MAIN },
+        6 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).L.MAIN },
+        10 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_add).L.MAIN },
+        11 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_g1_double).L.MAIN },
+        12 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bn254_fp2_mul).L.MAIN },
+        13 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.Op.bls12_381_fp2_mul).L.MAIN },
+        14 => .{ 4, T.V3Catalog.Curve(A.crypto.curves.spec.Op.arith384_mont).L.MAIN },
+        else => error.UnsupportedTruthInteractionRole,
+    };
+}
 pub fn writeAot(a: std.mem.Allocator, dir: std.fs.Dir) !void {
-    for (0..10) |id| {
+    for (0..15) |id| {
         var artifact = try record(a, @intCast(id));
         defer artifact.deinit();
         const symbol = try name(a, @intCast(id));
@@ -198,7 +219,7 @@ pub fn writeAot(a: std.mem.Allocator, dir: std.fs.Dir) !void {
         defer text.deinit(a);
         const w = text.writer(a);
         try emit(a, w, &artifact, kernel);
-        const widths: [2]usize = if (id == 0 or id == 7) .{ 32, 1923 } else if (id < 3 or id >= 8) .{ 7, 1 } else if (id == 3) .{ T.V3Catalog.Sha().fixed, T.V3Catalog.Sha().L.MAIN } else if (id == 4) .{ T.V3Catalog.Arith().fixed, T.V3Catalog.Arith().L.MAIN } else if (id == 5) .{ T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).fixed, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.add).L.MAIN } else .{ T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).fixed, T.V3Catalog.Curve(A.crypto.curves.spec.SecpKind.double).L.MAIN };
+        const widths = try roleWidths(@intCast(id));
         const pairs = artifact.groups[0] + artifact.groups[1];
         const width = 8 * (pairs + 1 + @as(u32, @intFromBool(artifact.groups[1] != 0)));
         try w.writeAll("\n#include \"rv64/custody.cuh\"\n");

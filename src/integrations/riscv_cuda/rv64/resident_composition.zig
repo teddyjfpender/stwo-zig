@@ -132,7 +132,7 @@ pub const Context = struct {
     copy: Copy,
     clear: Clear,
     artifacts: [49]KernelMetadata,
-    truth_artifacts: [10]?KernelMetadata = @splat(null),
+    truth_artifacts: [15]?KernelMetadata = @splat(null),
     truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
@@ -307,6 +307,11 @@ pub const Context = struct {
                     .arith256_mod => 4,
                     .add => 5,
                     .double => 6,
+                    .bn254_g1_add => 10,
+                    .bn254_g1_double => 11,
+                    .bn254_fp2_mul => 12,
+                    .bls12_381_fp2_mul => 13,
+                    .arith384_mont => 14,
                     else => return error.UnsupportedTruthCompositionRole,
                 };
                 const shape = c.mainShape();
