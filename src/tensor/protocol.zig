@@ -23,6 +23,8 @@ const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
+const pcs2 = @import("pcs2.zig");
+const bsc = @import("batch_sumcheck.zig");
 const linalg = @import("linalg.zig");
 const batch = @import("batch.zig");
 const eqsum = @import("eqsum.zig");
@@ -148,6 +150,15 @@ fn splitTable(log_total: u32, log_cols_max: u32) struct { lr: u32, lc: u32 } {
 
 pub const Config = struct {
     pcs: pcs.Params = .{},
+    /// When set, all openings use the recursive tensor PCS (pcs2): combined
+    /// rows are committed instead of sent, claims are grouped by column point,
+    /// and the witness table split is chosen by the pcs2 size model. `pcs` is
+    /// then ignored (two_level.outer holds the outer parameters).
+    two_level: ?pcs2.Params = null,
+    /// Batch all matmuls of one shape class (same T, K, N) into one sumcheck
+    /// with shared challenges, so their weight claims share the local point
+    /// (one PCS claim group per class instead of per matmul).
+    batch_matmuls: bool = false,
     /// max log columns of the weight table (must be <= min log N over matmuls)
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
@@ -163,11 +174,12 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
     var lc = cfg.weight_log_cols;
     if (lc > lay.log_total) lc = lay.log_total;
     const lr = lay.log_total - lc;
-    var tw = try pcs.Twiddles.init(a, lc + cfg.pcs.log_blowup);
+    const lb = outerParams(cfg).log_blowup;
+    var tw = try pcs.Twiddles.init(a, lc + lb);
     defer tw.deinit(a);
     const ru = (lay.used + (@as(usize, 1) << @intCast(lc)) - 1) >> @intCast(lc);
     const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
-    const com = try pcs.commit(i8, a, pool, &tw, m, cfg.pcs.log_blowup);
+    const com = try pcs.commit(i8, a, pool, &tw, m, lb);
     return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
 }
 
@@ -309,6 +321,52 @@ fn tableKeyMle(st: Statement, a: std.mem.Allocator, t: RelTable, point: []const 
 // ---------------------------------------------------------------------------
 // Proof.
 
+/// An opening proof of either PCS flavour.
+pub const Opening = union(enum) {
+    flat: pcs.OpeningProof,
+    two: pcs2.Proof,
+
+    pub fn deinit(self: *Opening, a: std.mem.Allocator) void {
+        switch (self.*) {
+            .flat => |*p| p.deinit(a),
+            .two => |*p| p.deinit(a),
+        }
+    }
+
+    pub fn byteSize(self: Opening) usize {
+        return switch (self) {
+            .flat => |p| p.byteSize(),
+            .two => |p| p.byteSize(),
+        };
+    }
+};
+
+/// Max log columns of the witness table under pcs2 (bounds twiddle memory).
+const PCS2_MAX_LOG_COLS: u32 = 22;
+
+fn witnessSplit(cfg: Config, log_total: u32, used: usize) struct { lr: u32, lc: u32 } {
+    if (cfg.two_level) |tl| {
+        const b = pcs2.bestOuter(tl, log_total, used, 1, true, @min(log_total, PCS2_MAX_LOG_COLS));
+        return .{ .lr = log_total - b.log_cols, .lc = b.log_cols };
+    }
+    const s = splitTable(log_total, cfg.witness_log_cols_max);
+    return .{ .lr = s.lr, .lc = s.lc };
+}
+
+pub fn outerParams(cfg: Config) pcs.Params {
+    return if (cfg.two_level) |tl| tl.outer else cfg.pcs;
+}
+
+/// Weight-table column count for a weight set under the configured PCS: with
+/// pcs2 the size model picks it (assuming `n_groups` distinct column points per
+/// batch); otherwise `cfg.weight_log_cols`.
+pub fn chooseWeightLogCols(cfg: Config, a: std.mem.Allocator, infos: []const TensorInfo, n_groups: usize) !u32 {
+    const tl = cfg.two_level orelse return cfg.weight_log_cols;
+    const lay = try layout(a, infos, &.{});
+    defer a.free(lay.offsets);
+    return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups, false, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
+}
+
 pub const WitnessClaim = struct { tensor: usize, point: []QM31, value: QM31 };
 
 pub const Proof = struct {
@@ -321,9 +379,9 @@ pub const Proof = struct {
     op_finals: [][]QM31,
     batch_sumcheck: sc.Proof,
     witness_value: QM31,
-    witness_opening: pcs.OpeningProof,
+    witness_opening: Opening,
     weight_values: []QM31,
-    weight_opening: ?pcs.OpeningProof,
+    weight_opening: ?Opening,
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
         if (self.gkr) |*g| g.deinit(a);
@@ -646,12 +704,13 @@ pub fn prove(
     defer a.free(wtab);
     @memset(wtab, 0);
     for (all, 0..) |v, i| @memcpy(wtab[lay.offsets[i]..][0..v.len], v);
-    const split = splitTable(lay.log_total, cfg.witness_log_cols_max);
-    var wtw = try pcs.Twiddles.init(a, split.lc + cfg.pcs.log_blowup);
+    const split = witnessSplit(cfg, lay.log_total, lay.used);
+    const olb = outerParams(cfg).log_blowup;
+    var wtw = try pcs.Twiddles.init(a, split.lc + olb);
     defer wtw.deinit(a);
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
     const wm = pcs.Matrix(i32){ .data = wtab, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru };
-    var wcom = try pcs.commit(i32, a, pool, &wtw, wm, cfg.pcs.log_blowup);
+    var wcom = try pcs.commit(i32, a, pool, &wtw, wm, olb);
     defer wcom.deinit(a);
     timings.witness_commit_ns = nowNs(t0);
     timings.witness_table_elems = w_ru << @intCast(split.lc);
@@ -697,7 +756,7 @@ pub fn prove(
         for (claims.items) |c| a.free(c.point);
         claims.deinit(a);
     }
-    var weight_claims: std.ArrayList(struct { w: usize, point: []QM31, value: QM31 }) = .empty;
+    var weight_claims: std.ArrayList(WeightClaimP) = .empty;
     defer {
         for (weight_claims.items) |c| a.free(c.point);
         weight_claims.deinit(a);
@@ -778,8 +837,19 @@ pub fn prove(
     t0 = try std.time.Instant.now();
     var op_proofs: std.ArrayList(sc.Proof) = .empty;
     var op_finals: std.ArrayList([]QM31) = .empty;
+    const class_done = try a.alloc(bool, rel.keys.len);
+    defer a.free(class_done);
+    @memset(class_done, false);
     for (rel.keys, 0..) |k, i| {
         if (k.kind != .remainder) continue;
+        if (cfg.batch_matmuls and st.ops[k.op] == .matmul) {
+            if (class_done[i]) continue;
+            const members = try classMembers(a, st, rel, i);
+            defer a.free(members);
+            for (members) |mi| class_done[mi] = true;
+            try proveMatmulClass(a, pool, &tr, st, ws, all, art, rel, members, alpha, y_vals, timings, &op_proofs, &op_finals, &claims, &weight_claims);
+            continue;
+        }
         const pt = art.ood_point[L - k.log_size ..];
         // acc(rho) = r(rho) - 2^(s-1) + 2^s y(rho), with r = alpha - den_r, y = alpha - den_y - 128
         const r_val = alpha.sub(art.claims_to_verify_by_instance[i][1]);
@@ -886,7 +956,10 @@ pub fn prove(
     t0 = try std.time.Instant.now();
     const wclaim = [_]pcs.Claim{.{ .point = bres.point, .value = wval }};
     const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
-    const wopen = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, &wgroups, true);
+    const wopen: Opening = if (cfg.two_level) |tl|
+        .{ .two = try pcs2.open(i32, a, pool, &tr, tl, &wcom, wm, &wgroups, true) }
+    else
+        .{ .flat = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, &wgroups, true) };
     timings.witness_open_ns = nowNs(t0);
 
     // --- weight opening (single combined row; proximity proven at commit time)
@@ -906,7 +979,16 @@ pub fn prove(
         wvals[i] = c.value;
     }
     const wtgroups = [_]pcs.Group{.{ .claims = wcl }};
-    const wtopen: ?pcs.OpeningProof = if (wcl.len == 0) null else try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false);
+    var wtopen: ?Opening = null;
+    if (wcl.len > 0) {
+        if (cfg.two_level) |tl| {
+            const gs = try pcs2.groupByColumn(a, wcl, ws.log_rows);
+            defer pcs2.freeGroups(a, gs);
+            wtopen = .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), gs, false) };
+        } else {
+            wtopen = .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &wtgroups, false) };
+        }
+    }
     timings.weight_open_ns = nowNs(t0);
 
     return .{
@@ -1007,7 +1089,8 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     defer a.free(ext);
     const lay = try layout(a, ext, &.{});
     defer a.free(lay.offsets);
-    const split = splitTable(lay.log_total, cfg.witness_log_cols_max);
+    const split = witnessSplit(cfg, lay.log_total, lay.used);
+    const olb = outerParams(cfg).log_blowup;
 
     var tr = Transcript.initDomain("stwo-tensor-v1");
     mixStatement(&tr, st, key.root);
@@ -1133,10 +1216,25 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
         for (weight_pts.items) |p| a.free(p);
         weight_pts.deinit(a);
     }
+    if (proof.op_finals.len != proof.op_sumchecks.len) return error.ProofShape;
+    var expected_w: std.ArrayList(QM31) = .empty;
+    defer expected_w.deinit(a);
+    const vclass_done = try a.alloc(bool, rel.keys.len);
+    defer a.free(vclass_done);
+    @memset(vclass_done, false);
     var op_i: usize = 0;
     for (rel.keys, 0..) |k, i| {
         if (k.kind != .remainder) continue;
         if (op_i >= proof.op_sumchecks.len) return error.ProofShape;
+        if (cfg.batch_matmuls and st.ops[k.op] == .matmul) {
+            if (vclass_done[i]) continue;
+            const members = try classMembers(a, st, rel, i);
+            defer a.free(members);
+            for (members) |mi| vclass_done[mi] = true;
+            try verifyMatmulClass(a, &tr, st, key, art, rel, members, alpha, y_vals, proof.op_sumchecks[op_i], proof.op_finals[op_i], &claims, &weight_pts, &expected_w);
+            op_i += 1;
+            continue;
+        }
         const pt = art.ood_point[L - k.log_size ..];
         const r_val = alpha.sub(art.claims_to_verify_by_instance[i][1]);
         const y_val = y_vals[i];
@@ -1166,6 +1264,7 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
                 @memcpy(pw[0..lkk], vr.point);
                 @memcpy(pw[lkk..], pt[lt..]);
                 try weight_pts.append(a, try fullPoint(a, key.log_rows + key.log_cols, key.offsets[m.w], key.infos[m.w].logSize(), pw));
+                try expected_w.append(a, fin[1]);
                 a.free(pw);
             },
             .hadamard => |h| {
@@ -1222,51 +1321,224 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     }
     if (!bv.final_claim.eql(proof.witness_value.mul(e_at))) return error.BatchSumcheck;
 
-    var wtw = try pcs.Twiddles.init(a, split.lc + cfg.pcs.log_blowup);
-    defer wtw.deinit(a);
     const wclaim = [_]pcs.Claim{.{ .point = bv.point, .value = proof.witness_value }};
     const wgroups = [_]pcs.Group{.{ .claims = &wclaim }};
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &wtw, .{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = cfg.pcs.log_blowup, .rows_used = w_ru }, proof.witness_root, &wgroups, true, proof.witness_opening);
+    const wshape = pcs.Shape{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = olb, .rows_used = w_ru };
+    try verifyOpeningAny(a, &tr, cfg, wshape, proof.witness_root, &wgroups, true, proof.witness_opening);
 
     if (proof.weight_values.len != weight_pts.items.len) return error.ProofShape;
     const wcl = try a.alloc(pcs.Claim, weight_pts.items.len);
     defer a.free(wcl);
     for (weight_pts.items, proof.weight_values, 0..) |p, v, i| wcl[i] = .{ .point = p, .value = v };
-    var ktw = try pcs.Twiddles.init(a, key.log_cols + cfg.pcs.log_blowup);
-    defer ktw.deinit(a);
     const kgroups = [_]pcs.Group{.{ .claims = wcl }};
     // matmul finals for W must equal the opened weight values
-    {
-        var oi: usize = 0;
-        var j: usize = 0;
-        for (rel.keys) |k| {
-            if (k.kind != .remainder) continue;
-            switch (st.ops[k.op]) {
-                .matmul => {
-                    if (!proof.op_finals[oi][1].eql(proof.weight_values[j])) return error.WeightValueMismatch;
-                    j += 1;
-                },
-                else => {},
-            }
-            oi += 1;
+    if (expected_w.items.len != proof.weight_values.len) return error.ProofShape;
+    for (expected_w.items, proof.weight_values) |e, v| if (!e.eql(v)) return error.WeightValueMismatch;
+    if ((wcl.len == 0) != (proof.weight_opening == null)) return error.ProofShape;
+    if (proof.weight_opening) |wop| {
+        const kshape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = olb, .rows_used = key.rows_used };
+        if (cfg.two_level != null) {
+            const gs = try pcs2.groupByColumn(a, wcl, key.log_rows);
+            defer pcs2.freeGroups(a, gs);
+            try verifyOpeningAny(a, &tr, cfg, kshape, key.root, gs, false, wop);
+        } else {
+            try verifyOpeningAny(a, &tr, cfg, kshape, key.root, &kgroups, false, wop);
         }
     }
-    if ((wcl.len == 0) != (proof.weight_opening == null)) return error.ProofShape;
-    if (proof.weight_opening) |wop| try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &kgroups, false, wop);
+}
+
+/// Verifies an opening of the PCS flavour selected by `cfg`; a proof of the
+/// other flavour is rejected.
+pub fn verifyOpeningAny(a: std.mem.Allocator, tr: *Transcript, cfg: Config, shape: pcs.Shape, root: [32]u8, groups: []const pcs.Group, with_proximity: bool, op: Opening) !void {
+    if (cfg.two_level) |tl| {
+        if (op != .two) return error.ProofShape;
+        try pcs2.verify(a, tr, tl, shape, root, groups, with_proximity, op.two);
+    } else {
+        if (op != .flat) return error.ProofShape;
+        var tw = try pcs.Twiddles.init(a, shape.log_cols + shape.log_blowup);
+        defer tw.deinit(a);
+        try pcs.verifyOpening(a, tr, cfg.pcs, &tw, shape, root, groups, with_proximity, op.flat);
+    }
 }
 
 /// Offline: proximity test of the committed weight table (run once per commitment).
-pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, ws: *const WeightStore) !pcs.OpeningProof {
+pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, ws: *const WeightStore) !Opening {
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(ws.com.root());
-    return pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &.{}, true);
+    if (cfg.two_level) |tl| return .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), &.{}, true) };
+    return .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &.{}, true) };
 }
 
-pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: Config, key: WeightKey, proof: pcs.OpeningProof) !void {
+pub fn verifyWeightProximity(a: std.mem.Allocator, cfg: Config, key: WeightKey, proof: Opening) !void {
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(key.root);
-    var ktw = try pcs.Twiddles.init(a, key.log_cols + cfg.pcs.log_blowup);
-    defer ktw.deinit(a);
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &ktw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &.{}, true, proof);
+    const shape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = outerParams(cfg).log_blowup, .rows_used = key.rows_used };
+    try verifyOpeningAny(a, &tr, cfg, shape, key.root, &.{}, true, proof);
+}
+
+// ---------------------------------------------------------------------------
+// Shape-class batching of matmuls (Config.batch_matmuls).
+
+const WeightClaimP = struct { w: usize, point: []QM31, value: QM31 };
+
+fn sameMatmulClass(st: Statement, x: anytype, y: anytype) bool {
+    const a = st.witness[x.x];
+    const b = st.witness[y.x];
+    return a.log_dims[0] == b.log_dims[0] and a.log_dims[1] == b.log_dims[1] and
+        st.weights[x.w].log_dims[0] == st.weights[y.w].log_dims[0] and st.weights[x.w].log_dims[1] == st.weights[y.w].log_dims[1];
+}
+
+/// Remainder-key indices of all matmuls in the shape class of key i, in key order.
+fn classMembers(a: std.mem.Allocator, st: Statement, rel: Relations, i: usize) ![]usize {
+    const m0 = st.ops[rel.keys[i].op].matmul;
+    var out: std.ArrayList(usize) = .empty;
+    for (rel.keys, 0..) |k, j| {
+        if (k.kind != .remainder) continue;
+        switch (st.ops[k.op]) {
+            .matmul => |m| if (sameMatmulClass(st, m0, m)) try out.append(a, j),
+            else => {},
+        }
+    }
+    return out.toOwnedSlice(a);
+}
+
+/// acc(rho) of a remainder key from the GKR terminal claims (r and y keys).
+/// acc(rho) of a remainder key: r from its GKR terminal claim, y from the
+/// terminal loop (y_range instance or a prover-sent value when elided).
+fn accValue(art: lookups.verifier_kernel.Artifact(QM31), i: usize, sh: u5, alpha: QM31, y_vals: []const QM31) QM31 {
+    const r_val = alpha.sub(art.claims_to_verify_by_instance[i][1]);
+    const y_val = y_vals[i];
+    return r_val.sub(f.qFromI64(shiftHalf(sh))).add(y_val.mulM31(M31.fromCanonical(@as(u32, 1) << sh)));
+}
+
+fn proveMatmulClass(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    st: Statement,
+    ws: *const WeightStore,
+    all: []const []const i32,
+    art: lookups.verifier_kernel.Artifact(QM31),
+    rel: Relations,
+    members: []const usize,
+    alpha: QM31,
+    y_vals: []const QM31,
+    timings: *Timings,
+    op_proofs: *std.ArrayList(sc.Proof),
+    op_finals: *std.ArrayList([]QM31),
+    claims: *ClaimList,
+    weight_claims: *std.ArrayList(WeightClaimP),
+) !void {
+    const E = members.len;
+    const L = art.ood_point.len;
+    const m0 = st.ops[rel.keys[members[0]].op].matmul;
+    const lt = st.witness[m0.x].log_dims[0];
+    const lk = st.witness[m0.x].log_dims[1];
+    const pt = art.ood_point[L - rel.keys[members[0]].log_size ..];
+    const rho_t = pt[0..lt];
+    const rho_n = pt[lt..];
+    const xi = try a.alloc(QM31, E);
+    defer a.free(xi);
+    tr.drawN(xi);
+    var claim = QM31.zero();
+    for (members, xi) |mi, x| claim = claim.add(x.mul(accValue(art, mi, st.ops[rel.keys[mi].op].matmul.shift, alpha, y_vals)));
+    const eq_t = try f.eqTablePar(a, pool, rho_t, QM31.one());
+    defer a.free(eq_t);
+    const eq_n = try f.eqTablePar(a, pool, rho_n, QM31.one());
+    defer a.free(eq_n);
+    const fs = try a.alloc([]QM31, E);
+    const gs = try a.alloc([]QM31, E);
+    defer {
+        for (fs) |v| a.free(v);
+        for (gs) |v| a.free(v);
+        a.free(fs);
+        a.free(gs);
+    }
+    for (members, 0..) |mi, e| {
+        const m = st.ops[rel.keys[mi].op].matmul;
+        const xm = pcs.Matrix(i32){ .data = all[m.x], .log_rows = lt, .log_cols = lk };
+        fs[e] = try linalg.colCombine(i32, a, pool, xm, eq_t, 8);
+        const tw0 = try std.time.Instant.now();
+        gs[e] = try linalg.rowDots(i8, a, pool, ws.matrix(m.w), eq_n, 7);
+        timings.weight_fold_ns += nowNs(tw0);
+    }
+    var res = try bsc.prove(a, tr, claim, fs, gs, xi);
+    defer res.deinitExceptProof(a);
+    try op_proofs.append(a, res.proof);
+    const fin = try a.alloc(QM31, 2 * E);
+    for (0..E) |e| {
+        fin[2 * e] = res.f_finals[e];
+        fin[2 * e + 1] = res.g_finals[e];
+    }
+    tr.mixFelts(fin);
+    try op_finals.append(a, fin);
+    for (members, 0..) |mi, e| {
+        const m = st.ops[rel.keys[mi].op].matmul;
+        const px = try a.alloc(QM31, lt + lk);
+        @memcpy(px[0..lt], rho_t);
+        @memcpy(px[lt..], res.point);
+        try claims.append(a, .{ .tensor = m.x, .point = px, .value = fin[2 * e] });
+        const pw = try a.alloc(QM31, lk + rho_n.len);
+        @memcpy(pw[0..lk], res.point);
+        @memcpy(pw[lk..], rho_n);
+        try weight_claims.append(a, .{ .w = m.w, .point = pw, .value = fin[2 * e + 1] });
+    }
+}
+
+fn verifyMatmulClass(
+    a: std.mem.Allocator,
+    tr: *Transcript,
+    st: Statement,
+    key: WeightKey,
+    art: lookups.verifier_kernel.Artifact(QM31),
+    rel: Relations,
+    members: []const usize,
+    alpha: QM31,
+    y_vals: []const QM31,
+    sproof: sc.Proof,
+    fin: []const QM31,
+    claims: *ClaimList,
+    weight_pts: *std.ArrayList([]QM31),
+    expected_w: *std.ArrayList(QM31),
+) !void {
+    const E = members.len;
+    const L = art.ood_point.len;
+    const k0 = rel.keys[members[0]];
+    const m0 = st.ops[k0.op].matmul;
+    const lt = st.witness[m0.x].log_dims[0];
+    const lk = st.witness[m0.x].log_dims[1];
+    for (members) |mi| {
+        const m = st.ops[rel.keys[mi].op].matmul;
+        if (st.weights[m.w].log_dims[0] != lk or st.weights[m.w].log_dims[1] != rel.keys[mi].log_size - lt) return error.StatementShape;
+        if (rel.keys[mi].log_size != k0.log_size) return error.StatementShape;
+    }
+    const pt = art.ood_point[L - k0.log_size ..];
+    const rho_t = pt[0..lt];
+    const rho_n = pt[lt..];
+    const xi = try a.alloc(QM31, E);
+    defer a.free(xi);
+    tr.drawN(xi);
+    var claim = QM31.zero();
+    for (members, xi) |mi, x| claim = claim.add(x.mul(accValue(art, mi, st.ops[rel.keys[mi].op].matmul.shift, alpha, y_vals)));
+    const vr = try sc.verify(a, tr, claim, lk, 2, sproof);
+    defer a.free(vr.point);
+    if (fin.len != 2 * E) return error.ProofShape;
+    var expect = QM31.zero();
+    for (0..E) |e| expect = expect.add(xi[e].mul(fin[2 * e].mul(fin[2 * e + 1])));
+    if (!vr.final_claim.eql(expect)) return error.OpSumcheck;
+    tr.mixFelts(fin);
+    for (members, 0..) |mi, e| {
+        const m = st.ops[rel.keys[mi].op].matmul;
+        const px = try a.alloc(QM31, lt + lk);
+        @memcpy(px[0..lt], rho_t);
+        @memcpy(px[lt..], vr.point);
+        try claims.append(a, .{ .tensor = m.x, .point = px, .value = fin[2 * e] });
+        const pw = try a.alloc(QM31, lk + rho_n.len);
+        defer a.free(pw);
+        @memcpy(pw[0..lk], vr.point);
+        @memcpy(pw[lk..], rho_n);
+        try weight_pts.append(a, try fullPoint(a, key.log_rows + key.log_cols, key.offsets[m.w], key.infos[m.w].logSize(), pw));
+        try expected_w.append(a, fin[2 * e + 1]);
+    }
 }

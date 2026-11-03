@@ -61,12 +61,30 @@ pub fn digest(p: *const proto.Proof) [32]u8 {
     for (p.op_finals) |fs| for (fs) |x| felt(&h, x);
     for (p.batch_sumcheck.rounds) |rp| for (rp.evals[0..p.batch_sumcheck.deg]) |x| felt(&h, x);
     felt(&h, p.witness_value);
-    opening(&h, p.witness_opening);
+    openingAny(&h, p.witness_opening);
     for (p.weight_values) |x| felt(&h, x);
-    if (p.weight_opening) |o| opening(&h, o);
+    if (p.weight_opening) |o| openingAny(&h, o);
     var out: [32]u8 = undefined;
     h.final(&out);
     return out;
+}
+
+fn openingAny(h: anytype, op: @import("protocol.zig").Opening) void {
+    switch (op) {
+        .flat => |o| opening(h, o),
+        .two => |o| {
+            u64v(h, 0x7477);
+            for (o.levels) |lv| {
+                u64v(h, lv.pow_nonce);
+                h.update(std.mem.sliceAsBytes(lv.col_values));
+                for (lv.decommit) |d| h.update(&d);
+                for (lv.rows) |r| for (r) |x| felt(h, x);
+                h.update(&lv.inner_root);
+                for (lv.sumcheck.rounds) |rp| for (rp.evals[0..lv.sumcheck.deg]) |x| felt(h, x);
+                for (lv.limb_vals) |x| felt(h, x);
+            }
+        },
+    }
 }
 
 fn hex(d: [32]u8) [64]u8 {

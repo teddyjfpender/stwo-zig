@@ -27,6 +27,7 @@ const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
 const pcs = @import("pcs.zig");
+const pcs2 = @import("pcs2.zig");
 const proto = @import("protocol.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
@@ -40,7 +41,7 @@ pub const KeyProof = struct {
     histogram: [256]u32,
     gkr: GkrVerifier.GkrBatchProof,
     value: QM31,
-    opening: pcs.OpeningProof,
+    opening: proto.Opening,
 
     pub fn deinit(self: *KeyProof, a: std.mem.Allocator) void {
         self.gkr.deinit(a);
@@ -108,7 +109,10 @@ pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, ws: *const 
     const value = alpha.sub(res.artifact.claims_to_verify_by_instance[0][1]).sub(f.qFromI64(128));
     const claims = [_]pcs.Claim{.{ .point = rho, .value = value }};
     const groups = [_]pcs.Group{.{ .claims = &claims }};
-    const opening = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &groups, true);
+    const opening: proto.Opening = if (cfg.two_level) |tl|
+        .{ .two = try pcs2.open(i8, a, pool, &tr, tl, &ws.com, ws.tableMatrix(), &groups, true) }
+    else
+        .{ .flat = try pcs.open(i8, a, pool, &tr, cfg.pcs, &ws.com, ws.tableMatrix(), &groups, true) };
     return .{ .histogram = hist, .gkr = res.proof, .value = value, .opening = opening };
 }
 
@@ -142,11 +146,10 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, pro
     if (!ct[1].eql(alpha.sub(f.identityMle(rho_t)))) return error.KeyTerminal;
     const value = alpha.sub(ck[1]).sub(f.qFromI64(128));
     if (!value.eql(proof.value)) return error.KeyTerminal;
-    var tw = try pcs.Twiddles.init(a, key.log_cols + cfg.pcs.log_blowup);
-    defer tw.deinit(a);
     const claims = [_]pcs.Claim{.{ .point = rho, .value = value }};
     const groups = [_]pcs.Group{.{ .claims = &claims }};
-    try pcs.verifyOpening(a, &tr, cfg.pcs, &tw, .{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = cfg.pcs.log_blowup, .rows_used = key.rows_used }, key.root, &groups, true, proof.opening);
+    const shape = pcs.Shape{ .log_rows = key.log_rows, .log_cols = key.log_cols, .log_blowup = proto.outerParams(cfg).log_blowup, .rows_used = key.rows_used };
+    try proto.verifyOpeningAny(a, &tr, cfg, shape, key.root, &groups, true, proof.opening);
 }
 
 test "weight key: range proof verifies, tampering rejected" {
