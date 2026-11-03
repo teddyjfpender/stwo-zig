@@ -40,7 +40,10 @@ pub const Api = struct {
     pub fn load(library: *std.DynLib) !Api {
         var out: Api = undefined;
         inline for (std.meta.fields(Api)) |field| {
-            @field(out, field.name) = library.lookup(field.type, field.name) orelse return error.MissingCudaNumericalSymbol;
+            @field(out, field.name) = library.lookup(field.type, field.name) orelse {
+                std.log.err("missing CUDA numerical ABI symbol: {s}", .{field.name});
+                return error.MissingCudaNumericalSymbol;
+            };
         }
         return out;
     }

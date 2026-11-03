@@ -1,0 +1,59 @@
+{
+  "schema": "rv64-real-segment-native-gkr/v1",
+  "date_utc": "2026-11-03",
+  "block": 24628607,
+  "segment": 0,
+  "steps": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 6,
+  "security_profile": "conjectured128_b2_q108_p20_fold4",
+  "security_scope": "128-bit target under documented assumptions; no whole-protocol certificate",
+  "device": "NVIDIA RTX5090",
+  "capture": "Direct in-process RV64 execution, JOBS=-, execution_workers8; same pinned request, ELF SHA718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903 and input SHAe549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "path": "GPU coefficient-to-physical-MAIN transform, relation challenge draw replay, AOT MAIN-to-fraction projection for36local roles, complete mixed-height GKR traversal, compact proof readback, independent native partial verification; CPU terminal binding and truth proofs remain. GPU PCS uses same persistent context.",
+  "qualified": {
+    "producer_exit": 0,
+    "same_process_verification": true,
+    "fresh_receiver_accepted": true,
+    "completed_block": false,
+    "cpu0_native_control_byte_parity": true,
+    "cpu0_proof_sha256": "9752fd800a763ea0cb528cebea5ec6282b159b8b0ad4697e1925de8e37e6c048",
+    "cpu0_proof_bytes": 3271416,
+    "binary_sha256": "9ceaf764455cfabecd205ddd909e8a02619e242188bb8e8c7ff027355d43592a"
+  },
+  "gkr_geometry": {
+    "local_instances": 36,
+    "facts": 124093760,
+    "max_variables": 26,
+    "workspace_payload_bytes": 14466605568
+  },
+  "timing_ns": {
+    "capture": 5921027854,
+    "prefix_prove": 117690568526,
+    "same_process_verify": 1886697121,
+    "fresh_load_and_setup": 44066168118,
+    "fresh_verify": 1470363349,
+    "cpu0_source": 2773496862,
+    "cpu0_main_commit": 4441904075,
+    "cpu0_local_gkr_total": 1898704960,
+    "cpu0_numerical_gkr": 629308536,
+    "cpu0_terminal_binding_cpu": 1269247207,
+    "cpu0_native_complete": 21319457375,
+    "gpu_pcs_resident": 123510467,
+    "gpu_pcs_whole_callback": 707543242
+  },
+  "same_host_stage_control": {
+    "source": "prefix1-combined-fixed/report.json, same CPU0 proof hash, default q108/P20",
+    "cpu_numerical_gkr_ns": 26345770887,
+    "gpu_numerical_gkr_ns": 629308536,
+    "single_run_stage_ratio": 41.86463297392807,
+    "limits": "Single runs at different times with development activity; not a quiet repeated benchmark. Comparison covers numerical GKR stage only, not whole prover."
+  },
+  "remaining": [
+    "GPU terminal binding and device INTER commitment; current binding is CPU.",
+    "Resident composition and truth proving remain separate integration work.",
+    "This binary predates coefficient-sink retention activation; no claim of MAIN reuse into PCS yet.",
+    "Initial numerical ingress uploads native coefficients; compact GPU trace formatter is separately qualified but not used here.",
+    "No full-block or basket GPU throughput claim."
+  ]
+}

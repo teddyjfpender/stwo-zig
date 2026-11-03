@@ -123,6 +123,7 @@ const Job = struct {
         return 0;
     }
     fn execute(self: *Job, raw_context: *anyopaque, token: u64) !void {
+        var timer = try std.time.Timer.start();
         const a = self.allocator;
         const b = self.backend;
         var context = SC.Context{ .session = b.session, .native_context = raw_context, .token = token, .scope = @import("pcs_scope.zig").identity(self.request.scope), .api = &b.session_api };
@@ -284,6 +285,9 @@ const Job = struct {
             published_generation = coefficient_lease.generation;
         }
         self.proof = proof;
+        var readback_words: usize = 1 + 20 + 16 + roots.len;
+        for (layers) |layer| readback_words += layer.records.len + layer.masks.len;
+        std.debug.print("GPU_GKR ordinal={} native_stage_wall_ns={} facts={} coefficient_cells={} workspace_bytes={} requested_payload_bytes={} compact_d2h_words={} retained_coefficients={}\n", .{ self.request.scope.ordinal, timer.read(), input_words / 9, source.cells, plan.total_words * 4, requested * 4, readback_words, published_generation != 0 });
     }
 };
 fn allocate(a: std.mem.Allocator, context: *SC.Context, leases: *std.ArrayList(Native.Lease), words: usize) !Slice {
