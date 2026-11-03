@@ -169,6 +169,9 @@ pub const NativeTruthWorker = struct {
         if (s.device_source) |*owner| {
             if (s.scheme.device_om31_pcs_stage == null or s.device_composition_stage == null) return error.DeviceTruthRequiresResidentStages;
             const main = try @import("truth_device_source.zig").seal(owner, a, &s.scheme, s.expected);
+            const expected_logs = try logs(a, s.truth, 1);
+            defer a.free(expected_logs);
+            try @import("truth_device_source.zig").validateTree(main, expected_logs);
             try s.scheme.adoptDeviceOm31TraceTree(1, main, &s.channel);
         } else {
             const main = try s.source.?.takeMain();
@@ -199,10 +202,9 @@ pub const NativeTruthWorker = struct {
         var device_inter: ?@import("stwo_prover_api").device_pcs.Tree = null;
         const claims: []O = if (s.device_source) |*owner| block: {
             const result = try owner.generate_interactions(owner.context, a, .{ .delegated = bytes }, p.shared);
-            if (result.claims.len != 1) {
-                a.free(result.claims);
-                return error.V3TruthClaims;
-            }
+            errdefer a.free(result.claims);
+            if (result.claims.len != 1) return error.V3TruthClaims;
+            if (result.main) |replayed| try s.scheme.refreshDeviceOm31Main(replayed);
             device_inter = result.tree;
             break :block result.claims;
         } else block: {
@@ -213,7 +215,12 @@ pub const NativeTruthWorker = struct {
         generation.end();
         var role = component(s.truth, p.shared.wire, bytes, claims[0]);
         W.mixManifestAndClaims(&s.channel, p.digest, claims);
-        if (device_inter) |tree| try s.scheme.adoptDeviceOm31TraceTree(2, tree, &s.channel) else {
+        if (device_inter) |tree| {
+            const expected_logs = try logs(a, s.truth, 2);
+            defer a.free(expected_logs);
+            try @import("truth_device_source.zig").validateTree(tree, expected_logs);
+            try s.scheme.adoptDeviceOm31TraceTree(2, tree, &s.channel);
+        } else {
             const inter = try witness.?.take(a);
             try s.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, s.native_recorder, &s.channel);
         }

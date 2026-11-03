@@ -113,3 +113,23 @@ extern "C" int stwo_rv64_global_pairs_on(void *ctx, uint32_t lane,
       {0, 0}};
   return stwo_rv64_prefix_scan_on(ctx, lane, &scan);
 }
+
+namespace stwo::cuda::rv64 {
+__global__ void global_cumulative(StwoRv64GlobalCumulative j) {
+  const uint32_t row=blockIdx.x*blockDim.x+threadIdx.x;
+  if(row>=(1u<<j.row_log))return;
+  OM31 sum=load(j.output+uint64_t(j.pairs)*8*j.stride,j.stride,row);
+  for(uint32_t i=j.pairs;i>0;--i){
+    const uint64_t offset=uint64_t(i-1)*8*j.stride;
+    store(j.output+offset,j.stride,row,sum);
+    sum=sub(sum,load(j.contributions+offset,j.stride,row));
+  }
+}
+}
+extern "C" __attribute__((visibility("default"))) int stwo_rv64_global_cumulative_on(void*ctx,uint32_t lane,const StwoRv64GlobalCumulative*input){
+  using namespace stwo::cuda::rv64;
+  if(!input||input->row_log<5||input->row_log>22||!input->pairs||input->pairs>640||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
+  const auto j=*input;Custody c(ctx,lane);
+  if(!c.range(j.output,uint64_t(j.pairs+1)*8*j.stride,true)||!c.range(j.contributions,uint64_t(j.pairs)*8*j.stride,false))return c.status;
+  global_cumulative<<<((1u<<j.row_log)+127)/128,128,0,c.stream>>>(j);return int(cudaPeekAtLastError());
+}

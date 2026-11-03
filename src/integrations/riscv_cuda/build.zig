@@ -150,6 +150,12 @@ pub fn build(b: *std.Build) void {
     const run_fri = b.addRunArtifact(fri_fixture);
     if (b.args) |args| run_fri.addArgs(args);
     b.step("rv64-fri-fixtures", "Export native FRI fixtures or verify GPU compact proof readback").dependOn(&run_fri.step);
+    const arith_witness_root = b.createModule(.{ .root_source_file = b.path("rv64_arith256_witness_fixture_main.zig"), .target = target, .optimize = optimize });
+    arith_witness_root.addImport("stwo_riscv_frontend", frontend);
+    const arith_witness_fixture = b.addExecutable(.{ .name = "rv64-arith256-witness-fixtures", .root_module = arith_witness_root });
+    const run_arith_witness = b.addRunArtifact(arith_witness_fixture);
+    if (b.args) |args| run_arith_witness.addArgs(args);
+    b.step("rv64-arith256-witness-fixtures", "Export compact arithmetic service inputs and independent native MAIN digests").dependOn(&run_arith_witness.step);
     const sha_witness_root = b.createModule(.{ .root_source_file = b.path("rv64_sha256_witness_fixture_main.zig"), .target = target, .optimize = optimize });
     sha_witness_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     sha_witness_root.addImport("stwo_riscv_frontend", frontend);
@@ -157,6 +163,15 @@ pub fn build(b: *std.Build) void {
     const run_sha_witness = b.addRunArtifact(sha_witness_fixture);
     if (b.args) |args| run_sha_witness.addArgs(args);
     b.step("rv64-sha256-witness-fixtures", "Export compact SHA service inputs and native MAIN digests").dependOn(&run_sha_witness.step);
+    const service_root = b.createModule(.{ .root_source_file = b.path("rv64_service_witness_fixture_main.zig"), .target = target, .optimize = optimize });
+    service_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    service_root.addImport("stwo_riscv_frontend", frontend);
+    service_root.addImport("stwo_cuda_backend", backend);
+    service_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const service_fixture = b.addExecutable(.{ .name = "rv64-service-witness-fixtures", .root_module = service_root });
+    const run_service = b.addRunArtifact(service_fixture);
+    if (b.args) |args| run_service.addArgs(args);
+    b.step("rv64-service-witness-fixtures", "Export compact bulk/sponge records and independent native MAIN/range oracles").dependOn(&run_service.step);
     const global_root = b.createModule(.{ .root_source_file = b.path("rv64_global_fixture_main.zig"), .target = target, .optimize = optimize });
     global_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     global_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));

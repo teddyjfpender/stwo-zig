@@ -15,4 +15,16 @@ static_assert(sizeof(StwoRv64GlobalPairs) == 72, "global pairs ABI");
 // This primitive publishes a witness/claim, not execution acceptance.
 extern "C" int stwo_rv64_global_pairs_on(void *, uint32_t,
                                          const StwoRv64GlobalPairs *);
+
+// Convert the temporary inverse columns to the native cumulative-per-batch
+// encoding in place. The helper's final centered prefix remains scratch.
+struct StwoRv64GlobalCumulative {
+  uint32_t *output;
+  const uint32_t *contributions;
+  uint64_t stride;
+  uint32_t row_log, pairs;
+};
+static_assert(sizeof(StwoRv64GlobalCumulative)==32,"global cumulative ABI");
+extern "C" int stwo_rv64_global_cumulative_on(void*,uint32_t,const StwoRv64GlobalCumulative*);
+
 #endif

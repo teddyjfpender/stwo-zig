@@ -141,6 +141,10 @@ pub const TruthWorker = struct {
         if (self.device_source) |*owner| {
             if (self.scheme.device_om31_pcs_stage == null or self.device_composition_stage == null) return error.DeviceTruthRequiresResidentStages;
             const main = try @import("truth_device_source.zig").seal(owner, a, &self.scheme, self.expected);
+            const shape = try templates(self.truth);
+            const expected_logs = try shape.logs(a, 1);
+            defer a.free(expected_logs);
+            try @import("truth_device_source.zig").validateTree(main, expected_logs);
             try self.scheme.adoptDeviceOm31TraceTree(1, main, &self.channel);
         } else {
             const main = try self.source.?.takeMain();
@@ -176,10 +180,9 @@ pub const TruthWorker = struct {
         var device_inter: ?@import("stwo_prover_api").device_pcs.Tree = null;
         const claims: []O = if (self.device_source) |*owner| block: {
             const result = try owner.generate_interactions(owner.context, a, .{ .classic = local }, pending.shared);
-            if (result.claims.len != 5) {
-                a.free(result.claims);
-                return error.InvalidWideTruthClaims;
-            }
+            errdefer a.free(result.claims);
+            if (result.claims.len != 5) return error.InvalidWideTruthClaims;
+            if (result.main) |replayed| try self.scheme.refreshDeviceOm31Main(replayed);
             device_inter = result.tree;
             break :block result.claims;
         } else block: {
@@ -207,7 +210,12 @@ pub const TruthWorker = struct {
         generation.end();
         var components = try Components.init(self.truth, local, pending.shared, claims);
         W.mixManifestAndClaims(&self.channel, pending.digest, claims);
-        if (device_inter) |tree| try self.scheme.adoptDeviceOm31TraceTree(2, tree, &self.channel) else {
+        if (device_inter) |tree| {
+            const expected_logs = try components.logs(a, 2);
+            defer a.free(expected_logs);
+            try @import("truth_device_source.zig").validateTree(tree, expected_logs);
+            try self.scheme.adoptDeviceOm31TraceTree(2, tree, &self.channel);
+        } else {
             const inter = try take(a, &locals, globals[0..gd]);
             try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, self.native_recorder, &self.channel);
         }

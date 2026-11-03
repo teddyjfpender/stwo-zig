@@ -155,7 +155,9 @@ fn emitImpl(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, name: [
             const node = p.nodes[i];
             if (node.op == .input) {
                 const input = p.inputs[node.value];
-                if (contiguous) try w.print("const uint32_t v{}=tree{}[{}ull*rows+row];if(v{}>=q::kPrime){{atomicOr(status,2u);return;}}\n", .{ i, input.tree, input.column, i }) else try w.print("const uint32_t v{}=tree{}[offsets[{}]+row];if(v{}>=q::kPrime){{atomicOr(status,2u);return;}}\n", .{ i, input.tree, node.value, i });
+                if (contiguous) try w.print("const uint32_t v{}=tree{}[{}ull*rows+", .{ i, input.tree, input.column }) else try w.print("const uint32_t v{}=tree{}[offsets[{}]+", .{ i, input.tree, node.value });
+                if (input.offset == 0) try w.writeAll("row") else try w.print("composition_mask_row(row,31u-__clz(rows),31u-__clz(rows),{})", .{input.offset});
+                try w.print("];if(v{}>=q::kPrime){{atomicOr(status,2u);return;}}\n", .{i});
             } else try C.emitValue(w, p, sorts, i);
             for (subset.roots, 0..) |root, which| if (root == i) {
                 try w.print("store({s}+{}ull*stride,stride,row,{s}v{}{s});\n", .{ if (which == 0) "numerator" else "denominator", if (which == 0) pair * 8 else denominator_column, if (sorts[i] == .base) "base(" else "", i, if (sorts[i] == .base) ")" else "" });

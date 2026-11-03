@@ -192,6 +192,37 @@ pub const Context = struct {
         };
         return null;
     }
+    /// Drop only a sealed MAIN coefficient owner for deterministic replay.
+    /// Call outside an owner callback. Compact inputs are independent leases;
+    /// manifest roots and native proof obligations remain with the worker.
+    pub fn discardRetainedMain(self: *Context, scope: D.Scope) !void {
+        if (std.mem.allEqual(u8, &scope.main, 0)) return error.DeviceMainReplayMissing;
+        const identity = @import("pcs_scope.zig").identity(scope);
+        self.cache_mutex.lock();
+        var index: ?usize = null;
+        for (self.cache.items, 0..) |entry, i| if (std.mem.eql(u32, &entry.scope, &identity)) {
+            index = i;
+            break;
+        };
+        if (index == null) {
+            self.cache_mutex.unlock();
+            return error.DeviceMainReplayMissing;
+        }
+        const selected = &self.cache.items[index.?];
+        if (selected.columns.len != 0 or selected.extra.items.len != 0 or selected.lease.kind != 2) {
+            self.cache_mutex.unlock();
+            return error.DeviceMainReplayHasOtherObligations;
+        }
+        const cached = self.cache.swapRemove(index.?);
+        self.cache_mutex.unlock();
+        var release_job = ReleaseJob{ .self = self, .scope = identity, .lease = cached.lease, .extra = &.{} };
+        const status = self.submit(self.session, ReleaseJob.run, &release_job);
+        var extra = cached.extra;
+        extra.deinit(std.heap.page_allocator);
+        std.heap.page_allocator.free(cached.columns);
+        if (status != 0) return error.DeviceMainReplayReleaseFailed;
+    }
+
     fn releaseScope(self: *Context, scope: [8]u32) void {
         self.cache_mutex.lock();
         var index: ?usize = null;

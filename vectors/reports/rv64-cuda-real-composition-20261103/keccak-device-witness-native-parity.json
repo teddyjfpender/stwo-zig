@@ -1,0 +1,43 @@
+{
+  "schema": "rv64-keccak-device-witness-native-parity/v1",
+  "input": "compact 25-u64 before-state per service call",
+  "output": "resident native throughput-r27 MAIN and chi/xor5 physical multiplicity columns",
+  "native_oracle": "original Trace.initWithLogGeometry and throughput_counts.Counts.fromTrace",
+  "cases": [
+    {
+      "calls": 1,
+      "log": 5
+    },
+    {
+      "calls": 3,
+      "log": 6
+    },
+    {
+      "calls": 18,
+      "log": 8
+    }
+  ],
+  "checks": {
+    "all_MAIN_cells": "exact",
+    "all_chi_counts": "exact",
+    "all_xor5_counts": "exact",
+    "odd_B": "exact native zero permutation",
+    "padding": "exact native zeros",
+    "input_output_alias": "rejected"
+  },
+  "kernel": {
+    "registers": 48,
+    "spill_load_bytes": 0,
+    "spill_store_bytes": 0,
+    "stack_bytes": 0
+  },
+  "timing_claim": null,
+  "sanitizers": {
+    "memcheck": "PASS",
+    "racecheck": "PASS",
+    "initcheck": "PASS",
+    "synccheck": "PASS"
+  },
+  "actual_resident_service_proof_qualified": false,
+  "fully_resident_block_qualified": false
+}

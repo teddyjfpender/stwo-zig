@@ -1,0 +1,17 @@
+{
+  "schema":"rv64-truth-domain-native-parity/v1",
+  "qualified":"native DOMAIN arithmetic only",
+  "authorities":["throughput-r27 Keccak","chi table","xor5 table","SHA256","arith256_mod","secp ADD row","secp DOUBLE row"],
+  "comparisons":14,
+  "result":"PASS joined DOMAIN layouts=7 tile_cases=14 native_parity=true full_block_verified=false paired_cosets=1",
+  "compiler_bound":{
+    "model":"Cairo-style recycled private volatile register banks and bounded noinline instruction slices",
+    "pathological_group_source_sha256":"d51d20fcf9c99d355ffd7a18cd847ca4c7a5cfb20abb4d5ec4504ba09f852b5e",
+    "base_slots":1506,"secure_slots":167,"private_frame_bytes":11368,"instruction_slices":110,"operations_per_slice":192,
+    "cold_compile_seconds":328.618,
+    "equations_and_root_order_changed":false,
+    "device_global_witness_matrix_added":false
+  },
+  "real_gpu_truth_proof_qualified":false,
+  "fully_resident_block_qualified":false
+}

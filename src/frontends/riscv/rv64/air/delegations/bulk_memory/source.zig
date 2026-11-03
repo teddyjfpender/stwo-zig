@@ -392,6 +392,8 @@ pub const Source = struct {
     owns_main: bool,
     counts16: []u64,
     counts8: []u64,
+    /// A device formatter owns MAIN; metadata cannot authorize CPU row synthesis.
+    device_only: bool = false,
 
     pub fn rowsFor(kind: L.Kind, calls: []const T.Call) u64 {
         var total: u64 = 0;
@@ -511,6 +513,7 @@ pub const Source = struct {
         return self;
     }
     pub fn row(self: *const Source, comptime kind: L.Kind, logical: usize) [L.main(kind)]M {
+        if (self.device_only) @panic("device-only bulk source requires authenticated device MAIN");
         if (kind == .jtab) return jtabRow(if (logical < T.TABLE_ENTRIES and self.multiplicity.len != 0) self.multiplicity[logical] else 0);
         const empty = T.Word{ .dst = .{ .value = 0, .rights = 0 } };
         const active = logical < self.rows;

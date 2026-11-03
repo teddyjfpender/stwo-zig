@@ -26,6 +26,7 @@ pub fn main() !void {
     if (native_library) |path| {
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES")) {
             if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) return error.ResidentPoolRequiresDeviceTrace;
+            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) return error.FullyResidentBindingRequired;
             const planned_text = try std.process.getEnvVarOwned(a, "STWO_RV64_GPU_PLANNED_CPU_WORKERS");
             defer a.free(planned_text);
             const planned = std.fmt.parseInt(usize, planned_text, 10) catch return error.InvalidResidentPlan;
@@ -69,6 +70,7 @@ pub fn main() !void {
         defer composition.deinit();
         const resident_composition_stage = composition.stage();
         if (std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE")) {
+            if (!std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING")) return error.FullyResidentBindingRequired;
             var trace = try TraceCommit.Context.init(&native);
             defer trace.deinit();
             const trace_stage = trace.stage();
@@ -76,7 +78,15 @@ pub fn main() !void {
             defer global_interaction.deinit();
             var projection = try CpuProjection.Context.init(&native);
             defer projection.deinit();
-            try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(.{ .pcs = &native_stage, .numerical = &gkr_stage, .resident_composition = &resident_composition_stage, .trace_commit = &trace_stage, .global_interaction = global_interaction.stage(), .cpu_projection = projection.stage() });
+            var core_source = try @import("rv64/core_witness.zig").Context.init(&native, &projection);
+            var bridge = try @import("rv64/bridge_witness.zig").Context.init(&native);
+            var bulk_sponge = try @import("rv64/bulk_sponge.zig").Context.init(&native);
+            const contributors = [_]@import("rv64/device_source.zig").Contributor{ bridge.contributor(), bulk_sponge.contributor() };
+            var source = @import("rv64/device_source.zig").Context{ .core = &core_source, .contributors = &contributors };
+            var truth_source = try @import("rv64/truth_source.zig").Context.init(a, &native, &trace, &global_interaction);
+            defer truth_source.deinit();
+            const truth_composition = try composition.truthStage();
+            try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(.{ .source = source.stage(), .truth_source = truth_source.stage(), .truth_composition = truth_composition, .truth_pcs = &native_stage, .pcs = &native_stage, .numerical = &gkr_stage, .resident_composition = &resident_composition_stage, .trace_commit = &trace_stage, .global_interaction = global_interaction.stage(), .cpu_projection = projection.stage() });
         } else try CPU.rv64_ethereum_gkr_main.mainWithResidentStages(&native_stage, null, &gkr_stage, &resident_composition_stage);
         return;
     }

@@ -2,6 +2,35 @@
 #include "fixture_words.cuh"
 #include "rv64/cpu_witness.h"
 #include <chrono>
+#ifdef STWO_RV64_SECP_WITNESS
+#include "rv64/secp_witness.h"
+static void exercise(const std::string&dir,uint32_t id){
+ FixtureWords f(dir+"/case-"+std::to_string(id)+".bin");auto h=f.take(8);if(h[0]!=0x52565357||h[1]!=1||h[2]!=id||h[3]!=8||h[7]>1)throw std::runtime_error("secp fixture shape");
+ uint64_t n=1ull<<h[3],count=uint64_t(h[4])*(h[7]?24:48);auto inputs=f.take(count),expected=f.take(n*h[6]),counts=f.take(256);if(f.position!=f.data.size())throw std::runtime_error("secp trailing");
+ Owner o(0);auto source=o.plane(std::max(uint64_t(1),count),1),main=o.plane(n,h[6]),hist=o.plane(256,1),status=o.plane(1,1);if(count)o.upload(source,inputs);o.upload(status,{0});CHECK(stwo_exec_context_sync(o.ctx));
+ StwoRv64SecpWitness j{source.words,main.words,hist.words,status.words,count,n*h[6],h[4],h[5],h[3],h[7]};CHECK(stwo_rv64_secp_witness_on(o.ctx,1,&j));CHECK(stwo_exec_context_sync(o.ctx));if(o.read(status)[0])throw std::runtime_error("secp status "+std::to_string(o.read(status)[0]));fixture_equal("secp wholeMAIN",o.read(main),expected);fixture_equal("secp BYTE",o.read(hist),counts);auto bad=j;bad.kind=2;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp kind accepted");bad=j;bad.calls=1u<<j.log;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp absent padding accepted");bad=j;bad.main=source.words;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp source alias accepted");bad=j;bad.input_words++;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp input width accepted");bad=j;bad.first_id=0;if(!stwo_rv64_secp_witness_on(o.ctx,1,&bad))throw std::runtime_error("secp zero first id accepted");std::printf("SECP_WITNESS case=%u calls=%u kind=%u native_main_and_histogram_parity=true\n",id,h[4],h[7]);o.close();}
+#elif defined(STWO_RV64_KECCAK_WITNESS)
+#include "rv64/keccak_witness.h"
+static void exercise(const std::string &directory,uint32_t id) {
+  FixtureWords f(directory+"/case-"+std::to_string(id)+".bin");
+  const auto h=f.take(8);
+  if(h[0]!=0x52564b57||h[1]!=1||h[2]!=id||h[3]<5||h[3]>22||!h[4]||h[6]!=1923||h[7]!=27)throw std::runtime_error("Keccak witness fixture shape");
+  const uint64_t n=uint64_t(1)<<h[3];
+  const auto inputs=f.take(uint64_t(h[4])*50),expected=f.take(1923*n),chi=f.take(1u<<21),xor5=f.take(1u<<16);
+  if(f.position!=f.data.size())throw std::runtime_error("trailing Keccak fixture");
+  Owner o(0);auto source=o.plane(uint64_t(h[4])*50,1),main=o.plane(n,1923),c=o.plane(1u<<21,1),x=o.plane(1u<<16,1),status=o.plane(1,1);
+  o.upload(source,inputs);CHECK(stwo_exec_context_sync(o.ctx));
+  StwoRv64KeccakWitness j{source.words,main.words,c.words,x.words,status.words,uint64_t(h[4])*50,1923*n,h[4],h[5],h[3],0};
+  CHECK(stwo_rv64_keccak_witness_on(o.ctx,1,&j));CHECK(stwo_exec_context_sync(o.ctx));
+  fixture_equal("paired Keccak MAIN",o.read(main),expected);
+  fixture_equal("throughput chi counts",o.read(c),chi);
+  fixture_equal("throughput xor5 counts",o.read(x),xor5);
+  if(o.read(status)[0])throw std::runtime_error("Keccak witness status");
+  auto bad=j;bad.main=source.words;
+  if(!stwo_rv64_keccak_witness_on(o.ctx,1,&bad))throw std::runtime_error("Keccak alias accepted");
+  std::printf("KECCAK_WITNESS case=%u calls=%u log=%u native_main_and_histogram_parity=true\n",id,h[4],h[3]);o.close();
+}
+#else
 static void exercise(const std::string &directory, uint32_t id) {
   FixtureWords f(directory + "/case-" + std::to_string(id) + ".bin");
   const auto h = f.take(8);
@@ -67,6 +96,7 @@ static void exercise(const std::string &directory, uint32_t id) {
       id, h[3], count, (unsigned long long)37 * n, ms);
   o.close();
 }
+#endif
 int main(int argc, char **argv) {
   try {
     if (argc < 2 || argc > 3) throw std::runtime_error("expected fixture directory [large]");

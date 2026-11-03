@@ -53,6 +53,9 @@ pub const TraceCommitRequest = struct {
     tree_index: u32,
     config: core.pcs.PcsConfig,
     columns: []const TraceColumn,
+    /// Bounded device replay after the manifest barrier. MAIN stays bound to
+    /// this already committed root; no second transcript mix is performed.
+    expected_main_root: ?H.Hash = null,
 };
 pub const TraceCommitStage = struct {
     context: *anyopaque,
@@ -60,3 +63,47 @@ pub const TraceCommitStage = struct {
     /// device coefficients stay owned until PCS completion or proof failure.
     commit: *const fn (*anyopaque, std.mem.Allocator, TraceCommitRequest) anyerror!Tree,
 };
+
+/// Deterministic replay may replace storage, never the commitment, shape or
+/// context authority. Exact scope/generation liveness is checked at enqueue.
+pub fn validateMainReplay(original: Tree, replay: Tree) !void {
+    if (!std.mem.eql(u8, &original.root, &replay.root) or replay.columns.len == 0 or replay.columns.len != original.columns.len) return error.DeviceMainReplayRootMismatch;
+    for (replay.columns, original.columns) |column, old| {
+        const device = column.device orelse return error.DeviceTraceHostColumn;
+        const previous = old.device orelse return error.DeviceMainReplayNotAdmitted;
+        if (column.coefficients.len != 0 or old.coefficients.len != 0 or column.log_size != old.log_size or column.log_size < 3 or column.log_size > 28 or device.count != @as(u64, 1) << @intCast(column.log_size) or device.context_token == 0 or device.context_token != previous.context_token or device.generation == 0) return error.InvalidDeviceTraceTree;
+    }
+}
+test "MAIN replay preserves root shape and device authority" {
+    const device = DeviceCoefficients{ .words = @ptrFromInt(4096), .count = 32, .context_token = 7, .generation = 1 };
+    const old = [_]Column{.{ .log_size = 5, .device = device }};
+    var next = old;
+    next[0].device.?.words = @ptrFromInt(8192);
+    next[0].device.?.generation = 2;
+    const original = Tree{ .root = @splat(1), .columns = &old };
+    var replay = Tree{ .root = original.root, .columns = &next };
+    try validateMainReplay(original, replay);
+    replay.root[0] ^= 1;
+    try std.testing.expectError(error.DeviceMainReplayRootMismatch, validateMainReplay(original, replay));
+    replay.root = original.root;
+    replay.columns = &.{};
+    try std.testing.expectError(error.DeviceMainReplayRootMismatch, validateMainReplay(original, replay));
+    replay.columns = &next;
+    next[0].log_size = 6;
+    try std.testing.expectError(error.InvalidDeviceTraceTree, validateMainReplay(original, replay));
+    next = old;
+    next[0].device.?.count = 31;
+    try std.testing.expectError(error.InvalidDeviceTraceTree, validateMainReplay(original, replay));
+    next = old;
+    next[0].device.?.context_token = 8;
+    try std.testing.expectError(error.InvalidDeviceTraceTree, validateMainReplay(original, replay));
+    next = old;
+    next[0].device.?.generation = 0;
+    try std.testing.expectError(error.InvalidDeviceTraceTree, validateMainReplay(original, replay));
+    next = old;
+    next[0].coefficients = &.{M.zero()};
+    try std.testing.expectError(error.InvalidDeviceTraceTree, validateMainReplay(original, replay));
+    next = old;
+    next[0].device = null;
+    try std.testing.expectError(error.DeviceTraceHostColumn, validateMainReplay(original, replay));
+}

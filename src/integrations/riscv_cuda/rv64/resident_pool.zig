@@ -22,6 +22,9 @@ pub const Pool = struct {
     composition: Worker.ResidentCompositionStage,
     trace_commit: D.TraceCommitStage,
     projection: Source.ProjectionStage,
+    source: CPU.rv64_device_source_stage,
+    truth_source: CPU.rv64_gkr_truth_device_source.Stage,
+    truth_composition: CPU.rv64_gkr_truth_device_composition.Stage,
     global_interaction: Worker.DeviceGlobal.Stage,
     const Device = struct {
         native: @import("pcs_native.zig").Context,
@@ -30,6 +33,13 @@ pub const Pool = struct {
         composition: @import("resident_composition.zig").Context,
         trace: @import("trace_commit.zig").Context,
         projection: @import("cpu_projection.zig").Context,
+        core_source: @import("core_witness.zig").Context,
+        bridge: @import("bridge_witness.zig").Context,
+        bulk_sponge: @import("bulk_sponge.zig").Context,
+        contributors: [2]@import("device_source.zig").Contributor,
+        source: @import("device_source.zig").Context,
+        truth_source: @import("truth_source.zig").Context,
+        truth_composition: CPU.rv64_gkr_truth_device_composition.Stage,
         fn init(self: *Device, a: std.mem.Allocator, library: []const u8, id: u32, cap: u64, device_binding: bool) !void {
             self.native = try @import("pcs_native.zig").Context.init(library, id, cap);
             errdefer self.native.deinit();
@@ -45,8 +55,18 @@ pub const Pool = struct {
             self.projection = try @import("cpu_projection.zig").Context.init(&self.native);
             errdefer self.projection.deinit();
             self.global_interaction = try @import("global_stage.zig").Context.init(&self.native);
+            errdefer self.global_interaction.deinit();
+            self.core_source = try @import("core_witness.zig").Context.init(&self.native, &self.projection);
+            self.bridge = try @import("bridge_witness.zig").Context.init(&self.native);
+            self.bulk_sponge = try @import("bulk_sponge.zig").Context.init(&self.native);
+            self.contributors = .{ self.bridge.contributor(), self.bulk_sponge.contributor() };
+            self.source = .{ .core = &self.core_source, .contributors = &self.contributors };
+            self.truth_source = try @import("truth_source.zig").Context.init(a, &self.native, &self.trace, &self.global_interaction);
+            errdefer self.truth_source.deinit();
+            self.truth_composition = try self.composition.truthStage();
         }
         fn deinit(self: *Device) void {
+            self.truth_source.deinit();
             self.global_interaction.deinit();
             self.projection.deinit();
             self.trace.deinit();
@@ -74,7 +94,7 @@ pub const Pool = struct {
         }
         self.endpoints = try a.alloc(Endpoint, config.ids.len);
         errdefer a.free(self.endpoints);
-        for (self.endpoints, self.devices, config.ids, config.caps) |*endpoint, *device, id, cap| endpoint.* = .{ .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage(), .global_interaction = device.global_interaction.stage() };
+        for (self.endpoints, self.devices, config.ids, config.caps) |*endpoint, *device, id, cap| endpoint.* = .{ .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage(), .global_interaction = device.global_interaction.stage(), .source = device.source.stage(), .truth_source = device.truth_source.stage(), .truth_composition = device.truth_composition };
         self.router = try Router.initWithCapacity(self.endpoints, cpu_workers, config.scope_limit);
         self.pcs = self.router.pcsStage();
         self.truth_pcs = self.router.truthPcsStage();
@@ -82,11 +102,14 @@ pub const Pool = struct {
         self.composition = self.router.compositionStage();
         self.trace_commit = self.router.traceStage();
         self.projection = self.router.projectionStage();
+        self.source = self.router.sourceStage();
+        self.truth_source = self.router.truthSourceStage();
+        self.truth_composition = self.router.truthCompositionStage();
         self.global_interaction = self.router.globalStage();
         return self;
     }
     pub fn stages(self: *Pool) CPU.rv64_ethereum_gkr_main.ResidentStages {
-        var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
+        var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .source = self.source, .truth_source = self.truth_source, .truth_composition = self.truth_composition, .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         return result;
     }

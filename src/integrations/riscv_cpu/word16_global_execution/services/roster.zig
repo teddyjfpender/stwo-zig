@@ -272,6 +272,8 @@ pub const CpuSetup = struct {
     }
 };
 pub const Sources = struct {
+    /// Persists after MAIN handoff so cleanup never treats device headers as CPU tombstones.
+    device_generated: bool = false,
     device_main: ?@import("device_main.zig").Owner = null,
     core: Core.Source,
     keccak: ?K.source.Source = null,

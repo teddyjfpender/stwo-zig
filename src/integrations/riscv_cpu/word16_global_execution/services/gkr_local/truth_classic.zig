@@ -16,7 +16,7 @@ fn scale(comptime F: type, value: E.SecureFor(F), weight: anytype) E.SecureFor(F
 /// One rational numerator authority for native generation and AIR emission.
 /// Cross-products are reused; public/base weights never become full secure
 /// multiplications merely because the denominator is an extension value.
-fn products(comptime F: type, d: [3]E.SecureFor(F), w: anytype, width: usize) struct { d: E.SecureFor(F), n: E.SecureFor(F) } {
+pub fn products(comptime F: type, d: [3]E.SecureFor(F), w: anytype, width: usize) struct { d: E.SecureFor(F), n: E.SecureFor(F) } {
     const Secure = E.SecureFor(F);
     return switch (width) {
         1 => .{ .d = d[0], .n = if (@TypeOf(w[0]) == M) Secure.fromBase(w[0]) else E.liftFor(F, w[0]) },

@@ -90,6 +90,9 @@ pub const Config = struct {
     }
 };
 pub const Endpoint = struct {
+    truth_source: ?CPU.rv64_gkr_truth_device_source.Stage = null,
+    truth_composition: ?CPU.rv64_gkr_truth_device_composition.Stage = null,
+    source: ?CPU.rv64_device_source_stage = null,
     global_interaction: ?Worker.DeviceGlobal.Stage = null,
     device: u32,
     byte_cap: u64,
@@ -223,6 +226,38 @@ pub const Router = struct {
         const stage = self.endpoints[index].global_interaction orelse return error.ResidentGlobalStageRequired;
         return stage.generate(stage.context, a, scope, item, shared, @min(budget, self.endpoints[index].byte_cap));
     }
+    pub fn truthSourceStage(self: *Router) CPU.rv64_gkr_truth_device_source.Stage {
+        return .{ .context = self, .prepare = truthPrepare };
+    }
+    fn truthPrepare(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_gkr_truth_device_source.Prepare) !CPU.rv64_gkr_truth_device_source.Owner {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (request.expected.ordinal < self.planned_cpu_workers or zeroRoot(request.expected.statement) or zeroRoot(request.expected.fixed)) return error.InvalidTruthResidentScope;
+        const endpoint = self.endpoints[request.expected.ordinal % self.endpoints.len];
+        const stage = endpoint.truth_source orelse return error.ResidentTruthSourceRequired;
+        var bounded = request;
+        bounded.budget = @min(request.budget, endpoint.byte_cap);
+        return stage.prepare(stage.context, a, bounded);
+    }
+    pub fn truthCompositionStage(self: *Router) CPU.rv64_gkr_truth_device_composition.Stage {
+        return .{ .context = self, .evaluate_and_commit = truthComposition };
+    }
+    fn truthComposition(raw: *anyopaque, a: std.mem.Allocator, roles: CPU.rv64_gkr_truth_device_composition.Roles, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (scope.ordinal < self.planned_cpu_workers or zeroRoot(scope.statement) or zeroRoot(scope.fixed) or zeroRoot(scope.main)) return error.InvalidTruthResidentScope;
+        const endpoint = self.endpoints[scope.ordinal % self.endpoints.len];
+        const stage = endpoint.truth_composition orelse return error.ResidentTruthCompositionRequired;
+        return stage.evaluate_and_commit(stage.context, a, roles, alpha, log, split, total, trace, scope);
+    }
+    pub fn sourceStage(self: *Router) CPU.rv64_device_source_stage {
+        return .{ .context = self, .build = sourceWitness };
+    }
+    fn sourceWitness(raw: *anyopaque, a: std.mem.Allocator, request: CPU.rv64_device_source_stage.Request) !CPU.rv64_services_roster.Sources {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(request.scope, .capture);
+        errdefer self.drop(request.scope);
+        const stage = self.endpoints[index].source orelse return error.ResidentFamilySourceRequired;
+        return stage.invoke(a, request);
+    }
     pub fn projectionStage(self: *Router) Source.ProjectionStage {
         return .{ .context = self, .project = projection };
     }
@@ -290,7 +325,12 @@ pub const Router = struct {
         const self: *Router = @ptrCast(@alignCast(raw));
         const scope = request.scope orelse return error.MissingResidentScope;
         if (scope.ordinal < self.planned_cpu_workers or zeroRoot(scope.statement) or zeroRoot(scope.fixed) or zeroRoot(scope.main)) return error.InvalidTruthResidentScope;
-        for (request.trees) |tree| for (tree.columns) |column| if (column.device != null or column.coefficients.len == 0) return error.ResidentTruthAdmissionClosed;
+        for (request.trees, 0..) |tree, index| for (tree.columns) |column| {
+            if (column.log_size < 3 or column.log_size > 28) return error.InvalidResidentTruthColumn;
+            if (column.device) |device| {
+                if (column.coefficients.len != 0 or device.context_token == 0 or device.generation == 0 or column.log_size < 3 or column.log_size > 28 or device.count != @as(u64, 1) << @intCast(column.log_size)) return error.InvalidResidentTruthColumn;
+            } else if (index != 0 or column.coefficients.len != @as(usize, 1) << @intCast(column.log_size)) return error.ResidentTruthHostFallback;
+        };
         const stage = self.endpoints[scope.ordinal % self.endpoints.len].pcs;
         return stage.prove(stage.context, a, request, channel);
     }
@@ -452,7 +492,7 @@ test "resident router bounds numerical workspace on the ordinal-selected endpoin
     try std.testing.expect(router.records[1][0] == null);
 }
 
-test "resident truth PCS routes without consuming CPU custody and rejects device truth ingress" {
+test "resident truth PCS routes scoped device columns without consuming CPU custody" {
     var fake = [_]Fake{ .{}, .{} };
     const endpoints = [_]Endpoint{ fake[0].endpoint(2), fake[1].endpoint(4) };
     var router = try Router.init(&endpoints, 2);
@@ -464,9 +504,29 @@ test "resident truth PCS routes without consuming CPU custody and rejects device
     try std.testing.expectEqual(@as(usize, 1), fake[1].calls[0]);
     try std.testing.expect(router.records[1][0] == null);
     const device = [_]D.Column{.{ .log_size = 5, .device = .{ .words = @ptrFromInt(4096), .count = 32, .context_token = 1, .generation = 2 } }};
-    const trees = [_]D.Tree{.{ .root = @splat(3), .columns = &device }};
+    const trees = [_]D.Tree{ .{ .root = @splat(3), .columns = &.{} }, .{ .root = @splat(3), .columns = &device } };
     var request = try testRequest(scope);
     request.trees = &trees;
-    try std.testing.expectError(error.ResidentTruthAdmissionClosed, stage.prove(stage.context, std.testing.allocator, request, &channel));
-    try std.testing.expectEqual(@as(usize, 1), fake[1].calls[0]);
+    try std.testing.expectError(error.ProbeReached, stage.prove(stage.context, std.testing.allocator, request, &channel));
+    try std.testing.expectEqual(@as(usize, 2), fake[1].calls[0]);
+}
+
+test "resident full-family source dispatch stays scoped and fails closed without factory" {
+    var fake = [_]Fake{ .{}, .{} };
+    var endpoints = [_]Endpoint{ fake[0].endpoint(1), fake[1].endpoint(3) };
+    var router = try Router.initWithCapacity(&endpoints, 4, 2);
+    const request = CPU.rv64_device_source_stage.Request{ .setup = @ptrFromInt(4096), .request = undefined, .native = @ptrFromInt(4096), .advice = @ptrFromInt(4096), .ordinal = 3, .first_ids = @splat(0), .scope = testScope(3) };
+    const stage = router.sourceStage();
+    try std.testing.expectError(error.ResidentFamilySourceRequired, stage.build(stage.context, std.testing.allocator, request));
+    const Probe = struct {
+        fn source(raw: *anyopaque, _: std.mem.Allocator, _: CPU.rv64_device_source_stage.Request) !CPU.rv64_services_roster.Sources {
+            const state: *Fake = @ptrCast(@alignCast(raw));
+            state.calls[5] += 1;
+            return error.ProbeReached;
+        }
+    };
+    endpoints[1].source = .{ .context = &fake[1], .build = Probe.source };
+    try std.testing.expectError(error.ProbeReached, stage.build(stage.context, std.testing.allocator, request));
+    try std.testing.expectEqual(@as(usize, 0), fake[0].calls[5]);
+    try std.testing.expectEqual(@as(usize, 1), fake[1].calls[5]);
 }

@@ -16,13 +16,43 @@ const Abi = @import("abi.zig");
 const Prefix = @import("prefix_plan.zig");
 const O = core.fields.om31.OM31;
 const M = core.fields.m31.M31;
-const Launch = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, [*]const u32, [*]u32, [*]u32, [*]u32, u32) callconv(.c) c_int;
+pub const Launch = *const fn (*anyopaque, u32, [*]const u32, [*]const u32, [*]const u32, [*]u32, [*]u32, [*]u32, u32) callconv(.c) c_int;
+pub const Layout = enum { inverse_prefix, cumulative_batches };
+pub const Request = struct {
+    scope: D.Scope,
+    log_size: u32,
+    fixed: []const D.Column,
+    main: []const D.Column,
+    fixed_offset: usize = 0,
+    parameters: []const O,
+    projection: Launch,
+    groups: [2]u32,
+    layout: Layout = .inverse_prefix,
+    zero_claim_groups: u2 = 0,
+    budget: usize,
+};
+const Cumulative = extern struct { output: [*]u32, contributions: [*]const u32, stride: u64, row_log: u32, pairs: u32 };
+const CumulativeFn = *const fn (*anyopaque, u32, *const Cumulative) callconv(.c) c_int;
 const N2b = *const fn ([*]u32, usize, u32, u32, [*]const u32, u32, u32, *anyopaque, *u32) callconv(.c) c_int;
 fn sym(comptime T: type, library: *std.DynLib, name: [:0]const u8) !T {
     return library.lookup(T, name) orelse error.MissingResidentGlobalSymbol;
 }
 fn checked(status: c_int) !void {
     if (status != 0) return error.CudaGlobalWitnessFailed;
+}
+fn immutableIdentity(domain: []const u8, root: [32]u8, index: usize, log: u32) [8]u32 {
+    var h = std.crypto.hash.blake2.Blake2s256.init(.{});
+    h.update(domain);
+    h.update(&root);
+    var numbers: [12]u8 = undefined;
+    std.mem.writeInt(u64, numbers[0..8], index, .little);
+    std.mem.writeInt(u32, numbers[8..12], log, .little);
+    h.update(&numbers);
+    var digest: [32]u8 = undefined;
+    h.final(&digest);
+    var key: [8]u32 = undefined;
+    for (&key, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
+    return key;
 }
 const Entry = struct { artifact: G.Artifact, launch: Launch };
 pub const Context = struct {
@@ -31,6 +61,7 @@ pub const Context = struct {
     copy: Native.CopyDevice,
     n2b: N2b,
     pairs: *const @TypeOf(Abi.stwo_rv64_global_pairs_on),
+    cumulative: ?CumulativeFn,
     entries: std.ArrayList(*Entry) = .empty,
     twiddles: [23]?engine.poly.twiddles.TwiddleTree([]M) = @splat(null),
     mutex: std.Thread.Mutex = .{},
@@ -43,7 +74,7 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .n2b = try sym(N2b, &service.library, "stwo_ntt_n2b_columns_on"), .pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on") };
+        }, .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .n2b = try sym(N2b, &service.library, "stwo_ntt_n2b_columns_on"), .cumulative = service.library.lookup(CumulativeFn, "stwo_rv64_global_cumulative_on"), .pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on") };
     }
     pub fn deinit(self: *Context) void {
         for (self.entries.items) |cached| {
@@ -77,46 +108,71 @@ pub const Context = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         const e = try self.entry(item.descriptor);
-        if (item.log_size < 5 or item.log_size > 22) return error.InvalidGlobalGeometry;
         const shape = try G.Authority.shape(item.descriptor);
         if (item.fixed.len != shape.fixed or item.main.len != shape.main) return error.InvalidGlobalGeometry;
-        const width = G.Authority.Global.layout(item.descriptor.origin).width();
-        const rows = @as(usize, 1) << @intCast(item.log_size);
-        const output_words = try std.math.mul(usize, width, rows);
-        if (try std.math.mul(usize, output_words, 4) > budget) return error.WideCpuGlobalBudget;
-        const prefix = try Prefix.Plan.init(item.log_size);
-        const input_words = try std.math.mul(usize, shape.fixed + shape.main, rows);
-        const numerator_words = try std.math.mul(usize, 8 * @as(usize, e.artifact.ram_pairs + e.artifact.other_pairs), rows);
-        var admitted_words = try std.math.add(usize, output_words, input_words);
-        admitted_words = try std.math.add(usize, admitted_words, numerator_words);
-        admitted_words = try std.math.add(usize, admitted_words, rows); // immutable twiddle ingress upper bound
-        admitted_words = try std.math.add(usize, admitted_words, prefix.scratch_words + 17 + e.artifact.parameter_slots.len * 8);
-        if (try std.math.mul(usize, admitted_words, 4) > budget) return error.WideCpuGlobalBudget;
+        var semantic: [G.P.count]O = @splat(O.zero());
+        semantic[G.P.source_public + G.Source.Public.sponge_first_id] = O.fromBase(M.fromCanonical(item.sponge_first_id));
+        semantic[G.P.ram] = shared.ram.offset;
+        @memcpy(semantic[G.P.ram + 1 ..][0..shared.ram.coefficients.len], &shared.ram.coefficients);
+        semantic[G.P.kio] = shared.kio.offset;
+        @memcpy(semantic[G.P.kio + 1 ..][0..shared.kio.coefficients.len], &shared.kio.coefficients);
+        semantic[G.P.wire] = shared.wire.offset;
+        @memcpy(semantic[G.P.wire + 1 ..][0..shared.wire.coefficients.len], &shared.wire.coefficients);
+        const parameters = try a.alloc(O, e.artifact.parameter_slots.len);
+        defer a.free(parameters);
+        for (parameters, e.artifact.parameter_slots) |*value, slot| value.* = semantic[slot];
+        var result = try self.generateRationalLocked(a, .{ .scope = scope, .log_size = item.log_size, .fixed = item.fixed, .main = item.main, .fixed_offset = item.fixed_offset, .parameters = parameters, .projection = e.launch, .groups = .{ e.artifact.ram_pairs, e.artifact.other_pairs }, .budget = budget });
+        errdefer result.deinit();
+        try result.validate(item);
+        return result;
+    }
+    /// Shared concrete device pipeline. Callers obtain projection/groups and
+    /// fresh parameters from their original CPU or truth constraint authority.
+    /// This routine never selects a relation or invents a challenge/claim.
+    pub fn generateRational(self: *Context, a: std.mem.Allocator, request: Request) !DG.Witness {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return self.generateRationalLocked(a, request);
+    }
+    fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request) !DG.Witness {
+        const log = request.log_size;
+        if (log < 5 or log > 22 or request.fixed.len == 0 or request.main.len == 0 or request.parameters.len == 0 or request.parameters.len > 65536 or request.groups[0] == 0 or request.groups[0] > 640 or request.groups[1] > 640) return error.InvalidGlobalGeometry;
+        if (request.layout == .cumulative_batches and self.cumulative == null) return error.MissingResidentCumulativeCapability;
+        for (request.fixed) |column| if (column.log_size != log) {
+            return error.InvalidGlobalGeometry;
+        };
+        for (request.main) |column| if (column.log_size != log or column.device == null or column.coefficients.len != 0) {
+            return error.ResidentGlobalMainRequired;
+        };
+        for (request.parameters) |parameter| for (parameter.toM31Array()) |word| if (word.v >= core.fields.m31.Modulus) {
+            return error.NoncanonicalGlobalParameter;
+        };
+        const rows = @as(usize, 1) << @intCast(log);
+        const groups: usize = 1 + @as(usize, @intFromBool(request.groups[1] != 0));
+        if (@as(u8, request.zero_claim_groups) >= (@as(u8, 1) << @intCast(groups))) return error.InvalidGlobalClaimPolicy;
+        const pairs = @as(usize, request.groups[0]) + request.groups[1];
+        const physical_width = 8 * (pairs + groups);
+        const width = if (request.layout == .inverse_prefix) physical_width else 8 * pairs;
+        const prefix = try Prefix.Plan.init(log);
+        var admitted_words = try std.math.mul(usize, physical_width + request.fixed.len + request.main.len + 8 * pairs, rows);
+        admitted_words = try std.math.add(usize, admitted_words, rows + prefix.scratch_words + 17 + request.parameters.len * 8);
+        if (try std.math.mul(usize, admitted_words, 4) > request.budget) return error.WideCpuGlobalBudget;
         const owner = try a.create(Owner);
         errdefer a.destroy(owner);
         const columns = try a.alloc(D.TraceColumn, width);
         errdefer a.free(columns);
-        const claims = try a.alloc(O, 1 + @as(usize, @intFromBool(e.artifact.other_pairs != 0)));
+        const claims = try a.alloc(O, groups);
         errdefer a.free(claims);
         owner.* = .{ .allocator = a, .service = self.service, .columns = columns, .claims = claims };
         errdefer if (owner.output.words != null) {
             _ = self.service.submit(self.service.session, Owner.releaseDevice, owner);
         };
-        var job = Job{ .backend = self, .entry = e, .scope = scope, .item = item, .owner = owner };
-        @memset(&job.parameters, O.zero());
-        job.parameters[G.P.source_public + G.Source.Public.sponge_first_id] = O.fromBase(M.fromCanonical(item.sponge_first_id));
-        job.parameters[G.P.ram] = shared.ram.offset;
-        @memcpy(job.parameters[G.P.ram + 1 ..][0..shared.ram.coefficients.len], &shared.ram.coefficients);
-        job.parameters[G.P.kio] = shared.kio.offset;
-        @memcpy(job.parameters[G.P.kio + 1 ..][0..shared.kio.coefficients.len], &shared.kio.coefficients);
-        job.parameters[G.P.wire] = shared.wire.offset;
-        @memcpy(job.parameters[G.P.wire + 1 ..][0..shared.wire.coefficients.len], &shared.wire.coefficients);
-        if (self.twiddles[item.log_size] == null) self.twiddles[item.log_size] = try engine.poly.twiddles.precomputeM31(std.heap.page_allocator, core.poly.circle.canonic.CanonicCoset.new(item.log_size).circleDomain().half_coset);
-        try checked(self.service.submit(self.service.session, Job.callback, &job));
+        if (self.twiddles[log] == null) self.twiddles[log] = try engine.poly.twiddles.precomputeM31(std.heap.page_allocator, core.poly.circle.canonic.CanonicCoset.new(log).circleDomain().half_coset);
+        var job = Job{ .backend = self, .scope = request.scope, .request = request, .owner = owner };
+        const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
-        const result = DG.Witness{ .columns = columns, .claims = claims, .owner = owner, .release_fn = Owner.release };
-        try result.validate(item);
-        return result;
+        try checked(status);
+        return .{ .columns = columns, .claims = claims, .owner = owner, .release_fn = Owner.release };
     }
 };
 const Owner = struct {
@@ -139,11 +195,9 @@ const Owner = struct {
 };
 const Job = struct {
     backend: *Context,
-    entry: *Entry,
     scope: D.Scope,
-    item: DG.Item,
+    request: Request,
     owner: *Owner,
-    parameters: [G.P.count]O = undefined,
     failure: ?anyerror = null,
     fn callback(raw: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Job = @ptrCast(@alignCast(data.?));
@@ -156,20 +210,21 @@ const Job = struct {
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
         const a = self.owner.allocator;
-        const rows = @as(usize, 1) << @intCast(self.item.log_size);
+        const rows = @as(usize, 1) << @intCast(self.request.log_size);
         var ctx = SC.Context{ .session = b.service.session, .native_context = raw, .token = token, .scope = @import("pcs_scope.zig").identity(self.scope), .api = &b.api };
         var temporary: std.ArrayList(Native.Lease) = .empty;
         defer {
             ctx.join() catch {};
+            b.service.releaseImmutableScope(ctx.scope) catch {};
             for (temporary.items) |*lease| ctx.release(lease) catch {};
             temporary.deinit(a);
         }
-        const source_words = try std.math.mul(usize, self.item.fixed.len + self.item.main.len, rows);
+        const source_words = try std.math.mul(usize, self.request.fixed.len + self.request.main.len, rows);
         const source = try ctx.allocate(source_words, 0);
         try temporary.append(a, source);
         var offset: usize = 0;
-        inline for (.{ self.item.fixed, self.item.main }, 0..) |columns, tree| for (columns) |column| {
-            if (column.log_size != self.item.log_size) return error.InvalidGlobalGeometry;
+        inline for (.{ self.request.fixed, self.request.main }, 0..) |columns, tree| for (columns) |column| {
+            if (column.log_size != self.request.log_size) return error.InvalidGlobalGeometry;
             const destination = source.words.? + offset;
             if (column.device) |device| {
                 if (device.count != rows or column.coefficients.len != 0) return error.InvalidDeviceTraceColumn;
@@ -180,22 +235,26 @@ const Job = struct {
             } else {
                 // FIXED is immutable setup. A host MAIN slice is always a bug.
                 if (tree != 0 or column.coefficients.len != rows) return error.ResidentGlobalMainRequired;
-                if (b.service.retainedColumn(ctx.scope, 0, self.item.fixed_offset + offset / rows, column)) |device| {
+                if (try b.service.immutableFixedColumn(self.scope, self.request.fixed_offset + offset / rows, column)) |device| {
                     const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
                     const borrowed = Slice{ .address = @intFromPtr(device.words), .len = rows, .owner = @intCast(device.context_token), .generation = device.generation };
                     const from = try ctx.deviceSlicePointer(u32, borrowed, rows);
                     try checked(b.copy(raw, destination, from, rows * 4));
-                } else try ctx.upload(try (try ctx.borrow(source)).sub(offset, rows), @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..rows]);
+                } else {
+                    const key = immutableIdentity("rv64/global/fixed-column/v1\x00", self.scope.fixed, self.request.fixed_offset + offset / rows, self.request.log_size);
+                    const fixed = try b.service.immutableWords(raw, ctx.scope, key, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..rows]);
+                    const Slice = @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32);
+                    const alias = Slice{ .address = @intFromPtr(fixed.words.?), .len = rows, .owner = @intCast(fixed.context_token), .generation = fixed.generation };
+                    const from = try ctx.deviceSlicePointer(u32, alias, rows);
+                    try checked(b.copy(raw, destination, from, rows * 4));
+                }
             }
             offset += rows;
         };
-        const tw = &b.twiddles[self.item.log_size].?;
-        const twiddle = try ctx.allocate(tw.twiddles.len, 0);
-        try temporary.append(a, twiddle);
-        try ctx.upload(try ctx.borrow(twiddle), @as([*]const u32, @ptrCast(tw.twiddles.ptr))[0..tw.twiddles.len]);
-        const parameters = try a.alloc(O, self.entry.artifact.parameter_slots.len);
-        defer a.free(parameters);
-        for (parameters, self.entry.artifact.parameter_slots) |*value, slot| value.* = self.parameters[slot];
+        const tw = &b.twiddles[self.request.log_size].?;
+        const twiddle_key = immutableIdentity("rv64/canonic-forward-m31-twiddles/v1\x00", @splat(0), 0, self.request.log_size);
+        const twiddle = try b.service.immutableWords(raw, ctx.scope, twiddle_key, @as([*]const u32, @ptrCast(tw.twiddles.ptr))[0..tw.twiddles.len]);
+        const parameters = self.request.parameters;
         const parameter = try ctx.allocate(parameters.len * 8, 0);
         try temporary.append(a, parameter);
         try ctx.upload(try ctx.borrow(parameter), @as([*]const u32, @ptrCast(parameters.ptr))[0 .. parameters.len * 8]);
@@ -205,15 +264,15 @@ const Job = struct {
         try checked(b.api.lane_stream(raw, 1, &stream));
         const lane = stream orelse return error.InvalidLane;
         var launches: u32 = 0;
-        const tw_count = @as(u32, 1) << @intCast(self.item.log_size - 1);
-        try checked(b.n2b(source.words.?, rows, self.item.log_size, @intCast(self.item.fixed.len + self.item.main.len), twiddle.words.? + tw.twiddles.len - tw_count, tw_count, tw_count, lane, &launches));
-        const art = &self.entry.artifact;
-        const pairs = art.ram_pairs + art.other_pairs;
-        const width = self.owner.columns.len;
+        const tw_count = @as(u32, 1) << @intCast(self.request.log_size - 1);
+        try checked(b.n2b(source.words.?, rows, self.request.log_size, @intCast(self.request.fixed.len + self.request.main.len), twiddle.words.? + tw.twiddles.len - tw_count, tw_count, tw_count, lane, &launches));
+        const groups = self.request.groups;
+        const pairs = @as(usize, groups[0]) + groups[1];
+        const width = 8 * (pairs + self.owner.claims.len);
         self.owner.output = try ctx.allocate(width * rows, 0);
         const numerator = try ctx.allocate(pairs * 8 * rows, 0);
         try temporary.append(a, numerator);
-        const scan = try Prefix.Plan.init(self.item.log_size);
+        const scan = try Prefix.Plan.init(self.request.log_size);
         const scratch = try ctx.allocate(scan.scratch_words + 8 * self.owner.claims.len + 1, 0);
         try temporary.append(a, scratch);
         const claim = scratch.words.? + scan.scratch_words;
@@ -221,13 +280,17 @@ const Job = struct {
         const verdict_zero = [_]u32{0};
         try ctx.upload(try (try ctx.borrow(scratch)).sub(scratch.count - 1, 1), &verdict_zero);
         try ctx.join();
-        try checked(self.entry.launch(raw, 1, source.words.?, source.words.? + self.item.fixed.len * rows, parameter.words.?, numerator.words.?, self.owner.output.words.?, status, self.item.log_size));
+        try checked(self.request.projection(raw, 1, source.words.?, source.words.? + self.request.fixed.len * rows, parameter.words.?, numerator.words.?, self.owner.output.words.?, status, self.request.log_size));
         var group_offset: usize = 0;
         var pair_offset: usize = 0;
-        for ([_]u32{ art.ram_pairs, art.other_pairs }, 0..) |count, group| {
+        for (groups, 0..) |count, group| {
             if (count == 0) continue;
-            const job = Abi.GlobalPairs{ .output = self.owner.output.words.? + group_offset * rows, .contributions = numerator.words.? + pair_offset * 8 * rows, .scan_scratch = scratch.words.?, .claim = claim + group * 8, .status = status, .stride = rows, .scan_words = scan.scratch_words, .row_log = self.item.log_size, .pairs = count };
+            const job = Abi.GlobalPairs{ .output = self.owner.output.words.? + group_offset * rows, .contributions = numerator.words.? + pair_offset * 8 * rows, .scan_scratch = scratch.words.?, .claim = claim + group * 8, .status = status, .stride = rows, .scan_words = scan.scratch_words, .row_log = self.request.log_size, .pairs = count };
             try checked(b.pairs(raw, 1, &job));
+            if (self.request.layout == .cumulative_batches) {
+                const cumulative = Cumulative{ .output = job.output, .contributions = job.contributions, .stride = rows, .row_log = self.request.log_size, .pairs = count };
+                try checked(b.cumulative.?(raw, 1, &cumulative));
+            }
             group_offset += 8 * (count + 1);
             pair_offset += count;
         }
@@ -238,7 +301,21 @@ const Job = struct {
         try ctx.download(try (try ctx.borrow(scratch)).sub(scratch.count - 1, 1), &verdict);
         try ctx.join();
         if (verdict[0] != 0) return error.CudaGlobalWitnessRejected;
-        for (self.owner.columns, 0..) |*column, i| column.* = .{ .log_size = self.item.log_size, .encoding = .evaluations, .device = .{ .words = self.owner.output.words.? + i * rows, .count = rows, .context_token = self.owner.output.context_token, .generation = self.owner.output.generation } };
+        for (self.owner.claims, 0..) |claim_value, i| {
+            for (claim_value.toM31Array()) |word| if (word.v >= core.fields.m31.Modulus) {
+                return error.NoncanonicalWideCpuClaim;
+            };
+            if ((self.request.zero_claim_groups & (@as(u2, 1) << @intCast(i))) != 0 and !claim_value.isZero()) return error.NonzeroLocalTruthClaim;
+        }
+        var physical_column: usize = 0;
+        var column_index: usize = 0;
+        for (groups) |count| {
+            if (count == 0) continue;
+            const published = 8 * (@as(usize, count) + @as(usize, @intFromBool(self.request.layout == .inverse_prefix)));
+            for (self.owner.columns[column_index..][0..published], 0..) |*column, i| column.* = .{ .log_size = self.request.log_size, .encoding = .evaluations, .device = .{ .words = self.owner.output.words.? + (physical_column + i) * rows, .count = rows, .context_token = self.owner.output.context_token, .generation = self.owner.output.generation } };
+            column_index += published;
+            physical_column += 8 * (@as(usize, count) + 1);
+        }
     }
 };
 test "resident global witness callback is concrete" {

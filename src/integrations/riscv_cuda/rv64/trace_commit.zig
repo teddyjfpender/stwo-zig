@@ -62,7 +62,9 @@ pub const Context = struct {
     fn commit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (request.tree_index < 1 or request.tree_index > 2 or request.columns.len == 0 or request.columns.len > 65535) return error.InvalidTraceCommitRequest;
-        if (request.tree_index == 1 and !std.mem.allEqual(u8, &request.scope.main, 0)) return error.InvalidTraceCommitRequest;
+        if (request.expected_main_root) |expected| {
+            if (request.tree_index != 1 or std.mem.allEqual(u8, &expected, 0) or !std.mem.eql(u8, &request.scope.main, &expected)) return error.InvalidTraceReplayScope;
+        } else if (request.tree_index == 1 and !std.mem.allEqual(u8, &request.scope.main, 0)) return error.InvalidTraceCommitRequest;
         const beta = request.config.fri_config.log_blowup_factor;
         if (beta < 1 or beta > 4) return error.InvalidTraceCommitRequest;
         for (request.columns) |column| {
@@ -204,6 +206,7 @@ const Job = struct {
         try ctx.join();
         var root: [32]u8 = undefined;
         for (root_words, 0..) |v, i| std.mem.writeInt(u32, root[4 * i ..][0..4], v, .little);
+        if (r.expected_main_root) |expected| if (!std.mem.eql(u8, &root, &expected)) return error.DeviceMainReplayRootMismatch;
         var final_scope = r.scope;
         if (r.tree_index == 1) final_scope.main = root;
         const promoted = @import("pcs_scope.zig").identity(final_scope);

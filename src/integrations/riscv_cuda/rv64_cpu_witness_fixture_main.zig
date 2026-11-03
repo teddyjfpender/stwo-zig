@@ -77,6 +77,40 @@ fn fixture(dir: std.fs.Dir, id: u32, log: u32, count: u32) !void {
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--bridge")) {
+        try std.fs.cwd().makePath(args[2]);
+        var d = try std.fs.cwd().openDir(args[2], .{});
+        defer d.close();
+        const bridge = @import("rv64/bridge_witness_fixture.zig");
+        try bridge.write(a, d, 0, null, 0);
+        try bridge.write(a, d, 1, null, 3);
+        try bridge.write(a, d, 2, .add, 3);
+        try bridge.write(a, d, 3, .double, 9);
+        try bridge.write(a, d, 4, .sha256, 2);
+        try bridge.write(a, d, 5, .arith256_mod, 3);
+        return;
+    }
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--secp")) {
+        try std.fs.cwd().makePath(args[2]);
+        var d = try std.fs.cwd().openDir(args[2], .{});
+        defer d.close();
+        const oracle = @import("rv64/secp_witness_fixture.zig");
+        try oracle.write(a, d, 0, .add, 0);
+        try oracle.write(a, d, 1, .double, 1);
+        try oracle.write(a, d, 2, .add, 3);
+        try oracle.write(a, d, 3, .double, 9);
+        return;
+    }
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--keccak")) {
+        try std.fs.cwd().makePath(args[2]);
+        var directory = try std.fs.cwd().openDir(args[2], .{});
+        defer directory.close();
+        const oracle = @import("rv64/keccak_witness_fixture.zig");
+        try oracle.write(a, directory, 0, 5, 1);
+        try oracle.write(a, directory, 1, 6, 3);
+        try oracle.write(a, directory, 2, 8, 18);
+        return;
+    }
     if (args.len < 2 or args.len > 3) return error.ExpectedDirectoryAndOptionalLarge;
     try std.fs.cwd().makePath(args[1]);
     var dir = try std.fs.cwd().openDir(args[1], .{});

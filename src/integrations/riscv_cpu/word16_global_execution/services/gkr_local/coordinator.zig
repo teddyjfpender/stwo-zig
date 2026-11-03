@@ -264,7 +264,7 @@ const Run = struct {
         } else {
             const truth = self.truths[index - self.setups.len];
             if (self.options.truth_device_source_stage) |stage| {
-                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = self.config });
+                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = self.config, .budget = self.options.global_budget });
                 var owned = true;
                 errdefer if (owned) owner.deinit();
                 if (timer) |*clock| timing.?.source_ns = clock.lap();

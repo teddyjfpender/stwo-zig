@@ -10,7 +10,83 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import heapq
 
+
+def bound_ssa_module(source: Path, operations_per_slice: int = 192):
+    """Cairo-style private register banks and bounded noinline instruction slices.
+
+    Only storage/compilation changes: every original operation and reverse-RLC
+    root stays in emission order. No new committed or device-global matrix.
+    """
+    text = source.read_text()
+    parts = list(re.finditer(r"__device__ __noinline__ void ", text))
+    entry = text.index('extern "C" __global__ void')
+    if len(parts) != 1:
+        raise ValueError("oversized module must contain exactly one root group")
+    start = parts[0].start()
+    lines = text[start:entry].splitlines(keepends=True)
+    last, kinds = {}, {}
+    for time, line in enumerate(lines):
+        declaration = re.match(r"\s*const (uint32_t|OM31) (v\d+)=", line)
+        if declaration:
+            kinds[declaration[2]] = declaration[1]
+        for value in re.findall(r"\bv\d+\b", line):
+            if value not in kinds:
+                raise ValueError("use before original SSA definition")
+            last[value] = time
+    slots, free = {}, {"uint32_t": [], "OM31": []}
+    capacity = {"uint32_t": 0, "OM31": 0}
+    active, lowered = [], []
+    def reference(match):
+        value = match[0]
+        return f"base_bank[{slots[value]}]" if kinds[value] == "uint32_t" else f"bank_load(ext_bank[{slots[value]}])"
+    for time, line in enumerate(lines):
+        while active and active[0][0] < time:
+            _, value = heapq.heappop(active)
+            heapq.heappush(free[kinds[value]], slots[value])
+        declaration = re.match(r"(\s*)const (uint32_t|OM31) (v\d+)=(.*);\n", line)
+        if declaration:
+            indent, kind, value, expression = declaration.groups()
+            slot = heapq.heappop(free[kind]) if free[kind] else capacity[kind]
+            if slot == capacity[kind]:
+                capacity[kind] += 1
+            slots[value] = slot
+            heapq.heappush(active, (last[value], value))
+            expression = re.sub(r"\bv\d+\b", reference, expression)
+            line = f"{indent}base_bank[{slot}]={expression};\n" if kind == "uint32_t" else f"{indent}bank_store(ext_bank[{slot}],{expression});\n"
+        elif "folded=add(" in line:
+            line = re.sub(r"\bv\d+\b", reference, line)
+        lowered.append(line)
+    first = next(i for i, line in enumerate(lowered) if "OM31 folded=zero()" in line) + 1
+    tail = next(i for i, line in enumerate(lowered) if "const OM31 result=" in line)
+    operations, chunks = lowered[first:tail], []
+    at = 0
+    while at < len(operations):
+        end = min(len(operations), at + operations_per_slice)
+        if end < len(operations) and re.match(r"\s*const uint32_t c\d+\[", operations[end-1]):
+            end -= 1
+        chunks.append(operations[at:end])
+        at = end
+    arguments = "volatile uint32_t *base_bank,volatile OM31 *ext_bank,const uint32_t *tree0,const uint32_t *tree1,const uint32_t *tree2,const uint64_t *column_offsets,const uint32_t *parameters,const uint32_t *powers,uint32_t trace_log,uint32_t eval_log,uint32_t row"
+    values = "base_bank,ext_bank,tree0,tree1,tree2,column_offsets,parameters,powers,trace_log,eval_log,row"
+    helpers, calls = [], []
+    for i, chunk in enumerate(chunks):
+        code = "".join(chunk)
+        constants = {match[1] for match in re.finditer(r"const uint32_t (c\d+)\[", code)}
+        if not set(re.findall(r"\bc\d+\b", code)) <= constants:
+            raise ValueError("constant array crossed a bounded slice")
+        name = f"rv64_truth_bounded_step_{i}"
+        helpers.append(f"__device__ __noinline__ OM31 {name}({arguments}) {{OM31 folded=zero();\n" + code + " return folded;\n}\n")
+        calls.append(f" folded=add(folded,{name}({values}));\n")
+    bank_helpers = """__device__ __forceinline__ OM31 bank_load(const volatile OM31 &v) {return {{{v.c0.a.a,v.c0.a.b},{v.c0.b.a,v.c0.b.b}},{{v.c1.a.a,v.c1.a.b},{v.c1.b.a,v.c1.b.b}}};}
+__device__ __forceinline__ void bank_store(volatile OM31 &d,OM31 v) {d.c0.a.a=v.c0.a.a;d.c0.a.b=v.c0.a.b;d.c0.b.a=v.c0.b.a;d.c0.b.b=v.c0.b.b;d.c1.a.a=v.c1.a.a;d.c1.a.b=v.c1.a.b;d.c1.b.a=v.c1.b.a;d.c1.b.b=v.c1.b.b;}
+"""
+    private = f" volatile uint32_t base_bank[{max(1,capacity['uint32_t'])}]; volatile OM31 ext_bank[{max(1,capacity['OM31'])}];\n"
+    body = lowered[:first]
+    body.insert(1, private)
+    source.write_text(text[:start] + bank_helpers + "".join(helpers) + "".join(body) + "".join(calls) + "".join(lowered[tail:]) + text[entry:])
+    return {"base_register_slots": capacity["uint32_t"], "secure_register_slots": capacity["OM31"], "private_frame_bytes": 4*capacity["uint32_t"]+32*capacity["OM31"], "instruction_slices": len(chunks), "operations_per_slice": operations_per_slice}
 
 def partition(source: Path, destination: Path, groups_per_module: int, max_module_bytes: int = 524288):
     text = source.read_text()
@@ -44,8 +120,9 @@ def partition(source: Path, destination: Path, groups_per_module: int, max_modul
         kernel += "}}\n"
         output = destination / f"{symbol}.cu"
         output.write_text(prefix + body + kernel)
+        bounded = bound_ssa_module(output) if output.stat().st_size > max_module_bytes else None
         modules.append({"source": str(output), "symbol": symbol, "first_group": first, "groups": count,
-                        "sha256": hashlib.sha256(output.read_bytes()).hexdigest()})
+                        "sha256": hashlib.sha256(output.read_bytes()).hexdigest(), "bounded": bounded})
         first += count
     return {"input": str(source), "input_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
             "groups": len(parts), "modules": modules}

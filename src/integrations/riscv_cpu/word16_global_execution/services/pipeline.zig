@@ -39,6 +39,7 @@ pub const DeviceSourceStage = struct {
         const logs = try request.setup.logs(a, 1);
         defer a.free(logs);
         try owner.validate(request.scope, logs);
+        source.device_generated = true;
         return source;
     }
 };

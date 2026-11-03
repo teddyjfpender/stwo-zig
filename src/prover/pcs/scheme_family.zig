@@ -328,6 +328,18 @@ pub fn ForField(comptime Secure: type) type {
                     MC.mixRoot(channel, tree.root);
                 }
 
+                /// Replace expired MAIN storage after deterministic device
+                /// replay. The committed root and complete original geometry
+                /// stay unchanged; this method never mixes the transcript.
+                pub fn refreshDeviceOm31Main(self: *Self, tree: prover_api.device_pcs.Tree) !void {
+                    const D = prover_api.device_pcs;
+                    if (comptime Secure != D.O or H != D.H) return error.UnsupportedDevicePcsProtocol;
+                    if (self.revision_config != null) return error.UnsupportedDevicePcsProtocol;
+                    const original = self.device_om31_trace_trees[1] orelse return error.DeviceMainReplayNotAdmitted;
+                    try D.validateMainReplay(original, tree);
+                    self.device_om31_trace_trees[1] = tree;
+                }
+
                 pub fn trace(
                     self: Self,
                     allocator: std.mem.Allocator,

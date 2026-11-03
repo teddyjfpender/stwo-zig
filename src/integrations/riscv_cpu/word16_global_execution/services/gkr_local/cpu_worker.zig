@@ -243,6 +243,15 @@ pub const CpuWorker = struct {
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
         if (self.local_metadata_retired) return;
         const source = &self.source.core;
+        if (self.source.device_generated) {
+            // Device sources keep valid empty host owners and compact public
+            // headers. Only capture records become dead after joined GKR.
+            source.cpu.allocator.free(source.cpu.metadata);
+            source.cpu.metadata = &.{};
+            source.cpu.releaseFacts();
+            self.local_metadata_retired = true;
+            return;
+        }
         inline for (.{ "range8", "range16", "shift_table", "and_table", "multiplication", "division", "tails", "jalr", "shift", "binary", "alu", "rom", "cpu" }) |name| @field(source, name).deinit();
         source.allocator.free(source.counts16);
         source.allocator.free(source.counts8);
@@ -521,7 +530,7 @@ pub const CpuWorker = struct {
     }
     pub fn deinit(self: *CpuWorker, a: std.mem.Allocator) void {
         if (self.child) |c| c.deinit();
-        if (self.local_metadata_retired) {
+        if (self.local_metadata_retired and !self.source.device_generated) {
             self.source.core.memory.deinit();
             if (self.source.keccak) |*source| source.deinit();
             if (self.source.add) |*source| source.deinit();
