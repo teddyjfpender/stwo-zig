@@ -27,7 +27,8 @@
     "whole_merkle_tree_owned_vs_legacy": "exact",
     "roots_openings_queries_channel_and_tail_guards": "pass",
     "gpu": "RTX 5090 sm120",
-    "full_replay_parity": "pending"
+    "full_replay_parity": "pending",
+    "compute_sanitizer_memcheck_errors": 0
   },
   "benchmark_scope": "No performance claim; kernel-only qualification."
 }
