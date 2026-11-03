@@ -443,11 +443,12 @@ test "explicit recycler cache ceiling remains an operational bounded option" {
 }
 
 // Worker admission is an operational bound, independent of scheduler threads.
-// The default geometry keeps the prior32 ceiling; only smaller parked shards
-// may select a larger, still bounded roster. No-store retention stays at8.
+// Parked coefficients and Merkle trees are bounded by explicit byte/disk
+// admission. Their roster must fit the existing receiver security envelope.
+// No-store retention keeps its smaller resident bound.
 fn producerWorkerLimit(park_main: bool, count: usize, keccak_max_log: u32) !usize {
     if (keccak_max_log < 16 or keccak_max_log > 18) return error.UnsupportedEthereumKeccakShardLog;
-    const cap: usize = if (!park_main) 8 else if (keccak_max_log < 18) 64 else 32;
+    const cap: usize = if (park_main) @intCast(Candidate.MAX_PROOFS) else 8;
     if (count == 0 or count > cap or count > @import("../services/gkr_local/manifest.zig").MAX_WORKERS) return error.BoundedWideCoordinatorLimit;
     return if (park_main) @max(@as(usize, 32), count) else 8;
 }
@@ -471,10 +472,12 @@ test "Keccak shard operational resource remains explicit bounded and default-sch
     try candidate.validate();
     try std.testing.expectEqual(@as(u32, 17), candidate.operational().keccak_max_log);
     try std.testing.expectEqual(@as(usize, 32), try producerWorkerLimit(true, 30, 18));
-    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 36, 18));
+    try std.testing.expectEqual(@as(usize, 36), try producerWorkerLimit(true, 36, 18));
     try std.testing.expectEqual(@as(usize, 36), try producerWorkerLimit(true, 36, 16));
     try std.testing.expectEqual(@as(usize, 64), try producerWorkerLimit(true, 64, 16));
-    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, 65, 16));
+    try std.testing.expectEqual(@as(usize, 65), try producerWorkerLimit(true, 65, 16));
+    try std.testing.expectEqual(@as(usize, Candidate.MAX_PROOFS), try producerWorkerLimit(true, Candidate.MAX_PROOFS, 18));
+    try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(true, Candidate.MAX_PROOFS + 1, 18));
     try std.testing.expectEqual(@as(usize, 8), try producerWorkerLimit(false, 8, 16));
     try std.testing.expectError(error.BoundedWideCoordinatorLimit, producerWorkerLimit(false, 9, 16));
 }
