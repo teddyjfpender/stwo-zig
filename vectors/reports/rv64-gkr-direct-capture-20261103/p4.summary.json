@@ -1,0 +1,33 @@
+{
+ "fresh_receiver": {
+  "accepted": true,
+  "completed_ethereum_block": false,
+  "cpu_proofs": 4,
+  "truth_proofs": 8,
+  "output": null,
+  "load_and_setup_ns": 5689429750,
+  "verify_ns": 676117875
+ },
+ "producer": {
+  "completed_ethereum_block": false,
+  "total_steps": 16777212,
+  "cpu_proofs": 4,
+  "truth_proofs": 8,
+  "capture_source": "packet_directory",
+  "block_to_inputs": {
+   "init_ns": 150459125,
+   "first_inputs_ns": 905088167,
+   "last_inputs_ns": 1585357208,
+   "all_inputs_ns": 1645997625,
+   "ledger_ns": 382736251,
+   "ledger_finish_ns": 50193833
+  },
+  "direct_capture": null,
+  "capture_ns": 1645997625,
+  "packet_import_ns": 1495538375,
+  "setup_ns": 5537663792,
+  "prove_ns": 55799187042,
+  "same_process_verify_ns": 703539709,
+  "total_before_report_ns": 63762492625
+ }
+}
