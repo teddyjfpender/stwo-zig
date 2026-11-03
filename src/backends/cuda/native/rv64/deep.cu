@@ -178,6 +178,30 @@ __global__ void deep_aggregate(StwoRv64DeepPrepare j) {
     store(j.coefficients + g.coefficient_offset, n, row, result);
   }
 }
+// Opt-in scalar-coordinate layout: a warp owns adjacent coefficient rows,
+// eight warps compute the eight independent extension-field coordinates.
+// Each coordinate visits terms in the identical order as deep_aggregate.
+__global__ void deep_aggregate_coordinates(StwoRv64DeepPrepare j) {
+  if (!*j.valid) return;
+  const auto g = j.groups[blockIdx.y];
+  const uint32_t n = 1u << g.coefficient_log;
+  const uint32_t coordinate = threadIdx.y;
+  for (uint32_t row = blockIdx.x * blockDim.x + threadIdx.x; row < n;
+       row += gridDim.x * blockDim.x) {
+    uint32_t result = 0;
+    for (uint32_t t = g.begin; t < g.end; ++t) {
+      const auto source = j.sources[j.terms[t].source];
+      uint32_t coefficient = j.trees[source.tree][source.offset + row];
+      if (coefficient >= q::kPrime) {
+        atomicOr(j.status, 2u);
+        coefficient = 0;
+      }
+      result = q::add(result, q::mul(j.weights[uint64_t(t) * 8 + coordinate],
+                                    coefficient));
+    }
+    j.coefficients[g.coefficient_offset + uint64_t(coordinate) * n + row] = result;
+  }
+}
 __global__ void deep_combine_validate(StwoRv64DeepCombine j, uint32_t *ok) {
   *ok = *j.valid && !atomicOr(j.status, 0u) &&
         deep_layout(j.groups, j.group_count, UINT64_MAX, j.evaluation_words,
@@ -336,7 +360,14 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
   }
   // Launch geometry is independent of device metadata. Grid-stride rows
   // preserve parallelism for large compact groups without host feedback.
-  deep_aggregate<<<dim3(64, j.group_count), 128, 0, c.stream>>>(j);
+  const char *coordinate_env = std::getenv("STWO_RV64_DEEP_COORDINATES");
+  const bool scalar_coordinates = coordinate_env &&
+      std::strcmp(coordinate_env, "1") == 0;
+  if (scalar_coordinates)
+    deep_aggregate_coordinates<<<dim3(256, j.group_count), dim3(32, 8), 0,
+                                 c.stream>>>(j);
+  else
+    deep_aggregate<<<dim3(64, j.group_count), 128, 0, c.stream>>>(j);
   if (timing) {
     int status = int(cudaEventRecord(spans.events[3], c.stream));
     if (!status) status = int(cudaEventSynchronize(spans.events[3]));

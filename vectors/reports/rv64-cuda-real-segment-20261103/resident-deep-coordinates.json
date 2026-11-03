@@ -1,0 +1,37 @@
+{
+  "schema": "rv64-native-deep-coordinates/v1",
+  "date": "2026-11-03",
+  "library": "/workspace/rv64-gpu-session/build/resident-oom-trim/libstwo-rv64-native-358414e990a3fb77.so",
+  "sha256": "358414e990a3fb77c348fd88b607fcb03e07b8c877d1bbb9bacc27d3b53ae2ec",
+  "previous_library_sha256": "f03cc7a658fd10897dd2e7471fb202558977e4e63f5703391164630161b1acd2",
+  "changed_objects": {
+    "/workspace/rv64-gpu-session/build/resident-oom-trim/rv64-deep.cu.o": "e03eef2f54083b26c6edf38aa00405bead8df519a522c5af47c59a0713cd2227"
+  },
+  "unchanged_native_objects": 36,
+  "unchanged_aot_objects": 268,
+  "original_exports_verified": 446,
+  "enable": "STWO_RV64_DEEP_COORDINATES=1",
+  "scope": "Opt-in scalar-coordinate DEEP coefficient aggregation:256CTAs/group,32adjacentrows and8independent M31coordinate warps/CTA. Eachcoordinate accumulates terms in original order. Existing OM31aggregate stays default; same ABI/transcript/proof framing.",
+  "motivation": {
+    "actual_cpu0_diagnostic_ms": {
+      "validate": 5.92,
+      "lines": 0.147,
+      "aggregate": 18.21
+    },
+    "actual_keccak0_diagnostic_ms": {
+      "validate": 6.96,
+      "lines": 0.301,
+      "aggregate": 105.54
+    },
+    "scope": "Parent real-prefix CUDA-event diagnostics, profile-only end synchronization. No headline proving-time claim."
+  },
+  "qualification": {
+    "honest_native_oracle_cases": 5,
+    "mutations_rejected": 19,
+    "memcheck_errors": 0,
+    "synccheck_errors": 0,
+    "logs_directory": "/workspace/rv64-gpu-session/build/deep-pipeline-qualified",
+    "full_block_gate": "Pending parent repeat2 all-proof parity and timing."
+  },
+  "build_manifest_sha256": "37cb278eebdd641fc6e672543e42a696a45263a68825c7bab395d21c68b251ee"
+}
