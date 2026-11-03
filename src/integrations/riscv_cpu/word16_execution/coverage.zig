@@ -128,3 +128,34 @@ test "public boundary log23 AIR and sidecar reject forged extents" {
     try std.testing.expectError(error.InvalidMemorySidecarSize, Cells.read(std.testing.allocator, temporary.dir, (1 << 22) + 1));
     try std.testing.expectError(error.InvalidMemorySidecarCount, Cells.read(std.testing.allocator, temporary.dir, 1 << 23));
 }
+
+test "public boundary log23 scratch admission never widens ordinary globals" {
+    const C = @import("../word16_global_execution/services/gkr_local/classic_witness.zig");
+    const P = @import("../word16_global_execution/services/gkr_local/classic_witness_parallel.zig");
+    try std.testing.expectError(error.InvalidClassicWitnessShape, C.scratchByteUpperBound(23, 1));
+    try std.testing.expectError(error.InvalidClassicWitnessShape, C.publicBoundaryScratchByteUpperBound(23, 2));
+    try std.testing.expectEqual(try C.scratchByteUpperBound(22, 1), try C.publicBoundaryScratchByteUpperBound(23, 1));
+    try std.testing.expectError(error.InvalidClassicWitnessShape, P.Plan.init(23, &.{.{ .inverses = 1 }}, 1 << 30, 4));
+    const plan = try P.Plan.initWithLogBound(23, 23, &.{.{ .inverses = 1 }}, 1 << 30, 4);
+    try std.testing.expectEqual(@as(usize, 16) * (1 << 23) * 4, plan.output_bytes);
+    try std.testing.expectError(error.InvalidClassicWitnessShape, P.Plan.initWithLogBound(23, 23, &.{.{ .inverses = 2 }}, 1 << 30, 4));
+}
+
+test "public boundary log23 producer entry preserves original small-domain bytes" {
+    const core = @import("stwo_core");
+    const C = @import("../word16_global_execution/services/gkr_local/classic_witness.zig");
+    const O = core.fields.om31.OM31;
+    const Provider = struct {
+        pub const PARALLEL_SAFE = true;
+        pub fn fill(_: @This(), logical: usize, denominators: []O, numerators: []C.Numerator) !void {
+            denominators[0] = O.fromBase(core.fields.m31.M31.fromCanonical(@intCast(logical + 2)));
+            numerators[0] = .{ .base = core.fields.m31.M31.one().neg() };
+        }
+    };
+    var old = try C.Witness.init(std.testing.allocator, 5, &.{.{ .inverses = 1 }}, Provider{}, 1 << 20);
+    defer old.deinit();
+    var boundary = try C.Witness.initPublicBoundary(std.testing.allocator, 5, &.{.{ .inverses = 1 }}, Provider{}, 1 << 20);
+    defer boundary.deinit();
+    try std.testing.expectEqualSlices(core.fields.m31.M31, old.data, boundary.data);
+    try std.testing.expect(old.claims[0].eql(boundary.claims[0]));
+}

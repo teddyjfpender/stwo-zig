@@ -35,7 +35,10 @@ v1 geometries and are not measurements of the new larger basket.
 
 Transport permits at most 2^23-1 public words and retains exact streaming
 file-length/header checks, canonical field/range checks and receiver-owned
-count/geometry checks. Ordinary LS `sizeForLog` is unchanged; boundaries
+count/geometry checks. Global-LogUp scratch admission and CPU witness generation have explicit
+public-boundary entrypoints, constrained to the boundary's single RAM inverse;
+ordinary scratch/witness/parallel-plan entrypoints retain log 22.
+Ordinary LS `sizeForLog` is unchanged; boundaries
 have their own sizing and independently generated fixed columns, byte-equal
 to the previous source at admitted smaller logs. Only the native boundary
 formatter and its two global-projection wrapper guards advance to log 23;

@@ -422,7 +422,7 @@ pub const CpuWorker = struct {
                 continue;
             }
             const provider = Metadata.Provider{ .source = &self.source, .origin = slot.origin, .log_size = slot.log, .shared = pending.shared };
-            w.* = if (slot.origin == .sponge) try Classic.Witness.initTruth(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
+            w.* = if (slot.origin == .core and (slot.origin.core == .initial or slot.origin.core == .terminal)) try Classic.Witness.initPublicBoundary(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else if (slot.origin == .sponge) try Classic.Witness.initTruth(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
             const bytes = try std.math.mul(usize, w.*.?.data.len, @sizeOf(M));
             if (bytes > remaining) return error.WideCpuGlobalBudget;
             remaining -= bytes;
