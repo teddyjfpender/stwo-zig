@@ -1341,12 +1341,18 @@ test "pcs2 rejects a committed table that is not a codeword" {
     while (j < (com.enc.len / R)) : (j += 2) com.enc[j * R] = com.enc[j * R].add(M31.one());
     com.tree.deinit(a);
     com.tree = try rebuildTree(a, &pool, com.enc, R, com.enc.len / R);
-    const params = Params{ .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 0 }, .inner = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 0 }, .depth = 1 };
-    var tp = Transcript.initDomain("prox");
-    var proof = try open(i8, a, &pool, &tp, params, &com, m, &.{}, true);
-    defer proof.deinit(a);
-    var tv = Transcript.initDomain("prox");
-    try std.testing.expect(std.meta.isError(verify(a, &tv, params, .{ .log_rows = lr, .log_cols = lc, .log_blowup = 2 }, com.root(), &.{}, true, proof)));
+    // unique decoding (1 proximity row) and beyond (2 rows, OOD on the
+    // committed rows): both reject
+    for ([_]Params{
+        .{ .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 0 }, .inner = .{ .log_blowup = 2, .n_queries = 16, .pow_bits = 0 }, .depth = 1 },
+        .{ .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 0 }, .inner = .{ .log_blowup = 3, .n_queries = 12, .pow_bits = 0 }, .depth = 2, .prox_rows = 2, .ood = true },
+    }) |params| {
+        var tp = Transcript.initDomain("prox");
+        var proof = try open(i8, a, &pool, &tp, params, &com, m, &.{}, true);
+        defer proof.deinit(a);
+        var tv = Transcript.initDomain("prox");
+        try std.testing.expect(std.meta.isError(verify(a, &tv, params, .{ .log_rows = lr, .log_cols = lc, .log_blowup = 2 }, com.root(), &.{}, true, proof)));
+    }
 }
 
 fn rebuildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E: usize) !pcs.Merkle {
