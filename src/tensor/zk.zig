@@ -32,6 +32,7 @@ const zks = @import("zk_sumcheck.zig");
 const proto = @import("protocol.zig");
 const linalg = @import("linalg.zig");
 const Transcript = @import("transcript.zig").Transcript;
+const core = @import("stwo_core");
 
 const M31 = f.M31;
 const QM31 = f.QM31;
@@ -1121,6 +1122,59 @@ fn runMasked(
     return zks.prove(NF, terms, a, pool, tr, claim, fac, active, public, hp, PadCtx(NF){ .pc = pc, .specs = specs });
 }
 
+/// A witness tensor whose values are public (e.g. the model's input and output):
+/// the proof binds the committed tensor to these values, everything else stays hidden.
+pub const PublicTensor = struct { id: u32, values: []const i32 };
+
+fn mixPublic(tr: *Transcript, st: Statement, public: []const PublicTensor) !void {
+    tr.mixU64(public.len);
+    for (public) |pt| {
+        if (pt.id >= st.witness.len or pt.values.len != st.witness[pt.id].size()) return error.StatementShape;
+        tr.mixU64(pt.id);
+        tr.mixDigest(core.vcs.blake2_hash.Blake2sHasher.hash(std.mem.sliceAsBytes(pt.values)));
+    }
+}
+
+/// Public-tensor claims: T~(z) = MLE(values)(z) at fresh random z (value public).
+fn publicClaims(a: std.mem.Allocator, tr: *Transcript, st: Statement, public: []const PublicTensor, claims: *std.ArrayList(LClaim)) !void {
+    for (public) |pt| {
+        const z = try a.alloc(QM31, st.witness[pt.id].logSize());
+        tr.drawN(z);
+        const terms = try a.alloc(LTerm, 1);
+        terms[0] = .{ .table = 0, .id = pt.id, .coeff = QM31.one(), .form = .{ .eq = z } };
+        try claims.append(a, .{ .terms = terms, .value = try mleFoldI32(a, pt.values, z) });
+    }
+}
+
+/// MLE of an integer vector at a point by folding (MSB first); the first fold
+/// multiplies QM31 by M31 differences only.
+fn mleFoldI32(a: std.mem.Allocator, v: []const i32, z: []const QM31) !QM31 {
+    if (z.len == 0) return QM31.fromBase(f.fromI32(v[0]));
+    const half = v.len / 2;
+    const buf = try a.alloc(QM31, half);
+    defer a.free(buf);
+    for (buf, v[0..half], v[half..]) |*o, lo, hi| {
+        const l = f.fromI32(lo);
+        o.* = QM31.fromBase(l).add(z[0].mulM31(f.fromI32(hi).sub(l)));
+    }
+    var len = half;
+    for (z[1..]) |r| {
+        const h = len / 2;
+        for (0..h) |i| buf[i] = buf[i].add(r.mul(buf[i + h].sub(buf[i])));
+        len = h;
+    }
+    return buf[0];
+}
+
+test "mleFoldI32 matches mleEvalI32" {
+    const a = std.testing.allocator;
+    var v: [64]i32 = undefined;
+    for (&v, 0..) |*x, i| x.* = @as(i32, @intCast(i * 37 % 101)) - 50;
+    var z: [6]QM31 = undefined;
+    for (&z, 0..) |*x, i| x.* = QM31.fromU32Unchecked(@intCast(i * 7 + 3), 11, @intCast(i), 5);
+    try std.testing.expect((try mleFoldI32(a, &v, &z)).eql(try f.mleEvalI32(a, &v, &z)));
+}
+
 pub fn prove(
     a: std.mem.Allocator,
     pool: *f.Pool,
@@ -1130,6 +1184,27 @@ pub fn prove(
     witness: []const []const i32,
     timings: *proto.Timings,
 ) !Proof {
+    return provePublic(a, pool, cfg, st, zw, witness, &.{}, timings);
+}
+
+pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey, proof: *const Proof) !void {
+    return verifyPublic(a, cfg, st, wkey, &.{}, proof);
+}
+
+/// As `prove`, binding the given witness tensors to public values.
+pub fn provePublic(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: proto.Config,
+    st: Statement,
+    zw: ?*const ZkWeights,
+    witness: []const []const i32,
+    public: []const PublicTensor,
+    timings: *proto.Timings,
+) !Proof {
+    for (public) |pt| {
+        if (pt.id >= witness.len or !std.mem.eql(i32, witness[pt.id], pt.values)) return error.PublicMismatch;
+    }
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
     const ar = arena_state.allocator();
@@ -1249,6 +1324,7 @@ pub fn prove(
 
     var tr = Transcript.initDomain("stwo-tensor-zk-v1");
     mixStatement(&tr, st, if (wkey) |k| k.root else [_]u8{0} ** 32, cfg);
+    try mixPublic(&tr, st, public);
     tr.mixDigest(com1.root());
     tr.mixDigest(comx.root());
     if (wmask_com) |*w| tr.mixDigest(w.root());
@@ -1389,6 +1465,7 @@ pub fn prove(
         for (plan.grels) |g| try gkrProveRel(a, ar, pool, &tr, plan, st, witness, vecs1, alpha, beta, g, &claims, &gkr_roots, &gkr_layers);
         timings.gkr_ns += nowNs(tg);
     } else try logupClaims(ar, plan, st, alpha, beta, &claims);
+    try publicClaims(ar, &tr, st, public, &claims);
 
     // --- masked batch sumcheck
     t0 = try std.time.Instant.now();
@@ -1718,7 +1795,7 @@ fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, max_gr
 // ---------------------------------------------------------------------------
 // Verifier.
 
-pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey, proof: *const Proof) !void {
+pub fn verifyPublic(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?WeightKey, public: []const PublicTensor, proof: *const Proof) !void {
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
     const ar = arena_state.allocator();
@@ -1731,6 +1808,7 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
 
     var tr = Transcript.initDomain("stwo-tensor-zk-v1");
     mixStatement(&tr, st, if (wkey) |k| k.root else [_]u8{0} ** 32, cfg);
+    try mixPublic(&tr, st, public);
     tr.mixDigest(proof.root1);
     tr.mixDigest(proof.aux_root);
     if (proof.wmask_root) |r| tr.mixDigest(r);
@@ -1775,6 +1853,7 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
         if (proof.gkr_roots.len != 0 or proof.gkr_layers.len != 0) return error.ProofShape;
         try logupClaims(ar, plan, st, alpha, beta, &claims);
     }
+    try publicClaims(ar, &tr, st, public, &claims);
 
     // batch
     const gammas = try ar.alloc(QM31, claims.items.len);
@@ -2351,6 +2430,26 @@ test "zk mlp: hiding weights + witness, verify, tamper, opening budget" {
     var st2 = st;
     st2.ops = ops2;
     try std.testing.expect(std.meta.isError(verify(a, cfg, st2, key, &proof)));
+    // public input and output: bound to the proof, everything else hidden
+    {
+        var zwp = try commitWeights(a, &pool, cfg, &winfos, &wvv);
+        defer zwp.deinit(a);
+        const keyp = zwp.key();
+        const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = 5, .values = wv[5] } };
+        var pp = try provePublic(a, &pool, cfg, st, &zwp, wv, &pubs, &tm);
+        defer pp.deinit(a);
+        try verifyPublic(a, cfg, st, keyp, &pubs, &pp);
+        // a different claimed output is rejected
+        const out2 = try a.dupe(i32, wv[5]);
+        defer a.free(out2);
+        out2[7] +%= 1;
+        const pubs2 = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = 5, .values = out2 } };
+        try std.testing.expect(std.meta.isError(verifyPublic(a, cfg, st, keyp, &pubs2, &pp)));
+        // the proof is bound to its public tensors: no public tensors -> different transcript
+        try std.testing.expect(std.meta.isError(verify(a, cfg, st, keyp, &pp)));
+        // the prover refuses public values that are not the witness
+        try std.testing.expectError(error.PublicMismatch, provePublic(a, &pool, cfg, st, &zwp, wv, &pubs2, &tm));
+    }
     // statement weight shapes must match the key
     var winfos_bad = winfos;
     winfos_bad[2].log_dims[1] -= 1;

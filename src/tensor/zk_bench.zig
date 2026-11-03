@@ -156,12 +156,16 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     defer a.free(wview);
     for (built.witness, 0..) |w, i| wview[i] = w;
     var tm: proto.Timings = .{};
+    // realistic inference statement: input (witness 0) and output (last witness) public
+    const public_io = if (std.posix.getenv("ZK_PUBLIC_IO")) |v| !std.mem.eql(u8, v, "0") else true;
+    const pubs_all = [_]zk.PublicTensor{ .{ .id = 0, .values = wview[0] }, .{ .id = @intCast(wview.len - 1), .values = wview[wview.len - 1] } };
+    const pubs: []const zk.PublicTensor = if (public_io) &pubs_all else &.{};
     t0 = now();
-    var proof = try zk.prove(a, &pool, pc, st, &zw, wview, &tm);
+    var proof = try zk.provePublic(a, &pool, pc, st, &zw, wview, pubs, &tm);
     defer proof.deinit(a);
     const prove_s = secs(t0);
     t0 = now();
-    try zk.verify(a, pc, st, key, &proof);
+    try zk.verifyPublic(a, pc, st, key, pubs, &proof);
     const verify_s = secs(t0);
     const sz = proof.sizes();
     const budget = zw.budgetUsed();
@@ -182,7 +186,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const pw = provenBits(queries, wml, @intCast(wtlc + lb), pow);
     const pk = provenBits(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq });
+    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},\"weight_log_cols\":{d},\"public_io\":{},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq, wlc, public_io });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
     try stagesJson(out, tm);
