@@ -159,3 +159,16 @@ test "public boundary log23 producer entry preserves original small-domain bytes
     try std.testing.expectEqualSlices(core.fields.m31.M31, old.data, boundary.data);
     try std.testing.expect(old.claims[0].eql(boundary.claims[0]));
 }
+
+test "public boundary log23 fixed sizing preserves native small-domain authority" {
+    const X = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
+    const M = @import("stwo_core").fields.m31.M31;
+    try std.testing.expectEqual(@as(usize, 1) << 23, try X.boundary_source.sizeForLog(23));
+    try std.testing.expectError(error.InvalidBoundaryGeometry, X.boundary_source.sizeForLog(24));
+    try std.testing.expectError(error.InvalidLsGeometry, X.source.sizeForLog(23));
+    const boundary = try X.boundary_source.fixed(std.testing.allocator, 5);
+    defer std.testing.allocator.free(boundary);
+    const original = try X.source.fixed(std.testing.allocator, 5);
+    defer std.testing.allocator.free(original);
+    try std.testing.expectEqualSlices(M, original, boundary);
+}

@@ -511,3 +511,11 @@ test {
 test {
     _ = @import("service_scope.zig");
 }
+
+// Keep the boundary admission regressions discoverable even when a focused
+// test does not instantiate the production source/worker builders.
+test {
+    _ = @import("../../../word16_execution/coverage.zig");
+    _ = @import("../../../word16_execution/geometry.zig");
+    _ = A.memory.load_store_v2.boundary_source;
+}
