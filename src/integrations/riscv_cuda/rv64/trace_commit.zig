@@ -2,6 +2,7 @@
 //! encodings, GPU interpolation/LDE/hash, and a 32-byte root readback. The
 //! compact coefficient lease outlives transform scratch and is consumed by PCS.
 const std = @import("std");
+const DeviceCopy = @import("scoped_device_copy.zig");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const D = @import("stwo_riscv_cpu_integration").rv64_device_pcs;
@@ -137,23 +138,36 @@ const Job = struct {
             _ = b.api.release(b.service.session, &arena);
         }
         const ptr = arena.words.?;
+        const arena_slice = try ctx.borrow(arena);
         const descriptors = try a.alloc(u32, 6 * order.len);
         defer a.free(descriptors);
         var eval_offset = coefficient_cells;
         var segments: std.ArrayList(A.MixedSegment) = .empty;
         defer segments.deinit(a);
+        var pending_copy: ?DeviceCopy.Run = null;
         for (order, 0..) |original, i| {
             const column = r.columns[original];
             const count = @as(usize, 1) << @intCast(column.log_size);
             const rows = count << @intCast(beta);
             if (column.device) |device| {
-                try check(b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &scope));
-                try check(b.copy(raw, ptr + offsets[original], device.words, count * 4));
-            } else try check(b.api.upload(raw, ptr + offsets[original], column.host.ptr, count * 4));
+                if (device.count != count) return error.InvalidDeviceTraceColumn;
+                const next = try DeviceCopy.Run.init(@intFromPtr(device.words), offsets[original], count, device.context_token, device.generation);
+                if (pending_copy) |*copy_run| {
+                    if (!try copy_run.append(next)) {
+                        try DeviceCopy.execute(&ctx, b.copy, arena_slice, copy_run.*);
+                        pending_copy = next;
+                    }
+                } else pending_copy = next;
+            } else {
+                if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, arena_slice, copy_run);
+                pending_copy = null;
+                try check(b.api.upload(raw, ptr + offsets[original], column.host.ptr, count * 4));
+            }
             descriptors[6 * i ..][0..6].* = .{ @truncate(offsets[original]), @truncate(@as(u64, offsets[original]) >> 32), @truncate(eval_offset), @truncate(@as(u64, eval_offset) >> 32), column.log_size, 0 };
             if (segments.items.len != 0 and segments.items[segments.items.len - 1].source_size == rows) segments.items[segments.items.len - 1].capacity_words += rows else try segments.append(a, .{ .columns = ptr + eval_offset, .stride_words = rows, .capacity_words = rows, .source_size = @intCast(rows), .reserved = 0 });
             eval_offset += rows;
         }
+        if (pending_copy) |copy_run| try DeviceCopy.execute(&ctx, b.copy, arena_slice, copy_run);
         try check(b.api.upload(raw, ptr + tw_base, tw.twiddles.ptr, tw.twiddles.len * 4));
         try check(b.api.upload(raw, ptr + inverse_base, tw.itwiddles.ptr, tw.itwiddles.len * 4));
         try check(b.api.upload(raw, ptr + desc_base, descriptors.ptr, descriptors.len * 4));

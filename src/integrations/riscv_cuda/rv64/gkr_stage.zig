@@ -3,6 +3,7 @@
 //! fractions, relation draws and traversal stay on device. Native services still
 //! owns terminal binding and final acceptance; this is not that admission gate.
 const std = @import("std");
+const DeviceCopy = @import("scoped_device_copy.zig");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const Child = @import("stwo_riscv_cpu_integration").rv64_gkr_child;
@@ -241,17 +242,27 @@ const Job = struct {
         const tw = try allocate(a, &context, &leases, twiddle_words);
         try events.mark(.ingress, false, upload_stream);
         var offset: usize = 0;
+        var pending_copy: ?DeviceCopy.Run = null;
         for (source.columns) |column| {
             const count = @as(usize, 1) << @intCast(column.log_size);
             const destination = try coeff.sub(offset, count);
             if (column.device) |device| {
-                const borrowed = Slice{ .address = @intFromPtr(device.words), .len = count, .owner = std.math.cast(usize, device.context_token) orelse return error.SizeOverflow, .generation = device.generation };
-                const from = try context.deviceSlicePointer(u32, borrowed, count);
-                const to = try context.deviceSlicePointer(u32, destination, count);
-                try checked(b.functions.copy_device(raw_context, @ptrCast(to), @ptrCast(from), count * 4));
-            } else try context.upload(destination, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..count]);
+                if (device.count != count) return error.InvalidGkrDeviceColumn;
+                const next = try DeviceCopy.Run.init(@intFromPtr(device.words), offset, count, device.context_token, device.generation);
+                if (pending_copy) |*run| {
+                    if (!try run.append(next)) {
+                        try DeviceCopy.execute(&context, b.functions.copy_device, coeff, run.*);
+                        pending_copy = next;
+                    }
+                } else pending_copy = next;
+            } else {
+                if (pending_copy) |run| try DeviceCopy.execute(&context, b.functions.copy_device, coeff, run);
+                pending_copy = null;
+                try context.upload(destination, @as([*]const u32, @ptrCast(column.coefficients.ptr))[0..count]);
+            }
             offset += count;
         }
+        if (pending_copy) |run| try DeviceCopy.execute(&context, b.functions.copy_device, coeff, run);
         var twiddle_timer = try std.time.Timer.start();
         var twiddles = try b.twiddle_cache.acquire(source.max_log);
         const twiddle_setup_ns = twiddle_timer.read();
