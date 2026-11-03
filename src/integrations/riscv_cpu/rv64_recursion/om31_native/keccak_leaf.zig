@@ -156,6 +156,9 @@ pub fn build(ctx: *C.Context, truth: R.Truth, config: core.pcs.PcsConfig, bindin
 }
 pub fn capture(a: std.mem.Allocator, truth: R.Truth, expected: M.ExpectedWorker, pending: *const M.PendingManifest, config: W.PcsConfig, encoded: *const Worker.TruthEncoded, fixed: ?*const Fixed.Binding, out: *V.proof.NativeCapture) !W.Proof {
     _ = try descriptors(truth);
+    if (fixed) |authority| try authority.require(truth.key(), config) else try W.validateConfig(config);
+    try Worker.validateExpected(truth, expected, fixed);
+    try Worker.validatePending(expected, pending, expected.ordinal);
     if (expected.kind != .keccak or encoded.claims.len != 5) return error.UnsupportedClassicRecursiveTruth;
     var proof = try W.decodePhysical(a, encoded.bytes);
     errdefer proof.deinit(a);

@@ -153,9 +153,13 @@ pub fn build(ctx: *C.Context, truth: R.Truth, config: core.pcs.PcsConfig, bindin
 }
 /// Fresh native physical verification plus capture; no cross-worker closure.
 pub fn capture(a: std.mem.Allocator, truth: R.Truth, expected: M.ExpectedWorker, pending: *const M.PendingManifest, config: core.pcs.PcsConfig, encoded: *const Worker.TruthEncoded, fixed: ?*const Fixed.Binding, out: *V.proof.NativeCapture) !W.Proof {
+    if (fixed) |authority| try authority.require(truth.key(), config) else try W.validateConfig(config);
+    try Worker.expected(truth, expected, fixed);
+    try Worker.pendingCheck(expected, pending, expected.ordinal);
     if (encoded.claims.len != 1 or expected.kind != .delegation) return error.V3TruthClaims;
     var native = try W.decodePhysical(a, encoded.bytes);
     errdefer native.deinit(a);
+    try @import("../../word16_global_execution/services/gkr_local/truth_worker.zig").validateProofConfig(&native, config);
     const roots = native.commitment_scheme_proof.commitments.items;
     if (roots.len != 4) return error.V3TruthRoots;
     try pending.checkPhysicalRoots(expected.ordinal, roots[0], roots[1]);

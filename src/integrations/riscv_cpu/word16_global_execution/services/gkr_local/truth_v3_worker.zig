@@ -35,12 +35,12 @@ pub fn truthStatementWithAuthority(truth: R.Truth, config: W.PcsConfig, executio
     const b = try truthStatement(truth, config, execution);
     return if (fixed) |f| f.statement(b) else b;
 }
-fn expected(truth: R.Truth, e: M.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
+pub fn expected(truth: R.Truth, e: M.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
     try C.validate(truth);
     const root = if (fixed) |f| f.root() else truth.key().root;
     if (e.kind != .delegation or e.local_instances != null or !std.mem.eql(u8, &root, &e.fixed) or !std.meta.eql(e.mass, try truthMass(truth)) or !std.meta.eql(e.global_relations, M.Relations{ .ram = false, .kio = false, .wire = true })) return error.V3TruthExpectedMismatch;
 }
-fn pendingCheck(e: M.ExpectedWorker, p: *const M.PendingManifest, i: usize) !void {
+pub fn pendingCheck(e: M.ExpectedWorker, p: *const M.PendingManifest, i: usize) !void {
     if (i >= p.entries.len or i != e.ordinal) return error.GlobalGkrManifestOrdinal;
     const v = p.entries[i];
     if (v.kind != e.kind or v.local != null or !std.meta.eql(v.mass, e.mass) or !std.meta.eql(v.global_relations, e.global_relations) or !std.mem.eql(u8, &v.scope.statement, &e.statement) or !std.mem.eql(u8, &v.scope.fixed, &e.fixed)) return error.V3TruthManifestMismatch;

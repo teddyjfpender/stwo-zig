@@ -52,7 +52,7 @@ pub fn truthStatementWithAuthority(truth: R.Truth, config: W.PcsConfig, executio
     const base = try truthStatement(truth, config, execution);
     return if (fixed) |binding| binding.statement(base) else base;
 }
-fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
+pub fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
     const kind: Manifest.Kind = switch (truth) {
         .keccak => .keccak,
         .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
@@ -70,7 +70,7 @@ fn expectedFrames(truth: R.Truth) ![3]Frame.Instance {
     const c = try templates(truth);
     return .{ c.items[0].instance(), c.items[1].instance(), c.items[2].instance() };
 }
-fn validatePending(expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize) !void {
+pub fn validatePending(expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize) !void {
     if (index >= pending.entries.len or index != expected.ordinal) return error.GlobalGkrManifestOrdinal;
     const e = pending.entries[index];
     if (e.kind != expected.kind or e.local != null or !std.meta.eql(e.mass, expected.mass) or !std.meta.eql(e.global_relations, expected.global_relations) or !std.mem.eql(u8, &e.scope.statement, &expected.statement) or !std.mem.eql(u8, &e.scope.fixed, &expected.fixed)) return error.WideTruthManifestMismatch;
