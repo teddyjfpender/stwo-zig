@@ -41,7 +41,28 @@ const Hash = [32]u8;
 const NONE: u32 = std.math.maxInt(u32);
 const PAD_LOG: u32 = 4;
 const WPAD_ROWS: usize = 4; // 2 row variables
-const N_MASK_ROWS: u32 = 4; // log2(16) mask rows in table 1
+const N_MASK_ROWS: u32 = 3; // log2(8) mask rows in table 1 (proximity, group A)
+
+// Aux table (per proof): row 0 = batch hiding-polynomial coefficients,
+// rows 1..4 proximity masks, rows 5..8 group masks; 256 columns.
+const AUX_LC: u32 = 8;
+const AUX_LB: u32 = 4;
+const AUX_ROWS: usize = 9;
+
+/// Aux-table opening parameters: no grinding, queries for >= 128 conjectured bits.
+pub fn auxParams() struct { params: pcs.Params, slots: u32 } {
+    var q: usize = 1;
+    while (true) : (q += 1) {
+        const s = zkp.slotsFor(q);
+        const e: f64 = @floatFromInt(@as(u64, 1) << (AUX_LC + AUX_LB));
+        const bits = std.math.log2(e / @as(f64, @floatFromInt((@as(u64, 1) << AUX_LC) + s)));
+        if (@as(f64, @floatFromInt(q)) * bits >= 128.0) return .{ .params = .{ .log_blowup = AUX_LB, .n_queries = q, .pow_bits = 0 }, .slots = s };
+    }
+}
+
+fn auxShape() zkp.Shape {
+    return .{ .log_cols = AUX_LC, .log_blowup = AUX_LB, .slots = auxParams().slots, .n_rows = AUX_ROWS };
+}
 
 fn qi(v: i64) QM31 {
     return f.qFromI64(v);
@@ -89,7 +110,6 @@ const Plan = struct {
     checks: []Check,
     /// hiding LogUp-GKR trees (one per relation), empty in committed-inverse mode
     grels: []GRel,
-    batch_u: u32,
     batch_n: u32,
     infos: [2][]TensorInfo,
     pad: [2][]u32,
@@ -294,15 +314,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
     if (lc > cfg.witness_log_cols_max) lc = cfg.witness_log_cols_max;
     const slots = zkp.slotsFor(cfg.pcs.n_queries);
     lc = @max(lc, log2Ceil(slots));
-    var ub_log: u32 = 6;
-    const base1 = inf1.items.len;
-    const base2 = inf2.items.len;
-    while (true) {
-        lc = @max(lc, ub_log);
-        inf1.shrinkRetainingCapacity(base1);
-        inf2.shrinkRetainingCapacity(base2);
-        const batch_u: u32 = @intCast(inf1.items.len);
-        try inf1.append(a, TensorInfo.vec(ub_log));
+    {
         const rb1: u32 = @intCast(inf1.items.len);
         try inf1.append(a, TensorInfo.vec(lc));
         const masks: u32 = @intCast(inf1.items.len);
@@ -319,11 +331,7 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             l2 = .{ .offsets = t.offsets, .log_total = t.log_total, .used = t.used };
         }
         const N = @max(l1.log_total, l2.log_total);
-        const need = uLog(N, 2);
-        if (need > ub_log) {
-            ub_log = need;
-            continue;
-        }
+        if (zks.Hp.entries(N, 2) * 4 > (@as(usize, 1) << AUX_LC)) return error.StatementShape;
         return .{
             .nw = nw,
             .rem = rem,
@@ -331,7 +339,6 @@ fn makePlan(a: std.mem.Allocator, st: Statement, wkey: ?WeightKey, cfg: proto.Co
             .keys = try keys.toOwnedSlice(a),
             .checks = try checks.toOwnedSlice(a),
             .grels = grels.items,
-            .batch_u = batch_u,
             .batch_n = N,
             .infos = .{ try inf1.toOwnedSlice(a), try inf2.toOwnedSlice(a) },
             .pad = .{ pad1, pad2 },
@@ -815,11 +822,15 @@ pub const Proof = struct {
     /// hiding GKR: root denominators (numerators are 0) and layer sumchecks, relation-major
     gkr_roots: []QM31 = &.{},
     gkr_layers: []zks.MaskedProof = &.{},
+    /// aux table (batch hiding polynomial): root and its opening
+    aux_root: Hash = [_]u8{0} ** 32,
+    aux_opening: ?zkp.Opening = null,
 
     pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
         for (self.gkr_layers) |*c| c.deinit(a);
         a.free(self.gkr_layers);
         a.free(self.gkr_roots);
+        if (self.aux_opening) |*o| o.deinit(a);
         for (self.checks) |*c| c.deinit(a);
         a.free(self.checks);
         self.batch.deinit(a);
@@ -835,7 +846,7 @@ pub const Proof = struct {
         var lg: usize = self.gkr_roots.len * 16;
         for (self.gkr_layers) |c| lg += c.byteSize();
         s += lg;
-        const wo = self.opening.byteSize();
+        const wo = self.opening.byteSize() + 32 + (if (self.aux_opening) |o| o.byteSize() else 0);
         const wto = if (self.weight_opening) |w| w.byteSize() else 0;
         const roots: usize = 32 * (1 + @as(usize, @intFromBool(self.root2 != null)) + @intFromBool(self.wmask_root != null));
         return .{ .sumchecks = s, .logup = lg, .witness_opening = wo, .weight_opening = wto, .total = roots + s + wo + wto };
@@ -1203,6 +1214,13 @@ pub fn prove(
     const m1 = pcs.Matrix(i32){ .data = tab1, .log_rows = plan.lay[0].log_total - plan.lc, .log_cols = plan.lc, .rows_used = plan.rowsUsed(0) };
     var com1 = try zkp.commit(i32, a, pool, &tw, &rng, m1, &.{}, plan.slots, cfg.pcs.log_blowup);
     defer com1.deinit(a);
+    // aux table: batch hiding polynomial + its own masks
+    const aux_data = try randVec(ar, &rng, @as(usize, 16) << AUX_LC);
+    const maux = pcs.Matrix(i32){ .data = aux_data, .log_rows = 4, .log_cols = AUX_LC, .rows_used = AUX_ROWS };
+    var auxtw = try pcs.Twiddles.init(a, AUX_LC + AUX_LB);
+    defer auxtw.deinit(a);
+    var comx = try zkp.commit(i32, a, pool, &auxtw, &rng, maux, &.{}, auxParams().slots, AUX_LB);
+    defer comx.deinit(a);
     // per-proof weight mask table
     var wmask_com: ?zkp.Commitment = null;
     defer if (wmask_com) |*w| w.deinit(a);
@@ -1225,6 +1243,7 @@ pub fn prove(
     var tr = Transcript.initDomain("stwo-tensor-zk-v1");
     mixStatement(&tr, st, if (wkey) |k| k.root else [_]u8{0} ** 32, cfg);
     tr.mixDigest(com1.root());
+    tr.mixDigest(comx.root());
     if (wmask_com) |*w| tr.mixDigest(w.root());
     const alpha = tr.draw();
     const beta = tr.draw();
@@ -1389,7 +1408,7 @@ pub fn prove(
     for (claims.items, gammas) |cl, g| for (cl.terms) |term| try addTerm(a, pool, plan, Ev[term.table], term, g);
     var batch_claim = QM31.zero();
     for (claims.items, gammas) |cl, g| batch_claim = batch_claim.add(g.mul(cl.value));
-    const bhp = hpOf(plan, vecs1, plan.batch_u, N, 2, hpbuf[0..zks.Hp.entries(N, 2)]);
+    const bhp = hpFromCells(aux_data, N, 2, hpbuf[0..zks.Hp.entries(N, 2)]);
     const bpad = BatchPad{ .plan = plan, .tabs = .{ vecs1[plan.rb[0]], if (plan.has2) vecs2[plan.rb[1]] else &.{} }, .a = ar };
     var bout: zks.ProveOut = undefined;
     if (plan.has2) {
@@ -1401,13 +1420,11 @@ pub fn prove(
     errdefer bout.proof.deinit(a);
     timings.batch_ns = nowNs(t0);
 
-    // --- witness opening (tables 1 [+ 2]): group A = batch hats, group B = batch hiding polynomial
+    // --- witness opening (tables 1 [+ 2]): group A = batch hats
     t0 = try std.time.Instant.now();
-    const zeta = tr.draw(); // combines the two claims on the batch hiding polynomial; drawn after u_val is mixed
-    const ospec = try openingSpec(ar, plan, bout.point, bout.proof, zeta);
-    const mus = try a.alloc(QM31, 2);
+    const ospec = try openingSpec(ar, plan, bout.point, bout.proof);
+    const mus = try a.alloc(QM31, 1);
     mus[0] = zkp.maskValue(i32, m1, plan.maskRow() + 4, ospec.groups[0].col);
-    mus[1] = zkp.maskValue(i32, m1, plan.maskRow() + 8, ospec.groups[1].col);
     const shapes = [2]zkp.Shape{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) };
     var co = try zkp.drawCoeffs(a, &tr, shapes[0..n_tabs], ospec.groups, mus, .{ .table = 0, .row = plan.maskRow() });
     defer co.deinit(a);
@@ -1416,6 +1433,22 @@ pub fn prove(
     if (com2) |*c| coms_buf[1] = c;
     var opening = try zkp.finish(a, &tr, cfg.pcs, coms_buf[0..n_tabs], mus, rows);
     errdefer opening.deinit(a);
+    // aux opening: sigma_b + zeta u_b on row 0 (zeta drawn after u_b is mixed)
+    var aux_open: zkp.Opening = undefined;
+    {
+        const zeta = tr.draw();
+        const xg = try auxGroup(ar, plan, bout.point, bout.proof, zeta);
+        const xmus = try a.alloc(QM31, 1);
+        xmus[0] = zkp.maskValue(i32, maux, 5, xg[0].col);
+        const xshapes = [_]zkp.Shape{comx.shape};
+        var xco = try zkp.drawCoeffs(a, &tr, &xshapes, xg, xmus, .{ .table = 0, .row = 1 });
+        defer xco.deinit(a);
+        const cv = [_][]const QM31{ xco.v[0][0], xco.v[1][0] };
+        const xrows = try zkp.combine(i32, a, pool, &comx, maux, &.{}, &cv);
+        const xcoms = [_]*const zkp.Commitment{&comx};
+        aux_open = try zkp.finish(a, &tr, auxParams().params, &xcoms, xmus, xrows);
+    }
+    errdefer aux_open.deinit(a);
     timings.witness_open_ns = nowNs(t0);
 
     // --- weight opening
@@ -1452,6 +1485,8 @@ pub fn prove(
         .weight_opening = wopen,
         .gkr_roots = try gkr_roots.toOwnedSlice(a),
         .gkr_layers = try gkr_layers.toOwnedSlice(a),
+        .aux_root = comx.root(),
+        .aux_opening = aux_open,
     };
 }
 
@@ -1541,7 +1576,7 @@ const BatchPad = struct {
 const OpeningSpec = struct { groups: []zkp.Group };
 
 /// Groups of the witness opening, from the batch sumcheck output (both sides).
-fn openingSpec(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.MaskedProof, zeta: QM31) !OpeningSpec {
+fn openingSpec(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.MaskedProof) !OpeningSpec {
     const N = plan.batch_n;
     const r = point[0..N];
     const g = point[N];
@@ -1564,30 +1599,40 @@ fn openingSpec(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.Ma
         for (rows, 0..) |*x, tt| x.* = if (tt == t) rv else &.{};
         claimsA[t] = .{ .rows = rows, .value = bp.hats[t] };
     }
-    // group B: batch hiding polynomial claims sigma + zeta u_val (zeta = fixed derivation from gamma_Y)
+    _ = C;
+    const groups = try a.alloc(zkp.Group, 1);
+    groups[0] = .{ .col = colA, .claims = claimsA, .mask = .{ .table = 0, .row = plan.maskRow() + 4 } };
+    return .{ .groups = groups };
+}
+
+/// Aux-table group: the batch hiding polynomial claims sigma + zeta u_val on row 0.
+fn auxGroup(a: std.mem.Allocator, plan: Plan, point: []const QM31, bp: zks.MaskedProof, zeta: QM31) ![]zkp.Group {
+    const N = plan.batch_n;
     const ne = zks.Hp.entries(N, 2);
     const fs = try a.alloc(QM31, ne);
     zks.Hp.sumForm(N, 2, fs);
     const fe = try a.alloc(QM31, ne);
     zks.Hp.evalForm(N, 2, point, fe);
-    const colB = try a.alloc(QM31, C);
-    @memset(colB, QM31.zero());
-    const uoff = plan.off(0, plan.batch_u);
-    const ucol = uoff & (C - 1);
+    const col = try a.alloc(QM31, @as(usize, 1) << AUX_LC);
+    @memset(col, QM31.zero());
     for (0..ne) |e| for (0..4) |k| {
-        colB[ucol + 4 * e + k] = fs[e].add(zeta.mul(fe[e])).mul(zkp.basis(k));
+        col[4 * e + k] = fs[e].add(zeta.mul(fe[e])).mul(zkp.basis(k));
     };
-    const rvB = try a.alloc(QM31, plan.rowsUsed(0));
-    @memset(rvB, QM31.zero());
-    rvB[uoff >> @intCast(plan.lc)] = QM31.one();
-    const rowsB = try a.alloc([]const QM31, n_tabs);
-    for (rowsB, 0..) |*x, tt| x.* = if (tt == 0) rvB else &.{};
-    const claimsB = try a.alloc(zkp.Claim, 1);
-    claimsB[0] = .{ .rows = rowsB, .value = bp.sigma.add(zeta.mul(bp.u_val)) };
-    const groups = try a.alloc(zkp.Group, 2);
-    groups[0] = .{ .col = colA, .claims = claimsA, .mask = .{ .table = 0, .row = plan.maskRow() + 4 } };
-    groups[1] = .{ .col = colB, .claims = claimsB, .mask = .{ .table = 0, .row = plan.maskRow() + 8 } };
-    return .{ .groups = groups };
+    const rv = try a.alloc(QM31, AUX_ROWS);
+    @memset(rv, QM31.zero());
+    rv[0] = QM31.one();
+    const rows = try a.alloc([]const QM31, 1);
+    rows[0] = rv;
+    const claims = try a.alloc(zkp.Claim, 1);
+    claims[0] = .{ .rows = rows, .value = bp.sigma.add(zeta.mul(bp.u_val)) };
+    const groups = try a.alloc(zkp.Group, 1);
+    groups[0] = .{ .col = col, .claims = claims, .mask = .{ .table = 0, .row = 5 } };
+    return groups;
+}
+
+fn hpFromCells(cells: []const i32, n: u32, deg: u32, buf: []QM31) zks.Hp {
+    for (buf, 0..) |*x, e| x.* = f.fromLimbs(.{ @intCast(cells[4 * e]), @intCast(cells[4 * e + 1]), @intCast(cells[4 * e + 2]), @intCast(cells[4 * e + 3]) });
+    return .{ .n = n, .d = deg, .c = buf };
 }
 
 fn weightGroup(a: std.mem.Allocator, key: WeightKey, wcl: []const WClaim, colpoint: []const QM31) ![]zkp.Group {
@@ -1634,6 +1679,7 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
     var tr = Transcript.initDomain("stwo-tensor-zk-v1");
     mixStatement(&tr, st, if (wkey) |k| k.root else [_]u8{0} ** 32, cfg);
     tr.mixDigest(proof.root1);
+    tr.mixDigest(proof.aux_root);
     if (proof.wmask_root) |r| tr.mixDigest(r);
     const alpha = tr.draw();
     const beta = tr.draw();
@@ -1697,13 +1743,22 @@ pub fn verify(a: std.mem.Allocator, cfg: proto.Config, st: Statement, wkey: ?Wei
     if (!bv.final_claim.eql(proof.batch.u_val.add(bv.eps.mul(gval)))) return error.BatchSumcheck;
 
     // witness opening
-    const zeta = tr.draw();
-    const ospec = try openingSpec(ar, plan, bv.point, proof.batch, zeta);
+    const ospec = try openingSpec(ar, plan, bv.point, proof.batch);
     var tw = try pcs.Twiddles.init(a, plan.lc + cfg.pcs.log_blowup);
     defer tw.deinit(a);
     const shapes = [2]zkp.Shape{ plan.shape(0, cfg.pcs.log_blowup), plan.shape(1, cfg.pcs.log_blowup) };
     const roots = [2]Hash{ proof.root1, proof.root2 orelse proof.root1 };
     try zkp.verifyOpening(ar, &tr, cfg.pcs, &tw, shapes[0..n_tabs], roots[0..n_tabs], ospec.groups, .{ .table = 0, .row = plan.maskRow() }, proof.opening);
+    {
+        const aop = proof.aux_opening orelse return error.ProofShape;
+        const zeta = tr.draw();
+        const xg = try auxGroup(ar, plan, bv.point, proof.batch, zeta);
+        var auxtw = try pcs.Twiddles.init(a, AUX_LC + AUX_LB);
+        defer auxtw.deinit(a);
+        const xshapes = [_]zkp.Shape{auxShape()};
+        const xroots = [_]Hash{proof.aux_root};
+        try zkp.verifyOpening(ar, &tr, auxParams().params, &auxtw, &xshapes, &xroots, xg, .{ .table = 0, .row = 1 }, aop);
+    }
 
     // weight opening
     if (proof.weight_opening) |wop| {
@@ -2141,8 +2196,8 @@ test "zk product: proves, verifies, rejects tampering, randomized" {
         }
     };
     const one = QM31.one();
-    inline for (.{ "hat", "sigma", "u_val", "round", "bhat", "bsigma", "row", "mu" }) |what| {
-        const ptr: *QM31 = if (comptime std.mem.eql(u8, what, "hat")) &proof.checks[0].hats[1] else if (comptime std.mem.eql(u8, what, "sigma")) &proof.checks[0].sigma else if (comptime std.mem.eql(u8, what, "u_val")) &proof.checks[0].u_val else if (comptime std.mem.eql(u8, what, "round")) &proof.checks[0].rounds[2][1] else if (comptime std.mem.eql(u8, what, "bhat")) &proof.batch.hats[0] else if (comptime std.mem.eql(u8, what, "bsigma")) &proof.batch.sigma else if (comptime std.mem.eql(u8, what, "row")) &proof.opening.rows[1][3] else &proof.opening.mus[1];
+    inline for (.{ "hat", "sigma", "u_val", "round", "bhat", "bsigma", "row", "mu", "auxrow", "auxmu" }) |what| {
+        const ptr: *QM31 = if (comptime std.mem.eql(u8, what, "hat")) &proof.checks[0].hats[1] else if (comptime std.mem.eql(u8, what, "sigma")) &proof.checks[0].sigma else if (comptime std.mem.eql(u8, what, "u_val")) &proof.checks[0].u_val else if (comptime std.mem.eql(u8, what, "round")) &proof.checks[0].rounds[2][1] else if (comptime std.mem.eql(u8, what, "bhat")) &proof.batch.hats[0] else if (comptime std.mem.eql(u8, what, "bsigma")) &proof.batch.sigma else if (comptime std.mem.eql(u8, what, "row")) &proof.opening.rows[1][3] else if (comptime std.mem.eql(u8, what, "auxrow")) &proof.aux_opening.?.rows[1][2] else if (comptime std.mem.eql(u8, what, "auxmu")) &proof.aux_opening.?.mus[0] else &proof.opening.mus[0];
         ptr.* = ptr.*.add(one);
         try H.expectReject(a, cfg, st, &proof);
         ptr.* = ptr.*.sub(one);
