@@ -75,6 +75,12 @@ def cmd_run(ns):
             for L in (16, 18, 20, 22):
                 emit(f"toy-{name}-L{L}-1t", run_one(ns.bin, ["product", L, 1, q, lb, pw] + ex, 6, "cmp-toy"))
             emit(f"toy-{name}-L20-12t", run_one(ns.bin, ["product", 20, 12, q, lb, pw] + ex, 6, "cmp-toy"))
+    if "zk" in suites:
+        for L in (16, 18, 20, 22):
+            emit(f"zktoy-hiding-L{L}-1t", run_one(ns.bin, ["product", L, 1, 56, 2, 20, "zk"], 6, "cmp-zk"))
+        for lt in (8, 9, 10):
+            os.environ["ZK_WEIGHT_LB"] = "3"
+            emit(f"zkmlp-hiding-t{lt}", run_one(ns.bin, ["mlp", lt, 12, 13, 12, 64, 2, 20, "zk"], 14, "cmp-zk"))
     if "mlp" in suites:
         for name, (q, lb, pw, ex) in TOY_CONFIGS.items():
             for lt in (8, 9, 10, 11):
@@ -122,6 +128,22 @@ def cmd_report(ns):
             fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
             md.append(f"| {L} | {name} ({r['queries']}q, rate 1/{2**r['log_blowup']}, {r['pow_bits']} PoW) | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes'])} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
     md.append("")
+    zt = [by[k] for k in sorted(by) if k.startswith("zktoy-") and "prove_s" in by[k]]
+    if zt:
+        md += ["## Zero-knowledge (hiding) mode, same statement and machine as FlashProve's hiding CPU toy", "",
+               "| L | ours prove | ours verify | ours proof | FlashProve prove | FlashProve verify | FlashProve proof | prove speedup |", "|---|---|---|---|---|---|---|---|"]
+        for r in sorted(zt, key=lambda r: r["log_n"]):
+            fp = FP_TOY_SAME_MACHINE.get(r["log_n"])
+            fps = (f"{fp[0]:.2f} s", f"{fp[1]*1e3:.0f} ms", fmt_bytes(fp[2]), f"{fp[0]/r['prove_s']:.1f}x") if fp else ("-", "-", "-", "-")
+            md.append(f"| {r['log_n']} | {r['prove_s']:.3f} s | {r['verify_s']*1e3:.1f} ms | {fmt_bytes(r['proof_bytes'])} | {fps[0]} | {fps[1]} | {fps[2]} | {fps[3]} |")
+        md.append("")
+    zm = [by[k] for k in sorted(by) if k.startswith("zkmlp-") and "prove_s" in by[k]]
+    if zm:
+        md += ["## Zero-knowledge MLP layer (hiding weights + witness, public input/output), D=4096, F=8192, 12 threads", "",
+               "| tokens | prove (+fwd) | verify | proof | weight commit (once) | peak RSS |", "|---|---|---|---|---|---|"]
+        for r in sorted(zm, key=lambda r: r["log_t"]):
+            md.append(f"| {2**r['log_t']} | {r['prove_s']:.2f} s (+{r['forward_s']:.2f}) | {r['verify_s']*1e3:.0f} ms | {fmt_bytes(r['proof_bytes']['total'])} | {r['commit_weights_s']:.2f} s | {r.get('peak_rss_bytes',0)/1e9:.1f} GB |")
+        md.append("")
     mlp = [by[k] for k in sorted(by, key=lambda k: (k.split("-")[1], by[k].get("tokens", 0))) if k.startswith("mlp-") and "prove_s" in by[k]]
     if mlp:
         md += ["## SwiGLU MLP layer (D=4096, F=8192, 100.7M int8 weights), 12 threads", "",
