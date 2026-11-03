@@ -1,7 +1,7 @@
 {
   "schema": "rv64-cuda-combined-batched-prefix/v1",
   "date_utc": "2026-11-03",
-  "scope": "Combined optimization qualification, not an isolated batched-kernel A/B; one CPU segment plus six CPU truth proofs, not a complete block",
+  "scope": "Combined optimization qualification, not an isolated batched-kernel A/B; one CPU segment plus six truth proofs, not a complete block. Truth witness and composition are CPU; PCS is GPU for all seven physical proofs.",
   "block": 24628607,
   "backend": "gpu",
   "profile": "conjectured128_b2_q108_p20_fold4",
@@ -222,7 +222,8 @@
     "Scoped device MAIN and deferred binding",
     "Batched active-oracle sum/fold",
     "Single source warehouse for already-resident MAIN",
-    "Explicit resident device pool"
+    "Explicit resident device pool",
+    "GPU PCS for six truth proofs through the concrete pool"
   ],
   "comparison_to_accepted_unbatched_prefix": {
     "control": "deferred-binding-real-prefix.json",
@@ -242,5 +243,11 @@
     "Kernel count is derived from the submitted GKR schedule; not CUPTI.",
     "Conjectured128 profile is a target under documented assumptions, not certified whole-protocol128 security.",
     "Complete block and1/2/4GPUbasket qualification remain pending."
-  ]
+  ],
+  "truth_provider_scope": {
+    "witness": "CPU",
+    "composition": "CPU",
+    "pcs": "GPU, six actual truth shapes, all native proof bytes identical to accepted CPU reference",
+    "gkr": "Current truth protocol uses native interaction argument"
+  }
 }
