@@ -30,6 +30,19 @@ pub fn takeFlag(args: [][:0]u8) ?[][:0]u8 {
     return null;
 }
 
+/// Conjectured bits of a hiding opening: queries * log2(E / (C + slots)) + pow.
+fn conjBits(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
+    const e: f64 = @floatFromInt(@as(u64, 1) << @intCast(log_ext));
+    return @as(f64, @floatFromInt(queries)) * std.math.log2(e / @as(f64, @floatFromInt(msg_len))) + @as(f64, @floatFromInt(pow));
+}
+
+/// Proven (unique decoding, delta = (1 - rate)/2) bits of a hiding opening.
+fn provenBits(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
+    const rate = @as(f64, @floatFromInt(msg_len)) / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(log_ext)));
+    const delta = (1.0 - rate) / 2.0;
+    return -@as(f64, @floatFromInt(queries)) * std.math.log2(1.0 - delta) + @as(f64, @floatFromInt(pow));
+}
+
 fn stagesJson(out: anytype, tm: proto.Timings) !void {
     try out.print("\"stage_s\":{{\"commit\":{d:.4},\"logup_checks\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
 }
@@ -61,6 +74,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     var tm: proto.Timings = .{};
     var size: usize = 0;
     var sz: zk.Proof.Sizes = undefined;
+    var msg_len: usize = 0;
     for (0..3) |_| {
         tm = .{};
         var t0 = now();
@@ -71,10 +85,13 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
         best_verify = @min(best_verify, secs(t0));
         sz = proof.sizes();
         size = sz.total;
+        msg_len = proof.opening.rows[0].len;
         proof.deinit(a);
     }
+    const lc = std.math.log2_int(usize, msg_len - t.zk_pcs.slotsFor(queries));
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"product\",\"hiding\":true,\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, queries, lb, pow });
+    try out.print("\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ conjBits(queries, msg_len, @intCast(lc + lb), pow), provenBits(queries, msg_len, @intCast(lc + lb), pow) });
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"proof_parts\":{{\"sumchecks\":{d},\"witness_opening\":{d}}},\"prove_ns_per_entry\":{d:.2},", .{ best_prove, best_verify, size, sz.sumchecks, sz.witness_opening, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))) });
     try stagesJson(out, tm);
     try out.print("\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ tm.witness_table_elems, peakRssBytes() });
@@ -98,6 +115,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
         .hiding = true,
+        .weight_mask_slots = if (std.posix.getenv("ZK_WEIGHT_SLOTS")) |v| try std.fmt.parseInt(u32, v, 10) else 1024,
     };
     const winfos = model.mlpWeightInfos(cfg);
     var wdata: [3][]i8 = undefined;
@@ -138,9 +156,17 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const verify_s = secs(t0);
     const sz = proof.sizes();
     const budget = zw.budgetUsed();
+    const wml = proof.opening.rows[0].len;
+    const wlc = std.math.log2_int(usize, wml - t.zk_pcs.slotsFor(queries));
+    const kml = (@as(usize, 1) << @intCast(key.log_cols)) + key.slots;
+    const cw = conjBits(queries, wml, @intCast(wlc + lb), pow);
+    const ck = conjBits(queries, kml, key.log_cols + lb, pow);
+    const pw = provenBits(queries, wml, @intCast(wlc + lb), pow);
+    const pk = provenBits(queries, kml, key.log_cols + lb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
+    try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
     try stagesJson(out, tm);
     try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, budget[0], budget[1], tm.witness_table_elems, peakRssBytes() });
 }
