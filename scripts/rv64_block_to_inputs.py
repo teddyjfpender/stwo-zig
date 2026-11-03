@@ -102,6 +102,8 @@ def main():
                     report = json.loads(proc.stdout)
                 else:
                     report = json.load(open(os.path.join(bundle, "report.json")))
+                with open(os.path.join(out, f"{tag}.report.json"), "w") as f:
+                    json.dump(report, f, indent=1)
                 b = report["block_to_inputs"]
                 with open(os.path.join(out, f"{tag}.block_to_inputs.json"), "w") as f:
                     json.dump(b, f, indent=1)
@@ -113,6 +115,8 @@ def main():
                     "segments": len(b["segments"]),
                     "setup_cache": b.get("setup_cache"),
                 })
+                if report.get("resident_next_block_setup_ns") is not None:
+                    row["resident_next_block_setup_s"] = report["resident_next_block_setup_ns"] / 1e9
             except Exception as e:  # report what failed; never hide an rc
                 row["error"] = repr(e)
             rows.append(row)
