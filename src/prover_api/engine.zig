@@ -128,6 +128,8 @@ pub const ProveOptions = struct {
     recorder: ?*stage_profile.Recorder = null,
     /// Optional whole-stage device evaluator scoped to this prove call.
     composition_stage: ?device_composition.Stage = null,
+    /// OM31-specific stage: never reinterpret a QM31 callback or its result.
+    om31_composition_stage: ?device_composition.Om31Stage = null,
     /// Optional exact CPU composition scheduling request for this prove call.
     cpu_composition_execution: ?CpuCompositionExecutionRequest = null,
 };

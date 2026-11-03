@@ -455,7 +455,7 @@ pub fn ForField(comptime Secure: type) type {
         pub const ComponentProvers = struct {
             components: []const ComponentProver,
             n_preprocessed_columns: usize,
-            composition_stage: ?device_composition.Stage = null,
+            composition_stage: ?device_composition.StageFor(Secure) = null,
             cpu_composition_execution: ?@import("stwo_prover_api").CpuCompositionExecutionRequest = null,
             /// Borrowed from the proof's existing optional stage recorder. Structured
             /// composition publishes its independent flat task profile through it.
@@ -685,12 +685,7 @@ pub fn ForField(comptime Secure: type) type {
                 diagnostic: ?*?prover_api.EvaluationDiagnostic,
             ) anyerror!SecureColumnByCoords {
                 if (comptime @import("builtin").is_test) if (test_composition_observer) |observe| try observe(self.components, trace);
-                if (comptime Secure != @import("stwo_core").fields.qm31.QM31) {
-                    if (self.composition_stage != null or self.cpu_composition_execution != null or self.composition_work_capture != null)
-                        return error.UnsupportedWideCompositionCapability;
-                    return self.computeCompositionEvaluationSequential(allocator, random_coeff, trace, diagnostic);
-                }
-                if (device_composition.tryStage(self.composition_stage, .{
+                if (device_composition.tryStageFor(Secure, self.composition_stage, .{
                     .allocator = allocator,
                     .random_coeff = random_coeff,
                     .composition_log_degree_bound = self.compositionLogDegreeBound(),
@@ -703,6 +698,11 @@ pub fn ForField(comptime Secure: type) type {
                     });
                     return err;
                 }) |evaluation| return evaluation;
+                if (comptime Secure != @import("stwo_core").fields.qm31.QM31) {
+                    if (self.cpu_composition_execution != null or self.composition_work_capture != null)
+                        return error.UnsupportedWideCompositionCapability;
+                    return self.computeCompositionEvaluationSequential(allocator, random_coeff, trace, diagnostic);
+                }
                 var resolved_execution: ?composition_execution.Execution = null;
                 if (composition_execution.tryBackend(
                     B,

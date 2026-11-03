@@ -133,7 +133,7 @@ pub fn ForField(comptime Secure: type) type {
             commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
             include_all_preprocessed_columns: bool,
             recorder: ?*stage_profile.Recorder,
-            composition_stage: ?device_composition.Stage,
+            composition_stage: ?device_composition.StageFor(Secure),
         ) !proof_mod.ExtendedStarkProof(H) {
             return proveExWithExecution(
                 B,
@@ -162,7 +162,7 @@ pub fn ForField(comptime Secure: type) type {
             commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
             include_all_preprocessed_columns: bool,
             recorder: ?*stage_profile.Recorder,
-            composition_stage: ?device_composition.Stage,
+            composition_stage: ?device_composition.StageFor(Secure),
             cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
         ) !proof_mod.ExtendedStarkProof(H) {
             var ignored_phase: prover_api.ProvePhase = .composition;
@@ -197,7 +197,7 @@ pub fn ForField(comptime Secure: type) type {
             commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
             include_all_preprocessed_columns: bool,
             recorder: ?*stage_profile.Recorder,
-            composition_stage: ?device_composition.Stage,
+            composition_stage: ?device_composition.StageFor(Secure),
             cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
             diagnostic: *?prover_api.ProveDiagnostic,
         ) !proof_mod.ExtendedStarkProof(H) {
@@ -231,7 +231,7 @@ pub fn ForField(comptime Secure: type) type {
             commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
             include_all_preprocessed_columns: bool,
             recorder: ?*stage_profile.Recorder,
-            composition_stage: ?device_composition.Stage,
+            composition_stage: ?device_composition.StageFor(Secure),
             cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
             diagnostic: *?prover_api.ProveDiagnostic,
             failed: ?*?proof_mod.ExtendedStarkProof(H),
@@ -420,7 +420,7 @@ pub fn ForField(comptime Secure: type) type {
             commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
             include_all_preprocessed_columns: bool,
             recorder: ?*stage_profile.Recorder,
-            composition_stage: ?device_composition.Stage,
+            composition_stage: ?device_composition.StageFor(Secure),
             cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
             diagnostic_phase: *prover_api.ProvePhase,
             diagnostic_subphase: *?prover_api.CompositionSubphase,
