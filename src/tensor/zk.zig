@@ -1532,7 +1532,8 @@ fn nowNs(t0: std.time.Instant) u64 {
 }
 
 fn buildTable(a: std.mem.Allocator, plan: Plan, t: usize, vecs: []const []const i32) ![]i32 {
-    const total = @as(usize, 1) << @intCast(plan.lay[t].log_total);
+    // only the committed rows are materialized (rows >= rows_used are zero)
+    const total = plan.rowsUsed(t) << @intCast(plan.lc);
     const tab = try a.alloc(i32, total);
     @memset(tab, 0);
     for (vecs, 0..) |v, i| {
@@ -2192,6 +2193,17 @@ test "zk product: proves, verifies, rejects tampering, randomized" {
     const wv = try wview(a, built.witness);
     defer a.free(wv);
     var tm: proto.Timings = .{};
+    // the non-hiding prover refuses a hiding config
+    {
+        const dummy_info = [_]TensorInfo{TensorInfo.mat(2, 2)};
+        var dummy: [16]i8 = [_]i8{0} ** 16;
+        const dv = [_][]const i8{&dummy};
+        var ws = try proto.commitWeights(a, &pool, cfg, &dummy_info, &dv);
+        defer ws.deinit(a);
+        var st0 = st;
+        st0.weights = &dummy_info;
+        try std.testing.expectError(error.HidingRequiresZkProve, proto.prove(a, &pool, cfg, st0, &ws, wv, &tm));
+    }
     var proof = try prove(a, &pool, cfg, st, null, wv, &tm);
     defer proof.deinit(a);
     try verify(a, cfg, st, null, &proof);

@@ -568,6 +568,8 @@ pub fn prove(
     witness: []const []const i32,
     timings: *Timings,
 ) !Proof {
+    // hiding proofs come from zk.prove; never silently produce a non-hiding one
+    if (cfg.hiding) return error.HidingRequiresZkProve;
     var rel = try deriveRelations(a, st);
     defer rel.deinit(a);
     const acc = try computeAccumulators(a, pool, st, ws, witness);
