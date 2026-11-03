@@ -8,6 +8,23 @@ const t = @import("stwo_tensor");
 const f = t.field;
 const proto = t.protocol;
 const model = t.model;
+const build_options = @import("build_options");
+const metal = if (build_options.metal) @import("stwo_tensor_metal") else struct {};
+
+/// `--metal` anywhere on the command line selects the Metal GPU path.
+var use_metal = false;
+var gpu_ctx: if (build_options.metal) ?*metal.Gpu else ?*anyopaque = null;
+
+fn accelFor() ?*const t.accel.Accel {
+    if (!build_options.metal or !use_metal) return null;
+    if (gpu_ctx == null) gpu_ctx = metal.Gpu.init(std.heap.c_allocator) catch |e| std.debug.panic("metal init: {s}", .{@errorName(e)});
+    return gpu_ctx.?.accel();
+}
+
+fn printGpuStats(out: anytype) !void {
+    if (!build_options.metal) return;
+    if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0 });
+}
 
 fn now() std.time.Instant {
     return std.time.Instant.now() catch unreachable;
@@ -30,8 +47,15 @@ pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
     const a = std.heap.c_allocator;
     _ = &gpa;
-    const args = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, args);
+    const all_args = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, all_args);
+    var kept: std.ArrayList([:0]u8) = .empty;
+    defer kept.deinit(a);
+    for (all_args) |arg| {
+        if (std.mem.eql(u8, arg, "--metal")) use_metal = true else try kept.append(a, arg);
+    }
+    if (use_metal and !build_options.metal) return error.MetalNotBuilt;
+    const args = kept.items;
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 2 and std.mem.eql(u8, args[1], "prims")) return @import("bench_prims.zig").run(a, if (args.len > 2) try std.fmt.parseInt(usize, args[2], 10) else 1);
     if (args.len < 5 or !std.mem.eql(u8, args[1], "mlp")) {
@@ -56,7 +80,16 @@ pub fn main() !void {
         .weight_log_cols = @min(ld, 13),
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
+        .accel = accelFor(),
     };
+    if (pc.accel != null) {
+        // warm the device (pipeline state, first-dispatch costs) off the clock
+        var wt = try t.pcs.Twiddles.init(a, 4);
+        defer wt.deinit(a);
+        var zero = [_]i32{0} ** 64;
+        var wc = try t.accel.commit(pc.accel, i32, a, &pool, &wt, .{ .data = &zero, .log_rows = 2, .log_cols = 4 }, 0);
+        wc.deinit(a);
+    }
 
     const winfos = model.mlpWeightInfos(cfg);
     var wdata: [3][]i8 = undefined;
@@ -88,6 +121,7 @@ pub fn main() !void {
     try proto.verify(a, pc, st, key, &proof);
     const verify_s = secs(t0);
     const sz = proof.sizes();
+    const pd = t.digest.proofDigest(proof);
 
     const T: f64 = @floatFromInt(@as(u64, 1) << @intCast(lt));
     const D: f64 = @floatFromInt(@as(u64, 1) << @intCast(ld));
@@ -100,6 +134,8 @@ pub fn main() !void {
     try out.print("\"commit_weights_s\":{d:.4},\"weight_key_proof_s\":{d:.4},\"weight_key_verify_s\":{d:.4},\"weight_key_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });
+    try printGpuStats(out);
+    try out.print("\"proof_digest\":\"{s}\",", .{std.fmt.bytesToHex(pd, .lower)});
     try out.print("\"proved_macs_per_s\":{d:.4},\"prove_ns_per_weight\":{d:.4},\"prove_ns_per_token\":{d:.1},\"committed_bits_per_token\":{d:.1},\"peak_rss_bytes\":{d}}}\n", .{ macs / prove_s, prove_s * 1e9 / n_weights, prove_s * 1e9 / T, @as(f64, @floatFromInt(tm.witness_table_elems)) * 32.0 / T, peakRssBytes() });
     proof.deinit(a);
     built.deinit(a);
@@ -117,7 +153,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
-    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads };
+    const pc = proto.Config{ .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow }, .weight_log_cols = 2, .witness_log_cols_max = 14, .gkr_threads = threads, .accel = accelFor() };
     const dummy_info = [_]proto.TensorInfo{proto.TensorInfo.mat(2, 2)};
     var dummy: [16]i8 = [_]i8{0} ** 16;
     const dv = [_][]const i8{&dummy};
@@ -132,6 +168,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var best_verify: f64 = 1e30;
     var tm: proto.Timings = .{};
     var size: usize = 0;
+    var digest: [32]u8 = undefined;
     var rep: usize = 0;
     while (rep < 3) : (rep += 1) {
         tm = .{};
@@ -142,10 +179,13 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
         try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
         best_verify = @min(best_verify, secs(t0));
         size = proof.sizes().total;
+        digest = t.digest.proofDigest(proof);
         proof.deinit(a);
     }
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ ln, threads, queries, lb, pow, pc.pcs.conjecturedBits(), pc.pcs.provenBits() });
+    try printGpuStats(out);
+    try out.print("\"proof_digest\":\"{s}\",", .{std.fmt.bytesToHex(digest, .lower)});
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"prove_ns_per_entry\":{d:.2},\"stage_s\":{{\"witness_commit\":{d:.4},\"op_sumchecks\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4}}},\"peak_rss_bytes\":{d}}}\n", .{ best_prove, best_verify, size, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))), nsToS(tm.witness_commit_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), peakRssBytes() });
     built.deinit(a);
     ws.deinit(a);

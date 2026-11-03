@@ -24,6 +24,7 @@ const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const linalg = @import("linalg.zig");
+const accel = @import("accel.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const M31 = f.M31;
@@ -150,6 +151,8 @@ pub const Config = struct {
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
     gkr_threads: usize = 8,
+    /// Optional device accelerator (e.g. Metal); proofs are identical either way.
+    accel: ?*const accel.Accel = null,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
@@ -165,7 +168,7 @@ pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []
     defer tw.deinit(a);
     const ru = (lay.used + (@as(usize, 1) << @intCast(lc)) - 1) >> @intCast(lc);
     const m = pcs.Matrix(i8){ .data = table, .log_rows = lr, .log_cols = lc, .rows_used = ru };
-    const com = try pcs.commit(i8, a, pool, &tw, m, cfg.pcs.log_blowup);
+    const com = try accel.commit(cfg.accel, i8, a, pool, &tw, m, cfg.pcs.log_blowup);
     return .{ .infos = infos, .offsets = lay.offsets, .table = table, .log_rows = lr, .log_cols = lc, .rows_used = ru, .com = com };
 }
 
@@ -649,7 +652,7 @@ pub fn prove(
     defer wtw.deinit(a);
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
     const wm = pcs.Matrix(i32){ .data = wtab, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru };
-    var wcom = try pcs.commit(i32, a, pool, &wtw, wm, cfg.pcs.log_blowup);
+    var wcom = try accel.commit(cfg.accel, i32, a, pool, &wtw, wm, cfg.pcs.log_blowup);
     defer wcom.deinit(a);
     timings.witness_commit_ns = nowNs(t0);
     timings.witness_table_elems = w_ru << @intCast(split.lc);
@@ -804,7 +807,7 @@ pub fn prove(
                 const gw = try linalg.rowDots(i8, a, pool, ws.matrix(m.w), eq_n, 7);
                 defer a.free(gw);
                 timings.weight_fold_ns += nowNs(tw0);
-                const res = try sc.proveActive(2, &T_PROD2, a, pool, &tr, acc_val, .{ fx, gw }, fx.len);
+                const res = try accel.proveActive(cfg.accel, 2, &T_PROD2, a, pool, &tr, acc_val, .{ fx, gw }, fx.len);
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals);
@@ -827,7 +830,7 @@ pub fn prove(
                 defer a.free(eq);
                 defer a.free(fa);
                 defer a.free(fb);
-                var res = try sc.proveActive(3, &T_EQ3, a, pool, &tr, acc_val, .{ eq, fa, fb }, eq.len);
+                var res = try accel.proveActive(cfg.accel, 3, &T_EQ3, a, pool, &tr, acc_val, .{ eq, fa, fb }, eq.len);
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals[1..]);
@@ -854,7 +857,7 @@ pub fn prove(
             defer a.free(fa);
             defer a.free(fb);
             defer a.free(fc);
-            var res = try sc.proveActive(4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ eq, fa, fb, fc }, eq.len);
+            var res = try accel.proveActive(cfg.accel, 4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ eq, fa, fb, fc }, eq.len);
             defer a.free(res.point);
             try op_proofs.append(a, res.proof);
             const fin = try a.dupe(QM31, res.finals[1..]);
@@ -887,7 +890,7 @@ pub fn prove(
         batch_claim = batch_claim.add(g.mul(c.value));
     }
     const F = try toQM31Vec(a, pool, wtab);
-    const bres = try sc.proveActive(2, &T_PROD2, a, pool, &tr, batch_claim, .{ F, E }, lay.used);
+    const bres = try accel.proveActive(cfg.accel, 2, &T_PROD2, a, pool, &tr, batch_claim, .{ F, E }, lay.used);
     a.free(F);
     a.free(E);
     defer a.free(bres.point);

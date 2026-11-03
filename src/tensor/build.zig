@@ -6,6 +6,7 @@ pub fn build(b: *std.Build) void {
     const dep_opts = .{ .target = target, .optimize = optimize };
     const core = b.dependency("stwo_core", dep_opts).module("stwo_core");
     const engine = b.dependency("stwo_prover_engine", dep_opts).module("stwo_prover_engine");
+    const use_metal = b.option(bool, "metal", "Build the Metal GPU path (default: on for macOS)") orelse (target.result.os.tag == .macos);
 
     const tensor = b.addModule("stwo_tensor", .{
         .root_source_file = b.path("mod.zig"),
@@ -19,6 +20,9 @@ pub fn build(b: *std.Build) void {
     const run_tests = b.addRunArtifact(tests);
     b.step("test", "Run tensor frontend tests").dependOn(&run_tests.step);
 
+    const opts = b.addOptions();
+    opts.addOption(bool, "metal", use_metal);
+
     const bench_mod = b.createModule(.{
         .root_source_file = b.path("bench.zig"),
         .target = target,
@@ -27,9 +31,72 @@ pub fn build(b: *std.Build) void {
     });
     bench_mod.addImport("stwo_tensor", tensor);
     bench_mod.addImport("stwo_core", core);
+    bench_mod.addOptions("build_options", opts);
+
+    if (use_metal) {
+        const metal = metalModule(b, target, optimize, tensor);
+        bench_mod.addImport("stwo_tensor_metal", metal);
+        const mt_mod = b.createModule(.{
+            .root_source_file = b.path("metal/test.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        mt_mod.addImport("stwo_tensor", tensor);
+        mt_mod.addImport("stwo_tensor_metal", metal);
+        const mt = b.addTest(.{ .root_module = mt_mod });
+        const run_mt = b.addRunArtifact(mt);
+        run_mt.has_side_effects = true;
+        b.step("test-metal", "Metal GPU path: CPU/GPU bit-identity tests").dependOn(&run_mt.step);
+    }
+
     const bench = b.addExecutable(.{ .name = "tensor-bench", .root_module = bench_mod });
     b.installArtifact(bench);
     const run_bench = b.addRunArtifact(bench);
     if (b.args) |args| run_bench.addArgs(args);
     b.step("bench", "Run tensor benchmarks").dependOn(&run_bench.step);
+}
+
+/// The Metal module compiles the stwo-zig Metal backend's MSL sources (field,
+/// Blake2s, circle transform, commitment kernels) together with the tensor
+/// kernels; the sources are embedded through a generated module.
+fn metalModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, tensor: *std.Build.Module) *std.Build.Module {
+    const shader_files = [_][2][]const u8{
+        .{ "base.metal", "../backends/metal/shaders/include/base.metal" },
+        .{ "m31.metal", "../backends/metal/shaders/include/m31.metal" },
+        .{ "extension_fields.metal", "../backends/metal/shaders/include/extension_fields.metal" },
+        .{ "blake2s.metal", "../backends/metal/shaders/include/blake2s.metal" },
+        .{ "blake3.metal", "../backends/metal/shaders/include/blake3.metal" },
+        .{ "merkle.metal", "../backends/metal/shaders/include/merkle.metal" },
+        .{ "poseidon2_m31.metal", "../backends/metal/shaders/include/poseidon2_m31.metal" },
+        .{ "circle.metal", "../backends/metal/shaders/include/circle.metal" },
+        .{ "circle_transform.metal", "../backends/metal/shaders/core/circle_transform.metal" },
+        .{ "circle_transform_wide.metal", "../backends/metal/shaders/core/circle_transform_wide.metal" },
+        .{ "commitments.metal", "../backends/metal/shaders/core/commitments.metal" },
+        .{ "tensor_kernels.metal", "metal/kernels.metal" },
+    };
+    const wf = b.addWriteFiles();
+    var src: std.ArrayList(u8) = .empty;
+    src.appendSlice(b.allocator, "pub const source: [:0]const u8 = \"#define STWO_ZIG_AMALGAMATED 1\\n\"") catch @panic("OOM");
+    for (shader_files) |sf| {
+        _ = wf.addCopyFile(b.path(sf[1]), sf[0]);
+        src.appendSlice(b.allocator, b.fmt(" ++ @embedFile(\"{s}\") ++ \"\\n\"", .{sf[0]})) catch @panic("OOM");
+    }
+    src.appendSlice(b.allocator, ";\n") catch @panic("OOM");
+    const shaders_zig = wf.add("shaders.zig", src.items);
+    const shaders = b.createModule(.{ .root_source_file = shaders_zig, .target = target, .optimize = optimize });
+
+    const metal = b.addModule("stwo_tensor_metal", .{
+        .root_source_file = b.path("metal/gpu.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    metal.addImport("stwo_tensor", tensor);
+    metal.addImport("tensor_metal_shaders", shaders);
+    metal.addCSourceFile(.{ .file = b.path("metal/runtime.m"), .flags = &.{ "-fobjc-arc", "-fblocks" } });
+    metal.linkFramework("Foundation", .{});
+    metal.linkFramework("Metal", .{});
+    metal.linkSystemLibrary("objc", .{});
+    return metal;
 }
