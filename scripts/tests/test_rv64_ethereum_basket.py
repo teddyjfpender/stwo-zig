@@ -137,6 +137,15 @@ class BasketTests(unittest.TestCase):
         self.assertEqual(result["gpu_device_ns_per_native_cell"], 500)
         self.assertEqual(result["worker"]["device"], 1)
 
+    def test_prefix_receiver_has_no_terminal_output(self):
+        job = self.job(True)
+        job["prefix_count"] = 1
+        job["verify"] = [sys.executable, "-c", "print('{\"accepted\": true, \"completed_ethereum_block\": false, \"output\": null}')"]
+        admission = B.Admission([{"device": 0, "capacity_bytes": 100, "device_caps_bytes": [100], "planned_cpu_workers": 1, "retained_scopes": 1}])
+        result = B.execute(job, "gpu", admission)
+        self.assertTrue(result["fresh_receiver_accepted"])
+        self.assertFalse(result["completed_block"])
+
     def test_rejected_receiver_never_publishes_result(self):
         job = self.job(True)
         job["verify"] = [sys.executable, "-c", "print('{\"accepted\": false}')"]

@@ -265,7 +265,7 @@ def execute(job, backend, admission, nsys=None):
         complete = job["prefix_count"] == 0
         if receiver.get("accepted") is not True or receiver.get("completed_ethereum_block") is not complete:
             raise ValueError("fresh receiver did not accept the requested coverage")
-        if bytes(receiver["output"]).hex() != load(job["request"])["expected_output"] and complete:
+        if complete and bytes(receiver["output"]).hex() != load(job["request"])["expected_output"]:
             raise ValueError("fresh receiver output differs from the pinned request")
         cells = report.get("native_cells")
         if cells is not None and (type(cells) is not int or cells <= 0 or not isinstance(report.get("cell_scope"), str) or not report["cell_scope"]):
