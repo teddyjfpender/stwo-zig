@@ -222,6 +222,10 @@ a skip ahead of a bounds check. Prover-side arguments:
 
 ## Tests (53 CPU, 12 Metal)
 
+The Metal lazy-factor, batch and eq-prefix tests run for `lazy_rounds` 1, 2,
+3 and 5 (clamped to 3).
+
+
 * goldens, recorded on the unmodified prover: decoder layer flat
   `146ac6c3…`, decoder layer pcs2 + batch + MoE `4d247ffb…`, MLP recommended
   `9a5c2559…`, and the existing flat MLP and product goldens. Thread counts 1
@@ -247,6 +251,7 @@ a skip ahead of a bounds check. Prover-side arguments:
 | idea | outcome |
 |---|---|
 | GKR `min_parallel` 2^12 / 2^14 for the layer mix | GKR sumcheck +15% / +75% at 512 tokens; 2^10 stays (`TENSOR_GKR_MINPAR` knob added to `layer`) |
+| Metal multi-round lazy fold (`Gpu.lazy_rounds`, `TENSOR_LAZY_ROUNDS`): the first 1–3 batch / lazy-factor rounds evaluate the implicit factors folded at the earlier challenges on the fly (corner weights `eq(r_0..r_{j-1}, c)`), so the first materialised fold is 1/2^k the size | layer 1024 Metal batch stage 0.127–0.140 s (k = 1) vs 0.114–0.120 s (k = 3); prove time within noise. Earlier profiling attributed 373 ms to first touch of the 2 GiB fold buffers, but in the full prover the device pool usually recycles them. Kept as a tested option (k = 1, 2, 3 vs CPU in test-metal; a weight mutation fails 3 tests), default 1 (unchanged) |
 | merge a requant op's remainder and `y_range` keys into `r + 2^s (y + off)` in `[0, 2^(s+ob))` | **unsound**: `r = acc + half − 2^s y`, so the merged key equals `acc + const` and no longer constrains `y`. A sound variant is a tuple lookup `(r, y)` against a 2^(s+ob) pair table, but S and P need s + ob = 23 / 27 > `MAX_TABLE_BITS`. Not pursued |
 
 ## Remaining hot spots and recommendations
@@ -262,11 +267,9 @@ a skip ahead of a bounds check. Prover-side arguments:
      input stage. It needs a hook in `gkr_prover_fast` and `metal/gkr.zig`;
    * on Metal, the 0.21 s input stage could become a device kernel writing
      into pooled buffers.
-2. **Metal batch, single shot.** The lazy round-0 fold writes 2 × 1 GiB of
-   fresh half-size QM31 buffers: 373 ms of wall time against ~50 ms of GPU
-   time. A 3-round lazy fold (corner weights `eq(r_0..r_2, c)` applied on the
-   fly) would write 2 × 256 MiB and save ~0.1–0.15 s single shot. Steady state
-   is already fast (the pool reuses the buffers).
+2. **Metal batch.** It is now 0.12–0.14 s at 1024 tokens. The multi-round
+   lazy fold is available (`TENSOR_LAZY_ROUNDS=3`) but measured only
+   ~15 ms better, so it is off by default.
 3. **Witness commitment** (0.6 s CPU, 0.27 s Metal at 1024 tokens; 2^27
    table). It is unchanged; see metal.md ("codeword layout").
 4. **Long-lived provers** should pass `recycle.Recycler.allocator()`. At 1024

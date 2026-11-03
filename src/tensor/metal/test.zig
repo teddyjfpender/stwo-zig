@@ -247,7 +247,9 @@ test "metal batch sumcheck (device-built factors) matches CPU" {
     defer for (pts) |p| a.free(p);
     const claim = randQ(r); // value is irrelevant to prover determinism
     // many device rounds, and exactly one (the lazy round-0 fold then finishes)
-    for ([_]usize{ 64, 1 << 14 }) |mw| {
+    defer g.lazy_rounds = 1;
+    for ([_]u32{ 1, 2, 3, 5 }) |lr| for ([_]usize{ 64, 1 << 12, 1 << 14 }) |mw| {
+        g.lazy_rounds = lr;
         var acc = g.accel().*;
         acc.sc_min_work = mw;
         const before = g.stats.sc_rounds;
@@ -263,7 +265,7 @@ test "metal batch sumcheck (device-built factors) matches CPU" {
         for (rc2.point, rd.point) |x, y| try std.testing.expect(x.eql(y));
         for (rc2.finals, rd.finals) |x, y| try std.testing.expect(x.eql(y));
         try std.testing.expect(tc2.draw().eql(td.draw()));
-    }
+    };
 }
 
 test "metal matmul accumulators match CPU" {
@@ -445,7 +447,9 @@ test "metal lazy-factor sumcheck (eq sums and int vectors, degree 3) matches CPU
     for (&p1) |*p| p.* = randQ(r);
     const claims = [_]t.accel.BatchClaim{ .{ .offset = 0, .point = &p0, .gamma = randQ(r) }, .{ .offset = 1 << 13, .point = &p1, .gamma = randQ(r) } };
     const specs = [4]t.accel.FactorSpec{ .{ .eq = &claims }, .{ .int = ints[0] }, .{ .int = ints[1] }, .{ .int = ints[2] } };
-    for ([_]usize{ len, len - 3001 }) |active| for ([_]usize{ 32, 1 << 13 }) |mw| {
+    defer g.lazy_rounds = 1;
+    for ([_]u32{ 1, 2, 3, 5 }) |lr| for ([_]usize{ len, len - 3001 }) |active| for ([_]usize{ 32, 1 << 11, 1 << 13 }) |mw| {
+        g.lazy_rounds = lr;
         const claim = randQ(r);
         var tc = Transcript.initDomain("lz");
         var rc = try t.accel.proveFactors(null, 4, &T_PRODUCT, a, &pool, &tc, claim, specs, len, active);
@@ -538,7 +542,9 @@ test "metal lazy eq-prefix factor (eq over leading vars, broadcast over trailing
     for (&pt) |*p| p.* = randQ(r);
     for ([_]u32{ 0, 1, 4, 8, 11 }) |free| {
         const specs = [3]t.accel.FactorSpec{ .{ .eq_prefix = .{ .point = pt[0 .. n - free], .free_bits = free } }, .{ .int = ints[0] }, .{ .int = ints[1] } };
-        for ([_]usize{ len, len - 777 }) |active| for ([_]usize{ 32, 1 << 13 }) |mw| {
+        defer g.lazy_rounds = 1;
+        for ([_]u32{ 1, 3 }) |lr| for ([_]usize{ len, len - 777 }) |active| for ([_]usize{ 32, 1 << 13 }) |mw| {
+            g.lazy_rounds = lr;
             const claim = randQ(r);
             var tc = Transcript.initDomain("ep");
             var rc = try t.accel.proveFactors(null, 3, &T3, a, &pool, &tc, claim, specs, len, active);

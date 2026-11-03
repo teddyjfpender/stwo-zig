@@ -126,6 +126,11 @@ pub const Gpu = struct {
     /// GKR layers at most this size are summed / folded by the CPU directly in
     /// the shared (unified-memory) buffers, saving a device round trip.
     gkr_cpu_sum_max: usize = 1 << 9,
+    /// lazy sumcheck sessions (claim batching, lazy factors) evaluate their
+    /// implicit factors on the fly for this many rounds (1..3; larger values
+    /// act as 3: the fold weights cover 2^3 corners) before the
+    /// first fold materialises QM31 factors of 1/2^lazy_rounds the length
+    lazy_rounds: u32 = 1,
     gkr_cpu_fold_max: usize = 1 << 10,
     /// fuse GKR device folds with the next round's sums. Off by default:
     /// measured 50 vs 45 ms device time per MLP proof (the rounds are
@@ -704,7 +709,34 @@ pub const Gpu = struct {
         lazy: ?Lazy = null,
     };
 
-    const Lazy = struct { srcs: [4]?Buf, tabs: Buf, claims: Buf, segs: Buf, params: LazyParams };
+    const Lazy = struct {
+        srcs: [4]?Buf,
+        tabs: Buf,
+        claims: Buf,
+        segs: Buf,
+        params: LazyParams,
+        /// challenges of the lazy rounds run so far (folded on the fly)
+        rs: [3]QM31 = undefined,
+        n_rs: u32 = 0,
+        active0: usize = 0,
+    };
+
+    /// wts[c] = eq(rs, c) over n = rs.len bits, c MSB-first (rs[0] <-> MSB):
+    /// the weight of f(c * fold_len + y) in the n-times folded factor at y.
+    fn cornerWeights(rs: []const QM31) [8]Q {
+        var out: [8]Q = undefined;
+        const n = rs.len;
+        for (0..@as(usize, 1) << @intCast(n)) |c| {
+            var w = QM31.one();
+            for (0..n) |i| {
+                const bit = (c >> @intCast(n - 1 - i)) & 1;
+                w = w.mul(if (bit == 1) rs[i] else QM31.one().sub(rs[i]));
+            }
+            out[c] = toQ(w);
+        }
+        for ((@as(usize, 1) << @intCast(n))..8) |c| out[c] = toQ(QM31.zero());
+        return out;
+    }
     const BatchClaimGpu = extern struct { offset: u32, count: u32, lo_bits: u32, pre_off: u32, suf_off: u32 };
     const LazyFactor = extern struct { kind: u32, claim0: u32, n_claims: u32, _pad: u32 = 0 };
     const LazyParams = extern struct {
@@ -721,6 +753,11 @@ pub const Gpu = struct {
         coeff: [4]Q,
         r: Q,
         fac: [4]LazyFactor,
+        n_fold: u32 = 0,
+        fold_len: u32 = 0,
+        active0: u32 = 0,
+        _pad2: u32 = 0,
+        wts: [8]Q = undefined,
     };
 
     fn bindLazy(s: *Session, cmd: *anyopaque) void {
@@ -750,6 +787,17 @@ pub const Gpu = struct {
         lp.active = @intCast(s.prev_active);
         lp.work = @intCast(work);
         lp.r = toQ(r);
+        lp.n_fold = 0;
+        if (lz.n_rs > 0) {
+            // fold at all lazy challenges and r: out(y) = sum_c eq(rs ++ r, c) f(c * half + y)
+            var all: [4]QM31 = undefined;
+            @memcpy(all[0..lz.n_rs], lz.rs[0..lz.n_rs]);
+            all[lz.n_rs] = r;
+            lp.n_fold = lz.n_rs + 1;
+            lp.fold_len = @intCast(half);
+            lp.active0 = @intCast(lz.active0);
+            lp.wts = cornerWeights(all[0 .. lz.n_rs + 1]);
+        }
         tm_cmd_pipeline(cmd, g.p_lazy_fold0);
         bindLazy(s, cmd);
         for (0..4) |j| bind(cmd, @intCast(6 + j), s.bufs[if (j < nf) j else 0]);
@@ -816,17 +864,32 @@ pub const Gpu = struct {
         p.work = @intCast(work);
         const groups: u32 = @intCast(@max(1, @min(SC_MAX_GROUPS, (work + SC_TG * 4 - 1) / (SC_TG * 4))));
         const cmd = tm_cmd_begin(g.rt);
-        if (s.lazy) |lz| {
+        if (s.lazy) |*lz| {
+            var lazy_round = r_prev == null;
             if (r_prev) |r| {
-                // first fold materialises half-size F1/E1, then a plain round
-                try lazyFold(g, s, cmd, r);
-                p.prev_half = 0;
-                p.prev_active = 0;
-            } else {
+                if (lz.n_rs + 1 < @min(g.lazy_rounds, 3)) {
+                    // another lazy round: fold at r on the fly
+                    lz.rs[lz.n_rs] = r;
+                    lz.n_rs += 1;
+                    lazy_round = true;
+                } else {
+                    // first fold materialises the folded factors, then a plain round
+                    try lazyFold(g, s, cmd, r);
+                    p.prev_half = 0;
+                    p.prev_active = 0;
+                }
+            }
+            if (lazy_round) {
                 var lp = lz.params;
                 lp.half_len = @intCast(half);
                 lp.active = @intCast(s.active);
                 lp.work = @intCast(work);
+                lp.n_fold = lz.n_rs;
+                if (lz.n_rs > 0) {
+                    lp.fold_len = @intCast(s.len);
+                    lp.active0 = @intCast(lz.active0);
+                    lp.wts = cornerWeights(lz.rs[0..lz.n_rs]);
+                }
                 tm_cmd_pipeline(cmd, g.p_lazy_round0);
                 bindLazy(s, cmd);
                 bind(cmd, 6, s.partials);
@@ -994,7 +1057,7 @@ pub const Gpu = struct {
         @memcpy(sq[0..sxl.len], sxl);
         const s = try std.heap.c_allocator.create(Session);
         errdefer std.heap.c_allocator.destroy(s);
-        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .segs = sbuf, .params = lp } };
+        s.* = .{ .bufs = undefined, .nf = 0, .partials = try g.alloc(SC_MAX_GROUPS * 3 * 16), .base = p, .len = len, .active = active, .a = std.heap.c_allocator, .lazy = .{ .srcs = srcs, .tabs = tabs, .claims = cbuf, .segs = sbuf, .params = lp, .active0 = active } };
         g.stats.sc_calls += 1;
         return s;
     }
