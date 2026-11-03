@@ -1,0 +1,75 @@
+{
+  "schema": "rv64-keccak-prefix-lowering-experiment/v1",
+  "status": "parked_unqualified",
+  "production_image_changed": false,
+  "qualified_baseline_image": "libstwo-rv64-native-6b86c05941797721.so",
+  "host_tests_passed": 114,
+  "authority": {
+    "native_roots": 5650,
+    "inverse_roots": [
+      5453,
+      5595
+    ],
+    "prefix_root": 5596,
+    "reverse_rlc_coordinate_word_offset": 424,
+    "changed_root_groups": [
+      170,
+      171,
+      172,
+      173,
+      174
+    ],
+    "native_constraints_masks_degree_domain_transcript": "unchanged",
+    "lowering": "interleave each inverse residual and its contribution; retain original prefix power; aggregate at most eight contributions per noinline helper"
+  },
+  "compile_attempts": {
+    "initial_32_fraction_groups": "three units exceeded120s; one finished85.742s; parked after timeout",
+    "bounded_8_fraction_helpers": [
+      {
+        "shard": 21,
+        "exit": "timeout120"
+      },
+      {
+        "shard": 22,
+        "seconds": 93.263,
+        "exit": 0
+      },
+      {
+        "shard": 23,
+        "seconds": 89.554,
+        "exit": 0
+      },
+      {
+        "shard": 24,
+        "seconds": 65.163,
+        "exit": 0
+      }
+    ],
+    "one_authorized_rescue": {
+      "shard": 21,
+      "split_compile": 4,
+      "seconds": 90.001,
+      "exit": "timeout90"
+    }
+  },
+  "timeout_custody": "Initial nvcc-only timeout left CICC children; exact owned jobs were stopped. Subsequent attempts used separate process groups and killed the entire group on timeout. No experiment compiler or GPU job remains.",
+  "resource_observation": {
+    "old_shard24_registers": 64,
+    "old_shard24_stack_bytes": 11376,
+    "new_shard24_registers": 234,
+    "new_shard24_stack_bytes": 0,
+    "warning": "Register234 can reduce occupancy and may regress performance; no speedup established."
+  },
+  "remaining_gates": [
+    "split heavygroups170/171 into separate translation units and rebuild dispatch metadata",
+    "complete all changed native objects within bounded compiler budgets",
+    "original qualified-layout DOMAIN parity and memory checking",
+    "full block independent receiver and all20 artifact hash parity",
+    "quiet warm end-to-end timing before adoption"
+  ],
+  "remote_preserved_artifacts": "/workspace/rv64-gpu-session/keccak-prefix-lowered-v2/objects/",
+  "source_sha256": {
+    "src/integrations/riscv_cuda/rv64/keccak_prefix_codegen.zig": "0954f65f8b113915f0e819a3594b6b7b415a59651916795ca8f87b6fecad550d",
+    "scripts/rv64_cuda_keccak_prefix_patch.py": "0bc7ac705360f8d9717d7578847c609e77b3d20c7c8de86c411a39d977ed352c"
+  }
+}

@@ -187,6 +187,18 @@ pub fn main() !void {
         defer directory.close();
         return @import("rv64/truth_interaction_codegen.zig").writeAot(a, directory);
     }
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--keccak-prefix")) {
+        try std.fs.cwd().makePath(args[2]);
+        var dir = try std.fs.cwd().openDir(args[2], .{});
+        defer dir.close();
+        var item = try @import("rv64/truth_domain_fixtures.zig").record(a, 0);
+        defer item.artifact.deinit();
+        var source: std.ArrayList(u8) = .empty;
+        defer source.deinit(a);
+        try @import("rv64/keccak_prefix_codegen.zig").emit(a, source.writer(a), &item.artifact.program, "rv64_truth_domain_0");
+        try dir.writeFile(.{ .sub_path = "case-0-domain.cu", .data = source.items });
+        return;
+    }
     const truth = args.len == 3 and std.mem.eql(u8, args[1], "--truth-domain");
     if (truth) return truthFixtures(args[2]);
     const domain = args.len == 3 and std.mem.eql(u8, args[1], "--domain");
