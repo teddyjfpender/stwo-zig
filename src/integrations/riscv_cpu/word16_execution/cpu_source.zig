@@ -24,9 +24,13 @@ pub const MemoryRecord = struct {
     effect: front.rv64.machine.MemoryEffect,
 };
 pub const ServiceRecord = struct { pointer: u64, tag: u64, epoch: u16, tick: u24 };
-pub const Metadata = struct { values: [5]u64, clocks: [3]u32, rom_row: u32 };
+/// Stable narrow ingress layout shared with resident witness formatters. This
+/// remains advice: ROM authentication and the CPU/family AIR prove its meaning.
+pub const Metadata = extern struct { values: [5]u64, clocks: [3]u32, rom_row: u32 };
 comptime {
     std.debug.assert(@sizeOf(Metadata) == 56);
+    std.debug.assert(@offsetOf(Metadata, "clocks") == 40);
+    std.debug.assert(@offsetOf(Metadata, "rom_row") == 52);
 }
 pub const Source = struct {
     allocator: std.mem.Allocator,

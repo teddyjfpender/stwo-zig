@@ -1,0 +1,71 @@
+{
+  "schema": "rv64-cuda-compact-cpu-format-v1",
+  "device": "RTX 5090 sm_120",
+  "native_reference": "word16_execution.row.compact.active/padding and native Source.Metadata",
+  "scope": "formatter only; not an execution proof or integrated resident Ethereum worker",
+  "input_bytes_per_active_row": 56,
+  "main_columns": 37,
+  "histograms": [
+    "U16",
+    "U8",
+    "ROM physical rows"
+  ],
+  "cases": [
+    {
+      "log": 5,
+      "active_rows": 0,
+      "main_cells": 1184,
+      "gpu_ms": 0.163456
+    },
+    {
+      "log": 5,
+      "active_rows": 31,
+      "main_cells": 1184,
+      "gpu_ms": 0.020064
+    },
+    {
+      "log": 13,
+      "active_rows": 3077,
+      "main_cells": 303104,
+      "gpu_ms": 0.016416
+    },
+    {
+      "log": 22,
+      "active_rows": 4194303,
+      "main_cells": 155189248,
+      "gpu_ms": 2.486048
+    }
+  ],
+  "timing": "single launch CUDA events; no warm median claim; excludes host capture, upload and readback",
+  "native_main_and_histogram_parity": true,
+  "rejections": [
+    "previous register clock >= current tick",
+    "foreign context output/status",
+    "input/output alias",
+    "no reserved padding row"
+  ],
+  "sanitizers": {
+    "memcheck": {
+      "logs": [
+        5,
+        13
+      ],
+      "errors": 0
+    },
+    "racecheck": "not rerun in this slice",
+    "initcheck": "not rerun in this slice",
+    "synccheck": "not rerun in this slice"
+  },
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/cpu_witness.cu": "db11e69abaac138e782da8eeb50989008439999da22871c7cdf99246569c3c6b",
+    "src/backends/cuda/native/rv64/cpu_witness.h": "581b95c8b77c20908498f8fcc883526383a62ae6bf9725baef5f7522d633e1c3",
+    "src/integrations/riscv_cuda/rv64_cpu_witness_fixture_main.zig": "f205121a4ee0c461e8f89cef0971384e3141d6646eed9b54d6d3879fd45f53a8",
+    "tests/cuda/rv64/cpu_witness_smoke.cu": "94942a20517c28f3ef6299c1d9e4984a48db7919d96a2ee75c7acde3ea5dda61"
+  },
+  "remaining": [
+    "Connect capture-only worker to scoped device MAIN commitment",
+    "Retain MAIN through GKR and PCS without CPU re-materialization",
+    "Device trace construction for other CPU/truth roles",
+    "Full resident segment then block receiver qualification"
+  ]
+}

@@ -189,6 +189,14 @@ pub fn build(b: *std.Build) void {
     const run_dword = b.addRunArtifact(dword_fixture);
     if (b.args) |args| run_dword.addArgs(args);
     b.step("rv64-ls-dword-fixtures", "Export native compact-event LS-D64 witness oracle").dependOn(&run_dword.step);
+    const cpu_witness_root = b.createModule(.{ .root_source_file = b.path("rv64_cpu_witness_fixture_main.zig"), .target = target, .optimize = optimize });
+    cpu_witness_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    cpu_witness_root.addImport("stwo_riscv_frontend", frontend);
+    cpu_witness_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const cpu_witness_fixture = b.addExecutable(.{ .name = "rv64-cpu-witness-fixtures", .root_module = cpu_witness_root });
+    const run_cpu_witness = b.addRunArtifact(cpu_witness_fixture);
+    if (b.args) |args| run_cpu_witness.addArgs(args);
+    b.step("rv64-cpu-witness-fixtures", "Export native compact CPU formatting and histogram oracle").dependOn(&run_cpu_witness.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
