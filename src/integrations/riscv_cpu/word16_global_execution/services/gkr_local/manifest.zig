@@ -44,6 +44,11 @@ pub const Shared = struct {
 };
 pub const Claims = struct { ram: O, kio: O, wire: O };
 pub const Entry = struct { kind: Kind, global_relations: Relations, mass: Mass, scope: Receipt.Scope, local: ?Child.Pending };
+/// Metadata view for a root receiver AFTER the circuit proof has authenticated
+/// the local receipt and terminal marginals. Constructing this is not local
+/// GKR verification and must never replace Child.verifyPending on native paths.
+pub const LocalCommitmentView = struct { digest: [32]u8, claims_to_verify_by_instance: []const []const O };
+pub const CommitmentView = struct { kind: Kind, global_relations: Relations, mass: Mass, scope: Receipt.Scope, local: ?LocalCommitmentView };
 pub const PendingManifest = struct {
     entries: []Entry,
     digest: [32]u8,
@@ -62,20 +67,25 @@ pub const PendingManifest = struct {
     /// These values must come from ALL freshly verified physical claims.
     /// No cross-relation cancellation is allowed; this alone is not a verifier.
     pub fn checkGlobalClosure(self: *const PendingManifest, claims: []const Claims) !void {
-        if (claims.len != self.entries.len) return error.GlobalGkrManifestRoster;
-        var sum = Claims{ .ram = O.zero(), .kio = O.zero(), .wire = O.zero() };
-        for (claims, self.entries) |claim, entry| {
-            inline for (.{ "ram", "kio", "wire" }) |name| {
-                try canonical(@field(claim, name));
-                if (!@field(entry.global_relations, name) and !@field(claim, name).isZero()) return error.NonzeroAbsentGlobalGkrClaim;
-                @field(sum, name) = @field(sum, name).add(@field(claim, name));
-            }
-        }
-        if (!sum.ram.isZero()) return error.UnclosedGlobalGkrRam;
-        if (!sum.kio.isZero()) return error.UnclosedGlobalGkrKio;
-        if (!sum.wire.isZero()) return error.UnclosedGlobalGkrWire;
+        return checkClaimsClosure(self.entries, claims);
     }
 };
+/// Shared closure authority for freshly verified native claims and claims
+/// authenticated by a recursive root. This checks algebraic debt only.
+pub fn checkClaimsClosure(entries: anytype, claims: []const Claims) !void {
+    if (claims.len != entries.len) return error.GlobalGkrManifestRoster;
+    var sum = Claims{ .ram = O.zero(), .kio = O.zero(), .wire = O.zero() };
+    for (claims, entries) |claim, entry| {
+        inline for (.{ "ram", "kio", "wire" }) |name| {
+            try canonical(@field(claim, name));
+            if (!@field(entry.global_relations, name) and !@field(claim, name).isZero()) return error.NonzeroAbsentGlobalGkrClaim;
+            @field(sum, name) = @field(sum, name).add(@field(claim, name));
+        }
+    }
+    if (!sum.ram.isZero()) return error.UnclosedGlobalGkrRam;
+    if (!sum.kio.isZero()) return error.UnclosedGlobalGkrKio;
+    if (!sum.wire.isZero()) return error.UnclosedGlobalGkrWire;
+}
 fn canonical(value: O) !void {
     for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalGlobalGkrCoordinate;
 }
@@ -140,7 +150,7 @@ const Writer = struct {
 /// Shared canonical framing authority, suitable for a later constrained writer.
 /// Entry.local can only be supplied from the checked child transcript by the
 /// receiving path; wire-declared marginals must never populate these entries.
-pub fn emitCanonical(execution: [32]u8, entries: []const Entry, writer: anytype) !void {
+pub fn emitCanonical(execution: [32]u8, entries: anytype, writer: anytype) !void {
     writer.bytes(PROFILE);
     writer.bytes(&execution);
     writer.integer(8);
@@ -160,13 +170,25 @@ pub fn emitCanonical(execution: [32]u8, entries: []const Entry, writer: anytype)
             writer.bytes(&pending.digest);
             // Also bind the independently reconstructed terminal marginals
             // explicitly, rather than accepting a producer's marginal list.
-            writer.integer(pending.artifact.claims_to_verify_by_instance.len);
-            for (pending.artifact.claims_to_verify_by_instance) |values| {
+            const marginals = if (comptime @hasField(@TypeOf(pending), "artifact")) pending.artifact.claims_to_verify_by_instance else pending.claims_to_verify_by_instance;
+            writer.integer(marginals.len);
+            for (marginals) |values| {
                 writer.integer(values.len);
                 for (values) |value| try writer.field(value);
             }
         }
     }
+}
+pub const Commitment = struct { digest: [32]u8, shared: Shared };
+/// Fiat–Shamir derivation only, never acceptance. Views must already be bound
+/// to the complete receiver-owned inventory and authenticated leaf statements.
+pub fn commitViews(execution: [32]u8, entries: []const CommitmentView) !Commitment {
+    if (entries.len == 0 or entries.len > MAX_WORKERS) return error.GlobalGkrManifestRoster;
+    var writer = Writer{};
+    try emitCanonical(execution, entries, &writer);
+    var digest: [32]u8 = undefined;
+    writer.hash.final(&digest);
+    return .{ .digest = digest, .shared = drawShared(digest) };
 }
 fn mixDigest(ch: *C, digest: [32]u8) void {
     var words: [8]u32 = undefined;
