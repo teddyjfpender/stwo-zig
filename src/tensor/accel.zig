@@ -11,6 +11,11 @@ const f = @import("field.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const Transcript = @import("transcript.zig").Transcript;
+const Channel = @import("transcript.zig").Channel;
+const engine = @import("stwo_prover_engine");
+const Fast = engine.lookups.gkr_prover_fast.ForField(QM31);
+pub const GkrInput = Fast.Input;
+pub const GkrResult = Fast.ProveBatchResult;
 
 const QM31 = f.QM31;
 
@@ -36,6 +41,11 @@ pub const Accel = struct {
     mle_eval_i32: ?*const fn (ctx: *anyopaque, values: []const i32, point: []const QM31) anyerror!?QM31 = null,
     /// Vectors shorter than this are evaluated on the CPU.
     mle_min_len: usize = 1 << 16,
+    /// Batched LogUp-GKR (same contract as gkr_prover_fast.proveBatch:
+    /// consumes owned inputs). Used when the largest instance has at least
+    /// 2^gkr_min_log entries.
+    gkr_prove: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, ch: *Channel, inputs: []const GkrInput) anyerror!GkrResult = null,
+    gkr_min_log: u32 = 12,
     sc_begin_batch: ?*const fn (ctx: *anyopaque, wtab: []const i32, claims: []const BatchClaim, active: usize) anyerror!?*anyopaque = null,
     sc_abort: *const fn (ctx: *anyopaque, s: *anyopaque) void,
     /// Device rounds run while the round's work (min(half, active)) is at
@@ -221,4 +231,14 @@ pub fn mleEvalI32(acc: ?*const Accel, a: std.mem.Allocator, values: []const i32,
         if (try ev(A.ctx, values, point)) |v| return v;
     };
     return f.mleEvalI32(a, values, point);
+}
+
+/// LogUp-GKR batch proof on the device when available (identical proof).
+pub fn gkrProveBatch(acc: ?*const Accel, a: std.mem.Allocator, ch: *Channel, inputs: []const GkrInput, threads: usize) !GkrResult {
+    if (acc) |A| if (A.gkr_prove) |prove| {
+        var max_len: usize = 0;
+        for (inputs) |in| max_len = @max(max_len, in.den.len);
+        if (max_len >= (@as(usize, 1) << @intCast(A.gkr_min_log))) return prove(A.ctx, a, ch, inputs);
+    };
+    return Fast.proveBatch(a, ch, inputs, .{ .threads = threads }, null);
 }

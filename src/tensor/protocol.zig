@@ -690,7 +690,7 @@ pub fn prove(
     var gkr_proof: ?GkrVerifier.GkrBatchProof = null;
     var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
     if (n_inst > 0) {
-        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads }, null);
+        const gkr_res = try accel.gkrProveBatch(cfg.accel, a, &tr.ch, inputs, cfg.gkr_threads);
         gkr_proof = gkr_res.proof;
         art = gkr_res.artifact;
     }

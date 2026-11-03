@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
 
     if (use_metal) {
         const metal = metalModule(b, target, optimize, tensor);
+        metal.addImport("stwo_prover_engine", engine);
         bench_mod.addImport("stwo_tensor_metal", metal);
         const mt_mod = b.createModule(.{
             .root_source_file = b.path("metal/test.zig"),
@@ -44,6 +45,7 @@ pub fn build(b: *std.Build) void {
         });
         mt_mod.addImport("stwo_tensor", tensor);
         mt_mod.addImport("stwo_tensor_metal", metal);
+        mt_mod.addImport("stwo_prover_engine", engine);
         const mt = b.addTest(.{ .root_module = mt_mod });
         const run_mt = b.addRunArtifact(mt);
         run_mt.has_side_effects = true;

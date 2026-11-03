@@ -17,13 +17,21 @@ var gpu_ctx: if (build_options.metal) ?*metal.Gpu else ?*anyopaque = null;
 
 fn accelFor() ?*const t.accel.Accel {
     if (!build_options.metal or !use_metal) return null;
-    if (gpu_ctx == null) gpu_ctx = metal.Gpu.init(std.heap.c_allocator) catch |e| std.debug.panic("metal init: {s}", .{@errorName(e)});
+    if (gpu_ctx == null) {
+        gpu_ctx = metal.Gpu.init(std.heap.c_allocator) catch |e| std.debug.panic("metal init: {s}", .{@errorName(e)});
+        // tuning knob: TENSOR_GKR_CPU_LOG=k runs GKR layers of <= 2^k terms on the CPU
+        if (std.posix.getenv("TENSOR_GKR_CPU_LOG")) |v| {
+            const k = std.fmt.parseInt(u6, v, 10) catch 12;
+            gpu_ctx.?.gkr_cpu_sum_max = @as(usize, 1) << k;
+            gpu_ctx.?.gkr_cpu_fold_max = @as(usize, 1) << (k + 1);
+        }
+    }
     return gpu_ctx.?.accel();
 }
 
 fn printGpuStats(out: anytype) !void {
     if (!build_options.metal) return;
-    if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0 });
+    if (gpu_ctx) |g| try out.print("\"metal\":{{\"commit_gpu_ms\":{d:.2},\"commit_calls\":{d},\"sc_gpu_ms\":{d:.2},\"matmul_gpu_ms\":{d:.2},\"mle_gpu_ms\":{d:.2},\"gkr_gpu_ms\":{d:.2},\"gkr_rounds\":{d},\"sc_rounds\":{d},\"sc_calls\":{d},\"wrapped_mb\":{d:.1},\"copied_mb\":{d:.1}}},", .{ g.stats.commit_gpu_ms, g.stats.commit_calls, g.stats.sc_gpu_ms, g.stats.matmul_gpu_ms, g.stats.mle_gpu_ms, g.stats.gkr_gpu_ms, g.stats.gkr_rounds, g.stats.sc_rounds, g.stats.sc_calls, @as(f64, @floatFromInt(g.stats.wrapped_bytes)) / 1048576.0, @as(f64, @floatFromInt(g.stats.copied_bytes)) / 1048576.0 });
 }
 
 fn now() std.time.Instant {

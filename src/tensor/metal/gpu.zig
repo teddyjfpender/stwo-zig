@@ -24,21 +24,21 @@ const Hash = [32]u8;
 // ---------------------------------------------------------------------------
 // C ABI (runtime.m)
 
-extern fn tm_create(source: [*:0]const u8, err: [*]u8, err_len: usize) ?*anyopaque;
-extern fn tm_destroy(rt: *anyopaque) void;
-extern fn tm_pipeline(rt: *anyopaque, name: [*:0]const u8, err: [*]u8, err_len: usize) ?*anyopaque;
-extern fn tm_pipeline_max_threads(p: *anyopaque) u32;
-extern fn tm_release(obj: *anyopaque) void;
-extern fn tm_buffer_alloc(rt: *anyopaque, len: usize) ?*anyopaque;
-extern fn tm_buffer_wrap(rt: *anyopaque, ptr: *anyopaque, len: usize) ?*anyopaque;
-extern fn tm_buffer_contents(buf: *anyopaque) *anyopaque;
-extern fn tm_cmd_begin(rt: *anyopaque) *anyopaque;
-extern fn tm_cmd_pipeline(cmd: *anyopaque, p: *anyopaque) void;
-extern fn tm_cmd_buffer(cmd: *anyopaque, index: u32, buf: *anyopaque, offset: usize) void;
-extern fn tm_cmd_bytes(cmd: *anyopaque, index: u32, bytes: *const anyopaque, len: usize) void;
-extern fn tm_cmd_threadgroup_memory(cmd: *anyopaque, index: u32, len: usize) void;
-extern fn tm_cmd_dispatch(cmd: *anyopaque, gx: u32, gy: u32, gz: u32, tx: u32, ty: u32, tz: u32) void;
-extern fn tm_cmd_end(cmd: *anyopaque, gpu_ms: *f64, err: [*]u8, err_len: usize) c_int;
+pub extern fn tm_create(source: [*:0]const u8, err: [*]u8, err_len: usize) ?*anyopaque;
+pub extern fn tm_destroy(rt: *anyopaque) void;
+pub extern fn tm_pipeline(rt: *anyopaque, name: [*:0]const u8, err: [*]u8, err_len: usize) ?*anyopaque;
+pub extern fn tm_pipeline_max_threads(p: *anyopaque) u32;
+pub extern fn tm_release(obj: *anyopaque) void;
+pub extern fn tm_buffer_alloc(rt: *anyopaque, len: usize) ?*anyopaque;
+pub extern fn tm_buffer_wrap(rt: *anyopaque, ptr: *anyopaque, len: usize) ?*anyopaque;
+pub extern fn tm_buffer_contents(buf: *anyopaque) *anyopaque;
+pub extern fn tm_cmd_begin(rt: *anyopaque) *anyopaque;
+pub extern fn tm_cmd_pipeline(cmd: *anyopaque, p: *anyopaque) void;
+pub extern fn tm_cmd_buffer(cmd: *anyopaque, index: u32, buf: *anyopaque, offset: usize) void;
+pub extern fn tm_cmd_bytes(cmd: *anyopaque, index: u32, bytes: *const anyopaque, len: usize) void;
+pub extern fn tm_cmd_threadgroup_memory(cmd: *anyopaque, index: u32, len: usize) void;
+pub extern fn tm_cmd_dispatch(cmd: *anyopaque, gx: u32, gy: u32, gz: u32, tx: u32, ty: u32, tz: u32) void;
+pub extern fn tm_cmd_end(cmd: *anyopaque, gpu_ms: *f64, err: [*]u8, err_len: usize) c_int;
 
 pub const source: [:0]const u8 = @import("tensor_metal_shaders").source;
 
@@ -47,7 +47,7 @@ pub const Error = error{ MetalInit, MetalPipeline, MetalAlloc, MetalCommand };
 // ---------------------------------------------------------------------------
 // Device buffers over host memory.
 
-const Buf = struct {
+pub const Buf = struct {
     handle: *anyopaque,
     /// host slice the buffer mirrors (null for device-only scratch)
     host: ?[]u8 = null,
@@ -56,13 +56,13 @@ const Buf = struct {
     /// byte offset of `host` inside the (page-aligned) device buffer
     offset: usize = 0,
 
-    fn ptr(self: Buf) [*]u8 {
+    pub fn ptr(self: Buf) [*]u8 {
         const base: [*]u8 = @ptrCast(tm_buffer_contents(self.handle));
         return base + self.offset;
     }
 };
 
-fn bind(cmd: *anyopaque, index: u32, b: Buf) void {
+pub fn bind(cmd: *anyopaque, index: u32, b: Buf) void {
     tm_cmd_buffer(cmd, index, b.handle, b.offset);
 }
 
@@ -74,6 +74,9 @@ pub const Stats = struct {
     matmul_calls: usize = 0,
     mle_gpu_ms: f64 = 0,
     mle_calls: usize = 0,
+    gkr_gpu_ms: f64 = 0,
+    gkr_rounds: usize = 0,
+    gkr_calls: usize = 0,
     sc_rounds: usize = 0,
     sc_calls: usize = 0,
     wrapped_bytes: usize = 0,
@@ -95,6 +98,15 @@ pub const Gpu = struct {
     p_eq_accum: *anyopaque,
     p_matmul: *anyopaque,
     p_mle: *anyopaque,
+    p_gkr_next: *anyopaque,
+    p_gkr_sum: *anyopaque,
+    p_gkr_fold: *anyopaque,
+    /// GKR layers at most this size are summed / folded by the CPU directly in
+    /// the shared (unified-memory) buffers, saving a device round trip.
+    gkr_cpu_sum_max: usize = 1 << 9,
+    gkr_cpu_fold_max: usize = 1 << 10,
+    /// buffers whose release waits for the in-flight command to complete
+    retired: std.ArrayList(*anyopaque) = .empty,
     page: usize,
     stats: Stats = .{},
     /// rows per streamed commitment chunk are capped so a chunk is <= this
@@ -125,6 +137,9 @@ pub const Gpu = struct {
             .p_eq_accum = try pipeline(rt, "tm_eq_accum"),
             .p_matmul = try pipeline(rt, "tm_matmul_i32_i8"),
             .p_mle = try pipeline(rt, "tm_mle_i32"),
+            .p_gkr_next = try pipeline(rt, "tm_gkr_next"),
+            .p_gkr_sum = try pipeline(rt, "tm_gkr_sum"),
+            .p_gkr_fold = try pipeline(rt, "tm_gkr_fold"),
             .page = std.heap.pageSize(),
         };
         g.vt = .{
@@ -137,23 +152,41 @@ pub const Gpu = struct {
             .sc_begin_batch = scBeginBatch,
             .matmul_acc = matmulAcc,
             .mle_eval_i32 = mleEvalI32,
+            .gkr_prove = gkrProve,
             .sc_abort = scAbort,
         };
         return g;
     }
 
     pub fn deinit(self: *Gpu, a: std.mem.Allocator) void {
-        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_to_qm31", "p_zero4", "p_eq_accum", "p_matmul", "p_mle" }) |name|
+        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_to_qm31", "p_zero4", "p_eq_accum", "p_matmul", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold" }) |name|
             tm_release(@field(self, name));
+        self.releaseRetired();
+        self.retired.deinit(std.heap.c_allocator);
         tm_destroy(self.rt);
         a.destroy(self);
+    }
+
+    pub fn retire(self: *Gpu, b: Buf) !void {
+        try self.retired.append(std.heap.c_allocator, b.handle);
+    }
+
+    pub fn releaseRetired(self: *Gpu) void {
+        for (self.retired.items) |h| tm_release(h);
+        self.retired.clearRetainingCapacity();
+    }
+
+    fn gkrProve(ctx: *anyopaque, a: std.mem.Allocator, ch: *t.transcript.Channel, inputs: []const t.accel.GkrInput) anyerror!t.accel.GkrResult {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        g.stats.gkr_calls += 1;
+        return @import("gkr.zig").proveBatch(g, a, ch, inputs);
     }
 
     pub fn accel(self: *Gpu) *const Accel {
         return &self.vt;
     }
 
-    fn pipeline(rt: *anyopaque, name: [:0]const u8) !*anyopaque {
+    pub fn pipeline(rt: *anyopaque, name: [:0]const u8) !*anyopaque {
         var err: [1024]u8 = undefined;
         @memset(&err, 0);
         return tm_pipeline(rt, name.ptr, &err, err.len) orelse {
@@ -162,7 +195,7 @@ pub const Gpu = struct {
         };
     }
 
-    fn alloc(self: *Gpu, len: usize) !Buf {
+    pub fn alloc(self: *Gpu, len: usize) !Buf {
         return .{ .handle = tm_buffer_alloc(self.rt, len) orelse return Error.MetalAlloc };
     }
 
@@ -171,7 +204,7 @@ pub const Gpu = struct {
     /// allocation is mapped, so rounding to page bounds is safe); the device
     /// only touches bytes inside `host`. Falls back to a shared buffer, filled
     /// from host when `copy_in`, if wrapping fails.
-    fn view(self: *Gpu, host: []u8, copy_in: bool) !Buf {
+    pub fn view(self: *Gpu, host: []u8, copy_in: bool) !Buf {
         if (host.len > 0) {
             const addr = @intFromPtr(host.ptr);
             const base = std.mem.alignBackward(usize, addr, self.page);
@@ -191,7 +224,7 @@ pub const Gpu = struct {
     }
 
     /// Copies a non-aliased view back to host (first `n` bytes) and releases it.
-    fn release(self: *Gpu, b: Buf, copy_out: ?usize) void {
+    pub fn release(self: *Gpu, b: Buf, copy_out: ?usize) void {
         if (copy_out) |n| if (!b.aliased) {
             if (b.host) |h| {
                 @memcpy(h[0..n], b.ptr()[0..n]);
@@ -201,7 +234,7 @@ pub const Gpu = struct {
         tm_release(b.handle);
     }
 
-    fn end(cmd: *anyopaque) !f64 {
+    pub fn end(cmd: *anyopaque) !f64 {
         var ms: f64 = 0;
         var err: [1024]u8 = undefined;
         @memset(&err, 0);
@@ -428,7 +461,7 @@ pub const Gpu = struct {
     // -----------------------------------------------------------------------
     // Sumcheck
 
-    const Q = extern struct { a: u32, b: u32, c: u32, d: u32 };
+    pub const Q = extern struct { a: u32, b: u32, c: u32, d: u32 };
     const ScParams = extern struct {
         half_len: u32,
         active: u32,
@@ -446,11 +479,11 @@ pub const Gpu = struct {
     const SC_TG: u32 = 256;
     const SC_MAX_GROUPS: usize = 1024;
 
-    fn toQ(x: QM31) Q {
+    pub fn toQ(x: QM31) Q {
         const l = f.limbs(x);
         return .{ .a = l[0], .b = l[1], .c = l[2], .d = l[3] };
     }
-    fn fromQ(q: Q) QM31 {
+    pub fn fromQ(q: Q) QM31 {
         return f.fromLimbs(.{ q.a, q.b, q.c, q.d });
     }
 

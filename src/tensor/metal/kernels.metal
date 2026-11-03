@@ -415,3 +415,126 @@ kernel void tm_mle_i32(
     }
     if (tid == 0u) tm_store(partials, tg, scratch[0]);
 }
+
+// ---------------------------------------------------------------------------
+// LogUp-GKR (port of the layer kernels of gkr_prover_fast.zig). Numerator
+// kinds: 0 = all ones, 1 = base field (M31), 2 = secure (QM31).
+
+constant uint GKR_ONES = 0u;
+constant uint GKR_BASE = 1u;
+
+inline Qm31Value tm_gkr_num(device const uint *num, uint kind, ulong i) {
+    if (kind == GKR_ONES) return { 1u, 0u, 0u, 0u };
+    if (kind == GKR_BASE) return { num[i], 0u, 0u, 0u };
+    return tm_load(num, i);
+}
+
+struct TmGkrNextParams { uint size; uint num_kind; };
+
+// next layer: num = n0 d1 + d0 n1, den = d0 d1 over sibling pairs (2i, 2i+1)
+kernel void tm_gkr_next(
+    device const uint *den [[buffer(0)]],
+    device const uint *num [[buffer(1)]],
+    device uint *den_out [[buffer(2)]],
+    device uint *num_out [[buffer(3)]],
+    constant TmGkrNextParams &p [[buffer(4)]],
+    uint i [[thread_position_in_grid]]
+) {
+    if (i >= p.size) return;
+    Qm31Value d0 = tm_load(den, 2u * i);
+    Qm31Value d1 = tm_load(den, 2u * i + 1u);
+    Qm31Value n;
+    if (p.num_kind == GKR_ONES) n = qm_add(d0, d1);
+    else if (p.num_kind == GKR_BASE) n = qm_add(qm_mul_m31(d1, num[2u * i]), qm_mul_m31(d0, num[2u * i + 1u]));
+    else n = qm_add(qm_mul(tm_load(num, 2u * i), d1), qm_mul(d0, tm_load(num, 2u * i + 1u)));
+    tm_store(num_out, i, n);
+    tm_store(den_out, i, qm_mul(d0, d1));
+}
+
+struct TmGkrSumParams { uint n_terms; uint num_kind; uint eq_lo; uint _pad; Qm31Value lambda; };
+
+// Round sums (e0, e2) of one instance: term i reads positions 2i, 2i+1 (low
+// half) and 2(n+i), 2(n+i)+1 (high half); eq[i] = pre[i >> eq_lo] suf[i & mask].
+kernel void tm_gkr_sum(
+    device const uint *den [[buffer(0)]],
+    device const uint *num [[buffer(1)]],
+    device const uint *eq_pre [[buffer(2)]],
+    device const uint *eq_suf [[buffer(3)]],
+    device uint *partials [[buffer(4)]],
+    constant TmGkrSumParams &p [[buffer(5)]],
+    threadgroup Qm31Value *scratch [[threadgroup(0)]],
+    uint gid [[thread_position_in_grid]],
+    uint tg [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint tgsize [[threads_per_threadgroup]],
+    uint grid [[threads_per_grid]]
+) {
+    Qm31Value e0 = tm_zero(), e2 = tm_zero();
+    uint mask = (1u << p.eq_lo) - 1u;
+    for (uint i = gid; i < p.n_terms; i += grid) {
+        uint lo = 2u * i, hi = 2u * (p.n_terms + i);
+        Qm31Value d00 = tm_load(den, lo), d01 = tm_load(den, lo + 1u);
+        Qm31Value d10 = tm_load(den, hi), d11 = tm_load(den, hi + 1u);
+        Qm31Value d20 = qm_sub(qm_add(d10, d10), d00);
+        Qm31Value d21 = qm_sub(qm_add(d11, d11), d01);
+        Qm31Value n0, n2;
+        if (p.num_kind == GKR_ONES) {
+            n0 = qm_add(d00, d01);
+            n2 = qm_add(d20, d21);
+        } else if (p.num_kind == GKR_BASE) {
+            uint n00 = num[lo], n01 = num[lo + 1u], n10 = num[hi], n11 = num[hi + 1u];
+            uint n20 = m31_sub(m31_add(n10, n10), n00);
+            uint n21 = m31_sub(m31_add(n11, n11), n01);
+            n0 = qm_add(qm_mul_m31(d01, n00), qm_mul_m31(d00, n01));
+            n2 = qm_add(qm_mul_m31(d21, n20), qm_mul_m31(d20, n21));
+        } else {
+            Qm31Value n00 = tm_load(num, lo), n01 = tm_load(num, lo + 1u);
+            Qm31Value n10 = tm_load(num, hi), n11 = tm_load(num, hi + 1u);
+            Qm31Value n20 = qm_sub(qm_add(n10, n10), n00);
+            Qm31Value n21 = qm_sub(qm_add(n11, n11), n01);
+            n0 = qm_add(qm_mul(n00, d01), qm_mul(d00, n01));
+            n2 = qm_add(qm_mul(n20, d21), qm_mul(d20, n21));
+        }
+        Qm31Value w = qm_mul(tm_load(eq_pre, i >> p.eq_lo), tm_load(eq_suf, i & mask));
+        e0 = qm_add(e0, qm_mul(w, qm_add(n0, qm_mul(p.lambda, qm_mul(d00, d01)))));
+        e2 = qm_add(e2, qm_mul(w, qm_add(n2, qm_mul(p.lambda, qm_mul(d20, d21)))));
+    }
+    scratch[tid * 2u] = e0;
+    scratch[tid * 2u + 1u] = e2;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint s = tgsize >> 1u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            scratch[tid * 2u] = qm_add(scratch[tid * 2u], scratch[(tid + s) * 2u]);
+            scratch[tid * 2u + 1u] = qm_add(scratch[tid * 2u + 1u], scratch[(tid + s) * 2u + 1u]);
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (tid == 0u) {
+        tm_store(partials, tg * 2u, scratch[0]);
+        tm_store(partials, tg * 2u + 1u, scratch[1]);
+    }
+}
+
+struct TmGkrFoldParams { uint half_len; uint num_kind; uint _pad0; uint _pad1; Qm31Value r; };
+
+// dst[j] = r (src[j + half] - src[j]) + src[j]; dst may alias src. Base
+// numerators fold into a secure destination.
+kernel void tm_gkr_fold(
+    device const uint *den [[buffer(0)]],
+    device const uint *num [[buffer(1)]],
+    device uint *den_out [[buffer(2)]],
+    device uint *num_out [[buffer(3)]],
+    constant TmGkrFoldParams &p [[buffer(4)]],
+    uint j [[thread_position_in_grid]]
+) {
+    if (j >= p.half_len) return;
+    Qm31Value x = tm_load(den, j);
+    tm_store(den_out, j, qm_add(qm_mul(p.r, qm_sub(tm_load(den, j + p.half_len), x)), x));
+    if (p.num_kind == GKR_BASE) {
+        uint b0 = num[j];
+        tm_store(num_out, j, qm_add(qm_mul_m31(p.r, m31_sub(num[j + p.half_len], b0)), Qm31Value{ b0, 0u, 0u, 0u }));
+    } else if (p.num_kind != GKR_ONES) {
+        Qm31Value n = tm_load(num, j);
+        tm_store(num_out, j, qm_add(qm_mul(p.r, qm_sub(tm_load(num, j + p.half_len), n)), n));
+    }
+}

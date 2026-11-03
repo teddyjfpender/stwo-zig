@@ -125,6 +125,7 @@ fn proveBoth(a: std.mem.Allocator, pool: *f.Pool, pc_cpu: proto.Config, st: prot
     var acc = g.accel().*;
     acc.sc_min_work = 16; // exercise device rounds on small tests
     acc.mle_min_len = 1;
+    acc.gkr_min_log = 0;
     var pc_gpu = pc_cpu;
     pc_gpu.accel = &acc;
     var tm: proto.Timings = .{};
@@ -136,6 +137,7 @@ fn proveBoth(a: std.mem.Allocator, pool: *f.Pool, pc_cpu: proto.Config, st: prot
     // the device path actually ran
     try std.testing.expect(g.stats.commit_calls > before.commit_calls);
     try std.testing.expect(g.stats.sc_rounds > before.sc_rounds);
+    if (p_cpu.gkr != null) try std.testing.expect(g.stats.gkr_calls > before.gkr_calls);
     try std.testing.expectEqual(proofDigest(p_cpu), proofDigest(p_gpu));
     try proto.verify(a, pc_cpu, st, proto.weightKey(ws_cpu), &p_gpu);
 }
@@ -294,4 +296,90 @@ test "metal MLE evaluation of integer vectors matches CPU" {
         try std.testing.expect(g.stats.mle_calls == before + 1);
         try std.testing.expect(want.eql(got));
     }
+}
+
+const engine = @import("stwo_prover_engine");
+const Fast = engine.lookups.gkr_prover_fast.ForField(QM31);
+
+fn makeInputs(a: std.mem.Allocator, seed: u64, logs: []const u32, kinds: []const u8, owned: bool, keep: *std.ArrayList([]u8)) ![]Fast.Input {
+    var prng = std.Random.DefaultPrng.init(seed);
+    const r = prng.random();
+    const ins = try a.alloc(Fast.Input, logs.len);
+    for (logs, kinds, 0..) |lg, kd, i| {
+        const n = @as(usize, 1) << @intCast(lg);
+        const den = try a.alloc(QM31, n);
+        for (den) |*d| d.* = randQ(r);
+        const num: Fast.Numerators = switch (kd) {
+            0 => .ones,
+            1 => blk: {
+                const b = try a.alloc(M31, n);
+                for (b) |*x| x.* = M31.fromCanonical(r.intRangeLessThan(u32, 0, f.P));
+                if (!owned) try keep.append(a, std.mem.sliceAsBytes(b));
+                break :blk .{ .base = b };
+            },
+            else => blk: {
+                const sv = try a.alloc(QM31, n);
+                for (sv) |*x| x.* = randQ(r);
+                if (!owned) try keep.append(a, std.mem.sliceAsBytes(sv));
+                break :blk .{ .secure = sv };
+            },
+        };
+        if (!owned) try keep.append(a, std.mem.sliceAsBytes(den));
+        ins[i] = .{ .num = num, .den = den, .owned = owned };
+    }
+    return ins;
+}
+
+test "metal LogUp-GKR batch proof matches the CPU fast prover" {
+    const a = std.heap.c_allocator;
+    const g = try gpu();
+    const logs = [_]u32{ 10, 3, 15, 1, 7, 12, 14 };
+    const kinds = [_]u8{ 0, 1, 2, 0, 1, 0, 1 };
+    const saved = .{ g.gkr_cpu_sum_max, g.gkr_cpu_fold_max };
+    defer {
+        g.gkr_cpu_sum_max = saved[0];
+        g.gkr_cpu_fold_max = saved[1];
+    }
+    // default split (CPU for small layers), all-device, and a mixed split
+    for ([_][2]usize{ .{ 1 << 9, 1 << 10 }, .{ 0, 0 }, .{ 1 << 12, 1 << 13 } }) |th| for ([_]bool{ true, false }) |owned| {
+        g.gkr_cpu_sum_max = th[0];
+        g.gkr_cpu_fold_max = th[1];
+        var keep: std.ArrayList([]u8) = .empty;
+        defer {
+            for (keep.items) |b| a.free(b);
+            keep.deinit(a);
+        }
+        const in_cpu = try makeInputs(a, 77, &logs, &kinds, owned, &keep);
+        defer a.free(in_cpu);
+        const in_gpu = try makeInputs(a, 77, &logs, &kinds, owned, &keep);
+        defer a.free(in_gpu);
+        var tc = Transcript.initDomain("gkr");
+        var rc = try Fast.proveBatch(a, &tc.ch, in_cpu, .{ .threads = 2 }, null);
+        defer rc.deinit(a);
+        var acc = g.accel().*;
+        acc.gkr_min_log = 0;
+        var td = Transcript.initDomain("gkr");
+        var rd = try t.accel.gkrProveBatch(&acc, a, &td.ch, in_gpu, 2);
+        defer rd.deinit(a);
+        try std.testing.expect(tc.draw().eql(td.draw()));
+        try std.testing.expectEqual(rc.proof.sumcheck_proofs.len, rd.proof.sumcheck_proofs.len);
+        for (rc.proof.sumcheck_proofs, rd.proof.sumcheck_proofs) |x, y| {
+            try std.testing.expectEqual(x.round_polys.len, y.round_polys.len);
+            for (x.round_polys, y.round_polys) |px, py| {
+                try std.testing.expectEqual(px.coeffsSlice().len, py.coeffsSlice().len);
+                for (px.coeffsSlice(), py.coeffsSlice()) |cx, cy| try std.testing.expect(cx.eql(cy));
+            }
+        }
+        for (rc.proof.layer_masks_by_instance, rd.proof.layer_masks_by_instance) |mx, my| for (mx, my) |x, y| for (x.columnsSlice(), y.columnsSlice()) |cx, cy| {
+            try std.testing.expect(cx[0].eql(cy[0]) and cx[1].eql(cy[1]));
+        };
+        for (rc.proof.output_claims_by_instance, rd.proof.output_claims_by_instance) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        for (rc.artifact.ood_point, rd.artifact.ood_point) |x, y| try std.testing.expect(x.eql(y));
+        for (rc.artifact.claims_to_verify_by_instance, rd.artifact.claims_to_verify_by_instance) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        // borrowed inputs must be left untouched by the device path
+        if (!owned) {
+            var k: usize = 0;
+            while (k < keep.items.len / 2) : (k += 1) try std.testing.expectEqualSlices(u8, keep.items[k], keep.items[k + keep.items.len / 2]);
+        }
+    };
 }
