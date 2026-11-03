@@ -1,15 +1,21 @@
 # Tensor frontend: zero-knowledge mode (`Config.hiding`)
 
-Stream: zero knowledge (branch `codex/tensor-zk`). Code:
+Stream: zero knowledge (branch `codex/tensor-zk`, merged into `codex/tensor-frontend` at
+43e4adda1). Round-2 port onto the merged frontend: branch `codex/tensor-r2-zk` (recursive
+hiding PCS, fused glu, virtual remainders, ext ops and Metal hooks in hiding mode; §3.5,
+§4.3b, §4.7, §4.8, §5.1). Code:
 
 - `src/tensor/zk_pcs.zig`: hiding PCS.
+- `src/tensor/zk_pcs2.zig`: recursive hiding PCS (`Config.two_level`).
 - `src/tensor/zk_sumcheck.zig`: masked sumcheck.
 - `src/tensor/zk.zig`: hiding protocol, hiding LogUp-GKR, hiding weight store.
 - `src/tensor/zk_bench.zig`: `tensor-bench ... zk`.
 
 The non-hiding protocol (`protocol.zig`, `pcs.zig`) is unchanged. The only edits there are
-new `Config` fields: `hiding = false`, `weight_mask_slots`, `weight_pcs`, and
-`zk_logup_gkr = true`.
+new `Config` fields: `hiding = false`, `weight_mask_slots`, `weight_pcs`,
+`zk_logup_gkr = true` and (r2) `zk_virtual_remainders = false`. The r2 branch only widens
+visibility (`pub`) of a few `ext.zig` / `pcs2.zig` helpers; the pinned non-hiding proof
+digests (`proof_digest.zig`) still pass.
 
 ## 1. Goal and model
 
@@ -764,6 +770,31 @@ replaced by a masked hat and a linear claim on committed cells:
   that a core relation the hiding prover always checks would refuse are skipped. At
   least 6 must reach the verifier.
 
+### 4.9 Metal hooks (`Config.accel`, `tensor-bench --metal ... zk`)
+
+The hiding prover sends the data-parallel work it shares with the non-hiding path through
+`accel` (metal.md). Proofs are byte-identical with and without the device: every device
+kernel computes exact field values, and all transcript, hiding-polynomial and pad work stays
+on the CPU.
+
+- **Masked sumchecks** with ≤ 4 factors (op checks, virtual matmul checks, the batch
+  sumcheck), `zks.proveAccel`: the data rounds (round sums plus folds) run as a device
+  sumcheck session once the cube fits the factor buffers and the round work is large. The
+  hiding polynomial, every challenge and the hat round stay on the CPU.
+- Matmul accumulators (`accel.matmulAcc`), weight and activation folds
+  (`accel.colCombine` / `accel.rowDots`).
+- The recursive mode's committed-row tables (a plain `pcs.commit`).
+
+**Not on the device:** the masked/salted outer commitments (`zk_pcs.commit`), the hiding
+GKR layers and the 5-factor checks. These are most of the hiding prover time (§5.1), so
+Metal gains are small.
+
+**Test.** Test-only seeded prover randomness (`zk.setTestSeed`, honoured only in test
+builds; production proofs always take OS entropy and the API has no seed) and a proof
+digest (`zk.proofDigest`). The `test-metal` case proves the product toy and a fused
+virtual-remainder MLP, flat and recursive PCS, with and without the device: identical
+digests, both verify, and the device counters show the device paths ran.
+
 ## 5. Measurements
 
 M4 Max, AC power, `ReleaseFast`, memguard. FlashProve CPU numbers are from fp-bench on
@@ -824,7 +855,74 @@ The hiding MLP proof (0.98 MB) is now half the v1 non-hiding proof (1.97 MB). Hi
 weight blowup with fewer queries, plus a wider weight table with per-matmul groups, would
 shrink the non-hiding proof as well; the weight opening is about 80% of it.
 
-## 6. Adversarial tests (all passing, `zig build test -Doptimize=ReleaseSafe`, 20 tests)
+### 5.1 Round-2 measurements (branch `codex/tensor-r2-zk`, 2026-11-04)
+
+M4 Max, AC power, `ReleaseFast`, every run under memguard. The host was shared with other
+streams (load average 5–8), so the times are upper bounds with about ±10% noise. Proof
+sizes vary by about ±0.5% between runs, because the queries are random and the Merkle
+multiproofs deduplicate a varying number of nodes. The non-hiding rows are the merged
+frontend's current prover, which is faster than the v1 rows in the table above.
+
+Product toy `a∘b = c`, 2^20, 1 thread (`product 20 1 56 2 20 zk`, `ZK_DEPTH=d`):
+
+| mode | prove | verify | proof | conj bits |
+|---|---|---|---|---|
+| non-hiding (t 54) | 0.125 s | 1.47 ms | 323,352 B | 128.0 |
+| hiding, flat `zk_pcs` | 0.33–0.37 s | 1.84–1.99 ms | 368,520 B | 129.5 |
+| **hiding, recursive `zk_pcs2` depth 1** | 0.360 s | **1.33 ms** | **207,344 B** | 130.7 |
+| hiding, recursive depth 2 | 0.364 s | 1.34 ms | 195,288 B | 130.7 |
+| FlashProve hiding toy (reference, above) | 8.37 s | 14 ms | 341 KB | |
+
+The recursive hiding proof is 0.61× FlashProve's toy proof and 0.64× our own non-hiding
+flat proof. The hiding prover costs about 2.6–2.9× the current non-hiding one. The non-hiding
+product prover got faster on the merged frontend (0.337 → 0.125 s), while the hiding commit
+(0.17–0.19 s: masked encoding, salted leaves) and the batch (0.09 s) did not.
+
+MLP, fused SwiGLU, public IO, 8 threads, witness t 64 (`mlp L D F 8 64 2 20 zk`,
+`ZK_VIRTUAL=v`, `ZK_DEPTH=d`). Prove time is total; GKR is the `logup_checks` stage:
+
+| shape | mode | prove | GKR | verify | proof | RSS |
+|---|---|---|---|---|---|---|
+| 256 tok (8 10 11) | non-hiding | 0.154 s | 0.080 s | 10.0 ms | 1,932,240 B | 0.67 GB |
+| 256 tok | hiding flat, committed rem. | 0.227 s | 0.086 s | 16.3 ms | 922,400 B | 1.39 GB |
+| 256 tok | hiding recursive, committed rem. | 0.239 s | 0.085 s | 13.4 ms | 546,500 B | 1.40 GB |
+| 256 tok | hiding flat, virtual rem. | 0.218 s | 0.113 s | 16.4 ms | 839,680 B | 1.29 GB |
+| 256 tok | **hiding recursive, virtual rem.** | 0.227–0.246 s | 0.113–0.127 s | 13.4 ms | **505,808–508,144 B** | 1.31 GB |
+| 256 tok, 1 thread, t 56 | non-hiding | 0.481 s | 0.259 s | 11.5 ms | 1,711,920 B | 0.72 GB |
+| 256 tok, 1 thread, t 56 | hiding recursive, virtual rem. | 0.796 s | 0.301 s | 18.3 ms | 495,664 B | 1.27 GB |
+| 512 tok (9 11 12) | non-hiding | 0.264 s | 0.082 s | 13.0 ms | 3,789,776 B | 2.50 GB |
+| 512 tok | hiding flat, committed rem. | 0.779 s | 0.276 s | 41.0 ms | 1,678,256 B | 5.21 GB |
+| 512 tok | hiding flat, virtual rem. | 0.783 s | 0.384 s | 42.1 ms | 1,513,264 B | 5.01 GB |
+| 512 tok | **hiding recursive, virtual rem.** | 0.797 s | 0.380 s | 34.7 ms | **765,568 B** | 5.01 GB |
+| 512 tok, `--metal` | hiding recursive, virtual rem. | 0.742 s | 0.384 s | 36.1 ms | 766,464 B | 5.03 GB |
+
+Hiding decoder layer (GQA, RoPE, causal softmax, RMSNorm, SwiGLU), 256 tokens, d 2^10,
+f 2^11, 8 heads, 8 threads (`layer 8 10 11 3 8 64 2 20 [zk]`, `ZK_DEPTH=1`):
+
+| mode | prove | GKR | verify | proof | RSS |
+|---|---|---|---|---|---|
+| non-hiding | 0.423 s | 0.179 s | 17.3 ms | 3,592,688 B | 1.50 GB |
+| hiding recursive (virtual rem., required) | 1.521 s | 0.956 s | 18.0 ms | 741,296 B | 2.67 GB |
+
+Readings:
+- The recursive hiding PCS is the size win: MLP proofs are 0.5–0.6× the flat hiding
+  proofs, and **0.20–0.26× the non-hiding proofs** at 256–512 tokens (the non-hiding
+  default is the flat PCS with weight lc 2).
+- Virtual remainders shrink table 1 (3.53M → 2.22M cells at 256 tokens, 13.8M → 8.5M at
+  512) and the proof by 7–10%. They do not save prover time: the commit and op sumchecks get
+  cheaper, but the hiding GKR does more work per remainder leaf (0.276 → 0.384 s at 512).
+- The hiding overhead grows with size: 1.5× at 256 tokens, 3.0× at 512 tokens, and 3.6× on
+  the decoder layer. Hiding GKR (scalar QM31, all layers kept) and the masked commit are the
+  costs. At 512 tokens the non-hiding GKR is 0.08 s and the hiding one 0.38 s.
+- Metal (512 tokens): 0.797 → 0.742 s (−7%), from the commit (0.248 → 0.196 s) and the batch
+  (0.082 → 0.074 s). The GKR stays on the CPU (§4.9).
+
+## 6. Adversarial tests
+
+All pass. Run in `src/tensor` (standalone build): `zig build test -Doptimize=ReleaseSafe`
+(72/72 package tests, including the r2 tests listed in §3.5, §4.3b, §4.7 and §4.8, and the
+pinned non-hiding digests) and `zig build test-metal -Doptimize=ReleaseSafe` (11/11). The
+first-version hiding tests:
 
 - `zk_pcs`:
   - two tables with groups and masks: wrong claim value, tampered `μ`, salt, column
@@ -874,17 +972,28 @@ shrink the non-hiding proof as well; the weight opening is about 80% of it.
 - **Weight memory at lb 4.** The encoded weight table holds 16× the weight count in M31
   cells: 6.4 GB for 100M weights. For the full-size model use `ZK_WEIGHT_LB=3` (2× less),
   or keep lb 2 with fewer slots and more queries.
-- **Hiding prover cost.** About 1.46× the non-hiding v1 at mlp 8 10 11 with 8 threads
-  (0.285 vs 0.195 s). The hiding mode commits the requant remainders, which v1 keeps
-  virtual: about 40% of table 1. The GKR kernels are scalar QM31, not stwo's packed SIMD.
-  A tagged tree still pads up to the next power of two; at this shape about 3.3M keys sit
-  in 4.2M leaves.
-- **Big shapes not run here** (host rule). Hiding memory is dominated by:
+- **Hiding prover cost.** Against the current non-hiding prover (§5.1): 1.5× at mlp
+  8 10 11, 3.0× at mlp 9 11 12, 3.6× on the 256-token decoder layer, 2.6–2.9× on the
+  product toy. Most of it is the hiding GKR (scalar QM31, not stwo's packed SIMD, and not on
+  the device) and the masked, salted commit. A tagged tree still pads up to the next power
+  of two; at mlp 8 10 11 about 3.3M keys sit in 4.2M leaves.
+- **Virtual remainders cost GKR time.** `ZK_VIRTUAL=1` shrinks table 1 by about 37% and the
+  proof by 7–10%, but the prove time does not improve: the hiding GKR's remainder-leaf work
+  grows by about as much as the commit saves. It is off by default in `tensor-bench mlp
+  zk` and always on for ext statements.
+- **Metal is partial** (§4.9): −7% at mlp 9 11 12. The hiding GKR, the masked outer commit
+  and the 5-factor checks are CPU only. Proof byte-identity is tested with seeded
+  randomness (test builds only), not on production proofs, which take OS entropy.
+- **Big shapes not run here** (host rule: no 1024-token MLP or decoder layer, no hiding
+  MLP above 512 tokens on this branch). The coordinator runs those. Measured RSS: 1.3 GB at
+  256 tokens, 5.0 GB at 512 tokens (2× the non-hiding prover), so expect about 20 GB at 1024
+  tokens × 4096 × 8192 (an extrapolation: ×3.8 per doubling of all three dimensions, not
+  measured). Hiding memory is dominated by:
   - table 1 (witness plus committed remainders);
   - the GKR layer arrays: 2 × 2 × 16 B per leaf, all layers kept;
   - the batch vectors (2 QM31 per table-1 cell).
-  Expect several GB at 1024×4096×8192. The remainders could stay virtual: route the GKR
-  remainder-leaf claims through the matmul check, with a `Q`-style pad term.
+  Virtual remainders (§4.7) remove the committed remainders from table 1, but the 512-token
+  RSS barely moves (5.21 → 5.01 GB), so the GKR layer arrays and batch vectors dominate.
 - `hiding` is a separate entry point (`zk.prove` / `zk.verify` / `zk.commitWeights`,
   plus `provePublic` / `verifyPublic`). `protocol.prove` refuses `Config.hiding`; the
   bench selects with a `zk` argument.
