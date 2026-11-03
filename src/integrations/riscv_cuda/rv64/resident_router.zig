@@ -1,0 +1,412 @@
+//! Concrete RV64 resident-device routing. Native physical worker ordinals select
+//! one GPU for every stage, including both sides of the global-manifest barrier.
+//! Two retained CPU scopes per device is a planning bound, not a semaphore:
+//! stage one cannot wait for stage two to release memory before that barrier.
+const std = @import("std");
+const CPU = @import("stwo_riscv_cpu_integration");
+const D = CPU.rv64_device_pcs;
+const Child = CPU.rv64_gkr_child;
+const Worker = CPU.rv64_gkr_cpu_worker;
+const Items = CPU.rv64_gkr_cpu_components;
+const Source = CPU.rv64_cpu_source;
+const Proof = @import("stwo_prover_engine").lookups.gkr_verifier.ForField(D.O).GkrBatchProof;
+const GkrScope = @TypeOf(@as(Child.NumericalStage.Request, undefined).scope);
+const BindingRequest = if (@hasDecl(Child, "DeviceBinding")) Child.DeviceBinding.Request else void;
+const BindingOwner = if (@hasDecl(Child, "DeviceBinding")) Child.DeviceBinding.Owner else void;
+pub const MAX_DEVICES = 8;
+pub const SCOPES_PER_DEVICE = 2;
+pub const DEFAULT_BYTES: u64 = 24 * 1024 * 1024 * 1024;
+pub const Config = struct {
+    ids: []u32,
+    caps: []u64,
+    pub fn deinit(self: *Config, a: std.mem.Allocator) void {
+        a.free(self.ids);
+        a.free(self.caps);
+        self.* = undefined;
+    }
+    /// Explicit lists are local CUDA ordinals after CUDA_VISIBLE_DEVICES.
+    pub fn parse(a: std.mem.Allocator, devices: []const u8, byte_caps: ?[]const u8) !Config {
+        var ids: std.ArrayList(u32) = .empty;
+        defer ids.deinit(a);
+        var parts = std.mem.splitScalar(u8, devices, ',');
+        while (parts.next()) |part| {
+            const text = std.mem.trim(u8, part, " \t");
+            if (text.len == 0 or ids.items.len >= MAX_DEVICES) return error.InvalidResidentDeviceList;
+            const id = std.fmt.parseInt(u32, text, 10) catch return error.InvalidResidentDeviceList;
+            for (ids.items) |old| if (old == id) return error.DuplicateResidentDevice;
+            try ids.append(a, id);
+        }
+        if (ids.items.len == 0) return error.InvalidResidentDeviceList;
+        const caps = try a.alloc(u64, ids.items.len);
+        errdefer a.free(caps);
+        @memset(caps, DEFAULT_BYTES);
+        if (byte_caps) |values| {
+            var cap_parts = std.mem.splitScalar(u8, values, ',');
+            var count: usize = 0;
+            while (cap_parts.next()) |part| {
+                if (count >= caps.len) return error.InvalidResidentDeviceCaps;
+                const text = std.mem.trim(u8, part, " \t");
+                caps[count] = std.fmt.parseInt(u64, text, 10) catch return error.InvalidResidentDeviceCaps;
+                if (caps[count] == 0) return error.InvalidResidentDeviceCaps;
+                count += 1;
+            }
+            if (count != caps.len) return error.InvalidResidentDeviceCaps;
+        }
+        return .{ .ids = try ids.toOwnedSlice(a), .caps = caps };
+    }
+    pub fn fromEnv(a: std.mem.Allocator) !Config {
+        const ids = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_DEVICES") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => null,
+            else => return err,
+        };
+        defer if (ids) |value| a.free(value);
+        const caps = std.process.getEnvVarOwned(a, "STWO_RV64_GPU_DEVICE_CAPS") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => null,
+            else => return err,
+        };
+        defer if (caps) |value| a.free(value);
+        return parse(a, ids orelse "0", caps);
+    }
+    pub fn validatePlan(self: Config, cpu_workers: usize) !void {
+        if (self.ids.len == 0 or self.ids.len > MAX_DEVICES or self.caps.len != self.ids.len or cpu_workers == 0) return error.InvalidResidentPlan;
+        if (cpu_workers > SCOPES_PER_DEVICE * self.ids.len) return error.InsufficientResidentCapacity;
+        for (self.ids, self.caps, 0..) |id, cap, i| {
+            if (cap == 0) return error.InvalidResidentDeviceCaps;
+            for (self.ids[0..i]) |previous| if (id == previous) return error.DuplicateResidentDevice;
+        }
+    }
+};
+pub const Endpoint = struct {
+    device: u32,
+    byte_cap: u64,
+    pcs: D.Stage,
+    numerical: Child.NumericalStage,
+    composition: Worker.ResidentCompositionStage,
+    trace_commit: D.TraceCommitStage,
+    projection: Source.ProjectionStage,
+};
+const Record = struct { scope: D.Scope, main_bound: bool };
+const Phase = enum { capture, main, numerical, retained };
+fn nativeScope(scope: GkrScope) D.Scope {
+    return .{ .statement = scope.statement, .fixed = scope.fixed, .main = scope.main, .ordinal = scope.ordinal };
+}
+fn sameWorker(a: D.Scope, b: D.Scope) bool {
+    return a.ordinal == b.ordinal and std.mem.eql(u8, &a.statement, &b.statement) and std.mem.eql(u8, &a.fixed, &b.fixed);
+}
+fn zeroRoot(root: [32]u8) bool {
+    return std.mem.allEqual(u8, &root, 0);
+}
+pub const Router = struct {
+    endpoints: []const Endpoint,
+    planned_cpu_workers: usize,
+    records: [MAX_DEVICES][SCOPES_PER_DEVICE]?Record = @splat(@splat(null)),
+    mutex: std.Thread.Mutex = .{},
+    pub fn init(endpoints: []const Endpoint, cpu_workers: usize) !Router {
+        if (endpoints.len == 0 or endpoints.len > MAX_DEVICES or cpu_workers == 0) return error.InvalidResidentPlan;
+        if (cpu_workers > SCOPES_PER_DEVICE * endpoints.len) return error.InsufficientResidentCapacity;
+        for (endpoints, 0..) |endpoint, i| {
+            if (endpoint.byte_cap == 0) return error.InvalidResidentDeviceCaps;
+            for (endpoints[0..i]) |prior| if (prior.device == endpoint.device) return error.DuplicateResidentDevice;
+        }
+        return .{ .endpoints = endpoints, .planned_cpu_workers = cpu_workers };
+    }
+    pub fn deviceFor(self: *const Router, ordinal: u32) u32 {
+        return self.endpoints[ordinal % self.endpoints.len].device;
+    }
+    fn admit(self: *Router, scope: D.Scope, phase: Phase) !usize {
+        if (scope.ordinal >= self.planned_cpu_workers) return error.UnplannedResidentWorker;
+        if (zeroRoot(scope.statement) or zeroRoot(scope.fixed)) return error.MissingResidentScope;
+        if ((phase == .numerical or phase == .retained) == zeroRoot(scope.main)) return error.InvalidResidentScopePhase;
+        const index = scope.ordinal % self.endpoints.len;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        var empty: ?usize = null;
+        for (&self.records[index], 0..) |*slot, slot_index| {
+            if (slot.*) |record| {
+                if (record.scope.ordinal != scope.ordinal) continue;
+                if (!sameWorker(record.scope, scope)) return error.ResidentWorkerIdentityMismatch;
+                if (record.main_bound and !std.mem.eql(u8, &record.scope.main, &scope.main)) return error.ResidentMainRootMismatch;
+                if (!record.main_bound) {
+                    if (phase == .retained) return error.MissingResidentMainRoot;
+                    if (phase == .numerical) slot.* = .{ .scope = scope, .main_bound = true };
+                }
+                return index;
+            } else if (empty == null) {
+                empty = slot_index;
+            }
+        }
+        if (phase == .retained) return error.MissingResidentAdmission;
+        const free = empty orelse return error.InsufficientResidentCapacity;
+        self.records[index][free] = .{ .scope = scope, .main_bound = phase == .numerical or phase == .retained };
+        return index;
+    }
+    fn promote(self: *Router, scope: D.Scope, root: [32]u8) !void {
+        if (zeroRoot(root)) return error.MissingResidentMainRoot;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (&self.records[scope.ordinal % self.endpoints.len]) |*slot| if (slot.*) |record| {
+            if (!sameWorker(record.scope, scope)) continue;
+            if (record.main_bound) return error.ResidentMainAlreadyCommitted;
+            var full = scope;
+            full.main = root;
+            slot.* = .{ .scope = full, .main_bound = true };
+            return;
+        };
+        return error.MissingResidentAdmission;
+    }
+    fn drop(self: *Router, scope: D.Scope) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (&self.records[scope.ordinal % self.endpoints.len]) |*slot| if (slot.*) |record| {
+            if (sameWorker(record.scope, scope) and (!record.main_bound or std.mem.eql(u8, &record.scope.main, &scope.main))) {
+                slot.* = null;
+                return;
+            }
+        };
+    }
+    pub fn pcsStage(self: *Router) D.Stage {
+        return .{ .context = self, .prove = pcs };
+    }
+    pub fn truthPcsStage(self: *Router) D.Stage {
+        return .{ .context = self, .prove = truthPcs };
+    }
+    pub fn numericalStage(self: *Router) Child.NumericalStage {
+        var stage = Child.NumericalStage{ .context = self, .prove = numerical };
+        if (comptime @hasField(Child.NumericalStage, "bind")) {
+            var supported = true;
+            for (self.endpoints) |endpoint| supported = supported and endpoint.numerical.bind != null;
+            if (supported) stage.bind = bind;
+        }
+        if (comptime @hasField(Child.NumericalStage, "abort")) stage.abort = abort;
+        return stage;
+    }
+    pub fn compositionStage(self: *Router) Worker.ResidentCompositionStage {
+        return .{ .context = self, .evaluate_and_commit = composition };
+    }
+    pub fn traceStage(self: *Router) D.TraceCommitStage {
+        return .{ .context = self, .commit = traceCommit };
+    }
+    pub fn projectionStage(self: *Router) Source.ProjectionStage {
+        return .{ .context = self, .project = projection };
+    }
+    fn abort(raw: *anyopaque, scope: GkrScope) void {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (scope.ordinal >= self.planned_cpu_workers) return;
+        const endpoint = self.endpoints[scope.ordinal % self.endpoints.len];
+        if (comptime @hasField(Child.NumericalStage, "abort")) if (endpoint.numerical.abort) |callback| callback(endpoint.numerical.context, scope);
+        self.drop(nativeScope(scope));
+    }
+    fn numerical(raw: *anyopaque, a: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(nativeScope(request.scope), .numerical);
+        errdefer abort(raw, request.scope);
+        var bounded = request;
+        bounded.byte_cap = @intCast(@min(request.byte_cap, self.endpoints[index].byte_cap));
+        const stage = self.endpoints[index].numerical;
+        return stage.prove(stage.context, a, bounded);
+    }
+    fn bind(raw: *anyopaque, a: std.mem.Allocator, request: BindingRequest) !BindingOwner {
+        if (comptime !@hasField(Child.NumericalStage, "bind")) return error.UnsupportedResidentBinding;
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(nativeScope(request.scope), .retained);
+        errdefer abort(raw, request.scope);
+        const stage = self.endpoints[index].numerical;
+        const callback = stage.bind orelse return error.UnsupportedResidentBinding;
+        return callback(stage.context, a, request);
+    }
+    fn projection(raw: *anyopaque, source: *const Source.Source, scope: D.Scope) !Source.DeviceProjection {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(scope, .capture);
+        errdefer self.drop(scope);
+        const stage = self.endpoints[index].projection;
+        return stage.project(stage.context, source, scope);
+    }
+    fn traceCommit(raw: *anyopaque, a: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        if (request.tree_index < 1 or request.tree_index > 2) return error.InvalidResidentTreeIndex;
+        const index = try self.admit(request.scope, if (request.tree_index == 1) .main else .retained);
+        errdefer self.drop(request.scope);
+        const stage = self.endpoints[index].trace_commit;
+        const result = try stage.commit(stage.context, a, request);
+        if (request.tree_index == 1) try self.promote(request.scope, result.root);
+        return result;
+    }
+    fn composition(raw: *anyopaque, a: std.mem.Allocator, items: []const Items.Item, alpha: D.O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(scope, .retained);
+        errdefer self.drop(scope);
+        const stage = self.endpoints[index].composition;
+        return stage.evaluate_and_commit(stage.context, a, items, alpha, log, split, total, trace, scope);
+    }
+    fn pcs(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const scope = request.scope orelse return error.MissingResidentScope;
+        const index = try self.admit(scope, .retained);
+        defer self.drop(scope);
+        const stage = self.endpoints[index].pcs;
+        return stage.prove(stage.context, a, request, channel);
+    }
+    /// G5 currently has no resident truth-MAIN custody. Its separately admitted
+    /// native proof may use PCS on the ordinal-selected GPU without occupying
+    /// a retained CPU slot; all ingress must remain host coefficients.
+    fn truthPcs(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const scope = request.scope orelse return error.MissingResidentScope;
+        if (scope.ordinal < self.planned_cpu_workers or zeroRoot(scope.statement) or zeroRoot(scope.fixed) or zeroRoot(scope.main)) return error.InvalidTruthResidentScope;
+        for (request.trees) |tree| for (tree.columns) |column| if (column.device != null or column.coefficients.len == 0) return error.ResidentTruthAdmissionClosed;
+        const stage = self.endpoints[scope.ordinal % self.endpoints.len].pcs;
+        return stage.prove(stage.context, a, request, channel);
+    }
+};
+
+const Fake = struct {
+    calls: [6]usize = @splat(0),
+    byte_cap: usize = 0,
+    fn pcs(raw: *anyopaque, _: std.mem.Allocator, _: D.Request, _: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
+        const self: *Fake = @ptrCast(@alignCast(raw));
+        self.calls[0] += 1;
+        return error.ProbeReached;
+    }
+    fn numerical(raw: *anyopaque, _: std.mem.Allocator, request: Child.NumericalStage.Request) !Proof {
+        const self: *Fake = @ptrCast(@alignCast(raw));
+        self.calls[1] += 1;
+        self.byte_cap = request.byte_cap;
+        return error.ProbeReached;
+    }
+    fn composition(raw: *anyopaque, _: std.mem.Allocator, _: []const Items.Item, _: D.O, _: u32, _: u32, _: usize, _: *const anyopaque, _: D.Scope) !D.Tree {
+        const self: *Fake = @ptrCast(@alignCast(raw));
+        self.calls[2] += 1;
+        return .{ .root = @splat(9), .columns = &.{} };
+    }
+    fn trace(raw: *anyopaque, _: std.mem.Allocator, request: D.TraceCommitRequest) !D.Tree {
+        const self: *Fake = @ptrCast(@alignCast(raw));
+        self.calls[3] += 1;
+        return .{ .root = @splat(@intCast(request.scope.ordinal + 1)), .columns = &.{} };
+    }
+    fn projection(raw: *anyopaque, _: *const Source.Source, _: D.Scope) !Source.DeviceProjection {
+        const self: *Fake = @ptrCast(@alignCast(raw));
+        self.calls[4] += 1;
+        return .{ .columns = &.{}, .counts16 = &.{}, .counts8 = &.{}, .pair_counts = &.{} };
+    }
+    fn endpoint(self: *Fake, id: u32) Endpoint {
+        return .{ .device = id, .byte_cap = 1024, .pcs = .{ .context = self, .prove = pcs }, .numerical = .{ .context = self, .prove = numerical }, .composition = .{ .context = self, .evaluate_and_commit = composition }, .trace_commit = .{ .context = self, .commit = trace }, .projection = .{ .context = self, .project = projection } };
+    }
+};
+fn testScope(ordinal: u32) D.Scope {
+    return .{ .statement = @splat(@intCast(ordinal + 1)), .fixed = @splat(7), .main = @splat(0), .ordinal = ordinal };
+}
+fn testConfig() !@import("stwo_core").pcs.PcsConfig {
+    return .{ .pow_bits = 0, .fri_config = try @import("stwo_core").fri.ForField(D.O).FriConfig.init(0, 1, 2) };
+}
+fn testRequest(scope: ?D.Scope) !D.Request {
+    return .{ .scope = scope, .config = try testConfig(), .lifting_log_size = 6, .trees = &.{}, .points = @import("stwo_core").pcs.TreeVec([][]D.Point).initOwned(&.{}) };
+}
+
+test "resident router config plans seven CPU workers on four devices before opening CUDA" {
+    const a = std.testing.allocator;
+    var config = try Config.parse(a, "0, 2,4,6", "1000,2000,3000,4000");
+    defer config.deinit(a);
+    try config.validatePlan(7);
+    try std.testing.expectEqualSlices(u32, &.{ 0, 2, 4, 6 }, config.ids);
+    try std.testing.expectEqual(@as(u64, 4000), config.caps[3]);
+    try std.testing.expectError(error.InsufficientResidentCapacity, config.validatePlan(9));
+    try std.testing.expectError(error.DuplicateResidentDevice, Config.parse(a, "0,0", null));
+    try std.testing.expectError(error.InvalidResidentDeviceList, Config.parse(a, "0,", null));
+    try std.testing.expectError(error.InvalidResidentDeviceCaps, Config.parse(a, "0,1", "1000"));
+    var one = try Config.parse(a, "0", null);
+    defer one.deinit(a);
+    try std.testing.expectError(error.InsufficientResidentCapacity, one.validatePlan(7));
+    try one.validatePlan(2);
+}
+
+test "resident router keeps all seven worker stages on their GPU across the manifest barrier" {
+    var fake = [_]Fake{ .{}, .{}, .{}, .{} };
+    const endpoints = [_]Endpoint{ fake[0].endpoint(0), fake[1].endpoint(1), fake[2].endpoint(2), fake[3].endpoint(3) };
+    var router = try Router.init(&endpoints, 7);
+    const projection_stage = router.projectionStage();
+    const trace_stage = router.traceStage();
+    const composition_stage = router.compositionStage();
+    const pcs_stage = router.pcsStage();
+    var scopes: [7]D.Scope = undefined;
+    for (&scopes, 0..) |*scope, i| {
+        scope.* = testScope(@intCast(i));
+        _ = try projection_stage.project(projection_stage.context, @ptrFromInt(4096), scope.*);
+        const main = try trace_stage.commit(trace_stage.context, std.testing.allocator, .{ .scope = scope.*, .tree_index = 1, .config = try testConfig(), .columns = &.{} });
+        scope.main = main.root;
+        try std.testing.expectEqual(@as(u32, @intCast(i % 4)), router.deviceFor(scope.ordinal));
+    }
+    // Every MAIN is now retained. Complete out of order after the same manifest
+    // barrier; no source or coefficient lease migrates to a different device.
+    for (0..scopes.len) |step| {
+        const scope = scopes[scopes.len - 1 - step];
+        _ = try trace_stage.commit(trace_stage.context, std.testing.allocator, .{ .scope = scope, .tree_index = 2, .config = try testConfig(), .columns = &.{} });
+        _ = try composition_stage.evaluate_and_commit(composition_stage.context, std.testing.allocator, &.{}, D.O.one(), 6, 1, 0, @ptrFromInt(4096), scope);
+        var channel = D.Channel.init();
+        try std.testing.expectError(error.ProbeReached, pcs_stage.prove(pcs_stage.context, std.testing.allocator, try testRequest(scope), &channel));
+    }
+    const expected = [_]usize{ 2, 2, 2, 1 };
+    for (fake, expected) |device, count| {
+        try std.testing.expectEqual(count, device.calls[0]);
+        try std.testing.expectEqual(count, device.calls[2]);
+        try std.testing.expectEqual(2 * count, device.calls[3]);
+        try std.testing.expectEqual(count, device.calls[4]);
+    }
+    for (router.records) |slots| for (slots) |record| try std.testing.expect(record == null);
+}
+
+test "resident router rejects scope mutation missing admission and unplanned ordinals" {
+    var fake = Fake{};
+    const endpoints = [_]Endpoint{fake.endpoint(3)};
+    var router = try Router.init(&endpoints, 2);
+    var first = testScope(0);
+    _ = try router.admit(first, .capture);
+    try router.promote(first, @splat(9));
+    first.main = @splat(9);
+    var changed = first;
+    changed.main[0] ^= 1;
+    try std.testing.expectError(error.ResidentMainRootMismatch, router.admit(changed, .retained));
+    changed = first;
+    changed.statement[0] ^= 1;
+    try std.testing.expectError(error.ResidentWorkerIdentityMismatch, router.admit(changed, .retained));
+    var absent = testScope(1);
+    absent.main = @splat(4);
+    try std.testing.expectError(error.MissingResidentAdmission, router.admit(absent, .retained));
+    try std.testing.expectError(error.UnplannedResidentWorker, router.admit(testScope(2), .capture));
+    var channel = D.Channel.init();
+    const stage = router.pcsStage();
+    try std.testing.expectError(error.MissingResidentScope, stage.prove(stage.context, std.testing.allocator, try testRequest(null), &channel));
+    try std.testing.expectEqual(@as(usize, 0), fake.calls[0]);
+}
+
+test "resident router bounds numerical workspace on the ordinal-selected endpoint" {
+    var fake = [_]Fake{ .{}, .{} };
+    const endpoints = [_]Endpoint{ fake[0].endpoint(5), fake[1].endpoint(7) };
+    var router = try Router.init(&endpoints, 2);
+    var scope = testScope(1);
+    scope.main = @splat(9);
+    const stage = router.numericalStage();
+    try std.testing.expectError(error.ProbeReached, stage.prove(stage.context, std.testing.allocator, .{ .scope = .{ .statement = scope.statement, .fixed = scope.fixed, .main = scope.main, .ordinal = scope.ordinal }, .instances = &.{}, .challenges = @ptrFromInt(4096), .sources = &.{}, .native_source = null, .source_channel = D.Channel.init(), .channel = D.Channel.init(), .byte_cap = 4096 }));
+    try std.testing.expectEqual(@as(usize, 0), fake[0].calls[1]);
+    try std.testing.expectEqual(@as(usize, 1), fake[1].calls[1]);
+    try std.testing.expectEqual(@as(usize, 1024), fake[1].byte_cap);
+    try std.testing.expect(router.records[1][0] == null);
+}
+
+test "resident truth PCS routes without consuming CPU custody and rejects device truth ingress" {
+    var fake = [_]Fake{ .{}, .{} };
+    const endpoints = [_]Endpoint{ fake[0].endpoint(2), fake[1].endpoint(4) };
+    var router = try Router.init(&endpoints, 2);
+    var scope = testScope(3);
+    scope.main = @splat(8);
+    var channel = D.Channel.init();
+    const stage = router.truthPcsStage();
+    try std.testing.expectError(error.ProbeReached, stage.prove(stage.context, std.testing.allocator, try testRequest(scope), &channel));
+    try std.testing.expectEqual(@as(usize, 1), fake[1].calls[0]);
+    try std.testing.expect(router.records[1][0] == null);
+    const device = [_]D.Column{.{ .log_size = 5, .device = .{ .words = @ptrFromInt(4096), .count = 32, .context_token = 1, .generation = 2 } }};
+    const trees = [_]D.Tree{.{ .root = @splat(3), .columns = &device }};
+    var request = try testRequest(scope);
+    request.trees = &trees;
+    try std.testing.expectError(error.ResidentTruthAdmissionClosed, stage.prove(stage.context, std.testing.allocator, request, &channel));
+    try std.testing.expectEqual(@as(usize, 1), fake[1].calls[0]);
+}
