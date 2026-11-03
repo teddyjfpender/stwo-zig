@@ -100,3 +100,9 @@ pub fn verify(ctx: *common.Context, geometry: *const Shape, witness: *const Proo
     try common.lane.check();
     return .{ .composition_randomness = randomness, .oods_point = point, .deep_randomness = alpha, .fri_alphas = alphas, .queries = queries, .fri_input = input, .channel = channel };
 }
+
+// Complete CPU statement support; these remain pending execution-wide root closure.
+pub const cpu_child = @import("cpu_child.zig");
+pub const cpu_oods = @import("cpu_oods.zig");
+pub const cpu_leaf = @import("cpu_leaf.zig");
+pub const cpu_capture = @import("cpu_capture.zig");

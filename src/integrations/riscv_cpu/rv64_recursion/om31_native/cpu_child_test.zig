@@ -17,15 +17,19 @@ const Fixture = struct {
     result: GP.ProveBatchResult,
     eta: C.O,
     receipt: [32]u8,
+    roster: [1]Frame.Instance,
     fn init() !@This() {
-        var channel = Native.begin(scope, &instances);
-        _ = Challenges.For(C.O).drawForInstances(&channel, &instances);
+        return initFor(instances);
+    }
+    fn initFor(roster: [1]Frame.Instance) !@This() {
+        var channel = Native.begin(scope, &roster);
+        _ = Challenges.For(C.O).drawForInstances(&channel, &roster);
         const zeroes = [_]C.O{C.O.zero()} ** 32;
         var ds: [32]C.O = undefined;
         for (&ds, 0..) |*d, i| d.* = C.O.fromBase(core.fields.m31.M31.fromCanonical(@intCast(107 + i * 13)));
         const layers = [_]GP.Layer{.{ .LogUpGeneric = .{ .numerators = .{ .evals = @constCast(&zeroes), .owns_evals = false }, .denominators = .{ .evals = &ds, .owns_evals = false } } }};
         const result = try GP.proveBatch(a, &channel, &layers);
-        return .{ .result = result, .eta = channel.drawSecureFelt(), .receipt = try Receipt.digest(scope, &instances, &result.proof, result.artifact.claims_to_verify_by_instance) };
+        return .{ .roster = roster, .result = result, .eta = channel.drawSecureFelt(), .receipt = try Receipt.digest(scope, &roster, &result.proof, result.artifact.claims_to_verify_by_instance) };
     }
     fn deinit(self: *@This()) void {
         self.result.deinit(a);
@@ -41,7 +45,7 @@ fn run(fixture: *const Fixture, corrupt_receipt: bool, mutate: bool) !bool {
     const public = Child.Scope{ .statement = try frame.guessDigest(scope.statement), .fixed = try frame.guessDigest(scope.fixed), .main = try frame.guessDigest(scope.main), .ordinal = (try frame.guessU32(scope.ordinal)).word };
     var proof = try G.wireProof(&ctx, &fixture.result.proof);
     if (mutate) proof.layer_masks_by_instance[0][0].columns[0][0] = proof.layer_masks_by_instance[0][0].columns[0][0].add(C.F.one());
-    var pending = try Child.verify(&ctx, public, &instances, &proof);
+    var pending = try Child.verify(&ctx, public, &fixture.roster, &proof);
     defer pending.artifact.deinit(a);
     var expected_receipt = fixture.receipt;
     if (corrupt_receipt) expected_receipt[0] ^= 1;
@@ -69,4 +73,12 @@ test "CPU leaf checked GKR receipt rejects changed receipt and numerical proof" 
         };
         try std.testing.expect(!valid);
     }
+}
+
+test "CPU leaf child v3 framing and namespaces have native receipt parity" {
+    var roster = instances;
+    roster[0].origin = .{ .sponge = .call };
+    var fixture = try Fixture.initFor(roster);
+    defer fixture.deinit();
+    try std.testing.expect(try run(&fixture, false, false));
 }

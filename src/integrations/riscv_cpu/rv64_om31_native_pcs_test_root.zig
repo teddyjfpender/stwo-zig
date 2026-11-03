@@ -9,3 +9,7 @@ test {
 test {
     _ = @import("rv64_recursion/om31_native/cpu_child_test.zig");
 }
+
+test {
+    _ = @import("rv64_recursion/om31_native/cpu_leaf_test.zig");
+}
