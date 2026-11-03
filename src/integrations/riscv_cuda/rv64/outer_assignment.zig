@@ -115,6 +115,9 @@ pub const Prepared = struct {
             }
             begin = end;
         }
+        // Numeric kernels use lane1 while the copy API uses stream0. A join
+        // must precede status D2H; joining after enqueue alone can read old0.
+        try ctx.join();
         var flag: [1]u32 = undefined;
         try ctx.download(try ctx.borrow(status), &flag);
         try ctx.join();

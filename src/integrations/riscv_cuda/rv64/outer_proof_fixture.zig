@@ -92,6 +92,48 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
         try dir.writeFile(.{ .sub_path = name, .data = encoded });
         std.debug.print("OM31_OUTER_DEVICE_PROOF ordinal={} fresh_accepted=true bytes={} prove_ns={} profile=q108-p20-fold4\n", .{ ordinal, encoded.len, prove_ns });
     }
+    if (dag) {
+        try assignmentMutant(a, input, &ctx, &key, false);
+        try assignmentMutant(a, input, &ctx, &key, true);
+        std.debug.print("OM31_OUTER_DEVICE_ASSIGNMENT_MUTANTS rejected=2 separate_terminal_sessions=true\n", .{});
+    }
+}
+fn assignmentMutant(a: std.mem.Allocator, library: []const u8, graph: *const circuit.builder.Context(Outer.protocol.Q), key: *const Outer.prove.Authority, zero_inverse: bool) !void {
+    // A rejected native callback intentionally poisons its session. Each
+    // malformed witness therefore has separate bounded custody and teardown.
+    var service = try Service.Context.init(library, 0, 28 << 30);
+    defer service.deinit();
+    try service.enableImmutableSetup(2 << 30);
+    var commit = try TC.Context.init(&service);
+    defer commit.deinit();
+    var composition = try RC.Context.initNumerical(a, &service);
+    defer composition.deinit();
+    var factory = try Device.Context.init(a, &service, &commit, &composition);
+    defer factory.deinit();
+    const selected = try factory.factoryForWitness(graph);
+    const assignment = &factory.assignment.?;
+    if (!zero_inverse) assignment.seeds[0].value[0] = 0x7fffffff else {
+        const input = for (graph.witness_metadata.?.origins.items) |origin| {
+            if (origin.kind == .inverse) break origin.a;
+        } else return error.MissingInverseFixture;
+        var found = false;
+        for (assignment.seeds) |*seed| if (seed.out == input) {
+            seed.value = @splat(0);
+            found = true;
+            break;
+        };
+        if (!found) return error.MissingInverseInputSeed;
+    }
+    try requireAssignmentRejection(a, key, graph.values(), 2, &factory, selected);
+}
+
+fn requireAssignmentRejection(a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, ordinal: u32, factory: *Device.Context, selected: Outer.device_prove.Factory) !void {
+    if (Outer.device_prove.prove(a, key, values, ordinal, selected)) |result| {
+        var unexpected = result;
+        unexpected.deinit();
+        return error.InvalidAssignmentAccepted;
+    } else |err| if (err != error.InvalidCircuitDeviceAssignment) return err;
+    if (factory.active != null) return error.FailedAssignmentOwnerRetained;
 }
 fn checkOutputs(outputs: []const Outer.protocol.Q, digest: [32]u8) !void {
     if (outputs.len != 8) return error.OuterOutputCount;
