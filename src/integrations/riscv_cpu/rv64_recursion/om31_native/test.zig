@@ -245,7 +245,9 @@ test "OM31 native PCS shape rejects four-coordinate composition and declaration 
     shape.global_log -= 1;
     const trees = @constCast(shape.tree_column_log_sizes);
     trees[3] = trees[3][0..8];
-    try std.testing.expectError(error.InvalidTrees, shape.validate());
+    const masks = @constCast(shape.mask_offsets);
+    masks[3] = masks[3][0..8];
+    try std.testing.expectError(error.InvalidCompositionTree, shape.validate());
 }
 test "OM31 native PCS OODS zero denominator is unsatisfied without a witness selected topology" {
     var counts: [2]circuit.builder.context.GateCounts = undefined;
@@ -265,4 +267,24 @@ test "OM31 native PCS OODS zero denominator is unsatisfied without a witness sel
         try std.testing.expectEqual(i == 0, try ctx.isCircuitValid());
     }
     try std.testing.expectEqual(counts[0], counts[1]);
+}
+
+test "OM31 native PCS nonconstant last polynomial and nonzero proof of work accept" {
+    var cfg = try config(4);
+    cfg.pow_bits = 3;
+    cfg.fri_config.log_last_layer_degree_bound = 1;
+    var native = try produce(cfg);
+    defer native.proof.deinit(a);
+    defer native.aux.deinit(a);
+    var cap: V.proof.NativeCapture = undefined;
+    _ = try capture(cfg, &native.proof, &cap);
+    defer cap.deinit(a);
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const shape = try geometry(arena.allocator(), cfg);
+    const values = try V.proof.fromNative(arena.allocator(), &native.proof, &cap, &shape);
+    try std.testing.expectEqual(@as(usize, 2), values.last_layer_coefs.len);
+    try std.testing.expect(try checkCircuit(&values, &shape, cfg, null));
+    @constCast(values.last_layer_coefs)[1] = values.last_layer_coefs[1].add(delta(5));
+    try std.testing.expect(!try checkCircuit(&values, &shape, cfg, null));
 }

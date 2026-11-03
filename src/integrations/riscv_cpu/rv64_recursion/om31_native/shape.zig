@@ -159,6 +159,10 @@ pub const Shape = struct {
     }
 
     pub fn validate(self: *const Shape) ShapeError!void {
+        // This concrete primitive implements the native, implicit-lifting
+        // protocol. Explicit lifting/revision profiles need another authority.
+        if (self.pcs.lifting_log_size != null or self.pcs.pow_bits > 32 or
+            self.pcs.fri_config.n_queries == 0) return error.InvalidGeometry;
         if (self.nTrees() < 2 or self.mask_offsets.len != self.nTrees()) return error.InvalidTrees;
         for (self.tree_column_log_sizes, self.mask_offsets) |logs, offsets| {
             if (logs.len != offsets.len) return error.InvalidTrees;

@@ -36,6 +36,14 @@ pub const Channel = struct {
     pub fn mixU32s(self: *Channel, ctx: *Context, words: []const circuit.builder.wrappers.U32Wrapper(Var)) !void {
         try self.raw.mixU32s(Q, ctx, words);
     }
+    pub fn mixU64(self: *Channel, ctx: *Context, lo: circuit.builder.wrappers.U32Wrapper(Var), hi: circuit.builder.wrappers.U32Wrapper(Var)) !void {
+        try self.raw.mixU64(Q, ctx, lo, hi);
+    }
+    pub fn mixConstU32s(self: *Channel, ctx: *Context, values: []const u32) !void {
+        const words = try ctx.scratch().alloc(circuit.builder.wrappers.U32Wrapper(Var), values.len);
+        for (words, values) |*wire, value| wire.* = try circuit.builder.wrappers.constU32(Q, ctx, value);
+        try self.mixU32s(ctx, words);
+    }
     pub fn mixFelts(self: *Channel, ctx: *Context, values: []const F) !void {
         const wires = try ctx.scratch().alloc(circuit.native_verifier.raw_mod_channel.Om31Var, values.len);
         for (wires, values) |*wire, value| wire.* = .{ .c0 = value.c0.v, .c1 = value.c1.v };
