@@ -120,6 +120,7 @@
     "stwo_rv64_sample_order_on",
     "stwo_rv64_sample_points_from_point_on",
     "stwo_rv64_sample_points_on",
+    "stwo_rv64_secp_witness_on",
     "stwo_rv64_sha256_witness_on",
     "stwo_rv64_sumcheck_init_on",
     "stwo_rv64_sumcheck_round_on",
