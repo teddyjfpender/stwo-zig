@@ -347,3 +347,7 @@ test "OM31 frame worker framing shared draws and public digest match native auth
     try ctx.finalize(false);
     try std.testing.expect(try ctx.isCircuitValid());
 }
+
+test {
+    _ = @import("truth_leaf_test.zig");
+}
