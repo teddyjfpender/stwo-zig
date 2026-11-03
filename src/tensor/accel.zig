@@ -35,6 +35,11 @@ pub const Accel = struct {
     sc_finish: *const fn (ctx: *anyopaque, s: *anyopaque, r_last: QM31, out: []const []QM31) anyerror!void,
     /// Integer matmul accumulators acc = X (T x K, i32) . W (K x N, i8) as i64.
     matmul_acc: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, x: []const i32, T: usize, wm: pcs.Matrix(i8)) anyerror!?[]i64 = null,
+    /// Weight passes: out[g][c] = sum_i coeffs[g][i] m[i][c] (fold rows) and
+    /// out[k] = sum_n m[k][n] vec[n] (fold columns).
+    combine_i8: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, m: pcs.Matrix(i8), coeffs: []const []const QM31) anyerror!?[][]QM31 = null,
+    combine_i32: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, m: pcs.Matrix(i32), coeffs: []const []const QM31) anyerror!?[][]QM31 = null,
+    row_dots_i8: ?*const fn (ctx: *anyopaque, a: std.mem.Allocator, m: pcs.Matrix(i8), vec: []const QM31) anyerror!?[]QM31 = null,
     /// MLE of an integer vector (length 2^point.len) at `point`.
     mle_eval_i32: ?*const fn (ctx: *anyopaque, values: []const i32, point: []const QM31) anyerror!?QM31 = null,
     /// Vectors shorter than this are evaluated on the CPU.
@@ -284,4 +289,32 @@ pub fn gkrProveBatch(acc: ?*const Accel, a: std.mem.Allocator, ch: *Channel, inp
         if (max_len >= (@as(usize, 1) << @intCast(A.gkr_min_log))) return prove(A.ctx, a, ch, inputs);
     };
     return Fast.proveBatch(a, ch, inputs, .{ .threads = threads }, null);
+}
+
+/// pcs.combineRows on the device when available (same field values).
+pub fn combineRows(acc: ?*const Accel, comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: pcs.Matrix(T), coeffs: []const []const QM31, bound_log2: u32) ![][]QM31 {
+    if (acc) |A| {
+        const r = switch (T) {
+            i8 => if (A.combine_i8) |h| try h(A.ctx, a, m, coeffs) else null,
+            i32 => if (A.combine_i32) |h| try h(A.ctx, a, m, coeffs) else null,
+            else => null,
+        };
+        if (r) |x| return x;
+    }
+    return pcs.combineRows(T, a, pool, m, coeffs, bound_log2);
+}
+
+/// linalg.colCombine (out[n] = sum_k coeffs[k] m[k][n]).
+pub fn colCombine(acc: ?*const Accel, comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: pcs.Matrix(T), coeffs: []const QM31, bound_log2: u32) ![]QM31 {
+    const rows = try combineRows(acc, T, a, pool, m, &.{coeffs}, bound_log2);
+    defer a.free(rows);
+    return rows[0];
+}
+
+/// linalg.rowDots for int8 matrices (out[k] = sum_n m[k][n] vec[n]).
+pub fn rowDots(acc: ?*const Accel, a: std.mem.Allocator, pool: *f.Pool, m: pcs.Matrix(i8), vec: []const QM31, bound_log2: u32) ![]QM31 {
+    if (acc) |A| if (A.row_dots_i8) |h| {
+        if (try h(A.ctx, a, m, vec)) |r| return r;
+    };
+    return @import("linalg.zig").rowDots(i8, a, pool, m, vec, bound_log2);
 }

@@ -807,13 +807,13 @@ pub fn prove(
                 const eq_t = try f.eqTablePar(a, pool, rho_t, QM31.one());
                 defer a.free(eq_t);
                 const xm = pcs.Matrix(i32){ .data = all[m.x], .log_rows = lt, .log_cols = lk };
-                const fx = try linalg.colCombine(i32, a, pool, xm, eq_t, 8);
+                const fx = try accel.colCombine(cfg.accel, i32, a, pool, xm, eq_t, 8);
                 defer a.free(fx);
                 // g(k) = W(k, rho_n): the weight pass
                 const tw0 = try std.time.Instant.now();
                 const eq_n = try f.eqTablePar(a, pool, rho_n, QM31.one());
                 defer a.free(eq_n);
-                const gw = try linalg.rowDots(i8, a, pool, ws.matrix(m.w), eq_n, 7);
+                const gw = try accel.rowDots(cfg.accel, a, pool, ws.matrix(m.w), eq_n, 7);
                 defer a.free(gw);
                 timings.weight_fold_ns += nowNs(tw0);
                 const res = try accel.proveActive(cfg.accel, 2, &T_PROD2, a, pool, &tr, acc_val, .{ fx, gw }, fx.len);

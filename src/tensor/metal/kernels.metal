@@ -718,3 +718,65 @@ kernel void tm_lazy_fold0(
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Weight passes (int x QM31), exact in the field.
+//   combine:  out[g][c] = sum_i coeff[g][i] * m[i][c]   (fold rows; openings, X(rho_t, .))
+//   row dots: out[k]    = sum_n m[k][n] * vec[n]         (fold columns; W(., rho_n))
+struct TmCombineParams { uint rows; uint cols; uint groups; uint is_i8; };
+
+inline uint tm_mat_at(device const int *m32, device const char *m8, uint is_i8, ulong i) {
+    return is_i8 != 0u ? tm_from_i32(int(m8[i])) : tm_from_i32(m32[i]);
+}
+
+// Row chunks run in parallel (grid y); out holds per-chunk partials
+// [chunk][g][c] that the host adds.
+kernel void tm_combine_rows(
+    device const int *m32 [[buffer(0)]],
+    device const char *m8 [[buffer(1)]],
+    device const uint *coeffs [[buffer(2)]],   // [groups][rows] QM31
+    device uint *out [[buffer(3)]],            // [chunks][groups][cols] QM31
+    constant TmCombineParams &p [[buffer(4)]],
+    constant uint &chunk_rows [[buffer(5)]],
+    uint2 pos [[thread_position_in_grid]]
+) {
+    uint c = pos.x;
+    if (c >= p.cols) return;
+    uint r0 = pos.y * chunk_rows;
+    uint r1 = min(p.rows, r0 + chunk_rows);
+    Qm31Value acc[4] = { tm_zero(), tm_zero(), tm_zero(), tm_zero() };
+    for (uint i = r0; i < r1; ++i) {
+        uint v = tm_mat_at(m32, m8, p.is_i8, ulong(i) * p.cols + c);
+        if (v == 0u) continue;
+        for (uint g = 0u; g < p.groups; ++g)
+            acc[g] = qm_add(acc[g], qm_mul_m31(tm_load(coeffs, ulong(g) * p.rows + i), v));
+    }
+    for (uint g = 0u; g < p.groups; ++g) tm_store(out, (ulong(pos.y) * p.groups + g) * p.cols + c, acc[g]);
+}
+
+kernel void tm_row_dots(
+    device const int *m32 [[buffer(0)]],
+    device const char *m8 [[buffer(1)]],
+    device const uint *vec [[buffer(2)]],
+    device uint *out [[buffer(3)]],
+    constant TmCombineParams &p [[buffer(4)]],
+    threadgroup Qm31Value *scratch [[threadgroup(0)]],
+    uint k [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint tgsize [[threads_per_threadgroup]]
+) {
+    if (k >= p.rows) return;
+    Qm31Value acc = tm_zero();
+    ulong base = ulong(k) * p.cols;
+    for (uint n = tid; n < p.cols; n += tgsize) {
+        uint v = tm_mat_at(m32, m8, p.is_i8, base + n);
+        if (v != 0u) acc = qm_add(acc, qm_mul_m31(tm_load(vec, n), v));
+    }
+    scratch[tid] = acc;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint s = tgsize >> 1u; s > 0u; s >>= 1u) {
+        if (tid < s) scratch[tid] = qm_add(scratch[tid], scratch[tid + s]);
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (tid == 0u) tm_store(out, k, scratch[0]);
+}

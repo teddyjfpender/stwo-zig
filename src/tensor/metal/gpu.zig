@@ -81,6 +81,8 @@ pub const Stats = struct {
     matmul_calls: usize = 0,
     mle_gpu_ms: f64 = 0,
     mle_calls: usize = 0,
+    weight_pass_gpu_ms: f64 = 0,
+    weight_pass_calls: usize = 0,
     gkr_gpu_ms: f64 = 0,
     gkr_rounds: usize = 0,
     gkr_calls: usize = 0,
@@ -108,6 +110,8 @@ pub const Gpu = struct {
     p_gkr_next: *anyopaque,
     p_gkr_sum: *anyopaque,
     p_gkr_fold: *anyopaque,
+    p_combine: *anyopaque,
+    p_row_dots: *anyopaque,
     p_lazy_round0: *anyopaque,
     p_lazy_fold0: *anyopaque,
     /// GKR layers at most this size are summed / folded by the CPU directly in
@@ -154,6 +158,8 @@ pub const Gpu = struct {
             .p_gkr_next = try pipeline(rt, "tm_gkr_next"),
             .p_gkr_sum = try pipeline(rt, "tm_gkr_sum"),
             .p_gkr_fold = try pipeline(rt, "tm_gkr_fold"),
+            .p_combine = try pipeline(rt, "tm_combine_rows"),
+            .p_row_dots = try pipeline(rt, "tm_row_dots"),
             .p_lazy_round0 = try pipeline(rt, "tm_lazy_round0"),
             .p_lazy_fold0 = try pipeline(rt, "tm_lazy_fold0"),
             .page = std.heap.pageSize(),
@@ -169,13 +175,16 @@ pub const Gpu = struct {
             .matmul_acc = matmulAcc,
             .mle_eval_i32 = mleEvalI32,
             .gkr_prove = gkrProve,
+            .combine_i8 = combineI8,
+            .combine_i32 = combineI32,
+            .row_dots_i8 = rowDotsI8,
             .sc_abort = scAbort,
         };
         return g;
     }
 
     pub fn deinit(self: *Gpu, a: std.mem.Allocator) void {
-        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_lazy_round0", "p_lazy_fold0" }) |name|
+        inline for (.{ "p_expand_i32", "p_expand_i8", "p_layer", "p_tail", "p_leaf", "p_parents", "p_sc_round", "p_sc_fold", "p_matmul", "p_matmul_simd", "p_pack_i8", "p_mle", "p_gkr_next", "p_gkr_sum", "p_gkr_fold", "p_combine", "p_row_dots", "p_lazy_round0", "p_lazy_fold0" }) |name|
             tm_release(@field(self, name));
         self.releaseRetired();
         self.retired.deinit(std.heap.c_allocator);
@@ -422,6 +431,7 @@ pub const Gpu = struct {
         nodes_released = true;
         self.release(nodes_buf, nodes.len * 32);
         return .{
+            .combine = .{ .ctx = self, .i8 = combineI8, .i32 = combineI32 },
             .log_rows = m.log_rows,
             .log_cols = m.log_cols,
             .log_blowup = lb,
@@ -479,6 +489,101 @@ pub const Gpu = struct {
         g.stats.matmul_calls += 1;
         ob_released = true;
         g.release(ob, out.len * 8);
+        return out;
+    }
+
+    // -----------------------------------------------------------------------
+    // Weight passes
+
+    const CombineParams = extern struct { rows: u32, cols: u32, groups: u32, is_i8: u32 };
+
+    fn combineI8(ctx: *anyopaque, a: std.mem.Allocator, m: pcs.Matrix(i8), coeffs: []const []const QM31) anyerror!?[][]QM31 {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        return g.combine(i8, a, m, coeffs);
+    }
+    fn combineI32(ctx: *anyopaque, a: std.mem.Allocator, m: pcs.Matrix(i32), coeffs: []const []const QM31) anyerror!?[][]QM31 {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        return g.combine(i32, a, m, coeffs);
+    }
+
+    /// out[g][c] = sum_i coeffs[g][i] m[i][c] over the used rows.
+    pub fn combine(self: *Gpu, comptime T: type, a: std.mem.Allocator, m: pcs.Matrix(T), coeffs: []const []const QM31) !?[][]QM31 {
+        const R = m.usedRows();
+        const C = m.nCols();
+        const G = coeffs.len;
+        if (G == 0 or G > 4 or R * C >= (1 << 32) or R * C < (1 << 16)) return null;
+        const cb = try self.alloc(G * R * 16);
+        defer self.free(cb);
+        const cq: [*]QM31 = @ptrCast(@alignCast(cb.ptr()));
+        for (coeffs, 0..) |cg, gi| @memcpy(cq[gi * R ..][0..R], cg[0..R]);
+        // enough row chunks to fill the device when there are few columns
+        const chunk_rows: u32 = @intCast(@max(256, (R * C) / (1 << 21)));
+        const n_chunks: usize = (R + chunk_rows - 1) / chunk_rows;
+        const ob = try self.alloc(n_chunks * G * C * 16);
+        defer self.free(ob);
+        const mb = try self.view(@constCast(std.mem.sliceAsBytes(m.data[0 .. R * C])), true);
+        defer self.release(mb, null);
+        const cp = CombineParams{ .rows = @intCast(R), .cols = @intCast(C), .groups = @intCast(G), .is_i8 = @intFromBool(T == i8) };
+        const cmd = tm_cmd_begin(self.rt);
+        tm_cmd_pipeline(cmd, self.p_combine);
+        bind(cmd, 0, mb);
+        bind(cmd, 1, mb);
+        bind(cmd, 2, cb);
+        bind(cmd, 3, ob);
+        tm_cmd_bytes(cmd, 4, &cp, @sizeOf(CombineParams));
+        tm_cmd_bytes(cmd, 5, &chunk_rows, 4);
+        const c32: u32 = @intCast(C);
+        tm_cmd_dispatch(cmd, (c32 + 63) / 64, @intCast(n_chunks), 1, 64, 1, 1);
+        self.stats.weight_pass_gpu_ms += try end(cmd);
+        self.stats.weight_pass_calls += 1;
+        const pq: [*]QM31 = @ptrCast(@alignCast(ob.ptr()));
+        for (1..n_chunks) |ch| for (0..G * C) |j| {
+            pq[j] = pq[j].add(pq[ch * G * C + j]);
+        };
+        const oq: [*]const QM31 = pq;
+        const out = try a.alloc([]QM31, G);
+        var made: usize = 0;
+        errdefer {
+            for (out[0..made]) |o| a.free(o);
+            a.free(out);
+        }
+        for (0..G) |gi| {
+            out[gi] = try a.dupe(QM31, oq[gi * C ..][0..C]);
+            made += 1;
+        }
+        return out;
+    }
+
+    fn rowDotsI8(ctx: *anyopaque, a: std.mem.Allocator, m: pcs.Matrix(i8), vec: []const QM31) anyerror!?[]QM31 {
+        const g: *Gpu = @ptrCast(@alignCast(ctx));
+        const R = m.nRows();
+        const C = m.nCols();
+        if (vec.len != C or R * C >= (1 << 32) or R * C < (1 << 16)) return null;
+        const vb = try g.alloc(C * 16);
+        defer g.free(vb);
+        const vq: [*]QM31 = @ptrCast(@alignCast(vb.ptr()));
+        @memcpy(vq[0..C], vec);
+        const out = try a.alloc(QM31, R);
+        errdefer a.free(out);
+        const ob = try g.view(std.mem.sliceAsBytes(out), false);
+        var ob_released = false;
+        defer if (!ob_released) g.release(ob, null);
+        const mb = try g.view(@constCast(std.mem.sliceAsBytes(m.data[0 .. R * C])), true);
+        defer g.release(mb, null);
+        const cp = CombineParams{ .rows = @intCast(R), .cols = @intCast(C), .groups = 1, .is_i8 = 1 };
+        const cmd = tm_cmd_begin(g.rt);
+        tm_cmd_pipeline(cmd, g.p_row_dots);
+        bind(cmd, 0, mb);
+        bind(cmd, 1, mb);
+        bind(cmd, 2, vb);
+        bind(cmd, 3, ob);
+        tm_cmd_bytes(cmd, 4, &cp, @sizeOf(CombineParams));
+        tm_cmd_threadgroup_memory(cmd, 0, 256 * 16);
+        tm_cmd_dispatch(cmd, @intCast(R), 1, 1, 256, 1, 1);
+        g.stats.weight_pass_gpu_ms += try end(cmd);
+        g.stats.weight_pass_calls += 1;
+        ob_released = true;
+        g.release(ob, out.len * 16);
         return out;
     }
 

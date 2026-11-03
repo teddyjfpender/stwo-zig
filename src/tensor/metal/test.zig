@@ -461,3 +461,56 @@ test "metal lazy-factor sumcheck (eq sums and int vectors, degree 3) matches CPU
         try std.testing.expect(tc.draw().eql(td.draw()));
     };
 }
+
+test "metal weight passes (combine rows, row dots) match CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const g = try gpu();
+    var prng = std.Random.DefaultPrng.init(21);
+    const r = prng.random();
+    for ([_][3]u32{ .{ 8, 9, 0 }, .{ 11, 7, 1 }, .{ 6, 12, 2 } }) |sh| {
+        const R = @as(usize, 1) << @intCast(sh[0]);
+        const C = @as(usize, 1) << @intCast(sh[1]);
+        const d8 = try a.alloc(i8, R * C + 1);
+        defer a.free(d8);
+        for (d8) |*x| x.* = r.int(i8);
+        const d32 = try a.alloc(i32, R * C);
+        defer a.free(d32);
+        for (d32) |*x| x.* = @intCast(r.intRangeLessThan(i64, -(@as(i64, 1) << 30), f.P));
+        const used = R - sh[2] * 3; // partial rows_used
+        const m8 = pcs.Matrix(i8){ .data = d8[1..], .log_rows = sh[0], .log_cols = sh[1], .rows_used = used };
+        const m32 = pcs.Matrix(i32){ .data = d32, .log_rows = sh[0], .log_cols = sh[1], .rows_used = used };
+        var cf: [3][]QM31 = undefined;
+        for (&cf) |*c| {
+            c.* = try a.alloc(QM31, R);
+            for (c.*) |*x| x.* = randQ(r);
+        }
+        defer for (cf) |c| a.free(c);
+        const cv = [_][]const QM31{ cf[0], cf[1], cf[2] };
+        inline for (.{ i8, i32 }) |T| {
+            const m = if (T == i8) m8 else m32;
+            const want = try pcs.combineRows(T, a, &pool, m, &cv, if (T == i8) 7 else 30);
+            defer {
+                for (want) |w| a.free(w);
+                a.free(want);
+            }
+            const got = (try g.combine(T, a, m, &cv)).?;
+            defer {
+                for (got) |w| a.free(w);
+                a.free(got);
+            }
+            for (want, got) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        }
+        const vec = try a.alloc(QM31, C);
+        defer a.free(vec);
+        for (vec) |*x| x.* = randQ(r);
+        const mfull = pcs.Matrix(i8){ .data = d8[1..], .log_rows = sh[0], .log_cols = sh[1] };
+        const want = try @import("stwo_tensor").linalg.rowDots(i8, a, &pool, mfull, vec, 7);
+        defer a.free(want);
+        const got = try t.accel.rowDots(g.accel(), a, &pool, mfull, vec, 7);
+        defer a.free(got);
+        for (want, got) |x, y| try std.testing.expect(x.eql(y));
+    }
+}
