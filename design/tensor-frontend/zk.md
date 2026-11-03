@@ -236,7 +236,20 @@ about the witness enters as a claimed value.
 
 ### 4.3 Hiding LogUp-GKR (`gkrProveRel` / `gkrVerifyRel`)
 
-**Tree.** There is one fraction tree per relation. Leaves, laid out as aligned segments in
+**Trees.** Either one fraction tree per relation, or one **tagged tree** for all
+relations, whichever has fewer padded leaves. Key counts are powers of two, so a
+relation's `2^s + 1` table and blinder leaves usually double its own tree. In the tagged
+tree every key and table entry of relation `r` uses the denominator `α − key − τ·r`, with
+`τ` drawn together with `α` and `β`; this is standard multi-table LogUp.
+
+- **Soundness (tagged).** `F(α, τ) = Σ_r [Σ_keys 1/(α − k − τr) − Σ_t m_t/(α − t − τr)]`
+  is a non-zero bivariate rational function if any relation fails, because poles of
+  different relations are distinct polynomials in `τ`. Schwartz–Zippel over `(α, τ)`
+  bounds the error.
+- **Effect.** mlp 8 10 11 goes from 3 trees with `2^22 + 2^20 + 2^20` leaves (for about
+  3.3M keys) to one tree with `2^22` leaves.
+
+Within a tree: Leaves, laid out as aligned segments in
 `n` variables:
 
 - key leaves `(1, α − key(x))`;
@@ -434,14 +447,17 @@ the same machine. Commands:
 | mlp 8 10 11 | hiding, masked GKR, weights lb 4 t 36 | 0.43–0.46 s | 10.3 ms | 1,574,864 B | generic GKR prover |
 | mlp 8 10 11 | hiding, masked GKR, weight lc 10 | 0.30–0.32 s | 9.7–11 ms | 1,469,504 B | GKR 0.136 s (eq factored out); aux table; RSS 1.2 GB |
 | mlp 8 10 11 | **hiding (current)**, weight lc 12, lb 4, t 30 | **0.32–0.33 s** | **10.4 ms** | **980,768 B** | 0.5× the non-hiding proof |
-| mlp 8 10 11 | **hiding (current) + public input/output** | **0.33 s** | **17.9 ms** | **980,768 B** | +7.5 ms to fold 2 × 2^18 public values |
+| mlp 8 10 11 | hiding + public input/output, 3 GKR trees | 0.33 s | 17.9 ms | 980,768 B | +7.5 ms to fold 2 × 2^18 public values |
+| mlp 8 10 11 | **hiding (current) + public input/output**, 1 tagged GKR tree | **0.285 s** | **15.5–16 ms** | **955,584 B** | GKR 0.092 s, 22 layers, 14.6 KB |
+| mlp 8 10 11, **1 thread**, t 56 | non-hiding (v1), t 64 | 0.597 s | 7.7 ms | 1,966,288 B | |
+| mlp 8 10 11, **1 thread**, t 56 | hiding + public IO (3 GKR trees) | 1.26 s | 18.7 ms | 958,816 B | 130.7 conj bits |
 
-Hiding MLP breakdown, current version:
-- witness commit 0.07 s,
-- GKR 0.136 s,
+Hiding MLP breakdown, current version (8 threads):
+- witness commit 0.085 s,
+- GKR 0.092 s,
 - op sumchecks 0.03 s,
-- batch 0.05 s,
-- openings 0.01–0.02 s.
+- batch 0.053 s,
+- openings 0.013 s.
 
 Weights (once per commitment), with `C_w = 4096`:
 - commit 0.28 s (lb 4);
@@ -462,6 +478,7 @@ History, at the same shape:
   messages): GKR 0.22 → 0.136 s, MLP 0.40 → 0.31 s.
 - Wider hiding weight table (lc 12, one group per narrow matmul): weight opening
   954 → 466 KB, MLP proof 1.47 → 0.98 MB.
+- Tagged single GKR tree: GKR 0.136 → 0.092 s, MLP 0.33 → 0.285 s, proof 956 KB.
 
 The hiding MLP proof (0.98 MB) is now half the v1 non-hiding proof (1.97 MB). Higher
 weight blowup with fewer queries, plus a wider weight table with per-matmul groups, would
@@ -517,10 +534,11 @@ shrink the non-hiding proof as well; the weight opening is about 80% of it.
 - **Weight memory at lb 4.** The encoded weight table holds 16× the weight count in M31
   cells: 6.4 GB for 100M weights. For the full-size model use `ZK_WEIGHT_LB=3` (2× less),
   or keep lb 2 with fewer slots and more queries.
-- **Hiding GKR performance.** Proving costs about 1.6× the non-hiding v1 at mlp 8 10 11
-  (0.31 vs 0.195 s). Most of it is the QM31 masked-sumcheck kernel, without stwo's
-  packed-SIMD GKR kernels. Trees are padded to powers of two: one relation with exactly
-  `2^k` keys gets 2× leaves, because the table and blinder leaves push it over.
+- **Hiding prover cost.** About 1.46× the non-hiding v1 at mlp 8 10 11 with 8 threads
+  (0.285 vs 0.195 s). The hiding mode commits the requant remainders, which v1 keeps
+  virtual: about 40% of table 1. The GKR kernels are scalar QM31, not stwo's packed SIMD.
+  A tagged tree still pads up to the next power of two; at this shape about 3.3M keys sit
+  in 4.2M leaves.
 - **Big shapes not run here** (host rule). Hiding memory is dominated by:
   - table 1 (witness plus committed remainders);
   - the GKR layer arrays: 2 × 2 × 16 B per leaf, all layers kept;
