@@ -17,6 +17,7 @@ import sys
 
 import rv64_cuda_native_library_build as N
 import rv64_cuda_partition_rational as Rational
+import rv64_cuda_partition_grouped as Grouped
 
 
 def core_catalog(directory):
@@ -62,6 +63,56 @@ def truth_sources(raw, partitions):
     return sources
 
 
+def split_core(directory, build, roles):
+    """Keep global RLC indices while bounding individual optimizer units."""
+    original, _ = core_catalog(directory)
+    if len(set(roles)) != len(roles) or any(role not in range(49) for role in roles):
+        raise ValueError("distinct existing core role IDs required")
+    signature = "const uint32_t*,const uint32_t*,const uint32_t*,const uint64_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t,uint32_t,uint32_t,uint32_t"
+    lines = ["#pragma once", "#include <cuda_runtime.h>", "#include <cstdint>",
+             "struct CorePart { const void *kernel; uint32_t grouping, groups; };",
+             "struct CoreSpan { const CorePart *parts; uint32_t count; };"]
+    sources, counts = [], []
+    for role, source in enumerate(original):
+        if role in roles:
+            destination = build / "core-parts" / str(role)
+            destination.mkdir(parents=True, exist_ok=True)
+            modules = Grouped.partition(source, destination, 1, 128 << 10)["modules"]
+            grouping = 32
+        else:
+            symbol = f"rv64_joined_domain_{role}"
+            grouping = 32 if re.search(r"void " + symbol + r"_part_\d+\(", source.read_text()) else 0
+            modules = [{"source": str(source), "symbol": symbol, "groups": 0}]
+        entries = []
+        for module in modules:
+            sources.append(Path(module["source"]))
+            lines.append(f'extern "C" __global__ void {module["symbol"]}({signature});')
+            entries.append(f'{{(const void*){module["symbol"]},{grouping}u,{module["groups"]}u}}')
+        lines.append(f"static const CorePart core_parts_{role}[]={{" + ",".join(entries) + "};")
+        counts.append(len(modules))
+    lines.append("static const CoreSpan core_catalog[]={" + ",".join(f"{{core_parts_{role},{count}u}}" for role, count in enumerate(counts)) + "};")
+    (build / "real_composition_launches.h").write_text("\n".join(lines) + "\n")
+    dispatcher = build / "core_composition_dispatch.cu"
+    dispatcher.write_text('''#include "real_composition_launches.h"
+#include "rv64/composition_dispatch.cuh"
+extern "C" int stwo_rv64_composition_role_on(void *ctx,uint32_t lane,
+    const StwoRv64CompositionRole *job,uint32_t *launches) {
+  if (launches) *launches=0;
+  if (!job || !launches || job->role>=49) return int(cudaErrorInvalidValue);
+  const auto &span=core_catalog[job->role];
+  StwoRv64CompositionRole local=*job; local.role=0;
+  for (uint32_t i=0;i<span.count;++i) {
+    const auto &part=span.parts[i]; uint32_t issued=0;
+    const int status=stwo::cuda::rv64::composition_dispatch(ctx,lane,&local,&issued,
+        &part.kernel,&part.grouping,1,part.groups);
+    if(status) return status; *launches+=issued;
+  }
+  return 0;
+}
+''')
+    return sources + [dispatcher]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("source-root", "core-domain", "core-projection", "truth-domain", "truth-partitions", "truth-rational", "build"):
@@ -69,6 +120,7 @@ def main():
     parser.add_argument("--nvcc", default="/usr/local/cuda/bin/nvcc")
     parser.add_argument("--jobs", type=int, default=6)
     parser.add_argument("--compile-timeout", type=float, default=180)
+    parser.add_argument("--split-core-role", type=int, action="append", default=[], help="Split a grouped core optimizer unit into single-group kernels")
     args = parser.parse_args()
     if not 1 <= args.jobs <= 16 or not 0 < args.compile_timeout < float("inf"):
         parser.error("bounded jobs and finite positive compiler deadline required")
@@ -78,6 +130,8 @@ def main():
     logs.mkdir(exist_ok=True)
     core, header = core_catalog(args.core_domain.resolve())
     (build / "real_composition_launches.h").write_text(header)
+    if args.split_core_role:
+        core = split_core(args.core_domain.resolve(), build, args.split_core_role)
     (build / "truth_composition_launches.h").write_bytes((args.truth_partitions / "truth_composition_launches.h").read_bytes())
     (build / "projection_fixture.h").write_bytes((root / "tests/cuda/rv64/projection_fixture.h").read_bytes())
     sources = core + truth_sources(args.truth_domain.resolve(), args.truth_partitions.resolve())
@@ -92,7 +146,9 @@ def main():
         source = args.truth_rational / f"stwo_rv64_truth_projection_{role}.cu"
         result = Rational.partition(source.resolve(), build / "rational" / str(role), 16)
         sources.extend(map(Path, result))
-    sources += [root / "tests/cuda/rv64/real_composition_native.cu", root / "tests/cuda/rv64/truth_composition_native.cu"]
+    if not args.split_core_role:
+        sources.append(root / "tests/cuda/rv64/real_composition_native.cu")
+    sources.append(root / "tests/cuda/rv64/truth_composition_native.cu")
     flags = ["-O3", "-std=c++17", "-lineinfo", "-gencode", "arch=compute_120,code=sm_120", "-Xcompiler=-fPIC,-pthread", f"-I{root}/src/backends/cuda/native", f"-I{build}"]
     version = subprocess.check_output([args.nvcc, "--version"], text=True)
     objects = build / "aot-objects"
@@ -119,7 +175,7 @@ def main():
     missing = [name for name in required if not hasattr(image, name)]
     if missing:
         raise RuntimeError("complete resident image missing AOT exports: " + repr(missing))
-    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "truth_roles": 15, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
+    receipt = {"schema": "rv64-resident-image-build/v1", "cpu_roles": 49, "core_split_roles": args.split_core_role, "truth_roles": 15, "library_sha256": N.sha(library), "source_sha256": {str(source): N.sha(source) for source in sources}, "gpu_qualified": False}
     (build / "image-build.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(library)
 

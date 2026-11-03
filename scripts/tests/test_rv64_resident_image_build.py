@@ -9,6 +9,32 @@ import rv64_cuda_resident_image_build as B
 
 
 class ImagePlan(unittest.TestCase):
+    def test_split_core_keeps_original_power_offsets_and_local_dispatch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for i in range(49):
+                text = f'extern "C" __global__ void rv64_joined_domain_{i}(void){{}}'
+                (root / f"case-{i}-domain.cu").write_text(text)
+            source = root / "case-8-domain.cu"
+            source.write_text('''#include "rv64/composition.cuh"
+__device__ __noinline__ void rv64_joined_domain_8_part_0(void){use(powers+1136u);}
+__device__ __noinline__ void rv64_joined_domain_8_part_1(void){use(powers+880u);}
+extern "C" __global__ void rv64_joined_domain_8(void){uint32_t i=0;switch(blockIdx.y){}}
+''')
+            build = root / "build"
+            build.mkdir()
+            sources = B.split_core(root, build, [8])
+            self.assertEqual(len(sources), 51)  # 48 untouched + 2 fragments + dispatcher.
+            first = (build / "core-parts/8/rv64_joined_domain_8_shard_0.cu").read_text()
+            second = (build / "core-parts/8/rv64_joined_domain_8_shard_1.cu").read_text()
+            self.assertIn("powers+1136u", first)
+            self.assertNotIn("powers+880u", first)
+            self.assertIn("powers+880u", second)
+            self.assertIn("case 0u:rv64_joined_domain_8_part_1", second)
+            header = (build / "real_composition_launches.h").read_text()
+            self.assertIn("rv64_joined_domain_8_shard_1,32u,1u", header)
+            self.assertNotIn("(const void*)rv64_joined_domain_8,", header)
+
     def test_all_core_roles_required_and_group_geometry_preserved(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
