@@ -22,6 +22,17 @@ test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded
     defer decoded.deinit();
     var fresh = try @import("stwo_circuit_cpu_integration").om31.prove.verify(a, wrapped.authority, decoded.outputs, decoded.claims, &decoded.proof);
     defer fresh.deinit(a);
+    var restored = try Wrap.wrapGraphOrLoad(a, &ctx, digest, bytes);
+    defer restored.deinit();
+    try std.testing.expect(restored.restored);
+    try std.testing.expectEqual(@as(u64, 0), restored.timings.prove_ns);
+    const replay = try restored.serialize(a);
+    defer a.free(replay);
+    try std.testing.expectEqualSlices(u8, bytes, replay);
+    const mutant = try a.dupe(u8, bytes);
+    defer a.free(mutant);
+    mutant[40] ^= 1;
+    try std.testing.expectError(error.Om31CircuitWireAuthority, Wrap.wrapGraphOrLoad(a, &ctx, digest, mutant));
     var bad = digest;
     bad[31] ^= 1;
     try std.testing.expectError(error.CurrentOm31OutputDigest, Wrap.requireDigest(decoded.outputs, bad));
