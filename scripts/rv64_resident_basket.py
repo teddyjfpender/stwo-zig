@@ -7,6 +7,7 @@ cases stay explicit failures; a partial matrix is never called complete.
 """
 import argparse
 import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -280,7 +281,7 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
             "combined_report_sha256": B.sha(proof / "combined-report.json"), "entry_sha256": B.sha(proof / "combined-entry.json")}
 
 
-def run_job(plan, job):
+def produce_job(plan, job):
     target = Path(job["target"])
     target.mkdir(parents=True, exist_ok=False)
     if job["missing"]:
@@ -321,6 +322,57 @@ def run_job(plan, job):
     gpu = B.gpu_diagnostics(target / "producer.stderr")
     if gpu["kernel_launches"] <= 0 or gpu["device_ms"] <= 0:
         raise ValueError("actual GPU numerical evidence missing; fallback rejected")
+    pending = {"status": "produced_pending_verification", "accepted": False,
+               "plan_sha256": plan_identity(plan), "block": job["block"], "device_count": job["device_count"],
+               "producer_process": usage, "physical_gpu_memory": memory, "markers": markers, "gpu": gpu,
+               "environment": {k: v for k, v in environment.items() if k.startswith(("STWO_RV64_", "CUDA_"))},
+               "artifact_snapshot": produced_snapshot(plan, job),
+               "log_sha256": {name: B.sha(target / name) for name in ("producer.stdout", "producer.stderr")}}
+    B.atomic_json(target / "produced.json", pending)
+    return pending
+
+
+def plan_identity(plan):
+    return hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def produced_snapshot(plan, job):
+    result = []
+    for trial in range(plan.get("repeat", 2)):
+        proof = Path(job["target"]) / "batch" / ("trial-" + str(trial)) / str(job["block"]) / "proof"
+        native = B.load(proof / "report.json")
+        names = [p.name for p in proof.glob("*.bin")] + ["bundle.json", "report.json"]
+        if plan.get("combined"):
+            names += ["combined-report.json", "combined-entry.json"]
+        item = {"native": {name: B.sha(proof / name) for name in sorted(names)}}
+        if plan.get("combined"):
+            item["recursive"] = recursive_snapshot(proof, native["cpu_proofs"] + native["truth_proofs"])
+        result.append(item)
+    return result
+
+
+def qualify_job(plan, job, pending=None):
+    target = Path(job["target"])
+    pending = B.load(target / "produced.json") if pending is None else pending
+    if (pending.get("status") != "produced_pending_verification" or pending.get("accepted") is not False
+            or pending.get("plan_sha256") != plan_identity(plan) or pending.get("block") != job["block"]
+            or pending.get("device_count") != job["device_count"]):
+        raise ValueError("pending production authority differs from the pinned plan")
+    for key, path in plan["assets"].items():
+        if B.sha(path) != plan["asset_sha256"][key]:
+            raise ValueError("asset changed before qualification: " + key)
+    if B.sha(job["request"]) != job["request_sha256"]:
+        raise ValueError("request changed before qualification")
+    if produced_snapshot(plan, job) != pending["artifact_snapshot"]:
+        raise ValueError("produced artifacts changed before independent qualification")
+    for name, expected in pending["log_sha256"].items():
+        if B.sha(target / name) != expected:
+            raise ValueError("production log changed before qualification")
+    environment = dict(os.environ)
+    environment.update(pending["environment"])
+    usage, memory, gpu = pending["producer_process"], pending["physical_gpu_memory"], pending["gpu"]
+    markers = {int(k): v for k, v in pending["markers"].items()}
+    log = (target / "producer.stdout").read_text(errors="replace") + (target / "producer.stderr").read_text(errors="replace")
     trials = []
     for trial in range(plan.get("repeat", 2)):
         proof = target / "batch" / ("trial-" + str(trial)) / str(job["block"]) / "proof"
@@ -367,6 +419,8 @@ def run_job(plan, job):
                 trials[0]["bundle_sha256"] != reference["trials"][0]["bundle_sha256"]):
             raise ValueError("cross-device exact proof parity failed")
         cross_device_parity = True
+    if produced_snapshot(plan, job) != pending["artifact_snapshot"]:
+        raise ValueError("independent qualification changed a produced artifact")
     return {"schema": SCHEMA, "combined": plan.get("combined", False), "status": "accepted", "block": job["block"], "device_count": job["device_count"],
             "coordinator_schedule": job["resources"]["schedule"],
             "request_sha256": job["request_sha256"], "input_sha256": job["input_sha256"], "asset_sha256": plan["asset_sha256"],
@@ -376,6 +430,10 @@ def run_job(plan, job):
             "process_unattributed_wall_ns": usage["wall_ns"] - sum(markers.values()),
             "wall_scope": ("Request wall includes execution/capture/setup, native proving and verification, fresh recursion and the device lifecycle audit. Process remainder includes pool startup/teardown and reporting. Independent verification is separate." if plan.get("combined") else "Request wall includes execution/capture/setup/prove/native verification; process-unattributed wall includes device-pool startup/teardown and outer CLI work. Fresh receiver wall is separate."),
             "residency_scope": "Strict resident-batch rejects host-retained mode; device trace/binding required. No CPU fallback. Wide-transfer absence is a production contract, not a CUPTI measurement."}
+
+
+def run_job(plan, job):
+    return qualify_job(plan, job, produce_job(plan, job))
 
 
 def render(plan, results):
@@ -425,7 +483,7 @@ def render(plan, results):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("mode", choices=("plan", "run", "report"))
+    p.add_argument("mode", choices=("plan", "run", "produce", "qualify", "report"))
     p.add_argument("--basket", type=Path, default=Path("autoresearch/guest_efficiency/basket.json"))
     p.add_argument("--inputs", type=Path, required=True)
     p.add_argument("--driver", type=Path, required=True)
@@ -446,20 +504,22 @@ def main():
                       args.driver.resolve(), args.receiver.resolve(), args.library.resolve(), args.output.resolve(),
                       list(map(int, args.devices.split(","))), list(map(int, args.counts.split(","))), args.device_cap_bytes, args.library_sha256, args.combined, args.recursive_receiver.resolve() if args.recursive_receiver else None, args.repeat)
     plan.update(basket_sha256=B.sha(args.basket), inputs_sha256=B.sha(args.inputs))
-    if args.mode != "report":
+    if args.mode not in ("report", "qualify"):
         B.atomic_json(args.output / "plan.json", plan)
     else:
         if B.load(args.output / "plan.json") != plan:
             raise ValueError("report authority differs from original pinned plan")
-    if args.mode == "run":
+    if args.mode in ("run", "produce", "qualify"):
         if not plan["input_ready"]:
             raise ValueError("matrix has missing assets/inputs; inspect plan.json")
-        inventory = gpu_inventory(sorted({d for j in plan["jobs"] for d in j["devices"]}))
-        B.atomic_json(args.output / "gpu-inventory.json", inventory)
+        if args.mode != "qualify":
+            inventory = gpu_inventory(sorted({d for j in plan["jobs"] for d in j["devices"]}))
+            B.atomic_json(args.output / "gpu-inventory.json", inventory)
         for job in plan["jobs"]:
             path = Path(job["target"]) / "result.json"
             try:
-                result = run_job(plan, job)
+                result = (produce_job(plan, job) if args.mode == "produce" else
+                          qualify_job(plan, job) if args.mode == "qualify" else run_job(plan, job))
             except Exception as error:
                 result = {"schema": SCHEMA, "status": "failed", "block": job["block"], "device_count": job["device_count"], "error": str(error),
                           "process_measurement": getattr(error, "measurement", None)}
@@ -478,7 +538,7 @@ def main():
     results = [B.load(Path(j["target"]) / "result.json") for j in plan["jobs"] if (Path(j["target"]) / "result.json").is_file()]
     B.atomic_json(args.output / "results.json", {"schema": SCHEMA, "complete": len(results) == len(plan["jobs"]) and all(r["status"] == "accepted" for r in results), "results": results})
     (args.output / "report.md").write_text(render(plan, results))
-    if args.mode == "run" and any(r["status"] != "accepted" for r in results):
+    if args.mode in ("run", "qualify") and any(r["status"] != "accepted" for r in results):
         raise SystemExit(1)
 
 

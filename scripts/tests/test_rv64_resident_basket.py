@@ -110,7 +110,7 @@ class ResidentBasket(unittest.TestCase):
             with self.assertRaises(ValueError):
                 R.check_trial(altered, receiver, job, R.PROFILE)
 
-    def exercise_run(self, corrupt_warm=False):
+    def exercise_run(self, corrupt_warm=False, deferred=False, corrupt_pending=False):
         plan = self.plan(counts=[1])
         job = plan["jobs"][0]
         target = Path(job["target"])
@@ -142,12 +142,32 @@ class ResidentBasket(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "warm bytes differ"):
                     R.run_job(plan, job)
             else:
-                result = R.run_job(plan, job)
+                if deferred:
+                    pending = R.produce_job(plan, job)
+                    self.assertEqual(calls, ["producer"])
+                    self.assertEqual(pending["status"], "produced_pending_verification")
+                    self.assertIs(pending["accepted"], False)
+                    self.assertFalse((target / "receiver-0.stdout").exists())
+                    if corrupt_pending:
+                        (target / "batch/trial-0/1/proof/physical-0.bin").write_bytes(b"changed")
+                        with self.assertRaisesRegex(ValueError, "artifacts changed"):
+                            R.qualify_job(plan, job)
+                        self.assertEqual(calls, ["producer"])
+                        return
+                    result = R.qualify_job(plan, job)
+                else:
+                    result = R.run_job(plan, job)
                 self.assertEqual(result["process_unattributed_wall_ns"], 100)
                 self.assertTrue(result["trials"][0]["fresh_receiver_accepted"])
                 self.assertFalse(result["trials"][1]["fresh_receiver_accepted"])
                 self.assertIsNone(result["trials"][1]["fresh_receiver"])
         self.assertEqual(calls, ["producer", "receiver-0"])
+
+    def test_deferred_production_never_accepts_before_cpu_qualification(self):
+        self.exercise_run(deferred=True)
+
+    def test_deferred_qualification_rejects_artifact_mutation_before_receiver(self):
+        self.exercise_run(deferred=True, corrupt_pending=True)
 
     def test_warm_acceptance_inherits_only_exact_bytes_no_second_receiver(self):
         self.exercise_run()
