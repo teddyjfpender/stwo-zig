@@ -436,7 +436,7 @@ const Job = struct {
         const fixed_columns = try a.alloc(D.Column, self.trace.polys.items[0].len);
         defer a.free(fixed_columns);
         for (self.trace.polys.items[0], fixed_columns) |column, *out| out.* = try sourceColumn(column);
-        _ = try b.service.immutableFixed(raw, self.scope, fixed_columns);
+        const immutable_fixed = try b.service.immutableFixed(raw, self.scope, fixed_columns);
         var host_cells: u64 = 0;
         var device_cells: u64 = 0;
         var domain_cells: u64 = 0;
@@ -508,7 +508,7 @@ const Job = struct {
                     1 => offsets[1] + i - widths[0],
                     else => offsets[2] + i - widths[0] - widths[1],
                 };
-                const immutable = if (source_tree == 0 and original.device == null) try b.service.immutableFixedColumn(self.scope, original_index, original) else null;
+                const immutable = if (source_tree == 0 and original.device == null) immutable_fixed[original_index].device else null;
                 if (if (original.device != null) original.device else immutable orelse b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
                     try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
                     try self.checked("copy", b.copy(raw, @ptrCast(target), @ptrCast(device.words), length * 4));

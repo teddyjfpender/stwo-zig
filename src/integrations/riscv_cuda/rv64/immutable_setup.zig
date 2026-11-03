@@ -45,9 +45,18 @@ pub const Cache = struct {
         for (self.entries.items, 0..) |entry, i| {
             const root = entry.fixed_root orelse continue;
             if (!std.mem.eql(u8, &root, &scope.fixed)) continue;
-            if (column_index >= entry.columns.len) return error.ImmutableSetupShapeMismatch;
+            // A root can be shared by different original column orders after
+            // commitment sorting. Select this request's active forest, not a
+            // cold forest belonging to a different ordering or worker.
+            var active = false;
+            const request = @import("pcs_scope.zig").identity(scope);
+            for (self.borrows.items) |borrow| if (std.mem.eql(u32, &borrow.scope, &request) and std.mem.eql(u32, &borrow.key, &entry.key)) {
+                active = true;
+                break;
+            };
+            if (!active or column_index >= entry.columns.len) continue;
             const column = entry.columns[column_index];
-            if (column.log_size != original.log_size) return error.ImmutableSetupShapeMismatch;
+            if (column.log_size != original.log_size) continue;
             _ = try self.acquire(i, @import("pcs_scope.zig").identity(scope));
             return column.device orelse return error.InvalidImmutableFixedSource;
         }
