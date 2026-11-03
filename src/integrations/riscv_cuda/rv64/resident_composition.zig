@@ -134,7 +134,7 @@ pub const Context = struct {
     service: *Service.Context,
     session_api: SC.Api,
     timing: Events.Api,
-    role: *const @TypeOf(Abi.stwo_rv64_composition_role_on),
+    role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on),
     finish: *const @TypeOf(Abi.stwo_rv64_composition_finish_on),
     auxiliary: *const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on),
     tree: *const @TypeOf(Abi.stwo_rv64_trace_tree_on),
@@ -169,10 +169,11 @@ pub const Context = struct {
             .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"),
             .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream"),
-        }, .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
+        }, .role = service.library.lookup(*const @TypeOf(Abi.stwo_rv64_composition_role_on), "stwo_rv64_composition_role_on"), .finish = try sym(*const @TypeOf(Abi.stwo_rv64_composition_finish_on), &service.library, "stwo_rv64_composition_finish_on"), .auxiliary = try sym(*const @TypeOf(Abi.stwo_rv64_composition_auxiliary_on), &service.library, "stwo_rv64_composition_auxiliary_on"), .tree = try sym(*const @TypeOf(Abi.stwo_rv64_trace_tree_on), &service.library, "stwo_rv64_trace_tree_on"), .n2b = try sym(N2b, &service.library, "stwo_lde_n2b_addressed_on"), .b2n = try sym(B2n, &service.library, "stwo_ntt_b2n_columns_compact_on"), .copy = try sym(Copy, &service.library, "stwo_exec_context_memcpy_d2d_async"), .clear = try sym(Clear, &service.library, "stwo_exec_context_memset_async"), .artifacts = undefined };
     }
     pub fn init(a: std.mem.Allocator, service: *Service.Context) !Context {
         var result = try initNumerical(a, service);
+        if (result.role == null) return error.CpuCompositionNotInitialized;
         var made: usize = 0;
         errdefer for (result.artifacts[0..made]) |*item| item.deinit();
         for (Oracle.descriptors(), &result.artifacts) |d, *artifact| {
@@ -404,7 +405,7 @@ pub const Context = struct {
                 for (parameters, artifact.parameter_slots) |*value, slot| value.* = metadata[slot];
                 const shape = c.mainShape();
                 const offsets = c.columnOffsets();
-                role.* = .{ .id = id, .artifact = artifact, .evaluate = self.role, .trace_log = G.Authority.RoleGeometry.logSize(c), .eval_log = c.maxConstraintLogDegreeBound(), .widths = .{ shape.fixed, shape.main, G.Authority.RoleGeometry.interWidth(c) }, .offsets = .{ offsets[0], offsets[1], c.inter_offset }, .parameters = parameters };
+                role.* = .{ .id = id, .artifact = artifact, .evaluate = self.role orelse return error.CpuCompositionNotInitialized, .trace_log = G.Authority.RoleGeometry.logSize(c), .eval_log = c.maxConstraintLogDegreeBound(), .widths = .{ shape.fixed, shape.main, G.Authority.RoleGeometry.interWidth(c) }, .offsets = .{ offsets[0], offsets[1], c.inter_offset }, .parameters = parameters };
                 if (comptime @hasField(T, "data")) {
                     var hc: [2 * 22 * 8]u32 = undefined;
                     for (0..2) |half| for (0..role.trace_log) |i| for ((if (half == 0) c.data.point.hc0[i] else c.data.point.hc1[i]).toM31Array(), 0..) |word, j| {
