@@ -328,7 +328,9 @@ pub const LayerCfg = struct {
     pub fn validate(self: LayerCfg) !void {
         if (self.log_heads > self.log_d or self.logDh() < 1) return error.BadConfig;
         if (self.log_kv_heads > self.log_heads) return error.BadConfig;
-        if (self.log_d > 14 or self.log_heads + 2 * self.log_t > 26) return error.BadConfig;
+        // no-wrap bounds (transformer.md, "Field-size bounds")
+        if (self.log_d > 14 or self.log_f > 15 or self.logDh() > 13) return error.BadConfig;
+        if (self.log_heads + 2 * self.log_t > 26 or self.log_t > 13) return error.BadConfig;
     }
 };
 
@@ -465,10 +467,13 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
         o.* = @intCast(std.math.sqrt(N >> s1));
     }
     const rt_id = try b.addVec(lt, rt);
-    try b.rangeWide(lt, try b.expr(&.{term(1, Ref.w(rt_id), &.{ids(0, lt)})}, 0), 16);
-    const rt2 = (try b.einsumExact(TensorInfo.vec(lt), lt, Ref.w(rt_id), Ref.w(rt_id), 0, &.{ids(0, lt)}, &.{ids(0, lt)})).?;
     const nmax: u64 = @intCast(((@as(i64, 1) << @intCast(ld + 14)) + ceps) << m1);
     const rtmax = std.math.sqrt(nmax >> s1);
+    // rt in [0, 2^rt_bits) with 2^s1 * rt^2 < 2^30: rt2 = rt * rt cannot wrap mod p
+    const rt_bits: u32 = std.math.log2_int_ceil(u64, rtmax + 1);
+    if (2 * rt_bits + s1 > 30) return error.BadConfig;
+    try b.rangeWide(lt, try b.expr(&.{term(1, Ref.w(rt_id), &.{ids(0, lt)})}, 0), rt_bits);
+    const rt2 = (try b.einsumExact(TensorInfo.vec(lt), lt, Ref.w(rt_id), Ref.w(rt_id), 0, &.{ids(0, lt)}, &.{ids(0, lt)})).?;
     const gap_bits: u32 = s1 + std.math.log2_int_ceil(u64, 2 * rtmax + 2);
     const tl = ids(0, lt);
     const p_m1 = @as(i64, 1) << m1;

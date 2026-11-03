@@ -1,0 +1,215 @@
+# Tensor frontend: integer transformer model and its proof
+
+Status: implemented in `src/tensor/ext.zig` (generic ops) and
+`src/tensor/transformer.zig` (builders, tests), hooked into
+`src/tensor/protocol.zig`. Bench: `tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]`.
+
+p = 2^31 - 1 (M31). All challenges are QM31 (|F| ~ 2^124).
+
+## 1. Generic ops (ext.zig)
+
+Tensors are addressed at **bit** granularity. A tensor with 2^n entries has n
+index bits, MSB-first (the row-major layout of its dims). An op lives on a
+variable space {0,1}^m; every operand carries one *label* per index bit naming
+the variable that drives it. Labels express batching, transposes, broadcasts,
+head grouping (GQA) and the RoPE pair-rotation without data movement.
+Operands are committed witness tensors or **public** tensors (part of the
+statement; the verifier evaluates their MLEs itself).
+
+### einsum
+`Y[o] = requant_s(sum_k A[la(o,k)] * B[lb(o,k)])` (s > 0) or exact
+`Y[o] = sum_k A*B` (s = 0; `y = null` asserts the sum is identically 0).
+Variables 0..n_out-1 are Y's bits, n_out..n_out+n_k-1 are contracted.
+Validation: each label in range, no repeats within an operand, every output
+var driven by A or B, every contracted var by both.
+
+Reduction of a claim Y_acc(rho) (rho in F^n_out):
+
+    Y_acc(rho) = sum_{b,k} eq(rho_B, b) * A'(b,k) * B'(b,k)
+
+where B ("batch") = output vars present in both operands, and
+A'(b,k) = sum_u eq(rho_u, u) A(u,b,k) folds A-only output vars u at rho
+(likewise B'). eq factorises over disjoint variable sets, so this is an
+identity of multilinear polynomials; A'(r) = A~(point) where point takes
+rho on A-only vars and the sumcheck point r on batch/contracted vars.
+Sumcheck degree 3 (degree 2 when there are no batch vars). Final check
+`eq(rho_B, r_B) * A'(r) * B'(r)`; the two finals become witness claims, or are
+recomputed by the verifier for public operands.
+
+* requant (s > 0): exactly the core protocol's virtual-remainder scheme:
+  LogUp keys `r = acc + 2^(s-1) - 2^s Y in [0, 2^s)` (virtual: GKR terminal
+  value is derived, never committed) and `Y + 2^(ob-1) in [0, 2^ob)`.
+  acc(rho) = r(rho) - 2^(s-1) + 2^s Y(rho) at GKR's terminal point.
+* exact: rho is drawn after the commitment; the prover sends Y(rho) (a witness
+  claim) or the claim is 0.
+
+### key (LogUp)
+Key column `in(x) + beta * out(x)`, x in {0,1}^n, where `in`/`out` are
+**linear expressions**: `c0 + sum_t c_t * T_t[labels]` with integer
+coefficients; a term's labels map its bits to key vars (unmentioned key vars
+broadcast) or to `SUM` (the term is summed over that bit). Tables: range
+`[0, 2^b)` (b <= 20) or a public lookup table `(i, values[i])`. The GKR
+terminal claim is `alpha - key~(rho)`; the prover sends each witness term's
+MLE value at its point (SUM bits evaluated at 1/2 and scaled by 2^#SUM, since
+`sum_u T~(rho', u) = 2^|u| T~(rho', 1/2..1/2)`), the verifier recomputes public
+terms and checks `alpha - den == in(rho) + beta * out(rho)`.
+
+### lineq
+`expr(x) == 0` for all x: rho drawn after commitment, prover sends witness term
+values, verifier checks expr~(rho) = 0 (Schwartz-Zippel, error n/|F|).
+
+### Protocol placement
+Ext keys are appended after the core keys in the one batched LogUp-GKR;
+range tables are shared with core relations. Transcript order: statement
+(ext part mixed only if non-empty, so core transcripts are unchanged) ->
+witness root -> alpha, beta -> GKR -> core terminal claims -> ext terminal
+claims -> core op sumchecks -> ext ops (requant einsums at GKR's point;
+exact einsums and lineqs at fresh points) -> one batch sumcheck over all
+witness claims -> single witness opening. All prover messages are mixed
+before the next challenge.
+
+### Soundness of the generic ops
+* Every witness claim produced by an ext op is discharged by the same batch
+  sumcheck + PCS opening as core claims (binding to the committed table).
+* einsum: sumcheck soundness (deg * #vars / |F|) + the fold identity above.
+* key: LogUp soundness over QM31 with alpha, beta drawn after the witness and
+  multiplicities are committed (total key count < p); the terminal check
+  binds the key column MLE to the opened tensors. Hence every key value
+  (as a *field* element pair) lies in the table.
+* lineq: Schwartz-Zippel.
+* Public operands are hashed into the transcript (values and shapes), so a
+  proof for one mask / RoPE table / gamma does not verify for another (tested).
+* Statements are validated before use (malformed labels / ids / table sizes
+  -> error, never out-of-bounds).
+
+**Range-to-integer lemma.** If an integer combination of bounded integers has
+true value v with -(p - 2^b) < v < p and the protocol proves v mod p lies in
+[0, 2^b), then v in [0, 2^b) as an integer. Every inequality below is used only
+under bounds that satisfy this (section 4).
+
+## 2. Integer decoder layer (transformer.zig)
+
+Dims (powers of two): T = 2^lt tokens, D = 2^ld, F = 2^lf, H = 2^lh query
+heads, Hkv = 2^lkv kv heads (GQA, lkv <= lh, group G = H/Hkv; query head
+h = (hk, g) uses kv head hk = h >> lg), dh = D/H. Weights int8, committed once
+(7 per layer: Wq [D,D], Wk/Wv [D,Hkv dh], Wo [D,D], Wg/Wu [D,F], Wd [F,D]).
+`rq_s(a) = floor((a + 2^(s-1)) / 2^s)` (rq_0 = id). Shifts marked "chosen" are
+picked by the builder as the smallest s making the output fit its range; they
+are part of the public statement.
+
+```
+layer(x):                       x: [T, D], int8 for layer 0
+  y1  = RMSNorm(x, gamma1)
+  q   = rq(y1 Wq)  k = rq(y1 Wk)  v = rq(y1 Wv)        core matmul, int8
+  qr  = RoPE(q)    kr = RoPE(k)                         9-bit
+  S   = rq(qr kr^T) per head (GQA)                      int8, shift chosen
+  o   = Softmax-PV(S, v)                                int8
+  h   = x + rq(o Wo)                                    residual (lineq)
+  y2  = RMSNorm(h, gamma2)
+  out = h + rq(rq(silu(rq(y2 Wg)) * rq(y2 Wu)) Wd)      core SwiGLU
+```
+
+**RMSNorm(x, gamma)** (per token t, gamma public int8 in [48, 80]):
+1. xs = x if x is int8 (range-checked), else xs = rq_{s0}(x) with s0 chosen
+   (remainder key + int8 range key).
+2. ss = sum_d xs^2 (exact einsum, contraction over d).
+3. s1 = max(ld-8, 0), m1 = max(8-ld, 0), c = 2^s1, N = (ss + c) 2^m1.
+   rt = max{ r >= 0 : r^2 2^s1 <= N } (so rt ~ 16 * rms(xs), rt >= 1).
+   Proved by: rt in [0, 2^rt_bits) with 2 rt_bits + s1 <= 30; rt2 = rt*rt
+   (exact einsum); N - 2^s1 rt2 >= 0 and 2^s1 (rt2 + 2 rt + 1) - 1 - N >= 0
+   (range keys of gap_bits = s1 + ceil(log2(2 rtmax + 2)), limbs if > 16).
+4. inv = floor(2^15 / rt): inv in [0, 2^16); pr = inv*rt (exact);
+   2^15 - pr >= 0 and rt - 1 - (2^15 - pr) >= 0 (16-bit ranges).
+5. u = rq_6(xs * inv) (broadcast over d; 16-bit signed) ~ 32 xs / rms.
+6. y = rq_s(u * gamma[d]) (public operand), int8, s chosen.
+
+**RoPE(x)** on x [T, heads*dh] with pairs (2i, 2i+1): public table
+R[t, i, b', b] = 128 * [[cos, -sin], [sin, cos]] (theta = t * 10000^(-2i/dh),
+rounded). `x'[t, h, i, b'] = rq_7(sum_b x[t, h, i, b] R[t, i, b', b])`, 9-bit
+signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
+
+**Softmax-PV(S, v)** for every head h and query t (j = key position):
+* Bias[t, j] = 0 if j <= t else -512 (public causal mask). Sm = S + Bias.
+* m[h,t] = max_j Sm; sel[h,t,:] = one-hot of the first argmax.
+* D = m - S - Bias (committed; lineq) in [0, 1024) (lookup domain).
+* e = expT(D), expT(d) = round(256 exp(-d/16)) for d < 256, 0 otherwise
+  (public 1024-entry lookup). Masked positions have D >= 257, so e = 0.
+* den[h,t] = sum_j e (lineq with a SUM term) in [256, 256 T].
+* P = floor(128 e / den) in [0, 128]: P in [0, 256) (range), pd = P*den
+  (exact einsum, den broadcast over j), 0 <= 128 e - pd and
+  den - 1 - (128 e - pd) >= 0 (ranges of lt+9 bits, limbs if > 16).
+* o[t, h, e] = rq_s(sum_j P[h,t,j] v[j, hk(h), e]) int8, s chosen.
+
+Constraints for the rowmax: sel in {0,1} (1-bit range), sum_j sel = 1
+(lineq), sum_j sel * D = 0 (exact einsum with y = 0).
+
+**Residual**: z = x + y committed with a lineq (no range check needed: z is
+an integer function of range-checked integers).
+
+**Stack**: `buildStack` chains n_layers; layer l > 0 re-quantizes its input
+for RMSNorm (step 1) but the residual uses the full-precision stream
+(|x_l| <= 128 + 256 l).
+
+## 3. What is proved
+
+For a public statement (shapes, shifts, gammas, mask, RoPE table, exp/silu
+tables) and the committed weight root, the verifier is convinced that the
+committed witness is *the* output of the integer layer above on the committed
+input: every intermediate is uniquely determined by the constraints (argmax
+ties are irrelevant: m is unique; sel may pick any maximiser but nothing
+downstream depends on which).
+
+Uniqueness arguments:
+* rowmax: sel in {0,1}, sum sel = 1 over <= T < p terms => exactly one j*;
+  D_j in [0,1024) and D_j = m - S_j - Bias_j as integers (bounds below) =>
+  m >= Sm_j for all j; sum_j sel D = D_{j*} = 0 => m = Sm_{j*}. So m = max Sm.
+* division: P in [0,256) and pd = P den exactly; with |128 e - pd| < 2^30,
+  0 <= 128 e - P den < den <=> P = floor(128 e / den). Range-checking P is
+  essential: without it P = (128 e - r') / den mod p would satisfy the
+  field equations for any r' in [0, den).
+* isqrt / reciprocal: same pattern; rt >= 0 range-checked so the square root
+  is unique; rt >= 1 since N >= 2^s1.
+* requant: core argument (remainder in [0, 2^s), output range).
+
+## 4. Field-size bounds (no wrap-around)
+
+Enforced by `LayerCfg.validate` (ld <= 14, lf <= 15, ldh <= 13, lt <= 13,
+lh + 2 lt <= 26) and by builder assertions:
+
+| quantity | bound |
+|---|---|
+| ss = sum xs^2 | D 2^14 <= 2^28 |
+| 2^s1 rt2, N | < 2^30 (2 rt_bits + s1 <= 30), N <= 2^28 + 2^14 |
+| pr = inv rt | < 2^16 2^12 = 2^28 |
+| u acc = xs inv | < 2^23; y acc = u gamma < 2^22 |
+| RoPE acc | < 2^17 |
+| score acc | dh 2^16 <= 2^29 |
+| D, m - S - Bias | |.| < 2^11 |
+| den | <= 2^(lt+8) |
+| pd = P den, 128 e - pd | < 2^(lt+16) <= 2^29 |
+| PV acc | < 2^(lt+15) |
+| core matmul acc | K 2^14 <= 2^29 |
+
+All inequality operands therefore satisfy the range-to-integer lemma.
+
+## 5. Tests (src/tensor/transformer.zig)
+
+* full layer (T=8, D=32, F=64, 4 heads, 2 kv heads) and a 2-layer stack
+  prove and verify;
+* the witness matches an independent direct-index integer reference for
+  RoPE, GQA scores, causal softmax, PV and RMSNorm;
+* tampering of every ext sumcheck (first round), sampled finals, first/last
+  ext values, statement (mask, shift, labels) -> rejected;
+* test-only unchecked prover (`ext.test_unchecked_prover`) with invalid
+  witnesses: moved argmax selector, lowered rowmax (consistent D), P + 1
+  (consistent pd), wrong rt, residual, exp value, masked-position exp leak,
+  score, sum of squares -> all rejected by the verifier;
+* honest prover refuses an invalid witness (error, no proof).
+
+## 6. Not covered / caveats
+
+* MoE routing (top-1 argmax + expert selection) is not implemented yet.
+* Weight gammas are public, not committed.
+* Prover kernels for ext ops are generic (bit-gather) and largely serial in
+  the operand folds; attention sizes beyond T ~ 2^9 need tuned kernels.
+* Non-hiding (zero-knowledge is a separate stream).
