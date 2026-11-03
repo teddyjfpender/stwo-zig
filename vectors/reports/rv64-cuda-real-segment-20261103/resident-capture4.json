@@ -77,5 +77,16 @@
     "Fourpacket capture saves0.48s in this singlewarm comparison, uses0.70GBmorehostpeak than2packets; proving8.24vs8.27s is noise"
   ],
   "source_admission_commit": "b0f1a60d3",
-  "capture_prefetch_tests": "test-riscv64-capture-prefetch ReleaseFast passes, including bounded windows and malformed ordering"
+  "capture_prefetch_tests": "test-riscv64-capture-prefetch ReleaseFast passes, including bounded windows and malformed ordering",
+  "fresh_receiver": {
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "cpu_proofs": 7,
+    "truth_proofs": 10,
+    "load_and_setup_ns": 25538251002,
+    "verify_ns": 2290910737,
+    "source_validations": 15,
+    "source_coefficient_cells": 266883232
+  },
+  "fresh_receiver_note": "Separateprocess independentlyrebuilds and fullyvalidates15immutableauthorities; no residentproducer catalogreuse"
 }
