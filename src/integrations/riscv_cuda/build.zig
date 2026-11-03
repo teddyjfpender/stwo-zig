@@ -318,6 +318,9 @@ pub fn build(b: *std.Build) void {
     const receiver = b.addExecutable(.{ .name = "rv64-word16-ethereum-recursion-receiver", .root_module = receiver_root });
     receiver.linkLibC();
     b.step("build-rv64-ethereum-recursion-receiver", "Build independent CPU-only current OM31 recursion receiver").dependOn(&b.addInstallArtifact(receiver, .{}).step);
+    const receiver_check = b.addExecutable(.{ .name = "rv64-recursion-receiver-check", .root_module = receiver_root });
+    receiver_check.linkLibC();
+    b.step("check-rv64-ethereum-recursion-receiver", "Type-check independent CPU-only recursion receiver without emitting a binary").dependOn(&receiver_check.step);
 
     const combined_root = b.createModule(.{ .root_source_file = b.path("rv64_combined_ethereum_main.zig"), .target = target, .optimize = optimize });
     combined_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
