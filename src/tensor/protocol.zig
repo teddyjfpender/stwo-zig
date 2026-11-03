@@ -301,7 +301,7 @@ const PCS2_MAX_LOG_COLS: u32 = 22;
 
 fn witnessSplit(cfg: Config, log_total: u32, used: usize) struct { lr: u32, lc: u32 } {
     if (cfg.two_level) |tl| {
-        const b = pcs2.bestOuter(tl, log_total, used, 2, @min(log_total, PCS2_MAX_LOG_COLS));
+        const b = pcs2.bestOuter(tl, log_total, used, 1, true, @min(log_total, PCS2_MAX_LOG_COLS));
         return .{ .lr = log_total - b.log_cols, .lc = b.log_cols };
     }
     const s = splitTable(log_total, cfg.witness_log_cols_max);
@@ -319,7 +319,7 @@ pub fn chooseWeightLogCols(cfg: Config, a: std.mem.Allocator, infos: []const Ten
     const tl = cfg.two_level orelse return cfg.weight_log_cols;
     const lay = try layout(a, infos, &.{});
     defer a.free(lay.offsets);
-    return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
+    return pcs2.bestOuter(tl, lay.log_total, lay.used, n_groups, false, @min(lay.log_total, PCS2_MAX_LOG_COLS)).log_cols;
 }
 
 pub const WitnessClaim = struct { tensor: usize, point: []QM31, value: QM31 };

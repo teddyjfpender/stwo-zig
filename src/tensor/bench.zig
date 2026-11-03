@@ -29,15 +29,28 @@ fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Pa
     if (args.len > first + 2) p.inner.log_blowup = try std.fmt.parseInt(u32, args[first + 2], 10);
     if (args.len > first + 3) p.inner.pow_bits = try std.fmt.parseInt(u32, args[first + 3], 10);
     if (args.len > first + 4) p.inner_work_shift = try std.fmt.parseInt(u32, args[first + 4], 10);
+    if (args.len > first + 5) p.prox_rows = try std.fmt.parseInt(u32, args[first + 5], 10);
     return p;
 }
 
 fn printTl(out: anytype, pc: proto.Config) !void {
     if (pc.two_level) |tl| {
+        try out.print("\"prox_rows\":{d},", .{tl.prox_rows});
         try out.print("\"pcs\":\"pcs2\",\"depth\":{d},\"inner_queries\":{d},\"inner_log_blowup\":{d},\"inner_pow\":{d},\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ tl.depth, tl.inner.n_queries, tl.inner.log_blowup, tl.inner.pow_bits, tl.conjecturedBits(), tl.provenBits() });
     } else {
         try out.print("\"pcs\":\"flat\",\"conjectured_bits\":{d:.1},\"proven_bits\":{d:.1},", .{ pc.pcs.conjecturedBits(), pc.pcs.provenBits() });
     }
+}
+
+/// Per-level byte breakdown of a pcs2 opening: [cols, siblings, rows/inner].
+fn printLevels(out: anytype, name: []const u8, op: proto.Opening) !void {
+    if (op != .two) return;
+    try out.print("\"{s}\":[", .{name});
+    for (op.two.levels, 0..) |l, i| {
+        const fin = i + 1 == op.two.levels.len;
+        try out.print("{s}[{d},{d},{d}]", .{ if (i == 0) "" else ",", l.col_values.len * 4, l.decommit.len * 32, l.byteSize(fin) - l.col_values.len * 4 - l.decommit.len * 32 });
+    }
+    try out.print("],", .{});
 }
 
 fn peakRssBytes() u64 {
@@ -123,6 +136,8 @@ pub fn main() !void {
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"stage_s\":{{\"witness_commit\":{d:.4},\"gkr\":{d:.4},\"op_sumchecks\":{d:.4},\"weight_fold\":{d:.4},\"batch\":{d:.4},\"witness_open\":{d:.4},\"weight_open\":{d:.4}}},", .{ nsToS(tm.witness_commit_ns), nsToS(tm.gkr_ns), nsToS(tm.op_sumcheck_ns), nsToS(tm.weight_fold_ns), nsToS(tm.batch_ns), nsToS(tm.witness_open_ns), nsToS(tm.weight_open_ns) });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},", .{ sz.gkr, sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total });
+    try printLevels(out, "witness_levels", proof.witness_opening);
+    if (proof.weight_opening) |wo| try printLevels(out, "weight_levels", wo);
     try out.print("\"proved_macs_per_s\":{d:.4},\"prove_ns_per_weight\":{d:.4},\"prove_ns_per_token\":{d:.1},\"committed_bits_per_token\":{d:.1},\"peak_rss_bytes\":{d}}}\n", .{ macs / prove_s, prove_s * 1e9 / n_weights, prove_s * 1e9 / T, @as(f64, @floatFromInt(tm.witness_table_elems)) * 32.0 / T, peakRssBytes() });
     proof.deinit(a);
     built.deinit(a);
@@ -191,8 +206,8 @@ fn runModel(args: []const [:0]u8) !void {
     p.inner.n_queries = if (args.len > 8) try std.fmt.parseInt(usize, args[8], 10) else p.inner.n_queries;
     p.inner.log_blowup = if (args.len > 9) try std.fmt.parseInt(u32, args[9], 10) else p.inner.log_blowup;
     if (args.len > 10) p.inner_work_shift = try std.fmt.parseInt(u32, args[10], 10);
-    const b = t.pcs2.bestOuter(p, lt, used, nr, @min(lt, 30));
-    const flat = t.pcs2.bestOuter(.{ .outer = p.outer, .depth = 0 }, lt, used, nr, @min(lt, 30));
+    const b = t.pcs2.bestOuter(p, lt, used, nr, false, @min(lt, 30));
+    const flat = t.pcs2.bestOuter(.{ .outer = p.outer, .depth = 0 }, lt, used, nr, false, @min(lt, 30));
     const out = std.fs.File.stdout().deprecatedWriter();
     try out.print("{{\"log_total\":{d},\"used\":{d},\"n_rows\":{d},\"depth\":{d},\"log_cols\":{d},\"bytes\":{d:.0},\"flat_log_cols\":{d},\"flat_bytes\":{d:.0}}}\n", .{ lt, used, nr, p.depth, b.log_cols, b.bytes, flat.log_cols, flat.bytes });
 }

@@ -7,7 +7,7 @@
 //! u_g = sum_i a_g[i] row_i (2^lc QM31 each) and the verifier re-encodes it.
 //! Here, at each non-final level:
 //!
-//!   1. the prover commits U = (u_0 .. u_{G-1}) (proximity row first, then
+//!   1. the prover commits U = (u_0 .. u_{G-1}) (proximity rows first, then
 //!      one row per claim group) as an M31 table V[g][c][k] = limb_c(u_g[k])
 //!      with a fresh `pcs.commit` (inner blowup);
 //!   2. the verifier draws rho (log G' coords, G' = next pow2 >= G),
@@ -59,6 +59,14 @@ pub const Params = struct {
     /// max(used >> inner_work_shift, 2^14), i.e. the inner encoding stays a
     /// small fraction of the level's own row-combination work.
     inner_work_shift: u32 = 3,
+    /// independent random proximity rows per proximity test (at every level).
+    /// The correlated-agreement error of one row is ~ E/|F| (BCIKS20, unique
+    /// decoding), i.e. ~2^-105 at E = 2^19 over QM31; k rows give its k-th power.
+    prox_rows: u32 = 1,
+
+    pub fn nProx(self: Params, with_proximity: bool) usize {
+        return if (with_proximity) self.prox_rows else 0;
+    }
 
     pub fn level(self: Params, i: usize) pcs.Params {
         return if (i == 0) self.outer else self.inner;
@@ -325,7 +333,7 @@ pub fn bestInner(params: Params, lvl: usize, n_rows: usize, log_c: u32, depth: u
     var lc: u32 = 1;
     while (lc <= log_c) : (lc += 1) {
         const sh = innerShape(n_rows, log_c, lc);
-        const b = predictLevel(params, lvl, sh.log_total, (n_rows * 4) << @intCast(log_c), lc, 2, depth);
+        const b = predictLevel(params, lvl, sh.log_total, (n_rows * 4) << @intCast(log_c), lc, 1 + params.prox_rows, depth);
         if (b < best) {
             best = b;
             best_lc = lc;
@@ -336,7 +344,8 @@ pub fn bestInner(params: Params, lvl: usize, n_rows: usize, log_c: u32, depth: u
 
 /// Best outer split for a table of 2^log_total entries (used of them nonzero)
 /// opened with n_rows combined rows.
-pub fn bestOuter(params: Params, log_total: u32, used: usize, n_rows: usize, max_log_cols: u32) struct { log_cols: u32, bytes: f64 } {
+pub fn bestOuter(params: Params, log_total: u32, used: usize, n_groups: usize, with_proximity: bool, max_log_cols: u32) struct { log_cols: u32, bytes: f64 } {
+    const n_rows = n_groups + params.nProx(with_proximity);
     var best_lc: u32 = 1;
     var best: f64 = std.math.inf(f64);
     var lc: u32 = 1;
@@ -381,7 +390,7 @@ const Setup = struct {
     }
 };
 
-fn setup(a: std.mem.Allocator, tr: *Transcript, log_rows: u32, groups: []const Group, with_proximity: bool) !Setup {
+fn setup(a: std.mem.Allocator, tr: *Transcript, log_rows: u32, groups: []const Group, n_prox: usize) !Setup {
     const R = @as(usize, 1) << @intCast(log_rows);
     for (groups) |g| for (g.claims) |c| tr.mixFelt(c.value);
     const gammas = try a.alloc([]QM31, groups.len);
@@ -389,15 +398,13 @@ fn setup(a: std.mem.Allocator, tr: *Transcript, log_rows: u32, groups: []const G
         gammas[gi] = try a.alloc(QM31, g.claims.len);
         tr.drawN(gammas[gi]);
     }
-    const n_out = groups.len + @intFromBool(with_proximity);
+    const n_out = groups.len + n_prox;
     const coeffs = try a.alloc([]QM31, n_out);
-    var k: usize = 0;
-    if (with_proximity) {
-        coeffs[0] = try a.alloc(QM31, R);
-        tr.drawN(coeffs[0]);
-        k = 1;
+    for (0..n_prox) |k| {
+        coeffs[k] = try a.alloc(QM31, R);
+        tr.drawN(coeffs[k]);
     }
-    for (groups, 0..) |g, gi| coeffs[k + gi] = try groupCoeffs(a, log_rows, g, gammas[gi]);
+    for (groups, 0..) |g, gi| coeffs[n_prox + gi] = try groupCoeffs(a, log_rows, g, gammas[gi]);
     return .{ .gammas = gammas, .coeffs = coeffs };
 }
 
@@ -469,7 +476,7 @@ fn openRec(
     levels: *std.ArrayList(LevelProof),
 ) !void {
     const p = params.level(lvl);
-    var su = try setup(a, tr, com.log_rows, groups, with_proximity);
+    var su = try setup(a, tr, com.log_rows, groups, params.nProx(with_proximity));
     defer su.deinit(a);
     const cview = try a.alloc([]const QM31, su.coeffs.len);
     defer a.free(cview);
@@ -554,7 +561,7 @@ fn openRec(
     defer a.free(S);
     var claim = QM31.zero();
     for (ys, gp[n_eval..]) |y, g| claim = claim.add(g.mul(y));
-    const k0 = @intFromBool(with_proximity);
+    const k0 = params.nProx(with_proximity);
     // per U row: optional eq(z_col) table scaled by its gamma'
     const eq_rows = try a.alloc(?[]QM31, G);
     @memset(eq_rows, null);
@@ -782,10 +789,10 @@ fn verifyRec(
         if (c.point.len != shape.log_rows + shape.log_cols) return error.OpeningShape;
         for (c.point[shape.log_rows..], g.claims[0].point[shape.log_rows..]) |x, y| if (!x.eql(y)) return error.OpeningGroupMismatch;
     };
-    var su = try setup(a, tr, shape.log_rows, groups, with_proximity);
+    var su = try setup(a, tr, shape.log_rows, groups, params.nProx(with_proximity));
     defer su.deinit(a);
     const n_rows = su.coeffs.len;
-    const k0 = @intFromBool(with_proximity);
+    const k0 = params.nProx(with_proximity);
     const fac = try a.alloc(M31, log_c);
     defer a.free(fac);
 
@@ -1017,6 +1024,10 @@ fn testTable(a: std.mem.Allocator, lr: u32, lc: u32, seed: u64) ![]i8 {
 }
 
 fn runRoundtrip(depth: u32) !void {
+    try runRoundtripProx(depth, 1);
+}
+
+fn runRoundtripProx(depth: u32, prox_rows: u32) !void {
     const a = std.testing.allocator;
     var pool: f.Pool = undefined;
     try pool.init(a, 4);
@@ -1034,6 +1045,7 @@ fn runRoundtrip(depth: u32) !void {
         .outer = .{ .log_blowup = 2, .n_queries = 24, .pow_bits = 3 },
         .inner = .{ .log_blowup = 3, .n_queries = 16, .pow_bits = 2 },
         .depth = depth,
+        .prox_rows = prox_rows,
     };
     var tw = try pcs.Twiddles.init(a, lc + 2);
     defer tw.deinit(a);
@@ -1132,6 +1144,11 @@ test "pcs2 depth 2 roundtrip and tampering" {
     try runRoundtrip(2);
 }
 
+test "pcs2 with two proximity rows (depth 0 and 2)" {
+    try runRoundtripProx(0, 2);
+    try runRoundtripProx(2, 2);
+}
+
 test "pcs2 depth 3 roundtrip and tampering" {
     try runRoundtrip(3);
 }
@@ -1178,9 +1195,9 @@ fn rebuildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, 
 
 test "size model prefers wide outer tables" {
     const params = Params{ .outer = .{ .log_blowup = 2, .n_queries = 64, .pow_bits = 20 }, .depth = 1 };
-    const b = bestOuter(params, 27, 100_663_296, 3, 26);
+    const b = bestOuter(params, 27, 100_663_296, 3, false, 26);
     try std.testing.expect(b.log_cols >= 16);
     const flat = Params{ .outer = params.outer, .depth = 0 };
-    const b0 = bestOuter(flat, 27, 100_663_296, 3, 26);
+    const b0 = bestOuter(flat, 27, 100_663_296, 3, false, 26);
     try std.testing.expect(b.bytes < b0.bytes / 2);
 }
