@@ -212,7 +212,8 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
-    const recurse = std.mem.eql(u8, args[1], "recurse-candidate");
+    const resume_recursion = std.mem.eql(u8, args[1], "resume-recursion-candidate");
+    const recurse = resume_recursion or std.mem.eql(u8, args[1], "recurse-candidate");
     const candidate = recurse or std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = recurse or std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
     const prefix = std.mem.eql(u8, args[1], "verify-prefix-control") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
@@ -278,10 +279,12 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
         const setup_ns = timer.read();
         if (recurse) {
             if (comptime !enable_recursion) return error.RecursionProductRequired;
-            try dir.makeDir("recursion-om31");
+            dir.makeDir("recursion-om31") catch |err| {
+                if (err != error.PathAlreadyExists or !resume_recursion) return err;
+            };
             var recursive_dir = try dir.openDir("recursion-om31", .{});
             defer recursive_dir.close();
-            const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir);
+            const recursion = try @import("../../rv64_recursion/om31_native/execution_wrap.zig").run(a, keys.cpus, keys.truths, &loaded.bundle, expected, pcs, if (fixed_set) |*authority| authority else null, recursive_dir, resume_recursion);
             const last = loaded.bundle.requests[loaded.bundle.requests.len - 1].base;
             const output = try @import("terminal.zig").require(&image, last.cpu, last.memory.terminal);
             return emit(a, .{ .accepted = true, .completed_ethereum_block = true, .output = output, .native_profile = selected_profile, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.domain, .security_qualified = false, .security_scope = "128-bit target under documented assumptions; no whole-protocol certificate", .load_and_setup_ns = setup_ns, .recursive = recursion });

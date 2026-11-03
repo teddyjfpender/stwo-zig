@@ -1,6 +1,6 @@
-//! Current services recursion orchestration. Independent native inventory owns
-//! topology and statement admission. Leaf proofs and parents use native OM31,
-//! never legacy CircuitSerialize/production-registry QM31 proofs.
+//! Bounded current-services recursion: O(log workers) live proof authorities.
+//! Every cached proof is freshly checked under a key rebuilt from the trusted
+//! statement graph. A cache never supplies its own admitted verifier key.
 const std = @import("std");
 const core = @import("stwo_core");
 const O = core.fields.om31.OM31;
@@ -12,29 +12,48 @@ const Execution = @import("../../word16_global_execution/services/gkr_local/exec
 const MW = @import("../../word16_global_execution/services/gkr_local/manifest_wire.zig");
 const FixedSet = @import("../../word16_global_execution/services/gkr_local/fixed_authority_set.zig").Set;
 const Root = @import("services_root.zig");
+const CpuLeaf = @import("cpu_leaf.zig");
+const TruthLeaf = @import("truth_leaf.zig");
+const KeccakLeaf = @import("keccak_leaf.zig");
 const Graph = @import("leaf_graph.zig");
 const Outer = @import("outer_wrap.zig");
-pub const Leaf = struct { proof: Outer.Wrapped, words: []u32 };
-pub const Leaves = struct {
-    allocator: std.mem.Allocator,
-    items: []Leaf,
-    cpu_frames: []Root.CpuFrame,
-    truth_frames: []const []const u32,
-    metadata: Root.Metadata,
+const Bridge = @import("../om31_outer.zig");
+const Prove = @import("stwo_circuit_cpu_integration").om31.prove;
+const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
+pub const Node = struct { first_leaf: usize, leaf_count: usize, left: ?usize, right: ?usize, authority: [32]u8, digest: [32]u8 };
+pub const Report = struct {
+    schema: u32 = 2,
+    accepted: bool = true,
+    outer_backend: []const u8 = "cpu",
+    leaf_proofs: usize,
+    restored_leaves: usize,
+    fold_proofs: usize,
+    restored_folds: usize,
+    peak_pending_authorities: usize,
+    root_node: usize,
+    root_digest: [32]u8,
+    root_authority: [32]u8,
+    manifest: [32]u8,
+    native_prove_ns: ?u64 = null,
     graph_ns: u64,
     wrap_ns: u64,
-    pub fn deinit(self: *Leaves) void {
-        for (self.items) |*leaf| {
-            leaf.proof.deinit();
-            self.allocator.free(leaf.words);
-        }
-        self.allocator.free(self.items);
-        for (self.cpu_frames) |frame| freeMarginals(self.allocator, frame.terminal_marginals);
-        self.allocator.free(self.cpu_frames);
-        self.allocator.free(self.truth_frames);
-        self.* = undefined;
+    fold_ns: u64,
+    root_verify_ns: u64,
+    total_ns: u64,
+    root_proof_bytes: usize,
+    portable_root_key_admission: bool = false,
+};
+const Pending = struct {
+    proof: *Outer.Wrapped,
+    node: usize,
+    fn deinit(self: Pending, a: std.mem.Allocator) void {
+        self.proof.deinit();
+        a.destroy(self.proof);
     }
 };
+fn child(p: Pending) Bridge.Child {
+    return .{ .authority = p.proof.authority, .produced = &p.proof.produced, .capture = &p.proof.capture };
+}
 fn freeMarginals(a: std.mem.Allocator, values: []const []const O) void {
     for (values) |pair| a.free(pair);
     a.free(values);
@@ -50,196 +69,191 @@ fn copyMarginals(a: std.mem.Allocator, values: []const []const O) ![]const []con
     }
     return out;
 }
-/// Captures all CPU and truth proofs once each. Stage-one local transcripts
-/// are verified before shared challenges; root metadata is reconstructed from
-/// the SAME terminal marginals authenticated inside each CPU circuit.
-pub fn wrapLeaves(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: ?std.fs.Dir) !Leaves {
+fn cached(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, allow_resume: bool) !?[]u8 {
+    if (!allow_resume) return null;
+    return dir.readFileAlloc(a, name, Wire.MAX_BYTES) catch |err| switch (err) {
+        error.FileNotFound => null,
+        else => return err,
+    };
+}
+fn save(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proof: *const Outer.Wrapped) !void {
+    const bytes = try proof.serialize(a);
+    defer a.free(bytes);
+    try dir.writeFile(.{ .sub_path = name, .data = bytes });
+}
+const Fold = struct { pending: Pending, restored: bool };
+/// Borrows children throughout construction. The caller releases them ONLY
+/// after the new parent has a complete proof, fresh capture and durable bytes.
+fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.ArrayList(Node), dir: std.fs.Dir, allow_resume: bool) !Fold {
+    const l = nodes.items[left.node];
+    const r = nodes.items[right.node];
+    if (l.first_leaf + l.leaf_count != r.first_leaf) return error.RecursiveLeafAdjacency;
+    std.log.info("rv64 OM31 recursion fold: [{d},{d}) + [{d},{d})", .{ l.first_leaf, l.first_leaf + l.leaf_count, r.first_leaf, r.first_leaf + r.leaf_count });
+    const children = [2]Bridge.Child{ child(left), child(right) };
+    const digest = try Bridge.expectedDigest(children);
+    var graph = try Bridge.buildFold(a, children);
+    defer graph.deinit();
+    if (!std.mem.eql(u8, &digest, &graph.output_digest)) return error.RecursiveFoldDigest;
+    var name_buffer: [64]u8 = undefined;
+    const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{nodes.items.len});
+    const encoded = try cached(a, dir, name, allow_resume);
+    defer if (encoded) |bytes| a.free(bytes);
+    const proof = try a.create(Outer.Wrapped);
+    errdefer a.destroy(proof);
+    proof.* = try Outer.wrapGraphOrLoad(a, &graph.ctx, digest, encoded);
+    std.log.info("rv64 OM31 recursion fold accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
+    errdefer proof.deinit();
+    try save(a, dir, name, proof);
+    const node = nodes.items.len;
+    nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
+    return .{ .pending = .{ .proof = proof, .node = node }, .restored = encoded != null };
+}
+/// Streaming binary carry is the same ordered pair-fold tree as breadth-first
+/// folding with odd promotion. Final blocks combine from the rightmost/smallest
+/// block upward; left-associative finalization would produce a different tree.
+pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir, allow_resume: bool) !Report {
+    var timer = try std.time.Timer.start();
     var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, bundle.requests, expected, config, fixed);
     defer inventory.deinit();
     var stages = try MW.decode(a, inventory.execution_identity, inventory.workers, bundle.stage_one_bytes);
     defer stages.deinit();
     var manifest = try stages.verifyAndSeal(a, inventory.execution_identity, inventory.workers);
     defer manifest.deinit(a);
-    if (bundle.cpus.len != setups.len or bundle.truths.len != truths.len or inventory.workers.len > 256) return error.ServicesRootRoster;
-    const items = try a.alloc(Leaf, inventory.workers.len);
-    errdefer a.free(items);
-    var initialized: usize = 0;
-    errdefer for (items[0..initialized]) |*leaf| {
-        leaf.proof.deinit();
-        a.free(leaf.words);
-    };
+    const n = inventory.workers.len;
+    if (n == 0 or n > 256 or bundle.cpus.len != setups.len or bundle.truths.len != truths.len) return error.ServicesRootRoster;
+    const words = try a.alloc([]const u32, n);
+    @memset(words, &.{});
+    defer {
+        for (words) |value| a.free(value);
+        a.free(words);
+    }
     const cpus = try a.alloc(Root.CpuFrame, setups.len);
     @memset(cpus, .{ .words = &.{}, .physical_claims = &.{}, .terminal_marginals = &.{} });
-    errdefer a.free(cpus);
-    errdefer for (cpus) |frame| freeMarginals(a, frame.terminal_marginals);
-    const truth_frames = try a.alloc([]const u32, truths.len);
-    errdefer a.free(truth_frames);
-    var timer = try std.time.Timer.start();
+    defer {
+        for (cpus) |frame| freeMarginals(a, frame.terminal_marginals);
+        a.free(cpus);
+    }
+    for (setups, 0..) |setup, i| {
+        const local = manifest.entries[i].local orelse return error.WideCpuLocalRequired;
+        words[i] = try CpuLeaf.expectedWords(a, setup, bundle.requests[i], inventory.first_ids[i], inventory.workers[i], manifest.digest, stages.stages[i].main, local.digest, bundle.cpus[i].claims);
+        cpus[i] = .{ .words = words[i], .physical_claims = bundle.cpus[i].claims, .terminal_marginals = try copyMarginals(a, local.artifact.claims_to_verify_by_instance) };
+    }
+    const truth_frames = words[setups.len..];
+    for (truths, 0..) |truth, i| {
+        const ordinal = setups.len + i;
+        const worker = inventory.workers[ordinal];
+        const claims = bundle.truths[i].claims;
+        if (truth == .keccak) {
+            if (claims.len != 5) return error.InvalidWideTruthClaims;
+            const public = KeccakLeaf.Public{ .ordinal = worker.ordinal, .statement = worker.statement, .manifest = manifest.digest, .claims = claims[0..5].* };
+            words[ordinal] = try a.dupe(u32, &KeccakLeaf.statementWords(truth, public, stages.stages[ordinal].main));
+        } else {
+            if (claims.len != 1) return error.InvalidWideTruthClaims;
+            const public = TruthLeaf.Public{ .ordinal = worker.ordinal, .statement = worker.statement, .manifest = manifest.digest, .claim = claims[0] };
+            words[ordinal] = try a.dupe(u32, &TruthLeaf.statementWords(truth, public, stages.stages[ordinal].main));
+        }
+    }
+    const frames = Root.Frames{ .cpus = cpus, .truths = truth_frames };
+    // Early rejection only. Acceptance still requires every freshly verified
+    // leaf, every parent, the root and this exact metadata check again below.
+    const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
+    var nodes: std.ArrayList(Node) = .empty;
+    defer nodes.deinit(a);
+    try nodes.ensureTotalCapacity(a, 2 * n - 1);
+    var stack = [_]?Pending{null} ** 9;
+    defer for (stack) |item| if (item) |p| p.deinit(a);
     var graph_ns: u64 = 0;
     var wrap_ns: u64 = 0;
-    for (items, 0..) |*leaf, ordinal| {
-        std.log.info("rv64 OM31 recursion leaf {d}/{d}: admitted graph", .{ ordinal + 1, items.len });
+    var fold_ns: u64 = 0;
+    var restored_leaves: usize = 0;
+    var restored_folds: usize = 0;
+    var pending_count: usize = 0;
+    var peak_pending: usize = 0;
+    for (inventory.workers, 0..) |worker, ordinal| {
         const graph_start = timer.read();
-        var graph = if (ordinal < setups.len) try Graph.cpu(a, .{
-            .setup = setups[ordinal],
-            .request = bundle.requests[ordinal],
-            .expected = inventory.workers[ordinal],
-            .first = inventory.first_ids[ordinal],
-            .manifest = &manifest,
-            .index = ordinal,
-            .stage = &stages.stages[ordinal],
-            .config = config,
-            .encoded = &bundle.cpus[ordinal],
-            .fixed = if (fixed) |authority| authority.at(ordinal) else null,
-        }) else try Graph.truth(a, .{
-            .truth = truths[ordinal - setups.len],
-            .expected = inventory.workers[ordinal],
-            .manifest = &manifest,
-            .config = config,
-            .encoded = &bundle.truths[ordinal - setups.len],
-            .fixed = if (fixed) |authority| authority.at(ordinal) else null,
-        });
-        defer graph.deinit();
+        std.log.info("rv64 OM31 recursion leaf {d}/{d}: admitted graph", .{ ordinal + 1, n });
+        var graph = if (ordinal < setups.len) try Graph.cpu(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try Graph.truth(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
+        var graph_live = true;
+        defer if (graph_live) graph.deinit();
+        if (!std.mem.eql(u32, graph.words, words[ordinal])) return error.RecursiveLeafFrame;
         graph_ns += timer.read() - graph_start;
-        std.log.info("rv64 OM31 recursion leaf {d}/{d}: prove outer (vars={d})", .{ ordinal + 1, items.len, graph.ctx.circuit.n_vars });
+        var name_buffer: [64]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{ordinal});
+        const encoded = try cached(a, dir, name, allow_resume);
+        defer if (encoded) |bytes| a.free(bytes);
         const wrap_start = timer.read();
-        var wrapped = try Outer.wrapGraph(a, graph.ctx, graph.digest);
-        var wrapped_owned = true;
-        errdefer if (wrapped_owned) wrapped.deinit();
-        const words = try a.dupe(u32, graph.words);
-        leaf.* = .{ .proof = wrapped, .words = words };
-        initialized += 1;
-        wrapped_owned = false;
+        std.log.info("rv64 OM31 recursion leaf {d}/{d}: {s} outer (vars={d})", .{ ordinal + 1, n, if (encoded != null) "freshly verify cached" else "prove", graph.ctx.circuit.n_vars });
+        var current: ?Pending = blk: {
+            const proof = try a.create(Outer.Wrapped);
+            errdefer a.destroy(proof);
+            proof.* = try Outer.wrapGraphOrLoad(a, graph.ctx, graph.digest, encoded);
+            std.log.info("rv64 OM31 recursion leaf {d}/{d} accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ ordinal + 1, n, proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
+            errdefer proof.deinit();
+            try save(a, dir, name, proof);
+            const node = nodes.items.len;
+            nodes.appendAssumeCapacity(.{ .first_leaf = ordinal, .leaf_count = 1, .left = null, .right = null, .authority = proof.authority.identity, .digest = proof.digest });
+            break :blk .{ .proof = proof, .node = node };
+        };
+        defer if (current) |p| p.deinit(a);
+        restored_leaves += @intFromBool(encoded != null);
         wrap_ns += timer.read() - wrap_start;
-        if (ordinal < setups.len) {
-            cpus[ordinal] = .{ .words = words, .physical_claims = bundle.cpus[ordinal].claims, .terminal_marginals = try copyMarginals(a, manifest.entries[ordinal].local.?.artifact.claims_to_verify_by_instance) };
-        } else truth_frames[ordinal - setups.len] = words;
-        if (dir) |output| {
-            const bytes = try leaf.proof.serialize(a);
-            defer a.free(bytes);
-            var name: [64]u8 = undefined;
-            const path = try std.fmt.bufPrint(&name, "leaf-{d:0>6}.proof", .{ordinal});
-            try output.writeFile(.{ .sub_path = path, .data = bytes });
+        pending_count += 1;
+        peak_pending = @max(peak_pending, pending_count);
+        // Release graph's wide assignment before constructing any fold graph.
+        graph.deinit();
+        graph_live = false;
+        var level: usize = 0;
+        while (stack[level]) |left| : (level += 1) {
+            const start = timer.read();
+            peak_pending = @max(peak_pending, pending_count + 1);
+            const parent = try combine(a, left, current.?, &nodes, dir, allow_resume);
+            fold_ns += timer.read() - start;
+            restored_folds += @intFromBool(parent.restored);
+            stack[level] = null;
+            left.deinit(a);
+            current.?.deinit(a);
+            current = parent.pending;
+            pending_count -= 1;
         }
+        stack[level] = current;
+        current = null;
     }
-    // Own the narrow canonical marginals, never the large native GKR witness.
-    // The final fresh-root receiver repeats this cheap metadata check.
-    const metadata = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, .{ .cpus = cpus, .truths = truth_frames }, .{});
-    return .{ .allocator = a, .items = items, .cpu_frames = cpus, .truth_frames = truth_frames, .metadata = metadata, .graph_ns = graph_ns, .wrap_ns = wrap_ns };
-}
-
-const Bridge = @import("../om31_outer.zig");
-const Prove = @import("stwo_circuit_cpu_integration").om31.prove;
-pub const Node = struct {
-    first_leaf: usize,
-    leaf_count: usize,
-    left: ?usize,
-    right: ?usize,
-    authority: [32]u8,
-    digest: [32]u8,
-};
-pub const Report = struct {
-    schema: u32 = 1,
-    accepted: bool = true,
-    leaf_proofs: usize,
-    fold_proofs: usize,
-    root_node: usize,
-    root_digest: [32]u8,
-    root_authority: [32]u8,
-    manifest: [32]u8,
-    native_prove_ns: ?u64 = null,
-    graph_ns: u64,
-    wrap_ns: u64,
-    fold_ns: u64,
-    root_verify_ns: u64,
-    total_ns: u64,
-    root_proof_bytes: usize,
-    /// Receiver here owns the regenerated immutable circuit keys. The wire
-    /// artifact does not supply replacement keys or certify a new-process key.
-    portable_root_key_admission: bool = false,
-};
-fn child(proof: *const Outer.Wrapped) Bridge.Child {
-    return .{ .authority = proof.authority, .produced = &proof.produced, .capture = &proof.capture };
-}
-/// Odd nodes are promoted unchanged. Every binary parent verifies BOTH exact
-/// children and commits their ordered immutable key identities/public outputs.
-/// Metadata closure is accepted only alongside the freshly verified root and
-/// the deterministically reconstructed ordered tree over every leaf exactly once.
-pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, bundle: *const Coordinator.Bundle, expected: P.Expected, config: W.PcsConfig, fixed: ?*const FixedSet, dir: std.fs.Dir) !Report {
-    var timer = try std.time.Timer.start();
-    var leaves = try wrapLeaves(a, setups, truths, bundle, expected, config, fixed, dir);
-    defer leaves.deinit();
-    const n = leaves.items.len;
-    const node_count = try std.math.sub(usize, try std.math.mul(usize, n, 2), 1);
-    const proofs = try a.alloc(*Outer.Wrapped, node_count);
-    defer a.free(proofs);
-    const nodes = try a.alloc(Node, node_count);
-    defer a.free(nodes);
-    var owned: usize = n;
-    defer for (proofs[n..owned]) |proof| {
-        proof.deinit();
-        a.destroy(proof);
+    var root: ?Pending = null;
+    defer if (root) |p| p.deinit(a);
+    for (&stack) |*entry| if (entry.*) |left| {
+        entry.* = null;
+        if (root) |right| {
+            // Keep left under explicit local ownership if parent construction fails.
+            var owns_left = true;
+            defer if (owns_left) left.deinit(a);
+            const start = timer.read();
+            peak_pending = @max(peak_pending, pending_count + 1);
+            const parent = try combine(a, left, right, &nodes, dir, allow_resume);
+            fold_ns += timer.read() - start;
+            restored_folds += @intFromBool(parent.restored);
+            left.deinit(a);
+            owns_left = false;
+            right.deinit(a);
+            root = parent.pending;
+            pending_count -= 1;
+        } else root = left;
     };
-    const active = try a.alloc(usize, n);
-    defer a.free(active);
-    for (leaves.items, 0..) |*leaf, i| {
-        proofs[i] = &leaf.proof;
-        nodes[i] = .{ .first_leaf = i, .leaf_count = 1, .left = null, .right = null, .authority = leaf.proof.authority.identity, .digest = leaf.proof.digest };
-        active[i] = i;
-    }
-    const fold_start = timer.read();
-    var count = n;
-    while (count > 1) {
-        var next: usize = 0;
-        var i: usize = 0;
-        while (i < count) : (i += 2) {
-            if (i + 1 == count) {
-                active[next] = active[i];
-            } else {
-                const left = active[i];
-                const right = active[i + 1];
-                if (nodes[left].first_leaf + nodes[left].leaf_count != nodes[right].first_leaf) return error.RecursiveLeafAdjacency;
-                const children = [2]Bridge.Child{ child(proofs[left]), child(proofs[right]) };
-                const digest = try Bridge.expectedDigest(children);
-                var graph = try Bridge.buildFold(a, children);
-                defer graph.deinit();
-                if (!std.mem.eql(u8, &digest, &graph.output_digest)) return error.RecursiveFoldDigest;
-                const proof = blk: {
-                    const value = try a.create(Outer.Wrapped);
-                    errdefer a.destroy(value);
-                    value.* = try Outer.wrapGraph(a, &graph.ctx, digest);
-                    break :blk value;
-                };
-                proofs[owned] = proof;
-                nodes[owned] = .{ .first_leaf = nodes[left].first_leaf, .leaf_count = nodes[left].leaf_count + nodes[right].leaf_count, .left = left, .right = right, .authority = proof.authority.identity, .digest = digest };
-                active[next] = owned;
-                owned += 1;
-                const bytes = try proof.serialize(a);
-                defer a.free(bytes);
-                var name: [64]u8 = undefined;
-                try dir.writeFile(.{ .sub_path = try std.fmt.bufPrint(&name, "fold-{d:0>6}.proof", .{owned - n - 1}), .data = bytes });
-            }
-            next += 1;
-        }
-        count = next;
-    }
-    const fold_ns = timer.read() - fold_start;
-    const root_id = active[0];
-    const root = proofs[root_id];
-    if (nodes[root_id].first_leaf != 0 or nodes[root_id].leaf_count != n or owned != node_count) return error.RecursiveLeafCoverage;
+    const final = root orelse return error.RecursiveLeafCoverage;
+    const info = nodes.items[final.node];
+    if (info.first_leaf != 0 or info.leaf_count != n or nodes.items.len != 2 * n - 1) return error.RecursiveLeafCoverage;
     const verify_start = timer.read();
-    try Outer.requireDigest(root.produced.outputs, nodes[root_id].digest);
-    var fresh = try Prove.verify(a, root.authority, root.produced.outputs, root.produced.claims, &root.produced.proof.proof);
+    try Outer.requireDigest(final.proof.produced.outputs, info.digest);
+    var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
     defer fresh.deinit(a);
-    _ = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, .{ .cpus = leaves.cpu_frames, .truths = leaves.truth_frames }, .{});
-    const root_verify_ns = timer.read() - verify_start;
-    const root_bytes = try root.serialize(a);
-    defer a.free(root_bytes);
-    try dir.writeFile(.{ .sub_path = "root.proof", .data = root_bytes });
-    const tree_bytes = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .nodes = nodes, .root = root_id, .cpu_frames = leaves.cpu_frames, .truth_frames = leaves.truth_frames }, .{ .whitespace = .indent_2 });
-    defer a.free(tree_bytes);
-    try dir.writeFile(.{ .sub_path = "tree.json", .data = tree_bytes });
-    const report = Report{ .leaf_proofs = n, .fold_proofs = owned - n, .root_node = root_id, .root_digest = root.digest, .root_authority = root.authority.identity, .manifest = leaves.metadata.manifest.digest, .graph_ns = leaves.graph_ns, .wrap_ns = leaves.wrap_ns, .fold_ns = fold_ns, .root_verify_ns = root_verify_ns, .total_ns = timer.read(), .root_proof_bytes = root_bytes.len };
+    _ = try Root.check(a, setups, truths, bundle.requests, expected, config, fixed, bundle.stage_one_bytes, frames, .{});
+    const verify_ns = timer.read() - verify_start;
+    const bytes = try final.proof.serialize(a);
+    defer a.free(bytes);
+    try dir.writeFile(.{ .sub_path = "root.proof", .data = bytes });
+    const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes.items, .root = final.node, .cpu_frames = cpus, .truth_frames = truth_frames }, .{ .whitespace = .indent_2 });
+    defer a.free(tree);
+    try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
+    const report = Report{ .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     try dir.writeFile(.{ .sub_path = "report.json", .data = report_bytes });
