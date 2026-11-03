@@ -18,5 +18,13 @@
   "all_passed": true,
   "discovery_correction": "Package-level success and anonymous aggregators do not establish named coverage. Explicit imports now discover the integration boundary cases, including the fixed-source cross-package assertion.",
   "production_proof_framing_changed": false,
-  "raw_log_sha256": "37a3090ab7f6e09af1de1c1313fcc347aa8cfaa459fa2eeaf63a2d74772b107b"
+  "raw_log_sha256": "37a3090ab7f6e09af1de1c1313fcc347aa8cfaa459fa2eeaf63a2d74772b107b",
+  "cache_boundary_regression": {
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test-rv64-resident-router -Doptimize=ReleaseFast -j2",
+    "test_name": "rv64.global_twiddle_cache.test.global twiddle cache covers the highest admitted public boundary log",
+    "actually_executed": true,
+    "total_router_entries": 13,
+    "all_passed": true,
+    "raw_log_sha256": "5aae1fde9ddf42f4c9ec1442dc05f024914984be7622158a27c0ead87069d286"
+  }
 }
