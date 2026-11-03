@@ -225,6 +225,12 @@ pub const Context = struct {
         if (status != 0) return error.DeviceMainReplayReleaseFailed;
     }
 
+    /// Terminal local proof cleanup, including failure before PCS submission.
+    /// Call outside the owner callback only when no live stage borrows this
+    /// proof scope. Idempotent after PCS has already released its own custody.
+    pub fn finishProofScope(self: *Context, scope: D.Scope) void {
+        self.releaseScope(@import("pcs_scope.zig").identity(scope));
+    }
     fn releaseScope(self: *Context, scope: [8]u32) void {
         self.cache_mutex.lock();
         var index: ?usize = null;

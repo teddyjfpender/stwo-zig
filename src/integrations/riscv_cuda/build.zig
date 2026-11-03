@@ -16,6 +16,11 @@ pub fn build(b: *std.Build) void {
         "stwo_riscv_frontend",
         options,
     ).module("stwo_riscv_frontend");
+    const circuit_cpu = b.dependency("stwo_circuit_cpu_integration", options).module("stwo_circuit_cpu_integration");
+    const cpu_integration = b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration");
+    // These two concrete native families share the package-owned wire module;
+    // Zig must not instantiate the same proof-wire source twice in one binary.
+    circuit_cpu.addImport("stwo_proof_wire", cpu_integration.import_table.get("stwo_proof_wire") orelse @panic("native CPU module is missing proof wire"));
     const integration = b.addModule("stwo_riscv_cuda_integration", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -26,6 +31,9 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     integration.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    integration.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api") orelse @panic("native CPU module is missing prover API"));
+    integration.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
     integration.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     const router_root = b.createModule(.{ .root_source_file = b.path("rv64_router_test_root.zig"), .target = target, .optimize = optimize });
     router_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
@@ -129,6 +137,7 @@ pub fn build(b: *std.Build) void {
     joined_root.addImport("stwo_riscv_frontend", frontend);
     joined_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
     joined_root.addImport("stwo_cuda_backend", backend);
+    joined_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     const joined_fixture = b.addExecutable(.{ .name = "rv64-joined-fixtures", .root_module = joined_root });
     const run_joined = b.addRunArtifact(joined_fixture);
     if (b.args) |args| run_joined.addArgs(args);
