@@ -262,6 +262,8 @@ All inequality operands therefore satisfy the range-to-integer lemma.
 * MoE: no gate-probability scaling (top-1 output = expert output); router
   columns padded to the weight-table width (padding weights are committed).
 * Weight gammas are public, not committed.
-* Prover kernels for ext ops are generic (bit-gather) and largely serial in
-  the operand folds; attention sizes beyond T ~ 2^9 need tuned kernels.
+* Prover kernels for ext ops: GEMM-shaped einsum accumulators, parallel
+  expression evaluation and split-eq einsum sumchecks (CPU and Metal) are in
+  `speed.md`; einsums with folded operand-only output vars still use the
+  generic fold + sumcheck.
 * Non-hiding (zero-knowledge is a separate stream).
