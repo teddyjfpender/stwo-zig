@@ -1,0 +1,65 @@
+//! Actual native-OM31 circuit proving, independent fresh reception and bounded
+//! serialization. This owns immutable topology and proof material together.
+const std = @import("std");
+const circuit = @import("stwo_circuit_frontend");
+const Outer = @import("stwo_circuit_cpu_integration").om31.prove;
+const Wire = @import("stwo_circuit_cpu_integration").om31.wire;
+const C = @import("common.zig");
+const PP = circuit.common.preprocessed.PreprocessedCircuit;
+pub const Timings = struct { preprocess_ns: u64, prove_ns: u64, verify_ns: u64 };
+pub const Wrapped = struct {
+    allocator: std.mem.Allocator,
+    pp: *PP,
+    authority: *Outer.Authority,
+    produced: Outer.Produced,
+    capture: Outer.Capture,
+    digest: [32]u8,
+    timings: Timings,
+    pub fn deinit(self: *Wrapped) void {
+        self.capture.deinit(self.allocator);
+        self.produced.deinit();
+        self.authority.deinit();
+        self.allocator.destroy(self.authority);
+        self.pp.deinit(self.allocator);
+        self.allocator.destroy(self.pp);
+        self.* = undefined;
+    }
+    pub fn serialize(self: *const Wrapped, a: std.mem.Allocator) ![]u8 {
+        return Wire.encode(a, self.authority.identity, self.produced.outputs, self.produced.claims, &self.produced.proof.proof);
+    }
+};
+/// Context must already be finalized by its concrete statement authority. Padding follows its exact graph counts; no external registry or legacy
+/// profile is accepted here.
+pub fn wrapGraph(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8) !Wrapped {
+    if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
+    if (!try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
+    var timer = try std.time.Timer.start();
+    try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
+    const pp = try a.create(PP);
+    errdefer a.destroy(pp);
+    pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
+    errdefer pp.deinit(a);
+    const authority = try a.create(Outer.Authority);
+    errdefer a.destroy(authority);
+    authority.* = try Outer.Authority.init(a, pp);
+    errdefer authority.deinit();
+    const preprocess_ns = timer.lap();
+    var produced = try Outer.prove(a, authority, ctx.values());
+    errdefer produced.deinit();
+    const prove_ns = timer.lap();
+    try requireDigest(produced.outputs, digest);
+    var capture = try Outer.verify(a, authority, produced.outputs, produced.claims, &produced.proof.proof);
+    errdefer capture.deinit(a);
+    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .timings = .{ .preprocess_ns = preprocess_ns, .prove_ns = prove_ns, .verify_ns = timer.lap() } };
+}
+/// Output values must be canonical packed raw-u32 words, not arbitrary QM31s
+/// that happen to reduce to the same field value.
+pub fn requireDigest(outputs: []const C.Q, expected: [32]u8) !void {
+    if (outputs.len != 8) return error.CurrentOm31OutputCount;
+    for (outputs, 0..) |value, i| {
+        const coordinates = value.toM31Array();
+        if (coordinates[0].v > 65535 or coordinates[1].v > 65535 or coordinates[2].v != 0 or coordinates[3].v != 0) return error.NoncanonicalCurrentOm31Output;
+        const word = coordinates[0].v | (coordinates[1].v << 16);
+        if (word != std.mem.readInt(u32, expected[4 * i ..][0..4], .little)) return error.CurrentOm31OutputDigest;
+    }
+}

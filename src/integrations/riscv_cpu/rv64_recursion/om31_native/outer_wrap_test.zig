@@ -1,0 +1,28 @@
+const std = @import("std");
+const circuit = @import("stwo_circuit_frontend");
+const Wrap = @import("outer_wrap.zig");
+const C = @import("common.zig");
+test "OM31 native PCS outer wrapper produces actual proof fresh receiver bounded wire" {
+    const a = std.testing.allocator;
+    var ctx = try C.Context.init(a, circuit.common.component_list.N_RESERVED);
+    defer ctx.deinit();
+    const digest = [_]u8{0xa5} ** 32;
+    var outputs: [8]circuit.builder.Var = undefined;
+    for (0..8) |i| {
+        const input = try ctx.guess(circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little)));
+        outputs[i] = input;
+    }
+    try ctx.setOutputs(&outputs);
+    try ctx.finalize(false);
+    var wrapped = try Wrap.wrapGraph(a, &ctx, digest);
+    defer wrapped.deinit();
+    const bytes = try wrapped.serialize(a);
+    defer a.free(bytes);
+    var decoded = try @import("stwo_circuit_cpu_integration").om31.wire.decode(a, wrapped.authority.identity, 8, bytes);
+    defer decoded.deinit();
+    var fresh = try @import("stwo_circuit_cpu_integration").om31.prove.verify(a, wrapped.authority, decoded.outputs, decoded.claims, &decoded.proof);
+    defer fresh.deinit(a);
+    var bad = digest;
+    bad[31] ^= 1;
+    try std.testing.expectError(error.CurrentOm31OutputDigest, Wrap.requireDigest(decoded.outputs, bad));
+}
