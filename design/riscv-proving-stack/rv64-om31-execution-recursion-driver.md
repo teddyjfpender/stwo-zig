@@ -47,3 +47,24 @@ The factory is explicit and receives a deterministic unique stream-node ordinal 
 This is **CUDA proving from CPU-built circuit assignments**: MAIN, INTER, composition and PCS are device stages, while circuit graph/assignment construction and immutable key derivation remain CPU work. It is not yet compact-proof-input-to-GPU-witness residency. Reports label `cuda_from_host_assignment`, and count actual newly proved GPU leaves/folds separately. Restored bytes bypass proving and are never presented as a GPU proving measurement.
 
 Host qualification covers terminal device refusal, correct unique ordinal forwarding, cached-proof backend bypass, the CPU path, and native producer dependency/type-check parity. The concrete factory has an independently qualified tiny native-OM31 proof with exact CPU bytes and fresh receivers. Real production CPU0/complete-root GPU qualification is the next gate; the previously accepted real root remains the CPU outer reference.
+
+## Combined native GPU proving and recursion
+
+The explicit combined product calls the existing native producer and then wraps its live bundle before the independently derived keys and fixed authority are released. It does not reload the serialized native bundle or reconstruct a second set of native authorities. Native proof publication remains available for independent inspection. Ordinary native GPU and standalone recursion products keep their existing entrypoints.
+
+```sh
+zig build --build-file src/integrations/riscv_cuda/build.zig \
+  build-rv64-ethereum-gpu-combined -Doptimize=ReleaseFast \
+  -Dtarget=x86_64-linux-gnu -Dcpu=x86_64_v4 -j2
+STWO_RV64_GPU_LIBRARY=/absolute/path/qualified-complete-native-image.so \
+STWO_RV64_GPU_DEVICES=0 STWO_RV64_GPU_DEVICE_CAPS=30064771072 \
+STWO_RV64_GPU_PLANNED_CPU_WORKERS=7 STWO_RV64_GPU_RETAINED_SCOPES=7 \
+STWO_RV64_GPU_CPU_REPLAY=1 \
+  src/integrations/riscv_cuda/zig-out/bin/rv64-word16-ethereum-gpu-combined \
+  --security-profile conjectured128_b2_q108_p20_fold4 \
+  produce-and-recurse-candidate REQUEST.json - NEW_OUTPUT_DIRECTORY 0 RESOURCE.json
+```
+
+This mode requires the complete resident native pipeline, a device recursion factory and a complete block. It rejects host MAIN parking, prefix runs, resumed recursive proofs and multiple devices. The persistent native context has a 28 GiB device cap and an explicit 2 GiB immutable setup budget shared by native proving and recursion. The host budget defaults to 48 GiB and can be specified with `STWO_RV64_RECURSION_HOST_BYTES`. Runtime images must contain the native CPU and truth catalogs, the outer circuit catalog and the production witness-generation capabilities; missing capabilities are terminal.
+
+`report.json` retains native capture/setup/prove/verify times. `combined-report.json` adds measured authority setup, native publication, recursion and combined pipeline times. `combined-entry.json` is written only after the device lifecycle audit succeeds and includes GPU initialization and entry wall time. Recursion uses the same original proof profile and records newly proved GPU nodes; it never treats restored bytes as a fresh benchmark. Implementation and semantic checks do not establish a speedup: the combined real-block gate must pin the image, guest, request and all native/recursive proof hashes before reporting measurements.
