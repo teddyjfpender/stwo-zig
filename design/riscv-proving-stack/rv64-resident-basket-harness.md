@@ -31,8 +31,16 @@ explicit byte budgets and the CPU capture/prover schedule. The harness forces
 full direct capture, no parked MAIN and uniform-r27 Keccak geometry. Optional
 `resident_environment` pins explicit production policy switches, such as a
 qualified device replay mode. Other inherited `STWO_RV64_*` settings are removed.
-The pinned guest, actual input bytes, receiver, producer, runtime and resources
-are held constant across device counts. The chosen GPU cap defaults to 28 GiB per
+The pinned guest, actual input bytes, receiver, producer, runtime and byte budgets
+are held constant across device counts. The manifest must provide an explicit
+coordinator schedule. Each configuration exposes at least one coordinator lane
+per GPU, redistributing the same total CPU worker budget when more lanes are
+needed. For example, two lanes of four workers become four lanes of two on four
+GPUs; the one-GPU control schedule stays unchanged. An insufficient worker budget
+fails planning instead of silently oversubscribing the host. The exact schedule
+is retained in the plan, result and report. Existing host/device byte admission
+still controls actual concurrency; lane count alone does not establish memory fit
+or device utilization. The chosen GPU cap defaults to 28 GiB per
 device. Device count does not establish that all stage-one MAIN coefficients fit;
 production byte admission remains authoritative. No host spill is substituted.
 

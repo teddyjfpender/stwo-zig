@@ -26,6 +26,32 @@ def positive(value, name):
     return value
 
 
+def device_resources(resources, device_count):
+    """Expose every device without increasing the manifest's CPU worker budget.
+
+    GPU byte admission is still enforced by the producer. A lane is permission
+    to schedule work, not a promise that another proof fits concurrently.
+    """
+    result = copy.deepcopy(resources)
+    schedule = result.get("schedule")
+    if not schedule:
+        raise ValueError("explicit coordinator schedule required for GPU measurements")
+    lanes = positive(schedule.get("lanes"), "coordinator lanes")
+    workers = positive(schedule.get("workers_per_lane"), "workers per lane")
+    explicit = schedule.get("lane_workers", [])
+    if lanes > 4 or len(explicit) > lanes:
+        raise ValueError("invalid coordinator lane geometry")
+    budget = sum(positive(explicit[i] or workers, "lane workers") if i < len(explicit) else workers for i in range(lanes))
+    target = max(lanes, device_count)
+    if budget < target:
+        raise ValueError("CPU worker budget cannot expose every GPU; increase the manifest schedule explicitly")
+    if target != lanes:
+        each, extra = divmod(budget, target)
+        schedule.update(lanes=target, workers_per_lane=each,
+                        lane_workers=[each + (i < extra) for i in range(target)])
+    return result
+
+
 def build_plan(basket, manifest, root, driver, receiver, library, output, devices, counts, cap, expected_runtime=RUNTIME):
     if manifest.get("schema") != "rv64-ethereum-basket-inputs/v1":
         raise ValueError("unsupported input manifest")
@@ -82,7 +108,7 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
                          "expected_output": request["expected_output"] if request else None,
                          "input_sha256": request["input_sha256"] if request else None,
                          "segments": entry["expected_cpu_segments"] if request else None,
-                         "target": str(target), "resources": resources})
+                         "target": str(target), "resources": device_resources(resources, n)})
     return {"schema": SCHEMA, "profile": PROFILE, "runtime_target_sha256": expected_runtime,
             "assets": {k: str(p) for k, p in assets.items()}, "asset_sha256": pins,
             "elf_sha256": elf, "jobs": jobs, "device_cap_bytes": cap,
@@ -211,6 +237,7 @@ def run_job(plan, job):
             raise ValueError("cross-device exact proof parity failed")
         cross_device_parity = True
     return {"schema": SCHEMA, "status": "accepted", "block": job["block"], "device_count": job["device_count"],
+            "coordinator_schedule": job["resources"]["schedule"],
             "request_sha256": job["request_sha256"], "input_sha256": job["input_sha256"], "asset_sha256": plan["asset_sha256"],
             "single_device_proof_byte_parity": cross_device_parity,
             "profile": plan["profile"], "trials": trials,
@@ -243,6 +270,11 @@ def render(plan, results):
         if r.get("status") == "failed":
             lines += ["", f"Failure, {r['device_count']} GPU(s), block {r['block']}: {r['error']}"]
     lines += ["", "Peak RSS is measured per two-request process. VRAM is sampled whole-device use, not exact process allocation. GPU phase totals overlap and cannot be substituted for wall time."]
+    lines += ["", "| GPUs | Coordinator lanes | CPU workers per lane | Host memory admission bytes |", "|---:|---:|---|---:|"]
+    for count in sorted({j["device_count"] for j in plan["jobs"]}):
+        schedule = next(j["resources"]["schedule"] for j in plan["jobs"] if j["device_count"] == count)
+        workers = schedule.get("lane_workers") or [schedule["workers_per_lane"]] * schedule["lanes"]
+        lines.append(f"| {count} | {schedule['lanes']} | {', '.join(map(str, workers))} | {schedule.get('memory_cap_bytes', 0)} |")
     return "\n".join(lines) + "\n"
 
 

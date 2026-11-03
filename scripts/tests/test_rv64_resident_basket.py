@@ -25,7 +25,8 @@ class ResidentBasket(unittest.TestCase):
                         "input_sha256": R.B.sha(self.assets[4]), "execution_profile": "ethereum_services_v3", "expected_output": "abcd"}
         (self.root / "request.json").write_text(json.dumps(self.request))
         self.basket = {"blocks": [{"block": 1, "set": "scored", "new_payload_request_root": "0xabcd"}]}
-        self.manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "resources": {"fixed_setup_bytes": 100, "retained_frontend_bytes": 200},
+        self.manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "resources": {"fixed_setup_bytes": 100, "retained_frontend_bytes": 200,
+                         "schedule": {"lanes": 2, "workers_per_lane": 4, "memory_cap_bytes": 1024}},
                          "blocks": {"1": {"request": "request.json", "expected_cpu_segments": 7}}}
 
     def plan(self, **kw):
@@ -48,6 +49,19 @@ class ResidentBasket(unittest.TestCase):
         text = R.render(p, [])
         self.assertIn("0/3", text)
         self.assertEqual(text.count("not run"), 3)
+
+    def test_multi_gpu_schedule_exposes_devices_without_adding_cpu_workers(self):
+        schedules = [j["resources"]["schedule"] for j in self.plan()["jobs"]]
+        self.assertEqual([s["lanes"] for s in schedules], [2, 2, 4])
+        self.assertEqual(schedules[2]["lane_workers"], [2, 2, 2, 2])
+        self.assertEqual(self.manifest["resources"]["schedule"]["lanes"], 2)
+        self.assertTrue(all(s["memory_cap_bytes"] == 1024 for s in schedules))
+        uneven = {"schedule": {"lanes": 2, "workers_per_lane": 4, "lane_workers": [3, 4]}}
+        self.assertEqual(R.device_resources(uneven, 4)["schedule"]["lane_workers"], [2, 2, 2, 1])
+        with self.assertRaisesRegex(ValueError, "CPU worker budget"):
+            R.device_resources({"schedule": {"lanes": 1, "workers_per_lane": 2}}, 4)
+        with self.assertRaisesRegex(ValueError, "explicit coordinator"):
+            R.device_resources({}, 1)
 
     def test_runtime_hash_mismatch_fails(self):
         with self.assertRaisesRegex(ValueError, "runtime differs"):
