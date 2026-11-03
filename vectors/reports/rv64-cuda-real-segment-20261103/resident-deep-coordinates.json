@@ -10,7 +10,7 @@
   "unchanged_native_objects": 36,
   "unchanged_aot_objects": 268,
   "original_exports_verified": 446,
-  "enable": "STWO_RV64_DEEP_COORDINATES=1",
+  "enable": "Defaultenabled;STWO_RV64_DEEP_COORDINATES=0 legacycontrol",
   "scope": "Opt-in scalar-coordinate DEEP coefficient aggregation:256CTAs/group,32adjacentrows and8independent M31coordinate warps/CTA. Eachcoordinate accumulates terms in original order. Existing OM31aggregate stays default; same ABI/transcript/proof framing.",
   "motivation": {
     "actual_cpu0_diagnostic_ms": {
@@ -31,7 +31,29 @@
     "memcheck_errors": 0,
     "synccheck_errors": 0,
     "logs_directory": "/workspace/rv64-gpu-session/build/deep-pipeline-qualified",
-    "full_block_gate": "Pending parent repeat2 all-proof parity and timing."
+    "full_block_gate": {
+      "candidate_image": "358414e990a3fb77c348fd88b607fcb03e07b8c877d1bbb9bacc27d3b53ae2ec",
+      "all20_files_byte_identical": true,
+      "control_cold_prove_seconds": 10.2027,
+      "control_warm_prove_seconds": 8.2696,
+      "candidate_cold_prove_seconds": 9.6002,
+      "candidate_warm_prove_seconds": 7.72986,
+      "scope": "Parent-coordinated repeat2 sameblock/controlschedule; candidateenv=1. Newdefaultimage full gate pending."
+    }
   },
-  "build_manifest_sha256": "37cb278eebdd641fc6e672543e42a696a45263a68825c7bab395d21c68b251ee"
+  "build_manifest_sha256": "37cb278eebdd641fc6e672543e42a696a45263a68825c7bab395d21c68b251ee",
+  "default_promotion": {
+    "library": "/workspace/rv64-gpu-session/build/resident-oom-trim/libstwo-rv64-native-6d9a8d6188fb6df6.so",
+    "sha256": "6d9a8d6188fb6df68b68d41557c2d905b2e17caa30a100d64cbbc7555c93a0ed",
+    "original_exports_verified": 446,
+    "unchanged_native_objects": 36,
+    "unchanged_aot_objects": 268,
+    "environment": "Unset or1 selects scalarcoordinates;0 selects originalOM31aggregate. Other values failclosedcudaErrorInvalidValue.",
+    "honest_oracle_cases_default": 5,
+    "mutation_cases_default": 19,
+    "honest_oracle_cases_legacy0": 5,
+    "mutation_cases_legacy0": 19,
+    "invalid_value_rejected": true,
+    "build_manifest_sha256": "50e4a29f1ea5a090648d4be27d3f073631d83e2275c234fbb977168a7c158518"
+  }
 }

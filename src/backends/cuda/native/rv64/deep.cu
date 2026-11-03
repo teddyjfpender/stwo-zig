@@ -178,7 +178,7 @@ __global__ void deep_aggregate(StwoRv64DeepPrepare j) {
     store(j.coefficients + g.coefficient_offset, n, row, result);
   }
 }
-// Opt-in scalar-coordinate layout: a warp owns adjacent coefficient rows,
+// Scalar-coordinate layout: a warp owns adjacent coefficient rows,
 // eight warps compute the eight independent extension-field coordinates.
 // Each coordinate visits terms in the identical order as deep_aggregate.
 __global__ void deep_aggregate_coordinates(StwoRv64DeepPrepare j) {
@@ -361,7 +361,10 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
   // Launch geometry is independent of device metadata. Grid-stride rows
   // preserve parallelism for large compact groups without host feedback.
   const char *coordinate_env = std::getenv("STWO_RV64_DEEP_COORDINATES");
-  const bool scalar_coordinates = coordinate_env &&
+  if (coordinate_env && std::strcmp(coordinate_env, "0") != 0 &&
+      std::strcmp(coordinate_env, "1") != 0)
+    return int(cudaErrorInvalidValue);
+  const bool scalar_coordinates = !coordinate_env ||
       std::strcmp(coordinate_env, "1") == 0;
   if (scalar_coordinates)
     deep_aggregate_coordinates<<<dim3(256, j.group_count), dim3(32, 8), 0,
