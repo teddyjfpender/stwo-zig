@@ -8,6 +8,8 @@ struct StwoRv64TraceOpen {
   uint32_t tree_log, lifting_log, query_count, reserved;
 };
 static_assert(sizeof(StwoRv64TraceOpen) == 80, "trace opening ABI");
+extern "C" int stwo_rv64_trace_prefix_workspace_words(
+    const stwo::cuda::blake2s::MixedSegment *, uint32_t, uint64_t *);
 // Segments are in stable ascending column-height order, as native lifted PCS.
 // Each segment is a contiguous column-major slab. Numeric buffers stay device
 // resident; host segment geometry is copied into the launch parameters.

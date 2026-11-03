@@ -7,6 +7,7 @@
 #include "rv64/sample_order.h"
 #include "rv64/samples.h"
 #include "rv64/trace.h"
+#include "rv64/prefix_banks.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -170,7 +171,8 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
       if(d[0]!=next_source || d[2]!=next_group || d[1]>sc-next_source || d[3]>sgc-next_group || d[4]>log || d[5])
         throw std::runtime_error("rolling tree partition");
       next_source+=d[1]; next_group+=d[3];
-      uint64_t count=0, eval_count=0, prefix_rows=0;
+      uint64_t count=0, eval_count=0;
+      stwo::cuda::rv64::PrefixBanks prefix;
       std::vector<CoefficientTransfer> transfers;
       for(uint32_t j=0;j<d[1];++j) {
         const uint32_t c=d[0]+j;
@@ -194,10 +196,10 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
         if(v[3]>28 || v[2]+h[5]!=v[3] || v[4]<d[0] || v[4]>d[0]+d[1] || v[5]>d[0]+d[1]-v[4]) throw std::runtime_error("rolling source groups");
         eval_count+=(uint64_t(1)<<v[3])*v[5];
         if (g + 1 < d[2] + d[3] && v[3] != source_groups[(g + 1) * 8 + 3])
-          prefix_rows = std::max(prefix_rows, uint64_t(1) << v[3]);
+          if (!prefix.addHeight(uint32_t(1) << v[3])) throw std::runtime_error("rolling prefix geometry");
       }
       max_tree_evaluations=std::max(max_tree_evaluations,eval_count);
-      max_tree_nodes=std::max(max_tree_nodes,((uint64_t(2)<<d[4])-1)*8 + prefix_rows*48);
+      max_tree_nodes=std::max(max_tree_nodes,((uint64_t(2)<<d[4])-1)*8 + prefix.words());
     }
     if(next_source!=sc || next_group!=sgc) throw std::runtime_error("rolling tree coverage");
   }
@@ -336,15 +338,15 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
     v.groups = d[3];
     v.log = d[4];
     v.tree_words = ((uint64_t(2) << v.log) - 1) * 8;
-    uint64_t prefix_rows = 0;
+    stwo::cuda::rv64::PrefixBanks prefix;
     for (uint32_t i = 0; i + 1 < v.groups; ++i) {
       const auto &segment = trace_segments[v.group + i];
       if (segment.source_size != trace_segments[v.group + i + 1].source_size)
-        prefix_rows = std::max(prefix_rows, uint64_t(segment.source_size));
+        if (!prefix.addHeight(segment.source_size)) throw std::runtime_error("trace prefix geometry");
     }
     // The shared rolling allocation includes both prefix-state banks. Logical
     // Merkle offsets exclude this admitted tail, exactly as in the legacy path.
-    v.tree_capacity = v.tree_words + prefix_rows * 48;
+    v.tree_capacity = v.tree_words + prefix.words();
     v.tree = rolling_sources ? StwoRv64Plane{rolling_tree.words,v.tree_capacity,1,0} : o.plane(v.tree_capacity, 1);
     v.values = o.plane(uint64_t(v.columns) * queries, 1);
     v.paths = o.plane(uint64_t(queries) * v.log * 8, 1);
