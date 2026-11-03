@@ -12,6 +12,15 @@ pub const Task = extern struct { kind: u32, out: u32, args: [6]u32 = @splat(0) }
 pub const Seed = extern struct { out: u32, value: [4]u32 };
 pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
 pub const Launch = *const fn (*anyopaque, u32, *const Job) callconv(.c) c_int;
+pub fn requireProductionMask(mask: u32) !void {
+    if (mask & 0xffff != 0xffff) return error.UnsupportedCircuitAssignmentHint;
+}
+pub fn requireProductionCapabilities(library: *std.DynLib) !void {
+    _ = library.lookup(Launch, "stwo_circuit_assignment_seed_on") orelse return error.MissingCircuitAssignmentKernel;
+    _ = library.lookup(Launch, "stwo_circuit_assignment_level_on") orelse return error.MissingCircuitAssignmentKernel;
+    const query = library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities") orelse return error.MissingCircuitAssignmentKernel;
+    try requireProductionMask(query());
+}
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
     reference: ?[*]const Q,
@@ -145,3 +154,9 @@ pub const Prepared = struct {
         return values;
     }
 };
+
+test "production trace factory refuses partial generation capability masks" {
+    for ([_]u32{ 0, 0xfff, 0x7fff, 0xfffe }) |mask| try std.testing.expectError(error.UnsupportedCircuitAssignmentHint, requireProductionMask(mask));
+    try requireProductionMask(0xffff);
+    try requireProductionMask(0x1ffff);
+}
