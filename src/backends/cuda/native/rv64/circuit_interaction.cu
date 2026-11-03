@@ -98,3 +98,31 @@ extern "C" int stwo_circuit_om31_fractions_emulate(const StwoCircuitOm31Fraction
   return 0;
 }
 #endif
+#ifndef STWO_CIRCUIT_OM31_HOST_EMULATION
+namespace stwo::cuda::rv64::circuit_outer {
+__global__ void cumulative(StwoCircuitOm31Cumulative j) {
+  const uint32_t row=blockIdx.x*blockDim.x+threadIdx.x,rows=1u<<j.row_log;
+  if(row>=rows)return;
+  OM31 total=zero();
+  for(unsigned pair=0;pair+1<j.pairs;++pair){
+    total=add(total,load(j.contributions+uint64_t(pair)*8*j.stride,j.stride,row));
+    store(j.output+uint64_t(pair)*8*j.stride,j.stride,row,total);
+  }
+  uint32_t circle=0;
+  for(unsigned i=0;i<j.row_log;++i)circle=(circle<<1)|((row>>i)&1u);
+  const uint32_t logical=circle<rows/2?2*circle:2*(rows-1-circle)+1;
+  const uint32_t inv_rows=1u<<(31-j.row_log);
+  const uint32_t correction=q::sub(1u,q::mul(logical+1,inv_rows));
+  const OM31 prefix=load(j.output+uint64_t(j.pairs)*8*j.stride,j.stride,row);
+  store(j.output+uint64_t(j.pairs-1)*8*j.stride,j.stride,row,add(prefix,scale(from_words(j.claim),correction)));
+}
+}
+extern "C" int stwo_circuit_om31_cumulative_on(void*raw,uint32_t lane,const StwoCircuitOm31Cumulative*input){
+  using namespace stwo::cuda::rv64;
+  if(!input||input->row_log<4||input->row_log>22||!input->pairs||input->pairs>13||input->stride<(1u<<input->row_log)||input->stride>SIZE_MAX/(8*uint64_t(input->pairs+1)))return int(cudaErrorInvalidValue);
+  const auto j=*input;Custody c(raw,lane);
+  if(!c.range(j.output,8*uint64_t(j.pairs+1)*j.stride,true)||!c.range(j.contributions,8*uint64_t(j.pairs)*j.stride,false)||!c.range(j.claim,8,false))return c.status;
+  circuit_outer::cumulative<<<((1u<<j.row_log)+127)/128,128,0,c.stream>>>(j);
+  return int(cudaPeekAtLastError());
+}
+#endif

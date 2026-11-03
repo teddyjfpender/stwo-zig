@@ -75,7 +75,7 @@ const Fake = struct {
         return if (failure) 1 else 0;
     }
     pub fn stwo_rv64_global_pairs_on(_: *anyopaque, lane: u32, job: *const Abi.GlobalPairs) c_int {
-        std.debug.assert(lane == 1 and job.row_log == 5 and job.pairs == 1 and job.scan_words == 8);
+        std.debug.assert(lane == 1 and (job.row_log == 4 or job.row_log == 5) and job.pairs == 1 and job.scan_words == 8);
         calls += 1;
         return if (failure) 1 else 0;
     }
@@ -346,7 +346,7 @@ test "global relation witness checks geometry custody capacity and sticky enqueu
     Fake.failure = false;
     var context = Context{};
     var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
-    try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 4, 1, 32));
+    try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 3, 1, 32));
     try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 641, 32));
     try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 31));
     var stale = slice();
@@ -358,10 +358,12 @@ test "global relation witness checks geometry custody capacity and sticky enqueu
     try std.testing.expectEqual(@as(usize, 0), Fake.calls);
     try commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 32);
     try std.testing.expectEqual(@as(u64, 5), commands.launches);
+    try commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 4, 1, 16);
+    try std.testing.expectEqual(@as(u64, 10), commands.launches);
     Fake.failure = true;
     try std.testing.expectError(error.CudaEnqueueFailed, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 32));
     try std.testing.expectError(error.JobPoisoned, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 32));
-    try std.testing.expectEqual(@as(usize, 2), Fake.calls);
+    try std.testing.expectEqual(@as(usize, 3), Fake.calls);
 }
 
 test "local and execution closure preserve typed owners and reject malformed counts before dispatch" {

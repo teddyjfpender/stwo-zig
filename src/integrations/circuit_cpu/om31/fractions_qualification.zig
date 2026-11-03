@@ -22,6 +22,20 @@ const Job = extern struct {
     reserved: [2]u32 = .{ 0, 0 },
 };
 extern "c" fn stwo_circuit_om31_fractions_emulate(*const Job) c_int;
+const L = engine.air.logup_columns.ForField(P.O);
+const Provider = struct {
+    values: *const [16][13]L.Fraction,
+    fn fill(self: @This(), row: usize, out: []L.Fraction) !void {
+        @memcpy(out, self.values[row][0..out.len]);
+    }
+};
+fn appendWords(list: *std.ArrayList(u8), a: std.mem.Allocator, words: []const u32) !void {
+    for (words) |word| {
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, word, .little);
+        try list.appendSlice(a, &bytes);
+    }
+}
 test "native octic circuit CUDA fractions share tuple authority all components" {
     const a = std.testing.allocator;
     var ctx = try circuit.builder.Context(P.Q).init(a, 1);
@@ -76,10 +90,12 @@ test "native octic circuit CUDA fractions share tuple authority all components" 
         try std.testing.expectEqual(@as(usize, 96), @sizeOf(Job));
         try std.testing.expectEqual(@as(c_int, 0), stwo_circuit_om31_fractions_emulate(&job));
         try std.testing.expectEqual(@as(u32, 0), status);
+        var all_fractions: [16][13]L.Fraction = undefined;
         for (0..16) |r| {
             var storage: [circuit.witness.trace.RawLookupRows.MAX_LOOKUPS]circuit.witness.components.Lookup = undefined;
             var fractions: [13]engine.air.logup_columns.ForField(P.O).Fraction = undefined;
             try W.pairFractions(&elements, try raw.fill(kind, r, &storage), fractions[0..pairs]);
+            @memcpy(all_fractions[r][0..pairs], fractions[0..pairs]);
             for (fractions[0..pairs], 0..) |fraction, i| {
                 for (fraction.numerator.toM31Array(), 0..) |m, j| {
                     if (m.v != numerators[(8 * i + j) * 16 + r]) std.debug.print("NUM row={} pair={} coord={}\n", .{ r, i, j });
@@ -91,6 +107,27 @@ test "native octic circuit CUDA fractions share tuple authority all components" 
                 }
             }
         }
+        if (std.process.getEnvVarOwned(a, "STWO_OM31_FRACTIONS_FIXTURES")) |directory| {
+            defer a.free(directory);
+            try std.fs.cwd().makePath(directory);
+            var final = try L.build(a, 4, pairs, Provider{ .values = &all_fractions }, Provider.fill);
+            defer circuit.witness.trace.freeColumns(a, final.columns);
+            var encoded: std.ArrayList(u8) = .empty;
+            defer encoded.deinit(a);
+            try appendWords(&encoded, a, &.{ 0x434f4638, 1, @intCast(ci), 4, @intCast(pp_width), @intCast(width), @intCast(pairs) });
+            try appendWords(&encoded, a, fixed);
+            try appendWords(&encoded, a, main);
+            try appendWords(&encoded, a, &parameters);
+            try appendWords(&encoded, a, numerators);
+            try appendWords(&encoded, a, denominators);
+            for (final.columns) |column| for (column.values) |value| try appendWords(&encoded, a, &.{value.v});
+            for (final.claimed_sum.toM31Array()) |value| try appendWords(&encoded, a, &.{value.v});
+            const path = try std.fmt.allocPrint(a, "{s}/case-{}.bin", .{ directory, ci });
+            defer a.free(path);
+            var file = try std.fs.cwd().createFile(path, .{});
+            defer file.close();
+            try file.writeAll(encoded.items);
+        } else |err| if (err != error.EnvironmentVariableNotFound) return err;
         job.denominator_words -= 1;
         try std.testing.expectEqual(@as(c_int, 1), stwo_circuit_om31_fractions_emulate(&job));
         job.denominator_words += 1;
