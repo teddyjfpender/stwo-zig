@@ -3,6 +3,10 @@
 //!   tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]
 //!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity] [fused_qkv=1]
 //!
+//! Default configuration: pcs2 (depth 2, inner 54 queries) + batched matmuls
+//! (proto.recommendedConfig). TENSOR_PCS=flat / TENSOR_BATCH_MATMULS=0 select
+//! the legacy flat Ligero / per-matmul sumchecks for comparison.
+//!
 //! Prints one JSON object with timings, sizes and derived metrics.
 const std = @import("std");
 const t = @import("stwo_tensor");
@@ -48,9 +52,14 @@ fn nsToS(ns: u64) f64 {
 }
 
 /// Optional trailing args `<depth> [inner_queries] [inner_log_blowup] [inner_pow]`
-/// select the recursive PCS (pcs2); absent = legacy flat Ligero.
+/// select the recursive PCS (pcs2). Absent: the recommended configuration
+/// (proto.recommendedConfig: depth 2, inner 54 queries, the outer blowup and
+/// PoW), unless TENSOR_PCS=flat selects the legacy flat Ligero.
 fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Params {
-    if (args.len <= first) return null;
+    if (args.len <= first) {
+        if (std.posix.getenv("TENSOR_PCS")) |v| if (std.mem.eql(u8, v, "flat")) return null;
+        return proto.recommendedConfig(outer, .{ .n_queries = 54, .log_blowup = outer.log_blowup, .pow_bits = outer.pow_bits }).two_level;
+    }
     var p = t.pcs2.Params{ .outer = outer, .depth = try std.fmt.parseInt(u32, args[first], 10) };
     p.inner.pow_bits = outer.pow_bits;
     if (args.len > first + 1) p.inner.n_queries = try std.fmt.parseInt(usize, args[first + 1], 10);
@@ -59,6 +68,12 @@ fn twoLevel(args: []const [:0]u8, first: usize, outer: t.pcs.Params) !?t.pcs2.Pa
     if (args.len > first + 4) p.inner_work_shift = try std.fmt.parseInt(u32, args[first + 4], 10);
     if (args.len > first + 5) p.prox_rows = try std.fmt.parseInt(u32, args[first + 5], 10);
     return p;
+}
+
+/// Batched matmul sumchecks: on by default (recommended config);
+/// TENSOR_BATCH_MATMULS=0 turns them off.
+fn batchMatmuls() bool {
+    return if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| !std.mem.eql(u8, v, "0") else true;
 }
 
 fn printTl(out: anytype, pc: proto.Config) !void {
@@ -135,7 +150,7 @@ pub fn main() !void {
     };
     pc.two_level = try twoLevel(args, 9, pc.pcs);
     // TENSOR_BATCH_MATMULS=1: shape-class batched matmul sumchecks (gate/up share)
-    pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
+    pc.batch_matmuls = batchMatmuls();
     if (pc.accel != null) {
         // warm the device (pipeline state, first-dispatch costs) off the clock
         var wt = try t.pcs.Twiddles.init(a, 4);
@@ -328,7 +343,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     };
     pc.two_level = try twoLevel(args, 15, pc.pcs);
     pc.accel = accelFor();
-    pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
+    pc.batch_matmuls = batchMatmuls();
     if (pc.two_level != null) {
         const wi = try tf.layerWeightInfos(a, cfg);
         defer a.free(wi);

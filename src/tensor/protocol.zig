@@ -176,6 +176,16 @@ pub const Config = struct {
     accel: ?*const accel.Accel = null,
 };
 
+/// Recommended configuration (stream `speed`): the recursive committed-row
+/// PCS (pcs2, depth 2) and shape-class batched matmul sumchecks. `outer` is
+/// the big table's opening, `inner` every committed-row level's. The flat
+/// Ligero mode stays available (two_level = null, batch_matmuls = false) for
+/// comparison; Config's field defaults are unchanged so explicit `.pcs`
+/// settings keep their meaning.
+pub fn recommendedConfig(outer: pcs.Params, inner: pcs.Params) Config {
+    return .{ .pcs = outer, .two_level = .{ .outer = outer, .depth = 2, .inner = inner }, .batch_matmuls = true };
+}
+
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
     const lay = try layout(a, infos, &.{});
     const total = @as(usize, 1) << @intCast(lay.log_total);

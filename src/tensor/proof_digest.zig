@@ -161,3 +161,51 @@ test "proof digest is pinned (mlp, product) and thread-count independent" {
     try std.testing.expectEqualStrings(GOLDEN_MLP, &hex(m1));
     try std.testing.expectEqualStrings(GOLDEN_PRODUCT, &hex(p1));
 }
+
+// Recommended configuration (pcs2 depth 2 + batched matmuls), recorded on the
+// unmodified prover (base 61ba1ce6c with the two bug fixes of 9791c1927).
+const GOLDEN_MLP_RECOMMENDED = "9a5c25593da3792ace6e3929503e1eb9d309f74e253092112ee8f45753201b64";
+
+fn mlpDigestRecommended(threads: usize) ![32]u8 {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, threads);
+    defer pool.deinit();
+    const cfg = model.Mlp{ .log_t = 5, .log_d = 7, .log_f = 8 };
+    const small = pcs.Params{ .log_blowup = 2, .n_queries = 16, .pow_bits = 4 };
+    var pc = proto.recommendedConfig(small, small);
+    pc.weight_log_cols = 6;
+    pc.witness_log_cols_max = 8;
+    pc.gkr_threads = threads;
+    const winfos = model.mlpWeightInfos(cfg);
+    pc.weight_log_cols = try proto.chooseWeightLogCols(pc, a, &winfos, 2);
+    var wdata: [3][]i8 = undefined;
+    for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 100 + i, -8, 7);
+    defer for (wdata) |w| a.free(w);
+    const wv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+    var ws = try proto.commitWeights(a, &pool, pc, &winfos, &wv);
+    defer ws.deinit(a);
+    const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 9);
+    defer a.free(x);
+    var built = try model.buildMlp(a, &pool, &ws, cfg, x);
+    defer built.deinit(a);
+    const st = built.statement();
+    const wview = try a.alloc([]const i32, built.witness.len);
+    defer a.free(wview);
+    for (built.witness, 0..) |w, i| wview[i] = w;
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, pc, st, &ws, wview, &tm);
+    defer proof.deinit(a);
+    try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
+    return digest(&proof);
+}
+
+test "proof digest is pinned under the recommended config (pcs2 + batched matmuls)" {
+    const d1 = try mlpDigestRecommended(1);
+    if (GOLDEN_MLP_RECOMMENDED.len < 64) {
+        std.debug.print("GOLDEN rec = {s}\n", .{hex(d1)});
+        return error.NoGolden;
+    }
+    try std.testing.expectEqualSlices(u8, &d1, &(try mlpDigestRecommended(5)));
+    try std.testing.expectEqualStrings(GOLDEN_MLP_RECOMMENDED, &hex(d1));
+}
