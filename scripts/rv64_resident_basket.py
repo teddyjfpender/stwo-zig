@@ -370,6 +370,16 @@ def production_identity(plan):
     return plan_identity(value)
 
 
+def qualification_view(original, requested, recorded=None):
+    if production_identity(original) != production_identity(requested):
+        raise ValueError("qualification differs from original production authority")
+    if recorded is not None:
+        if production_identity(original) != production_identity(recorded):
+            raise ValueError("recorded qualification plan changed production authority")
+        return recorded
+    return requested
+
+
 def qualify_job(plan, job, pending=None, production_plan=None):
     target = Path(job["target"])
     pending = B.load(target / "produced.json") if pending is None else pending
@@ -540,9 +550,9 @@ def main():
     production_plan = None
     if args.mode == "qualify":
         production_plan = B.load(args.output / "plan.json")
-        if production_identity(production_plan) != production_identity(plan):
-            raise ValueError("qualification differs from original production authority")
-        B.atomic_json(args.output / "qualification-plan.json", plan)
+        recorded = args.output / "qualification-plan.json"
+        plan = qualification_view(production_plan, plan, B.load(recorded) if recorded.is_file() else None)
+        B.atomic_json(recorded, plan)
     elif args.mode != "report":
         B.atomic_json(args.output / "plan.json", plan)
     else:

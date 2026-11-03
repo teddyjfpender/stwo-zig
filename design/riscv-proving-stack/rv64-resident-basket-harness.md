@@ -99,3 +99,10 @@ remain unchanged, and the new pins are recorded in `qualification-plan.json`.
 Changing guest, profile, prover, runtime, request, resources or physical artifacts
 is rejected. The strict process usage is shared by native and root acceptance;
 it must not be counted twice when aggregating receiver time.
+
+When a pinned `qualification-plan.json` has been explicitly prepared before a
+queued `qualify` starts, that file selects the verifier binaries and strategy.
+The CLI-requested plan and recorded qualification plan must both match the
+original production identity. This lets a receiver upgrade be qualified while
+GPU production is running, without changing its pending provenance or restarting
+GPU work. Recorded production-field changes are rejected.

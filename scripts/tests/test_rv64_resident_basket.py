@@ -365,12 +365,15 @@ class ResidentBasket(unittest.TestCase):
         upgraded["assets"]["receiver"] = "new independently pinned CPU receiver"
         upgraded["asset_sha256"]["receiver"] = "new receiver digest"
         self.assertEqual(R.production_identity(original), R.production_identity(upgraded))
+        self.assertEqual(R.qualification_view(original, original, upgraded), upgraded)
         for mutate in (lambda p: p.update(profile="different"),
                        lambda p: p["asset_sha256"].update(driver="different"),
                        lambda p: p["jobs"][0]["resources"].update(global_bytes=1)):
             changed = copy.deepcopy(upgraded)
             mutate(changed)
             self.assertNotEqual(R.production_identity(original), R.production_identity(changed))
+            with self.assertRaisesRegex(ValueError, "production authority"):
+                R.qualification_view(original, original, changed)
 
     def test_deferred_combined_requires_both_fresh_receivers_before_acceptance(self):
         self.exercise_combined(repeat=1, deferred=True)
