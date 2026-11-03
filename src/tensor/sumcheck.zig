@@ -220,6 +220,99 @@ fn foldChunkT(comptime NF: usize) fn (*const FoldCtxT(NF), usize, usize) void {
     }.run;
 }
 
+fn FoldRoundCtx(comptime NF: usize) type {
+    return struct {
+        factors: [NF][]QM31,
+        /// current (pre-fold) half and active length
+        half: usize,
+        active: usize,
+        r: QM31,
+        partial: [][MAX_DEG + 1]QM31,
+        chunk: usize,
+    };
+}
+
+/// Fold at r fused with the next round's sums. Index y in [0, min(half/2, work))
+/// owns folded positions y and y + half/2 (each folded once, by its owner, and
+/// read only by it), so ranges of y can run in parallel in place.
+fn foldRoundChunkT(comptime NF: usize, comptime terms: []const Term, comptime deg: u8) fn (*const FoldRoundCtx(NF), usize, usize) void {
+    return struct {
+        fn run(c: *const FoldRoundCtx(NF), s: usize, e: usize) void {
+            @setEvalBranchQuota(100_000);
+            const nh = c.half / 2;
+            const work = @min(c.half, c.active);
+            var acc: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
+            var y = s;
+            if (LANES > 1) {
+                const full_end = if (c.active > c.half + nh) @max(s, @min(e, c.active - c.half - nh)) else s;
+                if (y + LANES <= full_end) {
+                    var pacc: [MAX_DEG + 1]PQ = [_]PQ{PQ.zero()} ** (MAX_DEG + 1);
+                    const rp = PQ.splat(c.r);
+                    while (y + LANES <= full_end) : (y += LANES) {
+                        var cur: [NF]PQ = undefined;
+                        var diff: [NF]PQ = undefined;
+                        inline for (0..NF) |j| {
+                            const fac = c.factors[j];
+                            const l0 = loadP(fac, y);
+                            const f0 = l0.add(rp.mul(loadP(fac, y + c.half).sub(l0)));
+                            const l1 = loadP(fac, y + nh);
+                            const f1 = l1.add(rp.mul(loadP(fac, y + nh + c.half).sub(l1)));
+                            storeP(fac, y, f0);
+                            storeP(fac, y + nh, f1);
+                            cur[j] = f0;
+                            diff[j] = f1.sub(f0);
+                        }
+                        pacc[0] = pacc[0].add(evalTermsAtP(terms, NF, &cur));
+                        inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
+                        pacc[2] = pacc[2].add(evalTermsAtP(terms, NF, &cur));
+                        if (deg >= 3) {
+                            inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
+                            pacc[3] = pacc[3].add(evalTermsAtP(terms, NF, &cur));
+                        }
+                    }
+                    inline for (0..MAX_DEG + 1) |t| acc[t] = acc[t].add(sumLanes(pacc[t]));
+                }
+            }
+            while (y < e) : (y += 1) {
+                var cur: [NF]QM31 = undefined;
+                var diff: [NF]QM31 = undefined;
+                const has2 = y + nh < work;
+                inline for (0..NF) |j| {
+                    const fac = c.factors[j];
+                    const h0 = if (y + c.half < c.active) fac[y + c.half] else QM31.zero();
+                    const f0 = fac[y].add(c.r.mul(h0.sub(fac[y])));
+                    var f1 = QM31.zero();
+                    if (has2) {
+                        const x1 = y + nh;
+                        const h1 = if (x1 + c.half < c.active) fac[x1 + c.half] else QM31.zero();
+                        f1 = fac[x1].add(c.r.mul(h1.sub(fac[x1])));
+                        fac[x1] = f1;
+                    }
+                    fac[y] = f0;
+                    cur[j] = f0;
+                    diff[j] = f1.sub(f0);
+                }
+                acc[0] = acc[0].add(evalTermsAt(terms, NF, &cur));
+                inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
+                acc[2] = acc[2].add(evalTermsAt(terms, NF, &cur));
+                if (deg >= 3) {
+                    inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
+                    acc[3] = acc[3].add(evalTermsAt(terms, NF, &cur));
+                }
+            }
+            c.partial[s / c.chunk] = acc;
+        }
+    }.run;
+}
+
+fn chunkFor(pool: *f.Pool, work: usize) usize {
+    const target = pool.n_threads * 4;
+    var chunk = (work + target - 1) / target;
+    if (chunk < 2048) chunk = 2048;
+    if (chunk > work) chunk = work;
+    return chunk;
+}
+
 fn termDegreeC(comptime terms: []const Term) u8 {
     var d: usize = 0;
     for (terms) |t| d = @max(d, t.factors.len);
@@ -252,11 +345,16 @@ pub fn proveActive(
     const max_chunks = pool.n_threads * 4 + 2;
     const partial = try a.alloc([MAX_DEG + 1]QM31, max_chunks);
     defer a.free(partial);
+    // sums of the current round when the previous fold already produced them
+    var pending: ?[MAX_DEG + 1]QM31 = null;
     for (0..n) |round| {
         const half = len / 2;
         const work = @min(half, active);
         var sums: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
-        if (work > 0) {
+        if (pending) |p| {
+            sums = p;
+            pending = null;
+        } else if (work > 0) {
             const target = pool.n_threads * 4;
             var chunk = (work + target - 1) / target;
             if (chunk < 2048) chunk = 2048;
@@ -285,8 +383,30 @@ pub fn proveActive(
         const r = tr.draw();
         point[round] = r;
         cur_claim = interpolateAt(sums[0 .. deg + 1], r);
-        const fctx = FoldCtxT(NF){ .factors = factors_in, .half = half, .active = active, .r = r };
-        pool.parallelFor(work, 4096, &fctx, comptime foldChunkT(NF));
+        const next_work = @min(half / 2, work);
+        if (round + 1 < n and next_work > 0) {
+            // fold fused with the next round's sums (one pass instead of two)
+            const chunk = chunkFor(pool, next_work);
+            const n_chunks = (next_work + chunk - 1) / chunk;
+            const fr = FoldRoundCtx(NF){ .factors = factors_in, .half = half, .active = active, .r = r, .partial = partial, .chunk = chunk };
+            const run = comptime foldRoundChunkT(NF, terms, deg);
+            if (n_chunks <= 1) {
+                run(&fr, 0, next_work);
+            } else {
+                var wg: std.Thread.WaitGroup = .{};
+                var s: usize = 0;
+                while (s < next_work) : (s += chunk) pool.pool.spawnWg(&wg, run, .{ &fr, s, @min(next_work, s + chunk) });
+                pool.pool.waitAndWork(&wg);
+            }
+            var ns: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
+            for (0..n_chunks) |ci| {
+                for (0..deg + 1) |t| ns[t] = ns[t].add(partial[ci][t]);
+            }
+            pending = ns;
+        } else {
+            const fctx = FoldCtxT(NF){ .factors = factors_in, .half = half, .active = active, .r = r };
+            pool.parallelFor(work, 4096, &fctx, comptime foldChunkT(NF));
+        }
         len = half;
         active = work;
     }

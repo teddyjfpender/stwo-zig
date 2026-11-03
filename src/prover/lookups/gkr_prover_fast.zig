@@ -679,6 +679,16 @@ pub fn ForField(comptime S: type) type {
             defer ood.deinit(a);
             const partial = try a.alloc([2]S, options.threads * 4 + 1);
             defer a.free(partial);
+            // Per-instance partial sums, so the round work of all instances can
+            // be dispatched to the pool at once (one barrier per round instead
+            // of one per instance and round).
+            const p_stride = options.threads * 4 + 1;
+            const partials = try a.alloc([2]S, n_inst * p_stride);
+            defer a.free(partials);
+            const jobs = try a.alloc(FoldJob, n_inst);
+            defer a.free(jobs);
+            const sum_jobs = try a.alloc(SumJob, n_inst);
+            defer a.free(sum_jobs);
             // Per active instance state (indexed by active slot).
             const active = try a.alloc(usize, n_inst);
             defer a.free(active);
@@ -729,14 +739,21 @@ pub fn ForField(comptime S: type) type {
                     const n_remaining_rounds = n_sc_vars - round;
                     var made: usize = 0;
                     defer for (polys[0..made]) |*p| p.deinit(a);
+                    {
+                        // Round sums not already produced by a fused fold: all instances in one dispatch.
+                        var n_sj: usize = 0;
+                        for (0..n_active) |s| {
+                            if (nv[s] != n_remaining_rounds or pending[s] != null) continue;
+                            const layer = &layers[active[s]][layer_idx - (n_layers - n_vars[active[s]]) + 1];
+                            sum_jobs[n_sj] = .{ .layer = layer, .n_terms = @as(usize, 1) << @intCast(nv[s] - 1), .partial = partials[s * p_stride ..][0..p_stride], .s = s };
+                            n_sj += 1;
+                        }
+                        runSumJobs(ctx, sum_jobs[0..n_sj], eq, lambda);
+                        for (sum_jobs[0..n_sj]) |j| pending[j.s] = reduce(j.partial[0..ctx.chunks(j.n_terms)]);
+                    }
                     for (0..n_active) |s| {
                         if (nv[s] == n_remaining_rounds) {
-                            const layer = &layers[active[s]][layer_idx - (n_layers - n_vars[active[s]]) + 1];
-                            const n_terms = @as(usize, 1) << @intCast(nv[s] - 1);
-                            const sums = pending[s] orelse blk: {
-                                ctx.run(n_terms, sumChunk, .{ layer, @as([]const S, eq), n_terms, lambda, partial });
-                                break :blk reduce(partial[0..ctx.chunks(n_terms)]);
-                            };
+                            const sums = pending[s].?;
                             pending[s] = null;
                             polys[s] = try PF.correctSumAsPolyInFirstVariable(a, sums[0].mul(correction[s]), sums[1].mul(correction[s]), sc_claim[s], ood.items, nv[s]);
                         } else {
@@ -770,15 +787,29 @@ pub fn ForField(comptime S: type) type {
                     channel.mixFelts(acc.coeffsSlice());
                     const r = channel.drawSecureFelt();
                     try assignment.append(a, r);
+                    var n_jobs: usize = 0;
+                    errdefer for (jobs[0..n_jobs]) |j| foldAbort(a, j);
                     for (0..n_active) |s| {
                         sc_claim[s] = polys[s].evalAtPoint(r);
                         if (nv[s] != n_remaining_rounds) continue;
                         const layer = &layers[active[s]][layer_idx - (n_layers - n_vars[active[s]]) + 1];
                         const z0 = ood.items[ood.items.len - nv[s]];
                         correction[s] = correction[s].mul(eqOne(r, z0));
-                        try foldLayer(a, ctx, layer, r, if (nv[s] >= 2) .{ .eq = eq, .lambda = lambda, .partial = partial } else null, &pending[s]);
+                        if (nv[s] >= 2) {
+                            // fused fold + next sums: deferred to one dispatch below
+                            jobs[n_jobs] = try foldPrepare(a, layer, partials[s * p_stride ..][0..p_stride], s);
+                            n_jobs += 1;
+                        } else {
+                            try foldLayer(a, ctx, layer, r, null, &pending[s]);
+                        }
                         nv[s] -= 1;
                     }
+                    runFoldJobs(ctx, jobs[0..n_jobs], r, eq, lambda);
+                    for (jobs[0..n_jobs]) |j| {
+                        pending[j.s] = reduce(j.partial[0..ctx.chunks(j.half / 4)]);
+                        foldFinish(a, j);
+                    }
+                    n_jobs = 0;
                 }
                 try sumcheck_proofs.append(a, .{ .round_polys = try round_polys.toOwnedSlice(a) });
 
@@ -860,6 +891,90 @@ pub fn ForField(comptime S: type) type {
         } else struct {};
 
         const NextSum = struct { eq: []const S, lambda: S, partial: [][2]S };
+
+        /// A layer fold whose fused next-round sums run in a batched dispatch.
+        const FoldJob = struct {
+            layer: *Layer,
+            dst: Folded,
+            half: usize,
+            den_in_place: bool,
+            num_in_place: bool,
+            partial: [][2]S,
+            s: usize,
+        };
+
+        const SumJob = struct { layer: *const Layer, n_terms: usize, partial: [][2]S, s: usize };
+
+        fn foldPrepare(a: std.mem.Allocator, layer: *Layer, partial: [][2]S, s: usize) !FoldJob {
+            const half = layer.den.len / 2;
+            const den_in_place = layer.den_buf != null;
+            const den_dst: []S = if (den_in_place) layer.den[0..half] else try a.alloc(S, half);
+            errdefer if (!den_in_place) a.free(den_dst);
+            const num_in_place = layer.num == .secure and layer.num_buf == .secure;
+            const num_dst: ?[]S = switch (layer.num) {
+                .ones => null,
+                .secure => |n| if (num_in_place) n[0..half] else try a.alloc(S, half),
+                .base => try a.alloc(S, half),
+            };
+            return .{ .layer = layer, .dst = .{ .num = num_dst, .den = den_dst }, .half = half, .den_in_place = den_in_place, .num_in_place = num_in_place, .partial = partial, .s = s };
+        }
+
+        /// Releases a prepared job's fresh buffers (error path; the layer is untouched).
+        fn foldAbort(a: std.mem.Allocator, j: FoldJob) void {
+            if (!j.den_in_place) a.free(j.dst.den);
+            if (j.dst.num) |n| if (!j.num_in_place) a.free(n);
+        }
+
+        /// Layer bookkeeping after the job's fold ran (same as foldLayer's tail).
+        fn foldFinish(a: std.mem.Allocator, j: FoldJob) void {
+            const layer = j.layer;
+            if (!j.den_in_place) layer.den_buf = j.dst.den;
+            layer.den = j.dst.den;
+            if (j.dst.num) |n| {
+                if (!j.num_in_place) {
+                    switch (layer.num_buf) {
+                        .none => {},
+                        .base => |b| a.free(b),
+                        .secure => |x| a.free(x),
+                    }
+                    layer.num_buf = .{ .secure = n };
+                }
+                layer.num = .{ .secure = n };
+            }
+        }
+
+        /// Runs every job's chunks (same chunking as `Ctx.run`) behind one barrier.
+        fn runFoldJobs(ctx: Ctx, js: []const FoldJob, r: S, eq: []const S, lambda: S) void {
+            var wg = std.Thread.WaitGroup{};
+            var spawned = false;
+            for (js) |*j| {
+                const n = j.half / 4;
+                const k = ctx.chunks(n);
+                if (k <= 1) continue;
+                spawned = true;
+                for (0..k) |c| ctx.pool.?.spawnWg(&wg, foldSumChunk, .{ @as(*const Layer, j.layer), j.dst, j.half, r, eq, lambda, j.partial, n * c / k, n * (c + 1) / k, c });
+            }
+            for (js) |*j| {
+                const n = j.half / 4;
+                if (ctx.chunks(n) <= 1) foldSumChunk(j.layer, j.dst, j.half, r, eq, lambda, j.partial, 0, n, 0);
+            }
+            if (spawned) ctx.pool.?.waitAndWork(&wg);
+        }
+
+        fn runSumJobs(ctx: Ctx, js: []const SumJob, eq: []const S, lambda: S) void {
+            var wg = std.Thread.WaitGroup{};
+            var spawned = false;
+            for (js) |*j| {
+                const k = ctx.chunks(j.n_terms);
+                if (k <= 1) continue;
+                spawned = true;
+                for (0..k) |c| ctx.pool.?.spawnWg(&wg, sumChunk, .{ j.layer, eq, j.n_terms, lambda, j.partial, j.n_terms * c / k, j.n_terms * (c + 1) / k, c });
+            }
+            for (js) |*j| {
+                if (ctx.chunks(j.n_terms) <= 1) sumChunk(j.layer, eq, j.n_terms, lambda, j.partial, 0, j.n_terms, 0);
+            }
+            if (spawned) ctx.pool.?.waitAndWork(&wg);
+        }
 
         /// Folds one layer by `r`. Borrowed storage is never written: the
         /// first fold of a borrowed (or base-numerator) layer writes a new
