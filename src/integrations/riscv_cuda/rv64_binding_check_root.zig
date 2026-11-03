@@ -94,3 +94,9 @@ export fn rv64_test_binding_witness(context: *Context, lane: u32, input: *const 
     commands.scanPrefix(prefix.*, regions[2], regions[3], regions[1], 4, false) catch return 1;
     return 0;
 }
+
+export fn rv64_test_global_witness(context: *Context, lane: u32, regions: *const [5]@import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.generateGlobalPairs(regions[0], regions[1], regions[2], regions[3], regions[4], 5, 1, 32) catch return 1;
+    return 0;
+}

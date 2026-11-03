@@ -132,6 +132,16 @@ pub fn build(b: *std.Build) void {
     const run_fri = b.addRunArtifact(fri_fixture);
     if (b.args) |args| run_fri.addArgs(args);
     b.step("rv64-fri-fixtures", "Export native FRI fixtures or verify GPU compact proof readback").dependOn(&run_fri.step);
+    const global_root = b.createModule(.{ .root_source_file = b.path("rv64_global_fixture_main.zig"), .target = target, .optimize = optimize });
+    global_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    global_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    global_root.addImport("stwo_riscv_frontend", frontend);
+    global_root.addImport("stwo_cuda_backend", backend);
+    global_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const global_fixture = b.addExecutable(.{ .name = "rv64-global-fixtures", .root_module = global_root });
+    const run_global = b.addRunArtifact(global_fixture);
+    if (b.args) |args| run_global.addArgs(args);
+    b.step("rv64-global-fixtures", "Export native global tuple projections and classic interaction witnesses").dependOn(&run_global.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

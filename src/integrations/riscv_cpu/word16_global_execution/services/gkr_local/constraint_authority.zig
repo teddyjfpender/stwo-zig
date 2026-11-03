@@ -10,6 +10,17 @@ pub const Global = @import("global_cpu.zig");
 const Main = A.main_only.authority;
 const Table = @import("table_role.zig");
 const Sponge = @import("sponge_projection.zig");
+pub const GlobalWitness = @import("classic_witness.zig");
+
+/// Raw native global tuple authority for resident witness construction. The
+/// public sponge ID is a wire, not a host-specialized challenge or row value.
+pub fn emitGlobalQueries(d: Source.Descriptor, comptime F: type, fixed: []const F, main: []const F, first_id: F, sink: anytype) !void {
+    const geometry = try shape(d);
+    if (fixed.len != geometry.fixed or main.len != geometry.main) return error.InvalidConstraintAuthorityShape;
+    if (d.origin == .sponge) switch (d.origin.sponge) {
+        inline else => |kind| Sponge.emitGlobalWithFirstFor(F, kind, fixed, main, first_id, sink),
+    } else try Global.queriesFor(F, d.origin, fixed, main, sink);
+}
 
 pub fn hasLocal(d: Source.Descriptor) bool {
     return !(d.origin == .core and (d.origin.core == .initial or d.origin.core == .terminal));

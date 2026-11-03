@@ -406,6 +406,27 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             };
             try self.result(Api.stwo_rv64_binding_project_on(owner, self.lane_index, &job), 1);
         }
+        /// One independently claimed global relation. output initially contains
+        /// its paired denominators; contributions initially contains numerators.
+        /// Successful dispatch is not transcript binding or global acceptance.
+        pub fn generateGlobalPairs(self: *Self, output: Slice, contributions: Slice, scratch: Slice, claim: Slice, verdict: Slice, row_log: u32, pairs: u32, stride: u32) !void {
+            if (row_log < 5 or row_log > 22 or pairs == 0 or pairs > 29) return error.InvalidGeometry;
+            const plan = try @import("prefix_plan.zig").Plan.init(row_log);
+            if (stride < plan.rows) return error.InvalidGeometry;
+            const owner = try self.handle();
+            const job = abi.GlobalPairs{
+                .output = try self.context.deviceSlicePointer(u32, output, try std.math.mul(usize, stride, 8 * (pairs + 1))),
+                .contributions = try self.context.deviceSlicePointer(u32, contributions, try std.math.mul(usize, stride, 8 * pairs)),
+                .scan_scratch = try self.context.deviceSlicePointer(u32, scratch, plan.scratch_words),
+                .claim = try self.context.deviceSlicePointer(u32, claim, 8),
+                .status = try self.context.deviceSlicePointer(u32, verdict, 1),
+                .stride = stride,
+                .scan_words = plan.scratch_words,
+                .row_log = row_log,
+                .pairs = pairs,
+            };
+            try self.result(Api.stwo_rv64_global_pairs_on(owner, self.lane_index, &job), 2 + plan.dispatches(true));
+        }
         pub fn scanPrefix(self: *Self, data: Plane, scratch: Slice, claim: Slice, verdict: Slice, row_log: u32, center: bool) !void {
             const plan = try @import("prefix_plan.zig").Plan.init(row_log);
             try data.shape(plan.rows, 8);

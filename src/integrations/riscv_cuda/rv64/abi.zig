@@ -166,6 +166,22 @@ comptime {
 }
 pub extern "c" fn stwo_rv64_binding_project_on(*anyopaque, u32, *const BindingProjection) c_int;
 pub extern "c" fn stwo_rv64_prefix_scan_on(*anyopaque, u32, *const PrefixScan) c_int;
+pub const GlobalPairs = extern struct {
+    output: [*]u32,
+    contributions: [*]u32,
+    scan_scratch: [*]u32,
+    claim: [*]u32,
+    status: [*]u32,
+    stride: u64,
+    scan_words: u64,
+    row_log: u32,
+    pairs: u32,
+    reserved: [2]u32 = @splat(0),
+};
+comptime {
+    if (@sizeOf(GlobalPairs) != 72) @compileError("global interaction ABI mismatch");
+}
+pub extern "c" fn stwo_rv64_global_pairs_on(*anyopaque, u32, *const GlobalPairs) c_int;
 
 pub extern "c" fn stwo_rv64_binding_eq_on(*anyopaque, u32, [*]const u32, u32, Plane, [*]u32) c_int;
 
