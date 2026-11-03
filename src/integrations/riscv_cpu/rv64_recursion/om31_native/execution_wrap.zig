@@ -30,6 +30,7 @@ pub const Report = struct {
     fold_proofs: usize,
     restored_folds: usize,
     peak_pending_authorities: usize,
+    retired_preprocessed_bytes: usize,
     root_node: usize,
     root_digest: [32]u8,
     root_authority: [32]u8,
@@ -81,7 +82,7 @@ fn save(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proof: *const O
     defer a.free(bytes);
     try dir.writeFile(.{ .sub_path = name, .data = bytes });
 }
-const Fold = struct { pending: Pending, restored: bool };
+const Fold = struct { pending: Pending, restored: bool, retired_preprocessed_bytes: usize };
 /// Borrows children throughout construction. The caller releases them ONLY
 /// after the new parent has a complete proof, fresh capture and durable bytes.
 fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.ArrayList(Node), dir: std.fs.Dir, allow_resume: bool) !Fold {
@@ -104,9 +105,10 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
     std.log.info("rv64 OM31 recursion fold accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
     errdefer proof.deinit();
     try save(a, dir, name, proof);
+    const retired_bytes = proof.retireProverData();
     const node = nodes.items.len;
     nodes.appendAssumeCapacity(.{ .first_leaf = l.first_leaf, .leaf_count = l.leaf_count + r.leaf_count, .left = left.node, .right = right.node, .authority = proof.authority.identity, .digest = digest });
-    return .{ .pending = .{ .proof = proof, .node = node }, .restored = encoded != null };
+    return .{ .pending = .{ .proof = proof, .node = node }, .restored = encoded != null, .retired_preprocessed_bytes = retired_bytes };
 }
 /// Streaming binary carry is the same ordered pair-fold tree as breadth-first
 /// folding with odd promotion. Final blocks combine from the rightmost/smallest
@@ -167,6 +169,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     var fold_ns: u64 = 0;
     var restored_leaves: usize = 0;
     var restored_folds: usize = 0;
+    var retired_bytes: usize = 0;
     var pending_count: usize = 0;
     var peak_pending: usize = 0;
     for (inventory.workers, 0..) |worker, ordinal| {
@@ -190,6 +193,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             std.log.info("rv64 OM31 recursion leaf {d}/{d} accepted: preprocess_ns={d} prove_ns={d} restore_ns={d} verify_ns={d}", .{ ordinal + 1, n, proof.timings.preprocess_ns, proof.timings.prove_ns, proof.timings.restore_ns, proof.timings.verify_ns });
             errdefer proof.deinit();
             try save(a, dir, name, proof);
+            retired_bytes += proof.retireProverData();
             const node = nodes.items.len;
             nodes.appendAssumeCapacity(.{ .first_leaf = ordinal, .leaf_count = 1, .left = null, .right = null, .authority = proof.authority.identity, .digest = proof.digest });
             break :blk .{ .proof = proof, .node = node };
@@ -209,6 +213,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             const parent = try combine(a, left, current.?, &nodes, dir, allow_resume);
             fold_ns += timer.read() - start;
             restored_folds += @intFromBool(parent.restored);
+            retired_bytes += parent.retired_preprocessed_bytes;
             stack[level] = null;
             left.deinit(a);
             current.?.deinit(a);
@@ -231,6 +236,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
             const parent = try combine(a, left, right, &nodes, dir, allow_resume);
             fold_ns += timer.read() - start;
             restored_folds += @intFromBool(parent.restored);
+            retired_bytes += parent.retired_preprocessed_bytes;
             left.deinit(a);
             owns_left = false;
             right.deinit(a);
@@ -253,7 +259,7 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes.items, .root = final.node, .cpu_frames = cpus, .truth_frames = truth_frames }, .{ .whitespace = .indent_2 });
     defer a.free(tree);
     try dir.writeFile(.{ .sub_path = "tree.json", .data = tree });
-    const report = Report{ .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .leaf_proofs = n, .restored_leaves = restored_leaves, .fold_proofs = n - 1, .restored_folds = restored_folds, .peak_pending_authorities = peak_pending, .retired_preprocessed_bytes = retired_bytes, .root_node = final.node, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = graph_ns, .wrap_ns = wrap_ns, .fold_ns = fold_ns, .root_verify_ns = verify_ns, .total_ns = timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     try dir.writeFile(.{ .sub_path = "report.json", .data = report_bytes });
