@@ -25,6 +25,7 @@ const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const linalg = @import("linalg.zig");
 const batch = @import("batch.zig");
+const eqsum = @import("eqsum.zig");
 const Transcript = @import("transcript.zig").Transcript;
 
 const M31 = f.M31;
@@ -733,13 +734,8 @@ pub fn prove(
             .hadamard => |h| {
                 const sh = h.shift;
                 const acc_val = r_val.sub(f.qFromI64(shiftHalf(sh))).add(y_val.mulM31(M31.fromCanonical(@as(u32, 1) << sh)));
-                const eq = try f.eqTablePar(a, pool, pt, QM31.one());
-                const fa = try toQM31Vec(a, pool, all[h.a]);
-                const fb = try toQM31Vec(a, pool, all[h.b]);
-                defer a.free(eq);
-                defer a.free(fa);
-                defer a.free(fb);
-                var res = try sc.proveActive(3, &T_EQ3, a, pool, &tr, acc_val, .{ eq, fa, fb }, eq.len);
+                // same transcript as proveActive(3, T_EQ3, {eq(pt), A, B}) (split-eq prover)
+                var res = try eqsum.prove(.hadamard, a, pool, &tr, acc_val, pt, .{ all[h.a], all[h.b] });
                 defer a.free(res.point);
                 try op_proofs.append(a, res.proof);
                 tr.mixFelts(res.finals[1..]);
@@ -758,15 +754,8 @@ pub fn prove(
             const rho = try a.alloc(QM31, ls);
             defer a.free(rho);
             tr.drawN(rho);
-            const eq = try f.eqTablePar(a, pool, rho, QM31.one());
-            const fa = try toQM31Vec(a, pool, all[q.a]);
-            const fb = try toQM31Vec(a, pool, all[q.b]);
-            const fc = try toQM31Vec(a, pool, all[q.c]);
-            defer a.free(eq);
-            defer a.free(fa);
-            defer a.free(fb);
-            defer a.free(fc);
-            var res = try sc.proveActive(4, &T_PRODUCT, a, pool, &tr, QM31.zero(), .{ eq, fa, fb, fc }, eq.len);
+            // same transcript as proveActive(4, T_PRODUCT, {eq(rho), A, B, C}) (split-eq prover)
+            var res = try eqsum.prove(.product, a, pool, &tr, QM31.zero(), rho, .{ all[q.a], all[q.b], all[q.c] });
             defer a.free(res.point);
             try op_proofs.append(a, res.proof);
             const fin = try a.dupe(QM31, res.finals[1..]);

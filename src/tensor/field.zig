@@ -14,6 +14,7 @@ pub const PackedM31 = core.fields.m31.PackedM31;
 pub const PACK_WIDTH = core.fields.m31.PACK_WIDTH;
 pub const addPackedM31 = core.fields.m31.addPacked;
 pub const subPackedM31 = core.fields.m31.subPacked;
+pub const mulPackedM31 = core.fields.m31.mulPacked;
 
 /// Signed integer to M31 (|x| < p).
 pub inline fn fromI64(x: i64) M31 {
