@@ -404,21 +404,23 @@ pub const CpuWorker = struct {
             for (self.plan.slots, witnesses) |slot, witness| {
                 const rows = @as(usize, 1) << @intCast(slot.log);
                 var offset = slot.inter_offset;
-                if (slot.binding_index) |index| {
+                if (slot.binding_index) |binding_index| {
                     if (resident_binding) |binding| {
-                        if (index * 16 + 16 > binding.len) return error.WideCpuBindingShape;
-                        for (columns[offset..][0..16], binding[index * 16 ..][0..16]) |*column, input| {
+                        if (binding_index * 16 + 16 > binding.len) return error.WideCpuBindingShape;
+                        for (columns[offset..][0..16], binding[binding_index * 16 ..][0..16]) |*column, input| {
                             if (input.log_size != slot.log or input.device == null or input.coefficients.len != 0) return error.WideCpuBindingShape;
                             column.* = .{ .log_size = slot.log, .encoding = .coefficients, .device = input.device };
                         }
                     } else {
-                        const data = self.child.?.binding.columns[index];
+                        const data = self.child.?.binding.columns[binding_index];
                         if (data.len != rows * 16) return error.WideCpuBindingShape;
                         for (columns[offset..][0..16], 0..) |*column, i| column.* = .{ .log_size = slot.log, .encoding = .evaluations, .host = data[i * rows ..][0..rows] };
                     }
                     offset += 16;
                 }
-                if (witness) |value| for (columns[offset..][0..value.width()], 0..) |*column, i| column.* = .{ .log_size = slot.log, .encoding = .evaluations, .host = value.data[i * rows ..][0..rows] };
+                if (witness) |value| {
+                    for (columns[offset..][0..value.width()], 0..) |*column, i| column.* = .{ .log_size = slot.log, .encoding = .evaluations, .host = value.data[i * rows ..][0..rows] };
+                }
             }
             self.consumed = true;
             W.mixManifestAndClaims(&self.channel, pending.digest, claims);
