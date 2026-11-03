@@ -999,8 +999,20 @@ pub fn proverInitWith(a: std.mem.Allocator, pool: *f.Pool, st: proto.Statement, 
 }
 
 pub fn keyDen(a: std.mem.Allocator, pool: *f.Pool, ps: *const ProverState, ki: usize, alpha: QM31, beta: QM31) ![]QM31 {
+    const out = try a.alloc(QM31, keyLen(ps, ki));
+    keyDenInto(out, pool, ps, ki, alpha, beta);
+    return out;
+}
+
+/// Number of leaves of ext key `ki` (the length `keyDenInto` writes).
+pub fn keyLen(ps: *const ProverState, ki: usize) usize {
+    return ps.col0[ki].len;
+}
+
+/// `keyDen` into a caller-provided buffer of exactly `keyLen(ps, ki)` entries.
+pub fn keyDenInto(out: []QM31, pool: *f.Pool, ps: *const ProverState, ki: usize, alpha: QM31, beta: QM31) void {
     const c0 = ps.col0[ki];
-    const out = try a.alloc(QM31, c0.len);
+    std.debug.assert(out.len == c0.len);
     const Ctx = struct { out: []QM31, c0: []const i64, c1: ?[]const i64, alpha: QM31, beta: QM31 };
     const ctx = Ctx{ .out = out, .c0 = c0, .c1 = ps.col1[ki], .alpha = alpha, .beta = beta };
     pool.parallelFor(c0.len, 8192, &ctx, struct {
@@ -1012,7 +1024,6 @@ pub fn keyDen(a: std.mem.Allocator, pool: *f.Pool, ps: *const ProverState, ki: u
             }
         }
     }.run);
-    return out;
 }
 
 pub fn addMultiplicities(st: proto.Statement, ps: *const ProverState, ki: usize, mult: []i32) !void {

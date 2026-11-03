@@ -172,6 +172,10 @@ pub const Config = struct {
     /// 2^10 measured best for the MLP: the many small late-round loops of
     /// every layer otherwise run serially)
     gkr_min_parallel: usize = 1 << 10,
+    /// Allocate the LogUp-GKR key inputs before the witness commitment and
+    /// fault their pages in on a helper thread meanwhile (prover memory
+    /// scheduling only; proofs are identical either way).
+    prefault_gkr_inputs: bool = true,
     /// Optional device accelerator (e.g. Metal); proofs are identical either way.
     accel: ?*const accel.Accel = null,
 };
@@ -562,9 +566,11 @@ fn keySrc(st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst
 
 /// Denominators alpha - key(i) for a key instance (prover side). Must run
 /// after `multiplicities` accepted the witness (keys in range).
-fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31) ![]QM31 {
+/// Denominators `alpha - key` of core key instance `k` into `out`
+/// (length 2^k.log_size).
+fn keyValuesInto(out: []QM31, pool: *f.Pool, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31) void {
     const n = @as(usize, 1) << @intCast(k.log_size);
-    const out = try a.alloc(QM31, n);
+    std.debug.assert(out.len == n);
     switch (k.kind) {
         .glu_triple, .ext => {
     const Ctx = struct { out: []QM31, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31 };
@@ -609,8 +615,59 @@ fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []co
         },
         else => prep.denominators(pool, out, keySrc(st, w, acc, k), alpha, beta),
     }
-    return out;
 }
+
+/// GKR key-input buffers allocated before the witness commitment, with their
+/// pages touched by a helper thread while the commitment runs. Fresh pages
+/// cost a serialized zero-fill fault each (≈9 GB/s for the 0.9 GB of key
+/// denominators at 512 tokens); the overlap moves that cost off the critical
+/// path. Values are written later, after alpha and beta are drawn, so the
+/// proof is unchanged.
+const KeyBufs = struct {
+    bufs: [][]QM31,
+    handed: usize = 0,
+    thread: ?std.Thread = null,
+
+    fn init(a: std.mem.Allocator, rel: Relations, eps: *const xt.ProverState, prefault: bool) !KeyBufs {
+        const bufs = try a.alloc([]QM31, rel.keys.len);
+        var n: usize = 0;
+        errdefer {
+            for (bufs[0..n]) |b| a.free(b);
+            a.free(bufs);
+        }
+        for (rel.keys) |k| {
+            const len = if (k.kind == .ext) xt.keyLen(eps, k.op) else @as(usize, 1) << @intCast(k.log_size);
+            bufs[n] = try a.alloc(QM31, len);
+            n += 1;
+        }
+        var self = KeyBufs{ .bufs = bufs };
+        // best effort: without the thread the pages fault when written
+        if (prefault) self.thread = std.Thread.spawn(.{}, touch, .{bufs}) catch null;
+        return self;
+    }
+
+    fn touch(bufs: []const []QM31) void {
+        const page = 16 * 1024;
+        for (bufs) |b| {
+            const bytes = std.mem.sliceAsBytes(b);
+            var i: usize = 0;
+            while (i < bytes.len) : (i += page) @as(*volatile u8, &bytes[i]).* = 0;
+        }
+    }
+
+    fn join(self: *KeyBufs) void {
+        if (self.thread) |t| t.join();
+        self.thread = null;
+    }
+
+    /// Joins the helper and frees every buffer not yet handed to the GKR
+    /// prover (which consumes owned inputs).
+    fn deinit(self: *KeyBufs, a: std.mem.Allocator) void {
+        self.join();
+        for (self.bufs[self.handed..]) |b| a.free(b);
+        a.free(self.bufs);
+    }
+};
 
 fn tableDen(a: std.mem.Allocator, st: Statement, t: RelTable, alpha: QM31, beta: QM31) ![]QM31 {
     const n = @as(usize, 1) << @intCast(t.log_size);
@@ -851,6 +908,9 @@ pub fn proveWithAllAccumulators(
     for (witness, 0..) |w, i| all[i] = w;
     for (mults, 0..) |m, i| all[witness.len + i] = m;
 
+    var key_bufs = try KeyBufs.init(a, rel, &eps, cfg.prefault_gkr_inputs);
+    defer key_bufs.deinit(a);
+
     // --- witness table + commitment
     var t0 = try std.time.Instant.now();
     const lay = try layout(a, ext, &.{});
@@ -883,7 +943,11 @@ pub fn proveWithAllAccumulators(
     const n_inst = rel.keys.len + rel.tables.len;
     const inputs = try a.alloc(Fast.Input, n_inst);
     defer a.free(inputs);
-    for (rel.keys, 0..) |k, i| inputs[i] = .{ .num = .ones, .den = if (k.kind == .ext) try xt.keyDen(a, pool, &eps, k.op, alpha, beta) else try keyValues(a, pool, st, all, acc, k, alpha, beta), .owned = true };
+    key_bufs.join();
+    for (rel.keys, key_bufs.bufs, 0..) |k, buf, i| {
+        if (k.kind == .ext) xt.keyDenInto(buf, pool, &eps, k.op, alpha, beta) else keyValuesInto(buf, pool, st, all, acc, k, alpha, beta);
+        inputs[i] = .{ .num = .ones, .den = buf, .owned = true };
+    }
     const mult_m31 = try a.alloc([]M31, rel.tables.len);
     defer {
         for (mult_m31) |m| a.free(m);
@@ -898,6 +962,8 @@ pub fn proveWithAllAccumulators(
     var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
     var gkr_stats: Fast.Stats = .{};
     timings.gkr_input_ns = nowNs(t0);
+    // the GKR prover consumes (frees) the owned key inputs on every exit
+    key_bufs.handed = key_bufs.bufs.len;
     if (n_inst > 0) {
         const gkr_res = if (cfg.accel != null) try accel.gkrProveBatch(cfg.accel, a, &tr.ch, inputs, cfg.gkr_threads) else try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads, .min_parallel = cfg.gkr_min_parallel }, &gkr_stats);
         gkr_proof = gkr_res.proof;

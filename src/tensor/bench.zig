@@ -78,6 +78,12 @@ fn batchMatmuls() bool {
     return if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| !std.mem.eql(u8, v, "0") else true;
 }
 
+/// TENSOR_PREFAULT=0: allocate and fault the GKR key inputs at the GKR stage
+/// (as before) instead of during the witness commitment.
+fn prefault() bool {
+    return if (std.posix.getenv("TENSOR_PREFAULT")) |v| !std.mem.eql(u8, v, "0") else true;
+}
+
 fn printTl(out: anytype, pc: proto.Config) !void {
     if (pc.two_level) |tl| {
         try out.print("\"prox_rows\":{d},", .{tl.prox_rows});
@@ -158,6 +164,7 @@ pub fn main() !void {
     pc.two_level = try twoLevel(args, 9, pc.pcs);
     // TENSOR_BATCH_MATMULS=1: shape-class batched matmul sumchecks (gate/up share)
     pc.batch_matmuls = batchMatmuls();
+    pc.prefault_gkr_inputs = prefault();
     if (pc.accel != null) {
         // warm the device (pipeline state, first-dispatch costs) off the clock
         var wt = try t.pcs.Twiddles.init(a, 4);
@@ -352,6 +359,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     pc.two_level = try twoLevel(args, 15, pc.pcs);
     pc.accel = accelFor();
     pc.batch_matmuls = batchMatmuls();
+    pc.prefault_gkr_inputs = prefault();
     if (pc.two_level != null) {
         const wi = try tf.layerWeightInfos(a, cfg);
         defer a.free(wi);
