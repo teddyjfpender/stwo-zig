@@ -14,13 +14,14 @@ static void exercise(const std::string&dir,uint32_t id){
 static void exercise(const std::string &directory,uint32_t id) {
   FixtureWords f(directory+"/case-"+std::to_string(id)+".bin");
   const auto h=f.take(8);
-  if(h[0]!=0x52564b57||h[1]!=1||h[2]!=id||h[3]<5||h[3]>22||!h[4]||h[6]!=1923||h[7]!=27)throw std::runtime_error("Keccak witness fixture shape");
+  if(h[0]!=0x52564b57||h[1]!=1||h[2]!=id||h[3]<5||h[3]>22||!h[4]||h[6]!=1923||(h[7]!=27&&h[7]!=29))throw std::runtime_error("Keccak witness fixture shape");
+  const uint32_t policy=h[7]==29,chi_log=policy?13:21,xor_log=policy?10:16;
   const uint64_t n=uint64_t(1)<<h[3];
-  const auto inputs=f.take(uint64_t(h[4])*50),expected=f.take(1923*n),chi=f.take(1u<<21),xor5=f.take(1u<<16);
+  const auto inputs=f.take(uint64_t(h[4])*50),expected=f.take(1923*n),chi=f.take(1u<<chi_log),xor5=f.take(1u<<xor_log);
   if(f.position!=f.data.size())throw std::runtime_error("trailing Keccak fixture");
-  Owner o(0);auto source=o.plane(uint64_t(h[4])*50,1),main=o.plane(n,1923),c=o.plane(1u<<21,1),x=o.plane(1u<<16,1),status=o.plane(1,1);
+  Owner o(0);auto source=o.plane(uint64_t(h[4])*50,1),main=o.plane(n,1923),c=o.plane(1u<<chi_log,1),x=o.plane(1u<<xor_log,1),status=o.plane(1,1);
   o.upload(source,inputs);CHECK(stwo_exec_context_sync(o.ctx));
-  StwoRv64KeccakWitness j{source.words,main.words,c.words,x.words,status.words,uint64_t(h[4])*50,1923*n,h[4],h[5],h[3],0};
+  StwoRv64KeccakWitness j{source.words,main.words,c.words,x.words,status.words,uint64_t(h[4])*50,1923*n,h[4],h[5],h[3],policy};
   CHECK(stwo_rv64_keccak_witness_on(o.ctx,1,&j));CHECK(stwo_exec_context_sync(o.ctx));
   fixture_equal("paired Keccak MAIN",o.read(main),expected);
   fixture_equal("throughput chi counts",o.read(c),chi);
@@ -28,6 +29,9 @@ static void exercise(const std::string &directory,uint32_t id) {
   if(o.read(status)[0])throw std::runtime_error("Keccak witness status");
   auto bad=j;bad.main=source.words;
   if(!stwo_rv64_keccak_witness_on(o.ctx,1,&bad))throw std::runtime_error("Keccak alias accepted");
+  bad=j;bad.policy=2;if(!stwo_rv64_keccak_witness_on(o.ctx,1,&bad))throw std::runtime_error("Keccak invalid policy accepted");
+  bad=j;bad.calls=1u<<j.log;if(!stwo_rv64_keccak_witness_on(o.ctx,1,&bad))throw std::runtime_error("Keccak slot overflow accepted");
+  bad=j;bad.input_words=0;if(!stwo_rv64_keccak_witness_on(o.ctx,1,&bad))throw std::runtime_error("Keccak input extent accepted");
   std::printf("KECCAK_WITNESS case=%u calls=%u log=%u native_main_and_histogram_parity=true\n",id,h[4],h[3]);o.close();
 }
 #else

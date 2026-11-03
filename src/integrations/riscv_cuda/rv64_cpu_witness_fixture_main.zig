@@ -101,6 +101,16 @@ pub fn main() !void {
         try oracle.write(a, d, 3, .double, 9);
         return;
     }
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--keccak-triple")) {
+        try std.fs.cwd().makePath(args[2]);
+        var d = try std.fs.cwd().openDir(args[2], .{});
+        defer d.close();
+        const oracle = @import("rv64/keccak_witness_fixture.zig");
+        try oracle.writePolicy(a, d, 0, 5, 1, .triple_v2);
+        try oracle.writePolicy(a, d, 1, 6, 3, .triple_v2);
+        try oracle.writePolicy(a, d, 2, 9, 18, .triple_v2);
+        return;
+    }
     if (args.len == 3 and std.mem.eql(u8, args[1], "--keccak")) {
         try std.fs.cwd().makePath(args[2]);
         var directory = try std.fs.cwd().openDir(args[2], .{});
