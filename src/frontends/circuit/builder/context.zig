@@ -30,6 +30,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit_mod = @import("circuit.zig");
 const ivalue = @import("ivalue.zig");
+pub const witness_origins = @import("witness_origins.zig");
 const finalize_constants = @import("finalize_constants.zig");
 
 const Allocator = std.mem.Allocator;
@@ -92,6 +93,8 @@ pub const GateCounts = struct {
 pub const Error = Allocator.Error || error{
     /// The circuit would reach 2^31 variables, which no longer fit M31 addresses.
     TooManyVars,
+    InvalidWitnessOrigin,
+    UnsupportedWitnessPermutation,
     /// `assert_eq_on_eval` is on and an `eq` gate joined two different values.
     EqFailedOnEval,
 };
@@ -141,6 +144,8 @@ pub fn Context(comptime V: type) type {
         /// Guessed variables, in guess order, until `finalizeGuessedVars`.
         guessed_vars: std.ArrayListUnmanaged(GuessVar) = .empty,
         guesses_finalized: bool = false,
+        /// Opt-in generation provenance; no allocations on the legacy path.
+        witness_metadata: ?witness_origins.Metadata = null,
         /// Reserved variables awaiting `setOutputs`.
         reserved_vars: std.ArrayListUnmanaged(u32) = .empty,
         finalized: bool = false,
@@ -170,7 +175,20 @@ pub fn Context(comptime V: type) type {
             return self;
         }
 
+        /// Record only generation origins; gate order, values and constraints
+        /// remain identical to init(). Named permutations are required.
+        pub fn initWithWitnessOrigins(gpa: Allocator, n_reserved: usize) Error!Self {
+            var self = try init(gpa, n_reserved);
+            self.witness_metadata = .{};
+            return self;
+        }
+
+        pub fn noteWitnessHint(self: *Self, out: circuit_mod.Var, kind: witness_origins.Kind, a: circuit_mod.Var, b: circuit_mod.Var) Error!void {
+            if (self.witness_metadata) |*metadata| try metadata.hint(out.idx, kind, a.idx, b.idx);
+        }
+
         pub fn deinit(self: *Self) void {
+            if (self.witness_metadata) |*metadata| metadata.deinit(self.gpa);
             self.circuit.deinit(self.gpa);
             self.constants.deinit(self.gpa);
             self.value_table.deinit(self.gpa);
@@ -435,6 +453,7 @@ pub fn Context(comptime V: type) type {
         pub fn div(self: *Self, a: circuit_mod.Var, b: circuit_mod.Var) Error!circuit_mod.Var {
             self.stats.div += 1;
             const out = try self.guess(ivalue.div(V, self.get(a), self.get(b)));
+            try self.noteWitnessHint(out, .divide, a, b);
             const product = try self.mul(out, b);
             try self.eq(product, a);
             return out;
@@ -445,6 +464,7 @@ pub fn Context(comptime V: type) type {
         pub fn inv(self: *Self, b: circuit_mod.Var) Error!circuit_mod.Var {
             self.stats.inv += 1;
             const b_inv = try self.guess(ivalue.div(V, self.get(self.one()), self.get(b)));
+            try self.noteWitnessHint(b_inv, .inverse, b, self.one());
             const product = try self.mul(b, b_inv);
             try self.eq(product, self.one());
             return b_inv;
@@ -470,6 +490,7 @@ pub fn Context(comptime V: type) type {
             self.stats.guess += 1;
             const out = try self.newVar(value);
             try self.guessed_vars.append(self.gpa, @unionInit(GuessVar, @tagName(kind), out));
+            if (self.witness_metadata) |*metadata| try metadata.origins.append(self.gpa, .{ .out = out.idx });
             return out;
         }
 
@@ -480,6 +501,17 @@ pub fn Context(comptime V: type) type {
             inputs: []const circuit_mod.Var,
             comptime permutation: fn (in: []const V, out: []V) void,
         ) Error![]const circuit_mod.Var {
+            if (self.witness_metadata != null) return error.UnsupportedWitnessPermutation;
+            return self.permuteRecorded(inputs, permutation, null);
+        }
+
+        pub fn permuteNamed(self: *Self, inputs: []const circuit_mod.Var, comptime identity: witness_origins.Permutation) Error![]const circuit_mod.Var {
+            return switch (identity) {
+                .sort_by_u_coordinate => self.permuteRecorded(inputs, ivalue.sortByUCoordinate(V), identity),
+            };
+        }
+
+        fn permuteRecorded(self: *Self, inputs: []const circuit_mod.Var, comptime permutation: fn (in: []const V, out: []V) void, identity: ?witness_origins.Permutation) Error![]const circuit_mod.Var {
             self.stats.permutation_inputs += inputs.len;
             const arena = self.scratch();
             const in_values = try arena.alloc(V, inputs.len);
@@ -496,6 +528,7 @@ pub fn Context(comptime V: type) type {
                 for (output_idx, outputs) |*idx, v| idx.* = v.idx;
                 try self.circuit.permutation.append(self.gpa, input_idx, output_idx);
             }
+            if (self.witness_metadata) |*metadata| try metadata.permutations.append(self.gpa, identity orelse return error.UnsupportedWitnessPermutation);
             return outputs;
         }
 

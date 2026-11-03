@@ -145,7 +145,9 @@ fn guessWires(comptime V: type, ctx: *context_mod.Context(V), hints: []const V, 
 pub fn guessInvOrZero(comptime V: type, ctx: *context_mod.Context(V), a: Simd) Error!Simd {
     const hints = try ctx.scratch().alloc(V, a.data.len);
     for (hints, a.data) |*hint, x| hint.* = ivalue.pointwiseInvOrZero(V, ctx.get(x));
-    return guessWires(V, ctx, hints, a.len);
+    const result = try guessWires(V, ctx, hints, a.len);
+    for (result.data, a.data) |out, input| try ctx.noteWitnessHint(out, .pointwise_inverse_or_zero, input, input);
+    return result;
 }
 
 /// `assert_bits`: `a .* a = a` on the first `len` lanes.
@@ -170,6 +172,7 @@ pub fn guessLsb(comptime V: type, ctx: *context_mod.Context(V), a: Simd) Error!S
     const hints = try ctx.scratch().alloc(V, a.data.len);
     for (hints, a.data) |*hint, x| hint.* = ivalue.pointwiseLsb(V, ctx.get(x));
     const out = try guessWires(V, ctx, hints, a.len);
+    for (out.data, a.data) |output, input| try ctx.noteWitnessHint(output, .pointwise_lsb, input, input);
     try assertBits(V, ctx, out);
     return out;
 }

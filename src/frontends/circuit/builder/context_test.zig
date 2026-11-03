@@ -182,3 +182,43 @@ test "context: intoValues returns the value table and frees the rest" {
     try std.testing.expectEqual(expected.len, values.len);
     for (expected, values) |want, got| try std.testing.expect(want.eql(got));
 }
+
+fn originsFixture(ctx: *TraceContext) !void {
+    const seed = try ctx.guess(ivalue.qm31FromU32s(13, 0, 0, 0));
+    const inverse = try ctx.inv(seed);
+    const division = try ctx.div(seed, inverse);
+    _ = try ctx.permuteNamed(&.{ seed, division }, .sort_by_u_coordinate);
+    try ctx.finalize(false);
+}
+
+test "witness origins: opt-in preserves exact values and original gate topology" {
+    var original = try TraceContext.init(gpa, 0);
+    defer original.deinit();
+    var recorded = try TraceContext.initWithWitnessOrigins(gpa, 0);
+    defer recorded.deinit();
+    try originsFixture(&original);
+    try originsFixture(&recorded);
+    try std.testing.expectEqualDeep(original.circuit, recorded.circuit);
+    try std.testing.expectEqualDeep(original.values(), recorded.values());
+    try std.testing.expect(original.witness_metadata == null);
+    const metadata = recorded.witness_metadata.?;
+    try std.testing.expectEqual(@as(usize, 3), metadata.origins.items.len);
+    try std.testing.expectEqual(.seed, metadata.origins.items[0].kind);
+    try std.testing.expectEqual(.inverse, metadata.origins.items[1].kind);
+    try std.testing.expectEqual(.divide, metadata.origins.items[2].kind);
+    try std.testing.expectEqual(.sort_by_u_coordinate, metadata.permutations.items[0]);
+    try std.testing.expectEqual(@as(usize, 0), recorded.guessed_vars.items.len);
+    try std.testing.expect(try recorded.isCircuitValid());
+}
+
+test "witness origins: unsupported permutation and duplicate hint fail closed" {
+    var ctx = try TraceContext.initWithWitnessOrigins(gpa, 0);
+    defer ctx.deinit();
+    const seed = try ctx.guess(QM31.one());
+    const n_vars = ctx.circuit.n_vars;
+    try std.testing.expectError(error.UnsupportedWitnessPermutation, ctx.permute(&.{seed}, ivalue.sortByUCoordinate(QM31)));
+    try std.testing.expectEqual(n_vars, ctx.circuit.n_vars);
+    const inverse = try ctx.inv(seed);
+    try std.testing.expectError(error.InvalidWitnessOrigin, ctx.noteWitnessHint(inverse, .inverse, seed, seed));
+    try std.testing.expectError(error.InvalidWitnessOrigin, ctx.noteWitnessHint(ctx.one(), .inverse, seed, seed));
+}

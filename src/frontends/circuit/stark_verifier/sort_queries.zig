@@ -56,7 +56,7 @@ pub const QuerySorter = struct {
 
         const tagged = try scratch.alloc(Var, values.len);
         for (tagged, values, self.sort_keys) |*out, value, key| out.* = try ctx.add(value.get(), key);
-        const sorted = try ctx.permute(tagged, ivalue.sortByUCoordinate(V));
+        const sorted = try ctx.permuteNamed(tagged, .sort_by_u_coordinate);
 
         const sorted_values = try scratch.alloc(M31Wrapper(Var), sorted.len);
         const sorted_keys = try scratch.alloc(Var, sorted.len);
