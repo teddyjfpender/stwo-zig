@@ -79,6 +79,16 @@ const Fake = struct {
         calls += 1;
         return if (failure) 1 else 0;
     }
+    pub fn stwo_rv64_local_close_on(_: *anyopaque, lane: u32, _: [*]const u32, count: u32, _: [*]u32) c_int {
+        std.debug.assert(lane == 1 and count == 2);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
+    pub fn stwo_rv64_global_close_on(_: *anyopaque, lane: u32, _: [*]const u32, _: [*]const u32, count: u32, _: [*]u32) c_int {
+        std.debug.assert(lane == 1 and count == 2);
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub fn stwo_rv64_gkr_binding_metadata_on(_: *anyopaque, lane: u32, job: *const Abi.BindingMetadata) c_int {
         std.debug.assert(lane == 1 and job.row_log == 5 and job.count == 1 and job.reserved == 0);
         calls += 1;
@@ -290,4 +300,27 @@ test "global relation witness checks geometry custody capacity and sticky enqueu
     try std.testing.expectError(error.CudaEnqueueFailed, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 32));
     try std.testing.expectError(error.JobPoisoned, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 32));
     try std.testing.expectEqual(@as(usize, 2), Fake.calls);
+}
+
+test "local and execution closure preserve typed owners and reject malformed counts before dispatch" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    try std.testing.expectError(error.InvalidGeometry, commands.closeLocalRoots(slice(), 0, slice()));
+    try std.testing.expectError(error.InvalidGeometry, commands.closeLocalRoots(slice(), 65, slice()));
+    try std.testing.expectError(error.InvalidGeometry, commands.closeGlobalClaims(slice(), slice(), 65536, slice()));
+    var stale = slice();
+    stale.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.closeGlobalClaims(slice(), stale, 2, slice()));
+    var short = slice();
+    short.len = 31;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.closeLocalRoots(short, 2, slice()));
+    try std.testing.expectEqual(@as(usize, 0), Fake.calls);
+    try commands.closeLocalRoots(slice(), 2, slice());
+    try commands.closeGlobalClaims(slice(), slice(), 2, slice());
+    try std.testing.expectEqual(@as(u64, 2), commands.launches);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.closeLocalRoots(slice(), 2, slice()));
+    try std.testing.expectError(error.JobPoisoned, commands.closeGlobalClaims(slice(), slice(), 2, slice()));
 }

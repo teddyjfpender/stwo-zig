@@ -142,6 +142,13 @@ pub fn build(b: *std.Build) void {
     const run_global = b.addRunArtifact(global_fixture);
     if (b.args) |args| run_global.addArgs(args);
     b.step("rv64-global-fixtures", "Export native global tuple projections and classic interaction witnesses").dependOn(&run_global.step);
+    const closure_root = b.createModule(.{ .root_source_file = b.path("rv64_closure_fixture_main.zig"), .target = target, .optimize = optimize });
+    closure_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    closure_root.addImport("stwo_riscv_cpu_integration", b.dependency("stwo_riscv_cpu_integration", options).module("stwo_riscv_cpu_integration"));
+    const closure_fixture = b.addExecutable(.{ .name = "rv64-closure-fixtures", .root_module = closure_root });
+    const run_closure = b.addRunArtifact(closure_fixture);
+    if (b.args) |args| run_closure.addArgs(args);
+    b.step("rv64-closure-fixtures", "Export native local GKR and manifest-claim closure fixtures").dependOn(&run_closure.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,

@@ -182,6 +182,8 @@ comptime {
     if (@sizeOf(GlobalPairs) != 72) @compileError("global interaction ABI mismatch");
 }
 pub extern "c" fn stwo_rv64_global_pairs_on(*anyopaque, u32, *const GlobalPairs) c_int;
+pub extern "c" fn stwo_rv64_local_close_on(*anyopaque, u32, [*]const u32, u32, [*]u32) c_int;
+pub extern "c" fn stwo_rv64_global_close_on(*anyopaque, u32, [*]const u32, [*]const u32, u32, [*]u32) c_int;
 
 pub extern "c" fn stwo_rv64_binding_eq_on(*anyopaque, u32, [*]const u32, u32, Plane, [*]u32) c_int;
 

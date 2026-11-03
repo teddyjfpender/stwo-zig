@@ -125,11 +125,25 @@ fn fixture(dir: std.fs.Dir, variables: []const u32, id: u32) !void {
             const nums = try a.alloc(M, n);
             errdefer a.free(nums);
             for (nums) |*x| x.* = if (id == 6) M.zero() else M.fromCanonical(rng.random().uintLessThan(u32, 2147483647));
+            if (id == 8) {
+                var k: usize = 0;
+                while (k < n) : (k += 2) {
+                    nums[k + 1] = nums[k].neg();
+                    denoms[k + 1] = denoms[k];
+                }
+            }
             layers[i] = .{ .LogUpMultiplicities = .{ .numerators = try Mle(O, M).initOwned(nums), .denominators = try Mle(O, O).initOwned(denoms) } };
         } else {
             const nums = try a.alloc(O, n);
             errdefer a.free(nums);
             for (nums) |*x| x.* = if (id == 6) O.zero() else random(rng.random());
+            if (id == 8) {
+                var k: usize = 0;
+                while (k < n) : (k += 2) {
+                    nums[k + 1] = nums[k].neg();
+                    denoms[k + 1] = denoms[k];
+                }
+            }
             layers[i] = .{ .LogUpGeneric = .{ .numerators = try Mle(O, O).initOwned(nums), .denominators = try Mle(O, O).initOwned(denoms) } };
         }
         initialized += 1;
@@ -144,6 +158,22 @@ fn fixture(dir: std.fs.Dir, variables: []const u32, id: u32) !void {
     }
     var result = try G.proveBatch(a, &channel, layers);
     defer result.deinit(a);
+    var expected_closure: u32 = 0;
+    const NativeClosure = @import("stwo_riscv_cpu_integration").rv64_gkr_constraints.LocalClosure;
+    NativeClosure.close(a, result.proof.output_claims_by_instance) catch |err| {
+        expected_closure = switch (err) {
+            error.LocalGkrPole => 4,
+            error.UnclosedLocalGkr => 8,
+            else => return err,
+        };
+    };
+    if ((id == 6 or id == 8) and expected_closure != 0) return error.ClosedGkrFixtureDebt;
+    var closure_bytes: std.ArrayList(u8) = .empty;
+    defer closure_bytes.deinit(a);
+    try IO.words(closure_bytes.writer(a), &.{expected_closure});
+    const closure_name = try std.fmt.allocPrint(a, "closure-{}.bin", .{id});
+    defer a.free(closure_name);
+    try dir.writeFile(.{ .sub_path = closure_name, .data = closure_bytes.items });
     const gates = try a.alloc(V.Gate, layers.len);
     defer a.free(gates);
     @memset(gates, .LogUp);
@@ -246,4 +276,5 @@ pub fn main() !void {
     var mixed: [64]u32 = undefined;
     for (&mixed, 0..) |*v, i| v.* = @intCast(i % 5 + 1);
     try fixture(dir, &mixed, 7);
+    try fixture(dir, &.{ 5, 3, 1 }, 8);
 }

@@ -36,6 +36,11 @@ const Commands = struct {
     batches: u32 = 0,
     masks: u32 = 0,
     parents: u32 = 0,
+    closures: u32 = 0,
+    pub fn closeLocalRoots(s: *@This(), _: Slice, _: u32, _: Slice) !void {
+        s.calls += 1;
+        s.closures += 1;
+    }
     pub fn layer(s: *@This(), input: R.Fraction, levels: u32, output: R.Fraction) !void {
         try std.testing.expectEqual(@as(u32, 1), levels);
         try std.testing.expectEqual(input.count / 2, output.count);
@@ -138,4 +143,25 @@ test "complete GKR rejects late invalid input alias generation and cap before an
     inputs[2].d.data.len -= 1;
     try std.testing.expectError(error.InvalidDeviceAddress, G.enqueue(&commands, &inputs, seed, arena, p.total_words * 4, 1));
     try std.testing.expectEqual(@as(usize, 0), commands.calls);
+}
+
+test "closure GKR path reserves its verdict before any launch and requires it after completion" {
+    var f = Factory{};
+    var context = Context{};
+    var commands = Commands{ .context = &context };
+    const inputs = [_]R.Fraction{ f.fraction(2), f.fraction(8), f.fraction(4) };
+    const seed = f.slice(9);
+    const p = try G.Plan.init(&.{ 1, 3, 2 }, std.math.maxInt(usize));
+    const arena = f.slice(p.total_words);
+    try std.testing.expectError(error.OverlappingWorkspace, G.enqueueWithClosure(&commands, &inputs, seed, arena, p.total_words * 4, 123, try arena.sub(0, 1)));
+    var status = f.slice(1);
+    status.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, G.enqueueWithClosure(&commands, &inputs, seed, arena, p.total_words * 4, 123, status));
+    try std.testing.expectEqual(@as(usize, 0), commands.calls);
+    status.generation = 2;
+    const done = try G.enqueueWithClosure(&commands, &inputs, seed, arena, p.total_words * 4, 123, status);
+    try std.testing.expectEqual(@as(u32, 1), commands.closures);
+    const header = G.Header{ .channel = .{ .digest = @splat(0), .draws = 1, .cursor = 6, .status = 0, .reserved = 0, .chain = 123, .padding = .{ 0, 0 } }, .layers = 3, .count = 3, .next_layer = 3, .phase = 2 };
+    try done.validate(header, 0);
+    try std.testing.expectError(error.LocalGkrClosureRejected, done.validate(header, 8));
 }

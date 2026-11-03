@@ -427,6 +427,21 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             };
             try self.result(Api.stwo_rv64_global_pairs_on(owner, self.lane_index, &job), 2 + plan.dispatches(true));
         }
+        pub fn closeLocalRoots(self: *Self, roots: Slice, count: u32, verdict: Slice) !void {
+            if (count == 0 or count > abi.batch_max_oracles) return error.InvalidGeometry;
+            const owner = try self.handle();
+            const source = try self.context.deviceSlicePointer(u32, roots, @as(usize, count) * 16);
+            const status = try self.context.deviceSlicePointer(u32, verdict, 1);
+            try self.result(Api.stwo_rv64_local_close_on(owner, self.lane_index, source, count, status), 1);
+        }
+        pub fn closeGlobalClaims(self: *Self, claims: Slice, masks: Slice, count: u32, verdict: Slice) !void {
+            if (count == 0 or count > 65535) return error.InvalidGeometry;
+            const owner = try self.handle();
+            const source = try self.context.deviceSlicePointer(u32, claims, @as(usize, count) * 24);
+            const relations = try self.context.deviceSlicePointer(u32, masks, count);
+            const status = try self.context.deviceSlicePointer(u32, verdict, 1);
+            try self.result(Api.stwo_rv64_global_close_on(owner, self.lane_index, source, relations, count, status), 1);
+        }
         pub fn scanPrefix(self: *Self, data: Plane, scratch: Slice, claim: Slice, verdict: Slice, row_log: u32, center: bool) !void {
             const plan = try @import("prefix_plan.zig").Plan.init(row_log);
             try data.shape(plan.rows, 8);

@@ -117,6 +117,24 @@ comptime {
 /// before this call. A single generation-checked arena owns all tree and scratch
 /// regions; one reservation validates the entire job before its first launch.
 pub fn enqueue(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64) !Enqueued {
+    return enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, null);
+}
+pub const ClosureEnqueued = struct {
+    traversal: Enqueued,
+    verdict: Slice,
+    /// Called only after joined device completion and verdict readback. This
+    /// validates traversal/closure, not physical MAIN binding or PCS proofs.
+    pub fn validate(self: @This(), header: Header, status: u32) !void {
+        if (status != 0) return error.LocalGkrClosureRejected;
+        try header.validate(self.traversal);
+    }
+};
+/// Production traversal requires zero rational root sum and rejects every
+/// pole, including zero-weight 0/0. The raw enqueue remains a numerical tool.
+pub fn enqueueWithClosure(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, verdict: Slice) !ClosureEnqueued {
+    return .{ .traversal = try enqueueImpl(commands, inputs, seed, arena, byte_cap, chain, verdict), .verdict = verdict };
+}
+fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, verdict: ?Slice) !Enqueued {
     if (commands.poisoned) return error.JobPoisoned;
     if (inputs.len == 0 or inputs.len > max_instances) return error.InvalidGeometry;
     var variables: [max_instances]u32 = undefined;
@@ -125,10 +143,11 @@ pub fn enqueue(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
         variables[i] = std.math.log2_int(u32, input.count);
     }
     const plan = try Plan.init(variables[0..inputs.len], byte_cap);
-    var reservations = S.ReservationSet(2 + 2 * max_instances){};
+    var reservations = S.ReservationSet(3 + 2 * max_instances){};
     try reservations.slice(commands.context, arena, plan.total_words, true);
     try reservations.slice(commands.context, seed, 9, false);
     for (inputs) |input| try reservations.fraction(commands.context, input, input.count, false);
+    if (verdict) |status| try reservations.slice(commands.context, status, 1, true);
     const state = try region(arena, plan.state);
     const point = try state.sub(A.gkr_point_word, 8 * plan.layers);
     const lambda = try state.sub(A.gkr_lambda_word, 8);
@@ -147,6 +166,7 @@ pub fn enqueue(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
         root_sources[i] = current;
     }
     try commands.packRoots(root_sources[0..inputs.len], roots);
+    if (verdict) |status| try commands.closeLocalRoots(roots, plan.count, status);
     try commands.initGkr(state, seed, variables[0..inputs.len], plan.layers, chain);
     var result = Enqueued{ .state = state, .roots = roots, .proof = undefined, .layers = plan.layers, .count = plan.count, .chain = chain, .requested_workspace_bytes = plan.total_words * 4 };
     for (0..plan.layers) |depth| {

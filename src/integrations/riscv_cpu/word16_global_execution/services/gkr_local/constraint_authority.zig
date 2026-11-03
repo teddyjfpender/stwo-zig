@@ -11,6 +11,8 @@ const Main = A.main_only.authority;
 const Table = @import("table_role.zig");
 const Sponge = @import("sponge_projection.zig");
 pub const GlobalWitness = @import("classic_witness.zig");
+pub const LocalClosure = @import("closure.zig");
+pub const Manifest = @import("manifest.zig");
 
 /// Raw native global tuple authority for resident witness construction. The
 /// public sponge ID is a wire, not a host-specialized challenge or row value.

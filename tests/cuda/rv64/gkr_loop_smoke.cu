@@ -2,8 +2,10 @@
 // used only after the complete GPU child has finished, never as GPU inputs.
 #include "context_owner.cuh"
 #include "fixture_reader.h"
+#include "fixture_words.cuh"
 #include "rv64/batch.h"
 #include "rv64/binding.h"
+#include "rv64/closure.h"
 #include "rv64/gkr_loop.h"
 #include "rv64/round.cuh"
 #include <algorithm>
@@ -43,6 +45,10 @@ static void exercise(const std::string &directory, uint32_t id,
     return p;
   };
   const auto seed = upload(f.take(9));
+  FixtureWords closure_fixture(directory + "/closure-" + std::to_string(id) +
+                          ".bin");
+  const auto expected_closure = closure_fixture.take(1);
+  const auto closure_status = upload({0});
   std::vector<Worker> workers(count);
   std::vector<uint32_t> variables(count);
   std::vector<StwoRv64Root> roots(count);
@@ -180,6 +186,8 @@ static void exercise(const std::string &directory, uint32_t id,
   CHECK(stwo_rv64_gkr_init_on(o.ctx, 1, state.words, seed.words,
                               variables.data(), count, layers,
                               0x1632aabbccddull));
+  CHECK(stwo_rv64_local_close_on(o.ctx, 1, root_words.words, count,
+                                 closure_status.words));
   if (attack == 7)
     corrupt_word<<<1, 1, 0, stream>>>(root_words.words, 2147483647);
   if (attack == 8)
@@ -361,6 +369,8 @@ static void exercise(const std::string &directory, uint32_t id,
       final[17] != count || final[18] != layers || final[19] != 2)
     throw std::runtime_error("full GKR terminal status");
   equal(o.read(root_words), expected_roots, "GKR roots", id);
+  equal(o.read(closure_status), expected_closure, "GKR rational root closure",
+        id);
   equal({final.begin() + STWO_RV64_GKR_POINT_WORD,
          final.begin() + STWO_RV64_GKR_POINT_WORD + 8 * layers},
         expected_point, "GKR final point", id);
@@ -381,18 +391,18 @@ int main(int argc, char **argv) {
   try {
     if (argc != 2)
       throw std::runtime_error("expected full native GKR fixture directory");
-    for (uint32_t id = 0; id < 8; ++id)
+    for (uint32_t id = 0; id < 9; ++id)
       exercise(argv[1], id);
     for (uint32_t attack = 1; attack <= 9; ++attack)
       exercise(argv[1], 3, attack);
     for (uint32_t attack = 1; attack <= 11; ++attack)
       exercise(argv[1], 5, 0, attack);
     std::printf(
-        "{\"schema\":\"rv64-om31-full-gkr-binding-v2\",\"cases\":8,\"poison_"
+        "{\"schema\":\"rv64-om31-full-gkr-binding-v3\",\"cases\":9,\"poison_"
         "cases\":9,"
         "\"native_proof_and_"
         "artifact_parity\":true,\"hot_h2d_bytes\":0,\"hot_d2h_bytes\":0,"
-        "\"binding_metadata_cases\":172,\"binding_witness_cases\":172,"
+        "\"binding_metadata_cases\":178,\"binding_witness_cases\":178,"
         "\"binding_poison_cases\":11,\"physical_"
         "binding_verified\":false,\"full_block_verified\":false}\n");
     return 0;
