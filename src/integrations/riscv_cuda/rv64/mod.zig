@@ -10,6 +10,7 @@ pub const channel = @import("channel.zig");
 pub const pcs = @import("pcs.zig");
 pub const deep = @import("deep.zig");
 pub const samples = @import("samples.zig");
+pub const dword_witness = @import("dword_witness.zig");
 pub const fri = @import("fri.zig");
 pub const trace = @import("trace.zig");
 pub const pcs_assembly = @import("pcs_assembly.zig");
@@ -20,6 +21,7 @@ pub const assembly = @import("assembly.zig");
 pub const sumcheck = @import("sumcheck.zig");
 pub const production_ready = false;
 test {
+    _ = dword_witness;
     _ = samples;
     _ = fri;
     _ = @import("tests/fri_test.zig");

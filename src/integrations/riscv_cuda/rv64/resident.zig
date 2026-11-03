@@ -401,6 +401,15 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             const status = Api.stwo_rv64_composition_finalize_on(owner, self.lane_index, try self.context.deviceSlicePointer(u32, input, words), try self.context.deviceSlicePointer(u32, output, words), log, depth, try self.context.deviceSlicePointer(u32, twiddles, twiddles.len), @intCast(twiddles.len), &launches);
             try self.result(status, launches);
         }
+        pub fn witnessDword(self: *Self, j: @import("dword_witness.zig").Job) !void {
+            const p = try @import("dword_witness.zig").Plan.init(j.log, j.count);
+            const owner = try self.handle();
+            const input: ?[*]const u32 = if (j.count != 0)
+                try self.context.deviceSlicePointer(u32, j.events orelse return error.InvalidDeviceAddress, p.event_words)
+            else
+                null;
+            try self.result(Api.stwo_rv64_ls_dword_witness_on(owner, self.lane_index, input, j.count, j.log, try self.context.deviceSlicePointer(u32, j.output, p.main_words), try self.context.deviceSlicePointer(u32, j.verdict, 1)), 1);
+        }
         pub fn projectBinding(self: *Self, input: Fraction, eq_column: Plane, prefix_column: Plane, metadata: Slice, verdict: Slice, row_log: u32, lane_log: u32) !void {
             if (row_log == 0 or row_log > 22 or lane_log > 8 or row_log + lane_log > 28) return error.InvalidGeometry;
             const rows = @as(u32, 1) << @intCast(row_log);

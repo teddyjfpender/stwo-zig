@@ -111,6 +111,11 @@ const Fake = struct {
         launches.* = if (failure) 1 else 5;
         return if (failure) 1 else 0;
     }
+    pub fn stwo_rv64_ls_dword_witness_on(_: *anyopaque, lane: u32, input: ?[*]const u32, count: u32, log: u32, _: [*]u32, _: [*]u32) c_int {
+        std.debug.assert(lane == 1 and log == 5 and ((count == 31 and input != null) or (count == 0 and input == null)));
+        calls += 1;
+        return if (failure) 1 else 0;
+    }
     pub const stwo_rv64_gkr_sum_split_on = stwo_rv64_gkr_sum_on;
 };
 fn slice() Slice {
@@ -375,4 +380,33 @@ test "local and execution closure preserve typed owners and reject malformed cou
     Fake.failure = true;
     try std.testing.expectError(error.CudaEnqueueFailed, commands.closeLocalRoots(slice(), 2, slice()));
     try std.testing.expectError(error.JobPoisoned, commands.closeGlobalClaims(slice(), slice(), 2, slice()));
+}
+
+test "LS-D64 witness validates complete native-event geometry before enqueue" {
+    Fake.calls = 0;
+    Fake.failure = false;
+    var context = Context{};
+    var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
+    var job = @import("../dword_witness.zig").Job{ .events = slice(), .output = slice(), .verdict = slice(), .log = 5, .count = 31 };
+    try commands.witnessDword(job);
+    job.count = 32;
+    try std.testing.expectError(error.InvalidGeometry, commands.witnessDword(job));
+    job.count = 31;
+    job.events = null;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.witnessDword(job));
+    var retired = slice();
+    retired.generation = 0;
+    job.events = retired;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.witnessDword(job));
+    job.events = slice();
+    job.output.len = 1247;
+    try std.testing.expectError(error.InvalidDeviceAddress, commands.witnessDword(job));
+    try std.testing.expectEqual(@as(usize, 1), Fake.calls);
+    job.output = slice();
+    job.count = 0;
+    job.events = null;
+    try commands.witnessDword(job);
+    Fake.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, commands.witnessDword(job));
+    try std.testing.expectError(error.JobPoisoned, commands.witnessDword(job));
 }

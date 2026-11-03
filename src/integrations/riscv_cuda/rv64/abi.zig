@@ -294,6 +294,7 @@ pub extern "c" fn stwo_rv64_sample_points_on(*anyopaque, u32, *const SamplePoint
 pub extern "c" fn stwo_rv64_sample_evaluate_on(*anyopaque, u32, *const SampleEvaluation) c_int;
 pub extern "c" fn stwo_rv64_sample_order_on(*anyopaque, u32, [*]const u32, u32, [*]const u32, u32, [*]u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_composition_finalize_on(*anyopaque, u32, [*]u32, [*]u32, u32, u32, [*]const u32, u32, *u32) c_int;
+pub extern "c" fn stwo_rv64_ls_dword_witness_on(*anyopaque, u32, ?[*]const u32, u32, u32, [*]u32, [*]u32) c_int;
 pub extern "c" fn stwo_rv64_channel_queries_on(*anyopaque, u32, [*]u32, u32, u64, u64, u32, u32, [*]u32, [*]u32) c_int;
 pub const FriOpen = extern struct {
     input: Plane,

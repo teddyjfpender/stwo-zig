@@ -182,12 +182,20 @@ pub fn build(b: *std.Build) void {
     const run_split = b.addRunArtifact(split_fixture);
     if (b.args) |args| run_split.addArgs(args);
     b.step("rv64-composition-split-fixtures", "Export native four/eight-coordinate composition split oracle").dependOn(&run_split.step);
+    const dword_root = b.createModule(.{ .root_source_file = b.path("rv64_ls_dword_fixture_main.zig"), .target = target, .optimize = optimize });
+    dword_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
+    dword_root.addImport("stwo_riscv_frontend", b.dependency("stwo_riscv_frontend", options).module("stwo_riscv_frontend"));
+    const dword_fixture = b.addExecutable(.{ .name = "rv64-ls-dword-fixtures", .root_module = dword_root });
+    const run_dword = b.addRunArtifact(dword_fixture);
+    if (b.args) |args| run_dword.addArgs(args);
+    b.step("rv64-ls-dword-fixtures", "Export native compact-event LS-D64 witness oracle").dependOn(&run_dword.step);
     const binding_root = b.createModule(.{
         .root_source_file = b.path("rv64_binding_check_root.zig"),
         .target = target,
         .optimize = optimize,
     });
     binding_root.addImport("stwo_cuda_backend", backend);
+    binding_root.addImport("stwo_riscv_frontend", frontend);
     const binding_object = b.addObject(.{ .name = "rv64-cuda-binding-check", .root_module = binding_root });
     binding_object.linkLibC();
     const binding_step = b.step("check-rv64-native-bindings", "Compile real-context RV64 CUDA FFI without requiring a GPU");

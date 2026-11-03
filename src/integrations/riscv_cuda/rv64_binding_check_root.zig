@@ -28,6 +28,11 @@ export fn rv64_test_sample_order(context: *Context, lane: u32, order: *const @im
     commands.sampleOrder(order.*) catch return 1;
     return 0;
 }
+export fn rv64_test_dword_witness(context: *Context, lane: u32, job: *const @import("rv64/dword_witness.zig").Job) c_int {
+    var commands = R.NativeCommands{ .context = context, .lane_index = lane };
+    commands.witnessDword(job.*) catch return 1;
+    return 0;
+}
 export fn rv64_test_composition_finalize(context: *Context, lane: u32, input: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), output: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32), twiddles: *const @import("stwo_cuda_backend").runtime.column.DeviceSlice(u32)) c_int {
     var commands = R.NativeCommands{ .context = context, .lane_index = lane };
     commands.finalizeComposition(input.*, output.*, 5, 2, twiddles.*) catch return 1;
