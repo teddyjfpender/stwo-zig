@@ -331,8 +331,66 @@ pub const LayerCfg = struct {
     /// log2 of KV heads (GQA): log_kv_heads <= log_heads
     log_kv_heads: u32,
     n_layers: u32 = 1,
+    /// MoE: 2^log_experts experts (0 = dense SwiGLU MLP), top-1 routing,
+    /// 2^log_capacity token slots per expert.
+    log_experts: u32 = 0,
+    log_capacity: u32 = 0,
+    /// router weight columns are padded to 2^max(log_experts, router_log_cols)
+    /// (set to the weight table's column count so the core matmul applies)
+    router_log_cols: u32 = 0,
+    /// one fused projection W_qkv [D, 2^qkvLogCols] (Q | K | V | zero pad) with
+    /// Q, K, V consumed as fixed-bit column slices; lets the weight table use
+    /// 2^min(log_d, log_f) columns instead of 2^logDkv
+    fused_qkv: bool = false,
     /// RMSNorm reciprocal precision: inv = floor(2^INV_BITS / rt)
     pub const INV_BITS = 15;
+
+    pub fn isMoe(self: LayerCfg) bool {
+        return self.log_experts > 0;
+    }
+    pub fn routerLogCols(self: LayerCfg) u32 {
+        return @max(self.log_experts, self.router_log_cols);
+    }
+    pub fn qkvLogCols(self: LayerCfg) u32 {
+        const w = (@as(usize, 1) << @intCast(self.log_d)) + 2 * (@as(usize, 1) << @intCast(self.logDkv()));
+        return std.math.log2_int_ceil(usize, w);
+    }
+    fn nAttn(self: LayerCfg) u32 {
+        return if (self.fused_qkv) 2 else 4;
+    }
+    pub fn weightsPerLayer(self: LayerCfg) u32 {
+        return self.nAttn() + if (self.isMoe()) 1 + 3 * (@as(u32, 1) << @intCast(self.log_experts)) else 3;
+    }
+    // weight indices within a layer
+    pub fn wQ(_: LayerCfg) u32 {
+        return 0; // W_qkv when fused
+    }
+    pub fn wK(self: LayerCfg) u32 {
+        std.debug.assert(!self.fused_qkv);
+        return 1;
+    }
+    pub fn wV(self: LayerCfg) u32 {
+        std.debug.assert(!self.fused_qkv);
+        return 2;
+    }
+    pub fn wO(self: LayerCfg) u32 {
+        return self.nAttn() - 1;
+    }
+    pub fn wGate(self: LayerCfg) u32 {
+        return self.nAttn();
+    }
+    pub fn wUp(self: LayerCfg) u32 {
+        return self.nAttn() + 1;
+    }
+    pub fn wDown(self: LayerCfg) u32 {
+        return self.nAttn() + 2;
+    }
+    pub fn wRouter(self: LayerCfg) u32 {
+        return self.nAttn();
+    }
+    pub fn wExpert(self: LayerCfg, x: u32) u32 {
+        return self.nAttn() + 1 + 3 * x;
+    }
 
     pub fn logDh(self: LayerCfg) u32 {
         return self.log_d - self.log_heads;
@@ -346,31 +404,36 @@ pub const LayerCfg = struct {
         // no-wrap bounds (transformer.md, "Field-size bounds")
         if (self.log_d > 14 or self.log_f > 15 or self.logDh() > 13) return error.BadConfig;
         if (self.log_heads + 2 * self.log_t > 26 or self.log_t > 12) return error.BadConfig;
+        if (self.isMoe() and (self.log_experts > 6 or self.log_capacity > self.log_t)) return error.BadConfig;
     }
 };
 
-pub const WEIGHTS_PER_LAYER = 7;
-pub const W = struct {
-    pub const q = 0;
-    pub const k = 1;
-    pub const v = 2;
-    pub const o = 3;
-    pub const gate = 4;
-    pub const up = 5;
-    pub const down = 6;
-};
-
 pub fn layerWeightInfos(a: std.mem.Allocator, cfg: LayerCfg) ![]TensorInfo {
-    const out = try a.alloc(TensorInfo, WEIGHTS_PER_LAYER * cfg.n_layers);
+    const wpl = cfg.weightsPerLayer();
+    const out = try a.alloc(TensorInfo, wpl * cfg.n_layers);
     for (0..cfg.n_layers) |l| {
-        const b = out[l * WEIGHTS_PER_LAYER ..];
-        b[W.q] = TensorInfo.mat(cfg.log_d, cfg.log_d);
-        b[W.k] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
-        b[W.v] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
-        b[W.o] = TensorInfo.mat(cfg.log_d, cfg.log_d);
-        b[W.gate] = TensorInfo.mat(cfg.log_d, cfg.log_f);
-        b[W.up] = TensorInfo.mat(cfg.log_d, cfg.log_f);
-        b[W.down] = TensorInfo.mat(cfg.log_f, cfg.log_d);
+        const b = out[l * wpl ..];
+        if (cfg.fused_qkv) {
+            b[cfg.wQ()] = TensorInfo.mat(cfg.log_d, cfg.qkvLogCols());
+        } else {
+            b[cfg.wQ()] = TensorInfo.mat(cfg.log_d, cfg.log_d);
+            b[cfg.wK()] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
+            b[cfg.wV()] = TensorInfo.mat(cfg.log_d, cfg.logDkv());
+        }
+        b[cfg.wO()] = TensorInfo.mat(cfg.log_d, cfg.log_d);
+        if (cfg.isMoe()) {
+            b[cfg.wRouter()] = TensorInfo.mat(cfg.log_d, cfg.routerLogCols());
+            for (0..@as(u32, 1) << @intCast(cfg.log_experts)) |x| {
+                const e = cfg.wExpert(@intCast(x));
+                b[e] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+                b[e + 1] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+                b[e + 2] = TensorInfo.mat(cfg.log_f, cfg.log_d);
+            }
+        } else {
+            b[cfg.wGate()] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+            b[cfg.wUp()] = TensorInfo.mat(cfg.log_d, cfg.log_f);
+            b[cfg.wDown()] = TensorInfo.mat(cfg.log_f, cfg.log_d);
+        }
     }
     return out;
 }
@@ -415,6 +478,9 @@ pub const Ctx = struct {
     exp_table: u32,
     silu: u32,
     gammas: []u32, // 2 per layer
+    tri: u32 = 0, // MoE tie-break triangle (public)
+    /// test-only: route ties to the LAST maximiser (must be rejected)
+    test_last_argmax: bool = false,
 };
 
 pub fn initCtx(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u64) !Ctx {
@@ -437,12 +503,23 @@ pub fn initCtx(b: *Builder, cfg: LayerCfg, ws: *const proto.WeightStore, seed: u
         for (g) |*v| v.* = prng.random().intRangeAtMost(i32, 48, 80);
         gid.* = try b.public(cfg.log_d, g);
     }
-    for (0..cfg.n_layers) |_| {
-        const wi = try layerWeightInfos(b.a, .{ .log_t = cfg.log_t, .log_d = cfg.log_d, .log_f = cfg.log_f, .log_heads = cfg.log_heads, .log_kv_heads = cfg.log_kv_heads });
+    {
+        const wi = try layerWeightInfos(b.a, cfg);
         defer b.a.free(wi);
         try b.weight_infos.appendSlice(b.a, wi);
     }
-    return .{ .cfg = cfg, .ws = ws, .rope = rope_id, .bias = bias, .exp_table = exp_table, .silu = silu, .gammas = gammas };
+    var tri: u32 = 0;
+    if (cfg.isMoe()) {
+        // Tri[x', x] = 1 iff x' > x (first-argmax tie-breaking)
+        const E = @as(usize, 1) << @intCast(cfg.log_experts);
+        const tv = try b.a.alloc(i32, E * E);
+        defer b.a.free(tv);
+        for (0..E) |xp| for (0..E) |x| {
+            tv[xp * E + x] = @intFromBool(xp > x);
+        };
+        tri = try b.public(2 * cfg.log_experts, tv);
+    }
+    return .{ .cfg = cfg, .ws = ws, .rope = rope_id, .bias = bias, .exp_table = exp_table, .silu = silu, .gammas = gammas, .tri = tri };
 }
 
 // ---------------------------------------------------------------------------
@@ -515,7 +592,7 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
 
 /// RoPE on x [T, heads * dh] (layout t, head, i, b): out[.., i, b'] =
 /// requant_7(sum_b x[.., i, b] R[t, i, b', b]), 9-bit output.
-pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
+pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32, colfix: []const u8) !u32 {
     const lt = c.cfg.log_t;
     const ldh = c.cfg.logDh();
     const n_out = lt + log_heads + ldh;
@@ -525,7 +602,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
         Ref.w(x),
         Ref.p(c.rope),
         1,
-        &.{ ids(0, lt), ids(lt, log_heads), i_vars, ids(n_out, 1) },
+        &.{ ids(0, lt), colfix, ids(lt, log_heads), i_vars, ids(n_out, 1) },
         &.{ ids(0, lt), i_vars, ids(n_out - 1, 1), ids(n_out, 1) },
         7,
         9,
@@ -535,7 +612,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32) !u32 {
 pub const AttnOut = struct { o: u32, scores: u32, probs: u32, rden: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
 
 /// Causal GQA attention core: qr [T, H dh], kr / v [T, Hkv dh] -> O [T, H dh].
-pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
+pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8) !AttnOut {
     const cfg = c.cfg;
     const lt = cfg.log_t;
     const lh = cfg.log_heads;
@@ -637,7 +714,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32) !AttnOut {
         Ref.w(v),
         lt,
         &.{ ids(lt, lkv), ids(lt + lkv, lg), ids(0, lt), ids(n_o, lt) },
-        &.{ ids(n_o, lt), ids(lt, lkv), ids(lt + lh, ldh) },
+        &.{ ids(n_o, lt), vfix, ids(lt, lkv), ids(lt + lh, ldh) },
         null,
         8,
     );
@@ -655,28 +732,199 @@ pub fn residual(b: *Builder, x: u32, y: u32) !u32 {
     return id;
 }
 
-pub const LayerOut = struct { out: u32, h: u32, attn: AttnOut, rms1: RmsOut, rms2: RmsOut, q: u32, qr: u32 };
+pub const MoeOut = struct { out: u32, logits: u32, sel: u32, dr: u32, pre: u32, disp: u32, occ: u32, mo: u32, slot_of: []usize, expert_of: []usize };
+
+/// Top-1 MoE: router logits = rq(y Wr) (int8, first E of the padded columns),
+/// x*(t) = first argmax, tokens dispatched to per-expert slots, each expert
+/// runs its SwiGLU MLP on its 2^log_capacity slots only, outputs combined.
+pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
+    const cfg = c.cfg;
+    const lt = cfg.log_t;
+    const ld = cfg.log_d;
+    const le = cfg.log_experts;
+    const lc = cfg.log_capacity;
+    const lrc = cfg.routerLogCols();
+    const T = @as(usize, 1) << @intCast(lt);
+    const E = @as(usize, 1) << @intCast(le);
+    const C = @as(usize, 1) << @intCast(lc);
+    const D = @as(usize, 1) << @intCast(ld);
+    const Ncol = @as(usize, 1) << @intCast(lrc);
+    const ar = b.arena.allocator();
+    const logits = try b.matmul(c.ws, y, wb + cfg.wRouter());
+    const lg = b.wit.items[logits];
+    // routing (first argmax; test hook: last)
+    const nr = lt + le; // vars (t, x)
+    const m = try b.a.alloc(i32, T);
+    const sel = try b.a.alloc(i32, T * E);
+    @memset(sel, 0);
+    const expert_of = try ar.alloc(usize, T);
+    for (0..T) |t| {
+        var best: i32 = std.math.minInt(i32);
+        var arg: usize = 0;
+        for (0..E) |x| {
+            const v = lg[t * Ncol + x];
+            if (v > best or (c.test_last_argmax and v == best)) {
+                best = v;
+                arg = x;
+            }
+        }
+        m[t] = best;
+        sel[t * E + arg] = 1;
+        expert_of[t] = arg;
+    }
+    const m_id = try b.addVec(lt, m);
+    const sel_id = try b.addVec(nr, sel);
+    const dr = try b.a.alloc(i32, T * E);
+    for (0..T) |t| for (0..E) |x| {
+        dr[t * E + x] = m[t] - lg[t * Ncol + x];
+    };
+    const dr_id = try b.addVec(nr, dr);
+    const tv = ids(0, lt);
+    const xv = ids(lt, le);
+    const lg_lab: []const []const u8 = &.{ tv, fixes(0, lrc - le), xv };
+    // Dr = m - L (L = real-expert slice of the padded logits)
+    try b.lineq(nr, try b.expr(&.{ term(1, Ref.w(dr_id), &.{ tv, xv }), term(-1, Ref.w(m_id), &.{tv}), term(1, Ref.w(logits), lg_lab) }, 0));
+    try b.key(nr, try b.expr(&.{term(1, Ref.w(dr_id), &.{ tv, xv })}, 0), null, .{ .range = 8 });
+    try b.einsumInto(sel_id, Ref.w(sel_id), Ref.w(sel_id), 0, &.{ids(0, nr)}, &.{ids(0, nr)});
+    try b.lineq(lt, try b.expr(&.{term(1, Ref.w(sel_id), &.{ tv, sums(le) })}, -1));
+    _ = try b.einsumExact(null, lt, Ref.w(sel_id), Ref.w(dr_id), le, &.{ tv, ids(lt, le) }, &.{ tv, ids(lt, le) });
+    // first argmax: pre[t, x] = sum_{x' > x} sel[t, x'];  Dr - pre >= 0
+    const pre = (try b.einsumExact(TensorInfo.vec(nr), nr, Ref.w(sel_id), Ref.p(c.tri), le, &.{ tv, ids(nr, le) }, &.{ ids(nr, le), xv })).?;
+    try b.key(nr, try b.expr(&.{ term(1, Ref.w(dr_id), &.{ tv, xv }), term(-1, Ref.w(pre), &.{ tv, xv }) }, 0), null, .{ .range = 8 });
+    // dispatch Disp[x, c, t]
+    const nd = le + lc + lt;
+    const disp = try b.a.alloc(i32, E * C * T);
+    @memset(disp, 0);
+    const fill = try b.a.alloc(usize, E);
+    defer b.a.free(fill);
+    @memset(fill, 0);
+    const slot_of = try ar.alloc(usize, T);
+    for (0..T) |t| {
+        const x = expert_of[t];
+        if (fill[x] >= C) {
+            b.a.free(disp);
+            return error.CapacityExceeded;
+        }
+        slot_of[t] = fill[x];
+        disp[(x * C + fill[x]) * T + t] = 1;
+        fill[x] += 1;
+    }
+    const disp_id = try b.addVec(nd, disp);
+    try b.einsumInto(disp_id, Ref.w(disp_id), Ref.w(disp_id), 0, &.{ids(0, nd)}, &.{ids(0, nd)});
+    // sum_c Disp[x, c, t] = sel[t, x]   (vars: x, t)
+    try b.lineq(le + lt, try b.expr(&.{ term(1, Ref.w(disp_id), &.{ ids(0, le), sums(lc), ids(le, lt) }), term(-1, Ref.w(sel_id), &.{ ids(le, lt), ids(0, le) }) }, 0));
+    // occ[x, c] = sum_t Disp in {0, 1}
+    const occ = try b.a.alloc(i32, E * C);
+    @memset(occ, 0);
+    for (0..E) |x| for (0..fill[x]) |cc| {
+        occ[x * C + cc] = 1;
+    };
+    const occ_id = try b.addVec(le + lc, occ);
+    try b.lineq(le + lc, try b.expr(&.{ term(1, Ref.w(occ_id), &.{ids(0, le + lc)}), term(-1, Ref.w(disp_id), &.{ ids(0, le + lc), sums(lt) }) }, 0));
+    try b.einsumInto(occ_id, Ref.w(occ_id), Ref.w(occ_id), 0, &.{ids(0, le + lc)}, &.{ids(0, le + lc)});
+    // experts: Xe_x[c, d] = sum_t Disp[x, c, t] y[t, d]; SwiGLU on C slots
+    const mo_all = try b.a.alloc(i32, E * C * D);
+    var mo_ids: [64]u32 = undefined;
+    for (0..E) |x| {
+        const xe = (try b.einsumExact(TensorInfo.mat(lc, ld), lc + ld, Ref.w(disp_id), Ref.w(y), lt, &.{ fixesOf(x, le), ids(0, lc), ids(lc + ld, lt) }, &.{ ids(lc + ld, lt), ids(lc, ld) })).?;
+        const we = wb + cfg.wExpert(@intCast(x));
+        const g = try b.matmul(c.ws, xe, we);
+        const u = try b.matmul(c.ws, xe, we + 1);
+        const act = try b.lookup(g, c.silu);
+        const hm = try b.hadamard(act, u);
+        const mo = try b.matmul(c.ws, hm, we + 2);
+        @memcpy(mo_all[x * C * D ..][0 .. C * D], b.wit.items[mo]);
+        mo_ids[x] = mo;
+    }
+    // stack MO[x, c, d] = mo_x[c, d]
+    const nmo = le + lc + ld;
+    const mo_st = try b.addVec(nmo, mo_all);
+    for (0..E) |x| {
+        try b.lineq(lc + ld, try b.expr(&.{ term(1, Ref.w(mo_st), &.{ fixesOf(x, le), ids(0, lc + ld) }), term(-1, Ref.w(mo_ids[x]), &.{ids(0, lc + ld)}) }, 0));
+    }
+    // combine out[t, d] = sum_{x, c} Disp[x, c, t] MO[x, c, d]
+    const n_out = lt + ld;
+    const out = (try b.einsumExact(TensorInfo.mat(lt, ld), n_out, Ref.w(disp_id), Ref.w(mo_st), le + lc, &.{ ids(n_out, le + lc), ids(0, lt) }, &.{ ids(n_out, le + lc), ids(lt, ld) })).?;
+    return .{ .out = out, .logits = logits, .sel = sel_id, .dr = dr_id, .pre = pre, .disp = disp_id, .occ = occ_id, .mo = mo_st, .slot_of = slot_of, .expert_of = expert_of };
+}
+
+const FIX0S = [_]u8{xt.FIX0} ** xt.MAXB;
+
+/// FIX labels selecting the column block [off, off + 2^width_log) of a
+/// 2^total_log-wide index (off a multiple of the block width).
+pub fn sliceFix(buf: *[xt.MAXB]u8, total_log: u32, off: usize, width_log: u32) []const u8 {
+    const n = total_log - width_log;
+    const blk = off >> @intCast(width_log);
+    std.debug.assert(blk << @intCast(width_log) == off);
+    for (0..n) |i| buf[i] = if ((blk >> @intCast(n - 1 - i)) & 1 == 1) xt.FIX1 else xt.FIX0;
+    return buf[0..n];
+}
+
+pub fn fixes(_: u32, n: u32) []const u8 {
+    return FIX0S[0..n];
+}
+
+/// Fixed labels spelling x in `n` bits (MSB-first); arena-free static storage.
+pub fn fixesOf(x: usize, n: u32) []const u8 {
+    const S = struct {
+        threadlocal var buf: [8][xt.MAXB]u8 = undefined;
+        threadlocal var next: usize = 0;
+    };
+    const slot = &S.buf[S.next % 8];
+    S.next += 1;
+    for (0..n) |i| slot[i] = if ((x >> @intCast(n - 1 - i)) & 1 == 1) xt.FIX1 else xt.FIX0;
+    return slot[0..n];
+}
+
+pub const LayerOut = struct { out: u32, h: u32, attn: AttnOut, rms1: RmsOut, rms2: RmsOut, q: u32, qr: u32, moe: ?MoeOut = null };
 
 /// One Llama-style decoder layer: x -> x + Attn(RMSNorm(x)) -> h + MLP(RMSNorm(h)).
 pub fn decoderLayer(b: *Builder, c: Ctx, layer: u32, x: u32, x_int8: bool) !LayerOut {
     const cfg = c.cfg;
-    const wb = layer * WEIGHTS_PER_LAYER;
+    const wb = layer * cfg.weightsPerLayer();
     const r1 = try rmsnorm(b, c, x, c.gammas[2 * layer], x_int8);
     const y1 = r1.y;
-    const q = try b.matmul(c.ws, y1, wb + W.q);
-    const k = try b.matmul(c.ws, y1, wb + W.k);
-    const v = try b.matmul(c.ws, y1, wb + W.v);
-    const qr = try rope(b, c, q, cfg.log_heads);
-    const kr = try rope(b, c, k, cfg.log_kv_heads);
-    const at = try attention(b, c, qr, kr, v);
-    const ao = try b.matmul(c.ws, at.o, wb + W.o);
+    var q: u32 = undefined;
+    var k: u32 = undefined;
+    var v: u32 = undefined;
+    var qf: [xt.MAXB]u8 = undefined;
+    var kf: [xt.MAXB]u8 = undefined;
+    var vf: [xt.MAXB]u8 = undefined;
+    var qfix: []const u8 = &.{};
+    var kfix: []const u8 = &.{};
+    var vfix: []const u8 = &.{};
+    if (cfg.fused_qkv) {
+        // columns: Q [0, D), K [D, D + Dkv), V [D + Dkv, D + 2 Dkv)
+        const qkv = try b.matmul(c.ws, y1, wb + cfg.wQ());
+        const D = @as(usize, 1) << @intCast(cfg.log_d);
+        const Dkv = @as(usize, 1) << @intCast(cfg.logDkv());
+        const lq = cfg.qkvLogCols();
+        qfix = sliceFix(&qf, lq, 0, cfg.log_d);
+        kfix = sliceFix(&kf, lq, D, cfg.logDkv());
+        vfix = sliceFix(&vf, lq, D + Dkv, cfg.logDkv());
+        q = qkv;
+        k = qkv;
+        v = qkv;
+    } else {
+        q = try b.matmul(c.ws, y1, wb + cfg.wQ());
+        k = try b.matmul(c.ws, y1, wb + cfg.wK());
+        v = try b.matmul(c.ws, y1, wb + cfg.wV());
+    }
+    const qr = try rope(b, c, q, cfg.log_heads, qfix);
+    const kr = try rope(b, c, k, cfg.log_kv_heads, kfix);
+    const at = try attention(b, c, qr, kr, v, vfix);
+    const ao = try b.matmul(c.ws, at.o, wb + cfg.wO());
     const h = try residual(b, x, ao);
     const r2 = try rmsnorm(b, c, h, c.gammas[2 * layer + 1], false);
-    const g = try b.matmul(c.ws, r2.y, wb + W.gate);
-    const u = try b.matmul(c.ws, r2.y, wb + W.up);
+    if (cfg.isMoe()) {
+        const mo = try moe(b, c, wb, r2.y);
+        return .{ .out = try residual(b, h, mo.out), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr, .moe = mo };
+    }
+    const g = try b.matmul(c.ws, r2.y, wb + cfg.wGate());
+    const u = try b.matmul(c.ws, r2.y, wb + cfg.wUp());
     const act = try b.lookup(g, c.silu);
     const hm = try b.hadamard(act, u);
-    const mo = try b.matmul(c.ws, hm, wb + W.down);
+    const mo = try b.matmul(c.ws, hm, wb + cfg.wDown());
     return .{ .out = try residual(b, h, mo), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
 }
 
@@ -712,7 +960,14 @@ pub const TestSetup = struct {
     }
 };
 
-pub fn setupWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: LayerCfg, pc: proto.Config, seed: u64) !struct { ws: proto.WeightStore, wdata: [][]i8, winfos: []TensorInfo } {
+pub const WeightSetup = struct { ws: proto.WeightStore, wdata: [][]i8, winfos: []TensorInfo };
+
+pub fn setupWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: LayerCfg, pc: proto.Config, seed: u64) !WeightSetup {
+    return setupWeightsWith(a, pool, cfg, pc, seed, false);
+}
+
+/// tie_router: copy router column 0 into column 1 (test: tied experts 0 / 1).
+pub fn setupWeightsWith(a: std.mem.Allocator, pool: *f.Pool, cfg: LayerCfg, pc: proto.Config, seed: u64, tie_router: bool) !WeightSetup {
     const winfos = try layerWeightInfos(a, cfg);
     const wdata = try a.alloc([]i8, winfos.len);
     const wv = try a.alloc([]const i8, winfos.len);
@@ -720,6 +975,13 @@ pub fn setupWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: LayerCfg, pc: prot
     for (wdata, 0..) |*w, i| {
         w.* = try model.randomWeights(a, winfos[i].size(), seed + i, -8, 7);
         wv[i] = w.*;
+    }
+    if (tie_router and cfg.isMoe()) {
+        for (0..cfg.n_layers) |l| {
+            const r = wdata[l * cfg.weightsPerLayer() + cfg.wRouter()];
+            const ncol = @as(usize, 1) << @intCast(cfg.routerLogCols());
+            for (0..r.len / ncol) |row| r[row * ncol + 1] = r[row * ncol];
+        }
     }
     const ws = try proto.commitWeights(a, pool, pc, winfos, wv);
     return .{ .ws = ws, .wdata = wdata, .winfos = winfos };
@@ -867,7 +1129,7 @@ test "two-layer stack proves and verifies" {
 const SmallCfg = LayerCfg{ .log_t = 2, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = 1 };
 
 const Fixture = struct {
-    sw: @typeInfo(@typeInfo(@TypeOf(setupWeights)).@"fn".return_type.?).error_union.payload,
+    sw: WeightSetup,
     b: Builder,
     c: Ctx,
     out: LayerOut,
@@ -1079,4 +1341,181 @@ test "honest prover refuses invalid witnesses" {
     defer a.free(wv);
     var tm: proto.Timings = .{};
     try testing.expectError(error.LinEqViolated, proto.prove(a, &pool, pc, fx.b.statement(), &fx.sw.ws, wv, &tm));
+}
+
+const MoeCfg = LayerCfg{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 0, .log_experts = 2, .log_capacity = 3, .router_log_cols = 3 };
+
+fn moePc() proto.Config {
+    var pc = testCfg();
+    pc.weight_log_cols = 3;
+    return pc;
+}
+
+fn buildMoeFixture(a: std.mem.Allocator, pool: *f.Pool, seed: u64, tie: bool, last_argmax: bool) !*Fixture {
+    const fx = try a.create(Fixture);
+    errdefer a.destroy(fx);
+    fx.sw = try setupWeightsWith(a, pool, MoeCfg, moePc(), seed, tie);
+    fx.b = Builder.init(a, pool);
+    fx.c = try initCtx(&fx.b, MoeCfg, &fx.sw.ws, seed + 1);
+    fx.c.test_last_argmax = last_argmax;
+    const x = try model.randomInput(a, @as(usize, 1) << @intCast(MoeCfg.log_t + MoeCfg.log_d), seed + 2);
+    defer a.free(x);
+    fx.out = try buildStack(&fx.b, fx.c, x);
+    return fx;
+}
+
+test "MoE top-1 layer: routing / dispatch / combine match reference; proves and verifies" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const fx = try buildMoeFixture(a, &pool, 600, false, false);
+    defer fx.deinit(a);
+    const b = &fx.b;
+    const mo = fx.out.moe.?;
+    const T = 8;
+    const E = 4;
+    const C = 8;
+    const D = 16;
+    const ncol = 8;
+    const lg = b.wit.items[mo.logits];
+    var used = [_]usize{0} ** E;
+    for (0..T) |t| {
+        // first argmax over the real experts
+        var best: i32 = std.math.minInt(i32);
+        var arg: usize = 0;
+        for (0..E) |x| if (lg[t * ncol + x] > best) {
+            best = lg[t * ncol + x];
+            arg = x;
+        };
+        try testing.expectEqual(arg, mo.expert_of[t]);
+        used[arg] += 1;
+        for (0..D) |d| {
+            try testing.expectEqual(b.wit.items[mo.mo][(arg * C + mo.slot_of[t]) * D + d], b.wit.items[mo.out][t * D + d]);
+        }
+    }
+    var proof = try proveVerify(a, &pool, moePc(), b, &fx.sw.ws);
+    defer proof.deinit(a);
+}
+
+const MoeCheat = enum { wrong_expert, drop_token, dup_slot, combine_out, last_argmax_tie };
+
+fn moeCheatCase(a: std.mem.Allocator, cheat: MoeCheat) !void {
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const tie = cheat == .last_argmax_tie;
+    const fx = try buildMoeFixture(a, &pool, 610, tie, tie);
+    defer fx.deinit(a);
+    const b = &fx.b;
+    const mo = fx.out.moe.?;
+    const T = 8;
+    const E = 4;
+    const C = 8;
+    switch (cheat) {
+        .wrong_expert => {
+            // token 0 to another expert in sel only
+            const x = mo.expert_of[0];
+            b.wit.items[mo.sel][x] = 0;
+            b.wit.items[mo.sel][(x + 1) % E] = 1;
+        },
+        .drop_token => {
+            const x = mo.expert_of[0];
+            b.wit.items[mo.disp][(x * C + mo.slot_of[0]) * T + 0] = 0;
+        },
+        .dup_slot => {
+            // token 1 also written into token 0's slot (different expert ok)
+            const x = mo.expert_of[0];
+            b.wit.items[mo.disp][(x * C + mo.slot_of[0]) * T + 1] = 1;
+        },
+        .combine_out => b.wit.items[mo.out][3] += 1,
+        .last_argmax_tie => {
+            // the witness is fully consistent with last-maximiser routing;
+            // only the first-argmax constraint (Dr - pre >= 0) is violated
+            var differs = false;
+            for (0..T) |t| {
+                const lg = b.wit.items[mo.logits];
+                if (lg[t * 8] == lg[t * 8 + 1] and mo.expert_of[t] == 1) {
+                    var best: i32 = std.math.minInt(i32);
+                    for (0..E) |x| best = @max(best, lg[t * 8 + x]);
+                    if (best == lg[t * 8]) differs = true;
+                }
+            }
+            try testing.expect(differs);
+        },
+    }
+    xt.test_unchecked_prover = true;
+    defer xt.test_unchecked_prover = false;
+    const st = b.statement();
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &pool, moePc(), st, &fx.sw.ws, wv, &tm);
+    defer proof.deinit(a);
+    try expectReject(a, moePc(), st, &fx.sw.ws, &proof);
+}
+
+test "MoE: verifier rejects wrong routing, dropped / duplicated tokens, combine tamper, last-argmax ties" {
+    inline for (@typeInfo(MoeCheat).@"enum".fields) |fld| {
+        moeCheatCase(testing.allocator, @enumFromInt(fld.value)) catch |err| {
+            std.debug.print("moe cheat case {s} failed: {}\n", .{ fld.name, err });
+            return err;
+        };
+    }
+}
+
+test "MoE with tied router columns: first-argmax routing verifies" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const fx = try buildMoeFixture(a, &pool, 610, true, false);
+    defer fx.deinit(a);
+    var proof = try proveVerify(a, &pool, moePc(), &fx.b, &fx.sw.ws);
+    defer proof.deinit(a);
+}
+
+test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads the right slice" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    inline for (.{ @as(u32, 1), @as(u32, 2) }) |lkv| { // GQA (2 Dkv < D) and MHA (3 D -> 4 D)
+        const cfg = LayerCfg{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 2, .log_kv_heads = lkv, .fused_qkv = true };
+        var pc = testCfg();
+        pc.weight_log_cols = 4; // = log_d: no longer capped by logDkv
+        const fx = try a.create(Fixture);
+        defer a.destroy(fx);
+        fx.sw = try setupWeights(a, &pool, cfg, pc, 700);
+        fx.b = Builder.init(a, &pool);
+        fx.c = try initCtx(&fx.b, cfg, &fx.sw.ws, 701);
+        const x = try model.randomInput(a, @as(usize, 1) << @intCast(cfg.log_t + cfg.log_d), 702);
+        defer a.free(x);
+        fx.out = try buildStack(&fx.b, fx.c, x);
+        defer {
+            fx.b.deinit();
+            fx.sw.ws.deinit(a);
+            for (fx.sw.wdata) |w| a.free(w);
+            a.free(fx.sw.wdata);
+            a.free(fx.sw.winfos);
+        }
+        // q = qkv[:, 0:D] fed RoPE: compare against the direct rotation
+        const T = 8;
+        const D = 16;
+        const dh = 4;
+        const W = @as(usize, 1) << @intCast(cfg.qkvLogCols());
+        const qkv = fx.b.wit.items[fx.out.q];
+        const qr = fx.b.wit.items[fx.out.qr];
+        const rt = try ropeTable(a, cfg.log_t, cfg.logDh());
+        defer a.free(rt);
+        for (0..T) |t| for (0..D / 2) |hi| for (0..2) |bo| {
+            const h = hi / (dh / 2);
+            const i = hi % (dh / 2);
+            var sum: i64 = 0;
+            for (0..2) |bi| sum += @as(i64, qkv[t * W + h * dh + 2 * i + bi]) * rt[((t * dh / 2 + i) * 2 + bo) * 2 + bi];
+            try testing.expectEqual(rq(sum, 7), qr[t * D + h * dh + 2 * i + bo]);
+        };
+        var proof = try proveVerify(a, &pool, pc, &fx.b, &fx.sw.ws);
+        proof.deinit(a);
+    }
 }

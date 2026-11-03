@@ -1,7 +1,7 @@
 //! tensor-bench: end-to-end benchmarks of the tensor frontend.
 //!
 //!   tensor-bench mlp <log_t> <log_d> <log_f> [threads] [queries] [log_blowup] [pow]
-//!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]
+//!   tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity] [fused_qkv=1]
 //!
 //! Prints one JSON object with timings, sizes and derived metrics.
 const std = @import("std");
@@ -297,7 +297,7 @@ fn runModel(args: []const [:0]u8) !void {
     try out.print("{{\"log_total\":{d},\"used\":{d},\"n_rows\":{d},\"depth\":{d},\"log_cols\":{d},\"bytes\":{d:.0},\"flat_log_cols\":{d},\"flat_bytes\":{d:.0}}}\n", .{ lt, used, nr, p.depth, b.log_cols, b.bytes, flat.log_cols, flat.bytes });
 }
 
-/// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers]
+/// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] [n_layers] [log_experts] [log_capacity] [fused_qkv=1] [pcs2 depth inner_queries ...]
 fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const lt = try std.fmt.parseInt(u32, args[2], 10);
     const ld = try std.fmt.parseInt(u32, args[3], 10);
@@ -309,18 +309,24 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const pow: u32 = if (args.len > 9) try std.fmt.parseInt(u32, args[9], 10) else 20;
     const lkv: u32 = if (args.len > 10) try std.fmt.parseInt(u32, args[10], 10) else lh;
     const nl: u32 = if (args.len > 11) try std.fmt.parseInt(u32, args[11], 10) else 1;
-    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl };
+    const le: u32 = if (args.len > 12) try std.fmt.parseInt(u32, args[12], 10) else 0;
+    const lcap: u32 = if (args.len > 13) try std.fmt.parseInt(u32, args[13], 10) else lt;
+    const fused = if (args.len > 14) (try std.fmt.parseInt(u32, args[14], 10)) != 0 else true;
+    // fused QKV: every matmul output is >= D wide, so the weight table can
+    // use 2^min(ld, lf) columns; unfused GQA caps it at 2^logDkv
+    const wlc = @min(if (fused) @min(ld, lf) else cfg0Dkv(lh, lkv, ld), 13);
+    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl, .log_experts = le, .log_capacity = lcap, .router_log_cols = wlc, .fused_qkv = fused };
     try cfg.validate();
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
     defer pool.deinit();
     var pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
-        .weight_log_cols = @min(cfg.logDkv(), 13),
+        .weight_log_cols = wlc,
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
     };
-    pc.two_level = try twoLevel(args, 12, pc.pcs);
+    pc.two_level = try twoLevel(args, 15, pc.pcs);
     pc.accel = accelFor();
     pc.batch_matmuls = if (std.posix.getenv("TENSOR_BATCH_MATMULS")) |v| std.mem.eql(u8, v, "1") else false;
     if (pc.two_level != null) {
@@ -350,7 +356,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var n_weights: usize = 0;
     for (sw.winfos) |wi| n_weights += wi.size();
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, nl, threads, queries, lb, pow });
+    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, queries, lb, pow });
     try printTl(out, pc);
     try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, forward_s, prove_s, verify_s });
@@ -364,4 +370,8 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     a.free(sw.wdata);
     a.free(sw.winfos);
     a.free(x);
+}
+
+fn cfg0Dkv(lh: u32, lkv: u32, ld: u32) u32 {
+    return lkv + (ld - lh);
 }
