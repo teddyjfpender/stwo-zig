@@ -82,6 +82,10 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
                 else => @compileError("numerical API entry must be a function"),
             };
         }
+        fn apiPointer(self: *Self, comptime name: []const u8) ?*const apiFunction(name) {
+            if (comptime @hasField(Api, name)) return @field((self.api orelse return null).*, name);
+            return &@field(Api, name);
+        }
         fn callApi(self: *Self, comptime name: []const u8, args: std.meta.ArgsTuple(apiFunction(name))) c_int {
             if (comptime @hasField(Api, name))
                 return @call(.auto, @field((self.api orelse return 400).*, name), args);
@@ -166,7 +170,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             if (variables == 0 or variables > 28) return error.InvalidGeometry;
             try output.shape(@as(u32, 1) << @as(u5, @intCast(variables - 1)), 8);
             const owner = try self.handle();
-            const eq_function: *const @TypeOf(Api.stwo_rv64_gkr_eq_on) = if (self.fused_eq) &Api.stwo_rv64_gkr_eq_fused_on else &Api.stwo_rv64_gkr_eq_on;
+            const eq_function = (if (self.fused_eq) self.apiPointer("stwo_rv64_gkr_eq_fused_on") else self.apiPointer("stwo_rv64_gkr_eq_on")) orelse return self.result(400, 0);
             try self.result(eq_function(
                 owner,
                 self.lane_index,
@@ -186,7 +190,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             var waves: u64 = 1;
             while (groups > 1) : (groups = (groups + 127) / 128) waves += 1;
             const owner = try self.handle();
-            const sum_function: *const @TypeOf(Api.stwo_rv64_gkr_sum_on) = if (self.split_secure_sum) &Api.stwo_rv64_gkr_sum_split_on else &Api.stwo_rv64_gkr_sum_on;
+            const sum_function = (if (self.split_secure_sum) self.apiPointer("stwo_rv64_gkr_sum_split_on") else self.apiPointer("stwo_rv64_gkr_sum_on")) orelse return self.result(400, 0);
             try self.result(sum_function(
                 owner,
                 self.lane_index,

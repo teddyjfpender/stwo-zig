@@ -2,6 +2,10 @@
 const std = @import("std");
 const A = @import("abi.zig");
 pub const Api = struct {
+    stwo_rv64_gkr_eq_on: *const @TypeOf(A.stwo_rv64_gkr_eq_on),
+    stwo_rv64_gkr_eq_fused_on: *const @TypeOf(A.stwo_rv64_gkr_eq_fused_on),
+    stwo_rv64_gkr_sum_on: *const @TypeOf(A.stwo_rv64_gkr_sum_on),
+    stwo_rv64_gkr_sum_split_on: *const @TypeOf(A.stwo_rv64_gkr_sum_split_on),
     stwo_rv64_batch_init_on: *const @TypeOf(A.stwo_rv64_batch_init_on),
     stwo_rv64_batch_mask_on: *const @TypeOf(A.stwo_rv64_batch_mask_on),
     stwo_rv64_batch_round_on: *const @TypeOf(A.stwo_rv64_batch_round_on),
