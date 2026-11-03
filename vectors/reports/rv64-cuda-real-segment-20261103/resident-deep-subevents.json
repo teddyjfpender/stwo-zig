@@ -1,0 +1,24 @@
+{
+  "schema": "rv64-native-deep-subevents/v1",
+  "date": "2026-11-03",
+  "library": "/workspace/rv64-gpu-session/build/resident-oom-trim/libstwo-rv64-native-f03cc7a658fd1089.so",
+  "sha256": "f03cc7a658fd10897dd2e7471fb202558977e4e63f5703391164630161b1acd2",
+  "previous_library_sha256": "6b86c059417977218878720d4a7b1a9823efe16a677955ba80bb725f6a20111a",
+  "changed_objects": {
+    "/workspace/rv64-gpu-session/build/resident-oom-trim/rv64-deep.cu.o": "ce9c21df05ed02b6a164a6c67fe1bb89de72c47422f8e8fc5a64035c9227cff9"
+  },
+  "unchanged_native_objects": 36,
+  "unchanged_aot_objects": 268,
+  "original_exports_verified": 446,
+  "enable": "STWO_RV64_DEEP_TIMING=1",
+  "scope": "Diagnostic-only validate/line/aggregate stream spans. Four events use scoped cleanup on every exit. Enabled mode synchronizes after aggregate; never use this mode for headline proving times. Default mode creates no events and adds no synchronization. No arithmetic/transcript/proof changes.",
+  "qualification": {
+    "honest_native_oracle_cases": 5,
+    "mutations_rejected": 19,
+    "diagnostics_enabled": true,
+    "log": "/workspace/rv64-gpu-session/build/deep-pipeline-qualified/timing-normal.log",
+    "actual_real_prefix_measurement": "Pending parent run."
+  },
+  "profiler_fallback": "NCU minimal real-prefix duration measurement failed ERR_NVGPUCTRPERM; GPU performance-counter permissions unavailable in container. No profiler kernel timings were obtained.",
+  "build_manifest_sha256": "7ba45e96f484bc025fecc7e6df4f45424f83fb403ddad113b9a66a8f59e73f30"
+}

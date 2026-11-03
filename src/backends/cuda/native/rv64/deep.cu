@@ -1,7 +1,25 @@
 #include "custody.cuh"
 #include "deep.h"
 #include "om31.cuh"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 namespace stwo::cuda::rv64 {
+// Diagnostic-only timing. Event destruction is safe after a partial create
+// or failed enqueue; no events/synchronization exist on the default path.
+struct DeepTimings {
+  cudaEvent_t events[4]{};
+  ~DeepTimings() {
+    for (auto event : events) if (event) cudaEventDestroy(event);
+  }
+  int create() {
+    for (auto &event : events) {
+      const int status = int(cudaEventCreate(&event));
+      if (status) return status;
+    }
+    return 0;
+  }
+};
 __device__ OM31 deep_power(OM31 x, uint32_t exponent) {
   OM31 result = one();
   while (exponent) {
@@ -298,11 +316,42 @@ extern "C" int stwo_rv64_deep_prepare_on(void *ctx, uint32_t lane,
       cudaMemsetAsync(j.coefficients, 0, j.coefficient_words * 4, c.stream));
   if (cleared)
     return cleared;
+  const char *timing_env = std::getenv("STWO_RV64_DEEP_TIMING");
+  const bool timing = timing_env && std::strcmp(timing_env, "1") == 0;
+  DeepTimings spans;
+  if (timing) {
+    int status = spans.create();
+    if (!status) status = int(cudaEventRecord(spans.events[0], c.stream));
+    if (status) return status;
+  }
   deep_validate<<<1, 1, 0, c.stream>>>(j);
+  if (timing) {
+    const int status = int(cudaEventRecord(spans.events[1], c.stream));
+    if (status) return status;
+  }
   deep_lines<<<j.group_count, 128, 0, c.stream>>>(j);
+  if (timing) {
+    const int status = int(cudaEventRecord(spans.events[2], c.stream));
+    if (status) return status;
+  }
   // Launch geometry is independent of device metadata. Grid-stride rows
   // preserve parallelism for large compact groups without host feedback.
   deep_aggregate<<<dim3(64, j.group_count), 128, 0, c.stream>>>(j);
+  if (timing) {
+    int status = int(cudaEventRecord(spans.events[3], c.stream));
+    if (!status) status = int(cudaEventSynchronize(spans.events[3]));
+    if (status) return status;
+    float milliseconds[3]{};
+    for (uint32_t i = 0; i < 3; ++i) {
+      status = int(cudaEventElapsedTime(&milliseconds[i], spans.events[i],
+                                         spans.events[i + 1]));
+      if (status) return status;
+    }
+    std::fprintf(stderr, "GPU_DEEP_DIAGNOSTIC validate_ms=%.6f lines_ms=%.6f "
+                 "aggregate_ms=%.6f groups=%u terms=%u sources=%u "
+                 "profile_only_end_sync=1\n", milliseconds[0], milliseconds[1],
+                 milliseconds[2], j.group_count, j.term_count, j.source_count);
+  }
   return int(cudaPeekAtLastError());
 }
 extern "C" int stwo_rv64_deep_combine_on(void *ctx, uint32_t lane,
