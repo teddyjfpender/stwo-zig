@@ -301,6 +301,14 @@ pub fn build(b: *std.Build) void {
     outer_check.linkLibC();
     b.step("check-rv64-ethereum-gpu-recursion", "Type-check CUDA outer recursion without a GPU or binary output").dependOn(&outer_check.step);
 
+    // CPU-only independent receiver shares the exact authority loader without
+    // linking or initializing any CUDA context, including on restore.
+    const receiver_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion_receiver_main.zig"), .target = target, .optimize = optimize });
+    receiver_root.addImport("stwo_riscv_cpu_integration", cpu_integration);
+    const receiver = b.addExecutable(.{ .name = "rv64-word16-ethereum-recursion-receiver", .root_module = receiver_root });
+    receiver.linkLibC();
+    b.step("build-rv64-ethereum-recursion-receiver", "Build independent CPU-only current OM31 recursion receiver").dependOn(&b.addInstallArtifact(receiver, .{}).step);
+
     const combined_root = b.createModule(.{ .root_source_file = b.path("rv64_combined_ethereum_main.zig"), .target = target, .optimize = optimize });
     combined_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     combined_root.addImport("stwo_prover_api", cpu_integration.import_table.get("stwo_prover_api").?);
