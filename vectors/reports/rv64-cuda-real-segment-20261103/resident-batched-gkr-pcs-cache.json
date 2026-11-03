@@ -4,7 +4,7 @@
   "block": 24628607,
   "gpu_count": 1,
   "gpu_model": "RTX5090 sm120",
-  "scope": "Single combined full-block qualification; repeated timing pending; native bundle recursion excluded",
+  "scope": "One standalone and two sequential resident-batch full-block qualifications; all20 artifacts match fresh reference; recursion excluded",
   "profile": "conjectured128_b2_q108_p20_fold4",
   "security_scope": "128-bit conjectured target under owner-accepted documented assumptions; no whole-protocol certificate",
   "completed_ethereum_block": true,
@@ -42,9 +42,31 @@
   "retained_host_wide_parking": false,
   "baseline_prove_ns": 16325026183,
   "limitations": [
-    "Single-run combined comparison; does not attribute independent gains to each change",
+    "Combined change comparison, not independent per-change attribution; only one warm repeated trial",
     "Cold setup96.29s in this run remains an end-to-end bottleneck",
     "No same-hardware CPU comparison or2/4GPU qualification",
     "No recursion in this bundle"
+  ],
+  "repeated_resident_trials": [
+    {
+      "completed_ethereum_block": true,
+      "total_steps": 26894777,
+      "capture_ns": 12436387459,
+      "setup_ns": 95960128021,
+      "prove_ns": 14629438353,
+      "same_process_verify_ns": 2309957053,
+      "trial": 0,
+      "mismatches": []
+    },
+    {
+      "completed_ethereum_block": true,
+      "total_steps": 26894777,
+      "capture_ns": 11412964030,
+      "setup_ns": 37780719411,
+      "prove_ns": 11583142282,
+      "same_process_verify_ns": 2311358476,
+      "trial": 1,
+      "mismatches": []
+    }
   ]
 }
