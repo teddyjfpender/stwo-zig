@@ -101,7 +101,7 @@ def main():
     logs.mkdir(exist_ok=True)
     sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu", "transform/b2n_retained.cu",
                "commitment/merkle.cu", "commitment/progressive.cu", "pow/search.cu"]
-    sources += ["rv64/" + name + ".cu" for name in ["deep", "samples", "fri", "channel", "pcs", "trace", "sample_order",
+    sources += ["rv64/" + name + ".cu" for name in ["deep", "samples", "fri", "channel", "pcs", "trace", "sample_order", "composition_finalize",
                 "gkr", "round", "tail", "batch", "batch_oracles", "gkr_loop", "binding", "parameters", "closure", "global", "ls_dword_witness", "cpu_witness", "family_witness", "memory_witness", "arithmetic_witness", "bridge_witness", "bulk_witness", "sponge_witness", "keccak_witness", "sha256_witness", "arith256_witness", "secp_witness", "events"]]
     for name in args.extra_native_source:
         source = (native / name).resolve()
