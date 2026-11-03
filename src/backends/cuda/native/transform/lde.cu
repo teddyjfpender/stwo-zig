@@ -285,7 +285,7 @@ static int preprocessed_transpose_simd_blocks_on(
 extern "C" int stwo_lde_n2b_addressed_on(
     uint32_t *arena,
     size_t arena_words,
-    const AddressedLdeDescriptor *descriptors,
+    const void *raw_descriptors,
     uint32_t descriptor_count,
     size_t evaluation_tile_offset_words,
     uint32_t log_n,
@@ -295,6 +295,7 @@ extern "C" int stwo_lde_n2b_addressed_on(
     void *stream_raw,
     uint32_t include_circle,
     uint32_t *launches_out) {
+    const auto *descriptors = static_cast<const AddressedLdeDescriptor *>(raw_descriptors);
     using namespace stwo::cuda::transform;
     // Mode 2 is the checked ingress-only in-place fixed-coefficient order
     // conversion. Keep the stable Rust-declared transform ABI; no extra

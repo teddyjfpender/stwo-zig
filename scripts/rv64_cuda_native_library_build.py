@@ -30,7 +30,7 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     logs = build / "logs"
     logs.mkdir(exist_ok=True)
-    sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu",
+    sources = ["rv64/pcs_native.cu", "runtime/context.cu", "transform/lde.cu", "transform/n2b.cu", "transform/b2n_retained.cu",
                "commitment/merkle.cu", "commitment/progressive.cu", "pow/search.cu"]
     sources += ["rv64/" + name + ".cu" for name in ["deep", "samples", "fri", "channel", "pcs", "trace", "sample_order",
                 "gkr", "round", "tail", "batch", "gkr_loop", "binding", "parameters", "closure", "global", "ls_dword_witness"]]

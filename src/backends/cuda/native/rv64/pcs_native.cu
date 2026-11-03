@@ -506,11 +506,23 @@ extern "C" int stwo_rv64_gpu_lease_validate_range(
 extern "C" int stwo_rv64_gpu_lease_validate(void *raw,
                                             const StwoRv64GpuLease *lease,
                                             const uint32_t scope[8]) {
-  if (!lease || lease->reserved)
+  if (!raw || !lease || lease->reserved)
     return int(cudaErrorInvalidValue);
-  return stwo_rv64_gpu_lease_validate_range(raw, lease->words, lease->count,
-                                            lease->context_token,
-                                            lease->generation, scope);
+  auto &s = *static_cast<Service *>(raw);
+  if (!s.isOwner())
+    return int(cudaErrorInvalidResourceHandle);
+  try {
+    const auto &record = s.owner->find(lease->words, lease->count,
+                                      lease->context_token, lease->generation,
+                                      scope_of(scope));
+    if (record.value.words != lease->words ||
+        record.value.count != lease->count || record.value.kind != lease->kind)
+      throw std::runtime_error("altered device lease descriptor");
+    return 0;
+  } catch (const std::exception &e) {
+    s.error = e.what();
+    return int(cudaErrorInvalidValue);
+  }
 }
 extern "C" int stwo_rv64_gpu_lease_release(void *raw, StwoRv64GpuLease *lease) {
   if (!raw || !lease)

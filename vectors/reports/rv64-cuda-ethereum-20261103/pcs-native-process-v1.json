@@ -33,7 +33,9 @@
     "wrong_scope",
     "overflow_range",
     "retired_lease",
-    "double_release"
+    "double_release",
+    "altered_lease_kind",
+    "altered_whole_lease_count"
   ],
   "lease_acceptance_checks": [
     "valid_subrange"
