@@ -144,6 +144,9 @@ pub fn enqueueWithClosure(commands: anytype, inputs: []const R.Fraction, seed: S
 }
 fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena: Slice, byte_cap: usize, chain: u64, verdict: ?Slice) !Enqueued {
     if (commands.poisoned) return error.JobPoisoned;
+    if (comptime @hasDecl(@TypeOf(commands.*), "requireBatchedOracles")) {
+        if (commands.batched_oracles) try commands.requireBatchedOracles();
+    }
     if (inputs.len == 0 or inputs.len > max_instances) return error.InvalidGeometry;
     var variables: [max_instances]u32 = undefined;
     for (inputs, 0..) |input, i| {

@@ -98,6 +98,21 @@ static void exercise(const std::string &directory, uint32_t id,
                               alpha.words, descriptors.data(), count,
                               variables) != int(cudaErrorInvalidValue))
     throw std::runtime_error("aliased batch checkpoint admitted");
+  if (variables) {
+    const auto it = std::find_if(oracles.begin(), oracles.end(), [](const Oracle &j) { return j.variables != 0; });
+    if (it == oracles.end()) throw std::runtime_error("missing active oracle");
+    const auto &j = *it;
+    StwoRv64BatchSumJob sum{j.n, j.d, j.a, j.b, j.raw};
+    uint32_t launches = 99;
+    if (stwo_rv64_batch_sum_on(o.ctx, 1, &sum, 0, j.count, eq, lambda.words, &launches) != int(cudaErrorInvalidValue) || launches)
+      throw std::runtime_error("empty sum batch admitted");
+    sum.out = sum.a;
+    if (stwo_rv64_batch_sum_on(o.ctx, 1, &sum, 1, j.count, eq, lambda.words, &launches) != int(cudaErrorInvalidValue) || launches)
+      throw std::runtime_error("aliased sum output admitted");
+    StwoRv64BatchFoldJob fold{j.n, j.d, j.banks_n[0], j.d};
+    if (stwo_rv64_batch_fold_on(o.ctx, 1, &fold, 1, j.count, alpha.words, &launches) != int(cudaErrorInvalidValue) || launches)
+      throw std::runtime_error("in-place fold admitted");
+  }
   CHECK(stwo_rv64_batch_init_on(o.ctx, 1, state.words, seed.words, claims.words,
                                 alpha.words, descriptors.data(), count,
                                 variables));
