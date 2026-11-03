@@ -635,7 +635,13 @@ test "uniform resident Keccak covers the real block without changing the default
     var resident: std.ArrayList(W.TruthDeclaration) = .empty;
     defer resident.deinit(a);
     try appendKeccakSecp(a, &resident, .{ 29_998, 0, 0 }, 18, .{ .v3 = true, .uniform_throughput = true });
-    try std.testing.expect(resident.items.len != 0);
+    try std.testing.expectEqual(@as(usize, 3), resident.items.len);
+    const uniform_calls = [_]u32{ 19_418, 1_212, 9_368 };
+    const uniform_logs = [_]u32{ 18, 14, 17 };
+    for (resident.items, uniform_calls, uniform_logs) |piece, calls, log| {
+        try std.testing.expectEqual(calls, piece.calls);
+        try std.testing.expectEqual(log, piece.logs[0]);
+    }
     var next: u32 = 1;
     for (resident.items) |piece| {
         try std.testing.expectEqual(next, piece.first_id);
