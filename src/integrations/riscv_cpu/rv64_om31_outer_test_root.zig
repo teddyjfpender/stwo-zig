@@ -37,6 +37,17 @@ test "om31 outer bridge actual child verifies in shared lane" {
     var graph = try Bridge.buildFold(a, .{ child, child });
     defer graph.deinit();
     std.debug.print("OUTER graph built; checking gates\n", .{});
+    {
+        var trace = try Bridge.buildFoldTraceOnly(a, .{ child, child });
+        defer trace.deinit();
+        try std.testing.expectEqualDeep(graph.ctx.circuit, trace.ctx.circuit);
+        try std.testing.expectEqual(@as(usize, 0), trace.ctx.value_table.capacity);
+        var plan = try circuit.builder.witness_plan.build(a, &trace.ctx);
+        defer plan.deinit();
+        const values = try circuit.builder.witness_plan.evaluate(a, &trace.ctx, plan);
+        defer a.free(values);
+        try std.testing.expectEqualDeep(graph.ctx.values(), values);
+    }
     if (try graph.ctx.circuit.check(a, graph.ctx.values())) |failure| {
         std.debug.print("OUTER failure={any}\n", .{failure});
         return error.InvalidOuterGraph;

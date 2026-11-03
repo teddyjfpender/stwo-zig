@@ -95,7 +95,8 @@ fn combine(a: std.mem.Allocator, left: Pending, right: Pending, nodes: *std.Arra
     std.log.info("rv64 OM31 recursion fold: [{d},{d}) + [{d},{d})", .{ l.first_leaf, l.first_leaf + l.leaf_count, r.first_leaf, r.first_leaf + r.leaf_count });
     const children = [2]Bridge.Child{ child(left), child(right) };
     const digest = try Bridge.expectedDigest(children);
-    var graph = try Bridge.buildFold(a, children);
+    const build_fold = if (factory != null and factory.?.prepare_from_circuit != null) &Bridge.buildFoldTraceOnly else &Bridge.buildFold;
+    var graph = try build_fold(a, children);
     defer graph.deinit();
     if (!std.mem.eql(u8, &digest, &graph.output_digest)) return error.RecursiveFoldDigest;
     var name_buffer: [64]u8 = undefined;
@@ -178,7 +179,10 @@ pub fn run(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []co
     for (inventory.workers, 0..) |worker, ordinal| {
         const graph_start = timer.read();
         std.log.info("rv64 OM31 recursion leaf {d}/{d}: admitted graph", .{ ordinal + 1, n });
-        var graph = if (ordinal < setups.len) try Graph.cpu(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try Graph.truth(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
+        const trace_only = factory != null and factory.?.prepare_from_circuit != null;
+        const build_cpu = if (trace_only) &Graph.cpuTraceOnly else &Graph.cpu;
+        const build_truth = if (trace_only) &Graph.truthTraceOnly else &Graph.truth;
+        var graph = if (ordinal < setups.len) try build_cpu(a, .{ .setup = setups[ordinal], .request = bundle.requests[ordinal], .expected = worker, .first = inventory.first_ids[ordinal], .manifest = &manifest, .index = ordinal, .stage = &stages.stages[ordinal], .config = config, .encoded = &bundle.cpus[ordinal], .fixed = if (fixed) |authority| authority.at(ordinal) else null }) else try build_truth(a, .{ .truth = truths[ordinal - setups.len], .expected = worker, .manifest = &manifest, .config = config, .encoded = &bundle.truths[ordinal - setups.len], .fixed = if (fixed) |authority| authority.at(ordinal) else null });
         var graph_live = true;
         defer if (graph_live) graph.deinit();
         if (!std.mem.eql(u32, graph.words, words[ordinal])) return error.RecursiveLeafFrame;

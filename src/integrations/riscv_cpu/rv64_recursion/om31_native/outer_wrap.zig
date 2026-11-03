@@ -59,7 +59,8 @@ pub fn wrapGraphOrLoad(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, en
 /// independent native reception and never invoke a proving backend.
 pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest: [32]u8, encoded: ?[]const u8, ordinal: u32, factory: ?Device.Factory) !Wrapped {
     if (ctx.circuit.output.items.len != 9) return error.CurrentOm31OutputCount;
-    if (!try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
+    if (ctx.trace_only and encoded == null and (factory == null or factory.?.prepare_from_circuit == null)) return error.TraceOnlySourceRequired;
+    if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     var timer = try std.time.Timer.start();
     try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
     const pp = try a.create(PP);
@@ -79,7 +80,12 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
         // Restored proofs need no such caches; all containers are owned-safe
         // empty values so Produced.deinit remains the single cleanup path.
         break :blk Outer.Produced{ .allocator = a, .outputs = decoded.outputs, .claims = decoded.claims, .proof = .{ .proof = decoded.proof, .aux = .{ .unsorted_query_locations = &.{}, .trace_decommitment = .{ .items = &.{} }, .fri = .{ .first_layer = .{ .all_values = &.{}, .decommitment = .{ .all_node_values = &.{} } }, .inner_layers = &.{} } } } };
-    } else if (factory) |gpu| try Device.prove(a, authority, ctx.values(), ordinal, gpu) else try Outer.prove(a, authority, ctx.values());
+    } else if (factory) |gpu| blk: {
+        if (!ctx.trace_only) break :blk try Device.prove(a, authority, ctx.values(), ordinal, gpu);
+        var expected: [8]C.Q = undefined;
+        for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
+        break :blk try Device.proveFromCircuit(a, authority, ctx, &expected, ordinal, gpu);
+    } else try Outer.prove(a, authority, ctx.values());
     errdefer produced.deinit();
     const source_ns = timer.lap();
     try requireDigest(produced.outputs, digest);
