@@ -10,6 +10,9 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <chrono>
+#include <cstdlib>
+#include <cstring>
 #include <cuda_runtime.h>
 #include <stdexcept>
 #include <vector>
@@ -305,6 +308,25 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   CHECK(stwo_exec_context_lane_stream(o.ctx, 1, &stream_raw));
   auto stream = reinterpret_cast<cudaStream_t>(stream_raw);
   auto begin = o.event(), end = o.event();
+  // Opt-in diagnostics only: no extra events or synchronizations on the
+  // default path. Stream elapsed includes any host enqueue gaps; the matching
+  // host spans make those distinguishable from sustained device work.
+  const char *phase_env = std::getenv("STWO_RV64_PCS_PHASE_TIMING");
+  const bool phase_timing = phase_env && std::strcmp(phase_env, "1") == 0;
+  std::array<cudaEvent_t, 8> phase_events{};
+  std::array<std::chrono::steady_clock::time_point, 8> phase_host{};
+  if (phase_timing) {
+    phase_events[0] = begin;
+    phase_events[7] = end;
+    for (size_t i = 1; i < 7; ++i) phase_events[i] = o.event();
+    phase_host[0] = std::chrono::steady_clock::now();
+  }
+  auto phase_mark = [&](size_t i) {
+    if (phase_timing) {
+      CHECK(cudaEventRecord(phase_events[i], stream));
+      phase_host[i] = std::chrono::steady_clock::now();
+    }
+  };
   CHECK(cudaEventRecord(begin, stream));
   auto extend_source = [&](uint32_t g) {
     const auto *d = source_groups.data() + g * 8;
@@ -326,9 +348,11 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   };
   for (uint32_t g = 0; g < sgc; ++g)
     extend_source(g);
+  phase_mark(1);
   for (auto &t : traces)
     CHECK(stwo_rv64_trace_tree_on(o.ctx, 1, trace_segments.data() + t.group,
                                   t.groups, t.log, t.tree.words, t.tree_words));
+  phase_mark(2);
   CHECK(stwo_rv64_channel_init_on(o.ctx, 1, state.words, seed.words, 17));
   uint32_t step = 0;
   auto mix = [&](const uint32_t *p, uint32_t count, uint32_t field) {
@@ -388,6 +412,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                                   status.words));
   mix(ordered_values.words, sample_count * 8, 1);
   draw(alpha.words);
+  phase_mark(3);
   StwoRv64DeepPrepare prepare{};
   prepare.trees[0] = arena.words;
   prepare.tree_words[0] = h[15];
@@ -422,6 +447,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   combine.group_count = gc;
   combine.output_log = log;
   CHECK(stwo_rv64_deep_combine_on(o.ctx, 1, &combine));
+  phase_mark(4);
   for (uint32_t i = 0; i < layers; ++i) {
     auto &s = storage[i];
     CHECK(stwo_rv64_fri_tree_on(o.ctx, 1, s.column, s.count, s.leaf,
@@ -444,12 +470,14 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   CHECK(stwo_rv64_fri_terminal_on(o.ctx, 1, last, 1u << h[5], terminal.words,
                                   status.words));
   mix(terminal.words, 8, 1);
+  phase_mark(5);
   if (h[22]) {
     CHECK(stwo_blake2s_pow_persistent_on(
         state.words, h[22], 1ull << 40, pow_prefix.words,
         reinterpret_cast<unsigned long long *>(pow_best.words),
         pow_blocks.words, nonce.words, stream_raw));
   }
+  phase_mark(6);
   mix(nonce.words, 2, 0);
   CHECK(stwo_rv64_channel_queries_on(o.ctx, 1, state.words, step, 17 + step,
                                      18 + step, log, queries, raw.words,
@@ -480,6 +508,7 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
                                   t.groups, &open));
   }
   CHECK(cudaEventRecord(end, stream));
+  if (phase_timing) phase_host[7] = std::chrono::steady_clock::now();
   CHECK(cudaEventSynchronize(end));
   // All compute is joined above. Queue every compact D2H slice into one
   // stable result allocation and join once; no value feeds a prover kernel.
@@ -532,6 +561,20 @@ template <class OwnerT> Result run(OwnerT &o, const Input &input) {
   float ms = 0;
   CHECK(cudaEventElapsedTime(&ms, begin, end));
   result.device_ns = uint64_t(ms * 1000000.0);
+  if (phase_timing) {
+    const char *names[] = {"source_lde", "source_trees", "samples", "deep",
+                           "fri", "pow", "openings"};
+    for (size_t i = 0; i < 7; ++i) {
+      float elapsed = 0;
+      CHECK(cudaEventElapsedTime(&elapsed, phase_events[i], phase_events[i + 1]));
+      const double host_ms = std::chrono::duration<double, std::milli>(
+          phase_host[i + 1] - phase_host[i]).count();
+      std::printf("GPU_PCS_PHASE phase=%s stream_elapsed_ms=%.6f "
+                  "host_enqueue_ms=%.6f columns=%u groups=%u source_groups=%u "
+                  "log=%u q=%u pow_bits=%u\n", names[i], elapsed, host_ms,
+                  sc, gc, sgc, log, queries, h[22]);
+    }
+  }
   result.requested_bytes = o.allocated_bytes;
   std::printf("MASKED_PCS columns=%u groups=%u log=%u q=%u resident_ms=%.6f "
               "device_bytes=%llu hot_d2h=0 hot_h2d=0 coefficient_copy_calls=%zu device_columns=%u\n",
