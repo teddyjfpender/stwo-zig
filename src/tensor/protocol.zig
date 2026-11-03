@@ -150,6 +150,8 @@ pub const Config = struct {
     hiding: bool = false,
     /// hiding weight commitment: random coefficient slots per row; opening budget = slots/2 columns
     weight_mask_slots: u32 = 1024,
+    /// hiding mode: PCS parameters of the weight table (null = same as `pcs`)
+    weight_pcs: ?pcs.Params = null,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {

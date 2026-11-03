@@ -109,13 +109,21 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     try pool.init(a, threads);
     defer pool.deinit();
     const cfg = model.Mlp{ .log_t = lt, .log_d = ld, .log_f = lf };
+    // Weight table (committed once): higher blowup, slots = C_w, queries for 128 conjectured bits.
+    const wlc: u32 = @min(ld, 13);
+    const wlb: u32 = if (std.posix.getenv("ZK_WEIGHT_LB")) |v| try std.fmt.parseInt(u32, v, 10) else 4;
+    const wslots: u32 = if (std.posix.getenv("ZK_WEIGHT_SLOTS")) |v| try std.fmt.parseInt(u32, v, 10) else @as(u32, 1) << @intCast(wlc);
+    const wbits = std.math.log2(@as(f64, @floatFromInt(@as(u64, 1) << @intCast(wlc + wlb))) / @as(f64, @floatFromInt((@as(u64, 1) << @intCast(wlc)) + wslots)));
+    const wq_auto: usize = @intFromFloat(@ceil((128.0 - @as(f64, @floatFromInt(pow))) / wbits));
+    const wq: usize = if (std.posix.getenv("ZK_WEIGHT_Q")) |v| try std.fmt.parseInt(usize, v, 10) else wq_auto;
     const pc = proto.Config{
         .pcs = .{ .log_blowup = lb, .n_queries = queries, .pow_bits = pow },
-        .weight_log_cols = @min(ld, 13),
+        .weight_log_cols = wlc,
         .witness_log_cols_max = 14,
         .gkr_threads = threads,
         .hiding = true,
-        .weight_mask_slots = if (std.posix.getenv("ZK_WEIGHT_SLOTS")) |v| try std.fmt.parseInt(u32, v, 10) else 1024,
+        .weight_mask_slots = wslots,
+        .weight_pcs = .{ .log_blowup = wlb, .n_queries = wq, .pow_bits = pow },
     };
     const winfos = model.mlpWeightInfos(cfg);
     var wdata: [3][]i8 = undefined;
@@ -157,14 +165,14 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const sz = proof.sizes();
     const budget = zw.budgetUsed();
     const wml = proof.opening.rows[0].len;
-    const wlc = std.math.log2_int(usize, wml - t.zk_pcs.slotsFor(queries));
+    const wtlc = std.math.log2_int(usize, wml - t.zk_pcs.slotsFor(queries));
     const kml = (@as(usize, 1) << @intCast(key.log_cols)) + key.slots;
-    const cw = conjBits(queries, wml, @intCast(wlc + lb), pow);
-    const ck = conjBits(queries, kml, key.log_cols + lb, pow);
-    const pw = provenBits(queries, wml, @intCast(wlc + lb), pow);
-    const pk = provenBits(queries, kml, key.log_cols + lb, pow);
+    const cw = conjBits(queries, wml, @intCast(wtlc + lb), pow);
+    const ck = conjBits(wq, kml, key.log_cols + wlb, pow);
+    const pw = provenBits(queries, wml, @intCast(wtlc + lb), pow);
+    const pk = provenBits(wq, kml, key.log_cols + wlb, pow);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots });
+    try out.print("{{\"bench\":\"mlp\",\"hiding\":true,\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},\"weight_mask_slots\":{d},\"weight_log_blowup\":{d},\"weight_queries\":{d},", .{ lt, ld, lf, threads, queries, lb, pow, pc.weight_mask_slots, wlb, wq });
     try out.print("\"commit_weights_s\":{d:.4},\"weight_proximity_s\":{d:.4},\"weight_proximity_verify_s\":{d:.4},\"weight_proximity_bytes\":{d},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"verify_s\":{d:.5},", .{ commit_s, prox_s, prox_verify_s, prox.byteSize(), forward_s, prove_s, verify_s });
     try out.print("\"conjectured_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},\"proven_bits\":{{\"witness\":{d:.1},\"weights\":{d:.1}}},", .{ cw, ck, pw, pk });
     try stagesJson(out, tm);
