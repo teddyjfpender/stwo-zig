@@ -117,6 +117,54 @@ pub const Queue = struct {
     }
 };
 
+/// Production and host mocks share this exact blocking dispatcher. Publication
+/// runs under the same mutex before children become ready to their consumer.
+pub const Dispatcher = struct {
+    queue: Queue,
+    mutex: std.Thread.Mutex = .{},
+    changed: std.Thread.Condition = .{},
+    fatal: ?anyerror = null,
+    pub fn take(self: *Dispatcher) !?usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (true) {
+            if (self.fatal != null or self.queue.failure != null or self.queue.completed == self.queue.plan.count) return null;
+            const next = self.queue.take() catch |err| {
+                self.fatal = err;
+                self.changed.broadcast();
+                return err;
+            };
+            if (next != null) return next;
+            self.changed.wait(&self.mutex);
+        }
+    }
+    pub fn publish(self: *Dispatcher, id: usize, context: *anyopaque, apply: *const fn (*anyopaque, usize) void) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        apply(context, id);
+        self.queue.complete(id);
+        self.changed.broadcast();
+    }
+    pub fn fail(self: *Dispatcher, id: usize, err: anyerror) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.queue.fail(id, err);
+        self.changed.broadcast();
+    }
+    pub fn stop(self: *Dispatcher, err: anyerror) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.fatal == null) self.fatal = err;
+        self.changed.broadcast();
+    }
+    /// Read only after all lane threads have joined.
+    pub fn result(self: *const Dispatcher) !void {
+        if (self.fatal) |err| return err;
+        if (self.queue.failure) |failure| return failure.err;
+        if (self.queue.completed != self.queue.plan.count or self.queue.active != 0 or self.queue.live != 1) return error.RecursiveLeafCoverage;
+    }
+};
+
 test "ready recursion preserves exact binary carry IDs and right finalization" {
     const plan = try Plan.init(5);
     const expected = [_]Node{
@@ -183,4 +231,102 @@ test "ready recursion rejects aliased physical factories pools and CPU oversubsc
     lanes[1].factory = 3;
     lanes[1].pool = 2;
     try std.testing.expectError(error.DuplicateRecursionDeviceLane, validateLanes(&lanes, 8, 13));
+}
+
+const ThreadMock = struct {
+    dispatch: Dispatcher,
+    durable: [max_nodes]bool = @splat(false),
+    retained: [max_nodes]bool = @splat(false),
+    graphs_live: std.atomic.Value(usize) = .init(0),
+    started: std.atomic.Value(usize) = .init(0),
+    second_failed: std.atomic.Value(bool) = .init(false),
+    fail_pair: bool = false,
+    fn runLane(self: *ThreadMock) void {
+        while (self.dispatch.take() catch unreachable) |id| {
+            _ = self.graphs_live.fetchAdd(1, .seq_cst);
+            _ = self.started.fetchAdd(1, .seq_cst);
+            if (self.fail_pair) {
+                while (self.started.load(.seq_cst) != 2) std.Thread.yield() catch {};
+                if (id == 0) {
+                    while (!self.second_failed.load(.seq_cst)) std.Thread.yield() catch {};
+                }
+                _ = self.graphs_live.fetchSub(1, .seq_cst);
+                self.dispatch.fail(id, if (id == 0) error.First else error.Second);
+                if (id != 0) self.second_failed.store(true, .seq_cst);
+                return;
+            }
+            // Yield before durable publication, while child ownership remains
+            // reserved by the real production dispatcher.
+            for (0..1 + id % 7) |_| std.Thread.yield() catch {};
+            _ = self.graphs_live.fetchSub(1, .seq_cst);
+            self.dispatch.publish(id, self, publish);
+        }
+    }
+    fn publish(raw: *anyopaque, id: usize) void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        const node = self.dispatch.queue.plan.nodes[id];
+        if (node.left) |left| {
+            const right = node.right.?;
+            std.debug.assert(self.durable[left] and self.durable[right]);
+            std.debug.assert(self.retained[left] and self.retained[right]);
+            self.retained[left] = false;
+            self.retained[right] = false;
+        }
+        std.debug.assert(!self.durable[id] and !self.retained[id]);
+        self.durable[id] = true;
+        self.retained[id] = true;
+    }
+};
+
+test "ready production dispatcher threads publish before parent release and fully join" {
+    for (1..5) |lanes| {
+        const plan = try Plan.init(33);
+        var mock = ThreadMock{ .dispatch = .{ .queue = try Queue.init(&plan, lanes, 9 + 2 * lanes) } };
+        var threads: [4]std.Thread = undefined;
+        var launched: usize = 0;
+        errdefer {
+            mock.dispatch.stop(error.SpawnFailed);
+            for (threads[0..launched]) |thread| thread.join();
+        }
+        for (0..lanes) |lane| {
+            threads[lane] = try std.Thread.spawn(.{}, ThreadMock.runLane, .{&mock});
+            launched += 1;
+        }
+        for (threads[0..launched]) |thread| thread.join();
+        launched = 0;
+        try mock.dispatch.result();
+        try std.testing.expectEqual(@as(usize, 0), mock.graphs_live.load(.seq_cst));
+        var retained: usize = 0;
+        for (0..plan.count) |id| {
+            try std.testing.expect(mock.durable[id]);
+            retained += @intFromBool(mock.retained[id]);
+        }
+        try std.testing.expectEqual(@as(usize, 1), retained);
+        try std.testing.expect(mock.retained[plan.root]);
+    }
+}
+
+test "ready production dispatcher threads cancel dispatch drain failures and preserve publication ownership" {
+    const plan = try Plan.init(17);
+    var mock = ThreadMock{ .dispatch = .{ .queue = try Queue.init(&plan, 2, 13) }, .fail_pair = true };
+    const first = try std.Thread.spawn(.{}, ThreadMock.runLane, .{&mock});
+    const second = std.Thread.spawn(.{}, ThreadMock.runLane, .{&mock}) catch |err| {
+        // Release the test's two-lane barrier if the OS rejects a thread.
+        mock.started.store(2, .seq_cst);
+        mock.second_failed.store(true, .seq_cst);
+        mock.dispatch.stop(err);
+        first.join();
+        return err;
+    };
+    first.join();
+    second.join();
+    try std.testing.expectError(error.First, mock.dispatch.result());
+    try std.testing.expectEqual(@as(usize, 2), mock.started.load(.seq_cst));
+    try std.testing.expectEqual(@as(usize, 0), mock.graphs_live.load(.seq_cst));
+    try std.testing.expectEqual(@as(usize, 0), mock.dispatch.queue.active);
+    try std.testing.expectEqual(@as(?usize, null), try mock.dispatch.take());
+    for (0..plan.count) |id| {
+        try std.testing.expect(!mock.durable[id]);
+        try std.testing.expect(!mock.retained[id]);
+    }
 }

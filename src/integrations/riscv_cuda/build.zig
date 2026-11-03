@@ -294,6 +294,16 @@ pub fn build(b: *std.Build) void {
     outer_root.addImport("stwo_cuda_backend", backend);
     outer_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     outer_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
+    const ready_root = b.createModule(.{ .root_source_file = b.path("rv64_recursion_ready_test_root.zig"), .target = target, .optimize = optimize });
+    ready_root.addImport("stwo_riscv_cpu_integration", cpu_integration);
+    ready_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
+    const ready_tests = b.addTest(.{ .root_module = ready_root });
+    const ready_step = b.step("test-rv64-recursion-ready", "Force ready API typing and test threaded custody, durable publication and stack budgets without a GPU");
+    ready_step.dependOn(&b.addRunArtifact(ready_tests).step);
+    for ([_][]const u8{ "ready_dag.zig", "publication.zig" }) |source| {
+        const scheduler_root = b.createModule(.{ .root_source_file = b.path(b.fmt("../riscv_cpu/rv64_recursion/om31_native/{s}", .{source})), .target = target, .optimize = optimize });
+        ready_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = scheduler_root })).step);
+    }
     const outer = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu-recursion", .root_module = outer_root });
     outer.linkLibC();
     b.step("build-rv64-ethereum-gpu-recursion", "Build explicit CUDA native-OM31 outer recursion, no CPU fallback").dependOn(&b.addInstallArtifact(outer, .{}).step);
