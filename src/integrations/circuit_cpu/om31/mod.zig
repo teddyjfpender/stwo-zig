@@ -6,3 +6,4 @@ pub const component = @import("component.zig");
 pub const witness = @import("witness.zig");
 pub const prove = @import("prove.zig");
 pub const wire = @import("wire.zig");
+pub const record = @import("record.zig");
