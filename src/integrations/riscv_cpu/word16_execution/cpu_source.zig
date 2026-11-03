@@ -95,7 +95,7 @@ pub const Source = struct {
     /// retained separately by Prepared/Advice; no host field-column witness is
     /// cloned or constructed. The normal device formatter still proves it.
     pub fn cloneCapture(self: *const Source, a: std.mem.Allocator) !Source {
-        if (self.main_projection_closed or self.capture_records_retired or self.main.len != 0 or self.interaction.len != 0 or self.device_main.len != 0 or self.device_projection_owner != null) return error.CpuReplayRequiresUnmaterializedCapture;
+        if (self.main_projection_closed or self.main.len != 0 or self.interaction.len != 0 or self.device_main.len != 0 or self.device_projection_owner != null) return error.CpuReplayRequiresUnmaterializedCapture;
         const metadata = try a.dupe(Metadata, self.metadata);
         errdefer a.free(metadata);
         const rom = try a.dupe(u64, self.rom_counts);
@@ -103,7 +103,10 @@ pub const Source = struct {
         const r16 = try a.dupe(u64, self.counts16);
         errdefer a.free(r16);
         const r8 = try a.dupe(u64, self.counts8);
-        return .{ .allocator = a, .program = self.program, .public = self.public, .epoch = self.epoch, .log_size = self.log_size, .metadata = metadata, .rom_counts = rom, .counts16 = r16, .counts8 = r8, .fused_tail = self.fused_tail, .u8_pairs = self.u8_pairs, .compact = self.compact };
+        // Raw memory/service records are deliberately NOT copied. Their
+        // normalized obligations stay owned by Prepared/Advice, even when
+        // Ethereum already retired the transport records before proving.
+        return .{ .allocator = a, .program = self.program, .public = self.public, .epoch = self.epoch, .log_size = self.log_size, .metadata = metadata, .rom_counts = rom, .counts16 = r16, .counts8 = r8, .fused_tail = self.fused_tail, .u8_pairs = self.u8_pairs, .compact = self.compact, .capture_records_retired = true };
     }
     /// Compatibility wrapper: one capture followed by one wide projection.
     pub fn init(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {

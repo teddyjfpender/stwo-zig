@@ -34,6 +34,26 @@ test "compact replay owns CPU transport and borrows normalized facts without wid
     try std.testing.expectEqual(@as(u32, 8), restored.log_size);
     try std.testing.expectEqual(@as(usize, 0), restored.main.len);
 }
+test "compact replay accepts Ethereum-retired raw records while preserving metadata and obligations" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+    defer program.deinit();
+    var original = try Prepared.Prepared.capture(a, &program, fixture.boundary, 1, 8, &fixture.tape, .{});
+    defer original.deinit();
+    try std.testing.expect(original.binary.facts.len != 0);
+    original.cpu.?.releaseCaptureRecords();
+    try std.testing.expect(original.cpu.?.capture_records_retired);
+    var replay = try @import("replay_capture.zig").Capture.init(a, &original);
+    defer replay.deinit();
+    try std.testing.expect(replay.value.cpu.?.capture_records_retired);
+    try std.testing.expectEqualSlices(CPU.Metadata, original.cpu.?.metadata, replay.value.cpu.?.metadata);
+    try std.testing.expect(original.cpu.?.metadata.ptr != replay.value.cpu.?.metadata.ptr);
+    try std.testing.expectEqual(original.binary.facts.ptr, replay.value.binary.facts.ptr);
+    try std.testing.expectEqual(@as(usize, 0), replay.value.cpu.?.memory.items.len);
+    try std.testing.expectEqual(@as(usize, 0), replay.value.cpu.?.services.items.len);
+    try std.testing.expectEqual(@as(usize, 0), replay.value.cpu.?.main.len);
+}
 fn replayAllocationCase(allocator: std.mem.Allocator, prepared: *const Prepared.Prepared) !void {
     var replay = try @import("replay_capture.zig").Capture.init(allocator, prepared);
     defer replay.deinit();
