@@ -67,6 +67,13 @@ pub fn minimalPrefixLog(count: u32) !u32 {
     return minimalLog(count + 1);
 }
 
+/// Public INIT/TEARDOWN rows carry canonical receiver-owned RAM tuples, not
+/// CPU clocks. Their independently admitted prefix can therefore use log 23.
+pub fn minimalBoundaryLog(count: u32) !u32 {
+    if (count >= @as(u32, 1) << 23) return error.ExecutionCapacityExceeded;
+    return @intCast(@max(5, std.math.log2_int_ceil(u32, count + 1)));
+}
+
 /// Planning only: exact unique aligned words from captured addresses, without
 /// restoring instructions, constructing state transitions or running the VM.
 pub fn memoryWords(a: std.mem.Allocator, program: *const Program, tape: *const rv.compact_tape.Tape) !u32 {
@@ -93,4 +100,31 @@ pub fn minimalCpuLog(count: u32) !u32 {
         return error.ExecutionCapacityExceeded;
     }
     return @intCast(@max(5, std.math.log2_int_ceil(u32, count + 1)));
+}
+
+test "public boundary log23 capacity is independent of CPU and LS clocks" {
+    try std.testing.expectEqual(@as(u32, 22), try minimalBoundaryLog((1 << 22) - 1));
+    try std.testing.expectEqual(@as(u32, 23), try minimalBoundaryLog(1 << 22));
+    try std.testing.expectEqual(@as(u32, 23), try minimalBoundaryLog((1 << 23) - 1));
+    try std.testing.expectError(error.ExecutionCapacityExceeded, minimalBoundaryLog(1 << 23));
+    try std.testing.expectError(error.ExecutionCapacityExceeded, minimalPrefixLog(1 << 22));
+    try std.testing.expectEqual(@as(u32, 22), try minimalCpuLog((1 << 22) - 1));
+}
+
+test "public boundary log23 AIR and sidecar reject forged extents" {
+    const Boundary = @import("../word16_global_execution/services/gkr_local/boundary_role.zig");
+    var component = Boundary.Component{ .origin = .{ .core = .initial }, .log = 23, .count = 4_407_202, .offsets = .{ 0, 0 }, .inter_offset = 0, .shared = std.mem.zeroes(@import("../word16_global_execution/services/gkr_local/manifest.zig").Shared), .claim = @import("stwo_core").fields.om31.OM31.zero() };
+    try component.validate();
+    component.count = 1 << 23;
+    try std.testing.expectError(error.InvalidWideBoundaryGeometry, component.validate());
+    component.count = 4_407_202;
+    component.origin = .{ .core = .ls };
+    try std.testing.expectError(error.InvalidWideBoundaryGeometry, component.validate());
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    var file = try temporary.dir.createFile("cells.bin", .{});
+    file.close();
+    const Cells = @import("cells_wire.zig");
+    try std.testing.expectError(error.InvalidMemorySidecarSize, Cells.read(std.testing.allocator, temporary.dir, (1 << 22) + 1));
+    try std.testing.expectError(error.InvalidMemorySidecarCount, Cells.read(std.testing.allocator, temporary.dir, 1 << 23));
 }

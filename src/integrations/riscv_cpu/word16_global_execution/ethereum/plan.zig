@@ -65,7 +65,7 @@ pub const CpuLayout = struct {
 pub fn cpus(a: std.mem.Allocator, captured: *const Capture, layout: CpuLayout) ![]W.CpuDeclaration {
     const out = try a.alloc(W.CpuDeclaration, captured.native.items.len);
     errdefer a.free(out);
-    const boundary = Coverage.minimalPrefixLog(@intCast(captured.advice.initial.len)) catch |err| {
+    const boundary = Coverage.minimalBoundaryLog(@intCast(captured.advice.initial.len)) catch |err| {
         std.debug.print("RV64_PLAN_CAPACITY execution_boundary_words={d}\n", .{captured.advice.initial.len});
         return err;
     };

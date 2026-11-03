@@ -51,6 +51,7 @@ pub const TruthScope = struct { relations: [std.meta.fields(TF.Relation).len]Bou
 pub const Shape = struct {
     native_proofs: usize = 0,
     max_trace_log: u32 = 0,
+    max_public_boundary_log: u32 = 5,
     max_columns: usize = 0,
     max_constraints: usize = 0,
     max_samples_per_column: usize = 0,
@@ -59,7 +60,7 @@ pub const Shape = struct {
     max_tuple_arity: usize = 0,
     max_gkr_variables: u32 = 0,
     pub fn validate(self: Shape) !void {
-        if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > Policy.MAX_TRACE_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
+        if (self.native_proofs == 0 or self.native_proofs > Policy.MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > @max(Policy.MAX_TRACE_LOG, self.max_public_boundary_log) or self.max_public_boundary_log > Policy.MAX_PUBLIC_BOUNDARY_LOG or self.max_columns == 0 or self.max_columns > Policy.MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > Policy.MAX_CONSTRAINTS or self.max_samples_per_column > Policy.MAX_SAMPLES_PER_COLUMN or self.max_air_degree > Policy.MAX_AIR_DEGREE or self.max_local_instances > Policy.MAX_LOCAL_INSTANCES or self.max_tuple_arity > Policy.MAX_TUPLE_ARITY or self.max_gkr_variables > Policy.MAX_GKR_VARIABLES) return error.CandidateSourceShapeExceeded;
     }
 };
 pub const ConditionalDegrees = struct {
@@ -120,7 +121,7 @@ fn times(a: u64, b: u64) !u64 {
     return std.math.mul(u64, a, b);
 }
 fn rows(log: u32) !u64 {
-    if (log < 5 or log > Policy.MAX_TRACE_LOG) return error.CandidateSourceShapeExceeded;
+    if (log < 5 or log > Policy.MAX_PUBLIC_BOUNDARY_LOG) return error.CandidateSourceShapeExceeded;
     return @as(u64, 1) << @intCast(log);
 }
 fn emptyCpu() CpuScope {
@@ -188,6 +189,9 @@ fn includeRole(shape: *Shape, origin: Frame.Origin, log: u32, descriptor: Meta.D
     _ = try rows(log);
     for (descriptor.widths) |width| columns.* = try std.math.add(usize, columns.*, width);
     constraints.* = try std.math.add(usize, constraints.*, descriptor.constraints);
+    if (origin == .core and (origin.core == .initial or origin.core == .terminal)) {
+        shape.max_public_boundary_log = @max(shape.max_public_boundary_log, log);
+    } else if (log > Policy.MAX_TRACE_LOG) return error.CandidateSourceShapeExceeded;
     shape.max_trace_log = @max(shape.max_trace_log, log);
     shape.max_samples_per_column = @max(shape.max_samples_per_column, descriptor.max_samples);
     shape.max_air_degree = @max(shape.max_air_degree, descriptor.degree);
@@ -446,4 +450,13 @@ test "weighted JUMPDEST OWNER support is partitioned from unit token mass and ch
     const bulk = A.crypto.bulk_memory.types;
     try t.expect(bulk.TOKEN_JD_TABLE >= 256 and bulk.TOKEN_JD_TABLE < MODULUS);
     inline for (.{ bulk.TOKEN_COPY, bulk.TOKEN_SET, bulk.TOKEN_CMP, bulk.TOKEN_CMP_RESULT, bulk.TOKEN_JD }) |token| try t.expect(token != bulk.TOKEN_JD_TABLE);
+}
+
+test "public boundary log23 source summary needs typed boundary provenance" {
+    var shape = Shape{ .native_proofs = 1, .max_trace_log = 23, .max_columns = 1, .max_constraints = 1 };
+    try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
+    shape.max_public_boundary_log = 23;
+    try shape.validate();
+    shape.max_public_boundary_log = 24;
+    try std.testing.expectError(error.CandidateSourceShapeExceeded, shape.validate());
 }

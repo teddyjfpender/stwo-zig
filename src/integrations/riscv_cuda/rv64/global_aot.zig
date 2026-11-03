@@ -30,13 +30,13 @@ pub fn emit(a: std.mem.Allocator, dir: std.fs.Dir) !void {
         try w.writeAll("\n#include \"rv64/custody.cuh\"\n");
         try w.print(
             \\extern "C" __attribute__((visibility("default"))) int {s}(void*ctx,uint32_t lane,const uint32_t*fixed,const uint32_t*main,const uint32_t*parameters,uint32_t*n,uint32_t*d,uint32_t*status,uint32_t log){{
-            \\if(log<5||log>22)return int(cudaErrorInvalidValue);const uint64_t rows=1ull<<log;
+            \\if(log<5||log>{})return int(cudaErrorInvalidValue);const uint64_t rows=1ull<<log;
             \\Custody c(ctx,lane);
             \\if(!c.range(fixed,rows*{}ull,false)||!c.range(main,rows*{}ull,false)||!c.range(parameters,{}ull,false)||!c.range(n,rows*{}ull,true)||!c.range(d,rows*{}ull,true)||!c.range(status,1,true))return c.status;
             \\{s}<<<dim3((rows+127)/128,{}u),128,0,c.stream>>>(fixed,main,nullptr,parameters,n,d,rows,uint32_t(rows),status);
             \\return int(cudaPeekAtLastError());}}
             \\
-        , .{ symbol, shape.fixed, shape.main, artifact.parameter_slots.len * 8, pairs * 8, width, kernel, pairs });
+        , .{ symbol, if (descriptor.origin == .core and (descriptor.origin.core == .initial or descriptor.origin.core == .terminal)) @as(u32, 23) else @as(u32, 22), shape.fixed, shape.main, artifact.parameter_slots.len * 8, pairs * 8, width, kernel, pairs });
         const filename = try std.fmt.allocPrint(a, "{s}.cu", .{symbol});
         defer a.free(filename);
         try dir.writeFile(.{ .sub_path = filename, .data = text.items });

@@ -12,7 +12,7 @@ const Geo = @import("../../word16_execution/geometry.zig").Geometry;
 const Cells = @import("../../word16_execution/cells_wire.zig");
 const Cell = @import("../../word16_execution/memory/statement.zig").Cell;
 const Receipt = @import("../../rv64_ethereum_batch_receipt.zig");
-pub const Limits = struct { max_cpus: usize = 256, max_truths: usize = 256, max_metadata_bytes: usize = 16 << 20, max_memory_words: u32 = 1 << 22, max_proof_bytes: u64 = 64 << 20, max_total_proof_bytes: u64 = 1 << 30, max_total_steps: u64 = 1 << 30, max_native_row_sum: u64 = 1 << 32 };
+pub const Limits = struct { max_cpus: usize = 256, max_truths: usize = 256, max_metadata_bytes: usize = 16 << 20, max_memory_words: u32 = (1 << 23) - 1, max_proof_bytes: u64 = 64 << 20, max_total_proof_bytes: u64 = 1 << 30, max_total_steps: u64 = 1 << 30, max_native_row_sum: u64 = 1 << 32 };
 pub const CompactRequest = struct {
     cpu: @FieldType(G.Old.Request, "cpu"),
     epoch: u16,
@@ -316,7 +316,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
 /// security/profile authority are introduced for a wide proof.
 pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, limits: Limits) !void {
     if (cpus.len == 0 or cpus.len > limits.max_cpus or truths.len > limits.max_truths or cpus.len > 65535 or truths.len > 65535 - cpus.len) return error.InvalidServicesWireRoster;
-    if (memory_words > limits.max_memory_words or memory_words > 1 << 22) return error.InvalidMemorySidecarCount;
+    if (memory_words > limits.max_memory_words or memory_words >= 1 << 23) return error.InvalidMemorySidecarCount;
     var totals: [T.FAMILIES]u64 = @splat(0);
     var sponge_perms: u64 = 0;
     var sum_steps: u64 = 0;
@@ -450,7 +450,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     if (setups.len == 0 or setups.len != bundle.cpus.len or truths.len != bundle.truths.len) return error.InvalidServicesWireRoster;
     const initial = bundle.cpus[0].request.base.memory.initial;
     const terminal = bundle.cpus[bundle.cpus.len - 1].request.base.memory.terminal;
-    if (initial.len != terminal.len or initial.len > 1 << 22) return error.InvalidServicesWireBoundary;
+    if (initial.len != terminal.len or initial.len >= 1 << 23) return error.InvalidServicesWireBoundary;
     const cpus = try a.alloc(Cpu, setups.len);
     defer a.free(cpus);
     for (setups, bundle.cpus, cpus, 0..) |setup, c, *out, index| {

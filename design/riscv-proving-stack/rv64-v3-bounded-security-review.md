@@ -63,3 +63,9 @@ The receiver now selects a named PCS profile from its own policy (`--security-pr
   mutations). Compact decode changes only MAIN width and residual counts. On the complete block
   the source shape maxima and lookup degrees are identical: max columns 7,444 come from a truth
   proof.
+
+
+The later [public-boundary policy v2](rv64-public-boundary-log23-policy-v2.md)
+adds an independently admitted log-23 INIT/TEARDOWN cap and changes both profile
+identity domains. The table and receipts above remain pinned v1 evidence; they
+are not automatically requalified for v2 or the larger 15-block basket.

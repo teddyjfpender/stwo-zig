@@ -40,6 +40,20 @@ pub const Metadata = struct {
 comptime {
     std.debug.assert(@sizeOf(Metadata) == 22);
 }
+/// Independently admitted public boundaries have no CPU-clock columns.
+pub fn sizeForLog(log: u32) !usize {
+    if (log < 5 or log > 23) return error.InvalidBoundaryGeometry;
+    return @as(usize, 1) << @intCast(log);
+}
+pub fn fixed(a: std.mem.Allocator, log: u32) ![]M {
+    const n = try sizeForLog(log);
+    const data = try a.alloc(M, 3 * n);
+    @memset(data, M.zero());
+    for (0..n) |i| data[R.trace.physical(i, log)] = M.fromCanonical(@intCast(i));
+    data[n + R.trace.physical(0, log)] = M.one();
+    data[2 * n + R.trace.physical(n - 1, log)] = M.one();
+    return data;
+}
 pub const Source = struct {
     allocator: std.mem.Allocator,
     kind: L.Kind,
@@ -58,7 +72,7 @@ pub const Source = struct {
     }
     fn initInternal(a: std.mem.Allocator, kind: L.Kind, cells: []const Cell, log: u32, buffers: ?SourceSupport.MainBuffers) !Source {
         if (kind != .initial and kind != .terminal) return error.InvalidBoundaryKind;
-        const n = try SourceSupport.sizeForLog(log);
+        const n = try sizeForLog(log);
         if (cells.len >= n) return error.BoundaryCapacityExceeded;
         for (cells, 0..) |cell, i| if (cell.address & 7 != 0 or (i != 0 and cells[i - 1].address >= cell.address)) return error.InvalidBoundaryOrder;
         if (buffers) |b| {
@@ -69,7 +83,7 @@ pub const Source = struct {
             const ye = std.math.add(usize, y, std.mem.sliceAsBytes(cells).len) catch return error.InvalidMemoryInputSpan;
             if (cells.len != 0 and x < ye and y < xe) return error.OverlappingBoundaryInputs;
         }
-        const f = try SourceSupport.fixed(a, log);
+        const f = try fixed(a, log);
         errdefer a.free(f);
         const meta = try a.alloc(Metadata, n);
         errdefer a.free(meta);
@@ -191,7 +205,7 @@ pub fn expectedClaim(cells: []const Cell, initial: bool, ch: R.types.RamChalleng
 
 const CHUNK: usize = 4096;
 fn validateMetadataImpl(source: *const Source) !usize {
-    const n = try SourceSupport.sizeForLog(source.log_size);
+    const n = try sizeForLog(source.log_size);
     if (source.interaction.len != 0 or source.metadata.len != n or source.rows >= n or (source.kind != .initial and source.kind != .terminal)) return error.InvalidBoundaryPhase;
     for (source.metadata, 0..) |meta, i| if (meta.flags & ~@as(u8, 7) != 0 or (meta.flags & 1) != @intFromBool(i < source.rows)) return error.InvalidBoundaryMetadata;
     return n;
@@ -225,3 +239,15 @@ pub const ParallelSupport = struct {
     pub const validateMetadata = validateMetadataImpl;
     pub const fillChunk = fillChunkImpl;
 };
+
+test "public boundary log23 sizing keeps ordinary LS at log22" {
+    try std.testing.expectEqual(@as(usize, 1) << 23, try sizeForLog(23));
+    try std.testing.expectError(error.InvalidBoundaryGeometry, sizeForLog(24));
+    try std.testing.expectError(error.InvalidLsGeometry, SourceSupport.sizeForLog(23));
+    const a = std.testing.allocator;
+    const boundary = try fixed(a, 5);
+    defer a.free(boundary);
+    const legacy = try SourceSupport.fixed(a, 5);
+    defer a.free(legacy);
+    try std.testing.expectEqualSlices(M, legacy, boundary);
+}

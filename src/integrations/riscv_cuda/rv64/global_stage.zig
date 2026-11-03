@@ -22,6 +22,7 @@ pub const Layout = enum { inverse_prefix, cumulative_batches };
 pub const Request = struct {
     scope: D.Scope,
     log_size: u32,
+    public_boundary: bool = false,
     fixed: []const D.Column,
     main: []const D.Column,
     fixed_offset: usize = 0,
@@ -123,7 +124,7 @@ pub const Context = struct {
         const parameters = try a.alloc(O, e.artifact.parameter_slots.len);
         defer a.free(parameters);
         for (parameters, e.artifact.parameter_slots) |*value, slot| value.* = semantic[slot];
-        var result = try self.generateRationalLocked(a, .{ .scope = scope, .log_size = item.log_size, .fixed = item.fixed, .main = item.main, .fixed_offset = item.fixed_offset, .parameters = parameters, .projection = e.launch, .groups = .{ e.artifact.ram_pairs, e.artifact.other_pairs }, .budget = budget });
+        var result = try self.generateRationalLocked(a, .{ .scope = scope, .log_size = item.log_size, .public_boundary = item.descriptor.origin == .core and (item.descriptor.origin.core == .initial or item.descriptor.origin.core == .terminal), .fixed = item.fixed, .main = item.main, .fixed_offset = item.fixed_offset, .parameters = parameters, .projection = e.launch, .groups = .{ e.artifact.ram_pairs, e.artifact.other_pairs }, .budget = budget });
         errdefer result.deinit();
         try result.validate(item);
         return result;
@@ -138,7 +139,7 @@ pub const Context = struct {
     }
     fn generateRationalLocked(self: *Context, a: std.mem.Allocator, request: Request) !DG.Witness {
         const log = request.log_size;
-        if (log < 5 or log > 22 or request.fixed.len == 0 or request.main.len == 0 or request.parameters.len == 0 or request.parameters.len > 65536 or request.groups[0] == 0 or request.groups[0] > 640 or request.groups[1] > 640) return error.InvalidGlobalGeometry;
+        if (log < 5 or log > (if (request.public_boundary) @as(u32, 23) else @as(u32, 22)) or request.fixed.len == 0 or request.main.len == 0 or request.parameters.len == 0 or request.parameters.len > 65536 or request.groups[0] == 0 or request.groups[0] > 640 or request.groups[1] > 640) return error.InvalidGlobalGeometry;
         if (request.layout == .cumulative_batches and self.cumulative == null) return error.MissingResidentCumulativeCapability;
         for (request.fixed) |column| if (column.log_size != log) {
             return error.InvalidGlobalGeometry;

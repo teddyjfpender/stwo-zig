@@ -148,7 +148,7 @@ extern "C" int stwo_rv64_boundary_witness_on(void *ctx, uint32_t lane,
                                              const uint32_t *cells, uint32_t count,
                                              uint32_t log, uint32_t *main, uint32_t *status) {
   using namespace stwo::cuda::rv64;
-  if (log < 5 || log > 22 || count >= (1u << log)) return int(cudaErrorInvalidValue);
+  if (log < 5 || log > 23 || count >= (1u << log)) return int(cudaErrorInvalidValue);
   Custody c(ctx, lane);
   if ((count && !c.range(cells, uint64_t(count) * 8, false)) || !c.range(main, uint64_t(14) << log, true) || !c.range(status, 1, true)) return c.status;
   boundary_witness<<<((1u << log) + 127) / 128, 128, 0, c.stream>>>(cells, count, log, main, status);

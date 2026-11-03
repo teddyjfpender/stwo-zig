@@ -7,9 +7,11 @@ const Policy = @import("security_policy.zig");
 pub const O = core.fields.om31.OM31;
 pub const Channel = core.channel.raw_mod_m31.Om31Channel;
 pub const Hasher = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
-pub const ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-128-CANDIDATE/v1\x00";
+pub const ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-128-CANDIDATE/v2\x00";
 pub const MAX_PROOFS: u64 = 256;
 pub const MAX_TRACE_LOG: u32 = 22;
+/// Only receiver-validated public INIT/TEARDOWN; never CPU/provider clocks.
+pub const MAX_PUBLIC_BOUNDARY_LOG: u32 = 23;
 pub const MAX_COLUMNS: u64 = 16384;
 pub const MAX_CONSTRAINTS: u64 = 65536;
 pub const MAX_SAMPLES_PER_COLUMN: u64 = 8;
@@ -26,7 +28,7 @@ pub const TARGET_BITS: u16 = 128;
 pub const ASSUMPTION_TARGET = .{
     .label = "128-bit security target under documented assumptions",
     .target_bits = TARGET_BITS,
-    .assumption_set = "rv64-native-om31-beta2-q256-p0-fold4-assumptions-20261102-v1",
+    .assumption_set = "rv64-native-om31-beta2-q256-p0-fold4-assumptions-20261102-v2-boundary23",
     .scope = "native proof bundle; recursion excluded",
     .budget_scope = "receiver-derived roster-specific bounds; changed guest or geometry requires a matching bounded review",
     .bounded_engineering_review_complete = true,
@@ -100,7 +102,7 @@ pub fn requireParameters(actual: core.pcs.PcsConfig) !void {
 pub fn requireProfileParameters(profile: Profile, actual: core.pcs.PcsConfig) !void {
     if (!std.meta.eql(actual, configFor(profile))) return error.UnrecognizedOm31CandidateParameters;
 }
-pub const CONJECTURED_ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-128-CONJECTURED-ethstark/v1\x00";
+pub const CONJECTURED_ID_DOMAIN = "rv64-om31-rawblake-native-localgkr-128-CONJECTURED-ethstark/v2\x00";
 /// Profile identity. The proven profile keeps `identity()`; the conjectured
 /// profile hashes a distinct domain, its label, every PCS parameter and the
 /// same receiver caps.
@@ -111,7 +113,7 @@ pub fn profileIdentity(profile: Profile) [32]u8 {
     h.update(CONJECTURED_ID_DOMAIN);
     h.update(profile.name());
     h.update(&Channel.profile.identity());
-    for ([_]u64{ 8, c.fri_config.n_queries, c.fri_config.log_blowup_factor, c.fri_config.fold_step, c.pow_bits, c.fri_config.log_last_layer_degree_bound, conjecturedBits(profile), MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS }) |n| {
+    for ([_]u64{ 8, c.fri_config.n_queries, c.fri_config.log_blowup_factor, c.fri_config.fold_step, c.pow_bits, c.fri_config.log_last_layer_degree_bound, conjecturedBits(profile), MAX_PROOFS, MAX_TRACE_LOG, MAX_PUBLIC_BOUNDARY_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS }) |n| {
         var bytes: [8]u8 = undefined;
         std.mem.writeInt(u64, &bytes, n, .little);
         h.update(&bytes);
@@ -122,7 +124,7 @@ pub const ConjecturedTarget = struct {
     label: []const u8 = "128-bit CONJECTURED security (ethSTARK-style FRI conjecture; owner-accepted 2026-11-02)",
     target_bits: u16 = TARGET_BITS,
     profile: []const u8 = "conjectured128_b2_q108_p20_fold4",
-    assumption_set: []const u8 = "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v1",
+    assumption_set: []const u8 = "rv64-native-v3-om31-conjectured128-b2-q108-p20-fold4-20261102-v2-boundary23",
     conjectured_fri_bits: u32 = 128,
     scope: []const u8 = "native proof bundle; recursion excluded",
     proven_bound: bool = false,
@@ -158,7 +160,7 @@ pub fn identity() [32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
     h.update(ID_DOMAIN);
     h.update(&Channel.profile.identity());
-    for ([_]u64{ 8, 256, 2, 4, 0, MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS, MAX_AUDITED_LOG_WORK }) |n| {
+    for ([_]u64{ 8, 256, 2, 4, 0, MAX_PROOFS, MAX_TRACE_LOG, MAX_PUBLIC_BOUNDARY_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS, MAX_AUDITED_LOG_WORK }) |n| {
         var bytes: [8]u8 = undefined;
         std.mem.writeInt(u64, &bytes, n, .little);
         h.update(&bytes);
@@ -182,6 +184,7 @@ pub fn begin(channel: *Channel, admitted: Facts) !void {
 pub const Facts = struct {
     native_proofs: u64,
     max_trace_log: u32,
+    max_public_boundary_log: u32 = 5,
     max_columns: u64,
     max_constraints: u64,
     max_samples_per_column: u64,
@@ -197,17 +200,17 @@ pub const Facts = struct {
     max_multiplicity: u64,
     transcript_rounds: u64,
     pub fn caps() Facts {
-        return .{ .native_proofs = MAX_PROOFS, .max_trace_log = MAX_TRACE_LOG, .max_columns = MAX_COLUMNS, .max_constraints = MAX_CONSTRAINTS, .max_samples_per_column = MAX_SAMPLES_PER_COLUMN, .max_air_degree = MAX_AIR_DEGREE, .max_local_instances = MAX_LOCAL_INSTANCES, .max_tuple_arity = MAX_TUPLE_ARITY, .max_gkr_variables = MAX_GKR_VARIABLES, .max_positive_mass = core.fields.m31.Modulus - 1, .max_negative_mass = core.fields.m31.Modulus - 1, .max_multiplicity = core.fields.m31.Modulus - 1, .transcript_rounds = MAX_ROUND_COUNT };
+        return .{ .native_proofs = MAX_PROOFS, .max_trace_log = MAX_TRACE_LOG, .max_public_boundary_log = MAX_PUBLIC_BOUNDARY_LOG, .max_columns = MAX_COLUMNS, .max_constraints = MAX_CONSTRAINTS, .max_samples_per_column = MAX_SAMPLES_PER_COLUMN, .max_air_degree = MAX_AIR_DEGREE, .max_local_instances = MAX_LOCAL_INSTANCES, .max_tuple_arity = MAX_TUPLE_ARITY, .max_gkr_variables = MAX_GKR_VARIABLES, .max_positive_mass = core.fields.m31.Modulus - 1, .max_negative_mass = core.fields.m31.Modulus - 1, .max_multiplicity = core.fields.m31.Modulus - 1, .transcript_rounds = MAX_ROUND_COUNT };
     }
     pub fn validate(self: Facts) !void {
-        if (self.native_proofs == 0 or self.native_proofs > MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > MAX_TRACE_LOG or self.max_columns == 0 or self.max_columns > MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > MAX_CONSTRAINTS or self.max_samples_per_column == 0 or self.max_samples_per_column > MAX_SAMPLES_PER_COLUMN or self.max_air_degree == 0 or self.max_air_degree > MAX_AIR_DEGREE or self.max_local_instances == 0 or self.max_local_instances > MAX_LOCAL_INSTANCES or self.max_tuple_arity == 0 or self.max_tuple_arity > MAX_TUPLE_ARITY or self.max_gkr_variables < 1 or self.max_gkr_variables > MAX_GKR_VARIABLES or self.transcript_rounds == 0 or self.transcript_rounds > MAX_ROUND_COUNT)
+        if (self.native_proofs == 0 or self.native_proofs > MAX_PROOFS or self.max_trace_log < 5 or self.max_trace_log > MAX_TRACE_LOG or self.max_public_boundary_log < 5 or self.max_public_boundary_log > MAX_PUBLIC_BOUNDARY_LOG or self.max_columns == 0 or self.max_columns > MAX_COLUMNS or self.max_constraints == 0 or self.max_constraints > MAX_CONSTRAINTS or self.max_samples_per_column == 0 or self.max_samples_per_column > MAX_SAMPLES_PER_COLUMN or self.max_air_degree == 0 or self.max_air_degree > MAX_AIR_DEGREE or self.max_local_instances == 0 or self.max_local_instances > MAX_LOCAL_INSTANCES or self.max_tuple_arity == 0 or self.max_tuple_arity > MAX_TUPLE_ARITY or self.max_gkr_variables < 1 or self.max_gkr_variables > MAX_GKR_VARIABLES or self.transcript_rounds == 0 or self.transcript_rounds > MAX_ROUND_COUNT)
             return error.Om31CandidateScopeExceeded;
         const p = core.fields.m31.Modulus;
         if (self.max_positive_mass >= p or self.max_negative_mass >= p or self.max_multiplicity >= p)
             return error.Om31CandidateCharacteristicBoundExceeded;
     }
-    fn words(self: Facts) [13]u64 {
-        return .{ self.native_proofs, self.max_trace_log, self.max_columns, self.max_constraints, self.max_samples_per_column, self.max_air_degree, self.max_local_instances, self.max_tuple_arity, self.max_gkr_variables, self.max_positive_mass, self.max_negative_mass, self.max_multiplicity, self.transcript_rounds };
+    fn words(self: Facts) [14]u64 {
+        return .{ self.native_proofs, self.max_trace_log, self.max_public_boundary_log, self.max_columns, self.max_constraints, self.max_samples_per_column, self.max_air_degree, self.max_local_instances, self.max_tuple_arity, self.max_gkr_variables, self.max_positive_mass, self.max_negative_mass, self.max_multiplicity, self.transcript_rounds };
     }
 };
 pub const AlgebraicTerm = enum { tuple_compression, local_rational_identity, global_rational_identity, pole_events, gkr_sumcheck, gkr_instance_mix, gkr_late_binding, composition_mix, oods, deep_batching, fri_folding };
@@ -241,7 +244,7 @@ pub const Ledger = struct {
 pub fn ledger(facts: Facts) !Ledger {
     try facts.validate();
     const p: u512 = facts.native_proofs;
-    const n: u512 = @as(u512, 1) << @intCast(facts.max_trace_log);
+    const n: u512 = @as(u512, 1) << @intCast(@max(facts.max_trace_log, facts.max_public_boundary_log));
     const c: u512 = facts.max_columns;
     const arity: u512 = facts.max_tuple_arity;
     const mass: u512 = @as(u512, facts.max_positive_mass) + facts.max_negative_mass;
@@ -319,4 +322,26 @@ pub fn requireWholeProtocolPromotion(reviews: Reviews) !void {
 }
 pub fn requireBenchmarkControlUnchanged() !void {
     try Policy.requireClaim(Policy.benchmarkControl(), .nominal_control_only_v1, .benchmark_control_only);
+}
+
+test "public boundary log23 policy v2 separates general clocks and historical identity" {
+    var facts = Facts.caps();
+    try facts.validate();
+    facts.max_trace_log = 23;
+    try std.testing.expectError(error.Om31CandidateScopeExceeded, facts.validate());
+    facts = Facts.caps();
+    facts.max_public_boundary_log = 24;
+    try std.testing.expectError(error.Om31CandidateScopeExceeded, facts.validate());
+    // Reconstruct the previously admitted v1 candidate identity. This checks
+    // intentional rejection of that protocol, rather than silently widening it.
+    var old = std.crypto.hash.sha2.Sha256.init(.{});
+    old.update("rv64-om31-rawblake-native-localgkr-128-CANDIDATE/v1\x00");
+    old.update(&Channel.profile.identity());
+    for ([_]u64{ 8, 256, 2, 4, 0, MAX_PROOFS, MAX_TRACE_LOG, MAX_COLUMNS, MAX_CONSTRAINTS, MAX_SAMPLES_PER_COLUMN, MAX_AIR_DEGREE, MAX_LOCAL_INSTANCES, MAX_TUPLE_ARITY, LOCAL_RELATIONS, GLOBAL_RELATIONS, MAX_GKR_VARIABLES, MAX_ROUND_COUNT, TARGET_BITS, MAX_AUDITED_LOG_WORK }) |n| {
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, n, .little);
+        old.update(&bytes);
+    }
+    try std.testing.expectError(error.UnrecognizedOm31CandidateIdentity, requireIdentity(old.finalResult()));
+    try std.testing.expect(!std.mem.eql(u8, &profileIdentity(.proven_beta2_q256_p0_fold4), &profileIdentity(.conjectured128_b2_q108_p20_fold4)));
 }
