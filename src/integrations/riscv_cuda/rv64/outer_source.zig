@@ -69,6 +69,12 @@ pub const Context = struct {
     pub fn factory(self: *Context) Dev.Factory {
         return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit };
     }
+    /// Fail before constructing a production verifier graph when the image
+    /// lacks deterministic generation kernels. Legacy ingress stays explicit.
+    pub fn factoryForTraceOnly(self: *Context) !Dev.Factory {
+        try Assignment.requireProductionCapabilities(&self.service.library);
+        return self.factory();
+    }
     /// Explicit opt-in generation from this finalized original graph. The
     /// graph must outlive prove(); the legacy factory keeps its upload path.
     pub fn factoryForWitness(self: *Context, graph: *const circuit.builder.Context(Outer.protocol.Q)) !Dev.Factory {
