@@ -1,10 +1,15 @@
 # Tensor frontend: zero-knowledge mode (`Config.hiding`)
 
-Stream: zero knowledge (branch `codex/tensor-zk`). Code: `src/tensor/zk_pcs.zig`
-(hiding PCS), `src/tensor/zk_sumcheck.zig` (masked sumcheck), `src/tensor/zk.zig`
-(hiding protocol, hiding weight store), `src/tensor/zk_bench.zig` (`tensor-bench ... zk`).
-The non-hiding protocol (`protocol.zig`, `pcs.zig`) is unchanged. The only edit there
-is two new `Config` fields, `hiding = false` and `weight_mask_slots`.
+Stream: zero knowledge (branch `codex/tensor-zk`). Code:
+
+- `src/tensor/zk_pcs.zig`: hiding PCS.
+- `src/tensor/zk_sumcheck.zig`: masked sumcheck.
+- `src/tensor/zk.zig`: hiding protocol, hiding LogUp-GKR, hiding weight store.
+- `src/tensor/zk_bench.zig`: `tensor-bench ... zk`.
+
+The non-hiding protocol (`protocol.zig`, `pcs.zig`) is unchanged. The only edits there are
+new `Config` fields: `hiding = false`, `weight_mask_slots`, `weight_pcs`, and
+`zk_logup_gkr = true`.
 
 ## 1. Goal and model
 
@@ -39,13 +44,11 @@ Inventory used to decide what to mask:
 | GKR layer masks | `num_k, den_k` MLEs of every tree layer at `(r, 0)`, `(r, 1)` | evaluations of partial fraction sums of the witness keys; the bottom layer gives the key MLEs at a random point |
 | GKR layer sumchecks | degree-3 round polynomials of every layer | as above |
 
-A GKR transcript can be made hiding (Libra/Virgo: a masking polynomial per layer
-sumcheck, plus committed per-layer masks that blind the layer evaluations). That needs
-per-layer pad terms inside each layer's sumcheck and a separate treatment of the top
-layers, whose domain is smaller than a pad, and it changes stwo's fast GKR prover. See §7.
-This implementation instead **replaces GKR in hiding mode** by LogUp with committed
-inverses. Every check is then a masked zero-check or a linear claim, and one argument (§4)
-covers the whole proof.
+Hiding mode therefore runs its own **masked LogUp-GKR** (§4.3, default) in place of stwo's
+fast GKR prover. Each layer's sumcheck is masked, each layer's evaluations are revealed
+only as pad-masked hats, and the root denominator is blinded. LogUp with committed inverses
+is kept as an option (`Config.zk_logup_gkr = false`). It is simpler, but costs 4 committed
+M31 cells per key.
 
 ## 3. Hiding PCS (`zk_pcs.zig`)
 
@@ -134,21 +137,24 @@ counts the union of opened positions and `finish` refuses to exceed it. The per-
 witness tables use `S = slotsFor(t)`, the next power of two ≥ `2t` (128 for t = 54 or
 64). They are opened once.
 
-The weight table (`ZkWeights`) is committed once with `S = weight_mask_slots`. Its
-commit-time proximity test and each proof spend up to `t` columns. Tradeoff, measured on
-mlp 8 10 11 (`C_w = 1024`, lb 2, t 64):
+The weight table (`ZkWeights`) is committed once with `S = weight_mask_slots`, and has its
+own PCS parameters (`Config.weight_pcs`, bound into the transcript). Its commit-time
+proximity test and each proof spend up to `t_w` columns. Measured on mlp 8 10 11
+(`C_w = 1024`):
 
-| weight_mask_slots | weight rate | conj. bits (weights) | budget (columns) | proofs per commitment |
-|---|---|---|---|---|
-| 1024 | 0.5 | 84.0 | 512 | ~7 |
-| 256 | 0.3125 | 127.4 | 128 | ~1 |
+| weight lb / queries / slots | rate | conj. bits (weights) | budget (columns) | used per proof | weight opening |
+|---|---|---|---|---|---|
+| 2 / 64 / 1024 | 0.5 | 84.0 | 512 | ~62 | 1.66 MB |
+| 2 / 64 / 256 | 0.3125 | 127.4 | 128 | ~62 | 1.65 MB |
+| **4 / 36 / 1024** (bench default) | 0.125 | **128.0** | 512 | **~36** | **0.95 MB** |
 
-With the production shape (`C_w = 4096`, 1024 slots) the rate is 0.3125: 127 bits and a
-budget of 512 columns, about 7 proofs per commitment. FlashProve's budget is 44M columns
-because its rows are much longer. Raising this budget is the main open item for weight
-hiding; see §8 (weight-specific blowup, re-randomized copies with a link proof). Weights
-also carry 4 pad rows `R_W` (`C_w` cells each) for the masked weight evaluations of §4.2.
-They tolerate about `4·C_w` revealed functionals, which never binds.
+With the bench defaults (lb 4, slots = `C_w`, queries for 128 bits) a commitment serves
+about `C_w/(2·36)` proofs: about 14 at `C_w = 1024` and about 56 at the production
+`C_w = 4096`. The cost is a 4× larger one-time weight encoding (0.08 → 0.26 s at this
+size). FlashProve's budget is 44M columns because its rows are much longer.
+
+Weights also carry 4 pad rows `R_W` (`C_w` cells each) for the masked weight evaluations
+of §4.2. They tolerate about `4·C_w` revealed functionals, which never binds.
 
 ## 4. Masked sumchecks and the protocol (`zk_sumcheck.zig`, `zk.zig`)
 
@@ -177,6 +183,9 @@ To prove `Σ_{x∈{0,1}^n} G(x) = c` for `G = Σ_t coeff_t Π_j F_j` of degree `
   and each hat as `(1−γ)·scale·T(local point) + γ·Pad(last 4 coords)` on the factor's
   tensors.
 
+`zk_sumcheck.proveWith` takes a comptime evaluator for the summand; the GKR layer uses a
+4-multiplication form of its 7-multiplication term list.
+
 **Soundness.** `σ` and `u` are verified through the PCS. `ε` is drawn after `σ`, so a
 false `c` makes the total claim false except with probability 1/|F|. Then apply standard
 sumcheck soundness over `n + 1` variables. The `Y` variable is one more variable with
@@ -197,42 +206,120 @@ For each relation, `ρ` is a suffix of one common random vector. All matmuls sha
 - **product** `c = a∘b`: `Σ eq(ρ,x)(a·b − c) = 0`.
 - **hadamard** with requant: `Σ eq(ρ,x)(A·B − 2^s Y − r) = −2^(s−1)`. The remainder `r`
   is a committed tensor in hiding mode; it is virtual in v1.
-- **matmul** with requant: `Σ_z [X(ρ_t, z)·W(z, ρ_n) + eq(ρ, z)(−2^s Y(z) − r(z))] = −2^(s−1)`.
+- **matmul** with requant:
+  `Σ_z [X(ρ_t, z)·W(z, ρ_n) + eq(ρ, z)(−2^s Y(z) − r(z))] = −2^(s−1)`.
   This is one sumcheck over `max(lk, lt+ln)` variables with top zero-extension, so the
   hats carry the scale `Π(1 − r_hi)`. The prover folds `X·eq(ρ_t)` and `W·eq(ρ_n)` as in
   v1. The W hat is a claim on the weight commitment, padded by `R_W(s, colpoint)`.
-- **LogUp** (range8, requant output range, remainder range `2^s`, int8 lookup with `β`).
-  Table 2 is committed after `α, β`. It holds `h_k = 1/(α − key_k)` as 4 M31 limb
-  tensors, plus pads. Per key instance there is a masked zero-check
-  `Σ eq(ρ,x)·h(x)·(α − key(x)) = 1`. Per relation there is a linear claim with public
-  value 0: `Σ_k Σ_x h_k(x) − Σ_t m(t)/(α − key_t) = 0`.
+- **LogUp** covers range8, the requant output range, the remainder range `2^s` and the
+  int8 lookup with `β`. The y-range key of a requant output is dropped when that output is
+  also a lookup input: the table match already forces `[-128,128)`. Default proof: hiding
+  GKR (§4.3). Option (`zk_logup_gkr = false`):
+  - Table 2 is committed after `α, β`. It holds `h_k = 1/(α − key_k)` as 4 M31 limb
+    tensors, plus pads.
+  - Per key instance: a masked zero-check `Σ eq(ρ,x)·h(x)·(α − key(x)) = 1`.
+  - Per relation: a linear claim with public value 0,
+    `Σ_k Σ_x h_k(x) − Σ_t m(t)/(α − key_t) = 0`.
   - Soundness: `m` is committed before `α` and `h` after it. The zero-check forces
     `h = 1/(α − key)` on the cube except with probability `n/|F|`. LogUp then gives
     multiset inclusion except with probability `(#keys + #table)/|F|`, since the
     characteristic exceeds the counts.
 
-All claim values are public (0, ±2^(s−1), 1), so nothing about the witness enters as a
-claimed value.
+All claim values are public (0, ±2^(s−1), 1, and the GKR claims `(0, d_0)`), so nothing
+about the witness enters as a claimed value.
 
-### 4.3 Batch and openings
+### 4.3 Hiding LogUp-GKR (`gkrProveRel` / `gkrVerifyRel`)
 
-- **Batch.** All linear claims on tables 1 and 2 are combined with `γ`s drawn after every
-  value is in the transcript. Hats, `σ` and `u` are mixed by the sumchecks; the zeros
-  are public. One masked sumcheck `Σ T_1 E_1 + Σ T_2 E_2` follows, with `E` public, the
-  tables zero-extended, and only `max(used)` entries touched.
+**Tree.** There is one fraction tree per relation. Leaves, laid out as aligned segments in
+`n` variables:
+
+- key leaves `(1, α − key(x))`;
+- table leaves `(−m(t), α − key_t)`;
+- one **blinder leaf** `(0, ρ)`, where `ρ` is a uniform non-zero committed cell;
+- padding leaves `(0, 1)`.
+
+The split is MSB: node `x` of layer `k−1` is node `x` ⊕ node `x + 2^(k−1)` of layer `k`,
+with `(n, d) ⊕ (n', d') = (n d' + n' d, d d')`.
+
+**Root.** The prover sends only the root denominator `d_0`. The numerator must be 0, and
+the verifier checks `d_0 ≠ 0`.
+
+**Layer `k = 1..n`.** The incoming claim is `(â, b̂)` with challenges `λ_k` and `γ'`. For
+`k = 1` the claim is `(0, d_0)` and `γ' = 0`. The layer is a masked sumcheck over `k−1`
+variables:
+
+    (λ â + b̂)/(1 − γ') = Σ_x eq(r, x)·[λ n0 d1 + λ n1 d0 + d0 d1](x) + Σ_x et(x)·Q(x)
+
+- Factors: `eq, λn0, λn1, d0, d1, et, Q`, degree 3.
+- **Hats.** The four finals are revealed only as hats padded by four fresh 16-cell pads
+  `P_{k,·}`, at `t_k` = the last 4 coordinates of `(aux ‖ r')`, where `aux` is 4
+  challenge coordinates per tree. The next claim is
+  `â = (1−c)·n̂0 + c·n̂1 = (1−γ)·num_k(c, r') + γ·[(1−c) P_{k,n0} + c P_{k,n1}](t_k)`, and
+  `b̂` likewise.
+- **Q term.** `et·Q` absorbs the previous layer's pad part
+  `γ'/(1−γ')·[λ P_a + P_b](t_{k−1})`. With `m = k−1` and `m' = min(m, 4)`:
+  - `Q(x) = [x_head = 0]·coef·Σ_j w_j P_j(t_lead, x_tail)`, the pads partially evaluated
+    at the leading `4−m'` coordinates of `t`;
+  - `et = eq((0^(m−m'), t_tail), ·)`, so that `Σ_x et·Q` is exactly that pad part.
+  - `Q` is a prover-computed, uncommitted vector. Its final value is a linear claim on the
+    previous layer's pads: `coef·eq(r'_head, 0)·Σ_j w_j P_j(t_lead, r'_tail)`.
+  - For `k = 1` there is no previous layer, and the verifier requires `Q̂ = 0`.
+
+**Leaves.** The last layer's hats become two linear claims, one on numerators and one on
+denominators, each `(1−γ)·leaf-MLE(c, r') + γ·pads(t_n)`. The leaf MLE expands per
+segment: block `eq` times the key's affine tensor form, `−m`, `ρ`, the public table key
+MLE (`identityMle`, or the act-table MLE) and the padding indicator `1 − Σ blocks`. These
+claims go to the batch.
+
+**Soundness.**
+- Root: numerator 0 and `d_0 ≠ 0` give `Σ_keys 1/(α−k) − Σ_t m_t/(α−t) = 0`, with every
+  denominator non-zero. `ρ` contributes `0/ρ`. Standard LogUp error.
+- Layer: masked-sumcheck soundness (§4.1). `Q` is pinned to the honest pad-derived vector
+  because its evaluation at the random final point is verified against the committed pads,
+  and `et` is public. So the sumcheck proves
+  `λ(â − γ'P_a(t)) + (b̂ − γ'P_b(t)) = (1−γ')(λ·num_{k−1}(r) + den_{k−1}(r))`, with the
+  pads fixed at commitment time. `λ` is drawn after `â, b̂`, so both components hold except
+  with probability 1/|F|. This is the usual GKR claim reduction, shifted by committed
+  constants.
+- Error: per tree, about `Σ_k (3k + 4)/|F|` plus LogUp's `(#keys + #table)/|F|`.
+
+**ZK.**
+- `d_0 = ρ·Π(other denominators)` is uniform in F*.
+- Layer messages are uniform given the public claim (Lemma 3).
+- Each hat carries `γ·(own pad functional)`.
+- Each layer's 64 pad cells see 5 functionals: the 4 hats at `t_k` (one per pad) and one
+  `Q` value at an independent point. These are linearly independent except with
+  probability `O(1)/|F|`.
+- The layer values never appear unmasked; the leaf claim values are determined by the
+  hats.
+
+What a GKR proof contains in hiding mode: roots `d_0` (16 B per tree) and per layer a
+masked sumcheck (`3k + 7` QM31 values). Total about 39 KB for mlp 8 10 11 (3 trees, 62
+layers).
+
+**Rejected shortcut.** Interleaving random pad leaves (MSB half) makes all layers above
+the leaves uniform, so only the bottom layer would need masking. But the pads must be
+uniform QM31 fractions, which is 8 committed M31 cells per data leaf.
+
+### 4.4 Batch and openings
+
+- **Batch.** All linear claims on the witness table(s) are combined with `γ`s drawn after
+  every value is in the transcript. Hats, `σ` and `u` are mixed by the sumchecks; the
+  zeros are public. One masked sumcheck `Σ T E` follows, with `E` public. In
+  committed-inverse mode it is `Σ T_1 E_1 + Σ T_2 E_2`, with the tables zero-extended and
+  only `max(used)` entries touched.
 - **Batch hats.** Pad: one full row `R_b` per table, evaluated at the batch column point.
-  So `(1−γ)·T(r) + γ·R_b(r_col)` is a single group with column vector `eq(r_col)`
-  spanning both tables.
+  So `(1−γ)·T(r) + γ·R_b(r_col)` is a single group with column vector `eq(r_col)`.
 - **Batch hiding polynomial.** It sits in one row of table 1. Its claims `σ_b` and `u_b`
   are combined with `ζ`, drawn after `u_b` is mixed; this was a soundness fix during
   development. They form a second group with an explicit column vector.
-- **Witness opening.** One multi-table opening: the proximity row plus groups A and B,
-  each with its own 4 mask rows in table 1.
+- **Witness opening.** The proximity row plus groups A and B, each with its own 4 mask
+  rows in table 1.
 - **Weight opening.** One group, with the weight table and a fresh per-proof 4-row mask
-  table (committed at the start, root in the transcript). No proximity row; that test
-  is done at commit time.
+  table (committed at the start, root in the transcript). No proximity row; that test is
+  done at commit time.
 
-### 4.4 Zero-knowledge argument (whole proof)
+### 4.5 Zero-knowledge argument (whole proof)
 
 Hybrid over the transcript, in order:
 
@@ -240,8 +327,9 @@ Hybrid over the transcript, in order:
 2. **`α, β, ρ`.** Public coins.
 3. **Each masked zero-check.** Messages are uniform given the public claim (Lemma 3).
    Each hat is `γ·(pad functional) + (witness part)`. `u` is determined.
-4. **Batch.** Messages are uniform given the public batch claim (Lemma 3). The batch
-   hats are padded by the `R_b` rows. `ζ`; `σ_b + ζu_b` is determined.
+   **GKR trees.** Covered by §4.3 (ZK), given the public claims `(0, d_0)`.
+4. **Batch.** Messages are uniform given the public batch claim (Lemma 3). The batch hats
+   are padded by the `R_b` rows. `ζ`; `σ_b + ζu_b` is determined.
 5. **Openings.** Simulatable given the group claim values (Lemma 2), which steps 3–4
    already simulate.
 
@@ -249,15 +337,15 @@ Hybrid over the transcript, in order:
 are `A_D·D + A_P·P`, and they are jointly uniform iff `A_P` has full row rank.
 
 - Every pad tensor has 16 cells (or `R_b`/`R_W` rows of `C` cells). It is used only by
-  hats of its own tensor, at points that are fresh random points of different
-  sumchecks.
+  hats of its own tensor or GKR layer, at points that are fresh random points of
+  different sumchecks.
 - The most uses are about 3 hats per tensor in the MLP: for example `X` in two matmuls
   and range8, or `Y_g` in matmul, y-range and lookup.
 - `eq` vectors of ≤ 16 distinct random points in 16 dimensions are independent except
   with probability ≤ 16·4/|F|.
-- Mask rows and `R_b` appear in the batch's table evaluation too, but each revealed
-  value has its own fresh direction: hat ↔ its pad, `σ`/`u` ↔ its U, `μ` and `u` rows ↔
-  their masks.
+- Mask rows and `R_b` appear in the batch's table evaluation too, but each revealed value
+  has its own fresh direction: hat ↔ its pad, `σ`/`u` ↔ its U, `μ` and `u` rows ↔ their
+  masks, GKR `d_0` ↔ `ρ`.
 
 The prover's randomness is fresh per proof, except the weight table's `τ`, `R_W` and
 proximity masks, which are shared across proofs. Their exposure is bounded by the budget
@@ -265,36 +353,51 @@ proximity masks, which are shared across proofs. Their exposure is bounded by th
 
 **Tests that exercise this** (`zk.zig`):
 - Two proofs of the same statement have different roots and hats.
-- Statistical sanity: an all-zero witness versus a uniform witness. Opened column values
-  of every row, combined rows and all hats have a top-bit ratio and a mean within 0.02
-  of 1/2, and no zeros (without masks the zero witness gives zero data columns and zero
-  finals).
+- Statistical sanity: an all-zero witness versus a uniform witness (product). Opened
+  column values of every row, combined rows and all hats have a top-bit ratio and a mean
+  within 0.02 of 1/2, and no zeros (without masks the zero witness gives zero data
+  columns and zero finals).
+- Statistical sanity: an MLP with all-zero input versus random input. GKR roots, all GKR
+  layer hats and `Q` values, and op-check hats are uniform-looking, within 0.04 of 1/2.
 - Tampering with each proof field is rejected (§6).
 
 ## 5. Measurements
 
 M4 Max, AC power, `ReleaseFast`, memguard. FlashProve CPU numbers are from fp-bench on
-the same machine.
+the same machine. Commands:
+
+- `tensor-bench product 20 1 [54 2 20] [zk]`
+- `tensor-bench mlp 8 10 11 8 64 2 20 [zk]`
 
 | bench | mode | prove | verify | proof | notes |
 |---|---|---|---|---|---|
 | product 20, 1 thread, t 54 | non-hiding | 0.337 s | 1.63 ms | 323,352 B | 128 conj bits |
 | product 20, 1 thread, t 54 | **hiding** | **0.360 s** | **2.31 ms** | **400,824 B** | 125.6 conj bits (rate (4096+128)/16384); 56 queries for 128 |
 | FlashProve toy (`a∘b = c`, 2^20, 1 core, hiding) | hiding | 8.37 s | 14 ms | 341 KB | reference |
-| mlp 8 10 11, 8 threads, t 64 | non-hiding | 0.195 s | 7.4 ms | 1,966,288 B | GKR |
-| mlp 8 10 11, 8 threads, t 64 | **hiding** | **0.74–0.90 s** | **13–17 ms** | **2,844,720 B** | committed-inverse LogUp; weight slots 1024 → weights 84 conj bits (256 slots: 127.4 bits, 2,832,432 B) |
+| mlp 8 10 11, 8 threads, t 64 | non-hiding (v1) | 0.195 s | 7.4 ms | 1,966,288 B | stwo fast GKR |
+| mlp 8 10 11 | hiding, committed inverses, weights lb 2 t 64 | 0.74–0.90 s | 13–17 ms | 2,844,720 B | weights only 84 conj bits |
+| mlp 8 10 11 | hiding, committed inverses, weights lb 4 t 36 | 0.72 s | 10.8 ms | 2,136,112 B | weights 128.0 conj bits |
+| mlp 8 10 11 | **hiding, masked GKR (default)**, weights lb 4 t 36 | **0.43–0.46 s** | **10.3 ms** | **1,574,864 B** | GKR 0.26 s; 3 trees, 62 layers, 39 KB; RSS 1.7 GB |
 
-Hiding MLP breakdown (0.74 s run):
-- commit 0.31 s (tables 1+2, 22.4M cells; table 2 = 17.8M of them),
-- LogUp zero-checks 0.07 s,
-- op sumchecks 0.04 s,
-- batch 0.27 s,
-- openings 0.03 s.
+Hiding MLP breakdown with the default GKR:
+- witness commit 0.07 s,
+- GKR 0.26 s,
+- op sumchecks 0.03 s,
+- batch 0.05 s,
+- openings 0.02 s.
 
-Before the active-length change the hiding MLP prove took 1.01 s and peak RSS was 3.2 GB.
-After it, RSS is 2.2 GB.
+History, at the same shape:
+- First version (committed inverses, full zero-extension): 1.01 s, 3.2 GB RSS.
+- Active-length factors: 0.74 s.
+- Weight-specific PCS parameters: 2.84 MB → 2.14 MB.
+- Hiding GKR: 0.45 s, 1.57 MB.
+- GKR evaluator with 4 instead of 7 multiplications: GKR 0.38 → 0.26 s.
 
-## 6. Adversarial tests (all passing, `zig build test -Doptimize=ReleaseSafe`)
+The hiding proof is now smaller than the v1 non-hiding proof. The weight opening's higher
+blowup and fewer queries would shrink the non-hiding proof too: ~0.95 MB instead of
+1.61 MB of weight opening at the same conjectured bits.
+
+## 6. Adversarial tests (all passing, `zig build test -Doptimize=ReleaseSafe`, 18 tests)
 
 - `zk_pcs`:
   - two tables with groups and masks: wrong claim value, tampered `μ`, salt, column
@@ -308,62 +411,44 @@ After it, RSS is 2.2 GB.
 - `zk` product:
   - tampered hat, `σ`, `u`, round message, batch hat, batch `σ`, opening row, `μ`,
     column and root are each rejected;
+  - two proofs differ;
   - a wrong witness is refused by the prover.
 - `zk` MLP:
   - weight proximity verifies and a tampered proximity row is rejected;
   - the proof verifies;
-  - tampered W hat, LogUp round, weight-opening row, shift and weight root are each
+  - tampered W hat, op round, weight-opening row, shift and weight root are each
     rejected;
+  - hiding GKR: tampered root, layer hats (first, last and middle layer), round message,
+    `u_val`, `Q` value and `σ` are each rejected;
+  - committed-inverse mode verifies, and its proof is rejected under the GKR config;
+  - separate weight PCS parameters work, and mismatched parameters are rejected;
   - after a few proofs the budget is exhausted and the prover refuses
     (`error.OpeningBudgetExceeded`);
   - a wrong forward value is refused.
-- Statistical sanity test (§4.4).
+- Two statistical sanity tests (§4.5).
 
-## 7. GKR in hiding mode: analysis and the route to a hiding GKR
+## 7. Not done / caveats
 
-What stwo's batched LogUp-GKR reveals is listed in §2. A hiding GKR needs three things.
-
-1. **Masked layer sumchecks.** `zk_sumcheck` applies directly: 7 factors
-   `eq, λn0, λn1, d0, d1, eq_tail, Q`, degree 3.
-2. **Hats on every layer's four finals**, with 16-cell pads per final. The next layer's
-   claim is then `(1−γ)·layer(r) + γ·pad(t)`. That layer's sumcheck must absorb
-   `γ·pad(t)` as an extra term `Σ_x eq(s, x)·Q(x)`, where `Q` is the pad broadcast over
-   the trailing variables. For layers with fewer than 4 variables, `Q` is the pad
-   partially evaluated at the leading coordinates of `t`. Its final value is one more
-   independent linear claim on the pads.
-3. **A multiplicative blinder leaf `(0, ρ)`** per relation tree, so that the root
-   denominator is uniform. The root numerator is checked to be 0. Table leaves go
-   inside each relation tree with numerators `−m(t)`, so the root is public.
-
-This removes table 2 (17.8M cells in mlp 8 10 11) and its batch and opening share. The
-estimate is about 0.4 s for hiding MLP proving and about 0.6 MB less proof. It is not
-implemented in this stream. The committed-inverse route was chosen because every
-component is a reuse of the two primitives above, with one uniform ZK argument.
-
-Rejected shortcut: interleaving random pad leaves (MSB half) makes all GKR layers above
-the leaves uniform, so only the bottom layer would need masking. But the pads must be
-uniform QM31 fractions, which is 8 committed M31 cells per data leaf, worse than the
-4 limbs of committed inverses.
-
-## 8. Not done / caveats
-
-- **Weight budget.** About 7 proofs per weight commitment at the production shape. Next
-  steps:
-  - weight-specific PCS parameters (higher blowup and fewer queries for the
-    committed-once table, e.g. lb 4: 2 more bits per query, so about 36 queries, a
-    budget of `C_w/2`, and a smaller weight opening);
-  - re-randomized weight copies with a link proof, a 2-table opening of `T_old − T_new`
-    at a random point with claim 0.
-- **GKR hiding** (§7) is designed, not implemented. The hiding mode uses
-  committed-inverse LogUp: 5× the non-hiding MLP prove time at this size.
+- **Weight budget.** About 14 proofs per commitment at `C_w = 1024` and about 56 at
+  `C_w = 4096` with the bench defaults. Then the weights must be re-committed with fresh
+  randomness. A link proof between two commitments of the same weights (a 2-table opening
+  of `T_old − T_new` at a random point, claim 0) is designed but not implemented, so a
+  verifier would need the new root from a trusted source.
+- **Hiding GKR performance.** Proving costs 2.2–2.4× the non-hiding v1 at mlp 8 10 11.
+  Most of it is the generic QM31 masked-sumcheck kernel, without stwo's packed-SIMD GKR
+  kernels. Trees are padded to powers of two: one relation with exactly `2^k` keys gets
+  2× leaves, because the table and blinder leaves push it over.
+- **Proof size.** Hiding product 20 is 401 KB vs FlashProve's 341 KB. The batch
+  hiding-polynomial group costs one full row (about 66 KB). A tiny separate commitment
+  for it would save about 40 KB. Witness lb 3 with about 39 queries is another option.
 - `hiding` is a separate entry point (`zk.prove` / `zk.verify` / `zk.commitWeights`).
   `protocol.prove` ignores the flag; the bench selects with a `zk` argument.
 - **ZK is honest-prover zero knowledge.** It needs fresh OS entropy. A verifier cannot
   check that the prover used fresh randomness (same caveat as FlashProve and s31).
 - The proofs here are written arguments, not machine-checked. The bijection lemma for
   the hiding polynomial is taken from FlashProve (enumeration-checked there). Lemma 1 is
-  proven above and spot-checked by the rank test.
+  proven above and spot-checked by the rank test. The rank condition of §4.5 is argued,
+  not computed.
 - **Security accounting.** The slots raise the code rate (witness 1.96 instead of
   2.00 bits per query at lb 2). The bench reports conjectured and unique-decoding bits
-  per opening. The weight opening at `C_w = 1024` with 1024 slots has only 84
-  conjectured bits; use ≤ `C_w/4` slots or a larger weight blowup.
+  per opening.
