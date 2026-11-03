@@ -980,6 +980,43 @@ fn verifyRec(
     try verifyRec(a, tr, params, lvl + 1, ishape, lp.inner_root, ngroups, true, proof);
 }
 
+/// Shape of one opening level, as the verifier derives it (security.zig).
+pub const LevelInfo = struct {
+    log_rows: u32,
+    log_cols: u32,
+    rows_used: usize,
+    params: pcs.Params,
+    /// combined rows at this level (proximity rows + claim groups)
+    n_rows: usize,
+    n_prox: usize,
+    n_groups: usize,
+    final: bool,
+    /// log2 of U's padded row count (the lambda / inner sumcheck size)
+    log_g: u32 = 0,
+};
+
+/// The per-level shapes `verify` walks (same deterministic size model).
+pub fn levelInfos(a: std.mem.Allocator, params: Params, shape: Shape, n_groups: usize, with_proximity: bool) ![]LevelInfo {
+    const out = try a.alloc(LevelInfo, params.depth + 1);
+    var sh = shape;
+    var ng = n_groups;
+    var prox = with_proximity;
+    for (out, 0..) |*li, lvl| {
+        const n_prox = params.nProx(prox);
+        const n_rows = ng + n_prox;
+        const R = @as(usize, 1) << @intCast(sh.log_rows);
+        li.* = .{ .log_rows = sh.log_rows, .log_cols = sh.log_cols, .rows_used = sh.rows_used orelse R, .params = params.level(lvl), .n_rows = n_rows, .n_prox = n_prox, .n_groups = ng, .final = lvl == params.depth };
+        if (lvl == params.depth) break;
+        const best = bestInner(params, lvl + 1, n_rows, sh.log_cols, params.depth - @as(u32, @intCast(lvl)) - 1);
+        const ish = innerShape(n_rows, sh.log_cols, best.log_cols);
+        li.log_g = ish.log_g;
+        sh = .{ .log_rows = ish.log_rows, .log_cols = ish.log_cols, .log_blowup = params.level(lvl + 1).log_blowup, .rows_used = ish.rows_used };
+        ng = params.innerGroups();
+        prox = true;
+    }
+    return out;
+}
+
 /// Groups claims by identical column part of their point (order preserving).
 pub fn groupByColumn(a: std.mem.Allocator, claims: []const Claim, log_rows: u32) ![]Group {
     var groups: std.ArrayList(std.ArrayList(Claim)) = .empty;

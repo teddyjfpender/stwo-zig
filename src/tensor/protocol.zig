@@ -1360,7 +1360,25 @@ pub fn validateStatement(st: Statement) !void {
     };
 }
 
+/// What the verifier checked, for the soundness calculator (security.zig).
+pub const VerifyInfo = struct {
+    witness_shape: pcs.Shape = .{ .log_rows = 0, .log_cols = 0, .log_blowup = 0 },
+    witness_groups: usize = 0,
+    weight_shape: ?pcs.Shape = null,
+    weight_groups: usize = 0,
+    /// LogUp: number of fractions (keys + table rows) summed over all
+    /// relations, and of the largest relation (must stay below p)
+    logup_fractions: f64 = 0,
+    logup_max_relation: f64 = 0,
+    /// largest key arity (1 = single values, 3 = glu triples)
+    logup_max_arity: u32 = 1,
+};
+
 pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof) !void {
+    return verifyInfo(a, cfg, st, key, proof, null);
+}
+
+pub fn verifyInfo(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof, info: ?*VerifyInfo) !void {
     try validateStatement(st);
     try xt.validate(st);
     var rel = try deriveRelations(a, st);
@@ -1620,6 +1638,24 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
     const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
     const wshape = pcs.Shape{ .log_rows = split.lr, .log_cols = split.lc, .log_blowup = olb, .rows_used = w_ru };
     try verifyOpeningAny(a, &tr, cfg, wshape, proof.witness_root, wgroups, true, proof.witness_opening);
+    if (info) |inf| {
+        inf.witness_shape = wshape;
+        inf.witness_groups = wgroups.len;
+        for (rel.tables, 0..) |t, ti| {
+            var d: f64 = @floatFromInt(@as(u64, 1) << @intCast(t.log_size));
+            for (rel.keys) |k| if (k.table == ti) {
+                d += @floatFromInt(@as(u64, 1) << @intCast(k.log_size));
+                const ar: u32 = switch (k.kind) {
+                    .lookup_pair => 2,
+                    .glu_triple, .ext => 3,
+                    else => 1,
+                };
+                inf.logup_max_arity = @max(inf.logup_max_arity, ar);
+            };
+            inf.logup_fractions += d;
+            inf.logup_max_relation = @max(inf.logup_max_relation, d);
+        }
+    }
 
     // weight claims: the values are the matmul finals for W (not resent)
     if (expected_w.items.len != weight_pts.items.len) return error.ProofShape;
@@ -1635,9 +1671,12 @@ pub fn verify(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, 
             const gs = try pcs2.groupByColumn(a, wcl, key.log_rows);
             defer pcs2.freeGroups(a, gs);
             try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, gs, false, wop);
+            if (info) |inf| inf.weight_groups = gs.len;
         } else {
             try verifyOpeningAny(a, &tr, wcfg, kshape, key.root, &kgroups, false, wop);
+            if (info) |inf| inf.weight_groups = 1;
         }
+        if (info) |inf| inf.weight_shape = kshape;
     }
 }
 
