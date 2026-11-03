@@ -227,13 +227,14 @@ def check_recursive_report(report, leaf_count, restored=False):
         raise ValueError("CPU assignment or proving fallback rejected")
 
 
-def receiver_environment(environment):
+def receiver_environment(environment, directory=None):
     """Fresh receivers cannot allocate CUDA memory or invoke a PCS helper."""
-    result = dict(environment)
-    result.pop("STWO_RV64_GPU_LIBRARY", None)
-    result.pop("STWO_RV64_GPU_DEVICES", None)
+    result = {k: v for k, v in environment.items() if not k.startswith("STWO_RV64_GPU_")}
     result["CUDA_VISIBLE_DEVICES"] = ""
     result["STWO_RV64_GPU_PCS_HELPER"] = "/bin/false"
+    if directory is not None:
+        directory.mkdir(exist_ok=True)
+        result["STWO_RV64_GPU_WORKDIR"] = str(directory)
     return result
 
 
@@ -261,7 +262,7 @@ def qualify_recursive_trial(plan, job, proof, native, target, trial, prior, log,
     snapshot = recursive_snapshot(proof, count)
     usage = None
     if trial == 0:
-        verify_env = receiver_environment(environment)
+        verify_env = receiver_environment(environment, target / "recursive-receiver-gpu-disabled")
         command = B.command(plan["assets"]["recursive_receiver"], plan["profile"], "resume-recursion-candidate", job["request"], proof,
                             job["resources"]["fixed_setup_bytes"], plan["combined_host_bytes"])
         usage = B.measure(command, target, "recursive-receiver-0", verify_env)
@@ -384,7 +385,7 @@ def qualify_job(plan, job, pending=None):
         if not artifacts:
             raise ValueError("proof binaries missing")
         if trial == 0:
-            receiver_usage = B.measure(command, target, "receiver-0", receiver_environment(environment))
+            receiver_usage = B.measure(command, target, "receiver-0", receiver_environment(environment, target / "native-receiver-gpu-disabled"))
             accepted_receiver = B.load(target / "receiver-0.stdout")
         else:
             if artifacts != trials[0]["artifact_sha256"] or bundle_hash != trials[0]["bundle_sha256"]:

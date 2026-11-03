@@ -178,7 +178,8 @@ class ResidentBasket(unittest.TestCase):
 
     def test_receivers_cannot_create_gpu_context_or_change_producer_environment(self):
         producer = {"CUDA_VISIBLE_DEVICES": "0", "STWO_RV64_GPU_LIBRARY": "qualified.so",
-                    "STWO_RV64_GPU_DEVICES": "0", "STWO_RV64_GPU_PCS_HELPER": "helper"}
+                    "STWO_RV64_GPU_DEVICES": "0", "STWO_RV64_GPU_PCS_HELPER": "helper",
+                    "STWO_RV64_GPU_CPU_REPLAY": "1", "STWO_RV64_GPU_DEVICE_TRACE": "1"}
         receiver = R.receiver_environment(producer)
         self.assertEqual(producer["CUDA_VISIBLE_DEVICES"], "0")
         self.assertEqual(producer["STWO_RV64_GPU_LIBRARY"], "qualified.so")
@@ -186,6 +187,8 @@ class ResidentBasket(unittest.TestCase):
         self.assertEqual(receiver["STWO_RV64_GPU_PCS_HELPER"], "/bin/false")
         self.assertNotIn("STWO_RV64_GPU_LIBRARY", receiver)
         self.assertNotIn("STWO_RV64_GPU_DEVICES", receiver)
+        self.assertNotIn("STWO_RV64_GPU_CPU_REPLAY", receiver)
+        self.assertNotIn("STWO_RV64_GPU_DEVICE_TRACE", receiver)
 
     def test_combined_plan_requires_one_gpu_and_pinned_recursive_receiver(self):
         kwargs = dict(expected_runtime=R.B.sha(self.assets[2]), combined=True, recursive_receiver=self.assets[1])
