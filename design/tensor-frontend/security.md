@@ -17,14 +17,15 @@ term**. The bench prints the result as `"security"` for `product`, `mlp` and
 ```
 TENSOR_OOD=1 TENSOR_DEEP=76,3,20 \
   tensor-bench product 20 1 122 2 20 2 76 3 20 2 2      # toy, proven config
-TENSOR_BATCH_MATMULS=1 TENSOR_OOD=1 TENSOR_DEEP=61,3,20 TENSOR_WEIGHT_Q=53 TENSOR_KEY_Q=900 \
+TENSOR_BATCH_MATMULS=1 TENSOR_OOD=1 TENSOR_DEEP=61,3,20 TENSOR_WEIGHT_Q=53 TENSOR_KEY_Q=900 TENSOR_KEY_ALPHAS=2 \
   tensor-bench mlp 9 11 12 12 97 2 20 2 61 3 20 3 2     # MLP 512 x 2048 x 4096, balanced
 ```
 
 (positional pcs2 arguments as before: `depth inner_q inner_lb inner_pow
 work_shift prox_rows`; `TENSOR_DEEP=q,lb[,pow]` sets the levels >= 2;
 `TENSOR_WEIGHT_Q=q[,pow]` sets the per-batch weight openings and
-`TENSOR_KEY_Q=q[,pow]` the weight-key proof, both at the outer blowup.)
+`TENSOR_KEY_Q=q[,pow]` the weight-key proof, both at the outer blowup;
+`TENSOR_KEY_ALPHAS=2` gives the weight-key LogUp two independent alpha, 4.1.)
 
 The report gives these figures, in FlashProve's style:
 
@@ -46,7 +47,7 @@ number of queries, and k the number of proximity rows.
 
 | term | bound | source / argument |
 |---|---|---|
-| LogUp (alpha, beta) | 2 g D / \|F\| with g = max(arity - 1, 1), D = keys + table rows over all relations | A key of arity a enters as alpha - (v_0 + beta v_1 + ... + beta^(a-1) v_(a-1)): total degree g. Distinct keys give distinct denominators that are monic in alpha, hence coprime. If the multiset identity fails (a net multiplicity c_s != 0 mod p), sum_s c_s/d_s is a nonzero rational function, whose numerator over the common denominator has total degree <= (N - 1) g for N <= D distinct keys (Schwartz-Zippel), plus N g/\|F\| for a zero denominator. Needs D_rel < p (reported as `logup_below_p`). Until 0f1f577ec the calculator used 2 max(arity, 2) D, which added the alpha- and beta-degrees (1 bit loose for arity <= 2, 0.6 bit for arity 3). |
+| LogUp (alpha, beta) | 2 sum_rel g_rel D_rel / \|F\| with g_rel = max(arity - 1, 1) of the relation (its table kind and its keys; ext tables counted as arity 3), D_rel = its keys + table rows. Weight key: (2 D / \|F\|)^k with k = `key_alphas` | A key of arity a enters as alpha - (v_0 + beta v_1 + ... + beta^(a-1) v_(a-1)): total degree g. Distinct keys give distinct denominators that are monic in alpha, hence coprime. If the multiset identity fails (a net multiplicity c_s != 0 mod p), sum_s c_s/d_s is a nonzero rational function, whose numerator over the common denominator has total degree <= (N - 1) g for N <= D distinct keys (Schwartz-Zippel), plus N g/\|F\| for a zero denominator. Needs D_rel < p (reported as `logup_below_p`). The verifier checks each relation's sum separately (`LogUpSumNonZero` per table), so the union bound runs per relation (dddb8387c). Until 0f1f577ec the calculator used 2 max(arity, 2) D with the global maximum arity, which added the alpha- and beta-degrees (1 bit loose for arity <= 2, 0.6 bit for arity 3). |
 | GKR, per layer | (2 n + 1)/\|F\| for instance batching, deg/\|F\| per round, n/\|F\| for the mask fold | Schwartz-Zippel on stwo's batched LogUp-GKR; n = instances active at the layer. |
 | sumchecks (op, ext, batch, class) | deg/\|F\| per round, plus (rounds + 1)/\|F\| for the claim's own randomness (zero-check point, batching xi or gamma) | Schwartz-Zippel / LFKN. |
 | PCS: claim gammas | 1/\|F\| per group | independent coefficients |
@@ -179,6 +180,27 @@ paid once, offline: about 900 key queries (key proof 1.9 MB instead of
 0.5 MB). The blowup of `weight_outer` / `key_outer` must equal the commitment's
 (`error.ConfigBlowup`).
 
+### 4.1 Weight-key LogUp with two alpha (`key_alphas = 2`)
+
+The key's range proof (2^n weights against the 256-entry table) is one
+LogUp relation of arity 1, error 2 D/|F| (2^-98.0 at MLP 512, 2^-97 at MLP
+1024): the largest term of every proven MLP config. With `key_alphas = 2`
+the verifier draws alpha_1 and alpha_2 back to back after the histogram,
+with no prover message between them, and the GKR batch proves the keys and
+table sums for both (4 instances, one output point rho). The verifier
+checks both sums, every terminal claim, and that alpha_j - den_j(rho) - 128
+is the same W(rho) for j = 1, 2; that value is the single opened claim. The
+weights and the histogram are fixed before the round, and the two alpha are
+independent, so both identities hold for a bad table with probability <=
+(2 D/|F|)^2. Because both alpha come from one round, this is also the
+round-by-round error, so it holds under Fiat-Shamir. A second alpha drawn
+after the first GKR would be a separate round, and a grinding prover could
+attack the two rounds one after the other. Cost (MLP 512): key prove 0.29
+-> 0.47-0.49 s, once per model, offline; key proof +2.4 KB; key verify
+unchanged (~7 ms). The request proof does not change. The request LogUp
+(per batch) keeps one (alpha, beta). Doubling it would cost a second
+per-batch GKR, about +25% prover time.
+
 ## 5. Proof-format trims
 
 * **weight_values dropped.** The weight claims' values are the matmul
@@ -218,24 +240,31 @@ as at `1cd11fb72`).
 
 ### 6.2 MLP 512 x 2048 x 4096 (`mlp 9 11 12`), 12 threads, `TENSOR_BATCH_MATMULS=1`
 
-All rows: `mlp 9 11 12 12 <q> 2 20 2 <inner q> [3 20 3 2]`; the Johnson
-rows add `TENSOR_OOD=1 TENSOR_DEEP=<q>,3,20 TENSOR_WEIGHT_Q=<w> TENSOR_KEY_Q=<k>`.
-Weight-key proof: 0.28-0.34 s once per model (offline), its verify 1.2 ms
-(54/160 queries) to 7.6 ms (900 queries).
+All rows: `mlp 9 11 12 12 <q> 2 20 2 <inner q> [3 20 3 2]`. The Johnson
+rows add `TENSOR_OOD=1 TENSOR_DEEP=<q>,3,20 TENSOR_WEIGHT_Q=<w> TENSOR_KEY_Q=<k>`,
+and every row except base conj adds `TENSOR_KEY_ALPHAS=2` (4.1). Binary at
+04491c33f. Weight-key proof, once per model (offline): prove 0.47-0.49 s
+with 2 alpha (0.28-0.34 s with 1), verify 2.3 ms (160 queries) to 7.3 ms
+(900 queries).
 
 | config | bytes | prove s | verify ms | sum w/ | sum w/o | round w/ | round w/o | rbr w/ | rbr w/o | key bytes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| base conj (64/54) | 328 704 | 0.29-0.46 | 2.8-3.5 | 54.0 | 34.0 | 56.6 | 36.6 | 56.6 | 36.6 | 191 368 |
-| base "proven-query" (160/160, 1 prox) | 731 072 | 0.28-0.29 | 4.9-5.1 | 96.1 | 96.1 | 97.4 | 97.4 | 97.4 | 97.4 | 411 144 |
-| **Johnson+OOD, balanced** (97 / 61 lb3 / 61 lb3, weights 53, key 900) | **522 588** | 0.30-0.33 | 3.8-3.9 | **97.4** | 86.1 | 98.0 | 88.1 | 98.0 | 88.1 | 1 779 720 |
-| Johnson+OOD (122 / 76 / 76, weights 66, key 900) | 632 200 | 0.30-0.31 | 4.3-4.6 | 97.4 | 94.9 | 98.0 | 97.1 | 98.0 | 97.1 | 1 813 480 |
-| Johnson+OOD, lean (85 / 53 / 53, weights 46, key 800) | 464 748 | 0.29-0.30 | 3.5-4.9 | 94.9 | 75.2 | 96.8 | 76.8 | 96.8 | 76.8 | 1 585 704 |
+| base conj (64/54), 1 alpha | 328 704 | 0.29-0.46 | 2.8-3.5 | 54.0 | 34.0 | 56.6 | 36.6 | 56.6 | 36.6 | 191 368 |
+| base "proven-query" (160/160, 1 prox) | 731 072 | 0.27-0.29 | 4.8-5.1 | 96.7 | 96.7 | 97.4 | 97.4 | 97.4 | 97.4 | 412 264 |
+| **Johnson+OOD, balanced** (97 / 61 lb3 / 61 lb3, weights 53, key 900) | **522 588** | 0.29-0.34 | 3.7-4.2 | **99.5** | 86.1 | 99.5 | 88.1 | 99.5 | 88.1 | 1 782 152 |
+| Johnson+OOD (122 / 76 / 76, weights 66, key 900) | 632 200 | 0.28-0.43 | 4.3-4.6 | 99.5 | 95.1 | 99.5 | 97.1 | 99.5 | 97.1 | 1 815 560 |
+| Johnson+OOD, lean (85 / 53 / 53, weights 46, key 800) | 464 748 | 0.29-0.34 | 3.5-4.9 | 95.1 | 75.2 | 96.8 | 76.8 | 96.8 | 76.8 | 1 589 320 |
 
-Request alone (what one batch carries): balanced 98.8 / 86.8, full 98.8 /
-95.5, proven-query 97.8 / 97.8 (sum with / without work). The worst terms of
-the two Johnson configs are the weight key's LogUp (2^25 + 256 keys, arity
-1: 2^-98.0) and the request LogUp (arity 3: 2^-98.8); every PCS term of the
-122/76 config is >= 113 bits.
+The request alone (what one batch carries) gives: balanced 99.5 / 86.8,
+122/76 99.5 / 95.6, proven-query 98.1 / 98.1 (sum with / without work). The
+Johnson configs are now capped by the request LogUp (2^-99.5, per-relation
+degree). The key's LogUp with 2 alpha is ~2^-196. Every PCS term of the
+122/76 config is >= 113 bits. Proven-query is capped by its single
+unique-decoding proximity row on the key (2^-97.4). Progress for the
+balanced config over this session: 96.49 (start) -> 97.35 (LogUp total
+degree) -> 97.56 (per-relation degree) -> 99.50 (2 key alpha); proof
+bytes unchanged. Request proof digests are unchanged throughout, and the
+1-alpha key digest is unchanged.
 
 ### 6.3 Earlier runs (previous session, calculator before 0f1f577ec)
 
@@ -243,9 +272,13 @@ MLP 1024 x 4096 x 8192 (`mlp 10 12 13 12 ...`, same parameters as 6.2) and a
 decoder layer (256 tokens, D 512, F 1024, 8q/2kv heads, `layer 8 9 10 3 12
 <q> 2 20 1 1 0 8 1 2 ...`, request only). These are not re-run here (the
 1024-token MLP is reserved for the coordinator's final runs). Their bits
-used the old LogUp bound: the LogUp terms are now 1.0 bit (key, arity 1)
-and 0.58 bit (request, arity 3) higher, which lifts the LogUp-capped
-figures by up to that much. The rbr figures were not reported then.
+used the old LogUp bound and one key alpha. With the current calculator,
+the request LogUp is per-relation (+0.7 bit at MLP 512) and the key LogUp
+is squared with `TENSOR_KEY_ALPHAS=2`, so the LogUp-capped figures below
+are underestimates. Expect the MLP 1024 Johnson rows near the request
+LogUp, about 98.5 bits. That is an extrapolation, not a measurement. The
+rbr figures were not reported then. For the coordinator: the 6.2 commands
+with `mlp 10 12 13` reproduce these rows.
 
 | config | bytes | prove s | verify ms | sum w/ | sum w/o | round w/ | round w/o | key bytes |
 |---|---|---|---|---|---|---|---|---|
@@ -278,10 +311,10 @@ theorem: about q/2^124 + 2^-101.
   the unique-decoding config with the same bits (299 KB), Johnson + OOD
   saves 17%. Prove 0.16-0.21 s vs FlashProve's 8.37 s; verify 1.3-1.5 ms
   vs 14 ms.
-* **MLP 512:** the balanced config is 523 KB at 97.4 bits, 29% below the
-  731 KB proven-query config at 96.1 bits, i.e. smaller and more bits. The
+* **MLP 512:** the balanced config is 523 KB at 99.5 bits, 29% below the
+  731 KB proven-query config at 96.7 bits, so it is smaller and has more bits. The
   122/76 config keeps ~95 bits without work at 632 KB (-14%). The lean
-  config shows the trade-off below the LogUp cap: 465 KB at 94.9 bits.
+  config shows the trade-off below the LogUp cap: 465 KB at 95.1 bits.
 * Prover cost: the 2 proximity rows, the OOD groups and the OOD MLEs add
   ~0.005-0.03 s to the openings of MLP 512 (witness_open + weight_open
   0.039 s base vs 0.043-0.066 s Johnson), within the run-to-run noise of
@@ -295,11 +328,11 @@ theorem: about q/2^124 + 2^-101.
   collisions (~2^-114 to 2^-116) add up there. A largest round above ~122
   bits is impossible with a 2^124 field. Reaching 120+ for the whole bound
   needs a larger challenge field, or repeated sumchecks.
-* **LogUp is the MLP floor (98.0 bits key, 98.8 request at MLP 512; about
-  1 bit lower at 1024 tokens).** The fix is two independent alpha
-  (two GKR runs: the key proof is offline and could afford it; per batch
-  it costs ~25% prover time), or alpha in a degree-2 extension of QM31.
-  Not done. At Maverick scale (~9e9 keys per request), D exceeds p =
+* **The request LogUp is the MLP floor (99.5 bits at MLP 512, about 1 bit
+  lower at 1024 tokens).** The key's LogUp is fixed by `key_alphas = 2`
+  (4.1). For the request, the same one-round trick needs a second
+  per-batch GKR (~+25% prover time), or alpha in a degree-2 extension of
+  QM31. Not done. At Maverick scale (~9e9 keys per request), D exceeds p =
   2^31 - 1 and the LogUp multiplicity argument over M31 does not apply as
   stated. The calculator flags this (`logup_below_p`). Relations must be
   split below p, or the multiplicities checked another way.
@@ -308,8 +341,10 @@ theorem: about q/2^124 + 2^-101.
   these arguments is machine-checked or refereed. The Johnson count (BCHKS25 Thm 4.6) is taken
   as given; FlashProve machine-checks it for lines (its Lemma 5.13). We
   use the conservative R factor for combinations of R rows.
-* Done in this session: the RBR form (`rbr_*`, 445111163) and the tighter
-  LogUp degree (0f1f577ec), both calculator-only (proofs byte-identical).
+* Done in the resumed session: the RBR form (`rbr_*`, 445111163), the
+  LogUp total degree (0f1f577ec) and per-relation degree (dddb8387c), all
+  calculator-only (proofs byte-identical), and the 2-alpha weight key
+  (04491c33f, opt-in; the default key proof is byte-identical).
 * Not done: independent lambda coefficients (saves log G' in that term); GKR
   instance merging per lookup table; a second OOD point for tables with
   long lists (it would square the collision term at the cost of one group).
@@ -332,5 +367,10 @@ theorem: about q/2^124 + 2^-101.
   account: more queries give > 20 more bits, the rbr fields are present,
   and a tampered proof is refused. The RBR pair of the toy's witness L1
   (115.3 bits with work; the query term without work to 0.01 bit) and the
-  LogUp term (2D for arity 1 and 2, 4D for arity 3) are pinned. 54/54
-  tests.
+  LogUp term (2D for arity 1 and 2, 4D for arity 3) are pinned. The
+  calculator refuses a weighted LogUp count outside [D, g_max D].
+* `weight_key.zig`: the 2-alpha key verifies. It is rejected by a 1-alpha
+  and a 3-alpha verifier, and with a tampered histogram, a tampered value,
+  or any tampered output claim of the second alpha's instances. The 1-alpha
+  proof keeps 2 instances.
+* 55/55 tests (ReleaseFast and ReleaseSafe), `test-metal` 10/10.
