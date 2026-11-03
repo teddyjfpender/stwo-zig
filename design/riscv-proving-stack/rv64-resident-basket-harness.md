@@ -68,3 +68,22 @@ on ELF `718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903`.
 It is an older producer/geometry checkpoint, not a completed matched CPU basket
 or a valid denominator for fresh GPU speedup claims. No CPU basket is launched by
 this harness.
+
+## Separate GPU production from independent CPU qualification
+
+`produce` runs the same producer as `run`, then writes `produced.json` and a
+result with `status: produced_pending_verification`, `accepted: false`. It pins
+every native artifact, recursive proof, tree and producer log to the original
+plan. Run `qualify` with the same arguments and output directory to freshly
+verify those existing artifacts. Changed inputs, assets, proof bytes or trees
+are rejected before verification. Both receivers run with
+`CUDA_VISIBLE_DEVICES=''`, no GPU library selection and the PCS helper set to
+`/bin/false`. Recursive admission additionally requires all nodes restored,
+zero newly proved nodes, and unchanged physical proof/tree hashes. Only this
+phase can change the result to `accepted`.
+
+The split lets the GPU produce successive cases without waiting for CPU-only
+receivers. `run` preserves the original sequential behavior. Relocating a run
+requires preserving pinned authority/assets and paths; the harness never
+silently rebases or substitutes them. Pending cases stay incomplete in JSON
+and Markdown reports.
