@@ -13,7 +13,7 @@ pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: 
 pub const Launch = *const fn (*anyopaque, u32, *const Job) callconv(.c) c_int;
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
-    reference: [*]const Q,
+    reference: ?[*]const Q,
     count: usize,
     plan: Schedule.Plan,
     tasks: []Task,
@@ -62,7 +62,7 @@ pub const Prepared = struct {
         hash.update(std.mem.sliceAsBytes(tasks));
         hash.update(std.mem.sliceAsBytes(indices.items));
         hash.update(std.mem.sliceAsBytes(plan.level_ends));
-        return .{ .allocator = a, .reference = ctx.values().ptr, .count = ctx.values().len, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = hash.finalResult(), .seed = seed, .level = level };
+        return .{ .allocator = a, .reference = if (ctx.trace_only) null else ctx.values().ptr, .count = ctx.circuit.n_vars, .plan = plan, .tasks = tasks, .indices = try indices.toOwnedSlice(a), .seeds = seeds, .identity = hash.finalResult(), .seed = seed, .level = level };
     }
     pub fn deinit(self: *Prepared) void {
         self.plan.deinit();
@@ -127,7 +127,7 @@ pub const Prepared = struct {
             defer self.allocator.free(observed);
             try ctx.download(try ctx.borrow(values), observed);
             try ctx.join();
-            const expected = @as([*]const u32, @ptrCast(self.reference))[0 .. self.count * 4];
+            const expected = @as([*]const u32, @ptrCast(self.reference orelse return error.CircuitAssignmentReferenceUnavailable))[0 .. self.count * 4];
             if (!std.mem.eql(u32, observed, expected)) return error.CircuitDeviceAssignmentMismatch;
         }
         std.debug.print("GPU_OUTER_ASSIGNMENT variables={} seed_words={} static_words={} levels={} full_assignment_upload_words=0\n", .{ self.count, self.seeds.len * 5, task_words.len + self.indices.len, self.plan.level_ends.len });

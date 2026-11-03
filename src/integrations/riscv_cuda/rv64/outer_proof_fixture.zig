@@ -7,10 +7,11 @@ const Service = @import("pcs_native.zig");
 const TC = @import("trace_commit.zig");
 const RC = @import("resident_composition.zig");
 const Device = @import("outer_source.zig");
-pub const Mode = enum { control, gpu, verify, control_dag, gpu_dag, verify_dag };
+pub const Mode = enum { control, gpu, verify, control_dag, gpu_dag, verify_dag, gpu_trace };
 pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []const u8) !void {
-    const dag = mode == .control_dag or mode == .gpu_dag or mode == .verify_dag;
-    var ctx = if (dag) try circuit.builder.Context(Outer.protocol.Q).initWithWitnessOrigins(a, 8) else try circuit.builder.Context(Outer.protocol.Q).init(a, 8);
+    const trace_only = mode == .gpu_trace;
+    const dag = trace_only or mode == .control_dag or mode == .gpu_dag or mode == .verify_dag;
+    var ctx = if (trace_only) try circuit.builder.Context(Outer.protocol.Q).initTraceOnly(a, 8) else if (dag) try circuit.builder.Context(Outer.protocol.Q).initWithWitnessOrigins(a, 8) else try circuit.builder.Context(Outer.protocol.Q).init(a, 8);
     defer ctx.deinit();
     const expected: [32]u8 = @splat(0x42);
     var outputs: [8]circuit.builder.Var = undefined;
@@ -66,13 +67,15 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
     defer composition.deinit();
     var factory = try Device.Context.init(a, &service, &commit, &composition);
     defer factory.deinit();
-    const selected_factory = if (dag) try factory.factoryForWitness(&ctx) else factory.factory();
-    if (dag) factory.assignment.?.check_reference = true; // Qualification-only full D2H equality.
+    const selected_factory = if (dag and !trace_only) try factory.factoryForWitness(&ctx) else factory.factory();
+    if (dag and !trace_only) factory.assignment.?.check_reference = true; // Qualification-only full D2H equality.
     var first: ?[]u8 = null;
     defer if (first) |bytes| a.free(bytes);
+    var expected_outputs: [8]Outer.protocol.Q = undefined;
+    for (&expected_outputs, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(Outer.protocol.Q, std.mem.readInt(u32, expected[4 * i ..][0..4], .little));
     for (0..2) |ordinal| {
         var timer = try std.time.Timer.start();
-        var proof = try Outer.device_prove.prove(a, &key, ctx.values(), @intCast(ordinal), selected_factory);
+        var proof = if (trace_only) try Outer.device_prove.proveFromCircuit(a, &key, &ctx, &expected_outputs, @intCast(ordinal), selected_factory) else try Outer.device_prove.prove(a, &key, ctx.values(), @intCast(ordinal), selected_factory);
         defer proof.deinit();
         const prove_ns = timer.lap();
         var capture = try Outer.prove.verify(a, &key, proof.outputs, proof.claims, &proof.proof.proof);
@@ -92,7 +95,17 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
         try dir.writeFile(.{ .sub_path = name, .data = encoded });
         std.debug.print("OM31_OUTER_DEVICE_PROOF ordinal={} fresh_accepted=true bytes={} prove_ns={} profile=q108-p20-fold4\n", .{ ordinal, encoded.len, prove_ns });
     }
-    if (dag) {
+    if (trace_only) {
+        var wrong = expected_outputs;
+        wrong[0] = wrong[0].add(Outer.protocol.Q.one());
+        if (Outer.device_prove.proveFromCircuit(a, &key, &ctx, &wrong, 2, selected_factory)) |result| {
+            var unexpected = result;
+            unexpected.deinit();
+            return error.InvalidPublicOutputsAccepted;
+        } else |err| if (err != error.InvalidOm31CircuitLookupSum) return err;
+        if (ctx.value_table.items.len != 0 or ctx.value_table.capacity != 0) return error.TraceOnlyCpuAssignmentsAllocated;
+        std.debug.print("OM31_OUTER_TRACE_ONLY cpu_assignment_words=0 gpu_assignment_readback_words=0 wrong_public_outputs_rejected=true\n", .{});
+    } else if (dag) {
         try assignmentMutant(a, input, &ctx, &key, false);
         try assignmentMutant(a, input, &ctx, &key, true);
         std.debug.print("OM31_OUTER_DEVICE_ASSIGNMENT_MUTANTS rejected=2 separate_terminal_sessions=true\n", .{});
