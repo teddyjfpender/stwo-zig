@@ -93,14 +93,13 @@ pub const Context = struct {
         errdefer out.destroy();
         out.source = try Headers.take(a, &request.setup.materials, request.native, request.request.base.memory);
         try out.source.?.cpu.projectDevice(self.cpu.stage(), request.scope);
-        var split = try CPU.rv64_services_pipeline.splitEvents(a, request.advice.events[request.ordinal], request.setup.bridges.ls_dword != null);
-        defer split.deinit(a);
-        if (split.general.len != request.request.base.memory.ls_count or split.dword.len != request.request.ls_dword) return error.InvalidCombinedServiceCount;
-        out.general_events = try Memory.events(a, split.general);
+        const events = request.advice.events[request.ordinal];
+        out.general_events = try Memory.routedEvents(a, events, request.setup.bridges.ls_dword != null, false);
         defer {
             a.free(out.general_events);
             out.general_events = &.{};
         }
+        if (out.general_events.len != request.request.base.memory.ls_count or events.len - out.general_events.len != request.request.ls_dword) return error.InvalidCombinedServiceCount;
         var job = BuildJob{ .owner = out };
         try out.submit(BuildJob.callback, &job, &job.failure);
         return out;
@@ -203,6 +202,10 @@ pub const CoreProjection = struct {
         if (self.finished) return error.DeviceTablesAlreadyFinalized;
         const encoded = try Memory.events(self.allocator, events);
         defer self.allocator.free(encoded);
+        return self.formatEncodedDword(encoded, log);
+    }
+    pub fn formatEncodedDword(self: *CoreProjection, encoded: []const Memory.Event, log: u32) ![]D.TraceColumn {
+        if (self.finished) return error.DeviceTablesAlreadyFinalized;
         var job = ExtraMemory{ .owner = self, .events = encoded, .log = log };
         try self.submit(ExtraMemory.callback, &job, &job.failure);
         return job.output;

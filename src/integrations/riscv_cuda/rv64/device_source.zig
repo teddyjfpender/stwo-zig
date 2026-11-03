@@ -104,12 +104,13 @@ fn appendLocalExtensions(a: std.mem.Allocator, request: Stage.Request, projectio
         if (mass >= @import("stwo_core").fields.m31.Modulus) return error.DeviceFamilyMultiplicityMassExceeded;
         headers.zbb = .{ .allocator = a, .log_size = log, .fact_count = p.zbb.facts.len, .function_mass = @intCast(mass), .fixed = &.{}, .main = &.{}, .owns_main = true, .and_counts = &.{}, .metadata = &.{} };
     } else if (request.native.zbb.facts.len != 0) return error.MissingZbbComponent;
-    var split = try CPU.rv64_services_pipeline.splitEvents(a, request.advice.events[request.ordinal], request.setup.bridges.ls_dword != null);
-    defer split.deinit(a);
+    const events = try CPU.rv64_memory_input.routedEvents(a, request.advice.events[request.ordinal], request.setup.bridges.ls_dword != null, true);
+    defer a.free(events);
     const counts = try T.dwordCounts(request.setup.bridges, request.request.ls_dword);
     var at: usize = 0;
     for (counts, 0..) |count, k| if (request.setup.bridges.dwordLog(k)) |log| {
-        const generated = try projection.formatDword(split.dword[at..][0..count], log);
+        if (at > events.len or count > events.len - at) return error.InvalidCombinedServiceCount;
+        const generated = try projection.formatEncodedDword(events[at..][0..count], log);
         defer a.free(generated);
         const offset = request.setup.dwordOffset(k, 1);
         if (offset + generated.len > columns.len) return error.InvalidDeviceDwordWidth;
@@ -117,7 +118,7 @@ fn appendLocalExtensions(a: std.mem.Allocator, request: Stage.Request, projectio
         headers.ls_dword[k] = .{ .allocator = a, .log_size = log, .rows = count, .fixed = &.{}, .main = &.{}, .owns_main = true, .metadata = &.{}, .counts16 = &.{}, .counts8 = &.{} };
         at += count;
     };
-    if (at != split.dword.len) return error.InvalidCombinedServiceCount;
+    if (at != events.len) return error.InvalidCombinedServiceCount;
 }
 const CompleteOwner = struct {
     allocator: std.mem.Allocator,
