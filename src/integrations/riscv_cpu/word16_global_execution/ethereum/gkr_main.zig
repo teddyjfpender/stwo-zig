@@ -9,6 +9,7 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Driver = @import("../../word16_execution/driver.zig");
 const Capture = @import("capture.zig").Owner;
 const CaptureOptions = @import("capture_options.zig").Options;
+const DirectCapture = @import("direct.zig");
 const Plan = @import("plan.zig");
 const Keys = @import("keys.zig").Owner;
 const Admission = @import("receiver.zig");
@@ -147,7 +148,7 @@ pub fn main() !void {
     const security_profile = selection.profile;
     const args = selection.args;
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = candidateLabel(security_profile), .security_profile = security_profile.name(), .security_qualified = false, .security_target = Candidate.assumptionTarget(security_profile), .pcs = Candidate.configFor(security_profile), .scope = if (security_profile.conjectured()) "native 128-bit CONJECTURED target (ethSTARK-style FRI accounting); no proven bound and no whole-protocol certificate" else "native 128-bit target under documented assumptions; no whole-protocol certificate", .usage = "[--security-profile proven_beta2_q256_p0_fold4|conjectured128_b2_q108_p20_fold4 (default)] produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes; JOBS=- executes in process) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const candidate = std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
@@ -184,7 +185,39 @@ pub fn main() !void {
     defer pool.deinit();
     var pool_binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer pool_binding.deinit();
+    // Producer modes: operational resources and the capture route are fixed
+    // before any image work so the in-process walk can start first.
+    var resources: ?Resources = null;
+    var control_resource_owner: ?std.json.Parsed(Resources) = null;
+    defer if (control_resource_owner) |*owner| owner.deinit();
+    var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
+    defer if (candidate_resource_owner) |*owner| owner.deinit();
+    if (produce or capture_only) {
+        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only) 5 else 6], 16384);
+        defer a.free(limits_bytes);
+        if (candidate) {
+            candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
+            try candidate_resource_owner.?.value.validate();
+            resources = candidate_resource_owner.?.value.operational();
+            fixed_setup_bytes = candidate_resource_owner.?.value.fixed_setup_bytes;
+        } else {
+            control_resource_owner = try std.json.parseFromSlice(Resources, a, limits_bytes, .{});
+            try control_resource_owner.?.value.validate();
+            resources = control_resource_owner.?.value;
+        }
+    }
+    if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
+    const count: u32 = if (verify or prefix) 0 else try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
+    const direct_capture = !(verify or prefix) and std.mem.eql(u8, args[3], "-");
+    const capture_options = if (resources) |r| r.capture_options else CaptureOptions{};
+    if (!direct_capture and capture_options.execution_workers != 0) return error.ExecutionWorkersRequireDirectCapture;
     var timer = try std.time.Timer.start();
+    // JOBS="-": execution (and the first segment walks) overlaps the expected
+    // image/program init below; admission still happens batch by batch in
+    // `capture` against that independently loaded image.
+    var direct_stats: DirectCapture.Stats = .{};
+    var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.start(a, request.value, count, capture_options.execution_workers) else null;
+    defer if (direct_started) |value| value.deinit(&direct_stats);
     var image = try Image.Owner.init(a, request.value);
     defer image.deinit();
     var native_cache = try NativeCache.Cache.init(a, 256 << 20);
@@ -213,37 +246,25 @@ pub fn main() !void {
         if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .security_target = security_target, .security_profile = security_profile.name(), .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_accounting_profile = source_bounds.?.accounting_profile, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns });
     }
-    var resources: ?Resources = null;
-    var control_resource_owner: ?std.json.Parsed(Resources) = null;
-    defer if (control_resource_owner) |*owner| owner.deinit();
-    var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
-    defer if (candidate_resource_owner) |*owner| owner.deinit();
-    if (produce or capture_only) {
-        const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[if (capture_only) 5 else 6], 16384);
-        defer a.free(limits_bytes);
-        if (candidate) {
-            candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
-            try candidate_resource_owner.?.value.validate();
-            resources = candidate_resource_owner.?.value.operational();
-            fixed_setup_bytes = candidate_resource_owner.?.value.fixed_setup_bytes;
-        } else {
-            control_resource_owner = try std.json.parseFromSlice(Resources, a, limits_bytes, .{});
-            try control_resource_owner.?.value.validate();
-            resources = control_resource_owner.?.value;
-        }
-    }
-    if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
-    const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
-    var jobs = try std.fs.cwd().openDir(args[3], .{});
-    defer jobs.close();
     const cpu_layout = Plan.CpuLayout.forGkrProfile(request.value.execution_profile);
     // The capture's AUIPC/JAL FUNCTION facts depend on the decode layout.
     if (cpu_layout.compact_decode) try program.makeCompact();
     const import_start = timer.read();
-    var captured = try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, (if (resources) |r| r.capture_options else CaptureOptions{}).forPool(&pool));
+    var captured = if (direct_started) |started| direct: {
+        defer {
+            started.deinit(&direct_stats);
+            direct_started = null;
+        }
+        break :direct try started.capture(&image, &program, capture_options.max_inflight_packets, &direct_stats);
+    } else capture: {
+        var jobs = try std.fs.cwd().openDir(args[3], .{});
+        defer jobs.close();
+        break :capture try Capture.initWithOptions(a, &image, &program, request.value, jobs, count, capture_options.forPool(&pool));
+    };
     defer captured.deinit();
     const packet_import_ns = timer.read() - import_start;
     const capture_ns = timer.read();
+    const block_to_inputs = BlockToInputs.of(&timer, import_start, capture_ns, &captured);
     try program.releaseFixedWitness();
     const capture_cache_released = recycler.releaseCached();
     // Explicit authenticated service scope; classic-only encodings stay closed.
@@ -255,7 +276,7 @@ pub fn main() !void {
     if (capture_only) {
         const digest_start = timer.read();
         const digest = @import("capture_digest.zig").digest(image.identity, &captured);
-        return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = packet_import_ns, .image_and_import_ns = capture_ns, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .diagnostic_digest_ns = timer.read() - digest_start });
+        return emit(a, .{ .scope = "producer capture diagnostic only; no proof or acceptance", .security_qualified = false, .total_steps = captured.total_steps, .final_pc = captured.final_pc, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_options = resources.?.capture_options, .capture_selection = captured.capture_schedule, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .image_and_import_ns = capture_ns, .captured_values_sha256 = std.fmt.bytesToHex(digest, .lower), .block_to_inputs = block_to_inputs, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .diagnostic_digest_ns = timer.read() - digest_start });
     }
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
@@ -311,11 +332,33 @@ pub fn main() !void {
     const output = try Receiver.verifyWithAuthority(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, pcs, if (fixed_set) |*authority| authority else null);
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .block_to_inputs = block_to_inputs, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
 }
+/// Producer block-to-inputs timeline, nanoseconds on this CLI's clock (started
+/// after request parse and pool start). Report-only; no protocol effect. On the
+/// packet route it excludes the separate `nativeprepare` process.
+const BlockToInputs = struct {
+    /// Expected image + program init (and compact decode), before capture.
+    init_ns: u64,
+    /// Segment 0 inputs ready: captured, admitted and its ledger shard built.
+    first_inputs_ns: ?u64,
+    /// Last segment's ledger shard built.
+    last_inputs_ns: ?u64,
+    /// All segment inputs ready, including the global boundary cells.
+    all_inputs_ns: u64,
+    /// Serial ordered ledger, summed over segments; and its `finish`.
+    ledger_ns: u64,
+    ledger_finish_ns: u64,
+    fn of(timer: *const std.time.Timer, init_ns: u64, all_ns: u64, captured: *const Capture) BlockToInputs {
+        return .{ .init_ns = init_ns, .first_inputs_ns = since(timer, captured.first_inputs_at), .last_inputs_ns = since(timer, captured.last_inputs_at), .all_inputs_ns = all_ns, .ledger_ns = captured.timing.ledger_ns, .ledger_finish_ns = captured.timing.finish_ns };
+    }
+    fn since(timer: *const std.time.Timer, at: ?std.time.Instant) ?u64 {
+        return if (at) |value| value.since(timer.started) else null;
+    }
+};
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
     defer a.free(json);
@@ -349,7 +392,14 @@ test "candidate operational budget cannot select protocol and control resource s
     const capture_roundtrip = try std.json.parseFromSlice(CaptureOptions, a, options_json, .{});
     defer capture_roundtrip.deinit();
     try std.testing.expectEqualDeep(capture_resources.capture_options, capture_roundtrip.value);
+    // The window is 1..MAX_INFLIGHT on both routes (no longer capped at 2).
     capture_resources.capture_options.max_inflight_packets = 3;
+    try capture_resources.validate();
+    capture_resources.capture_options.max_inflight_packets = @import("capture.zig").MAX_INFLIGHT;
+    try capture_resources.validate();
+    capture_resources.capture_options.max_inflight_packets = @import("capture.zig").MAX_INFLIGHT + 1;
+    try std.testing.expectError(error.InvalidEthereumCaptureOptions, capture_resources.validate());
+    capture_resources.capture_options.max_inflight_packets = 0;
     try std.testing.expectError(error.InvalidEthereumCaptureOptions, capture_resources.validate());
     const forbidden_capture = "{\"max_inflight_packets\":2,\"security_qualified\":true}";
     try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CaptureOptions, a, forbidden_capture, .{}));
@@ -468,4 +518,14 @@ test "deferred local binding resource defaults off and candidate forwards operat
     try std.testing.expect(decoded.value.defer_local_binding);
     const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 6, .defer_local_binding = true, .schedule = .{ .memory_cap_bytes = 5 } };
     try std.testing.expect(candidate.operational().defer_local_binding);
+}
+
+test "direct execution worker count is explicit bounded operational metadata" {
+    var options: CaptureOptions = .{};
+    try std.testing.expectEqual(@as(u8, 0), options.execution_workers);
+    options.execution_workers = 2;
+    try options.validate();
+    try std.testing.expect(!options.isDefault());
+    options.execution_workers = 33;
+    try std.testing.expectError(error.InvalidEthereumCaptureOptions, options.validate());
 }

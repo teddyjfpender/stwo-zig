@@ -7,8 +7,11 @@ pub const Options = struct {
     packet_heap_bytes: usize = 512 << 20,
     max_inflight_packet_heap_bytes: usize = 1 << 30,
     max_inflight_wire_bytes: u64 = 1 << 30,
+    /// JOBS="-" only: fast checkpoint pass plus this many segment replay
+    /// workers. Zero retains the serial executing walk. No protocol effect.
+    execution_workers: u8 = 0,
     pub fn validate(self: Options) !void {
-        if ((self.max_inflight_packets != 1 and self.max_inflight_packets != 2) or self.packet_heap_bytes == 0 or self.packet_heap_bytes > self.max_inflight_packet_heap_bytes or self.max_inflight_wire_bytes == 0) return error.InvalidEthereumCaptureOptions;
+        if (self.max_inflight_packets == 0 or self.max_inflight_packets > Capture.MAX_INFLIGHT or self.packet_heap_bytes == 0 or self.packet_heap_bytes > self.max_inflight_packet_heap_bytes or self.max_inflight_wire_bytes == 0 or self.execution_workers > @import("../../rv64_ethereum_segments.zig").MAX_WORKERS) return error.InvalidEthereumCaptureOptions;
     }
     pub fn isDefault(self: Options) bool {
         return std.meta.eql(self, Options{});

@@ -6,6 +6,7 @@ const rv = front.rv64;
 const R = front.rv64_air.memory;
 const Full = @import("../rv64_full.zig");
 const Request = @import("../rv64_ethereum_request.zig");
+pub const MAX_INPUT_BYTES = rv.ethereum_contract.INPUT_CAPACITY_MAX - 4;
 pub const Owner = struct {
     loaded: rv.elf.LoadedImage,
     authority: Full.ProgramAuthority,
@@ -21,7 +22,11 @@ pub const Owner = struct {
         try Request.validateBudget(config);
         const elf = try std.fs.cwd().readFileAlloc(a, config.elf, 64 * 1024 * 1024);
         defer a.free(elf);
-        const input = try std.fs.cwd().readFileAlloc(a, config.input, 4 * 1024 * 1024);
+        // Same bound as the producer's request loader: the guest's widest input
+        // window less its 4-byte length prefix (`ethereum_contract.load` then
+        // checks the input against the ELF's actual window). The bytes are
+        // pinned by `input_sha256`, so the read bound carries no authority.
+        const input = try std.fs.cwd().readFileAlloc(a, config.input, MAX_INPUT_BYTES);
         defer a.free(input);
         try Request.pin(elf, config.elf_sha256);
         try Request.pin(input, config.input_sha256);

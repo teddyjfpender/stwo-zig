@@ -75,10 +75,16 @@ pub const Walk = struct {
         }
     };
     pub fn create(a: std.mem.Allocator, config: Request.Config) !*Walk {
+        return createWithOptions(a, config, .{});
+    }
+    /// `options.poseidon_initial_cache = false` is for consumers that never
+    /// chain the legacy Poseidon frontier (the in-process Word16 handoff);
+    /// `run` (durable job collection) requires the cache.
+    pub fn createWithOptions(a: std.mem.Allocator, config: Request.Config, options: Request.Options) !*Walk {
         try Request.validateBudget(config);
         const request = try a.create(Request.Request);
         errdefer a.destroy(request);
-        request.* = try Request.Request.init(a, config);
+        request.* = try Request.Request.initWithOptions(a, config, options);
         errdefer request.deinit();
         const cpu = rv.machine.Cpu.init(request.loaded.info.entry, config.symbols.stack_top);
         return createOn(a, config, request, true, &request.loaded.memory, false, cpu, .{}, 0);
