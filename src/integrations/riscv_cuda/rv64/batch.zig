@@ -54,6 +54,9 @@ comptime {
 /// first mutation. Every borrowed owner remains live through joined completion.
 pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     if (commands.poisoned) return error.JobPoisoned;
+    if (comptime @hasDecl(@TypeOf(commands.*), "requireBatchedOracles")) {
+        if (commands.batched_oracles) try commands.requireBatchedOracles();
+    }
     if (input.oracles.len == 0 or input.oracles.len > abi.batch_max_oracles or work.oracles.len != input.oracles.len) return error.InvalidGeometry;
     var variables: [abi.batch_max_oracles]u32 = undefined;
     var largest: u32 = 0;

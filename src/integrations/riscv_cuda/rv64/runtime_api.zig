@@ -2,8 +2,8 @@
 const std = @import("std");
 const A = @import("abi.zig");
 pub const Api = struct {
-    stwo_rv64_batch_sum_on: *const @TypeOf(A.stwo_rv64_batch_sum_on),
-    stwo_rv64_batch_fold_on: *const @TypeOf(A.stwo_rv64_batch_fold_on),
+    stwo_rv64_batch_sum_on: ?*const @TypeOf(A.stwo_rv64_batch_sum_on) = null,
+    stwo_rv64_batch_fold_on: ?*const @TypeOf(A.stwo_rv64_batch_fold_on) = null,
     stwo_rv64_gkr_eq_on: *const @TypeOf(A.stwo_rv64_gkr_eq_on),
     stwo_rv64_gkr_eq_fused_on: *const @TypeOf(A.stwo_rv64_gkr_eq_fused_on),
     stwo_rv64_gkr_sum_on: *const @TypeOf(A.stwo_rv64_gkr_sum_on),
@@ -42,10 +42,13 @@ pub const Api = struct {
     pub fn load(library: *std.DynLib) !Api {
         var out: Api = undefined;
         inline for (std.meta.fields(Api)) |field| {
-            @field(out, field.name) = library.lookup(field.type, field.name) orelse {
-                std.log.err("missing CUDA numerical ABI symbol: {s}", .{field.name});
-                return error.MissingCudaNumericalSymbol;
-            };
+            switch (@typeInfo(field.type)) {
+                .optional => |optional| @field(out, field.name) = library.lookup(optional.child, field.name),
+                else => @field(out, field.name) = library.lookup(field.type, field.name) orelse {
+                    std.log.err("missing CUDA numerical ABI symbol: {s}", .{field.name});
+                    return error.MissingCudaNumericalSymbol;
+                },
+            }
         }
         return out;
     }

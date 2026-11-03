@@ -88,6 +88,8 @@ pub const Backend = struct {
             const text = try std.fmt.bufPrintZ(&name, "launch_{}", .{i});
             launch.* = try symbol(Launch, library, text);
         }
+        const numerical = try N.Api.load(library);
+        if (std.process.hasEnvVarConstant("STWO_RV64_GKR_BATCH_ORACLES") and (numerical.stwo_rv64_batch_sum_on == null or numerical.stwo_rv64_batch_fold_on == null)) return error.MissingCudaBatchedOracleSymbol;
         return .{ .allocator = a, .session = session, .session_api = .{
             .allocate = try symbol(Native.LeaseAllocate, library, "stwo_rv64_gpu_lease_allocate"),
             .release = try symbol(Native.LeaseRelease, library, "stwo_rv64_gpu_lease_release"),
@@ -96,7 +98,7 @@ pub const Backend = struct {
             .download = try symbol(Native.Download, library, "stwo_exec_context_memcpy_d2h_async"),
             .sync = try symbol(Native.Sync, library, "stwo_exec_context_sync"),
             .lane_stream = try symbol(Native.LaneStream, library, "stwo_exec_context_lane_stream"),
-        }, .numerical = try N.Api.load(library), .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .byte_cap = byte_cap };
+        }, .numerical = numerical, .functions = functions, .timing = try Events.Api.load(library), .catalogue = catalogue, .byte_cap = byte_cap };
     }
     pub fn enableDeviceBinding(self: *Backend, library: *std.DynLib) !void {
         if (self.configuration_sealed) return error.DeviceBindingConfigurationSealed;

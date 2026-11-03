@@ -199,3 +199,17 @@ test "mixed batch groups only equal-height active oracles without padding or tra
     try std.testing.expectEqual(@as(usize, 3), batched.fold_batches);
     try std.testing.expectEqual(@as(u32, 3), batched.masks);
 }
+
+test "batched oracle capability is optional and missing symbols fail before enqueue" {
+    const Runtime = @import("../runtime_api.zig").Api;
+    // Only capability fields are inspected here. No numerical call or handle
+    // validation may read the unrelated function pointers in this test.
+    var api: Runtime = undefined;
+    api.stwo_rv64_batch_sum_on = null;
+    api.stwo_rv64_batch_fold_on = null;
+    var context = Context{};
+    var commands = R.Commands(Context, Runtime){ .context = &context, .api = &api, .lane_index = 1 };
+    try std.testing.expectError(error.MissingCudaBatchedOracleSymbol, commands.requireBatchedOracles());
+    try std.testing.expect(!commands.poisoned);
+    try std.testing.expectEqual(@as(u64, 0), commands.launches);
+}

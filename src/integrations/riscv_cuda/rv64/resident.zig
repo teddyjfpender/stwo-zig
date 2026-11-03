@@ -79,7 +79,11 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
 
         fn apiFunction(comptime name: []const u8) type {
             const T = if (@hasField(Api, name)) @FieldType(Api, name) else @TypeOf(@field(Api, name));
-            return switch (@typeInfo(T)) {
+            const Present = switch (@typeInfo(T)) {
+                .optional => |o| o.child,
+                else => T,
+            };
+            return switch (@typeInfo(Present)) {
                 .pointer => |p| p.child,
                 .@"fn" => T,
                 else => @compileError("numerical API entry must be a function"),
@@ -90,9 +94,8 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             return &@field(Api, name);
         }
         fn callApi(self: *Self, comptime name: []const u8, args: std.meta.ArgsTuple(apiFunction(name))) c_int {
-            if (comptime @hasField(Api, name))
-                return @call(.auto, @field((self.api orelse return 400).*, name), args);
-            return @call(.auto, @field(Api, name), args);
+            const callable = self.apiPointer(name) orelse return 400;
+            return @call(.auto, callable, args);
         }
         fn handle(self: *Self) !*anyopaque {
             if (self.poisoned) return error.JobPoisoned;
@@ -208,6 +211,9 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
             ), waves);
         }
 
+        pub fn requireBatchedOracles(self: *Self) !void {
+            if (self.apiPointer("stwo_rv64_batch_sum_on") == null or self.apiPointer("stwo_rv64_batch_fold_on") == null) return error.MissingCudaBatchedOracleSymbol;
+        }
         pub fn sumBatch(self: *Self, jobs: []const BatchSum, eq_values: Plane, lambda: Slice) !void {
             if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
             const count = jobs[0].input.count;
