@@ -23,7 +23,7 @@ const Schedule = @import("../services/schedule.zig");
 const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const MetadataCache = @import("../../word16_execution/program_metadata.zig");
-const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
+pub const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
 const ReceiverBudget = @import("receiver_budget.zig");
 const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
@@ -154,6 +154,10 @@ pub fn mainWithResidentStages(device_pcs_stage: ?*const @import("stwo_prover_api
     return mainWithResidentPipeline(.{ .pcs = device_pcs_stage, .composition = om31_composition_stage, .numerical = numerical_gkr_stage, .resident_composition = resident_composition_stage });
 }
 pub const ResidentStages = struct {
+    source: ?@import("../services/pipeline.zig").DeviceSourceStage = null,
+    truth_source: ?@import("../services/gkr_local/truth_device_source.zig").Stage = null,
+    truth_composition: ?@import("../services/gkr_local/truth_device_composition.zig").Stage = null,
+    global_interaction: ?@import("../services/gkr_local/cpu_worker.zig").DeviceGlobal.Stage = null,
     pcs: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     truth_pcs: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     composition: ?*const @import("../services/gkr_local/cpu_worker.zig").CompositionStage = null,
@@ -162,16 +166,29 @@ pub const ResidentStages = struct {
     trace_commit: ?*const @import("stwo_prover_api").device_pcs.TraceCommitStage = null,
     cpu_projection: ?@import("../../word16_execution/cpu_source.zig").ProjectionStage = null,
 };
+pub const ResidentSession = @import("resident_session.zig").Session;
 pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
-    const device_pcs_stage = stages.pcs;
-    const om31_composition_stage = stages.composition;
-    const numerical_gkr_stage = stages.numerical;
-    const resident_composition_stage = stages.resident_composition;
     var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
     const base = recycler.allocator();
     const all_args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, all_args);
+    return runArguments(&recycler, all_args, stages, null);
+}
+/// Same producer authority and CLI contract, with caller-owned persistent caches.
+/// The caller keeps one GPU pool/session alive and serializes complete requests.
+pub fn runWithResidentArgs(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: *ResidentSession) !void {
+    if (session.active) return error.ResidentRequestAlreadyActive;
+    session.active = true;
+    defer session.active = false;
+    return runArguments(recycler, all_args, stages, session);
+}
+fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentStages, session: ?*ResidentSession) !void {
+    const base = recycler.allocator();
+    const device_pcs_stage = stages.pcs;
+    const om31_composition_stage = stages.composition;
+    const numerical_gkr_stage = stages.numerical;
+    const resident_composition_stage = stages.resident_composition;
     const selection = try selectProfile(all_args);
     const security_profile = selection.profile;
     const args = selection.args;
@@ -183,6 +200,7 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const prefix = std.mem.eql(u8, args[1], "verify-prefix-control") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const produce = std.mem.eql(u8, args[1], "produce-control") or std.mem.eql(u8, args[1], "produce-candidate");
     const plan = std.mem.eql(u8, args[1], "plan");
+    if (session != null and !produce) return error.ResidentSessionRequiresProducer;
     const capture_only = std.mem.eql(u8, args[1], "capture");
     if (!verify and !prefix and !produce and !plan and !capture_only) return error.InvalidWideEthereumMode;
     if (selection.explicit and !candidate) return error.SecurityProfileRequiresCandidateMode;
@@ -216,12 +234,12 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     var timer = try std.time.Timer.start();
     var image = try Image.Owner.init(a, request.value);
     defer image.deinit();
-    var native_cache = try NativeCache.Cache.init(a, 256 << 20);
-    defer native_cache.deinit();
-    var metadata_cache = try MetadataCache.Cache.init(a, 64 << 20);
-    defer metadata_cache.deinit();
-    const caches = @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &native_cache, .program = &metadata_cache };
-    var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
+    var local_native: ?NativeCache.Cache = if (session == null) try NativeCache.Cache.init(a, 256 << 20) else null;
+    defer if (local_native) |*cache| cache.deinit();
+    var local_metadata: ?MetadataCache.Cache = if (session == null) try MetadataCache.Cache.init(a, 64 << 20) else null;
+    defer if (local_metadata) |*cache| cache.deinit();
+    const caches = if (session) |shared| shared.caches() else @import("../../word16_execution/setup.zig").ImmutableCaches{ .native = &local_native.?, .program = &local_metadata.? };
+    var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, caches.program.?);
     defer program.deinit();
     if (verify or prefix) {
         var dir = try std.fs.cwd().openDir(args[3], .{});
@@ -311,11 +329,12 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
         try C.assignSpongeIds(requests);
         source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
     }
-    var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
+    var keys = if (session) |shared| try shared.acquireKeys(&image, program.identity, cpu, truths, Suite.experimentalFold4()) else try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
-    var fixed_cache: ?FixedAuthority.Fixed.Cache = if (candidate) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
-    defer if (fixed_cache) |*owner| owner.deinit();
-    var fixed_set: ?FixedSet = if (fixed_cache) |*owner| try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
+    var local_fixed: ?FixedAuthority.Fixed.Cache = if (candidate and session == null) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
+    defer if (local_fixed) |*owner| owner.deinit();
+    const fixed_cache: ?*FixedAuthority.Fixed.Cache = if (!candidate) null else if (session) |shared| try shared.fixedAuthority(fixed_setup_bytes) else &local_fixed.?;
+    var fixed_set: ?FixedSet = if (fixed_cache) |owner| try FixedSet.init(a, owner, keys.cpus, keys.truths, pcs) else null;
     defer if (fixed_set) |*owner| owner.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = request.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     const completed = count == 0;
@@ -337,7 +356,7 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const capture_before_proving = captured.ownership();
     var gkr_tree_policy = @import("../services/gkr_local/child.zig").TreePolicy{};
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .device_source_stage = stages.source, .device_global_stage = stages.global_interaction, .device_trace_commit_stage = stages.trace_commit, .device_cpu_projection = stages.cpu_projection, .device_pcs_stage = device_pcs_stage, .truth_device_pcs_stage = stages.truth_pcs, .truth_device_composition_stage = stages.truth_composition, .truth_device_source_stage = stages.truth_source, .om31_composition_stage = om31_composition_stage, .resident_composition_stage = resident_composition_stage, .numerical_gkr_stage = numerical_gkr_stage, .observed_tree_policy = &gkr_tree_policy, .checkpoint_above_gkr_bytes = operational.checkpoint_above_gkr_bytes, .defer_local_binding = operational.defer_local_binding, .consume_memory_events = true, .max_workers = worker_limit, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order, .stage1_trace = observations.stage1_trace, .stage2_trace = observations.stage2_trace }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const capture_after_proving = captured.ownership();
@@ -351,7 +370,7 @@ pub fn mainWithResidentPipeline(stages: ResidentStages) !void {
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
     try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .security_target = if (candidate) security_target else null, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = if (direct_capture) @as(u64, 0) else packet_import_ns, .capture_source = if (direct_capture) @as([]const u8, "in_process_execution") else "packet_directory", .direct_capture = if (direct_capture) direct_stats else null, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .capture_before_proving = capture_before_proving, .capture_after_proving = capture_after_proving, .gkr_tree_policy = gkr_tree_policy, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
-    if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
+    if (fixed_cache) |owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
     if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .accounting_profile = value.accounting_profile, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
 }

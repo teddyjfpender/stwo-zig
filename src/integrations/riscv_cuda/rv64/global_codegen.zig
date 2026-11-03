@@ -128,6 +128,14 @@ pub fn record(a: std.mem.Allocator, descriptor: Source.Descriptor) !Artifact {
     return .{ .a = a, .descriptor = descriptor, .program = p, .parameter_slots = slots, .ram_pairs = @intCast((sink.ram_count + 1) / 2), .other_pairs = @intCast((sink.other_count + 1) / 2) };
 }
 pub fn emit(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, name: []const u8) !void {
+    return emitImpl(a, w, artifact, name, false);
+}
+/// Production roles own a contiguous, uniform-height evaluation slab. Compile
+/// column addresses into the kernel rather than accepting device-side offsets.
+pub fn emitContiguous(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, name: []const u8) !void {
+    return emitImpl(a, w, artifact, name, true);
+}
+fn emitImpl(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, name: []const u8, contiguous: bool) !void {
     if (name.len == 0 or std.ascii.isDigit(name[0])) return error.InvalidKernelName;
     for (name) |v| if (!std.ascii.isAlphanumeric(v) and v != '_') return error.InvalidKernelName;
     const p = &artifact.program;
@@ -147,7 +155,7 @@ pub fn emit(a: std.mem.Allocator, w: anytype, artifact: *const Artifact, name: [
             const node = p.nodes[i];
             if (node.op == .input) {
                 const input = p.inputs[node.value];
-                try w.print("const uint32_t v{}=tree{}[offsets[{}]+row];if(v{}>=q::kPrime){{atomicOr(status,2u);return;}}\n", .{ i, input.tree, node.value, i });
+                if (contiguous) try w.print("const uint32_t v{}=tree{}[{}ull*rows+row];if(v{}>=q::kPrime){{atomicOr(status,2u);return;}}\n", .{ i, input.tree, input.column, i }) else try w.print("const uint32_t v{}=tree{}[offsets[{}]+row];if(v{}>=q::kPrime){{atomicOr(status,2u);return;}}\n", .{ i, input.tree, node.value, i });
             } else try C.emitValue(w, p, sorts, i);
             for (subset.roots, 0..) |root, which| if (root == i) {
                 try w.print("store({s}+{}ull*stride,stride,row,{s}v{}{s});\n", .{ if (which == 0) "numerator" else "denominator", if (which == 0) pair * 8 else denominator_column, if (sorts[i] == .base) "base(" else "", i, if (sorts[i] == .base) ")" else "" });

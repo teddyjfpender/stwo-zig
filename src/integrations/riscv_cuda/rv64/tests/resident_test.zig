@@ -347,7 +347,7 @@ test "global relation witness checks geometry custody capacity and sticky enqueu
     var context = Context{};
     var commands = R.Commands(Context, Fake){ .context = &context, .lane_index = 1 };
     try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 4, 1, 32));
-    try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 30, 32));
+    try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 641, 32));
     try std.testing.expectError(error.InvalidGeometry, commands.generateGlobalPairs(slice(), slice(), slice(), slice(), slice(), 5, 1, 31));
     var stale = slice();
     stale.generation = 1;

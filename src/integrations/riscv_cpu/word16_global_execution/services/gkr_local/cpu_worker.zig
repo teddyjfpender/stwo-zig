@@ -14,6 +14,7 @@ const Frame = @import("frame.zig");
 const Child = @import("child.zig");
 const Components = @import("cpu_components.zig");
 const Classic = @import("classic_witness.zig");
+pub const DeviceGlobal = @import("device_global.zig");
 const Global = @import("global_cpu.zig");
 const Metadata = @import("global_metadata.zig");
 const Commit = @import("../../../word16_execution/main_ownership.zig").Commit;
@@ -191,6 +192,7 @@ const CompositionInvocation = struct {
     }
 };
 pub const CpuWorker = struct {
+    device_global_stage: ?DeviceGlobal.Stage = null,
     om31_composition_stage: ?CompositionStage = null,
     resident_composition_stage: ?ResidentCompositionStage = null,
     device_trace_commit_stage: ?@import("stwo_prover_api").device_pcs.TraceCommitStage = null,
@@ -373,6 +375,11 @@ pub const CpuWorker = struct {
         }
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "CPU global classic interactions");
         defer generation.end();
+        if (self.device_global_stage != null and self.device_trace_commit_stage == null) return error.ResidentGlobalRequiresDeviceTrace;
+        const device_witnesses = try a.alloc(?DeviceGlobal.Witness, self.plan.slots.len);
+        defer a.free(device_witnesses);
+        @memset(device_witnesses, null);
+        defer for (device_witnesses) |*w| if (w.*) |*value| value.deinit();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
         defer a.free(witnesses);
         @memset(witnesses, null);
@@ -380,9 +387,30 @@ pub const CpuWorker = struct {
         const claims = try a.alloc(O, self.plan.claim_count);
         errdefer a.free(claims);
         var remaining = global_budget;
-        for (self.plan.slots, witnesses) |slot, *w| {
+        for (self.plan.slots, witnesses, device_witnesses) |slot, *w, *device_witness| {
             const n = Global.claimCount(slot.origin);
             if (n == 0) continue;
+            if (self.device_global_stage) |stage| {
+                const D = @import("stwo_prover_api").device_pcs;
+                const descriptor = @import("source_authority.zig").Descriptor{ .origin = slot.origin };
+                const shape = try @import("constraint_authority.zig").shape(descriptor);
+                const fixed = try a.alloc(D.Column, shape.fixed);
+                defer a.free(fixed);
+                const fixed_coefficients = self.scheme.trees.items[0].coefficients orelse return error.DeviceGkrCoefficientsRequired;
+                if (slot.fixed_offset + fixed.len > fixed_coefficients.len) return error.InvalidWideGlobalShape;
+                for (fixed_coefficients[slot.fixed_offset..][0..fixed.len], fixed) |coefficient, *column| column.* = .{ .log_size = coefficient.logSize(), .coefficients = coefficient.coefficients() };
+                const main_tree = self.scheme.device_om31_trace_trees[1] orelse return error.ResidentGlobalMainRequired;
+                if (slot.main_offset + shape.main > main_tree.columns.len) return error.InvalidWideGlobalShape;
+                const item = DeviceGlobal.Item{ .descriptor = descriptor, .log_size = slot.log, .fixed = fixed, .fixed_offset = slot.fixed_offset, .main = main_tree.columns[slot.main_offset..][0..shape.main], .sponge_first_id = if (slot.origin == .sponge) (self.source.sponge[@intFromEnum(slot.origin.sponge)] orelse return error.MissingLocalGkrBridge).first_id else 0 };
+                device_witness.* = try stage.generate(stage.context, a, self.scheme.device_om31_scope orelse return error.ResidentCompositionScopeRequired, item, pending.shared, remaining);
+                try device_witness.*.?.validate(item);
+                const rows = @as(usize, 1) << @intCast(slot.log);
+                const bytes = try std.math.mul(usize, try std.math.mul(usize, rows, device_witness.*.?.columns.len), @sizeOf(M));
+                if (bytes > remaining) return error.WideCpuGlobalBudget;
+                remaining -= bytes;
+                @memcpy(claims[slot.claim_offset..][0..n], device_witness.*.?.claims);
+                continue;
+            }
             const provider = Metadata.Provider{ .source = &self.source, .origin = slot.origin, .log_size = slot.log, .shared = pending.shared };
             w.* = if (slot.origin == .sponge) try Classic.Witness.initTruth(a, slot.log, try Metadata.groups(slot.origin), provider, remaining) else try Classic.Witness.init(a, slot.log, try Metadata.groups(slot.origin), provider, remaining);
             const bytes = try std.math.mul(usize, w.*.?.data.len, @sizeOf(M));
@@ -401,7 +429,7 @@ pub const CpuWorker = struct {
             const columns = try a.alloc(D.TraceColumn, self.plan.inter_columns);
             defer a.free(columns);
             const resident_binding = try deviceBindingColumns(self.child.?);
-            for (self.plan.slots, witnesses) |slot, witness| {
+            for (self.plan.slots, witnesses, device_witnesses) |slot, witness, device_witness| {
                 const rows = @as(usize, 1) << @intCast(slot.log);
                 var offset = slot.inter_offset;
                 if (slot.binding_index) |binding_index| {
@@ -418,7 +446,9 @@ pub const CpuWorker = struct {
                     }
                     offset += 16;
                 }
-                if (witness) |value| {
+                if (device_witness) |value| {
+                    @memcpy(columns[offset..][0..value.columns.len], value.columns);
+                } else if (witness) |value| {
                     for (columns[offset..][0..value.width()], 0..) |*column, i| column.* = .{ .log_size = slot.log, .encoding = .evaluations, .host = value.data[i * rows ..][0..rows] };
                 }
             }

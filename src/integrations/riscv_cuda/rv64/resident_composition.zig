@@ -59,7 +59,7 @@ const KernelMetadata = struct {
     allocator: std.mem.Allocator,
     program: struct { identity: [32]u8, inputs: []engine.air.secure_polynomial_program_v2.Input, roots: []u32 },
     parameter_slots: []u32,
-    fn take(wide: *G.Artifact) KernelMetadata {
+    fn take(wide: anytype) KernelMetadata {
         const out = KernelMetadata{ .allocator = wide.a, .program = .{ .identity = wide.program.identity, .inputs = wide.program.inputs, .roots = wide.program.roots }, .parameter_slots = wide.parameter_slots };
         wide.program.inputs = &.{};
         wide.program.roots = &.{};
@@ -132,6 +132,8 @@ pub const Context = struct {
     copy: Copy,
     clear: Clear,
     artifacts: [49]KernelMetadata,
+    truth_artifacts: [7]?KernelMetadata = @splat(null),
+    truth_role: ?*const @TypeOf(Abi.stwo_rv64_composition_role_on) = null,
     twiddles: [29]?Twiddle = @splat(null),
     mutex: std.Thread.Mutex = .{},
     geometries: std.ArrayList(Geometry) = .empty,
@@ -170,6 +172,7 @@ pub const Context = struct {
     }
     pub fn deinit(self: *Context) void {
         for (&self.artifacts) |*artifact| artifact.deinit();
+        for (&self.truth_artifacts) |*artifact| if (artifact.*) |*value| value.deinit();
         for (&self.twiddles) |*cached| if (cached.*) |*value| engine.poly.twiddles.deinitM31(self.allocator, value);
         for (self.geometries.items) |*cached_geometry| cached_geometry.deinit(self.allocator);
         self.geometries.deinit(self.allocator);
@@ -262,6 +265,76 @@ pub const Context = struct {
         return .{ .value = value, .retained = true };
     }
 
+    /// Explicit opt-in: CPU-only use never requires service kernel symbols.
+    pub fn truthStage(self: *Context) !CPU.rv64_gkr_truth_device_composition.Stage {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.truth_role == null) {
+            const dispatch = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &self.service.library, "stwo_rv64_truth_composition_role_on");
+            for (&self.truth_artifacts, 0..) |*entry, id| if (entry.* == null) {
+                var cold = try @import("truth_domain_fixtures.zig").record(self.allocator, @intCast(id));
+                defer cold.artifact.deinit();
+                const bytes = cold.artifact.program.inputs.len * @sizeOf(engine.air.secure_polynomial_program_v2.Input) + cold.artifact.program.roots.len * 4 + cold.artifact.parameter_slots.len * 4;
+                if (!self.admitCache(bytes, true)) return error.CompositionMetadataCacheCapExceeded;
+                entry.* = KernelMetadata.take(&cold.artifact);
+                self.artifact_bytes += bytes;
+            };
+            self.truth_role = dispatch;
+        }
+        return .{ .context = self, .evaluate_and_commit = evaluateTruth };
+    }
+    fn evaluateTruth(raw: *anyopaque, a: std.mem.Allocator, bound: CPU.rv64_gkr_truth_device_composition.Roles, alpha: O, log: u32, split: u32, total: usize, trace: *const anyopaque, scope: D.Scope) !D.Tree {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const count: usize = switch (bound) {
+            .classic => |v| v.len,
+            .delegated => 1,
+        };
+        const roles = try a.alloc(RuntimeRole, count);
+        defer a.free(roles);
+        var made: usize = 0;
+        defer for (roles[0..made]) |role| a.free(role.parameters);
+        switch (bound) {
+            .classic => |components| for (components, roles) |*c, *role| {
+                if (c.keccak_policy != .throughput_r27_v1) return error.UnsupportedTruthCompositionPolicy;
+                const id: u32 = switch (c.kind) {
+                    .keccak => 0,
+                    .chi => 1,
+                    .xor5 => 2,
+                    else => return error.UnsupportedTruthCompositionRole,
+                };
+                role.* = try self.bindTruthRole(a, id, c.log_size, c.maxConstraintLogDegreeBound(), c.widths(), c.offsets, @import("truth_codegen.zig").nativeMetadata(c), c.nConstraints(), true);
+                made += 1;
+            },
+            .delegated => |c| {
+                const id: u32 = switch (c.truth.family()) {
+                    .sha256 => 3,
+                    .arith256_mod => 4,
+                    .add => 5,
+                    .double => 6,
+                    else => return error.UnsupportedTruthCompositionRole,
+                };
+                const shape = c.mainShape();
+                roles[0] = try self.bindTruthRole(a, id, c.logSize(), c.maxConstraintLogDegreeBound(), .{ shape.fixed, shape.main, c.interWidth() }, .{ c.offsets[0], c.offsets[1], c.inter_offset }, @import("truth_codegen.zig").nativeMetadataV3(c), c.nConstraints(), false);
+                made = 1;
+            },
+        }
+        var timer = try std.time.Timer.start();
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace)), .scope = scope };
+        if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
+        const result = job.result orelse return error.CudaResidentCompositionFailed;
+        try self.result_columns.append(self.allocator, @constCast(result.columns));
+        std.debug.print("GPU_TRUTH_COMPOSITION_RESIDENT ordinal={} roles={} total_ns={} quotient_d2h_bytes=0 coefficient_d2h_bytes=0 root_d2h_bytes=32\n", .{ scope.ordinal, count, timer.read() });
+        return result;
+    }
+    fn bindTruthRole(self: *Context, a: std.mem.Allocator, id: u32, trace_log: u32, eval_log: u32, widths: [3]usize, offsets: [3]usize, metadata: [@import("truth_codegen.zig").slots.count]O, constraints: usize, anchor: bool) !RuntimeRole {
+        const artifact = &(self.truth_artifacts[id] orelse return error.TruthCompositionNotInitialized);
+        if (artifact.program.roots.len != constraints) return error.WrongResidentConstraintCount;
+        const parameters = try a.alloc(O, artifact.parameter_slots.len);
+        for (parameters, artifact.parameter_slots) |*value, slot| value.* = metadata[slot];
+        return .{ .id = id, .artifact = &self.truth_artifacts[id].?, .evaluate = self.truth_role orelse return error.TruthCompositionNotInitialized, .trace_log = trace_log, .eval_log = eval_log, .widths = widths, .offsets = offsets, .parameters = parameters, .auxiliary = if (anchor) .last else .none };
+    }
     pub fn stage(self: *Context) CPU.rv64_gkr_cpu_worker.ResidentCompositionStage {
         return .{ .context = self, .evaluate_and_commit = evaluate };
     }
@@ -270,7 +343,34 @@ pub const Context = struct {
         self.mutex.lock();
         defer self.mutex.unlock();
         var timer = try std.time.Timer.start();
-        var job = Job{ .backend = self, .allocator = a, .items = items, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace_raw)), .scope = scope };
+        const roles = try a.alloc(RuntimeRole, items.len);
+        defer a.free(roles);
+        var made: usize = 0;
+        defer for (roles[0..made]) |role| a.free(role.parameters);
+        for (items, roles) |*item, *role| switch (item.*) {
+            inline else => |*c| {
+                const T = @TypeOf(c.*);
+                const descriptor = Hybrid.descriptor(T, c);
+                const id = try Hybrid.caseId(descriptor);
+                const artifact = &self.artifacts[id];
+                if (artifact.program.roots.len != c.nConstraints()) return error.WrongResidentConstraintCount;
+                const metadata = Hybrid.metadata(T, c, descriptor);
+                const parameters = try a.alloc(O, artifact.parameter_slots.len);
+                for (parameters, artifact.parameter_slots) |*value, slot| value.* = metadata[slot];
+                const shape = c.mainShape();
+                const offsets = c.columnOffsets();
+                role.* = .{ .id = id, .artifact = artifact, .evaluate = self.role, .trace_log = G.Authority.RoleGeometry.logSize(c), .eval_log = c.maxConstraintLogDegreeBound(), .widths = .{ shape.fixed, shape.main, G.Authority.RoleGeometry.interWidth(c) }, .offsets = .{ offsets[0], offsets[1], c.inter_offset }, .parameters = parameters };
+                if (comptime @hasField(T, "data")) {
+                    var hc: [2 * 22 * 8]u32 = undefined;
+                    for (0..2) |half| for (0..role.trace_log) |i| for ((if (half == 0) c.data.point.hc0[i] else c.data.point.hc1[i]).toM31Array(), 0..) |word, j| {
+                        hc[(half * role.trace_log + i) * 8 + j] = word.v;
+                    };
+                    role.auxiliary = .{ .hc = hc };
+                }
+                made += 1;
+            },
+        };
+        var job = Job{ .backend = self, .allocator = a, .roles = roles, .alpha = alpha, .log = log, .split = split, .total = total, .trace = @ptrCast(@alignCast(trace_raw)), .scope = scope };
         if (self.service.submit(self.service.session, Job.callback, &job) != 0) return job.failure orelse error.CudaResidentCompositionFailed;
         const result = job.result orelse return error.CudaResidentCompositionFailed;
         try self.result_columns.append(self.allocator, @constCast(result.columns));
@@ -278,10 +378,23 @@ pub const Context = struct {
         return result;
     }
 };
+// Frontend authorities bind runtime parameters and offsets once; the numerical
+// pipeline is monomorphic for CPU and independently sized truth components.
+const RuntimeRole = struct {
+    id: u32,
+    artifact: *const KernelMetadata,
+    evaluate: *const @TypeOf(Abi.stwo_rv64_composition_role_on),
+    trace_log: u32,
+    eval_log: u32,
+    widths: [3]usize,
+    offsets: [3]usize,
+    parameters: []O,
+    auxiliary: union(enum) { none, hc: [2 * 22 * 8]u32, last } = .none,
+};
 const Job = struct {
     backend: *Context,
     allocator: std.mem.Allocator,
-    items: []const Items.Item,
+    roles: []const RuntimeRole,
     alpha: O,
     log: u32,
     split: u32,
@@ -335,130 +448,136 @@ const Job = struct {
             power = power.mul(self.alpha);
         }
         var next = self.total;
-        for (self.items) |*item| switch (item.*) {
-            inline else => |*c| {
-                const T = @TypeOf(c.*);
-                const descriptor = Hybrid.descriptor(T, c);
-                const id = try Hybrid.caseId(descriptor);
-                self.active_role = id;
-                const artifact = &b.artifacts[id];
-                if (artifact.program.roots.len != c.nConstraints()) return error.WrongResidentConstraintCount;
-                const rl = G.Authority.RoleGeometry.logSize(c);
-                const el = c.maxConstraintLogDegreeBound();
-                if (el != rl + 1 or el > self.log) return error.UnsupportedResidentCompositionDomain;
-                const n = @as(usize, 1) << @intCast(el);
-                const shape = c.mainShape();
-                const iw = G.Authority.RoleGeometry.interWidth(c);
-                const aux: usize = if (comptime @hasField(T, "data")) 10 else 0;
-                const widths = [3]usize{ shape.fixed, shape.main, iw + aux };
-                const column_count = widths[0] + widths[1] + widths[2];
-                var sources: std.ArrayList(engine.air.component_prover.ForField(O).Poly) = .empty;
-                defer sources.deinit(a);
-                const offsets = c.columnOffsets();
-                try sources.appendSlice(a, self.trace.polys.items[0][offsets[0]..][0..widths[0]]);
-                try sources.appendSlice(a, self.trace.polys.items[1][offsets[1]..][0..widths[1]]);
-                try sources.appendSlice(a, self.trace.polys.items[2][c.inter_offset..][0..iw]);
-                const source_metadata = try a.alloc(D.Column, sources.items.len);
-                defer a.free(source_metadata);
-                for (source_metadata, sources.items) |*column, source| column.* = try sourceColumn(source);
-                var tw_borrow = try b.tw(el);
-                defer tw_borrow.deinit(b.allocator);
-                const tw = &tw_borrow.value;
-                var geometry_borrow = try b.geometry(artifact, rl, el, widths, source_metadata, aux, tw.twiddles.len);
-                defer geometry_borrow.deinit(b.allocator);
-                const geometry = &geometry_borrow.value;
-                const eval_base = geometry.eval_base;
-                const tw_base = geometry.tw_base;
-                const desc_base = geometry.desc_base;
-                var arena = try context.allocate(geometry.arena_words, 0);
-                defer {
-                    context.join() catch {};
-                    context.release(&arena) catch {};
+        for (self.roles) |*role| {
+            const id = role.id;
+            self.active_role = id;
+            const artifact = role.artifact;
+            const rl = role.trace_log;
+            const el = role.eval_log;
+            if (el < rl + 1 or el > rl + 2 or el > self.log) return error.UnsupportedResidentCompositionDomain;
+            const n = @as(usize, 1) << @intCast(el);
+            const iw = role.widths[2];
+            const aux: usize = switch (role.auxiliary) {
+                .none => 0,
+                .hc => 10,
+                .last => 1,
+            };
+            var widths = role.widths;
+            widths[2] += aux;
+            const column_count = widths[0] + widths[1] + widths[2];
+            var sources: std.ArrayList(engine.air.component_prover.ForField(O).Poly) = .empty;
+            defer sources.deinit(a);
+            const offsets = role.offsets;
+            try sources.appendSlice(a, self.trace.polys.items[0][offsets[0]..][0..widths[0]]);
+            try sources.appendSlice(a, self.trace.polys.items[1][offsets[1]..][0..widths[1]]);
+            try sources.appendSlice(a, self.trace.polys.items[2][offsets[2]..][0..iw]);
+            const source_metadata = try a.alloc(D.Column, sources.items.len);
+            defer a.free(source_metadata);
+            for (source_metadata, sources.items) |*column, source| column.* = try sourceColumn(source);
+            var tw_borrow = try b.tw(el);
+            defer tw_borrow.deinit(b.allocator);
+            const tw = &tw_borrow.value;
+            var geometry_borrow = try b.geometry(artifact, rl, el, widths, source_metadata, aux, tw.twiddles.len);
+            defer geometry_borrow.deinit(b.allocator);
+            const geometry = &geometry_borrow.value;
+            const eval_base = geometry.eval_base;
+            const tw_base = geometry.tw_base;
+            const desc_base = geometry.desc_base;
+            var arena = try context.allocate(geometry.arena_words, 0);
+            defer {
+                context.join() catch {};
+                context.release(&arena) catch {};
+            }
+            const arena_ptr = arena.words.?;
+            var coefficient_offset: usize = 0;
+            try events.mark(.coefficients, false, stream0.?);
+            for (source_metadata, 0..) |original, i| {
+                const values = original.coefficients;
+                const length: usize = if (original.device) |device| @intCast(device.count) else values.len;
+                const target = arena_ptr + coefficient_offset;
+                const source_tree: u32 = if (i < widths[0]) 0 else if (i < widths[0] + widths[1]) 1 else 2;
+                const original_index = switch (source_tree) {
+                    0 => offsets[0] + i,
+                    1 => offsets[1] + i - widths[0],
+                    else => offsets[2] + i - widths[0] - widths[1],
+                };
+                if (if (original.device != null) original.device else b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
+                    try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
+                    try self.checked("copy", b.copy(raw, @ptrCast(target), @ptrCast(device.words), length * 4));
+                    device_cells += length;
+                } else {
+                    try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(target), values.ptr, values.len * 4));
+                    host_cells += values.len;
                 }
-                const arena_ptr = arena.words.?;
-                var coefficient_offset: usize = 0;
-                try events.mark(.coefficients, false, stream0.?);
-                for (source_metadata, 0..) |original, i| {
-                    const values = original.coefficients;
-                    const length: usize = if (original.device) |device| @intCast(device.count) else values.len;
-                    const target = arena_ptr + coefficient_offset;
-                    const source_tree: u32 = if (i < widths[0]) 0 else if (i < widths[0] + widths[1]) 1 else 2;
-                    const original_index = switch (source_tree) {
-                        0 => offsets[0] + i,
-                        1 => offsets[1] + i - widths[0],
-                        else => c.inter_offset + i - widths[0] - widths[1],
-                    };
-                    if (if (original.device != null) original.device else b.service.retainedColumn(context.scope, source_tree, original_index, original)) |device| {
-                        try self.checked("service.lease_validate_range", b.service.lease_validate_range(b.service.session, device.words, device.count, device.context_token, device.generation, &context.scope));
-                        try self.checked("copy", b.copy(raw, @ptrCast(target), @ptrCast(device.words), length * 4));
-                        device_cells += length;
-                    } else {
-                        try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(target), values.ptr, values.len * 4));
-                        host_cells += values.len;
-                    }
-                    coefficient_offset += length;
-                }
-                try events.mark(.coefficients, true, stream0.?);
-                if (comptime @hasField(T, "data")) {
-                    var hc: [2 * 22 * 8]u32 = undefined;
-                    for (0..2) |half| for (0..rl) |i| for ((if (half == 0) c.data.point.hc0[i] else c.data.point.hc1[i]).toM31Array(), 0..) |word, j| {
-                        hc[(half * rl + i) * 8 + j] = word.v;
-                    };
-                    const h = try upload(a, &context, &leases, hc[0 .. 16 * rl]);
-                    var role_tw_borrow = try b.tw(rl);
-                    defer role_tw_borrow.deinit(b.allocator);
-                    const role_tw = &role_tw_borrow.value;
-                    const it = try upload(a, &context, &leases, words(role_tw.itwiddles));
-                    try context.join();
-                    var stream: ?*anyopaque = null;
-                    try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
-                    var launches: u32 = 0;
-                    try events.mark(.auxiliary, false, stream.?);
-                    try self.checked("auxiliary", b.auxiliary(raw, 1, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
-                    const rows = @as(usize, 1) << @intCast(rl);
-                    try self.checked("b2n", b.b2n(arena_ptr + coefficient_offset, rows, arena_ptr + coefficient_offset, rows, rl, 10, it.words.?, @intCast(role_tw.itwiddles.len), @intCast(rows / 2), stream.?, &launches));
-                    try events.mark(.auxiliary, true, stream.?);
-                }
-                try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + tw_base), tw.twiddles.ptr, tw.twiddles.len * 4));
-                try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), geometry.descriptors.ptr, geometry.descriptors.len * 4));
-                const metadata = Hybrid.metadata(T, c, descriptor);
-                const parameters = try a.alloc(O, artifact.parameter_slots.len);
-                defer a.free(parameters);
-                for (parameters, artifact.parameter_slots) |*p, slot| p.* = metadata[slot];
-                const parameter_words = try felts(a, parameters);
-                defer a.free(parameter_words);
-                const params = try upload(a, &context, &leases, parameter_words);
-                if (artifact.program.roots.len > next) return error.NotEnoughCoefficients;
-                next -= artifact.program.roots.len;
-                const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
-                defer a.free(power_words);
-                const pw = try upload(a, &context, &leases, power_words);
-                const mask_offsets = geometry.masks;
-                const masks = try upload(a, &context, &leases, @as([*]const u32, @ptrCast(mask_offsets.ptr))[0 .. mask_offsets.len * 2]);
-                const denom = try upload(a, &context, &leases, words(geometry.denominators));
-                if (buckets[el] == null) {
-                    buckets[el] = try allocate(a, &context, &leases, 8 * n, 0);
-                    try self.checked("clear", b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
-                }
+                coefficient_offset += length;
+            }
+            try events.mark(.coefficients, true, stream0.?);
+            if (aux != 0) {
+                var role_tw_borrow = try b.tw(rl);
+                defer role_tw_borrow.deinit(b.allocator);
+                const role_tw = &role_tw_borrow.value;
+                const it = try upload(a, &context, &leases, words(role_tw.itwiddles));
                 try context.join();
                 var stream: ?*anyopaque = null;
                 try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
                 var launches: u32 = 0;
-                try events.mark(.domain_fft, false, stream.?);
-                try self.checked("n2b", b.n2b(arena_ptr, arena.count, arena_ptr + desc_base, @intCast(column_count), eval_base, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
-                try events.mark(.domain_fft, true, stream.?);
-                const packet = Abi.CompositionRole{ .role = id, .trace_log = rl, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ arena_ptr + eval_base, arena_ptr + eval_base + widths[0] * n, arena_ptr + eval_base + (widths[0] + widths[1]) * n }, .tree_words = .{ @max(@as(usize, 1), widths[0] * n), @max(@as(usize, 1), widths[1] * n), @max(@as(usize, 1), widths[2] * n) }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = mask_offsets.len, .parameters = params.words.?, .parameter_count = parameters.len, .powers = pw.words.?, .constraint_count = artifact.program.roots.len, .denominator_inverses = denom.words.?, .output = buckets[el].?.words.? };
-                try events.mark(.rows, false, stream.?);
-                try self.checked("role", b.role(raw, 1, &packet, &launches));
-                try events.mark(.rows, true, stream.?);
-                try context.join();
-                spans[@intFromEnum(Span.coefficients)] += try events.milliseconds(.coefficients);
-                spans[@intFromEnum(Span.domain_fft)] += try events.milliseconds(.domain_fft);
-                spans[@intFromEnum(Span.rows)] += try events.milliseconds(.rows);
-                if (comptime @hasField(T, "data")) spans[@intFromEnum(Span.auxiliary)] += try events.milliseconds(.auxiliary);
-                domain_cells += column_count * n;
-            },
-        };
+                try events.mark(.auxiliary, false, stream.?);
+                switch (role.auxiliary) {
+                    .hc => |hc| {
+                        const h = try upload(a, &context, &leases, hc[0 .. 16 * rl]);
+                        try context.join();
+                        try self.checked("auxiliary", b.auxiliary(raw, 1, h.words.?, arena_ptr + coefficient_offset, rl, &launches));
+                    },
+                    .last => {
+                        const size = @as(usize, 1) << @intCast(rl);
+                        try self.checked("last_anchor_clear", b.clear(raw, @ptrCast(arena_ptr + coefficient_offset), 0, size * 4));
+                        // Native truth last-anchor is logical last, physical row 1.
+                        // Upload and clear use lane0; join before lane1 interpolation.
+                        const one: u32 = 1;
+                        try self.checked("last_anchor_set", b.session_api.upload(raw, @ptrCast(arena_ptr + coefficient_offset + 1), &one, 4));
+                        try context.join();
+                    },
+                    .none => unreachable,
+                }
+                const rows = @as(usize, 1) << @intCast(rl);
+                try self.checked("b2n", b.b2n(arena_ptr + coefficient_offset, rows, arena_ptr + coefficient_offset, rows, rl, @intCast(aux), it.words.?, @intCast(role_tw.itwiddles.len), @intCast(rows / 2), stream.?, &launches));
+                try events.mark(.auxiliary, true, stream.?);
+            }
+            try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + tw_base), tw.twiddles.ptr, tw.twiddles.len * 4));
+            try self.checked("session_api.upload", b.session_api.upload(raw, @ptrCast(arena_ptr + desc_base), geometry.descriptors.ptr, geometry.descriptors.len * 4));
+            const parameter_words = try felts(a, role.parameters);
+            defer a.free(parameter_words);
+            const params = try upload(a, &context, &leases, parameter_words);
+            if (artifact.program.roots.len > next) return error.NotEnoughCoefficients;
+            next -= artifact.program.roots.len;
+            const power_words = try felts(a, powers[next..][0..artifact.program.roots.len]);
+            defer a.free(power_words);
+            const pw = try upload(a, &context, &leases, power_words);
+            const mask_offsets = geometry.masks;
+            const masks = try upload(a, &context, &leases, @as([*]const u32, @ptrCast(mask_offsets.ptr))[0 .. mask_offsets.len * 2]);
+            const denom = try upload(a, &context, &leases, words(geometry.denominators));
+            if (buckets[el] == null) {
+                buckets[el] = try allocate(a, &context, &leases, 8 * n, 0);
+                try self.checked("clear", b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
+            }
+            try context.join();
+            var stream: ?*anyopaque = null;
+            try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
+            var launches: u32 = 0;
+            try events.mark(.domain_fft, false, stream.?);
+            try self.checked("n2b", b.n2b(arena_ptr, arena.count, arena_ptr + desc_base, @intCast(column_count), eval_base, el, arena_ptr + tw_base, @intCast(tw.twiddles.len), @intCast(n / 2), stream.?, 1, &launches));
+            try events.mark(.domain_fft, true, stream.?);
+            const packet = Abi.CompositionRole{ .role = id, .trace_log = rl, .eval_log = el, .first_row = 0, .row_count = @intCast(n), .trees = .{ arena_ptr + eval_base, arena_ptr + eval_base + widths[0] * n, arena_ptr + eval_base + (widths[0] + widths[1]) * n }, .tree_words = .{ @max(@as(usize, 1), widths[0] * n), @max(@as(usize, 1), widths[1] * n), @max(@as(usize, 1), widths[2] * n) }, .column_offsets = @ptrCast(@alignCast(masks.words.?)), .mask_count = mask_offsets.len, .parameters = params.words.?, .parameter_count = role.parameters.len, .powers = pw.words.?, .constraint_count = artifact.program.roots.len, .denominator_inverses = denom.words.?, .output = buckets[el].?.words.? };
+            try events.mark(.rows, false, stream.?);
+            try self.checked("role", role.evaluate(raw, 1, &packet, &launches));
+            try events.mark(.rows, true, stream.?);
+            try context.join();
+            spans[@intFromEnum(Span.coefficients)] += try events.milliseconds(.coefficients);
+            spans[@intFromEnum(Span.domain_fft)] += try events.milliseconds(.domain_fft);
+            spans[@intFromEnum(Span.rows)] += try events.milliseconds(.rows);
+            if (aux != 0) spans[@intFromEnum(Span.auxiliary)] += try events.milliseconds(.auxiliary);
+            domain_cells += column_count * n;
+        }
         if (next != 0) return error.UnusedCompositionCoefficients;
         const n = @as(usize, 1) << @intCast(self.log);
         const coeff_count = 8 * n;
@@ -614,4 +733,12 @@ test "LDE descriptor destinations include the coefficient arena prefix" {
     descriptors[2] = 8;
     descriptors[0] = 9;
     try std.testing.expectError(error.InvalidCompositionGeometry, geometry.validate(4));
+}
+
+test "truth stages retain typed authority with the same resident numerical pipeline" {
+    var context: Context = undefined;
+    const stage = CPU.rv64_gkr_truth_device_composition.Stage{ .context = &context, .evaluate_and_commit = Context.evaluateTruth };
+    try std.testing.expectEqual(@intFromPtr(&context), @intFromPtr(stage.context));
+    try std.testing.expect(@intFromPtr(stage.evaluate_and_commit) != 0);
+    _ = Context.truthStage;
 }

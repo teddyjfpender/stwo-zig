@@ -58,7 +58,12 @@ pub const CoefficientSink = struct {
     /// metadata; failure must leave lease ownership with the caller.
     publish: *const fn (*anyopaque, [8]u32, Native.Lease, []const @import("stwo_riscv_cpu_integration").rv64_device_pcs.Column, []const @import("stwo_riscv_cpu_integration").rv64_device_pcs.Column, []const usize) anyerror!void,
 };
+pub const FixedProvider = struct {
+    context: *anyopaque,
+    acquire: *const fn (*anyopaque, *anyopaque, @import("stwo_riscv_cpu_integration").rv64_device_pcs.Scope, []const @import("stwo_riscv_cpu_integration").rv64_device_pcs.Column) anyerror![]const @import("stwo_riscv_cpu_integration").rv64_device_pcs.Column,
+};
 pub const Backend = struct {
+    fixed_provider: ?FixedProvider = null,
     coefficient_sink: ?CoefficientSink = null,
     binding_runtime: ?*DeviceBindingRuntime.Runtime = null,
     configuration_sealed: bool = false,
@@ -157,6 +162,9 @@ const Job = struct {
         const upload_stream = ingress_stream orelse return error.InvalidLane;
         var context = SC.Context{ .session = b.session, .native_context = raw_context, .token = token, .scope = @import("pcs_scope.zig").identity(self.request.scope), .api = &b.session_api };
         defer context.active = false;
+        const original_fixed_columns = self.request.native_fixed_columns;
+        defer self.request.native_fixed_columns = original_fixed_columns;
+        if (b.fixed_provider) |provider| self.request.native_fixed_columns = try provider.acquire(provider.context, raw_context, .{ .statement = self.request.scope.statement, .fixed = self.request.scope.fixed, .main = self.request.scope.main, .ordinal = self.request.scope.ordinal }, original_fixed_columns);
         var source = try Sources.Plan.init(a, self.request, &b.catalogue);
         defer source.deinit();
         const variables = try a.alloc(u32, source.items.len);
@@ -359,7 +367,7 @@ const Job = struct {
         errdefer proof.deinit(a);
         const decode_ns = timer.read() - decode_start_ns;
         if (b.coefficient_sink) |sink| if (!main_already_resident) {
-            try sink.publish(sink.context, context.scope, coefficient_lease, self.request.native_fixed_columns, self.request.native_main_columns, source.offsets);
+            try sink.publish(sink.context, context.scope, coefficient_lease, original_fixed_columns, self.request.native_main_columns, source.offsets);
             published_generation = coefficient_lease.generation;
         };
         if (b.binding_runtime) |runtime| {

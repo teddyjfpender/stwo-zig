@@ -22,8 +22,10 @@ pub const Pool = struct {
     composition: Worker.ResidentCompositionStage,
     trace_commit: D.TraceCommitStage,
     projection: Source.ProjectionStage,
+    global_interaction: Worker.DeviceGlobal.Stage,
     const Device = struct {
         native: @import("pcs_native.zig").Context,
+        global_interaction: @import("global_stage.zig").Context,
         gkr: @import("gkr_stage.zig").Backend,
         composition: @import("resident_composition.zig").Context,
         trace: @import("trace_commit.zig").Context,
@@ -34,14 +36,18 @@ pub const Pool = struct {
             self.gkr = try @import("gkr_stage.zig").Backend.init(a, &self.native.library, self.native.session, std.math.cast(usize, cap) orelse return error.InvalidResidentDeviceCaps);
             errdefer self.gkr.deinit();
             if (device_binding) try self.gkr.enableDeviceBinding(&self.native.library);
+            self.gkr.fixed_provider = .{ .context = &self.native, .acquire = @import("pcs_native.zig").Context.provideFixed };
             self.gkr.coefficient_sink = .{ .context = &self.native, .publish = @import("pcs_native.zig").Context.publishCoefficients };
             self.composition = try @import("resident_composition.zig").Context.init(a, &self.native);
             errdefer self.composition.deinit();
             self.trace = try @import("trace_commit.zig").Context.init(&self.native);
             errdefer self.trace.deinit();
             self.projection = try @import("cpu_projection.zig").Context.init(&self.native);
+            errdefer self.projection.deinit();
+            self.global_interaction = try @import("global_stage.zig").Context.init(&self.native);
         }
         fn deinit(self: *Device) void {
+            self.global_interaction.deinit();
             self.projection.deinit();
             self.trace.deinit();
             self.composition.deinit();
@@ -68,7 +74,7 @@ pub const Pool = struct {
         }
         self.endpoints = try a.alloc(Endpoint, config.ids.len);
         errdefer a.free(self.endpoints);
-        for (self.endpoints, self.devices, config.ids, config.caps) |*endpoint, *device, id, cap| endpoint.* = .{ .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage() };
+        for (self.endpoints, self.devices, config.ids, config.caps) |*endpoint, *device, id, cap| endpoint.* = .{ .device = id, .byte_cap = cap, .pcs = device.native.stage(), .numerical = device.gkr.stage(), .composition = device.composition.stage(), .trace_commit = device.trace.stage(), .projection = device.projection.stage(), .global_interaction = device.global_interaction.stage() };
         self.router = try Router.initWithCapacity(self.endpoints, cpu_workers, config.scope_limit);
         self.pcs = self.router.pcsStage();
         self.truth_pcs = self.router.truthPcsStage();
@@ -76,10 +82,11 @@ pub const Pool = struct {
         self.composition = self.router.compositionStage();
         self.trace_commit = self.router.traceStage();
         self.projection = self.router.projectionStage();
+        self.global_interaction = self.router.globalStage();
         return self;
     }
     pub fn stages(self: *Pool) CPU.rv64_ethereum_gkr_main.ResidentStages {
-        var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
+        var result = CPU.rv64_ethereum_gkr_main.ResidentStages{ .global_interaction = self.global_interaction, .pcs = &self.pcs, .numerical = &self.numerical, .resident_composition = &self.composition, .trace_commit = &self.trace_commit, .cpu_projection = self.projection };
         if (comptime @hasField(CPU.rv64_ethereum_gkr_main.ResidentStages, "truth_pcs")) result.truth_pcs = &self.truth_pcs;
         return result;
     }

@@ -15,6 +15,12 @@ pub fn main() !void {
         else => return err,
     };
     defer if (native_library) |path| a.free(path);
+    const arguments = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, arguments);
+    if (arguments.len >= 2 and std.mem.eql(u8, arguments[1], "resident-batch")) {
+        if (arguments.len != 4) return error.ExpectedResidentBatchManifestAndOutput;
+        return @import("rv64/resident_batch.zig").run(a, native_library orelse return error.ResidentBatchRequiresNativeLibrary, arguments[2], arguments[3]);
+    }
     const host_retained = std.process.hasEnvVarConstant("STWO_RV64_GPU_HOST_RETAINED");
     try @import("rv64/host_retained_policy.zig").validate(host_retained, native_library != null, std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICES"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_TRACE"), std.process.hasEnvVarConstant("STWO_RV64_GPU_DEVICE_BINDING"));
     if (native_library) |path| {
@@ -65,9 +71,11 @@ pub fn main() !void {
             var trace = try TraceCommit.Context.init(&native);
             defer trace.deinit();
             const trace_stage = trace.stage();
+            var global_interaction = try @import("rv64/global_stage.zig").Context.init(&native);
+            defer global_interaction.deinit();
             var projection = try CpuProjection.Context.init(&native);
             defer projection.deinit();
-            try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(.{ .pcs = &native_stage, .numerical = &gkr_stage, .resident_composition = &resident_composition_stage, .trace_commit = &trace_stage, .cpu_projection = projection.stage() });
+            try CPU.rv64_ethereum_gkr_main.mainWithResidentPipeline(.{ .pcs = &native_stage, .numerical = &gkr_stage, .resident_composition = &resident_composition_stage, .trace_commit = &trace_stage, .global_interaction = global_interaction.stage(), .cpu_projection = projection.stage() });
         } else try CPU.rv64_ethereum_gkr_main.mainWithResidentStages(&native_stage, null, &gkr_stage, &resident_composition_stage);
         return;
     }

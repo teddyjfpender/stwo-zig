@@ -112,7 +112,11 @@ static void exercise(const std::string &directory, uint32_t index,
       job.output = out;
       uint32_t launches = 0;
       CHECK(stwo_rv64_composition_role_on(o.ctx, 1, &job, &launches));
+#ifdef STWO_RV64_PARTITIONED_ROLE_DISPATCH
+      if (!launches)
+#else
       if (launches != 1)
+#endif
         throw std::runtime_error("missing native role launch receipt");
 #else
       CHECK(cudaLaunchKernel(

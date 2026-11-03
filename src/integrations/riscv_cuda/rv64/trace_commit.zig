@@ -22,6 +22,9 @@ fn check(status: c_int) !void {
     }
 }
 pub const Context = struct {
+    // Production MAIN/INTER must be produced on device. A qualification-only
+    // mixed-encoding oracle may explicitly opt out; production never does.
+    require_device_input: bool = true,
     service: *Service.Context,
     api: SC.Api,
     n2b: N2b,
@@ -64,6 +67,7 @@ pub const Context = struct {
         if (beta < 1 or beta > 4) return error.InvalidTraceCommitRequest;
         for (request.columns) |column| {
             try column.validate();
+            if (self.require_device_input and column.device == null) return error.HostWitnessDisallowedInResidentProof;
             if (column.log_size + beta > 28) return error.InvalidTraceCommitRequest;
         }
         self.mutex.lock();

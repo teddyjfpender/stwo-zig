@@ -30,7 +30,7 @@ typedef struct StwoRv64GpuLease {
   uint64_t generation;
   uint32_t *words;
   uint64_t count;
-  uint32_t kind; // 0 scratch, 1 MAIN trace, 2 coefficients, 3 narrow binding
+  uint32_t kind; // 0 scratch, 1 MAIN trace, 2 coefficients, 3 narrow binding, 4 immutable setup
   uint32_t reserved;
 } StwoRv64GpuLease;
 typedef int (*StwoRv64GpuCallback)(void *native_context, uint64_t context_token,
@@ -67,6 +67,9 @@ int stwo_rv64_gpu_lease_release(void *, StwoRv64GpuLease *);
 int stwo_rv64_gpu_lease_validate_range(void *, const uint32_t *, uint64_t words,
                                      uint64_t context_token, uint64_t generation,
                                      const uint32_t scope[8]);
+int stwo_rv64_gpu_immutable_bind(void *, const StwoRv64GpuLease *, const uint32_t setup[8], const uint32_t request_scope[8]);
+int stwo_rv64_gpu_immutable_unbind_scope(void *, const uint32_t scope[8]);
+int stwo_rv64_gpu_session_live_leases(void *, uint64_t counts[5], uint64_t *bytes);
 #ifdef __cplusplus
 }
 static_assert(sizeof(StwoRv64HostWords) == 16, "host span ABI");

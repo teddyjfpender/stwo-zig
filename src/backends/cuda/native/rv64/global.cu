@@ -78,7 +78,7 @@ extern "C" int stwo_rv64_global_pairs_on(void *ctx, uint32_t lane,
   using namespace stwo::cuda::rv64;
   if (!input || input->reserved[0] || input->reserved[1] ||
       input->row_log < 5 || input->row_log > 22 || !input->pairs ||
-      input->pairs > 29 || input->stride < (1u << input->row_log) ||
+      input->pairs > 640 || input->stride < (1u << input->row_log) ||
       input->stride > SIZE_MAX / (8 * uint64_t(input->pairs + 1)))
     return int(cudaErrorInvalidValue);
   const auto j = *input;

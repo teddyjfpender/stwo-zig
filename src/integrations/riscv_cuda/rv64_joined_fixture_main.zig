@@ -169,6 +169,8 @@ fn domainFixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !voi
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    const truth = args.len == 3 and std.mem.eql(u8, args[1], "--truth-domain");
+    if (truth) return truthFixtures(args[2]);
     const domain = args.len == 3 and std.mem.eql(u8, args[1], "--domain");
     if (args.len != 2 and !domain) return error.ExpectedOutputDirectory;
     const directory = args[if (domain) @as(usize, 2) else 1];
@@ -204,4 +206,29 @@ pub fn main() !void {
     for (0..Oracle.count) |id| try w.print("{s}(void*)rv64_joined_oods_{}", .{ if (id == 0) "" else ",", id });
     try w.writeAll("};\n");
     try dir.writeFile(.{ .sub_path = "joined_launches.h", .data = declarations.items });
+}
+
+fn truthFixtures(directory: []const u8) !void {
+    const T = @import("rv64/truth_domain_fixtures.zig");
+    try std.fs.cwd().makePath(directory);
+    var dir = try std.fs.cwd().openDir(directory, .{});
+    defer dir.close();
+    var header: std.ArrayList(u8) = .empty;
+    defer header.deinit(a);
+    const w = header.writer(a);
+    try w.writeAll("#pragma once\n#include <cuda_runtime.h>\n#include <cstdint>\n");
+    for (0..T.count) |i| {
+        try T.write(a, dir, @intCast(i));
+        try w.print("extern \"C\" __global__ void rv64_truth_domain_{}(const uint32_t*,const uint32_t*,const uint32_t*,const uint64_t*,const uint32_t*,const uint32_t*,const uint32_t*,uint32_t*,uint32_t,uint32_t,uint32_t,uint32_t);\n", .{i});
+    }
+    try w.print("constexpr uint32_t composition_case_count={};\nstatic const void *kernels[]={{", .{T.count});
+    for (0..T.count) |i| try w.print("{s}(void*)rv64_truth_domain_{}", .{ if (i == 0) "" else ",", i });
+    try w.writeAll("};\nstatic const uint32_t composition_groups[]={");
+    for (0..T.count) |i| {
+        var item = try T.record(a, @intCast(i));
+        defer item.artifact.deinit();
+        try w.print("{s}{}u", .{ if (i == 0) "" else ",", (item.artifact.program.roots.len + 31) / 32 });
+    }
+    try w.writeAll("};\n");
+    try dir.writeFile(.{ .sub_path = "composition_launches.h", .data = header.items });
 }

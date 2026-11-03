@@ -90,6 +90,7 @@ pub const Config = struct {
     }
 };
 pub const Endpoint = struct {
+    global_interaction: ?Worker.DeviceGlobal.Stage = null,
     device: u32,
     byte_cap: u64,
     pcs: D.Stage,
@@ -127,6 +128,15 @@ pub const Router = struct {
             for (endpoints[0..i]) |prior| if (prior.device == endpoint.device) return error.DuplicateResidentDevice;
         }
         return .{ .endpoints = endpoints, .planned_cpu_workers = cpu_workers, .scope_limit = scope_limit };
+    }
+    /// A new execution reuses the same physical endpoints only after every old
+    /// CPU scope has closed. Truth ordinals are relative to this exact CPU count.
+    pub fn replan(self: *Router, cpu_workers: usize) !void {
+        if (cpu_workers == 0 or cpu_workers > self.endpoints.len * self.scope_limit) return error.InvalidResidentPlan;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        for (self.records) |records| for (records) |record| if (record != null) return error.ResidentBlockStillActive;
+        self.planned_cpu_workers = cpu_workers;
     }
     pub fn deviceFor(self: *const Router, ordinal: u32) u32 {
         return self.endpoints[ordinal % self.endpoints.len].device;
@@ -203,6 +213,15 @@ pub const Router = struct {
     }
     pub fn traceStage(self: *Router) D.TraceCommitStage {
         return .{ .context = self, .commit = traceCommit };
+    }
+    pub fn globalStage(self: *Router) Worker.DeviceGlobal.Stage {
+        return .{ .context = self, .generate = globalWitness };
+    }
+    fn globalWitness(raw: *anyopaque, a: std.mem.Allocator, scope: D.Scope, item: Worker.DeviceGlobal.Item, shared: Worker.DeviceGlobal.Shared, budget: usize) !Worker.DeviceGlobal.Witness {
+        const self: *Router = @ptrCast(@alignCast(raw));
+        const index = try self.admit(scope, .retained);
+        const stage = self.endpoints[index].global_interaction orelse return error.ResidentGlobalStageRequired;
+        return stage.generate(stage.context, a, scope, item, shared, @min(budget, self.endpoints[index].byte_cap));
     }
     pub fn projectionStage(self: *Router) Source.ProjectionStage {
         return .{ .context = self, .project = projection };

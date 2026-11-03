@@ -54,11 +54,15 @@ pub const WorkerTiming = struct {
     completed_worker_retired: bool = false,
 };
 pub const Options = struct {
+    device_source_stage: ?Pipeline.DeviceSourceStage = null,
+    device_global_stage: ?CPU.DeviceGlobal.Stage = null,
     device_cpu_projection: ?@import("../../../word16_execution/cpu_source.zig").ProjectionStage = null,
     device_trace_commit_stage: ?*const @import("stwo_prover_api").device_pcs.TraceCommitStage = null,
     numerical_gkr_stage: ?*const @import("child.zig").NumericalStage = null,
     device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     /// Explicit opt-in until each truth geometry has real memory qualification.
+    truth_device_source_stage: ?@import("truth_device_source.zig").Stage = null,
+    truth_device_composition_stage: ?@import("truth_device_composition.zig").Stage = null,
     truth_device_pcs_stage: ?*const @import("stwo_prover_api").device_pcs.Stage = null,
     om31_composition_stage: ?*const CPU.CompositionStage = null,
     resident_composition_stage: ?*const CPU.ResidentCompositionStage = null,
@@ -87,6 +91,9 @@ pub const Options = struct {
     stage2_trace: []Schedule.Trace = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
+        if (self.truth_device_source_stage != null and (self.truth_device_pcs_stage == null or self.truth_device_composition_stage == null)) return error.DeviceTruthRequiresResidentStages;
+        if (self.device_global_stage != null and self.device_trace_commit_stage == null) return error.ResidentGlobalRequiresDeviceTrace;
+        if (self.device_source_stage != null and self.device_trace_commit_stage == null) return error.DeviceSourceRequiresDeviceTraceCommit;
         if (self.device_cpu_projection != null and self.device_trace_commit_stage == null) return error.DeviceProjectionRequiresDeviceTraceCommit;
         if (self.device_trace_commit_stage != null and (self.device_pcs_stage == null or self.numerical_gkr_stage == null or self.resident_composition_stage == null)) return error.DeviceTraceRequiresResidentStages;
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
@@ -210,6 +217,7 @@ const Run = struct {
                 // Observation only (lane rusage); never proof authority.
                 var scope = try @import("stwo_prover_api").stage_profile.StageScope.begin(if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index], "source_construction", "CPU witness source from native capture");
                 defer scope.end();
+                if (self.options.device_source_stage) |stage| break :blk try stage.invoke(self.a, .{ .setup = self.setups[index], .request = self.requests[index], .native = self.native[index], .advice = self.advice, .ordinal = index, .first_ids = self.inventory.first_ids[index], .scope = .{ .statement = self.inventory.workers[index].statement, .fixed = self.inventory.workers[index].fixed, .main = @splat(0), .ordinal = @intCast(index) } });
                 break :blk try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
             };
             if (timer) |*clock| timing.?.source_ns = clock.lap();
@@ -219,6 +227,7 @@ const Run = struct {
             owned = false;
             self.workers[index] = .{ .cpu = worker };
             self.workers[index].?.cpu.device_trace_commit_stage = if (self.options.device_trace_commit_stage) |stage| stage.* else null;
+            self.workers[index].?.cpu.device_global_stage = self.options.device_global_stage;
             self.workers[index].?.cpu.tree_policy = self.cpu_tree_policies[index];
             self.workers[index].?.cpu.defer_local_binding = self.options.defer_local_binding;
             self.workers[index].?.cpu.scheme.device_om31_pcs_stage = self.options.device_pcs_stage;
@@ -254,19 +263,33 @@ const Run = struct {
             if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
         } else {
             const truth = self.truths[index - self.setups.len];
-            var source = try R.TruthSource.init(self.a, truth, self.advice);
-            if (timer) |*clock| timing.?.source_ns = clock.lap();
-            var owned = true;
-            errdefer if (owned) source.deinit();
-            if (Execution.extendedTruth(truth)) {
-                self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+            if (self.options.truth_device_source_stage) |stage| {
+                var owner = try stage.prepare(stage.context, self.a, .{ .truth = truth, .advice = self.advice, .expected = self.inventory.workers[index], .config = self.config });
+                var owned = true;
+                errdefer if (owned) owner.deinit();
+                if (timer) |*clock| timing.?.source_ns = clock.lap();
+                if (Execution.extendedTruth(truth)) {
+                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                } else {
+                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initDeviceWithAuthority(self.a, truth, owner, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                }
+                owned = false;
             } else {
-                self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                var source = try R.TruthSource.init(self.a, truth, self.advice);
+                if (timer) |*clock| timing.?.source_ns = clock.lap();
+                var owned = true;
+                errdefer if (owned) source.deinit();
+                if (Execution.extendedTruth(truth)) {
+                    self.workers[index] = .{ .delegation = try @import("truth_v3_worker.zig").NativeTruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                } else {
+                    self.workers[index] = .{ .truth = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null) };
+                }
+                owned = false;
             }
-            owned = false;
             switch (self.workers[index].?) {
                 inline .truth, .delegation => |*worker| {
                     worker.scheme.device_om31_pcs_stage = self.options.truth_device_pcs_stage;
+                    worker.device_composition_stage = self.options.truth_device_composition_stage;
                     worker.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
                     self.stages[index] = try worker.seal(self.a);
                     if (timer) |*clock| {

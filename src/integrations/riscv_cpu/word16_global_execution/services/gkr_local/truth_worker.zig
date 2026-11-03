@@ -82,11 +82,13 @@ fn claimsResult(truth: R.Truth, claims: []const O) !Manifest.Claims {
 pub const TruthWorker = struct {
     allocator: std.mem.Allocator,
     truth: R.Truth,
-    source: R.TruthSource,
+    source: ?R.TruthSource,
+    device_source: ?@import("truth_device_source.zig").Owner = null,
     expected: Manifest.ExpectedWorker,
     scheme: W.Scheme,
     channel: W.Channel,
     owns_scheme: bool = true,
+    device_composition_stage: ?@import("truth_device_composition.zig").Stage = null,
     native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     owns_source: bool = true,
     sealed: bool = false,
@@ -106,27 +108,44 @@ pub const TruthWorker = struct {
         scheme.setCompactPolynomialStorage(5);
         return .{ .allocator = a, .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null };
     }
+    pub fn initDeviceWithAuthority(a: std.mem.Allocator, truth: R.Truth, owner: @import("truth_device_source.zig").Owner, expected: Manifest.ExpectedWorker, config: W.PcsConfig, budget: usize, fixed: ?*const Fixed.Binding) !TruthWorker {
+        if (fixed) |binding| try binding.require(truth.key(), config) else try W.validateConfig(config);
+        try validateExpected(truth, expected, fixed);
+        try admit(try expectedFrames(truth), budget);
+        var scheme = try W.Scheme.init(a, config);
+        scheme.setCompactPolynomialStorage(5);
+        return .{ .allocator = a, .truth = truth, .source = null, .owns_source = false, .device_source = owner, .expected = expected, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null };
+    }
     pub fn deinit(self: *TruthWorker, a: std.mem.Allocator) void {
         if (self.owns_scheme) self.scheme.deinit(a);
-        if (self.owns_source) self.source.deinit();
+        if (self.owns_source) if (self.source) |*source| source.deinit();
+        if (self.device_source) |*owner| owner.deinit();
         if (self.fixed_authority) |*binding| binding.deinit();
         self.* = undefined;
     }
     /// Host custody only. Store lifetime must cover this worker and its proof.
     pub fn spillMain(self: *TruthWorker, store: *@import("../../retained_main_store.zig").Store) !usize {
         if (!self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
+        if (self.scheme.device_om31_trace_trees[1] != null) return 0;
         return store.spill(self.allocator, &self.scheme.trees.items[1]);
     }
     pub fn restoreMain(self: *TruthWorker, store: *@import("../../retained_main_store.zig").Store) !usize {
         if (!self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
+        if (self.scheme.device_om31_trace_trees[1] != null) return 0;
         return store.restore(&self.scheme.trees.items[1]);
     }
     pub fn seal(self: *TruthWorker, a: std.mem.Allocator) !Manifest.StageOne {
         if (self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
         errdefer self.failed = true;
         if (self.fixed_authority) |*binding| try binding.append(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel) else try W.appendFixed(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel);
-        const main = try self.source.takeMain();
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
+        if (self.device_source) |*owner| {
+            if (self.scheme.device_om31_pcs_stage == null or self.device_composition_stage == null) return error.DeviceTruthRequiresResidentStages;
+            const main = try @import("truth_device_source.zig").seal(owner, a, &self.scheme, self.expected);
+            try self.scheme.adoptDeviceOm31TraceTree(1, main, &self.channel);
+        } else {
+            const main = try self.source.?.takeMain();
+            try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
+        }
         var roots = try self.scheme.roots(a);
         defer roots.deinit(a);
         if (roots.items.len != 2) return error.WideTruthRoots;
@@ -148,41 +167,64 @@ pub const TruthWorker = struct {
         var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Truth local and global classic interactions");
         defer generation.end();
         const local = TF.ChallengesFor(O).draw(&self.channel);
-        const metadata = try Metadata.Provider.initClassic(&self.source, frames);
-        var gm = try GM.Provider.init(a, &self.source, global_budget);
-        defer gm.deinit();
         var locals: [3]Classic.Witness = undefined;
         var done: usize = 0;
         defer for (locals[0..done]) |*v| v.deinit();
-        for (frames, &locals) |frame, *v| {
-            v.* = try Local.generate(a, &metadata, frame, &local, global_budget);
-            done += 1;
-        }
         var globals: [2]Classic.Witness = undefined;
         var gd: usize = 0;
         defer for (globals[0..gd]) |*v| v.deinit();
-        const gch = GW.Challenges{ .io = pending.shared.kio, .wire = pending.shared.wire };
-        globals[0] = try GW.generate(a, &gm, frames[0].role, &gch, global_budget);
-        gd = 1;
-        if (self.truth == .secp) {
-            globals[1] = try GW.generate(a, &gm, frames[1].role, &gch, global_budget);
-            gd = 2;
-        }
-        generation.end();
-        const claims = try a.alloc(O, 5);
+        var device_inter: ?@import("stwo_prover_api").device_pcs.Tree = null;
+        const claims: []O = if (self.device_source) |*owner| block: {
+            const result = try owner.generate_interactions(owner.context, a, .{ .classic = local }, pending.shared);
+            if (result.claims.len != 5) {
+                a.free(result.claims);
+                return error.InvalidWideTruthClaims;
+            }
+            device_inter = result.tree;
+            break :block result.claims;
+        } else block: {
+            const metadata = try Metadata.Provider.initClassic(&self.source.?, frames);
+            var gm = try GM.Provider.init(a, &self.source.?, global_budget);
+            defer gm.deinit();
+            for (frames, &locals) |frame, *v| {
+                v.* = try Local.generate(a, &metadata, frame, &local, global_budget);
+                done += 1;
+            }
+            const gch = GW.Challenges{ .io = pending.shared.kio, .wire = pending.shared.wire };
+            globals[0] = try GW.generate(a, &gm, frames[0].role, &gch, global_budget);
+            gd = 1;
+            if (self.truth == .secp) {
+                globals[1] = try GW.generate(a, &gm, frames[1].role, &gch, global_budget);
+                gd = 2;
+            }
+            const values = try a.alloc(O, 5);
+            for (locals, 0..) |v, i| values[i] = v.claims[0];
+            values[3] = globals[0].claims[0];
+            values[4] = if (gd == 2) globals[1].claims[0] else O.zero();
+            break :block values;
+        };
         errdefer a.free(claims);
-        for (locals, 0..) |v, i| claims[i] = v.claims[0];
-        claims[3] = globals[0].claims[0];
-        claims[4] = if (gd == 2) globals[1].claims[0] else O.zero();
+        generation.end();
         var components = try Components.init(self.truth, local, pending.shared, claims);
         W.mixManifestAndClaims(&self.channel, pending.digest, claims);
-        const inter = try take(a, &locals, globals[0..gd]);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, self.native_recorder, &self.channel);
+        if (device_inter) |tree| try self.scheme.adoptDeviceOm31TraceTree(2, tree, &self.channel) else {
+            const inter = try take(a, &locals, globals[0..gd]);
+            try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, self.native_recorder, &self.channel);
+        }
+        var invocation: @import("truth_device_composition.zig").Invocation = undefined;
+        var resident_stage: @import("stwo_prover_api").device_composition.ResidentOm31Stage = undefined;
+        if (self.device_composition_stage) |selected| {
+            if (self.scheme.device_om31_pcs_stage == null) return error.TruthResidentPcsRequired;
+            invocation = .{ .stage = selected, .roles = .{ .classic = &components.items }, .scope = self.scheme.device_om31_scope orelse return error.TruthResidentScopeRequired };
+            resident_stage = invocation.adapter();
+            self.scheme.device_om31_composition_stage = &resident_stage;
+        }
         self.owns_scheme = false;
         var proof = try W.Prover.prove(a, &components.provers(), &self.channel, self.scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         const bytes = try W.encodePhysical(a, proof.proof);
-        self.source.deinit();
+        if (self.source) |*source| source.deinit();
+        self.source = null;
         self.owns_source = false;
         return .{ .bytes = bytes, .claims = claims };
     }

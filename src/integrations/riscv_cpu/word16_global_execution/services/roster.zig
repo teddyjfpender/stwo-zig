@@ -272,6 +272,7 @@ pub const CpuSetup = struct {
     }
 };
 pub const Sources = struct {
+    device_main: ?@import("device_main.zig").Owner = null,
     core: Core.Source,
     keccak: ?K.source.Source = null,
     add: ?S.source.Source = null,
@@ -289,6 +290,8 @@ pub const Sources = struct {
     /// Zbb BINARY truth provider (FUNCTION ids 19..24 of this CPU proof).
     zbb: ?BS.Source = null,
     pub fn deinit(self: *Sources) void {
+        if (self.device_main) |*owner| owner.release();
+        self.device_main = null;
         if (self.zbb) |*s| s.deinit();
         for (&self.ls_dword) |*b| if (b.*) |*s| s.deinit();
         for (&self.sponge) |*b| if (b.*) |*s| s.deinit();
@@ -383,6 +386,12 @@ pub const Sources = struct {
         return out;
     }
     pub fn mainTraceColumns(self: *const Sources, a: std.mem.Allocator, setup: *const CpuSetup) ![]@import("stwo_prover_api").device_pcs.TraceColumn {
+        if (self.device_main) |owner| {
+            const logs = try setup.logs(a, 1);
+            defer a.free(logs);
+            try owner.validate(owner.scope, logs);
+            return a.dupe(@import("stwo_prover_api").device_pcs.TraceColumn, owner.columns);
+        }
         const tree = 1;
         const old = try self.core.mainTraceColumns(a);
         defer a.free(old);
@@ -464,6 +473,14 @@ pub const Sources = struct {
         if (self.zbb) |*s| try mergeAnd(&self.core, s.and_counts);
     }
     pub fn releaseMain(self: *Sources) !void {
+        if (self.device_main) |*owner| {
+            owner.release();
+            self.device_main = null;
+            // CPU37 may retain its own disjoint formatter lease. Other roles
+            // are headers only: no dummy host matrices exist to release.
+            self.core.cpu.releaseMain();
+            return;
+        }
         try self.core.releaseMain();
         if (self.keccak) |*s| s.releaseMain();
         if (self.add) |*s| s.releaseMain();

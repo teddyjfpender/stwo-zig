@@ -1,6 +1,11 @@
 //! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
 
+pub const rv64_family_input = @import("word16_execution/family_input.zig");
+pub const rv64_device_main = @import("word16_global_execution/services/device_main.zig");
+pub const rv64_device_source_stage = @import("word16_global_execution/services/pipeline.zig").DeviceSourceStage;
 const std = @import("std");
+pub const rv64_gkr_truth_device_source = @import("word16_global_execution/services/gkr_local/truth_device_source.zig");
+pub const rv64_gkr_truth_device_composition = @import("word16_global_execution/services/gkr_local/truth_device_composition.zig");
 pub const rv64_device_pcs = @import("stwo_prover_api").device_pcs;
 pub const rv64_cpu_source = @import("word16_execution/cpu_source.zig");
 pub const rv64_gkr_child = @import("word16_global_execution/services/gkr_local/child.zig");

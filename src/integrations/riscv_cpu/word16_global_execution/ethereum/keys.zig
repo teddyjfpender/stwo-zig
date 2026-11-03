@@ -14,7 +14,10 @@ const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
+const owner_fields = .{ "cpu_owners", "keccak_owners", "secp_owners", "sha256_owners", "arith256_owners", "curve_owners", "secp_row_owners" };
 pub const Owner = struct {
+    /// Shared immutable prefixes remain owned by the sequential resident session.
+    borrowed_prefix: [7]usize = @splat(0),
     allocator: std.mem.Allocator,
     cpus: []*const R.CpuSetup,
     truths: []R.Truth,
@@ -46,9 +49,14 @@ pub const Owner = struct {
         return initWithSuiteAndCaches(a, image, cpu, truth, retire, suite, .{ .native = cache });
     }
     pub fn initWithSuiteAndCaches(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
-        return initPolicy(a, image, cpu, truth, retire, suite, caches);
+        return initPolicy(a, image, cpu, truth, retire, suite, caches, null);
     }
-    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
+    /// The caller independently binds shared to the authenticated program and
+    /// suite, serializes requests, and keeps its allocator alive through teardown.
+    pub fn initWithSharedCache(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, suite: Suite, caches: ImmutableCaches, shared: *Owner) !Owner {
+        return initPolicy(a, image, cpu, truth, true, suite, caches, shared);
+    }
+    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches, shared: ?*Owner) !Owner {
         try suite.validate();
         const cpus = try a.alloc(*const R.CpuSetup, cpu.len);
         const truths = a.alloc(R.Truth, truth.len) catch |err| {
@@ -57,6 +65,10 @@ pub const Owner = struct {
         };
         var self = Owner{ .allocator = a, .cpus = cpus, .truths = truths };
         errdefer self.deinit();
+        if (shared) |cached| inline for (owner_fields, 0..) |name, index| {
+            try @field(self, name).appendSlice(a, @field(cached, name).items);
+            self.borrowed_prefix[index] = @field(self, name).items.len;
+        };
         for (cpu, cpus) |d, *out| {
             var found: ?*const R.CpuSetup = null;
             for (self.cpu_owners.items) |s| if (std.meta.eql(s.materials.geometry, d.geometry) and std.meta.eql(s.bridges, d.bridges)) {
@@ -181,38 +193,51 @@ pub const Owner = struct {
                 out.* = .{ .curve = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
             },
         };
+        if (shared) |cached| {
+            // Reserve every list before transferring any newly constructed owner.
+            // Failure leaves both original cache and request cleanup ownership intact.
+            inline for (owner_fields, 0..) |name, index| {
+                const count = @field(self, name).items.len - self.borrowed_prefix[index];
+                try @field(cached, name).ensureUnusedCapacity(a, count);
+            }
+            inline for (owner_fields, 0..) |name, index| {
+                const list = &@field(self, name);
+                @field(cached, name).appendSliceAssumeCapacity(list.items[self.borrowed_prefix[index]..]);
+                self.borrowed_prefix[index] = list.items.len;
+            }
+        }
         return self;
     }
     pub fn deinit(self: *Owner) void {
         const a = self.allocator;
-        for (self.cpu_owners.items) |s| {
+        for (self.cpu_owners.items[self.borrowed_prefix[0]..]) |s| {
             s.deinit();
             a.destroy(s);
         }
-        for (self.keccak_owners.items) |s| {
+        for (self.keccak_owners.items[self.borrowed_prefix[1]..]) |s| {
             s.deinit();
             a.destroy(s);
         }
-        for (self.secp_owners.items) |s| {
+        for (self.secp_owners.items[self.borrowed_prefix[2]..]) |s| {
             s.deinit();
             a.destroy(s);
         }
-        for (self.sha256_owners.items) |s| {
+        for (self.sha256_owners.items[self.borrowed_prefix[3]..]) |s| {
             s.deinit();
             a.destroy(s);
         }
         self.sha256_owners.deinit(a);
-        for (self.arith256_owners.items) |s| {
+        for (self.arith256_owners.items[self.borrowed_prefix[4]..]) |s| {
             s.deinit();
             a.destroy(s);
         }
         self.arith256_owners.deinit(a);
-        for (self.curve_owners.items) |s| {
+        for (self.curve_owners.items[self.borrowed_prefix[5]..]) |s| {
             s.deinit();
             a.destroy(s);
         }
         self.curve_owners.deinit(a);
-        for (self.secp_row_owners.items) |s| {
+        for (self.secp_row_owners.items[self.borrowed_prefix[6]..]) |s| {
             s.deinit();
             a.destroy(s);
         }

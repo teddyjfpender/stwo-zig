@@ -3,6 +3,7 @@
 #include "pcs_pipeline.cuh"
 #include "om31.cuh"
 #include "runtime/context_options.h"
+#include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <cstring>
@@ -74,6 +75,7 @@ struct ResidentOwner {
   struct Leased {
     StwoRv64GpuLease value;
     Scope scope;
+    std::vector<Scope> immutable_scopes;
   };
   struct Domain {
     uint32_t log;
@@ -184,7 +186,9 @@ struct ResidentOwner {
       throw std::runtime_error("device lease overflow");
     for (const auto &record : leases) {
       const uintptr_t base = reinterpret_cast<uintptr_t>(record.value.words);
-      if (record.value.generation == generation && record.scope == scope &&
+      if (record.value.generation == generation &&
+          (record.scope == scope || (record.value.kind == 4 &&
+            std::find(record.immutable_scopes.begin(), record.immutable_scopes.end(), scope) != record.immutable_scopes.end())) &&
           begin >= base && begin + words * 4 <= base + record.value.count * 4)
         return record;
     }
@@ -201,7 +205,7 @@ struct ResidentOwner {
       throw std::runtime_error("unsupported device column encoding");
     const auto &record = find(source.data(), source.size(), source.token,
                               source.generation, scope_of(scope));
-    if (record.value.kind != 2)
+    if (record.value.kind != 2 && record.value.kind != 4)
       throw std::runtime_error("device column is not coefficient storage");
     CHECK(stwo_exec_context_memcpy_d2d_async(ctx, destination.words,
                                              source.data(), source.size() * 4));
@@ -238,14 +242,14 @@ struct ResidentOwner {
     return result;
   }
   StwoRv64GpuLease lease(uint64_t words, uint32_t kind, const Scope &scope) {
-    if (kind > 3 || (kind && !nonzero(scope)))
+    if (kind > 4 || (kind && !nonzero(scope)))
       throw std::runtime_error("invalid device lease namespace");
     auto *ptr = allocate(words);
     const uint64_t generation = next_generation.fetch_add(1);
     if (!generation)
       throw std::runtime_error("device lease generation exhausted");
     StwoRv64GpuLease value{token, generation, ptr, words, kind, 0};
-    leases.push_back({value, scope});
+    leases.push_back({value, scope, {}});
     return value;
   }
   void release(StwoRv64GpuLease &lease) {
@@ -256,6 +260,8 @@ struct ResidentOwner {
           value.generation == lease.generation && value.words == lease.words &&
           value.count == lease.count && value.kind == lease.kind &&
           !lease.reserved) {
+        if (value.kind == 4 && !leases[i].immutable_scopes.empty())
+          throw std::runtime_error("immutable setup still borrowed by a request");
         CHECK(stwo_exec_context_free_u32(ctx, value.words));
         retained -= value.count * 4;
         leases.erase(leases.begin() + i);
@@ -567,4 +573,47 @@ extern "C" int stwo_rv64_gpu_lease_release(void *raw, StwoRv64GpuLease *lease) {
     s.error = e.what();
     return int(cudaErrorInvalidValue);
   }
+}
+
+// Immutable leases retain their setup namespace; request aliases are read-only
+// custody permissions and never transfer ownership of the underlying allocation.
+extern "C" int stwo_rv64_gpu_immutable_bind(void *raw, const StwoRv64GpuLease *lease,
+ const uint32_t setup[8], const uint32_t request_scope[8]) {
+ if (!raw || !lease || !setup || !request_scope) return int(cudaErrorInvalidValue);
+ auto &s = *static_cast<Service *>(raw);
+ if (!s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+ try {
+  const Scope key=scope_of(setup), scope=scope_of(request_scope);
+  if (!nonzero(scope) || lease->kind != 4 || lease->reserved) throw std::runtime_error("invalid immutable lease alias");
+  const auto &found=s.owner->find(lease->words,lease->count,lease->context_token,lease->generation,key);
+  if(found.scope != key || found.value.words != lease->words || found.value.count != lease->count || found.value.kind !=4)
+   throw std::runtime_error("immutable lease identity mismatch");
+  for(auto &record:s.owner->leases) if(record.value.generation==lease->generation) {
+   if(std::find(record.immutable_scopes.begin(),record.immutable_scopes.end(),scope)==record.immutable_scopes.end()) {
+    if(record.immutable_scopes.size()>=256) throw std::runtime_error("immutable request alias limit");
+    record.immutable_scopes.push_back(scope);
+   }
+   return 0;
+  }
+  throw std::runtime_error("stale immutable lease");
+ } catch(const std::exception &e) {s.error=e.what();return int(cudaErrorInvalidValue);}
+}
+extern "C" int stwo_rv64_gpu_immutable_unbind_scope(void *raw,const uint32_t scope_words[8]) {
+ if(!raw || !scope_words) return int(cudaErrorInvalidValue);
+ auto &s=*static_cast<Service *>(raw);
+ if(!s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+ const Scope scope=scope_of(scope_words);
+ for(auto &record:s.owner->leases) {
+  auto &aliases=record.immutable_scopes;
+  aliases.erase(std::remove(aliases.begin(),aliases.end(),scope),aliases.end());
+ }
+ return 0;
+}
+extern "C" int stwo_rv64_gpu_session_live_leases(void *raw,uint64_t counts[5],uint64_t *bytes) {
+ if(!raw || !counts || !bytes) return int(cudaErrorInvalidValue);
+ auto &s=*static_cast<Service *>(raw);
+ if(!s.isOwner()) return int(cudaErrorInvalidResourceHandle);
+ std::fill(counts,counts+5,0);*bytes=0;
+ for(const auto &record:s.owner->leases) {++counts[record.value.kind];*bytes+=record.value.count*4;}
+ return 0;
 }

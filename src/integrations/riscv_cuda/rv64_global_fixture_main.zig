@@ -134,10 +134,12 @@ fn fixture(dir: std.fs.Dir, descriptor: G.Source.Descriptor, id: u32) !void {
 pub fn main() !void {
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
-    if (args.len != 2) return error.ExpectedOutputDirectory;
+    const catalog_only = args.len == 3 and std.mem.eql(u8, args[2], "--catalog");
+    if (args.len != 2 and !catalog_only) return error.ExpectedOutputDirectory;
     try std.fs.cwd().makePath(args[1]);
     var dir = try std.fs.cwd().openDir(args[1], .{});
     defer dir.close();
+    if (catalog_only) return @import("rv64/global_aot.zig").emit(a, dir);
     var header: std.ArrayList(u8) = .empty;
     defer header.deinit(a);
     const w = header.writer(a);

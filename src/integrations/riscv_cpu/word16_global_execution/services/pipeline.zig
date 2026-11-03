@@ -17,6 +17,31 @@ const Advice = @import("collector.zig").Advice;
 const Cell = A.memory.closed_ram.types.Cell;
 const T = @import("types.zig");
 const LsEvent = A.memory.load_store_v2.native.Event;
+/// Backend-owned all-family source construction. The callback consumes only
+/// compact capture/advice, never an already materialized host MAIN.
+pub const DeviceSourceStage = struct {
+    pub const Request = struct {
+        setup: *const R.CpuSetup,
+        request: P.Request,
+        native: *Native,
+        advice: *const Advice,
+        ordinal: usize,
+        first_ids: [T.FAMILIES]u32,
+        scope: @import("stwo_prover_api").device_pcs.Scope,
+    };
+    context: *anyopaque,
+    build: *const fn (*anyopaque, std.mem.Allocator, Request) anyerror!R.Sources,
+    pub fn invoke(self: DeviceSourceStage, a: std.mem.Allocator, request: Request) !R.Sources {
+        if (request.scope.ordinal != request.ordinal or !std.mem.allEqual(u8, &request.scope.main, 0)) return error.InvalidDeviceSourceScope;
+        var source = try self.build(self.context, a, request);
+        errdefer source.deinit();
+        const owner = source.device_main orelse return error.FullDeviceMainRequired;
+        const logs = try request.setup.logs(a, 1);
+        defer a.free(logs);
+        try owner.validate(request.scope, logs);
+        return source;
+    }
+};
 pub fn dwordCount(events: []const LsEvent) u32 {
     var n: u32 = 0;
     for (events) |e| n += @intFromBool(T.isDwordEvent(e));

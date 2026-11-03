@@ -228,6 +228,9 @@ pub fn build(b: *std.Build) void {
     hybrid_root.addImport("stwo_riscv_frontend", frontend);
     const hybrid = b.addExecutable(.{ .name = "rv64-word16-ethereum-gpu", .root_module = hybrid_root });
     hybrid.linkLibC();
+    const resident_check = b.addExecutable(.{ .name = "rv64-ethereum-resident-check", .root_module = hybrid_root });
+    resident_check.linkLibC();
+    b.step("check-rv64-ethereum-gpu", "Type-check the production GPU route without emitting a binary").dependOn(&resident_check.step);
     b.step("build-rv64-ethereum-gpu", "Build real Ethereum hybrid producer with explicit GPU PCS offload").dependOn(&b.addInstallArtifact(hybrid, .{}).step);
     binding_root.addImport("stwo_cuda_backend", backend);
     binding_root.addImport("stwo_riscv_frontend", frontend);

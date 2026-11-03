@@ -7,7 +7,13 @@ const Export = @import("pcs_request_export.zig");
 const Decode = @import("hybrid_pcs.zig");
 const CachedColumn = struct { host: usize, tree: u32, column: usize, count: usize, log: u32, device: D.DeviceCoefficients };
 const Cached = struct { scope: [8]u32, lease: Abi.Lease, columns: []CachedColumn, in_use: bool = false, extra: std.ArrayList(Abi.Lease) = .empty };
+pub const BlockBudget = struct { device_bytes: u64, immutable_bytes: u64, max_scopes: usize };
+const Setup = @import("immutable_setup.zig");
+const LiveLeases = *const fn (*anyopaque, *[5]u64, *u64) callconv(.c) c_int;
 pub const Context = struct {
+    byte_cap: u64,
+    immutable_setup: ?*Setup.Cache = null,
+    active_block: ?[32]u8 = null,
     cache_mutex: std.Thread.Mutex = .{},
     /// Count admission is separate from the native byte cap. Required device
     /// trees cannot be evicted across the global challenge barrier.
@@ -24,6 +30,83 @@ pub const Context = struct {
     lease_validate: Abi.LeaseValidate,
     lease_validate_range: Abi.LeaseValidateRange,
     lease_release: Abi.LeaseRelease,
+    pub fn enableImmutableSetup(self: *Context, bytes: u64) !void {
+        if (bytes == 0 or bytes > self.byte_cap) return error.InvalidImmutableSetupBudget;
+        if (self.immutable_setup) |cache| {
+            if (cache.limit != bytes) return error.ImmutableSetupBudgetChanged;
+            return;
+        }
+        const cache = try std.heap.page_allocator.create(Setup.Cache);
+        errdefer std.heap.page_allocator.destroy(cache);
+        cache.* = try Setup.Cache.init(&self.library, self.session, self.lease_allocate, self.lease_release, bytes);
+        self.immutable_setup = cache;
+    }
+    /// Owner-thread callback: constants stay immutable; this request borrows a
+    /// scoped alias. The cache owns the returned lease, never the caller.
+    pub fn immutableWords(self: *Context, native_context: *anyopaque, scope: [8]u32, key: [8]u32, words: []const u32) !Abi.Lease {
+        if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 256 << 20));
+        return self.immutable_setup.?.words(native_context, scope, key, words);
+    }
+    /// Owner-thread cold lookup avoids rebuilding authenticated constant words.
+    pub fn immutableLookup(self: *Context, scope: [8]u32, key: [8]u32, count: u64) !?Abi.Lease {
+        const cache = self.immutable_setup orelse return null;
+        return cache.lookup(scope, key, count);
+    }
+    pub fn releaseImmutableScope(self: *Context, scope: [8]u32) !void {
+        if (self.immutable_setup) |cache| try cache.releaseScope(scope);
+    }
+    pub fn immutableFixedColumn(self: *Context, scope: D.Scope, index: usize, original: D.Column) !?D.DeviceCoefficients {
+        const cache = self.immutable_setup orelse return null;
+        return cache.fixedColumn(scope, index, original);
+    }
+    pub fn provideFixed(raw: *anyopaque, native_context: *anyopaque, scope: D.Scope, columns: []const D.Column) ![]const D.Column {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        return self.immutableFixed(native_context, scope, columns);
+    }
+    pub fn immutableFixed(self: *Context, native_context: *anyopaque, scope: D.Scope, columns: []const D.Column) ![]const D.Column {
+        if (self.immutable_setup == null) try self.enableImmutableSetup(@min(self.byte_cap, 256 << 20));
+        return self.immutable_setup.?.fixed(native_context, scope, columns);
+    }
+    pub fn beginBlock(self: *Context, identity: [32]u8, budget: BlockBudget) !void {
+        if (self.active_block != null or self.cache.items.len != 0) return error.ResidentBlockStillActive;
+        if (budget.device_bytes != self.byte_cap) return error.ResidentDeviceBudgetChanged;
+        try self.enableImmutableSetup(budget.immutable_bytes);
+        try self.configureRetention(budget.max_scopes);
+        try self.requireNoRequestLeases();
+        self.active_block = identity;
+    }
+    pub fn endBlock(self: *Context, identity: [32]u8) !void {
+        if (self.active_block == null or !std.mem.eql(u8, &self.active_block.?, &identity)) return error.ResidentBlockIdentityMismatch;
+        if (self.cache.items.len != 0) return error.ResidentBlockStillActive;
+        try self.requireNoRequestLeases();
+        self.active_block = null;
+    }
+    const Audit = struct {
+        self: *Context,
+        failure: ?anyerror = null,
+        fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
+            const job: *@This() = @ptrCast(@alignCast(raw.?));
+            const query = job.self.library.lookup(LiveLeases, "stwo_rv64_gpu_session_live_leases") orelse {
+                job.failure = error.MissingImmutableSetupCapability;
+                return 1;
+            };
+            var counts: [5]u64 = @splat(0);
+            var bytes: u64 = 0;
+            if (query(job.self.session, &counts, &bytes) != 0 or counts[0] != 0 or counts[1] != 0 or counts[2] != 0 or counts[3] != 0) {
+                job.failure = error.ResidentRequestLeasesStillLive;
+                return 1;
+            }
+            if (job.self.immutable_setup) |cache| if (cache.borrows.items.len != 0) {
+                job.failure = error.ImmutableSetupStillBorrowed;
+                return 1;
+            };
+            return 0;
+        }
+    };
+    fn requireNoRequestLeases(self: *Context) !void {
+        var audit = Audit{ .self = self };
+        if (self.submit(self.session, Audit.run, &audit) != 0) return audit.failure orelse error.ResidentSessionAuditFailed;
+    }
     /// Called on the native owner thread. Ownership transfers only on success;
     /// metadata is copied, coefficient buffers remain entirely on device.
     pub fn publishCoefficients(raw: *anyopaque, scope: [8]u32, lease: Abi.Lease, fixed: []const D.Column, main: []const D.Column, offsets: []const usize) !void {
@@ -105,26 +188,31 @@ pub const Context = struct {
         const entry: ?Cached = if (index) |i| self.cache.swapRemove(i) else null;
         self.cache_mutex.unlock();
         if (entry) |cached| {
-            var release_job = ReleaseJob{ .self = self, .lease = cached.lease, .extra = cached.extra.items };
+            var release_job = ReleaseJob{ .self = self, .scope = scope, .lease = cached.lease, .extra = cached.extra.items };
             _ = self.submit(self.session, ReleaseJob.run, &release_job);
             // A poisoned context is terminal; destroy still owns any lease
             // that could not be released by the owner-thread callback.
             var extra = cached.extra;
             extra.deinit(std.heap.page_allocator);
             std.heap.page_allocator.free(cached.columns);
+        } else if (self.immutable_setup != null) {
+            var release_job = ReleaseJob{ .self = self, .scope = scope, .lease = null, .extra = &.{} };
+            _ = self.submit(self.session, ReleaseJob.run, &release_job);
         }
     }
     const ReleaseJob = struct {
         self: *Context,
-        lease: Abi.Lease,
+        scope: [8]u32,
+        lease: ?Abi.Lease,
         extra: []const Abi.Lease,
         fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
             const job: *@This() = @ptrCast(@alignCast(raw.?));
-            if (job.self.lease_release(job.self.session, &job.lease) != 0) return 1;
+            if (job.lease) |*lease| if (job.self.lease_release(job.self.session, lease) != 0) return 1;
             for (job.extra) |lease| {
                 var owned = lease;
                 if (job.self.lease_release(job.self.session, &owned) != 0) return 1;
             }
+            if (job.self.immutable_setup) |cache| cache.releaseScope(job.scope) catch return 1;
             return 0;
         }
     };
@@ -143,15 +231,30 @@ pub const Context = struct {
         const lease_release = library.lookup(Abi.LeaseRelease, "stwo_rv64_gpu_lease_release") orelse return error.MissingGpuPcsSymbol;
         var session: ?*anyopaque = null;
         if (create(device, capacity, &session) != 0 or session == null) return error.GpuPcsInitializationFailed;
-        return .{ .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
+        return .{ .byte_cap = capacity, .library = library, .session = session.?, .native_prove = native_prove, .release = release, .destroy = destroy, .last_error = last_error, .submit = submit, .lease_allocate = lease_allocate, .lease_validate = lease_validate, .lease_validate_range = lease_validate_range, .lease_release = lease_release };
     }
     pub fn deinit(self: *Context) void {
         while (self.cache.items.len != 0) self.releaseScope(self.cache.items[self.cache.items.len - 1].scope);
         self.cache.deinit(std.heap.page_allocator);
+        if (self.immutable_setup) |cache| {
+            var cleanup = SetupCleanup{ .self = self, .cache = cache };
+            _ = self.submit(self.session, SetupCleanup.run, &cleanup);
+            std.heap.page_allocator.destroy(cache);
+        }
         if (self.destroy(self.session) != 0) @panic("GPU context failed to join before library close");
         self.library.close();
         self.* = undefined;
     }
+    const SetupCleanup = struct {
+        self: *Context,
+        cache: *Setup.Cache,
+        fn run(_: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
+            const job: *@This() = @ptrCast(@alignCast(raw.?));
+            while (job.cache.borrows.items.len != 0) job.cache.releaseScope(job.cache.borrows.items[0].scope) catch return 1;
+            job.cache.deinit() catch return 1;
+            return 0;
+        }
+    };
     pub fn configureRetention(self: *Context, limit: usize) !void {
         if (limit == 0 or limit > 64) return error.InvalidRetainedScopeLimit;
         self.cache_mutex.lock();
@@ -162,6 +265,21 @@ pub const Context = struct {
     pub fn stage(self: *Context) D.Stage {
         return .{ .context = self, .prove = prove };
     }
+    const FixedJob = struct {
+        self: *Context,
+        scope: D.Scope,
+        columns: []const D.Column,
+        result: ?[]const D.Column = null,
+        failure: ?anyerror = null,
+        fn run(native_context: *anyopaque, _: u64, raw: ?*anyopaque) callconv(.c) c_int {
+            const job: *@This() = @ptrCast(@alignCast(raw.?));
+            job.result = job.self.immutableFixed(native_context, job.scope, job.columns) catch |err| {
+                job.failure = err;
+                return 1;
+            };
+            return 0;
+        }
+    };
     fn prove(raw: *anyopaque, a: std.mem.Allocator, request: D.Request, channel: *D.Channel) !D.P.ExtendedCommitmentSchemeProof(D.H) {
         const self: *Context = @ptrCast(@alignCast(raw));
         var timer = try std.time.Timer.start();
@@ -177,6 +295,11 @@ pub const Context = struct {
             const columns = try a.dupe(D.Column, tree.columns);
             replacement.columns = columns;
             made += 1;
+            if (tree_index == 0 and self.immutable_setup != null) {
+                var fixed_job = FixedJob{ .self = self, .scope = request.scope orelse return error.MissingResidentScope, .columns = tree.columns };
+                if (self.submit(self.session, FixedJob.run, &fixed_job) != 0) return fixed_job.failure orelse error.ImmutableSetupUploadFailed;
+                @memcpy(columns, fixed_job.result orelse return error.InvalidImmutableFixedSource);
+            }
             for (columns, 0..) |*column, column_index| if (column.device == null) {
                 if (self.retainedColumn(scope, @intCast(tree_index), column_index, column.*)) |device| {
                     column.device = device;

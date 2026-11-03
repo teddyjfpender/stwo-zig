@@ -25,7 +25,12 @@ def main():
     p.add_argument("--arch", choices=["89", "90", "100", "120"], default="120")
     p.add_argument("--jobs", type=int, default=4)
     p.add_argument("--domain", action="store_true", help="Qualify base-field domain kernels instead of secure OODS kernels")
+    p.add_argument("--build-only", action="store_true", help="Compile/link cached kernels without running GPU checks")
+    p.add_argument("--gates", default="normal,memcheck,racecheck,initcheck,synccheck", help="Comma-separated checks; normal is required")
     args = p.parse_args()
+    gates=args.gates.split(",")
+    if len(set(gates)) != len(gates) or "normal" not in gates or any(x not in ("normal","memcheck","racecheck","initcheck","synccheck") for x in gates):
+        p.error("gates must include normal and only supported NVIDIA checks")
     if args.jobs < 1 or args.jobs > 16:
         p.error("--jobs must be between 1 and 16")
     root, fixtures, build = args.source_root.resolve(), args.fixtures.resolve(), args.build.resolve()
@@ -88,9 +93,14 @@ def main():
     with (logs / "link.log").open("w") as log:
         subprocess.run([args.nvcc, *flags, str(driver), *(r["object"] for r in results), str(args.context_object.resolve()), "-ldl", "-o", str(binary)], check=True, stdout=log, stderr=subprocess.STDOUT)
     build_seconds = time.monotonic() - started
+    if args.build_only:
+        receipt={"schema":"rv64-cuda-domain-build/v1","evaluation":"domain" if args.domain else "oods","full_block_verified":False,"qualified":False,"build_seconds":build_seconds,"objects":results,"binary":str(binary),"gates":{}}
+        (build/"build.json").write_text(json.dumps(receipt,indent=2)+"\n")
+        print(json.dumps({"compiled":str(binary),"qualified":False}),flush=True)
+        return
     commands = [("normal", [str(binary), str(fixtures)])]
     commands += [(tool, [args.sanitizer, "--tool", tool, "--error-exitcode", "99", str(binary), str(fixtures)])
-                 for tool in ("memcheck", "racecheck", "initcheck", "synccheck")]
+                 for tool in ("memcheck", "racecheck", "initcheck", "synccheck") if tool in gates]
     for name, command in commands:
         with (logs / f"{name}.log").open("w") as log:
             subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
