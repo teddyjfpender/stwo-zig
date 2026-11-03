@@ -462,6 +462,12 @@ pub fn finish(
     mus: []QM31,
     rows: [][]QM31,
 ) !Opening {
+    // takes ownership of mus and rows (also on error)
+    errdefer {
+        a.free(mus);
+        for (rows) |r| a.free(r);
+        a.free(rows);
+    }
     for (rows) |r| tr.mixFelts(r);
     const nonce = tr.grind(params.pow_bits);
     const log_ext = coms[0].shape.logExt();

@@ -146,6 +146,10 @@ pub const Config = struct {
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
     gkr_threads: usize = 8,
+    /// zero-knowledge mode (zk.zig): hiding commitments, masked sumchecks, no GKR
+    hiding: bool = false,
+    /// hiding weight commitment: random coefficient slots per row; opening budget = slots/2 columns
+    weight_mask_slots: u32 = 1024,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
