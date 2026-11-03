@@ -28,6 +28,7 @@ const bsc = @import("batch_sumcheck.zig");
 const linalg = @import("linalg.zig");
 const batch = @import("batch.zig");
 const eqsum = @import("eqsum.zig");
+const prep = @import("prep.zig");
 const Transcript = @import("transcript.zig").Transcript;
 pub const xt = @import("ext.zig");
 
@@ -166,6 +167,10 @@ pub const Config = struct {
     weight_log_cols: u32 = 10,
     witness_log_cols_max: u32 = 14,
     gkr_threads: usize = 8,
+    /// smallest GKR loop split across the GKR pool (stwo's default is 2^13;
+    /// 2^10 measured best for the MLP: the many small late-round loops of
+    /// every layer otherwise run serially)
+    gkr_min_parallel: usize = 1 << 10,
 };
 
 pub fn commitWeights(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, infos: []const TensorInfo, data: []const []const i8) !WeightStore {
@@ -455,6 +460,13 @@ pub const Timings = struct {
     batch_ns: u64 = 0,
     witness_open_ns: u64 = 0,
     weight_open_ns: u64 = 0,
+    /// prover-side recomputation of matmul/hadamard accumulators (0 with proveWithAccumulators)
+    accumulators_ns: u64 = 0,
+    multiplicities_ns: u64 = 0,
+    /// parts of gkr_ns: LogUp input construction, layer build, layer sumchecks
+    gkr_input_ns: u64 = 0,
+    gkr_build_ns: u64 = 0,
+    gkr_sumcheck_ns: u64 = 0,
     witness_elems: usize = 0,
     witness_table_elems: usize = 0,
     /// ext ops: accumulators, key columns, multiplicities (before commit)
@@ -503,10 +515,39 @@ fn fullPoint(a: std.mem.Allocator, log_total: u32, offset: usize, log_size: u32,
     return out;
 }
 
-/// Key value at index for a key instance (prover side), as field element.
+fn keySrc(st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst) prep.KeySrc {
+    return switch (k.kind) {
+        .remainder => blk: {
+            const y_id: u32, const sh: u5 = switch (st.ops[k.op]) {
+                .matmul => |m| .{ m.y, m.shift },
+                .hadamard => |h| .{ h.y, h.shift },
+                else => unreachable,
+            };
+            break :blk .{ .remainder = .{ .acc = acc[k.op].?, .y = w[y_id], .sh = sh } };
+        },
+        .y_range => .{ .range8 = .{ .v = w[
+            switch (st.ops[k.op]) {
+                .matmul => |m| m.y,
+                .hadamard => |h| h.y,
+                else => unreachable,
+            }
+        ] } },
+        .plain_range => .{ .range8 = .{ .v = w[st.ops[k.op].range8.in] } },
+        .lookup_pair => blk: {
+            const l = st.ops[k.op].lookup;
+            break :blk .{ .lookup = .{ .in = w[l.in], .out = w[l.out], .table = &st.tables[l.table].values } };
+        },
+        .glu_triple, .ext => unreachable, // handled by the generic paths
+    };
+}
+
+/// Denominators alpha - key(i) for a key instance (prover side). Must run
+/// after `multiplicities` accepted the witness (keys in range).
 fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31) ![]QM31 {
     const n = @as(usize, 1) << @intCast(k.log_size);
     const out = try a.alloc(QM31, n);
+    switch (k.kind) {
+        .glu_triple, .ext => {
     const Ctx = struct { out: []QM31, st: Statement, w: []const []const i32, acc: []const ?[]i64, k: KeyInst, alpha: QM31, beta: QM31 };
     const ctx = Ctx{ .out = out, .st = st, .w = w, .acc = acc, .k = k, .alpha = alpha, .beta = beta };
     pool.parallelFor(n, 4096, &ctx, struct {
@@ -546,6 +587,9 @@ fn keyValues(a: std.mem.Allocator, pool: *f.Pool, st: Statement, w: []const []co
             }
         }
     }.run);
+        },
+        else => prep.denominators(pool, out, keySrc(st, w, acc, k), alpha, beta),
+    }
     return out;
 }
 
@@ -559,8 +603,8 @@ fn tableDen(a: std.mem.Allocator, st: Statement, t: RelTable, alpha: QM31, beta:
     return out;
 }
 
-/// Compute multiplicities for all tables from witness values.
-fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []const []const i32, acc: []const ?[]i64, eps: *const xt.ProverState) ![][]i32 {
+/// Compute multiplicities for all tables from witness values (validating every key).
+fn multiplicities(a: std.mem.Allocator, pool: *f.Pool, st: Statement, rel: Relations, w: []const []const i32, acc: []const ?[]i64, eps: *const xt.ProverState) ![][]i32 {
     const out = try a.alloc([]i32, rel.tables.len);
     var n_alloc: usize = 0;
     errdefer {
@@ -575,6 +619,13 @@ fn multiplicities(a: std.mem.Allocator, st: Statement, rel: Relations, w: []cons
     for (rel.keys) |k| {
         const n = @as(usize, 1) << @intCast(k.log_size);
         const mult = out[k.table];
+        switch (k.kind) {
+            .remainder, .y_range, .plain_range, .lookup_pair => {
+                try prep.countInto(a, pool, mult, keySrc(st, w, acc, k));
+                continue;
+            },
+            else => {},
+        }
         switch (k.kind) {
             .remainder => {
                 const op = st.ops[k.op];
@@ -712,18 +763,46 @@ pub fn prove(
     witness: []const []const i32,
     timings: *Timings,
 ) !Proof {
-    var rel = try deriveRelations(a, st);
-    defer rel.deinit(a);
+    const tp = try std.time.Instant.now();
     const acc = try computeAccumulators(a, pool, st, ws, witness);
     defer {
         for (acc) |x| if (x) |v| a.free(v);
         a.free(acc);
     }
+    timings.accumulators_ns = nowNs(tp);
+    return proveWithAccumulators(a, pool, cfg, st, ws, witness, acc, timings);
+}
+
+/// As `prove`, with the integer accumulators of the matmul/hadamard ops
+/// supplied by the caller (e.g. kept from the forward pass). `acc` must equal
+/// `computeAccumulators(st, ws, witness)`; anything else only yields a proof
+/// the verifier rejects (the prover is untrusted), and out-of-range
+/// remainders are still refused here.
+pub fn proveWithAccumulators(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: Config,
+    st: Statement,
+    ws: *const WeightStore,
+    witness: []const []const i32,
+    acc: []const ?[]i64,
+    timings: *Timings,
+) !Proof {
+    if (acc.len != st.ops.len) return error.AccumulatorShape;
+    for (st.ops, acc) |op, x| switch (op) {
+        .matmul => |m| if (x == null or x.?.len != st.witness[m.y].size()) return error.AccumulatorShape,
+        .hadamard => |h| if (x == null or x.?.len != st.witness[h.y].size()) return error.AccumulatorShape,
+        else => {},
+    };
+    var rel = try deriveRelations(a, st);
+    defer rel.deinit(a);
     const t_init = try std.time.Instant.now();
     var eps = try xt.proverInit(a, pool, st, witness);
     defer eps.deinit(a);
-    const mults = try multiplicities(a, st, rel, witness, acc, &eps);
     timings.ext_init_ns = nowNs(t_init);
+    const tm0 = try std.time.Instant.now();
+    const mults = try multiplicities(a, pool, st, rel, witness, acc, &eps);
+    timings.multiplicities_ns = nowNs(tm0);
     defer {
         for (mults) |m| a.free(m);
         a.free(mults);
@@ -780,8 +859,10 @@ pub fn prove(
     }
     var gkr_proof: ?GkrVerifier.GkrBatchProof = null;
     var art: lookups.verifier_kernel.Artifact(QM31) = .{ .ood_point = &.{}, .claims_to_verify_by_instance = &.{}, .n_variables_by_instance = &.{} };
+    var gkr_stats: Fast.Stats = .{};
+    timings.gkr_input_ns = nowNs(t0);
     if (n_inst > 0) {
-        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads }, null);
+        const gkr_res = try Fast.proveBatch(a, &tr.ch, inputs, .{ .threads = cfg.gkr_threads, .min_parallel = cfg.gkr_min_parallel }, &gkr_stats);
         gkr_proof = gkr_res.proof;
         art = gkr_res.artifact;
     }
@@ -789,6 +870,8 @@ pub fn prove(
     for (rel.tables, 0..) |_, i| a.free(inputs[rel.keys.len + i].den);
     defer if (n_inst > 0) art.deinit(a);
     timings.gkr_ns = nowNs(t0);
+    timings.gkr_build_ns = gkr_stats.build_ns;
+    timings.gkr_sumcheck_ns = gkr_stats.sumcheck_ns;
     const L = art.ood_point.len;
 
     var claims: ClaimList = .empty;
@@ -989,13 +1072,21 @@ pub fn prove(
     defer a.free(gammas);
     tr.drawN(gammas);
     // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
+    // E block of each tensor = sum of its claims' gamma * eq(point, .), one write pass per block.
     const E = try a.alloc(QM31, total);
-    @memset(E[0..lay.used], QM31.zero());
     var batch_claim = QM31.zero();
-    for (claims.items, gammas) |c, g| {
-        const off = lay.offsets[c.tensor];
-        try batch.addEqScaled(a, pool, E[off..][0 .. @as(usize, 1) << @intCast(c.point.len)], c.point, g);
-        batch_claim = batch_claim.add(g.mul(c.value));
+    for (claims.items, gammas) |c, g| batch_claim = batch_claim.add(g.mul(c.value));
+    {
+        var rc: std.ArrayList(batch.RegionClaim) = .empty;
+        defer rc.deinit(a);
+        for (ext, 0..) |info, t| {
+            rc.clearRetainingCapacity();
+            for (claims.items, gammas) |c, g| if (c.tensor == t) {
+                if (c.point.len != info.logSize()) return error.ClaimShape;
+                try rc.append(a, .{ .point = c.point, .gamma = g });
+            };
+            try batch.fillRegion(a, pool, E[lay.offsets[t]..][0..info.size()], rc.items);
+        }
     }
     const bres = try batch.proveBaseTimesExt(a, pool, &tr, batch_claim, wtab, E, lay.used);
     a.free(E);

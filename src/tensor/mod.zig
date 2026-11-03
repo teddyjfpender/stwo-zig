@@ -14,6 +14,8 @@ pub const eqsum = @import("eqsum.zig");
 pub const size_tests = @import("size_tests.zig");
 pub const ext = @import("ext.zig");
 pub const transformer = @import("transformer.zig");
+pub const prep = @import("prep.zig");
+pub const recycle = @import("recycle.zig");
 
 test {
     _ = field;
@@ -32,4 +34,6 @@ test {
     _ = size_tests;
     _ = ext;
     _ = transformer;
+    _ = prep;
+    _ = recycle;
 }

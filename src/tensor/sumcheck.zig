@@ -131,53 +131,57 @@ fn isOne(c: QM31) bool {
 
 fn roundChunkT(comptime NF: usize, comptime terms: []const Term, comptime deg: u8) fn (*const RoundCtx(NF), usize, usize) void {
     return struct {
+        inline fn stepP(c: *const RoundCtx(NF), x: usize, comptime with_hi: bool, pacc: *[MAX_DEG + 1]PQ) void {
+            var diff: [NF]PQ = undefined;
+            var cur: [NF]PQ = undefined;
+            inline for (0..NF) |j| {
+                cur[j] = loadP(c.factors[j], x);
+                const hi = if (with_hi) loadP(c.factors[j], x + c.half) else PQ.zero();
+                diff[j] = hi.sub(cur[j]);
+            }
+            pacc[0] = pacc[0].add(evalTermsAtP(terms, NF, &cur));
+            inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
+            pacc[2] = pacc[2].add(evalTermsAtP(terms, NF, &cur));
+            if (deg >= 3) {
+                inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
+                pacc[3] = pacc[3].add(evalTermsAtP(terms, NF, &cur));
+            }
+        }
+
+        inline fn step(c: *const RoundCtx(NF), x: usize, acc: *[MAX_DEG + 1]QM31) void {
+            var diff: [NF]QM31 = undefined;
+            var cur: [NF]QM31 = undefined;
+            const has_hi = x + c.half < c.active;
+            inline for (0..NF) |j| {
+                cur[j] = c.factors[j][x];
+                const hi = if (has_hi) c.factors[j][x + c.half] else QM31.zero();
+                diff[j] = hi.sub(cur[j]);
+            }
+            acc[0] = acc[0].add(evalTermsAt(terms, NF, &cur));
+            inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
+            acc[2] = acc[2].add(evalTermsAt(terms, NF, &cur));
+            if (deg >= 3) {
+                inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
+                acc[3] = acc[3].add(evalTermsAt(terms, NF, &cur));
+            }
+        }
+
         fn run(c: *const RoundCtx(NF), s: usize, e: usize) void {
             @setEvalBranchQuota(100_000);
             var acc: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
-            // Packed fast path: LANES consecutive x's whose high partners are
-            // all active (exact field arithmetic, so lane order is irrelevant).
+            // Packed fast path over LANES consecutive x's: first those whose high
+            // partners are active, then those whose partners are (implicit) zeros.
+            // Field arithmetic is exact, so lane/chunk order is irrelevant.
             var x = s;
             if (LANES > 1) {
                 var pacc: [MAX_DEG + 1]PQ = [_]PQ{PQ.zero()} ** (MAX_DEG + 1);
-                const hi_end = if (c.active > c.half) @min(e, c.active - c.half) else s;
-                while (x + LANES <= hi_end) : (x += LANES) {
-                    var diff: [NF]PQ = undefined;
-                    var cur: [NF]PQ = undefined;
-                    inline for (0..NF) |j| {
-                        cur[j] = loadP(c.factors[j], x);
-                        diff[j] = loadP(c.factors[j], x + c.half).sub(cur[j]);
-                    }
-                    pacc[0] = pacc[0].add(evalTermsAtP(terms, NF, &cur));
-                    inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
-                    pacc[2] = pacc[2].add(evalTermsAtP(terms, NF, &cur));
-                    if (deg >= 3) {
-                        inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
-                        pacc[3] = pacc[3].add(evalTermsAtP(terms, NF, &cur));
-                    }
-                }
-                acc[0] = sumLanes(pacc[0]);
-                acc[2] = sumLanes(pacc[2]);
-                if (deg >= 3) acc[3] = sumLanes(pacc[3]);
+                const hi_end = if (c.active > c.half) @max(s, @min(e, c.active - c.half)) else s;
+                while (x + LANES <= hi_end) : (x += LANES) stepP(c, x, true, &pacc);
+                while (x < hi_end) : (x += 1) step(c, x, &acc);
+                while (x + LANES <= e) : (x += LANES) stepP(c, x, false, &pacc);
+                inline for (0..MAX_DEG + 1) |t| acc[t] = acc[t].add(sumLanes(pacc[t]));
             }
-            var lo: [NF]QM31 = undefined;
-            var diff: [NF]QM31 = undefined;
-            var cur: [NF]QM31 = undefined;
-            while (x < e) : (x += 1) {
-                const has_hi = x + c.half < c.active;
-                inline for (0..NF) |j| {
-                    lo[j] = c.factors[j][x];
-                    const hi = if (has_hi) c.factors[j][x + c.half] else QM31.zero();
-                    diff[j] = hi.sub(lo[j]);
-                    cur[j] = lo[j];
-                }
-                acc[0] = acc[0].add(evalTermsAt(terms, NF, &cur));
-                inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]).add(diff[j]);
-                acc[2] = acc[2].add(evalTermsAt(terms, NF, &cur));
-                if (deg >= 3) {
-                    inline for (0..NF) |j| cur[j] = cur[j].add(diff[j]);
-                    acc[3] = acc[3].add(evalTermsAt(terms, NF, &cur));
-                }
-            }
+            while (x < e) : (x += 1) step(c, x, &acc);
             c.partial[s / c.chunk] = acc;
         }
     }.run;
@@ -192,7 +196,9 @@ fn foldChunkT(comptime NF: usize) fn (*const FoldCtxT(NF), usize, usize) void {
         fn run(c: *const FoldCtxT(NF), s: usize, e: usize) void {
             @setEvalBranchQuota(100_000);
             const rp = PQ.splat(c.r);
-            const hi_end = if (c.active > c.half) @min(e, c.active - c.half) else s;
+            // beyond the active high half: f'(x) = f(x) + r (0 - f(x)) = (1 - r) f(x)
+            const omr = PQ.splat(QM31.one().sub(c.r));
+            const hi_end = if (c.active > c.half) @max(s, @min(e, c.active - c.half)) else s;
             inline for (0..NF) |j| {
                 const fac = c.factors[j];
                 var x = s;
@@ -202,6 +208,8 @@ fn foldChunkT(comptime NF: usize) fn (*const FoldCtxT(NF), usize, usize) void {
                         const hi = loadP(fac, x + c.half);
                         storeP(fac, x, lo.add(rp.mul(hi.sub(lo))));
                     }
+                    while (x < hi_end) : (x += 1) fac[x] = fac[x].add(c.r.mul(fac[x + c.half].sub(fac[x])));
+                    while (x + LANES <= e) : (x += LANES) storeP(fac, x, omr.mul(loadP(fac, x)));
                 }
                 while (x < e) : (x += 1) {
                     const hi = if (x + c.half < c.active) fac[x + c.half] else QM31.zero();
@@ -378,4 +386,44 @@ test "sumcheck product and triple roundtrip" {
     const vr2 = try verify(a, &tv2, claim.add(QM31.one()), n, 3, res.proof);
     defer a.free(vr2.point);
     try std.testing.expect(!vr2.final_claim.eql(evalTerms(&terms, res.finals)));
+}
+
+test "active-length prover equals zero-padded full-length prover" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    var prng = std.Random.DefaultPrng.init(5);
+    const rnd = prng.random();
+    for ([_]usize{ 3, 8, 13 }) |n| {
+        const len = @as(usize, 1) << @intCast(n);
+        for ([_]usize{ len / 2 + 1, len * 5 / 8 + 3, len - 1 }) |active| {
+            var fa: [3][]QM31 = undefined;
+            var fz: [3][]QM31 = undefined;
+            for (0..3) |j| {
+                fa[j] = try a.alloc(QM31, len);
+                fz[j] = try a.alloc(QM31, len);
+                for (0..len) |i| {
+                    const v = QM31.fromU32Unchecked(rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P));
+                    fa[j][i] = v; // garbage beyond `active` must never be read
+                    fz[j][i] = if (i < active) v else QM31.zero();
+                }
+            }
+            defer for (0..3) |j| {
+                a.free(fa[j]);
+                a.free(fz[j]);
+            };
+            var claim = QM31.zero();
+            for (0..active) |i| claim = claim.add(fz[0][i].mul(fz[1][i]).mul(fz[2][i])).add(TEST_C2.mul(fz[0][i]));
+            var t1 = Transcript.initDomain("act");
+            var t2 = Transcript.initDomain("act");
+            var r1 = try proveActive(3, &TEST_TERMS, a, &pool, &t1, claim, .{ fa[0], fa[1], fa[2] }, active);
+            defer r1.deinit(a);
+            var r2 = try proveActive(3, &TEST_TERMS, a, &pool, &t2, claim, .{ fz[0], fz[1], fz[2] }, len);
+            defer r2.deinit(a);
+            for (r1.proof.rounds, r2.proof.rounds) |x, y| for (0..3) |i| try std.testing.expect(x.evals[i].eql(y.evals[i]));
+            for (r1.finals, r2.finals) |x, y| try std.testing.expect(x.eql(y));
+            try std.testing.expect(t1.draw().eql(t2.draw()));
+        }
+    }
 }
