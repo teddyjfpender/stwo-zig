@@ -85,3 +85,5 @@ python3 scripts/rv64_resident_basket.py run --combined --counts 1 --devices 0 \
 ```
 
 Each block runs cold and warm in one process. A separate receiver verifies the cold native proof and reconstructs the recursive authorities to verify every existing outer proof. The harness rejects missing proofs, any newly proved node during receiver replay, changed root/tree bytes, incomplete execution, or CPU assignment/proving fallback. Warm acceptance inherits only through exact SHA parity of the native bundle, every native and outer proof and the ordered tree. This remains full-context recursive verification; portable root-only key admission is not implied. Two- and four-GPU combined plans remain closed until the parallel recursion scheduler is qualified.
+
+Use `--repeat 1` for an initial complete cold basket: every case still requires independent native and recursive verification, and no warm/parity claim is made. `--repeat 2` is the default and additionally requires fresh warm proving with exact cold artifact parity. Unrequested warm table cells remain empty.

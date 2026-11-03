@@ -221,10 +221,10 @@ class ResidentBasket(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "CPU assignment"):
             R.check_recursive_report(dict(report, assignment_source="cpu_circuit_builder"), 2)
 
-    def exercise_combined(self, corruption=None):
+    def exercise_combined(self, corruption=None, repeat=2):
         self.manifest["blocks"]["1"]["expected_cpu_segments"] = 1
         plan = R.build_plan(self.basket, self.manifest, self.root, *self.assets[:3], self.root / "combined",
-                            [0], [1], 28 << 30, R.B.sha(self.assets[2]), True, self.assets[1])
+                            [0], [1], 28 << 30, R.B.sha(self.assets[2]), True, self.assets[1], repeat)
         job = plan["jobs"][0]
         target = Path(job["target"])
         calls = []
@@ -242,7 +242,7 @@ class ResidentBasket(unittest.TestCase):
             calls.append(name)
             if name == "producer":
                 self.assertEqual(argv[1], "combined-batch")
-                for trial in (0, 1):
+                for trial in range(repeat):
                     proof = target / "batch" / f"trial-{trial}" / "1" / "proof"
                     outer = proof / "recursion-om31"
                     outer.mkdir(parents=True)
@@ -258,7 +258,7 @@ class ResidentBasket(unittest.TestCase):
                     for filename in ("leaf-000000.proof", "leaf-000001.proof", "fold-000002.proof", "root.proof"):
                         (outer / filename).write_bytes(b"changed" if trial and corruption == "warm" else b"root")
                 lines = []
-                for trial in (0, 1):
+                for trial in range(repeat):
                     lines += ["GPU_OUTER assignment_bytes=0", "GPU_OUTER_ASSIGNMENT full_assignment_upload_words=0"] * 3
                     lines += [f"GPU_RESIDENT_BLOCK block=1 trial={trial} iteration=0 request_wall_ns=100 gpu_contexts=1"]
                 (target / "producer.stdout").write_text("")
@@ -286,13 +286,21 @@ class ResidentBasket(unittest.TestCase):
             else:
                 result = R.run_job(plan, job)
                 self.assertTrue(result["trials"][0]["fresh_recursive_receiver_accepted"])
-                self.assertFalse(result["trials"][1]["fresh_recursive_receiver_accepted"])
-                self.assertEqual(result["trials"][0]["recursive_snapshot"], result["trials"][1]["recursive_snapshot"])
+                self.assertEqual(len(result["trials"]), repeat)
+                if repeat == 2:
+                    self.assertFalse(result["trials"][1]["fresh_recursive_receiver_accepted"])
+                    self.assertEqual(result["trials"][0]["recursive_snapshot"], result["trials"][1]["recursive_snapshot"])
+                else:
+                    self.assertNotIn("warm", result["trials"][0]["recursive_acceptance"])
+                    self.assertIn("—", R.render(plan, [result]))
                 self.assertIn("Cold recursion", R.render(plan, [result]))
         self.assertEqual(calls, ["producer", "receiver-0", "recursive-receiver-0"])
 
     def test_combined_cold_fresh_receiver_and_warm_exact_root_parity(self):
         self.exercise_combined()
+
+    def test_combined_single_cold_trial_requires_both_fresh_receivers(self):
+        self.exercise_combined(repeat=1)
 
     def test_combined_rejects_warm_root_mutation(self):
         self.exercise_combined("warm")
