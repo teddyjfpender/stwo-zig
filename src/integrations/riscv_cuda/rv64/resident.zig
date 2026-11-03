@@ -71,6 +71,7 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
         split_secure_sum: bool = false,
         fused_eq: bool = false,
         batched_oracles: bool = false,
+        batched_trees: bool = false,
         fused_fold_sum: bool = false,
         /// Zero disables; otherwise a power of two in4..256. Profile on device.
         tail_count: u32 = 0,
@@ -213,6 +214,25 @@ pub fn Commands(comptime Context: type, comptime Api: type) type {
 
         pub fn requireBatchedOracles(self: *Self) !void {
             if (self.apiPointer("stwo_rv64_batch_sum_on") == null or self.apiPointer("stwo_rv64_batch_fold_on") == null) return error.MissingCudaBatchedOracleSymbol;
+        }
+        pub fn requireBatchedTrees(self: *Self) !void {
+            if (self.apiPointer("stwo_rv64_batch_layer_on") == null) return error.MissingCudaBatchedTreeSymbol;
+        }
+        pub fn layerBatch(self: *Self, jobs: []const BatchFold) !void {
+            if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;
+            const count = jobs[0].input.count;
+            var packets: [abi.batch_max_oracles]abi.BatchFoldJob = undefined;
+            for (jobs, packets[0..jobs.len]) |job, *packet| {
+                try job.input.validate();
+                try job.output.validate();
+                if (job.input.count != count or count < 2 or job.output.count != count / 2) return error.InvalidGeometry;
+                try job.output.n.shape(count / 2, 8);
+                packet.* = .{ .n = try job.input.n.bind(self.context), .d = try job.input.d.bind(self.context), .out_n = try job.output.n.bind(self.context), .out_d = try job.output.d.bind(self.context) };
+            }
+            const owner = try self.handle();
+            var launches: u32 = 0;
+            const status = self.callApi("stwo_rv64_batch_layer_on", .{ owner, self.lane_index, &packets, @as(u32, @intCast(jobs.len)), count, &launches });
+            try self.result(status, launches);
         }
         pub fn sumBatch(self: *Self, jobs: []const BatchSum, eq_values: Plane, lambda: Slice) !void {
             if (jobs.len == 0 or jobs.len > abi.batch_max_oracles) return error.InvalidGeometry;

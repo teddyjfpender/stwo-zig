@@ -373,3 +373,4 @@ comptime {
 }
 pub extern "c" fn stwo_rv64_batch_sum_on(*anyopaque, u32, [*]const BatchSumJob, u32, u32, Plane, [*]const u32, *u32) c_int;
 pub extern "c" fn stwo_rv64_batch_fold_on(*anyopaque, u32, [*]const BatchFoldJob, u32, u32, [*]const u32, *u32) c_int;
+pub extern "c" fn stwo_rv64_batch_layer_on(*anyopaque, u32, [*]const BatchFoldJob, u32, u32, *u32) c_int;

@@ -97,6 +97,39 @@ fn plane(arena: Slice, r: Region, count: u32) !R.Plane {
 fn fraction(arena: Slice, p: Pair) !R.Fraction {
     return .{ .n = try plane(arena, p.n, p.count), .d = try plane(arena, p.d, p.count), .count = p.count };
 }
+fn buildTreesSerial(commands: anytype, plan: *const Plan, inputs: []const R.Fraction, arena: Slice) !void {
+    for (inputs, 0..) |input, i| {
+        var current = input;
+        for (0..plan.variables[i]) |level| {
+            const next = try fraction(arena, plan.oracles[i].tree[level]);
+            try commands.layer(current, 1, next);
+            current = next;
+        }
+    }
+}
+fn buildTrees(commands: anytype, plan: *const Plan, inputs: []const R.Fraction, arena: Slice) !void {
+    if (comptime @hasDecl(@TypeOf(commands.*), "layerBatch")) {
+        if (commands.batched_trees) {
+            var height = plan.layers;
+            while (height != 0) : (height -= 1) {
+                var jobs: [max_instances]R.BatchFold = undefined;
+                var count: usize = 0;
+                for (inputs, 0..) |input, i| {
+                    if (plan.variables[i] < height) continue;
+                    const level = plan.variables[i] - height;
+                    jobs[count] = .{
+                        .input = if (level == 0) input else try fraction(arena, plan.oracles[i].tree[level - 1]),
+                        .output = try fraction(arena, plan.oracles[i].tree[level]),
+                    };
+                    count += 1;
+                }
+                try commands.layerBatch(jobs[0..count]);
+            }
+            return;
+        }
+    }
+    try buildTreesSerial(commands, plan, inputs, arena);
+}
 pub const ProofLayer = struct { records: Slice, masks: Slice, active: u32 };
 pub const Enqueued = struct {
     state: Slice,
@@ -147,6 +180,9 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
     if (comptime @hasDecl(@TypeOf(commands.*), "requireBatchedOracles")) {
         if (commands.batched_oracles) try commands.requireBatchedOracles();
     }
+    if (comptime @hasDecl(@TypeOf(commands.*), "requireBatchedTrees")) {
+        if (commands.batched_trees) try commands.requireBatchedTrees();
+    }
     if (inputs.len == 0 or inputs.len > max_instances) return error.InvalidGeometry;
     var variables: [max_instances]u32 = undefined;
     for (inputs, 0..) |input, i| {
@@ -167,15 +203,8 @@ fn enqueueImpl(commands: anytype, inputs: []const R.Fraction, seed: Slice, arena
     const projected = try region(arena, plan.projected);
     const roots = try region(arena, plan.roots);
     var root_sources: [max_instances]R.Fraction = undefined;
-    for (inputs, 0..) |input, i| {
-        var current = input;
-        for (0..variables[i]) |level| {
-            const next = try fraction(arena, plan.oracles[i].tree[level]);
-            try commands.layer(current, 1, next);
-            current = next;
-        }
-        root_sources[i] = current;
-    }
+    try buildTrees(commands, &plan, inputs, arena);
+    for (inputs, 0..) |_, i| root_sources[i] = try fraction(arena, plan.oracles[i].tree[variables[i] - 1]);
     try commands.packRoots(root_sources[0..inputs.len], roots);
     if (verdict) |status| try commands.closeLocalRoots(roots, plan.count, status);
     try commands.initGkr(state, seed, variables[0..inputs.len], plan.layers, chain);

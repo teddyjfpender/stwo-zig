@@ -4,6 +4,7 @@ const A = @import("abi.zig");
 pub const Api = struct {
     stwo_rv64_batch_sum_on: ?*const @TypeOf(A.stwo_rv64_batch_sum_on) = null,
     stwo_rv64_batch_fold_on: ?*const @TypeOf(A.stwo_rv64_batch_fold_on) = null,
+    stwo_rv64_batch_layer_on: ?*const @TypeOf(A.stwo_rv64_batch_layer_on) = null,
     stwo_rv64_gkr_eq_on: *const @TypeOf(A.stwo_rv64_gkr_eq_on),
     stwo_rv64_gkr_eq_fused_on: *const @TypeOf(A.stwo_rv64_gkr_eq_fused_on),
     stwo_rv64_gkr_sum_on: *const @TypeOf(A.stwo_rv64_gkr_sum_on),

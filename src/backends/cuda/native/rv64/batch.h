@@ -36,5 +36,10 @@ extern "C" int stwo_rv64_batch_sum_on(void *, uint32_t,
 extern "C" int stwo_rv64_batch_fold_on(void *, uint32_t,
     const StwoRv64BatchFoldJob *, uint32_t jobs, uint32_t count,
     const uint32_t *challenge, uint32_t *launches);
+// Product-tree wave: all jobs have the same input height. No padding across
+// instances, no transcript changes, and every intermediate level is retained.
+extern "C" int stwo_rv64_batch_layer_on(void *, uint32_t,
+    const StwoRv64BatchFoldJob *, uint32_t jobs, uint32_t count,
+    uint32_t *launches);
 
 #endif
