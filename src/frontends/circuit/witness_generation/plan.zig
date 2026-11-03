@@ -108,13 +108,30 @@ fn append(a: std.mem.Allocator, ctx: *const C.Context(Q), tasks: *std.ArrayList(
     }
     try tasks.append(a, task);
 }
+pub const BuildMetrics = struct {
+    producer_init_ns: u64 = 0,
+    seeds_ns: u64 = 0,
+    tasks_ns: u64 = 0,
+    level_init_ns: u64 = 0,
+    walk_ns: u64 = 0,
+    ordering_ns: u64 = 0,
+};
 pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
+    return buildProfiled(a, ctx, null);
+}
+pub fn buildProfiled(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMetrics) !Plan {
+    var timer: std.time.Timer = undefined;
+    if (metrics) |m| {
+        m.* = .{};
+        timer = try std.time.Timer.start();
+    }
     if (!ctx.finalized or !ctx.record_gates) return error.WitnessTopologyRequired;
     const metadata = ctx.witness_metadata orelse return error.WitnessOriginsRequired;
     if (metadata.permutations.items.len != ctx.circuit.permutation.len()) return error.WitnessPermutationIdentityMissing;
     const producer = try a.alloc(u32, ctx.circuit.n_vars);
     defer a.free(producer);
     @memset(producer, missing);
+    if (metrics) |m| m.producer_init_ns = timer.lap();
     var seeds: std.ArrayList(Seed) = .empty;
     defer seeds.deinit(a);
     for (ctx.constants.keys(), ctx.constants.values()) |key, variable| {
@@ -127,6 +144,7 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
         producer[origin.out] = seeded;
         try seeds.append(a, .{ .variable = origin.out, .value = origin.value });
     };
+    if (metrics) |m| m.seeds_ns = timer.lap();
     var tasks: std.ArrayList(Task) = .empty;
     defer tasks.deinit(a);
     for (metadata.origins.items, 0..) |origin, i| if (origin.kind != .seed) try append(a, ctx, &tasks, producer, .{ .kind = .hint, .index = @intCast(i) });
@@ -135,6 +153,7 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     inline for (lists, kinds) |list, kind| for (list, 0..) |_, i| try append(a, ctx, &tasks, producer, .{ .kind = kind, .index = @intCast(i) });
     for (0..ctx.circuit.permutation.len()) |i| try append(a, ctx, &tasks, producer, .{ .kind = .permutation, .index = @intCast(i) });
     for (producer) |p| if (p == missing) return error.WitnessDefinitionMissing;
+    if (metrics) |m| m.tasks_ns = timer.lap();
     const levels = try a.alloc(u32, tasks.items.len);
     defer a.free(levels);
     @memset(levels, missing);
@@ -143,6 +162,7 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
     const Frame = struct { id: u32, next: usize = 0, maximum: u32 = 0 };
     var stack: std.ArrayList(Frame) = .empty;
     defer stack.deinit(a);
+    if (metrics) |m| m.level_init_ns = timer.lap();
     var max_level: u32 = 0;
     for (0..tasks.items.len) |start| {
         if (levels[start] != missing) continue;
@@ -176,6 +196,7 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
             _ = stack.pop();
         }
     }
+    if (metrics) |m| m.walk_ns = timer.lap();
     const ends = try a.alloc(usize, @as(usize, max_level) + 1);
     errdefer a.free(ends);
     @memset(ends, 0);
@@ -194,6 +215,7 @@ pub fn build(a: std.mem.Allocator, ctx: *const C.Context(Q)) !Plan {
         ordered[cursors[level]] = tasks.items[i];
         ordered[cursors[level]].level = level;
     }
+    if (metrics) |m| m.ordering_ns = timer.lap();
     return .{ .allocator = a, .tasks = ordered, .seeds = try seeds.toOwnedSlice(a), .level_ends = ends };
 }
 
@@ -374,4 +396,21 @@ test "witness trace-only: exact original topology and assignments without CPU va
     try std.testing.expectEqualDeep(original.values(), reconstructed);
     // Only four true external proof words: x, denominator, and nonce limbs.
     try std.testing.expectEqual(trace.constants.count() + 4, plan.seeds.len);
+}
+
+test "witness schedule profiling preserves exact generation plan" {
+    const a = std.testing.allocator;
+    var ctx = try C.Context(Q).initWithWitnessOrigins(a, 0);
+    defer ctx.deinit();
+    const value = try ctx.guess(Q.fromU32Unchecked(17, 0, 0, 0));
+    _ = try ctx.inv(value);
+    try ctx.finalize(false);
+    var plain = try build(a, &ctx);
+    defer plain.deinit();
+    var metrics: BuildMetrics = .{};
+    var profiled = try buildProfiled(a, &ctx, &metrics);
+    defer profiled.deinit();
+    try std.testing.expectEqualDeep(plain.tasks, profiled.tasks);
+    try std.testing.expectEqualDeep(plain.seeds, profiled.seeds);
+    try std.testing.expectEqualSlices(usize, plain.level_ends, profiled.level_ends);
 }
