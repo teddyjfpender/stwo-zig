@@ -108,10 +108,15 @@ fn peakRssBytes() u64 {
 pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
     _ = &gpa;
-    // TENSOR_RECYCLE=1: keep freed large buffers for reuse (steady-state prover).
+    // Large buffers go through the recycling allocator by default: blocks freed
+    // by the weight commitment, the forward pass and earlier prover stages are
+    // reused instead of faulting in fresh pages (CPU single shot: layer 512
+    // 1.09-1.16 -> 0.96 s, peak RSS +0.1 GB; see speed.md). TENSOR_RECYCLE=0
+    // uses the system allocator directly. Allocation only; proofs are unchanged.
     var recycler = t.recycle.Recycler.init(std.heap.c_allocator);
     defer recycler.deinit();
-    const a = if (std.posix.getenv("TENSOR_RECYCLE") != null) recycler.allocator() else std.heap.c_allocator;
+    const no_recycle = if (std.posix.getenv("TENSOR_RECYCLE")) |v| std.mem.eql(u8, v, "0") else false;
+    const a = if (no_recycle) std.heap.c_allocator else recycler.allocator();
     const all_args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, all_args);
     var kept: std.ArrayList([:0]u8) = .empty;
@@ -374,7 +379,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var prove_s = secs(t0);
     const prove_first_s = prove_s;
     const pd_first = t.digest.proofDigest(proof);
-    // TENSOR_PROVE_REPS=n: prove n times (steady state with TENSOR_RECYCLE=1), report the fastest
+    // TENSOR_PROVE_REPS=n: prove n times (steady state; the recycler is on unless TENSOR_RECYCLE=0), report the fastest
     const reps: usize = if (std.posix.getenv("TENSOR_PROVE_REPS")) |v| try std.fmt.parseInt(usize, v, 10) else 1;
     for (1..@max(reps, 1)) |_| {
         proof.deinit(a);
