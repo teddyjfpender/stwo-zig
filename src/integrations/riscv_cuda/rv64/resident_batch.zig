@@ -337,12 +337,26 @@ fn serveSpool(svc: anytype, spool: []const u8, init_ns: u64) !void {
             continue;
         };
         const queue_ns = idle.read();
-        var buffer: [64]u8 = undefined;
-        const text = std.mem.trim(u8, try inbox.readFile(name, &buffer), " \t\r\n");
-        const block = try std.fmt.parseUnsigned(u64, text, 10);
         const stem = name[0 .. name.len - ".request".len];
         const out = try std.fs.path.join(a, &.{ spool, "out", stem });
         defer a.free(out);
+        // Admission: a malformed, unknown or duplicate request is answered with
+        // done/<stem>.json {"ok":false} and removed, so one bad file can neither
+        // stop the service nor poison its restart. Only failures inside a proof
+        // (device, prover) stay terminal.
+        const block = admit(svc, inbox, name, out) catch |err| {
+            std.debug.print("GPU_RESIDENT_SERVICE reject request={s} error={s}\n", .{ name, @errorName(err) });
+            const rejected = try std.fmt.allocPrint(a, "{{\"ok\":false,\"error\":\"{s}\",\"sequence\":null}}\n", .{@errorName(err)});
+            defer a.free(rejected);
+            const done_name = try std.fmt.allocPrint(a, "done/{s}.json", .{stem});
+            defer a.free(done_name);
+            const tmp_name = try std.fmt.allocPrint(a, "done/{s}.tmp", .{stem});
+            defer a.free(tmp_name);
+            try dir.writeFile(.{ .sub_path = tmp_name, .data = rejected });
+            try inbox.deleteFile(name);
+            try dir.rename(tmp_name, done_name);
+            continue;
+        };
         try std.fs.cwd().makePath(out);
         const wall = try requestOne(true, svc, block, sequence, 0, out);
         const result = try std.fmt.allocPrint(a, "{{\"ok\":true,\"block\":{d},\"sequence\":{d},\"request_wall_ns\":{d},\"queue_ns\":{d}}}\n", .{ block, sequence, wall, queue_ns });
@@ -358,6 +372,16 @@ fn serveSpool(svc: anytype, spool: []const u8, init_ns: u64) !void {
         idle.reset();
     }
     std.debug.print("GPU_RESIDENT_SERVICE stop requests={}\n", .{sequence});
+}
+
+fn admit(svc: anytype, inbox: std.fs.Dir, name: []const u8, out: []const u8) !u64 {
+    var buffer: [64]u8 = undefined;
+    const text = std.mem.trim(u8, inbox.readFile(name, &buffer) catch return error.ResidentRequestUnreadable, " \t\r\n");
+    const block = std.fmt.parseUnsigned(u64, text, 10) catch return error.ResidentRequestMalformed;
+    var name_buf: [24]u8 = undefined;
+    if (svc.manifest.blocks.map.get(try std.fmt.bufPrint(&name_buf, "{d}", .{block})) == null) return error.MissingResidentBatchBlock;
+    if (std.fs.cwd().access(out, .{})) |_| return error.ResidentRequestNameReused else |err| if (err != error.FileNotFound) return err;
+    return block;
 }
 
 fn cpuCount(item: Block) usize {

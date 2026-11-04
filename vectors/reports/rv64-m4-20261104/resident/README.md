@@ -56,3 +56,30 @@ The service keeps EAGER at start, so per-request loads are 0 by construction.
 
 - **OOM kill:** the r4 run (`--nsys`, 4 requests) was SIGKILLed during its 4th request. The cause was the container cgroup: `memory.max` = 93 GB, shared by all streams, with `oom_kill` = 1. No receipt exists for r4.
 - **Disk full:** the first r7 seed hit ENOSPC on `/workspace`, which was at 94%. The failed store write killed the service. Fixed after the measurements: store persistence failures are now logged, not fatal. The commit after fe2c2754e has this fix; it compiles but has not been run on a GPU. Old store namespaces were pruned.
+
+## Adversarial check (2026-11-04, 26235156 only, single observations [M], load avg 39-58)
+
+| run | driver | store | request 1 / 2 (s) | setup 1 / 2 (s) | parity vs M3 | receiver |
+|---|---|---|---|---|---|---|
+| adv1 (independent re-run of the headline) | d6af8aae | reuse + warm | 25.07 / 25.13 | 0.137 / 0.134 | 35/35 proof files sha-equal, both requests | 2/2 accepted |
+| adv2 (fixed driver) | 3b7cdb28 | fresh | 31.52 / 25.05 | 4.86 / 0.124 | identical | 1/1 accepted |
+| adv3 (fixed driver, tampered) | 3b7cdb28 | reuse + warm, class 122489c6 seed_vars[0]^=1 | 25.75 / 24.20 | 0.125 / 0.130 | identical | 1/1 accepted |
+
+The parity check was redone outside the harness: sha256 over the sorted list of every `*.bin`,
+`*.proof` and `bundle.json` in each proof tree gave `2abc5797...` for both requests and for the M3
+integrate tree.
+
+Fixes in this commit, all for liveness: none of them changes a proof byte or the receiver.
+- A disk-loaded fold-class template that fails a use-time check (capability, shape or
+  `PlanClassSeedLayout`) failed the whole request before. It is now a logged miss
+  (`store_reject_on_use`) and that class is rebuilt fresh. `seed_vars`/`n_*` sit outside the stored
+  identity digest, so a file corrupted there passed load and then broke the request. adv3 shows the
+  rejection followed by byte-identical proofs.
+- `STWO_RV64_OUTER_PLAN_CLASS_CACHE=check` now also loads from the store. That makes it possible to
+  check a persisted store against fresh plans, which could not be done before.
+- Serve loop admission: before this fix, a malformed request, an unknown block or a reused request
+  name killed the service, and the file stayed in `inbox/` and killed the restart as well. Such a
+  request now gets `done/<stem>.json {"ok":false,...}` and is removed. adv3 injected two of them after
+  READY, the service kept going, and both real requests were served.
+- Class-store temp files now use a random suffix and are opened exclusive, matching `setup_cache`.
+  Two services built from the same driver share one store namespace.

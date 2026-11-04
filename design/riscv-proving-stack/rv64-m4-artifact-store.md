@@ -92,7 +92,7 @@ statement, witnesses) never enters any key or artifact.
   (`schedule_identity.digest` over tasks, indices, level ends) is recomputed and must equal the stored
   one, every task kind is re-checked against the loaded library's capabilities once, and the per-use
   seed-layout/shape checks (`PlanClassShapeMismatch`, `PlanClassSeedLayout`) still run. A rejected file
-  is a logged miss for that class. At boot the service preloads every template (8 threads, 11 files,
+  is a logged miss for that class, and so is a template that fails a use-time check (capability, shape, seed layout): the class is rebuilt fresh (`store_reject_on_use`), never a failed request. `=check` mode also loads persisted templates and compares them with fresh plans. At boot the service preloads every template (8 threads, 11 files,
   4.5 GB, 0.93 s [M]). Same soundness argument as §4: an equal plan is the equal assignment, and a
   wrong one yields a proof the receiver rejects.
 - Store writes happen between requests (off the request wall); a write failure is logged and never

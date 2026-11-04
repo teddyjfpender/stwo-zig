@@ -37,7 +37,7 @@ pub fn requireProductionCapabilities(library: *std.DynLib) !void {
 /// STWO_RV64_OUTER_PLAN_CLASS_CACHE=0 off, =check rebuild+compare, default on.
 pub const ClassCache = struct {
     pub const Mode = enum { off, on, check };
-    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize, persisted: bool = false, capability_checked: bool = true };
+    const Template = struct { key: [32]u8, n_vars: u32, n_constants: usize, n_origins: usize, seed_vars: []u32, tasks: []Task, indices: []u32, level_ends: []usize, identity: [32]u8, bytes: usize, persisted: bool = false, capability_checked: bool = true, rejected: bool = false };
     const gpa = std.heap.smp_allocator;
     var mutex: std.Thread.Mutex = .{};
     var entries: std.ArrayListUnmanaged(*Template) = .empty;
@@ -59,9 +59,19 @@ pub const ClassCache = struct {
         {
             mutex.lock();
             defer mutex.unlock();
-            for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return t;
+            // A rejected (disk-loaded) template is never used again and its file
+            // is not re-read: the class is rebuilt fresh on every use.
+            for (entries.items) |t| if (std.mem.eql(u8, &t.key, &key)) return if (t.rejected) null else t;
         }
         return Store.load(key);
+    }
+    /// A disk-loaded template that fails a use-time check (library capability,
+    /// shape, seed layout) is a logged miss, not a request failure.
+    fn reject(t: *Template, err: anyerror) void {
+        mutex.lock();
+        t.rejected = true;
+        mutex.unlock();
+        std.debug.print("GPU_OUTER_PLAN_CLASS store_reject_on_use class={x} error={s}\n", .{ t.key[0..8], @errorName(err) });
     }
     pub var disk_hits: usize = 0;
     pub var disk_stores: usize = 0;
@@ -106,7 +116,8 @@ pub const ClassCache = struct {
         }
         fn load(key: [32]u8) ?*Template {
             const dir = directory() orelse return null;
-            if (mode() != .on) return null;
+            // check mode also loads, so a persisted store can be validated against fresh plans.
+            if (mode() == .off) return null;
             var timer = std.time.Timer.start() catch return null;
             const t = loadImpl(dir, key) catch |err| {
                 if (err != error.FileNotFound) std.debug.print("GPU_OUTER_PLAN_CLASS store_reject class={x} error={s}\n", .{ key[0..8], @errorName(err) });
@@ -116,7 +127,7 @@ pub const ClassCache = struct {
             defer mutex.unlock();
             for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) {
                 destroy(t);
-                return e;
+                return if (e.rejected) null else e;
             };
             if (held_bytes + t.bytes > limit()) {
                 destroy(t);
@@ -182,7 +193,7 @@ pub const ClassCache = struct {
         /// already hits memory. Each file passes the same checks as a lazy load.
         pub fn preloadAll() !struct { loaded: usize, ns: u64 } {
             const dir_path = directory() orelse return .{ .loaded = 0, .ns = 0 };
-            if (mode() != .on) return .{ .loaded = 0, .ns = 0 };
+            if (mode() == .off) return .{ .loaded = 0, .ns = 0 };
             var timer = try std.time.Timer.start();
             var dir = std.fs.cwd().openDir(dir_path, .{ .iterate = true }) catch |err| switch (err) {
                 error.FileNotFound => return .{ .loaded = 0, .ns = 0 },
@@ -233,9 +244,14 @@ pub const ClassCache = struct {
                 var buffer: [std.fs.max_path_bytes]u8 = undefined;
                 const final = try pathFor(&buffer, dir, t.key);
                 var tmp_buffer: [std.fs.max_path_bytes]u8 = undefined;
-                const tmp = try std.fmt.bufPrint(&tmp_buffer, "{s}.tmp", .{final});
+                // Unique, exclusive temp name: two services sharing one store
+                // (same driver hash) can never interleave writes into one file.
+                var suffix: [8]u8 = undefined;
+                std.crypto.random.bytes(&suffix);
+                const tmp = try std.fmt.bufPrint(&tmp_buffer, "{s}.{s}.tmp", .{ final, std.fmt.bytesToHex(suffix, .lower) });
+                errdefer std.fs.cwd().deleteFile(tmp) catch {};
                 {
-                    const file = try std.fs.cwd().createFile(tmp, .{});
+                    const file = try std.fs.cwd().createFile(tmp, .{ .exclusive = true });
                     defer file.close();
                     var header = std.mem.zeroes([HEADER]u8);
                     @memcpy(header[0..8], MAGIC);
@@ -327,17 +343,15 @@ pub const Prepared = struct {
     pub fn init(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib) !Prepared {
         const cache_mode = ClassCache.mode();
         const hint = if (cache_mode == .off) null else @import("stwo_circuit_cpu_integration").om31.device_prove.class_hint;
-        const template = if (hint) |class_key| ClassCache.find(class_key) else null;
+        var template = if (hint) |class_key| ClassCache.find(class_key) else null;
         if (template) |t| if (cache_mode == .on) {
-            if (!t.capability_checked) {
-                // Disk-loaded template: re-check every task kind against THIS library once.
-                const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
-                for (t.tasks) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
-                ClassCache.mutex.lock();
-                t.capability_checked = true;
-                ClassCache.mutex.unlock();
+            if (initFromCheckedTemplate(a, ctx, library, t)) |prepared| return prepared else |err| {
+                // In-process templates keep the old fail-closed contract; a
+                // persisted one degrades to a fresh build of this class.
+                if (!t.persisted) return err;
+                ClassCache.reject(t, err);
+                template = null;
             }
-            return initFromTemplate(a, ctx, library, t);
         };
         var fresh = try initFull(a, ctx, library);
         errdefer fresh.deinit();
@@ -358,6 +372,20 @@ pub const Prepared = struct {
             ClassCache.mutex.unlock();
         }
         return fresh;
+    }
+    fn initFromCheckedTemplate(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib, t: *ClassCache.Template) !Prepared {
+        ClassCache.mutex.lock();
+        const checked = t.capability_checked;
+        ClassCache.mutex.unlock();
+        if (!checked) {
+            // Disk-loaded template: re-check every task kind against THIS library once.
+            const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+            for (t.tasks) |task| if (task.kind >= 32 or capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
+            ClassCache.mutex.lock();
+            t.capability_checked = true;
+            ClassCache.mutex.unlock();
+        }
+        return initFromTemplate(a, ctx, library, t);
     }
     fn initFromTemplate(a: std.mem.Allocator, ctx: *const Circuit.builder.Context(Q), library: *std.DynLib, t: *const ClassCache.Template) !Prepared {
         var timer = try std.time.Timer.start();
