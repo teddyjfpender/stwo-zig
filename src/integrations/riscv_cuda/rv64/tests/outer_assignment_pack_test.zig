@@ -218,3 +218,40 @@ test "assignment packing leaves CSR permutation records on legacy append path" {
     try std.testing.expectEqualSlices(u32, &.{ x.idx, y.idx }, indices[0..2]);
     try std.testing.expectError(error.UnexpectedPermutationTask, Pack.fill(&ctx, plan.tasks, tasks, 0xffff));
 }
+
+test "parallel ordering preserves real builder GPU record and schedule identities" {
+    const a = std.testing.allocator;
+    var ctx = try Circuit.builder.Context(Q).initWithWitnessOrigins(a, 1);
+    defer ctx.deinit();
+    const Var = Circuit.builder.circuit.Var;
+    const multiplier = try ctx.guess(Q.fromU32Unchecked(2, 1, 0, 0));
+    var last: [256]Var = undefined;
+    for (&last, 0..) |*variable, i| variable.* = try ctx.guess(Q.fromU32Unchecked(@intCast(i + 3), 0, 0, 0));
+    for (0..256) |_| for (&last) |*variable| {
+        variable.* = try ctx.mul(variable.*, multiplier);
+    };
+    try ctx.setOutputs(&.{last[0]});
+    try ctx.finalize(false);
+    var reference = try Schedule.buildDfsReference(a, &ctx);
+    defer reference.deinit();
+    const expected = try a.alloc(Pack.Task, reference.tasks.len);
+    defer a.free(expected);
+    const indices = try legacy(a, &ctx, reference.tasks, expected, 0xffff);
+    defer a.free(indices);
+    const identity = try Identity.digest(a, .{ std.mem.sliceAsBytes(expected), std.mem.sliceAsBytes(indices), std.mem.sliceAsBytes(reference.level_ends) });
+    var pool: Pools.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = 64 * 1024, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try Pools.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var parallel = try Schedule.build(a, &ctx);
+    defer parallel.deinit();
+    try std.testing.expectEqualDeep(reference.tasks, parallel.tasks);
+    try std.testing.expectEqualDeep(reference.seeds, parallel.seeds);
+    try std.testing.expectEqualSlices(usize, reference.level_ends, parallel.level_ends);
+    const actual = try a.alloc(Pack.Task, parallel.tasks.len);
+    defer a.free(actual);
+    try std.testing.expect((try Pack.fill(&ctx, parallel.tasks, actual, 0xffff)) > 1);
+    try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(expected), std.mem.sliceAsBytes(actual));
+    try std.testing.expectEqualSlices(u8, &identity, &(try Identity.digest(a, .{ std.mem.sliceAsBytes(actual), &.{}, std.mem.sliceAsBytes(parallel.level_ends) })));
+}

@@ -239,21 +239,16 @@ fn buildImpl(a: std.mem.Allocator, ctx: *const C.Context(Q), metrics: ?*BuildMet
     if (metrics) |m| m.walk_ns = timer.lap();
     const ends = try a.alloc(usize, @as(usize, max_level) + 1);
     errdefer a.free(ends);
-    @memset(ends, 0);
-    for (levels) |level| ends[level] += 1;
-    for (1..ends.len) |i| ends[i] += ends[i - 1];
-    const cursors = try a.dupe(usize, ends);
+    const cursors = try a.alloc(usize, ends.len);
     defer a.free(cursors);
     const ordered = try a.alloc(Task, tasks.items.len);
     errdefer a.free(ordered);
-    // Reverse scatter preserves original order within each level.
-    var i = tasks.items.len;
-    while (i > 0) {
-        i -= 1;
-        const level = levels[i];
-        cursors[level] -= 1;
-        ordered[cursors[level]] = tasks.items[i];
-        ordered[cursors[level]].level = level;
+    const ordering = @import("ordering.zig");
+    if (ready_variables) {
+        _ = try ordering.fill(Task, a, tasks.items, levels, ends, cursors, ordered, .{});
+    } else {
+        // Keep the independent DFS test oracle on original serial ordering.
+        try ordering.serial(Task, tasks.items, levels, ends, cursors, ordered);
     }
     if (metrics) |m| m.ordering_ns = timer.lap();
     return .{ .allocator = a, .tasks = ordered, .seeds = try seeds.toOwnedSlice(a), .level_ends = ends };
