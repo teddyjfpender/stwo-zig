@@ -267,6 +267,24 @@ the cost at the bench layer size (Maverick-like D) - it cannot be built there
 at A = 12 (K and D limits above); proven / conjectured security bits were not
 recomputed for these statements.
 
+### Independent check (round 4)
+
+An adversarial re-check of this section reproduced, from a fresh copy of the
+eval inputs: matched-a12-s13-r16-h0 and matched-a8-s13-r16-h0 replay 250 + 6
+and 249 + 7 refused with 0 mismatches; the a12-h0 metrics above to every
+digit; 4/4 proved, verified and wrong-token-rejected with the cost numbers
+above. Added tests (wide_test.zig "checker"): a statement carrying out_bits
+0, 1, 7, 17 or 31 (any value the wire decoder admits) fails validateStatement
+/ wireShape / verify with an error, never a panic; zk refuses wide
+statements (error.Unsupported via the shared plan); a MoE model refuses
+every wide width; width caps. wide_test.zig now also runs in the
+-Dchallenge=om31 suite (76/80, 4 skipped), which covers the OM31 branch of
+prep's range_off denominators that the om31 suite previously never reached.
+Still not done: Metal and ReleaseFast suites on the wide tests, security-bit
+recomputation for wide statements, a verifier-side (prover-check-bypassing)
+forgery test for the embedding limbs (the limb test stops at the prover's
+range check).
+
 ## Saturating (refusal-free) requant: designed, not implemented
 
 Refusals are now 2.3 % (h0) / 0.4 % (h1) at A = 12. A saturating requant

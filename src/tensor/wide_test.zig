@@ -150,3 +150,61 @@ test "wide matmul wire: tag 7 round-trips out_bits; int8 ops keep tag 1" {
         try testing.expectEqual(@as(u5, 9), sf.st.ops[0].matmul.shift);
     }
 }
+
+test "wide matmul (checker): out-of-range out_bits is a validation error, never a panic; zk refuses wide; MoE refuses wide" {
+    const a = testing.allocator;
+    var fx: Fx = undefined;
+    try fx.init(a);
+    defer fx.deinit(a);
+    var b = try build(a, &fx, 8, 12);
+    defer b.deinit();
+    const wv = try b.witnessView(a);
+    defer a.free(wv);
+    var tm: proto.Timings = .{};
+    var proof = try proto.prove(a, &fx.pool, pc(), b.statement(), &fx.ws, wv, &tm);
+    defer proof.deinit(a);
+    // a decoded statement may carry any out_bits in [0, 31] (wire shift5):
+    // yOffset / table sizes are only reached after validateStatement rejects
+    const ops = try a.dupe(proto.Op, b.statement().ops);
+    defer a.free(ops);
+    for ([_]u5{ 0, 1, 7, 17, 31 }) |ob| {
+        ops[0].matmul.out_bits = ob;
+        var st = b.statement();
+        st.ops = ops;
+        try testing.expectError(error.StatementShape, proto.validateStatement(st));
+        try testing.expectError(error.StatementShape, proto.wireShape(a, pc(), st));
+        try testing.expect(std.meta.isError(proto.verify(a, pc(), st, proto.weightKey(&fx.ws), &proof)));
+        // and the wire round trip of such a statement still decodes to it (the
+        // decoder is not the gate; validation is)
+        if (ob != 8) {
+            const bytes = try wire.encodeStatement(a, pc(), st);
+            defer a.free(bytes);
+            var sf = try wire.decodeStatement(a, bytes);
+            defer sf.deinit();
+            try testing.expectError(error.StatementShape, proto.validateStatement(sf.st));
+        }
+    }
+    // (the om31 suite runs this file for the prep range_off OM31 branch;
+    // zk / lm are QM31-only suites)
+    if (comptime f.IS_OM31) return;
+    // the hiding protocol has no wide range keys: it refuses (both sides share makePlan)
+    try testing.expectError(error.Unsupported, @import("zk.zig").witnessShape(a, pc(), b.statement(), null));
+    // wide widths are dense-only: any MoE layer in the model refuses them
+    const lm = @import("lm.zig");
+    const base = lm.ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_vocab = 6, .weight_log_cols = 3, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3 };
+    try base.validate();
+    for ([_][2]u32{ .{ 12, 8 }, .{ 8, 16 }, .{ 12, 16 } }) |w| {
+        var c = base;
+        c.act_bits = w[0];
+        c.resid_bits = w[1];
+        try testing.expectError(error.BadConfig, c.validate());
+    }
+    // width caps
+    var c2 = base;
+    c2.log_experts = 0;
+    for ([_][2]u32{ .{ 7, 8 }, .{ 15, 8 }, .{ 8, 7 }, .{ 8, 17 } }) |w| {
+        c2.act_bits = w[0];
+        c2.resid_bits = w[1];
+        try testing.expectError(error.BadConfig, c2.validate());
+    }
+}
