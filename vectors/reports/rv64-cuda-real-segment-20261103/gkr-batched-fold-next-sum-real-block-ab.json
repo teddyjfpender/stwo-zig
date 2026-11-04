@@ -1,6 +1,6 @@
 {
-  "status": "production-parity-PASS-independent-CPU-receiver-pending",
-  "accepted": false,
+  "status": "AcceptedButSlower",
+  "accepted": true,
   "default_enabled": false,
   "trials": [
     {
@@ -101,13 +101,12 @@
     "bundle.json": "eed289d3d554135c1b01d6bcb4a6e093907f4a4e737a203c1e8f6b9fc0259edf"
   },
   "exact_parity_across_all_four_trials": true,
-  "independent_cpu_receiver_pending": true,
+  "independent_cpu_receiver_pending": false,
   "remote_cpu_receiver_overlap": false,
   "instrumented_by_profiler": false,
   "default_decision": "Keep OFF: this single controlled cold/warm pair shows no improvement",
-  "interpretation": "Warm native proving rose1.78%, GKRadapter0.83%, launchcount324. These are single-run observations, not robust performance bounds. Mixed-height waking oracles still need ordinary sum kernels while active ones prefetch, splitting formerly batched work. No causality claimed for every wall-time difference.",
+  "interpretation": "Warm native proving rose 1.78%, GKR adapter 0.83%, launch count 324. These are single-run observations, not robust performance bounds. Mixed-height waking oracles still need ordinary sum kernels while active ones prefetch, splitting formerly batched work. No causality claimed for every wall-time difference.",
   "remaining": [
-    "Independent fresh CPU receiver on current request",
     "New-kernel sanitizer qualification",
     "Further selective-fusion engineering and controlled performance before any default change"
   ],
@@ -127,5 +126,32 @@
     "scope": "200ms sampled whole-device including driver/private-pool idle pages; not exact process/live witness peak",
     "off_samples": 308,
     "on_samples": 309
+  },
+  "fresh_offhost_verification": {
+    "accepted": true,
+    "result_sha256": "62080e890ce538b234c65ba33e58b1d66e9536357237929fcc5e1131238328ec",
+    "receiver_sha256": "0025ac3c498822c9ce1db66c1aad9bbaf76fa6490e4172342ada25167bf30395",
+    "cases": [
+      {
+        "case": "off",
+        "accepted": true,
+        "proof_artifacts_unchanged": true,
+        "wall_ns": 13619116583,
+        "exit_code": 0
+      },
+      {
+        "case": "on",
+        "accepted": true,
+        "proof_artifacts_unchanged": true,
+        "wall_ns": 13364864375,
+        "exit_code": 0
+      }
+    ],
+    "request_sha256": "4a3adba8626182212c5268a5bcee4a8af3c19ca0fa74dc633204902a79b70f3c",
+    "receiver_request_sha256": "7690af9f4047403e48b5ae2812559980968506534f4c19951b1bf680022810de",
+    "only_receiver_request_override": {
+      "workers": 4
+    },
+    "scope": "Two fresh independent ARM CPU verify-candidate processes; same request statement/profile, all20artifacts unchanged; warm exact parity checked for each case"
   }
 }

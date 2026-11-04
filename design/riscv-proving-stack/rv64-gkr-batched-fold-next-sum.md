@@ -50,7 +50,20 @@ Those are not launch counts per production segment or block. Native transcript,
 mask and compact-artifact parity passed. The helper process took 3.277 seconds,
 including initialization; that is not a kernel benchmark or a speedup claim.
 
-Representative full-block qualification, new-kernel sanitizer checks and
-performance remain pending. The option remains OFF and no active production
+A subsequent controlled full-native-block OFF/ON cold/warm comparison produced
+identical native proofs, bundle, stage receipt and public cells in all four
+trials. Two fresh offhost ARM CPU receivers accepted both cases and left all
+20 artifacts unchanged. The result was negative: warm native proving rose from
+10.3356 to 10.5194 seconds, GKR adapter time from 845.402 to 852.447ms, and total
+GKR launches from 15,190 to 15,514. Actual ON counters recorded 2,076 fused calls
+and 3,337 fused kernel launches per complete block, summed over seven CPU proofs.
+These are single cold/warm observations, not robust performance bounds. Waking
+oracles still need ordinary sums while active ones prefetch, splitting work
+that the established route batches together. A separate experimental mixed
+fold/wake kernel will address that fragmentation; it is not this qualified
+candidate.
+
+New-kernel sanitizer checks and improved representative performance remain
+pending. The option remains OFF and no active production
 runtime was replaced. See the separate source-checkpoint and numerical-gate
 receipts for their precise qualification scopes.
