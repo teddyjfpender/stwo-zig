@@ -698,6 +698,12 @@ pub fn canonicalCpus(captured: *const Capture, layout: CpuLayout, decls: []W.Cpu
         }
         d.* = chosen orelse return error.CanonNoAdmissibleRung;
         try d.geometry.validate();
+        // The JALR source is the only capture-time sized component (facts only,
+        // MAIN not yet materialized): rebind its log to the padded class.
+        if (n.jalr) |*j| {
+            if (j.main.len != 0 or j.fixed.len != 0 or j.facts.len > (@as(usize, 1) << @intCast(d.geometry.jalr_log))) return error.CanonJalrRebind;
+            j.log_size = d.geometry.jalr_log;
+        } else return error.CanonJalrRebind;
     }
 }
 const PAIRS = [_]struct { head: usize, tail: usize, reserve: u32 }{
