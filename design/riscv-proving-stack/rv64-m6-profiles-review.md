@@ -243,7 +243,11 @@ Every rejection is semantic. In the reverse runs (v1 policy on the M5 default pr
 the default bytes still verify.
 
 The 24628607 v2-strict full run was cut short by a full `/workspace` disk (ENOSPC copying a 118 MB proof dir at three
-jobs) and was re-run at one job.
+jobs). The re-run at one job gives **44/44**, with no unexpected accepts and no crashes. NV03 rejects
+the M5 default proof with `error: NativeChainNotStrict`.
+
+**Verdict: v2-strict is corpus-clean on both dev blocks.** NV-R1 and NV-R2 still need the hooks and the version
+binding before promotion.
 
 Full-tree C00 wall [M, single observations, load 23–31]: 60.4 s (26235156) and 90.8 s (24628607).
 
