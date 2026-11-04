@@ -16,6 +16,7 @@ below use interleaved runs of one binary. Every number is a single observation *
 | E5 | interleaved A/B on 24628607, one binary: exact (A) vs uniform-v1 (U), class-PP reuse on | — | recursion A 21.91 / 23.25 s, U 23.61 / 25.94 s | A 55/55 byte-identical (both runs); the U1 receiver accepted |
 | E6 | **NAMED** `m5_outer_canonical_r1_b2_q108_p20_fold4_v1` (uniform-v1 implied) | 1 fold VK `20ff5bd6…`, recursion 14.03 s (load 25.5), root 748 KB | the **same** fold VK, recursion 20.71 s (load 16.6), root 745,752 B | receivers accepted 2/2 |
 | E7 | `m3_b4_q51_p26` 4-ary on GPU, after the retire hook | leaf interaction LDE at blowup 4 requests 5.93 G words (23.7 GB): `CudaAllocationFailed` | not run | **blocked on device memory**: needs a chunked/streaming LDE commit (kernels/M6) |
+| E10 | `STWO_RV64_OUTER_SHAPE=set-v2` (3-shape set, first dominating; diagnostic), r1 binary | 5 fold VKs, recursion 13–14 s | 6 fold VKs (26235156's 5 are a subset), recursion 21.57 s | receivers accepted 2/2 |
 | P02 | the receiver selects m3 for r1 proofs | arity 4: `MissingRecursiveNodeProof`; arity 2: `Om31CircuitWireProfile` | — | rejected |
 | P03 | unknown outer profile name on the receiver | `error: UnknownOm31OuterProfile`, exit 1, no panic | — | clean rejection (was a panic, exit −6) |
 
@@ -52,7 +53,8 @@ Distinct outer authorities (circuit VKs) per node kind, from `tree.json`:
 
 Negative corpus [M]. Both runs used donor 24628607, 0 unexpected accepts and 0 crashes:
 - E4 uniform-v1 proofs: `26235156-e4-negative-corpus.json`, **36/36**;
-- E6 named canonical profile proofs: `26235156-e6-negative-corpus.json`, **36/36**.
+- E6 named canonical profile proofs: `26235156-e6-negative-corpus.json`, **36/36**;
+- E10 set-v2 proofs: `26235156-e10-negative-corpus.json`, **36/36**.
 
 ## Per-node host preparation (gate: ≤ 0.1 s per node)
 
@@ -136,3 +138,18 @@ prerequisite for fold v3 and the root-only receiver), not yet a prover speedup. 
 The exact arm includes this stream's scheduling-only class-PP reuse. Its round-2 24628607 requests (28.94 / 26.76 s at load
 21–36) are in the range of the M4 headline (28.46 / 29.21 s, store + warm boot). No speedup is claimed from this comparison,
 because the configurations differ (no store) and the load differs.
+
+## E10: set-v2, a constant SET of fold VKs at about 4% cost (interleaved A/B on 24628607, load 11–24) [M]
+
+| arm | recursion | leaf device sum | fold device sum | fold prep median | fold VKs |
+|---|---:|---:|---:|---:|---:|
+| exact A1 / A2 | 20.94 / 21.25 s | 17.18 / 17.78 s | 12.12 / 12.20 s | 0.99 / 1.07 s | 8 / 8 (block-dependent) |
+| set-v2 S1 / S2 | 21.36 / 22.56 s | 17.10 / 18.03 s | 10.93 / 11.95 s | 1.30 / 1.17 s | 6 / 6 |
+
+- Both exact arms are 55/55 byte-identical to M3/M4.
+- Over both blocks there are 6 fold VKs: 26235156's 5 are a subset of 24628607's 6. The bound is ≤ 9 binary classes, a build
+  constant, so `T_rec` stays constant.
+- Leaf device time is unchanged, unlike uniform-v1 (18.1 → 21.9 s): 11 of 28 leaves fit the small leaf shape.
+
+Recommendation: **the canonical profile should use the set-v2 shape set**, under a `_v2` registry name from profiles. It keeps
+the constant-VK property at about +4% recursion one-shot (uniform-v1 costs +10% one-shot and +23% warm).
