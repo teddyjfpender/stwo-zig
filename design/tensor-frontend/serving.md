@@ -545,6 +545,13 @@ Verify per request: about 0.2-0.3 s on one thread.
 * All of these would need to be streamed per layer and per tensor; none of
   that is built.
 
+**Witness-volume levers (ledger.md).** The fused SwiGLU gate (ledger.md
+section 4a, implemented) removes the committed SiLU tensor at every int8
+SwiGLU with ≥ 2^16 gate elements. That cuts the ledger's model-dims n_w from
+2.02e10 to 1.88e10 per request (−7.0 %), moves the central prove term above
+from about 1000 s to about 930 s, and leaves the weight fold and shared
+opening unchanged.
+
 **Errors that could break this extrapolation.**
 * p is assumed constant per element. It rose from 40 to 46 ns between T = 256
   and T = 512, and at log n_w ≈ 34 it is likely higher. The 55 ns column is a

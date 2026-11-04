@@ -201,7 +201,7 @@ argument and adversarial tests before it lands.
 | capacity padding: expert stacks at T slots (sorted / ragged dispatch) instead of E · C = 4 T | 3/4 of the routed-expert rows | ~16 % |
 | causal half: commit scores / sel / e for j ≤ t only (on the masked half, sel = 0 and e is the exp table at the masked bias; needs a triangular layout and a proof that the mask is honoured) | ~half of 3 H T² | ~15 % |
 | `d` virtual: the exp key's input is the expression m − S − bias (already a lineq), not a committed column | H T² per layer | ~10 % |
-| fused glu (`Op.glu`, one triple lookup) in the transformer MLPs and expert stacks: drops the committed SiLU output | T F, E C Fe, T Fs | ~7 % |
+| fused glu (`Op.glu`, one triple lookup) in the transformer MLPs and expert stacks: drops the committed SiLU output (**implemented, section 4a**: -7.0 % measured by formula) | T F, E C Fe, T Fs | ~7 % |
 | division slacks as virtual keys into one 2^20 range table (instead of 16-bit limb pairs) | 4 T D per layer | ~5 % |
 | residual stream as expressions (lineq sums) where consumers accept expressions | 2 T D per layer | ~2.5 % (needs checking) |
 | one-hot embedding as a public input to the gather (verifier evaluates its sparse MLE) | T V | ~1 % |
@@ -211,6 +211,101 @@ Packing: the dense layer uses 25 % of its committed bits (`sel` and `disp`
 1 bit of 31, activations 7 to 8 bits). Packing several narrow values per
 field element is the second lever after virtualisation, as in the bits/gas
 work. It changes the PCS encoding, so it is a protocol change, not a tweak.
+
+## 4a. Implemented: fused SwiGLU gate (`fused-glu`)
+
+Sections 2 and 3 are the baseline before this lever, measured at d3545530f.
+
+**Change.** `transformer.Builder.gate(g, u, silu)` emits the SwiGLU gate as
+one `proto.Op.glu` (the triple LogUp key g + βu + β²h into
+{(g, u, clamp8(rq_s(silu(g)·u))) : g, u ∈ int8}, 2^16 rows per distinct
+(table, shift)) whenever g has ≥ 2^16 elements (`GLU_MIN_NUMEL`).
+Otherwise it keeps the committed `lookup(g, silu)` + `hadamard(act, u)` pair.
+The pair stays below the threshold because there the glu table's 2^16
+multiplicity rows would cost more than the SiLU column they remove. All
+three int8 SwiGLU sites use it: `transformer.denseMlp`, the per-expert loop
+in `transformer.moe`, and `lm.moeStacked` (g = [E, C, Fe]). Wide mode
+(act_bits ≠ 8) is unchanged. `Builder.glu` computes silu(g)·u in memory and
+never commits it. It takes the shift from the hadamard's plan slot, chosen by
+the same `model.chooseShift` on the same accumulator, and keeps `checkInt8`.
+So h is bit-identical to the old pair's output (tested), and the shift plan
+length is unchanged. The verifier's shape-only rebuild (`lm.requestStatement`)
+makes the same choice, because it depends on shapes only.
+
+**Removed per hidden unit:** the committed SiLU tensor, its `lookup_pair` key,
+the hadamard remainder key, the hadamard y_range key, the hadamard requant
+sumcheck and the SiLU column's PCS claim. **Added:** one glu_triple key per
+hidden unit, and the 2^16-row glu table per distinct (table, shift). The
+gate/up matmul y_range keys were already dropped, since `rangeImplied` covers
+glu inputs exactly as it covers lookup inputs.
+
+**Soundness.** Op.glu is the existing, reviewed relation (zk.zig, model.zig
+fused MLP, `security.zig` per-relation degree: arity 3 → degree 2, derived
+automatically into `logup_degree_fractions`). Table membership makes g and u
+int8, and makes h = clamp8(rq_s(silu(g)·u)) exactly. The one semantic
+difference: the relation accepts the saturated value, where the old pair had
+no valid witness (the hadamard's y_range would fail). The saturated value is
+a deterministic function of the committed (g, u), so the prover gains no
+freedom. The honest prover still refuses such inputs (`checkInt8`). `bounds.zig`
+already treats glu outputs as int8, so the down matmul's accumulator bound is
+unchanged.
+
+**Tests** (transformer.zig, lm.zig):
+* fused at 2^16 versus pair at 2^8: h equals rq_s(silu(g)·u) with
+  s = chooseShift; proves and verifies; the honest prover refuses h + 1;
+* on a statement where the glu triple is the only constraint on free g and u
+  (test-only unchecked glu multiplicities), the verifier rejects h + 1, a
+  moved g with u and h fixed, u = 200 with h its natural clamp extension, and
+  g = 384;
+* model with a dense layer, stacked MoE and per-expert MoE all at 2^16: the
+  verifier-built statement is byte-identical to the prover's, and the
+  per-request proof verifies.
+
+No pinned digest changes, because no golden shape reaches 2^16 gate elements.
+
+**Measured** (this Mac, 12 threads; timings on battery power, A/B interleaved,
+medians of 5 (layer) and 3 (model) pairs):
+
+| run | before | after | Δ |
+|---|---:|---:|---:|
+| dense layer D 2048 F 4096 T 1024 (noprove): committed elems | 124,371,176 | 120,242,120 | −4,129,056 (−3.3 %) |
+| same, per token per layer (incl. input x, multiplicities) | 121,456 | 117,424 | −4,032 |
+| same, bits31 per token per layer | 3,765,136 | 3,640,144 | −124,992 |
+| same, GKR leaves direct / virtual | 80.2M / 48.8M | 71.8M / 44.6M | −3 per hidden unit |
+| same, multiplicity columns | 71,912 | 137,160 | +65,248 (glu table − act table) |
+| dense layer T 512, proved: prove s | 0.915 | 0.830 | −9.4 % |
+| same: witness commit / GKR stage s | 0.295 / 0.278 | 0.197 / 0.258 | |
+| same: proof bytes | 469,104 | 462,848 | −1.3 % |
+| same: peak RSS | 6.13 GB | 5.79 GB | −0.34 GB |
+| LM 2 layers (dense + MoE E 64 C 32 Fe 512) + head, T 512: committed | 39,253,713 | 37,746,129 | −1,507,584 (−3.8 %) |
+| same, dense / MoE elems per token per layer | 25,434 / 34,335 | 24,410 / 32,287 | −F / −E C Fe / T |
+| same: prove s | 1.128 | 1.133 | flat (noise) |
+| same: per-request proof bytes | 533,880 | 519,640 | −2.7 % |
+| same: peak RSS | 5.42 GB | 5.08 GB | −0.34 GB |
+
+`ledger_project.py` formulas match every measured class before and after.
+Its `--no-fused-glu` flag evaluates the baseline.
+
+**Maverick projection** (formulas, 24 dense + 24 MoE layers, shared expert
+counted as projected):
+
+| | before | after |
+|---|---:|---:|
+| dense elems / token / layer (model dims) | 329,826 (10.2 Mbit) | 313,442 (9.72 Mbit) |
+| MoE elems / token / layer (model dims) | 483,943 (15.0 Mbit) | 442,983 (13.7 Mbit) |
+| n_w per request, model dims | 2.021e10 | 1.880e10 (−1.41e9, −7.0 %) |
+| n_w per request, power-of-two dims | 2.924e10 | 2.783e10 (−4.8 %) |
+| GKR leaves per request | | −4.2e9 (3 × 1.41e9 hidden units) |
+| prove, serving.md 40–55 ns/elem | 810–1110 s | 750–1030 s |
+| prove, H100 projection 7.5–9 ns/elem | 152–182 s | 141–169 s |
+
+Without the shared expert (not implemented), the routed experts and dense MLP
+alone give −1.21e9. The time rows assume constant ns/elem. The measured T 512
+dense layer dropped more than its element share (−9.4 % time for −4.5 %
+elements, since GKR leaves fell 10 %), and the LM run was flat. The LM proof
+is dominated by the one-hot embedding and attention, and the glu table adds
+2^16 multiplicity rows there. Treat the time saving as the element share
+(about 7 %) until it is re-measured on AC power.
 
 ## 5. Caveats
 
