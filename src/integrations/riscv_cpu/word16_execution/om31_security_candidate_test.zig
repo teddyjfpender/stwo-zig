@@ -333,3 +333,12 @@ test "reference BG08: fused Blake2s byte-XOR lookup mass at census sizes stays f
     try C.requireBlakeLookupMass(max, per);
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireBlakeLookupMass(max + 1, per));
 }
+test "reference outer r1 AIR characteristic bound from the 24628607 census: 1.9 bits of margin, a 4x leaf wraps" {
+    // [D] leaf 0: 589,890,560 interaction cells; pairFractions puts 2 lookups per secure (4-cell) column per row.
+    const lookups: u64 = 589_890_560 / 4 * 2;
+    try std.testing.expectEqual(@as(u64, 294_945_280), lookups);
+    // Absolute mass <= uses + yields = 2 x use entries (unit-multiplicity uses assumed; canon-vk confirms).
+    const facts = C.OuterGkrFacts{ .outer_proofs = 33, .instances = 16, .max_variables = 24, .max_tuple_arity = 8 };
+    try C.requireOuterGkrCharacteristic(facts, 2 * lookups);
+    try std.testing.expectError(error.Om31CandidateCharacteristicWrap, C.requireOuterGkrCharacteristic(facts, 4 * 2 * lookups));
+}

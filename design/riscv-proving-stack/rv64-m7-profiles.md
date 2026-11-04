@@ -179,6 +179,12 @@ The union over outer proofs multiplies these by `p`. Per-challenge error is degr
    - The outer circuit needs the same check. At caps the conservative mass `instances · 2^v` = 2^37 ≥ p, so the caps are **not** admissible unless the circuit has a measured per-relation mass.
    - Pinned in `outerGkrMassBound` and `requireOuterGkrCharacteristic`, with a test: caps wrap, and the realistic facts (2^28) do not.
    - The same bound applies to committed outer LogUp, so it already constrains today's r1 circuits. canon-vk should confirm it for the current outer AIR.
+   - **[R2] Bound for today's r1 outer AIR** [D, from the census `vectors/reports/rv64-m4-20261104/diet/24628607-cell-census-q108.json`]:
+     - The interaction trace pairs two lookups per secure column per row (`witness/trace.zig pairFractions`). So the lookups of one node number at most `interaction cells / 4 × 2`.
+     - The largest node is leaf 0 of 24628607, with 589,890,560 interaction cells. That gives at most 294,945,280 lookups (2^28.1), summed over **all** relations.
+     - Yield multiplicities sum to the use count, so a relation's absolute mass is at most twice its use entries. That is at most 2^29.1, **1.9 bits below p**. The largest fold has 563,741,696 interaction cells, about the same.
+     - This assumes every use-side lookup has multiplicity 1. canon-vk must confirm that, or replace this bound with the measured per-relation mass. The margin is small enough that a leaf 4× larger (2^25 rows of interaction) would need a per-relation count.
+     - The fused Blake2s gadget and outer GKR only shrink the interaction, so they do not tighten this.
 
 ### 4.3 Obligations before the outer-gkr stream merges
 
