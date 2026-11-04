@@ -469,8 +469,9 @@ def produced_snapshot(plan, job):
             item["producer_manifests"] = {name: B.sha(Path(job["target"]) / name)
                                           for name in ("manifest.json", "batch/resident-ready-manifest.json")}
         if plan.get("recursion_device_fixed_candidate", False):
-            item["producer_manifests"] = {name: B.sha(Path(job["target"]) / name)
-                                          for name in ("manifest.json", "batch/resident-device-fixed-manifest.json")}
+            item.setdefault("producer_manifests", {}).update(
+                {name: B.sha(Path(job["target"]) / name)
+                 for name in ("manifest.json", "batch/resident-device-fixed-manifest.json")})
         result.append(item)
     return result
 
