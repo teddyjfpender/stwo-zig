@@ -28,6 +28,8 @@ pub const Wrapped = struct {
     restored: bool = false,
     /// PP/Authority owned by a class cache (fold v2); never freed here.
     borrowed: bool = false,
+    /// PP only is owned by the producer PPCache (fold v2); authority is owned.
+    borrowed_pp: bool = false,
     pub fn deinit(self: *Wrapped) void {
         self.capture.deinit(self.allocator);
         self.produced.deinit();
@@ -37,8 +39,10 @@ pub const Wrapped = struct {
         }
         self.authority.deinit();
         self.allocator.destroy(self.authority);
-        self.pp.deinit(self.allocator);
-        self.allocator.destroy(self.pp);
+        if (!self.borrowed_pp) {
+            self.pp.deinit(self.allocator);
+            self.allocator.destroy(self.pp);
+        }
         self.* = undefined;
     }
     pub fn serialize(self: *const Wrapped, a: std.mem.Allocator) ![]u8 {
@@ -50,6 +54,8 @@ pub const Wrapped = struct {
     pub fn retireProverData(self: *Wrapped) usize {
         if (self.authority.retired) return 0;
         self.authority.retireProverData();
+        // A class-cached PP is shared by later folds of its class.
+        if (self.borrowed_pp or self.borrowed) return 0;
         var bytes: usize = 0;
         for (&self.pp.columns) |*column| {
             bytes += column.values.len * @sizeOf(@import("stwo_core").fields.m31.M31);
@@ -57,6 +63,68 @@ pub const Wrapped = struct {
             column.values = &.{};
         }
         return bytes;
+    }
+};
+/// Producer-only, in-process fold v2 PP cache: a fold's preprocessed circuit is
+/// a function of its geometry class (om31_outer.classKey), so later folds of a
+/// class reuse the immutable PP instead of rebuilding columns. Proof-neutral:
+/// the device precommit of an equal PP yields an equal FIXED root, and the
+/// receiver independently rebuilds every authority. =check rebuilds and
+/// compares column bytes; =0 disables. Not used by receivers.
+pub const PPCache = struct {
+    pub const Mode = enum { off, on, check };
+    const gpa = std.heap.smp_allocator;
+    const Entry = struct { key: [32]u8, pp: *PP, bytes: usize };
+    var mutex: std.Thread.Mutex = .{};
+    var entries: std.ArrayListUnmanaged(Entry) = .empty;
+    var held_bytes: usize = 0;
+    pub fn mode() Mode {
+        const value = std.posix.getenv("STWO_RV64_OUTER_PP_CLASS_CACHE") orelse return .on;
+        if (std.mem.eql(u8, value, "0")) return .off;
+        if (std.mem.eql(u8, value, "check")) return .check;
+        return .on;
+    }
+    fn limit() usize {
+        const value = std.posix.getenv("STWO_RV64_OUTER_PP_CLASS_CACHE_BYTES") orelse return 6 << 30;
+        return std.fmt.parseUnsigned(usize, value, 10) catch 6 << 30;
+    }
+    fn find(key: [32]u8) ?*PP {
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return e.pp;
+        return null;
+    }
+    fn bytesOf(pp: *const PP) usize {
+        var bytes: usize = 0;
+        for (pp.columns) |column| bytes += column.values.len * @sizeOf(@import("stwo_core").fields.m31.M31);
+        return bytes;
+    }
+    fn equal(left: *const PP, right: *const PP) bool {
+        if (left.n_outputs != right.n_outputs or left.first_permutation_row != right.first_permutation_row) return false;
+        for (left.columns, right.columns) |l, r| if (!std.mem.eql(u8, l.id, r.id) or !std.mem.eql(u8, std.mem.sliceAsBytes(l.values), std.mem.sliceAsBytes(r.values))) return false;
+        return true;
+    }
+    /// Clones `pp` into cache-owned memory (first fold of a class only).
+    fn adopt(key: [32]u8, pp: *const PP) void {
+        adoptImpl(key, pp) catch |err| std.debug.print("GPU_OUTER_PP_CLASS adopt_error={s}\n", .{@errorName(err)});
+    }
+    fn adoptImpl(key: [32]u8, pp: *const PP) !void {
+        const bytes = bytesOf(pp);
+        mutex.lock();
+        defer mutex.unlock();
+        for (entries.items) |e| if (std.mem.eql(u8, &e.key, &key)) return;
+        if (held_bytes + bytes > limit()) return;
+        const copy = try gpa.create(PP);
+        errdefer gpa.destroy(copy);
+        copy.* = pp.*;
+        var done: usize = 0;
+        errdefer for (copy.columns[0..done]) |column| gpa.free(column.values);
+        for (&copy.columns, pp.columns) |*out, column| {
+            out.values = try gpa.dupe(@import("stwo_core").fields.m31.M31, column.values);
+            done += 1;
+        }
+        try entries.append(gpa, .{ .key = key, .pp = copy, .bytes = bytes });
+        held_bytes += bytes;
     }
 };
 /// Context must already be finalized by its concrete statement authority. Padding follows its exact graph counts; no external registry or legacy
@@ -79,10 +147,25 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     var timer = try std.time.Timer.start();
     try circuit.common.finalize.padToTargets(C.Q, ctx, circuit.common.finalize.computePaddedSizes(.fromBuilder(&ctx.circuit)));
     const finalize_ns = timer.read();
-    const pp = try a.create(PP);
-    errdefer a.destroy(pp);
-    pp.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
-    errdefer pp.deinit(a);
+    // Fold v2 producer only: class-keyed immutable PP reuse (device precommit).
+    const class: ?[32]u8 = if (ctx.trace_only and encoded == null and factory != null and factory.?.precommit_fixed != null) Device.class_hint else null;
+    const pp_mode = PPCache.mode();
+    const cached_pp: ?*PP = if (class != null and pp_mode == .on) PPCache.find(class.?) else null;
+    const pp: *PP = if (cached_pp) |shared| shared else blk: {
+        const owned = try a.create(PP);
+        errdefer a.destroy(owned);
+        owned.* = try PP.fromBuilderCircuit(a, &ctx.circuit);
+        break :blk owned;
+    };
+    errdefer if (cached_pp == null) {
+        pp.deinit(a);
+        a.destroy(pp);
+    };
+    if (class) |key| if (pp_mode == .check) if (PPCache.find(key)) |shared| {
+        if (!PPCache.equal(shared, pp)) return error.PPClassMismatch;
+        std.debug.print("GPU_OUTER_PP_CLASS check_ok class={x}\n", .{key[0..8]});
+    };
+    if (cached_pp != null) std.debug.print("GPU_OUTER_PP_CLASS hit=true class={x}\n", .{class.?[0..8]});
     const columns_end_ns = timer.read();
     const authority = try a.create(Outer.Authority);
     errdefer a.destroy(authority);
@@ -124,7 +207,9 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     try requireDigest(produced.outputs, digest);
     var capture = try Outer.verify(a, authority, produced.outputs, produced.claims, &produced.proof.proof);
     errdefer capture.deinit(a);
-    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .timings = .{ .preprocess_ns = preprocess_ns, .finalize_ns = finalize_ns, .preprocessed_columns_ns = columns_ns, .authority_ns = authority_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
+    // Adopt only after a complete, freshly verified proof under this PP.
+    if (class) |key| if (cached_pp == null and pp_mode != .off) PPCache.adopt(key, pp);
+    return .{ .allocator = a, .pp = pp, .authority = authority, .produced = produced, .capture = capture, .digest = digest, .restored = encoded != null, .borrowed_pp = cached_pp != null, .timings = .{ .preprocess_ns = preprocess_ns, .finalize_ns = finalize_ns, .preprocessed_columns_ns = columns_ns, .authority_ns = authority_ns, .prove_ns = if (encoded != null) 0 else source_ns, .verify_ns = timer.lap(), .restore_ns = if (encoded != null) source_ns else 0 } };
 }
 /// Receiver-only fold v2 path: restore and freshly verify `encoded` under a
 /// class authority the receiver itself built (from an honest trace-only graph
