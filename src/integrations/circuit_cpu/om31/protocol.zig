@@ -83,9 +83,14 @@ pub fn active() Profile {
     }
     var buffer: [64]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    // Only an absent variable selects the default; any other lookup failure
+    // (e.g. a value longer than the buffer) fails closed like an unknown name.
     const resolved: Profile = if (std.process.getEnvVarOwned(fba.allocator(), PROFILE_ENV)) |text|
         Profile.parse(text) catch @panic("unknown STWO_RV64_OUTER_PROFILE")
-    else |_| DEFAULT_PROFILE;
+    else |err| switch (err) {
+        error.EnvironmentVariableNotFound => DEFAULT_PROFILE,
+        else => @panic("unreadable STWO_RV64_OUTER_PROFILE"),
+    };
     _ = selected.cmpxchgStrong(unset, @intFromEnum(resolved), .acq_rel, .acquire);
     locked.store(true, .release);
     return @enumFromInt(selected.load(.acquire));
