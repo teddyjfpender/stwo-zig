@@ -484,7 +484,9 @@ fn runArguments(recycler: *Recycler, all_args: []const [:0]u8, stages: ResidentS
     var direct_stats: DirectCapture.Stats = .{};
     var direct_started: ?*DirectCapture.Started = if (direct_capture) try DirectCapture.Started.start(a, request.value, count, capture_options.execution_workers) else null;
     defer if (direct_started) |value| value.deinit(&direct_stats);
-    var image = try Image.Owner.init(a, request.value);
+    // M5 platform: a resident session reuses the receiver-derived
+    // ProgramAuthority of the same guest (keyed by its executable words).
+    var image = if (session) |shared| try Image.Owner.initShared(a, request.value, &shared.authorities) else try Image.Owner.init(a, request.value);
     defer image.deinit();
     const image_load_ns = timer.read();
     var local_native: ?NativeCache.Cache = if (session == null) try NativeCache.Cache.init(a, 256 << 20) else null;

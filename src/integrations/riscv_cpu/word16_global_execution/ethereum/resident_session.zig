@@ -29,6 +29,8 @@ pub const Session = struct {
     /// this service (same provenance rule as `validated_fixed`). Its leases live
     /// in `setup.fixed`, so it is torn down before `setup`.
     setup_validated: FixedSet.ValidatedCatalogue,
+    /// M5 platform: receiver-derived ProgramAuthority, built once per guest.
+    authorities: Image.AuthorityCache,
     active: bool = false,
     hits: u64 = 0,
     misses: u64 = 0,
@@ -38,7 +40,7 @@ pub const Session = struct {
         errdefer budget.destroy();
         var native = try Setup.NativeCache.Cache.init(a, 256 << 20);
         errdefer native.deinit();
-        return .{ .allocator = a, .key_budget = budget, .keys = emptyKeys(budget.allocator()), .validated_fixed = .{ .allocator = budget.allocator() }, .setup_validated = .{ .allocator = budget.allocator() }, .native = native, .metadata = try Setup.ProgramMetadata.Cache.init(a, 64 << 20) };
+        return .{ .allocator = a, .key_budget = budget, .keys = emptyKeys(budget.allocator()), .validated_fixed = .{ .allocator = budget.allocator() }, .setup_validated = .{ .allocator = budget.allocator() }, .native = native, .metadata = try Setup.ProgramMetadata.Cache.init(a, 64 << 20), .authorities = Image.AuthorityCache.init(a) };
     }
     fn emptyKeys(a: std.mem.Allocator) Keys.Owner {
         return .{ .allocator = a, .cpus = &.{}, .truths = &.{} };
@@ -52,6 +54,7 @@ pub const Session = struct {
         if (self.setup) |*cache| cache.deinit();
         self.native.deinit();
         self.metadata.deinit();
+        self.authorities.deinit();
         self.key_budget.destroy();
         self.* = undefined;
     }

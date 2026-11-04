@@ -183,7 +183,9 @@ pub const Cache = struct {
     /// it stays evictable; a later miss simply falls back to `words`. Returns
     /// false (no state change) when it cannot adopt without evicting a
     /// borrowed entry or allocating past the device budget.
-    pub fn adoptDevice(self: *Cache, native_context: *anyopaque, source_scope: [8]u32, key: [8]u32, source: [*]const u32, count: u64, context_token: u64, generation: u64) !bool {
+    /// `join`: host-join after the copy. A caller adopting a whole forest
+    /// joins once on its last column (every copy is on the same stream).
+    pub fn adoptDevice(self: *Cache, native_context: *anyopaque, source_scope: [8]u32, key: [8]u32, source: [*]const u32, count: u64, context_token: u64, generation: u64, join: bool) !bool {
         if (count == 0) return error.InvalidImmutableSetupWords;
         if (self.index(key)) |i| return self.entries.items[i].lease.count == count;
         const bytes = try std.math.mul(u64, count, 4);
@@ -200,7 +202,7 @@ pub const Cache = struct {
         errdefer if (!adopted) {
             _ = self.release(self.session, &lease);
         };
-        if (self.copy(native_context, @ptrCast(lease.words.?), @ptrCast(source), @intCast(bytes)) != 0 or self.sync(native_context) != 0) return error.ImmutableSetupUploadFailed;
+        if (self.copy(native_context, @ptrCast(lease.words.?), @ptrCast(source), @intCast(bytes)) != 0 or (join and self.sync(native_context) != 0)) return error.ImmutableSetupUploadFailed;
         if (self.seal(self.session, &lease, &key) != 0) return error.ImmutableSetupSealFailed;
         if (self.access_clock == std.math.maxInt(u64)) {
             for (self.entries.items) |*cached| cached.last_used = 0;

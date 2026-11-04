@@ -82,3 +82,20 @@ Native prove and capture are unchanged within noise (6.29 vs 6.31 s, 3.05 vs 2.9
 where the host no longer blocks on ~47 k syncs and 19.6 k pageable copies per request.
 A 22 GiB carve in the resident service **failed** on the second 24628607 request (recursion-leaf composition 11.24 GB with
 11.9 GB live: the service keeps more resident state than the one-shot), so the ≤ 28 GB device gate holds only one-shot.
+
+## v5 (26235156, driver `d9cfebfb`, one-shot under the call-site shim)
+
+- **`STWO_RV64_EXEC_SYNC=device`** (opt-in): context syncs become a device-side all-lane barrier; span-timing reads
+  (`stwo_rv64_event_elapsed`) wait on their end marker only when it is not complete. Byte-identical.
+  `cuStreamSynchronize` **0** (M4 37,304), `cuEventSynchronize` 3,442 (2,479 staged D2H whose data the caller reads on
+  return, 864 composition span-timing reads, the rest pcs_pipeline/readbacks): **37,336 → 3,442 host-blocking calls
+  (10.8x)** [M]. Request 31.55 s vs 31.44 s in host mode at similar load (single observations, shim on): no time
+  change, so it stays opt-in until the span timers are resolved at the terminal fence (M6 enqueue).
+- Host mode (default): 3,996 stream + 2,526 event syncs. Batching the adoption joins did not remove the 900 syncs at
+  adoption: the immutable `seal` itself joins (it seals a range that must be written).
+- ProgramAuthority service cache (`expected_image.AuthorityCache` in the resident session, keyed by the guest's
+  executable words/addresses, both execution profiles and the control policy): measured in the resident service below.
+
+Carve timing (from `daemon-*` producer logs): with the M4 library `GPU_ARENA_INIT` (814 `cuMemCreate` + premap per GPU)
+is printed after the class preload, i.e. inside request 1; with this stream's library it is the first line of the
+service log, before the warm boot.

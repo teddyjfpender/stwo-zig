@@ -78,9 +78,10 @@ pub const Owner = struct {
         var root_scope = self.scope;
         root_scope.fixed = self.tree.root;
         const source_scope = Id.identity(self.scope);
+        defer _ = cache.sync(raw); // one host join for the whole forest
         for (self.inputs, 0..) |input, i| {
             const device = input.device orelse return 0;
-            const adopted = cache.adoptDevice(raw, source_scope, @import("outer_source_main.zig").immutableKey(root_scope, i), device.words, device.count, device.context_token, device.generation) catch return 0;
+            const adopted = cache.adoptDevice(raw, source_scope, @import("outer_source_main.zig").immutableKey(root_scope, i), device.words, device.count, device.context_token, device.generation, false) catch return 0;
             if (!adopted) return 0;
         }
         return 0;
