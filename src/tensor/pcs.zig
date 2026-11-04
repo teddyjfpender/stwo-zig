@@ -329,12 +329,12 @@ pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Mat
     const out = try a.alloc([]QM31, G);
     for (out) |*o| o.* = try a.alloc(QM31, C);
     // limb planes of coefficients: [g][limb][i]
-    const planes = try a.alloc(u32, G * 4 * R);
+    const planes = try a.alloc(u32, G * f.N_LIMBS * R);
     defer a.free(planes);
     for (coeffs, 0..) |cg, g| {
         for (cg[0..R], 0..) |c, i| {
             const l = f.limbs(c);
-            for (0..4) |k| planes[(g * 4 + k) * R + i] = l[k];
+            for (0..f.N_LIMBS) |k| planes[(g * f.N_LIMBS + k) * R + i] = l[k];
         }
     }
     const TILE = 64;
@@ -348,15 +348,15 @@ pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Mat
                 const c1 = @min(c.C, c0 + TILE);
                 const w = c1 - c0;
                 for (0..c.G) |g| {
-                    var acc: [4][TILE]i64 = undefined;
+                    var acc: [f.N_LIMBS][TILE]i64 = undefined;
                     for (&acc) |*row| @memset(row, 0);
                     // |limb * v| < 2^(31 + bound); reduce before 2^62.
                     const chunk_rows: usize = @as(usize, 1) << @intCast(31 - @min(@as(u32, 30), c.bound_log2));
                     var since: usize = 0;
                     for (0..c.R) |i| {
                         const row = c.m.row(i)[c0..c1];
-                        inline for (0..4) |k| {
-                            const lv: i64 = c.planes[(g * 4 + k) * c.R + i];
+                        inline for (0..f.N_LIMBS) |k| {
+                            const lv: i64 = c.planes[(g * f.N_LIMBS + k) * c.R + i];
                             if (lv != 0) {
                                 for (0..w) |j| acc[k][j] += lv * @as(i64, row[j]);
                             }
@@ -370,7 +370,9 @@ pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Mat
                         }
                     }
                     for (0..w) |j| {
-                        c.out[g][c0 + j] = f.fromLimbs(.{ f.reduceI64(acc[0][j]), f.reduceI64(acc[1][j]), f.reduceI64(acc[2][j]), f.reduceI64(acc[3][j]) });
+                        var l: f.Limbs = undefined;
+                        inline for (0..f.N_LIMBS) |k| l[k] = f.reduceI64(acc[k][j]);
+                        c.out[g][c0 + j] = f.fromLimbs(l);
                     }
                 }
             }
@@ -383,15 +385,19 @@ pub fn combineRows(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: Mat
 pub fn encodeSecure(a: std.mem.Allocator, tw: *const Twiddles, msg: []const QM31) ![]QM31 {
     const E = tw.domain.size();
     const out = try a.alloc(QM31, E);
-    var coord: [4][]M31 = undefined;
+    var coord: [f.N_LIMBS][]M31 = undefined;
     for (&coord) |*c| c.* = try a.alloc(M31, E);
     defer for (coord) |c| a.free(c);
     for (msg, 0..) |v, j| {
         const l = f.limbs(v);
-        inline for (0..4) |k| coord[k][j] = M31.fromU32Unchecked(l[k]);
+        inline for (0..f.N_LIMBS) |k| coord[k][j] = M31.fromU32Unchecked(l[k]);
     }
     tw.encodeBatch(&coord, msg.len);
-    for (0..E) |j| out[j] = f.fromLimbs(.{ coord[0][j].v, coord[1][j].v, coord[2][j].v, coord[3][j].v });
+    for (0..E) |j| {
+        var l: f.Limbs = undefined;
+        inline for (0..f.N_LIMBS) |k| l[k] = coord[k][j].v;
+        out[j] = f.fromLimbs(l);
+    }
     return out;
 }
 
@@ -428,7 +434,7 @@ pub const OpeningProof = struct {
 
     pub fn byteSize(self: OpeningProof) usize {
         var s: usize = 8;
-        for (self.rows) |r| s += r.len * 16;
+        for (self.rows) |r| s += r.len * f.FELT_BYTES;
         for (self.columns) |c| s += 8 + c.values.len * 4 + c.path.len * 32;
         return s;
     }

@@ -38,6 +38,11 @@ const Transcript = @import("transcript.zig").Transcript;
 
 const M31 = f.M31;
 const QM31 = f.QM31;
+/// limbs of a challenge-field element (4 = QM31, 8 = OM31), their index bits,
+/// and its wire bytes: a combined row of C felts is committed as NL x C M31
+const NL = f.N_LIMBS;
+const LB: u32 = std.math.log2_int(usize, NL);
+const FB = f.FELT_BYTES;
 const Hash = [32]u8;
 const circle = engine.poly.circle;
 const CirclePointM31 = core.circle.CirclePointM31;
@@ -266,7 +271,7 @@ pub const LevelProof = struct {
     /// limb MLE values V~(r_g, c, r_k) for c = 0..3
     inner_root: Hash = [_]u8{0} ** 32,
     sumcheck: sc.Proof = .{ .rounds = &.{}, .deg = 2 },
-    limb_vals: [4]QM31 = [_]QM31{QM31.zero()} ** 4,
+    limb_vals: [NL]QM31 = [_]QM31{QM31.zero()} ** NL,
     /// non-final levels with Params.ood: MLE of the committed-row table at
     /// the out-of-domain point drawn right after `inner_root`
     ood_value: ?QM31 = null,
@@ -281,9 +286,9 @@ pub const LevelProof = struct {
 
     pub fn byteSize(self: LevelProof, final: bool) usize {
         var s: usize = 8 + self.col_values.len * 4 + self.decommit.len * 32;
-        for (self.rows) |r| s += r.len * 16;
-        if (!final) s += 32 + self.sumcheck.byteSize() + 4 * 16;
-        if (self.ood_value != null) s += 16;
+        for (self.rows) |r| s += r.len * FB;
+        if (!final) s += 32 + self.sumcheck.byteSize() + NL * FB;
+        if (self.ood_value != null) s += FB;
         return s;
     }
 };
@@ -322,13 +327,13 @@ pub const InnerShape = struct {
 
 pub fn innerShape(n_rows: usize, log_c: u32, log_cols: u32) InnerShape {
     const log_g = ceilLog2(n_rows);
-    const log_total = log_g + 2 + log_c;
+    const log_total = log_g + LB + log_c;
     return .{
         .log_g = log_g,
         .log_total = log_total,
         .log_rows = log_total - log_cols,
         .log_cols = log_cols,
-        .rows_used = (n_rows * 4) << @intCast(log_c - log_cols),
+        .rows_used = (n_rows * NL) << @intCast(log_c - log_cols),
     };
 }
 
@@ -344,14 +349,14 @@ pub fn predictLevel(params: Params, lvl: usize, log_total: u32, used: usize, log
     var bytes: f64 = 8 + t * @as(f64, @floatFromInt(ru)) * 4 + t * sib_levels * 32;
     _ = log_total;
     if (depth == 0) {
-        bytes += @as(f64, @floatFromInt(n_rows * C * 16));
+        bytes += @as(f64, @floatFromInt(n_rows * C * FB));
     } else {
         const lbi = params.level(lvl + 1).log_blowup;
         const budget = @max(used >> @intCast(params.inner_work_shift), @as(usize, 1) << 14);
-        if ((4 * C) << @intCast(lbi) > budget) return std.math.inf(f64);
+        if ((NL * C) << @intCast(lbi) > budget) return std.math.inf(f64);
         const best = bestInner(params, lvl + 1, n_rows, log_cols, depth - 1);
-        bytes += 32 + 64 + @as(f64, @floatFromInt(ceilLog2(n_rows) + log_cols)) * 32 + best.bytes;
-        if (params.ood) bytes += 16;
+        bytes += 32 + @as(f64, @floatFromInt(NL * FB)) + @as(f64, @floatFromInt(ceilLog2(n_rows) + log_cols)) * @as(f64, @floatFromInt(2 * FB)) + best.bytes;
+        if (params.ood) bytes += FB;
     }
     return bytes;
 }
@@ -362,7 +367,7 @@ pub fn bestInner(params: Params, lvl: usize, n_rows: usize, log_c: u32, depth: u
     var lc: u32 = 1;
     while (lc <= log_c) : (lc += 1) {
         const sh = innerShape(n_rows, log_c, lc);
-        const b = predictLevel(params, lvl, sh.log_total, (n_rows * 4) << @intCast(log_c), lc, params.innerGroups() + params.prox_rows, depth);
+        const b = predictLevel(params, lvl, sh.log_total, (n_rows * NL) << @intCast(log_c), lc, params.innerGroups() + params.prox_rows, depth);
         if (b < best) {
             best = b;
             best_lc = lc;
@@ -444,7 +449,7 @@ fn evalTarget(g: Group, gammas: []const QM31) QM31 {
 }
 
 inline fn basisElem(c: usize) QM31 {
-    var l = [_]u32{ 0, 0, 0, 0 };
+    var l: f.Limbs = @splat(0);
     l[c] = 1;
     return f.fromLimbs(l);
 }
@@ -538,11 +543,11 @@ pub fn openRec(
     {
         const VCtx = struct { rows: []const []const QM31, v: []i32, C: usize };
         const vctx = VCtx{ .rows = rows, .v = vdata, .C = C };
-        pool.parallelFor(rows.len * 4, 1, &vctx, struct {
+        pool.parallelFor(rows.len * NL, 1, &vctx, struct {
             fn run(c: *const VCtx, s: usize, e: usize) void {
                 for (s..e) |gc| {
                     const dst = c.v[gc * c.C ..][0..c.C];
-                    for (c.rows[gc / 4], dst) |val, *d| d.* = @intCast(f.limbs(val)[gc % 4]);
+                    for (c.rows[gc / NL], dst) |val, *d| d.* = @intCast(f.limbs(val)[gc % NL]);
                 }
             }
         }.run);
@@ -663,17 +668,17 @@ pub fn openRec(
     // limb claims: V~(r_g, c, r_k)
     const r_g = res.point[0..ish.log_g];
     const r_k = res.point[ish.log_g..];
-    var pts: [4][]QM31 = undefined;
+    var pts: [NL][]QM31 = undefined;
     for (&pts, 0..) |*pt, c| {
         pt.* = try a.alloc(QM31, ish.log_total);
         @memcpy(pt.*[0..ish.log_g], r_g);
-        bitsPoint(pt.*[ish.log_g..][0..2], c);
-        @memcpy(pt.*[ish.log_g + 2 ..], r_k);
+        bitsPoint(pt.*[ish.log_g..][0..LB], c);
+        @memcpy(pt.*[ish.log_g + LB ..], r_k);
     }
     defer for (pts) |pt| a.free(pt);
-    var lc: [4]Claim = undefined;
+    var lc: [NL]Claim = undefined;
     levels.items[li].limb_vals = try limbMles(a, pool, rows, res.point, ish.log_g);
-    for (0..4) |c| lc[c] = .{ .point = pts[c], .value = levels.items[li].limb_vals[c] };
+    for (0..NL) |c| lc[c] = .{ .point = pts[c], .value = levels.items[li].limb_vals[c] };
     tr.mixFelts(&levels.items[li].limb_vals);
     const oc = [_]Claim{.{ .point = ood_pt, .value = levels.items[li].ood_value orelse QM31.zero() }};
     const ngroups = [_]Group{ .{ .claims = &lc }, .{ .claims = &oc } };
@@ -685,19 +690,19 @@ pub const T_PROD2 = [_]sc.Term{.{ .coeff = QM31.one(), .factors = &[_]u8{ 0, 1 }
 /// MLE of the limb table V[g][c][k] = limb_c(rows[g][k]) (G' x 4 x C, zero
 /// padded) at pt = (z_g, z_c, z_k).
 fn oodValue(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, pt: []const QM31, log_g: u32) !QM31 {
-    const gk = try a.alloc(QM31, pt.len - 2);
+    const gk = try a.alloc(QM31, pt.len - LB);
     defer a.free(gk);
     @memcpy(gk[0..log_g], pt[0..log_g]);
-    @memcpy(gk[log_g..], pt[log_g + 2 ..]);
+    @memcpy(gk[log_g..], pt[log_g + LB ..]);
     const limbs = try limbMles(a, pool, rows, gk, log_g);
-    return combineLimbs(limbs, pt[log_g..][0..2]);
+    return combineLimbs(limbs, pt[log_g..][0..LB]);
 }
 
 /// sum_c eq(z_c, c) limbs[c] (c in MSB-first bit order)
-fn combineLimbs(limbs: [4]QM31, zc: []const QM31) QM31 {
+fn combineLimbs(limbs: [NL]QM31, zc: []const QM31) QM31 {
     var v = QM31.zero();
-    var bits: [2]QM31 = undefined;
-    for (0..4) |c| {
+    var bits: [LB]QM31 = undefined;
+    for (0..NL) |c| {
         bitsPoint(&bits, c);
         v = v.add(f.eqEval(zc, &bits).mul(limbs[c]));
     }
@@ -712,7 +717,7 @@ fn countEval(groups: []const Group) usize {
 
 /// MLEs of the four limbs of the stacked rows (G' x C, zero padded) at point,
 /// in one parallel pass.
-fn limbMles(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, point: []const QM31, log_g: u32) ![4]QM31 {
+fn limbMles(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, point: []const QM31, log_g: u32) ![NL]QM31 {
     const C = rows[0].len;
     const eq_g = try f.eqTable(a, point[0..log_g], QM31.one());
     defer a.free(eq_g);
@@ -720,30 +725,30 @@ fn limbMles(a: std.mem.Allocator, pool: *f.Pool, rows: []const []const QM31, poi
     defer a.free(eq_k);
     const CH = 4096;
     const n_ch = (C + CH - 1) / CH;
-    const part = try a.alloc([4]QM31, n_ch);
+    const part = try a.alloc([NL]QM31, n_ch);
     defer a.free(part);
-    const Ctx = struct { rows: []const []const QM31, eq_g: []const QM31, eq_k: []const QM31, part: [][4]QM31, C: usize };
+    const Ctx = struct { rows: []const []const QM31, eq_g: []const QM31, eq_k: []const QM31, part: [][NL]QM31, C: usize };
     const ctx = Ctx{ .rows = rows, .eq_g = eq_g, .eq_k = eq_k, .part = part, .C = C };
     pool.parallelFor(n_ch, 1, &ctx, struct {
         fn run(c: *const Ctx, s: usize, e: usize) void {
             for (s..e) |ch| {
                 const k0 = ch * CH;
                 const k1 = @min(c.C, k0 + CH);
-                var acc = [_]QM31{QM31.zero()} ** 4;
+                var acc = [_]QM31{QM31.zero()} ** NL;
                 for (c.rows, 0..) |r, g| {
-                    var sg = [_]QM31{QM31.zero()} ** 4;
+                    var sg = [_]QM31{QM31.zero()} ** NL;
                     for (r[k0..k1], c.eq_k[k0..k1]) |v, ek| {
                         const l = f.limbs(v);
-                        inline for (0..4) |li| sg[li] = sg[li].add(ek.mulM31(M31.fromU32Unchecked(l[li])));
+                        inline for (0..NL) |li| sg[li] = sg[li].add(ek.mulM31(M31.fromU32Unchecked(l[li])));
                     }
-                    inline for (0..4) |li| acc[li] = acc[li].add(sg[li].mul(c.eq_g[g]));
+                    inline for (0..NL) |li| acc[li] = acc[li].add(sg[li].mul(c.eq_g[g]));
                 }
                 c.part[ch] = acc;
             }
         }
     }.run);
-    var out = [_]QM31{QM31.zero()} ** 4;
-    for (part) |p| inline for (0..4) |li| {
+    var out = [_]QM31{QM31.zero()} ** NL;
+    for (part) |p| inline for (0..NL) |li| {
         out[li] = out[li].add(p[li]);
     };
     return out;
@@ -962,16 +967,16 @@ pub fn verifyRec(
     if (!vr.final_claim.eql(u_at.mul(w_at))) return error.OpeningSumcheck;
     tr.mixFelts(&lp.limb_vals);
 
-    var pts: [4][]QM31 = undefined;
+    var pts: [NL][]QM31 = undefined;
     for (&pts, 0..) |*pt, c| {
         pt.* = try a.alloc(QM31, ish.log_total);
         @memcpy(pt.*[0..ish.log_g], r_g);
-        bitsPoint(pt.*[ish.log_g..][0..2], c);
-        @memcpy(pt.*[ish.log_g + 2 ..], r_k);
+        bitsPoint(pt.*[ish.log_g..][0..LB], c);
+        @memcpy(pt.*[ish.log_g + LB ..], r_k);
     }
     defer for (pts) |pt| a.free(pt);
-    var lc: [4]Claim = undefined;
-    for (0..4) |c| lc[c] = .{ .point = pts[c], .value = lp.limb_vals[c] };
+    var lc: [NL]Claim = undefined;
+    for (0..NL) |c| lc[c] = .{ .point = pts[c], .value = lp.limb_vals[c] };
     const oc = [_]Claim{.{ .point = ood_pt, .value = lp.ood_value orelse QM31.zero() }};
     const ngroups_all = [_]Group{ .{ .claims = &lc }, .{ .claims = &oc } };
     const ngroups = ngroups_all[0..params.innerGroups()];
@@ -1303,10 +1308,10 @@ test "pcs2 OOD value is the MLE of the committed limb table" {
     }
     const rows = [_][]const QM31{ &r0, &r1, &r2 };
     const log_g = 2; // G' = 4 (one zero row)
-    const total = log_g + 2 + log_c;
+    const total = log_g + LB + log_c;
     var table: [1 << total]i32 = [_]i32{0} ** (1 << total);
-    for (rows, 0..) |r, g| for (0..4) |c| for (0..C) |k| {
-        table[(g * 4 + c) * C + k] = @intCast(f.limbs(r[k])[c]);
+    for (rows, 0..) |r, g| for (0..NL) |c| for (0..C) |k| {
+        table[(g * NL + c) * C + k] = @intCast(f.limbs(r[k])[c]);
     };
     var pt: [total]QM31 = undefined;
     for (&pt, 0..) |*x, i| x.* = QM31.fromU32Unchecked(@intCast(i * 17 + 3), @intCast(i), 2, 5);

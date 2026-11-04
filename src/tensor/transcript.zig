@@ -4,7 +4,63 @@ const core = @import("stwo_core");
 const f = @import("field.zig");
 
 const QM31 = f.QM31;
-pub const Channel = core.channel.blake2s.Blake2sChannel;
+const Blake2s = core.channel.blake2s.Blake2sChannel;
+/// stwo's Blake2s channel; in an -Dchallenge=om31 build, the same channel
+/// with felts of the degree-8 field (Om31Blake2s).
+pub const Channel = if (f.IS_OM31) Om31Blake2s else Blake2s;
+
+/// Blake2s channel over OM31 = QM31[v]/(v^2-u): an OM31 felt is mixed as its
+/// two QM31 halves (c0, c1) and drawn from one hash output: stwo's base-felt
+/// rejection sampling (all 8 words < 2p, each reduced mod p; drawBaseFelts
+/// in core/channel/blake2s.zig), all 8 coordinates used. Each coordinate is
+/// uniform on M31 given acceptance (2p is a multiple of p), so the draw is
+/// uniform on p^8.
+pub const Om31Blake2s = struct {
+    inner: Blake2s = .{},
+
+    pub fn mixU32s(self: *Om31Blake2s, v: []const u32) void {
+        self.inner.mixU32s(v);
+    }
+    pub fn mixU64(self: *Om31Blake2s, v: u64) void {
+        self.inner.mixU64(v);
+    }
+    pub fn mixFelts(self: *Om31Blake2s, v: []const QM31) void {
+        var buf: [64]f.Q4 = undefined;
+        var i: usize = 0;
+        while (i < v.len) {
+            const n: usize = @min(v.len - i, buf.len / 2);
+            for (v[i..][0..n], 0..) |x, k| {
+                buf[2 * k] = x.c0;
+                buf[2 * k + 1] = x.c1;
+            }
+            self.inner.mixFelts(buf[0 .. 2 * n]);
+            i += n;
+        }
+    }
+    pub fn drawSecureFelt(self: *Om31Blake2s) QM31 {
+        while (true) {
+            const words = self.inner.drawU32s();
+            var ok = true;
+            for (words) |x| ok = ok and x < 2 * f.P;
+            if (!ok) continue;
+            var m: [8]f.M31 = undefined;
+            for (words, 0..) |x, i| m[i] = f.M31.fromCanonical(x % f.P);
+            return QM31.fromM31Array(m);
+        }
+    }
+    pub fn drawU32s(self: *Om31Blake2s) [8]u32 {
+        return self.inner.drawU32s();
+    }
+    pub fn grind(self: *Om31Blake2s, bits: u32) u64 {
+        return self.inner.grind(bits);
+    }
+    pub fn verifyPowNonce(self: *Om31Blake2s, bits: u32, nonce: u64) bool {
+        return self.inner.verifyPowNonce(bits, nonce);
+    }
+    pub fn digestBytes(self: Om31Blake2s) [32]u8 {
+        return self.inner.digestBytes();
+    }
+};
 
 pub const Transcript = struct {
     ch: Channel = .{},
@@ -17,6 +73,9 @@ pub const Transcript = struct {
             words[i / 4] |= @as(u32, c) << @intCast(8 * (i % 4));
         }
         t.ch.mixU32s(&words);
+        // degree-8 proofs are domain-separated from QM31 proofs (the default
+        // build mixes nothing extra: its transcripts are unchanged)
+        if (f.IS_OM31) t.ch.mixU32s(&.{ 0x4f4d3331, f.CHALLENGE_DEGREE });
         return t;
     }
 

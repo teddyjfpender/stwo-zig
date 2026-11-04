@@ -88,7 +88,7 @@ pub const Rng = struct {
 
 /// QM31 basis over M31: e_0 = 1, e_1 = i, e_2 = u, e_3 = iu (fromLimbs is linear).
 pub fn basis(k: usize) QM31 {
-    var l = [4]u32{ 0, 0, 0, 0 };
+    var l: f.Limbs = @splat(0);
     l[k] = 1;
     return f.fromLimbs(l);
 }

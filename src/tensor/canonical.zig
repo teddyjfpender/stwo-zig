@@ -158,7 +158,8 @@ test "canonical: walker sees every limb of nested slices, optionals and unions" 
     var xs = [_][2]f.QM31{.{ f.QM31.one(), f.QM31.zero() }};
     var ys = [_]f.QM31{f.QM31.one()};
     var s = S{ .x = f.QM31.one(), .xs = &xs, .o = f.QM31.zero(), .u = .{ .a = &ys }, .h = undefined, .n = 7 };
-    try std.testing.expectEqual(@as(usize, 4 + 8 + 4 + 4), countLimbs(&s));
+    const d = f.N_LIMBS; // limbs per felt (4, or 8 in the om31 build)
+    try std.testing.expectEqual(@as(usize, d + 2 * d + d + d), countLimbs(&s));
     try check(&s);
     for (0..countLimbs(&s)) |i| {
         const p = nthLimb(&s, i).?;

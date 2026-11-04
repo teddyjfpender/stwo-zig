@@ -152,6 +152,8 @@ fn productProofDigest(threads: usize) ![32]u8 {
 }
 
 test "proof digest is pinned (mlp, product) and thread-count independent" {
+    // QM31 numbers / digests; the -Dchallenge=om31 build runs sec128_test.zig
+    if (f.IS_OM31) return error.SkipZigTest;
     const m1 = try mlpProofDigest(1);
     const m5 = try mlpProofDigest(5);
     const p1 = try productProofDigest(1);
@@ -203,6 +205,8 @@ fn mlpDigestRecommended(threads: usize) ![32]u8 {
 }
 
 test "proof digest is pinned under the recommended config (pcs2 + batched matmuls)" {
+    // QM31 numbers / digests; the -Dchallenge=om31 build runs sec128_test.zig
+    if (f.IS_OM31) return error.SkipZigTest;
     const d1 = try mlpDigestRecommended(1);
     if (GOLDEN_MLP_RECOMMENDED.len < 64) {
         std.debug.print("GOLDEN rec = {s}\n", .{hex(d1)});

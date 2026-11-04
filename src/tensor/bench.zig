@@ -49,6 +49,10 @@ fn printGpuStats(out: anytype) !void {
 
 /// `--emit <dir>`: write statement.bin, key.bin and proof.bin (wire.zig) for tensor-verify.
 var emit_dir: ?[]const u8 = null;
+/// --security <custom|bits128|bits160>: proto.securityConfig preset (overrides
+/// the query/blowup/PoW/pcs2 arguments; bits128/bits160 need the
+/// -Dchallenge=om31 build, tensor-bench-om31)
+var sec_level: proto.SecurityLevel = .custom;
 
 /// Prints the true encoded sizes ("encoded_bytes") next to the struct-sum
 /// sizes and, with --emit, writes the files. The key proof is proven here
@@ -151,12 +155,16 @@ fn weightParams(pc: *proto.Config) !void {
     // TENSOR_WEIGHT_PROX=0: per-batch weight openings without their own
     // proximity test (binding from the key's distance, security.md 4)
     if (std.posix.getenv("TENSOR_WEIGHT_PROX")) |v| pc.weight_proximity = !std.mem.eql(u8, v, "0");
+    // a security level fixes every soundness parameter (last, so it wins)
+    pc.* = proto.securityConfig(pc.*, sec_level);
+    try proto.checkSecurity(pc.*);
 }
 
 fn printSecurity(out: anytype, a: std.mem.Allocator, pc: proto.Config, st: proto.Statement, key: proto.WeightKey, proof: *const proto.Proof, kp: ?*const t.weight_key.KeyProof) !void {
     var rep = try t.security.accountProof(a, pc, st, key, proof, kp);
     defer rep.deinit();
     try t.security.writeReport(rep, out);
+    try out.print("\"security_level\":\"{s}\",\"challenge_degree\":{d},", .{ pc.security.name(), f.CHALLENGE_DEGREE });
     if (pc.weight_outer) |w| try out.print("\"weight_queries\":{d},", .{w.n_queries});
     if (pc.key_outer) |k| try out.print("\"key_queries\":{d},", .{k.n_queries});
     try out.print("\"key_alphas\":{d},", .{pc.key_alphas});
@@ -226,6 +234,9 @@ pub fn main() !void {
         const arg = all_args[ai];
         if (std.mem.eql(u8, arg, "--metal")) {
             use_metal = true;
+        } else if (std.mem.eql(u8, arg, "--security") and ai + 1 < all_args.len) {
+            ai += 1;
+            sec_level = std.meta.stringToEnum(proto.SecurityLevel, all_args[ai]) orelse return error.UnknownSecurityLevel;
         } else if (std.mem.eql(u8, arg, "--emit") and ai + 1 < all_args.len) {
             ai += 1;
             emit_dir = all_args[ai];
@@ -339,7 +350,7 @@ pub fn main() !void {
     const n_weights = 3.0 * D * F;
     const macs = T * n_weights;
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"mlp\",\"fused\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ fused, lt, ld, lf, threads, queries, lb, pow });
+    try out.print("{{\"bench\":\"mlp\",\"fused\":{},\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ fused, lt, ld, lf, threads, pc.pcs.n_queries, pc.pcs.log_blowup, pc.pcs.pow_bits });
     try printTl(out, pc, true);
     try out.print("\"batch_matmuls\":{},", .{pc.batch_matmuls});
     try out.print("\"weight_log_cols\":{d},\"weights\":{d:.0},\"tokens\":{d:.0},\"macs\":{d:.0},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ pc.weight_log_cols, n_weights, T, macs, tm.witness_elems, tm.witness_table_elems });
@@ -406,7 +417,7 @@ fn runProduct(a: std.mem.Allocator, args: []const [:0]u8) !void {
     }
     defer last.?.deinit(a);
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, queries, lb, pow });
+    try out.print("{{\"bench\":\"product\",\"log_n\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ ln, threads, pc.pcs.n_queries, pc.pcs.log_blowup, pc.pcs.pow_bits });
     try printTl(out, pc, false);
     try printSecurity(out, a, pc, st, proto.weightKey(&ws), &last.?, null);
     try printLevels(out, "witness_levels", last.?.witness_opening);
@@ -532,7 +543,7 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     var n_weights: usize = 0;
     for (sw.winfos) |wi| n_weights += wi.size();
     const out = std.fs.File.stdout().deprecatedWriter();
-    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, queries, lb, pow });
+    try out.print("{{\"bench\":\"layer\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"fused_qkv\":{},\"weight_log_cols\":{d},\"n_layers\":{d},\"threads\":{d},\"queries\":{d},\"log_blowup\":{d},\"pow_bits\":{d},", .{ lt, ld, lf, lh, lkv, le, lcap, fused, wlc, nl, threads, pc.pcs.n_queries, pc.pcs.log_blowup, pc.pcs.pow_bits });
     try printTl(out, pc, true);
     try out.print("\"weights\":{d},\"core_ops\":{d},\"ext_ops\":{d},\"witness_tensors\":{d},\"witness_elems\":{d},\"witness_table_elems\":{d},", .{ n_weights, st.ops.len, st.ext.ops.len, st.witness.len, tm.witness_elems, tm.witness_table_elems });
     try out.print("\"recompute_acc\":{},\"batch_matmuls\":{},\"commit_weights_s\":{d:.4},\"forward_s\":{d:.4},\"prove_s\":{d:.4},\"prove_first_s\":{d:.4},\"prove_reps\":{d},\"verify_s\":{d:.5},", .{ recompute, pc.batch_matmuls, commit_s, forward_s, prove_s, prove_first_s, reps, verify_s });

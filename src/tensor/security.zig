@@ -52,8 +52,10 @@ const weight_key = @import("weight_key.zig");
 const serve = @import("serve.zig");
 const engine = @import("stwo_prover_engine");
 
-/// log2 |QM31| = 4 log2(2^31 - 1)
-pub const LOG2_F: f64 = 4.0 * 30.99999999932819;
+/// log2 |F| of the challenge field: 4 log2(2^31 - 1) for QM31, 8 log2(2^31 - 1)
+/// in an -Dchallenge=om31 build (every challenge of the proof is drawn from
+/// OM31 there: transcript.Om31Blake2s, security.md section 10)
+pub const LOG2_F: f64 = f.LOG2_CHALLENGE;
 const LN2: f64 = std.math.ln2;
 
 pub const Kind = enum { field, logup, prox, ood, lambda, query };
@@ -741,6 +743,8 @@ test "unique decoding and Johnson parameters" {
 }
 
 test "round-by-round (Markov) form of lambda and queries" {
+    // QM31 numbers / digests; the -Dchallenge=om31 build runs sec128_test.zig
+    if (f.IS_OM31) return error.SkipZigTest;
     // witness L1 of the toy: log G' = 3, 76 queries at 0.412, 20 bits of work
     const r = lambdaRbr(3, 76, 0.412, 20);
     const with = -@max(r.lambda[0], r.query[0]);

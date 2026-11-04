@@ -79,7 +79,7 @@ fn qMulAdd(c: *const ArrCtx) void {
             inline for (0..4) |j| acc[j] = acc[j].add(c.qx[i + j].mul(c.qy[i + j]));
         }
     }
-    sink +%= acc[0].c0.a.v ^ acc[3].c1.b.v;
+    sink +%= f.limbs(acc[0])[0] ^ f.limbs(acc[3])[3];
 }
 fn qMulBaseAdd(c: *const ArrCtx) void {
     var acc = [_]QM31{QM31.zero()} ** 4;
@@ -89,7 +89,7 @@ fn qMulBaseAdd(c: *const ArrCtx) void {
             inline for (0..4) |j| acc[j] = acc[j].add(c.qx[i + j].mulM31(c.y[i + j]));
         }
     }
-    sink +%= acc[0].c0.a.v ^ acc[3].c1.b.v;
+    sink +%= f.limbs(acc[0])[0] ^ f.limbs(acc[3])[3];
 }
 
 const core_m31 = @import("stwo_core").fields.m31;
@@ -124,7 +124,7 @@ fn scRun(c: *const ScCtx) void {
     @memcpy(c.wy, c.y);
     var tr = t.transcript.Transcript.initDomain("prims");
     var res = sc.proveActive(2, &T2, c.a, c.pool, &tr, QM31.zero(), .{ c.wx, c.wy }, c.wx.len) catch unreachable;
-    sink +%= res.finals[0].c0.a.v;
+    sink +%= f.limbs(res.finals[0])[0];
     res.deinit(c.a);
 }
 

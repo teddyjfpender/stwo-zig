@@ -260,7 +260,11 @@ test "wire: header, tags, trailing bytes, canonical field elements" {
     buf[0] ^= 1;
     try expectErr(error.BadMagic, buf, caps);
     buf[0] ^= 1;
+    // version 2 is the degree-8 (-Dchallenge=om31) format: a QM31 decoder
+    // refuses it as a field mismatch; any other version is unknown
     buf[4] = wire.VERSION + 1;
+    try expectErr(error.ChallengeFieldMismatch, buf, caps);
+    buf[4] = wire.VERSION + 2;
     try expectErr(error.BadVersion, buf, caps);
     buf[4] = wire.VERSION;
     buf[5] = @intFromEnum(wire.Kind.key);

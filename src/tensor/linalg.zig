@@ -10,11 +10,11 @@ pub fn rowDots(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: pcs.Mat
     const C = m.nCols();
     std.debug.assert(vec.len == C);
     const out = try a.alloc(QM31, m.nRows());
-    const planes = try a.alloc(u32, 4 * C);
+    const planes = try a.alloc(u32, f.N_LIMBS * C);
     defer a.free(planes);
     for (vec, 0..) |v, j| {
         const l = f.limbs(v);
-        for (0..4) |k| planes[k * C + j] = l[k];
+        for (0..f.N_LIMBS) |k| planes[k * C + j] = l[k];
     }
     const Ctx = struct { m: pcs.Matrix(T), planes: []const u32, out: []QM31, C: usize, chunk: usize };
     const chunk: usize = @as(usize, 1) << @intCast(31 - @min(@as(u32, 30), bound_log2));
@@ -23,11 +23,11 @@ pub fn rowDots(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: pcs.Mat
         fn run(c: *const Ctx, s: usize, e: usize) void {
             for (s..e) |i| {
                 const row = c.m.row(i);
-                var tot: [4]i64 = .{ 0, 0, 0, 0 };
+                var tot: [f.N_LIMBS]i64 = @splat(0);
                 var j: usize = 0;
                 while (j < c.C) {
                     const end = @min(c.C, j + c.chunk);
-                    inline for (0..4) |k| {
+                    inline for (0..f.N_LIMBS) |k| {
                         const pl = c.planes[k * c.C ..];
                         var acc: i64 = 0;
                         // vectorized inner loop
@@ -49,7 +49,9 @@ pub fn rowDots(comptime T: type, a: std.mem.Allocator, pool: *f.Pool, m: pcs.Mat
                     }
                     j = end;
                 }
-                c.out[i] = f.fromLimbs(.{ f.reduceI64(tot[0]), f.reduceI64(tot[1]), f.reduceI64(tot[2]), f.reduceI64(tot[3]) });
+                var l: f.Limbs = undefined;
+                for (&l, tot) |*x, tv| x.* = f.reduceI64(tv);
+                c.out[i] = f.fromLimbs(l);
             }
         }
     }.run);

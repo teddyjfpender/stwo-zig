@@ -34,7 +34,7 @@ pub const Proof = struct {
     }
 
     pub fn byteSize(self: Proof) usize {
-        return self.rounds.len * @as(usize, self.deg) * 16;
+        return self.rounds.len * @as(usize, self.deg) * f.FELT_BYTES;
     }
 };
 

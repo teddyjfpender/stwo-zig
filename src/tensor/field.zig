@@ -7,9 +7,74 @@ const std = @import("std");
 const core = @import("stwo_core");
 
 pub const M31 = core.fields.m31.M31;
-pub const QM31 = core.fields.qm31.QM31;
+/// QM31 = p^4 extension (stwo's secure field).
+pub const Q4 = core.fields.qm31.QM31;
+/// Degree of the challenge field over M31 (build option -Dchallenge):
+/// 4 = QM31 (default), 8 = OM31 = QM31[v]/(v^2 - u) (core/fields/om31.zig).
+pub const CHALLENGE_DEGREE: u32 = @import("tensor_options").challenge_degree;
+pub const IS_OM31 = CHALLENGE_DEGREE == 8;
+/// The challenge / secure field of every tensor proof. Historically named
+/// QM31 (every module uses `f.QM31`); in an -Dchallenge=om31 build it is the
+/// degree-8 field Ext8 below. Commitments stay over M31 either way.
+pub const QM31 = if (IS_OM31) Ext8 else Q4;
+/// log2 |challenge field|
+pub const LOG2_CHALLENGE: f64 = @as(f64, @floatFromInt(CHALLENGE_DEGREE)) * 30.99999999932819;
+
+/// OM31 = QM31[v]/(v^2 - u) (core/fields/om31.zig; irreducible since
+/// Norm(u) = 5 is a non-square mod p). QM31 is its subfield c1 = 0, and
+/// OM31.fromU32Unchecked(a,b,c,d) builds that subfield element, so every
+/// QM31 constant in the frontend keeps its meaning.
+pub const Ext8 = core.fields.om31.OM31;
 pub const P: u32 = core.fields.m31.Modulus;
-pub const PackedQM31 = core.fields.packed_qm31.PackedQM31;
+pub const PackedQ4 = core.fields.packed_qm31.PackedQM31;
+/// PACK_WIDTH lanes of the challenge field (PackedQM31, or PackedExt8).
+pub const PackedQM31 = if (IS_OM31) PackedExt8 else PackedQ4;
+
+/// PACK_WIDTH lanes of OM31 as a pair of packed QM31 (core/fields/packed_om31.zig
+/// arithmetic), with PackedQM31's method surface.
+pub const PackedExt8 = struct {
+    c0: PackedQ4,
+    c1: PackedQ4,
+    const PO = core.fields.packed_om31;
+    const Self = @This();
+    inline fn o(x: Self) PO.PackedOM31 {
+        return .{ .c0 = x.c0, .c1 = x.c1 };
+    }
+    pub inline fn zero() Self {
+        return .{ .c0 = PackedQ4.zero(), .c1 = PackedQ4.zero() };
+    }
+    pub inline fn fromBase(v: PackedM31) Self {
+        return .{ .c0 = PackedQ4.fromBase(v), .c1 = PackedQ4.zero() };
+    }
+    pub inline fn splat(v: Ext8) Self {
+        return .{ .c0 = PackedQ4.splat(v.c0), .c1 = PackedQ4.splat(v.c1) };
+    }
+    pub inline fn fromLanes(v: [PACK_WIDTH]Ext8) Self {
+        var a: [PACK_WIDTH]Q4 = undefined;
+        var b: [PACK_WIDTH]Q4 = undefined;
+        inline for (0..PACK_WIDTH) |i| {
+            a[i] = v[i].c0;
+            b[i] = v[i].c1;
+        }
+        return .{ .c0 = PackedQ4.fromLanes(a), .c1 = PackedQ4.fromLanes(b) };
+    }
+    pub inline fn lane(x: Self, i: usize) Ext8 {
+        return .{ .c0 = x.c0.lane(i), .c1 = x.c1.lane(i) };
+    }
+    pub inline fn add(x: Self, y: Self) Self {
+        return .{ .c0 = x.c0.add(y.c0), .c1 = x.c1.add(y.c1) };
+    }
+    pub inline fn sub(x: Self, y: Self) Self {
+        return .{ .c0 = x.c0.sub(y.c0), .c1 = x.c1.sub(y.c1) };
+    }
+    pub inline fn mul(x: Self, y: Self) Self {
+        const r = PO.mul(o(x), o(y));
+        return .{ .c0 = r.c0, .c1 = r.c1 };
+    }
+    pub inline fn mulBase(x: Self, b: PackedM31) Self {
+        return .{ .c0 = x.c0.mulBase(b), .c1 = x.c1.mulBase(b) };
+    }
+};
 pub const PackedM31 = core.fields.m31.PackedM31;
 pub const PACK_WIDTH = core.fields.m31.PACK_WIDTH;
 pub const addPackedM31 = core.fields.m31.addPacked;
@@ -48,8 +113,17 @@ pub inline fn qFromI64(x: i64) QM31 {
     return QM31.fromBase(fromI64(x));
 }
 
-pub inline fn limbs(x: QM31) [4]u32 {
-    return .{ x.c0.a.v, x.c0.b.v, x.c1.a.v, x.c1.b.v };
+/// limbs of one challenge-field element (4 for QM31, 8 for OM31)
+pub const N_LIMBS: usize = CHALLENGE_DEGREE;
+pub const Limbs = [N_LIMBS]u32;
+/// bytes of one challenge-field element on the wire
+pub const FELT_BYTES: usize = 4 * N_LIMBS;
+
+pub inline fn limbs(x: QM31) Limbs {
+    if (!IS_OM31) return .{ x.c0.a.v, x.c0.b.v, x.c1.a.v, x.c1.b.v };
+    var out: Limbs = undefined;
+    for (x.toM31Array(), 0..) |v, i| out[i] = v.v;
+    return out;
 }
 
 /// Canonical-input contract (KERN-4): the field kernels (M31.sub's
@@ -57,12 +131,15 @@ pub inline fn limbs(x: QM31) [4]u32 {
 /// only correct for limbs in [0, P). Values built here from trusted limbs use
 /// `fromLimbs`; anything decoded from untrusted bytes must use
 /// `fromLimbsChecked`, and verifiers run canonical.check on whole proofs.
-pub inline fn fromLimbs(l: [4]u32) QM31 {
-    return QM31.fromU32Unchecked(l[0], l[1], l[2], l[3]);
+pub inline fn fromLimbs(l: Limbs) QM31 {
+    if (!IS_OM31) return QM31.fromU32Unchecked(l[0], l[1], l[2], l[3]);
+    var m: [N_LIMBS]M31 = undefined;
+    for (l, 0..) |v, i| m[i] = M31.fromCanonical(v);
+    return QM31.fromM31Array(m);
 }
 
 /// `fromLimbs` for untrusted input: error.NonCanonical if a limb is >= P.
-pub fn fromLimbsChecked(l: [4]u32) error{NonCanonical}!QM31 {
+pub fn fromLimbsChecked(l: Limbs) error{NonCanonical}!QM31 {
     for (l) |v| if (v >= P) return error.NonCanonical;
     return fromLimbs(l);
 }

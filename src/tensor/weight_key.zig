@@ -50,7 +50,7 @@ const M31 = f.M31;
 const QM31 = f.QM31;
 const lookups = engine.lookups;
 const Fast = lookups.gkr_prover_fast.ForField(QM31);
-const GkrVerifier = lookups.gkr_verifier;
+const GkrVerifier = lookups.gkr_verifier.ForField(QM31);
 
 pub const KeyProof = struct {
     histogram: [256]u32,
@@ -66,12 +66,12 @@ pub const KeyProof = struct {
     pub fn byteSize(self: KeyProof) usize {
         var gk: usize = 0;
         for (self.gkr.sumcheck_proofs) |p| for (p.round_polys) |rp| {
-            gk += rp.coeffsSlice().len * 16;
+            gk += rp.coeffsSlice().len * f.FELT_BYTES;
         };
         for (self.gkr.layer_masks_by_instance) |ms| for (ms) |m| {
             gk += m.columnsSlice().len * 32;
         };
-        for (self.gkr.output_claims_by_instance) |c| gk += c.len * 16;
+        for (self.gkr.output_claims_by_instance) |c| gk += c.len * f.FELT_BYTES;
         return 256 * 4 + gk + 16 + self.opening.byteSize();
     }
 };
@@ -104,12 +104,14 @@ fn histMle(a: std.mem.Allocator, h: [256]u32, point: []const QM31) !QM31 {
 
 pub fn prove(a: std.mem.Allocator, pool: *f.Pool, cfg0: proto.Config, ws: *const proto.WeightStore) !KeyProof {
     // the key's opening runs at the key-time outer parameters (Config.key_outer)
+    try proto.checkSecurity(cfg0);
     const cfg = try proto.keyConfig(cfg0);
     const key = proto.weightKey(ws);
     try checkCount(key.log_rows + key.log_cols);
     var z: []QM31 = &.{};
     var tr = try startTranscript(a, key, &z);
     defer a.free(z);
+    proto.mixSecurity(&tr, cfg0);
     const n = ws.table.len;
     var hist = [_]u32{0} ** 256;
     for (ws.table) |w| hist[@intCast(@as(i32, w) + 128)] += 1;
@@ -161,6 +163,7 @@ pub fn alphaCount(cfg: proto.Config) !usize {
 
 pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
     // every transmitted limb in [0, P) before any arithmetic (KERN-1)
+    try proto.checkSecurity(cfg0);
     try canonical.check(proof);
     const cfg = try proto.keyConfig(cfg0);
     try proto.checkKeyLayout(a, key.infos, key);
@@ -168,6 +171,7 @@ pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, pr
     try checkCount(n_vars);
     var z: []QM31 = &.{};
     var tr = try startTranscript(a, key, &z);
+    proto.mixSecurity(&tr, cfg0);
     defer a.free(z);
     var total: u64 = 0;
     for (proof.histogram) |h| total += h;

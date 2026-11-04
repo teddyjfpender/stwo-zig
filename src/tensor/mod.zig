@@ -30,6 +30,17 @@ pub const wire_test = @import("wire_test.zig");
 pub const canonical = @import("canonical.zig");
 
 test {
+    // -Dchallenge=om31: the degree-8 build runs its own suite (most suites
+    // below pin QM31 digests or build QM31 limb literals)
+    if (comptime field.IS_OM31) {
+        _ = field;
+        _ = transcript;
+        _ = sumcheck;
+        _ = pcs;
+        _ = pcs2;
+        _ = @import("sec128_test.zig");
+        return;
+    }
     _ = @import("qmul_check_test.zig");
     _ = @import("review_pcs_test.zig");
     _ = @import("review_fix_test.zig");

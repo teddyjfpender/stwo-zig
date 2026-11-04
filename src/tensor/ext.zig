@@ -868,7 +868,7 @@ pub const ProofPart = struct {
     }
 
     pub fn byteSize(self: ProofPart) usize {
-        var s = self.values.len * 16 + self.finals.len * 32;
+        var s = self.values.len * f.FELT_BYTES + self.finals.len * 32;
         for (self.sumchecks) |p| s += p.byteSize();
         return s;
     }

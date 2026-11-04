@@ -32,14 +32,21 @@ const QM31 = f.QM31;
 const M31 = f.M31;
 const Hash = [32]u8;
 const Allocator = std.mem.Allocator;
-const GkrVerifier = engine.lookups.gkr_verifier;
+const GkrVerifier = engine.lookups.gkr_verifier.ForField(QM31);
 const GkrBatchProof = GkrVerifier.GkrBatchProof;
 const GkrMask = GkrVerifier.GkrMask;
 const GkrSumcheck = std.meta.Child(@FieldType(GkrBatchProof, "sumcheck_proofs"));
 const GkrPoly = std.meta.Child(@FieldType(GkrSumcheck, "round_polys"));
 
 pub const MAGIC = "STZW".*;
-pub const VERSION: u8 = 1;
+/// 1: QM31 challenge field (the default build). 2: a degree-8 build
+/// (-Dchallenge=om31); its header carries two more bytes after the kind:
+/// the challenge-field degree (8) and the security level
+/// (proto.SecurityLevel; 0 for keys). Each build accepts only its own
+/// version: a QM31 verifier refuses OM31 files and vice versa
+/// (error.ChallengeFieldMismatch), so a proof is never decoded under the
+/// wrong field.
+pub const VERSION: u8 = if (f.IS_OM31) 2 else 1;
 pub const Kind = enum(u8) { proof = 1, key = 2, statement = 3 };
 
 /// Largest file the CLI reads (the decoders' own caps are far tighter).
@@ -51,6 +58,10 @@ pub const DecodeError = error{
     BadMagic,
     BadVersion,
     BadKind,
+    /// the file was written by a build with another challenge field
+    ChallengeFieldMismatch,
+    /// the proof's security level is not the statement config's
+    SecurityLevelMismatch,
     UnknownTag,
     TagOrder,
     MissingSection,
@@ -165,10 +176,14 @@ const W = struct {
         try self.len(v.len);
         for (v) |h| try self.bytes(&h);
     }
-    fn header(self: *W, kind: Kind) EncodeError!void {
+    fn header(self: *W, kind: Kind, level: proto.SecurityLevel) EncodeError!void {
         try self.bytes(&MAGIC);
         try self.byte(VERSION);
         try self.byte(@intFromEnum(kind));
+        if (f.IS_OM31) {
+            try self.byte(@intCast(f.CHALLENGE_DEGREE));
+            try self.byte(@intFromEnum(level));
+        } else if (level != .custom) return error.Unsupported;
     }
     fn begin(self: *W, tag: anytype) EncodeError!usize {
         try self.byte(@intFromEnum(tag));
@@ -232,7 +247,7 @@ const R = struct {
         return M31.fromCanonical(v);
     }
     fn felt(self: *R) DecodeError!QM31 {
-        var l: [4]u32 = undefined;
+        var l: f.Limbs = undefined;
         for (&l) |*x| {
             x.* = try self.int(u32);
             if (x.* >= f.P) return error.NonCanonicalField;
@@ -274,14 +289,22 @@ const R = struct {
 const Sections = struct {
     r: R,
     last: i16 = -1,
+    level: proto.SecurityLevel = .custom,
 
     fn open(bytes: []const u8, kind: Kind) DecodeError!Sections {
         var r = R{ .b = bytes };
         const m = try r.take(4);
         if (!std.mem.eql(u8, m, &MAGIC)) return error.BadMagic;
-        if (try r.byte() != VERSION) return error.BadVersion;
+        const v = try r.byte();
+        if (v != VERSION) return if (v == 1 or v == 2) error.ChallengeFieldMismatch else error.BadVersion;
         if (try r.byte() != @intFromEnum(kind)) return error.BadKind;
-        return .{ .r = r };
+        var level: proto.SecurityLevel = .custom;
+        if (f.IS_OM31) {
+            if (try r.byte() != f.CHALLENGE_DEGREE) return error.ChallengeFieldMismatch;
+            level = std.meta.intToEnum(proto.SecurityLevel, try r.byte()) catch return error.NonCanonical;
+            if (kind == .key and level != .custom) return error.NonCanonical;
+        }
+        return .{ .r = r, .level = level };
     }
 
     fn peekTag(self: *Sections) ?u8 {
@@ -646,7 +669,7 @@ pub fn proofCaps(a: Allocator, cfg: proto.Config, st: proto.Statement, key: prot
 }
 
 fn encProofInto(w: *W, p: proto.Proof) EncodeError!void {
-    try w.header(.proof);
+    try w.header(.proof, p.security);
     var s = try w.begin(ProofTag.witness_root);
     try w.bytes(&p.witness_root);
     try w.end(s);
@@ -737,6 +760,8 @@ pub fn decodeProof(gpa: Allocator, bytes: []const u8, caps: ProofCaps) DecodeErr
 fn decodeProofIn(a: Allocator, bytes: []const u8, c: ProofCaps) DecodeError!proto.Proof {
     var ss = try Sections.open(bytes, .proof);
     var p: proto.Proof = undefined;
+    if (ss.level != c.cfg.security) return error.SecurityLevelMismatch;
+    p.security = ss.level;
     var r = try ss.required(ProofTag.witness_root);
     p.witness_root = try r.hash();
     try r.done();
@@ -847,7 +872,7 @@ fn decInfo(r: *R) DecodeError!proto.TensorInfo {
 }
 
 fn encKeyInto(w: *W, key: proto.WeightKey, kp: wk.KeyProof) EncodeError!void {
-    try w.header(.key);
+    try w.header(.key, .custom);
     var s = try w.begin(KeyTag.root);
     try w.bytes(&key.root);
     try w.end(s);
@@ -1105,7 +1130,7 @@ fn shift5(r: *R) DecodeError!u5 {
 }
 
 fn encStatementInto(w: *W, cfg: proto.Config, st: proto.Statement) EncodeError!void {
-    try w.header(.statement);
+    try w.header(.statement, cfg.security);
     var s = try w.begin(StTag.config);
     try encConfig(w, cfg);
     try w.end(s);
@@ -1251,7 +1276,8 @@ pub fn decodeStatement(gpa: Allocator, bytes: []const u8) DecodeError!StatementF
     var st: proto.Statement = .{ .witness = &.{}, .weights = &.{}, .tables = &.{}, .ops = &.{} };
 
     var r = try ss.required(StTag.config);
-    const cfg = try decConfig(&r);
+    var cfg = try decConfig(&r);
+    cfg.security = ss.level;
     try r.done();
 
     r = try ss.required(StTag.witness);

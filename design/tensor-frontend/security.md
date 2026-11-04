@@ -728,3 +728,135 @@ the key separately.
   `pcs2.verifyRec` and `zk_pcs.verifyOpening`. No verifier-built point could
   reach this path, so this is hardening only.
 * **Metal (KERN-2).** See metal.md: the fp32 matmul gate is x in [-128, 127].
+
+## 10. Selectable security levels: 128 and 160 bits (degree-8 challenge field)
+
+Branch `codex/tensor-sec128`. `Config.security` picks a level:
+`.custom` is the default, with the parameters given in Config, so every
+existing proof and pinned digest is unchanged. `.bits128` and `.bits160` fix
+every soundness parameter (`proto.securityConfig`). Prover and verifier refuse
+a config whose parameters do not match its level (`proto.checkSecurity`:
+`error.SecurityParams`) or whose level needs a larger field than the build has
+(`error.ChallengeFieldTooSmall`).
+
+**Why a bigger field.** Over QM31 (|F| = 2^124), every field-limited round
+costs at least 1/|F|. Examples are a sumcheck round, a LogUp alpha/beta, a GKR
+layer, an OOD collision and a pcs2 lambda. A model-layer proof adds
+100-400 such rounds, so "all rounds added" stops at about 113-116 bits with
+work, whatever the PCS does. The QM31 rows of the table below show this:
+raising queries to the 128-bit preset over QM31 moves the toy from
+113.5 / 96.8 to only 114.1 / 104.3. So 128 bits needs either a larger field
+or repetition.
+
+* **Chosen: degree-8 challenge field.** OM31 = QM31[v]/(v^2 - u), from
+  `core/fields/om31.zig`. It is irreducible because Norm(u) = 5 is a
+  non-square mod p. |F| = 2^248. The choice is made at build time:
+  `zig build -Dchallenge=om31` builds `tensor-bench-om31` /
+  `tensor-verify-om31`. Every challenge is then drawn from OM31, and every
+  prover message over the secure field is OM31: sumchecks, LogUp-GKR (the
+  engine's `gkr_prover_fast.ForField(OM31)`, which already had packed OM31
+  lanes), the pcs2 combined rows and the OOD values. Commitments stay over
+  M31. A combined pcs2 row of C felts is committed as 8 x C M31 limbs instead
+  of 4 x C.
+  `field.QM31` is an alias, Q4 in the default build and OM31 in the om31
+  build. The frontend keeps every `f.QM31` name.
+  `OM31.fromU32Unchecked(a,b,c,d)` builds the QM31-subfield element, so every
+  constant in the code keeps its meaning. The default build compiles the same
+  code with the alias set to QM31, and its outputs are unchanged: the full
+  default suite passes, including the pinned digests.
+* **Not chosen: repetition** (k independent challenge sets for the
+  field-limited checks). This alternative was argued, not measured.
+  Repetition inside one Fiat-Shamir transcript does not amplify
+  round-by-round soundness. A grinding prover can let one copy escape in
+  round i and the other in round j, at a cost of about 2/eps. So the FS bound
+  stays near eps, not eps^2. Repetition across independent transcripts gives
+  (N / 2^L)^2 against an N-query attacker, not N / 2^(2L). That is below
+  128 bits for N > 2^64 when L is about 96. Either way, repetition doubles
+  the sumcheck and GKR prover work, and every round's messages. The field
+  extension has neither soundness problem, and its cost is measured below.
+
+**Parameters** (`securityConfig`). pcs2 depth 2 in the Johnson regime, with
+OOD samples on every table and 2 proximity rows. The outer level runs at rate
+1/4 and the committed-row levels (inner and deep) at rate 1/8. Each query
+phase is preceded by 20 PoW bits, which count only in the with-work reading.
+Weight openings run their own proximity test with the outer parameters. The
+key uses one LogUp alpha. The larger field also helps the Johnson parameter:
+m can grow to about 2^14 (the correlated-agreement count is ~m^5 n / |F|).
+The agreement then sits at sqrt(rho)(1 + 1/m), about 0.500 at rate 1/4 and
+0.354 at rate 1/8: 1.0 and 1.5 bits per query.
+
+| level   | outer queries (lb 2) | inner/deep queries (lb 3) | PoW |
+|---------|----------------------|---------------------------|-----|
+| bits128 | 136                  | 90                        | 20  |
+| bits160 | 168                  | 112                       | 20  |
+
+**Binding.**
+* Wire format: a degree-8 build writes VERSION 2, with header
+  MAGIC, 2, kind, degree (8), level (0 for keys). Each build decodes only its
+  own version. A QM31 verifier given an OM31 file, or the reverse, fails
+  with `error.ChallengeFieldMismatch`. A proof whose header level is not the
+  statement config's fails with `error.SecurityLevelMismatch`. The
+  statement's level comes from its header.
+* Transcript (degree-8 builds only): initDomain mixes ("OM31", 8), and
+  proveCore / verifyCore / the weight key mix the level. A proof made at one
+  level fails at another even if the parameters were made to coincide.
+  QM31 transcripts are untouched.
+* ZK (hiding) mode is QM31-only. An om31 build, or a non-custom level,
+  returns `error.Unsupported` from zk.prove / zk.verify.
+
+**Accounting.** `security.LOG2_F` is the build's log2 |F| (124 or 248). The
+calculator is otherwise unchanged. All three benches print `security_level`
+and `challenge_degree`, and `tensor-bench-om31 ... --security bits128`
+applies the preset; the query arguments are then ignored except the pcs2
+work shift. "All rounds added without work" is FlashProve's 92.42-bit row
+reading: -log2 of the sum of every term with no PoW credit. The compiled
+reading (N/2^L, digest 256 bits, c_h = 8.5) is capped near 126.4 bits by the
+hash, for any field. FlashProve's 126.21 sits at the same cap. The levels
+claim the all-rounds-added number, not the compiled one.
+
+**Measured** (M-series laptop on AC power, best of 3 prove runs, memguard,
+one job at a time). Bytes are the encoded wire proof. Bits are sum with /
+without work, then compiled with work.
+
+| bench | config | field | prove s | verify s | proof bytes | bits (all rounds) | compiled |
+|-------|--------|-------|---------|----------|-------------|-------------------|----------|
+| toy 2^20, 1 core | johnson (122/76) | QM31 | 0.162 | 0.0013 | 249,192 | 113.47 / 96.76 | 115.56 |
+| toy 2^20, 1 core | 128-bit queries (136/90) | QM31 | 0.165 | 0.0014 | 276,872 | 114.14 / 104.34 | 117.25 |
+| toy 2^20, 1 core | **bits128** | OM31 | 0.270 | 0.0022 | 443,066 | **153.67 / 133.67** | 126.46 |
+| toy 2^20, 1 core | bits160 | OM31 | 0.297 | 0.0032 | 535,194 | 186.40 / 166.40 | 126.46 |
+| MLP 1024 tok, d=2^10 f=2^11, 12 thr | johnson | QM31 | 0.203 | 0.036 | 590,378 | 98.74 / 94.40 | 99.52 |
+| MLP 1024 tok, d=2^10 f=2^11, 12 thr | **bits128** | OM31 | 0.367 | 0.055 | 1,026,844 | **152.08 / 132.08** | 126.46 |
+| MLP 1024 tok, d=2^12 f=2^13, 12 thr | johnson | QM31 | 0.798 | 0.132 | 897,073 | 95.57 / 93.92 | 96.00 |
+| MLP 1024 tok, d=2^12 f=2^13 | bits128 | OM31 | not run: killed by memguard at 13.8 GB peak (8 GB reservation) | | | | |
+| layer 512 tok (decoder layer, 12 thr) | johnson | QM31 | 0.789 | 0.048 | 911,810 | 96.43 / 94.59 | 96.43 |
+| layer 512 tok (decoder layer, 12 thr) | **bits128** | OM31 | 1.618 | 0.071 | 1,574,644 | **152.67 / 132.67** | 126.46 |
+
+MLP weight key (one-time, d=2^10): 0.100 s / 292 KB (johnson) vs
+0.196 s / 519 KB (bits128). The layer rows are conditional on the key
+(`conditional_on_key`), because the layer bench does not prove one; this is
+the same reading the earlier tables use. Cost split on the toy, with the PCS
+parameters held fixed (rows 2 and 3): the degree-8 field costs about 1.6x
+prove time, 1.6x bytes and 1.5x verify time. The extra queries cost about 2%
+prove time and 11% bytes. On the MLP and the layer the total cost is about
+1.8-2.0x prove time and about 1.7x bytes.
+
+**Not done / caveats.**
+* The peak memory of the large MLP (d=2^12) roughly doubles in the om31
+  build: about 9.4 GB becomes more than 13.8 GB. The likely cause is the
+  weight-key LogUp-GKR layers, now 32-byte felts; this was not profiled.
+  It was not measured within this host's memory rules.
+* No Metal path for OM31: the build disables Metal. No ZK mode.
+* The OM31 kernels are the generic Karatsuba ones (`packed_om31`). No
+  OM31-specific tuning of the sumcheck, eqsum or pcs2 limb kernels was done.
+* The levels are proven bounds under the calculator's definitions (Johnson
+  regime per BCHKS25, the same terms as sections 2-4). They inherit that
+  argument and are not separately machine-checked.
+* Tests: `sec128_test.zig`, in the om31 suite
+  (`zig build test -Doptimize=ReleaseSafe -Dchallenge=om31`: 58 passed,
+  3 skipped). The 3 skips are QM31 digest/number pins. For product and MLP
+  at bits128, plus MLP at bits160, it checks: a byte-exact wire round trip,
+  the full decode-and-verify pipeline, rejection of header tampering
+  (version, degree, level), random bit flips, an OM31-half value tamper,
+  and a level relabel. It also checks that `checkSecurity` refuses
+  mismatched parameters. The pcs2, sumcheck, pcs, protocol, weight-key and
+  wire in-file tests also run in the om31 build.
