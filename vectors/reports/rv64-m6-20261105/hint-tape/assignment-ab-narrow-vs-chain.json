@@ -1,0 +1,53 @@
+{
+ "schema": "rv64-m6-hint-tape-assignment-ab/v1",
+ "label": "M",
+ "note": "GPU_OUTER_ASSIGNMENT_TIMING per node, resident daemon, 4 requests each (both dev blocks x 2 trials); leaf = node with >2500 launches under narrow or stream>40ms; pod load 20-30 (not quiet)",
+ "runs": {
+  "narrow_m5_tape2_on": {
+   "run": "daemon-26235156-24628607-r2-tape2-on",
+   "leaf": {
+    "nodes": 52,
+    "levels_stream_ms_median": 136.106,
+    "launches_median": 6303.0,
+    "levels_enqueue_ms_median": 50.718,
+    "levels_join_ms_median": 71.219,
+    "static_ingress_ms_median": 30.777,
+    "total_ms_median": 170.577,
+    "levels_stream_ms_sum": 6770.5
+   },
+   "fold": {
+    "nodes": 56,
+    "levels_stream_ms_median": 15.983,
+    "launches_median": 2107.5,
+    "levels_enqueue_ms_median": 10.838,
+    "levels_join_ms_median": 5.15,
+    "static_ingress_ms_median": 21.082,
+    "total_ms_median": 37.987,
+    "levels_stream_ms_sum": 924.4
+   }
+  },
+  "chain_ht2_chain1_on": {
+   "run": "daemon-26235156-24628607-r2-chain1-on",
+   "leaf": {
+    "nodes": 52,
+    "levels_stream_ms_median": 133.257,
+    "launches_median": 596.0,
+    "levels_enqueue_ms_median": 1.522,
+    "levels_join_ms_median": 131.596,
+    "static_ingress_ms_median": 39.027,
+    "total_ms_median": 180.372,
+    "levels_stream_ms_sum": 6792.7
+   },
+   "fold": {
+    "nodes": 56,
+    "levels_stream_ms_median": 14.534,
+    "launches_median": 689.0,
+    "levels_enqueue_ms_median": 2.453,
+    "levels_join_ms_median": 12.359,
+    "static_ingress_ms_median": 27.19,
+    "total_ms_median": 42.942,
+    "levels_stream_ms_sum": 857.6
+   }
+  }
+ }
+}
