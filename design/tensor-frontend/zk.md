@@ -120,7 +120,9 @@ agreement of each M31 coordinate). The per-proof mask table of the weight openin
 separately proximity-tested. If it is far from the code, `Σ a·W + γ e·M` is far from the
 code, because `W` is close by the commit-time test and the mask term is a non-zero
 multiple of a fixed far word. The `t` consistency queries then reject except with
-probability `(1−δ)^t`.
+probability `(1−δ)^t`. (This skips a correlated-agreement step for the mask-table
+words; security.md 11.2 gives the bound with it, `(1 + ρ_c + δ_key)/2` per query
+plus `R_m (E + 1)/|F|`.)
 
 **Lemma 2 (opening ZK).** Given the claim values, the opening is simulatable while every
 table opens at most `S/2` distinct columns. The simulator:
@@ -343,8 +345,10 @@ the analogous OOD, and its claims are unchanged:
   the outer table, and the transcript header does not bind `deep`. So hiding mode
   refuses both fields instead of honouring them silently. Then no config can look as if
   it had Johnson-regime soundness in hiding mode.
-- So `security.zig` (`accountProof`, the bounds beyond unique decoding) applies
-  to non-hiding proofs only. Hiding proofs report the conjectured bits and the
+- So `security.zig`'s bounds beyond unique decoding (`accountProof`) apply to
+  non-hiding proofs only. Hiding proofs are accounted by `security.accountHiding`
+  in unique decoding, every protocol and opening term included (security.md
+  section 11; zk_bench prints it as the `"security"` object). Before that: Hiding proofs report the conjectured bits and the
   unique-decoding query bits of §3.5 and §5. Since review B (SEC-8) zk_bench prints the
   latter as `query_bits_unique` (formerly `proven_bits`): -t log2(1 - delta) + pow of the
   query rounds alone. **It is not a soundness bound.** It leaves out the proximity term

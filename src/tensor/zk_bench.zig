@@ -39,8 +39,8 @@ fn conjBits(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
 /// Query bits of a hiding opening in unique decoding, delta = (1 - rate)/2:
 /// -t log2(1 - delta) + pow. NOT a soundness bound (SEC-8): it leaves out the
 /// proximity term R (E + 1)/|F| of each proximity row (~2^-97..2^-100 with
-/// one row, which caps the opening) and every protocol term. security.zig
-/// does not cover hiding openings yet (zk.md 3.5).
+/// one row, which caps the opening) and every protocol term; the bound is the
+/// "security" object (security.accountHiding).
 fn queryBitsUnique(queries: usize, msg_len: usize, log_ext: u32, pow: u32) f64 {
     const rate = @as(f64, @floatFromInt(msg_len)) / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(log_ext)));
     const delta = (1.0 - rate) / 2.0;
@@ -122,6 +122,8 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     var msg_len: usize = 0;
     var lvbuf: [16]usize = undefined;
     var lvs: []usize = lvbuf[0..0];
+    var sec: ?t.security.HidingReport = null;
+    defer if (sec) |*r| r.deinit();
     for (0..3) |_| {
         tm = .{};
         var t0 = now();
@@ -132,6 +134,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
         best_verify = @min(best_verify, secs(t0));
         sz = proof.sizes();
         size = sz.total;
+        if (sec == null) sec = try t.security.accountHiding(a, pc, st, null, &.{}, &proof, null, null);
         if (proof.opening == .rec) lvs = proof.opening.rec.levelSizes(&lvbuf);
         proof.deinit(a);
     }
@@ -149,6 +152,7 @@ fn runProduct(a: std.mem.Allocator, args: [][:0]u8) !void {
     try out.print("\"conjectured_bits\":{d:.1},\"query_bits_unique\":{d:.1},", .{ conjBits(queries, msg_len, @intCast(lc + lb), pow), queryBitsUnique(queries, msg_len, @intCast(lc + lb), pow) });
     try out.print("\"prove_s\":{d:.5},\"verify_s\":{d:.5},\"proof_bytes\":{d},\"proof_parts\":{{\"sumchecks\":{d},\"witness_opening\":{d}}},\"prove_ns_per_entry\":{d:.2},", .{ best_prove, best_verify, size, sz.sumchecks, sz.witness_opening, best_prove * 1e9 / @as(f64, @floatFromInt(@as(u64, 1) << @intCast(ln))) });
     try stagesJson(out, tm);
+    if (sec) |r| try t.security.writeHidingReport(r, out);
     try out.print("\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ tm.witness_table_elems, peakRssBytes() });
 }
 
@@ -233,6 +237,8 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const verify_s = secs(t0);
     const sz = proof.sizes();
     const budget = zw.budgetUsed();
+    var sec = try t.security.accountHiding(a, pc, st, key, pubs, &proof, prox, budget);
+    defer sec.deinit();
     // re-randomized copy + link proof (the new copy also needs its own proximity proof)
     t0 = now();
     var rr = try zk.rerandomizeWeights(a, &pool, pc, &zw);
@@ -258,6 +264,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     try levelsJson(out, "witness_levels", proof.opening);
     if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
     try stagesJson(out, tm);
+    try t.security.writeHidingReport(sec, out);
     try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"rerandomize_link_s\":{d:.4},\"link_verify_s\":{d:.5},\"link_bytes\":{d},\"gkr_trees\":{d},\"gkr_layers\":{d},\"logup_bytes\":{d},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"prove_peak_rss_bytes\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, rerand_s, link_verify_s, rr.link.byteSize(), proof.gkr_roots.len, proof.gkr_layers.len, sz.logup, budget[0], budget[1], tm.witness_table_elems, prove_rss, peakRssBytes() });
 }
 
@@ -336,6 +343,8 @@ fn runLayer(a: std.mem.Allocator, args: [][:0]u8) !void {
     try zk.verifyPublic(a, pc, st, zw.key(), &pubs, &proof);
     const verify_s = secs(t0);
     const sz = proof.sizes();
+    var sec = try t.security.accountHiding(a, pc, st, zw.key(), &pubs, &proof, null, zw.budgetUsed());
+    defer sec.deinit();
     var n_weights: usize = 0;
     for (winfos) |wi| n_weights += wi.size();
     const out = std.fs.File.stdout().deprecatedWriter();
@@ -346,5 +355,6 @@ fn runLayer(a: std.mem.Allocator, args: [][:0]u8) !void {
     try levelsJson(out, "witness_levels", proof.opening);
     if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
     try stagesJson(out, tm);
+    try t.security.writeHidingReport(sec, out);
     try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"logup\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.logup, sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
 }

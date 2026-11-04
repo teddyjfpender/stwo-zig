@@ -1118,3 +1118,133 @@ also speeds up the QM31 toy: batch 0.034 to 0.013 s, prove 0.162 to
   1.54 s is that batch, and it is the next target.
 * The layer peaked at 10.2-10.7 GB RSS (8 GB memguard reservation), as
   before.
+
+
+## 11. Hiding proofs (`Config.hiding`, `security.accountHiding`)
+
+`accountHiding(cfg, st, key, public, proof, weight_prox, budget)` runs
+`zk.verifyPublic` (and `zk.verifyWeightProximity` on `weight_prox`), which must
+accept, then sums every hiding-specific term. The shapes come from the proof
+the verifier just accepted and from `zk.secInfo` (the verifier's plan:
+LogUp trees, table shapes, pad counts; a function of public data only).
+`tensor-bench product|mlp|layer ... zk` prints the result as the same
+`"security"` object as the non-hiding benches (`sum_with_work`,
+`sum_without_work`, `compiled`, `rbr_*`, `worst`, `largest`), with
+`"mode":"hiding"`, a `"weight_proximity"` account (the commit-time proof, once
+per commitment) and a separate `"zk"` object.
+
+**Regime.** Every hiding term is a proven unique-decoding bound. Hiding tables
+carry no OOD sample (zk.md 3.5: an unmasked OOD answer would reveal a witness
+MLE value), so the Johnson regime of section 3 is not available. The code of a
+hiding table has message length `C + S` (`S` mask slots), rate
+`rho_c = (C + S)/E`, `delta = floor((E - C - S - 1)/2)/E`, bad-line count `E + 1`
+(`uniqueProxMsg`). The bench's `conjectured_bits` stay as before and are not a
+bound.
+
+### 11.1 Protocol terms
+
+| term | error | source |
+|---|---|---|
+| LogUp (`logup alpha,beta,tau`) | `2 sum_tree g_tree 2^n_tree / |F|` | as section 2 / `accountLogup`, per tree: `g = 2` if the tree holds a `glu` triple relation, else 1; all `2^n` leaves counted (padding `(0,1)` and the blinder `(0, rho)` included). The tag `tau * rel` keeps denominators of different relations in one tree distinct (degree 1 in `tau`). The blinder adds `0/rho`; `d_0 != 0` is checked, so no leaf denominator is 0 |
+| committed-inverse LogUp (no GKR) | same, fractions = table + keys per relation | |
+| masked sumcheck, every one (`... eps`, `... rounds`) | `1/|F|` for `eps` (drawn after `sigma`, the combined claim `sigma + eps c` is linear in `eps`), `d/|F|` for each of the `n` x-rounds and the `Y` round | zk.md 4.1; `n + 1` and `d` read from the accepted proof (`rounds.len`, `deg`) |
+| zero-check / exact / virtual check claims (`zk check claim`, ...) | `max(n + 1, n_claim + 1)/|F|` | as `accountSumcheck`'s claim term; an exact einsum's identity lives in the `n_out` coordinates of `rho_x` (`n_claim = n_out`, which can exceed its `n_batch + n_k` summed variables) |
+| GKR layer k (`gkr lambda`, `gkr fold`) | `1/|F|` each, plus the layer's masked sumcheck (degree 3, `k` rounds incl. `Y`) | zk.md 4.3: per tree `sum_k (3k + 4)/|F|` |
+| ext lineq | `n/|F|` | SEC-4 |
+| public tensor | `n/|F|` (`T~(z)` against `MLE(values)(z)`) | zk.md 4.4b |
+| batch | `1/|F|` (gamma) + masked sumcheck of degree 2 | |
+| aux zeta | `1/|F|` | `zeta` merges the batch hiding polynomial's `sigma_b` and `u_b` claims into one aux-table claim |
+
+Hats are not separate rounds: each hat `(1 - gamma) T~(r) + gamma P_h` becomes a
+linear claim on committed cells (`P_h` fixed at commitment), batched by gamma
+and bound by the openings below.
+
+### 11.2 Openings
+
+One outer (hiding) level per opening, all stacked tables together (same columns,
+same queries):
+
+* `gamma`: one `1/|F|` per claim group (independent `gamma_c` and `gamma_mu`).
+* **fresh** (a proximity row covers every stacked table: witness, aux, and in
+  zk_pcs2 the weight table + per-proof mask table): `R (E + 1)/|F|` with `R` the
+  committed rows of all stacked tables (the 4 mask rows count as 4, a
+  conservative reading of one QM31 word); each query passes with `1 - delta`
+  (`2^-pow` with work).
+* **flat weight opening** (no proximity row). The weight table was tested at
+  commit time (the `weight_proximity` account, fresh at a distance `delta_key`);
+  the per-proof mask table is tested by nobody. Per claim group, the
+  generators `V_c` of the gamma-combination (claim row `c` over the stacked
+  `[W; M]`; on `M` a fixed pad row times `c_pad`, plus the 4 group mask rows)
+  either have correlated agreement at `delta_v = delta - delta_key` - bad with
+  `R (E + 1)/|F|` per group, `R` all stacked rows (`weights L0 mask-table
+  agreement`, count = groups) - so every `M` part agrees with a codeword off
+  `delta_v + delta_key <= delta` (uniquely decoded pads) and a query passes
+  with `rho_c + delta_v`; or the combination is `delta_v`-far and a query
+  passes with `1 - delta_v`. Both are `<= 1 - delta + delta_key`.
+  (A first version read the far case at `1 - delta` with `delta` measured on
+  the mask part alone, giving `(1 + rho_c + delta_key)/2`; that drops the
+  `delta_key` bad positions of `W`, which the combined word inherits.)
+  `delta_key` is chosen to balance the proximity proof (`1 - delta_key`)
+  against this (`chooseZkDeltaKey`, analysis only; `delta_key` printed): the
+  balance is `delta_key = delta/2`. zk.md 3.3's argument ("the mask term is a
+  non-zero multiple of a fixed far word", `(1 - delta)^t`) skips the
+  correlated-agreement step; this is the bound with it.
+* **zk_pcs2** (`Config.two_level`): the outer level adds the lambda round
+  (`t log G'/|F|`, round-by-round form as section 3.3), `gamma'` (`1/|F|`) and the
+  committed-row sumcheck (`2 (log G' + lc + 1)/|F|`); the levels below are plain
+  pcs2 levels (`levelTerms`, unique decoding, `ood`/`deep` refused in hiding
+  mode), shapes replayed exactly as `pcs2.verifyRec` walks them
+  (`zkInnerInfos`).
+* the aux opening (batch hiding polynomial, `zk.auxParams()`: lb 4, no PoW,
+  queries sized for 128 *conjectured* bits) is a fresh flat opening.
+
+### 11.3 Zero-knowledge parameters (`"zk"` object)
+
+Not a soundness term; reported apart:
+
+* `witness_columns` / `witness_column_budget`, `aux_columns` / `aux_column_budget`:
+  queries per opening vs `S/2` (Lemma 2 needs at most `S/2` distinct columns per
+  table over its lifetime; the per-proof tables are opened once).
+* `weight_columns_per_proof`, `weight_column_budget`, `weight_columns_used`
+  (`ZkWeights.budgetUsed`, the union of positions over the proximity proof, the
+  proofs and links), `proofs_left_on_commitment = (budget - used)/t_w` (a lower
+  bound: queries may repeat positions). `within_budget` checks all three.
+* `statistical_distance_bits`: `-log2` of the simulator's statistical distance.
+  The simulation of zk.md 4.5 is perfect except on rare coins, union-bounded:
+  a masked sumcheck's `Y` challenge 0 (its hats unmasked), an opening's
+  `beta_mu` or `gamma_mu` 0 (a combined row unmasked), two functionals of one
+  16-cell pad dependent (zk.md 4.3/4.7: `O(1)/|F|`, counted as `16/|F|` each),
+  and the eq-span of a pad read at a random point not all of QM31
+  (`<= p^-7` each). `rare_coin_events` is the weighted count of the first three.
+* `salt_bits` (256): the Merkle leaves are hiding in the ROM; Fiat-Shamir is the
+  standard compilation of a public-coin HVZK argument (programmable ROM).
+
+### 11.4 Measurements (2026-11-04, branch `codex/tensor-zksec`; bits only, timings not quoted: on battery)
+
+Defaults of the benches (`54/64` queries, lb 2, PoW 20; weights lb 4, 30
+queries, slots `C_w/4`):
+
+| run | sum_with_work | sum_without_work | worst | next |
+|---|---|---|---|---|
+| hiding `product 20 1 zk` (flat) | 33.06 | 32.90 | aux L0 queries (38 at 0.547, no PoW) | witness L0 queries 56.1 with work |
+| hiding `product 20 1 zk`, `ZK_DEPTH=1` | 33.06 | 32.81 | aux L0 queries | witness L0 56.4, witness L1 56.6 |
+| non-hiding `product 20 1` (same q / lb / PoW) | 54.98 | 34.98 | witness L2 queries | |
+| hiding `mlp 10 11 12 12 zk` (flat), total | 30.13 | 10.34 | weights L0 / weight proximity queries (30 at 0.770), 31.3 with work | aux L0 queries 33.06 (`delta_key = 0.2305`) |
+| hiding `mlp 10 11 12 12 zk`, `ZK_DEPTH=1`, total | 33.06 | 25.73 | aux L0 queries | weights L0 46.7 (= the bench's `query_bits_unique.weights`) |
+
+ZK parameters of the MLP runs: statistical distance `2^-113.4` (1573 rare-coin
+events), witness 64 of 64 columns, aux 38 of 64, weights 60 of 1024 used
+after the proximity proof and one proof (32 more proofs), within budget.
+
+Reading:
+* The hiding protocol terms (LogUp, GKR, masked sumchecks, proximity rows) are
+  all at 95 bits or more; the proven figure is set by query counts sized for
+  *conjectured* bits. In unique decoding a query at rate `rho_c` is worth
+  `-log2((1 + rho_c)/2)` bits: 0.87 for the aux table (rate 0.094), 0.68 for
+  the witness (rate ~0.25), 0.89 for the weights (rate 0.078).
+* The aux opening (38 queries, **no PoW**) caps every hiding proof at 33 bits.
+  It is the cheapest fix: the aux table is 9 rows x 256 columns, so more
+  queries (and slots) or PoW cost little.
+* The flat weight opening is weaker than the recursive one (31.3 vs 46.7 bits
+  with work, 11.3 vs 26.7 without): the per-proof mask table has no proximity
+  row there, so `W`'s commit-time distance `delta_key` is paid twice.
