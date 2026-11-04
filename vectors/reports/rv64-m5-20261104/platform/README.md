@@ -99,3 +99,10 @@ A 22 GiB carve in the resident service **failed** on the second 24628607 request
 Carve timing (from `daemon-*` producer logs): with the M4 library `GPU_ARENA_INIT` (814 `cuMemCreate` + premap per GPU)
 is printed after the class preload, i.e. inside request 1; with this stream's library it is the first line of the
 service log, before the warm boot.
+
+## v5 in the resident service (`daemon-v5-warm.json`, load 11.8 at start)
+
+Requests 20.63 / 19.52 s (26235156) and 29.32 / 28.65 s (24628607), byte-identical, fresh receivers 4/4 accepted (M4
+receiver binary, store renamed away). The ProgramAuthority cache cuts the per-request image load from 489-579 ms (v4,
+`daemon-ab-final-warm`) to **306-321 ms** [M]; capture is unchanged (2.19-2.96 s) because the image load overlaps RV64
+execution. The remaining ~0.3 s is ELF + input load and the input-dependent memory policy.
