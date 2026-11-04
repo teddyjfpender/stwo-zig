@@ -1,0 +1,25 @@
+{
+  "schema": "rv64-default-CUDA-pool-failure-diagnostic-source/v1",
+  "gpu_qualified": false,
+  "CUDA_compiled": false,
+  "remote_upload_performed": false,
+  "active_image_changed": false,
+  "base": "93ae0182e",
+  "source_sha256": {
+    "src/backends/cuda/native/rv64/pcs_native.cu": "098581292804629a059a4607848c1f508a8f11e1327c324be28351f011507d04",
+    "src/backends/cuda/native/rv64/pcs_oom_diagnostics.h": "c1f87b5c5cf7336032c5c622aec1055ee74569308a7aa8612bd59c5e7eb4773a",
+    "src/backends/cuda/native/rv64/pcs_oom_diagnostics_test.cpp": "c5bfabf0be0c0951fa010702a65aacd7257eaddf46a3422a675534c0faa833d4"
+  },
+  "host_test": "clang++ -std=c++17 -Wall -Wextra -Werror pcs_oom_diagnostics_test.cpp; PASS",
+  "changes": [
+    "failure-only current-device default-pool UsedMemCurrent/ReservedMemCurrent and rc alongside existing private-pool fields",
+    "pool-handle/query failures report zero values with explicit nonzero rc",
+    "clear diagnostic host API error before original checked allocation retry; original allocation status remains authoritative"
+  ],
+  "new_log_fields": [
+    "default_pool_used_bytes",
+    "default_pool_reserved_bytes",
+    "default_pool_rc"
+  ],
+  "claims": "No diagnosis of fragmentation, immutable slab pinning or default-pool ownership until physical OOM observations."
+}

@@ -167,6 +167,17 @@ struct ResidentOwner {
         });
     int device_index = -1;
     const auto device_status = cudaGetDevice(&device_index);
+    const auto default_pool = device_status == cudaSuccess
+      ? rv64_pcs_oom_diagnostics::defaultPoolSnapshot<cudaMemPool_t>(
+          [&](cudaMemPool_t *handle) {
+            return int(cudaDeviceGetDefaultMemPool(handle, device_index));
+          },
+          [&](cudaMemPool_t handle, size_t *used, size_t *reserved) {
+            const auto rc = cudaMemPoolGetAttribute(handle, cudaMemPoolAttrUsedMemCurrent, used);
+            if (rc != cudaSuccess) return int(rc);
+            return int(cudaMemPoolGetAttribute(handle, cudaMemPoolAttrReservedMemCurrent, reserved));
+          })
+      : rv64_pcs_oom_diagnostics::PoolSnapshot{0, 0, int(device_status)};
     size_t free_bytes = 0, total_bytes = 0;
     const auto memory_status = cudaMemGetInfo(&free_bytes, &total_bytes);
     std::fprintf(stderr,
@@ -174,14 +185,19 @@ struct ResidentOwner {
       "lease_bytes=%llu idle_cache_bytes=%llu active_cache_bytes=%llu "
       "physical_free_bytes=%zu physical_total_bytes=%zu memory_rc=%d "
         "pool_used_bytes=%zu pool_reserved_bytes=%zu pool_rc=%d "
-        "phase=%s context_token=%llu device_index=%d device_rc=%d\n",
+        "phase=%s context_token=%llu device_index=%d device_rc=%d "
+        "default_pool_used_bytes=%zu default_pool_reserved_bytes=%zu default_pool_rc=%d\n",
       static_cast<unsigned long long>(words * 4),
       static_cast<unsigned long long>(retained),
       static_cast<unsigned long long>(leased),
       static_cast<unsigned long long>(idle),
       static_cast<unsigned long long>(active), free_bytes, total_bytes,
       int(memory_status), pool.used, pool.reserved, pool.status, phase,
-        static_cast<unsigned long long>(token), device_index, int(device_status));
+        static_cast<unsigned long long>(token), device_index, int(device_status),
+        default_pool.used, default_pool.reserved, default_pool.status);
+    // A failed diagnostic query must not leave a stale host API error behind
+    // when the caller tries its original, independently checked allocation retry.
+    (void)cudaGetLastError();
   }
   uint32_t *allocate(uint64_t words) {
     if (!words || words > SIZE_MAX / 4)
