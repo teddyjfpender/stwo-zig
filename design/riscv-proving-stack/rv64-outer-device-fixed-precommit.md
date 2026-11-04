@@ -72,3 +72,20 @@ A direct host test covers host-only, device-only, mixed later host storage,
 missing, MAIN-only and empty-host-tree cases. The original native proof/fresh
 receiver regression still passes. Full physical proof parity remains pending;
 this observed partial progress is not a performance result.
+
+Corrected ae02 physical qualification passed on the unchanged2529 runtime: cold
+and warm GPU full proofs both match the original CPU control exactly626832B,
+SHA256 f5c8c4bb0283cf2788f189e1df2c063cdf8ddf8c68921bd50396323b537d7640.
+Both independent fresh CPU receivers accepted, wrong outputs rejected, CPU/GPU
+fixed roots and key identities matched, and no host fixed polynomial tree,
+CPU assignments or request leases remained. The optional GPU lock held5.824s
+across the two proofs plus negative case; this is not a production speed result.
+
+The device FIXED coefficient lease is now live before MAIN/INTER. Previously
+those coefficients reached the device later through the immutable forest. A
+complete device forest bypasses redundant cloning, but idle kind4 setup cache
+can retain a different mix than the old cache-miss eviction path. Worst-shape
+peak,28GiB fit and full proof/fresh-receiver parity must be measured before
+production enablement. Evicting only unborrowed native-phase setup at a drained
+phase boundary is a separate possible optimization; no unchecked free or cache
+policy change is included in this correctness checkpoint.
