@@ -95,6 +95,17 @@ Gate evidence [M]:
   (`[2]Bridge.Child`) and the k-ary verify path does not feed the sink. The full-tree receiver (today's `--audit`
   equivalent) accepts. Owner: fold-v3.
 
+### Why the wall does not move yet (timeline of 24628607 k4-cap3 p1, `pipeline.json` stamps) [M]
+
+- Every node spends 1.3–3.3 s in host preparation (graph build + host plan) and 0.3–1.3 s on the device. The recursion
+  driver keeps at most `STWO_RV64_RECURSION_PREP_AHEAD` (default 3 × lanes = 6) nodes in preparation with 8 host workers,
+  so leaf 15 is only taken at 10.4 s although every native proof is ready at 0.
+- Leaves finish at 12.7–13.9 s in every configuration; the fold tail after the last leaf is 7.3–7.7 s for binary,
+  3-ary and 4-ary alike: three sequential folds × (≈ 2 s host + 0.7 s device).
+- Σ host prep / host parallelism ≈ the DAG wall; Σ device / 2 lanes = 10.8 s (k4-cap3) vs 15.1 s (r1). The diet saves
+  device time that is not on the critical path today. With host prep off the critical path (hint-tape, sched), the
+  device bound alone predicts ≈ −4 s on 24628607 for k4-cap3 vs r1 [E].
+
 ## 4. What the M7 levers need (measured blockers)
 
 | lever | status today [M] | what unlocks it |
