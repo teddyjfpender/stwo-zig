@@ -61,7 +61,7 @@ code { font-family: var(--mono); font-size: .86em; }
 <section>
   <h2>Summary</h2>
   <div class="cards">
-    <div class="card"><span class="eyebrow">hiding vs hiding, 2<sup>20</sup>, 1 core</span><span class="big">28× faster</span><span class="sub">prove 0.305 s vs 8.63 s; verify 1.9 ms vs 12 ms</span></div>
+    <div class="card"><span class="eyebrow">hiding vs hiding, 2<sup>20</sup>, 1 core</span><span class="big">28× faster</span><span class="sub">prove 0.305 s vs 8.63 s; verify 1.9 ms vs 12 ms. <b>Not yet at matched security</b>: see the correction below</span></div>
     <div class="card"><span class="eyebrow">same relation, ≈FlashProve security</span><span class="big">249 KB vs 341 KB</span><span class="sub">Johnson+OOD config: 113.5 / 96.8 bits (FlashProve all rounds: 119.38 / 92.42)</span></div>
     <div class="card"><span class="eyebrow">SwiGLU MLP, 1024 tok, 100.7M weights</span><span class="big">0.49 s</span><span class="sub">Metal GPU (CPU 0.67 s), 434 KB, plus integer forward</span></div>
     <div class="card"><span class="eyebrow">decoder layer, 1024 tok (GQA attn + MLP)</span><span class="big">1.33 s</span><span class="sub">Metal; CPU 1.70 s; 525 KB; 84 ms verify</span></div>
@@ -99,6 +99,7 @@ code { font-family: var(--mono); font-size: .86em; }
 
 <section>
   <h2>Headline: hiding vs hiding, same relation and machine</h2>
+  <p style="border-left:3px solid var(--bad);padding-left:10px"><b>Correction (2026-11-04).</b> The hiding mode is now fully accounted in the security calculator. Under the unique-decoding reading the calculator now uses for hiding openings, our hiding proofs reach only <b>about 33 bits</b> (toy) and 10-33 bits (MLP, without and with work). A small auxiliary opening with 38 queries and no proof-of-work caps every hiding proof, and the witness and weight query counts were sized for conjectured bits. FlashProve's hiding toy is at 119.38 / 92.42. So the table below compares speed at <b>unequal security</b> and must not be read as a matched-security result. A preset that reaches FlashProve's level is in progress, and this section will be replaced with matched-security numbers. The hiding prover has also since become faster (toy 0.333 → 0.196 s, MLP D2048 about 1.45 → 0.88 s, byte-identical proofs). Note that FlashProve's 3% hiding overhead compares the same protocol with seeded and with fresh masks; they have no separate non-hiding prover.</p>
   <p class="muted">Relation a ∘ b = c over 2<sup>L</sup> field elements (FlashProve <code>blocks/toy/product.h</code>), one core, both sides zero-knowledge. FlashProve's sequential CPU reference uses deep staging and 20 PoW bits at L = 20. Our hiding-mode bits are the unique-decoding query term (about 129.5 conjectured); the calculator does not yet cover hiding openings. Proof sizes marked * are struct sums.</p>
   <div class="bars" role="img" aria-label="Prove time at L=20, hiding: ours 0.305 s, FlashProve 8.63 s">
     <div class="bar"><span>stwo-tensor, hiding</span><span class="track"><span class="fill" style="width:3.5%;display:block"></span></span><span class="v">0.305 s</span></div>
