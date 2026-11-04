@@ -192,8 +192,12 @@ pub fn evalTermsRt(comptime terms: []const Term, comptime NF: usize, vals: [NF]Q
     return evalTerms(terms, NF, &vals);
 }
 
+/// One round's sums over x < min(half, active). With `fold`, the factors still
+/// hold the previous round's values (length 2 half, `prev_active` used) and are
+/// folded by `rp` on the fly, in place at x and x + half: one memory pass per
+/// round instead of a fold pass plus a sum pass, with the same (exact) values.
 fn Ctx(comptime NF: usize) type {
-    return struct { fac: [NF][]QM31, half: usize, active: usize, partial: [][MAX_DEG + 1]QM31, chunk: usize };
+    return struct { fac: [NF][]QM31, half: usize, active: usize, partial: [][MAX_DEG + 1]QM31, chunk: usize, fold: bool = false, rp: QM31 = QM31.zero(), prev_active: usize = 0 };
 }
 
 /// Default evaluator of the summand: the comptime term list.
@@ -208,12 +212,31 @@ pub fn TermsEval(comptime NF: usize, comptime terms: []const Term) type {
 fn roundKernel(comptime NF: usize, comptime Ev: type, comptime deg: usize) fn (*const Ctx(NF), usize, usize) void {
     return struct {
         fn run(c: *const Ctx(NF), s: usize, e: usize) void {
+            @setEvalBranchQuota(20000);
             var acc: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
             var diff: [NF]QM31 = undefined;
             var cur: [NF]QM31 = undefined;
+            const len = 2 * c.half;
             for (s..e) |x| {
                 const has_hi = x + c.half < c.active;
-                inline for (0..NF) |j| {
+                if (c.fold) {
+                    inline for (0..NF) |j| {
+                        const v = c.fac[j];
+                        const l0 = v[x];
+                        const l1 = if (x + len < c.prev_active) v[x + len] else QM31.zero();
+                        const lo = l0.add(c.rp.mul(l1.sub(l0)));
+                        v[x] = lo;
+                        var hi = QM31.zero();
+                        if (has_hi) {
+                            const h0 = v[x + c.half];
+                            const h1 = if (x + c.half + len < c.prev_active) v[x + c.half + len] else QM31.zero();
+                            hi = h0.add(c.rp.mul(h1.sub(h0)));
+                            v[x + c.half] = hi;
+                        }
+                        diff[j] = hi.sub(lo);
+                        cur[j] = lo;
+                    }
+                } else inline for (0..NF) |j| {
                     const lo = c.fac[j][x];
                     const hi = if (has_hi) c.fac[j][x + c.half] else QM31.zero();
                     diff[j] = hi.sub(lo);
@@ -231,6 +254,12 @@ fn roundKernel(comptime NF: usize, comptime Ev: type, comptime deg: usize) fn (*
         }
     }.run;
 }
+
+/// Fuse each round's fold into the next round's sum pass (byte-identical either
+/// way). null = auto: on for single-threaded pools, where it measured ~15% faster
+/// on the toy batch; off for wide pools, where the in-place two-position writes
+/// measured ~13% slower on the MLP batch (12 threads).
+pub var fuse_fold: ?bool = null;
 
 fn FoldCtx(comptime NF: usize) type {
     return struct { fac: [NF][]QM31, half: usize, active: usize, r: QM31 };
@@ -354,6 +383,9 @@ fn proveWithDev(
     var dev_done = dev == null or !dev_ok;
     var pending_r: ?QM31 = null;
     errdefer if (sess) |ss| dev.?.sc_abort(dev.?.ctx, ss);
+    // CPU challenge not yet folded into the factors (fused into the next round's pass)
+    var cpu_r: ?QM31 = null;
+    var prev_active: usize = 0;
     for (0..n) |round| {
         const half = len / 2;
         const work = @min(half, active);
@@ -361,6 +393,14 @@ fn proveWithDev(
         var on_dev = false;
         if (!dev_done and dev_ok) {
             const A = dev.?;
+            if (sess == null and work >= A.sc_min_work) {
+                if (cpu_r) |r| {
+                    // the device starts from folded factors
+                    const fctx = FoldCtx(NF){ .fac = factors, .half = len, .active = prev_active, .r = r };
+                    pool.parallelFor(active, 4096, &fctx, comptime foldKernel(NF));
+                    cpu_r = null;
+                }
+            }
             if (sess == null and work >= A.sc_min_work) {
                 var fits = true;
                 inline for (factors) |fac| fits = fits and fac.len >= len;
@@ -395,7 +435,8 @@ fn proveWithDev(
             if (chunk < 2048) chunk = 2048;
             if (chunk > work) chunk = work;
             const n_chunks = (work + chunk - 1) / chunk;
-            const ctx = Ctx(NF){ .fac = factors, .half = half, .active = active, .partial = partial, .chunk = chunk };
+            const ctx = Ctx(NF){ .fac = factors, .half = half, .active = active, .partial = partial, .chunk = chunk, .fold = cpu_r != null, .rp = cpu_r orelse QM31.zero(), .prev_active = prev_active };
+            cpu_r = null;
             const run = comptime roundKernel(NF, Ev, deg);
             if (n_chunks <= 1) {
                 run(&ctx, 0, work);
@@ -427,12 +468,22 @@ fn proveWithDev(
         before = before.mul(r).add(hp.wEval(round, r));
         if (on_dev) {
             pending_r = r;
-        } else {
-            const fctx = FoldCtx(NF){ .fac = factors, .half = half, .active = active, .r = r };
-            pool.parallelFor(work, 4096, &fctx, comptime foldKernel(NF));
+        } else if (work > 0) {
+            if (fuse_fold orelse (pool.n_threads <= 1)) {
+                cpu_r = r;
+                prev_active = active;
+            } else {
+                const fctx = FoldCtx(NF){ .fac = factors, .half = half, .active = active, .r = r };
+                pool.parallelFor(work, 4096, &fctx, comptime foldKernel(NF));
+            }
         }
         len = half;
         active = work;
+    }
+    if (cpu_r) |r| {
+        const fctx = FoldCtx(NF){ .fac = factors, .half = len, .active = prev_active, .r = r };
+        pool.parallelFor(active, 4096, &fctx, comptime foldKernel(NF));
+        cpu_r = null;
     }
     if (sess) |ss| {
         // every remaining round ran on the device: apply the last fold and copy back
@@ -525,7 +576,13 @@ pub fn verify(a: std.mem.Allocator, tr: *Transcript, claim: QM31, n: usize, deg:
 // ---------------------------------------------------------------------------
 // Specialized GKR-layer prover (eq factored out, Gruen-style).
 
-const GCtx = struct { fac: [4][]QM31, E: []const QM31, half: usize, partial: [][2]QM31, chunk: usize };
+/// One round of the GKR-layer prover over x < half. eq(p_rest, x) is split as
+/// e_hi[x >> lo_bits] * e_lo[x & (2^lo_bits - 1)] (never materialized). With
+/// `fold`, the factors still hold the previous round's 2 * (2 half) values and
+/// are folded by `rp` on the fly (in place, at x and x + half): one pass per
+/// round instead of a fold pass plus a sum pass. Field arithmetic is exact, so
+/// the sums and folded values equal the unfused eq-table kernel's.
+const GCtx = struct { fac: [4][]QM31, e_hi: []const QM31, e_lo: []const QM31, lo_bits: u6, half: usize, fold: bool, rp: QM31, partial: [][2]QM31, chunk: usize };
 
 inline fn gkrH(a0: QM31, a1: QM31, d0: QM31, d1: QM31) QM31 {
     return a0.mul(d1).add(d0.mul(a1.add(d1)));
@@ -534,29 +591,42 @@ inline fn gkrH(a0: QM31, a1: QM31, d0: QM31, d1: QM31) QM31 {
 fn gkrKernel(c: *const GCtx, s: usize, e: usize) void {
     var acc0 = QM31.zero();
     var acc2 = QM31.zero();
-    for (s..e) |x| {
-        const l0 = c.fac[0][x];
-        const l1 = c.fac[1][x];
-        const l2 = c.fac[2][x];
-        const l3 = c.fac[3][x];
-        const h0 = c.fac[0][x + c.half];
-        const h1 = c.fac[1][x + c.half];
-        const h2 = c.fac[2][x + c.half];
-        const h3 = c.fac[3][x + c.half];
-        const ex = c.E[x];
-        acc0 = acc0.add(ex.mul(gkrH(l0, l1, l2, l3)));
-        acc2 = acc2.add(ex.mul(gkrH(h0.add(h0).sub(l0), h1.add(h1).sub(l1), h2.add(h2).sub(l2), h3.add(h3).sub(l3))));
+    const mask = (@as(usize, 1) << c.lo_bits) - 1;
+    const len = 2 * c.half;
+    var x = s;
+    while (x < e) {
+        const hi = x >> c.lo_bits;
+        const bend = @min(e, (hi + 1) << c.lo_bits);
+        var in0 = QM31.zero();
+        var in2 = QM31.zero();
+        while (x < bend) : (x += 1) {
+            var l: [4]QM31 = undefined;
+            var h: [4]QM31 = undefined;
+            if (c.fold) {
+                inline for (0..4) |j| {
+                    const v = c.fac[j];
+                    const lo_ = v[x];
+                    const hi_ = v[x + c.half];
+                    l[j] = lo_.add(c.rp.mul(v[x + len].sub(lo_)));
+                    h[j] = hi_.add(c.rp.mul(v[x + c.half + len].sub(hi_)));
+                    v[x] = l[j];
+                    v[x + c.half] = h[j];
+                }
+            } else {
+                inline for (0..4) |j| {
+                    l[j] = c.fac[j][x];
+                    h[j] = c.fac[j][x + c.half];
+                }
+            }
+            const el = c.e_lo[x & mask];
+            in0 = in0.add(el.mul(gkrH(l[0], l[1], l[2], l[3])));
+            in2 = in2.add(el.mul(gkrH(h[0].add(h[0]).sub(l[0]), h[1].add(h[1]).sub(l[1]), h[2].add(h[2]).sub(l[2]), h[3].add(h[3]).sub(l[3]))));
+        }
+        const eh = c.e_hi[hi];
+        acc0 = acc0.add(eh.mul(in0));
+        acc2 = acc2.add(eh.mul(in2));
     }
     c.partial[s / c.chunk] = .{ acc0, acc2 };
-}
-
-const GFold = struct { fac: [4][]QM31, half: usize, r: QM31 };
-
-fn gkrFold(c: *const GFold, s: usize, e: usize) void {
-    inline for (0..4) |j| {
-        const v = c.fac[j];
-        for (s..e) |x| v[x] = v[x].add(c.r.mul(v[x + c.half].sub(v[x])));
-    }
 }
 
 /// Prover for the GKR layer summand
@@ -603,10 +673,16 @@ pub fn proveGkrLayer(
     const partial = try a.alloc([2]QM31, max_chunks);
     defer a.free(partial);
     const three = smallQ(3);
+    // challenge of the previous round, not yet folded into `fac` (fused into this round's pass)
+    var pending: ?QM31 = null;
     for (0..n) |round| {
         const half = len / 2;
-        const E = try f.eqTablePar(a, pool, p[round + 1 ..], QM31.one());
-        defer a.free(E);
+        const rest = p[round + 1 ..];
+        const lo_bits: usize = @min(rest.len, 11);
+        const e_hi = try f.eqTable(a, rest[0 .. rest.len - lo_bits], QM31.one());
+        defer a.free(e_hi);
+        const e_lo = try f.eqTable(a, rest[rest.len - lo_bits ..], QM31.one());
+        defer a.free(e_lo);
         var s0 = QM31.zero();
         var s2 = QM31.zero();
         {
@@ -615,7 +691,7 @@ pub fn proveGkrLayer(
             if (chunk < 2048) chunk = 2048;
             if (chunk > half) chunk = half;
             const n_chunks = (half + chunk - 1) / chunk;
-            const ctx = GCtx{ .fac = fac, .E = E, .half = half, .partial = partial, .chunk = chunk };
+            const ctx = GCtx{ .fac = fac, .e_hi = e_hi, .e_lo = e_lo, .lo_bits = @intCast(lo_bits), .half = half, .fold = pending != null, .rp = pending orelse QM31.zero(), .partial = partial, .chunk = chunk };
             if (n_chunks <= 1) {
                 gkrKernel(&ctx, 0, half);
             } else {
@@ -670,8 +746,7 @@ pub fn proveGkrLayer(
         g_claim = sc.interpolateAt(g[0 .. deg + 1], r);
         before = before.mul(r).add(hp.wEval(round, r));
         pre = pre.mul(QM31.one().sub(pi).sub(r).add(pi.mul(r).mul(smallQ(2))));
-        const fctx = GFold{ .fac = fac, .half = half, .r = r };
-        pool.parallelFor(half, 4096, &fctx, gkrFold);
+        pending = r;
         for (0..@min(small, half)) |x| {
             const eh = if (x + half < small) et[x + half] else QM31.zero();
             const qh = if (x + half < small) q[x + half] else QM31.zero();
@@ -680,6 +755,10 @@ pub fn proveGkrLayer(
         }
         small = @min(small, half);
         len = half;
+    }
+    if (pending) |r| {
+        // the last round's fold (2 -> 1)
+        inline for (0..4) |j| fac[j][0] = fac[j][0].add(r.mul(fac[j][1].sub(fac[j][0])));
     }
     const fin = [7]QM31{ pre, fac[0][0], fac[1][0], fac[2][0], fac[3][0], et[0], q[0] };
     const public = [7]bool{ true, false, false, false, false, true, false };
@@ -916,4 +995,121 @@ test "masked sumcheck: completeness, final check, rejection" {
     defer a.free(vo3.point);
     const hats3 = [4]QM31{ f0, out.proof.hats[0], out.proof.hats[1], out.proof.hats[2] };
     try std.testing.expect(!vo3.final_claim.eql(out.proof.u_val.add(vo3.eps.mul(evalTermsRt(&TT, 4, hats3)))));
+}
+
+test "gkr layer prover equals generic at sizes that split eq and spawn chunks (both fold schedules)" {
+    // n >= 12 makes e_hi non-trivial (lo_bits = 11) and half > 2048 runs the
+    // multi-chunk spawn path with the fused fold; the small-size test above covers neither.
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    defer fuse_fold = null;
+    var prng = std.Random.DefaultPrng.init(91);
+    const rnd = prng.random();
+    const R = struct {
+        fn q(r: std.Random) QM31 {
+            return QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P));
+        }
+    };
+    for ([_]usize{ 12, 13, 14 }) |n| for ([_]bool{ false, true }) |fuse| {
+        fuse_fold = fuse;
+        const len = @as(usize, 1) << @intCast(n);
+        const p = try a.alloc(QM31, n);
+        defer a.free(p);
+        for (p) |*x| x.* = R.q(rnd);
+        var base: [6][]QM31 = undefined;
+        for (&base) |*v| {
+            v.* = try a.alloc(QM31, len);
+            for (v.*) |*x| x.* = R.q(rnd);
+        }
+        defer for (base) |v| a.free(v);
+        const small = @min(len, 37);
+        for (small..len) |x| {
+            base[4][x] = QM31.zero();
+            base[5][x] = QM31.zero();
+        }
+        const eq = try f.eqTable(a, p, QM31.one());
+        defer a.free(eq);
+        var claim = QM31.zero();
+        for (0..len) |x| claim = claim.add(eq[x].mul(gkrH(base[0][x], base[1][x], base[2][x], base[3][x]))).add(base[4][x].mul(base[5][x]));
+        const c = try a.alloc(QM31, Hp.entries(n, 3));
+        defer a.free(c);
+        for (c) |*x| x.* = R.q(rnd);
+        const hp = Hp{ .n = n, .d = 3, .c = c };
+        var pads: [7]QM31 = undefined;
+        for (&pads) |*x| x.* = R.q(rnd);
+        var g: [7][]QM31 = undefined;
+        g[0] = try a.dupe(QM31, eq);
+        for (0..6) |j| g[j + 1] = try a.dupe(QM31, base[j]);
+        defer for (g) |v| a.free(v);
+        var t1 = Transcript.initDomain("gkr-eq");
+        var o1 = try prove(7, &TG, a, &pool, &t1, claim, g, len, .{ true, false, false, false, false, true, false }, hp, Pad7{ .p = pads });
+        defer o1.proof.deinit(a);
+        defer a.free(o1.point);
+        var s: [6][]QM31 = undefined;
+        for (0..6) |j| s[j] = try a.dupe(QM31, base[j]);
+        defer for (s) |v| a.free(v);
+        var t2 = Transcript.initDomain("gkr-eq");
+        var o2 = try proveGkrLayer(&TG, a, &pool, &t2, claim, p, .{ s[0], s[1], s[2], s[3] }, s[4], s[5], small, hp, Pad7{ .p = pads });
+        defer o2.proof.deinit(a);
+        defer a.free(o2.point);
+        try std.testing.expect(o1.proof.sigma.eql(o2.proof.sigma) and o1.proof.u_val.eql(o2.proof.u_val));
+        for (o1.proof.rounds, o2.proof.rounds) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        for (o1.proof.hats, o2.proof.hats) |x, y| try std.testing.expect(x.eql(y));
+        try std.testing.expect(t1.draw().eql(t2.draw()));
+    };
+}
+
+test "masked sumcheck: fused and unfused fold schedules agree on odd active prefixes, multi-chunk" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    defer fuse_fold = null;
+    const n = 14;
+    const len = 1 << n;
+    var prng = std.Random.DefaultPrng.init(5);
+    const r = prng.random();
+    const c = try a.alloc(QM31, Hp.entries(n, 3));
+    defer a.free(c);
+    for (c) |*x| x.* = QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), 3, r.uintLessThan(u32, f.P), 1);
+    const hp = Hp{ .n = n, .d = 3, .c = c };
+    const pads = NoPad{ .p = .{ QM31.zero(), QM31.fromU32Unchecked(5, 0, 0, 0), QM31.fromU32Unchecked(6, 1, 0, 0), QM31.fromU32Unchecked(7, 0, 2, 0) } };
+    const public = [4]bool{ true, false, false, false };
+    for ([_]usize{ len, len / 2 + 1, 12345, 4097, 3 }) |active| {
+        var orig: [4][]QM31 = undefined;
+        for (&orig) |*o| {
+            o.* = try a.alloc(QM31, len);
+            for (o.*, 0..) |*v, i| v.* = if (i < active) QM31.fromU32Unchecked(r.uintLessThan(u32, f.P), r.uintLessThan(u32, f.P), 0, r.uintLessThan(u32, f.P)) else QM31.zero();
+        }
+        defer for (orig) |o| a.free(o);
+        var claim = QM31.zero();
+        for (0..len) |i| claim = claim.add(orig[0][i].mul(orig[1][i]).mul(orig[2][i]).sub(orig[0][i].mul(orig[3][i])));
+        var outs: [2]ProveOut = undefined;
+        var draws: [2]QM31 = undefined;
+        for ([_]bool{ false, true }, 0..) |fuse, k| {
+            fuse_fold = fuse;
+            var fac: [4][]QM31 = undefined;
+            for (&fac, orig) |*x, o| x.* = try a.dupe(QM31, o);
+            defer for (fac) |x| a.free(x);
+            var tp = Transcript.initDomain("msc-fuse");
+            outs[k] = try prove(4, &TT, a, &pool, &tp, claim, fac, active, public, hp, pads);
+            draws[k] = tp.draw();
+        }
+        defer for (&outs) |*o| {
+            o.proof.deinit(a);
+            a.free(o.point);
+        };
+        try std.testing.expect(draws[0].eql(draws[1]));
+        try std.testing.expect(outs[0].proof.u_val.eql(outs[1].proof.u_val));
+        for (outs[0].proof.rounds, outs[1].proof.rounds) |x, y| for (x, y) |u, v| try std.testing.expect(u.eql(v));
+        for (outs[0].proof.hats, outs[1].proof.hats) |x, y| try std.testing.expect(x.eql(y));
+        var tv = Transcript.initDomain("msc-fuse");
+        const vo = try verify(a, &tv, claim, n, 3, 3, outs[1].proof);
+        defer a.free(vo.point);
+        const f0 = try f.mleEval(a, orig[0], vo.point[0..n]);
+        const hats = [4]QM31{ f0, outs[1].proof.hats[0], outs[1].proof.hats[1], outs[1].proof.hats[2] };
+        try std.testing.expect(vo.final_claim.eql(outs[1].proof.u_val.add(vo.eps.mul(evalTermsRt(&TT, 4, hats)))));
+    }
 }

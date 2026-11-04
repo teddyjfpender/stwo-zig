@@ -1801,6 +1801,25 @@ pub fn provePublic(
     public: []const PublicTensor,
     timings: *proto.Timings,
 ) !Proof {
+    return provePublicWithAccumulators(a, pool, cfg, st, zw, witness, public, null, timings);
+}
+
+/// As `provePublic`, with the integer accumulators of the matmul/hadamard ops
+/// supplied by the caller (e.g. kept from the forward pass; `accs[i]` for
+/// st.ops[i], null = recompute). Same trust model as
+/// proto.proveWithAccumulators: wrong values are refused (remainder range) or
+/// yield a proof the verifier rejects. The prover's messages are unchanged.
+pub fn provePublicWithAccumulators(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: proto.Config,
+    st: Statement,
+    zw: ?*const ZkWeights,
+    witness: []const []const i32,
+    public: []const PublicTensor,
+    accs: ?[]const ?[]i64,
+    timings: *proto.Timings,
+) !Proof {
     // ZK mode is QM31-only (cellsFelt) and has no security levels
     if (f.IS_OM31 or cfg.security != .custom) return error.Unsupported;
     for (public) |pt| {
@@ -1816,9 +1835,15 @@ pub fn provePublic(
 
     // --- accumulators, remainders, multiplicities
     var t0 = try std.time.Instant.now();
-    const acc = try ar.alloc(?[]i64, st.ops.len);
+    const acc = try ar.alloc(?[]const i64, st.ops.len);
+    if (accs) |g| if (g.len != st.ops.len) return error.BadAccumulators;
     for (st.ops, 0..) |op, i| {
         acc[i] = null;
+        if (accs) |g| if (g[i]) |v| {
+            if (!(op == .matmul or op == .hadamard) or v.len != st.witness[opY(op)].size()) return error.BadAccumulators;
+            acc[i] = v;
+            continue;
+        };
         switch (op) {
             .matmul => |m| acc[i] = (try accel.matmulAcc(cfg.accel, ar, st.witness[m.x].log_dims[0], witness[m.x], zw.?.matrix(m.w))) orelse try proto.matmulAcc(ar, pool, st.witness[m.x], witness[m.x], zw.?.matrix(m.w)),
             .hadamard => |h| {
@@ -2905,6 +2930,16 @@ fn padPartial(a: std.mem.Allocator, cells: []const i32, lead: []const QM31) ![]Q
     return buf[0..len];
 }
 
+fn parFill(pool: *f.Pool, x: []QM31, v: QM31) void {
+    const C = struct { x: []QM31, v: QM31 };
+    const c = C{ .x = x, .v = v };
+    pool.parallelFor(x.len, 1 << 16, &c, struct {
+        fn run(cc: *const C, s: usize, e: usize) void {
+            @memset(cc.x[s..e], cc.v);
+        }
+    }.run);
+}
+
 fn gkrProveRel(
     a: std.mem.Allocator,
     ar: std.mem.Allocator,
@@ -2943,8 +2978,8 @@ fn gkrProveRel(
     }
     lnum[n] = try a.alloc(QM31, L);
     lden[n] = try a.alloc(QM31, L);
-    @memset(lnum[n], QM31.zero());
-    @memset(lden[n], QM31.one());
+    parFill(pool, lnum[n], QM31.zero());
+    parFill(pool, lden[n], QM31.one());
     for (g.segs, g.seg_off) |sg, o| switch (sg.kind) {
         .key => {
             const kk_ = plan.keys[sg.idx];
@@ -3093,7 +3128,7 @@ fn gkrProveRel(
             accv = try mleI64(a, pool, xps.?.acc[plan.xkeys[rk.op].op].?, local);
         } else {
             const sh = opShift(st.ops[rk.op]);
-            accv = (try f.mleEvalI32(a, rvals[rk.op], local)).sub(qi(shiftHalf(sh))).add(qi(@as(i64, 1) << sh).mul(try f.mleEvalI32(a, witness[opY(st.ops[rk.op])], local)));
+            accv = (try f.mleEvalI32Par(a, pool, rvals[rk.op], local)).sub(qi(shiftHalf(sh))).add(qi(@as(i64, 1) << sh).mul(try f.mleEvalI32Par(a, pool, witness[opY(st.ops[rk.op])], local)));
         }
         const ahat = accv.add(try f.mleEvalI32(a, vecs1[vc.apad], &t_a));
         tr.mixFelt(ahat);
@@ -4581,4 +4616,105 @@ test "zk rate precondition C + S <= E/2 is an error on both sides (log_blowup 1)
     const bad = zkp.Shape{ .log_cols = 4, .log_blowup = 1, .slots = 16, .n_rows = 4 };
     try std.testing.expect(!bad.rateOk());
     try std.testing.expect((zkp.Shape{ .log_cols = 4, .log_blowup = 2, .slots = 16, .n_rows = 4 }).rateOk());
+}
+
+// ---------------------------------------------------------------------------
+// Pinned seeded hiding digests (zkfast gate): every byte-identical prover
+// optimisation must leave these unchanged. A deliberate hiding-format change
+// re-pins them in its own commit.
+
+fn pinCase(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, case: u32) !Hash {
+    setTestSeed([_]u8{0x3c} ** 32);
+    defer setTestSeed(null);
+    const H = core.vcs.blake2_hash.Blake2sHasher;
+    var h = H.init();
+    var tm: proto.Timings = .{};
+    switch (case) {
+        0 => {
+            var built = try model.buildProduct(a, 10, 5);
+            defer built.deinit(a);
+            const st = built.statement();
+            const wv = try wview(a, built.witness);
+            defer a.free(wv);
+            var p = try prove(a, pool, cfg, st, null, wv, &tm);
+            defer p.deinit(a);
+            try verify(a, cfg, st, null, &p);
+            h.update(&proofDigest(&p));
+        },
+        1, 3 => {
+            const mc = model.Mlp{ .log_t = 3, .log_d = 5, .log_f = 6, .fused = true };
+            const winfos = model.mlpWeightInfos(mc);
+            var wdata: [3][]i8 = undefined;
+            for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 700 + i, -8, 7);
+            defer for (wdata) |w| a.free(w);
+            const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+            var zw = try commitWeights(a, pool, cfg, &winfos, &wvv);
+            defer zw.deinit(a);
+            h.update(&zw.key().root);
+            const x = try model.randomInput(a, @as(usize, 1) << @intCast(mc.log_t + mc.log_d), 23);
+            defer a.free(x);
+            const pv = zw.plainView();
+            var built = try model.buildMlp(a, pool, &pv, mc, x);
+            defer built.deinit(a);
+            const st = built.statement();
+            const wv = try wview(a, built.witness);
+            defer a.free(wv);
+            const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+            // case 3: the forward pass's accumulators (must not change the proof)
+            var p = try provePublicWithAccumulators(a, pool, cfg, st, &zw, wv, &pubs, if (case == 3) built.accs else null, &tm);
+            defer p.deinit(a);
+            try verifyPublic(a, cfg, st, zw.key(), &pubs, &p);
+            h.update(&proofDigest(&p));
+            var rr = try rerandomizeWeights(a, pool, cfg, &zw);
+            defer rr.new.deinit(a);
+            defer rr.link.deinit(a);
+            h.update(&rr.new.key().root);
+        },
+        else => {
+            const lc = tfm.LayerCfg{ .log_t = 3, .log_d = 5, .log_f = 6, .log_heads = 2, .log_kv_heads = 1 };
+            var fx: LayerFixture = undefined;
+            try fx.init(a, pool, cfg, lc, 300);
+            defer fx.deinit(a);
+            h.update(&fx.zw.key().root);
+            const st = fx.b.statement();
+            const wv = try fx.b.witnessView(a);
+            defer a.free(wv);
+            const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+            var p = try provePublic(a, pool, cfg, st, &fx.zw, wv, &pubs, &tm);
+            defer p.deinit(a);
+            try verifyPublic(a, cfg, st, fx.zw.key(), &pubs, &p);
+            h.update(&proofDigest(&p));
+        },
+    }
+    return h.finalize();
+}
+
+test "zk pinned seeded hiding digests (product flat/rec, mlp virtual rec, decoder layer)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var mlp_cfg = testCfgRec(1);
+    mlp_cfg.zk_virtual_remainders = true;
+    const cases = [_]struct { cfg: proto.Config, case: u32, hex: []const u8 }{
+        .{ .cfg = testCfg(), .case = 0, .hex = "3c09ac727b9c9dcc0b10039a1d8f37d394c0132a7f692e212463d167497f632e" },
+        .{ .cfg = testCfgRec(1), .case = 0, .hex = "515227e8bbb703598e82c6a9d82a78d54f1603f4d562584f95039deaccea0d3f" },
+        .{ .cfg = mlp_cfg, .case = 1, .hex = "fb96502a6b11a38c86867e8856f104396632a8d6e95f4a300e944a9f83ff9921" },
+        .{ .cfg = testCfg(), .case = 1, .hex = "0109242eb8ccacaeea2523ccb06146fea4c766bec4128bd1c0bc807756db3497" },
+        .{ .cfg = mlp_cfg, .case = 3, .hex = "fb96502a6b11a38c86867e8856f104396632a8d6e95f4a300e944a9f83ff9921" },
+        .{ .cfg = layerCfgZk(), .case = 2, .hex = "b46709bff021a0660d8283524c1ac54b98a45bcf318349b98fafe4e63bac95f7" },
+    };
+    var bad = false;
+    // the fused and unfused fold schedules of the masked sumcheck give the same proofs
+    defer zks.fuse_fold = null;
+    for ([_]bool{ false, true }) |fuse| for (cases, 0..) |c, i| {
+        zks.fuse_fold = fuse;
+        const d = try pinCase(a, &pool, c.cfg, c.case);
+        const got = std.fmt.bytesToHex(d, .lower);
+        if (!std.mem.eql(u8, &got, c.hex)) {
+            std.debug.print("zk pin {d} (fuse {}): {s}\n", .{ i, fuse, got });
+            bad = true;
+        }
+    };
+    try std.testing.expect(!bad);
 }

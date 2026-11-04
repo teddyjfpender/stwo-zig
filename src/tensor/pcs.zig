@@ -292,6 +292,13 @@ fn buildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E:
             }
         }
     }.run);
+    buildLevels(pool, nodes, E);
+    return .{ .nodes = nodes, .n_leaves = E };
+}
+
+/// Internal Merkle levels over leaves nodes[E..2E) (E a power of two): parallel,
+/// four parents per 4-lane SIMD call. Equals the scalar hashNode recursion.
+pub fn buildLevels(pool: *f.Pool, nodes: []Hash, E: usize) void {
     var level = E / 2;
     while (level >= 1) : (level /= 2) {
         const NCtx = struct { nodes: []Hash, base: usize };
@@ -314,7 +321,6 @@ fn buildTree(a: std.mem.Allocator, pool: *f.Pool, enc: []const M31, R: usize, E:
         }.run);
         if (level == 1) break;
     }
-    return .{ .nodes = nodes, .n_leaves = E };
 }
 
 // ---------------------------------------------------------------------------
