@@ -14,8 +14,11 @@
 //! Gadgets:
 //! - `rangeBits`: v in [0, 2^n), n <= 20.
 //! - `leafIndex`: k < MAX_PROOFS, two-sided (k and MAX_PROOFS-1-k in [0,2^16), L05/Z05).
-//! - `foldInterval`: per child seg_hi - seg_lo and MAX_PROOFS-1-seg_hi in [0,2^16)
-//!   for EVERY child (F6), adjacency seg_lo[i+1] = seg_hi[i] + 1; outputs (first lo, last hi).
+//! - `foldInterval`: per child seg_lo, seg_hi - seg_lo and MAX_PROOFS-1-seg_hi in
+//!   [0,2^16) for EVERY child (F6), so 0 <= seg_lo <= seg_hi < MAX_PROOFS as
+//!   integers; adjacency seg_lo[i+1] = seg_hi[i] + 1; outputs (first lo, last hi).
+//!   (Adversarial review, canon-vk: without the seg_lo bound the two checks
+//!   admit a child [p-10, p-1], whose seg_hi + 1 wraps to 0 in M31.)
 //! - `foldMass`: k canonical u32 masses (u16 limbs) summed as integers with the
 //!   output proven < p by a guessed complement d = p - 1 - S (review 2 §10.2 gadget, Z04).
 //! - `foldDepth`: depth = 1 + max_i depth_i <= D_MAX (F5, Z06).
@@ -77,15 +80,18 @@ pub fn leafIndex(ctx: *Context, k: Var, w: LeafIndexWitness) !void {
 
 /// One child's interval (seg_lo, seg_hi) wires.
 pub const Interval = struct { lo: Var, hi: Var };
-pub const IntervalWitness = struct { span_bits: [16]bool, rest_bits: [16]bool };
+pub const IntervalWitness = struct { lo_bits: [16]bool, span_bits: [16]bool, rest_bits: [16]bool };
 pub fn intervalWitness(lo: u64, hi: u64) IntervalWitness {
-    return .{ .span_bits = bitsOf(hi -% lo, 16), .rest_bits = bitsOf((MAX_PROOFS - 1) -% hi, 16) };
+    return .{ .lo_bits = bitsOf(lo, 16), .span_bits = bitsOf(hi -% lo, 16), .rest_bits = bitsOf((MAX_PROOFS - 1) -% hi, 16) };
 }
-/// Every child: hi - lo and MAX_PROOFS - 1 - hi in [0, 2^16); adjacent
-/// children: lo[i+1] = hi[i] + 1. Returns the fold's (first lo, last hi).
+/// Every child: lo, hi - lo and MAX_PROOFS - 1 - hi in [0, 2^16), so as
+/// integers 0 <= lo <= hi < MAX_PROOFS (lo + span < 2^17 cannot wrap, and the
+/// third check then bounds hi by MAX_PROOFS - 1); adjacent children:
+/// lo[i+1] = hi[i] + 1, which therefore never wraps. Returns (first lo, last hi).
 pub fn foldInterval(ctx: *Context, children: []const Interval, witness: []const IntervalWitness) !Interval {
     if (children.len < 2 or children.len > 4 or witness.len != children.len) return error.InvalidFoldArity;
     for (children, witness) |c, w| {
+        try rangeBits(ctx, c.lo, 16, w.lo_bits);
         try rangeBits(ctx, try ctx.sub(c.hi, c.lo), 16, w.span_bits);
         try rangeBits(ctx, try ctx.sub(try constant(ctx, MAX_PROOFS - 1), c.hi), 16, w.rest_bits);
     }
@@ -299,6 +305,19 @@ test "corpus Z05 fold interval: adjacency and per-child two-sided ranges; a wrap
         defer ctx.deinit();
         const kids = [_]Interval{ .{ .lo = try guess(&ctx, 0), .hi = try guess(&ctx, P - 1) }, .{ .lo = try guess(&ctx, 0), .hi = try guess(&ctx, 5) } };
         _ = try foldInterval(&ctx, &kids, &.{ intervalWitness(0, P - 1), intervalWitness(0, 5) });
+        try std.testing.expect(!try ctx.isCircuitValid());
+    }
+    // Adversarial review: a child [p-10, p-1] passes "span < 2^16" and
+    // "MAX_PROOFS-1-hi < 2^16" (255 - (p-1) = 256), and its hi + 1 wraps to 0,
+    // so the next child may start at 0. The seg_lo range check refuses it.
+    {
+        var ctx = try fresh();
+        defer ctx.deinit();
+        // The attacker's witness is computed in the FIELD (span 9, rest 256),
+        // not with u64 wrap-around, so every pre-fix check is satisfied.
+        const kids = [_]Interval{ .{ .lo = try guess(&ctx, P - 10), .hi = try guess(&ctx, P - 1) }, .{ .lo = try guess(&ctx, 0), .hi = try guess(&ctx, 5) } };
+        const forged = IntervalWitness{ .lo_bits = bitsOf(P - 10, 16), .span_bits = bitsOf(9, 16), .rest_bits = bitsOf(256, 16) };
+        _ = try foldInterval(&ctx, &kids, &.{ forged, intervalWitness(0, 5) });
         try std.testing.expect(!try ctx.isCircuitValid());
     }
     // A child with lo > hi (negative span).

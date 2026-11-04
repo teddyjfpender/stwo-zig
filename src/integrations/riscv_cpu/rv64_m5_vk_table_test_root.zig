@@ -20,3 +20,8 @@ test "canon-vk canonical outer profiles: registry domains, base PCS configs, fai
     // P03: an unknown name is an error value (entry points exit cleanly), never a panic.
     try std.testing.expectError(error.UnknownOm31OuterProfile, P.Profile.parse("m5_outer_canonical_r1"));
 }
+test "canon-vk review: r1_domain names r1 only; the active profile's domain comes from domainName()" {
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/q108-p20-fold4/lens-v1", P.r1_domain);
+    try std.testing.expectEqualStrings(P.r1_domain, P.Profile.r1_b2_q108_p20_fold4.domainName());
+    try std.testing.expect(!std.mem.eql(u8, P.r1_domain, P.Profile.m5_outer_canonical_r1_b2_q108_p20_fold4_v1.domainName()));
+}

@@ -81,8 +81,13 @@ pub const Profile = enum {
 };
 pub const DEFAULT_PROFILE: Profile = .r1_b2_q108_p20_fold4;
 pub const PROFILE_ENV = "STWO_RV64_OUTER_PROFILE";
-/// Historical r1 domain (kept for callers/reports that name it).
-pub const domain = DEFAULT_PROFILE.domainName();
+/// Historical r1 domain string. This is NOT the active outer profile: every
+/// identity, wire header, transcript, class key and report must use
+/// `domainName()` (adversarial review, canon-vk: a `pub const domain` kept the
+/// old name and silently meant r1 under every other profile, so a consumer
+/// built against it, e.g. a VK-table header, would label a canonical/m3 table
+/// as r1). Renamed so such callers fail to compile instead.
+pub const r1_domain = Profile.r1_b2_q108_p20_fold4.domainName();
 const unset: u8 = 0xff;
 var selected = std.atomic.Value(u8).init(unset);
 var locked = std.atomic.Value(bool).init(false);
@@ -166,8 +171,8 @@ test "om31 outer profiles are 128 conjectured bits, distinct and exact" {
     var historical = try core.fri.ForField(O).FriConfig.init(0, 1, 108);
     historical.fold_step = 4;
     try std.testing.expect(std.meta.eql(r1, PcsConfig{ .pow_bits = 20, .fri_config = historical }));
-    try std.testing.expectEqualStrings("stwo/circuit/native-om31/q108-p20-fold4/lens-v1", domain);
-    try std.testing.expect(!std.mem.eql(u8, Profile.m3_b4_q51_p26_fold4.domainName(), domain));
+    try std.testing.expectEqualStrings("stwo/circuit/native-om31/q108-p20-fold4/lens-v1", r1_domain);
+    try std.testing.expect(!std.mem.eql(u8, Profile.m3_b4_q51_p26_fold4.domainName(), r1_domain));
     try std.testing.expectEqual(Profile.m3_b4_q51_p26_fold4, try Profile.parse("m3"));
     try std.testing.expectError(error.UnknownOm31OuterProfile, Profile.parse("m3_b4_q50_p26_fold4"));
     const before = active();

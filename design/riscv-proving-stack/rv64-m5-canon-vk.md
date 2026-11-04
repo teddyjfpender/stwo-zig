@@ -191,3 +191,69 @@ See `vectors/reports/rv64-m5-20261104/canon-vk/README.md` (E1 parity; E2 r1 4-ar
   - canonical leaves, so the leaf PP and plan become class store hits;
   - a cached padded topology, so padding and graph are not rebuilt;
   - the M6 hint tape for the witness.
+
+## 8. Adversarial review (2026-11-04, head `0170ceb1c`)
+
+The reviewer tried to forge against the opt-in formats (canonical profile, `uniform-v1`, `set-v2`, k-ary) and checked the landed
+gadgets against `rv64-m5-binding.md`. Receipts: `26235156-adv-tamper-{canonical,uniform,set-v2}.json` and
+`adv-z05-pre-fix-test.log` in `vectors/reports/rv64-m5-20261104/canon-vk/`. Tool: `scripts/rv64_m5_canon_vk_tamper.py`.
+
+**Why the cases are new.** Under a uniform shape every fold of an arity shares ONE verification key. A fold proof copied
+to another fold position, or from the other dev block, then passes the authority check. Only the output digest
+(`expectedDigest`, the v2 child-binding check) stops it. The corpus runs every receiver with `STWO_RV64_FOLD_CLASS_CACHE=0`,
+but the receiver default is `=1`, where every fold after the first takes the class-hit restore path
+(`restoreWithAuthority`). The cases therefore also cover the default.
+
+**Tamper results [M]** (fresh CPU-only receivers, receiver `29c30bb4…`, 26235156, donor 24628607). 24/24 pass: every
+mutation is rejected, and the controls are accepted with the control statement.
+- canonical profile proofs, 15/15:
+  - same-VK fold copy, with cache 1 (hit path) and cache 0;
+  - cross-block fold with cache 1;
+  - top fold and `root.proof` both replaced by an inner fold;
+  - each of these is rejected with `CurrentOm31OutputDigest`.
+  - leaf over fold, and fold over leaf: same shape, different circuit, rejected with `Om31CircuitWireAuthority`;
+  - r1 receiver with `uniform-v1` (same PCS and shape, other domain): `Om31CircuitWireProfile`;
+  - canonical receiver with shape `exact` or `set-v2`: refused cleanly (`CanonicalOuterProfileRequiresUniformShape`);
+  - arity 3, arity 4 or canonical m3: `MissingRecursiveNodeProof` (the plan differs);
+  - arity `2x`: `InvalidRecursiveFoldArity`, a clean exit.
+- uniform-v1 proofs, 5/5: canonical receiver `Om31CircuitWireProfile`; set-v2 or exact receiver (cache 1)
+  `Om31CircuitWireAuthority`; same-VK fold copy with cache 1 `CurrentOm31OutputDigest`.
+- set-v2 proofs, 4/4: uniform-v1 or exact receiver `Om31CircuitWireAuthority`; same-class fold copy with cache 1
+  `CurrentOm31OutputDigest`.
+
+**Finding A1 (medium, fixed): the fold interval rule did not prevent wrap.**
+- `foldInterval` checked, per child, that `seg_hi − seg_lo` and `MAX_PROOFS − 1 − seg_hi` lie in `[0, 2^16)`. Binding §4.1(5)
+  and interface CV3' specify the same rule.
+- These two checks do NOT imply `0 ≤ seg_lo ≤ seg_hi < MAX_PROOFS`. The child `[p − 10, p − 1]` passes both: the span is 9 and
+  `255 − (p − 1) = 256`. Its `seg_hi + 1` wraps to 0, so a next child `[0, 5]` is adjacent.
+- The pre-fix gadget ACCEPTED this forged witness: `adv-z05-pre-fix-test.log`, Z05 test fails, 12/13.
+- Fix: also range-check `seg_lo ∈ [0, 2^16)` for every child. Then `seg_hi = seg_lo + span < 2^17` cannot wrap, and the
+  third check gives `seg_hi ≤ MAX_PROOFS − 1`. Test-vk-table 14/14 on the pod after the fix.
+- Exposure: none in a shipped format, because fold v3 is not wired. In fold v3 the leaf range check (L05) would have
+  protected it by induction, but the stated defence "for every child, so `seg_hi + 1` can never wrap" was false on its own.
+  profiles should amend §4.1(5) to name the `seg_lo` check.
+
+**Finding A2 (medium, fixed): `om31.protocol.domain` silently meant r1 under every profile.**
+- canon-vk kept `pub const domain` (the r1 string) while every identity, wire header and transcript moved to `domainName()`.
+- rootverify (`root_verify.zig` `foldClassKey`, `leafKey`, the table header `outer_domain`, the stdout `outer_profile`) still
+  reads `protocol.domain`. Merged as is, it would label canonical or m3 tables as r1, and its `foldClassKey` would diverge
+  from `classKey` (which also needs `versionWord(k)`).
+- This fails closed: the transcript domain differs, so nothing is accepted that should not be. But the table-header policy
+  check is defeated.
+- Fix: renamed to `r1_domain`, so such callers fail to compile at integration instead of mislabelling.
+
+**Notes (not fixed; owners named).**
+- N1 (low, canon-vk / rootverify). `classKey` and rootverify's table header do not bind the outer shape. Exact, `uniform-v1`
+  and `set-v2` share the r1 domain.
+  - Consequences: persisted producer plan templates can collide across shapes (the checked-template path degrades to a fresh
+    build); a table derived under one shape passes the header check of a receiver run under another.
+  - This is not a forgery, because every VK is still an honest circuit. It is a policy-labelling gap. Bind the shape (or
+    allow it only under a named profile) before a diagnostic shape reaches a table.
+- N2 (design, profiles / canon-vk). `T_rec` v1 keys a fold by (kind, arity, profile). It cannot hold set-v2's up to 9 binary
+  fold VKs per arity: `buildRec` refuses the duplicate keys. A `_v2` canonical profile bound to set-v2 needs a T_rec v2 leaf
+  that carries the child shape tuple, and fold v3 must pin that tuple as a class constant.
+- N3 (policy, integrate / rootverify). The receiver default is `STWO_RV64_FOLD_CLASS_CACHE=1`. Its soundness rests on the
+  receiver building the class authority itself, and on the digest check that the cache-1 tamper cases above exercise on the hit path.
+  Acceptance harnesses force 0. Keeping 1 for acceptance is admissible on this evidence; `check` mode stays the audit.
+- N4 (low). `RecEntry.profile = @intFromEnum(Profile) + 1` depends on enum order. New profiles must be appended, never
+  inserted (CV2' freezes ids 1–5).

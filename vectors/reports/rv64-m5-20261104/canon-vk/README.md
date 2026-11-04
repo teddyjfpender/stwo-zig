@@ -153,3 +153,40 @@ because the configurations differ (no store) and the load differs.
 
 Recommendation: **the canonical profile should use the set-v2 shape set**, under a `_v2` registry name from profiles. It keeps
 the constant-VK property at about +4% recursion one-shot (uniform-v1 costs +10% one-shot and +23% warm).
+
+**Caveat from the adversarial review:** a set-v2 canonical profile also needs a `T_rec` v2 leaf that carries the child shape
+tuple, because `T_rec` v1 keys a fold only by (kind, arity, profile). See the design note, §8 N2.
+
+## Adversarial review: tamper cases on the opt-in formats (26235156, donor 24628607) [M]
+
+Tool: `scripts/rv64_m5_canon_vk_tamper.py`. It reuses the negative-corpus machinery: each case runs in a fresh CPU-only
+receiver process, and the rejection must be semantic. Unlike the corpus, it also runs the receiver default
+`STWO_RV64_FOLD_CLASS_CACHE=1`, the class-hit restore path. Receiver `29c30bb4…`; load 8–14 at start.
+
+| set | receipt | ran | passed | unexpected accepts | crashes |
+|---|---|---:|---:|---|---|
+| canonical profile (E6 proofs) | `26235156-adv-tamper-canonical.json` | 15 | 15 | none | none |
+| uniform-v1 (E4 proofs) | `26235156-adv-tamper-uniform.json` | 5 | 5 | none | none |
+| set-v2 (E10 proofs) | `26235156-adv-tamper-set-v2.json` | 4 | 4 | none | none |
+
+What rejected each mutation:
+- a same-VK fold copy, a cross-block fold and a coherent root replacement, with cache 0 or 1: `CurrentOm31OutputDigest`. Under
+  a uniform shape the authority no longer differs, so this digest check is the only barrier;
+- a leaf over a fold, a fold over a leaf, and every shape cross: `Om31CircuitWireAuthority`;
+- a domain cross: `Om31CircuitWireProfile`;
+- a canonical receiver with another shape, and a garbage arity: clean refusals.
+
+The E4 run's accepted receiver directory had been pruned. It was re-created as `receiver-tamper/` with the same request and
+a fresh accepted control (`/workspace/m3/runs/m5-canon-vk/tamper/mkrecv.py`).
+
+Gadget finding A1 (design note §8): before the fix, the fold interval gadget accepted the forged child `[p−10, p−1]`, whose
+`seg_hi + 1` wraps to 0 (`adv-z05-pre-fix-test.log`: Z05 fails, 12/13). After the fix (an added `seg_lo` range check),
+`test-riscv64-m5-vk-table` passes 14/14 on the pod.
+
+The fixed tree (with the A1 gadget fix and the A2 `r1_domain` rename) was rebuilt on the pod:
+- receiver `b8f991a0…` and driver `22b8ce01…`, in `/workspace/m3/build/m5-canon-vk-adv`;
+- with that receiver, CV00, CV01, CV02 and CV08 pass again, 4/4 (`26235156-adv-tamper-canonical-rebuilt.json`).
+
+Neither change alters a proof byte:
+- the rename keeps the constant's value, and every proof path already used `domainName()`;
+- the gadget is not wired into any circuit.

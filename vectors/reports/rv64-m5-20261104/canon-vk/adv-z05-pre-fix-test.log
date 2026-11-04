@@ -1,0 +1,24 @@
+test-riscv64-m5-vk-table
++- run test 12/13 passed, 1 failed
+error: 'rv64_recursion.node_summary.test.corpus Z05 fold interval: adjacency and per-child two-sided ranges; a wrapped seg_hi + 1 is refused' failed
+error: while executing test 'rv64_recursion.node_summary.test.fold kappa: sum of child leaf counts within 2^9; an out-of-range child count is refused', the following test command failed:
+cd /workspace/m3/src/m5-canon-vk-c && ./.zig-cache/products/riscv_cpu/o/f013df17fe92da5a4c79bfe02f9e49cd/test --cache-dir=./.zig-cache/products/riscv_cpu --seed=0xc516ce26 --listen=-
+
+Build Summary: 5/7 steps succeeded; 1 failed; 12/13 tests passed; 1 failed
+test-riscv64-m5-vk-table transitive failure
++- run test 12/13 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/68c6d55a076d6bef1c60a478581e9b70/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m5-canon-vk-c/build_support .zig-cache/products/riscv_cpu /workspace/m3/cache/zig-global --seed 0xc516ce26 -Z9a890bb4ce51a26e test-riscv64-m5-vk-table -p /workspace/m3/src/m5-canon-vk-c/zig-out -Drepository-root=/workspace/m3/src/m5-canon-vk-c -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast -Dtarget=x86_64-linux.6.8...6.8-gnu.2.39 -Dcpu=x86_64_v4+sha -Dimplementation-commit=0170ceb1c5c9bbe2472039269d04b8ab12baf7cf -Dimplementation-dirty=false -Dimplementation-tree=0000000000000000000000000000000000000000
+test-riscv64-m5-vk-table
++- run /workspace/zig/zig failure
+error: the following command exited with error code 1:
+/workspace/zig/zig build test-riscv64-m5-vk-table --build-file /workspace/m3/src/m5-canon-vk-c/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /workspace/m3/src/m5-canon-vk-c/zig-out -Drepository-root=/workspace/m3/src/m5-canon-vk-c -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast -Dtarget=x86_64-linux.6.8...6.8-gnu.2.39 -Dcpu=x86_64_v4+sha -Dimplementation-commit=0170ceb1c5c9bbe2472039269d04b8ab12baf7cf -Dimplementation-dirty=false -Dimplementation-tree=0000000000000000000000000000000000000000
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv64-m5-vk-table transitive failure
++- run /workspace/zig/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/bef39f5ac804b096dc6b6f3931fff292/build /workspace/zig/zig /workspace/zig/lib /workspace/m3/src/m5-canon-vk-c .zig-cache /workspace/m3/cache/zig-global --seed 0x8eda24c -Zd7f1caac16d673eb test-riscv64-m5-vk-table -Doptimize=ReleaseFast -Dcpu=x86_64_v4+sha -Dimplementation-commit=0170ceb1c5c9bbe2472039269d04b8ab12baf7cf -Dimplementation-tree=0000000000000000000000000000000000000000 -Dimplementation-dirty=false --summary all
+EXIT=1
