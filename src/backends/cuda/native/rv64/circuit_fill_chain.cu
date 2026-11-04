@@ -96,6 +96,18 @@ __device__ __forceinline__ StwoCircuitAssignmentTask fetch(const StwoCircuitAssi
     const uint4 lo = __ldg(p), hi = __ldg(p + 1);
     return {lo.x, lo.y, {lo.z, lo.w, hi.x, hi.y, hi.z, hi.w}};
 }
+// L2 prefetch hint for the value inputs of a future task. A hint never changes
+// memory contents or ordering: a line that a level writes later is updated in
+// L2 by that write; only the DRAM latency of OLD inputs (Blake message words,
+// seeds, constants) leaves the dependency chain.
+__device__ __forceinline__ void prefetch_inputs(const StwoCircuitAssignmentJob& j, const StwoCircuitAssignmentTask& t) {
+    if (t.kind > 15 || t.kind == 7 || t.kind == 15) return;
+    const unsigned arity = t.kind <= 3 ? 2 : t.kind == 4 ? 3 : t.kind == 6 ? 6 : t.kind == 9 ? 2 : 1;
+#pragma unroll
+    for (unsigned i = 0; i < 6; ++i)
+        if (i < arity && t.args[i] < j.value_count)
+            asm volatile("prefetch.global.L2 [%0];" ::"l"(j.values + uint64_t(t.args[i]) * 4));
+}
 __global__ void __launch_bounds__(kChainThreads) chain_run(StwoCircuitAssignmentJob j, const uint32_t* __restrict__ ends, uint32_t first_level, uint32_t levels) {
     __shared__ uint32_t s_ends[kEndsChunk];
     __shared__ uint32_t s_bad;
@@ -122,20 +134,30 @@ __global__ void __launch_bounds__(kChainThreads) chain_run(StwoCircuitAssignment
         }
         __syncthreads();
         if (s_bad) return;
-        StwoCircuitAssignmentTask current{};
-        if (begin + tid < s_ends[0]) current = fetch(tasks, begin + tid);
+        // Record pipeline: records of levels l+1 and l+2 are in registers and
+        // the record of l+3 is requested during level l; the value inputs of
+        // level l+2 (record already arrived) are prefetched into L2 two levels
+        // before they are read. Nothing issued here waits on a load.
+        const auto record = [&](uint32_t level) -> StwoCircuitAssignmentTask {
+            const StwoCircuitAssignmentTask none{15u, 0u, {0, 0, 0, 0, 0, 0}};
+            if (level >= n) return none;
+            const uint32_t first = level == 0 ? begin : s_ends[level - 1];
+            return first + tid < s_ends[level] ? fetch(tasks, first + tid) : none;
+        };
+        StwoCircuitAssignmentTask current = record(0), next1 = record(1), next2 = record(2);
+        prefetch_inputs(j, next1);
         for (uint32_t l = 0; l < n; ++l) {
             const uint32_t end = s_ends[l];
-            // Prefetch the next level's first strided record before this
-            // level's dependent loads: the record load leaves the chain latency.
-            StwoCircuitAssignmentTask following{};
-            if (l + 1 < n && end + tid < s_ends[l + 1]) following = fetch(tasks, end + tid);
+            const StwoCircuitAssignmentTask next3 = record(l + 3);
+            prefetch_inputs(j, next2);
             if (begin + tid < end) at(j, current);
             for (uint32_t i = begin + tid + kChainThreads; i < end; i += kChainThreads) at(j, fetch(tasks, i));
             // Global writes of this level are visible to the whole CTA after
             // the barrier, before any later dependency level reads them.
             __syncthreads();
-            current = following;
+            current = next1;
+            next1 = next2;
+            next2 = next3;
             begin = end;
         }
     }
