@@ -61,11 +61,27 @@ Use `--only zig` or `--only cuda` to rebuild one half.
   - So a stream that changes one `.cu` file or header recompiles only the translation
     units that depend on it, then relinks. Any stream's first build reuses the
     objects that infra already compiled.
-- **AOT catalogues** (`/workspace/m3/catalogues`, read-only) are frozen generated
-  inputs, copied from `/workspace/rv64-native-cpu-rebuild-package/catalogues`; the tree
-  sha256 is in the infra receipts. If your stream changes the native AIR or the outer
-  circuit kernels, regenerate the catalogues into your own directory and build with
-  the image script directly.
+- **AOT catalogues.**
+  - The default is `/workspace/m3/catalogues-v2`. Treat it as read-only.
+  - It is the frozen rebuild-package catalogue (`/workspace/m3/catalogues`) with core
+    roles 43/44 replaced by `rv64-joined-fixtures --grouped-domain` output from
+    `fbb6c6c76`.
+  - The build splits roles 8, 41, 43 and 44 per group.
+  - Check against the current generator: 48 of 49 core roles are byte-equal to
+    `--domain`, and roles 8/41 are byte-equal to `--grouped-domain`.
+  - Why: the unsharded role 44 has a 19,832 B per-thread stack. That adds about 1.9 GB of
+    device local-memory reservation and OOMs 24628607. The `build` step now runs a
+    **stack admission** (`cuobjdump -res-usage`, worst kernel ≤ 12,544 B, which is the
+    accepted image's worst) and fails images that would do this.
+  - If your stream changes native AIR or the outer kernels, regenerate with
+    `zig build build-rv64-joined-tool` and `rv64-joined-fixtures --grouped-domain DIR`
+    into your own catalogue directory, then pass `--catalogues`.
+- **Measured costs:**
+  - A cold CUDA image is 2,106 s. Core case 44 dominates when unsharded; sharded, the
+    ptxas long pole is gone.
+  - An incremental CUDA image after changing 2 catalogue sources took 144 s
+    (39 compiled, 658 from the store, including the link).
+  - A cold zig driver build is 342 s; an incremental one is 320 s.
 
 ## 3. Prove (pod, takes the GPU lock itself)
 

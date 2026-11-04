@@ -107,7 +107,7 @@ def build(args):
         receipt["driver_sha256"] = sha(paths["driver"])
         receipt["receiver_sha256"] = sha(paths["receiver"])
     if args.only in (None, "cuda"):
-        cat = M3 / "catalogues"
+        cat = Path(args.catalogues)
         command = [sys.executable, str(root / "scripts/rv64_cuda_resident_image_build.py"), "--source-root", str(root),
                    "--core-domain", str(cat / "core"), "--core-projection", str(cat / "projection"),
                    "--global-projection", str(cat / "global"), "--truth-domain", str(cat / "truth"),
@@ -115,16 +115,47 @@ def build(args):
                    "--outer-circuit-dir", str(cat / "outer"), "--build", str(paths["base"] / "cuda"),
                    "--object-store", str(M3 / "cache/cuda-objects"), "--catalogue-root", str(cat),
                    "--nvcc", NVCC, "--jobs", str(args.jobs), "--compile-timeout", "2400", "--link-timeout", "1800",
-                   "--split-core-role", "8", "--split-core-role", "41", "--core-module-max-bytes", "32768"]
+                   "--split-core-role", "8", "--split-core-role", "41", "--split-core-role", "43", "--split-core-role", "44",
+                   "--core-module-max-bytes", "32768"]
         receipt["cuda_seconds"] = run_logged(command, logs / "cuda-image.log", cwd=root)
         log = (logs / "cuda-image.log").read_text()
         receipt["cuda_objects"] = {"compiled": log.count('"cached": false'), "cached": log.count('"cached": true')}
         receipt["library_sha256"] = sha(paths["library"])
-        receipt["catalogue_note"] = ("AOT catalogues are frozen generated inputs copied from "
-                                     "/workspace/rv64-native-cpu-rebuild-package/catalogues; native .cu sources come "
-                                     "from this stream's tree. Regenerate catalogues if a stream changes AIR/outer kernels.")
+        receipt["stack_admission"] = stack_admission(paths["library"], args.max_stack_bytes)
+        receipt["catalogues"] = str(cat)
+        receipt["catalogue_note"] = ("catalogues-v2 = frozen rebuild-package catalogue (48/49 core roles byte-equal to "
+                                     "rv64-joined-fixtures --domain at fbb6c6c76; 8/41 equal --grouped-domain) with core "
+                                     "roles 43/44 replaced by --grouped-domain output, split per group. Native .cu sources "
+                                     "come from this stream's tree. Regenerate if a stream changes AIR/outer kernels.")
     B.atomic_json(paths["receipt"], receipt)
     print(json.dumps(receipt, indent=2))
+
+
+def stack_admission(library, limit):
+    """Per-thread stack frames become a persistent device local-memory reservation
+    (frame x resident threads: 170 SMs x 1536 on a 5090), outside the CUDA pool.
+    The accepted image's worst kernel uses 12,544 B; an unsharded core role 44
+    (19,832 B) costs ~1.9 GB more and OOMs 24628607. Fail such images early."""
+    import re
+    text = subprocess.run([str(Path(NVCC).parent / "cuobjdump"), "-res-usage", str(library)], capture_output=True,
+                          text=True, check=True).stdout
+    rows, function = [], None
+    for line in text.splitlines():
+        m = re.search(r"Function (\S+):", line)
+        if m:
+            function = m.group(1)
+            continue
+        m = re.search(r"STACK:(\d+)", line)
+        if m and function:
+            rows.append((int(m.group(1)), function))
+            function = None
+    rows.sort(reverse=True)
+    result = {"functions": len(rows), "limit_bytes": limit, "top": [{"stack_bytes": s, "function": f[:120]} for s, f in rows[:8]],
+              "reservation_estimate_bytes_5090": rows[0][0] * 170 * 1536 if rows else 0}
+    result["admitted"] = bool(rows) and rows[0][0] <= limit
+    if not result["admitted"]:
+        raise SystemExit("stack admission failed: " + json.dumps(result["top"][:3]) + " (pass --max-stack-bytes to override)")
+    return result
 
 
 # ----------------------------------------------------------------------------- inputs
@@ -426,7 +457,10 @@ def main():
     b = sub.add_parser("build")
     b.add_argument("--stream", default="infra")
     b.add_argument("--only", choices=("zig", "cuda"))
+    b.add_argument("--catalogues", default=str(M3 / "catalogues-v2"),
+                   help="AOT catalogue root (v2 = frozen catalogue with generator-regenerated grouped core roles 43/44)")
     b.add_argument("--jobs", type=int, default=32)
+    b.add_argument("--max-stack-bytes", type=int, default=12544, help="Worst per-thread kernel stack admitted (accepted image: 12544)")
     sub.add_parser("inputs")
     for name in ("prove", "bench"):
         p = sub.add_parser(name)
