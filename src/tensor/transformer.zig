@@ -658,7 +658,7 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32, colfix: []const u8) !u3
     );
 }
 
-pub const AttnOut = struct { o: u32, scores: u32, probs: u32, rden: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
+pub const AttnOut = struct { o: u32, scores: u32, acc: u32, od: u32, m: u32, sel: u32, d: u32, e: u32, den: u32 };
 
 /// Causal GQA attention core: qr [T, H dh], kr / v [T, Hkv dh] -> O [T, H dh].
 pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8) !AttnOut {
@@ -741,33 +741,43 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     }
     const den_id = try b.addVec(n2, den);
     try b.lineq(n2, try b.expr(&.{ term(1, Ref.w(den_id), &.{ids(0, n2)}), term(-1, Ref.w(e_id), &.{ ids(0, n2), sums(lt) }) }, 0));
-    // per-row reciprocal rden = floor(2^K / den), K = lt + 15, proved on the
-    // [H, T] vector: rden in [0, 2^(lt+8)), pr = rden * den,
-    // 0 <= 2^K - pr < den.
-    const K: u5 = @intCast(lt + 15);
-    const rden = try b.a.alloc(i32, H * T);
-    for (den, rden) |d, *o| o.* = @divFloor(@as(i32, 1) << K, d);
-    const rden_id = try b.addVec(n2, rden);
-    const all2 = ids(0, n2);
-    try b.rangeWide(n2, try b.expr(&.{term(1, Ref.w(rden_id), &.{all2})}, 0), lt + 8);
-    const pr = (try b.einsumExact(TensorInfo.vec(n2), n2, Ref.w(rden_id), Ref.w(den_id), 0, &.{all2}, &.{all2})).?;
-    try b.rangeWide(n2, try b.expr(&.{term(-1, Ref.w(pr), &.{all2})}, @as(i64, 1) << K), lt + 8);
-    try b.rangeWide(n2, try b.expr(&.{ term(1, Ref.w(den_id), &.{all2}), term(1, Ref.w(pr), &.{all2}) }, -1 - (@as(i64, 1) << K)), lt + 8);
-    // P = rq_{lt+8}(e * rden) ~ 128 e / den, in [0, 128] (9-bit signed range)
-    const p_id = try b.einsumRequant(TensorInfo.vec(n3), Ref.w(e_id), Ref.w(rden_id), 0, &.{all3}, &.{all2}, @intCast(lt + 8), 9);
-    // O[t, hk, g, e] = requant(sum_j P[hk, g, t, j] V[j, hk, e])
+    // Softmax-weighted values without a reciprocal (EXT-1 / EXT-3, the
+    // FlashProve-style division): acc[t, h, c] = sum_j e[h, t, j] v[j, hk, c]
+    // exactly (|acc| <= 2^(lt+15)), then o = round(acc / den) per entry via
+    //   0 <= 2 acc + den - 2 o den < 2 den,   o int8,
+    // with od = o * den an exact einsum (|od| <= 2^(lt+15)). Every product and
+    // sum stays below 2^(lt+17) <= 2^29 < p/2 (validateStatement re-derives
+    // this from the statement alone), and the row is normalised up to one
+    // rounding per output (no per-probability quantisation).
     const n_o = lt + lh + ldh;
-    const O = try b.einsumRequant(
+    const acc_id = (try b.einsumExact(
         TensorInfo.mat(lt, lh + ldh),
-        Ref.w(p_id),
+        n_o,
+        Ref.w(e_id),
         Ref.w(v),
         lt,
         &.{ ids(lt, lkv), ids(lt + lkv, lg), ids(0, lt), ids(n_o, lt) },
         &.{ ids(n_o, lt), vfix, ids(lt, lkv), ids(lt + lh, ldh) },
-        null,
-        8,
-    );
-    return .{ .o = O, .scores = S, .probs = p_id, .rden = rden_id, .m = m_id, .sel = sel_id, .d = dd_id, .e = e_id, .den = den_id };
+    )).?;
+    const accv = b.wit.items[acc_id];
+    const Dh = @as(usize, 1) << @intCast(lh + ldh);
+    const dhn = @as(usize, 1) << @intCast(ldh);
+    const ov = try b.a.alloc(i32, accv.len);
+    for (ov, accv, 0..) |*o, x, i| {
+        const t = i / Dh;
+        const h = (i % Dh) / dhn;
+        const dn: i64 = den[h * T + t];
+        o.* = @intCast(@divFloor(2 * @as(i64, x) + dn, 2 * dn));
+    }
+    const O = try b.add(TensorInfo.mat(lt, lh + ldh), ov);
+    try b.rangeSigned(O, 8);
+    const all_o = ids(0, n_o);
+    const den_lab = cat(&.{ ids(lt, lh), ids(0, lt) });
+    const od = (try b.einsumExact(TensorInfo.mat(lt, lh + ldh), n_o, Ref.w(O), Ref.w(den_id), 0, &.{all_o}, &.{den_lab[0..n2]})).?;
+    // 2 acc + den - 2 od in [0, 2 den): lower and upper slack, lt + 9 bits each
+    try b.rangeWide(n_o, try b.expr(&.{ term(2, Ref.w(acc_id), &.{all_o}), term(1, Ref.w(den_id), &.{den_lab[0..n2]}), term(-2, Ref.w(od), &.{all_o}) }, 0), lt + 9);
+    try b.rangeWide(n_o, try b.expr(&.{ term(1, Ref.w(den_id), &.{den_lab[0..n2]}), term(-2, Ref.w(acc_id), &.{all_o}), term(2, Ref.w(od), &.{all_o}) }, -1), lt + 9);
+    return .{ .o = O, .scores = S, .acc = acc_id, .od = od, .m = m_id, .sel = sel_id, .d = dd_id, .e = e_id, .den = den_id };
 }
 
 /// z = x + y (committed, lineq).
@@ -1246,42 +1256,29 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
         for (0..dh) |e| s += @as(i64, qr[t * D + h * dh + e]) * kr[j * Dkv + (h / G) * dh + e];
         try testing.expectEqual(rq(s, sops.?.shift), S[(h * T + t) * T + j]);
     };
-    // causal softmax
-    const P = b.wit.items[at.probs];
+    // causal softmax-PV: o[t, h, c] = round(sum_j e v / sum_j e), exact
+    // division (normalised up to one rounding per output)
+    var oops: ?xt.Einsum = null;
+    for (b.xops.items) |op| if (op == .einsum and op.einsum.y != null and op.einsum.y.? == at.acc) {
+        oops = op.einsum;
+    };
+    const V = b.wit.items[oops.?.b.id];
+    const O = b.wit.items[at.o];
     const et = expTable();
     for (0..H) |h| for (0..T) |t| {
         var mx: i64 = std.math.minInt(i64);
         for (0..t + 1) |j| mx = @max(mx, S[(h * T + t) * T + j]);
         var den: i64 = 0;
         for (0..t + 1) |j| den += et[@intCast(mx - S[(h * T + t) * T + j])];
-        var psum: i64 = 0;
-        const K: u6 = @intCast(cfg.log_t + 15);
-        const rden = @divFloor(@as(i64, 1) << K, den);
-        for (0..T) |j| {
-            const pv = P[(h * T + t) * T + j];
-            if (j > t) {
-                try testing.expectEqual(@as(i32, 0), pv);
-            } else {
-                const ev: i64 = et[@intCast(mx - S[(h * T + t) * T + j])];
-                try testing.expectEqual(rq(ev * rden, @intCast(cfg.log_t + 8)), pv);
-                // within 1 of the exact 128 e / den
-                try testing.expect(@abs(pv * den - 128 * ev) <= den);
-            }
-            psum += pv;
+        try testing.expectEqual(den, b.wit.items[at.den][h * T + t]);
+        for (0..dh) |e| {
+            var s: i64 = 0;
+            for (0..t + 1) |j| s += @as(i64, et[@intCast(mx - S[(h * T + t) * T + j])]) * V[j * Dkv + (h / G) * dh + e];
+            const o = O[t * D + h * dh + e];
+            try testing.expectEqual(@divFloor(2 * s + den, 2 * den), o);
+            // |o - s / den| <= 1/2
+            try testing.expect(@abs(2 * (@as(i64, o) * den - s)) <= den);
         }
-        try testing.expect(@abs(psum - 128) <= @as(i64, @intCast(T)));
-    };
-    // PV: O[t, h, e] = rq(sum_j P[h, t, j] V[j, kvh, e])
-    var oops: ?xt.Einsum = null;
-    for (b.xops.items) |op| if (op == .einsum and op.einsum.y != null and op.einsum.y.? == at.o) {
-        oops = op.einsum;
-    };
-    const V = b.wit.items[oops.?.b.id];
-    const O = b.wit.items[at.o];
-    for (0..T) |t| for (0..H) |h| for (0..dh) |e| {
-        var s: i64 = 0;
-        for (0..T) |j| s += @as(i64, P[(h * T + t) * T + j]) * V[j * Dkv + (h / G) * dh + e];
-        try testing.expectEqual(rq(s, oops.?.shift), O[t * D + h * dh + e]);
     };
     // RMSNorm: rt = isqrt((ss + 2^s1) 2^m1 / 2^s1), inv = 2^15 / rt
     const r1 = fx.out.rms1;
@@ -1297,7 +1294,7 @@ test "decoder layer witness matches a direct integer reference (RoPE, GQA scores
     }
 }
 
-const Cheat = enum { sel_nonbinary, rden_plus_one, sel_moved, max_lowered, prob_plus_one, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
+const Cheat = enum { sel_nonbinary, acc_plus_one, sel_moved, max_lowered, rt_plus_one, residual, exp_value, masked_exp, score, ss_value };
 
 fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
     var pool: f.Pool = undefined;
@@ -1339,8 +1336,7 @@ fn cheatCase(a: std.mem.Allocator, cheat: Cheat) !void {
             sel[row * T + j2] = 1;
             for (0..T) |j| Dd[row * T + j] = nm - S[row * T + j] - bias[(T - 1) * T + j];
         },
-        .prob_plus_one => b.wit.items[at.probs][row * T] += 1,
-        .rden_plus_one => b.wit.items[at.rden][row] += 1,
+        .acc_plus_one => b.wit.items[at.acc][0] += 1,
         .sel_nonbinary => {
             // non-binary selector that keeps sum_j sel = 1
             sel[row * T + jstar] = 2;
@@ -1576,8 +1572,8 @@ test "fused QKV projection (fixed-bit slices) proves and verifies; RoPE reads th
 // einsum accumulator (score and PV contractions of 2^4 terms), the split-eq
 // einsum sumcheck (sel * sel, sel * D) and the split-eq MLE evaluations.
 
-const GOLDEN_LAYER_FLAT = "e1f73d3d222a787247fb475e6866f8e74942fbbaba24aac2d41e832a37f6fac9";
-const GOLDEN_LAYER_PCS2_MOE = "e56d65d0aad12bc9bec7644049d9c09e1b6500104e42120a52591457e5f522c7";
+const GOLDEN_LAYER_FLAT = "dd1f99ba3cc3cf22e95b2885804ef2d697f83d51639f0328bff6059570f58d80";
+const GOLDEN_LAYER_PCS2_MOE = "601be72b51cf5df866a6d62b2d6d50a76b56d4e8bf297e7c65282041acf5ef4b";
 
 fn layerDigest(cfg: LayerCfg, pc_in: proto.Config, threads: usize) ![32]u8 {
     return layerDigestOpt(cfg, pc_in, threads, false);

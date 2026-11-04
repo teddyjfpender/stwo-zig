@@ -25,6 +25,7 @@ pub const security = @import("security.zig");
 
 test {
     _ = @import("qmul_check_test.zig");
+    _ = @import("review_fix_test.zig");
     _ = field;
     _ = transcript;
     _ = sumcheck;

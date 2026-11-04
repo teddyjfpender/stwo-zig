@@ -135,13 +135,24 @@ signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
 * e = expT(D), expT(d) = round(256 exp(-d/16)) for d < 256, 0 otherwise
   (public 1024-entry lookup). Masked positions have D >= 257, so e = 0.
 * den[h,t] = sum_j e (lineq with a SUM term) in [256, 256 T].
-* rden[h,t] = floor(2^K / den), K = lt + 15, proved on the [H, T] vector:
-  rden in [0, 2^(lt+8)), pr = rden * den (exact einsum), 2^K - pr >= 0 and
-  den - 1 - (2^K - pr) >= 0 (ranges of lt+8 bits, limbs if > 16).
-* P = rq_{lt+8}(e * rden) (requant einsum, rden broadcast over j, 9-bit
-  signed range) = round(e * floor(2^(lt+15)/den) / 2^(lt+8)); P in [0, 128]
-  and |P den - 128 e| <= den (tested against the exact quotient).
-* o[t, h, e] = rq_s(sum_j P[h,t,j] v[j, hk(h), e]) int8, s chosen.
+* acc[t, h, c] = sum_j e[h,t,j] v[j, hk(h), c] (exact einsum, contraction
+  over j; |acc| <= 2^8 2^7 T = 2^(lt+15)).
+* o[t, h, c] = round(acc / den) = floor((2 acc + den) / (2 den)), int8
+  (range key), proved per entry by the division inequality
+  `0 <= 2 acc + den - 2 o den < 2 den` with od = o * den an exact einsum
+  (den broadcast over c; |od| <= 2^7 2^(lt+8)) and two range keys of lt + 9
+  bits (limbs above 16 bits). o is a convex combination of int8 v rounded
+  once, so rows are normalised up to one rounding per output.
+
+  History (review-A EXT-1 / EXT-3, fixed): the layer used to prove a per-row
+  reciprocal rden = floor(2^(lt+15) / den) with rden in [0, 2^(lt+8)) and
+  pr = rden den exact, then P = rq_{lt+8}(e rden) and o = rq_s(P v). The
+  integer rden den reaches 2^(2 lt + 16), which wraps mod p from lt = 8: a
+  cheating rden' = floor((2^K + p) / den) passed every key and inflated P
+  (the reviewer's test made O[T-1] = 64 instead of 1). Independently, P had
+  1/128 resolution, so at T >= 512 a flat row rounded every P to 0 (sum 0
+  instead of 1). The FlashProve-style division above removes both: every
+  product is below 2^(lt+17) and there is no per-probability quantisation.
 
 Constraints for the rowmax: sel in {0,1} (exact einsum sel * sel = sel, a
 degree-3 zero-check; over the field x^2 = x iff x in {0,1}), sum_j sel = 1
@@ -206,11 +217,12 @@ Uniqueness arguments:
 * rowmax: sel in {0,1} (sel^2 = sel), sum sel = 1 over <= T < p terms => exactly one j*;
   D_j in [0,1024) and D_j = m - S_j - Bias_j as integers (bounds below) =>
   m >= Sm_j for all j; sum_j sel D = D_{j*} = 0 => m = Sm_{j*}. So m = max Sm.
-* division: rden in range and pr = rden den exactly; with |2^K - pr| < 2^30,
-  0 <= 2^K - rden den < den <=> rden = floor(2^K / den). Range-checking rden
-  is essential: without it rden = (2^K - r') / den mod p would satisfy the
-  field equations for any r' in [0, den). P is then a plain requant (its
-  output range check plays the same role for P).
+* division: o int8 and od = o den exactly, with |2 acc + den - 2 od| <
+  2^(lt+17) < p - 2^(lt+9) (range-to-integer lemma), so
+  0 <= 2 acc + den - 2 o den < 2 den holds over the integers and, since
+  den >= 256 > 0 (the argmax entry has D = 0, e = 256), o = round(acc / den)
+  is unique. Range-checking o is essential: without it o could be
+  (2 acc + den - r) / (2 den) mod p for any slack r.
 * isqrt / reciprocal: same pattern; rt >= 0 range-checked so the square root
   is unique; rt >= 1 since N >= 2^s1.
 * requant: core argument (remainder in [0, 2^s), output range).
@@ -230,9 +242,9 @@ lh + 2 lt <= 26) and by builder assertions:
 | score acc | dh 2^16 <= 2^29 |
 | D, m - S - Bias | |.| < 2^11 |
 | den | <= 2^(lt+8) |
-| pr = rden den, 2^K - pr | <= 2^(lt+15) <= 2^27 |
-| P acc = e rden | <= 2^(lt+15) |
-| PV acc | < 2^(lt+15) |
+| acc = sum_j e v | <= 2^(lt+15) <= 2^27 |
+| od = o den | <= 2^(lt+15) <= 2^27 |
+| 2 acc + den - 2 od (slack) | < 2^(lt+17) <= 2^29 |
 | core matmul acc | K 2^14 <= 2^29 |
 
 All inequality operands therefore satisfy the range-to-integer lemma.
@@ -246,8 +258,8 @@ All inequality operands therefore satisfy the range-to-integer lemma.
 * tampering of every ext sumcheck (first round), sampled finals, first/last
   ext values, statement (mask, shift, labels) -> rejected;
 * test-only unchecked prover (`ext.test_unchecked_prover`) with invalid
-  witnesses: moved argmax selector, lowered rowmax (consistent D), P + 1,
-  rden + 1, wrong rt, residual, exp value, masked-position exp leak,
+  witnesses: moved argmax selector, lowered rowmax (consistent D), acc + 1,
+  wrong rt, residual, exp value, masked-position exp leak,
   score, sum of squares -> all rejected by the verifier;
 * honest prover refuses an invalid witness (error, no proof);
 * fused QKV (GQA and MHA padding cases): RoPE reads the right slice
