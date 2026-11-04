@@ -313,6 +313,91 @@ test "in-process handoff capture equals the on-disk packet capture" {
         try std.testing.expectEqual(@as(u32, 1), stats.batches);
     }
 }
+test "handoff started before image init equals the on-disk capture; unconsumed starts unwind" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    for ([_]u32{ 3, 1, 2 }) |batch_steps| {
+        var config = fixture.config();
+        config.batch_steps = batch_steps;
+        fixture.temp.dir.deleteTree("artifacts") catch {};
+        _ = try Collect.run(a, config);
+        var jobs = try fixture.temp.dir.openDir("artifacts/jobs", .{});
+        defer jobs.close();
+        for ([_]u32{ 0, 1 }) |prefix| for ([_]u8{ 0, 1, 3 }) |workers| for ([_]u8{ 1, 2, 16 }) |inflight| {
+            // The walk (and segment walks) run while the receiver-side image
+            // and program are loaded, exactly as in the GKR CLI.
+            var stats: Direct.Stats = .{};
+            const started = try Direct.Started.start(a, config, prefix, workers);
+            defer started.deinit(&stats);
+            var image_owner = try Image.Owner.init(a, config);
+            defer image_owner.deinit();
+            var program = try Program.initWithAuthority(a, &image_owner.authority);
+            defer program.deinit();
+            var serial = try Capture.Owner.init(a, &image_owner, &program, config, jobs, prefix);
+            defer serial.deinit();
+            var direct = try started.capture(&image_owner, &program, inflight, &stats);
+            defer direct.deinit();
+            try same(&serial, &direct);
+            try std.testing.expectEqualDeep(digestOf(&image_owner, &serial), digestOf(&image_owner, &direct));
+            try std.testing.expectEqual(@as(u32, @intCast(serial.native.items.len)), stats.batches);
+            try std.testing.expect(direct.first_inputs_at != null and direct.last_inputs_at != null);
+            try std.testing.expect(direct.timing.first_inputs_ns <= direct.timing.last_inputs_ns);
+        };
+        // A start whose capture never runs (e.g. image admission failed)
+        // joins its first pass and segment walks and frees everything.
+        for ([_]u8{ 0, 1, 3 }) |workers| {
+            var stats: Direct.Stats = .{};
+            const started = try Direct.Started.start(a, config, 0, workers);
+            started.deinit(&stats);
+        }
+    }
+}
+test "in-process walk skips only the legacy Poseidon cache; packet collection keeps it" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    const config = fixture.config();
+    var with = try Request.Request.init(a, config);
+    defer with.deinit();
+    var without = try Request.Request.initWithOptions(a, config, .{ .poseidon_initial_cache = false });
+    defer without.deinit();
+    try std.testing.expect(with.has_initial_cache and !without.has_initial_cache);
+    const Ident = @import("../../rv64_work_packet_header.zig");
+    try std.testing.expectEqualDeep(try Ident.identityFor(config, &with.authority, &with.policy), try Ident.identityFor(config, &without.authority, &without.policy));
+    try std.testing.expectEqualSlices(u8, &with.expected_output, &without.expected_output);
+    // The durable collector's walk still builds the frontier seed.
+    const walk = try Walk.create(a, config);
+    defer walk.destroy();
+    try std.testing.expect(walk.request.has_initial_cache);
+    try std.testing.expectEqualDeep(with.initial_cache.root(), walk.request.initial_cache.root());
+}
+test "expected image reads inputs up to the request loader's bound (no 4 MiB cap)" {
+    const front = @import("stwo_riscv_frontend");
+    try std.testing.expectEqual(@as(usize, front.rv64.ethereum_contract.INPUT_CAPACITY_MAX - 4), Image.MAX_INPUT_BYTES);
+    try std.testing.expect(Image.MAX_INPUT_BYTES > 4 << 20);
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    // A 4 MiB + 1 input with a matching pin is no longer refused by the read
+    // bound; this fixture's 4 MiB guest window then rejects it on load.
+    const big = try a.alloc(u8, (4 << 20) + 1);
+    defer a.free(big);
+    @memset(big, 0);
+    try fixture.temp.dir.writeFile(.{ .sub_path = "input", .data = big });
+    var config = fixture.config();
+    var hash = std.fmt.bytesToHex(Request.sha(big), .lower);
+    config.input_sha256 = &hash;
+    const result = Image.Owner.init(a, config);
+    if (result) |value| {
+        var owned = value;
+        owned.deinit();
+        return error.TestUnexpectedResult;
+    } else |err| try std.testing.expect(err != error.FileTooBig);
+    // Over the bound is still refused before hashing.
+    const huge = try a.alloc(u8, Image.MAX_INPUT_BYTES + 1);
+    defer a.free(huge);
+    @memset(huge, 0);
+    try fixture.temp.dir.writeFile(.{ .sub_path = "input", .data = huge });
+    try std.testing.expectError(error.FileTooBig, Image.Owner.init(a, config));
+}
 fn expectSameTree(x: std.fs.Dir, y: std.fs.Dir) !void {
     var walker = try x.walk(a);
     defer walker.deinit();

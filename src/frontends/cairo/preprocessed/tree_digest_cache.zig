@@ -45,7 +45,6 @@ const chunk_bytes: u32 = 4 * 1024 * 1024;
 /// Bounds the cache: nothing larger is ever written or read. Query compaction
 /// permits the canonical log-26 tree to retain only ~256 MiB of upper layers.
 const max_artifact_bytes: usize = 1024 * 1024 * 1024;
-const max_hash_workers: usize = 16;
 
 pub const Binding = product_cache.Binding;
 
@@ -204,87 +203,17 @@ fn writeHeader(
 // Chunked, parallel integrity digest
 // ---------------------------------------------------------------------------
 
-const ChunkPlan = struct {
-    layers: []const []const u8,
-    digests: [][32]u8,
-    next: std.atomic.Value(usize),
-
-    fn chunkAt(self: *const ChunkPlan, wanted: usize) ?[]const u8 {
-        var remaining = wanted;
-        for (self.layers) |layer| {
-            const count = chunkCount(layer.len);
-            if (remaining < count) {
-                const start = remaining * chunk_bytes;
-                const end = @min(layer.len, start + chunk_bytes);
-                return layer[start..end];
-            }
-            remaining -= count;
-        }
-        return null;
-    }
-
-    fn run(self: *ChunkPlan) void {
-        while (true) {
-            const index = self.next.fetchAdd(1, .monotonic);
-            if (index >= self.digests.len) return;
-            const chunk = self.chunkAt(index) orelse return;
-            std.crypto.hash.sha2.Sha256.hash(chunk, &self.digests[index], .{});
-        }
-    }
-};
-
-fn chunkCount(length: usize) usize {
-    if (length == 0) return 1;
-    return (length + chunk_bytes - 1) / chunk_bytes;
-}
-
-fn totalChunks(layers: []const []const u8) usize {
-    var total: usize = 0;
-    for (layers) |layer| total += chunkCount(layer.len);
-    return total;
-}
-
 /// SHA-256 over the header followed by every payload chunk digest in order.
 /// Each payload byte is covered exactly once; the chunk boundaries are fixed by
-/// the header, so the construction is unambiguous for a given header.
+/// the header, so the construction is unambiguous for a given header. The
+/// construction lives in the engine (`chunked_sha256`), shared with other
+/// caches; this artifact's bytes are unchanged.
 pub fn integrityDigest(
     allocator: std.mem.Allocator,
     header: *const [header_bytes]u8,
     layers: []const []const u8,
 ) ![32]u8 {
-    const count = totalChunks(layers);
-    const digests = try allocator.alloc([32]u8, count);
-    defer allocator.free(digests);
-
-    var plan = ChunkPlan{
-        .layers = layers,
-        .digests = digests,
-        .next = std.atomic.Value(usize).init(0),
-    };
-
-    const worker_target = @min(
-        @min(count, max_hash_workers),
-        @max(@as(usize, 1), std.Thread.getCpuCount() catch 1),
-    );
-    if (prover.work_pool.getGlobalPool()) |pool| {
-        var group: std.Thread.WaitGroup = .{};
-        for (1..@min(worker_target, pool.workerCount())) |_| pool.spawnWg(&group, ChunkPlan.run, .{&plan});
-        plan.run();
-        group.wait();
-    } else {
-        var threads: [max_hash_workers]std.Thread = undefined;
-        var spawned: usize = 0;
-        while (spawned + 1 < worker_target) : (spawned += 1) {
-            threads[spawned] = std.Thread.spawn(.{}, ChunkPlan.run, .{&plan}) catch break;
-        }
-        plan.run();
-        for (threads[0..spawned]) |thread| thread.join();
-    }
-
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update(header);
-    for (digests) |digest| hasher.update(&digest);
-    return hasher.finalResult();
+    return prover.chunked_sha256.digest(allocator, header, layers, chunk_bytes);
 }
 
 // ---------------------------------------------------------------------------

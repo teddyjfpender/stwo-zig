@@ -316,4 +316,9 @@ pub const Source = struct {
     pub fn next(self: *Source) !?Walk.Taken {
         return if (self.segments) |s| s.next() else self.walk.nextTaking();
     }
+    /// Launch the first segment walks now (scheduling only; `next` would
+    /// launch them on its first call). No-op for the serial walk.
+    pub fn prime(self: *Source) !void {
+        if (self.segments) |s| if (!s.finished) try s.launch();
+    }
 };

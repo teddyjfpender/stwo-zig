@@ -13,6 +13,7 @@ test {
 }
 test {
     _ = @import("word16_global_execution/ethereum/gkr_main.zig");
+    _ = @import("word16_global_execution/ethereum/setup_cache_test.zig");
 }
 
 test {
