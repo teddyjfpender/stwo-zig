@@ -39,11 +39,25 @@ pub const Request = struct {
     /// requant ext-einsum accumulators (as for `proto.proveWithAllAccumulators`;
     /// used only together with `acc`); null: recomputed
     ext_acc: ?[]const ?[]const i64 = null,
-    /// fresh uniform per-request salt, mixed first into the request transcript.
-    /// It is sent only in this request's own proof; it makes the digest and
-    /// the weight-claim points other clients see pseudo-random (serving.md).
-    salt: [32]u8,
+    /// Per-request salt, mixed first into the request transcript and sent only
+    /// in this request's own proof. It hides the request from the other
+    /// clients of the batch (they see its digest and claim points; with a
+    /// known salt those are a deterministic function of the prompt, so a
+    /// client could confirm a guess of another client's prompt). It must be
+    /// 256-bit uniform, SECRET (known only to the server and this request's
+    /// client) and never reused. null (the default): `BatchProver.add` draws
+    /// it from `std.crypto.random`. Pass a value only in tests / reproducible
+    /// benches (`testSalt`), never in production.
+    salt: ?[32]u8 = null,
 };
+
+/// Claims per slot are capped at `max_claims_per_weight * key.infos.len`
+/// (checked before any per-claim allocation). An honest request makes at most
+/// one claim per weight per matmul shape class; 4 leaves room for a weight
+/// read by several ops. Bounds verifier memory/work per downloaded slot.
+pub const max_claims_per_weight = 4;
+/// Upper bound on the slots of one batch accepted by a verifier.
+pub const max_slots = 1 << 16;
 
 pub const RequestProof = struct {
     salt: [32]u8,
@@ -223,7 +237,12 @@ pub const BatchProver = struct {
         const a = self.a;
         try self.rproofs.ensureUnusedCapacity(a, 1);
         try self.sets.ensureUnusedCapacity(a, 1);
-        var tr = requestTranscript(rq.salt);
+        const salt = rq.salt orelse blk: {
+            var s: [32]u8 = undefined;
+            std.crypto.random.bytes(&s);
+            break :blk s;
+        };
+        var tr = requestTranscript(salt);
         var wc: std.ArrayList(proto.WeightClaimP) = .empty;
         defer proto.freeWeightClaims(a, &wc);
         var core = if (rq.acc) |acc|
@@ -239,7 +258,7 @@ pub const BatchProver = struct {
         errdefer core.deinit(a);
         var cs = try claimSet(a, tr.ch.digestBytes(), wc.items);
         errdefer cs.deinit(a);
-        self.rproofs.appendAssumeCapacity(.{ .salt = rq.salt, .core = core });
+        self.rproofs.appendAssumeCapacity(.{ .salt = salt, .core = core });
         self.sets.appendAssumeCapacity(cs);
     }
 
@@ -369,21 +388,74 @@ pub fn verifyRequestInfo(a: std.mem.Allocator, cfg: proto.Config, st: proto.Stat
     try proto.verifyCore(a, cfg, st, key, &rp.core, &tr, &wc, info);
     const mine = shared.requests[index];
     if (!std.mem.eql(u8, &mine.digest, &tr.ch.digestBytes())) return error.RequestDigest;
-    try verifySharedOpening(a, cfg, key, shared, .{ .index = index, .points = wc.points.items, .values = wc.values.items }, info);
+    // the verifier rebuilds its own slot from its own claims (as the prover
+    // does) and requires the slot to be that exact byte string (SERVE-1)
+    if (wc.points.items.len > max_claims_per_weight * key.infos.len) return error.ProofShape;
+    var own = try ownSlot(a, key, tr.ch.digestBytes(), wc.points.items, wc.values.items);
+    defer own.deinit(a);
+    if (!eqlSlot(own, mine)) return error.WeightClaimMismatch;
+    try verifySharedOpening(a, cfg, key, shared, info);
 }
 
-const Expect = struct { index: usize, points: []const []QM31, values: []const QM31 };
-
-/// Checks the shared opening's shape, that slot `e.index` equals the
-/// verifier's own claims (full points and values), and the opening itself.
-fn verifySharedOpening(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, shared: *const SharedOpening, e: Expect, info: ?*proto.VerifyInfo) !void {
+/// The verifier's own slot: each claim's full table point is split into its
+/// weight (the block prefix selects the weight's offset and size) and its
+/// local point; then `claimSet` as on the prover side.
+fn ownSlot(a: std.mem.Allocator, key: proto.WeightKey, digest: [32]u8, full: []const []QM31, values: []const QM31) !ClaimSet {
     const log_total = key.log_rows + key.log_cols;
+    const claims = try a.alloc(proto.WeightClaimP, full.len);
+    defer a.free(claims);
+    for (full, values, claims) |p, v, *c| {
+        if (p.len != log_total) return error.WeightClaimMismatch;
+        const w = for (key.infos, 0..) |info, w| {
+            const ls = info.logSize();
+            if (ls > log_total) continue;
+            const nb = log_total - ls;
+            const block = key.offsets[w] >> @intCast(ls);
+            const ok = for (0..nb) |k| {
+                const bit = (block >> @intCast(nb - 1 - k)) & 1 == 1;
+                if (!p[k].eql(if (bit) QM31.one() else QM31.zero())) break false;
+            } else true;
+            if (ok) break w;
+        } else return error.WeightClaimMismatch;
+        c.* = .{ .w = w, .point = p[log_total - key.infos[w].logSize() ..], .value = v };
+    }
+    return claimSet(a, digest, claims);
+}
+
+fn eqlSlot(x: ClaimSet, y: ClaimSet) bool {
+    if (!std.mem.eql(u8, &x.digest, &y.digest) or x.points.len != y.points.len) return false;
+    for (x.points, y.points) |p, q| if (!eqlPoint(p, q)) return false;
+    if (!std.mem.eql(u32, x.w, y.w) or !std.mem.eql(u32, x.point_of, y.point_of) or x.values.len != y.values.len) return false;
+    for (x.values, y.values) |p, q| if (!p.eql(q)) return false;
+    return true;
+}
+
+/// Canonical slot form (SERVE-1, SERVE-3), checked for every slot before any
+/// per-claim allocation: at most `max_claims_per_weight * |weights|` claims;
+/// every claim's weight id in range and its point of the weight's size; the
+/// points in first-use order, every point referenced, all points distinct.
+/// So a slot is the unique `claimSet` encoding of its claim list, and
+/// nothing unreferenced reaches the batch transcript.
+fn checkCanonical(key: proto.WeightKey, r: ClaimSet) !void {
+    if (r.point_of.len != r.w.len or r.values.len != r.w.len) return error.ProofShape;
+    if (r.w.len > max_claims_per_weight * key.infos.len or r.points.len > r.w.len) return error.ProofShape;
+    var next: usize = 0; // points first used so far
+    for (r.w, r.point_of) |w, pi| {
+        if (w >= key.infos.len or pi > next or pi >= r.points.len or r.points[pi].len != key.infos[w].logSize()) return error.ProofShape;
+        if (pi == next) next += 1;
+    }
+    if (next != r.points.len) return error.ProofShape;
+    for (r.points, 0..) |p, i| for (r.points[0..i]) |q| if (eqlPoint(p, q)) return error.ProofShape;
+}
+
+/// Checks every slot's canonical shape, then the cross-request reduction and
+/// the weight opening, which cover all slots.
+fn verifySharedOpening(a: std.mem.Allocator, cfg: proto.Config, key: proto.WeightKey, shared: *const SharedOpening, info: ?*proto.VerifyInfo) !void {
+    const log_total = key.log_rows + key.log_cols;
+    if (shared.requests.len > max_slots) return error.ProofShape;
     var n_all: usize = 0;
     for (shared.requests) |r| {
-        if (r.point_of.len != r.w.len or r.values.len != r.w.len) return error.ProofShape;
-        for (r.w, r.point_of) |w, pi| {
-            if (w >= key.infos.len or pi >= r.points.len or r.points[pi].len != key.infos[w].logSize()) return error.ProofShape;
-        }
+        try checkCanonical(key, r);
         n_all += r.w.len;
     }
     const full = try a.alloc([]QM31, n_all);
@@ -394,16 +466,9 @@ fn verifySharedOpening(a: std.mem.Allocator, cfg: proto.Config, key: proto.Weigh
     }
     const wcl = try a.alloc(pcs.Claim, n_all);
     defer a.free(wcl);
-    for (shared.requests, 0..) |r, j| {
-        if (j == e.index and r.w.len != e.points.len) return error.WeightClaimMismatch;
-        for (r.w, r.point_of, r.values, 0..) |w, pi, v, k| {
+    for (shared.requests) |r| {
+        for (r.w, r.point_of, r.values) |w, pi, v| {
             full[n_full] = try fullPointOf(a, log_total, key.offsets[w], key.infos[w].logSize(), r.points[pi]);
-            if (j == e.index) {
-                if (!eqlPoint(full[n_full], e.points[k]) or !v.eql(e.values[k])) {
-                    n_full += 1;
-                    return error.WeightClaimMismatch;
-                }
-            }
             wcl[n_full] = .{ .point = full[n_full], .value = v };
             n_full += 1;
         }

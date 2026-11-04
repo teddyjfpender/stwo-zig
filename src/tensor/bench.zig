@@ -715,7 +715,8 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         defer a.free(wv);
         var tm: proto.Timings = .{};
         t0 = now();
-        try bp.add(.{ .st = stmts[j], .witness = wv, .salt = t.serve.testSalt(seed * 1000 + j) }, &tm);
+        // salt: default (secret, from std.crypto.random)
+        try bp.add(.{ .st = stmts[j], .witness = wv }, &tm);
         prove_ns += now().since(t0);
         if (j == 0) tm_first = tm;
         inline for (@typeInfo(proto.Timings).@"struct".fields) |fld| {
