@@ -626,6 +626,11 @@ def metrics(m, im, toks):
     out["top1_agree"] = float((ft == it).mean())
     out["top1_agree_last_pos"] = float((ft[:, -1] == it[:, -1]).mean())
     out["top1_agree_acc_logits"] = float((ft == at).mean())
+    # refused windows counted as disagreement at every position (the prover returns no token there);
+    # the metrics above are over the non-refused windows only, which are easier than the refused ones
+    n_all = int(toks.shape[0])
+    out["top1_agree_all_windows"] = float((ft == it).sum() / (n_all * toks.shape[1]))
+    out["top1_agree_last_pos_all_windows"] = float((ft[:, -1] == it[:, -1]).sum() / n_all)
     # ties at the int8 maximum (the least maximiser is taken)
     mx = il.max(-1, keepdims=True)
     out["mean_int8_ties_at_max"] = float((il == mx).sum(-1).mean())

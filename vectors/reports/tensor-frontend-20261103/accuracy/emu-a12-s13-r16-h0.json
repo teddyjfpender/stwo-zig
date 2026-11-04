@@ -134,6 +134,8 @@
   "top1_agree": 0.9326774691358025,
   "top1_agree_last_pos": 0.9465020576131687,
   "top1_agree_acc_logits": 0.9327417695473251,
+  "top1_agree_all_windows": 0.88531494140625,
+  "top1_agree_last_pos_all_windows": 0.8984375,
   "mean_int8_ties_at_max": 1.0068801440329218,
   "top5_overlap": 0.9189557613168724,
   "float_top1_in_int_top5": 0.9994212962962963,

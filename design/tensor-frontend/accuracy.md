@@ -28,7 +28,11 @@ as a prediction for a large model.**
 * **Float reference**: float32 numpy forward with llama2.c `run.c` semantics
   (RMSNorm eps 1e-5). Its next-token accuracy on the eval text is 59.7 % and
   cross-entropy 1.459 nats, a sanity check that the checkpoint is parsed
-  correctly.
+  correctly. An independent token-by-token re-implementation of `run.c`
+  (KV cache, float32 RoPE as run.c computes it) matches its logits to within
+  1.4e-5 on 4 eval windows, and its greedy continuation of BOS is "Once upon
+  a time, there was a little girl named Lily. ..." (review check, not in the
+  harness).
 * **Integer model**: exactly `lm.buildModel` (dense layers, unfused QKV,
   `log_out = 0`). `scripts/tensor_accuracy.py` holds a numpy emulation of
   it. `tensor-accuracy` (`src/tensor/accuracy_cli.zig`) replays the same
@@ -46,6 +50,14 @@ as a prediction for a large model.**
   relative L2 error of the residual stream; refusal rate. A window is
   *refused* when a value leaves the plan's ranges. The prover then refuses
   the request (`error.RequantOverflow`), because the model is undefined there.
+  **Refused windows are left out of every metric except the "all windows"
+  column**, and they are harder than the rest (float next-token accuracy
+  55.7 % on the 19 windows matched-s13-h0 refuses vs 60.0 % on the others).
+  The "all windows" column counts every position of a refused window as a
+  disagreement (the prover gives no token there). Quote that column when
+  comparing with a system that does not refuse. The float baseline also moves
+  with the window set (59.7 % on all 256 windows, 60.0 % on the 237 that
+  matched-s13-h0 keeps), so compare int vs float accuracy within a row.
 
 ## Quantization: why the plan must be scale-matched
 
@@ -102,15 +114,19 @@ to 2^15 entries per layer. That cost is fixed per table and does not grow with T
 
 ## Results (eval set: 256 windows x 64 positions)
 
-| config | in Zig / proved | refused windows | top-1 agree | top-5 overlap | KL nats | logit cos | int next-token acc (float 59.7 %) | resid rel-err L0 .. L4 |
-|---|---|---|---|---|---|---|---|---|
-| lmcal-h1: max-abs weights + `lm.calibrate` (headroom 1), int8 scores | yes / yes | 0 | **0.8 %** | 3.4 % | 21.6 | 0.73 | 0.8 % | 0.66 .. 0.97 |
-| matched-s8-h0: scale-matched, int8 scores | yes / n.a. | **256 (all)** | n.a. | | | | | |
-| **matched-s13-h0**: scale-matched, 13-bit scores | yes / yes | 19 (7.4 %) | **82.2 %** | 80.0 % | 0.104 | 0.995 | 58.3 % | 0.15 .. 0.25 |
-| matched-s13-h1: same, 1 bit headroom | yes / not run | 9 (3.5 %) | 70.2 % | 69.7 % | 0.286 | 0.989 | 53.2 % | 0.24 .. 0.37 |
-| emu-s13-r16: + 16-bit residual increments | **emulation only** | 7 | 75.2 % | 72.9 % | 0.215 | 0.991 | 54.8 % | 0.17 .. 0.36 |
-| emu-a12-s13-r16: + 12-bit activations | **emulation only** | 13 | **93.3 %** | 91.9 % | 0.0128 | 0.9993 | 59.4 % | 0.04 .. 0.09 |
-| emu-a16-s13-r16: 16-bit activations | **emulation only** | 15 | 93.4 % | 92.0 % | 0.0126 | 0.9993 | 59.5 % | 0.04 .. 0.09 |
+| config | in Zig / proved | refused windows | top-1 agree (kept windows) | top-1 agree, all windows (refused = wrong) | top-5 overlap | KL nats | logit cos | int / float next-token acc (same windows) | resid rel-err L0 .. L4 |
+|---|---|---|---|---|---|---|---|---|---|
+| lmcal-h1: max-abs weights + `lm.calibrate` (headroom 1), int8 scores | yes / yes | 0 | **0.8 %** | 0.8 % | 3.4 % | 21.6 | 0.73 | 0.8 / 59.7 % | 0.66 .. 0.97 |
+| matched-s8-h0: scale-matched, int8 scores | yes / n.a. | **256 (all)** | n.a. | 0 % | | | | | |
+| **matched-s13-h0**: scale-matched, 13-bit scores | yes / yes | 19 (7.4 %) | **82.2 %** | **76.1 %** | 80.0 % | 0.104 | 0.995 | 58.3 / 60.0 % | 0.15 .. 0.25 |
+| matched-s13-h1: same, 1 bit headroom | yes / not run | 9 (3.5 %) | 70.2 % | 67.7 % | 69.7 % | 0.286 | 0.989 | 53.2 / 59.7 % | 0.24 .. 0.37 |
+| emu-s13-r16: + 16-bit residual increments | **emulation only** | 7 | 75.2 % | 73.1 % | 72.9 % | 0.215 | 0.991 | 54.8 / 59.7 % | 0.17 .. 0.36 |
+| emu-a12-s13-r16: + 12-bit activations | **emulation only** | 13 | **93.3 %** | **88.5 %** | 91.9 % | 0.0128 | 0.9993 | 59.4 / 59.8 % | 0.04 .. 0.09 |
+| emu-a16-s13-r16: 16-bit activations | **emulation only** | 15 | 93.4 % | 87.9 % | 92.0 % | 0.0126 | 0.9993 | 59.5 / 59.7 % | 0.04 .. 0.09 |
+
+At the last position (the one the proved statement greedy-checks),
+matched-s13-h0 agrees at 84.8 % of kept windows and 78.5 % of all 256
+windows; emu-a12-s13-r16 at 94.7 % and 89.8 %.
 
 Also measured: lmcal-s13-h1 gives 0.8 % top-1, so a wider score does not
 rescue the naive plan. With matched-s13-h0, the float top-1 token is in the
@@ -130,9 +146,17 @@ about 0.15 s for all 4.
 
 1. **The shipped calibration path does not preserve the float model's
    meaning.** lm.calibrate on max-abs-quantized weights agrees with the float
-   model's top-1 token at 0.8 % of positions, which is chance level. This is
-   a property of how a float checkpoint must be mapped to the integer model,
-   not a bug in the prover. The model a provider commits to has to come from
+   model's top-1 token at 0.8 % of positions. The integer model there is
+   context-free: on the 16384 eval positions its token is a function of the
+   current input token alone (205 distinct input tokens, each always mapped to
+   the same prediction), which is why lmcal-s13-h1 predicts exactly the same
+   tokens. The data-chosen shifts fit each increment's calibration maximum, so
+   the typical attention and MLP increments round to about 0 (mean |o Wo| 0.5
+   to 0.7 and mean |hm Wd| below 0.01 in int8 units in layers 0 and 4, vs
+   mean |emb| 23) and the
+   residual stays the embedding. This is a property of how a float
+   checkpoint must be mapped to the integer model, not a bug in the prover.
+   (Bit-identity with Zig shows the emulation is not the cause.) The model a provider commits to has to come from
    a scale-matched quantizer such as `scripts/tensor_accuracy.py`.
 2. **Int8 attention scores cannot hold a trained model's attention at its
    true temperature.** The fix (`score_bits`) is implemented and proved:
@@ -140,10 +164,12 @@ about 0.15 s for all 4.
 3. **Activation width is the remaining main loss, not residual width.**
    Widening only the residual increments to 16 bits does not help (75.2 %):
    RMSNorm then re-quantizes the residual to int8 before the norm. 12-bit
-   activations with 16-bit residual increments reach 93.3 %, which is the same
-   ballpark as FlashProve's 93.2 % (6.81 % disagreement). That comparison
-   needs care: their model is 1000x larger and their reference is bf16
-   weights. 16-bit activations add nothing over 12-bit here. The remaining
+   activations with 16-bit residual increments reach 93.3 % on the windows
+   they do not refuse, which is the same ballpark as FlashProve's 93.2 %
+   (6.81 % disagreement). That comparison needs care: their model is 1000x
+   larger, their reference is bf16 weights, and their figure is over all
+   positions, while 13 of our 256 windows are refused. Counting those as
+   disagreement gives 88.5 %. This config is emulation only. 16-bit activations add nothing over 12-bit here. The remaining
    ~6.6 % comes from the int8 per-tensor weights (with the gains folded in),
    the 7-bit RoPE table, the 1/16-nat exp table and roundings. Not separated.
 4. **Refusal is the other cost.** Overflow refuses the request, so a plan

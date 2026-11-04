@@ -85,7 +85,7 @@ def main():
         extra = ["--plan", os.path.join(d, f"zig-{cfg}.plan.bin")] if cfg.startswith("lmcal") else []
         py("eval", "--dir", d, "--config", cfg, "--out", out, *extra)
         e = json.load(open(out))["eval"]
-        summary["eval"][cfg] = {k: e.get(k) for k in ("windows", "refused_windows", "positions", "top1_agree", "top1_agree_last_pos", "top5_overlap",
+        summary["eval"][cfg] = {k: e.get(k) for k in ("windows", "refused_windows", "positions", "top1_agree", "top1_agree_last_pos", "top1_agree_all_windows", "top1_agree_last_pos_all_windows", "top5_overlap",
                                                        "float_top1_in_int_top5", "kl_float_int_nats", "logit_cosine_centered", "xent_float_nats",
                                                        "xent_int_nats", "next_token_acc_float", "next_token_acc_int")}
         summary["eval"][cfg]["resid_rel_l2_per_layer"] = [x["resid_rel_l2"] for x in e.get("per_layer", [])]
