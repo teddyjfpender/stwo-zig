@@ -1,0 +1,33 @@
+{
+ "schema": "rv64-rootverify-derive/v0",
+ "mode": "derive-vk-tables",
+ "table": "/workspace/m3/scratch/m5-integrate/b1-canon/tables/vk-26235156.json",
+ "table_profile": "rv64-m4-fold-v2-compat/v0",
+ "table_root": "caed5064c2eedf3b768592795812f29d0c8cd77874aa0097652d70e660bfab96",
+ "entries": 12,
+ "new_leaf_classes": 11,
+ "new_fold_classes": 1,
+ "block_leaves": 11,
+ "block_folds": 10,
+ "fold_reimplementation_cross_checks": 1,
+ "audit_accepted": true,
+ "root_only_self_check": true,
+ "root_digest": "325cce7a7a0805be756462aa8733faf1205c5be61c341d2dafce40eab6fc3141",
+ "root_identity": "20ff5bd674c848724fbe0245f9bdf9b18f4f46344ecd6dc1a96905ef258f6646",
+ "derive_once_ns": 30185515513,
+ "table_cumulative_derive_ns": 30185515513,
+ "breakdown": {
+  "self_sha_ns": 52036426,
+  "table_load_ns": 0,
+  "image_ns": 359442074,
+  "bundle_ns": 76960322,
+  "native_keys_ns": 5099053878,
+  "fixed_authority_ns": 3192461805,
+  "admission_ns": 530724720,
+  "native_verify_ns": 1081629167,
+  "recursion_ns": 19791672025
+ },
+ "receiver_sha256": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808",
+ "source_commit": "158793f6d",
+ "scope": "One-time derivation: today's full independent receiver (native + every recursion proof) with each receiver-built authority recorded as a compact class-keyed verifier key. Never reads producer stores or setup caches."
+}

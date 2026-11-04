@@ -1,0 +1,374 @@
+{
+  "schema": "rv64-m4-resident-daemon/v1",
+  "label": "measured",
+  "stream": "m5-integrate",
+  "run": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22",
+  "blocks": [
+    26235156,
+    24628607
+  ],
+  "repeat": 2,
+  "loading": "eager",
+  "nsys": false,
+  "source_commit": "158793f6d",
+  "assets": {
+    "driver": "37f94901ab5f461416aa4e580b28704bc145aec4bff0c0cf050de87a897202b7",
+    "library": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+    "receiver": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808",
+    "recursive_receiver": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808"
+  },
+  "environment": {
+    "STWO_RV64_OUTER_ASSIGNMENT_NARROW_RUNS": "1",
+    "STWO_RV64_GPU_CPU_REPLAY": "1",
+    "STWO_RV64_CORE_SINGLE_STREAM": "1",
+    "STWO_RV64_DEVICE_ARENA": "22G",
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "STWO_RV64_GPU_DEVICES": "0,1",
+    "STWO_RV64_GPU_PLANNED_CPU_WORKERS": "4",
+    "STWO_RV64_GPU_RETAINED_SCOPES": "64",
+    "STWO_RV64_GPU_DEVICE_CAPS": "30064771072,30064771072",
+    "STWO_RV64_GPU_DEVICE_TRACE": "1",
+    "STWO_RV64_GPU_DEVICE_BINDING": "1",
+    "STWO_RV64_GPU_LIBRARY": "/workspace/m3/build/m5-integrate/cuda/native/libstwo-rv64-native.so",
+    "CUDA_MODULE_LOADING": "EAGER",
+    "STWO_ZIG_RV64_SETUP_CACHE": "/workspace/m3/store/codex-rv64-m4-resident/b85dd8837a45a5045bd3c6e6/setup",
+    "STWO_RV64_OUTER_PLAN_CLASS_STORE": "/workspace/m3/store/codex-rv64-m4-resident/b85dd8837a45a5045bd3c6e6/classes"
+  },
+  "store": {
+    "mode": "reuse",
+    "directory": "/workspace/m3/store/codex-rv64-m4-resident/b85dd8837a45a5045bd3c6e6",
+    "key": "b85dd8837a45a5045bd3c6e69591f74da47de81e4c004ae0e9dfc98b6dcf2b50",
+    "components": {
+      "store_format": "rv64-m4-artifact-store/v1",
+      "driver_sha256": "37f94901ab5f461416aa4e580b28704bc145aec4bff0c0cf050de87a897202b7",
+      "library_sha256": "0caf01442286e63b80c57a4e0811690115ec60103e957a4e5df9d48e01ca37d6",
+      "catalogue_sha256": "e1f83a61127c72eac753a8d0a6abb1c5287c05a924eeda8549aea71986dd805f",
+      "catalogue_dir": "/workspace/m3/catalogues-v3",
+      "build_catalogues": "/workspace/m3/catalogues-v3",
+      "elf_sha256": "718186e58cc2b228734810fe629daf20f26e0024e93f4d3928821b94814dc903",
+      "profile": "conjectured128_b2_q108_p20_fold4",
+      "field_hash": "m31-circle/blake2s-merkle/om31-recursion"
+    },
+    "before": {
+      "files": 38,
+      "bytes": 7197287332,
+      "setup_artifacts": 25,
+      "class_artifacts": 12
+    },
+    "after": {
+      "files": 38,
+      "bytes": 7197287332,
+      "setup_artifacts": 25,
+      "class_artifacts": 12
+    }
+  },
+  "load_avg_before": [
+    12.9296875,
+    14.67822265625,
+    14.154296875
+  ],
+  "load_avg_after": [
+    36.08544921875,
+    22.8203125,
+    17.1884765625
+  ],
+  "service_start_s": 12.346,
+  "service_stop_s": 2.274,
+  "service_ready_record": {
+    "schema": "rv64-resident-service/v1",
+    "pid": 1077422,
+    "init_ns": 12340648130
+  },
+  "producer_process": {
+    "argv": [
+      "/workspace/m3/build/m5-integrate/zig-out/bin/rv64-word16-ethereum-gpu-combined",
+      "combined-serve",
+      "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/manifest.json",
+      "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool"
+    ],
+    "exit_code": 0,
+    "wall_ns": 113730403189,
+    "user_seconds": 350.475518,
+    "system_seconds": 188.034126,
+    "peak_rss_bytes": 35841597440,
+    "minor_faults": 54104242,
+    "major_faults": 0
+  },
+  "physical_gpu_memory": {
+    "scope": "Sampled whole-device usage, includes driver and unrelated processes; target interval 200ms, not exact process peak",
+    "samples": 894,
+    "errors": [],
+    "kernel_activity": {
+      "0": {
+        "samples": 447,
+        "mean_percent": 31.503355704697988,
+        "min_percent": 0,
+        "max_percent": 100
+      },
+      "1": {
+        "samples": 447,
+        "mean_percent": 32.95749440715883,
+        "min_percent": 0,
+        "max_percent": 100
+      }
+    },
+    "kernel_activity_scope": "NVML sampled kernel-active percentage; arithmetic sample mean, not time-weighted, not SM occupancy or process-exclusive utilization",
+    "peak_used_bytes": {
+      "0": 27814526976,
+      "1": 27814526976
+    }
+  },
+  "cuda_api": null,
+  "service_overhead_s": 14.653,
+  "requests": [
+    {
+      "block": 26235156,
+      "trial": 0,
+      "ordinal": 0,
+      "proof": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0000-26235156/26235156/proof",
+      "client_latency_ns": 21000652031,
+      "marker": {
+        "request_wall_ns": 20993206618
+      },
+      "queue_ns": 5075418,
+      "stages": {
+        "request_wall_s": 20.993,
+        "capture_s": 2.095,
+        "setup_s": 0.132,
+        "native_prove_s": 4.872,
+        "native_verify_s": 1.144,
+        "native_total_before_report_s": 7.263,
+        "recursion_s": 13.713
+      },
+      "setup_breakdown": {
+        "image_ns": 349142917,
+        "program_ns": 93458915,
+        "native_keys_ns": 514799,
+        "fixed_authority_ns": 8180
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 748536,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 0,
+      "ordinal": 1,
+      "proof": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0001-24628607/24628607/proof",
+      "client_latency_ns": 28664081403,
+      "marker": {
+        "request_wall_ns": 28656788249
+      },
+      "queue_ns": 5104669,
+      "stages": {
+        "request_wall_s": 28.657,
+        "capture_s": 2.726,
+        "setup_s": 0.141,
+        "native_prove_s": 6.365,
+        "native_verify_s": 1.935,
+        "native_total_before_report_s": 9.369,
+        "recursion_s": 19.264
+      },
+      "setup_breakdown": {
+        "image_ns": 352767889,
+        "program_ns": 107065244,
+        "native_keys_ns": 657079,
+        "fixed_authority_ns": 12550
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 706424,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 26235156,
+      "trial": 1,
+      "ordinal": 2,
+      "proof": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0002-26235156/26235156/proof",
+      "client_latency_ns": 20240395078,
+      "marker": {
+        "request_wall_ns": 20232914605
+      },
+      "queue_ns": 5105729,
+      "stages": {
+        "request_wall_s": 20.233,
+        "capture_s": 2.137,
+        "setup_s": 0.166,
+        "native_prove_s": 4.347,
+        "native_verify_s": 1.415,
+        "native_total_before_report_s": 6.777,
+        "recursion_s": 13.438
+      },
+      "setup_breakdown": {
+        "image_ns": 315895544,
+        "program_ns": 74090359,
+        "native_keys_ns": 435719,
+        "fixed_authority_ns": 8730
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 748536,
+      "leaves": 11,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/26235156-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "baseline_root_sha256": "b424203b1a20e3372b99ae266860bae27bf9c0ff5e384523550d3f307fb4831e",
+        "proof_count": 22,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    },
+    {
+      "block": 24628607,
+      "trial": 1,
+      "ordinal": 3,
+      "proof": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0003-24628607/24628607/proof",
+      "client_latency_ns": 29203953521,
+      "marker": {
+        "request_wall_ns": 29194864842
+      },
+      "queue_ns": 10180577,
+      "stages": {
+        "request_wall_s": 29.195,
+        "capture_s": 2.878,
+        "setup_s": 0.146,
+        "native_prove_s": 6.245,
+        "native_verify_s": 2.014,
+        "native_total_before_report_s": 9.453,
+        "recursion_s": 19.708
+      },
+      "setup_breakdown": {
+        "image_ns": 342420513,
+        "program_ns": 98081354,
+        "native_keys_ns": 575588,
+        "fixed_authority_ns": 11610
+      },
+      "output_matches_pin": true,
+      "proof_bytes_root": 706424,
+      "leaves": 17,
+      "parity_vs_m3": {
+        "baseline_receipt": "/workspace/m3/runs/integrate/24628607-2gpu-scale/receipt.json",
+        "native_bins": true,
+        "bundle": true,
+        "recursive_tree": true,
+        "recursive_proofs": true,
+        "recursive_mismatched": [],
+        "root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "baseline_root_sha256": "2feed86adac76b7efcd2e96500aa6b8957709f4568020f5beb59ba3f792cc450",
+        "proof_count": 34,
+        "native_mismatched": [],
+        "byte_identical": true
+      }
+    }
+  ],
+  "receivers": [
+    {
+      "block": 26235156,
+      "proof": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0000-26235156/26235156/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m5-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/receiver-26235156-0000-26235156-20261104T193122/receiver-request.json",
+          "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0000-26235156/26235156/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 43589164920,
+        "user_seconds": 191.899903,
+        "system_seconds": 15.580211,
+        "peak_rss_bytes": 7144366080,
+        "minor_faults": 6714471,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/receiver-26235156-0000-26235156-20261104T193122",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    },
+    {
+      "block": 24628607,
+      "proof": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0001-24628607/24628607/proof",
+      "status": "accepted",
+      "accepted": true,
+      "receiver_sha256": "0babaf7eff2d8570ed64a4472e58cc8576cd8b23aa551b0896f9b6b3be9b1808",
+      "process": {
+        "argv": [
+          "nice",
+          "-n",
+          "10",
+          "/workspace/m3/build/m5-integrate/zig-out/bin/rv64-word16-ethereum-recursion-receiver",
+          "--security-profile",
+          "conjectured128_b2_q108_p20_fold4",
+          "verify-recursion-candidate",
+          "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/receiver-24628607-0001-24628607-20261104T193206/receiver-request.json",
+          "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/spool/out/0001-24628607/24628607/proof",
+          "12884901888",
+          "34359738368"
+        ],
+        "exit_code": 0,
+        "wall_ns": 64643326968,
+        "user_seconds": 287.610275,
+        "system_seconds": 19.958095,
+        "peak_rss_bytes": 7332032512,
+        "minor_faults": 9072192,
+        "major_faults": 0
+      },
+      "directory": "/workspace/m3/runs/m5-integrate/daemon-26235156-24628607-r2-a3-warm22/receiver-24628607-0001-24628607-20261104T193206",
+      "isolation": {
+        "CUDA_VISIBLE_DEVICES": "",
+        "STWO_RV64_GPU_PCS_HELPER": "/bin/false",
+        "STWO_ZIG_RV64_SETUP_CACHE": "unset",
+        "STWO_RV64_OUTER_PLAN_CLASS_STORE": "unset",
+        "STWO_RV64_FOLD_CLASS_CACHE": "0"
+      },
+      "trial": 0,
+      "store_present_during_receive": false
+    }
+  ],
+  "all_received": true
+}
