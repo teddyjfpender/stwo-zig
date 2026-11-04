@@ -91,6 +91,7 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
     var descriptors: [abi.batch_max_oracles]R.BatchOracle = undefined;
     var current: [abi.batch_max_oracles]R.Fraction = undefined;
     var folds: [abi.batch_max_oracles]u32 = @splat(0);
+    var prefetched: [abi.batch_max_oracles]bool = @splat(false);
     for (input.oracles, 0..) |oracle, j| {
         current[j] = oracle;
         descriptors[j] = .{ .variables = variables[j], .raw = if (variables[j] == 0) null else work.oracles[j].sums };
@@ -126,22 +127,26 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
                 var jobs: [abi.batch_max_oracles]R.BatchSum = undefined;
                 var count: usize = 0;
                 for (work.oracles, 0..) |o, j| {
-                    if (variables[j] < remaining) continue;
+                    if (variables[j] < remaining or prefetched[j]) continue;
                     jobs[count] = .{ .input = current[j], .a = o.scratch_a, .b = o.scratch_b, .output = o.sums };
                     count += 1;
                 }
-                try commands.sumBatch(jobs[0..count], work.eq, input.lambda);
+                if (count != 0) try commands.sumBatch(jobs[0..count], work.eq, input.lambda);
             } else for (work.oracles, 0..) |o, j| {
-                if (variables[j] < remaining) continue;
+                if (variables[j] < remaining or prefetched[j]) continue;
                 try commands.sum(current[j], work.eq, input.lambda, o.scratch_a, o.scratch_b, o.sums);
             }
         } else for (work.oracles, 0..) |o, j| {
-            if (variables[j] < remaining) continue;
+            if (variables[j] < remaining or prefetched[j]) continue;
             try commands.sum(current[j], work.eq, input.lambda, o.scratch_a, o.scratch_b, o.sums);
         }
         const record = try work.records.sub(round * abi.round_record_words, abi.round_record_words);
         try commands.batchRound(work.state, active, largest, @intCast(round), input.point, record);
         const challenge = try record.sub(32, 8);
+        prefetched = @splat(false);
+        const fuse_next = if (comptime @hasDecl(@TypeOf(commands.*), "supportsBatchFoldSum") and @hasDecl(@TypeOf(commands.*), "foldSumBatch")) remaining > 1 and commands.supportsBatchFoldSum() else false;
+        var fused_jobs: [abi.batch_max_oracles]R.BatchFoldSum = undefined;
+        var fused_indices: [abi.batch_max_oracles]usize = undefined;
         var fold_jobs: [abi.batch_max_oracles]R.BatchFold = undefined;
         var active_folds: usize = 0;
         for (work.oracles, 0..) |o, j| {
@@ -150,8 +155,19 @@ pub fn enqueue(commands: anytype, input: Input, work: Workspace) !Enqueued {
             folds[j] += 1;
             next.count = current[j].count / 2;
             fold_jobs[active_folds] = .{ .input = current[j], .output = next };
+            if (fuse_next) {
+                fused_jobs[active_folds] = .{ .input = current[j], .folded = next, .a = o.scratch_a, .b = o.scratch_b, .output = o.sums };
+                fused_indices[active_folds] = j;
+            }
             active_folds += 1;
             current[j] = next;
+        }
+        if (comptime @hasDecl(@TypeOf(commands.*), "foldSumBatch")) {
+            if (fuse_next) {
+                try commands.foldSumBatch(fused_jobs[0..active_folds], challenge, work.eq, input.lambda);
+                for (fused_indices[0..active_folds]) |j| prefetched[j] = true;
+                continue;
+            }
         }
         if (comptime @hasDecl(@TypeOf(commands.*), "foldBatch")) {
             if (commands.batched_oracles) try commands.foldBatch(fold_jobs[0..active_folds], challenge) else for (fold_jobs[0..active_folds]) |job| try commands.fold(job.input, challenge, job.output);

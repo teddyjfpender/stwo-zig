@@ -46,6 +46,13 @@ extern "C" int stwo_rv64_batch_layer_on(void *, uint32_t,
     const StwoRv64BatchFoldJob *, uint32_t jobs, uint32_t count,
     uint32_t *launches);
 
+// One parallel fold plus the next round's raw sum. Transcript draw is separate.
+struct StwoRv64BatchFoldSumJob { StwoRv64Plane n,d,out_n,out_d,a,b,out; };
+static_assert(sizeof(StwoRv64BatchFoldSumJob)==168,"batched fold-sum ABI");
+extern "C" int stwo_rv64_batch_fold_sum_on(void *,uint32_t,
+    const StwoRv64BatchFoldSumJob *,uint32_t,uint32_t,const uint32_t *,
+    StwoRv64Plane,const uint32_t *,uint32_t *);
+
 // Persistent shared-transcript tail. Inputs are immutable; only the separately
 // owned output banks are folded in place after their first write.
 struct StwoRv64BatchTailOracle {

@@ -229,6 +229,7 @@ static void exercise(const std::string &directory, uint32_t id,
     if (l.depth)
       CHECK(stwo_rv64_gkr_eq_on(o.ctx, 1, point, l.depth, eq));
     bool tail_packed_masks = false;
+    std::vector<bool> prefetched(l.active,false);
     for (uint32_t round = 0; round < l.depth; ++round) {
       const auto left = l.depth - round;
       if (std::getenv("STWO_RV64_TEST_BATCH_TAIL") && left <= 4) {
@@ -263,7 +264,7 @@ static void exercise(const std::string &directory, uint32_t id,
         break;
       }
       for (uint32_t j = 0; j < l.active; ++j)
-        if (descriptors[j].variables >= left) {
+        if (descriptors[j].variables >= left && !prefetched[j]) {
           auto &w = workers[ids[j]];
           const auto c = current[j];
           CHECK(stwo_rv64_gkr_sum_on(o.ctx, 1, c.n, c.d, c.count, eq, lambda,
@@ -272,15 +273,29 @@ static void exercise(const std::string &directory, uint32_t id,
       auto *record = l.records.words + round * round_record_words;
       CHECK(stwo_rv64_batch_round_on(o.ctx, 1, batch.words, descriptors.data(),
                                      l.active, l.depth, round, point, record));
+      std::fill(prefetched.begin(),prefetched.end(),false);
+      const bool fused=std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")&&left>1;
+      std::vector<StwoRv64BatchFoldSumJob> jobs;
+      std::vector<uint32_t> ready;
       for (uint32_t j = 0; j < l.active; ++j)
         if (descriptors[j].variables >= left) {
           auto &w = workers[ids[j]];
           const uint32_t bank = folds[j]++ % 2;
           auto &c = current[j];
-          CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, c.n, c.d, c.count, record + 32,
-                                      w.banks_n[bank], w.banks_d[bank]));
+          if(fused) {
+            jobs.push_back({c.n,c.d,w.banks_n[bank],w.banks_d[bank],w.a,w.b,w.raw});
+            ready.push_back(j);
+          } else CHECK(stwo_rv64_gkr_fold_on(o.ctx, 1, c.n, c.d, c.count, record + 32,
+                                             w.banks_n[bank], w.banks_d[bank]));
           c = {w.banks_n[bank], w.banks_d[bank], c.count / 2};
         }
+      if(fused) {
+        auto bad=jobs;bad[0].out_d=bad[0].d;uint32_t launches=123;
+        if(!stwo_rv64_batch_fold_sum_on(o.ctx,1,bad.data(),bad.size(),2u<<left,record+32,eq,lambda,&launches)||launches)
+          throw std::runtime_error("fold-sum accepted input/output alias or enqueued before preflight");
+        CHECK(stwo_rv64_batch_fold_sum_on(o.ctx,1,jobs.data(),jobs.size(),2u<<left,record+32,eq,lambda,&launches));
+        for(auto j:ready)prefetched[j]=true;
+      }
     }
     if (!tail_packed_masks) for (uint32_t j = 0; j < l.active; ++j)
       CHECK(stwo_rv64_batch_mask_on(o.ctx, 1, current[j].n, current[j].d,
@@ -425,6 +440,8 @@ static void exercise(const std::string &directory, uint32_t id,
 }
 int main(int argc, char **argv) {
   try {
+    if(std::getenv("STWO_RV64_TEST_BATCH_FOLD_SUM")&&std::getenv("STWO_RV64_TEST_BATCH_TAIL"))
+      throw std::runtime_error("select one GKR fusion at a time");
     if (argc != 2)
       throw std::runtime_error("expected full native GKR fixture directory");
     for (uint32_t id = 0; id < 9; ++id)

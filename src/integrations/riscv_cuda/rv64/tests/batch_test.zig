@@ -14,6 +14,14 @@ const Commands = struct {
     poisoned: bool = false,
     batched_oracles: bool = false,
     tail_enabled: bool = false,
+    fold_sum_enabled: bool = false,
+    fold_sum_available: bool = true,
+    fail_fold_sum: bool = false,
+    fold_sum_batches: usize = 0,
+    fused_base_seen: bool = false,
+    fused_secure_seen: bool = false,
+    raw_addresses: [3]usize = @splat(0),
+    raw_ready: [3]bool = @splat(false),
     tail_count: usize = 0,
     tail_first: u32 = 0,
     fail_tail: bool = false,
@@ -25,6 +33,35 @@ const Commands = struct {
     rounds: u32 = 0,
     masks: u32 = 0,
     fail_sum: bool = false,
+    pub fn supportsBatchFoldSum(self: *@This()) bool {
+        return self.batched_oracles and self.fold_sum_enabled and self.fold_sum_available;
+    }
+    fn markRaw(self: *@This(), output: R.Plane) !void {
+        for (self.raw_addresses, 0..) |address, i| if (address == output.data.address) {
+            try std.testing.expect(!self.raw_ready[i]);
+            self.raw_ready[i] = true;
+            return;
+        };
+        return error.UnknownRawOutput;
+    }
+    pub fn foldSumBatch(self: *@This(), jobs: []const R.BatchFoldSum, _: Slice, _: R.Plane, _: Slice) !void {
+        self.calls += 1;
+        self.fold_sum_batches += 1;
+        if (self.fail_fold_sum) {
+            self.poisoned = true;
+            return error.CudaEnqueueFailed;
+        }
+        for (jobs) |job| {
+            try std.testing.expect(job.input.count >= 8);
+            try std.testing.expectEqual(jobs[0].input.count, job.input.count);
+            try std.testing.expectEqual(job.input.count / 2, job.folded.count);
+            try std.testing.expectEqual(@as(u32, 8), job.folded.n.coordinates);
+            if (job.input.n.coordinates == 1) self.fused_base_seen = true else self.fused_secure_seen = true;
+            self.sums[self.sum_count] = job.folded.count;
+            self.sum_count += 1;
+            try self.markRaw(job.output);
+        }
+    }
     pub fn supportsBatchTail(self: *@This()) bool {
         return self.batched_oracles and self.tail_enabled;
     }
@@ -50,7 +87,11 @@ const Commands = struct {
     pub fn initBatch(s: *@This(), _: Slice, _: Slice, _: Slice, _: Slice, descriptors: []const R.BatchOracle, variables: u32) !void {
         try std.testing.expectEqual(@as(usize, 3), descriptors.len);
         var largest: u32 = 0;
-        for (descriptors) |d| largest = @max(largest, d.variables);
+        s.raw_ready = @splat(false);
+        for (descriptors, 0..) |d, i| {
+            largest = @max(largest, d.variables);
+            s.raw_addresses[i] = if (d.raw) |raw| raw.data.address else 0;
+        }
         try std.testing.expectEqual(largest, variables);
         try std.testing.expectEqual(@as(u32, 0), descriptors[2].variables);
         try std.testing.expect(descriptors[2].raw == null);
@@ -59,12 +100,13 @@ const Commands = struct {
     pub fn eq(s: *@This(), _: Slice, _: u32, _: R.Plane) !void {
         s.calls += 1;
     }
-    pub fn sum(s: *@This(), input: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, _: R.Plane) !void {
+    pub fn sum(s: *@This(), input: R.Fraction, _: R.Plane, _: Slice, _: R.Plane, _: R.Plane, output: R.Plane) !void {
         s.calls += 1;
         if (s.fail_sum) {
             s.poisoned = true;
             return error.CudaEnqueueFailed;
         }
+        try s.markRaw(output);
         s.sums[s.sum_count] = input.count;
         s.sum_count += 1;
     }
@@ -82,8 +124,12 @@ const Commands = struct {
             try self.fold(job.input, challenge, job.output);
         }
     }
-    pub fn batchRound(s: *@This(), _: Slice, _: []const R.BatchOracle, _: u32, expected: u32, _: Slice, _: Slice) !void {
+    pub fn batchRound(s: *@This(), _: Slice, descriptors: []const R.BatchOracle, largest: u32, expected: u32, _: Slice, _: Slice) !void {
         try std.testing.expectEqual(s.rounds, expected);
+        for (descriptors, 0..) |d, i| if (d.variables >= largest - expected) {
+            try std.testing.expect(s.raw_ready[i]);
+            s.raw_ready[i] = false;
+        };
         s.rounds += 1;
         s.calls += 1;
     }
@@ -284,4 +330,58 @@ test "mixed persistent tail retains all-oracle preflight and poison semantics" {
     const calls = commands.calls;
     try std.testing.expectError(error.JobPoisoned, B.enqueue(&commands, fixture.request, fixture.shared));
     try std.testing.expectEqual(calls, commands.calls);
+}
+
+test "mixed fold-sum prefetch handles newly waking base oracles and terminal count4" {
+    var f = Fixture.initSized(.{ 8, 64, 2 });
+    f.bind();
+    var ctx = Context{};
+    var c = Commands{ .context = &ctx, .batched_oracles = true, .fold_sum_enabled = true };
+    const out = try B.enqueue(&c, f.request, f.shared);
+    try std.testing.expectEqual(@as(u32, 5), out.rounds);
+    try std.testing.expectEqual(@as(usize, 4), c.fold_sum_batches);
+    try std.testing.expectEqual(@as(usize, 2), c.sum_batches);
+    try std.testing.expectEqual(@as(usize, 1), c.fold_batches);
+    try std.testing.expect(c.fused_base_seen and c.fused_secure_seen);
+    try std.testing.expectEqualSlices(u32, &.{ 64, 32, 16, 8, 8, 4, 4 }, c.sums[0..c.sum_count]);
+    try std.testing.expectEqual(@as(u32, 3), c.masks);
+}
+test "mixed fold-sum missing capability preserves the original scheduling" {
+    var f = Fixture.init();
+    f.bind();
+    var ctx = Context{};
+    var c = Commands{ .context = &ctx, .batched_oracles = true, .fold_sum_enabled = true, .fold_sum_available = false };
+    _ = try B.enqueue(&c, f.request, f.shared);
+    try std.testing.expectEqual(@as(usize, 0), c.fold_sum_batches);
+    try std.testing.expectEqual(@as(usize, 3), c.sum_batches);
+    try std.testing.expectEqual(@as(usize, 3), c.fold_batches);
+    try std.testing.expectEqualSlices(u32, &.{ 16, 8, 4, 4 }, c.sums[0..c.sum_count]);
+}
+test "mixed fold-sum retains all-oracle preflight and poisons failed submission" {
+    var f = Fixture.init();
+    f.bind();
+    var ctx = Context{};
+    var c = Commands{ .context = &ctx, .batched_oracles = true, .fold_sum_enabled = true };
+    f.work[1].banks[1].d.data.generation = 1;
+    try std.testing.expectError(error.InvalidDeviceAddress, B.enqueue(&c, f.request, f.shared));
+    try std.testing.expectEqual(@as(usize, 0), c.calls);
+    f = Fixture.init();
+    f.bind();
+    c.fail_fold_sum = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, B.enqueue(&c, f.request, f.shared));
+    const before = c.calls;
+    try std.testing.expectError(error.JobPoisoned, B.enqueue(&c, f.request, f.shared));
+    try std.testing.expectEqual(before, c.calls);
+}
+
+test "batched fold-sum ABI is optional and unavailable kernels reject before enqueue" {
+    const Runtime = @import("../runtime_api.zig").Api;
+    var api: Runtime = undefined;
+    api.stwo_rv64_batch_fold_sum_on = null;
+    var ctx = Context{};
+    var c = R.Commands(Context, Runtime){ .context = &ctx, .api = &api, .lane_index = 1, .batched_oracles = true, .batched_fold_sum = true };
+    try std.testing.expect(!c.supportsBatchFoldSum());
+    try std.testing.expectError(error.MissingCudaBatchedFoldSumSymbol, c.requireBatchedFoldSum());
+    try std.testing.expect(!c.poisoned);
+    try std.testing.expectEqual(@as(u64, 0), c.launches);
 }

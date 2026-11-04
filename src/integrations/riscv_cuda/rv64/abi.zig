@@ -384,6 +384,10 @@ pub extern "c" fn stwo_rv64_composition_auxiliary_on(*anyopaque, u32, [*]const u
 
 pub const BatchSumJob = extern struct { n: Plane, d: Plane, a: Plane, b: Plane, out: Plane };
 pub const BatchFoldJob = extern struct { n: Plane, d: Plane, out_n: Plane, out_d: Plane };
+pub const BatchFoldSumJob = extern struct { n: Plane, d: Plane, out_n: Plane, out_d: Plane, a: Plane, b: Plane, out: Plane };
+comptime {
+    if (@sizeOf(BatchFoldSumJob) != 168) @compileError("batched fold-sum ABI changed");
+}
 pub const BatchMaskJob = extern struct { n: Plane, d: Plane, output: [*]u32 };
 pub extern "c" fn stwo_rv64_batch_masks_on(*anyopaque, u32, [*]const BatchMaskJob, u32) c_int;
 comptime {
@@ -393,3 +397,5 @@ comptime {
 pub extern "c" fn stwo_rv64_batch_sum_on(*anyopaque, u32, [*]const BatchSumJob, u32, u32, Plane, [*]const u32, *u32) c_int;
 pub extern "c" fn stwo_rv64_batch_fold_on(*anyopaque, u32, [*]const BatchFoldJob, u32, u32, [*]const u32, *u32) c_int;
 pub extern "c" fn stwo_rv64_batch_layer_on(*anyopaque, u32, [*]const BatchFoldJob, u32, u32, *u32) c_int;
+
+pub extern "c" fn stwo_rv64_batch_fold_sum_on(*anyopaque, u32, [*]const BatchFoldSumJob, u32, u32, [*]const u32, Plane, [*]const u32, *u32) c_int;
