@@ -29,8 +29,9 @@ numbers are single observations or medians of 2–3 interleaved runs [M]. Nothin
 1. **THP regression fix** (`services/collector.zig`). `MADV_HUGEPAGE` is now applied to the prefaulted LS event
    arrays only when `/sys/kernel/mm/transparent_hugepage/defrag` is `defer` or `never` (no synchronous compaction).
    The pod runs `madvise`, so the advice is now off there. `STWO_RV64_CAPTURE_THP=0/1` overrides. The off-thread
-   prefault is kept. Evidence: base binary runs show 330–1,550 `thp_fault_alloc` per capture, v6 shows none
-   attributable to it (host-wide counter). No run in this session hit compaction (host had ~190 GB free), so the
+   prefault is kept. Evidence (host-wide `/proc/vmstat` deltas per run): every base run has a floor of
+   331–334 `thp_fault_alloc` on 607 and 191–193 on 156 (its advised event arrays); v6 has 0 in 9 of 10 dev-block
+   runs (the tenth, 1,428, is another tenant). No run in this session hit compaction (host had ~190 GB free), so the
    stall itself was not reproduced; the one 24697070 capture-only run took 4.31 s with 0 stalls (M3 5.74 s).
 2. **Chunked CPU capture** (`word16_execution/cpu_source.zig`, `captureChunked`). The 90 ns/step serial
    `CPU.Source.capture` scan (~0.37 s per 4.19M-step batch) runs as up to 8 contiguous ranges in parallel. Each range
