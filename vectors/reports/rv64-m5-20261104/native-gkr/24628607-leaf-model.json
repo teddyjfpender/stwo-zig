@@ -1,0 +1,172 @@
+{
+ "schema": "rv64-native-gkr-leaf-model/v1",
+ "label": "E",
+ "calibration": [
+  "columns: Merkle leaf hashing + DEEP per query) and adds GKR instances (more in-circuit GKR mask work;",
+  "truth proofs gain a GKR they do not have today). Calibration: the outer-gkr census model",
+  "(scripts/rv64_m5_outer_gkr_census.py): 80 G rows per Blake compression, 16 words per compression,",
+  "2 qm31 rows per column per query for DEEP, row widths of today's leaf (blake_g_gate 167, qm31_ops 28 cells",
+  "per row incl. classic interaction), native queries q = 108."
+ ],
+ "proofs": [
+  {
+   "proof": "cpu-0",
+   "inter_cols_today": 2008,
+   "inter_cols_v1": 608,
+   "delta_cols": 1400,
+   "leaf_cells_saved_E": 134719200,
+   "leaf_cells_added_E": 11205000,
+   "leaf_cells_net_E": -123514200
+  },
+  {
+   "proof": "cpu-1",
+   "inter_cols_today": 1760,
+   "inter_cols_v1": 544,
+   "delta_cols": 1216,
+   "leaf_cells_saved_E": 117013248,
+   "leaf_cells_added_E": 7317000,
+   "leaf_cells_net_E": -109696248
+  },
+  {
+   "proof": "cpu-2",
+   "inter_cols_today": 1936,
+   "inter_cols_v1": 592,
+   "delta_cols": 1344,
+   "leaf_cells_saved_E": 129330432,
+   "leaf_cells_added_E": 8856000,
+   "leaf_cells_net_E": -120474432
+  },
+  {
+   "proof": "cpu-3",
+   "inter_cols_today": 1936,
+   "inter_cols_v1": 592,
+   "delta_cols": 1344,
+   "leaf_cells_saved_E": 129330432,
+   "leaf_cells_added_E": 8937000,
+   "leaf_cells_net_E": -120393432
+  },
+  {
+   "proof": "cpu-4",
+   "inter_cols_today": 1904,
+   "inter_cols_v1": 576,
+   "delta_cols": 1328,
+   "leaf_cells_saved_E": 127790784,
+   "leaf_cells_added_E": 8883000,
+   "leaf_cells_net_E": -118907784
+  },
+  {
+   "proof": "cpu-5",
+   "inter_cols_today": 1832,
+   "inter_cols_v1": 560,
+   "delta_cols": 1272,
+   "leaf_cells_saved_E": 122402016,
+   "leaf_cells_added_E": 8343000,
+   "leaf_cells_net_E": -114059016
+  },
+  {
+   "proof": "cpu-6",
+   "inter_cols_today": 744,
+   "inter_cols_v1": 432,
+   "delta_cols": 312,
+   "leaf_cells_saved_E": 30023136,
+   "leaf_cells_added_E": 6399000,
+   "leaf_cells_net_E": -23624136
+  },
+  {
+   "proof": "truth-0",
+   "inter_cols_today": 1592,
+   "inter_cols_v1": 48,
+   "delta_cols": 1544,
+   "leaf_cells_saved_E": 148576032,
+   "leaf_cells_added_E": 16630704,
+   "leaf_cells_net_E": -131945328
+  },
+  {
+   "proof": "truth-1",
+   "inter_cols_today": 1592,
+   "inter_cols_v1": 48,
+   "delta_cols": 1544,
+   "leaf_cells_saved_E": 148576032,
+   "leaf_cells_added_E": 12464912,
+   "leaf_cells_net_E": -136111120
+  },
+  {
+   "proof": "truth-2",
+   "inter_cols_today": 1592,
+   "inter_cols_v1": 48,
+   "delta_cols": 1544,
+   "leaf_cells_saved_E": 148576032,
+   "leaf_cells_added_E": 15528800,
+   "leaf_cells_net_E": -133047232
+  },
+  {
+   "proof": "truth-3",
+   "inter_cols_today": 5128,
+   "inter_cols_v1": 16,
+   "delta_cols": 5112,
+   "leaf_cells_saved_E": 491917536,
+   "leaf_cells_added_E": 12176904,
+   "leaf_cells_net_E": -479740632
+  },
+  {
+   "proof": "truth-4",
+   "inter_cols_today": 5128,
+   "inter_cols_v1": 16,
+   "delta_cols": 5112,
+   "leaf_cells_saved_E": 491917536,
+   "leaf_cells_added_E": 10255224,
+   "leaf_cells_net_E": -481662312
+  },
+  {
+   "proof": "truth-5",
+   "inter_cols_today": 5128,
+   "inter_cols_v1": 16,
+   "delta_cols": 5112,
+   "leaf_cells_saved_E": 491917536,
+   "leaf_cells_added_E": 7674984,
+   "leaf_cells_net_E": -484242552
+  },
+  {
+   "proof": "truth-6",
+   "inter_cols_today": 4032,
+   "inter_cols_v1": 16,
+   "delta_cols": 4016,
+   "leaf_cells_saved_E": 386451648,
+   "leaf_cells_added_E": 11195912,
+   "leaf_cells_net_E": -375255736
+  },
+  {
+   "proof": "truth-7",
+   "inter_cols_today": 4032,
+   "inter_cols_v1": 16,
+   "delta_cols": 4016,
+   "leaf_cells_saved_E": 386451648,
+   "leaf_cells_added_E": 9354840,
+   "leaf_cells_net_E": -377096808
+  },
+  {
+   "proof": "truth-8",
+   "inter_cols_today": 16,
+   "inter_cols_v1": 16,
+   "delta_cols": 0,
+   "leaf_cells_saved_E": 0,
+   "leaf_cells_added_E": 3494712,
+   "leaf_cells_net_E": 3494712
+  },
+  {
+   "proof": "truth-9",
+   "inter_cols_today": 976,
+   "inter_cols_v1": 16,
+   "delta_cols": 960,
+   "leaf_cells_saved_E": 92378880,
+   "leaf_cells_added_E": 6237344,
+   "leaf_cells_net_E": -86141536
+  }
+ ],
+ "totals": {
+  "delta_cols": 37176,
+  "leaf_cells_saved_E": 3577372128,
+  "leaf_cells_added_E": 164954336,
+  "leaf_cells_net_E": -3412417792
+ }
+}
