@@ -59,6 +59,55 @@ pub const Authority = struct {
     pub fn initForDeviceProver(a: std.mem.Allocator, pp: *const Preprocessed, root: P.H.Hash) !Authority {
         return initImpl(a, pp, root);
     }
+    /// PROVER ONLY, device-free: every root-independent part of
+    /// initForDeviceProver (pinned AIR parse, layout, bind). `finish` with the
+    /// trusted device root yields exactly the initForDeviceProver authority.
+    pub const DevicePrepared = struct {
+        allocator: std.mem.Allocator,
+        pp: *const Preprocessed,
+        layout: circuit.common.preprocessed.ColumnLayout,
+        logs: List.PerComponent(u32),
+        fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32,
+        bound: ?Air.Bundle,
+        pub fn deinit(self: *DevicePrepared) void {
+            if (self.bound) |*bound| bound.deinit();
+            self.bound = null;
+        }
+        /// Consumes the bound AIR on success; the caller still deinit()s.
+        pub fn finish(self: *DevicePrepared, pp: *const Preprocessed, root: P.H.Hash) !Authority {
+            if (pp != self.pp) return error.InvalidOm31CircuitPreparedAuthority;
+            const bound = self.bound orelse return error.InvalidOm31CircuitPreparedAuthority;
+            self.bound = null;
+            return .{ .allocator = self.allocator, .pp = pp, .layout = self.layout, .logs = self.logs, .fixed_logs = self.fixed_logs, .bound = bound, .fixed = null, .fixed_root = root, .device_fixed = true, .identity = identityOf(root, self.logs, pp.n_outputs) };
+        }
+    };
+    pub fn prepareForDeviceProver(a: std.mem.Allocator, pp: *const Preprocessed) !DevicePrepared {
+        const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
+        defer a.free(bytes);
+        var template = try parsePinnedAir(a, bytes);
+        defer template.deinit();
+        const layout = pp.layout();
+        const logs = try List.circuitComponentLogSizes(&layout);
+        _ = try validateGatherMass(logs, pp.n_outputs);
+        const bound = try Air.bind(a, &template, logs, &layout);
+        var fixed_logs: [circuit.common.preprocessed.N_PREPROCESSED_COLUMNS]u32 = undefined;
+        for (pp.columns, &fixed_logs) |column, *log| log.* = column.logSize();
+        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound };
+    }
+    fn identityOf(root: P.H.Hash, logs: List.PerComponent(u32), n_outputs: usize) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(P.domain);
+        hash.update(Air.bundle_sha256);
+        hash.update(&root);
+        var word: [4]u8 = undefined;
+        for (logs.toArray()) |log| {
+            std.mem.writeInt(u32, &word, log, .little);
+            hash.update(&word);
+        }
+        std.mem.writeInt(u32, &word, @intCast(n_outputs), .little);
+        hash.update(&word);
+        return hash.finalResult();
+    }
     fn initImpl(a: std.mem.Allocator, pp: *const Preprocessed, device_root: ?P.H.Hash) !Authority {
         const bytes = try std.fs.cwd().readFileAlloc(a, Air.bundle_path, 64 << 20);
         defer a.free(bytes);
@@ -85,18 +134,7 @@ pub const Authority = struct {
             try fixed.?.share(a);
             break :blk fixed.?.root();
         };
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update(P.domain);
-        hash.update(Air.bundle_sha256);
-        hash.update(&root);
-        var word: [4]u8 = undefined;
-        for (logs.toArray()) |log| {
-            std.mem.writeInt(u32, &word, log, .little);
-            hash.update(&word);
-        }
-        std.mem.writeInt(u32, &word, @intCast(pp.n_outputs), .little);
-        hash.update(&word);
-        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .fixed_root = root, .device_fixed = device_root != null, .identity = hash.finalResult() };
+        return .{ .allocator = a, .pp = pp, .layout = layout, .logs = logs, .fixed_logs = fixed_logs, .bound = bound, .fixed = fixed, .fixed_root = root, .device_fixed = device_root != null, .identity = identityOf(root, logs, pp.n_outputs) };
     }
     pub fn deinit(self: *Authority) void {
         if (self.fixed) |*fixed| fixed.deinit(self.allocator);

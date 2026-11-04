@@ -670,6 +670,7 @@ const Pipe = struct {
         finalize_ns: u64 = 0,
         columns_ns: u64 = 0,
         host_plan_ns: u64 = 0,
+        host_authority_ns: u64 = 0,
         authority_ns: u64 = 0,
         device_prove_ns: u64 = 0,
         verify_ns: u64 = 0,
@@ -866,6 +867,7 @@ const Pipelined = struct {
         job.record.finalize_ns = job.host.?.finalize_ns;
         job.record.columns_ns = job.host.?.columns_ns;
         job.record.host_plan_ns = job.host.?.host_plan_ns;
+        job.record.host_authority_ns = job.host.?.authority_ns;
         job.record.stamps.prep_end = self.now();
         return true;
     }
@@ -981,7 +983,8 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const helper_stack = options.lanes[0].pool.stackSize();
     // Prep coordinators and their shared helper pool are charged to the same
     // host budget as the lane stacks; nothing here touches device memory.
-    var stacks = try budget.reserveExternal(try std.math.add(usize, try std.math.mul(usize, pipe.host_workers, coordinator_stack), try std.math.mul(usize, pipe.prep_pool_workers - 1, helper_stack)));
+    // Each host worker may run one transient PP/authority side thread.
+    var stacks = try budget.reserveExternal(try std.math.add(usize, try std.math.mul(usize, 2 * pipe.host_workers, coordinator_stack), try std.math.mul(usize, pipe.prep_pool_workers - 1, helper_stack)));
     defer stacks.deinit();
     const prep_pool = try a.create(Pools.WorkPool);
     defer a.destroy(prep_pool);
