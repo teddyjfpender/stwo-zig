@@ -1042,6 +1042,80 @@ pad rows (ZK-3). Measured with `tensor-bench ... zk`, ReleaseFast, 1 thread, on 
   (`proof_digest.zig`, `transformer.zig`) are untouched, so nothing was repinned.
   Hiding proofs from before this change do not verify under the new layout.
 
+### 5.3 Hiding prover speedups, byte-identical (branch `codex/tensor-zkfast`, 2026-11-04)
+
+These changes speed up the hiding prover only. For a fixed prover seed, the proofs are
+byte-identical to the ones produced before.
+
+- **Pinned hiding digests.** The test `zk pinned seeded hiding digests` in `zk.zig` pins the
+  seeded `proofDigest` and the weight roots for five cases:
+  - the product proof, with the flat PCS and with the recursive PCS;
+  - the MLP with virtual remainders and the recursive PCS;
+  - the MLP with the flat PCS, plus `rerandomizeWeights`;
+  - the decoder layer.
+
+  The test also checks the forward-pass accumulator path, and it runs every case under both
+  fold schedules (fused and unfused). Every change below kept these pins and the
+  non-hiding goldens unchanged.
+- **Accumulator reuse.** `zk.provePublicWithAccumulators` takes the matmul and hadamard
+  accumulators from the forward pass. This matches `proto.proveWithAccumulators` and uses
+  the same trust model. The hiding bench passes `built.accs` (set `ZK_RECOMPUTE=1` to
+  recompute them). It also reports `prove_peak_rss_bytes` separately from the peak after the
+  proof, which `rerandomizeWeights` raises.
+- **SIMD salted Merkle tree.** `zk_pcs.commit` hashes `column_j || salt_j` four leaves at a
+  time with `hashEqual4WithMode`, assembling each message in per-worker scratch. It builds
+  the internal levels with `pcs.buildLevels`, which is now factored out of `pcs.buildTree`
+  and runs in parallel. Before, both steps were scalar, and the levels were also serial. A
+  test checks that the result equals the scalar `leafHash` / `hashNode` tree.
+- **Batched dyadic masked encode.** The C + S coefficients are zero-padded to 2C and
+  encoded with `encodeBatch`. A test checks the output bit for bit against
+  `encode(C + S)`.
+- **Masked GKR.**
+  - `proveGkrLayer` splits eq into hi and lo tables, so there is no longer a per-round eq
+    table. It also fuses each round's fold into the next round's sum pass.
+  - The leaf MLEs of the virtual remainders (r~ and Y~ over 2^21 to 2^22 cells) use the
+    parallel split-eq `mleEvalI32Par`. Before, they built a serial full eq table, which
+    took 0.20 s at D2048.
+  - The leaf layer is filled in parallel.
+- **Generic masked sumcheck.** Each round's fold is fused into the next round's pass. The
+  default (`zks.fuse_fold = null`) turns this on for single-threaded pools only: it measured
+  faster with 1 thread, but slower on the 12-thread MLP batch.
+
+Measurements: `tensor-bench ... [zk]`, ReleaseFast, `-Dmetal=false`, run one at a time under
+memguard. **Every run was on battery**, so the ratios are meaningful but the absolute times
+should be re-measured on AC. The "before" column is ce11aff51, from the profile run, also
+on battery.
+
+| config | non-hiding | hiding before | hiding after | overhead after |
+|---|---|---|---|---|
+| toy a.b=c 2^20, 1 thread, flat (prove s) | 0.124–0.132 (flat) | 0.333 | 0.196 | 1.5x |
+| toy 2^20, recursive (ZK_DEPTH=2) vs pcs2 depth 2 | 0.127–0.135 / 118 KB | 0.343 / 190 KB | 0.213 / 191 KB | 1.6x / 1.6x bytes |
+| MLP D2048 F4096 1024 tok, 12 threads, virtual + recursive | 0.36–0.48 / 371 KB / 3.45 GB | 1.39–1.55 / 702 KB / 4.89 GB | 0.87–0.90 / 701 KB / 4.54 GB | 2.5x / 1.9x bytes |
+| MLP verify | 63–67 ms | 125 ms | 121 ms | |
+
+Per stage, after the changes (MLP, s):
+
+| stage | hiding | non-hiding |
+|---|---|---|
+| commit | 0.16 | 0.065 |
+| LogUp-GKR | 0.44 | 0.099 |
+| batch | 0.12 | 0.058 |
+| op sumchecks | 0.005 | 0.024 |
+| witness opening | 0.021 | 0.022 |
+| weight opening | 0.026 | 0.034 |
+
+What remains of the gap:
+
+- **GKR prover (+0.34 s).** It runs scalar QM31 over one tagged tree of 2^25 leaves, with
+  QM31 numerators everywhere. The steps still to do are compact leaves (`.ones` and
+  base-field numerators), packed SIMD kernels, and an active prefix with a constant tail
+  (plan steps 5d, 5e and 6).
+- **Op and batch sumchecks (toy).** These still use `toQ` and the generic QM31 kernel. The
+  fix is to run them through the eqsum and batch base-field steppers (plan step 4).
+- **Proof bytes.** Nothing above changes the format, so the bytes are unchanged. The bytes
+  gap is closed by the format changes still to do: sent slot tails in `zk_pcs2` (plan step
+  8) and the wide lb-2 weight table (step 9).
+
 ## 6. Adversarial tests
 
 All pass. Run in `src/tensor` (standalone build): `zig build test -Doptimize=ReleaseSafe`
