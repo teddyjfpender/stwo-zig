@@ -80,7 +80,14 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
     const columns_end_ns = timer.read();
     const authority = try a.create(Outer.Authority);
     errdefer a.destroy(authority);
-    authority.* = try Outer.Authority.init(a, pp);
+    // Cached reception always rebuilds the CPU fixed authority. Only new
+    // explicitly selected device proofs may use trusted device precommit.
+    var precommitted: ?Device.PrecommittedFixed = if (ctx.trace_only and encoded == null and factory != null and factory.?.precommit_fixed != null)
+        try factory.?.precommit_fixed.?(factory.?.context, a, pp, ordinal)
+    else
+        null;
+    defer if (precommitted) |fixed| fixed.release(fixed.context);
+    authority.* = if (precommitted) |fixed| try Outer.Authority.initForDeviceProver(a, pp, fixed.tree.root) else try Outer.Authority.init(a, pp);
     errdefer authority.deinit();
     const preprocess_ns = timer.lap();
     const columns_ns = columns_end_ns - finalize_ns;
@@ -98,6 +105,7 @@ pub fn wrapGraphOrLoadWithFactory(a: std.mem.Allocator, ctx: *C.Context, digest:
         if (!ctx.trace_only) break :blk try Device.prove(a, authority, ctx.values(), ordinal, gpu);
         var expected: [8]C.Q = undefined;
         for (&expected, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(C.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
+        if (precommitted) |*fixed| break :blk try Device.proveFromPrecommittedCircuit(a, authority, ctx, &expected, ordinal, fixed);
         break :blk try Device.proveFromCircuit(a, authority, ctx, &expected, ordinal, gpu);
     } else try Outer.prove(a, authority, ctx.values());
     errdefer produced.deinit();

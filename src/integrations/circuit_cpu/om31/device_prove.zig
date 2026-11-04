@@ -15,6 +15,7 @@ pub const Source = struct {
     context: *anyopaque,
     scope: D.Scope,
     main: D.Tree,
+    fixed: ?D.Tree = null,
     pcs: *const D.Stage,
     composition: *const api.device_composition.ResidentOm31Stage,
     /// Must generate/commit exact native cumulative INTER under these fresh
@@ -22,8 +23,17 @@ pub const Source = struct {
     generate: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, D.Scope, P.O, P.O) anyerror!Interaction,
     release: *const fn (*anyopaque) void,
 };
+pub const PrecommittedFixed = struct {
+    context: *anyopaque,
+    tree: D.Tree,
+    scope: D.Scope,
+    prepare_from_circuit: *const fn (*anyopaque, std.mem.Allocator, *const Native.Authority, *const circuit.builder.Context(P.Q), D.Scope) anyerror!Source,
+    release: *const fn (*anyopaque) void,
+};
 pub const Factory = struct {
     context: *anyopaque,
+    /// Explicit default-off prover setup. Receivers/restores never invoke it.
+    precommit_fixed: ?*const fn (*anyopaque, std.mem.Allocator, *const circuit.common.preprocessed.PreprocessedCircuit, u32) anyerror!PrecommittedFixed = null,
     /// Consumes only immutable authority and narrow builder assignments; source
     /// MAIN generation and commitment happen on device. Failure is atomic and
     /// owns no result. On success Source owns all temporary/device allocations.
@@ -63,7 +73,7 @@ pub fn prove(a: std.mem.Allocator, key: *const Native.Authority, values: []const
     const start = circuit.witness.trace.U_VAR_IDX + 1;
     if (values.len < start or key.pp.n_outputs > values.len - start) return error.InvalidOm31CircuitOutputCount;
     const outputs = try a.dupe(P.Q, values[start..][0..key.pp.n_outputs]);
-    return proveOwned(a, key, outputs, values, ordinal, factory, null);
+    return proveOwned(a, key, outputs, values, ordinal, factory, null, null);
 }
 /// Expected outputs come from the independently authenticated public statement.
 /// The circuit MAIN must produce precisely those values: the existing output
@@ -75,13 +85,24 @@ pub fn proveFromCircuit(a: std.mem.Allocator, key: *const Native.Authority, grap
     if (expected.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
     for (expected) |value| for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalOm31CircuitOutput;
     const outputs = try a.dupe(P.Q, expected);
-    return proveOwned(a, key, outputs, &.{}, ordinal, factory, graph);
+    return proveOwned(a, key, outputs, &.{}, ordinal, factory, graph, null);
 }
-fn proveOwned(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q, values: []const P.Q, ordinal: u32, factory: Factory, graph: ?*const circuit.builder.Context(P.Q)) !Native.Produced {
+pub fn proveFromPrecommittedCircuit(a: std.mem.Allocator, key: *const Native.Authority, graph: *const circuit.builder.Context(P.Q), expected: []const P.Q, ordinal: u32, fixed: *const PrecommittedFixed) !Native.Produced {
+    try key.requireProverData();
+    if (fixed.scope.ordinal != ordinal or !key.device_fixed or !std.mem.eql(u8, &fixed.tree.root, &key.fixedRoot())) return error.InvalidOm31DeviceFixedRoot;
+    try validateTree(&key.fixed_logs, fixed.tree);
+    if (!graph.trace_only or !graph.finalized or !graph.record_gates or graph.witness_metadata == null) return error.TraceOnlyGraphRequired;
+    if (expected.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+    for (expected) |value| for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalOm31CircuitOutput;
+    const outputs = try a.dupe(P.Q, expected);
+    return proveOwned(a, key, outputs, &.{}, ordinal, undefined, graph, fixed);
+}
+fn proveOwned(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q, values: []const P.Q, ordinal: u32, factory: Factory, graph: ?*const circuit.builder.Context(P.Q), precommitted: ?*const PrecommittedFixed) !Native.Produced {
     errdefer a.free(outputs);
     try key.requireProverData();
     const requested = D.Scope{ .statement = statement(key, outputs), .fixed = key.fixedRoot(), .main = @splat(0), .ordinal = ordinal };
-    const source = if (graph) |ctx| try factory.prepare_from_circuit.?(factory.context, a, key, ctx, requested) else try factory.prepare(factory.context, a, key, values, requested);
+    if (key.device_fixed != (precommitted != null)) return error.InvalidOm31DeviceFixedRoot;
+    const source = if (precommitted) |fixed| try fixed.prepare_from_circuit(fixed.context, a, key, graph.?, requested) else if (graph) |ctx| try factory.prepare_from_circuit.?(factory.context, a, key, ctx, requested) else try factory.prepare(factory.context, a, key, values, requested);
     defer source.release(source.context);
     if (!std.mem.eql(u8, &source.scope.statement, &requested.statement) or !std.mem.eql(u8, &source.scope.fixed, &requested.fixed) or source.scope.ordinal != ordinal or !std.mem.eql(u8, &source.scope.main, &source.main.root)) return error.InvalidOm31CircuitDeviceScope;
     const main_logs = try key.treeLogs(a, 1);
@@ -94,9 +115,17 @@ fn proveOwned(a: std.mem.Allocator, key: *const Native.Authority, outputs: []P.Q
     scheme.device_om31_pcs_stage = source.pcs;
     scheme.device_om31_composition_stage = source.composition;
     scheme.device_om31_scope = source.scope;
-    try scheme.trees.ensureUnusedCapacity(a, 1);
-    scheme.trees.appendAssumeCapacity(try key.retainFixed());
-    P.MC.mixRoot(&channel, key.fixedRoot());
+    if (source.fixed) |fixed| {
+        if (precommitted == null or !std.mem.eql(u8, &fixed.root, &key.fixedRoot())) return error.InvalidOm31DeviceFixedRoot;
+        try validateTree(&key.fixed_logs, fixed);
+        if (fixed.columns[0].device.?.context_token != source.main.columns[0].device.?.context_token) return error.MixedOm31CircuitDeviceContexts;
+        try scheme.adoptDeviceOm31TraceTree(0, fixed, &channel);
+    } else {
+        if (precommitted != null) return error.MissingOm31DeviceFixedTree;
+        try scheme.trees.ensureUnusedCapacity(a, 1);
+        scheme.trees.appendAssumeCapacity(try key.retainFixed());
+        P.MC.mixRoot(&channel, key.fixedRoot());
+    }
     try scheme.adoptDeviceOm31TraceTree(1, source.main, &channel);
     const challenges = Native.draw(&channel);
     const interaction = try source.generate(source.context, a, key, source.scope, challenges.z, challenges.alpha);

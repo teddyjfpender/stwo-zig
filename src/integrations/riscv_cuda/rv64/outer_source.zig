@@ -55,13 +55,15 @@ pub const Context = struct {
     metadata_bytes: usize = 0,
     metadata_cap_bytes: usize = 4 << 20,
     active: ?*Owner = null,
+    fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
+    fixed_nonce: u64 = 0,
     assignment: ?Assignment.Prepared = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
         return .{ .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
     }
     pub fn deinit(self: *Context) void {
-        std.debug.assert(self.active == null);
+        std.debug.assert(self.active == null and self.fixed_pending == null);
         if (self.assignment) |*assignment| assignment.deinit();
         for (self.entries.items) |*e| e.metadata.deinit();
         self.entries.deinit(self.allocator);
@@ -69,6 +71,13 @@ pub const Context = struct {
     }
     pub fn factory(self: *Context) Dev.Factory {
         return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit };
+    }
+    /// Explicit candidate: same numerical runtime; no host FIXED commitment.
+    /// No default factory or receiver selects this path.
+    pub fn factoryWithDeviceFixed(self: *Context) !Dev.Factory {
+        var result = try self.factoryForTraceOnly();
+        result.precommit_fixed = @import("outer_fixed.zig").precommit;
+        return result;
     }
     /// Fail before constructing a production verifier graph when the image
     /// lacks deterministic generation kernels. Legacy ingress stays explicit.
@@ -82,7 +91,7 @@ pub const Context = struct {
         if (graph.trace_only) return error.TraceOnlyGraphRequiresAtomicIngress;
         self.mutex.lock();
         defer self.mutex.unlock();
-        if (self.active != null) return error.OuterProofAlreadyActive;
+        if (self.active != null or self.fixed_pending != null) return error.OuterProofAlreadyActive;
         var prepared = try Assignment.Prepared.init(self.allocator, graph, &self.service.library);
         errdefer prepared.deinit();
         if (self.assignment) |*old| old.deinit();
@@ -125,20 +134,20 @@ pub const Context = struct {
         self.body_identity = identity;
     }
     fn prepare(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope) !Dev.Source {
-        return prepareImpl(raw, a, key, values, scope, null);
+        return prepareImpl(raw, a, key, values, scope, null, null);
     }
     fn prepareFromCircuit(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, graph: *const circuit.builder.Context(Outer.protocol.Q), scope: D.Scope) !Dev.Source {
         if (!graph.trace_only or !graph.finalized or !graph.record_gates) return error.TraceOnlyGraphRequired;
-        return prepareImpl(raw, a, key, &.{}, scope, graph);
+        return prepareImpl(raw, a, key, &.{}, scope, graph, null);
     }
-    fn prepareImpl(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope, graph: ?*const circuit.builder.Context(Outer.protocol.Q)) !Dev.Source {
+    pub fn prepareImpl(raw: *anyopaque, a: std.mem.Allocator, key: *const Outer.prove.Authority, values: []const Outer.protocol.Q, scope: D.Scope, graph: ?*const circuit.builder.Context(Outer.protocol.Q), fixed: ?*@import("outer_fixed.zig").Owner) !Dev.Source {
         const self: *Context = @ptrCast(@alignCast(raw));
         if (graph == null and (values.len == 0 or values.len > std.math.maxInt(u32) / 4)) return error.InvalidOuterAssignment;
         if (comptime @hasDecl(Outer.prove.Authority, "requireProverData")) try key.requireProverData();
         self.mutex.lock();
         var locked = true;
         defer if (locked) self.mutex.unlock();
-        if (self.active != null) return error.OuterProofAlreadyActive;
+        if (self.active != null or self.fixed_pending != fixed) return error.OuterProofAlreadyActive;
         var owns_assignment = false;
         var previous_assignment: ?Assignment.Prepared = null;
         // Until an Owner takes custody, every failure retires the bounded
@@ -193,7 +202,8 @@ pub const Context = struct {
         const commit = self.trace_commit.stage();
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
         owner.scope.main = owner.main.?.root;
-        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
+        if (fixed) |setup| try setup.promote(owner.scope);
+        return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
     }
 };
 pub const Owner = struct {

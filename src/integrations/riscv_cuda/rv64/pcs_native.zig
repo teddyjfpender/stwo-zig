@@ -135,7 +135,7 @@ pub const Context = struct {
             return 0;
         }
     };
-    fn requireNoRequestLeases(self: *Context) !void {
+    pub fn requireNoRequestLeases(self: *Context) !void {
         var audit = Audit{ .self = self };
         if (self.submit(self.session, Audit.run, &audit) != 0) return audit.failure orelse error.ResidentSessionAuditFailed;
     }
@@ -190,6 +190,32 @@ pub const Context = struct {
         };
         if (self.cache.items.len >= self.max_retained_scopes) return error.RetainedCoefficientAdmissionExceeded;
         try self.cache.append(std.heap.page_allocator, .{ .scope = scope, .lease = lease, .columns = &.{}, .in_use = true });
+    }
+    /// Owner-thread only. Move one exact fixed coefficient lease into an
+    /// already admitted MAIN scope, preserving its allocation/generation.
+    /// All metadata capacity is admitted before native authority changes.
+    pub fn promoteSingleRetained(self: *Context, old: [8]u32, next: [8]u32, rebind: Abi.LeaseRebind) !void {
+        if (std.mem.eql(u32, &old, &next)) return error.InvalidFixedScopePromotion;
+        self.cache_mutex.lock();
+        defer self.cache_mutex.unlock();
+        var source: ?usize = null;
+        var destination: ?usize = null;
+        for (self.cache.items, 0..) |entry, i| {
+            if (std.mem.eql(u32, &entry.scope, &old)) source = i;
+            if (std.mem.eql(u32, &entry.scope, &next)) destination = i;
+        }
+        const from = source orelse return error.MissingFixedCoefficientScope;
+        const to = destination orelse return error.MissingMainCoefficientScope;
+        const original = &self.cache.items[from];
+        if (original.lease.kind != 2 or original.columns.len != 0 or original.extra.items.len != 0) return error.InvalidFixedCoefficientCustody;
+        var lease = original.lease;
+        if (self.lease_validate(self.session, &lease, &old) != 0) return error.InvalidRetainedCoefficientLease;
+        try self.cache.items[to].extra.ensureUnusedCapacity(std.heap.page_allocator, 1);
+        if (rebind(self.session, &lease, &old, &next) != 0) return error.InvalidFixedScopePromotion;
+        self.cache.items[to].extra.appendAssumeCapacity(lease);
+        var removed = self.cache.swapRemove(from);
+        removed.extra.deinit(std.heap.page_allocator);
+        std.heap.page_allocator.free(removed.columns);
     }
     /// Stable original tree/column identity survives retained MAIN remapping.
     pub fn retainedColumn(self: *Context, scope: [8]u32, tree: u32, index: usize, column: D.Column) ?D.DeviceCoefficients {

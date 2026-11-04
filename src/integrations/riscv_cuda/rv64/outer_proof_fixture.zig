@@ -7,10 +7,11 @@ const Service = @import("pcs_native.zig");
 const TC = @import("trace_commit.zig");
 const RC = @import("resident_composition.zig");
 const Device = @import("outer_source.zig");
-pub const Mode = enum { control, gpu, verify, control_dag, gpu_dag, verify_dag, gpu_trace, control_hints, gpu_trace_hints, verify_hints };
+pub const Mode = enum { control, gpu, verify, control_dag, gpu_dag, verify_dag, gpu_trace, control_hints, gpu_trace_hints, gpu_trace_hints_fixed, verify_hints };
 pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []const u8) !void {
-    const trace_only = mode == .gpu_trace or mode == .gpu_trace_hints;
-    const production_hints = mode == .control_hints or mode == .gpu_trace_hints or mode == .verify_hints;
+    const fixed_device = mode == .gpu_trace_hints_fixed;
+    const trace_only = mode == .gpu_trace or mode == .gpu_trace_hints or fixed_device;
+    const production_hints = mode == .control_hints or mode == .gpu_trace_hints or fixed_device or mode == .verify_hints;
     const dag = production_hints or trace_only or mode == .control_dag or mode == .gpu_dag or mode == .verify_dag;
     var ctx = if (trace_only) try circuit.builder.Context(Outer.protocol.Q).initTraceOnly(a, 8) else if (dag) try circuit.builder.Context(Outer.protocol.Q).initWithWitnessOrigins(a, 8) else try circuit.builder.Context(Outer.protocol.Q).init(a, 8);
     defer ctx.deinit();
@@ -99,7 +100,7 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
     defer composition.deinit();
     var factory = try Device.Context.init(a, &service, &commit, &composition);
     defer factory.deinit();
-    const selected_factory = if (dag and !trace_only) try factory.factoryForWitness(&ctx) else factory.factory();
+    const selected_factory = if (fixed_device) try factory.factoryWithDeviceFixed() else if (dag and !trace_only) try factory.factoryForWitness(&ctx) else factory.factory();
     if (dag and !trace_only) factory.assignment.?.check_reference = true; // Qualification-only full D2H equality.
     var first: ?[]u8 = null;
     defer if (first) |bytes| a.free(bytes);
@@ -107,7 +108,7 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
     for (&expected_outputs, 0..) |*out, i| out.* = circuit.builder.ivalue.packU32(Outer.protocol.Q, std.mem.readInt(u32, expected[4 * i ..][0..4], .little));
     for (0..2) |ordinal| {
         var timer = try std.time.Timer.start();
-        var proof = if (trace_only) try Outer.device_prove.proveFromCircuit(a, &key, &ctx, &expected_outputs, @intCast(ordinal), selected_factory) else try Outer.device_prove.prove(a, &key, ctx.values(), @intCast(ordinal), selected_factory);
+        var proof = if (fixed_device) try proveFixed(a, &key, &ctx, &expected_outputs, @intCast(ordinal), selected_factory) else if (trace_only) try Outer.device_prove.proveFromCircuit(a, &key, &ctx, &expected_outputs, @intCast(ordinal), selected_factory) else try Outer.device_prove.prove(a, &key, ctx.values(), @intCast(ordinal), selected_factory);
         defer proof.deinit();
         const prove_ns = timer.lap();
         var capture = try Outer.prove.verify(a, &key, proof.outputs, proof.claims, &proof.proof.proof);
@@ -130,13 +131,18 @@ pub fn run(a: std.mem.Allocator, mode: Mode, input: []const u8, directory: []con
     if (trace_only) {
         var wrong = expected_outputs;
         wrong[0] = wrong[0].add(Outer.protocol.Q.one());
-        if (Outer.device_prove.proveFromCircuit(a, &key, &ctx, &wrong, 2, selected_factory)) |result| {
+        if (if (fixed_device) proveFixed(a, &key, &ctx, &wrong, 2, selected_factory) else Outer.device_prove.proveFromCircuit(a, &key, &ctx, &wrong, 2, selected_factory)) |result| {
             var unexpected = result;
             unexpected.deinit();
             return error.InvalidPublicOutputsAccepted;
         } else |err| if (err != error.InvalidOm31CircuitLookupSum) return err;
         if (ctx.value_table.items.len != 0 or ctx.value_table.capacity != 0) return error.TraceOnlyCpuAssignmentsAllocated;
         std.debug.print("OM31_OUTER_TRACE_ONLY cpu_assignment_words=0 gpu_assignment_readback_words=0 wrong_public_outputs_rejected=true\n", .{});
+        if (fixed_device) {
+            if (factory.active != null or factory.fixed_pending != null) return error.FixedPrecommitOwnerRetained;
+            try service.requireNoRequestLeases();
+            std.debug.print("OM31_OUTER_DEVICE_FIXED zero_request_leases=true no_host_fixed_tree=true\n", .{});
+        }
     } else if (dag) {
         try assignmentMutant(a, input, &ctx, &key, false);
         try assignmentMutant(a, input, &ctx, &key, true);
@@ -183,4 +189,18 @@ fn requireAssignmentRejection(a: std.mem.Allocator, key: *const Outer.prove.Auth
 fn checkOutputs(outputs: []const Outer.protocol.Q, digest: [32]u8) !void {
     if (outputs.len != 8) return error.OuterOutputCount;
     for (outputs, 0..) |output, i| if (!output.eql(circuit.builder.ivalue.packU32(Outer.protocol.Q, std.mem.readInt(u32, digest[4 * i ..][0..4], .little)))) return error.OuterDigestMismatch;
+}
+
+/// Qualification uses a separately rebuilt CPU authority as the root oracle;
+/// production's optional wrapper builds the device authority without that work.
+fn proveFixed(a: std.mem.Allocator, cpu_key: *const Outer.prove.Authority, graph: *const circuit.builder.Context(Outer.protocol.Q), outputs: []const Outer.protocol.Q, ordinal: u32, factory: Outer.device_prove.Factory) !Outer.prove.Produced {
+    var fixed = try factory.precommit_fixed.?(factory.context, a, cpu_key.pp, ordinal);
+    defer fixed.release(fixed.context);
+    if (!std.mem.eql(u8, &cpu_key.fixedRoot(), &fixed.tree.root)) return error.DeviceFixedRootOracleMismatch;
+    var key = try Outer.prove.Authority.initForDeviceProver(a, cpu_key.pp, fixed.tree.root);
+    defer key.deinit();
+    if (key.fixed != null or !key.device_fixed) return error.UnexpectedHostFixedTree;
+    if (!std.mem.eql(u8, &key.identity, &cpu_key.identity)) return error.DeviceFixedAuthorityOracleMismatch;
+    std.debug.print("OM31_OUTER_DEVICE_FIXED cpu_fixed_root_parity=true cpu_authority_identity_parity=true ordinal={}\n", .{ordinal});
+    return Outer.device_prove.proveFromPrecommittedCircuit(a, &key, graph, outputs, ordinal, &fixed);
 }
