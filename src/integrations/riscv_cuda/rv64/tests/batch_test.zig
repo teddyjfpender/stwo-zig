@@ -385,3 +385,59 @@ test "batched fold-sum ABI is optional and unavailable kernels reject before enq
     try std.testing.expect(!c.poisoned);
     try std.testing.expectEqual(@as(u64, 0), c.launches);
 }
+
+const CounterContext = struct {
+    const Lane = struct { owner: usize, index: u32 };
+    pub fn lane(_: *@This(), index: u32) !Lane {
+        return .{ .owner = 1, .index = index };
+    }
+    pub fn validateLane(_: *@This(), _: Lane) !void {}
+    pub fn prepareKernelEnqueue(_: *@This()) !void {}
+    pub fn recordKernels(_: *@This(), _: u64) !void {}
+    pub fn deviceSlicePointer(_: *@This(), comptime T: type, s: Slice, n: usize) ![*]T {
+        if (s.owner != 1 or s.generation != 2 or n > s.len) return error.InvalidDeviceAddress;
+        return @ptrFromInt(s.address);
+    }
+};
+const CounterApi = struct {
+    var calls: usize = 0;
+    var failure: bool = false;
+    pub fn stwo_rv64_batch_fold_sum_on(_: *anyopaque, _: u32, _: [*]const Abi.BatchFoldSumJob, _: u32, _: u32, _: [*]const u32, _: Abi.Plane, _: [*]const u32, launches: *u32) c_int {
+        calls += 1;
+        launches.* = 3;
+        return if (failure) 1 else 0;
+    }
+};
+const CounterFixture = struct {
+    fn slice() Slice {
+        return .{ .address = 4096, .len = 4096, .owner = 1, .generation = 2 };
+    }
+    fn plane(c: u32) R.Plane {
+        return .{ .data = slice(), .stride = 16, .coordinates = c };
+    }
+    fn leaf(n: u32) R.Fraction {
+        return .{ .n = plane(1), .d = plane(8), .count = n };
+    }
+    fn fraction(n: u32) R.Fraction {
+        return .{ .n = plane(8), .d = plane(8), .count = n };
+    }
+};
+test "batched fold sum counters record only successful native enqueues" {
+    CounterApi.calls = 0;
+    CounterApi.failure = false;
+    var context = CounterContext{};
+    var c = R.Commands(CounterContext, CounterApi){ .context = &context, .lane_index = 1, .batched_oracles = true, .batched_fold_sum = true };
+    const jobs = [_]R.BatchFoldSum{.{ .input = CounterFixture.leaf(16), .folded = CounterFixture.fraction(8), .a = CounterFixture.plane(8), .b = CounterFixture.plane(8), .output = CounterFixture.plane(8) }};
+    try std.testing.expectEqual(@as(u64, 0), c.batch_fold_sum_calls);
+    try c.foldSumBatch(&jobs, CounterFixture.slice(), CounterFixture.plane(8), CounterFixture.slice());
+    try std.testing.expectEqual(@as(u64, 1), c.batch_fold_sum_calls);
+    try std.testing.expectEqual(@as(u64, 3), c.batch_fold_sum_launches);
+    try std.testing.expectError(error.InvalidGeometry, c.foldSumBatch(&.{}, CounterFixture.slice(), CounterFixture.plane(8), CounterFixture.slice()));
+    try std.testing.expectEqual(@as(u64, 1), c.batch_fold_sum_calls);
+    CounterApi.failure = true;
+    try std.testing.expectError(error.CudaEnqueueFailed, c.foldSumBatch(&jobs, CounterFixture.slice(), CounterFixture.plane(8), CounterFixture.slice()));
+    try std.testing.expectEqual(@as(u64, 1), c.batch_fold_sum_calls);
+    try std.testing.expectEqual(@as(u64, 3), c.batch_fold_sum_launches);
+    try std.testing.expectEqual(@as(usize, 2), CounterApi.calls);
+    CounterApi.failure = false;
+}
