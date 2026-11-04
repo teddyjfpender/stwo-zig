@@ -1,5 +1,21 @@
 # M6 hint-tape receipts (stream hint-tape, branch codex/rv64-m6-hint-tape)
 
+## FINAL back-to-back A/B (same pod load 15-19, `--store none`, resident daemon, 2 GPUs) [M]
+
+`daemon-final-base.json` = M5 default binaries (driver 37f94901, image 0caf0144); `daemon-final-ht.json` = this stream
+(driver 8c5ffbb5 @ eaa7731df tree, image 5fb095e3): HT1 fold seed tape + HT2 chain v3 + leaf words off the immutable cache.
+Every proof of both runs byte-identical to the M5 default receipts; the fresh, cache-disabled M5 receiver (0babaf7e)
+accepted all 4 final-ht requests (41.5-41.8 s / 61.8-62.1 s).
+
+| block (warm, trial 1) | request | recursion | fold tail | fold host prep median (max) | leaf DAG / fold DAG stream |
+|---|---:|---:|---:|---:|---:|
+| 24628607 base -> ht | 28.04 -> **26.22 s** | 18.63 -> **17.12 s** | 4.60 -> 3.27 s | 0.388 (1.00) -> **0.027 (0.18) s** | 135 / 16.0 -> 113 / 11.7 ms |
+| 26235156 base -> ht | 19.48 -> **16.87 s** | 12.56 -> **10.25 s** | 3.01 -> 1.36 s | 0.385 (1.36) -> **0.026 (0.09) s** | same kernels |
+
+Cold first request of a fresh service (trial 0): 24628607 40.11 -> 37.54 s, 26235156 31.38 -> 32.39 s (cold fold classes
+build their templates; the second block in a service already reuses 13/16 fold classes of the first: cross-block reuse).
+Single observations on a loaded pod: [M], not quiet-host quotable.
+
 All runs: resident daemon (`scripts/rv64_m4_resident.py daemon 26235156 24628607`), 2x RTX 5090, M5 default producer
 config (`DEFAULT_PRODUCER_ENV`), library = M5 integrate image `0caf0144` unless noted, `--store fresh`. Trial 0 =
 first request of each block in a fresh service (cold fold classes), trial 1 = warm. Single observations; **the pod was
