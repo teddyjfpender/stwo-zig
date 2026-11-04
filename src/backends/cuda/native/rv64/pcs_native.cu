@@ -165,6 +165,8 @@ struct ResidentOwner {
         [&](size_t *used, size_t *reserved) {
           return stwo_exec_context_pool_current(ctx, used, reserved);
         });
+    int device_index = -1;
+    const auto device_status = cudaGetDevice(&device_index);
     size_t free_bytes = 0, total_bytes = 0;
     const auto memory_status = cudaMemGetInfo(&free_bytes, &total_bytes);
     std::fprintf(stderr,
@@ -172,14 +174,14 @@ struct ResidentOwner {
       "lease_bytes=%llu idle_cache_bytes=%llu active_cache_bytes=%llu "
       "physical_free_bytes=%zu physical_total_bytes=%zu memory_rc=%d "
         "pool_used_bytes=%zu pool_reserved_bytes=%zu pool_rc=%d "
-        "phase=%s context_token=%llu\n",
+        "phase=%s context_token=%llu device_index=%d device_rc=%d\n",
       static_cast<unsigned long long>(words * 4),
       static_cast<unsigned long long>(retained),
       static_cast<unsigned long long>(leased),
       static_cast<unsigned long long>(idle),
       static_cast<unsigned long long>(active), free_bytes, total_bytes,
       int(memory_status), pool.used, pool.reserved, pool.status, phase,
-        static_cast<unsigned long long>(token));
+        static_cast<unsigned long long>(token), device_index, int(device_status));
   }
   uint32_t *allocate(uint64_t words) {
     if (!words || words > SIZE_MAX / 4)
