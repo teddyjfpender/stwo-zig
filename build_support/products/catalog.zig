@@ -47,6 +47,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-register-boundary-lanes", .description = "Qualify dynamic register boundary and scalar provider point arithmetic", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ls-circuit-lanes", .description = "Qualify typed LS boundary and selection point arithmetic", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-outer", .description = "Qualify native OM31 outer circuit folding", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-om31-m3-fold", .description = "Qualify the M3 outer profile and 4-ary fold verifier on the CPU outer prover", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-om31-native-pcs", .description = "Verify native OM31 proof captures in circuit with all eight coordinates", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-recursion-shape", .description = "Inspect bounded native-verified Word16 shape and opening costs without recursive acceptance", .scope = .riscv_cpu },
