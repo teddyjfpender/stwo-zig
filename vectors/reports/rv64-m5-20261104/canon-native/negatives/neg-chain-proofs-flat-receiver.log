@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/workspace/m3/src/m5-canon-native/scripts/rv64_m4_resident.py", line 738, in <module>
+    main()
+  File "/workspace/m3/src/m5-canon-native/scripts/rv64_m4_resident.py", line 730, in main
+    receive_run(args.run, args.which, args.receiver_workers)
+  File "/workspace/m3/src/m5-canon-native/scripts/rv64_m4_resident.py", line 545, in receive_run
+    verdict = receive_one(plan, entry["block"], Path(entry["proof"]), run, workers)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m5-canon-native/scripts/rv64_m4_resident.py", line 505, in receive_one
+    usage = B.measure(command, out, "strict-receiver", environment, cwd=plan["producer_cwd"])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/m3/src/m5-canon-native/scripts/rv64_ethereum_basket.py", line 67, in measure
+    raise error
+RuntimeError: strict-receiver failed (1); see /workspace/m3/runs/m5-canon-native/daemon-26235156-24628607-r1-cn3-chain-seed/receiver-26235156-0000-26235156-20261104T165836/strict-receiver.stderr
+EXIT=1
