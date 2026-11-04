@@ -31,11 +31,19 @@ every run except `base-m5` (4.1) — other M6 streams were building. They are NO
 | r3-s1 | default (stream) | 31.8 | 22.50 / 28.43 | 5.91 / 6.95 | 5.15 / 5.72 | 3.59 / 4.13 | 31.2 | yes |
 | r3-pa3 | stream, PREP_AHEAD=3 | 39.3 | 20.16 / 28.22 | 5.01 / 6.94 | 4.50 / 5.12 | 3.00 / 4.19 | **26.5** | yes |
 | r3-sp8 | stream, STREAM_PREP=8 | 39.9 | 19.38 / 25.87 | 5.03 / 6.56 | 4.29 / 4.91 | 3.00 / 3.89 | 31.3 | yes |
-| r4-m5s | no stream | 24.6 | 21.79 / 32.92 | 4.93 / 7.01 | 4.86 / 5.59 | 0 / 0 | 31.2 | yes |
-| r4-s1 | default (stream) | 15.7 | 19.26 / 25.91 | 5.20 / 6.63 | 4.50 / 5.36 | 3.16 / 4.04 | 31.3 | yes |
+| r4-s1-0 | default (stream) | 15.7 | 19.26 / 25.91 | 5.20 / 6.63 | 4.50 / 5.36 | 3.16 / 4.04 | 31.3 | yes |
+| r4-m5s-1 | no stream | 24.6 | 21.79 / 32.92 | 4.93 / 7.01 | 4.86 / 5.59 | 0 / 0 | 31.2 | yes |
+| r4-s1-2 | default (stream) | 31.3 | 19.03 / 26.92 | 4.94 / 6.74 | 4.69 / 5.38 | 3.05 / 3.94 | 31.3 | yes |
+| r4-m5s-3 | no stream | 48.2 | 22.05 / 33.27 | 4.98 / 6.72 | 5.02 / 7.25 | 0 / 0 | 31.3 | yes |
+| r4-s1-4 | default (stream) | 47.0 | 21.84 / 27.87 | 5.57 / 6.68 | 5.43 / 4.44 | 3.46 / 3.93 | 31.4 | yes |
+| r4-m5s-5 | no stream | 35.3 | 23.93 / 31.59 | 5.33 / 7.22 | 5.23 / 4.84 | 0 / 0 | 31.4 | yes |
+| r4-sp8-6 | stream, STREAM_PREP=8 | 33.2 | 22.63 / 29.60 | 5.32 / 7.63 | 6.25 / 5.55 | 3.10 / 4.61 | 31.3 | yes |
 
-Medians [D]: 24628607 stream 25.91 s (3 runs) vs no-stream 28.16 s (4 runs; M5 binaries 27.96 quiet) -> about -2.1 s (-7.5%).
-26235156 stream 19.26 s vs 21.84 s (M5 binaries 20.02) -> -0.8 to -2.6 s. The gain is the leaf-prep head (1.5 s of idle
+r4 is a strict alternation (s1, m5s, s1, m5s, s1, m5s) on one binary and one store, so it is the cleanest A/B we have
+under the shared load: 24628607 stream median 26.92 s vs no-stream 32.93 s (-6.0 s); 26235156 19.26 vs 22.05 s (-2.8 s) [D from M].
+All stream runs (r2-r4, 5 obs.): 24628607 median 26.92 s, best 25.48; no-stream (r2-r4, 6 obs.) median 30.0 s; the M5 binaries
+measured 27.96 s on a quiet host (base-m5). Under CPU contention the M5 handoff loses more, because its 1.5 s leaf-prep head
+and the native publication sit on the critical path; the streamed path does both while native still runs. The gain is the leaf-prep head (1.5 s of idle
 GPUs at recursion start in M5) plus native publication/verify moved off the device path.
 
 ## Measured negatives / kills
