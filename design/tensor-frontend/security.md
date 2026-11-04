@@ -514,3 +514,68 @@ the key separately.
   or any tampered output claim of the second alpha's instances. The 1-alpha
   proof keeps 2 instances.
 * 55/55 tests (ReleaseFast and ReleaseSafe), `test-metal` 10/10.
+
+## 9. Verifier input hygiene and prover bounds (review A: KERN-1..4, PROTO-3, PCS-4)
+
+* **Canonical encodings (KERN-1).** The soundness argument is over field
+  elements, but the verifier receives limbs. The field kernels are only
+  correct on limbs in [0, P): `M31.sub` computes (a + P) - b, which wraps by
+  2^32 = 2 (mod P) when b >= P, while the transcript hashes the raw limbs.
+  A non-canonical s(0) in a sumcheck round therefore hashes as one value and
+  acts as another. The review forged a false sumcheck claim this way under
+  ReleaseFast (a verifier panic under ReleaseSafe). Round polynomials,
+  finals, claimed MLE values and GKR masks are not Merkle-bound, so no
+  other check catches them. Every verifier entry point now runs
+  `canonical.check` on the whole proof object before any arithmetic:
+  `protocol.verify` / `verifyInfo`, `protocol.verifyWeightProximity`,
+  `weight_key.verify`, `zk.verify` / `verifyPublic`,
+  `zk.verifyWeightProximity` and `zk.verifyWeightLink`. `sumcheck.verify` and
+  `zk_sumcheck.verify` also check their own proof, because they are called
+  directly. `canonical.check` walks the proof type by comptime reflection
+  (structs, tagged unions, optionals, arrays, slices) and checks every M31
+  it reaches. Subtrees with no field element are pruned at compile time.
+  A new proof field is therefore covered with no edit, and so is every
+  existing class: sumcheck round evals, op/ext finals, `lookup_in_values`,
+  witness value and OOD, flat rows and opened columns, pcs2 level
+  `col_values` / `limb_vals` / `ood_value` / rows / inner sumchecks, GKR round
+  polynomials, masks and output claims, and the zk sigma, hats, u_val, mus,
+  rows, table values and GKR roots. The cost is one linear pass over the
+  proof (unmeasurable next to the Merkle checks). With canonical inputs
+  the residue map from limbs to field elements is injective, so a transcript
+  value and the value the verifier computes with are the same field element.
+  This is what the arguments of sections 3 and 4 assume. Any future
+  byte decoder must build values with `field.fromLimbsChecked`.
+  Regressions: `canonical_proof_test.zig` corrupts the first, middle and
+  last limb of every class (to v + P and to exactly P) in a flat decoder
+  layer, a pcs2 + OOD + batched layer, the weight-key proof, a zk MLP proof,
+  the zk weight proximity and the zk weight link. Each corruption must give
+  `error.NonCanonical`. The test also pins that the fixtures exercise each
+  class. `review_kern_test.zig` replays the reviewer's sumcheck forgery.
+* **Canonical-input contract (KERN-4).** `QM31.mul`'s base-field shortcut is
+  wrong off-contract. The lazy path happens to reduce. The contract
+  "kernels take canonical limbs" is documented at `field.fromLimbs` and is
+  enforced at the trust boundary (above), not in the hot kernels. There is
+  no separate soundness issue once KERN-1 holds.
+* **Prover operand bounds (KERN-3).** `combineRows` / `colCombine` take a
+  `bound_log2` that sets how many rows the i64 limb accumulators may sum
+  before they reduce. The matmul prover passed a literal 8. A statement
+  that validateStatement admits, a 20-bit range-keyed operand with K = 2
+  at T = 2^13, overflowed: a panic under ReleaseSafe, and under ReleaseFast
+  a wrong fold, so the honest proof was rejected. This was a completeness
+  bug, not a soundness bug, because the verifier recomputes nothing from it.
+  The bound table is now one function, `fillBounds`, shared by
+  validateStatement and `protocol.operandBoundLog2`. All three call sites
+  pass the relation-proved bound: per-matmul, batched shape class, and
+  `zk.zig`. Unbounded and exact-einsum operands get 31, which is exact for
+  any i32. `matmulAcc` falls back to i64 row sums when max|x| * 128 * K
+  >= 2^31. Proofs are unchanged for the int8 operands that every shipped
+  builder produces. The golden digests did not move.
+* **Batched matmul order (PROTO-3).** This was already fixed in this base:
+  the `vclass_done` skip runs before the `op_sumchecks` length check, and a
+  trailing `op_i != len` check rejects extra sumchecks. The reviewer's R1
+  test is kept as a regression test (`review_proto3_pcs4_test.zig`).
+* **Opening claim shapes (PCS-4).** `pcs.verifyOpening` now checks every
+  claim point length before `groupCoeffs` slices it, in the same order as
+  `pcs2.verifyRec` and `zk_pcs.verifyOpening`. No verifier-built point could
+  reach this path, so this is hardening only.
+* **Metal (KERN-2).** See metal.md: the fp32 matmul gate is x in [-128, 127].

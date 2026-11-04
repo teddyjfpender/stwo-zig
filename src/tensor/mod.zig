@@ -27,6 +27,7 @@ pub const serve = @import("serve.zig");
 pub const lm = @import("lm.zig");
 pub const wire = @import("wire.zig");
 pub const wire_test = @import("wire_test.zig");
+pub const canonical = @import("canonical.zig");
 
 test {
     _ = @import("qmul_check_test.zig");
@@ -60,4 +61,8 @@ test {
     _ = lm;
     _ = wire;
     _ = wire_test;
+    _ = canonical;
+    _ = @import("canonical_proof_test.zig");
+    _ = @import("review_kern_test.zig");
+    _ = @import("review_proto3_pcs4_test.zig");
 }

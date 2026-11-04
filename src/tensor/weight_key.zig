@@ -40,6 +40,7 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
+const canonical = @import("canonical.zig");
 const pcs = @import("pcs.zig");
 const pcs2 = @import("pcs2.zig");
 const proto = @import("protocol.zig");
@@ -159,6 +160,8 @@ pub fn alphaCount(cfg: proto.Config) !usize {
 }
 
 pub fn verify(a: std.mem.Allocator, cfg0: proto.Config, key: proto.WeightKey, proof: *const KeyProof) !void {
+    // every transmitted limb in [0, P) before any arithmetic (KERN-1)
+    try canonical.check(proof);
     const cfg = try proto.keyConfig(cfg0);
     try proto.checkKeyLayout(a, key.infos, key);
     const n_vars = key.log_rows + key.log_cols;

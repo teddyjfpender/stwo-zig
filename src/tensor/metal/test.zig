@@ -737,3 +737,6 @@ test "metal hiding proofs equal CPU hiding proofs (seeded): product, MLP; flat a
         }
     }
 }
+test {
+    _ = @import("review_kern_metal_test.zig");
+}

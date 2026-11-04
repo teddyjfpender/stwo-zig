@@ -21,6 +21,7 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const f = @import("field.zig");
+const canonical = @import("canonical.zig");
 const sc = @import("sumcheck.zig");
 const pcs = @import("pcs.zig");
 const pcs2 = @import("pcs2.zig");
@@ -1060,6 +1061,16 @@ pub fn matmulAcc(a: std.mem.Allocator, pool: *f.Pool, xi: TensorInfo, x: []const
     const K = wm.nRows();
     const N = wm.nCols();
     const acc = try a.alloc(i64, T * N);
+    // i32 row sums are exact while max|x| * 128 * K < 2^31 (validateStatement
+    // guarantees |acc| < 2^30 for numerically bounded operands); otherwise
+    // (exact-einsum operands, or an out-of-contract witness) sum in i64 so the
+    // prover never wraps (review finding KERN-3).
+    var max_abs: u64 = 0;
+    for (x[0 .. T * K]) |v| max_abs = @max(max_abs, @abs(v));
+    if (max_abs * 128 * K >= (1 << 31)) {
+        matmulAccWide(pool, x, wm, acc, T, K, N);
+        return acc;
+    }
     const Ctx = struct { x: []const i32, wm: pcs.Matrix(i8), acc: []i64, K: usize, N: usize };
     const ctx = Ctx{ .x = x, .wm = wm, .acc = acc, .K = K, .N = N };
     pool.parallelFor(T, 1, &ctx, struct {
@@ -1110,6 +1121,24 @@ fn isBatchedMatmul(st: Statement, op: Op) bool {
         .matmul => |m| m.w < st.weights.len and st.weights[m.w].n_dims == 3,
         else => false,
     };
+}
+
+fn matmulAccWide(pool: *f.Pool, x: []const i32, wm: pcs.Matrix(i8), acc: []i64, T: usize, K: usize, N: usize) void {
+    const Ctx = struct { x: []const i32, wm: pcs.Matrix(i8), acc: []i64, K: usize, N: usize };
+    const ctx = Ctx{ .x = x, .wm = wm, .acc = acc, .K = K, .N = N };
+    pool.parallelFor(T, 1, &ctx, struct {
+        fn run(c: *const Ctx, s: usize, e: usize) void {
+            for (s..e) |t| {
+                const o = c.acc[t * c.N ..][0..c.N];
+                @memset(o, 0);
+                for (0..c.K) |k| {
+                    const xv: i64 = c.x[t * c.K + k];
+                    if (xv == 0) continue;
+                    for (o, c.wm.row(k)) |*d, wv| d.* += xv * wv;
+                }
+            }
+        }
+    }.run);
 }
 
 /// requant (prover helper)
@@ -1526,7 +1555,7 @@ pub fn proveCore(
                 const eq_t = try f.eqTablePar(a, pool, rho_t, QM31.one());
                 defer a.free(eq_t);
                 const xm = pcs.Matrix(i32){ .data = all[m.x], .log_rows = lt, .log_cols = lk };
-                const fx = try accel.colCombine(cfg.accel, i32, a, pool, xm, eq_t, 8);
+                const fx = try accel.colCombine(cfg.accel, i32, a, pool, xm, eq_t, operandBoundLog2(st, m.x));
                 defer a.free(fx);
                 // g(k) = W(k, rho_n): the weight pass
                 const tw0 = try std.time.Instant.now();
@@ -1698,12 +1727,13 @@ pub fn weightKey(ws: *const WeightStore) WeightKey {
 /// Marker bound for tensors defined by an exact ext einsum (see validateStatement).
 const EXT_EXACT_BOUND: u8 = 254;
 
-pub fn validateStatement(st: Statement) !void {
-    const n = st.witness.len;
-    // bound[t] = b means |t[i]| <= 2^b is proved by some relation (255 = unbounded)
-    var bound_buf: [4096]u8 = undefined;
-    if (n > bound_buf.len) return error.StatementTooLarge;
-    const bound = bound_buf[0..n];
+/// Max witness tensors per statement (validateStatement's bound table).
+pub const MAX_STATEMENT_TENSORS = 4096;
+
+/// bound[t] = b means |t[i]| <= 2^b is proved by some relation of `st`
+/// (255 = unbounded, EXT_EXACT_BOUND = defined by an exact ext einsum).
+/// `bound.len` must equal st.witness.len.
+fn fillBounds(st: Statement, bound: []u8) void {
     @memset(bound, 255);
     const setb = struct {
         fn f(b: []u8, t: u32, v: u8) void {
@@ -1752,6 +1782,28 @@ pub fn validateStatement(st: Statement) !void {
         },
         .lineq => {},
     };
+}
+
+/// The bound_log2 to pass to colCombine / combineRows for witness tensor `t`
+/// of a statement that passed validateStatement: the relation-proved bound
+/// (|t[i]| <= 2^b), or 31 (any i32; combineRows then reduces every 2 rows)
+/// when the tensor has no numeric bound. The i64 limb accumulators of
+/// combineRows overflow if this under-states the data (review finding KERN-3:
+/// a hard-coded 8 overflowed on 20-bit range-keyed matmul operands).
+pub fn operandBoundLog2(st: Statement, t: u32) u32 {
+    var buf: [MAX_STATEMENT_TENSORS]u8 = undefined;
+    if (st.witness.len > buf.len or t >= st.witness.len) return 31;
+    const bound = buf[0..st.witness.len];
+    fillBounds(st, bound);
+    return if (bound[t] >= EXT_EXACT_BOUND) 31 else bound[t];
+}
+
+pub fn validateStatement(st: Statement) !void {
+    const n = st.witness.len;
+    var bound_buf: [MAX_STATEMENT_TENSORS]u8 = undefined;
+    if (n > bound_buf.len) return error.StatementTooLarge;
+    const bound = bound_buf[0..n];
+    fillBounds(st, bound);
     for (st.ops) |op| switch (op) {
         .matmul => |m| {
             if (m.x >= n or m.y >= n or m.w >= st.weights.len) return error.StatementShape;
@@ -1912,6 +1964,8 @@ pub fn verifyWeightOpening(a: std.mem.Allocator, tr: *Transcript, cfg: Config, k
 /// caller's transcript. Appends the weight claims to `out` (protocol order)
 /// and fills the witness/LogUp part of `info` when given.
 pub fn verifyCore(a: std.mem.Allocator, cfg: Config, st: Statement, key: WeightKey, proof: *const Proof, tr_io: *Transcript, out: *VerifierWeightClaims, info: ?*VerifyInfo) !void {
+    // every transmitted limb in [0, P) before any arithmetic (KERN-1)
+    try canonical.check(proof);
     try validateStatement(st);
     // the key must carry exactly the canonical layout of the statement's
     // weights (dims, offsets, split, rows_used); checkKeyLayout subsumes the
@@ -2245,6 +2299,7 @@ pub fn proveWeightProximity(a: std.mem.Allocator, pool: *f.Pool, cfg0: Config, w
 }
 
 pub fn verifyWeightProximity(a: std.mem.Allocator, cfg0: Config, key: WeightKey, proof: Opening) !void {
+    try canonical.check(proof);
     const cfg = try keyConfig(cfg0);
     var tr = Transcript.initDomain("stwo-tensor-weights-v1");
     tr.mixDigest(key.root);
@@ -2333,7 +2388,7 @@ fn proveMatmulClass(
     for (members, 0..) |mi, e| {
         const m = st.ops[rel.keys[mi].op].matmul;
         const xm = pcs.Matrix(i32){ .data = all[m.x], .log_rows = lt, .log_cols = lk };
-        fs[e] = try linalg.colCombine(i32, a, pool, xm, eq_t, 8);
+        fs[e] = try linalg.colCombine(i32, a, pool, xm, eq_t, operandBoundLog2(st, m.x));
         const tw0 = try std.time.Instant.now();
         gs[e] = try linalg.rowDots(i8, a, pool, ws.matrix(m.w), eq_n, 7);
         timings.weight_fold_ns += nowNs(tw0);

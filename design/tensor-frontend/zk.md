@@ -995,6 +995,17 @@ first-version hiding tests:
   - a wrong forward value is refused.
 - Two statistical sanity tests (§4.5).
 
+### 6.1 Canonical limbs (review A, KERN-1)
+
+`zk.verify` / `verifyPublic`, `zk.verifyWeightProximity`, `zk.verifyWeightLink`
+and `zk_sumcheck.verify` reject any proof that carries an M31 limb >= P
+(`error.NonCanonical`) before any arithmetic. The check is the same
+reflective walker as in the non-hiding verifier (security.md section 9).
+Masked round messages, sigma, hats, u_val, mus and GKR roots are not
+Merkle-bound. Without the check, a non-canonical encoding would hash as
+one value and act as another in `M31.sub`. `canonical_proof_test.zig`
+corrupts every zk field class.
+
 ## 7. Not done / caveats
 
 - **No OOD / Johnson regime in hiding mode.** zk_pcs2 has no outer OOD sample and refuses

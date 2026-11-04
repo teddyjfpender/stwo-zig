@@ -139,7 +139,9 @@ construction, and runs the same self-checks. The layers live in device memory.
 ### Matmul and MLE evaluation
 
 * **`tm_matmul_simd`.** This kernel runs on `simdgroup_float8x8` when
-  |x| <= 128 (checked on the host). Each fp32 partial sum is an integer below
+  x is in [-128, 127] (checked on the host; the activations are packed to
+  `char`, so +128 would wrap to -128 and is routed to the int32 kernel:
+  review finding KERN-2). Each fp32 partial sum is an integer below
   2^23 (512-wide K chunks of |x·w| <= 2^14), and each chunk is flushed to int64.
   The test includes odd worst-case products that would round past 2^24, and a
   mutation that disables the flush is caught.

@@ -512,8 +512,8 @@ kernel void tm_gkr_fold(
     }
 }
 
-// Same accumulators on the simdgroup matrix units, for |x| <= 128 (host
-// checked): fp32 holds every partial sum exactly (|x w| <= 2^14, 512-wide K
+// Same accumulators on the simdgroup matrix units, for x in [-128, 127]
+// (host checked; tm_pack_i8 narrows x to char, so +128 must stay off this path): fp32 holds every partial sum exactly (|x w| <= 2^14, 512-wide K
 // chunks stay below 2^23 < 2^24), and each chunk is added into int64.
 // 64x64 output tile per threadgroup, 8 simdgroups each owning a 16x32 region
 // (2 x 4 fragments of 8x8). Threadgroup memory: one 16 KiB float array used
