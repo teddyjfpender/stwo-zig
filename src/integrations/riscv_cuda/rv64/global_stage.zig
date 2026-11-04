@@ -42,6 +42,13 @@ fn sym(comptime T: type, library: *std.DynLib, name: [:0]const u8) !T {
 fn checked(status: c_int) !void {
     if (status != 0) return error.CudaGlobalWitnessFailed;
 }
+/// Failure-only diagnostic: names the call site and native status before failing.
+fn checkedAt(line: u32, status: c_int) !void {
+    if (status != 0) {
+        std.debug.print("GPU_GLOBAL_WITNESS_FAILED line={d} status={d}\n", .{ line, status });
+        return error.CudaGlobalWitnessFailed;
+    }
+}
 fn immutableIdentity(domain: []const u8, root: [32]u8, index: usize, log: u32) [8]u32 {
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
     h.update(domain);
@@ -174,7 +181,7 @@ pub const Context = struct {
         var job = Job{ .backend = self, .scope = request.scope, .request = request, .owner = owner };
         const status = self.service.submit(self.service.session, Job.callback, &job);
         if (job.failure) |err| return err;
-        try checked(status);
+        try checkedAt(@src().line, status);
         return .{ .columns = columns, .claims = claims, .owner = owner, .release_fn = Owner.release };
     }
 };
@@ -216,7 +223,7 @@ const Job = struct {
         // One native registry check covers the complete adjacent range under
         // the exact worker scope; no unchecked address-based coalescing.
         const from = try ctx.deviceSlicePointer(u32, slice, segment.words);
-        try checked(self.backend.copy(ctx.native_context, @ptrCast(destination + segment.target_word), from, try std.math.mul(usize, segment.words, 4)));
+        try checkedAt(@src().line, self.backend.copy(ctx.native_context, @ptrCast(destination + segment.target_word), from, try std.math.mul(usize, segment.words, 4)));
     }
     fn run(self: *Job, raw: *anyopaque, token: u64) !void {
         const b = self.backend;
@@ -274,11 +281,11 @@ const Job = struct {
         try ctx.join();
         if (ingress_timer) |*timer| std.debug.print("GPU_GLOBAL_INGRESS ordinal={} log={} source_columns={} source_words={} device_copy_calls={} joined_wall_ns={}\n", .{ self.scope.ordinal, self.request.log_size, self.request.fixed.len + self.request.main.len, source_words, copies, timer.read() });
         var stream: ?*anyopaque = null;
-        try checked(b.api.lane_stream(raw, 1, &stream));
+        try checkedAt(@src().line, b.api.lane_stream(raw, 1, &stream));
         const lane = stream orelse return error.InvalidLane;
         var launches: u32 = 0;
         const tw_count = @as(u32, 1) << @intCast(self.request.log_size - 1);
-        try checked(b.n2b(source.words.?, rows, self.request.log_size, @intCast(self.request.fixed.len + self.request.main.len), twiddle.words.? + tw.twiddles.len - tw_count, tw_count, tw_count, lane, &launches));
+        try checkedAt(@src().line, b.n2b(source.words.?, rows, self.request.log_size, @intCast(self.request.fixed.len + self.request.main.len), twiddle.words.? + tw.twiddles.len - tw_count, tw_count, tw_count, lane, &launches));
         const groups = self.request.groups;
         const pairs = @as(usize, groups[0]) + groups[1];
         const width = 8 * (pairs + self.owner.claims.len);
@@ -293,16 +300,16 @@ const Job = struct {
         const verdict_zero = [_]u32{0};
         try ctx.upload(try (try ctx.borrow(scratch)).sub(scratch.count - 1, 1), &verdict_zero);
         try ctx.join();
-        try checked(self.request.projection(raw, 1, source.words.?, source.words.? + self.request.fixed.len * rows, parameter.words.?, numerator.words.?, self.owner.output.words.?, status, self.request.log_size));
+        try checkedAt(@src().line, self.request.projection(raw, 1, source.words.?, source.words.? + self.request.fixed.len * rows, parameter.words.?, numerator.words.?, self.owner.output.words.?, status, self.request.log_size));
         var group_offset: usize = 0;
         var pair_offset: usize = 0;
         for (groups, 0..) |count, group| {
             if (count == 0) continue;
             const job = Abi.GlobalPairs{ .output = self.owner.output.words.? + group_offset * rows, .contributions = numerator.words.? + pair_offset * 8 * rows, .scan_scratch = scratch.words.?, .claim = claim + group * 8, .status = status, .stride = rows, .scan_words = scan.scratch_words, .row_log = self.request.log_size, .pairs = count };
-            try checked(b.pairs(raw, 1, &job));
+            try checkedAt(@src().line, b.pairs(raw, 1, &job));
             if (self.request.layout == .cumulative_batches) {
                 const cumulative = Cumulative{ .output = job.output, .contributions = job.contributions, .stride = rows, .row_log = self.request.log_size, .pairs = count };
-                try checked(b.cumulative.?(raw, 1, &cumulative));
+                try checkedAt(@src().line, b.cumulative.?(raw, 1, &cumulative));
             }
             group_offset += 8 * (count + 1);
             pair_offset += count;
