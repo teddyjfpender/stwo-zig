@@ -300,6 +300,7 @@ const Job = struct {
         const verdict_zero = [_]u32{0};
         try ctx.upload(try (try ctx.borrow(scratch)).sub(scratch.count - 1, 1), &verdict_zero);
         try ctx.join();
+        if (self.request.log_size < 5 or self.request.log_size > 22) std.debug.print("GPU_GLOBAL_WITNESS_GEOMETRY log={d} fixed={d} main={d} public_boundary={} groups={any}\n", .{ self.request.log_size, self.request.fixed.len, self.request.main.len, self.request.public_boundary, self.request.groups });
         try checkedAt(@src().line, self.request.projection(raw, 1, source.words.?, source.words.? + self.request.fixed.len * rows, parameter.words.?, numerator.words.?, self.owner.output.words.?, status, self.request.log_size));
         var group_offset: usize = 0;
         var pair_offset: usize = 0;
