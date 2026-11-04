@@ -4579,3 +4579,99 @@ test "zk rate precondition C + S <= E/2 is an error on both sides (log_blowup 1)
     try std.testing.expect(!bad.rateOk());
     try std.testing.expect((zkp.Shape{ .log_cols = 4, .log_blowup = 2, .slots = 16, .n_rows = 4 }).rateOk());
 }
+
+// ---------------------------------------------------------------------------
+// Pinned seeded hiding digests (zkfast gate): every byte-identical prover
+// optimisation must leave these unchanged. A deliberate hiding-format change
+// re-pins them in its own commit.
+
+fn pinCase(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, case: u32) !Hash {
+    setTestSeed([_]u8{0x3c} ** 32);
+    defer setTestSeed(null);
+    const H = core.vcs.blake2_hash.Blake2sHasher;
+    var h = H.init();
+    var tm: proto.Timings = .{};
+    switch (case) {
+        0 => {
+            var built = try model.buildProduct(a, 10, 5);
+            defer built.deinit(a);
+            const st = built.statement();
+            const wv = try wview(a, built.witness);
+            defer a.free(wv);
+            var p = try prove(a, pool, cfg, st, null, wv, &tm);
+            defer p.deinit(a);
+            try verify(a, cfg, st, null, &p);
+            h.update(&proofDigest(&p));
+        },
+        1 => {
+            const mc = model.Mlp{ .log_t = 3, .log_d = 5, .log_f = 6, .fused = true };
+            const winfos = model.mlpWeightInfos(mc);
+            var wdata: [3][]i8 = undefined;
+            for (&wdata, 0..) |*w, i| w.* = try model.randomWeights(a, winfos[i].size(), 700 + i, -8, 7);
+            defer for (wdata) |w| a.free(w);
+            const wvv = [_][]const i8{ wdata[0], wdata[1], wdata[2] };
+            var zw = try commitWeights(a, pool, cfg, &winfos, &wvv);
+            defer zw.deinit(a);
+            h.update(&zw.key().root);
+            const x = try model.randomInput(a, @as(usize, 1) << @intCast(mc.log_t + mc.log_d), 23);
+            defer a.free(x);
+            const pv = zw.plainView();
+            var built = try model.buildMlp(a, pool, &pv, mc, x);
+            defer built.deinit(a);
+            const st = built.statement();
+            const wv = try wview(a, built.witness);
+            defer a.free(wv);
+            const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+            var p = try provePublic(a, pool, cfg, st, &zw, wv, &pubs, &tm);
+            defer p.deinit(a);
+            try verifyPublic(a, cfg, st, zw.key(), &pubs, &p);
+            h.update(&proofDigest(&p));
+            var rr = try rerandomizeWeights(a, pool, cfg, &zw);
+            defer rr.new.deinit(a);
+            defer rr.link.deinit(a);
+            h.update(&rr.new.key().root);
+        },
+        else => {
+            const lc = tfm.LayerCfg{ .log_t = 3, .log_d = 5, .log_f = 6, .log_heads = 2, .log_kv_heads = 1 };
+            var fx: LayerFixture = undefined;
+            try fx.init(a, pool, cfg, lc, 300);
+            defer fx.deinit(a);
+            h.update(&fx.zw.key().root);
+            const st = fx.b.statement();
+            const wv = try fx.b.witnessView(a);
+            defer a.free(wv);
+            const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
+            var p = try provePublic(a, pool, cfg, st, &fx.zw, wv, &pubs, &tm);
+            defer p.deinit(a);
+            try verifyPublic(a, cfg, st, fx.zw.key(), &pubs, &p);
+            h.update(&proofDigest(&p));
+        },
+    }
+    return h.finalize();
+}
+
+test "zk pinned seeded hiding digests (product flat/rec, mlp virtual rec, decoder layer)" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    var mlp_cfg = testCfgRec(1);
+    mlp_cfg.zk_virtual_remainders = true;
+    const cases = [_]struct { cfg: proto.Config, case: u32, hex: []const u8 }{
+        .{ .cfg = testCfg(), .case = 0, .hex = "3c09ac727b9c9dcc0b10039a1d8f37d394c0132a7f692e212463d167497f632e" },
+        .{ .cfg = testCfgRec(1), .case = 0, .hex = "515227e8bbb703598e82c6a9d82a78d54f1603f4d562584f95039deaccea0d3f" },
+        .{ .cfg = mlp_cfg, .case = 1, .hex = "fb96502a6b11a38c86867e8856f104396632a8d6e95f4a300e944a9f83ff9921" },
+        .{ .cfg = testCfg(), .case = 1, .hex = "0109242eb8ccacaeea2523ccb06146fea4c766bec4128bd1c0bc807756db3497" },
+        .{ .cfg = layerCfgZk(), .case = 2, .hex = "b46709bff021a0660d8283524c1ac54b98a45bcf318349b98fafe4e63bac95f7" },
+    };
+    var bad = false;
+    for (cases, 0..) |c, i| {
+        const d = try pinCase(a, &pool, c.cfg, c.case);
+        const got = std.fmt.bytesToHex(d, .lower);
+        if (!std.mem.eql(u8, &got, c.hex)) {
+            std.debug.print("zk pin {d}: {s}\n", .{ i, got });
+            bad = true;
+        }
+    }
+    try std.testing.expect(!bad);
+}
