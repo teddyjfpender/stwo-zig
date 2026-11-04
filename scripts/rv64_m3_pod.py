@@ -118,7 +118,8 @@ def build(args):
             gate_log = logs / "catalogue-gate.json"
             started = time.monotonic()
             for command in (["build-tools", "--stream", args.stream],
-                            ["catalogue-gate", "--stream", args.stream, "--catalogues", str(cat), "--output", str(gate_log), "--strict"]):
+                            ["catalogue-gate", "--stream", args.stream, "--catalogues", str(cat), "--output", str(gate_log), "--strict",
+                             "--tools", str(M3 / "build" / args.stream / "tools/bin")]):
                 run_logged([sys.executable, str(root / "scripts/rv64_m4_resident.py"), *command], logs / f"{command[0]}.log", cwd=root)
             gate = B.load(gate_log)
             receipt["catalogue_gate"] = {"status": gate["gate"], "statuses": gate["statuses"], "receipt": str(gate_log),
