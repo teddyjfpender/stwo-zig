@@ -53,6 +53,23 @@ __device__ void at(const StwoCircuitAssignmentJob &j,const StwoCircuitAssignment
 }
 __global__ void seed(StwoCircuitAssignmentJob j){const auto i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=j.count)return;const auto &s=static_cast<const StwoCircuitAssignmentSeed*>(j.records)[j.first+i];if(s.out>=j.value_count){fail(j.status);return;}for(unsigned k=0;k<4;++k)if(s.value[k]>=q::kPrime){fail(j.status);return;}store(j.values,s.out,{{s.value[0],s.value[1]},{s.value[2],s.value[3]}});}
 __global__ void level(StwoCircuitAssignmentJob j){const auto i=blockIdx.x*blockDim.x+threadIdx.x;if(i<j.count)at(j,static_cast<const StwoCircuitAssignmentTask*>(j.records)[j.first+i]);}
+constexpr uint32_t narrow_threads=128,narrow_max_levels=256;
+struct NarrowRun { StwoCircuitAssignmentJob job;uint32_t levels;uint32_t ends[narrow_max_levels]; };
+static_assert(sizeof(NarrowRun)<32764,"bounded narrow assignment run packet");
+__global__ void narrow_run(const __grid_constant__ NarrowRun run) {
+  uint32_t begin=run.job.first;
+  for(uint32_t level=0;level<run.levels;++level) {
+    const uint32_t end=run.ends[level];
+    if(threadIdx.x<end-begin)
+      at(run.job,static_cast<const StwoCircuitAssignmentTask*>(run.job.records)[begin+threadIdx.x]);
+    // Every thread reaches every barrier, including invalid-task status paths:
+    // at() returns to this loop, never from this kernel. Global writes become
+    // visible to the SAME CTA before any later dependency level reads them.
+    __syncthreads();
+    begin=end;
+  }
+}
+
 }
 namespace {
 bool valid(const StwoCircuitAssignmentJob *j){return j&&!j->reserved&&j->value_count&&j->value_count<(1u<<31)&&j->count&&uint64_t(j->first)+j->count<=j->record_count;}
@@ -69,3 +86,24 @@ extern "C" int stwo_circuit_assignment_level_on(void*ctx,uint32_t lane,const Stw
 }
 
 extern "C" uint32_t stwo_circuit_assignment_capabilities(){return 0xffffu;}
+
+extern "C" int stwo_circuit_assignment_narrow_run_on(void*ctx,uint32_t lane,
+    const StwoCircuitAssignmentJob*j,const uint32_t*ends,uint32_t levels) {
+  using namespace stwo::cuda::rv64;
+  using namespace stwo::cuda::circuit_assignment;
+  if(!valid(j)||!ends||levels<2||levels>narrow_max_levels)return int(cudaErrorInvalidValue);
+  NarrowRun run{};run.job=*j;run.levels=levels;
+  uint32_t begin=j->first;
+  for(uint32_t i=0;i<levels;++i) {
+    const uint32_t end=ends[i];
+    if(end<begin||end-begin>narrow_threads||end>j->record_count)return int(cudaErrorInvalidValue);
+    run.ends[i]=end;begin=end;
+  }
+  if(uint64_t(begin)!=uint64_t(j->first)+j->count)return int(cudaErrorInvalidValue);
+  Custody c(ctx,lane);
+  if(!c.range(j->values,uint64_t(j->value_count)*4,true)||
+     !c.range(static_cast<const uint32_t*>(j->records),uint64_t(j->record_count)*8,false)||
+     !c.range(j->status,1,true)||(j->index_count&&!c.range(j->indices,j->index_count,false)))return c.status;
+  narrow_run<<<1,narrow_threads,0,c.stream>>>(run);
+  return int(cudaPeekAtLastError());
+}
