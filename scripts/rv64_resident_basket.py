@@ -262,6 +262,8 @@ def receiver_environment(environment, directory=None):
 def check_ready_execution(plan, job, combined, entry):
     if plan.get("recursion_mode", "serial") != "ready_candidate":
         return
+    if plan.get("strict_recursive_receiver") is not True:
+        raise ValueError("ready qualification requires the strict recursive receiver")
     target = Path(job["target"])
     if B.load(target / "manifest.json") != producer_manifest(plan, job):
         raise ValueError("ready producer manifest differs from pinned plan")

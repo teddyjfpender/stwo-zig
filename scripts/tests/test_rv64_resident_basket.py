@@ -101,6 +101,8 @@ class ResidentBasket(unittest.TestCase):
                  "physical_device_ids": [0, 1], "producer_manifest_sha256": digest,
                  "recursion_execution": copy.deepcopy(execution)}
         R.check_ready_execution(plan, job, combined, entry)
+        with self.assertRaisesRegex(ValueError, "strict recursive receiver"):
+            R.check_ready_execution(dict(plan, strict_recursive_receiver=False), job, combined, entry)
         for key, value in (("mode", "serial"), ("physical_device_ids", [0, 0]),
                            ("lane_workers", [8, 8]), ("lane_helper_stack_reserved_bytes", 0)):
             altered = copy.deepcopy(combined)
