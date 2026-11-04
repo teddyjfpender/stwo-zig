@@ -174,8 +174,11 @@ M5-INTERFACES (section native-gkr).
 - Section bytes [D, exact from the roster, `rv64-native-gkr-tool shape`]: 1.46 MB per 24628607 request (CPU sections
   128-181 KB, truth 14-56 KB), 0.93 MB on 26235156. Opened INTER values fall by 37,176 columns x 108 queries x 4 B =
   16.1 MB on 24628607 (before Merkle path savings), so native proof bytes fall.
-- CPU reference [M]: real-shape rosters of 24628607 truth-9 (arith256, 2 instances), truth-8 (sha256), truth-4 (secp add
-  log 11): prove 0.05 / 0.01 / 1.07 s, fresh-process verify incl. binding 0.05 / 0.02 / 1.30 s (`realshape/`).
+- CPU reference [M] on real v1 rosters of 24628607 (`realshape/`, synthetic fractions, pod load 7-19): truth-9 (arith256,
+  2 instances), truth-8 (sha256), truth-4 (secp add log 11), **cpu-6 (40 instances, 83.5 M fractions, 25 layers)**:
+  prove 0.05 / 0.01 / 1.07 / **20.9 s** (7.8 GiB peak RSS for cpu-6), fresh-process verify incl. the binding recompute
+  0.05 / 0.02 / 1.30 / **31.7 s**, all accepted. (Production proving is the GPU route above; the CPU reference is the
+  receiver authority and the corpus engine.)
 - Composition: the per-component binding constraints read more fraction expressions (global tuples), the classic
   global constraints disappear; constraint count per component falls (one prefix residual instead of
   `ceil(q/2) + 2` per relation).
@@ -194,7 +197,8 @@ binding reference (`bindingColumns`, `expectedBoundary`, `requireBinding`), stri
 NG05 padded-lane forgery vs MAIN, NG06 rho separation; census tool `rv64-native-gkr-census`; tool
 `rv64-native-gkr-tool` (exact real-roster shapes, CPU prove, fresh-process receiver); tier-R corpus
 (`scripts/rv64_native_gkr_corpus.py`): every word of a real-roster section (24628607 truth-9, 5,329/5,329 fresh
-processes rejected/accepted as required) plus sampled words of larger sections (receipts `corpus-*.json`).
+processes rejected/accepted as required), 415/415 sampled cases on truth-4 (secp add), and a sampled run on the CPU
+proof cpu-6 (receipts `realshape/corpus-*.json`).
 
 Left, in order:
 1. Native AIR: per-component binding residual over all groups (`role.zig`/truth roles), drop `global_cpu.emitFor` and
