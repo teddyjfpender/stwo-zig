@@ -130,7 +130,9 @@ const GeometryBorrow = struct {
         if (!self.retained) self.value.deinit(a);
     }
 };
+const PhasePoolTrim = @import("phase_pool_trim.zig");
 pub const Context = struct {
+    pool_trim: PhasePoolTrim.Policy = .{},
     allocator: std.mem.Allocator,
     service: *Service.Context,
     session_api: SC.Api,
@@ -163,7 +165,7 @@ pub const Context = struct {
     log_blowup: u32 = 1,
     result_columns: std.ArrayList([]D.Column) = .empty,
     pub fn initNumerical(a: std.mem.Allocator, service: *Service.Context) !Context {
-        return Context{ .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
+        return Context{ .pool_trim = try PhasePoolTrim.Policy.init(try PhasePoolTrim.fromEnv(a), service.library.lookup(PhasePoolTrim.Trim, "stwo_exec_context_pool_trim")), .allocator = a, .service = service, .timing = try Events.Api.load(&service.library), .session_api = .{
             .allocate = service.lease_allocate,
             .release = service.lease_release,
             .validate_range = service.lease_validate_range,
@@ -652,6 +654,9 @@ const Job = struct {
                 try self.checked("clear", b.clear(raw, @ptrCast(buckets[el].?.words.?), 0, 8 * n * 4));
             }
             try context.join();
+            if (try b.pool_trim.beforeTransform(raw, try std.math.mul(u64, arena.count, 4))) {
+                std.debug.print("GPU_COMPOSITION_POOL_TRIM ordinal={} arena_bytes={} joined=true\n", .{ self.scope.ordinal, arena.count * 4 });
+            }
             var stream: ?*anyopaque = null;
             try self.checked("session_api.lane_stream", b.session_api.lane_stream(raw, 1, &stream));
             var launches: u32 = 0;
