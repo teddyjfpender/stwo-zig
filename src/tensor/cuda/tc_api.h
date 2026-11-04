@@ -40,6 +40,7 @@ typedef struct {
     uint64_t gkr_sessions;
     uint64_t gkr_rounds;  /* tc_gkr_round launches */
     uint64_t declined;    /* calls refused on shape before any device work */
+    uint64_t matmuls_dp4a;
 } tc_stats;
 
 /* Sumcheck term table (same layout as tc::ScTerms). */
@@ -92,6 +93,8 @@ int tc_eq_table(tc_ctx *ctx, const uint32_t *point, uint32_t n, const uint32_t g
 int tc_combine_rows(tc_ctx *ctx, const void *m, int is_i8, uint64_t R, uint64_t C, const uint32_t *coeffs, uint32_t G, uint32_t *out);
 int tc_row_dots_i8(tc_ctx *ctx, const int8_t *m, uint64_t R, uint64_t C, const uint32_t *vec, uint32_t *out);
 int tc_matmul_i32_i8(tc_ctx *ctx, const int32_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, int64_t *out);
+/* int8 activations: dp4a path (K < 2^17, else TC_DECLINED). */
+int tc_matmul_i8_dp4a(tc_ctx *ctx, const int8_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, int64_t *out);
 int tc_mle_i32(tc_ctx *ctx, const int32_t *v, uint32_t log_n, const uint32_t *point, uint32_t out[4]);
 
 /* Sumcheck sessions (accel.sc_*): factors stay on the device; each round is

@@ -353,6 +353,20 @@ test "cuda matmul accumulators match CPU" {
         const got = (try t.accel.matmulAcc(d.accel(), a, sh[0], x, wm)).?;
         defer a.free(got);
         try std.testing.expectEqualSlices(i64, cpu, got);
+        // int8 activations (incl. -128 and K not a multiple of the tile): the dp4a path
+        for (x) |*v| v.* = switch (r.uintLessThan(u8, 4)) {
+            0 => -128,
+            1 => 127,
+            else => r.intRangeAtMost(i32, -128, 127),
+        };
+        const cpu8 = try proto.matmulAcc(a, &pool, xi, x, wm);
+        defer a.free(cpu8);
+        const before = d.stats();
+        const got8 = (try t.accel.matmulAcc(d.accel(), a, sh[0], x, wm)).?;
+        defer a.free(got8);
+        try std.testing.expectEqual(before.matmuls_dp4a + 1, d.stats().matmuls_dp4a);
+        try std.testing.expectEqual(before.h2d_bytes + T * K, d.stats().h2d_bytes - (if (before.resident_hits == d.stats().resident_hits) K * N else 0));
+        try std.testing.expectEqualSlices(i64, cpu8, got8);
     }
 }
 

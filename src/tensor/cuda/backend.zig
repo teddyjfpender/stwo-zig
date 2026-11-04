@@ -39,6 +39,7 @@ pub const Stats = extern struct {
     gkr_sessions: u64,
     gkr_rounds: u64,
     declined: u64,
+    matmuls_dp4a: u64,
 };
 
 pub const Terms = extern struct {
@@ -78,6 +79,7 @@ pub extern fn tc_eq_table(ctx: *TcCtx, point: [*]const u32, n: u32, gamma: *cons
 pub extern fn tc_combine_rows(ctx: *TcCtx, m: *const anyopaque, is_i8: c_int, R: u64, C: u64, coeffs: [*]const u32, G: u32, out: [*]u32) c_int;
 pub extern fn tc_row_dots_i8(ctx: *TcCtx, m: [*]const i8, R: u64, C: u64, vec: [*]const u32, out: [*]u32) c_int;
 pub extern fn tc_matmul_i32_i8(ctx: *TcCtx, x: [*]const i32, w: [*]const i8, T: u32, K: u32, N: u32, out: [*]i64) c_int;
+pub extern fn tc_matmul_i8_dp4a(ctx: *TcCtx, x: [*]const i8, w: [*]const i8, T: u32, K: u32, N: u32, out: [*]i64) c_int;
 pub extern fn tc_mle_i32(ctx: *TcCtx, v: [*]const i32, log_n: u32, point: [*]const u32, out: *[4]u32) c_int;
 pub extern fn tc_sc_begin(ctx: *TcCtx, factors: [*]const [*]const u32, nf: u32, len: u64, active: u64, terms: *const Terms) ?*TcSc;
 pub extern fn tc_sc_begin_specs(ctx: *TcCtx, specs: [*]const Spec, nf: u32, len: u64, active: u64, terms: *const Terms) ?*TcSc;
@@ -114,6 +116,8 @@ pub const Cuda = struct {
     acc: Accel,
     /// weight passes below this many matrix entries stay on the CPU
     min_pass_elems: usize = 1 << 16,
+    /// int8 activations take the dp4a kernel (else the int64 reference)
+    use_dp4a: bool = true,
     /// declined calls (shape outside the device kernels' bounds)
     declined: u64 = 0,
 
@@ -319,6 +323,15 @@ pub const Cuda = struct {
         }
         const out = try a.alloc(i64, T * N);
         errdefer a.free(out);
+        // int8 activations (the common case after requant): dp4a kernel,
+        // 1 B per X entry over PCIe
+        if (self.use_dp4a and K < (1 << 17) and T > 0 and N > 0) dp4a: {
+            for (x) |v| if (v < -128 or v > 127) break :dp4a;
+            const x8 = try a.alloc(i8, x.len);
+            defer a.free(x8);
+            for (x, x8) |v, *o| o.* = @intCast(v);
+            if (try self.check(tc_matmul_i8_dp4a(self.ctx, x8.ptr, wm.data.ptr, @intCast(T), @intCast(K), @intCast(N), out.ptr))) return out;
+        }
         if (!try self.check(tc_matmul_i32_i8(self.ctx, x.ptr, wm.data.ptr, @intCast(T), @intCast(K), @intCast(N), out.ptr))) {
             a.free(out);
             return null;

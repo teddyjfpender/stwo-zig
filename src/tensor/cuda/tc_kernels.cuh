@@ -40,13 +40,34 @@ struct Factors {
     uint32_t *f[SC_MAX_FACTORS];
 };
 
+// Factor i of the four held in registers, selected without indexing (a
+// runtime index into a thread-local array forces it into local memory: the
+// round kernel's former 224-B frame).
+TC_HD uint32_t sc_sel(uint32_t i, uint32_t x0, uint32_t x1, uint32_t x2, uint32_t x3) {
+    // branch-free mask select on values (no address is ever formed)
+    const uint32_t m0 = 0u - (uint32_t)(i == 0), m1 = 0u - (uint32_t)(i == 1), m2 = 0u - (uint32_t)(i == 2), m3 = 0u - (uint32_t)(i == 3);
+    return (x0 & m0) | (x1 & m1) | (x2 & m2) | (x3 & m3);
+}
+TC_HD qm sc_pick(const qm *cur, uint32_t i) {
+    return qm{sc_sel(i, cur[0].a, cur[1].a, cur[2].a, cur[3].a), sc_sel(i, cur[0].b, cur[1].b, cur[2].b, cur[3].b),
+              sc_sel(i, cur[0].c, cur[1].c, cur[2].c, cur[3].c), sc_sel(i, cur[0].d, cur[1].d, cur[2].d, cur[3].d)};
+}
+
+// Constant-trip loops (terms <= 4, factors per term <= 3) guarded by the
+// runtime counts, so every array index is a compile-time constant after
+// unrolling.
 TC_HD qm sc_eval_terms(const ScTerms &t, const qm *cur) {
     qm v = qm_zero();
-    for (uint32_t k = 0; k < t.n_terms; ++k) {
-        qm prod = cur[t.term_fac[k][0]];
-        for (uint32_t j = 1; j < t.term_len[k]; ++j) prod = qm_mul(prod, cur[t.term_fac[k][j]]);
-        if (!qm_is_one(t.coeff[k])) prod = qm_mul(prod, t.coeff[k]);
-        v = qm_add(v, prod);
+    TC_UNROLL
+    for (uint32_t k = 0; k < 4; ++k) {
+        if (k < t.n_terms) {
+            qm prod = sc_pick(cur, t.term_fac[k][0]);
+            TC_UNROLL
+            for (uint32_t j = 1; j < 3; ++j)
+                if (j < t.term_len[k]) prod = qm_mul(prod, sc_pick(cur, t.term_fac[k][j]));
+            if (!qm_is_one(t.coeff[k])) prod = qm_mul(prod, t.coeff[k]);
+            v = qm_add(v, prod);
+        }
     }
     return v;
 }
@@ -74,7 +95,9 @@ TC_GLOBAL tc_sc_round(Factors fs, ScTerms t, ScRound p, uint32_t *partials, uint
         for (uint64_t x = (uint64_t)TC_BLOCK_ID * TC_BLOCK_DIM + tid; x < p.work; x += stride) {
             qm lo[SC_MAX_FACTORS], diff[SC_MAX_FACTORS], cur[SC_MAX_FACTORS];
             const bool has_hi = x + p.half_len < p.active;
-            for (uint32_t j = 0; j < t.n_factors; ++j) {
+            TC_UNROLL
+            for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) {
+                if (j >= t.n_factors) { lo[j] = diff[j] = cur[j] = qm_zero(); continue; }
                 qm l, h;
                 if (p.prev_half != 0) {
                     l = sc_folded(fs.f[j], p, x);
@@ -88,16 +111,20 @@ TC_GLOBAL tc_sc_round(Factors fs, ScTerms t, ScRound p, uint32_t *partials, uint
                 cur[j] = l;
             }
             if (p.prev_half != 0) {
-                for (uint32_t j = 0; j < t.n_factors; ++j) {
+                TC_UNROLL
+                for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) {
+                    if (j >= t.n_factors) continue;
                     qm_store(fs.f[j], x, lo[j]);
                     if (has_hi) qm_store(fs.f[j], x + p.half_len, qm_add(lo[j], diff[j]));
                 }
             }
             qacc_add(a0, sc_eval_terms(t, cur));
-            for (uint32_t j = 0; j < t.n_factors; ++j) cur[j] = qm_add(qm_add(cur[j], diff[j]), diff[j]);
+            TC_UNROLL
+            for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) cur[j] = qm_add(qm_add(cur[j], diff[j]), diff[j]);
             qacc_add(a2, sc_eval_terms(t, cur));
             if (t.deg >= 3) {
-                for (uint32_t j = 0; j < t.n_factors; ++j) cur[j] = qm_add(cur[j], diff[j]);
+                TC_UNROLL
+                for (uint32_t j = 0; j < SC_MAX_FACTORS; ++j) cur[j] = qm_add(cur[j], diff[j]);
                 qacc_add(a3, sc_eval_terms(t, cur));
             }
         }
@@ -125,11 +152,14 @@ TC_GLOBAL tc_sc_round(Factors fs, ScTerms t, ScRound p, uint32_t *partials, uint
         if (tid == 0 && last) {
             qacc s[3] = {qacc_zero(), qacc_zero(), qacc_zero()};
             const volatile uint32_t *vp = partials;
-            for (uint32_t b = 0; b < TC_NBLOCKS; ++b)
+            for (uint32_t b = 0; b < TC_NBLOCKS; ++b) {
+                TC_UNROLL
                 for (uint32_t k = 0; k < 3; ++k) {
                     const uint64_t o = 4ull * (3 * b + k);
                     qacc_add(s[k], qm{vp[o], vp[o + 1], vp[o + 2], vp[o + 3]});
                 }
+            }
+            TC_UNROLL
             for (uint32_t k = 0; k < 3; ++k) qm_store(result, k, qacc_get(s[k]));
             *counter = 0;  // ready for the next launch (stream-ordered)
         }
@@ -375,6 +405,60 @@ TC_GLOBAL tc_matmul_i32_i8(const int32_t *x, const int8_t *w, uint32_t T, uint32
                 for (int a = 0; a < 4; ++a) {
                     const int64_t xv = xs[(ty * 4 + a) * MM_K + kk];
                     for (int b = 0; b < 4; ++b) TC_P(acc)[a * 4 + b] += xv * ws[kk * MM_B + tx * 4 + b];
+                }
+        TC_END_THREADS
+        TC_SYNC();
+    }
+    TC_THREADS
+        const uint32_t ty = tid / 16, tx = tid % 16;
+        for (int a = 0; a < 4; ++a)
+            for (int b = 0; b < 4; ++b) {
+                const uint32_t gt = bt * MM_B + ty * 4 + a, gn = bn * MM_B + tx * 4 + b;
+                if (gt < T && gn < N) out[(uint64_t)gt * N + gn] = TC_P(acc)[a * 4 + b];
+            }
+    TC_END_THREADS
+}
+
+// int8 x int8 path (activations that fit int8): the same 64 x 64 tiles, K
+// packed 4 per u32 in shared memory (xs[row][kq], ws[kq][col], k = 4 kq + byte)
+// and one dp4a per 4 products. int32 accumulators are exact for K < 2^17
+// (|x w| <= 2^14; the host declines larger K to the int64 kernel). X crosses
+// PCIe as 1 B per entry instead of 4.
+static constexpr uint32_t MM_KQ = MM_K / 4;
+
+TC_DEV uint32_t mm_pack4(const int8_t *p, uint64_t stride, uint32_t avail) {
+    uint32_t v = 0;
+    for (uint32_t b = 0; b < 4; ++b)
+        if (b < avail) v |= (uint32_t)(uint8_t)p[b * stride] << (8 * b);
+    return v;
+}
+
+TC_GLOBAL tc_matmul_i8_dp4a(const int8_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, uint32_t tiles_n, int64_t *out) {
+    TC_SHARED uint32_t xs[MM_B * MM_KQ];
+    TC_SHARED uint32_t ws[MM_KQ * MM_B];
+    TC_PRIV(int32_t, acc, 16);
+    const uint32_t bn = TC_BLOCK_ID % tiles_n, bt = TC_BLOCK_ID / tiles_n;
+    TC_THREADS
+        for (int q = 0; q < 16; ++q) TC_P(acc)[q] = 0;
+    TC_END_THREADS
+    for (uint32_t k0 = 0; k0 < K; k0 += MM_K) {
+        TC_THREADS
+            for (uint32_t e = tid; e < MM_B * MM_KQ; e += TC_BLOCK_DIM) {
+                const uint32_t rt = e / MM_KQ, kq = e % MM_KQ;
+                const uint32_t gt = bt * MM_B + rt, gk = k0 + 4 * kq;
+                xs[e] = (gt < T && gk < K) ? mm_pack4(x + (uint64_t)gt * K + gk, 1, K - gk) : 0u;
+                const uint32_t wq = e / MM_B, wn = e % MM_B;
+                const uint32_t gk2 = k0 + 4 * wq, gn = bn * MM_B + wn;
+                ws[e] = (gk2 < K && gn < N) ? mm_pack4(w + (uint64_t)gk2 * N + gn, N, K - gk2) : 0u;
+            }
+        TC_END_THREADS
+        TC_SYNC();
+        TC_THREADS
+            const uint32_t ty = tid / 16, tx = tid % 16;
+            for (uint32_t kq = 0; kq < MM_KQ; ++kq)
+                for (int a = 0; a < 4; ++a) {
+                    const uint32_t xv = xs[(ty * 4 + a) * MM_KQ + kq];
+                    for (int b = 0; b < 4; ++b) TC_P(acc)[a * 4 + b] = TC_DP4A(xv, ws[kq * MM_B + tx * 4 + b], TC_P(acc)[a * 4 + b]);
                 }
         TC_END_THREADS
         TC_SYNC();

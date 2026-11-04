@@ -460,6 +460,28 @@ extern "C" int tc_matmul_i32_i8(tc_ctx *c, const int32_t *x, const int8_t *w, ui
     return rc;
 }
 
+extern "C" int tc_matmul_i8_dp4a(tc_ctx *c, const int8_t *x, const int8_t *w, uint32_t T, uint32_t K, uint32_t N, int64_t *out) {
+    TC_ENTER(c);
+    if (K >= (1u << 17) || T == 0 || N == 0) return decline(c, "dp4a matmul: K too large for exact int32 sums");
+    c->stats.matmuls++;
+    c->stats.matmuls_dp4a++;
+    bool owned = false;
+    const void *dw = upload(c, w, (uint64_t)K * N, &owned);
+    int8_t *dx = (int8_t *)dev_alloc(c, (uint64_t)T * K);
+    int64_t *dout = (int64_t *)dev_alloc(c, 8ull * T * N);
+    if (!dw || !dx || !dout) return 1;
+    if (h2d(c, dx, x, (uint64_t)T * K)) return 1;
+    const uint32_t tiles_n = (N + tc::MM_B - 1) / tc::MM_B, tiles_t = (T + tc::MM_B - 1) / tc::MM_B;
+    TC_LAUNCH(tc::tc_matmul_i8_dp4a, tiles_n * tiles_t, TC_TB, c->stream, dx, (const int8_t *)dw, T, K, N, tiles_n, dout);
+    TC_CHECK_LAUNCH(c);
+    d2h(c, out, dout, 8ull * T * N);
+    int rc = dsync(c);
+    if (owned) dev_free(c, (void *)dw);
+    dev_free(c, dx);
+    dev_free(c, dout);
+    return rc;
+}
+
 extern "C" int tc_mle_i32(tc_ctx *c, const int32_t *v, uint32_t log_n, const uint32_t *point, uint32_t out[4]) {
     TC_ENTER(c);
     c->stats.mles++;
