@@ -95,6 +95,9 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
     if combined and recursive_receiver is None:
         raise ValueError("combined qualification requires an independently pinned recursive receiver")
     positive(cap, "device cap")
+    native_immutable = positive(manifest.get("immutable_device_bytes", 512 << 20), "native immutable device budget")
+    if not combined and native_immutable > cap:
+        raise ValueError("native immutable device budget exceeds device cap")
     if combined:
         host = positive(manifest.get("combined_host_bytes", 48 << 30), "combined host budget")
         immutable = positive(manifest.get("combined_immutable_device_bytes", 2 << 30), "combined immutable budget")
@@ -154,6 +157,7 @@ def build_plan(basket, manifest, root, driver, receiver, library, output, device
                          "target": str(target), "resources": device_resources(resources, n)})
     return {"schema": SCHEMA, **recursion, "combined": combined, "repeat": repeat, "strict_recursive_receiver": strict_recursive_receiver, "profile": PROFILE,
             "immutable_host_key_bytes": manifest.get("immutable_host_key_bytes", 8 << 30),
+            "immutable_device_bytes": native_immutable,
             "combined_immutable_device_bytes": manifest.get("combined_immutable_device_bytes", 2 << 30),
             "combined_host_bytes": manifest.get("combined_host_bytes", 48 << 30), "runtime_target_sha256": expected_runtime,
             "assets": {k: str(p) for k, p in assets.items()}, "asset_sha256": pins,
@@ -385,7 +389,7 @@ def producer_manifest(plan, job):
     manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "profile": plan["profile"],
                 "blocks": {str(job["block"]): {"request": job["request"], "expected_cpu_segments": job["segments"]}},
                 "execution_order": [job["block"]], "resources": job["resources"], "repeat": plan.get("repeat", 2),
-                "immutable_host_key_bytes": plan.get("immutable_host_key_bytes", 8 << 30), "immutable_device_bytes": 512 << 20,
+                "immutable_host_key_bytes": plan.get("immutable_host_key_bytes", 8 << 30), "immutable_device_bytes": plan.get("immutable_device_bytes", 512 << 20),
                 "combined_host_bytes": plan.get("combined_host_bytes", 48 << 30),
                 "combined_immutable_device_bytes": plan.get("combined_immutable_device_bytes", 2 << 30)}
     if plan.get("recursion_mode", "serial") == "ready_candidate":

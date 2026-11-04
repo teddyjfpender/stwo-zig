@@ -27,6 +27,7 @@ class ResidentBasket(unittest.TestCase):
         self.basket = {"blocks": [{"block": 1, "set": "scored", "new_payload_request_root": "0xabcd"}]}
         self.manifest = {"schema": "rv64-ethereum-basket-inputs/v1", "resources": {"fixed_setup_bytes": 100, "retained_frontend_bytes": 200,
                          "schedule": {"lanes": 2, "workers_per_lane": 4, "memory_cap_bytes": 1024}},
+                         "immutable_device_bytes": 50,
                          "blocks": {"1": {"request": "request.json", "expected_cpu_segments": 7}}}
 
     def plan(self, **kw):
@@ -191,6 +192,20 @@ class ResidentBasket(unittest.TestCase):
     def test_runtime_hash_mismatch_fails(self):
         with self.assertRaisesRegex(ValueError, "runtime differs"):
             self.plan(runtime="0" * 64)
+
+    def test_native_immutable_budget_is_pinned_and_reaches_producer_manifest(self):
+        plan = self.plan()
+        self.assertEqual(plan["immutable_device_bytes"], 50)
+        self.assertEqual(R.producer_manifest(plan, plan["jobs"][0])["immutable_device_bytes"], 50)
+        old = dict(plan)
+        del old["immutable_device_bytes"]
+        self.assertEqual(R.producer_manifest(old, old["jobs"][0])["immutable_device_bytes"], 512 << 20)
+        for value in (True, 0, 101):
+            with self.assertRaises(ValueError):
+                self.plan(manifest=dict(self.manifest, immutable_device_bytes=value))
+        changed = dict(plan, immutable_device_bytes=60)
+        with self.assertRaisesRegex(ValueError, "production authority"):
+            R.qualification_view(plan, changed)
 
     def test_prefix_and_profile_rejected(self):
         for field, value in (("prefix_count", 1), ("jobs", "packets")):
