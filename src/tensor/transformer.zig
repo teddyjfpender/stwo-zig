@@ -324,12 +324,17 @@ pub const Builder = struct {
     // --- core ops (weights) -------------------------------------------------
 
     pub fn matmul(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u32 {
+        return self.matmulShift(ws, x, w, null);
+    }
+
+    /// As `matmul`, with a fixed requant shift (null: chosen from the data).
+    pub fn matmulShift(self: *Builder, ws: *const proto.WeightStore, x: u32, w: u32, shift: ?u5) !u32 {
         const xi = self.infos.items[x];
         const acc = try @import("accel.zig").matmulAcc(self.accel, self.a, xi.log_dims[0], self.wit.items[x], ws.matrix(w)) orelse
             try proto.matmulAcc(self.a, self.pool, xi, self.wit.items[x], ws.matrix(w));
         var acc_owned = true;
         defer if (acc_owned) self.a.free(acc);
-        const s = model.chooseShift(acc);
+        const s = shift orelse model.chooseShift(acc);
         const y = try self.a.alloc(i32, acc.len);
         for (acc, y) |v, *o| o.* = proto.requant(v, s);
         const id = try self.add(TensorInfo.mat(xi.log_dims[0], ws.infos[w].log_dims[1]), y);
