@@ -177,6 +177,15 @@ const Job = struct {
         const lease_status: c_int = if (b.live_leases) |query| query(b.service.session, &kinds, &lease_bytes) else -1;
         std.debug.print("GPU_DEVICE_PEAK stage=trace_commit tree={} mode={s} columns={} calls={} coefficient_bytes={} scratch_bytes={} legacy_scratch_bytes={} live_lease_bytes={} live_kinds={any} pool_used_bytes={} pool_reserved_bytes={} pool_status={} lease_status={}\n", .{ self.request.tree_index, mode, self.request.columns.len, calls, coefficient_bytes, scratch_bytes, legacy_bytes, lease_bytes, kinds, used, reserved, pool_status, lease_status });
     }
+    fn streamPays(self: *Job, order: []const usize, beta: u32, tw: *const engine.poly.twiddles.TwiddleTree([]M), budget: usize) !bool {
+        const rows = try self.a.alloc(u32, order.len);
+        defer self.a.free(rows);
+        for (order, rows) |original, *row| row.* = @as(u32, 1) << @intCast(self.request.columns[original].log_size + beta);
+        var p = try StreamPlan.plan(self.a, rows, budget);
+        defer p.deinit(self.a);
+        const aux = tw.twiddles.len + tw.itwiddles.len + 7 * order.len;
+        return StreamPlan.alignUp(aux) + p.scratchWords() < StreamPlan.legacyScratchWords(rows, aux);
+    }
     fn liveLeaseBytes(self: *Job) ?u64 {
         const query = self.backend.live_leases orelse return null;
         var kinds: [5]u64 = @splat(0);
@@ -374,7 +383,10 @@ const Job = struct {
             try retireJoinedInput(&ctx, retirement, r.scope);
         }
         const stream_budget: ?usize = if (separate_coefficients and b.mixed_seeded != null and b.layer != null) streamBudget() else null;
-        if (stream_budget) |budget| {
+        // Predicted-peak selection: a narrow tree's two state banks can exceed
+        // its whole LDE. Both paths commit identical words; take the smaller.
+        const streamed_budget: ?usize = if (stream_budget) |budget| (if (try self.streamPays(order, beta, tw, budget)) budget else null) else null;
+        if (streamed_budget) |budget| {
             if (r.retire_input == null) try self.copyInputs(&ctx, try ctx.borrow(coefficients), coefficients.words.?, order, offsets);
             const root = try self.streamRoot(&ctx, raw, order, offsets, coefficients.words.?, beta, tw, budget);
             try self.publish(&ctx, root, &coefficients, offsets, scope, coefficient_cells, &transferred);
