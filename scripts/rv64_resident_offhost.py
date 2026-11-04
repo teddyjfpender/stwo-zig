@@ -28,7 +28,7 @@ def file_snapshot(directory):
 
 def qualify(plan_path, case, block, device_count, request_path, driver, library, output,
             receiver=ARM_RECEIVER, receiver_sha256=ARM_SHA256, workers=4,
-            host_bytes=32 << 30, lock=None):
+            host_bytes=32 << 30, lock=None, guest_paths=None):
     plan_path, case, request_path, output = map(lambda p: Path(p).resolve(), (plan_path, case, request_path, output))
     receiver, driver, library = map(lambda p: Path(p).resolve(), (receiver, driver, library))
     if output.is_relative_to(case):
@@ -48,14 +48,17 @@ def qualify(plan_path, case, block, device_count, request_path, driver, library,
     if B.sha(receiver) != receiver_sha256:
         raise ValueError("independently pinned CPU receiver changed")
     request = B.load(request_path)
+    if guest_paths is not None and set(guest_paths) - {"elf", "input"}:
+        raise ValueError("unknown guest/input I/O mapping")
     source_assets = {}
     for name in ("elf", "input"):
-        # Worker-only operational copies cannot change guest/input paths. The
-        # caller installs these exact original absolute paths before admission.
-        path = Path(request[name])
-        if not path.is_absolute() or B.sha(path) != request[name + "_sha256"]:
-            raise ValueError("original absolute guest/input path missing or changed: " + name)
-        source_assets[name] = {"original": str(path), "local": str(path.resolve()), "sha256": B.sha(path)}
+        # Explicit guest/input I/O mappings preserve the original request bytes
+        # and identity hashes; only the receiver operational copy changes.
+        original_path = Path(request[name])
+        path = Path(guest_paths.get(name, original_path)) if guest_paths is not None else original_path
+        if not original_path.is_absolute() or not path.is_absolute() or B.sha(path) != request[name + "_sha256"]:
+            raise ValueError("pinned guest/input I/O path missing or changed: " + name)
+        source_assets[name] = {"original": str(original_path), "local": str(path.resolve()), "sha256": B.sha(path)}
     if request["elf_sha256"] != original["elf_sha256"] or request["input_sha256"] != declared["input_sha256"]:
         raise ValueError("guest/input identity differs from original production plan")
     qualified = copy.deepcopy(original)
@@ -85,12 +88,20 @@ def qualify(plan_path, case, block, device_count, request_path, driver, library,
     shutil.copyfile(request_path, output / "original-request.json")
     operational = copy.deepcopy(request)
     operational["workers"] = workers
+    request_overrides = {"workers": workers}
+    if guest_paths is not None:
+        for name, info in source_assets.items():
+            if operational[name] != info["local"]:
+                request_overrides[name] = {"from": operational[name], "to": info["local"]}
+                operational[name] = info["local"]
     operational_path = output / "receiver-request.json"
     B.atomic_json(operational_path, operational)
     B.atomic_json(output / "qualification-plan.json", qualified)
     B.atomic_json(output / "artifacts-before.json", before)
     lock = Path(lock) if lock is not None else Path(tempfile.gettempdir()) / "rv64-offhost-strict-receiver.lock"
-    environment = R.receiver_environment(dict(os.environ), output / "gpu-disabled")
+    clean_environment = dict(os.environ)
+    clean_environment.pop("STWO_ZIG_RV64_SETUP_CACHE", None)
+    environment = R.receiver_environment(clean_environment, output / "gpu-disabled")
     proof = case / "batch" / "trial-0" / str(block) / "proof"
     command = ["nice", "-n", "10", *B.command(receiver, original["profile"], "verify-recursion-candidate",
                operational_path, proof, declared["resources"]["fixed_setup_bytes"], host_bytes)]
@@ -138,7 +149,7 @@ def qualify(plan_path, case, block, device_count, request_path, driver, library,
               "qualification_plan_sha256": R.plan_identity(qualified), "producer_asset_sha256": original["asset_sha256"],
               "asset_sha256": qualified["asset_sha256"], "strict_recursive_receiver": True,
               "request_sha256": pins["request"], "receiver_request_sha256": B.sha(operational_path),
-              "request_overrides": {"workers": workers}, "receiver_sha256": pins["receiver"],
+              "request_overrides": request_overrides, "receiver_sha256": pins["receiver"],
               "receiver_host_live_cap_bytes": host_bytes, "receiver_recycler_cache_cap_bytes": RECYCLER_BYTES,
               "recycler_cap_basis": "qualified receiver build contract; not an operational CLI override",
               "receiver_host": {"system": platform.system(), "machine": platform.machine()},
@@ -153,7 +164,7 @@ def qualify(plan_path, case, block, device_count, request_path, driver, library,
               "producer_process": pending["producer_process"], "gpu": pending["gpu"], "physical_gpu_memory": pending["physical_gpu_memory"],
               "trials": trials, "artifacts_unchanged": True, "immutable_case_files": len(before),
               "artifact_snapshot_sha256": B.sha(output / "artifacts-before.json"),
-              "gpu_disabled_environment": {"CUDA_VISIBLE_DEVICES": "", "STWO_RV64_GPU_PCS_HELPER": "/bin/false"},
+              "gpu_disabled_environment": {"CUDA_VISIBLE_DEVICES": "", "STWO_RV64_GPU_PCS_HELPER": "/bin/false", "STWO_ZIG_RV64_SETUP_CACHE": "unset"},
               "qualification_scope": "One CPU-only strict receiver shares fresh native authority and restores every recursive node. Producer plan/request/proofs/logs are unchanged; no producer replay or invented warm trial."}
     B.atomic_json(output / "result.json", result)
     return result
@@ -170,9 +181,12 @@ def main():
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--host-bytes", type=int, default=32 << 30)
     parser.add_argument("--lock", type=Path)
+    parser.add_argument("--guest-elf", type=Path, help="Explicit local I/O copy with the original guest hash")
+    parser.add_argument("--guest-input", type=Path, help="Explicit local I/O copy with the original input hash")
     args = parser.parse_args()
     result = qualify(args.plan, args.case, args.block, args.device_count, args.request, args.driver, args.library,
-                     args.output, args.receiver, args.receiver_sha256, args.workers, args.host_bytes, args.lock)
+                     args.output, args.receiver, args.receiver_sha256, args.workers, args.host_bytes, args.lock,
+                     guest_paths={name: value for name, value in (("elf", args.guest_elf), ("input", args.guest_input)) if value is not None} or None)
     print(__import__("json").dumps({"accepted": True, "block": result["block"], "result": str(args.output / "result.json")}))
 
 
