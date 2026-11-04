@@ -34,7 +34,11 @@ pub fn policyArity(profile_default: usize) !usize {
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
     const value = if (std.process.getEnvVarOwned(fba.allocator(), "STWO_RV64_FOLD_ARITY")) |text|
         std.fmt.parseInt(usize, text, 10) catch return error.InvalidRecursiveFoldArity
-    else |_| profile_default;
+    else |err| switch (err) {
+        error.EnvironmentVariableNotFound => profile_default,
+        // A set but unreadable value (e.g. too long) fails closed.
+        else => return error.InvalidRecursiveFoldArity,
+    };
     if (value < 2 or value > max_arity) return error.InvalidRecursiveFoldArity;
     return value;
 }

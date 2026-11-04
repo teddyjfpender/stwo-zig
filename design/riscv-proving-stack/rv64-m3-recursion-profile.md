@@ -83,13 +83,21 @@ its own `V.verify`, and its own FIXED-root equality against the child authority.
 child's verification is a separate sub-statement with its own transcript, so the
 fold's soundness error is the union of its children's errors plus its own. That is the
 same accounting as two levels of binary folds. Over the whole tree the union runs over
-24 child verifications (r1: 32), and the per-attempt bound stays at 2^-128 for the
+22 child verifications (r1: 32; 17 leaves at arity 4 give folds of
+4, 4, 4, 4, 4 and a binary root), and the per-attempt bound stays at 2^-128 for the
 attempt that targets one proof.
 
 **4. Leaf → outer composition.** Leaves verify native proofs under the native profile,
 which is unchanged. The leaf wrapper's own proof is an outer proof under m3. The fold
 at the next level verifies that proof under m3. Native and outer bounds are separate,
 per-attempt 2^-128 terms, as in r1.
+
+**5. Robustness check under a weaker assumption (independent review).** If the
+up-to-capacity conjecture is replaced by the provable Johnson-bound regime
+(per-query error about sqrt(rho), i.e. log_blowup/2 bits per query), the query term is
+r1: 108/2 + 20 = 74 bits, m3 b4: 51 + 26 = 77 bits, m3 b8: 1.5*34 + 26 = 77 bits.
+So m3 is not weaker than the accepted r1 outer profile under the less optimistic
+assumption either; neither reaches 128 there. [D, arithmetic only]
 
 **Conclusion.** m3 matches r1's per-attempt conjectured security, 128 bits under the
 same ethSTARK assumption and ideal hashes, and has a slightly smaller collision-term
