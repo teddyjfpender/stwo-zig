@@ -123,7 +123,10 @@ active rows (capacity padding to the max load, then to a power of two).
 ## 3. Formulas and the Maverick projection
 
 Per request, T tokens, dh = D/H, Dkv = Hkv dh, Q = pow2(D + 2 Dkv) (fused
-QKV), slack limbs λ = 2 if log2 T + 9 > 16 else 1:
+QKV), slack limbs λ = 2 if a division slack (lt + 9 bits over n = lt +
+log2 D key bits) takes the limb path, else 0 (section 6: since the wide
+slack key, λ = 0 whenever 17 <= lt + 9 <= 20 and n >= lt + 11, i.e. D >= 2048
+at T = 256 to 2048):
 
 * attention block (dense and MoE layers):
   rms1 + rms2: 6 T D (xs, u, y; xs only when the input is wider than the
@@ -202,7 +205,7 @@ argument and adversarial tests before it lands.
 | causal half: commit scores / sel / e for j ≤ t only (on the masked half, sel = 0 and e is the exp table at the masked bias; needs a triangular layout and a proof that the mask is honoured) | ~half of 3 H T² | ~15 % |
 | `d` virtual: the exp key's input is the expression m − S − bias (already a lineq), not a committed column | H T² per layer | ~10 % |
 | fused glu (`Op.glu`, one triple lookup) in the transformer MLPs and expert stacks: drops the committed SiLU output | T F, E C Fe, T Fs | ~7 % |
-| division slacks as virtual keys into one 2^20 range table (instead of 16-bit limb pairs) | 4 T D per layer | ~5 % |
+| division slacks as virtual keys into one 2^(lt+9) range table (instead of 16-bit limb pairs). **Implemented, section 6** | 4 T D per layer | 5.0 % (measured formula) |
 | residual stream as expressions (lineq sums) where consumers accept expressions | 2 T D per layer | ~2.5 % (needs checking) |
 | one-hot embedding as a public input to the gather (verifier evaluates its sparse MLE) | T V | ~1 % |
 | together | | ~56 % → n_w ≈ 8.8e9 |
@@ -229,3 +232,86 @@ work. It changes the PCS encoding, so it is a protocol change, not a tweak.
   in ReleaseFast. The model bench at E = 64, T = 512 hit this. Chunk
   starts are now clamped. Outputs for every shape that ran before are
   identical, so no digests change.
+
+## 6. Wide slack key (implemented, branch codex/tensor-wv-wide-slack-key)
+
+`Builder.rangeWide(n, e, bits)` proves `e in [0, 2^bits)` over `{0,1}^n`.
+Above 16 bits it used to commit two 16-bit limbs `lo`, `hi`, key both into
+range(16) / range(bits - 16) and add the lineq `e = lo + 2^16 hi`. It now
+emits **one key of the never-committed expression `e` into range(bits)**
+when
+
+    16 < bits <= MAX_TABLE_BITS (20)   and   n >= bits + 2
+
+(`Builder.wideKeyDirect`). The second condition keeps the 2^bits multiplicity
+column at most 1/4 of the 2 · 2^n limb elements it replaces. The rule depends
+only on (n, bits), which the verifier rebuilds from the model description, so
+the statement stays deterministic and no prover-supplied shape enters it. The
+honest prover still refuses an out-of-range `e` (`ValueOutOfRange`).
+
+Where it fires: the two attention division slacks `2 acc + den - 2 od` and
+`den - 2 acc + 2 od - 1` (lt + 9 bits over n = lt + lh + ldh = log2(T D)),
+whenever D >= 2048 and 8 <= lt <= 11. The RMSNorm isqrt slacks (n = lt) and
+every toy shape keep the limb path, so **no pinned digest changes** (all
+proof-digest tests pass unchanged). Proofs at the larger shapes (ledger
+benches) change, as intended.
+
+**Soundness.** The limb path proves exactly `{e : e = lo + 2^16 hi, lo in
+[0, 2^16), hi in [0, 2^(bits-16))} = [0, 2^bits)` as integers, given the
+lineq is an integer identity (|e| + 2^bits < p, checked by `bounds.zig`). The
+direct key proves `e mod p in [0, 2^bits)` by LogUp membership; with
+`|e| + 2^bits < p` (bounds.zig `exprCheck` on every non-covering key input,
+the same magnitude the lineq check used) that is the same integer set. For
+the slacks |e| <= 2 |acc| + |den| + 2 |od| < 2^(lt+19) <= 2^30 at lt <= 11
+(acc, od < 2^(lt+16)), and 2^30 + 2^20 < p; bounds.zig re-derives this per
+statement from the proved bounds and rejects the statement otherwise. LogUp counts: range(lt + 9) gets 2 T D keys per layer
+(Maverick: 48 · 2 · 2^10 · 5120 ≈ 5.0e8 < p, `checkLogUpCounts`), and the
+range(16) relation loses 4 T D limb keys per layer (−1.0e9 at Maverick),
+which helps the per-relation LogUp bound that a full-scale run needs.
+Security accounting is derived from the statement (`security.zig`): one
+lineq term (n/|F|) per slack disappears and the LogUp terms are re-derived
+from the relations; the dense 512-token proof reports 149 terms (was 151)
+and the same 56.59-bit compiled level.
+
+**Tests** (`wide_slack_test.zig`): the rule table; a synthetic statement with
+`3a - b` keyed into range(17) over n = 19 (no limb tensors, no lineq) that
+proves honestly and rejects `3a - b = -1` and `3a - b = 2^17` with a, b
+inside their own ranges (unchecked prover). A mutant that keys into
+range(bits + 1) is caught by the 2^17 case. The honest prover refuses both
+values. Attention at T = 256 with one 2048-wide head: no limb or slack
+tensors, exactly two range(17) keys, validateStatement passes, it proves, and
+EXT-1's attack (inflate o on the last row with od = o · den recomputed) is
+rejected for o in {1, 64, 127, -1}.
+
+### Measured (battery power; times indicative only)
+
+| run | committed elems before → after | per token per layer | proof bytes | prove s (median of 3) |
+|---|---:|---:|---:|---:|
+| dense layer T 1024, D 2048, F 4096, 16q/4kv (noprove) | 124,371,176 → 116,506,848 (−6.3 %) | 121,456 → 113,776 (3.77 → 3.53 Mbit) | – | – |
+| dense layer T 512, same widths (proved) | 45,444,324 → 41,512,160 (−8.7 %) | 88,758 → 81,078 | 469,104 → 463,624 | 0.972 → 0.963 |
+| MoE layer T 512, D 2048, E 16, C 128, Fe 512 (`layer 9 11 9 4 12 54 2 20 2 1 4 7 1 2 54`) | 55,170,788 → 51,238,624 (−7.1 %) | 107,755 → 100,075 | 688,392 → 684,736 | 1.457 → 1.248 |
+| LM, embed + dense + MoE, D 256 (section 2 run) | 39,253,713 → unchanged (n = 17 < 20: limbs kept) | – | – | – |
+
+The dense T 1024 delta is −8,388,608 (4 T D limbs) + 524,288 (the range(19)
+multiplicity column) − 8 (the range(3) table is gone). GKR leaves: direct
+80.2M → 71.8M, virtual 48.8M → 53.0M, tables 72K → 596K (total −2.8 %).
+`ledger_project.py` reproduces every class of both dense runs exactly.
+(Its formula check does not model the MoE *layer* bench, whose classes are
+the transformer.moe path, before or after; the MoE delta above is measured.)
+The measured dense prove time moves by about 1 %: the limbs were cheap to
+commit next to GKR and the H·T² work, so elements fall faster than time.
+
+### Projection (Maverick, ledger formulas)
+
+| | before | after |
+|---|---:|---:|
+| dense elems / token / layer (model dims) | 329,826 (10.2 Mbit) | 309,346 (9.59 Mbit) |
+| MoE elems / token / layer (model dims) | 483,943 (15.0 Mbit) | 463,463 (14.4 Mbit) |
+| n_w per request, model dims | 2.021e10 | 1.921e10 (−1.00e9, −5.0 %) |
+| n_w per request, power-of-two dims (D 8192) | 2.924e10 | 2.763e10 (−1.61e9, −5.5 %) |
+
+Time: at the per-element coefficients (19.6-27.2 ns/elem battery, 40-55 ns
+serving.md) the −1.0e9 elements would be −20 to −55 s per request on this
+CPU, but the measured 1 % prove-time change says the realistic gain is a few
+seconds; the element count, the opening bytes and the LogUp count are the
+real wins.

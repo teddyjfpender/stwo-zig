@@ -385,10 +385,25 @@ pub const Builder = struct {
         return xt.materializePar(self.a, self.pool, self.statement(), self.view(), e, n);
     }
 
-    /// expr in [0, 2^bits) over {0,1}^n. Above 16 bits: committed 16-bit limbs
-    /// lo, hi with expr == lo + 2^16 hi (lineq) and range keys on both.
+    /// expr in [0, 2^bits) over {0,1}^n. Up to 16 bits: one key into
+    /// range(bits). Above 16 bits, when `wideKeyDirect(n, bits)`: one key of
+    /// the (virtual) expression into range(bits), nothing committed
+    /// (ledger.md, "wide slack key"). Otherwise: committed 16-bit limbs lo,
+    /// hi with expr == lo + 2^16 hi (lineq) and range keys on both. The
+    /// choice depends only on (n, bits), which the verifier rebuilds from
+    /// the model description, so the statement stays deterministic.
     pub fn rangeWide(self: *Builder, n: u32, e: xt.Expr, bits: u32) !void {
         if (bits <= 16) {
+            self.next_name = null;
+            return self.key(n, e, null, .{ .range = @intCast(bits) });
+        }
+        if (wideKeyDirect(n, bits)) {
+            // honest-prover refusal, as in the limb path
+            if (!self.shape_only) {
+                const v = try self.materialize(e, n);
+                defer self.a.free(v);
+                for (v) |x| if (x < 0 or x >= (@as(i64, 1) << @intCast(bits))) return error.ValueOutOfRange;
+            }
             self.next_name = null;
             return self.key(n, e, null, .{ .range = @intCast(bits) });
         }
@@ -416,6 +431,14 @@ pub const Builder = struct {
         terms[e.terms.len] = term(-1, Ref.w(lo_id), &.{ids(0, n)});
         terms[e.terms.len + 1] = term(-65536, Ref.w(hi_id), &.{ids(0, n)});
         try self.lineq(n, .{ .terms = terms, .constant = e.constant });
+    }
+
+    /// rangeWide's single-key rule above 16 bits: the range(bits) table fits
+    /// (bits <= MAX_TABLE_BITS) and the key count 2^n is at least 4 x the
+    /// table (n >= bits + 2), so the 2^bits multiplicity column costs at most
+    /// 1/4 of the two limb columns it replaces.
+    pub fn wideKeyDirect(n: u32, bits: u32) bool {
+        return bits > 16 and bits <= xt.MAX_TABLE_BITS and n >= bits + 2;
     }
 
     /// Signed range: x + 2^(bits-1) in [0, 2^bits) (elementwise, all bits of x).

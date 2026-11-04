@@ -28,22 +28,54 @@ def pow2ceil(x):
     return 1 << max(0, math.ceil(math.log2(x)))
 
 
-def slack_limbs(T):
-    # attention division slacks are lt + 9 bits: committed 16-bit limb pairs above 16
-    return 2 if (int(math.log2(T)) + 9) > 16 else 1
+def ilog2c(x):
+    return max(0, math.ceil(math.log2(x)))
 
 
-def isqrt_limbs(D):
-    # RMSNorm isqrt slacks: gap_bits = log2(D) + 5 (int8 activations)
-    return 2 if int(math.log2(D)) + 5 > 16 else 0
+def wide_key_direct(n, bits):
+    # transformer.Builder.wideKeyDirect: above 16 bits, one virtual key into
+    # range(bits) (no limbs) when the table fits (<= 20 bits) and 2^n >= 4 2^bits
+    return 16 < bits <= 20 and n >= bits + 2
+
+
+def range_limbs(n, bits):
+    # committed limb tensors per side of a rangeWide(n, ., bits): 0 (plain or
+    # direct key) or 1 (lo and hi, one each)
+    return 0 if bits <= 16 or wide_key_direct(n, bits) else 1
+
+
+def slack_bits(T):
+    return int(math.log2(T)) + 9
+
+
+def slack_limbs(T, D):
+    # attention division slacks: 2 rangeWide calls of lt + 9 bits over
+    # n = lt + lh + ldh = log2(T D) bits; each commits lo + hi unless direct
+    return 2 * range_limbs(int(math.log2(T)) + ilog2c(D), slack_bits(T))
+
+
+def isqrt_limbs(T, D):
+    # RMSNorm isqrt slacks: 2 rangeWide calls of gap_bits = log2(D) + 5 bits
+    # (int8 activations) over n = log2(T) bits
+    return 2 * range_limbs(int(math.log2(T)), int(math.log2(D)) + 5)
+
+
+def direct_tables(T, D):
+    # range tables a direct wide key adds (multiplicity column 2^bits, once per
+    # request: one range(bits) table is shared by every layer)
+    lt = int(math.log2(T))
+    out = set()
+    if wide_key_direct(lt + ilog2c(D), slack_bits(T)):
+        out.add(slack_bits(T))
+    return sum(1 << b for b in out)
 
 
 # (scope, name) -> function(s, first_layer) giving elements per layer, for
 # parts "dense" / "moe". Attention-block classes are shared by both parts.
 def attn_block(s, first):
     T, D, H, Dkv = s["T"], s["D"], s["H"], s["Dkv"]
-    sl = slack_limbs(T)
-    il = isqrt_limbs(D)
+    sl = slack_limbs(T, D)
+    il = isqrt_limbs(T, D)
     r = {}
     for rms in ("rms1", "rms2"):
         if not (rms == "rms1" and first):
@@ -235,11 +267,13 @@ def main(paths):
         tot_d = sum(dense.values())
         tot_m = sum(moe.values())
         tot_r = sum(req.values())
-        mult = 100_000  # multiplicity columns: table sizes, ~8e4 measured, per request
+        # multiplicity columns: table sizes, ~8e4 measured, per request, plus
+        # the range(lt + 9) table of the direct division-slack keys
+        mult = 100_000 + direct_tables(s["T"], s["D"])
         n_w = nd * tot_d + nm * tot_m + tot_r + mult
         print(f"\n== Maverick ({'model dims, ideal' if ideal else 'power-of-two dims, as stwo-zig builds it'}): "
               f"T={s['T']} D={s['D']} H={s['H']} Hkv={s['Hkv']} F={s['F']} Fe={s['Fe']} Fs={s['Fs']} E={s['E']} C={s['C']} V={s['V']} Nr={s['Nr']} Q={s['Q']}")
-        print(f"   n_w = 24 x dense({fmt(tot_d)}) + 24 x moe({fmt(tot_m)}) + request({fmt(tot_r)}) + mult(~1e5) = {n_w:.3e} elements"
+        print(f"   n_w = 24 x dense({fmt(tot_d)}) + 24 x moe({fmt(tot_m)}) + request({fmt(tot_r)}) + mult({mult:.2e}) = {n_w:.3e} elements"
               f" = {n_w * 31 / 8 / 2**30:.1f} GiB at 31 bits")
         print(f"   per token per layer: dense {tot_d / s['T']:,.0f} elems ({31 * tot_d / s['T']:,.0f} bits), moe {tot_m / s['T']:,.0f} elems ({31 * tot_m / s['T']:,.0f} bits)")
         allc = {}

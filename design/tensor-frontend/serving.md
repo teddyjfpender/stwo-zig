@@ -545,6 +545,11 @@ Verify per request: about 0.2-0.3 s on one thread.
 * All of these would need to be streamed per layer and per tensor; none of
   that is built.
 
+**Witness-volume levers.** ledger.md breaks n_w down per committed tensor.
+Implemented so far: the wide slack key (ledger.md section 6), which turns
+the attention division slack limbs into one range(lt + 9) key and takes the
+ledger's Maverick n_w from 2.021e10 to 1.921e10 (−5.0 %).
+
 **Errors that could break this extrapolation.**
 * p is assumed constant per element. It rose from 40 to 46 ns between T = 256
   and T = 512, and at log n_w ≈ 34 it is likely higher. The 55 ns column is a

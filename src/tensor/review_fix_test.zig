@@ -30,7 +30,7 @@ test "EXT-5: mleEvalI32 on public values 2^31-1 and -2^31 is total and canonical
 // ---------------------------------------------------------------------------
 // EXT-1 / EXT-3: softmax-PV.
 
-const Att = struct {
+pub const Att = struct {
     pool: f.Pool,
     ws: proto.WeightStore,
     b: tf.Builder,
@@ -45,6 +45,11 @@ const Att = struct {
 const att_winfo = [_]TensorInfo{TensorInfo.mat(2, 2)};
 
 fn buildAtt(a: std.mem.Allocator, att: *Att, lt: u32, v_of: *const fn (usize) i32) !void {
+    return buildAttD(a, att, lt, 1, v_of);
+}
+
+/// As buildAtt with head dim 2^ld (still 1 head).
+pub fn buildAttD(a: std.mem.Allocator, att: *Att, lt: u32, ld: u32, v_of: *const fn (usize) i32) !void {
     try att.pool.init(a, 2);
     att.pc = .{ .pcs = .{ .log_blowup = 2, .n_queries = 8, .pow_bits = 1 }, .weight_log_cols = 2, .witness_log_cols_max = 8, .gkr_threads = 2 };
     var dummy: [16]i8 = [_]i8{0} ** 16;
@@ -55,7 +60,7 @@ fn buildAtt(a: std.mem.Allocator, att: *Att, lt: u32, v_of: *const fn (usize) i3
     att.b = tf.Builder.init(a, &att.pool);
     const b = &att.b;
     try b.weight_infos.append(a, TensorInfo.mat(2, 2));
-    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = 1, .log_f = 1, .log_heads = 0, .log_kv_heads = 0 };
+    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = 1, .log_heads = 0, .log_kv_heads = 0 };
     try cfg.validate();
     const cb = try tf.causalBias(a, lt);
     defer a.free(cb);
@@ -64,28 +69,28 @@ fn buildAtt(a: std.mem.Allocator, att: *Att, lt: u32, v_of: *const fn (usize) i3
     const exp_table = try b.xtable(10, &et);
     const c = tf.Ctx{ .cfg = cfg, .ws = &att.ws, .rope = 0, .bias = bias, .exp_table = exp_table, .silu = 0, .gammas = &.{} };
     const T = @as(usize, 1) << @intCast(lt);
-    const qr = try b.add(TensorInfo.mat(lt, 1), try a.alloc(i32, 2 * T));
+    const Dh = @as(usize, 1) << @intCast(ld);
+    const qr = try b.add(TensorInfo.mat(lt, ld), try a.alloc(i32, Dh * T));
     @memset(b.wit.items[qr], 0);
     try b.rangeSigned(qr, 9);
-    const kr = try b.add(TensorInfo.mat(lt, 1), try a.alloc(i32, 2 * T));
+    const kr = try b.add(TensorInfo.mat(lt, ld), try a.alloc(i32, Dh * T));
     @memset(b.wit.items[kr], 0);
     try b.rangeSigned(kr, 9);
-    const v = try b.add(TensorInfo.mat(lt, 1), try a.alloc(i32, 2 * T));
+    const v = try b.add(TensorInfo.mat(lt, ld), try a.alloc(i32, Dh * T));
     for (0..T) |j| {
-        b.wit.items[v][2 * j] = v_of(j);
-        b.wit.items[v][2 * j + 1] = v_of(j);
+        for (0..Dh) |col| b.wit.items[v][Dh * j + col] = v_of(j);
     }
     try b.rangeSigned(v, 8);
     att.at = try tf.attention(b, c, qr, kr, v, &.{});
 }
 
-fn deinitAtt(a: std.mem.Allocator, att: *Att) void {
+pub fn deinitAtt(a: std.mem.Allocator, att: *Att) void {
     att.b.deinit();
     att.ws.deinit(a);
     att.pool.deinit();
 }
 
-fn proveVerify(a: std.mem.Allocator, att: *Att) !void {
+pub fn proveVerify(a: std.mem.Allocator, att: *Att) !void {
     const st = att.b.statement();
     const wv = try att.b.witnessView(a);
     defer a.free(wv);
@@ -95,7 +100,7 @@ fn proveVerify(a: std.mem.Allocator, att: *Att) !void {
     try proto.verify(a, att.pc, st, proto.weightKey(&att.ws), &proof);
 }
 
-fn vFirst(j: usize) i32 {
+pub fn vFirst(j: usize) i32 {
     return @intFromBool(j == 0);
 }
 fn vConst(_: usize) i32 {
