@@ -1,0 +1,6 @@
+[
+ {"name": "auto", "env": {"STWO_RV64_DEVICE_ARENA": "1"}},
+ {"name": "cap22g", "env": {"STWO_RV64_DEVICE_ARENA": "22G"}},
+ {"name": "cap18g", "env": {"STWO_RV64_DEVICE_ARENA": "18G"}},
+ {"name": "cap18g-idle0", "env": {"STWO_RV64_DEVICE_ARENA": "18G", "STWO_RV64_PCS_IDLE_CACHE_BYTES": "0"}}
+]

@@ -8,6 +8,12 @@
 #include "common/provider_compat.cuh"
 #include "context_options.h"
 #include "pool_trim_policy.h"
+#if !defined(STWO_CUMETAL)
+#include "device_arena_runtime.cuh"
+#define STWO_DEVICE_ARENA_HOOK 1
+#else
+#define STWO_DEVICE_ARENA_HOOK 0
+#endif
 
 #include <stddef.h>
 #include <stdint.h>
@@ -396,6 +402,9 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     }
     for (uint32_t lane = 0; lane < context->lane_count; ++lane) {
         if (context->lanes[lane] == nullptr) continue;
+#if STWO_DEVICE_ARENA_HOOK
+        stwo::cuda::runtime::arena::release_ring(context->lanes[lane]);
+#endif
         status = cudaStreamDestroy(context->lanes[lane]);
         if (status != cudaSuccess) return static_cast<int>(status);
         context->lanes[lane] = nullptr;
@@ -412,6 +421,9 @@ extern "C" int stwo_exec_context_destroy(void *handle) {
     }
     delete[] context->allocations;
     delete context;
+#if STWO_DEVICE_ARENA_HOOK
+    stwo::cuda::runtime::arena::print_summaries();
+#endif
     return 0;
 }
 
@@ -429,6 +441,10 @@ extern "C" int stwo_exec_context_pool_trim(void *handle) {
         [&]() { return context->capture_active; },
         [&]() { return static_cast<int>(join_lanes(context)); },
         [&]() {
+#if STWO_DEVICE_ARENA_HOOK
+            if (stwo::cuda::runtime::arena::config().enabled) return 0;
+            stwo::cuda::runtime::arena::counters().pool_trims.fetch_add(1);
+#endif
             // Both lifetime pools: freed long-lived pages (retired setup,
             // evicted domains) must not stay pinned in the long pool's
             // reservation after an explicit phase trim.
@@ -462,6 +478,16 @@ extern "C" int stwo_exec_context_pool_current(
     }
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+#if STWO_DEVICE_ARENA_HOOK
+    if (status == cudaSuccess) {
+        size_t split_used[2], split_reserved[2];
+        if (stwo::cuda::runtime::arena::usage(context->device, split_used, split_reserved)) {
+            *used_current = split_used[0] + split_used[1];
+            *reserved_current = split_reserved[0] + split_reserved[1];
+            return 0;
+        }
+    }
+#endif
     uint64_t used = 0;
     uint64_t reserved = 0;
     if (status == cudaSuccess) {
@@ -865,6 +891,10 @@ extern "C" int stwo_exec_context_pool_split(
     if (!used || !reserved) return static_cast<int>(cudaErrorInvalidValue);
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
+#if STWO_DEVICE_ARENA_HOOK
+    if (status == cudaSuccess && stwo::cuda::runtime::arena::usage(context->device, used, reserved))
+        return 0;
+#endif
     cudaMemPool_t pools[2] = {context ? context->pool : nullptr,
                               context ? context->long_pool : nullptr};
     for (int i = 0; status == cudaSuccess && i < 2; ++i) {
@@ -888,7 +918,22 @@ static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bo
     if (status == cudaSuccess) status = ensure_allocation_capacity(context);
     cudaMemPool_t pool = context == nullptr ? nullptr
         : (long_lived ? context->long_pool : context->pool);
+#if STWO_DEVICE_ARENA_HOOK
+    // Static arena: no driver call in steady state; overrun is returned to the
+    // caller as cudaErrorMemoryAllocation (never a pool fallback). Graph
+    // capture keeps the pool path so captured graphs own their memory nodes.
+    const bool use_arena = status == cudaSuccess &&
+        stwo::cuda::runtime::arena::config().enabled && !context->capture_active;
+    if (use_arena) {
+        status = stwo::cuda::runtime::arena::allocate(
+            context->device, context->stream, context->lane_count,
+            count * sizeof(uint32_t), long_lived,
+            reinterpret_cast<void **>(out_pointer));
+    } else if (status == cudaSuccess) {
+        stwo::cuda::runtime::arena::counters().pool_mallocs.fetch_add(1, std::memory_order_relaxed);
+#else
     if (status == cudaSuccess) {
+#endif
         status = cudaMallocFromPoolAsync(
             reinterpret_cast<void **>(out_pointer),
             count * sizeof(uint32_t),
@@ -899,6 +944,10 @@ static int alloc_u32_from(void *handle, size_t count, uint32_t **out_pointer, bo
         // after every lane has finished using it, then retry this allocation
         // once. Live witnesses and allocation custody remain unchanged.
         if (status == cudaErrorMemoryAllocation && !context->capture_active) {
+#if STWO_DEVICE_ARENA_HOOK
+            stwo::cuda::runtime::arena::counters().pool_oom_recoveries.fetch_add(1, std::memory_order_relaxed);
+            stwo::cuda::runtime::arena::counters().pool_trims.fetch_add(2, std::memory_order_relaxed);
+#endif
             *out_pointer = nullptr;
             // A recovered allocation error must not poison later kernel
             // launch checks using cudaPeekAtLastError on this owner thread.
@@ -944,6 +993,14 @@ extern "C" int stwo_exec_context_free_u32(
         }
     }
     if (status == cudaSuccess && context->lane_count > 1) status = join_lanes(context);
+#if STWO_DEVICE_ARENA_HOOK
+    if (status == cudaSuccess && stwo::cuda::runtime::arena::owns(context->device, pointer)) {
+        status = context->capture_active
+            ? STWO_CUDA_ERROR_INVALID_CONFIGURATION
+            : stwo::cuda::runtime::arena::release(
+                  context->device, context->stream, pointer, context->lane_count > 1);
+    } else
+#endif
     if (status == cudaSuccess) {
         status = cudaFreeAsync(pointer, context->stream);
     }
@@ -1091,12 +1148,18 @@ extern "C" int stwo_exec_context_memcpy_h2d_async(
     cudaError_t status = require_context(handle, &context);
     if (status == cudaSuccess) status = reject_read_only(context, destination, bytes);
     if (status == cudaSuccess) {
+#if STWO_DEVICE_ARENA_HOOK
+        status = stwo::cuda::runtime::arena::copy_async(
+            context->stream, destination, source, bytes,
+            cudaMemcpyHostToDevice, context->capture_active);
+#else
         status = cudaMemcpyAsync(
             destination,
             source,
             bytes,
             cudaMemcpyHostToDevice,
             context->stream);
+#endif
     }
     return static_cast<int>(status);
 }
@@ -1112,12 +1175,18 @@ extern "C" int stwo_exec_context_memcpy_d2h_async(
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status == cudaSuccess) {
+#if STWO_DEVICE_ARENA_HOOK
+        status = stwo::cuda::runtime::arena::copy_async(
+            context->stream, destination, source, bytes,
+            cudaMemcpyDeviceToHost, context->capture_active);
+#else
         status = cudaMemcpyAsync(
             destination,
             source,
             bytes,
             cudaMemcpyDeviceToHost,
             context->stream);
+#endif
     }
     return static_cast<int>(status);
 }
