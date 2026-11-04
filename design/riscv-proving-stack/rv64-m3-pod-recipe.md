@@ -50,7 +50,9 @@ Use `--only zig` or `--only cuda` to rebuild one half.
 
 - **zig**: the per-tree cache is `/workspace/m3/src/<s>/.zig-cache`, which podsync
   preserves, and the global cache is `/workspace/m3/cache/zig-global`. A cold driver
-  build took 342 s on a loaded pod.
+  build took 342 s on a loaded pod. Zig compiles the driver as a single module, so
+  **any `.zig` edit costs about 320 s** for the driver and about 270 s for the receiver.
+  Batch your edits, and use `--only zig`.
 - **CUDA**: every object goes into the shared, content-addressed store
   `/workspace/m3/cache/cuda-objects`.
   - The key is the nvcc version, the flags with tree prefixes tokenized
@@ -95,8 +97,21 @@ Use `--only zig` or `--only cuda` to rebuild one half.
 - `receive <block> --run <dir>` re-runs only the independent receiver. It is a separate
   process with `CUDA_VISIBLE_DEVICES=""`, PCS helper `/bin/false`,
   `STWO_ZIG_RV64_SETUP_CACHE` unset, mode `verify-recursion-candidate` and a 32 GiB live
-  cap. It does not need the GPU lock and takes about N min (see infra receipts).
+  cap. It does not need the GPU lock. Measured wall: 44 s for 26235156 and 66 s for 24628607.
 - `parity --run <dir>` recomputes byte parity against accepted v7.
+
+## 3b. Reference numbers (infra, measured, 2x5090, one observation each)
+
+All runs use the head-fbb6c6c76 source driver. Proofs are byte-identical to
+accepted v7, and the fresh Linux receiver accepts.
+
+| block | request | capture | setup | native prove | native verify | recursion |
+|---|---:|---:|---:|---:|---:|---:|
+| 26235156 | 65.4 s | 3.3 | 9.3 | 6.1 | 3.6 | 42.9 |
+| 24628607 | 100.7 s | 4.8 | 13.0 | 10.8 | 5.6 | 66.4 |
+
+These runs used the accepted library (25295868). For runs with the from-source
+image, see `vectors/reports/rv64-m3-20261104/infra/`.
 
 ## 4. Parity rule
 

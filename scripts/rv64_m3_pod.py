@@ -219,8 +219,8 @@ def produce(plan, job, run, nsys=None):
     environment["CUDA_MODULE_LOADING"] = "EAGER"
     argv = [plan["assets"]["driver"], "combined-batch", str(target / "manifest.json"), str(target / "batch")]
     if nsys:
-        argv = ["nsys", "profile", "--trace=cuda,nvtx,osrt", "--cuda-event-trace=false", "--sample=none",
-                "--cpuctxsw=none", "--force-overwrite=true", "-o", str(run / "nsys" / "timeline")] + argv
+        argv = ["nsys", "profile", "--trace=cuda", "--sample=none", "--cpuctxsw=none",
+                "--force-overwrite=true", "-o", str(run / "nsys" / "timeline")] + argv
         (run / "nsys").mkdir(exist_ok=True)
     lock = acquire_gpu_lock()
     try:
@@ -234,6 +234,10 @@ def produce(plan, job, run, nsys=None):
     finally:
         fcntl.flock(lock, fcntl.LOCK_UN)
         lock.close()
+    if nsys and (run / "nsys/timeline.nsys-rep").is_file():
+        subprocess.run(["nsys", "export", "--type", "sqlite", "--force-overwrite", "true", "-o",
+                        str(run / "nsys/timeline.sqlite"), str(run / "nsys/timeline.nsys-rep")], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     if usage.get("exit_code") != 0:
         raise SystemExit(f"producer failed exit={usage.get('exit_code')}; see {target}/producer.stderr")
     log = (target / "producer.stdout").read_text(errors="replace") + (target / "producer.stderr").read_text(errors="replace")
