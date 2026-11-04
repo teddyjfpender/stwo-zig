@@ -1,0 +1,94 @@
+{
+  "schema": "rv64-accepted-recursion-artifact-retention/v1",
+  "accepted_blocks": 15,
+  "trials": 16,
+  "complete_for_report_sha256": "5d32aa6d0e462c62b5c12c77ea63b167c44306172dc87a49c0735b6d53f19105",
+  "backup_index": "/private/tmp/rv64-qualified-artifacts-20261104/accepted-recursive-backup-v7.json",
+  "backup_index_sha256": "a0c244581a7479fe56b45ad0f586b70d791380789f4926ccf2656a4daa12c739",
+  "scope": "Artifact retention only. Original independent receivers establish acceptance; no new proof or acceptance is claimed.",
+  "checks": [
+    "all physical local file hashes match retained index",
+    "all original pending artifact snapshots match",
+    "sealed producer logs match original pending hashes",
+    "cold/warm test proof, tree and statement artifacts match"
+  ],
+  "physical_files_checked": 2560,
+  "sealed_logs_checked": 30,
+  "blocks": [
+    {
+      "block": 24626900,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/24626900",
+      "trials": 1
+    },
+    {
+      "block": 24628590,
+      "local_case": "/private/tmp/rv64-offhost-queue/cases/24628590",
+      "trials": 1
+    },
+    {
+      "block": 24628595,
+      "local_case": "/private/tmp/rv64-offhost-queue/groups/fresh-fixed-86a/cases/24628595",
+      "trials": 1
+    },
+    {
+      "block": 24628607,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/test/1gpu/24628607",
+      "trials": 2
+    },
+    {
+      "block": 24628608,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/24628608",
+      "trials": 1
+    },
+    {
+      "block": 24628611,
+      "local_case": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/24628611",
+      "trials": 1
+    },
+    {
+      "block": 24647140,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/24647140",
+      "trials": 1
+    },
+    {
+      "block": 24697070,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/24697070",
+      "trials": 1
+    },
+    {
+      "block": 24697073,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/24697073",
+      "trials": 1
+    },
+    {
+      "block": 25229951,
+      "local_case": "/private/tmp/rv64-offhost-queue/groups/fresh-fixed-86a/cases/25229951",
+      "trials": 1
+    },
+    {
+      "block": 25229955,
+      "local_case": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/25229955",
+      "trials": 1
+    },
+    {
+      "block": 25229957,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/25229957",
+      "trials": 1
+    },
+    {
+      "block": 26235156,
+      "local_case": "/private/tmp/rv64-qualified-artifacts-20261104/combined-v2-b8d7096a/remaining13/1gpu/26235156",
+      "trials": 1
+    },
+    {
+      "block": 26235159,
+      "local_case": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/26235159",
+      "trials": 1
+    },
+    {
+      "block": 26235168,
+      "local_case": "/private/tmp/rv64-offhost-queue/groups/phase-final-2529/cases/26235168",
+      "trials": 1
+    }
+  ]
+}

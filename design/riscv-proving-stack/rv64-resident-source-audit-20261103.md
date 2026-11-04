@@ -16,26 +16,31 @@ Host tests cover zero-copy ownership, capacity/OOM failure atomicity, join-befor
 ## Thesis checkpoint, 2026-11-04
 
 This is a scope audit, not a completion or speedup claim. The fifteen-block
-native receipt and the twelve-block recursive receipt are separate qualification
+native receipt and the fifteen-block recursive receipt are separate qualification
 sets. They contain versioned, concurrent-workload observations; they do not
 establish quiet basket medians or the thesis's projected subsecond timings.
 
 | Thesis item | Current evidence | Remaining acceptance gate |
 |---|---|---|
-| Overlap independent proofs | Native two-lane controls exist; the ready recursion DAG and exact recycler-backed shared-budget admission pass host tests | Physical one-lane parity, then admitted multi-device runs; source-tested admission is not measured overlap |
-| Keep numerical proving resident | Source audit and all fifteen native blocks exercise device MAIN/INTER, coefficient ingress, composition and PCS; CPU execution supplies compact advice | Continue to distinguish immutable host setup, execution and verification from device proving; eliminate duplicate recursive fixed commitment |
-| Bound memory over the whole request | INTER retirement, compact composition coefficients and smaller prefix banks have exact-proof gates; phase-separated PCS has physical tiny parity, ownership tests and fresh acceptance of the complete largest block | Complete recursive basket; logical caps are not sampled physical peaks |
-| Reduce GKR launches | Real-block persistent-tail A/B preserves bytes and reduces launches, but establishes no end-to-end gain; default stays off | Multi-CTA fold/next-sum candidate needs numerical GPU parity and timing; graph capture and cross-proof traversal batching remain open |
+| Overlap independent proofs | Native two-lane controls exist; the ready recursion DAG and exact recycler-backed shared-budget admission pass host tests | Explicit ready-candidate N1 has exact native and recursive proof parity and fresh CPU acceptance. Physical N2/N4 runs and measured overlap remain open |
+| Keep numerical proving resident | Source audit and all fifteen native blocks exercise device MAIN/INTER, coefficient ingress, composition and PCS; CPU execution supplies compact advice | Continue to distinguish immutable host setup, execution and verification from device proving; serial device FIXED candidate removes the host commitment with exact real-block parity and fresh CPU acceptance; full-basket adoption remains gated |
+| Bound memory over the whole request | INTER retirement, compact composition coefficients and smaller prefix banks have exact-proof gates; phase-separated PCS has physical tiny parity, ownership tests and fresh acceptance of the complete largest block | All fifteen recursive blocks accepted, including the largest. Logical caps are not sampled physical peaks; device FIXED still needs worst-shape capacity qualification |
+| Reduce GKR launches | Real-block persistent-tail A/B preserves bytes and reduces launches, but establishes no end-to-end gain; default stays off | Multi-CTA fold/next-sum passed numerical and fresh full-block acceptance, but warm proving regressed 1.78% and launches increased; default remains off. Mixed wake/fold successor, graph capture and cross-proof batching are unqualified |
 | Fuse transforms and commitment hashing | Generated composition kernels and existing resident FRI/commitment stages execute in production | FFT/leaf-hash and FRI-fold/hash fusion are still optimization work, not delivered by phase retirement |
 | Retain immutable geometry | Earlier audit shows no added warm geometry misses; admitted shape metadata is bounded | Do not confuse unique per-node recursive authorities with reusable per-program setup |
 | Profile the real path | Real Nsight Systems source receipt records copies, launches, joins and GPU activity | Hardware counters remain blocked by host policy; do not infer occupancy or sustained bandwidth from event spans |
-| Benchmark the complete basket | Fifteen native blocks independently accepted; twelve recursive roots independently accepted | Three recursive cases, controlled repeated timings and physical 2/4-device measurements remain open |
+| Benchmark the complete basket | Fifteen native blocks and fifteen recursive roots independently accepted | Homogeneous final-runtime repeated timings and physical 2/4-device measurements remain open |
 
 The newest recursive setup sample is block25229951:115 nodes, with summed
 finalize11.117s, column generation66.426s and authority construction178.305s.
-Those are separately observed CPU setup spans, not savings. Device precommit is
-being qualified as an explicit prover-only constructor; independent receivers
-must continue to rebuild the original authority. Reusing a producer's claimed
+Those are separately observed CPU setup spans, not savings. Device precommit is now qualified on one real block as an explicit prover-only
+constructor; independent receivers continue to rebuild the original authority.
+On block26235156, one ordered same-binary true/false comparison measured
+authority construction1.972s versus34.759s over21 nodes, and full request
+126.221s versus164.769s. Every proof, root and ordered tree was identical.
+The device candidate has fresh independent CPU acceptance; the later CPU
+control has producer parity but no fresh independent receiver run yet. This
+is one observation, not a quiet median, worst-shape fit or full-basket gain. Reusing a producer's claimed
 root in the receiver would invalidate this optimization's acceptance argument.
 
 Evidence: `vectors/reports/rv64-cuda-real-segment-20261103/` contains
@@ -43,7 +48,13 @@ Evidence: `vectors/reports/rv64-cuda-real-segment-20261103/` contains
 `gkr-mixed-persistent-tail-real-block-ab.json`,
 `resident-real-nsys-source-v1.json` and
 `pcs-phase-retirement-physical-gate.json`.
-`vectors/reports/rv64-om31-recursion-20261103/recursive-basket-twelve-accepted-v4.json`
+`vectors/reports/rv64-om31-recursion-20261103/recursive-basket-fifteen-accepted-v7.json`
 pins the accepted recursive cases and their distinct producer groups.
 The security description remains **128-bit security target under documented
 assumptions**, without a certified whole-protocol claim.
+
+The ready scheduler and serial device FIXED routes are separate explicit manifest
+candidates. Their combination is rejected, defaults remain serial CPU FIXED,
+and strict independent verification cannot be disabled for either candidate.
+See `rv64-resident-ready-candidate.md`, `rv64-outer-device-fixed-precommit.md`
+and `rv64-gkr-batched-fold-next-sum.md` for route-specific gates.
