@@ -172,6 +172,7 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 55.4 | — | — | 706 | — | — | — | — | — | — | yes | 92cda862e | audit agrees with root-only (root digest + authority) |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 13.9 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; unpinned (table self-declared); single observation, load above quiet bar |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 13.6 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; operator pin checked, table_root_pinned=true; single observation, load above quiet bar |
+| 2026-11-05 | M6 | enqueue | 2 | M | 27.25 | 2.46 | 0.14 | 6.28 | 18.18 | — | 31.9 | 31.5 | 706 | 5674 | 170518 | — | — | — | M5 default = rv64-m3-20261104/integrate/scale (all hashes) | — | 95d40063d | M6 enqueue BASELINE (no code change): call-site census of the outer node prove. Load 8.1 (borderline quiet). Recursion window (tracer): 171.9 blocking/node, 5167.2 launches/node. |
 
 ## 26235156
 
@@ -307,6 +308,7 @@ Only label-M rows from quiet runs (`loadavg_1m` < 8 or not recorded) compete; lo
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 41.3 | — | — | 749 | — | — | — | — | — | — | yes | 92cda862e | audit agrees with root-only (root digest + authority) |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 9.5 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; unpinned (table self-declared); single observation, load above quiet bar |
 | 2026-11-04 | M5 | rootverify | 2 | M | — | — | — | — | — | 9.5 | — | — | 706 | — | — | — | — | — | — | yes | 508d339be | adversarial review: header fields bound in table_root; operator pin checked, table_root_pinned=true; single observation, load above quiet bar |
+| 2026-11-05 | M6 | enqueue | 2 | M | 19.81 | 1.95 | 0.12 | 4.85 | 12.72 | — | 31.9 | 31.5 | 749 | 3685 | 107673 | — | — | — | M5 default = rv64-m3-20261104/integrate/scale (all hashes) | — | 95d40063d | M6 enqueue BASELINE (no code change): call-site census of the outer node prove. Load 8.1 (borderline quiet). Recursion window (tracer): 175.5 blocking/node, 5127.3 launches/node. |
 
 ## 24626900
 
