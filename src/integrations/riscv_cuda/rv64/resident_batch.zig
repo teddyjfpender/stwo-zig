@@ -252,12 +252,17 @@ fn requestOne(comptime combined: bool, svc: anytype, block: u64, trial: u64, ite
     const request_wall_ns = timer.read();
     // New setup artifacts are written between requests, off the wall.
     var persist_timer = try std.time.Timer.start();
-    try session.persistSetup();
+    // Persisting is an optimisation for later processes: a store write failure
+    // (e.g. ENOSPC) is logged and never fails the request or the service.
+    session.persistSetup() catch |err| std.debug.print("GPU_RESIDENT_STORE persist_setup_error={s}\n", .{@errorName(err)});
     const persist_ns = persist_timer.read();
     if (combined) {
         const Classes = @import("outer_assignment.zig").ClassCache;
         var class_timer = try std.time.Timer.start();
-        const class_bytes = try Classes.Store.persistPending();
+        const class_bytes = Classes.Store.persistPending() catch |err| blk: {
+            std.debug.print("GPU_RESIDENT_STORE persist_class_error={s}\n", .{@errorName(err)});
+            break :blk 0;
+        };
         std.debug.print("GPU_RESIDENT_CLASS_STORE block={} trial={} persisted_bytes={} persist_ns={} memory_hits={} memory_misses={} disk_hits={} disk_stores={}\n", .{ block, trial, class_bytes, class_timer.read(), Classes.hits, Classes.misses, Classes.disk_hits, Classes.disk_stores });
     }
     const setup_stats = session.setupStats();

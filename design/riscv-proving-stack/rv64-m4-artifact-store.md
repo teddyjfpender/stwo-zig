@@ -11,7 +11,8 @@ baseline (receipts in `vectors/reports/rv64-m4-20261104/resident/`).*
 |---|---|---|---|
 | native setup components (CPU/truth source keys: VK section + candidate FIXED tree bulk) | `setup_cache.zig` (`RV64SUC1` v1) | `<store>/setup/<component-key>.rv64-setup` | the **prover only** |
 | store manifest (`store.json`) | `scripts/rv64_m4_resident.py` | `<store>/store.json` | the harness, before the service starts |
-| in-process only (not persisted in this iteration): fold-class assignment templates, fixed-authority validations of resident components, native/metadata caches, CUDA modules | the service process | RAM | the same service process |
+| fold-class assignment templates (`RV64CLS1`: tasks, permutation indices, level ends, seed layout) | `outer_assignment.zig ClassCache.Store` | `<store>/classes/<class-key>.rv64-class` | the **prover only**; preloaded at service boot |
+| in-process only: fixed-authority validations of resident components, native/metadata caches, CUDA modules | the service process | RAM | the same service process |
 
 **The receiver never reads the store.** The CPU-only receiver refuses `STWO_ZIG_RV64_SETUP_CACHE`
 (`requireIndependentReceiverSetup`, `error.PersistedSetupCacheForbiddenForReceiver`), the harness
@@ -86,7 +87,16 @@ statement, witnesses) never enters any key or artifact.
   budget) the catalogue is cleared and the set is rebuilt once from scratch; the result is the same
   pure function either way. Proof bytes are unchanged (measured).
 - Fold-class assignment templates (`outer_assignment.zig ClassCache`, default on) are process-static,
-  so later requests of the service reuse them.
+  so later requests of the service reuse them. **Persisted** (`STWO_RV64_OUTER_PLAN_CLASS_STORE`): a
+  file is bound to the class key and to SHA-256(own executable); on load the plan identity
+  (`schedule_identity.digest` over tasks, indices, level ends) is recomputed and must equal the stored
+  one, every task kind is re-checked against the loaded library's capabilities once, and the per-use
+  seed-layout/shape checks (`PlanClassShapeMismatch`, `PlanClassSeedLayout`) still run. A rejected file
+  is a logged miss for that class. At boot the service preloads every template (8 threads, 11 files,
+  4.5 GB, 0.93 s [M]). Same soundness argument as §4: an equal plan is the equal assignment, and a
+  wrong one yields a proof the receiver rejects.
+- Store writes happen between requests (off the request wall); a write failure is logged and never
+  fails a request (ENOSPC observed once on the shared pod).
 
 ## 6. Catalogue drift gate
 
@@ -102,8 +112,8 @@ Measured: catalogues-v3 passes (6/6 families byte-equal); catalogues-v2 fails on
 
 ## 7. Not done / next
 
-- Persist the fold-class templates and leaf assignment plans into the store (keyed by
-  `om31_outer.classKey` + executable hash) so a cold service's first request matches a warm one.
+- Leaf assignment plans carry no class hint today (only folds hit); keying leaves by canonical
+  class is M5 (canon-vk) work and would remove most remaining per-request plan time.
 - Cache `Image.Owner` / `ProgramAuthority.initWithRom` across requests (block-independent part), which
   is ~0.7 s of capture-overlapped work per request.
 - Store pruning at milestone end (plan §6.2).
