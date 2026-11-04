@@ -1,0 +1,243 @@
+<title>stwo-tensor vs FlashProve</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one readable column of findings, wide tables scroll in their own frames; numbers in mono. */
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --fg: #1b2230; --muted: #5a6478; --rule: #d9dee7;
+  --accent: #2f5fd0; --good: #1d7a4f; --warn: #a86a00; --bad: #b3261e; --chip: #eef2fb;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --panel: #1a2029; --fg: #e4e8ef; --muted: #9aa5b8; --rule: #2c3442;
+  --accent: #7ea2ff; --good: #5cc795; --warn: #e0a640; --bad: #ff8a80; --chip: #212a39; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --panel: #1a2029; --fg: #e4e8ef; --muted: #9aa5b8; --rule: #2c3442;
+  --accent: #7ea2ff; --good: #5cc795; --warn: #e0a640; --bad: #ff8a80; --chip: #212a39; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.35rem; border-top: 1px solid var(--rule); padding-top: 22px; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 72ch; }
+section { display: grid; gap: 12px; min-width: 0; }
+.lede { font-size: 1.05rem; color: var(--fg); }
+.muted { color: var(--muted); }
+.eyebrow { font: 500 .75rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; gap: 4px; min-width: 0; }
+.card .big { font: 600 1.6rem/1.1 var(--display); }
+.card .sub { font-size: .85rem; color: var(--muted); }
+.tbl { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pill { display: inline-block; font: 500 .72rem/1.5 var(--mono); padding: 0 7px; border-radius: 999px; background: var(--chip); white-space: nowrap; }
+.better { color: var(--good); } .worse { color: var(--bad); } .equal { color: var(--accent); } .missing { color: var(--warn); }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; max-width: 76ch; }
+code { font-family: var(--mono); font-size: .86em; }
+.bars { display: grid; gap: 8px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
+.bar { display: grid; grid-template-columns: 170px 1fr 80px; gap: 10px; align-items: center; font-size: .85rem; }
+.bar .track { height: 12px; background: var(--chip); border-radius: 3px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--accent); }
+.bar .fill.fp { background: var(--muted); }
+.bar .v { font-family: var(--mono); text-align: right; }
+@media (max-width: 560px) { .bar { grid-template-columns: 1fr 70px; } .bar .track { grid-column: 1 / -1; order: 3; } }
+</style>
+
+<div class="wrap">
+<header style="display:grid;gap:10px">
+  <div class="eyebrow">stwo-zig · branch codex/tensor-frontend · M4 Max, 36 GB · 2026-11-04</div>
+  <h1>stwo-tensor vs FlashProve</h1>
+  <p class="lede">A provable integer-inference prover built over 12 hours on stwo-zig (M31/QM31, multilinear Ligero-style PCS, LogUp-GKR), benchmarked against Anthropic's FlashProve. Same-relation runs use FlashProve's own sequential CPU prover, built and timed on this machine. FlashProve's H100 model-scale figures are quoted, not reproduced.</p>
+</header>
+
+<section>
+  <h2>Summary</h2>
+  <div class="cards">
+    <div class="card"><span class="eyebrow">hiding vs hiding, 2<sup>20</sup>, 1 core</span><span class="big">28× faster</span><span class="sub">prove 0.305 s vs 8.63 s; verify 1.9 ms vs 12 ms</span></div>
+    <div class="card"><span class="eyebrow">same relation, ≈FlashProve security</span><span class="big">249 KB vs 341 KB</span><span class="sub">Johnson+OOD config: 113.5 / 96.8 bits (FlashProve all rounds: 119.38 / 92.42)</span></div>
+    <div class="card"><span class="eyebrow">SwiGLU MLP, 1024 tok, 100.7M weights</span><span class="big">0.49 s</span><span class="sub">Metal GPU (CPU 0.67 s), 434 KB, plus integer forward</span></div>
+    <div class="card"><span class="eyebrow">decoder layer, 1024 tok (GQA attn + MLP)</span><span class="big">1.33 s</span><span class="sub">Metal; CPU 1.70 s; 525 KB; 84 ms verify</span></div>
+  </div>
+  <ul>
+    <li><b>Ahead, measured on the same machine:</b> prover speed for the same relation (18-28× in hiding mode, 24-68× non-hiding), verifier time (6-25×) and proof size at matched security.</li>
+    <li><b>Also built:</b>
+      <ul>
+        <li>a complete transformer-layer pipeline: GQA attention, softmax, RMSNorm, RoPE, SwiGLU, top-1 MoE, LM head with a greedy-token check;</li>
+        <li>per-request proofs that share one weight opening;</li>
+        <li>weights committed once, with a range proof and OOD binding;</li>
+        <li>a zero-knowledge mode;</li>
+        <li>a Metal GPU path with bit-identical proofs;</li>
+        <li>a canonical wire format with a standalone verifier;</li>
+        <li>a soundness calculator.</li>
+      </ul></li>
+    <li><b>Not shown:</b> model-scale parity. FlashProve proves Llama 4 Maverick (400.7B committed weights) at 9.2 s per 1,024-token request on one H100. Our largest runs are single layers at 38-100M weights on a laptop. A compute-only projection to Maverick on this Mac's CPU is 550-1,840 s per request, and the hardware differs.</li>
+    <li><b>Behind:</b> Lean formal verification (FlashProve has it; we have none), integer-model fidelity (int8 throughout against their 12-16 bit streams and float-agreement study), the opening budget for weight hiding at serving scale, and hiding-test depth (they inject faults).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Headline: hiding vs hiding, same relation and machine</h2>
+  <p class="muted">Relation a ∘ b = c over 2<sup>L</sup> field elements (FlashProve <code>blocks/toy/product.h</code>), one core, both sides zero-knowledge. FlashProve's sequential CPU reference uses deep staging and 20 PoW bits at L = 20. Our hiding-mode bits are the unique-decoding query term (about 129.5 conjectured); the calculator does not yet cover hiding openings. Proof sizes marked * are struct sums.</p>
+  <div class="bars" role="img" aria-label="Prove time at L=20, hiding: ours 0.305 s, FlashProve 8.63 s">
+    <div class="bar"><span>stwo-tensor, hiding</span><span class="track"><span class="fill" style="width:3.5%;display:block"></span></span><span class="v">0.305 s</span></div>
+    <div class="bar"><span>FlashProve CPU, hiding</span><span class="track"><span class="fill fp" style="width:100%;display:block"></span></span><span class="v">8.63 s</span></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>L</th><th class="n">ours prove</th><th class="n">ours verify</th><th class="n">ours proof</th><th class="n">FlashProve prove</th><th class="n">FP verify</th><th class="n">FP proof</th><th class="n">prove ratio</th></tr></thead>
+    <tbody>
+      <tr><td>16</td><td class="n">0.027 s</td><td class="n">0.8 ms</td><td class="n">137 KB*</td><td class="n">0.49 s</td><td class="n">22 ms</td><td class="n">269 KB</td><td class="n">18×</td></tr>
+      <tr><td>18</td><td class="n">0.079 s</td><td class="n">1.1 ms</td><td class="n">215 KB*</td><td class="n">2.05 s</td><td class="n">12 ms</td><td class="n">251 KB</td><td class="n">26×</td></tr>
+      <tr><td>20</td><td class="n">0.305 s</td><td class="n">1.9 ms</td><td class="n">369 KB*</td><td class="n">8.63 s</td><td class="n">12.5 ms</td><td class="n">308 KB</td><td class="n">28×</td></tr>
+      <tr><td>22</td><td class="n">1.229 s</td><td class="n">3.1 ms</td><td class="n">674 KB*</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+    </tbody></table></div>
+  <p class="muted">The recursive hiding PCS (zk_pcs2) cuts the 2<sup>20</sup> hiding proof to 195 KB at 0.36 s, smaller than FlashProve's 308 KB. Those runs are in zk.md and not in this table.</p>
+</section>
+
+<section>
+  <h2>Security accounting, defined as FlashProve defines it</h2>
+  <p>Our calculator (<code>security.zig</code>) sums every error term of the proof as implemented:</p>
+  <ul>
+    <li>PCS queries per level, proximity, OOD collisions;</li>
+    <li>LogUp, sized by key degree and count;</li>
+    <li>GKR, charged per layer and per round;</li>
+    <li>every sumcheck and batching challenge;</li>
+    <li>proof-of-work.</li>
+  </ul>
+  <p>Its "all rounds added" figure corresponds to FlashProve's 119.38 / 92.42 bits (with / without work). FlashProve's headline 126.21 / 96.23 is a different reading: the compiled bound N/2<sup>L</sup> as one number. The calculator's output was itself adversarially reviewed and corrected (SEC-1 to SEC-8).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>configuration</th><th>what the queries rest on</th><th class="n">toy 2<sup>20</sup> bits w/ / w/o PoW</th><th class="n">MLP 1024 tok</th><th class="n">decoder layer</th><th class="n">toy proof</th></tr></thead>
+    <tbody>
+      <tr><td><code>conj</code> 54 q, rate 1/4</td><td>up-to-capacity conjecture (not provable here)</td><td class="n">55.0 / 35.0</td><td class="n">54.3 / 34.3</td><td class="n">54.3 / 34.3</td><td class="n">118 KB</td></tr>
+      <tr><td><code>ud160</code> 160 q, rate 1/4, 1 proximity row</td><td>unique decoding (BCIKS20)</td><td class="n">100.3 / 100.3</td><td class="n">94.7 / 94.7</td><td class="n">93.9 / 93.9</td><td class="n">249 KB</td></tr>
+      <tr><td><code>johnson</code> 122 q + OOD, 2 proximity rows, deep levels at 1/8</td><td>Johnson radius with OOD samples</td><td class="n">113.5 / 96.8</td><td class="n">97.5 / 94.8</td><td class="n">95.1 / 94.1</td><td class="n">249 KB</td></tr>
+      <tr><td>FlashProve (published)</td><td>beyond unique decoding with OOD; Lean-proved bound q/2<sup>124</sup> + 2<sup>-101</sup></td><td class="n">119.38 / 92.42</td><td colspan="2">all rounds added; compiled 126.21 / 96.23</td><td class="n">341 KB toy</td></tr>
+    </tbody></table></div>
+  <p class="muted">The layer and MLP bounds stop near 94-97 bits because terms of the size of QM31 (|F| ≈ 2<sup>124</sup>) accumulate across many sumchecks and LogUp keys. A degree-8 extension (OM31, already in stwo-zig) or repeated checks would lift that ceiling. Without work, our model-layer bounds are above FlashProve's 92.42. With work they are below its 119.38.</p>
+</section>
+
+<section>
+  <h2>Same relation, non-hiding configurations</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>L</th><th>config</th><th class="n">bits w/ / w/o PoW</th><th class="n">prove</th><th class="n">verify</th><th class="n">proof (wire)</th><th class="n">FP hiding prove</th><th class="n">ratio</th></tr></thead>
+    <tbody>
+      <tr><td>16</td><td>johnson</td><td class="n">113.7 / 98.2</td><td class="n">0.020 s</td><td class="n">0.9 ms</td><td class="n">165 KB</td><td class="n">0.49 s</td><td class="n">24×</td></tr>
+      <tr><td>18</td><td>johnson</td><td class="n">113.6 / 96.8</td><td class="n">0.047 s</td><td class="n">1.1 ms</td><td class="n">206 KB</td><td class="n">2.05 s</td><td class="n">44×</td></tr>
+      <tr><td>20</td><td>johnson</td><td class="n">113.5 / 96.8</td><td class="n">0.148 s</td><td class="n">1.3 ms</td><td class="n">249 KB</td><td class="n">8.37 s</td><td class="n">57×</td></tr>
+      <tr><td>20</td><td>ud160</td><td class="n">100.3 / 100.3</td><td class="n">0.139 s</td><td class="n">1.4 ms</td><td class="n">249 KB</td><td class="n">8.37 s</td><td class="n">60×</td></tr>
+      <tr><td>20</td><td>conj</td><td class="n">55.0 / 35.0</td><td class="n">0.122 s</td><td class="n">0.6 ms</td><td class="n">118 KB</td><td class="n">8.37 s</td><td class="n">69×</td></tr>
+      <tr><td>22</td><td>johnson, Metal 12 thr</td><td class="n">113.4 / 96.1</td><td class="n">0.072 s</td><td class="n">1.7 ms</td><td class="n">316 KB</td><td class="n">—</td><td class="n">—</td></tr>
+    </tbody></table></div>
+  <p class="muted">These rows compare a non-hiding prover against a hiding one, so read them as an upper bound on the gap. The like-for-like numbers are the hiding table above.</p>
+</section>
+
+<section>
+  <h2>Model layers (12 threads; prove excludes the integer forward pass, shown separately)</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>workload</th><th>config</th><th class="n">prove</th><th class="n">+ forward</th><th class="n">verify</th><th class="n">proof</th><th class="n">bits w/ / w/o</th></tr></thead>
+    <tbody>
+      <tr><td>SwiGLU MLP, D 4096, F 8192, 1024 tok</td><td>conj, CPU</td><td class="n">0.67 s</td><td class="n">1.00 s</td><td class="n">126 ms</td><td class="n">434 KB</td><td class="n">54.3 / 34.3</td></tr>
+      <tr><td></td><td>conj, Metal</td><td class="n">0.49 s</td><td class="n">0.20 s</td><td class="n">122 ms</td><td class="n">434 KB</td><td class="n">54.3 / 34.3</td></tr>
+      <tr><td></td><td>johnson, CPU</td><td class="n">0.77 s</td><td class="n">1.03 s</td><td class="n">129 ms</td><td class="n">897 KB</td><td class="n">97.5 / 94.8</td></tr>
+      <tr><td></td><td>johnson, Metal</td><td class="n">0.60 s</td><td class="n">0.20 s</td><td class="n">125 ms</td><td class="n">897 KB</td><td class="n">97.5 / 94.8</td></tr>
+      <tr><td>same, 2048 tok</td><td>johnson, CPU</td><td class="n">1.32 s</td><td class="n">2.07 s</td><td class="n">252 ms</td><td class="n">963 KB</td><td class="n">96.5 / 94.6</td></tr>
+      <tr><td>Decoder layer: GQA attn (16 q / 4 kv), RoPE, softmax, RMSNorm, SwiGLU; D 2048, F 4096, 1024 tok</td><td>conj, CPU</td><td class="n">1.70 s</td><td class="n">0.35 s</td><td class="n">84 ms</td><td class="n">525 KB</td><td class="n">54.3 / 34.3</td></tr>
+      <tr><td></td><td>conj, Metal</td><td class="n">1.33 s</td><td class="n">0.21 s</td><td class="n">92 ms</td><td class="n">525 KB</td><td class="n">54.3 / 34.3</td></tr>
+      <tr><td></td><td>johnson, CPU</td><td class="n">1.89 s</td><td class="n">0.35 s</td><td class="n">88 ms</td><td class="n">1.03 MB</td><td class="n">95.1 / 94.1</td></tr>
+      <tr><td>Hiding MLP (weights + witness hidden, public I/O), 1024 tok</td><td>zk, CPU</td><td class="n">2.73 s</td><td class="n">0.99 s</td><td class="n">245 ms</td><td class="n">3.55 MB*</td><td class="n">query term only</td></tr>
+    </tbody></table></div>
+  <p class="muted">The verify times include folding the public input and output tensors: 2×2<sup>22</sup> values at 1024 tokens. That binding was added after the review (finding P1) and makes verify grow linearly with tokens. One-time weight setup for the 100.7M-weight MLP: commit 0.6-1.9 s, key proof 250-550 KB.</p>
+</section>
+
+<section>
+  <h2>Per-request serving</h2>
+  <p>Every request gets its own proof: witness commitment, LogUp-GKR, sumchecks and witness opening. One weight opening shared by the batch covers all requests' weight claims after a cross-request reduction. This matches FlashProve's "a batch opens its copy once for all requests". The statement proves that the claimed next token is the greedy choice (least maximiser over the vocabulary), as in FlashProve's exact-match policy.</p>
+  <p class="muted">Measured on a 2-layer dense+MoE stack with LM head, 104M weights, 256 tokens:</p>
+  <ul>
+    <li>Throughput: 159-227 tokens/s for batches of 1-4.</li>
+    <li>Proof per request: 375-530 KB, verified in about 18 ms.</li>
+    <li>Scaling coefficients and a compute-only Maverick extrapolation are in <code>serving.md</code>: about 550-1,840 s per request on this Mac's CPU.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Primitives, one core, same machine</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>primitive</th><th class="n">stwo-tensor (M31 / QM31, Blake2s)</th><th class="n">FlashProve (Goldilocks / cubic, BLAKE2b)</th></tr></thead>
+    <tbody>
+      <tr><td>base-field multiply, arrays</td><td class="n">5.1e9/s (SIMD 1.1e10/s)</td><td class="n">1.2e9/s</td></tr>
+      <tr><td>extension multiply, arrays</td><td class="n">2.4e8/s</td><td class="n">2.3e8/s (5.5e8/s accumulated)</td></tr>
+      <tr><td>extension × base multiply-add</td><td class="n">1.7e9/s</td><td class="n">1.3e9/s</td></tr>
+      <tr><td>column leaf hash, 2048 symbols</td><td class="n">424 MB/s</td><td class="n">1,160 MB/s</td></tr>
+      <tr><td>RS encode, codeword symbols/s</td><td class="n">4.6e8 (2<sup>20</sup>, rate 1/2)</td><td class="n">1.35e8 (2<sup>16</sup>) / 8.7e7 (2<sup>22</sup>)</td></tr>
+    </tbody></table></div>
+  <p class="muted">Symbol sizes differ (4-byte M31 against 8-byte Goldilocks), and the RS sizes are not matched. Our hashing is slower per byte than theirs, which makes the prover-level lead a protocol and arithmetic effect rather than a hashing one.</p>
+</section>
+
+<section>
+  <h2>Feature parity</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>capability</th><th>FlashProve</th><th>stwo-tensor</th><th>status</th></tr></thead>
+    <tbody>
+      <tr><td>Statement</td><td>greedy next token(s) over a 1,024-token window, public prompt, committed weights</td><td>greedy check with LM head, public prompt tokens, committed embedding and gains; verifier-built request statement</td><td><span class="pill equal">equal</span></td></tr>
+      <tr><td>Weight commitment</td><td>masked RS, OOD sample, one-time key proof (range + proximity)</td><td>Ligero/pcs2 over circle codes, key proof (range + proximity) plus OOD binding and per-batch proximity</td><td><span class="pill equal">equal in structure</span></td></tr>
+      <tr><td>Zero knowledge</td><td>masked encodings, masked sumcheck; Lean-proved ZK</td><td>salted leaves, masked encodings, masked sumcheck and LogUp-GKR, hiding weights with links; paper argument, reviewed</td><td><span class="pill worse">no machine proof</span></td></tr>
+      <tr><td>Opening budget / copies</td><td>44M columns, 688K batches per copy, 710K copies linked to T0</td><td>enforced in process; about 17 proofs per commitment at the defaults; chained links</td><td><span class="pill worse">worse</span></td></tr>
+      <tr><td>Per-request proofs</td><td>yes, shared batch rounds</td><td>yes, one shared weight opening</td><td><span class="pill equal">equal (non-hiding)</span></td></tr>
+      <tr><td>Model coverage</td><td>Maverick: 48 layers, 128 experts + shared expert</td><td>GQA attention, softmax, RMSNorm, RoPE, SwiGLU, top-1 MoE (≤ 64 experts, no shared expert)</td><td><span class="pill worse">worse</span></td></tr>
+      <tr><td>Integer-model fidelity</td><td>12-bit activations, 16-bit residuals; 6.8% top-token disagreement vs bf16 measured</td><td>int8 throughout, synthetic weights, no fidelity study</td><td><span class="pill worse">worse</span></td></tr>
+      <tr><td>Soundness accounting</td><td>Lean theorem; printed whole bound</td><td>calculator over every implemented term (reviewed); no machine proof</td><td><span class="pill worse">worse</span></td></tr>
+      <tr><td>Verifier</td><td>C++ <code>cp_verify</code> + Lean executable verifier</td><td>Zig verifier; canonical wire format; <code>tensor-verify</code> on untrusted files; 4,500-mutant fuzz with 0 accepted</td><td><span class="pill worse">no second verifier</span></td></tr>
+      <tr><td>GPU</td><td>CUDA on H100</td><td>Metal on M4 Max, proofs bit-identical to CPU</td><td><span class="pill missing">different hardware</span></td></tr>
+      <tr><td>Prover speed, same relation and machine</td><td>8.63 s (2<sup>20</sup>, hiding)</td><td>0.305 s (hiding)</td><td><span class="pill better">28× faster</span></td></tr>
+      <tr><td>Proof size at matched security</td><td>341 KB toy; 18.78 MB Maverick request</td><td>249 KB toy (113.5 bits); 195 KB hiding with recursive PCS</td><td><span class="pill better">smaller</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section>
+  <h2>Adversarial review</h2>
+  <p>Two review phases ran in parallel worktrees. In each, reviewers built cheating provers, and an independent skeptic re-ran every finding and tried to refute it. Every confirmed finding then went to a fix stream with a regression test, followed by a separate re-checker that tried variants of each attack.</p>
+  <div class="cards">
+    <div class="card"><span class="eyebrow">phase A · core, PCS, transformer, kernels, parity</span><span class="big">32 findings</span><span class="sub">29 confirmed (1 critical, 6 high), 3 plausible</span></div>
+    <div class="card"><span class="eyebrow">phase B · serving, calculator, zero knowledge</span><span class="big">20 findings</span><span class="sub">19 confirmed (4 high), 1 plausible</span></div>
+  </div>
+  <ul>
+    <li><b>Critical, fixed:</b> the softmax reciprocal could wrap modulo p at 256+ tokens and accept a cheating attention output. Softmax now uses an exact accumulation and a division inequality.</li>
+    <li><b>High, fixed:</b>
+      <ul>
+        <li>Weight openings were bound to the key only within unique decoding, so a hybrid committed word could open as a different model. Fixed with a key OOD claim plus per-batch proximity.</li>
+        <li>Statement bounds were inferred from sliced or summed keys.</li>
+        <li>No public input/output binding in non-hiding mode.</li>
+        <li>Shifts were chosen from the data. A model configuration now fixes them and is hashed into the statement.</li>
+        <li>Three zero-knowledge leaks: shared pads, a base-field-only GKR blinder, shared weight pad rows.</li>
+        <li>The embedding was not committed.</li>
+      </ul></li>
+    <li><b>Re-checker catches:</b> variants that escaped the first fixes:
+      <ul>
+        <li>a requant einsum treated as boolean;</li>
+        <li>partial-coverage bounds in the kernels;</li>
+        <li>LM statement-graph edits.</li>
+      </ul>
+      All three are fixed. For the third, the verifier now rebuilds the whole request statement (ops, labels, tables, shifts, publics, model digest) from the model descriptor, prompt and claimed token, and never reads a statement from the prover. A second independent re-checker then tried 10 further attacks: deleted, reordered or relabelled ops, redirected inputs, altered tables, changed shifts and capacities. All were rejected.</li>
+    <li><b>Not fixed, documented:</b> weight-hiding opening budget at serving scale, integer fidelity, and LogUp relations above p (rejected rather than chunked).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Open items</h2>
+  <ul>
+    <li>LM requests: the verifier builds the statement with a shape-only forward pass, so verifier memory grows with the witness. A builder without values is not done. The model digest is pinned next to the weight key rather than inside it. Shift plans are calibrated on random windows; a deployment would calibrate on representative inputs.</li>
+    <li>Model scale: streaming weights and witness per layer, GKR instance merging, and a CUDA port before any H100-class comparison.</li>
+    <li>Raise the ~95-bit layer ceiling (OM31 extension or repetition). Bring hiding openings into the calculator.</li>
+    <li>Formal verification of the verifier, and integer-model fidelity against a float reference on a public checkpoint.</li>
+  </ul>
+  <p class="muted">Raw results: <code>vectors/reports/tensor-frontend-20261103/v3-final/</code>. FlashProve CPU baseline: <code>…/flashprove-cpu-baseline/</code>. Designs: <code>design/tensor-frontend/*.md</code>.</p>
+</section>
+</div>
