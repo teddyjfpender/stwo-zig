@@ -262,9 +262,9 @@ test "wire: header, tags, trailing bytes, canonical field elements" {
     buf[0] ^= 1;
     // version 2 is the degree-8 (-Dchallenge=om31) format: a QM31 decoder
     // refuses it as a field mismatch; any other version is unknown
-    buf[4] = wire.VERSION + 1;
+    buf[4] = if (f.IS_OM31) 1 else 2;
     try expectErr(error.ChallengeFieldMismatch, buf, caps);
-    buf[4] = wire.VERSION + 2;
+    buf[4] = 3;
     try expectErr(error.BadVersion, buf, caps);
     buf[4] = wire.VERSION;
     buf[5] = @intFromEnum(wire.Kind.key);
@@ -277,7 +277,9 @@ test "wire: header, tags, trailing bytes, canonical field elements" {
     ext[pb.len] = 0x0e;
     try expectErr(error.TrailingBytes, ext, caps);
     // an unknown tag in place of a known section
-    const ui: usize = 6 + 5 + 32; // after the witness root section (product: no ood, no gkr)
+    // header: MAGIC, version, kind (+ degree, level in the om31 build)
+    const H: usize = if (f.IS_OM31) 8 else 6;
+    const ui: usize = H + 5 + 32; // after the witness root section (product: no ood, no gkr)
     try testing.expectEqual(@as(u8, 0x04), pb[ui]);
     buf[ui] = 0x0f;
     try expectErr(error.UnknownTag, buf, caps);
@@ -288,8 +290,8 @@ test "wire: header, tags, trailing bytes, canonical field elements" {
     // witness root section body: tag 1 at offset 6, length at 7..11, root at 11..43;
     // the next section (tag 4, no ood / gkr in product) holds the lookup values
     // (none); the witness value is a felt we can make non-canonical
-    try testing.expectEqual(@as(u8, 0x01), pb[6]);
-    var off: usize = 6;
+    try testing.expectEqual(@as(u8, 0x01), pb[H]);
+    var off: usize = H;
     while (pb[off] != 0x08) off += 5 + std.mem.readInt(u32, pb[off + 1 ..][0..4], .little);
     std.mem.writeInt(u32, buf[off + 5 ..][0..4], f.P, .little);
     try expectErr(error.NonCanonicalField, buf, caps);

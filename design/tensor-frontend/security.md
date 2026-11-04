@@ -858,5 +858,23 @@ prove time and 11% bytes. On the MLP and the layer the total cost is about
   the full decode-and-verify pipeline, rejection of header tampering
   (version, degree, level), random bit flips, an OM31-half value tamper,
   and a level relabel. It also checks that `checkSecurity` refuses
-  mismatched parameters. The pcs2, sumcheck, pcs, protocol, weight-key and
-  wire in-file tests also run in the om31 build.
+  mismatched parameters. The om31 suite also runs the field, sumcheck, pcs,
+  pcs2, batch-sumcheck, eqsum, prep, canonical, weight-key, security and
+  wire_test suites (the last includes the wire fuzzer: 4,500 mutated
+  product / MLP / decoder-layer proofs and keys at the `.custom` level over
+  OM31, 0 accepted). After the independent check this suite is 71 passed,
+  4 skipped (the 4th skip is the QM31 decoder-layer digest pin); before it,
+  only field / sumcheck / pcs / pcs2 / sec128 ran (58 passed), and the
+  weight-key and wire suites were not run in the om31 build.
+* `tensor-verify[-om31]` prints `security_level` and `challenge_degree`.
+  The level comes from the statement file's header, so a verifier that does
+  not pin `statement_digest` must check these: a `.custom` statement accepts
+  a `.custom` proof. Tampering with the level byte of the proof, the
+  statement, or both was checked on emitted MLP files: every case is
+  rejected (SecurityLevelMismatch, SecurityParams, NonCanonical, or a
+  transcript failure when both are relabelled to `.custom`).
+* The compiled (N/2^L) reading of both levels is 126.46 bits, below 128:
+  the 256-bit hash caps it. "bits128" names the all-rounds-added,
+  without-work number only.
+* Peak RSS of the 512-token decoder layer at bits128 is about 9.7 GB
+  (measured in the independent check), close to this host's memory limit.

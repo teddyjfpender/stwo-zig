@@ -39,6 +39,13 @@ test {
         _ = pcs;
         _ = pcs2;
         _ = @import("sec128_test.zig");
+        _ = weight_key;
+        _ = security;
+        _ = wire_test;
+        _ = batch_sumcheck;
+        _ = eqsum;
+        _ = prep;
+        _ = canonical;
         return;
     }
     _ = @import("qmul_check_test.zig");
