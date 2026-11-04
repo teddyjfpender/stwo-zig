@@ -78,3 +78,7 @@ pub const outer_source = @import("outer_source.zig");
 test {
     _ = outer_source;
 }
+
+test {
+    _ = @import("outer_fixed_ingress.zig");
+}

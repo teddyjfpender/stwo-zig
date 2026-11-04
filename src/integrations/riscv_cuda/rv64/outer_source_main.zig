@@ -49,11 +49,11 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
     var status = try ctx.allocate(1, 0);
     defer ctx.release(&status) catch {};
     try S.checked(b.clear(raw, status.words.?, 0, 4));
-    for (owner.key.pp.columns, 0..) |column_data, i| {
+    if (owner.raw_fixed_owned.lease.words == null) for (owner.key.pp.columns, 0..) |column_data, i| {
         const words = @as([*]const u32, @ptrCast(column_data.values.ptr))[0..column_data.values.len];
         if (words.len == 0) return error.MissingCircuitProverData;
         owner.raw_fixed[i] = try b.service.immutableWords(raw, ctx.scope, immutableKey(owner.initial_scope, i), words);
-    }
+    };
     try ctx.join();
     var stream: ?*anyopaque = null;
     try S.checked(b.api.lane_stream(raw, 1, &stream));

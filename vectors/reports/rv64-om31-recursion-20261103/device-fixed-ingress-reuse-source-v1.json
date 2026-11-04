@@ -1,0 +1,56 @@
+{
+  "schema": "rv64-device-fixed-ingress-reuse-source/v1",
+  "source_base": "99ab69f18",
+  "qualification": "source-only; CUDA-unqualified",
+  "enabled_by": "existing explicit serial recursion_device_fixed_candidate flag only; default unchanged",
+  "native_runtime_changes": false,
+  "raw_evaluation_uploads_per_candidate": 1,
+  "raw_evaluation_column_count": 45,
+  "custody": [
+    "provisional precommit kind0 lease",
+    "exact transfer to initial trusted key scope before MAIN",
+    "exact rebind to final MAIN-root-bound scope",
+    "joined INTER final reader",
+    "release before INTER commitment; clear all45 views"
+  ],
+  "coefficient_cache_contract": "unchanged exactly one kind2 precommit lease; raw kind0 never inserted",
+  "failure_checks": [
+    "stale generation and altered span rejected",
+    "failed initial transfer preserves precommit owner",
+    "failed final rebind preserves previous namespace",
+    "failed release preserves source custody/views",
+    "successful release is exactly once and clears views"
+  ],
+  "hardware_jobs": 0,
+  "no_claims": [
+    "CUDA proof parity",
+    "timing improvement",
+    "peak memory reduction or worst-shape fit"
+  ],
+  "pending_gates": [
+    "tiny cold/warm GPU exact CPU root/key/full-proof parity",
+    "native lease/refusal audits",
+    "real complete-block parity/fresh independent receiver",
+    "worst-shape28GiB memory gate"
+  ],
+  "host_tests": {
+    "passed": 157,
+    "integration_tests": 143,
+    "numerical_tests": 14,
+    "prefix_bank_executor": "passed",
+    "command": "zig build --build-file src/integrations/riscv_cuda/build.zig test -Doptimize=ReleaseFast -j2 --summary all",
+    "log_sha256": "10e799e1d53f102fc3a00b438d046a1d10dc61c174d461a0600dbf1897f1f90b"
+  },
+  "gnu_semantic": {
+    "passed": true,
+    "targets": [
+      "check-rv64-ethereum-gpu-combined",
+      "check-rv64-ethereum-gpu-recursion",
+      "check-rv64-ethereum-gpu"
+    ],
+    "target": "x86_64-linux-gnu",
+    "cpu": "x86_64_v4+sha",
+    "emitted_binary": false,
+    "log_sha256": "c83087aaaa2afa996aeb59b48432b786d7ca0909d65bea03d02cc4caa0a2c8b9"
+  }
+}

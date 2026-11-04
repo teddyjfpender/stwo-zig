@@ -7,14 +7,13 @@ const Circuit = @import("stwo_circuit_frontend");
 const PP = Circuit.common.preprocessed.PreprocessedCircuit;
 const D = @import("stwo_prover_api").device_pcs;
 const SC = @import("session_context.zig");
-const Native = @import("pcs_native_abi.zig");
 const Id = @import("pcs_scope.zig");
 pub const Owner = struct {
     allocator: std.mem.Allocator,
     backend: *S.Context,
     pp: *const PP,
     scope: D.Scope,
-    raw: Native.Lease = .{},
+    raw: @import("outer_fixed_ingress.zig").Raw = .{},
     inputs: [45]D.TraceColumn = undefined,
     tree: D.Tree = undefined,
     failure: ?anyerror = null,
@@ -52,21 +51,25 @@ pub const Owner = struct {
         defer ctx.active = false;
         var count: usize = 0;
         for (self.pp.columns) |column| count = try std.math.add(usize, count, column.values.len);
-        self.raw = try ctx.allocate(count, 0);
+        self.raw = .{ .lease = try ctx.allocate(count, 0), .scope = ctx.scope };
         var at: usize = 0;
         for (self.pp.columns, &self.inputs) |column, *out| {
             if (column.values.len == 0 or !std.math.isPowerOfTwo(column.values.len)) return error.InvalidOuterFixedGeometry;
             const words: []const u32 = @ptrCast(column.values);
-            try S.checked(self.backend.api.upload(raw, self.raw.words.? + at, words.ptr, words.len * 4));
-            out.* = .{ .log_size = column.logSize(), .encoding = .evaluations, .device = .{ .words = self.raw.words.? + at, .count = words.len, .context_token = self.raw.context_token, .generation = self.raw.generation } };
+            try S.checked(self.backend.api.upload(raw, self.raw.lease.words.? + at, words.ptr, words.len * 4));
+            out.* = .{ .log_size = column.logSize(), .encoding = .evaluations, .device = .{ .words = self.raw.lease.words.? + at, .count = words.len, .context_token = self.raw.lease.context_token, .generation = self.raw.lease.generation } };
             at += words.len;
         }
         try ctx.join();
     }
     fn dropRaw(_: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
-        if (self.raw.words != null) return self.backend.service.lease_release(self.backend.service.session, &self.raw);
+        self.raw.release(self.rawOps()) catch return 1;
+        self.inputs = @splat(.{ .log_size = 0, .encoding = .evaluations });
         return 0;
+    }
+    pub fn rawOps(self: *Owner) @import("outer_fixed_ingress.zig").Ops {
+        return .{ .session = self.backend.service.session, .validate = self.backend.service.lease_validate, .rebind = self.backend.trace_commit.rebind, .release = self.backend.service.lease_release };
     }
     fn prepare(raw: *anyopaque, a: std.mem.Allocator, key: *const O.prove.Authority, graph: *const Circuit.builder.Context(O.protocol.Q), scope: D.Scope) !Dev.Source {
         const self: *Owner = @ptrCast(@alignCast(raw));
@@ -109,7 +112,7 @@ pub fn precommit(raw: *anyopaque, a: std.mem.Allocator, pp: *const PP, ordinal: 
     if (self.failure) |err| return err;
     try S.checked(status);
     self.tree = try b.trace_commit.commitFixed(a, .{ .scope = scope, .config = try O.protocol.targetConfig(), .tree_index = 0, .columns = &self.inputs });
-    try S.checked(b.service.submit(b.service.session, Owner.dropRaw, self));
+    // Retain original evaluations for MAIN/INTER; Source takes exact custody.
     var logs: [45]u32 = undefined;
     for (pp.columns, &logs) |column, *log| log.* = column.logSize();
     try Dev.validateTree(&logs, self.tree);

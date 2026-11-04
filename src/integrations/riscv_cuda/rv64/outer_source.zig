@@ -169,15 +169,16 @@ pub const Context = struct {
             break :blk assignment.count;
         } else values.len;
         if (graph == null) if (self.assignment) |assignment| if (assignment.reference != values.ptr or assignment.count != values.len) return error.OuterWitnessGraphMismatch;
-        // Raw FIXED evaluations are borrowed together while generating MAIN and
-        // INTER. The original alias scope is released before composition borrows
-        // the coefficient forest; immutable aliases must never be evicted live.
+        // Legacy raw FIXED evaluations and the assignment schedule share the
+        // immutable budget. Device precommit instead transfers its independently
+        // admitted request-owned raw lease: do not charge/cache a duplicate.
+        // All borrowed aliases remain pinned until their actual last reader.
         var fixed_bytes: u64 = 0;
         for (key.pp.columns) |column| fixed_bytes = try std.math.add(u64, fixed_bytes, try std.math.mul(u64, column.values.len, @sizeOf(u32)));
         if (self.service.immutable_setup == null) try self.service.enableImmutableSetup(@min(self.service.byte_cap, 2 << 30));
         const immutable_limit = self.service.immutable_setup.?.limit;
         const schedule_bytes: u64 = if (self.assignment) |assignment| try std.math.mul(u64, try std.math.add(u64, assignment.tasks.len * 8, assignment.indices.len), 4) else 0;
-        const required_immutable = try std.math.add(u64, fixed_bytes, schedule_bytes);
+        const required_immutable = try std.math.add(u64, if (fixed == null) fixed_bytes else 0, schedule_bytes);
         if (required_immutable > immutable_limit) {
             std.debug.print("GPU_OUTER fixed_forest_bytes={} schedule_bytes={} required_immutable_bytes={} immutable_limit_bytes={} device_limit_bytes={} logs={any}\n", .{ fixed_bytes, schedule_bytes, required_immutable, immutable_limit, self.service.byte_cap, key.logs.toArray() });
             return error.OuterFixedForestExceedsImmutableBudget;
@@ -194,6 +195,11 @@ pub const Context = struct {
         errdefer Owner.release(owner);
         owner.main_columns = try a.alloc(D.TraceColumn, 114);
         owner.inter_columns = try a.alloc(D.TraceColumn, 304);
+        if (fixed) |setup| {
+            owner.fixed_ingress_pending = setup;
+            try owner.run(Owner.takeFixedIngress);
+            owner.fixed_ingress_pending = null;
+        }
         try owner.run(@import("outer_source_main.zig").generate);
         // MAIN generation joined every metadata upload and witness kernel.
         // INTER/PCS retain device columns only; no CPU plan escapes its budget.
@@ -202,7 +208,10 @@ pub const Context = struct {
         const commit = self.trace_commit.stage();
         owner.main = try commit.commit(commit.context, a, .{ .scope = scope, .config = try Outer.protocol.targetConfig(), .tree_index = 1, .columns = owner.main_columns });
         owner.scope.main = owner.main.?.root;
-        if (fixed) |setup| try setup.promote(owner.scope);
+        if (fixed) |setup| {
+            try setup.promote(owner.scope);
+            try owner.run(Owner.promoteFixedIngress);
+        }
         return .{ .context = owner, .scope = owner.scope, .main = owner.main.?, .fixed = if (fixed) |setup| setup.tree else null, .pcs = &owner.pcs, .composition = &owner.composition_stage, .generate = Owner.interact, .release = Owner.release };
     }
 };
@@ -217,6 +226,8 @@ pub const Owner = struct {
     initial_scope: D.Scope,
     scope: D.Scope,
     raw_fixed: [45]Native.Lease = undefined,
+    raw_fixed_owned: @import("outer_fixed_ingress.zig").Raw = .{},
+    fixed_ingress_pending: ?*@import("outer_fixed.zig").Owner = null,
     main_evaluations: Native.Lease = .{},
     main_columns: []D.TraceColumn,
     inter_columns: []D.TraceColumn,
@@ -260,6 +271,8 @@ pub const Owner = struct {
         self.z = z;
         self.alpha = alpha;
         try self.run(@import("outer_source_interaction.zig").generate);
+        // Joined INTER kernels are the final readers of original PP evaluations.
+        try self.run(dropFixedIngress);
         // INTER generation has joined all readers. Its commitment consumes only
         // INTER evaluations; MAIN coefficients already have independent custody.
         try self.run(dropMainEvaluations);
@@ -284,6 +297,37 @@ pub const Owner = struct {
         };
         try self.dropEvaluations(native_context, token);
         std.log.info("GPU_OUTER released_INTER_evaluation_bytes={d} after_joined_coefficient_ingress=true before_LDE_scratch=true", .{bytes});
+    }
+    fn fixedIngressOps(self: *Owner) @import("outer_fixed_ingress.zig").Ops {
+        return .{ .session = self.backend.service.session, .validate = self.backend.service.lease_validate, .rebind = self.backend.trace_commit.rebind, .release = self.backend.service.lease_release };
+    }
+    fn takeFixedIngress(self: *Owner, _: *anyopaque, token: u64) !void {
+        const setup = self.fixed_ingress_pending orelse return error.MissingOuterFixedIngress;
+        if (setup.pp != self.key.pp or setup.raw.lease.context_token != token or setup.scope.ordinal != self.initial_scope.ordinal or !std.mem.eql(u8, &setup.tree.root, &self.initial_scope.fixed) or !std.mem.allEqual(u8, &self.initial_scope.main, 0)) return error.InvalidOuterFixedIngress;
+        // Validate the original roster BEFORE native authority changes. There is
+        // no allocation/fallible metadata operation after successful transfer.
+        var at: usize = 0;
+        var columns: [45]Native.Lease = undefined;
+        for (self.key.pp.columns, setup.inputs, &columns) |column, input, *out| {
+            const view = input.device orelse return error.InvalidOuterFixedIngress;
+            if (input.encoding != .evaluations or input.log_size != column.logSize() or view.count != column.values.len or view.words != setup.raw.lease.words.? + at or view.context_token != setup.raw.lease.context_token or view.generation != setup.raw.lease.generation) return error.InvalidOuterFixedIngress;
+            out.* = .{ .words = @constCast(view.words), .count = view.count, .context_token = view.context_token, .generation = view.generation, .kind = 0 };
+            at = try std.math.add(usize, at, column.values.len);
+        }
+        if (at != setup.raw.lease.count) return error.InvalidOuterFixedIngress;
+        try setup.raw.transferTo(&self.raw_fixed_owned, @import("pcs_scope.zig").identity(self.initial_scope), self.fixedIngressOps());
+        self.raw_fixed = columns;
+        std.log.info("GPU_OUTER_FIXED_INGRESS reused_evaluation_words={d} duplicate_immutable_upload_words=0", .{self.raw_fixed_owned.lease.count});
+        // The precommit owner retains only coefficients; no stale raw views.
+        setup.inputs = @splat(.{ .log_size = 0, .encoding = .evaluations });
+    }
+    fn promoteFixedIngress(self: *Owner, _: *anyopaque, _: u64) !void {
+        try self.raw_fixed_owned.promote(@import("pcs_scope.zig").identity(self.scope), self.fixedIngressOps());
+    }
+    fn dropFixedIngress(self: *Owner, _: *anyopaque, _: u64) !void {
+        if (self.raw_fixed_owned.lease.words == null) return;
+        try self.raw_fixed_owned.release(self.fixedIngressOps());
+        self.raw_fixed = @splat(.{});
     }
     fn dropMainEvaluations(self: *Owner, _: *anyopaque, _: u64) !void {
         const main = self.main_evaluations;
@@ -337,8 +381,9 @@ pub const Owner = struct {
         b.mutex.unlock();
         a.destroy(self);
     }
-    fn releaseDevice(_: *anyopaque, _: u64, data: ?*anyopaque) callconv(.c) c_int {
+    fn releaseDevice(native_context: *anyopaque, token: u64, data: ?*anyopaque) callconv(.c) c_int {
         const self: *Owner = @ptrCast(@alignCast(data.?));
+        self.dropFixedIngress(native_context, token) catch return 1;
         for (self.leases.items) |*lease| if (lease.words != null) {
             if (self.backend.service.lease_release(self.backend.service.session, lease) != 0) return 1;
         };
@@ -425,6 +470,7 @@ test "failed atomic owner releases bounded plan before allowing another proof" {
     owner.scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
     owner.initial_scope = owner.scope;
     owner.leases = .empty;
+    owner.raw_fixed_owned = .{};
     owner.main_columns = &.{};
     owner.inter_columns = &.{};
     backend.active = owner;
@@ -458,6 +504,7 @@ test "outer INTER retirement preserves headers and failure cleanup retains remai
     owner.scope = .{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 4 };
     owner.main_evaluations = .{};
     owner.leases = .empty;
+    owner.raw_fixed_owned = .{};
     defer owner.leases.deinit(a);
     try owner.leases.append(a, .{ .words = @ptrFromInt(4096), .count = 8, .context_token = 7, .generation = 1, .kind = 1 });
     try owner.leases.append(a, .{ .words = @ptrFromInt(8192), .count = 16, .context_token = 7, .generation = 2, .kind = 1 });
@@ -473,4 +520,47 @@ test "outer INTER retirement preserves headers and failure cleanup retains remai
     try std.testing.expectEqual(@as(usize, 0), owner.leases.items.len);
     try std.testing.expectEqual(@as(usize, 1), owner.inter_columns.len);
     try std.testing.expectEqual(@as(u32, 3), owner.inter_columns[0].log_size);
+}
+
+test "raw FIXED retirement preserves views on failure and clears every view on success" {
+    const Fake = struct {
+        fail: bool = true,
+        calls: usize = 0,
+        fn validate(_: *anyopaque, lease: *const Native.Lease, scope: *const [8]u32) callconv(.c) c_int {
+            return if (lease.words != null and lease.context_token == 9 and lease.generation == 11 and std.mem.allEqual(u32, scope, 3)) 0 else 1;
+        }
+        fn rebind(_: *anyopaque, _: *const Native.Lease, _: *const [8]u32, _: *const [8]u32) callconv(.c) c_int {
+            return 1;
+        }
+        fn release(raw: *anyopaque, lease: *Native.Lease) callconv(.c) c_int {
+            const f: *@This() = @ptrCast(@alignCast(raw));
+            f.calls += 1;
+            if (f.fail) return 1;
+            lease.* = .{};
+            return 0;
+        }
+    };
+    var fake = Fake{};
+    var service: Service.Context = undefined;
+    service.session = &fake;
+    service.lease_validate = Fake.validate;
+    service.lease_release = Fake.release;
+    var backend: Context = undefined;
+    backend.service = &service;
+    var trace_commit: TC.Context = undefined;
+    trace_commit.rebind = Fake.rebind;
+    backend.trace_commit = &trace_commit;
+    var owner: Owner = undefined;
+    owner.backend = &backend;
+    owner.raw_fixed_owned = .{ .lease = .{ .words = @ptrFromInt(4096), .count = 360, .context_token = 9, .generation = 11, .kind = 0 }, .scope = @splat(3) };
+    owner.raw_fixed = @splat(.{ .words = @ptrFromInt(4096), .count = 8, .context_token = 9, .generation = 11, .kind = 0 });
+    try std.testing.expectError(error.OuterFixedIngressReleaseFailed, owner.dropFixedIngress(&fake, 9));
+    try std.testing.expect(owner.raw_fixed_owned.lease.words != null);
+    for (owner.raw_fixed) |view| try std.testing.expect(view.words != null);
+    fake.fail = false;
+    try owner.dropFixedIngress(&fake, 9);
+    try std.testing.expect(owner.raw_fixed_owned.lease.words == null);
+    for (owner.raw_fixed) |view| try std.testing.expect(view.words == null);
+    try owner.dropFixedIngress(&fake, 9);
+    try std.testing.expectEqual(@as(usize, 2), fake.calls);
 }

@@ -36,7 +36,7 @@ pub fn generate(owner: *S.Owner, raw: *anyopaque, token: u64) !void {
         for (indices, 0..) |index, i| {
             const source = owner.raw_fixed[index];
             if (source.count != rows) return error.InvalidCircuitLookupGeometry;
-            try S.checked(b.service.lease_validate_range(b.service.session, source.words.?, source.count, source.context_token, source.generation, &@import("pcs_scope.zig").identity(owner.initial_scope)));
+            try S.checked(b.service.lease_validate_range(b.service.session, source.words.?, source.count, source.context_token, source.generation, &(if (owner.raw_fixed_owned.lease.words != null) owner.raw_fixed_owned.scope else @import("pcs_scope.zig").identity(owner.initial_scope))));
             try S.checked(b.copy(raw, @ptrCast(fixed.words.? + i * rows), @ptrCast(source.words.?), rows * 4));
         }
         const output = try owner.owned(&ctx, 8 * (pairs + 1) * rows);

@@ -104,3 +104,33 @@ CPU receiver and restore admission remain unchanged. This wiring is now qualifie
 The observed request wall was126.221s. This is one observation, with different source/runtime/resources from the original control, and establishes no causal speed ratio. It does not qualify worst-shape memory fit or enable the default. The compact receipt is `serial-device-fixed-qualified-v1.json`.
 
 A subsequent single ordered pair used the identical aa526 executable,2529 runtime, request and resources, first with the candidate flag and then with that flag removed. All native/outer/root/tree bytes remained exact. Across21 nodes the observed Authority stage summed1.972s with device precommit and34.759s with CPU precommit; PP column construction remained12.836s and12.873s. Request wall was126.221s and164.769s respectively. This is a single true-then-false observation, not a median or general speed ratio. The FALSE control fresh independent CPU verification is pending in this checkpoint; the TRUE case is independently accepted. `serial-fixed-ordered-pair-v1.json` pins both producer logs and sealed outputs.
+
+Isolated follow-up: original PP evaluation ingress reuse (CUDA-unqualified)
+
+The device-precommit candidate originally uploaded the45 PP evaluation columns,
+committed them, released those evaluations, and uploaded the same columns again
+through immutableWords for MAIN/INTER. The isolated ingress-reuse slice retains
+that original request-owned kind0 allocation. It transfers exact custody from
+precommit to Source, rebinding provisional scope to the trusted initial key
+scope before MAIN. After MAIN commitment it rebinds again to the final
+statement/FIXED/MAIN/ordinal scope. All45 original column spans, logs, context
+and generation are checked before transfer; there is no fallible allocation
+or metadata update after the native authority mutation.
+
+This raw lease is separate from the kind2 coefficient forest and never enters
+the retained-coefficient cache. The existing one-coefficient promotion contract
+therefore stays unchanged. MAIN/INTER borrow the original raw columns; the
+candidate skips their immutableWords ingress. Assignment metadata still uses
+the original bounded immutable cache. Raw evaluations are released after the
+joined INTER readers and before INTER commitment, and all45 views are cleared.
+Failed transfer/rebind preserves the old owner/scope; failed release preserves
+custody for cleanup. Native release itself joins producer lanes on error paths.
+
+The default CPU-FIXED path keeps its prior immutableWords/alias lifecycle.
+This source slice has host ownership/mutation checks and GNU semantic checks;
+it has no CUDA qualification, proof-parity result, timing or memory-fit claim.
+The earlier raw lifetime includes assignment generation, so its peak must be
+measured even though duplicate ingress/cache aliases are removed. Required next
+gates are tiny cold/warm exact root/key/full-proof parity, lease audits on both
+success and refusal, then a real case and worst-shape memory qualification.
+No GPU instance was started for this follow-up.
