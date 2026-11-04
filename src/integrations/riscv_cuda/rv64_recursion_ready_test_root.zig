@@ -100,4 +100,5 @@ test "combined ready admission binds exact physical lanes and refuses dual selec
 
 test {
     _ = @import("rv64/resident_ready_policy.zig");
+    _ = @import("rv64/serial_fixed_policy.zig");
 }

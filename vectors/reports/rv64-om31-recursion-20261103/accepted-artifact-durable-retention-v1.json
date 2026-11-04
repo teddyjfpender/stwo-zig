@@ -1,0 +1,19 @@
+{
+  "schema": "rv64-durable-recursive-artifact-retention-receipt/v1",
+  "durable_index": "/Users/theodorepender/code/cryptography/rv64-proof-artifacts/20261104/durable-retention.json",
+  "durable_index_sha256": "b0b2f394473f501719b39b69ceedca25a945a59819af13a1fc361fa49b49676e",
+  "accepted_blocks": 15,
+  "accepted_trials": 16,
+  "copy_counts": {
+    "cloned": 3023,
+    "copied": 0
+  },
+  "scope": "Durable local custody outside /private/tmp. Every indexed proof/metadata file and producer log rehashed; independent acceptance is established by original receiver receipts. APFS clones have independent copy-on-write file ownership, not hard links.",
+  "original_backup_index_sha256": "a0c244581a7479fe56b45ad0f586b70d791380789f4926ccf2656a4daa12c739",
+  "optional_candidates": [
+    "ready-n1",
+    "serial-fixed"
+  ],
+  "gkr_ab_preserved": true,
+  "original_evidence_mutated": false
+}
