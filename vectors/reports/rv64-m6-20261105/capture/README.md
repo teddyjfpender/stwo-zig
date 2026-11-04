@@ -92,8 +92,9 @@ identically for the M5 driver, so compare capture and the other stages, not requ
 | c3-m5base | M5 37f94901 | 28 | 2.383 | 2.930 | 40.97 | 7.27 | 19.71 | identical (native bins, bundle, tree, every recursive proof) | not run |
 | c2-on | M6 e8ca32a5 | 38 | 1.719 | 2.234 | 39.62 | 7.17 | 19.16 | identical (native bins, bundle, tree, every recursive proof) | accepted 2/2 (separate receiver process, M5 receiver) |
 | c3-on | M6 e8ca32a5 | 21 | 1.754 | 2.095 | 39.57 | 6.83 | 19.60 | identical (native bins, bundle, tree, every recursive proof) | not run |
+| c4-tip | M6 tip 02f1db17 (f2d289bf9) | 10 | 1.683 | 2.176 | 39.57 | 7.04 | 19.20 | identical (native bins, bundle, tree, every recursive proof) | accepted 2/2 (separate receiver process, M5 receiver) |
 
-Capture stage (production): **607 2.93 → 2.10–2.23 s (−24..−28%), 156 2.38 → 1.72–1.75 s (−27%)** at load 21–38 [M].
+Capture stage (production): **607 2.93 → 2.10–2.23 s (−24..−28%), 156 2.38 → 1.68–1.75 s (−27..−29%)** at load 21–38 [M]; the branch tip (c4) is what is switched on.
 Root hashes `2feed86a…` (607) and `b424203b…` (156) equal the M3/M5 receipts; every native bin, bundle and recursive proof hash matches.
 
 ## Tests (pod, ReleaseSafe; logs in `raw/tests/`)
