@@ -108,6 +108,7 @@ pub const Inventory = struct {
             };
         }
         try Manifest.validateRoster(workers);
+        if (@import("chain.zig").enabled()) try @import("chain.zig").assign(setups, truths, requests, first_ids, workers, config, fixed);
         return .{ .allocator = a, .execution_identity = identity, .workers = workers, .instances = instances, .first_ids = first_ids };
     }
 };
