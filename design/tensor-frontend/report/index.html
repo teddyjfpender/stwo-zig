@@ -53,7 +53,7 @@ code { font-family: var(--mono); font-size: .86em; }
 
 <div class="wrap">
 <header style="display:grid;gap:10px">
-  <div class="eyebrow">stwo-zig · branch codex/tensor-frontend · M4 Max, 36 GB · 2026-11-04</div>
+  <div class="eyebrow">stwo-zig · branch codex/tensor-frontend · M4 Max, 36 GB · 2026-11-04 · round 3</div>
   <h1>stwo-tensor vs FlashProve</h1>
   <p class="lede">A provable integer-inference prover built over 12 hours on stwo-zig (M31/QM31, multilinear Ligero-style PCS, LogUp-GKR), benchmarked against Anthropic's FlashProve. Same-relation runs use FlashProve's own sequential CPU prover, built and timed on this machine. FlashProve's H100 model-scale figures are quoted, not reproduced.</p>
 </header>
@@ -79,7 +79,21 @@ code { font-family: var(--mono); font-size: .86em; }
         <li>a soundness calculator.</li>
       </ul></li>
     <li><b>Not shown:</b> model-scale parity. FlashProve proves Llama 4 Maverick (400.7B committed weights) at 9.2 s per 1,024-token request on one H100. Our largest runs are single layers at 38-100M weights on a laptop. A compute-only projection to Maverick on this Mac's CPU is 550-1,840 s per request, and the hardware differs.</li>
-    <li><b>Behind:</b> Lean formal verification (FlashProve has it; we have none), integer-model fidelity (int8 throughout against their 12-16 bit streams and float-agreement study), the opening budget for weight hiding at serving scale, and hiding-test depth (they inject faults).</li>
+    <li><b>Added in round 3:</b>
+      <ul>
+        <li>Lean proofs of the arithmetic core, sumcheck and LogUp (no sorry, no Mathlib), and a kernel-checked re-sum of the toy security bound.</li>
+        <li>A float-vs-integer accuracy harness on a public checkpoint.</li>
+        <li>A selectable 128/160-bit security level over a degree-8 challenge field.</li>
+        <li>A CUDA backend designed to stay on the GPU, verified in CPU emulation.</li>
+      </ul></li>
+    <li><b>Behind:</b>
+      <ul>
+        <li>FlashProve's Lean covers the whole compiled protocol, including zero knowledge, and ships an executable Lean verifier. Ours covers components only.</li>
+        <li>Our accuracy study is on a 264K-parameter model, not a large one.</li>
+        <li>CUDA has not run on a GPU.</li>
+        <li>The opening budget for weight hiding at serving scale.</li>
+        <li>Hiding-test depth (they inject faults).</li>
+      </ul></li>
   </ul>
 </section>
 
@@ -188,14 +202,14 @@ code { font-family: var(--mono); font-size: .86em; }
     <tbody>
       <tr><td>Statement</td><td>greedy next token(s) over a 1,024-token window, public prompt, committed weights</td><td>greedy check with LM head, public prompt tokens, committed embedding and gains; verifier-built request statement</td><td><span class="pill equal">equal</span></td></tr>
       <tr><td>Weight commitment</td><td>masked RS, OOD sample, one-time key proof (range + proximity)</td><td>Ligero/pcs2 over circle codes, key proof (range + proximity) plus OOD binding and per-batch proximity</td><td><span class="pill equal">equal in structure</span></td></tr>
-      <tr><td>Zero knowledge</td><td>masked encodings, masked sumcheck; Lean-proved ZK</td><td>salted leaves, masked encodings, masked sumcheck and LogUp-GKR, hiding weights with links; paper argument, reviewed</td><td><span class="pill worse">no machine proof</span></td></tr>
+      <tr><td>Zero knowledge</td><td>masked encodings, masked sumcheck; Lean-proved ZK</td><td>salted leaves, masked encodings, masked sumcheck and LogUp-GKR, hiding weights with links; paper argument, reviewed; no Lean ZK proof</td><td><span class="pill worse">no machine proof</span></td></tr>
       <tr><td>Opening budget / copies</td><td>44M columns, 688K batches per copy, 710K copies linked to T0</td><td>enforced in process; about 17 proofs per commitment at the defaults; chained links</td><td><span class="pill worse">worse</span></td></tr>
       <tr><td>Per-request proofs</td><td>yes, shared batch rounds</td><td>yes, one shared weight opening</td><td><span class="pill equal">equal (non-hiding)</span></td></tr>
       <tr><td>Model coverage</td><td>Maverick: 48 layers, 128 experts + shared expert</td><td>GQA attention, softmax, RMSNorm, RoPE, SwiGLU, top-1 MoE (≤ 64 experts, no shared expert)</td><td><span class="pill worse">worse</span></td></tr>
-      <tr><td>Integer-model fidelity</td><td>12-bit activations, 16-bit residuals; 6.8% top-token disagreement vs bf16 measured</td><td>int8 throughout, synthetic weights, no fidelity study</td><td><span class="pill worse">worse</span></td></tr>
-      <tr><td>Soundness accounting</td><td>Lean theorem; printed whole bound</td><td>calculator over every implemented term (reviewed); no machine proof</td><td><span class="pill worse">worse</span></td></tr>
+      <tr><td>Integer-model fidelity</td><td>12-bit activations, 16-bit residuals; 6.8% top-token disagreement vs bf16 measured</td><td>public checkpoint study (stories260K): 82.2% top-1 proved with 13-bit scores; 93.3% emulated with 12/16-bit widths</td><td><span class="pill worse">small model only</span></td></tr>
+      <tr><td>Soundness accounting</td><td>Lean theorem; printed whole bound</td><td>calculator over every implemented term (reviewed); Lean: union bound, sumcheck, LogUp, kernel-checked toy re-sum; selectable 128/160-bit level</td><td><span class="pill worse">components only</span></td></tr>
       <tr><td>Verifier</td><td>C++ <code>cp_verify</code> + Lean executable verifier</td><td>Zig verifier; canonical wire format; <code>tensor-verify</code> on untrusted files; 4,500-mutant fuzz with 0 accepted</td><td><span class="pill worse">no second verifier</span></td></tr>
-      <tr><td>GPU</td><td>CUDA on H100</td><td>Metal on M4 Max, proofs bit-identical to CPU</td><td><span class="pill missing">different hardware</span></td></tr>
+      <tr><td>GPU</td><td>CUDA on H100</td><td>Metal on M4 Max (bit-identical); CUDA backend emulation-verified, not yet run on a GPU</td><td><span class="pill missing">CUDA unrun</span></td></tr>
       <tr><td>Prover speed, same relation and machine</td><td>8.63 s (2<sup>20</sup>, hiding)</td><td>0.305 s (hiding)</td><td><span class="pill better">28× faster</span></td></tr>
       <tr><td>Proof size at matched security</td><td>341 KB toy; 18.78 MB Maverick request</td><td>249 KB toy (113.5 bits); 195 KB hiding with recursive PCS</td><td><span class="pill better">smaller</span></td></tr>
     </tbody></table></div>
@@ -231,12 +245,108 @@ code { font-family: var(--mono); font-size: .86em; }
 </section>
 
 <section>
+  <h2>Round 3: Lean proofs</h2>
+  <p><code>formal/tensor-frontend/</code> is about 1,340 lines of Lean on core v4.35.0 only. There is no <code>sorry</code> and no new axiom. <code>scripts/check.sh</code> audits 24 headline theorems and accepts only the standard axioms (propext, Classical.choice, Quot.sound). It runs with <code>zig build lean</code>.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>component</th><th>theorem(s)</th><th>what it states</th></tr></thead>
+    <tbody>
+      <tr><td>Requant and no wraparound</td><td><code>requant_unique</code>, <code>matmul_sound</code>, <code>hadamard_sound</code>, <code>exact_einsum_sound</code>, <code>lineq_sound</code></td><td>Under the <code>bounds.zig</code> rules (for example b<sub>x</sub>+7+log K ≤ 30, EXACT_MAX_BITS = 29), the M31 field identity implies the integer identity. So the field check forces Y = requant<sub>s</sub>(X·W).</td></tr>
+      <tr><td>Softmax division</td><td><code>softmax_div_unique</code>, <code>softmax_div_sound</code></td><td>The two range-checked slack values pin down o = round(acc/den), and den &gt; 0 follows from them (it is derived, not assumed).</td></tr>
+      <tr><td>Sumcheck</td><td><code>sumcheck_sound</code></td><td>For a false claim, any adaptive prover is accepted with probability at most n·d/|F|. The root bound is proved over any finite field.</td></tr>
+      <tr><td>LogUp</td><td><code>logup_identity_sound</code>, <code>logup_random_sound</code></td><td>For single-value keys, a zero fractional sum with counts below p implies multiset inclusion. A random-evaluation error bound is also proved.</td></tr>
+      <tr><td>Security accounting</td><td><code>union_le</code>, <code>Toy20Johnson</code> (by <code>decide</code>)</td><td>The calculator's sum is the union bound. The 23 terms of the toy 2<sup>20</sup> Johnson proof sum to ≤ 2<sup>-113</sup> with work and ≤ 2<sup>-96</sup> without, checked by the kernel.</td></tr>
+    </tbody></table></div>
+  <ul>
+    <li><b>Not proved:</b>
+      <ul>
+        <li>End-to-end protocol soundness, zero knowledge, a Lean verifier, and a Lean-to-Zig refinement (each theorem matches its Zig code only by reading).</li>
+        <li>The bounds fixpoint algorithm itself, multi-column LogUp keys, GKR layering, the QM31 construction, and the PCS proximity terms.</li>
+        <li>Some hypotheses are stronger than what the code establishes; <code>lean.md</code> lists each one.</li>
+      </ul>
+      FlashProve proves soundness, binding, completeness and zero knowledge for its compiled protocol and ships an executable Lean verifier, so it remains ahead here.</li>
+    <li><b>Reviewer fixes:</b> a stricter source scan; a GF(2) instance showing the field hypotheses can be satisfied; den &gt; 0 now derived rather than assumed.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Round 3: accuracy against a float model</h2>
+  <p>We used the public checkpoint <b>stories260K</b> (Llama architecture, 5 layers, dim 64, GQA, RMSNorm, RoPE, SwiGLU). A float32 numpy reference was checked against an independent run.c re-implementation, with logits within 1.4e-5. The integer model is our proved model: the Zig integer forward matches bit for bit on all 238 kept windows, and 4 requests were proved, verified and rejected with a wrong token.</p>
+  <p class="muted">Eval: 256 held-out windows of 64 tokens (16,384 positions). The shift plan was calibrated on 64 separate windows. Agreement figures count refused windows as disagreements.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>integer configuration</th><th class="n">top-1 agreement</th><th class="n">KL (nats)</th><th class="n">refused</th><th>status</th></tr></thead>
+    <tbody>
+      <tr><td>Shipped quantizer (max-abs int8, <code>lm.calibrate</code>, int8 scores)</td><td class="n">0.8%</td><td class="n">21.6</td><td class="n">0%</td><td><span class="pill worse">broken: the model ignores context</span></td></tr>
+      <tr><td>Scale-matched int8 + 13-bit attention scores (new <code>score_bits</code>)</td><td class="n">82.2%</td><td class="n">0.104</td><td class="n">7.4%</td><td><span class="pill equal">implemented and proved</span></td></tr>
+      <tr><td>Same, with 1 bit of headroom</td><td class="n">70.2%</td><td class="n">0.286</td><td class="n">3.5%</td><td><span class="pill equal">implemented and proved</span></td></tr>
+      <tr><td>12-bit activations + 16-bit residuals (FlashProve-like)</td><td class="n">93.3%</td><td class="n">0.013</td><td class="n">—</td><td><span class="pill missing">emulation only</span></td></tr>
+      <tr><td>FlashProve, Maverick vs bf16 (published)</td><td class="n">93.2%</td><td colspan="3">different model and reference</td></tr>
+    </tbody></table></div>
+  <ul>
+    <li><b>The main finding is negative:</b> the quantizer we shipped produced a context-free model. int8 attention scores at 1/16 nat cannot hold logits that span −172 to +25 nats. The new 13-bit score path fixes this in the proved model.</li>
+    <li>The wide configuration needs a design change: the int8-core no-wrap bound only allows K ≤ 12 at 12-bit activations. Its proof cost is not measured; the design is in <code>accuracy.md</code>.</li>
+    <li>SmolLM2-135M was not run: its non-power-of-two dimensions and a 2<sup>26</sup>-weight LM head exceed this laptop's limits. A 264K-parameter model does not predict large-model accuracy.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Round 3: selectable security level</h2>
+  <p>A build-time challenge field: QM31 (default) or the degree-8 OM31 (|F| ≈ 2<sup>248</sup>). Levels <code>bits128</code> and <code>bits160</code> set queries, OOD and proof-of-work together. The level is written into the wire header, and the verifier rejects a mismatch. Default configurations and pinned digests are unchanged.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>workload</th><th>level</th><th class="n">bits w/ / w/o PoW</th><th class="n">prove</th><th class="n">verify</th><th class="n">proof</th></tr></thead>
+    <tbody>
+      <tr><td>toy 2<sup>20</sup>, 1 core</td><td>johnson (QM31)</td><td class="n">113.5 / 96.8</td><td class="n">0.162 s</td><td class="n">1.3 ms</td><td class="n">249 KB</td></tr>
+      <tr><td></td><td>QM31, 128-bit query counts</td><td class="n">114.1 / 104.3</td><td class="n">0.165 s</td><td class="n">1.4 ms</td><td class="n">277 KB</td></tr>
+      <tr><td></td><td><b>bits128</b> (OM31)</td><td class="n">153.7 / 133.7</td><td class="n">0.270 s</td><td class="n">2.2 ms</td><td class="n">443 KB</td></tr>
+      <tr><td></td><td>bits160 (OM31)</td><td class="n">186.4 / 166.4</td><td class="n">0.297 s</td><td class="n">3.2 ms</td><td class="n">535 KB</td></tr>
+      <tr><td>MLP 1024 tok, D 1024, F 2048</td><td>johnson</td><td class="n">98.7 / 94.4</td><td class="n">0.203 s</td><td class="n">36 ms</td><td class="n">590 KB</td></tr>
+      <tr><td></td><td><b>bits128</b></td><td class="n">152.1 / 132.1</td><td class="n">0.367 s</td><td class="n">55 ms</td><td class="n">1.03 MB</td></tr>
+      <tr><td>decoder layer, 512 tok</td><td>johnson</td><td class="n">96.4 / 94.6</td><td class="n">0.789 s</td><td class="n">48 ms</td><td class="n">912 KB</td></tr>
+      <tr><td></td><td><b>bits128</b></td><td class="n">152.7 / 132.7</td><td class="n">1.618 s</td><td class="n">71 ms</td><td class="n">1.57 MB</td></tr>
+      <tr><td>FlashProve (published)</td><td>—</td><td class="n">119.38 / 92.42</td><td colspan="3">compiled 126.21 / 96.23</td></tr>
+    </tbody></table></div>
+  <ul>
+    <li>Raising query counts alone does not help: QM31 field terms cap the bound near 114 / 104. The degree-8 field removes that cap.</li>
+    <li><b>Cost:</b> about 1.6× prove, proof size and verify time on the toy, and 1.8-2× prove on model layers (the OM31 kernels are untuned).</li>
+    <li><b>Limitations:</b>
+      <ul>
+        <li>"bits128" refers to the all-rounds-added figure. The compiled N/2<sup>L</sup> reading is capped near 126.5 bits by the 256-bit hash at every level, as FlashProve's is.</li>
+        <li>The OM31 build has no ZK mode and no Metal path.</li>
+        <li>The full-size MLP (D 4096) at bits128 exceeded the 8 GB memory cap and is not measured.</li>
+      </ul></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Round 3: CUDA backend</h2>
+  <p><code>src/tensor/cuda/</code> has 19 kernels: lazy M31/QM31, int8 × QM31 weight fold, eq tables, fused multi-claim sumcheck rounds, batched LogUp-GKR layers, circle-FFT RS encode and Blake2s Merkle. There is also a C ABI host layer and a Zig backend behind <code>-Dcuda=true</code>, off by default. The design draws on PR #314 (residency, the GKR launch-count problem) and FlashProve's <code>.cuh</code> files (lazy reduction, weight-fold layouts, hashing lanes).</p>
+  <ul>
+    <li><b>Verified here:</b>
+      <ul>
+        <li><code>zig build test-cuda-emu</code> compiles the exact kernel and host sources as C++ and checks them bit for bit against the CPU prover (14/14 tests).</li>
+        <li>Proof digests for the toy, MLP, layer and MoE model are the same through the emulated backend.</li>
+        <li>All 19 kernels lower to PTX for sm_90 and sm_120 via clang.</li>
+      </ul></li>
+    <li><b>Measured in emulation (launches per proof):</b> toy 49, MLP 91, decoder layer 313, 2-layer MoE 755. Batched GKR is projected at about 500 launches, against about 24k with one launch per instance.</li>
+    <li><b>Not yet resident:</b>
+      <ul>
+        <li>The tiny MoE model still moves 98 MB to the device and 51 MB back. Witness generation, materialised sumcheck factors and Merkle nodes still pass through the host.</li>
+        <li>GKR is not yet wired to the device.</li>
+        <li>The matmul is a reference int64 kernel (no dp4a/IMMA), and there are no CUDA graphs.</li>
+      </ul></li>
+    <li><b>Projected, not measured:</b> decoder layer at 1024 tokens ≈ 0.3 s on an H100 and 0.5 s on an RTX 5090 once fully resident. A Maverick request at 70-240 s on one H100, against FlashProve's 9.2 s. The gap is witness volume, not kernel speed.</li>
+    <li><b>Untested:</b> nothing has gone through nvcc or run on an NVIDIA GPU. <code>scripts/tensor_cuda_*.sh</code> are the first-run plan: build, tests, compute-sanitizer, and digest comparison against the CPU.</li>
+  </ul>
+</section>
+
+<section>
   <h2>Open items</h2>
   <ul>
     <li>LM requests: the verifier builds the statement with a shape-only forward pass, so verifier memory grows with the witness. A builder without values is not done. The model digest is pinned next to the weight key rather than inside it. Shift plans are calibrated on random windows; a deployment would calibrate on representative inputs.</li>
     <li>Model scale: streaming weights and witness per layer, GKR instance merging, and a CUDA port before any H100-class comparison.</li>
-    <li>Raise the ~95-bit layer ceiling (OM31 extension or repetition). Bring hiding openings into the calculator.</li>
-    <li>Formal verification of the verifier, and integer-model fidelity against a float reference on a public checkpoint.</li>
+    <li>Security: ZK and Metal for the OM31 build; the memory growth at OM31; hiding openings in the calculator.</li>
+    <li>Lean: end-to-end soundness, ZK, GKR layering, and a Lean-to-Zig refinement or Lean verifier.</li>
+    <li>Accuracy: wide activations and residuals in the prover (needs the K ≤ 12 bound redesign), a saturating requant to stop refusals, and a larger checkpoint.</li>
+    <li>CUDA: first nvcc build and GPU run, device witness generation, device GKR, IMMA matmul, CUDA graphs.</li>
   </ul>
   <p class="muted">Raw results: <code>vectors/reports/tensor-frontend-20261103/v3-final/</code>. FlashProve CPU baseline: <code>…/flashprove-cpu-baseline/</code>. Designs: <code>design/tensor-frontend/*.md</code>.</p>
 </section>
