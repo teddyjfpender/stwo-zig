@@ -3,7 +3,8 @@
 Branch `codex/rv64-m6-sched` (from 95d40063d). Scheduling only: proof bytes unchanged. Every run below is
 byte-identical to the M5 default receipts on both dev blocks (harness `parity_vs_m3.byte_identical`, all 22 / 34 proofs,
 roots `b424203b...` 156 and the 607 root of accepted-v7). Fresh-receiver acceptance (separate CPU-only, cache-disabled
-process): `r2-s1` 26235156 accepted (43.4 s), 24628607 accepted (64.1 s).
+process): `r2-s1` 26235156 accepted (43.4 s), 24628607 accepted (64.1 s); `r6-a22` (final binary, 613b4c6da tree) 26235156
+accepted (45.6 s), 24628607 accepted (68.7 s).
 
 All timings are single observations [M] on the shared pod; the 1-min load average (column `load`) was 12-52 during
 every run except `base-m5` (4.1) — other M6 streams were building. They are NOT quiet-host quotable; read them as A/B pairs.
@@ -38,6 +39,9 @@ every run except `base-m5` (4.1) — other M6 streams were building. They are NO
 | r4-s1-4 | default (stream) | 47.0 | 21.84 / 27.87 | 5.57 / 6.68 | 5.43 / 4.44 | 3.46 / 3.93 | 31.4 | yes |
 | r4-m5s-5 | no stream | 35.3 | 23.93 / 31.59 | 5.33 / 7.22 | 5.23 / 4.84 | 0 / 0 | 31.4 | yes |
 | r4-sp8-6 | stream, STREAM_PREP=8 | 33.2 | 22.63 / 29.60 | 5.32 / 7.63 | 6.25 / 5.55 | 3.10 / 4.61 | 31.3 | yes |
+| r5-s1-0 | default (stream), RSS sampled | 30.7 | 21.86 / 26.90 | 5.62 / 7.14 | 5.48 / 4.40 | 3.07 / 4.47 | 31.2 | yes |
+| r5-pa3-1 | stream, PREP_AHEAD=3, RSS sampled | 35.7 | 21.67 / 34.02 | 5.57 / 8.47 | 4.77 / 5.97 | 3.31 / 5.54 | 26.6 | yes |
+| r6-a22 | default (stream) + DEVICE_ARENA=22G | see json | 22.57 / 29.72 | 5.85 / 6.82 | 5.31 / 5.86 | 3.72 / 3.97 | 31.3 | yes + receiver |
 
 r4 is a strict alternation (s1, m5s, s1, m5s, s1, m5s) on one binary and one store, so it is the cleanest A/B we have
 under the shared load: 24628607 stream median 26.92 s vs no-stream 32.93 s (-6.0 s); 26235156 19.26 vs 22.05 s (-2.8 s) [D from M].
@@ -61,5 +65,11 @@ GPUs at recursion start in M5) plus native publication/verify moved off the devi
   The remaining recursion wall is device-stage bound (half of each device stage is host/sync time: enqueue stream) plus a
   ~5 s serial fold tail (5 fold latencies of ~1.05 s on the binary carry; topology frozen for byte identity).
 - tail after the last leaf: measured every run (4.3-5.9 s on 607).
-- service RSS <= 20 GiB: NOT met (31.3 GiB); PREP_AHEAD=3 measured 26.5 GiB (-4.8 GiB) with request times equal to or better than r3-s1 in the same load band (20.16 / 28.22 vs 22.50 / 28.43); not yet the default (single loaded observation).
-- device peak <= 28 GB: 31.5 GB (auto arena, unchanged; 22G carve is the M5 opt-in).
+- service RSS <= 20 GiB: NOT met (31.2-31.4 GiB peak). RSS sampled every 0.2 s (rss-r5-*.txt, /proc VmRSS/RssAnon/RssFile):
+  the service FLOOR between requests is already 18.4-20.4 GiB (anon 16.5-18.4 + 1.86 file); each request adds 7-11 GiB at the
+  native->recursion transition (prepped leaves + bundle + overlapped native verify). PREP_AHEAD=3 cuts the peak to 26.5-26.6 GiB
+  (-4.7 GiB, 2 obs.) but its 607 time is inconclusive under load (28.22 in r3 vs 34.02 in r5, where the device stages
+  themselves ran 28% slower: 34.3 vs 26.8 GPU-stage-s); kept opt-in. The floor (class preload 4.2 GB on disk, CUDA eager module
+  load ~5.5 GiB per M4 measure, native/session caches) must shrink before <= 20 GiB is reachable.
+- device peak <= 28 GB: MET with the M5 opt-in carve: r6-a22 (stream + STWO_RV64_DEVICE_ARENA=22G) 27.81 GB on both GPUs,
+  byte-identical, receivers accepted. Default auto arena stays 31.5 GB (arena default is not this stream's call in M6 yet).

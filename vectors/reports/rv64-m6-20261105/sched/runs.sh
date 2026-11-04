@@ -15,6 +15,7 @@ for cfg in "$@"; do
     default)  E=() ;;
     m5s)      E=(--env STWO_RV64_RECURSION_STREAM=0) ;;
     pa3)      E=(--env STWO_RV64_RECURSION_PREP_AHEAD=3) ;;
+    pa2)      E=(--env STWO_RV64_RECURSION_PREP_AHEAD=2) ;;
     sp8)      E=(--env STWO_RV64_RECURSION_STREAM_PREP=8) ;;
     lazy)     E=(); X=(--loading lazy) ;;
     s1)       E=(--env STWO_RV64_RECURSION_STREAM=1) ;;
@@ -22,6 +23,7 @@ for cfg in "$@"; do
     c2l2)     E=(--env STWO_RV64_RECURSION_STREAM=1 --env STWO_RV64_RECURSION_LANES_PER_DEVICE=2 --env STWO_RV64_RECURSION_LEAVES_PER_DEVICE=2 --env STWO_RV64_RECURSION_PREP_AHEAD=8) ;;
   esac
   echo "CFG $cfg start $(date -u +%T) load $(cut -d' ' -f1 /proc/loadavg)"
+  /workspace/m3/runs/m6-sched/rsssample.sh "$TAG-$cfg-$N" /workspace/m3/runs/m6-sched/rss-$TAG-$cfg-$N.txt &
   $D --tag $TAG-$cfg-$((N++)) --store $STORE --warm "${E[@]}" "${X[@]}" --receive none
   echo "CFG $cfg exit $? $(date -u +%T)"
   STORE=reuse
