@@ -1,6 +1,19 @@
 //! Ordered fold of independently admitted native OM31 circuit proofs.
-//! The digest binds child authority identities and public outputs. Execution
-//! adjacency/manifest coverage remains the application receiver's obligation.
+//! The digest binds child authority identities, child FIXED roots and public
+//! outputs. Execution adjacency/manifest coverage remains the application
+//! receiver's obligation.
+//!
+//! Fold message version 2 ("proof-independent fold topology"): the child
+//! identity and the child FIXED (preprocessed) root are GUESSED, range-checked
+//! u32 words instead of circuit constants. The same wires are (a) absorbed by
+//! the child's in-circuit Fiat-Shamir transcript (identity in mixPublic, root
+//! as commitments[0] via mixRoot) and (b) hashed into this fold's public output
+//! digest. The receiver recomputes that digest from its independently rebuilt
+//! child authorities (`expectedDigest`) and rejects any other output, so an
+//! accepted fold binds both words to the trusted values except with a Blake2s
+//! collision. The fold circuit therefore depends only on the child GEOMETRY
+//! CLASS (bound AIR, row logs, FIXED column logs, output count), never on the
+//! child proof or key values; see design/riscv-proving-stack/rv64-m3-topo-binding.md.
 const std = @import("std");
 const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
@@ -16,6 +29,9 @@ const Eval = Outer.program.ForLane(F);
 const List = circuit.common.component_list;
 const A = @import("stwo_riscv_frontend").rv64_air;
 const domain: u32 = 0x4f464c31;
+/// Fold message version. 1 = constant child keys (proof-dependent topology);
+/// 2 = digest-bound guessed child identity + FIXED root (class topology).
+pub const version: u32 = 2;
 pub const Child = struct {
     authority: *const Outer.prove.Authority,
     produced: *const Outer.prove.Produced,
@@ -62,6 +78,8 @@ fn shape(a: std.mem.Allocator, key: *const Outer.prove.Authority) !V.Shape {
 }
 const Statement = struct {
     key: *const Outer.prove.Authority,
+    /// Guessed child identity words; also hashed into the fold digest.
+    identity: [8]Word,
     outputs: []const C.Var,
     output_words: []const Word,
     claims: [List.N_COMPONENTS]F,
@@ -76,7 +94,7 @@ const Statement = struct {
         const profile_words = try digestWords(ctx, profile);
         try channel.mixU32s(ctx, &profile_words);
         const public = try ctx.scratch().alloc(Word, 9 + self.output_words.len);
-        @memcpy(public[0..8], &(try digestWords(ctx, self.key.identity)));
+        @memcpy(public[0..8], &self.identity);
         public[8] = try word(ctx, @intCast(self.outputs.len));
         @memcpy(public[9..], self.output_words);
         try channel.mixU32s(ctx, public);
@@ -158,15 +176,18 @@ const Statement = struct {
 
 fn messageWords(a: std.mem.Allocator, children: [2]Child) ![]u32 {
     var count: usize = 2;
-    for (children) |child| count += 9 + 4 * child.produced.outputs.len;
+    for (children) |child| count += 17 + 4 * child.produced.outputs.len;
     const words = try a.alloc(u32, count);
     errdefer a.free(words);
     words[0] = domain;
-    words[1] = 1;
+    words[1] = version;
     var at: usize = 2;
     for (children) |child| {
         if (child.produced.outputs.len != child.authority.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
         for (0..8) |i| words[at + i] = std.mem.readInt(u32, child.authority.identity[4 * i ..][0..4], .little);
+        at += 8;
+        const root = child.authority.fixedRoot();
+        for (0..8) |i| words[at + i] = std.mem.readInt(u32, root[4 * i ..][0..4], .little);
         at += 8;
         words[at] = @intCast(child.produced.outputs.len);
         at += 1;
@@ -191,6 +212,37 @@ pub fn expectedDigest(children: [2]Child) ![32]u8 {
     h.final(&digest);
     return digest;
 }
+/// Geometry class of a v2 fold: every input that determines the fold circuit
+/// topology (and hence its PP, FIXED root and authority identity). Child key
+/// VALUES (identity, FIXED root) are excluded because v2 guesses them.
+/// Host-only cache key; never enters a proof or transcript.
+pub fn classKey(children: [2]Child) ![32]u8 {
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("rv64-om31-fold-class/v2\x00");
+    h.update(Outer.protocol.domain);
+    var bytes: [4]u8 = undefined;
+    std.mem.writeInt(u32, &bytes, version, .little);
+    h.update(&bytes);
+    for (children) |child| {
+        const key = child.authority;
+        if (child.produced.outputs.len != key.pp.n_outputs) return error.InvalidOm31CircuitOutputCount;
+        for (key.logs.toArray()) |log| {
+            std.mem.writeInt(u32, &bytes, log, .little);
+            h.update(&bytes);
+        }
+        for (key.fixed_logs) |log| {
+            std.mem.writeInt(u32, &bytes, log, .little);
+            h.update(&bytes);
+        }
+        std.mem.writeInt(u32, &bytes, @intCast(key.pp.n_outputs), .little);
+        h.update(&bytes);
+        std.mem.writeInt(u32, &bytes, @intCast(key.bound.total_constraints), .little);
+        h.update(&bytes);
+        std.mem.writeInt(u32, &bytes, @intCast(key.bound.max_evaluation_log_size), .little);
+        h.update(&bytes);
+    }
+    return h.finalResult();
+}
 pub fn buildFold(a: std.mem.Allocator, children: [2]Child) !Graph {
     return buildFoldMode(a, children, false);
 }
@@ -205,22 +257,25 @@ fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Gr
     defer C.lane.finish() catch {};
     var message: std.ArrayList(Word) = .empty;
     defer message.deinit(a);
-    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, 1) });
+    try message.appendSlice(a, &.{ try word(&ctx, domain), try word(&ctx, version) });
     for (children) |child| {
         try Outer.protocol.validateConfig(child.produced.proof.proof.commitment_scheme_proof.config);
         const geometry = try shape(ctx.scratch(), child.authority);
         const captured = try V.proof.fromNative(ctx.scratch(), &child.produced.proof.proof, child.capture, &geometry);
         const guessed = try V.proof.guess(&ctx, &captured, &geometry);
-        const trusted_fixed = try B.blake.constantHash(Q, &ctx, B.blake.hashValueFromDigest(Q, child.authority.fixedRoot()));
-        for (guessed.commitments[0].words, trusted_fixed.words) |actual, expected| try ctx.eq(actual.get(), expected.get());
+        // v2: no constant child key. Guess the identity; the FIXED root is the
+        // child's guessed commitments[0] wire. Both are digest-bound below.
+        var identity: [8]Word = undefined;
+        for (&identity, 0..) |*out, i| out.* = try B.wrappers.guessU32(Q, &ctx, B.wrappers.u32Value(Q, std.mem.readInt(u32, child.authority.identity[4 * i ..][0..4], .little)));
         const outputs = try ctx.scratch().alloc(C.Var, child.produced.outputs.len);
         for (outputs, child.produced.outputs) |*out, value| out.* = try ctx.guess(value);
         const output_words = try B.blake.unpackQm31sToU32Words(Q, &ctx, outputs);
         var claims: [List.N_COMPONENTS]F = undefined;
         for (&claims, child.produced.claims.toArray()) |*out, value| out.* = try F.guess(&ctx, value);
         var challenges: Statement.Challenges = undefined;
-        _ = try V.verify(&ctx, &geometry, &guessed, Statement{ .key = child.authority, .outputs = outputs, .output_words = output_words, .claims = claims, .challenges = &challenges });
-        try message.appendSlice(a, &(try digestWords(&ctx, child.authority.identity)));
+        _ = try V.verify(&ctx, &geometry, &guessed, Statement{ .key = child.authority, .identity = identity, .outputs = outputs, .output_words = output_words, .claims = claims, .challenges = &challenges });
+        try message.appendSlice(a, &identity);
+        try message.appendSlice(a, &guessed.commitments[0].words);
         try message.append(a, try word(&ctx, @intCast(outputs.len)));
         try message.appendSlice(a, output_words);
     }
@@ -232,6 +287,10 @@ fn buildFoldMode(a: std.mem.Allocator, children: [2]Child, trace_only: bool) !Gr
     // Native PCS verifier emits terminal arithmetic/transcript intermediates
     // that are intentionally unused; all asserted verification equalities and
     // guessed-input yield gates are retained, as in the native PCS fixtures.
+    if (V.topology_fingerprint.enabled()) {
+        var label: [64]u8 = undefined;
+        V.topology_fingerprint.report(&ctx, try std.fmt.bufPrint(&label, "fold-{x}-{x}", .{ children[0].authority.identity[0..4], children[1].authority.identity[0..4] }), "pre_finalize");
+    }
     try ctx.finalize(false);
     return .{ .ctx = ctx, .output_digest = try expectedDigest(children) };
 }

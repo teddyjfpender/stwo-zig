@@ -37,7 +37,8 @@ fn context(a: std.mem.Allocator, trace_only: bool) !*C.Context {
 fn binding(value: ?*const Fixed.Binding) ?V.frame.Binding {
     return if (value) |b| .{ .identity = b.fixed_identity, .root = b.fixed_root, .profile = b.profile } else null;
 }
-fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const u32) !Graph {
+const Census = @import("topology_fingerprint.zig");
+fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const u32, label: []const u8) !Graph {
     // Exactly eight raw-u32 outputs. They commit all exposed frame words; the
     // execution receiver must independently admit the words and their topology.
     var output_vars: [8]circuit.builder.Var = undefined;
@@ -56,6 +57,7 @@ fn finish(a: std.mem.Allocator, ctx: *C.Context, output: C.Hash, words: []const 
         if (actual != std.mem.readInt(u32, digest[4 * i ..][0..4], .little)) return error.CurrentOm31FrameDigest;
     };
     try C.lane.finish();
+    Census.report(ctx, label, "pre_finalize");
     try ctx.finalize(false);
     if (!ctx.trace_only and !try ctx.isCircuitValid()) return error.CurrentOm31LeafRejects;
     return .{ .allocator = a, .ctx = ctx, .words = try a.dupe(u32, words), .digest = digest };
@@ -99,7 +101,8 @@ fn cpuMode(a: std.mem.Allocator, input: CpuInput, trace_only: bool) !Graph {
     defer statement.deinit(ctx);
     _ = try V.verify(ctx, &shape, &proof, &statement);
     const words = try Cpu.expectedWords(arena.allocator(), input.setup, input.request, input.first, input.expected, input.manifest.digest, admitted.proof.commitment_scheme_proof.commitments.items[1], local.digest, input.encoded.claims);
-    return finish(a, ctx, try frame.finish(), words);
+    var label: [48]u8 = undefined;
+    return finish(a, ctx, try frame.finish(), words, try std.fmt.bufPrint(&label, "leaf-cpu-{d:0>4}", .{input.index}));
 }
 pub const TruthInput = struct {
     truth: R.Truth,
@@ -140,11 +143,13 @@ fn truthMode(a: std.mem.Allocator, input: TruthInput, trace_only: bool) !Graph {
         const public = Keccak.Public{ .ordinal = input.expected.ordinal, .statement = input.expected.statement, .manifest = input.manifest.digest, .claims = input.encoded.claims[0..5].* };
         const leaf = try Keccak.build(ctx, input.truth, input.config, binding(input.fixed), public, &values);
         const words = Keccak.statementWords(input.truth, public, main_root);
-        return finish(a, ctx, leaf.output, &words);
+        var label: [48]u8 = undefined;
+        return finish(a, ctx, leaf.output, &words, try std.fmt.bufPrint(&label, "leaf-keccak-{d:0>4}", .{input.expected.ordinal}));
     }
     if (input.encoded.claims.len != 1) return error.InvalidWideTruthClaims;
     const public = Truth.Public{ .ordinal = input.expected.ordinal, .statement = input.expected.statement, .manifest = input.manifest.digest, .claim = input.encoded.claims[0] };
     const leaf = try Truth.build(ctx, input.truth, input.config, binding(input.fixed), public, &values);
     const words = Truth.statementWords(input.truth, public, main_root);
-    return finish(a, ctx, leaf.output, &words);
+    var label: [48]u8 = undefined;
+    return finish(a, ctx, leaf.output, &words, try std.fmt.bufPrint(&label, "leaf-{s}-{d:0>4}", .{ @tagName(std.meta.activeTag(input.truth)), input.expected.ordinal }));
 }
