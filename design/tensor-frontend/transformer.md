@@ -129,6 +129,8 @@ rounded). `x'[t, h, i, b'] = rq_7(sum_b x[t, h, i, b] R[t, i, b', b])`, 9-bit
 signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
 
 **Softmax-PV(S, v)** for every head h and query t (j = key position):
+* (score_bits = sb, default 8: S in [-2^(sb-1), 2^(sb-1)), mask bias 2^sb + 256,
+  exp-table domain 2^(sb+2); the values below are sb = 8. accuracy.md.)
 * Bias[t, j] = 0 if j <= t else -512 (public causal mask). Sm = S + Bias.
 * m[h,t] = max_j Sm; sel[h,t,:] = one-hot of the first argmax.
 * D = m - S - Bias (committed; lineq) in [0, 1024) (lookup domain).

@@ -1,0 +1,19 @@
+{
+ "ckpt": "/Users/theodorepender/Coding/ge-cache/accuracy/stories260K/stories260K.bin",
+ "tok": "/Users/theodorepender/Coding/ge-cache/accuracy/stories260K/tok512.bin",
+ "corpus": "/Users/theodorepender/Coding/ge-cache/accuracy/corpus/tinystories-valid-head.txt",
+ "stories_used": 63,
+ "tokens": 20480,
+ "log_t": 6,
+ "n_calib": 64,
+ "n_eval": 256,
+ "model": {
+  "dim": 64,
+  "hidden": 172,
+  "n_layers": 5,
+  "n_heads": 8,
+  "n_kv": 4,
+  "vocab": 512,
+  "seq_len": 512
+ }
+}

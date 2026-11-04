@@ -81,6 +81,8 @@ pub const ModelCfg = struct {
     /// weight claim per stack instead of one per expert matrix); false: the
     /// per-expert transformer.moe layout
     stacked_experts: bool = true,
+    /// attention score width (tf.LayerCfg.score_bits); 8 = original int8
+    score_bits: u32 = 8,
 
     pub fn isMoeLayer(self: ModelCfg, l: u32) bool {
         return self.log_experts > 0 and l % self.moe_every == self.moe_every - 1;
@@ -99,6 +101,7 @@ pub const ModelCfg = struct {
             .log_capacity = if (moe) self.log_capacity else 0,
             .router_log_cols = self.weight_log_cols,
             .fused_qkv = self.fused_qkv,
+            .score_bits = self.score_bits,
         };
     }
 
@@ -215,7 +218,11 @@ pub const ModelDesc = struct {
                 .bool => @intFromBool(@field(c, fld.name)),
                 else => @field(c, fld.name),
             };
-            h.update(std.mem.asBytes(&v));
+            // score_bits is mixed in only when not the default, so every
+            // descriptor that predates it keeps its digest
+            if (comptime !std.mem.eql(u8, fld.name, "score_bits")) {
+                h.update(std.mem.asBytes(&v));
+            } else if (v != 8) h.update(std.mem.asBytes(&v));
         }
         h.update(std.mem.asBytes(&@as(u64, self.gains.len)));
         for (self.gains) |g| h.update(std.mem.asBytes(&@as(i32, g)));
@@ -972,6 +979,46 @@ test "model with one checked output token (log_out = 0) proves and verifies" {
     defer batch.deinit(a);
     try verifyRequest(a, &pool, pc, proto.weightKey(&sw.ws), &desc, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0);
     try checkRequestStatement(a, &pool, pc, proto.weightKey(&sw.ws), &desc, .{ .prompt = rq.prompt, .y = rq.y }, reqs[0].st);
+}
+
+test "score_bits = 13 (wide attention scores): proves and verifies; part of the descriptor digest; default digest unchanged" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    var cfg = SmallModel;
+    cfg.log_out = 0;
+    cfg.score_bits = 13;
+    var pc = testPc();
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try setupWeights(a, &pool, cfg, pc, 901);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    var desc = try testDesc(a, &pool, cfg, &sw.ws, 4);
+    defer desc.deinit(a);
+    // the score width is in the digest; the default (8) is not mixed in
+    var d8 = desc;
+    d8.cfg.score_bits = 8;
+    try testing.expect(!std.mem.eql(u8, &desc.digest(), &d8.digest()));
+    var rq = try TestRequest.init(a, &pool, &desc, &sw.ws, 78);
+    defer rq.deinit(a);
+    // 13-bit scores: the exp table spans 2^15 entries, the mask is 2^13 + 256
+    try testing.expectEqual(@as(u5, 15), rq.b.xtables.items[0].log_size);
+    const wv = try rq.b.witnessView(a);
+    defer a.free(wv);
+    const reqs = [_]serve.Request{.{ .st = rq.b.statement(), .witness = wv, .salt = serve.testSalt(6) }};
+    var batch = try serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
+    defer batch.deinit(a);
+    const key = proto.weightKey(&sw.ws);
+    try verifyRequest(a, &pool, pc, key, &desc, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0);
+    // a verifier holding the int8-score descriptor builds another statement: reject
+    var other = desc;
+    other.cfg.score_bits = 8;
+    try testing.expect(std.meta.isError(verifyRequest(a, &pool, pc, key, &other, .{ .prompt = rq.prompt, .y = rq.y }, &batch.requests[0], &batch.shared, 0)));
 }
 
 const SmallModel = ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 6, .log_out = 1, .weight_log_cols = 3 };
