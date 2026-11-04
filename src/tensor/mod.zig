@@ -10,6 +10,7 @@ pub const model = @import("model.zig");
 pub const weight_key = @import("weight_key.zig");
 pub const proof_digest = @import("proof_digest.zig");
 pub const batch = @import("batch.zig");
+pub const batch_eq = @import("batch_eq.zig");
 pub const eqsum = @import("eqsum.zig");
 pub const size_tests = @import("size_tests.zig");
 pub const ext = @import("ext.zig");
@@ -45,6 +46,8 @@ test {
         _ = wire_test;
         _ = batch_sumcheck;
         _ = eqsum;
+        _ = batch_eq;
+        _ = batch;
         _ = prep;
         _ = canonical;
         // wide core-matmul range keys (prep range_off has an OM31 branch)
@@ -71,6 +74,7 @@ test {
     _ = weight_key;
     _ = proof_digest;
     _ = batch;
+    _ = batch_eq;
     _ = eqsum;
     _ = size_tests;
     _ = ext;

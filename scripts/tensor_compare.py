@@ -83,12 +83,11 @@ TOY_CONFIGS = {
     # Johnson regime with OOD samples, 2 proximity rows, deep levels at rate 1/8 (security.md): ~113.5 / 96.8 bits all rounds
     "johnson": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
     # Config.security = .bits128 (security.md section 10): degree-8 challenge field (OM31, the
-    # -Dchallenge=om31 build's tensor-bench-om31) + Johnson/OOD PCS at 136 / 90 queries; the
-    # preset overrides the query arguments (kept for the pcs2 work shift). >= 128 bits all rounds
-    # added without PoW credit on toy, MLP and layer. Round 4 (codex/tensor-sec2): the full-size
-    # MLP (D 4096, F 8192, 1024 tok) runs under memguard --gb 8 (peak 9.1-9.55 GB, above 8 GB, below the 10.4 GB kill;
-    # weight-key GKR input regenerated, security.md 10), and every run is checked at run time
-    # against the level's 128-bit target (error.SecurityBelowLevel otherwise).
+    # -Dchallenge=om31 build's tensor-bench-om31) + Johnson/OOD PCS at 133 / 88 queries, 1 prox row,
+    # work shift 1; the preset overrides the pcs2 arguments (security.md 10.1). >= 128 bits all rounds
+    # added without PoW credit on toy, MLP and layer.
+    # Round 4 (codex/tensor-sec2): the full-size MLP (D 4096, F 8192, 1024 tok) runs under memguard --gb 8
+    # (peak ~9.5 GB), and every run is checked at run time against the level's target (error.SecurityBelowLevel).
     "sec128": (122, 2, 20, [2, 76, 3, 20, 2, 2]),
 }
 CONFIG_ENV = {"johnson": {"TENSOR_OOD": "1", "TENSOR_DEEP": "76,3,20"}}

@@ -28,6 +28,11 @@ const pcs2 = @import("pcs2.zig");
 const bsc = @import("batch_sumcheck.zig");
 const linalg = @import("linalg.zig");
 const batch = @import("batch.zig");
+const batch_eq = @import("batch_eq.zig");
+
+fn batchEqEnabled() bool {
+    return if (std.posix.getenv("TENSOR_BATCH_EQ")) |v| !std.mem.eql(u8, v, "0") else true;
+}
 const eqsum = @import("eqsum.zig");
 const prep = @import("prep.zig");
 const accel = @import("accel.zig");
@@ -279,7 +284,7 @@ pub const SecurityLevel = enum(u8) {
 };
 
 /// The PCS parameters of a level: Johnson regime with OOD samples on every
-/// table (pcs2 depth 2, 2 proximity rows), outer level at rate 1/4 (~1 bit
+/// table (pcs2 depth 2, 1 proximity row), outer level at rate 1/4 (~1 bit
 /// per query: agreement sqrt(1/4)(1 + 1/m) with m large, which the degree-8
 /// field allows), committed-row levels at rate 1/8 (~1.5 bits per query),
 /// 20 PoW bits before every query phase. Weight openings run their own
@@ -290,7 +295,9 @@ pub fn securityConfig(base: Config, level: SecurityLevel) Config {
     if (level == .custom) return base;
     const q: [2]usize = switch (level) {
         .custom => unreachable,
-        .bits128 => .{ 136, 90 },
+        // 9 query terms on an MLP (witness, weights, key x 3 levels): the
+        // largest sum is 2^-129.07 at bits128 (security.md 10.1)
+        .bits128 => .{ 133, 88 },
         .bits160 => .{ 168, 112 },
     };
     var c = base;
@@ -298,8 +305,12 @@ pub fn securityConfig(base: Config, level: SecurityLevel) Config {
     const outer = pcs.Params{ .n_queries = q[0], .log_blowup = 2, .pow_bits = 20 };
     const inner = pcs.Params{ .n_queries = q[1], .log_blowup = 3, .pow_bits = 20 };
     c.pcs = outer;
-    const shift = if (base.two_level) |tl| tl.inner_work_shift else (pcs2.Params{}).inner_work_shift;
-    c.two_level = .{ .outer = outer, .inner = inner, .depth = 2, .inner_work_shift = shift, .prox_rows = 2, .deep = inner, .ood = true };
+    // One proximity row: over the degree-8 field its correlated-agreement
+    // term is ~2^-159 on the toy (k = 1), so the second row (needed over QM31) only
+    // costs bytes and prover time. The work shift (prover-side budget of the
+    // inner encodings, not a soundness parameter) is fixed at 1: it gives
+    // the smallest proofs at ~15% more toy prove time than shift 2 (security.md 10.1).
+    c.two_level = .{ .outer = outer, .inner = inner, .depth = 2, .inner_work_shift = 1, .prox_rows = 1, .deep = inner, .ood = true };
     c.weight_outer = null;
     c.key_outer = null;
     c.key_alphas = 1;
@@ -1774,6 +1785,19 @@ pub fn proveCore(
         // E = sum_c gamma_c eq(z_c, .) on tensor c's block; entries >= lay.used are never read.
         const E = try e_pre.take(a, total);
         defer a.free(E);
+        // Structured prover (batch_eq.zig: split eq per claim, E never
+        // materialised) when its cost model wins; identical transcript.
+        // TENSOR_BATCH_EQ=0 forces the materialised-E prover.
+        if (total >= 2 and batchEqEnabled()) {
+            const sclaims = try a.alloc(batch_eq.Claim, claims.items.len);
+            defer a.free(sclaims);
+            for (claims.items, gammas, sclaims) |c, g, *sc_| {
+                if (c.point.len != ext[c.tensor].logSize()) return error.ClaimShape;
+                sc_.* = .{ .offset = lay.offsets[c.tensor], .point = c.point, .gamma = g, .value = c.value };
+            }
+            if (try batch_eq.worthIt(a, total, lay.used, sclaims))
+                break :blk try batch_eq.prove(a, pool, &tr, batch_claim, wtab, lay.used, sclaims, E[0 .. total / 2]);
+        }
         var rc: std.ArrayList(batch.RegionClaim) = .empty;
         defer rc.deinit(a);
         for (ext, 0..) |info, t| {
