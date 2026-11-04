@@ -591,7 +591,7 @@ const ParallelExecution = struct {
             // Log-only per-node timeline (absolute CLOCK_REALTIME ns, comparable
             // across lanes and with Nsight Systems); proof bytes are unaffected.
             const spec = self.plan.nodes[id];
-            std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.left == null) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, self.options.lanes[lane].physical_device, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
+            std.debug.print("RECURSION_NODE_TIMELINE node={d} kind={s} first_leaf={d} leaf_count={d} lane={d} device={d} taken_unix_ns={d} graph_ns={d} wrap_ns={d} serialize_ns={d} write_ns={d} published_unix_ns={d} restored={}\n", .{ id, if (spec.isLeaf()) "leaf" else "fold", spec.first_leaf, spec.leaf_count, lane, self.options.lanes[lane].physical_device, taken_ns, outcome.graph_ns, outcome.wrap_only_ns, outcome.serialize_ns, outcome.write_ns, std.time.nanoTimestamp(), outcome.restored });
         }
     }
     const Publication = struct {
@@ -640,7 +640,7 @@ const ParallelExecution = struct {
             var name_buffer: [64]u8 = undefined;
             const name = try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{id});
             // Fold v2: topology-only producer caches key by geometry class.
-            Outer.Device.class_hint = try Bridge.classKey(children);
+            Outer.Device.class_hint = try Bridge.classKey(kids);
             defer Outer.Device.class_hint = null;
             return self.wrap(a, &graph.ctx, digest, id, name, factory, graph_ns, &timer);
         }
@@ -943,7 +943,7 @@ const Pipelined = struct {
             if (next) |id| {
                 const spec = self.plan.nodes[id];
                 var children: ?[2]Pending = null;
-                if (spec.left) |left| children = .{ self.proofs[left].?, self.proofs[spec.right.?].? } else {
+                if (spec.left()) |left| children = .{ self.proofs[left].?, self.proofs[spec.right().?].? } else {
                     self.leaves_ahead += 1;
                     self.peak_leaves_ahead = @max(self.peak_leaves_ahead, self.leaves_ahead);
                 }
@@ -951,12 +951,12 @@ const Pipelined = struct {
                 self.mutex.unlock();
                 const job = a.create(Pipe.Job) catch |err| {
                     self.mutex.lock();
-                    if (spec.left == null) self.leaves_ahead -= 1;
+                    if (spec.isLeaf()) self.leaves_ahead -= 1;
                     self.queue.fail(id, err);
                     self.changed.broadcast();
                     continue;
                 };
-                job.* = .{ .id = id, .record = .{ .id = id, .kind = if (spec.left == null) "leaf" else "fold", .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .stamps = .{ .taken = taken } } };
+                job.* = .{ .id = id, .record = .{ .id = id, .kind = if (spec.isLeaf()) "leaf" else "fold", .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .stamps = .{ .taken = taken } } };
                 const prepared = self.prep(job, children);
                 self.mutex.lock();
                 if (prepared) |needs_device| {
@@ -965,12 +965,12 @@ const Pipelined = struct {
                         self.peak_ready = @max(self.peak_ready, self.ready.items.len);
                     } else {
                         // Restored from durable bytes: no device stage.
-                        if (spec.left == null) self.leaves_ahead -= 1;
+                        if (spec.isLeaf()) self.leaves_ahead -= 1;
                         self.finishing.appendAssumeCapacity(job);
                     }
                     self.changed.broadcast();
                 } else |err| {
-                    if (spec.left == null) self.leaves_ahead -= 1;
+                    if (spec.isLeaf()) self.leaves_ahead -= 1;
                     self.failLocked(job, err);
                     self.mutex.unlock();
                     job.destroy(a);
@@ -991,9 +991,9 @@ const Pipelined = struct {
         var name_buffer: [64]u8 = undefined;
         const name = if (children) |pair| blk: {
             const kids = [2]Bridge.Child{ child(pair[0]), child(pair[1]) };
-            job.digest = try Bridge.expectedDigest(kids);
+            job.digest = try Bridge.expectedDigest(&kids);
             const fold = try a.create(Bridge.Graph);
-            fold.* = Bridge.buildFoldTraceOnly(a, kids) catch |err| {
+            fold.* = Bridge.buildFoldTraceOnly(a, &kids) catch |err| {
                 a.destroy(fold);
                 return err;
             };
@@ -1024,7 +1024,7 @@ const Pipelined = struct {
         // Fold v2: the topology-only producer plan cache keys by geometry class.
         // class_hint is threadlocal and Prepared.init (via prepare_host) runs on
         // this prep thread, so set it here as the lane path does in prove().
-        if (children) |pair| Outer.Device.class_hint = try Bridge.classKey(.{ child(pair[0]), child(pair[1]) });
+        if (children) |pair| Outer.Device.class_hint = try Bridge.classKey(&.{ child(pair[0]), child(pair[1]) });
         defer Outer.Device.class_hint = null;
         // Any lane's factory: host prep reads only immutable library symbols.
         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
@@ -1100,7 +1100,7 @@ const Pipelined = struct {
         job.record.verify_ns = timer.lap();
         const spec = self.plan.nodes[job.id];
         var name_buffer: [64]u8 = undefined;
-        const name = if (spec.left == null) try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{spec.first_leaf}) else try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
+        const name = if (spec.isLeaf()) try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{spec.first_leaf}) else try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
         const bytes = try job.wrapped.?.serialize(a);
         defer a.free(bytes);
         try @import("publication.zig").write(self.input.dir, name, bytes);
@@ -1118,16 +1118,16 @@ const Pipelined = struct {
         job.wrapped = null;
         self.proofs[id] = .{ .proof = proof, .node = id };
         const spec = self.plan.nodes[id];
-        self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left, .right = spec.right, .authority = proof.authority.identity, .digest = proof.digest };
+        self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left(), .right = spec.right(), .authority = proof.authority.identity, .digest = proof.digest };
         self.retired_bytes += retired;
         const r = job.record;
         const host_ns = (r.stamps.prep_end - r.stamps.prep_start) + (r.stamps.finish_end - r.stamps.finish_start);
         const device_ns = r.stamps.device_end - r.stamps.device_start;
-        if (spec.left) |left| {
+        if (spec.left()) |left| {
             self.proofs[left].?.deinit(a);
-            self.proofs[spec.right.?].?.deinit(a);
+            self.proofs[spec.right().?].?.deinit(a);
             self.proofs[left] = null;
-            self.proofs[spec.right.?] = null;
+            self.proofs[spec.right().?] = null;
             self.fold_ns += host_ns + device_ns;
             self.restored_folds += @intFromBool(r.restored);
         } else {

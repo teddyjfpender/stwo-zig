@@ -163,6 +163,23 @@ test "M3 4-ary fold root proves on CPU and a fresh receiver accepts only the m3 
     // Wrong arity of the same children is a different digest.
     try std.testing.expect(!std.mem.eql(u8, &(try Bridge.expectedDigest(views[0..2])), &(try Bridge.expectedDigest(views[0..4]))));
     try std.testing.expectError(error.InvalidRecursiveFoldArity, Bridge.expectedDigest(views[0..1]));
+    // M4 port: binary folds keep the v2 message word; k-ary words bind arity.
+    try std.testing.expectEqual(Bridge.version, try Bridge.versionWord(2));
+    try std.testing.expectEqual(@as(u32, 0x302), try Bridge.versionWord(3));
+    try std.testing.expectEqual(@as(u32, 0x402), try Bridge.versionWord(4));
+    try std.testing.expectError(error.InvalidRecursiveFoldArity, Bridge.versionWord(5));
+    // M4 port: fold v2 classKey over N children. Same-geometry children with
+    // different key values share a class at every arity; arities never do.
+    const key2 = try Bridge.classKey(views[0..2]);
+    const key3 = try Bridge.classKey(views[0..3]);
+    const key4 = try Bridge.classKey(views[0..4]);
+    try std.testing.expect(!std.mem.eql(u8, &key2, &key3));
+    try std.testing.expect(!std.mem.eql(u8, &key3, &key4));
+    try std.testing.expect(!std.mem.eql(u8, &key2, &key4));
+    try std.testing.expectEqualSlices(u8, &key2, &(try Bridge.classKey(views[2..4])));
+    const swapped = [4]Bridge.Child{ views[3], views[2], views[1], views[0] };
+    try std.testing.expectEqualSlices(u8, &key4, &(try Bridge.classKey(&swapped)));
+    try std.testing.expectError(error.InvalidRecursiveFoldArity, Bridge.classKey(views[0..1]));
     // A tampered child output must make the 4-ary fold graph unsatisfiable.
     kids[3].produced.outputs[0] = kids[3].produced.outputs[0].add(Q.one());
     try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, &views));

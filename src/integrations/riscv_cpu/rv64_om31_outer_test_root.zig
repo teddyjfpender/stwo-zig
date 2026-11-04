@@ -137,13 +137,13 @@ test "om31 fold v2 topology is proof-independent and digest binds child keys" {
     try std.testing.expectEqual(first.authority.logs, second.authority.logs);
     const c1 = first.child();
     const c2 = second.child();
-    try std.testing.expectEqual(try Bridge.classKey(.{ c1, c1 }), try Bridge.classKey(.{ c2, c2 }));
-    try std.testing.expectEqual(try Bridge.classKey(.{ c1, c2 }), try Bridge.classKey(.{ c2, c1 }));
-    var g11 = try Bridge.buildFoldTraceOnly(a, .{ c1, c1 });
+    try std.testing.expectEqual(try Bridge.classKey(&.{ c1, c1 }), try Bridge.classKey(&.{ c2, c2 }));
+    try std.testing.expectEqual(try Bridge.classKey(&.{ c1, c2 }), try Bridge.classKey(&.{ c2, c1 }));
+    var g11 = try Bridge.buildFoldTraceOnly(a, &.{ c1, c1 });
     defer g11.deinit();
-    var g22 = try Bridge.buildFoldTraceOnly(a, .{ c2, c2 });
+    var g22 = try Bridge.buildFoldTraceOnly(a, &.{ c2, c2 });
     defer g22.deinit();
-    var g12 = try Bridge.buildFoldTraceOnly(a, .{ c1, c2 });
+    var g12 = try Bridge.buildFoldTraceOnly(a, &.{ c1, c2 });
     defer g12.deinit();
     // v2: identical topology (gates AND interned constant table), hence an
     // identical PP / FIXED root / authority for every fold of this class.
@@ -153,15 +153,15 @@ test "om31 fold v2 topology is proof-independent and digest binds child keys" {
     try std.testing.expectEqualSlices(u128, g11.ctx.constants.keys(), g12.ctx.constants.keys());
     // ...while the public digest binds the specific child keys: a key swap
     // (c2 presented where the receiver trusts c1) yields a different digest.
-    const d11 = try Bridge.expectedDigest(.{ c1, c1 });
-    const d12 = try Bridge.expectedDigest(.{ c1, c2 });
-    const d22 = try Bridge.expectedDigest(.{ c2, c2 });
+    const d11 = try Bridge.expectedDigest(&.{ c1, c1 });
+    const d12 = try Bridge.expectedDigest(&.{ c1, c2 });
+    const d22 = try Bridge.expectedDigest(&.{ c2, c2 });
     try std.testing.expectEqual(d11, g11.output_digest);
     try std.testing.expectEqual(d12, g12.output_digest);
     try std.testing.expect(!std.mem.eql(u8, &d11, &d12));
     try std.testing.expect(!std.mem.eql(u8, &d11, &d22));
     // Full-value build: the in-circuit digest wires equal the receiver digest.
-    var full = try Bridge.buildFold(a, .{ c1, c2 });
+    var full = try Bridge.buildFold(a, &.{ c1, c2 });
     defer full.deinit();
     try std.testing.expectEqualDeep(g12.ctx.circuit, full.ctx.circuit);
     if (try full.ctx.circuit.check(a, full.ctx.values())) |failure| {
@@ -174,5 +174,5 @@ test "om31 fold v2 topology is proof-independent and digest binds child keys" {
     // A child proof presented under a different key's identity is rejected
     // by the child's own in-circuit transcript (identity is absorbed there).
     const swapped = Bridge.Child{ .authority = &second.authority, .produced = &first.produced, .capture = &first.capture };
-    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, .{ swapped, c1 }));
+    try std.testing.expectError(error.EqFailedOnEval, Bridge.buildFold(a, &.{ swapped, c1 }));
 }
