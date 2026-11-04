@@ -53,4 +53,5 @@ test {
     _ = canonical;
     _ = @import("canonical_proof_test.zig");
     _ = @import("review_kern_test.zig");
+    _ = @import("review_proto3_pcs4_test.zig");
 }

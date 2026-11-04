@@ -520,6 +520,9 @@ pub fn verifyOpening(
     if (RU > R) return error.OpeningShape;
     const C = @as(usize, 1) << @intCast(shape.log_cols);
     const log_ext = shape.log_cols + shape.log_blowup;
+    // claim shapes before any use (groupCoeffs slices point[0..log_rows]):
+    // PCS-4, same ordering as pcs2.verifyRec
+    for (groups) |g| for (g.claims) |c| if (c.point.len != shape.log_rows + shape.log_cols) return error.OpeningShape;
     const gammas = try drawGammas(a, tr, groups);
     defer freeNested(a, gammas);
     const n_rows_out = groups.len + @intFromBool(with_proximity);
