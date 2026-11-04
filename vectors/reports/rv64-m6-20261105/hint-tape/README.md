@@ -27,3 +27,21 @@ Device assignment (GPU DAG) per fold unchanged: 16 ms stream; leaves 136 ms (the
 Cold classes (trial 0) do not use the tape (first fold of a class builds the template) and are unchanged.
 
 `*-prep.json` = `scripts/rv64_m6_hint_tape_prep.py RUN` (per-node pipeline.json census + FOLD_SEED_TAPE log census).
+
+## HT2: device DAG grouping (chain runs) [M]
+
+`assignment-ab-narrow-vs-chain.json` (GPU_OUTER_ASSIGNMENT_TIMING medians over 52 leaf / 56 fold nodes per run):
+
+| variant (run) | leaf DAG stream | leaf launches | fold DAG stream | fold launches | leaf assignment total |
+|---|---:|---:|---:|---:|---:|
+| M5 narrow runs (tape2-on) | 136.1 ms | 6,303 | 16.0 ms | 2,108 | 170.6 ms |
+| chain v1 (chain1-on) | 133.3 ms | 596 | 14.5 ms | 689 | 180.4 ms |
+| chain v2 + record pipeline + L2 prefetch (chain2-on) | 133.2 ms | 596 | 14.6 ms | 689 | 168.2 ms |
+| chain v3 + 16-byte value access + vector wide levels (chain4-on) | **113.0 ms** | 596 | **11.7 ms** | 689 | **153.6 ms** |
+
+Every run: all proofs byte-identical to the M5 default, fresh M5 receiver accepted. `level-census.json`: a 24628607
+leaf plan has ~146 k levels = 101 k Blake-G levels (mean width 26) + 30 k mul levels (width ~150) + 14 k other + 10
+inverse, plus 579 levels wider than 2048 (6.2 M tasks); no width-1 levels. Kill rule (fill > 1.5x today's assignment
+device time): not triggered at any step (0.83x leaf, 0.73x fold for v3). ncu is not usable in the pod container
+(`ERR_NVGPUCTRPERM`), so each latency hypothesis was tested by a variant: record loads and old-input DRAM latency are
+not the bound (v2 unchanged); memory transactions per warp instruction are (v3 -15/-20%).
