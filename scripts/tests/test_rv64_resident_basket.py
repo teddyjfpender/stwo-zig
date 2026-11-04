@@ -42,6 +42,82 @@ class ResidentBasket(unittest.TestCase):
         self.assertTrue(all(j["resources"]["keccak_uniform_throughput"] for j in p["jobs"]))
         self.assertTrue(all(j["resources"]["park_main"] is False for j in p["jobs"]))
 
+    def ready_plan(self, **changes):
+        manifest = copy.deepcopy(self.manifest)
+        manifest.update(recursion_mode="ready_candidate", recursion_worker_budget=8,
+                        recursion_max_pending_authorities=17)
+        manifest.update(changes)
+        return R.build_plan(self.basket, manifest, self.root, *self.assets[:3], self.root / "ready",
+                            [0, 1, 2, 3], [1, 2, 4], 28 << 30, R.B.sha(self.assets[2]),
+                            combined=True, recursive_receiver=self.assets[1], strict_recursive_receiver=True)
+
+    def test_ready_candidate_preserves_explicit_mode_without_opening_serial_multi_gpu(self):
+        plan = self.ready_plan()
+        self.assertEqual(plan["recursion_mode"], "ready_candidate")
+        self.assertEqual([j["device_count"] for j in plan["jobs"]], [1, 2, 4])
+        self.assertIn("Explicit ready_candidate", R.render(plan, []))
+        self.assertNotIn("one GPU only", R.render(plan, []))
+        for job in plan["jobs"]:
+            manifest = R.producer_manifest(plan, job)
+            for key in ("recursion_mode", "recursion_worker_budget", "recursion_max_pending_authorities"):
+                self.assertEqual(manifest[key], plan[key])
+        self.assertNotIn("recursion_mode", self.plan())
+        with self.assertRaisesRegex(ValueError, "exactly one GPU"):
+            R.recursion_options({}, True, [1, 2], True)
+        for combined, strict in ((False, True), (True, False)):
+            with self.assertRaisesRegex(ValueError, "strict recursive receiver"):
+                R.recursion_options({"recursion_mode": "ready_candidate"}, combined, [1], strict)
+
+    def test_ready_candidate_bounds_and_original_plan_identity_are_enforced(self):
+        for changes in ({"recursion_worker_budget": True}, {"recursion_worker_budget": 3},
+                        {"recursion_worker_budget": 33}, {"recursion_max_pending_authorities": 16},
+                        {"recursion_max_pending_authorities": 257}, {"recursion_mode": "typo"}):
+            with self.assertRaises(ValueError):
+                self.ready_plan(**changes)
+        plan = self.ready_plan()
+        changed = copy.deepcopy(plan)
+        changed["recursion_worker_budget"] = 16
+        with self.assertRaisesRegex(ValueError, "production authority"):
+            R.qualification_view(plan, changed)
+        request = dict(self.request, workers=4)
+        (self.root / "request.json").write_text(json.dumps(request))
+        with self.assertRaisesRegex(ValueError, "native request workers"):
+            self.ready_plan()
+
+    def test_ready_execution_rejects_silent_serial_fallback_and_changed_manifest(self):
+        plan = self.ready_plan()
+        job = plan["jobs"][1]
+        target = Path(job["target"])
+        (target / "batch").mkdir(parents=True)
+        raw = json.dumps(R.producer_manifest(plan, job))
+        for name in ("manifest.json", "batch/resident-ready-manifest.json"):
+            (target / name).write_text(raw)
+        digest = list(bytes.fromhex(R.B.sha(target / "manifest.json")))
+        execution = {"mode": "ready_candidate", "physical_device_ids": [0, 1], "lane_workers": [4, 4],
+                     "producer_manifest_sha256": digest, "lane_helper_stack_reserved_bytes": 6 << 20,
+                     "coordinator_stack_reserved_bytes": 16 << 20, "native_helper_stack_reserved_bytes": 7 << 20}
+        combined = {"recursion_execution": execution}
+        entry = {"recursion_mode": "ready_candidate", "recursion_worker_budget": 8,
+                 "physical_device_ids": [0, 1], "producer_manifest_sha256": digest,
+                 "recursion_execution": copy.deepcopy(execution)}
+        R.check_ready_execution(plan, job, combined, entry)
+        for key, value in (("mode", "serial"), ("physical_device_ids", [0, 0]),
+                           ("lane_workers", [8, 8]), ("lane_helper_stack_reserved_bytes", 0)):
+            altered = copy.deepcopy(combined)
+            altered["recursion_execution"][key] = value
+            altered_entry = dict(entry, recursion_execution=copy.deepcopy(altered["recursion_execution"]))
+            with self.assertRaisesRegex(ValueError, "pinned admission"):
+                R.check_ready_execution(plan, job, altered, altered_entry)
+        (target / "batch/resident-ready-manifest.json").write_text("{}")
+        with self.assertRaisesRegex(ValueError, "manifest copy changed"):
+            R.check_ready_execution(plan, job, combined, entry)
+        altered_manifest = R.producer_manifest(plan, job)
+        altered_manifest["recursion_worker_budget"] = 16
+        for name in ("manifest.json", "batch/resident-ready-manifest.json"):
+            (target / name).write_text(json.dumps(altered_manifest))
+        with self.assertRaisesRegex(ValueError, "pinned plan"):
+            R.check_ready_execution(plan, job, combined, entry)
+
     def test_missing_cases_remain_explicit_in_report(self):
         self.manifest["blocks"] = {}
         p = self.plan()
