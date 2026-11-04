@@ -97,7 +97,10 @@ The **weighted prefix column** `Pre` (one per component) accumulates, row by row
 `Pre(x+1) − Pre(x) = E(x) · Σ_g ρ_g Σ_lane w_g(lane) · (n_g[lane, x] + γ · d_g[lane, x])`, where `n_g`, `d_g` are the
 LogUp numerator/denominator expressions of the main row (degree 1 in main for this AIR), and `ρ_g`, `γ` are drawn after
 the GKR section. The final value must equal `Σ_g ρ_g (claim_n,g + γ claim_d,g)`. Both columns are OM31 (16 base
-columns). This is the native "late binding" construction (`gkr_late_binding`, `binding_theorem_required`): it needs
+columns). CPU reference: `outer_gkr/binding.zig` (`columns`, `expectedBoundary`); test "outer GKR binding columns" builds E and Pre from the
+inputs at the REAL GKR point of a proved section and checks the boundary equals the terminal-claim combination for all four
+components (so the shared-row-point lemma holds on the actual transcript), and that a changed input value or claim breaks it.
+This is the native "late binding" construction (`gkr_late_binding`, `binding_theorem_required`): it needs
 the same review as the native one (open item 1).
 
 ## 6. Measured (24628607, 2× RTX 5090 pod, one GPU per run)

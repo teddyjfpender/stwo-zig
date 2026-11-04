@@ -328,3 +328,37 @@ test "corpus M10 outer GKR relation mass of the real classes stays below p and a
     }
     try std.testing.expectError(error.Om31CandidateCharacteristicWrap, candidate.requireOuterGkrCharacteristic(P.LEAF_CPU_24628607.facts(40), core.fields.m31.Modulus));
 }
+
+const B = @import("binding.zig");
+test "outer GKR binding columns: shared lane-major row point, prefix boundary equals the GKR terminal claims, tampers break it" {
+    var f = try Fixture.init(&P.TEST_SMALL, 31);
+    defer f.deinit();
+    var channel = S.benchChannel();
+    var verified = try S.verify(a, &channel, &f.section);
+    defer verified.deinit(a);
+    var strict = S.StrictChannel{ .inner = channel };
+    const ch = B.drawChallenges(&strict, P.TEST_SMALL.instances.len);
+    try std.testing.expect(!strict.rejected);
+    const point = verified.artifact.ood_point;
+    var checked: usize = 0;
+    for (0..P.N_COMPONENTS) |k| {
+        const comp: P.Component = @enumFromInt(k);
+        if (!P.gkrBound(comp)) continue;
+        var cols = try B.columns(a, &P.TEST_SMALL, comp, point, &f.inputs, &ch);
+        defer cols.deinit(a);
+        const want = B.expectedBoundary(&P.TEST_SMALL, comp, verified.artifact.claims_to_verify_by_instance, &ch);
+        try std.testing.expect(B.boundaryHolds(&cols, want));
+        const r = P.TEST_SMALL.row_logs[k];
+        for (0..cols.eq.len) |row| try std.testing.expect(cols.eq[row].eql(B.eqEntry(point, r, row)));
+        // A wrong terminal claim (M02 through the binding boundary) breaks the boundary.
+        try std.testing.expect(!B.boundaryHolds(&cols, want.add(O.one())));
+        checked += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 4), checked);
+    // One committed input value changed (the MAIN row the prefix reads) breaks the boundary of its component.
+    const g = 4; // blake_g_gate lane group 0
+    f.inputs.numerators[g][5] = f.inputs.numerators[g][5].add(M31.one());
+    var cols = try B.columns(a, &P.TEST_SMALL, .blake_g_gate, point, &f.inputs, &ch);
+    defer cols.deinit(a);
+    try std.testing.expect(!B.boundaryHolds(&cols, B.expectedBoundary(&P.TEST_SMALL, .blake_g_gate, verified.artifact.claims_to_verify_by_instance, &ch)));
+}

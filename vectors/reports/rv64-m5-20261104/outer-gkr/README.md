@@ -22,8 +22,8 @@ M4.0 totals exactly (interaction 32.617 G, total 53.391 G). GPU [D]: 4.8 GPU-s o
 all-in rate (0.235 ns per LDE cell, b2): net ≈ −6.4 GPU-s of today's 25.1 recursion kernel GPU-s. Proof [E]: +69.8 KB section,
 −76 KB of interaction openings at q = 108 → roughly neutral (−6 KB).
 
-Correctness: GPU section **byte-identical** to the CPU reference prover (test-small class) [M]; 14/14 Zig tests (pod,
-ReleaseSafe); exhaustive in-process single-word tamper sweep **3,469/3,469 rejected**; fresh-process corpus **26/26**
+Correctness: GPU section **byte-identical** to the CPU reference prover (test-small class) [M]; 15/15 Zig tests (pod,
+ReleaseSafe; incl. the binding-column CPU reference at the real GKR point); exhaustive in-process single-word tamper sweep **3,469/3,469 rejected**; fresh-process corpus **26/26**
 (`outer-gkr-corpus.json`: header, salt, roots, poles, round coefficients (M01), leading-zero shape, masks, instance order,
 non-canonical, truncation, terminal vs other inputs (M02), closure, and 3 tampers of the GPU-proved production leaf).
 
