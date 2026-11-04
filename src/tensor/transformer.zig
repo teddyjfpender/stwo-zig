@@ -44,6 +44,10 @@ pub fn term(c: i64, r: Ref, parts: []const []const u8) xt.Term {
 }
 
 /// Smallest s >= 1 with requant(acc, s) in [-2^(ob-1), 2^(ob-1)) for all entries.
+/// Builder.gate fuses SiLU + hadamard into one glu triple lookup at and
+/// above this many gate elements (the glu table's 2^16 rows).
+pub const GLU_MIN_NUMEL: usize = 1 << 16;
+
 pub fn chooseShiftBits(acc: []const i64, ob: u5) !u5 {
     var mx: i64 = 0;
     var mn: i64 = 0;
@@ -518,6 +522,48 @@ pub const Builder = struct {
         acc_owned = false;
         try self.pushOp(.{ .hadamard = .{ .a = x, .b = y, .y = id, .shift = s } }, acc);
         return id;
+    }
+
+    /// Fused SwiGLU gate h = clamp8(rq_s(table(g) * u)) as ONE glu triple
+    /// lookup (proto Op.glu): the activation table(g) and the product are
+    /// never committed, only h. The shift is the hadamard's (same plan slot,
+    /// same model.chooseShift on the same accumulator), and checkInt8 keeps
+    /// the honest refusal, so the clamp is the identity and h equals the
+    /// `lookup(g, table)` + `hadamard(act, u)` output bit for bit.
+    pub fn glu(self: *Builder, g: u32, u: u32, table: u32) !u32 {
+        const n = self.wit.items[g].len;
+        const tv = self.tables.items[table].values;
+        const acc = try self.a.alloc(i64, n);
+        defer self.a.free(acc);
+        for (self.wit.items[g], self.wit.items[u], acc) |vg, vu, *o| o.* = @as(i64, tv[@intCast(vg + 128)]) * vu;
+        const s = try self.nextShift(if (self.replaying()) 0 else model.chooseShift(acc));
+        const out = try self.a.alloc(i32, n);
+        for (acc, out) |v, *o| o.* = proto.requant(v, s);
+        // honest refusal unchanged (replay outside the calibrated model);
+        // after it the clamp of the glu table is the identity on real data
+        self.checkInt8(out) catch |e| {
+            self.a.free(out);
+            return e;
+        };
+        for (out) |*o| o.* = std.math.clamp(o.*, -128, 127);
+        const info = self.infos.items[g]; // copy: add() may reallocate infos
+        const id = try self.addKind(info, out, "glu.out", "");
+        try self.pushOp(.{ .glu = .{ .g = g, .u = u, .h = id, .table = table, .shift = s } }, null);
+        return id;
+    }
+
+    /// The int8 SwiGLU gate: the fused glu triple when g has >= 2^16
+    /// elements (the glu table has 2^16 rows, so it pays for itself), else
+    /// the committed SiLU lookup + hadamard pair (small shapes, pinned).
+    pub fn gate(self: *Builder, g: u32, u: u32, table: u32) !u32 {
+        if (self.wit.items[g].len >= GLU_MIN_NUMEL) {
+            self.tag("glu");
+            return self.glu(g, u, table);
+        }
+        self.tag("silu");
+        const act = try self.lookup(g, table);
+        self.tag("glu");
+        return self.hadamard(act, u);
     }
 };
 
@@ -1114,10 +1160,7 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
         const g = try b.matmul(c.ws, xe, we);
         b.tag("up");
         const u = try b.matmul(c.ws, xe, we + 1);
-        b.tag("silu");
-        const act = try b.lookup(g, c.silu);
-        b.tag("glu");
-        const hm = try b.hadamard(act, u);
+        const hm = try b.gate(g, u, c.silu);
         b.tag("down");
         const mo = try b.matmul(c.ws, hm, we + 2);
         @memcpy(mo_all[x * C * D ..][0 .. C * D], b.wit.items[mo]);
@@ -1310,10 +1353,7 @@ pub fn denseMlp(b: *Builder, c: Ctx, wb: u32, y: u32) !u32 {
         const g = try b.matmul(c.ws, y, wb + cfg.wGate());
         b.tag("up");
         const u = try b.matmul(c.ws, y, wb + cfg.wUp());
-        b.tag("silu");
-        const act = try b.lookup(g, c.silu);
-        b.tag("glu");
-        const hm = try b.hadamard(act, u);
+        const hm = try b.gate(g, u, c.silu);
         b.tag("down");
         return b.matmulBits(c.ws, hm, wb + cfg.wDown(), null, cfg.residBits());
     }
@@ -2265,4 +2305,146 @@ test "forward-pass ext accumulators are untrusted: wrong values refused or rejec
         break;
     };
     try testing.expectError(error.AccumulatorShape, proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wv, b.coreAccs(), ea, &tm));
+}
+
+// ---------------------------------------------------------------------------
+// Fused SwiGLU gate (witness-volume lever "fused-glu", design/tensor-frontend/
+// ledger.md section 5): at >= 2^16 gate elements the committed SiLU tensor,
+// its lookup_pair key, the hadamard remainder / y-range keys and the
+// hadamard requant sumcheck are replaced by one glu triple key.
+
+fn countOps(st: proto.Statement, tag: std.meta.Tag(proto.Op)) usize {
+    var n: usize = 0;
+    for (st.ops) |op| n += @intFromBool(op == tag);
+    return n;
+}
+
+test "fused glu gate: one glu triple at >= 2^16 gate elements, h bit-identical to silu lookup + hadamard; pair kept below" {
+    const a = testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    var pc = testCfg();
+    pc.weight_log_cols = 4;
+    // T F = 2^6 2^10 = 2^16: fused
+    {
+        const cfg = LayerCfg{ .log_t = 6, .log_d = 4, .log_f = 10, .log_heads = 1, .log_kv_heads = 0 };
+        const fx = try Fixture.init(a, &pool, cfg, pc, 4100);
+        defer fx.deinit(a);
+        const st = fx.b.statement();
+        try testing.expectEqual(@as(usize, 1), countOps(st, .glu));
+        try testing.expectEqual(@as(usize, 0), countOps(st, .lookup));
+        try testing.expectEqual(@as(usize, 0), countOps(st, .hadamard));
+        for (fx.b.labels.items) |l| try testing.expect(!std.mem.eql(u8, l.name, "silu"));
+        // h = rq_s(silu(g) u) exactly, s = model.chooseShift (the hadamard's choice)
+        for (st.ops) |op| if (op == .glu) {
+            const gl = op.glu;
+            const tv = st.tables[gl.table].values;
+            const gv = fx.b.wit.items[gl.g];
+            const uv = fx.b.wit.items[gl.u];
+            const acc = try a.alloc(i64, gv.len);
+            defer a.free(acc);
+            for (gv, uv, acc) |vg, vu, *o| o.* = @as(i64, tv[@intCast(vg + 128)]) * vu;
+            try testing.expectEqual(model.chooseShift(acc), gl.shift);
+            for (acc, fx.b.wit.items[gl.h]) |v, h| try testing.expectEqual(proto.requant(v, gl.shift), h);
+            try testing.expectEqual(GLU_MIN_NUMEL, gv.len);
+        };
+        var proof = try proveVerify(a, &pool, pc, &fx.b, &fx.sw.ws);
+        defer proof.deinit(a);
+        // honest prover refuses a wrong h
+        const h_id = for (st.ops) |op| (if (op == .glu) break op.glu.h) else unreachable;
+        fx.b.wit.items[h_id][5] +%= 1;
+        const wv = try fx.b.witnessView(a);
+        defer a.free(wv);
+        var tm: proto.Timings = .{};
+        try testing.expectError(error.LookupMismatch, proto.prove(a, &pool, pc, st, &fx.sw.ws, wv, &tm));
+    }
+    // T F = 2^3 2^5 < 2^16: the committed pair (pinned toy digests)
+    {
+        const cfg = LayerCfg{ .log_t = 3, .log_d = 4, .log_f = 5, .log_heads = 1, .log_kv_heads = 0 };
+        const fx = try Fixture.init(a, &pool, cfg, pc, 4200);
+        defer fx.deinit(a);
+        const st = fx.b.statement();
+        try testing.expectEqual(@as(usize, 0), countOps(st, .glu));
+        try testing.expectEqual(@as(usize, 1), countOps(st, .lookup));
+        try testing.expectEqual(@as(usize, 1), countOps(st, .hadamard));
+    }
+}
+
+const GluCheat = enum { h_plus_one, g_moved_u_fixed, u_out_of_int8, g_out_of_int8 };
+
+/// One glu op on free inputs g, u (bounded only by the glu table): the glu
+/// triple is the only relation that can reject a cheat here.
+fn gluCheatCase(a: std.mem.Allocator, cheat: ?GluCheat) !void {
+    var pool: f.Pool = undefined;
+    try pool.init(a, 2);
+    defer pool.deinit();
+    const pc = testCfg();
+    const n_log = 6;
+    const n = @as(usize, 1) << n_log;
+    const tables = [_]proto.Table{model.siluTable()};
+    const shift: u5 = 6;
+    const tmp = proto.Statement{ .witness = &.{}, .weights = &.{}, .tables = &tables, .ops = &.{} };
+    var gv: [n]i32 = undefined;
+    var uv: [n]i32 = undefined;
+    var hv: [n]i32 = undefined;
+    var rng = std.Random.DefaultPrng.init(77);
+    for (&gv, &uv, &hv) |*g, *u, *h| {
+        g.* = rng.random().intRangeAtMost(i32, -100, 100);
+        u.* = rng.random().intRangeAtMost(i32, -100, 100);
+        h.* = @intCast(proto.gluValue(tmp, 0, shift, g.*, u.*));
+    }
+    const i: usize = 9;
+    if (cheat) |ch| switch (ch) {
+        .h_plus_one => hv[i] = if (hv[i] < 127) hv[i] + 1 else hv[i] - 1,
+        .g_moved_u_fixed => {
+            // a different g whose glu value differs; h and u kept
+            var g2 = gv[i] + 1;
+            while (proto.gluValue(tmp, 0, shift, g2, uv[i]) == hv[i]) g2 += 1;
+            gv[i] = g2;
+        },
+        .u_out_of_int8 => {
+            // h = the natural extension clamp(rq(silu(g) 200)): no int8 row has it
+            uv[i] = 200;
+            const act: i64 = tables[0].values[@intCast(gv[i] + 128)];
+            hv[i] = @intCast(std.math.clamp(@divFloor(act * 200 + 32, 64), -128, 127));
+        },
+        .g_out_of_int8 => gv[i] = 128 + 256, // aliases no int8 row (would be g = -128 mod 2^8)
+    };
+    const infos = [_]TensorInfo{ TensorInfo.vec(n_log), TensorInfo.vec(n_log), TensorInfo.vec(n_log) };
+    const ops = [_]proto.Op{.{ .glu = .{ .g = 0, .u = 1, .h = 2, .table = 0, .shift = shift } }};
+    const st = proto.Statement{ .witness = &infos, .weights = &.{}, .tables = &tables, .ops = &ops };
+    try proto.validateStatement(st);
+    var ws = try proto.commitWeights(a, &pool, pc, &.{}, &.{});
+    defer ws.deinit(a);
+    const wv = [_][]const i32{ &gv, &uv, &hv };
+    var tm: proto.Timings = .{};
+    if (cheat == null) {
+        var proof = try proto.prove(a, &pool, pc, st, &ws, &wv, &tm);
+        defer proof.deinit(a);
+        try proto.verify(a, pc, st, proto.weightKey(&ws), &proof);
+        return;
+    }
+    // the honest prover refuses ...
+    if (proto.prove(a, &pool, pc, st, &ws, &wv, &tm)) |p| {
+        var pp = p;
+        pp.deinit(a);
+        return error.CheatProved;
+    } else |_| {}
+    // ... and a cheating prover's proof is rejected
+    xt.test_unchecked_prover = true;
+    defer xt.test_unchecked_prover = false;
+    var proof = try proto.prove(a, &pool, pc, st, &ws, &wv, &tm);
+    defer proof.deinit(a);
+    try expectReject(a, pc, st, &ws, &proof);
+}
+
+test "fused glu: verifier rejects h + 1, a moved g with u fixed, and g / u outside int8 (unchecked prover)" {
+    try gluCheatCase(testing.allocator, null);
+    inline for (@typeInfo(GluCheat).@"enum".fields) |fld| {
+        gluCheatCase(testing.allocator, @enumFromInt(fld.value)) catch |err| {
+            std.debug.print("glu cheat case {s} failed: {}\n", .{ fld.name, err });
+            return err;
+        };
+    }
 }

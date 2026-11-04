@@ -24,6 +24,21 @@ import math
 import sys
 
 
+# fused-glu lever (transformer.Builder.gate): at >= 2^16 gate elements the
+# SwiGLU gate is one glu triple lookup and the SiLU tensor is not committed.
+# --no-fused-glu evaluates the formulas without it (the previous baseline).
+GLU_MIN_NUMEL = 1 << 16
+FUSED_GLU = True
+
+
+def swiglu(r, scope, n):
+    """gate / up / glu (h) committed; silu only below the fused threshold."""
+    for k in ("gate", "up", "glu"):
+        r[(scope, k)] = n
+    if not (FUSED_GLU and n >= GLU_MIN_NUMEL):
+        r[(scope, "silu")] = n
+
+
 def pow2ceil(x):
     return 1 << max(0, math.ceil(math.log2(x)))
 
@@ -73,8 +88,7 @@ def attn_block(s, first):
 def dense_layer(s, first):
     T, D, F = s["T"], s["D"], s["F"]
     r = attn_block(s, first)
-    for n in ("gate", "up", "silu", "glu"):
-        r[("mlp", n)] = T * F
+    swiglu(r, "mlp", T * F)
     r[("mlp", "down")] = T * D
     r[("residual", "residual")] = 2 * T * D  # h = x + attn, out = h + mlp
     return r
@@ -90,16 +104,15 @@ def moe_layer(s, first, shared=False):
     r[("moe.route", "disp")] = E * C * T
     r[("moe.route", "occ")] = E * C
     r[("moe.expert", "xe.gather")] = E * C * D
-    for n in ("gate", "up", "silu", "glu"):
-        r[("moe.expert", n)] = E * C * Fe
+    # stacked experts (lm.moeStacked, the default): one [E, C, Fe] gate
+    swiglu(r, "moe.expert", E * C * Fe)
     r[("moe.expert", "down")] = E * C * D
     r[("moe.expert", "combine")] = T * D
     r[("residual", "residual")] = 2 * T * D
     if shared:
         # NOT IMPLEMENTED in stwo-zig: Maverick's shared expert as a dense
         # SwiGLU of width Fs beside the routed expert, plus one add
-        for n in ("gate", "up", "silu", "glu"):
-            r[("moe.shared", n)] = T * s["Fs"]
+        swiglu(r, "moe.shared", T * s["Fs"])
         r[("moe.shared", "down")] = T * D
         r[("moe.shared", "add")] = T * D
     return r
@@ -297,4 +310,8 @@ def family(part, scope, name):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    args = sys.argv[1:]
+    if "--no-fused-glu" in args:
+        args.remove("--no-fused-glu")
+        FUSED_GLU = False
+    main(args)
