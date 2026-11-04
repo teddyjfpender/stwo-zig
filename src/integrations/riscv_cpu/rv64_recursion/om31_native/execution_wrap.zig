@@ -946,6 +946,11 @@ const Pipelined = struct {
             job.record.stamps.prep_end = self.now();
             return false;
         }
+        // Fold v2: the topology-only producer plan cache keys by geometry class.
+        // class_hint is threadlocal and Prepared.init (via prepare_host) runs on
+        // this prep thread, so set it here as the lane path does in prove().
+        if (children) |pair| Outer.Device.class_hint = try Bridge.classKey(.{ child(pair[0]), child(pair[1]) });
+        defer Outer.Device.class_hint = null;
         // Any lane's factory: host prep reads only immutable library symbols.
         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
         job.record.variables = job.ctx().circuit.n_vars;
