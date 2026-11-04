@@ -269,6 +269,62 @@ __global__ __launch_bounds__(kWideStridedThreads) void n2b_wide_strided(
         column[(h3(k) << shift) | fixed] = v[k];
 }
 
+// Two-phase strided pass for High <= 10 (logs 21..23 with the 13-stage
+// contiguous pass): phase 1 applies high bits High-1..J (J = High-5 thread
+// bits), phase 2 bits J-1..0; same layout and padding as above.
+template <uint32_t High, bool LoadCoefficients>
+__global__ __launch_bounds__(8u << (High - 5u)) void n2b_wide_strided_short(
+    ColumnSlab<const M31> inputs,
+    const uint32_t *input_log_sizes,
+    ColumnSlab<M31> columns,
+    uint32_t log_n,
+    const M31 *twiddles,
+    uint32_t column_fastest) {
+    static_assert(High >= 6 && High <= 10, "two-phase strided pass");
+    constexpr uint32_t J = High - 5u;
+    extern __shared__ M31 tile_values[];
+    const uint32_t column_index = column_fastest ? blockIdx.x : blockIdx.y;
+    const uint32_t tile = column_fastest ? blockIdx.y : blockIdx.x;
+    const M31 *input = inputs.column(column_index);
+    M31 *column = columns.column(column_index);
+    const uint32_t t = threadIdx.x, lane = t & 7u, j = t >> 3;
+    const uint32_t shift = log_n - High;
+    const uint32_t fixed = (tile << 3) | lane;
+    uint32_t input_count = 0;
+    if constexpr (LoadCoefficients) {
+        const uint32_t input_log_size = input_log_sizes[column_index];
+        const uint32_t requested = input_log_size < 31u ? 1u << input_log_size : 0u;
+        const uint32_t domain = 1u << (log_n - 1u);
+        input_count = requested < domain ? requested : domain;
+    }
+    M31 v[kWideValues];
+    const auto h1 = [&](uint32_t k) { return j | (k << J); };
+#pragma unroll
+    for (uint32_t k = 0; k < kWideValues; ++k) {
+        const uint32_t g = (h1(k) << shift) | fixed;
+        if constexpr (LoadCoefficients) {
+            v[k] = g < input_count ? input[g] : 0u;
+        } else {
+            v[k] = input[g];
+        }
+    }
+    n2b_wide_stages<5, 4>(v, 1, log_n, log_n, twiddles,
+                          [&](uint32_t k) { return (h1(k) << shift) | fixed; });
+#pragma unroll
+    for (uint32_t k = 0; k < kWideValues; ++k)
+        tile_values[n2b_wide_pad(h1(k) * 8u + lane)] = v[k];
+    __syncthreads();
+    const auto h2 = [&](uint32_t k) { return k | (j << 5); };
+#pragma unroll
+    for (uint32_t k = 0; k < kWideValues; ++k)
+        v[k] = tile_values[n2b_wide_pad(h2(k) * 8u + lane)];
+    n2b_wide_stages<J, J - 1u>(v, 6, log_n, log_n, twiddles,
+                               [&](uint32_t k) { return (h2(k) << shift) | fixed; });
+#pragma unroll
+    for (uint32_t k = 0; k < kWideValues; ++k)
+        column[(h2(k) << shift) | fixed] = v[k];
+}
+
 constexpr uint32_t kWideLowBits = 13;
 constexpr uint32_t kWideContiguousThreads = 256;
 constexpr uint32_t kWideContiguousWords = 1u << kWideLowBits;
@@ -330,8 +386,13 @@ __global__ __launch_bounds__(kWideContiguousThreads) void n2b_wide_contiguous(
         column[e1(k)] = tile_values[n2b_wide_pad(e1(k))];
 }
 
+#ifndef STWO_N2B_WIDE_MIN_LOG
+#define STWO_N2B_WIDE_MIN_LOG 21
+#endif
 inline bool n2b_wide_supported(uint32_t log_n) {
-    return log_n == kWideHighBits + kWideLowBits;
+    return log_n >= STWO_N2B_WIDE_MIN_LOG &&
+        log_n <= kWideHighBits + kWideLowBits &&
+        log_n >= 6u + kWideLowBits;
 }
 
 // Production switch: STWO_RV64_N2B_WIDE=0 restores the 3-pass schedule
@@ -359,24 +420,39 @@ inline cudaError_t launch_n2b_wide(
     cudaStream_t stream) {
     if (!n2b_wide_supported(log_n) || column_count == 0)
         return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
-    const uint32_t strided_tiles = 1u << (log_n - kWideHighBits - 3u);
+    const uint32_t high = log_n - kWideLowBits;
+    const uint32_t strided_tiles = 1u << (log_n - high - 3u);
     const uint32_t contiguous_tiles = 1u << (log_n - kWideLowBits);
-    const auto strided = n2b_wide_strided<LoadCoefficients>;
-    cudaError_t status = cudaFuncSetAttribute(
-        strided, cudaFuncAttributeMaxDynamicSharedMemorySize,
-        int(kWideStridedBytes));
-    if (status != cudaSuccess) return status;
     // Pass W1 reads 32-byte rows: tile-fastest order keeps the four tiles
     // that share each 128-byte L2 line in flight together (its twiddle layers
     // are tiny, so column-fastest buys nothing there). Pass W2 reads whole
     // lines and its final layers are large, so it shares twiddles instead.
     const uint32_t a_fast = STWO_N2B_WIDE_STRIDED_COLUMN_FASTEST &&
         column_count > 1u && strided_tiles <= 65535u;
-    strided<<<a_fast ? dim3{column_count, strided_tiles}
-                     : dim3{strided_tiles, column_count},
-              kWideStridedThreads, kWideStridedBytes, stream>>>(
-        inputs, input_log_sizes, columns, log_n, twiddles, a_fast);
-    status = cudaPeekAtLastError();
+    const dim3 a_grid = a_fast ? dim3{column_count, strided_tiles}
+                               : dim3{strided_tiles, column_count};
+    const size_t a_bytes =
+        sizeof(M31) * ((size_t(8) << high) + (size_t(8) << high) / 32u);
+    cudaError_t status = cudaSuccess;
+    const auto launch_short = [&](auto kernel, uint32_t threads) {
+        if (a_bytes > 48u * 1024u) {
+            const cudaError_t attribute = cudaFuncSetAttribute(
+                kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
+                int(a_bytes));
+            if (attribute != cudaSuccess) return attribute;
+        }
+        kernel<<<a_grid, threads, a_bytes, stream>>>(
+            inputs, input_log_sizes, columns, log_n, twiddles, a_fast);
+        return cudaPeekAtLastError();
+    };
+    switch (high) {
+        case 11: status = launch_short(n2b_wide_strided<LoadCoefficients>,
+                                       kWideStridedThreads); break;
+        case 10: status = launch_short(n2b_wide_strided_short<10, LoadCoefficients>, 8u << 5); break;
+        case 9: status = launch_short(n2b_wide_strided_short<9, LoadCoefficients>, 8u << 4); break;
+        case 8: status = launch_short(n2b_wide_strided_short<8, LoadCoefficients>, 8u << 3); break;
+        default: return STWO_CUDA_ERROR_INVALID_CONFIGURATION;
+    }
     if (status != cudaSuccess) return status;
     const uint32_t b_fast = column_count > 1u && contiguous_tiles <= 65535u;
     n2b_wide_contiguous<kWideLowBits><<<b_fast ? dim3{column_count, contiguous_tiles}
