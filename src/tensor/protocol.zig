@@ -91,6 +91,10 @@ pub const Statement = struct {
     ops: []const Op,
     /// transformer-coverage ops (einsum / key / lineq), see ext.zig
     ext: xt.Ext = .{},
+    /// digest of the public model definition the statement was built from
+    /// (model.MlpConfig / transformer.ModelConfig: shapes, requant shifts,
+    /// tables, norm parameters); mixed into the transcript when set (P2)
+    model_digest: ?[32]u8 = null,
 };
 
 /// Committed weights (prover side): concatenated int8 table + commitment.
@@ -715,6 +719,10 @@ fn mixStatement(tr: *Transcript, st: Statement, key: WeightKey) void {
         .glu => |g| tr.mixU32s(&.{ 6, g.g, g.u, g.h, g.table, g.shift }),
     };
     xt.mixStatement(tr, st.ext);
+    if (st.model_digest) |d| {
+        tr.mixU32s(&.{0x4d4f444c}); // "MODL"
+        tr.mixDigest(d);
+    }
 }
 
 fn fullPoint(a: std.mem.Allocator, log_total: u32, offset: usize, log_size: u32, local: []const QM31) ![]QM31 {
@@ -1717,133 +1725,29 @@ pub fn weightKey(ws: *const WeightStore) WeightKey {
     return .{ .root = ws.com.root(), .infos = ws.infos, .offsets = ws.offsets, .log_rows = ws.log_rows, .log_cols = ws.log_cols, .rows_used = ws.rows_used, .ood_value = ws.ood_value };
 }
 
-/// Public well-formedness checks the soundness argument relies on:
-/// - every matmul/hadamard operand is int8-bounded by a proved relation
-///   (output of matmul/hadamard requant, lookup output, or range8 input);
-/// - K <= 2^15 so |acc| <= 2^14 K < 2^30 never wraps mod p;
-/// - 1 <= shift <= 22 so 2^s * 129 < 2^30 and the requant identity mod p is an
-///   integer identity;
-/// - shapes are consistent.
-/// Marker bound for tensors defined by an exact ext einsum (see validateStatement).
-const EXT_EXACT_BOUND: u8 = 254;
-
 /// Max witness tensors per statement (validateStatement's bound table).
 pub const MAX_STATEMENT_TENSORS = 4096;
 
-/// bound[t] = b means |t[i]| <= 2^b is proved by some relation of `st`
-/// (255 = unbounded, EXT_EXACT_BOUND = defined by an exact ext einsum).
-/// `bound.len` must equal st.witness.len.
-fn fillBounds(st: Statement, bound: []u8) void {
-    @memset(bound, 255);
-    const setb = struct {
-        fn f(b: []u8, t: u32, v: u8) void {
-            if (t < b.len and v < b[t]) b[t] = v;
-        }
-    }.f;
-    for (st.ops) |op| switch (op) {
-        .matmul => |m| setb(bound, m.y, 7),
-        .hadamard => |h| setb(bound, h.y, 7),
-        .lookup => |l| {
-            setb(bound, l.out, 7);
-            setb(bound, l.in, 7); // table domain is int8
-        },
-        .range8 => |r| setb(bound, r.in, 7),
-        .product => {},
-        .glu => |g| {
-            setb(bound, g.h, 7);
-            setb(bound, g.g, 7);
-            setb(bound, g.u, 7);
-        },
-    };
-    // ext ops: requantized einsum outputs and single-term range/lookup keys
-    for (st.ext.ops) |op| switch (op) {
-        .einsum => |e| if (e.y) |y| {
-            if (e.shift > 0 and e.out_bits >= 1) {
-                setb(bound, y, e.out_bits - 1);
-            } else if (bound[y] == 255) {
-                // exact einsum output: its magnitude is the ext builder's
-                // responsibility (transformer.md section 4, LayerCfg.validate;
-                // e.g. MoE dispatch of int8 rows by a proved one-hot selector).
-                // Marked as relation-defined; numeric checks below use the
-                // conservative cap EXT_EXACT_BOUND.
-                bound[y] = EXT_EXACT_BOUND;
-            }
-        },
-        .key => |k| {
-            if (k.input.terms.len == 1 and (k.input.terms[0].coeff == 1 or k.input.terms[0].coeff == -1) and !k.input.terms[0].t.public) {
-                const c: u64 = @abs(k.input.constant);
-                const tb: u64 = switch (k.table) {
-                    .range => |b| @as(u64, 1) << b,
-                    .lookup => |id| @as(u64, 1) << st.ext.tables[id].log_size,
-                };
-                const m = tb + c;
-                setb(bound, k.input.terms[0].t.id, @intCast(std.math.log2_int_ceil(u64, @max(m, 2))));
-            }
-        },
-        .lineq => {},
-    };
-}
-
-/// The bound_log2 to pass to colCombine / combineRows for witness tensor `t`
-/// of a statement that passed validateStatement: the relation-proved bound
-/// (|t[i]| <= 2^b), or 31 (any i32; combineRows then reduces every 2 rows)
-/// when the tensor has no numeric bound. The i64 limb accumulators of
-/// combineRows overflow if this under-states the data (review finding KERN-3:
-/// a hard-coded 8 overflowed on 20-bit range-keyed matmul operands).
+/// The bound_log2 to pass to colCombine / combineRows for witness tensor `t`:
+/// the relation-proved bound from bounds.zig (|t[i]| <= 2^b, full-coverage
+/// relations only), or 31 (any i32; combineRows then reduces every 2 rows)
+/// when the tensor has no numeric bound (KERN-3 and its recheck variant).
 pub fn operandBoundLog2(st: Statement, t: u32) u32 {
     var buf: [MAX_STATEMENT_TENSORS]u8 = undefined;
     if (st.witness.len > buf.len or t >= st.witness.len) return 31;
     const bound = buf[0..st.witness.len];
-    fillBounds(st, bound);
-    return if (bound[t] >= EXT_EXACT_BOUND) 31 else bound[t];
+    @import("bounds.zig").validateStatementBounds(st, bound) catch return 31;
+    return if (bound[t] > 30) 31 else bound[t];
 }
 
+/// Public well-formedness checks the soundness argument relies on (see
+/// bounds.zig): shapes and ids are checked before any indexing; every
+/// multiplication operand (core matmul / hadamard, ext einsum) and every term
+/// of a range / lookup / linear relation has a magnitude bound derived from
+/// proved relations; no accumulator, exact product, or relation can wrap mod
+/// p; 1 <= shift <= 22 on core ops. Run by verify() before anything else.
 pub fn validateStatement(st: Statement) !void {
-    const n = st.witness.len;
-    var bound_buf: [MAX_STATEMENT_TENSORS]u8 = undefined;
-    if (n > bound_buf.len) return error.StatementTooLarge;
-    const bound = bound_buf[0..n];
-    fillBounds(st, bound);
-    for (st.ops) |op| switch (op) {
-        .matmul => |m| {
-            if (m.x >= n or m.y >= n or m.w >= st.weights.len) return error.StatementShape;
-            if (m.shift < 1 or m.shift > 22) return error.StatementShift;
-            const xi = st.witness[m.x];
-            const wi = st.weights[m.w];
-            // [T, K] . [K, N], or batched [E, T, K] . [E, K, N] -> [E, T, N]
-            if (wi.n_dims == 3) {
-                if (xi.n_dims != 3 or xi.log_dims[0] != wi.log_dims[0] or xi.log_dims[2] != wi.log_dims[1]) return error.StatementShape;
-            } else {
-                if (xi.n_dims != 2 or wi.n_dims != 2) return error.StatementShape;
-                if (xi.log_dims[1] != wi.log_dims[0]) return error.StatementShape;
-            }
-            const lk = xi.log_dims[xi.n_dims - 1];
-            // |acc| <= 2^(bx + 7 + logK) must stay < 2^30 (weights are int8 by the key proof)
-            if (bound[m.x] == 255) return error.StatementUnboundedOperand;
-            if (bound[m.x] != EXT_EXACT_BOUND and @as(u32, bound[m.x]) + 7 + lk > 30) return error.StatementAccumulatorBound;
-            if (st.witness[m.y].logSize() != xi.logSize() - lk + wi.log_dims[wi.n_dims - 1]) return error.StatementShape;
-        },
-        .hadamard => |h| {
-            if (h.a >= n or h.b >= n or h.y >= n) return error.StatementShape;
-            if (bound[h.a] == 255 or bound[h.b] == 255) return error.StatementUnboundedOperand;
-            if (bound[h.a] != EXT_EXACT_BOUND and bound[h.b] != EXT_EXACT_BOUND and @as(u32, bound[h.a]) + bound[h.b] > 30) return error.StatementAccumulatorBound;
-            if (h.shift < 1 or h.shift > 22) return error.StatementShift;
-            const ls = st.witness[h.y].logSize();
-            if (st.witness[h.a].logSize() != ls or st.witness[h.b].logSize() != ls) return error.StatementShape;
-        },
-        .lookup => |l| {
-            if (l.in >= n or l.out >= n or l.table >= st.tables.len) return error.StatementShape;
-            if (st.witness[l.in].logSize() != st.witness[l.out].logSize()) return error.StatementShape;
-        },
-        .range8 => |r| if (r.in >= n) return error.StatementShape,
-        .product => |q| if (q.a >= n or q.b >= n or q.c >= n) return error.StatementShape,
-        .glu => |g| {
-            if (g.g >= n or g.u >= n or g.h >= n or g.table >= st.tables.len) return error.StatementShape;
-            if (g.shift < 1 or g.shift > 22) return error.StatementShift;
-            const ls = st.witness[g.h].logSize();
-            if (st.witness[g.g].logSize() != ls or st.witness[g.u].logSize() != ls) return error.StatementShape;
-        },
-    };
+    return @import("bounds.zig").validateStatement(st);
 }
 
 /// Statement-derived proof shape that the wire decoder (wire.zig) bounds its

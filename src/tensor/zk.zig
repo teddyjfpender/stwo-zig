@@ -4268,8 +4268,8 @@ fn zkCheatCase(a: std.mem.Allocator, pool: *f.Pool, cheat: ZkCheat) !void {
         jstar = j;
     };
     switch (cheat) {
-        .prob_plus_one => b.wit.items[at.probs][row * T] += 1,
-        .rden_plus_one => b.wit.items[at.rden][row] += 1,
+        .prob_plus_one => b.wit.items[at.od][0] += 1, // division-inequality output (softmax restructure, EXT-1)
+        .rden_plus_one => b.wit.items[at.den][row] += 1, // row denominator (replaces rden)
         .rt_plus_one => b.wit.items[fx.out.rms1.rt][0] += 1,
         .residual => b.wit.items[fx.out.h][0] += 1,
         .exp_value => b.wit.items[at.e][row * T + jstar] -= 1,

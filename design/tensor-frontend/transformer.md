@@ -135,13 +135,24 @@ signed. One einsum (batch vars t, i; contracted b; x-only h; R-only b').
 * e = expT(D), expT(d) = round(256 exp(-d/16)) for d < 256, 0 otherwise
   (public 1024-entry lookup). Masked positions have D >= 257, so e = 0.
 * den[h,t] = sum_j e (lineq with a SUM term) in [256, 256 T].
-* rden[h,t] = floor(2^K / den), K = lt + 15, proved on the [H, T] vector:
-  rden in [0, 2^(lt+8)), pr = rden * den (exact einsum), 2^K - pr >= 0 and
-  den - 1 - (2^K - pr) >= 0 (ranges of lt+8 bits, limbs if > 16).
-* P = rq_{lt+8}(e * rden) (requant einsum, rden broadcast over j, 9-bit
-  signed range) = round(e * floor(2^(lt+15)/den) / 2^(lt+8)); P in [0, 128]
-  and |P den - 128 e| <= den (tested against the exact quotient).
-* o[t, h, e] = rq_s(sum_j P[h,t,j] v[j, hk(h), e]) int8, s chosen.
+* acc[t, h, c] = sum_j e[h,t,j] v[j, hk(h), c] (exact einsum, contraction
+  over j; |acc| <= 2^8 2^7 T = 2^(lt+15)).
+* o[t, h, c] = round(acc / den) = floor((2 acc + den) / (2 den)), int8
+  (range key), proved per entry by the division inequality
+  `0 <= 2 acc + den - 2 o den < 2 den` with od = o * den an exact einsum
+  (den broadcast over c; |od| <= 2^7 2^(lt+8)) and two range keys of lt + 9
+  bits (limbs above 16 bits). o is a convex combination of int8 v rounded
+  once, so rows are normalised up to one rounding per output.
+
+  History (review-A EXT-1 / EXT-3, fixed): the layer used to prove a per-row
+  reciprocal rden = floor(2^(lt+15) / den) with rden in [0, 2^(lt+8)) and
+  pr = rden den exact, then P = rq_{lt+8}(e rden) and o = rq_s(P v). The
+  integer rden den reaches 2^(2 lt + 16), which wraps mod p from lt = 8: a
+  cheating rden' = floor((2^K + p) / den) passed every key and inflated P
+  (the reviewer's test made O[T-1] = 64 instead of 1). Independently, P had
+  1/128 resolution, so at T >= 512 a flat row rounded every P to 0 (sum 0
+  instead of 1). The FlashProve-style division above removes both: every
+  product is below 2^(lt+17) and there is no per-probability quantisation.
 
 Constraints for the rowmax: sel in {0,1} (exact einsum sel * sel = sel, a
 degree-3 zero-check; over the field x^2 = x iff x in {0,1}), sum_j sel = 1
@@ -196,21 +207,34 @@ MLE of the slice, and is discharged by the same batch opening.
 ## 3. What is proved
 
 For a public statement (shapes, shifts, gammas, mask, RoPE table, exp/silu
-tables) and the committed weight root, the verifier is convinced that the
-committed witness is *the* output of the integer layer above on the committed
-input: every intermediate is uniquely determined by the constraints (argmax
+tables, **the model input and the claimed output**) and the committed weight
+root, the verifier is convinced that the claimed output is *the* output of
+the integer layer above on the public input: every intermediate is uniquely determined by the constraints (argmax
 ties are irrelevant: m is unique; sel may pick any maximiser but nothing
 downstream depends on which).
+
+Binding (review-A P1 / P2, fixed): `buildStack` registers the input x and the
+final output as ext publics with lineqs `x = X_pub`, `out = Y_pub`; before,
+neither was bound and a proof for prompt X2 verified under the statement of
+X1. The statement also carries `model_digest` = H(ModelConfig), where
+ModelConfig = (LayerCfg, gamma seed, every requant shift in builder order).
+`transformer.statementFor(ModelConfig, x, y)` rebuilds the statement on the
+verifier with a shape-only builder (no weights; dummy values; publics set to
+x and y), so the prover cannot choose shifts per input (the old builder
+picked the smallest fitting shift per input, which let the statement vary
+with the prompt). Calibration (`calibrate`) records the shifts on sample
+inputs; an input outside the calibrated model makes the prover error.
 
 Uniqueness arguments:
 * rowmax: sel in {0,1} (sel^2 = sel), sum sel = 1 over <= T < p terms => exactly one j*;
   D_j in [0,1024) and D_j = m - S_j - Bias_j as integers (bounds below) =>
   m >= Sm_j for all j; sum_j sel D = D_{j*} = 0 => m = Sm_{j*}. So m = max Sm.
-* division: rden in range and pr = rden den exactly; with |2^K - pr| < 2^30,
-  0 <= 2^K - rden den < den <=> rden = floor(2^K / den). Range-checking rden
-  is essential: without it rden = (2^K - r') / den mod p would satisfy the
-  field equations for any r' in [0, den). P is then a plain requant (its
-  output range check plays the same role for P).
+* division: o int8 and od = o den exactly, with |2 acc + den - 2 od| <
+  2^(lt+17) < p - 2^(lt+9) (range-to-integer lemma), so
+  0 <= 2 acc + den - 2 o den < 2 den holds over the integers and, since
+  den >= 256 > 0 (the argmax entry has D = 0, e = 256), o = round(acc / den)
+  is unique. Range-checking o is essential: without it o could be
+  (2 acc + den - r) / (2 den) mod p for any slack r.
 * isqrt / reciprocal: same pattern; rt >= 0 range-checked so the square root
   is unique; rt >= 1 since N >= 2^s1.
 * requant: core argument (remainder in [0, 2^s), output range).
@@ -230,12 +254,47 @@ lh + 2 lt <= 26) and by builder assertions:
 | score acc | dh 2^16 <= 2^29 |
 | D, m - S - Bias | |.| < 2^11 |
 | den | <= 2^(lt+8) |
-| pr = rden den, 2^K - pr | <= 2^(lt+15) <= 2^27 |
-| P acc = e rden | <= 2^(lt+15) |
-| PV acc | < 2^(lt+15) |
+| acc = sum_j e v | <= 2^(lt+15) <= 2^27 |
+| od = o den | <= 2^(lt+15) <= 2^27 |
+| 2 acc + den - 2 od (slack) | < 2^(lt+17) <= 2^29 |
 | core matmul acc | K 2^14 <= 2^29 |
 
 All inequality operands therefore satisfy the range-to-integer lemma.
+
+### Statement-level bounds (verifier side; `src/tensor/bounds.zig`)
+
+The table above is a property of the honest builder. Since review-A
+(PROTO-1, PROTO-2, PROTO-4, EXT-2), `verify` no longer trusts it:
+`validateStatement` re-derives, from the public statement alone, a bound
+`|t| <= 2^b` for every witness tensor it can, and rejects the statement
+unless every multiplication and relation is wrap-free:
+
+* bound sources: core op outputs / lookup / range8 (int8); requant einsum
+  outputs (`ob - 1`); a key whose input (or lookup output) is a single +-1
+  term over plain, pairwise-distinct variable labels covering **every** bit
+  of the tensor (a SUM, FIX or repeated label covers only a reduction or a
+  slice and bounds nothing: PROTO-1 / EXT-2); boolean selectors `y = y (.) y`
+  with identity labels (bound 0); exact einsums `bound(a) + bound(b) + n_k`
+  (PROTO-2: replaces the old `EXT_EXACT_BOUND` exemption), or `bound(b)`
+  alone when `a` is a proved boolean selector one-hot over the contracted
+  bits (`sum_S a = 1`, or `sum_S a = s` with `s` boolean, nested through
+  `s`'s own one-hot sets); lineqs solved for a +-1 term (FIX-labelled slices
+  count once all slices of the tensor are covered). Derived to a fixpoint.
+* checks: core matmul `bx + 7 + log K <= 30`, hadamard `ba + bb <= 30`;
+  requant einsum accumulator `<= 2^29` and `shift + out_bits <= 30`; exact
+  einsum / zero-check `<= 2^29 < p/2`; every key expression that is not a
+  bound source has bounded terms with `|expr| + table size < p`; every
+  lineq whose terms are all bounded has `|expr| < p` (an integer identity).
+  Unbounded operands fail closed with `StatementUnboundedOperand`.
+* shapes, ids, table ids and `n_dims` are checked before any indexing
+  (PROTO-4: the old pass indexed `bound[y]` and `tables[id]` raw).
+
+MoE stays valid structurally: Disp is boolean and one-hot over tokens
+(`occ = sum_t Disp`, `occ` boolean), so `Xe = Disp . y2` has bound 7, and
+Disp is one-hot over `(c, x)` (`sum_c Disp = sel`, `sum_x sel = 1`), so the
+combine output has the bound of the stacked expert outputs (7, from the
+per-expert FIX-slice lineqs). Removing `Disp^2 = Disp` makes the expert
+matmuls fail validation (tested).
 
 ## 5. Tests (src/tensor/transformer.zig)
 
@@ -246,8 +305,8 @@ All inequality operands therefore satisfy the range-to-integer lemma.
 * tampering of every ext sumcheck (first round), sampled finals, first/last
   ext values, statement (mask, shift, labels) -> rejected;
 * test-only unchecked prover (`ext.test_unchecked_prover`) with invalid
-  witnesses: moved argmax selector, lowered rowmax (consistent D), P + 1,
-  rden + 1, wrong rt, residual, exp value, masked-position exp leak,
+  witnesses: moved argmax selector, lowered rowmax (consistent D), acc + 1,
+  wrong rt, residual, exp value, masked-position exp leak,
   score, sum of squares -> all rejected by the verifier;
 * honest prover refuses an invalid witness (error, no proof);
 * fused QKV (GQA and MHA padding cases): RoPE reads the right slice
