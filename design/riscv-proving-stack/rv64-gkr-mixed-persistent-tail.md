@@ -32,6 +32,13 @@ an opt-in harness mode. It compares all native round records, transcript
 checkpoints, terminal masks and closure artifacts, including the existing
 poison cases. The harness also tries invalid heights and record/state aliases
 before the valid enqueue. Host tests cover immediate and delayed mixed-height
-tails, sleeping constant oracles, preflight and failure poisoning. Full-block
-proof parity and controlled timings are still required before adoption or any
-performance claim.
+tails, sleeping constant oracles, preflight and failure poisoning. A real full-block OFF/ON comparison subsequently produced four fresh native
+blocks (cold and warm for each option). All 20 artifacts matched the accepted
+policy-v2 control in every trial, and four fresh CPU receivers accepted.
+Launches fell from 15,190 to 13,228, but warm adapter wall rose from 0.861 to
+0.870 seconds and whole proving rose from 9.802 to 10.482 seconds. Warm CUDA
+traversal fell 4.0%, while the cold traversal rose 1.9%. CPU-only basket work
+overlapped, so these pairs do not support a strong causal whole-block timing
+claim. The option remains OFF by default: a useful wall-time gain was not
+demonstrated. Memory/race sanitizer qualification remains pending for the
+optional kernel. The real-block receipt records the exact controls and pins.
