@@ -11,7 +11,8 @@ const N = @import("pcs_native_abi.zig");
 const Events = @import("cuda_events.zig");
 const Span = enum { seed, levels };
 const Recorder = Events.RecorderFor(Span);
-pub const Task = extern struct { kind: u32, out: u32, args: [6]u32 = @splat(0) };
+const Pack = @import("outer_assignment_pack.zig");
+pub const Task = Pack.Task;
 pub const Seed = extern struct { out: u32, value: [4]u32 };
 pub const Job = extern struct { values: [*]u32, records: [*]const u32, indices: ?[*]const u32, status: *u32, value_count: u32, record_count: u32, index_count: u32, first: u32, count: u32, reserved: u32 = 0 };
 pub const Launch = *const fn (*anyopaque, u32, *const Job) callconv(.c) c_int;
@@ -52,42 +53,48 @@ pub const Prepared = struct {
         var permutation_count: usize = 0;
         var max_permutation_inputs: usize = 0;
         var permutation_pair_work: u64 = 0;
-        for (plan.tasks, tasks) |task, *out| {
-            var ibuf: [6]u32 = undefined;
-            var obuf: [4]u32 = undefined;
-            const in = Schedule.inputs(ctx, task, &ibuf);
-            const outputs = Schedule.outputs(ctx, task, &obuf);
-            out.* = .{ .kind = @intFromEnum(task.kind), .out = outputs[0] };
-            if (task.kind == .permutation) {
-                permutation_count += 1;
-                max_permutation_inputs = @max(max_permutation_inputs, in.len);
-                const count: u64 = @intCast(in.len);
-                permutation_pair_work = permutation_pair_work +| count *| count;
-                out.args[0] = std.math.cast(u32, indices.items.len) orelse return error.WitnessPlanTooLarge;
-                out.args[1] = std.math.cast(u32, in.len) orelse return error.WitnessPlanTooLarge;
-                try indices.appendSlice(a, in);
-                try indices.appendSlice(a, outputs);
-            } else {
-                @memcpy(out.args[0..in.len], in);
-                if (task.kind == .hint) out.kind = switch (ctx.witness_metadata.?.origins.items[task.index].kind) {
-                    .seed => return error.InvalidWitnessOrigin,
-                    .inverse => 8,
-                    .divide => 9,
-                    .pointwise_inverse_or_zero => 10,
-                    .pointwise_lsb => 11,
-                    .byte => 12,
-                    .byte_complement => 13,
-                    .is_nonzero => 14,
-                    .zero => 15,
-                };
-                if (task.kind == .hint) {
-                    const hint = ctx.witness_metadata.?.origins.items[task.index];
-                    if (hint.kind == .byte or hint.kind == .byte_complement) out.args[1] = hint.b;
+        const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
+        if (ctx.circuit.permutation.ends.items.len == 0) {
+            // Production graphs have no CSR permutation records. Keep every
+            // output at its original plan ordinal without a second task copy.
+            _ = try Pack.fill(ctx, plan.tasks, tasks, capabilities);
+        } else {
+            for (plan.tasks, tasks) |task, *out| {
+                var ibuf: [6]u32 = undefined;
+                var obuf: [4]u32 = undefined;
+                const in = Schedule.inputs(ctx, task, &ibuf);
+                const outputs = Schedule.outputs(ctx, task, &obuf);
+                out.* = .{ .kind = @intFromEnum(task.kind), .out = outputs[0] };
+                if (task.kind == .permutation) {
+                    permutation_count += 1;
+                    max_permutation_inputs = @max(max_permutation_inputs, in.len);
+                    const count: u64 = @intCast(in.len);
+                    permutation_pair_work = permutation_pair_work +| count *| count;
+                    out.args[0] = std.math.cast(u32, indices.items.len) orelse return error.WitnessPlanTooLarge;
+                    out.args[1] = std.math.cast(u32, in.len) orelse return error.WitnessPlanTooLarge;
+                    try indices.appendSlice(a, in);
+                    try indices.appendSlice(a, outputs);
+                } else {
+                    @memcpy(out.args[0..in.len], in);
+                    if (task.kind == .hint) out.kind = switch (ctx.witness_metadata.?.origins.items[task.index].kind) {
+                        .seed => return error.InvalidWitnessOrigin,
+                        .inverse => 8,
+                        .divide => 9,
+                        .pointwise_inverse_or_zero => 10,
+                        .pointwise_lsb => 11,
+                        .byte => 12,
+                        .byte_complement => 13,
+                        .is_nonzero => 14,
+                        .zero => 15,
+                    };
+                    if (task.kind == .hint) {
+                        const hint = ctx.witness_metadata.?.origins.items[task.index];
+                        if (hint.kind == .byte or hint.kind == .byte_complement) out.args[1] = hint.b;
+                    }
                 }
             }
+            for (tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
         }
-        const capabilities = if (library.lookup(*const fn () callconv(.c) u32, "stwo_circuit_assignment_capabilities")) |query| query() else 0xfff;
-        for (tasks) |task| if (capabilities & (@as(u32, 1) << @intCast(task.kind)) == 0) return error.UnsupportedCircuitAssignmentHint;
         const task_pack_ns = timer.lap();
         const seeds = try a.alloc(Seed, plan.seeds.len);
         errdefer a.free(seeds);

@@ -56,6 +56,7 @@ pub fn build(b: *std.Build) void {
     gkr_plan_root.addImport("stwo_core", b.dependency("stwo_core", options).module("stwo_core"));
     gkr_plan_root.addImport("stwo_prover_engine", b.dependency("stwo_prover_engine", options).module("stwo_prover_engine"));
     gkr_plan_root.addImport("stwo_cuda_backend", backend);
+    gkr_plan_root.addImport("stwo_circuit_frontend", b.dependency("stwo_circuit_frontend", options).module("stwo_circuit_frontend"));
     const gkr_plan_tests = b.addTest(.{ .root_module = gkr_plan_root });
     b.step("test-rv64-gkr-plan", "Check consumed-tree GKR workspace custody without CUDA or a full prover build").dependOn(&b.addRunArtifact(gkr_plan_tests).step);
     const batch_test_root = b.createModule(.{ .root_source_file = b.path("rv64_batch_test_root.zig"), .target = target, .optimize = optimize });
