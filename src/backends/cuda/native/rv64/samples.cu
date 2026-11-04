@@ -3,13 +3,6 @@
 #include "samples.h"
 namespace stwo::cuda::rv64 {
 constexpr uint32_t sample_threads = 128, sample_tile = 1024, factor_stride = 28;
-// Kernels stream (M4): one CTA folds 8 consecutive 1024-value tiles (index
-// bits 10..12 in registers) before its shared-memory tree, so the 7-level
-// barrier tree and the per-block scratch write are amortized over 8192
-// values instead of 1024. The fold is a fixed multilinear combination in
-// exact field arithmetic, so regrouping leaves every sample bit-identical.
-constexpr uint32_t sample_block_tiles_log = 3,
-                   sample_block_values = sample_tile << sample_block_tiles_log;
 __device__ void sample_put(uint32_t *words, OM31 value) {
   for (uint32_t i = 0; i < 8; ++i)
     words[i] = coordinate(value, i);
@@ -155,7 +148,7 @@ __global__ void sample_first(StwoRv64SampleEvaluation j, uint32_t blocks) {
   __shared__ OM31 shared[sample_threads];
   const uint32_t sample = blockIdx.y, lane = threadIdx.x;
   const uint32_t n = 1u << j.coefficient_log,
-                 start = blockIdx.x * sample_block_values + lane * 8;
+                 start = blockIdx.x * sample_tile + lane * 8;
   if (!j.valid[sample]) {
     if (!lane)
       sample_put(j.scratch_a + (uint64_t(sample) * blocks + blockIdx.x) * 8,
@@ -167,24 +160,10 @@ __global__ void sample_first(StwoRv64SampleEvaluation j, uint32_t blocks) {
   const uint32_t *factors =
       j.factors + uint64_t(term.group) * factor_stride * 8;
   const uint32_t active = min(sample_threads, max(1u, n / 8));
-  OM31 value = zero();
-  if (lane < active) {
-    const uint32_t *column = j.trees[source.tree] + source.offset;
-    OM31 t[1u << sample_block_tiles_log];
-#pragma unroll
-    for (uint32_t k = 0; k < (1u << sample_block_tiles_log); ++k)
-      t[k] = sample_tile_value(column, start + k * sample_tile, n, factors,
-                               j.status);
-    // Bits 10, 11, 12 of the value index use factors 10, 11, 12. Tiles past
-    // n are zero, so their (possibly unvalidated) factors multiply zero.
-    const OM31 f10 = from_words(factors + 10 * 8),
-               f11 = from_words(factors + 11 * 8),
-               f12 = from_words(factors + 12 * 8);
-    const OM31 a = add(t[0], mul(t[1], f10)), b = add(t[2], mul(t[3], f10)),
-               c = add(t[4], mul(t[5], f10)), d = add(t[6], mul(t[7], f10));
-    value = add(add(a, mul(b, f11)), mul(add(c, mul(d, f11)), f12));
-  }
-  shared[lane] = value;
+  shared[lane] = lane < active
+                     ? sample_tile_value(j.trees[source.tree] + source.offset,
+                                         start, n, factors, j.status)
+                     : zero();
   uint32_t consumed = 3;
   for (uint32_t width = active / 2; width; width >>= 1, ++consumed) {
     __syncthreads();
@@ -296,7 +275,7 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
     return int(cudaErrorInvalidValue);
   const auto j = *input;
   const uint32_t n = 1u << j.coefficient_log,
-                 blocks = (n + sample_block_values - 1) / sample_block_values;
+                 blocks = (n + sample_tile - 1) / sample_tile;
   const uint64_t scratch_words = uint64_t(blocks) * j.count * 8;
   if (j.scratch_words < scratch_words)
     return int(cudaErrorInvalidValue);
@@ -323,7 +302,7 @@ stwo_rv64_sample_evaluate_on(void *ctx, uint32_t lane,
     return c.status;
   sample_validate<<<(j.count + 127) / 128, 128, 0, c.stream>>>(j);
   sample_first<<<dim3(blocks, j.count), 128, 0, c.stream>>>(j, blocks);
-  uint32_t count = blocks, consumed = 10 + sample_block_tiles_log;
+  uint32_t count = blocks, consumed = 10;
   uint32_t *in = j.scratch_a, *out = j.scratch_b;
   while (count > 1) {
     const uint32_t next = (count + 255) / 256;

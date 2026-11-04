@@ -145,6 +145,53 @@ static void compare_two_pass(const char *name, uint32_t log_n, uint32_t cols,
   }
 }
 
+static void compare_wide(uint32_t log_n, uint32_t cols,
+                         const std::vector<uint32_t> &reference,
+                         const M31 *coeffs, const uint32_t *log_sizes, M31 *ea,
+                         M31 *eb, const M31 *tw, cudaStream_t s, int reps) {
+  if (!n2b_wide_supported(log_n)) return;
+  const size_t n = size_t(1) << log_n;
+  for (int lde = 0; lde < 2; ++lde) {
+    double best_ref = 1e30, best = 1e30;
+    for (int r = 0; r < reps; ++r) {
+      if (!lde) {
+        fill<<<1024, 256, 0, s>>>(ea, cols * n, 3);
+        fill<<<1024, 256, 0, s>>>(eb, cols * n, 3);
+      }
+      std::vector<float> ms;
+      run(reference, lde, log_n, cols, coeffs, log_sizes, ea, tw, s, &ms);
+      double t = 0;
+      for (float m : ms) t += m;
+      best_ref = t < best_ref ? t : best_ref;
+      cudaEvent_t a, b;
+      CK(cudaEventCreate(&a));
+      CK(cudaEventCreate(&b));
+      CK(cudaEventRecord(a, s));
+      ColumnSlab<M31> slab{eb, n};
+      if (lde)
+        CK(launch_n2b_wide<true>({coeffs, n / 2}, log_sizes, slab, log_n, cols, true, tw, s));
+      else
+        CK(launch_n2b_wide<false>({eb, n}, nullptr, slab, log_n, cols, true, tw, s));
+      CK(cudaEventRecord(b, s));
+      CK(cudaEventSynchronize(b));
+      float m2 = 0;
+      CK(cudaEventElapsedTime(&m2, a, b));
+      best = m2 < best ? m2 : best;
+      CK(cudaEventDestroy(a));
+      CK(cudaEventDestroy(b));
+    }
+    std::vector<uint32_t> ha(cols * n), hb(cols * n);
+    CK(cudaMemcpy(ha.data(), ea, cols * n * 4, cudaMemcpyDeviceToHost));
+    CK(cudaMemcpy(hb.data(), eb, cols * n * 4, cudaMemcpyDeviceToHost));
+    const bool same = std::memcmp(ha.data(), hb.data(), cols * n * 4) == 0;
+    const double bytes = double(cols) * n * 4 * (lde ? 3.5 : 4.0);
+    std::printf("{\"wide\":\"W1(11 strided)+W2(13 contiguous)\",\"log_n\":%u,\"columns\":%u,\"mode\":\"%s\",\"identical\":%s,\"reference_ms\":%.4f,\"wide_ms\":%.4f,\"speedup\":%.3f,\"wide_tbps\":%.3f}\n",
+                log_n, cols, lde ? "lde" : "n2b", same ? "true" : "false",
+                best_ref, best, best_ref / best, bytes / (best * 1e-3) / 1e12);
+    if (!same) std::exit(3);
+  }
+}
+
 int main(int argc, char **argv) {
   if (argc < 5) {
     std::fprintf(stderr, "usage: LOG_N COLUMNS OLD NEW [REPS]\n");
@@ -205,6 +252,7 @@ int main(int argc, char **argv) {
     std::printf(",\"speedup\":%.3f}\n", best[0] / best[1]);
     if (!same) return 3;
   }
+  if (std::getenv("WIDE")) compare_wide(log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
   if (std::getenv("TWO_PASS")) {
     compare_two_pass<13, 2, 512, 13, 512>("A13l2t512+B13t512", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
     compare_two_pass<13, 2, 1024, 13, 1024>("A13l2t1024+B13t1024", log_n, cols, b, coeffs, log_sizes, ea, eb, tw, s, reps);
