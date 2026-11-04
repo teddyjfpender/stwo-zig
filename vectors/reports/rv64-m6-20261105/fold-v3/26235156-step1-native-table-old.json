@@ -5,7 +5,7 @@
  "step": "step1-native-table-old",
  "block": 26235156,
  "format": "old",
- "source_commit": "95d40063d+wip",
+ "source_commit": "b78ff8c9b",
  "receiver_sha256": "1971181af1240600dda67a966edbf851f3b584176650278ac4a23a66ee07cd84",
  "label": "M (single observations per rep; pod shared, 1-min load recorded per step)",
  "root_only_verify_wall_s": [
