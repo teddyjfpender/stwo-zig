@@ -18,7 +18,16 @@ pub const MAX_SAMPLES_PER_COLUMN: u64 = 8;
 pub const MAX_AIR_DEGREE: u64 = 5;
 pub const MAX_LOCAL_INSTANCES: u64 = 128;
 pub const MAX_TUPLE_ARITY: u64 = 128;
+/// FROZEN identity input of the two admitted native profiles (`identity()`,
+/// `profileIdentity()`): the stale pre-`byte_pair` roster count. Changing it
+/// changes every admitted native proof byte, so it stays 9 until those profiles
+/// are retired. It is NOT the roster size: see `ROSTER_LOCAL_RELATIONS`. Every
+/// new native version hashes the real count (`M5_LOCAL_RELATIONS`), and the
+/// ledger counts the real roster (stream profiles, M6 P4).
 pub const LOCAL_RELATIONS: u64 = 9;
+/// Production raw-fraction roster size (`gkr_local/fractions.zig Relation`,
+/// `byte_pair` added in 63728c3f8). Pinned against the enum by a test.
+pub const ROSTER_LOCAL_RELATIONS: u64 = 10;
 pub const GLOBAL_RELATIONS: u64 = 3;
 pub const MAX_GKR_VARIABLES: u32 = 30;
 pub const MAX_ROUND_COUNT: u64 = 1 << 20;
@@ -250,7 +259,9 @@ pub fn ledger(facts: Facts) !Ledger {
     const mass: u512 = @as(u512, facts.max_positive_mass) + facts.max_negative_mass;
     const v: u512 = facts.max_gkr_variables;
     const i: u512 = facts.max_local_instances;
-    const local = LOCAL_RELATIONS;
+    // Real roster count (10), not the frozen identity input (9): the ledger is
+    // reporting arithmetic only and is not hashed, so this is proof-neutral.
+    const local = ROSTER_LOCAL_RELATIONS;
     const global = GLOBAL_RELATIONS;
     var out: Ledger = undefined;
     // Full pairwise tuple union is intentionally conservative. It requires the
@@ -366,6 +377,20 @@ pub const CandidateSpec = struct {
     /// Domain string to hash into authority identity, wire header and both
     /// transcripts once promoted (outer convention of protocol.zig).
     domain: []const u8,
+    /// Proof FRAMING (M7 compress, rv64-m7-compress-profiles.md). None of these
+    /// changes a soundness term; each changes bytes, so each is hashed.
+    /// log2 of the Merkle cap: the commitment is the 2^cap_log nodes at that
+    /// level (all mixed into the transcript), paths stop below it. 0 = root.
+    merkle_cap_log: u32 = 0,
+    /// log2 Merkle arity (1 = binary, today's Blake2s hasher; 2 = arity 4 needs
+    /// a new hasher and is not registered).
+    merkle_arity_log: u32 = 1,
+    /// Batched (deduplicated) decommitment: the verifier recomputes shared
+    /// nodes; the wire carries exactly the canonical sibling set.
+    multiproof: bool = false,
+    // The pruned last FRI layer is `log_last_layer` above (core already sends
+    // the last layer as 2^log_last_layer coefficients): stopping FRI 3 layers
+    // early drops those layers' sibling openings from every query.
 };
 pub const CANDIDATE_PROFILES = [_]CandidateProfile{ .d2_native_b4_q54_p20_fold4, .m3_outer_b4_q51_p26_fold4, .m3_outer_b8_q34_p26_fold4, .c1_b8_q36_p20_fold4, .c2_b16_q27_p20_fold3, .c2_b16_q27_p20_fold4 };
 pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
@@ -373,9 +398,11 @@ pub fn candidateSpec(profile: CandidateProfile) CandidateSpec {
         .d2_native_b4_q54_p20_fold4 => .{ .layer = .native, .log_blowup = 2, .queries = 54, .pow_bits = 20, .fold_step = 4, .domain = "rv64-om31-native-d2-b4-q54-p20-fold4/CANDIDATE-v1" },
         .m3_outer_b4_q51_p26_fold4 => .{ .layer = .outer, .log_blowup = 2, .queries = 51, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b4-q51-p26-fold4/lens-v1" },
         .m3_outer_b8_q34_p26_fold4 => .{ .layer = .outer, .log_blowup = 3, .queries = 34, .pow_bits = 26, .fold_step = 4, .domain = "stwo/circuit/native-om31/m3-b8-q34-p26-fold4/lens-v1" },
-        .c1_b8_q36_p20_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q36-p20-fold4/lens-v1" },
-        .c2_b16_q27_p20_fold3 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold3/lens-v1" },
-        .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1" },
+        // C1 runs on device in the request path: caps + multiproof only (cheap host
+        // framing); C2 is the shipped compact proof and takes every framing lever.
+        .c1_b8_q36_p20_fold4 => .{ .layer = .compress1, .log_blowup = 3, .queries = 36, .pow_bits = 20, .fold_step = 4, .domain = "stwo/circuit/native-om31/c1-b8-q36-p20-fold4/lens-v1", .merkle_cap_log = 4, .multiproof = true },
+        .c2_b16_q27_p20_fold3 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 3, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold3/lens-v1", .merkle_cap_log = 4, .multiproof = true },
+        .c2_b16_q27_p20_fold4 => .{ .layer = .compress2, .log_blowup = 4, .queries = 27, .pow_bits = 20, .fold_step = 4, .log_last_layer = 3, .domain = "stwo/circuit/native-om31/c2-b16-q27-p20-fold4/lens-v1", .merkle_cap_log = 4, .multiproof = true },
     };
 }
 pub fn candidateConfig(profile: CandidateProfile) core.pcs.PcsConfig {
@@ -401,7 +428,8 @@ pub fn baselineJohnsonBitsTimes2() u32 {
     const c = configFor(DEFAULT_PROFILE);
     return @as(u32, @intCast(c.fri_config.n_queries)) * c.fri_config.log_blowup_factor + 2 * c.pow_bits;
 }
-pub const CANDIDATE_ID_DOMAIN = "rv64-om31-m7-candidate-profile/v1\x00";
+/// v2 (M6): framing fields hashed. No v1 candidate identity was ever consumed.
+pub const CANDIDATE_ID_DOMAIN = "rv64-om31-m7-candidate-profile/v2\x00";
 /// Candidate identity: distinct domain, layer, every PCS parameter and the
 /// conjectured bits. Never equal to an admitted `profileIdentity`.
 pub fn candidateIdentity(profile: CandidateProfile) [32]u8 {
@@ -411,7 +439,7 @@ pub fn candidateIdentity(profile: CandidateProfile) [32]u8 {
     h.update(profile.name());
     h.update(s.domain);
     h.update(&Channel.profile.identity());
-    for ([_]u64{ @intFromEnum(s.layer), s.log_blowup, s.queries, s.pow_bits, s.fold_step, s.log_last_layer, candidateConjecturedBits(profile), TARGET_BITS }) |n| {
+    for ([_]u64{ @intFromEnum(s.layer), s.log_blowup, s.queries, s.pow_bits, s.fold_step, s.log_last_layer, candidateConjecturedBits(profile), TARGET_BITS, s.merkle_cap_log, s.merkle_arity_log, @intFromBool(s.multiproof) }) |n| {
         var bytes: [8]u8 = undefined;
         std.mem.writeInt(u64, &bytes, n, .little);
         h.update(&bytes);
@@ -537,6 +565,23 @@ pub const FormatVersion = enum {
     m7_outer_gkr_m3_b4_q51_p26_fold4_v1,
     /// blake-gadget: canonical circuits with the fused Blake2s component AIR.
     m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1,
+    // ---- M6 (stream profiles, M6-INTERFACES.md P1). OFF BY DEFAULT. ----
+    /// native-format: chi chain v2 on the strict roster (chain vkhash == the
+    /// T_nat leaf vkhash; fixes canon-native review A1), LOCAL_RELATIONS = 10.
+    m6_native_v2_b2_q108_p20_fold4,
+    /// native-format: v2 plus native LogUp-GKR v1 (only if it ships in M6).
+    m6_native_v2_gkr_b2_q108_p20_fold4,
+    /// fold-v3: in-circuit T_rec membership, NS interval chain, PCD self-VK on
+    /// the canonical r1 outer PCS (root-only acceptance without --audit).
+    m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1,
+    /// diet-wire: outer GKR + one-instance fused Blake2s + set-v2 + k-ary on r1.
+    m6_outer_diet_r1_b2_q108_p20_fold4_v1,
+    /// diet-wire on the recsize m3 outer PCS (only if q51 fits on the GPU).
+    m6_outer_diet_m3_b4_q51_p26_fold4_v1,
+    /// integrate: diet + fold v3 composed, r1.
+    m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1,
+    /// integrate: diet + fold v3 composed, m3.
+    m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1,
     pub fn name(self: FormatVersion) []const u8 {
         return @tagName(self);
     }
@@ -555,8 +600,28 @@ pub const FormatSpec = struct {
     /// (outer-gkr section domain, fused Blake2s AIR id, native chain version).
     /// Hashed into the identity, so a change of the component is a new version.
     component: []const u8 = "",
+    /// M6 composite versions: further component versions, in this order, hashed
+    /// (length-prefixed) after the base fields ONLY when non-empty, so every M5
+    /// identity is unchanged.
+    extra_components: []const []const u8 = &.{},
+    /// Uses the fused Blake2s gadget: must pass requireBlakeLookupMass over all
+    /// consumers of each XOR table.
+    fused_blake: bool = false,
+    /// Fold arity is a class constant in {2,3,4} (k-ary binding, binding sec. 4).
+    max_fold_arity: u32 = 2,
 };
-pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 };
+pub const FORMAT_VERSIONS = [_]FormatVersion{ .m5_native_chi_chain_v1_b2_q108_p20_fold4, .m5_outer_canonical_r1_b2_q108_p20_fold4_v1, .m5_outer_canonical_m3_b4_q51_p26_fold4_v1, .m7_outer_gkr_m3_b4_q51_p26_fold4_v1, .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1, .m6_native_v2_b2_q108_p20_fold4, .m6_native_v2_gkr_b2_q108_p20_fold4, .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_m3_b4_q51_p26_fold4_v1, .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1, .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 };
+/// M6 component version strings (M6-INTERFACES.md P1). A change of any one is
+/// a new FormatVersion; the owning stream posts the real string, profiles edits.
+pub const M6_NATIVE_V2_COMPONENT = "rv64-m6-native-chi-chain/v2";
+pub const M5_NATIVE_GKR_COMPONENT = "rv64-m5-native-gkr/v1";
+pub const OUTER_GKR_COMPONENT = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1";
+pub const FUSED_BLAKE_ONE_INSTANCE_COMPONENT = "fused_blake2s_v1/one-instance";
+pub const SET_V2_COMPONENT = "set-v2";
+pub const KARY_COMPONENT = "kary-v1";
+pub const FOLD_V3_COMPONENT = "rv64-m6-fold-v3/v1";
+const DIET_EXTRA = [_][]const u8{ FUSED_BLAKE_ONE_INSTANCE_COMPONENT, SET_V2_COMPONENT, KARY_COMPONENT };
+const DIET_FOLD_V3_EXTRA = DIET_EXTRA ++ [_][]const u8{FOLD_V3_COMPONENT};
 /// Local relations of the production raw-fraction roster (fractions.zig gained
 /// byte_pair in 63728c3f8). The M5 native version hashes this, not the stale 9.
 pub const M5_LOCAL_RELATIONS: u64 = 10;
@@ -568,7 +633,14 @@ pub fn formatSpec(version: FormatVersion) FormatSpec {
         .m5_outer_canonical_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-q108-p20-fold4/lens-v1" },
         .m5_outer_canonical_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "canon-vk", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m5-canonical-m3-b4-q51-p26-fold4/lens-v1" },
         .m7_outer_gkr_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "outer-gkr", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-outer-gkr-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = "stwo/rv64/outer-gkr/om31-strict-draw/lane-major/v1" },
-        .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "blake-gadget", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-fused-blake-m3-b4-q51-p26-fold4/lens-v1", .component = "fused_blake2s_v1" },
+        .m7_outer_fused_blake_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "blake-gadget", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m7-fused-blake-m3-b4-q51-p26-fold4/lens-v1", .component = "fused_blake2s_v1", .fused_blake = true },
+        .m6_native_v2_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-format", .pcs = R1_OUTER, .domain = "rv64-m6-native-chi-chain/v2/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT },
+        .m6_native_v2_gkr_b2_q108_p20_fold4 => .{ .layer = .native, .owner = "native-format", .pcs = R1_OUTER, .domain = "rv64-m6-native-chi-chain/v2+native-gkr/v1/conjectured128_b2_q108_p20_fold4\x00", .local_relations = M5_LOCAL_RELATIONS, .component = M6_NATIVE_V2_COMPONENT, .extra_components = &.{M5_NATIVE_GKR_COMPONENT} },
+        .m6_outer_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "fold-v3", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-fold-v3-q108-p20-fold4/lens-v1", .component = FOLD_V3_COMPONENT, .max_fold_arity = 4 },
+        .m6_outer_diet_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
+        .m6_outer_diet_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "diet-wire", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
+        .m6_outer_diet_fold_v3_r1_b2_q108_p20_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = R1_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-q108-p20-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
+        .m6_outer_diet_fold_v3_m3_b4_q51_p26_fold4_v1 => .{ .layer = .outer, .owner = "integrate", .pcs = M3_OUTER, .domain = "stwo/circuit/native-om31/m6-diet-fold-v3-m3-b4-q51-p26-fold4/lens-v1", .outer_gkr = true, .component = OUTER_GKR_COMPONENT, .extra_components = &DIET_FOLD_V3_EXTRA, .fused_blake = true, .max_fold_arity = 4 },
     };
 }
 pub fn formatConjecturedBits(version: FormatVersion) u32 {
@@ -595,6 +667,20 @@ pub fn formatIdentity(version: FormatVersion) [32]u8 {
         var bytes: [8]u8 = undefined;
         std.mem.writeInt(u64, &bytes, n, .little);
         h.update(&bytes);
+    }
+    // M6 composites only (empty list => byte-identical M5 identities).
+    if (s.extra_components.len != 0 or s.max_fold_arity != 2) {
+        h.update("rv64-om31-m6-format-ext/v1\x00");
+        for ([_]u64{ s.extra_components.len, @intFromBool(s.fused_blake), s.max_fold_arity }) |n| {
+            var bytes: [8]u8 = undefined;
+            std.mem.writeInt(u64, &bytes, n, .little);
+            h.update(&bytes);
+        }
+        for (s.extra_components) |c| {
+            std.mem.writeInt(u64, &len_bytes, c.len, .little);
+            h.update(&len_bytes);
+            h.update(c);
+        }
     }
     return h.finalResult();
 }
@@ -637,6 +723,15 @@ pub fn m5LeafIndexAdmits(k: u32, two_sided: bool) bool {
 /// multiplicity of a key is at most the total lookup count, which must stay < p.
 pub fn requireBlakeLookupMass(compressions: u64, lookups_per_compression: u64) !void {
     const total = std.math.mul(u64, compressions, lookups_per_compression) catch return error.Om31CandidateCharacteristicWrap;
+    if (total >= core.fields.m31.Modulus) return error.Om31CandidateCharacteristicWrap;
+}
+
+/// BG08 over every consumer of one lookup table (review: the fused gadget is not
+/// the only user of VerifyBitwiseXor_8): the per-proof integer sum of all
+/// consumers' lookup counts must stay < p.
+pub fn requireBlakeTableMass(consumer_lookups: []const u64) !void {
+    var total: u64 = 0;
+    for (consumer_lookups) |n| total = std.math.add(u64, total, n) catch return error.Om31CandidateCharacteristicWrap;
     if (total >= core.fields.m31.Modulus) return error.Om31CandidateCharacteristicWrap;
 }
 
