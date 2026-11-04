@@ -247,13 +247,35 @@ def recursive_snapshot(proof, leaf_count):
     return {"proof_sha256": hashes, "tree_sha256": B.sha(directory / "tree.json")}
 
 
+def planned_fold_count(leaves, arity):
+    """Fold count of ready_dag.Plan.initArity (streaming k-ary carry); k = 2 gives leaves - 1."""
+    if leaves < 1 or arity < 2 or arity > 4:
+        raise ValueError("invalid recursion plan")
+    folds, stack = 0, [0] * 9
+    for _ in range(leaves):
+        level = 0
+        while stack[level] + 1 == arity:
+            folds += 1
+            stack[level] = 0
+            level += 1
+        stack[level] += 1
+    carry = False
+    for n in stack:
+        m = n + int(carry)
+        if m >= 2:
+            folds += 1
+        carry = carry or m >= 1
+    return folds
+
+
 def check_recursive_report(report, leaf_count, restored=False):
-    if report.get("accepted") is not True or report.get("leaf_proofs") != leaf_count or report.get("fold_proofs") != leaf_count - 1:
+    folds = planned_fold_count(leaf_count, report.get("fold_arity", 2))
+    if report.get("accepted") is not True or report.get("leaf_proofs") != leaf_count or report.get("fold_proofs") != folds:
         raise ValueError("complete recursive acceptance missing")
-    expected_restored = (leaf_count, leaf_count - 1) if restored else (0, 0)
+    expected_restored = (leaf_count, folds) if restored else (0, 0)
     if (report.get("restored_leaves"), report.get("restored_folds")) != expected_restored:
         raise ValueError("recursive verification re-proved a missing proof" if restored else "resumed proofs cannot be a benchmark")
-    expected_new = (0, 0) if restored else (leaf_count, leaf_count - 1)
+    expected_new = (0, 0) if restored else (leaf_count, folds)
     if (report.get("gpu_new_leaf_proofs"), report.get("gpu_new_fold_proofs")) != expected_new:
         raise ValueError("recursive device proof counts disagree")
     if not restored and (report.get("outer_backend") != "cuda_trace_only" or report.get("assignment_source") != "gpu_original_circuit_dag"):

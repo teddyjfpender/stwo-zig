@@ -48,6 +48,9 @@ pub const Report = struct {
     total_ns: u64,
     root_proof_bytes: usize,
     portable_root_key_admission: bool = false,
+    /// Plan arity (r1: 2, m3: 4 unless STWO_RV64_FOLD_ARITY overrides).
+    /// Receivers derive the expected fold count from it and the leaf count.
+    fold_arity: usize = 2,
 };
 const Pending = struct {
     proof: *Outer.Wrapped,
@@ -705,9 +708,8 @@ fn runPreparedSequential(input: PreparedExecution, arity: usize) !Report {
 }
 fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions, pipeline: ?Pipe.Options, arity: usize) !Report {
     const a = input.allocator;
-    // The two-stage pipeline (M2a) schedules binary trees only; k-ary
-    // pipelining is M5/M7 work, so fail closed instead of mis-scheduling.
-    if (pipeline != null and arity != 2) return error.UnsupportedPipelinedFoldArity;
+    // The two-stage pipeline (M2a) schedules any plan arity (canon-vk M5):
+    // prep/finish/complete iterate the node's ordered kid list.
     const plan = try Dag.Plan.initArity(input.inventory.workers.len, arity);
     const budget = try @import("../../rv64_recursion_budget.zig").require(SharedBudget, a);
     const stack_bytes = 8 << 20;
@@ -731,6 +733,16 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions, pipel
     return finishPlanned(&shared, &plan, "cuda_trace_only", .{ .options = options, .budget = budget });
 }
 const SchedulerInfo = struct { options: ParallelOptions, budget: *SharedBudget };
+/// tree.json for every planned route. Binary trees keep schema 2 byte for
+/// byte; k-ary trees publish schema 3 with ordered child lists, the arity and
+/// the outer profile name.
+fn treeJson(a: std.mem.Allocator, plan: *const Dag.Plan, nodes: []const Node, frames: Root.Frames) ![]u8 {
+    if (plan.arity == 2) return std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = frames.cpus, .truth_frames = frames.truths }, .{ .whitespace = .indent_2 });
+    const wide = try a.alloc(WideNode, plan.count);
+    defer a.free(wide);
+    for (wide, nodes, plan.nodes[0..plan.count]) |*out, node, *spec| out.* = .{ .first_leaf = node.first_leaf, .leaf_count = node.leaf_count, .children = spec.kids(), .authority = node.authority, .digest = node.digest };
+    return std.json.Stringify.valueAlloc(a, .{ .schema = 3, .fold_arity = plan.arity, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.active().name(), .nodes = wide, .root = plan.root, .cpu_frames = frames.cpus, .truth_frames = frames.truths }, .{ .whitespace = .indent_2 });
+}
 /// Root admission and publication shared by the planned paths. Binary trees
 /// keep tree.json schema 2 byte for byte; k-ary trees publish schema 3 with
 /// ordered child lists.
@@ -750,20 +762,13 @@ fn finishPlanned(shared: *ParallelExecution, plan: *const Dag.Plan, backend: []c
     defer a.free(bytes);
     const Pub = @import("publication.zig");
     if (input.existing_only) try Pub.requireBytes(a, input.dir, "root.proof", bytes) else try Pub.write(input.dir, "root.proof", bytes);
-    const tree = if (plan.arity == 2)
-        try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = input.frames.cpus, .truth_frames = input.frames.truths }, .{ .whitespace = .indent_2 })
-    else blk: {
-        const wide = try a.alloc(WideNode, plan.count);
-        defer a.free(wide);
-        for (wide, nodes, plan.nodes[0..plan.count]) |*out, node, *spec| out.* = .{ .first_leaf = node.first_leaf, .leaf_count = node.leaf_count, .children = spec.kids(), .authority = node.authority, .digest = node.digest };
-        break :blk try std.json.Stringify.valueAlloc(a, .{ .schema = 3, .fold_arity = plan.arity, .outer_profile = @import("stwo_circuit_cpu_integration").om31.protocol.active().name(), .nodes = wide, .root = plan.root, .cpu_frames = input.frames.cpus, .truth_frames = input.frames.truths }, .{ .whitespace = .indent_2 });
-    };
+    const tree = try treeJson(a, plan, nodes, input.frames);
     defer a.free(tree);
     if (input.existing_only) try Pub.requireBytes(a, input.dir, "tree.json", tree) else try Pub.write(input.dir, "tree.json", tree);
     const n = input.inventory.workers.len;
     const folds = plan.count - n;
     const from_gpu = scheduler_info != null or input.factory != null;
-    const report = Report{ .outer_backend = backend, .assignment_source = if (input.existing_only) "none_receiver_trace_only" else if (std.mem.eql(u8, backend, "cuda_trace_only")) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (from_gpu) n - shared.restored_leaves else 0, .gpu_new_fold_proofs = if (from_gpu) folds - shared.restored_folds else 0, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.dispatch.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const report = Report{ .fold_arity = plan.arity, .outer_backend = backend, .assignment_source = if (input.existing_only) "none_receiver_trace_only" else if (std.mem.eql(u8, backend, "cuda_trace_only")) "gpu_original_circuit_dag" else "cpu_circuit_builder", .gpu_new_leaf_proofs = if (from_gpu) n - shared.restored_leaves else 0, .gpu_new_fold_proofs = if (from_gpu) folds - shared.restored_folds else 0, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.dispatch.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
     if (input.existing_only) return report;
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
@@ -942,8 +947,13 @@ const Pipelined = struct {
             };
             if (next) |id| {
                 const spec = self.plan.nodes[id];
-                var children: ?[2]Pending = null;
-                if (spec.left()) |left| children = .{ self.proofs[left].?, self.proofs[spec.right().?].? } else {
+                // k-ary (m3) and binary (r1) folds alike: ordered, adjacent kids.
+                var kid_buffer: [Dag.max_arity]Pending = undefined;
+                var children: ?[]const Pending = null;
+                if (!spec.isLeaf()) {
+                    for (spec.kids(), 0..) |kid, i| kid_buffer[i] = self.proofs[kid].?;
+                    children = kid_buffer[0..spec.arity];
+                } else {
                     self.leaves_ahead += 1;
                     self.peak_leaves_ahead = @max(self.peak_leaves_ahead, self.leaves_ahead);
                 }
@@ -983,17 +993,21 @@ const Pipelined = struct {
         self.changed.broadcast();
     }
     /// Returns true when the node needs the device stage.
-    fn prep(self: *Pipelined, job: *Pipe.Job, children: ?[2]Pending) !bool {
+    fn prep(self: *Pipelined, job: *Pipe.Job, children: ?[]const Pending) !bool {
         const in = self.input;
         const a = in.allocator;
         job.record.stamps.prep_start = self.now();
         var timer = try std.time.Timer.start();
         var name_buffer: [64]u8 = undefined;
-        const name = if (children) |pair| blk: {
-            const kids = [2]Bridge.Child{ child(pair[0]), child(pair[1]) };
-            job.digest = try Bridge.expectedDigest(&kids);
+        var kid_buffer: [Dag.max_arity]Bridge.Child = undefined;
+        const kids: []const Bridge.Child = if (children) |list| blk: {
+            for (list, 0..) |pending, i| kid_buffer[i] = child(pending);
+            break :blk kid_buffer[0..list.len];
+        } else &.{};
+        const name = if (children != null) blk: {
+            job.digest = try Bridge.expectedDigest(kids);
             const fold = try a.create(Bridge.Graph);
-            fold.* = Bridge.buildFoldTraceOnly(a, &kids) catch |err| {
+            fold.* = Bridge.buildFoldTraceOnly(a, kids) catch |err| {
                 a.destroy(fold);
                 return err;
             };
@@ -1024,7 +1038,7 @@ const Pipelined = struct {
         // Fold v2: the topology-only producer plan cache keys by geometry class.
         // class_hint is threadlocal and Prepared.init (via prepare_host) runs on
         // this prep thread, so set it here as the lane path does in prove().
-        if (children) |pair| Outer.Device.class_hint = try Bridge.classKey(&.{ child(pair[0]), child(pair[1]) });
+        if (children != null) Outer.Device.class_hint = try Bridge.classKey(kids);
         defer Outer.Device.class_hint = null;
         // Any lane's factory: host prep reads only immutable library symbols.
         job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
@@ -1123,11 +1137,11 @@ const Pipelined = struct {
         const r = job.record;
         const host_ns = (r.stamps.prep_end - r.stamps.prep_start) + (r.stamps.finish_end - r.stamps.finish_start);
         const device_ns = r.stamps.device_end - r.stamps.device_start;
-        if (spec.left()) |left| {
-            self.proofs[left].?.deinit(a);
-            self.proofs[spec.right().?].?.deinit(a);
-            self.proofs[left] = null;
-            self.proofs[spec.right().?] = null;
+        if (!spec.isLeaf()) {
+            for (spec.kids()) |kid| {
+                self.proofs[kid].?.deinit(a);
+                self.proofs[kid] = null;
+            }
             self.fold_ns += host_ns + device_ns;
             self.restored_folds += @intFromBool(r.restored);
         } else {
@@ -1225,11 +1239,12 @@ fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.O
     const bytes = try final.proof.serialize(a);
     defer a.free(bytes);
     try @import("publication.zig").write(input.dir, "root.proof", bytes);
-    const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = input.frames.cpus, .truth_frames = input.frames.truths }, .{ .whitespace = .indent_2 });
+    const tree = try treeJson(a, plan, nodes, input.frames);
     defer a.free(tree);
     try @import("publication.zig").write(input.dir, "tree.json", tree);
     const n = input.inventory.workers.len;
-    const report = Report{ .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = n - 1 - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = n - 1, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const folds = plan.count - n;
+    const report = Report{ .fold_arity = plan.arity, .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = folds - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = folds, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
     const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
     defer a.free(report_bytes);
     try @import("publication.zig").write(input.dir, "report.json", report_bytes);
