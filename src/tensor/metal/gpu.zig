@@ -487,12 +487,19 @@ pub const Gpu = struct {
         const K = wm.nRows();
         const N = wm.nCols();
         if (x.len != T * K or T * N >= (1 << 32) or T * K >= (1 << 32) or K * N >= (1 << 32)) return null;
-        // exactness bounds: fp32 matrix units for |x| <= 128, int32 chunk
-        // sums for |x| < 2^15, CPU otherwise
+        // exactness bounds: fp32 matrix units for x in [-128, 127] (the
+        // activations are packed to int8 by tm_pack_i8, so +128 would wrap to
+        // -128: KERN-2), int32 chunk sums for |x| < 2^15, CPU otherwise
         var max_abs: u32 = 0;
-        for (x) |v| max_abs = @max(max_abs, @abs(v));
+        var lo: i32 = 0;
+        var hi: i32 = 0;
+        for (x) |v| {
+            max_abs = @max(max_abs, @abs(v));
+            lo = @min(lo, v);
+            hi = @max(hi, v);
+        }
         if (max_abs >= (1 << 15)) return null;
-        const simd = max_abs <= 128 and !g.matmul_int_only;
+        const simd = lo >= -128 and hi <= 127 and !g.matmul_int_only;
         const out = try a.alloc(i64, T * N);
         errdefer a.free(out);
         const xb = try g.view(@constCast(std.mem.sliceAsBytes(x)), true);

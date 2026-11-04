@@ -604,3 +604,6 @@ test "metal decoder layer proof equals the CPU golden digest (ext einsums on the
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
     try std.testing.expectEqualStrings("e1f73d3d222a787247fb475e6866f8e74942fbbaba24aac2d41e832a37f6fac9", &hx);
 }
+test {
+    _ = @import("review_kern_metal_test.zig");
+}
