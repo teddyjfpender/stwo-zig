@@ -298,3 +298,4 @@ pub const rv64_om31_execution_wrap = @import("rv64_recursion/om31_native/executi
 
 /// Exact production allocator adapter, also used by ready-lane budget admission.
 pub const rv64_large_block_recycler = @import("rv64_large_block_recycler.zig");
+pub const rv64_recursion_budget = @import("rv64_recursion_budget.zig");

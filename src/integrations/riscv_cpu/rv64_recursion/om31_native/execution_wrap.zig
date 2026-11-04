@@ -182,7 +182,7 @@ pub fn verifyExisting(a: std.mem.Allocator, setups: []const *const R.CpuSetup, t
     try @import("publication.zig").requireExisting(dir, try Dag.Plan.init(setups.len + truths.len));
     return runImpl(a, setups, truths, bundle, expected, config, fixed, dir, true, null, null, true);
 }
-fn validateLanes(options: ParallelOptions) !void {
+pub fn validateLanes(options: ParallelOptions) !void {
     if (options.lanes.len == 0 or options.lanes.len > 4) return error.InvalidRecursionAdmission;
     var identities: [4]Dag.LaneIdentity = undefined;
     for (options.lanes, 0..) |lane, i| {
