@@ -91,6 +91,7 @@ pub fn mainAccel(a: std.mem.Allocator, args: [][:0]u8, acc: ?*const t.accel.Acce
 }
 
 pub fn main(a: std.mem.Allocator, args: [][:0]u8) !void {
+    if (std.posix.getenv("ZK_FUSE")) |v| t.zk_sumcheck.fuse_fold = !std.mem.eql(u8, v, "0");
     if (args.len >= 3 and std.mem.eql(u8, args[1], "product")) return runProduct(a, args);
     if (args.len >= 5 and std.mem.eql(u8, args[1], "mlp")) return runMlp(a, args);
     if (args.len >= 6 and std.mem.eql(u8, args[1], "layer")) return runLayer(a, args);

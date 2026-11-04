@@ -192,8 +192,12 @@ pub fn evalTermsRt(comptime terms: []const Term, comptime NF: usize, vals: [NF]Q
     return evalTerms(terms, NF, &vals);
 }
 
+/// One round's sums over x < min(half, active). With `fold`, the factors still
+/// hold the previous round's values (length 2 half, `prev_active` used) and are
+/// folded by `rp` on the fly, in place at x and x + half: one memory pass per
+/// round instead of a fold pass plus a sum pass, with the same (exact) values.
 fn Ctx(comptime NF: usize) type {
-    return struct { fac: [NF][]QM31, half: usize, active: usize, partial: [][MAX_DEG + 1]QM31, chunk: usize };
+    return struct { fac: [NF][]QM31, half: usize, active: usize, partial: [][MAX_DEG + 1]QM31, chunk: usize, fold: bool = false, rp: QM31 = QM31.zero(), prev_active: usize = 0 };
 }
 
 /// Default evaluator of the summand: the comptime term list.
@@ -208,12 +212,31 @@ pub fn TermsEval(comptime NF: usize, comptime terms: []const Term) type {
 fn roundKernel(comptime NF: usize, comptime Ev: type, comptime deg: usize) fn (*const Ctx(NF), usize, usize) void {
     return struct {
         fn run(c: *const Ctx(NF), s: usize, e: usize) void {
+            @setEvalBranchQuota(20000);
             var acc: [MAX_DEG + 1]QM31 = [_]QM31{QM31.zero()} ** (MAX_DEG + 1);
             var diff: [NF]QM31 = undefined;
             var cur: [NF]QM31 = undefined;
+            const len = 2 * c.half;
             for (s..e) |x| {
                 const has_hi = x + c.half < c.active;
-                inline for (0..NF) |j| {
+                if (c.fold) {
+                    inline for (0..NF) |j| {
+                        const v = c.fac[j];
+                        const l0 = v[x];
+                        const l1 = if (x + len < c.prev_active) v[x + len] else QM31.zero();
+                        const lo = l0.add(c.rp.mul(l1.sub(l0)));
+                        v[x] = lo;
+                        var hi = QM31.zero();
+                        if (has_hi) {
+                            const h0 = v[x + c.half];
+                            const h1 = if (x + c.half + len < c.prev_active) v[x + c.half + len] else QM31.zero();
+                            hi = h0.add(c.rp.mul(h1.sub(h0)));
+                            v[x + c.half] = hi;
+                        }
+                        diff[j] = hi.sub(lo);
+                        cur[j] = lo;
+                    }
+                } else inline for (0..NF) |j| {
                     const lo = c.fac[j][x];
                     const hi = if (has_hi) c.fac[j][x + c.half] else QM31.zero();
                     diff[j] = hi.sub(lo);
@@ -231,6 +254,12 @@ fn roundKernel(comptime NF: usize, comptime Ev: type, comptime deg: usize) fn (*
         }
     }.run;
 }
+
+/// Fuse each round's fold into the next round's sum pass (byte-identical either
+/// way). null = auto: on for single-threaded pools, where it measured ~15% faster
+/// on the toy batch; off for wide pools, where the in-place two-position writes
+/// measured ~13% slower on the MLP batch (12 threads).
+pub var fuse_fold: ?bool = null;
 
 fn FoldCtx(comptime NF: usize) type {
     return struct { fac: [NF][]QM31, half: usize, active: usize, r: QM31 };
@@ -354,6 +383,9 @@ fn proveWithDev(
     var dev_done = dev == null or !dev_ok;
     var pending_r: ?QM31 = null;
     errdefer if (sess) |ss| dev.?.sc_abort(dev.?.ctx, ss);
+    // CPU challenge not yet folded into the factors (fused into the next round's pass)
+    var cpu_r: ?QM31 = null;
+    var prev_active: usize = 0;
     for (0..n) |round| {
         const half = len / 2;
         const work = @min(half, active);
@@ -361,6 +393,14 @@ fn proveWithDev(
         var on_dev = false;
         if (!dev_done and dev_ok) {
             const A = dev.?;
+            if (sess == null and work >= A.sc_min_work) {
+                if (cpu_r) |r| {
+                    // the device starts from folded factors
+                    const fctx = FoldCtx(NF){ .fac = factors, .half = len, .active = prev_active, .r = r };
+                    pool.parallelFor(active, 4096, &fctx, comptime foldKernel(NF));
+                    cpu_r = null;
+                }
+            }
             if (sess == null and work >= A.sc_min_work) {
                 var fits = true;
                 inline for (factors) |fac| fits = fits and fac.len >= len;
@@ -395,7 +435,8 @@ fn proveWithDev(
             if (chunk < 2048) chunk = 2048;
             if (chunk > work) chunk = work;
             const n_chunks = (work + chunk - 1) / chunk;
-            const ctx = Ctx(NF){ .fac = factors, .half = half, .active = active, .partial = partial, .chunk = chunk };
+            const ctx = Ctx(NF){ .fac = factors, .half = half, .active = active, .partial = partial, .chunk = chunk, .fold = cpu_r != null, .rp = cpu_r orelse QM31.zero(), .prev_active = prev_active };
+            cpu_r = null;
             const run = comptime roundKernel(NF, Ev, deg);
             if (n_chunks <= 1) {
                 run(&ctx, 0, work);
@@ -427,12 +468,22 @@ fn proveWithDev(
         before = before.mul(r).add(hp.wEval(round, r));
         if (on_dev) {
             pending_r = r;
-        } else {
-            const fctx = FoldCtx(NF){ .fac = factors, .half = half, .active = active, .r = r };
-            pool.parallelFor(work, 4096, &fctx, comptime foldKernel(NF));
+        } else if (work > 0) {
+            if (fuse_fold orelse (pool.n_threads <= 1)) {
+                cpu_r = r;
+                prev_active = active;
+            } else {
+                const fctx = FoldCtx(NF){ .fac = factors, .half = half, .active = active, .r = r };
+                pool.parallelFor(work, 4096, &fctx, comptime foldKernel(NF));
+            }
         }
         len = half;
         active = work;
+    }
+    if (cpu_r) |r| {
+        const fctx = FoldCtx(NF){ .fac = factors, .half = len, .active = prev_active, .r = r };
+        pool.parallelFor(active, 4096, &fctx, comptime foldKernel(NF));
+        cpu_r = null;
     }
     if (sess) |ss| {
         // every remaining round ran on the device: apply the last fold and copy back

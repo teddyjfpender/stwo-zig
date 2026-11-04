@@ -4702,13 +4702,16 @@ test "zk pinned seeded hiding digests (product flat/rec, mlp virtual rec, decode
         .{ .cfg = layerCfgZk(), .case = 2, .hex = "b46709bff021a0660d8283524c1ac54b98a45bcf318349b98fafe4e63bac95f7" },
     };
     var bad = false;
-    for (cases, 0..) |c, i| {
+    // the fused and unfused fold schedules of the masked sumcheck give the same proofs
+    defer zks.fuse_fold = null;
+    for ([_]bool{ false, true }) |fuse| for (cases, 0..) |c, i| {
+        zks.fuse_fold = fuse;
         const d = try pinCase(a, &pool, c.cfg, c.case);
         const got = std.fmt.bytesToHex(d, .lower);
         if (!std.mem.eql(u8, &got, c.hex)) {
-            std.debug.print("zk pin {d}: {s}\n", .{ i, got });
+            std.debug.print("zk pin {d} (fuse {}): {s}\n", .{ i, fuse, got });
             bad = true;
         }
-    }
+    };
     try std.testing.expect(!bad);
 }
