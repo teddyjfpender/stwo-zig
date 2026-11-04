@@ -134,6 +134,31 @@ pub const Builder = struct {
     io_in: ?u32 = null,
     io_out: ?u32 = null,
     model_digest: ?[32]u8 = null,
+    /// witness ledger (ledger.zig, TENSOR_LEDGER): one label per witness
+    /// tensor, aligned with `infos`. Diagnostic only: never part of the
+    /// statement or the transcript.
+    labels: std.ArrayList(Label) = .empty,
+    /// current ledger scope (block: "attn", "rms1", "mlp", ...)
+    scope: []const u8 = "other",
+    /// one-shot name for the next added tensor (overrides its op kind)
+    next_name: ?[]const u8 = null,
+    /// current decoder layer (null outside the layers) and whether it is MoE
+    cur_layer: ?u32 = null,
+    cur_moe: bool = false,
+
+    pub const Label = struct { scope: []const u8, name: []const u8, sub: []const u8 = "", layer: ?u32 = null, moe: bool = false };
+
+    /// Sets the ledger scope; returns the previous one (restore with defer).
+    pub fn enter(self: *Builder, scope: []const u8) []const u8 {
+        const prev = self.scope;
+        self.scope = scope;
+        return prev;
+    }
+
+    /// Names the next added witness tensor in the ledger.
+    pub fn tag(self: *Builder, n: []const u8) void {
+        self.next_name = n;
+    }
 
     pub fn init(a: std.mem.Allocator, pool: *f.Pool) Builder {
         return .{ .a = a, .arena = std.heap.ArenaAllocator.init(a), .pool = pool };
@@ -150,6 +175,7 @@ pub const Builder = struct {
         self.xtables.deinit(a);
         self.tables.deinit(a);
         self.weight_infos.deinit(a);
+        self.labels.deinit(a);
         for (self.core_accs.items) |x| if (x) |v| a.free(v);
         self.core_accs.deinit(a);
         for (self.ext_accs.items) |x| if (x) |v| a.free(v);
@@ -242,6 +268,12 @@ pub const Builder = struct {
 
     /// Takes ownership of `data` (allocated with self.a).
     pub fn add(self: *Builder, info_in: TensorInfo, data: []i32) !u32 {
+        return self.addKind(info_in, data, "raw", "");
+    }
+
+    /// As `add`, with the ledger kind of the producing op (the label is the
+    /// current scope and the pending `name`, else `kind`).
+    pub fn addKind(self: *Builder, info_in: TensorInfo, data: []i32, kind: []const u8, sub: []const u8) !u32 {
         // Zig may pass `info_in` by reference, and callers pass elements of
         // `self.infos` (which ensureUnusedCapacity may reallocate). Copy the
         // bytes explicitly before growing the list; a plain `const info =
@@ -252,7 +284,10 @@ pub const Builder = struct {
         std.debug.assert(data.len == info.size());
         try self.infos.ensureUnusedCapacity(self.a, 1);
         try self.wit.ensureUnusedCapacity(self.a, 1);
+        try self.labels.ensureUnusedCapacity(self.a, 1);
         self.infos.appendAssumeCapacity(info);
+        self.labels.appendAssumeCapacity(.{ .scope = self.scope, .name = self.next_name orelse kind, .sub = sub, .layer = self.cur_layer, .moe = self.cur_moe });
+        if (sub.len == 0 or std.mem.eql(u8, sub, "hi")) self.next_name = null;
         try self.wit.append(self.a, data);
         return @intCast(self.wit.items.len - 1);
     }
@@ -296,7 +331,7 @@ pub const Builder = struct {
             }
             o.* = q;
         }
-        const id = try self.add(info, y);
+        const id = try self.addKind(info, y, "einsum.rq", "");
         e.y = id;
         e.shift = s;
         e.out_bits = out_bits;
@@ -321,8 +356,8 @@ pub const Builder = struct {
                 }
                 o.* = @intCast(v);
             }
-            id = try self.add(inf, y);
-        }
+            id = try self.addKind(inf, y, "einsum.exact", "");
+        } else self.next_name = null;
         e.y = id;
         try self.pushXop(.{ .einsum = e }, null);
         return id;
@@ -353,7 +388,10 @@ pub const Builder = struct {
     /// expr in [0, 2^bits) over {0,1}^n. Above 16 bits: committed 16-bit limbs
     /// lo, hi with expr == lo + 2^16 hi (lineq) and range keys on both.
     pub fn rangeWide(self: *Builder, n: u32, e: xt.Expr, bits: u32) !void {
-        if (bits <= 16) return self.key(n, e, null, .{ .range = @intCast(bits) });
+        if (bits <= 16) {
+            self.next_name = null;
+            return self.key(n, e, null, .{ .range = @intCast(bits) });
+        }
         std.debug.assert(bits <= 32);
         const v = try self.materialize(e, n);
         defer self.a.free(v);
@@ -368,8 +406,9 @@ pub const Builder = struct {
             l.* = @intCast(x & 0xffff);
             h.* = @intCast(x >> 16);
         }
-        const lo_id = try self.addVec(n, lo);
-        const hi_id = try self.addVec(n, hi);
+        if (self.next_name == null) self.next_name = "range.limb";
+        const lo_id = try self.addKind(TensorInfo.vec(n), lo, "range.limb", "lo");
+        const hi_id = try self.addKind(TensorInfo.vec(n), hi, "range.limb", "hi");
         try self.key(n, try self.expr(&.{term(1, Ref.w(lo_id), &.{ids(0, n)})}, 0), null, .{ .range = 16 });
         try self.key(n, try self.expr(&.{term(1, Ref.w(hi_id), &.{ids(0, n)})}, 0), null, .{ .range = @intCast(bits - 16) });
         const terms = try self.arena.allocator().alloc(xt.Term, e.terms.len + 2);
@@ -401,7 +440,7 @@ pub const Builder = struct {
             self.a.free(xs);
             return e;
         };
-        const id = try self.add(info, xs);
+        const id = try self.addKind(info, xs, "requant.out", "");
         try self.key(n, try self.expr(&.{ term(1, Ref.w(x), &.{ids(0, n)}), term(-(@as(i64, 1) << s), Ref.w(id), &.{ids(0, n)}) }, @as(i64, 1) << (s - 1)), null, .{ .range = s });
         try self.rangeSigned(id, bits);
         return id;
@@ -441,7 +480,7 @@ pub const Builder = struct {
             self.a.free(y);
             return e;
         };
-        const id = try self.add(TensorInfo.mat(xi.log_dims[0], ws.infos[w].log_dims[1]), y);
+        const id = try self.addKind(TensorInfo.mat(xi.log_dims[0], ws.infos[w].log_dims[1]), y, "matmul.out", "");
         acc_owned = false;
         try self.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s, .out_bits = out_bits } }, acc);
         return id;
@@ -456,7 +495,7 @@ pub const Builder = struct {
         const out = try self.a.alloc(i32, self.wit.items[x].len);
         for (self.wit.items[x], out) |v, *o| o.* = self.tables.items[table].values[@intCast(v + 128)];
         const info = self.infos.items[x]; // copy: add() may reallocate infos
-        const id = try self.add(info, out);
+        const id = try self.addKind(info, out, "lookup.out", "");
         try self.pushOp(.{ .lookup = .{ .in = x, .out = id, .table = table } }, null);
         return id;
     }
@@ -475,7 +514,7 @@ pub const Builder = struct {
             return e;
         };
         const info = self.infos.items[x]; // copy: add() may reallocate infos
-        const id = try self.add(info, out);
+        const id = try self.addKind(info, out, "hadamard.out", "");
         acc_owned = false;
         try self.pushOp(.{ .hadamard = .{ .a = x, .b = y, .y = id, .shift = s } }, acc);
         return id;
@@ -799,6 +838,8 @@ pub fn rmsParams(cfg: LayerCfg) RmsParams {
 pub const RmsOut = struct { y: u32, xs: u32, ss: u32, rt: u32, inv: u32, u: u32 };
 
 pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
+    const prev_scope = b.enter(if (std.mem.startsWith(u8, b.scope, "rms")) b.scope else "rms");
+    defer b.scope = prev_scope;
     const lt = c.cfg.log_t;
     const ld = c.cfg.log_d;
     const n = lt + ld;
@@ -808,6 +849,7 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
     // xs: signed A-bit view of x (A = 8: int8)
     var xs = x;
     if (x_int8) {
+        b.tag("xs.range");
         try b.rangeSigned(x, A);
     } else {
         var s0: u5 = 0;
@@ -815,10 +857,12 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
             while (rq(v, s0) < -lim or rq(v, s0) >= lim) s0 += 1;
         };
         s0 = try b.nextShift(s0);
+        b.tag("xs");
         if (s0 == 0) try b.rangeSigned(x, A) else xs = try b.requantLinearBits(x, s0, A);
     }
     const xr = Ref.w(xs);
     // ss[t] = sum_d xs^2
+    b.tag("ss");
     const ss = (try b.einsumExact(TensorInfo.vec(lt), lt, xr, xr, ld, &.{ids(0, n)}, &.{ids(0, n)})).?;
     // rt = max{r >= 0 : r^2 2^s1 <= (ss + c) 2^m1}
     const s1 = rp.s1;
@@ -830,34 +874,43 @@ pub fn rmsnorm(b: *Builder, c: Ctx, x: u32, gamma: u32, x_int8: bool) !RmsOut {
         const N: u64 = @intCast((@as(i64, v) + ceps) << m1);
         o.* = @intCast(std.math.sqrt(N >> s1));
     }
+    b.tag("rt");
     const rt_id = try b.addVec(lt, rt);
     const nmax: u64 = @intCast(((@as(i64, 1) << @intCast(ld + 2 * (@as(u32, A) - 1))) + ceps) << m1);
     const rtmax = std.math.sqrt(nmax >> s1);
     // rt in [0, 2^rt_bits) with 2^s1 * rt^2 < 2^30: rt2 = rt * rt cannot wrap mod p
     const rt_bits: u32 = std.math.log2_int_ceil(u64, rtmax + 1);
     if (2 * rt_bits + s1 > 30) return error.BadConfig;
+    b.tag("rt.range");
     try b.rangeWide(lt, try b.expr(&.{term(1, Ref.w(rt_id), &.{ids(0, lt)})}, 0), rt_bits);
+    b.tag("rt2");
     const rt2 = (try b.einsumExact(TensorInfo.vec(lt), lt, Ref.w(rt_id), Ref.w(rt_id), 0, &.{ids(0, lt)}, &.{ids(0, lt)})).?;
     const gap_bits: u32 = s1 + std.math.log2_int_ceil(u64, 2 * rtmax + 2);
     const tl = ids(0, lt);
     const p_m1 = @as(i64, 1) << m1;
     const p_s1 = @as(i64, 1) << s1;
     // lower: (ss + c) 2^m1 - 2^s1 rt2 >= 0
+    b.tag("isqrt.slack_lo");
     try b.rangeWide(lt, try b.expr(&.{ term(p_m1, Ref.w(ss), &.{tl}), term(-p_s1, Ref.w(rt2), &.{tl}) }, ceps * p_m1), gap_bits);
     // upper: 2^s1 (rt2 + 2 rt + 1) - 1 - (ss + c) 2^m1 >= 0
+    b.tag("isqrt.slack_hi");
     try b.rangeWide(lt, try b.expr(&.{ term(p_s1, Ref.w(rt2), &.{tl}), term(2 * p_s1, Ref.w(rt_id), &.{tl}), term(-p_m1, Ref.w(ss), &.{tl}) }, p_s1 - 1 - ceps * p_m1), gap_bits);
     // inv = floor(2^K / rt)
     const K = rp.k;
     const inv = try b.a.alloc(i32, T);
     for (rt, inv) |r, *o| o.* = @divFloor(@as(i32, 1) << K, r);
+    b.tag("inv");
     const inv_id = try b.addVec(lt, inv);
     try b.rangeWide(lt, try b.expr(&.{term(1, Ref.w(inv_id), &.{tl})}, 0), 16);
+    b.tag("inv_rt");
     const pr = (try b.einsumExact(TensorInfo.vec(lt), lt, Ref.w(inv_id), Ref.w(rt_id), 0, &.{tl}, &.{tl})).?;
     // 2^K - pr in [0, rt): 2^K - pr >= 0 and rt - 1 - 2^K + pr >= 0
     try b.rangeWide(lt, try b.expr(&.{term(-1, Ref.w(pr), &.{tl})}, @as(i64, 1) << K), 16);
     try b.rangeWide(lt, try b.expr(&.{ term(1, Ref.w(rt_id), &.{tl}), term(1, Ref.w(pr), &.{tl}) }, -1 - (@as(i64, 1) << K)), 16);
     // u = requant_us(xs * inv) (16-bit), y = requant(u * gamma) (A-bit)
+    b.tag("u");
     const u = try b.einsumRequant(TensorInfo.mat(lt, ld), xr, Ref.w(inv_id), 0, &.{ids(0, n)}, &.{tl}, rp.us, 16);
+    b.tag("y");
     const y = try b.einsumRequant(TensorInfo.mat(lt, ld), Ref.w(u), Ref.p(gamma), 0, &.{ids(0, n)}, &.{ids(lt, ld)}, null, A);
     return .{ .y = y, .xs = xs, .ss = ss, .rt = rt_id, .inv = inv_id, .u = u };
 }
@@ -869,6 +922,9 @@ pub fn rope(b: *Builder, c: Ctx, x: u32, log_heads: u32, colfix: []const u8) !u3
     const ldh = c.cfg.logDh();
     const n_out = lt + log_heads + ldh;
     const i_vars = ids(lt + log_heads, ldh - 1);
+    const prev_scope = b.enter("rope");
+    defer b.scope = prev_scope;
+    b.tag(if (log_heads == c.cfg.log_heads) "q_rot" else "k_rot");
     return b.einsumRequant(
         TensorInfo.mat(lt, log_heads + ldh),
         Ref.w(x),
@@ -893,6 +949,9 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     const ldh = cfg.logDh();
     const n3 = lh + 2 * lt; // (h, t, j)
     const n2 = lh + lt; // (h, t)
+    const prev_scope = b.enter("attn");
+    defer b.scope = prev_scope;
+    b.tag("scores");
     // scores S[hk, g, t, j] = requant(sum_e Qr[t, hk, g, e] Kr[j, hk, e])
     const S = try b.einsumRequant(
         TensorInfo.vec(n3),
@@ -926,7 +985,9 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
         m[row] = best;
         sel[row * T + arg] = 1;
     }
+    b.tag("m");
     const m_id = try b.addVec(n2, m);
+    b.tag("sel");
     const sel_id = try b.addVec(n3, sel);
     const dd = try b.a.alloc(i32, H * T * T);
     for (dd, 0..) |*o, i| {
@@ -935,6 +996,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
         const j = i % T;
         o.* = m[row] - sv[i] - bias[t * T + j];
     }
+    b.tag("d");
     const dd_id = try b.addVec(n3, dd);
     const all3 = ids(0, n3);
     // D - m + S + Bias = 0
@@ -953,6 +1015,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     const et = b.xtables.items[c.exp_table].values;
     const e = try b.a.alloc(i32, H * T * T);
     for (dd, e) |d, *o| o.* = et[@intCast(d)];
+    b.tag("e");
     const e_id = try b.addVec(n3, e);
     try b.key(n3, try b.expr(&.{term(1, Ref.w(dd_id), &.{all3})}, 0), try b.expr(&.{term(1, Ref.w(e_id), &.{all3})}, 0), .{ .lookup = c.exp_table });
     // den = sum_j e
@@ -962,6 +1025,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
         for (e[row * T ..][0..T]) |x| s += x;
         o.* = s;
     }
+    b.tag("den");
     const den_id = try b.addVec(n2, den);
     try b.lineq(n2, try b.expr(&.{ term(1, Ref.w(den_id), &.{ids(0, n2)}), term(-1, Ref.w(e_id), &.{ ids(0, n2), sums(lt) }) }, 0));
     // Softmax-weighted values without a reciprocal (EXT-1 / EXT-3, the
@@ -973,6 +1037,7 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
     // this from the statement alone), and the row is normalised up to one
     // rounding per output (no per-probability quantisation).
     const n_o = lt + lh + ldh;
+    b.tag("acc");
     const acc_id = (try b.einsumExact(
         TensorInfo.mat(lt, lh + ldh),
         n_o,
@@ -992,13 +1057,18 @@ pub fn attention(b: *Builder, c: Ctx, qr: u32, kr: u32, v: u32, vfix: []const u8
         const dn: i64 = den[h * T + t];
         o.* = @intCast(@divFloor(2 * @as(i64, x) + dn, 2 * dn));
     }
+    b.tag("o");
     const O = try b.add(TensorInfo.mat(lt, lh + ldh), ov);
+    b.tag("o.range");
     try b.rangeSigned(O, cfg.actBits());
     const all_o = ids(0, n_o);
     const den_lab = cat(&.{ ids(lt, lh), ids(0, lt) });
+    b.tag("od");
     const od = (try b.einsumExact(TensorInfo.mat(lt, lh + ldh), n_o, Ref.w(O), Ref.w(den_id), 0, &.{all_o}, &.{den_lab[0..n2]})).?;
     // 2 acc + den - 2 od in [0, 2 den): lower and upper slack, lt + 9 bits each
+    b.tag("div.slack_lo");
     try b.rangeWide(n_o, try b.expr(&.{ term(2, Ref.w(acc_id), &.{all_o}), term(1, Ref.w(den_id), &.{den_lab[0..n2]}), term(-2, Ref.w(od), &.{all_o}) }, 0), lt + 9);
+    b.tag("div.slack_hi");
     try b.rangeWide(n_o, try b.expr(&.{ term(1, Ref.w(den_id), &.{den_lab[0..n2]}), term(-2, Ref.w(acc_id), &.{all_o}), term(2, Ref.w(od), &.{all_o}) }, -1), lt + 9);
     return .{ .o = O, .scores = S, .acc = acc_id, .od = od, .m = m_id, .sel = sel_id, .d = dd_id, .e = e_id, .den = den_id };
 }
@@ -1009,6 +1079,7 @@ pub fn residual(b: *Builder, x: u32, y: u32) !u32 {
     const n = info.logSize();
     const z = try b.a.alloc(i32, info.size());
     for (z, b.wit.items[x], b.wit.items[y]) |*o, p, q| o.* = p + q;
+    b.tag("residual");
     const id = try b.add(info, z);
     try b.lineq(n, try b.expr(&.{ term(1, Ref.w(id), &.{ids(0, n)}), term(-1, Ref.w(x), &.{ids(0, n)}), term(-1, Ref.w(y), &.{ids(0, n)}) }, 0));
     return id;
@@ -1021,6 +1092,8 @@ pub const MoeOut = struct { out: u32, logits: u32, sel: u32, dr: u32, pre: u32, 
 /// runs its SwiGLU MLP on its 2^log_capacity slots only, outputs combined.
 pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
     const r = try moeRoute(b, c, wb, y);
+    const prev_scope = b.enter("moe.expert");
+    defer b.scope = prev_scope;
     const cfg = c.cfg;
     const lt = cfg.log_t;
     const ld = cfg.log_d;
@@ -1034,24 +1107,32 @@ pub fn moe(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeOut {
     const mo_all = try b.a.alloc(i32, E * C * D);
     var mo_ids: [64]u32 = undefined;
     for (0..E) |x| {
+        b.tag("xe.gather");
         const xe = (try b.einsumExact(TensorInfo.mat(lc, ld), lc + ld, Ref.w(disp_id), Ref.w(y), lt, &.{ fixesOf(x, le), ids(0, lc), ids(lc + ld, lt) }, &.{ ids(lc + ld, lt), ids(lc, ld) })).?;
         const we = wb + cfg.wExpert(@intCast(x));
+        b.tag("gate");
         const g = try b.matmul(c.ws, xe, we);
+        b.tag("up");
         const u = try b.matmul(c.ws, xe, we + 1);
+        b.tag("silu");
         const act = try b.lookup(g, c.silu);
+        b.tag("glu");
         const hm = try b.hadamard(act, u);
+        b.tag("down");
         const mo = try b.matmul(c.ws, hm, we + 2);
         @memcpy(mo_all[x * C * D ..][0 .. C * D], b.wit.items[mo]);
         mo_ids[x] = mo;
     }
     // stack MO[x, c, d] = mo_x[c, d]
     const nmo = le + lc + ld;
+    b.tag("mo.stack");
     const mo_st = try b.addVec(nmo, mo_all);
     for (0..E) |x| {
         try b.lineq(lc + ld, try b.expr(&.{ term(1, Ref.w(mo_st), &.{ fixesOf(x, le), ids(0, lc + ld) }), term(-1, Ref.w(mo_ids[x]), &.{ids(0, lc + ld)}) }, 0));
     }
     // combine out[t, d] = sum_{x, c} Disp[x, c, t] MO[x, c, d]
     const n_out = lt + ld;
+    b.tag("combine");
     const out = (try b.einsumExact(TensorInfo.mat(lt, ld), n_out, Ref.w(disp_id), Ref.w(mo_st), le + lc, &.{ ids(n_out, le + lc), ids(0, lt) }, &.{ ids(n_out, le + lc), ids(lt, ld) })).?;
     return .{ .out = out, .logits = r.logits, .sel = r.sel, .dr = r.dr, .pre = r.pre, .disp = disp_id, .occ = r.occ, .mo = mo_st, .slot_of = r.slot_of, .expert_of = r.expert_of };
 }
@@ -1071,6 +1152,9 @@ pub fn moeRoute(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeRoute {
     const C = @as(usize, 1) << @intCast(lc);
     const Ncol = @as(usize, 1) << @intCast(lrc);
     const ar = b.arena.allocator();
+    const prev_scope = b.enter("moe.route");
+    defer b.scope = prev_scope;
+    b.tag("logits");
     const logits = try b.matmul(c.ws, y, wb + cfg.wRouter());
     const lg = b.wit.items[logits];
     // routing (first argmax; test hook: last)
@@ -1093,12 +1177,15 @@ pub fn moeRoute(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeRoute {
         sel[t * E + arg] = 1;
         expert_of[t] = arg;
     }
+    b.tag("m");
     const m_id = try b.addVec(lt, m);
+    b.tag("sel");
     const sel_id = try b.addVec(nr, sel);
     const dr = try b.a.alloc(i32, T * E);
     for (0..T) |t| for (0..E) |x| {
         dr[t * E + x] = m[t] - lg[t * Ncol + x];
     };
+    b.tag("dr");
     const dr_id = try b.addVec(nr, dr);
     const tv = ids(0, lt);
     const xv = ids(lt, le);
@@ -1110,6 +1197,7 @@ pub fn moeRoute(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeRoute {
     try b.lineq(lt, try b.expr(&.{term(1, Ref.w(sel_id), &.{ tv, sums(le) })}, -1));
     _ = try b.einsumExact(null, lt, Ref.w(sel_id), Ref.w(dr_id), le, &.{ tv, ids(lt, le) }, &.{ tv, ids(lt, le) });
     // first argmax: pre[t, x] = sum_{x' > x} sel[t, x'];  Dr - pre >= 0
+    b.tag("pre");
     const pre = (try b.einsumExact(TensorInfo.vec(nr), nr, Ref.w(sel_id), Ref.p(c.tri), le, &.{ tv, ids(nr, le) }, &.{ ids(nr, le), xv })).?;
     try b.key(nr, try b.expr(&.{ term(1, Ref.w(dr_id), &.{ tv, xv }), term(-1, Ref.w(pre), &.{ tv, xv }) }, 0), null, .{ .range = 8 });
     // dispatch Disp[x, c, t]
@@ -1134,6 +1222,7 @@ pub fn moeRoute(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeRoute {
         disp[(x * C + fill[x]) * T + t] = 1;
         fill[x] += 1;
     }
+    b.tag("disp");
     const disp_id = try b.addVec(nd, disp);
     try b.einsumInto(disp_id, Ref.w(disp_id), Ref.w(disp_id), 0, &.{ids(0, nd)}, &.{ids(0, nd)});
     // sum_c Disp[x, c, t] = sel[t, x]   (vars: x, t)
@@ -1144,6 +1233,7 @@ pub fn moeRoute(b: *Builder, c: Ctx, wb: u32, y: u32) !MoeRoute {
     for (0..E) |x| for (0..fill[x]) |cc| {
         occ[x * C + cc] = 1;
     };
+    b.tag("occ");
     const occ_id = try b.addVec(le + lc, occ);
     try b.lineq(le + lc, try b.expr(&.{ term(1, Ref.w(occ_id), &.{ids(0, le + lc)}), term(-1, Ref.w(disp_id), &.{ ids(0, le + lc), sums(lt) }) }, 0));
     try b.einsumInto(occ_id, Ref.w(occ_id), Ref.w(occ_id), 0, &.{ids(0, le + lc)}, &.{ids(0, le + lc)});
@@ -1196,6 +1286,8 @@ pub fn decoderLayerAt(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: 
     const q = ab.q;
     const qr = ab.qr;
     const cfg = c.cfg;
+    const prev_scope = b.enter("residual");
+    defer b.scope = prev_scope;
     if (cfg.isMoe()) {
         const mo = try moe(b, c, wb, r2.y);
         return .{ .out = try residual(b, h, mo.out), .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr, .moe = mo };
@@ -1211,15 +1303,24 @@ pub fn decoderLayerAt(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: 
 /// (A-bit, symmetric data-chosen shift) and an R-bit down projection.
 pub fn denseMlp(b: *Builder, c: Ctx, wb: u32, y: u32) !u32 {
     const cfg = c.cfg;
+    const prev_scope = b.enter("mlp");
+    defer b.scope = prev_scope;
     if (cfg.act_bits == 8) {
+        b.tag("gate");
         const g = try b.matmul(c.ws, y, wb + cfg.wGate());
+        b.tag("up");
         const u = try b.matmul(c.ws, y, wb + cfg.wUp());
+        b.tag("silu");
         const act = try b.lookup(g, c.silu);
+        b.tag("glu");
         const hm = try b.hadamard(act, u);
+        b.tag("down");
         return b.matmulBits(c.ws, hm, wb + cfg.wDown(), null, cfg.residBits());
     }
     const A = cfg.actBits();
+    b.tag("gate");
     const g = try b.matmulBits(c.ws, y, wb + cfg.wGate(), null, A);
+    b.tag("up");
     const u = try b.matmulBits(c.ws, y, wb + cfg.wUp(), null, A);
     const n = b.infos.items[g].logSize();
     const half = @as(i64, 1) << (A - 1);
@@ -1227,6 +1328,7 @@ pub fn denseMlp(b: *Builder, c: Ctx, wb: u32, y: u32) !u32 {
     const av = try b.a.alloc(i32, b.wit.items[g].len);
     for (b.wit.items[g], av) |v, *o| o.* = tab[@intCast(v + half)];
     const info = b.infos.items[g];
+    b.tag("silu");
     const act = try b.add(info, av);
     try b.key(n, try b.expr(&.{term(1, Ref.w(g), &.{ids(0, n)})}, half), try b.expr(&.{term(1, Ref.w(act), &.{ids(0, n)})}, 0), .{ .lookup = c.silu_x.? });
     // hadamard shift: chooseShiftSym(act * u, A) in record mode (the plan's
@@ -1239,7 +1341,9 @@ pub fn denseMlp(b: *Builder, c: Ctx, wb: u32, y: u32) !u32 {
         sh = chooseShiftSym(acc, A);
     }
     sh = try b.nextShift(sh);
+    b.tag("glu");
     const hm = try b.einsumRequant(info, Ref.w(act), Ref.w(u), 0, &.{ids(0, n)}, &.{ids(0, n)}, sh, A);
+    b.tag("down");
     return b.matmulBits(c.ws, hm, wb + cfg.wDown(), null, cfg.residBits());
 }
 
@@ -1249,7 +1353,10 @@ pub const AttnBlockOut = struct { h: u32, attn: AttnOut, rms1: RmsOut, rms2: Rms
 /// input RMSNorm(h) (rms2.y). Weights wb + wQ.. wb + wO.
 pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool) !AttnBlockOut {
     const cfg = c.cfg;
+    const prev_scope = b.enter("rms1");
+    defer b.scope = prev_scope;
     const r1 = try rmsnorm(b, c, x, c.gammas[2 * layer], x_int8);
+    b.scope = "attn.proj";
     const y1 = r1.y;
     var q: u32 = undefined;
     var k: u32 = undefined;
@@ -1262,6 +1369,7 @@ pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool)
     var vfix: []const u8 = &.{};
     if (cfg.fused_qkv) {
         // columns: Q [0, D), K [D, D + Dkv), V [D + Dkv, D + 2 Dkv)
+        b.tag("qkv");
         const qkv = try b.matmulBits(c.ws, y1, wb + cfg.wQ(), null, cfg.actBits());
         const D = @as(usize, 1) << @intCast(cfg.log_d);
         const Dkv = @as(usize, 1) << @intCast(cfg.logDkv());
@@ -1273,15 +1381,21 @@ pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool)
         k = qkv;
         v = qkv;
     } else {
+        b.tag("q");
         q = try b.matmulBits(c.ws, y1, wb + cfg.wQ(), null, cfg.actBits());
+        b.tag("k");
         k = try b.matmulBits(c.ws, y1, wb + cfg.wK(), null, cfg.actBits());
+        b.tag("v");
         v = try b.matmulBits(c.ws, y1, wb + cfg.wV(), null, cfg.actBits());
     }
     const qr = try rope(b, c, q, cfg.log_heads, qfix);
     const kr = try rope(b, c, k, cfg.log_kv_heads, kfix);
     const at = try attention(b, c, qr, kr, v, vfix);
+    b.tag("wo");
     const ao = try b.matmulBits(c.ws, at.o, wb + cfg.wO(), null, cfg.residBits());
+    b.scope = "residual";
     const h = try residual(b, x, ao);
+    b.scope = "rms2";
     const r2 = try rmsnorm(b, c, h, c.gammas[2 * layer + 1], false);
     return .{ .h = h, .attn = at, .rms1 = r1, .rms2 = r2, .q = q, .qr = qr };
 }
@@ -1291,11 +1405,17 @@ pub fn attnBlock(b: *Builder, c: Ctx, layer: u32, wb: u32, x: u32, x_int8: bool)
 /// b.io_in / b.io_out, lineqs witness == public.
 pub fn buildStack(b: *Builder, c: Ctx, x_in: []const i32) !LayerOut {
     const n_in = c.cfg.log_t + c.cfg.log_d;
+    const prev_scope = b.enter("input");
+    b.tag("x");
     var x = try b.add(TensorInfo.mat(c.cfg.log_t, c.cfg.log_d), try b.a.dupe(i32, x_in));
+    b.scope = prev_scope;
     b.io_in = try b.public(n_in, x_in);
     try b.lineq(n_in, try b.expr(&.{ term(1, Ref.w(x), &.{ids(0, n_in)}), term(-1, Ref.p(b.io_in.?), &.{ids(0, n_in)}) }, 0));
     var o: LayerOut = undefined;
     for (0..c.cfg.n_layers) |l| {
+        b.cur_layer = @intCast(l);
+        b.cur_moe = c.cfg.isMoe();
+        defer b.cur_layer = null;
         o = try decoderLayer(b, c, @intCast(l), x, l == 0);
         x = o.out;
     }

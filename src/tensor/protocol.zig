@@ -38,6 +38,7 @@ const prep = @import("prep.zig");
 const accel = @import("accel.zig");
 const Transcript = @import("transcript.zig").Transcript;
 pub const xt = @import("ext.zig");
+const ledger = @import("ledger.zig");
 
 const M31 = f.M31;
 const QM31 = f.QM31;
@@ -442,31 +443,31 @@ pub fn checkKeyLayout(a: std.mem.Allocator, infos: []const TensorInfo, key: Weig
 // ---------------------------------------------------------------------------
 // Relations derived from the statement (shared by prover and verifier).
 
-const KeyKind = enum { remainder, y_range, lookup_pair, plain_range, glu_triple, ext };
+pub const KeyKind = enum { remainder, y_range, lookup_pair, plain_range, glu_triple, ext };
 
-const KeyInst = struct {
+pub const KeyInst = struct {
     kind: KeyKind,
     op: usize, // for .ext: index into Relations.ext_keys
     log_size: u32,
     table: usize, // index into `tables` list below
 };
 
-const TableKind = union(enum) { range: u5, act: u32, glu: struct { table: u32, shift: u5 }, ext_lookup: u32 };
+pub const TableKind = union(enum) { range: u5, act: u32, glu: struct { table: u32, shift: u5 }, ext_lookup: u32 };
 
-const RelTable = struct {
+pub const RelTable = struct {
     kind: TableKind,
     log_size: u32,
     mult_tensor: usize, // index of multiplicity tensor in the extended witness list
 };
 
-const Relations = struct {
+pub const Relations = struct {
     keys: []KeyInst,
     tables: []RelTable,
     ext_keys: []xt.Key = &.{},
     /// index of the first ext key in `keys`
     ext_base: usize = 0,
 
-    fn deinit(self: *Relations, a: std.mem.Allocator) void {
+    pub fn deinit(self: *Relations, a: std.mem.Allocator) void {
         a.free(self.keys);
         a.free(self.tables);
         a.free(self.ext_keys);
@@ -530,7 +531,7 @@ pub fn gluValue(st: Statement, table: u32, shift: u5, vg: i64, vu: i64) i64 {
     return std.math.clamp(q, -128, 127);
 }
 
-fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
+pub fn deriveRelations(a: std.mem.Allocator, st: Statement) !Relations {
     var keys: std.ArrayList(KeyInst) = .empty;
     var tabs: std.ArrayList(RelTable) = .empty;
     const nw = st.witness.len;
@@ -1419,6 +1420,34 @@ pub fn openWeightFull(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, tr: *Tra
     return .{ .flat = try pcs.open(i8, a, pool, tr, wcfg.pcs, &ws.com, ws.tableMatrix(), gs, cfg.weight_proximity) };
 }
 
+/// Witness ledger without proving (ledger.zig; TENSOR_LEDGER=noprove): the
+/// committed tensors of `proveCore` (witness, multiplicities) and the
+/// witness-table layout, computed by the same steps, with no commitment and
+/// no transcript. For shapes whose full proof exceeds the host's memory.
+pub fn witnessLedger(a: std.mem.Allocator, pool: *f.Pool, cfg: Config, st: Statement, witness: []const []const i32, acc: []const ?[]i64, ext_acc: ?[]const ?[]const i64, lg: *ledger.Ledger) !void {
+    var rel = try deriveRelations(a, st);
+    defer rel.deinit(a);
+    try checkLogUpCounts(rel);
+    var eps = try xt.proverInitWith(a, pool, st, witness, ext_acc);
+    defer eps.deinit(a);
+    const mults = try multiplicities(a, pool, st, rel, witness, acc, &eps);
+    defer {
+        for (mults) |m| a.free(m);
+        a.free(mults);
+    }
+    const ext = try extendedInfos(a, st, rel);
+    defer a.free(ext);
+    const all = try a.alloc([]const i32, ext.len);
+    defer a.free(all);
+    for (witness, 0..) |w, i| all[i] = w;
+    for (mults, 0..) |m, i| all[witness.len + i] = m;
+    const lay = try layout(a, ext, &.{});
+    defer a.free(lay.offsets);
+    const split = witnessSplit(cfg, lay.log_total, lay.used);
+    const w_ru = (lay.used + (@as(usize, 1) << @intCast(split.lc)) - 1) >> @intCast(split.lc);
+    try lg.capture(st, rel, all, .{ .log_total = lay.log_total, .used = lay.used, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru }, 0);
+}
+
 /// The per-batch (or per-request) part of the prover: witness commitment
 /// (with its OOD sample under pcs2+ood), LogUp-GKR, op sumchecks, claim
 /// batching and the witness opening, on the caller's transcript `tr_io`
@@ -1826,6 +1855,9 @@ pub fn proveCore(
     else
         .{ .flat = try pcs.open(i32, a, pool, &tr, cfg.pcs, &wcom, wm, wgroups, true) };
     timings.witness_open_ns = nowNs(t0);
+    // witness ledger (diagnostic, TENSOR_LEDGER): reads the committed
+    // tensors after the proof is complete; never touches the transcript
+    if (ledger.sink) |lg| try lg.capture(st, rel, all, .{ .log_total = lay.log_total, .used = lay.used, .log_rows = split.lr, .log_cols = split.lc, .rows_used = w_ru }, wopen.byteSize());
 
     tr_io.* = tr;
     weight_claims_out.* = weight_claims;

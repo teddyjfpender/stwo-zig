@@ -29,6 +29,7 @@ pub const lm = @import("lm.zig");
 pub const wire = @import("wire.zig");
 pub const wire_test = @import("wire_test.zig");
 pub const canonical = @import("canonical.zig");
+pub const ledger = @import("ledger.zig");
 
 test {
     // -Dchallenge=om31: the degree-8 build runs its own suite (most suites
@@ -90,6 +91,7 @@ test {
     _ = security;
     _ = serve;
     _ = lm;
+    _ = ledger;
     _ = wire;
     _ = wire_test;
     _ = canonical;

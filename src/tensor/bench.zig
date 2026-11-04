@@ -531,7 +531,10 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     // fused QKV: every matmul output is >= D wide, so the weight table can
     // use 2^min(ld, lf) columns; unfused GQA caps it at 2^logDkv
     const wlc = @min(if (fused) @min(ld, lf) else cfg0Dkv(lh, lkv, ld), 13);
-    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl, .log_experts = le, .log_capacity = lcap, .router_log_cols = wlc, .fused_qkv = fused };
+    // TENSOR_ACT_BITS / TENSOR_RESID_BITS: wide activations (accuracy.md; default 8 / 8)
+    const act_bits: u32 = if (std.posix.getenv("TENSOR_ACT_BITS")) |v| try std.fmt.parseInt(u32, v, 10) else 8;
+    const resid_bits: u32 = if (std.posix.getenv("TENSOR_RESID_BITS")) |v| try std.fmt.parseInt(u32, v, 10) else 8;
+    const cfg = tf.LayerCfg{ .log_t = lt, .log_d = ld, .log_f = lf, .log_heads = lh, .log_kv_heads = lkv, .n_layers = nl, .log_experts = le, .log_capacity = lcap, .router_log_cols = wlc, .fused_qkv = fused, .act_bits = act_bits, .resid_bits = resid_bits };
     try cfg.validate();
     var pool: f.Pool = undefined;
     try pool.init(a, threads);
@@ -571,9 +574,36 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const st = b.statement();
     const wview = try b.witnessView(a);
     var tm: proto.Timings = .{};
+    // TENSOR_LEDGER=1: witness ledger of the first prove (ledger.zig)
+    var lg = t.ledger.Ledger.init(a);
+    defer lg.deinit();
+    const with_ledger = t.ledger.enabled();
+    // TENSOR_LEDGER=noprove: the ledger from the forward pass alone (no
+    // commitment, no proof): shapes whose proof exceeds the memory budget
+    if (t.ledger.noProve()) {
+        if (recompute) return error.LedgerNeedsAccumulators;
+        lg.labels = b.labels.items;
+        try proto.witnessLedger(a, &pool, pc, st, wview, b.coreAccs(), b.extAccs(), &lg);
+        const out = std.fs.File.stdout().deprecatedWriter();
+        try out.print("{{\"bench\":\"layer-ledger\",\"log_t\":{d},\"log_d\":{d},\"log_f\":{d},\"log_heads\":{d},\"log_kv_heads\":{d},\"log_experts\":{d},\"log_capacity\":{d},\"n_layers\":{d},\"act_bits\":{d},\"resid_bits\":{d},\"forward_s\":{d:.4},\"peak_rss_bytes\":{d}}}\n", .{ lt, ld, lf, lh, lkv, le, lcap, nl, act_bits, resid_bits, forward_s, peakRssBytes() });
+        try lg.report(out, @as(usize, 1) << @intCast(lt));
+        a.free(wview);
+        b.deinit();
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+        a.free(x);
+        return;
+    }
+    if (with_ledger) {
+        lg.labels = b.labels.items;
+        t.ledger.sink = &lg;
+    }
     t0 = now();
     var proof = if (recompute) try proto.prove(a, &pool, pc, st, &sw.ws, wview, &tm) else try proto.proveWithAllAccumulators(a, &pool, pc, st, &sw.ws, wview, b.coreAccs(), b.extAccs(), &tm);
     var prove_s = secs(t0);
+    t.ledger.sink = null;
     const prove_first_s = prove_s;
     const pd_first = t.digest.proofDigest(proof);
     // TENSOR_PROVE_REPS=n: prove n times (steady state; the recycler is on unless TENSOR_RECYCLE=0), report the fastest
@@ -619,7 +649,9 @@ fn runLayer(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const lkp_ptr: ?*const t.weight_key.KeyProof = if (lkp) |*k| k else null;
     try printSecurity(out, a, pc, st, proto.weightKey(&sw.ws), &proof, lkp_ptr);
     try wireOut(out, a, &pool, pc, st, &sw.ws, lkp_ptr, &proof);
+    try out.print("\"act_bits\":{d},\"resid_bits\":{d},", .{ act_bits, resid_bits });
     try out.print("\"proof_bytes\":{{\"gkr\":{d},\"sumchecks\":{d},\"ext\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"peak_rss_bytes\":{d}}}\n", .{ sz.gkr, sz.sumchecks, proof.ext.byteSize(), sz.witness_opening, sz.weight_opening, sz.total, peakRssBytes() });
+    if (with_ledger) try lg.report(out, @as(usize, 1) << @intCast(lt));
     proof.deinit(a);
     a.free(wview);
     b.deinit();
@@ -681,6 +713,9 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         .log_out = @intCast(try kv.get("out", 0)),
         .moe_every = @intCast(try kv.get("moe_every", 2)),
         .stacked_experts = (try kv.get("stacked", 1)) != 0,
+        .act_bits = @intCast(try kv.get("act", 8)),
+        .resid_bits = @intCast(try kv.get("resid", 8)),
+        .score_bits = @intCast(try kv.get("score", 8)),
     };
     const outer = t.pcs.Params{ .n_queries = @intCast(try kv.get("q", 54)), .log_blowup = @intCast(try kv.get("lb", 2)), .pow_bits = @intCast(try kv.get("pow", 20)) };
     var pc = proto.Config{ .pcs = outer, .witness_log_cols_max = 14, .gkr_threads = threads, .batch_matmuls = (try kv.get("bm", 1)) != 0 };
@@ -778,6 +813,10 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     const caps = try a.alloc(u32, R);
     defer a.free(caps);
     var refused: usize = 0;
+    // TENSOR_LEDGER=1: witness ledger of request 0 (ledger.zig)
+    var lg = t.ledger.Ledger.init(a);
+    defer lg.deinit();
+    const with_ledger = t.ledger.enabled();
     const t_all = now();
     for (0..R) |j| {
         builders[j] = tf.Builder.init(a, &pool);
@@ -873,7 +912,12 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
         // salt: default (secret, from std.crypto.random); TENSOR_TEST_SALT=1
         // fixes it (serve.testSalt) so CPU and device digests can be compared
         const fixed_salt: ?[32]u8 = if (std.posix.getenv("TENSOR_TEST_SALT") != null) t.serve.testSalt(j) else null;
+        if (with_ledger and j == 0) {
+            lg.labels = b.labels.items;
+            t.ledger.sink = &lg;
+        }
         try bp.add(.{ .st = stmts[j], .witness = wv, .salt = fixed_salt }, &tm);
+        t.ledger.sink = null;
         prove_ns += now().since(t0);
         if (j == 0) tm_first = tm;
         inline for (@typeInfo(proto.Timings).@"struct".fields) |fld| {
@@ -956,7 +1000,9 @@ fn runServe(a: std.mem.Allocator, args: []const [:0]u8) !void {
     for (tokens[0..@min(tokens.len, 8)], 0..) |tok, i| try out.print("{s}{d}", .{ if (i == 0) "" else ",", tok });
     try out.print("],", .{});
     try printGpuStats(out);
+    try out.print("\"act_bits\":{d},\"resid_bits\":{d},\"score_bits\":{d},", .{ cfg.act_bits, cfg.resid_bits, cfg.score_bits });
     try out.print("\"peak_rss_bytes\":{d}}}\n", .{peak_rss});
+    if (with_ledger) try lg.report(out, T);
     if (prox) |*p| p.deinit(a);
     sw.ws.deinit(a);
     a.free(sw.winfos);

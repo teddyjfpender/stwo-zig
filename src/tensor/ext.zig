@@ -468,7 +468,8 @@ fn gatherPacked(a: std.mem.Allocator, pool: *f.Pool, masks: []const u64, src: []
         fn run(c: *const MaxCtx, s: usize, e: usize) void {
             for (s..e) |ch| {
                 var mx: u64 = 0;
-                const lo = ch * c.chunk;
+                // the last chunks can start past the end (n_ch * chunk > len)
+                const lo = @min(c.dst.len, ch * c.chunk);
                 const hi = @min(c.dst.len, lo + c.chunk);
                 for (lo..hi) |i| {
                     const v = c.src[c.g.get(i) | c.cst];

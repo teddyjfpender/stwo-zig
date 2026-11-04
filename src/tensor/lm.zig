@@ -416,7 +416,7 @@ pub fn matmul3(b: *tf.Builder, ws: *const proto.WeightStore, x: u32, w: u32) !u3
         b.a.free(y);
         return e;
     };
-    const id = try b.add(yi, y);
+    const id = try b.addKind(yi, y, "matmul.out", "");
     acc_owned = false;
     try b.pushOp(.{ .matmul = .{ .x = x, .w = w, .y = id, .shift = s } }, acc);
     return id;
@@ -434,15 +434,24 @@ pub fn moeStacked(b: *tf.Builder, c: tf.Ctx, wb: u32, y: u32) !struct { out: u32
     const le = cfg.log_experts;
     const lc = cfg.log_capacity;
     const r = try tf.moeRoute(b, c, wb, y);
+    const prev_scope = b.enter("moe.expert");
+    defer b.scope = prev_scope;
     const ns = le + lc + ld;
+    b.tag("xe.gather");
     const xe = (try b.einsumExact(.{ .log_dims = .{ le, lc, ld }, .n_dims = 3 }, ns, Ref.w(r.disp), Ref.w(y), lt, &.{ ids(0, le + lc), ids(ns, lt) }, &.{ ids(ns, lt), ids(le + lc, ld) })).?;
     const w0 = wb + cfg.wRouter() + 1;
+    b.tag("gate");
     const g = try matmul3(b, c.ws, xe, w0);
+    b.tag("up");
     const u = try matmul3(b, c.ws, xe, w0 + 1);
+    b.tag("silu");
     const act = try b.lookup(g, c.silu);
+    b.tag("glu");
     const hm = try b.hadamard(act, u);
+    b.tag("down");
     const mo = try matmul3(b, c.ws, hm, w0 + 2);
     const n_out = lt + ld;
+    b.tag("combine");
     const out = (try b.einsumExact(TensorInfo.mat(lt, ld), n_out, Ref.w(r.disp), Ref.w(mo), le + lc, &.{ ids(n_out, le + lc), ids(0, lt) }, &.{ ids(n_out, le + lc), ids(lt, ld) })).?;
     return .{ .out = out, .route = r, .xe = xe, .mo = mo };
 }
@@ -478,7 +487,11 @@ pub fn greedyCheck(b: *tf.Builder, logits: u32, lp: u32, lv: u32, tokens: []cons
     const n = lp + lv;
     const sel_id = try b.public(n, sel);
     const lt_id = try b.public(n, ltv);
+    const prev_scope = b.enter("head.greedy");
+    defer b.scope = prev_scope;
+    b.tag("m");
     const m_id = try b.addVec(lp, m);
+    b.tag("dr");
     const dr_id = try b.addVec(n, dr);
     const all = ids(0, n);
     // (0) m int8: bounds Dr through (1) for the statement-level analysis.
@@ -751,25 +764,31 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
     const oh_vals = try onehotValues(b.a, cfg, window);
     defer b.a.free(oh_vals);
     const oh_pub = try b.public(n_oh, oh_vals);
+    const prev_scope = b.enter("embed");
+    b.tag("onehot");
     const oh = try b.add(TensorInfo.mat(lt, lv), try b.a.dupe(i32, oh_vals));
     try b.lineq(n_oh, try b.expr(&.{ term(1, Ref.w(oh), &.{ids(0, n_oh)}), term(-1, Ref.p(oh_pub), &.{ids(0, n_oh)}) }, 0));
     // operand bound for the matmul accumulator check (OH in [0, 4); it is
     // pinned to the public by the lineq anyway)
     try b.key(n_oh, try b.expr(&.{term(1, Ref.w(oh), &.{ids(0, n_oh)})}, 0), null, .{ .range = 2 });
+    b.tag("gather");
     var x = try b.matmulShift(ws, oh, cfg.embIndex(), EMB_SHIFT);
     if (cfg.wideEmb()) {
         // X = 2^8 rq_1(OH . EmbHi) + rq_1(OH . EmbLo): two int8 gathers
         // (each range-checked by its core op) and an exact lineq, so
         // |X| <= 2^15 + 2^7 (bounds.zig derives it from the statement)
+        b.tag("gather_lo");
         const xlo = try b.matmulShift(ws, oh, cfg.embLoIndex(), EMB_SHIFT);
         const nx = lt + ld;
         const xv = try b.a.alloc(i32, b.wit.items[x].len);
         for (xv, b.wit.items[x], b.wit.items[xlo]) |*o, hi, lo| o.* = 256 * hi + lo;
+        b.tag("wide");
         const xw = try b.add(TensorInfo.mat(lt, ld), xv);
         try b.lineq(nx, try b.expr(&.{ term(1, Ref.w(xw), &.{ids(0, nx)}), term(-256, Ref.w(x), &.{ids(0, nx)}), term(-1, Ref.w(xlo), &.{ids(0, nx)}) }, 0));
         x = xw;
     }
     const x_id = x;
+    b.scope = prev_scope;
     // layer 0 reads X directly (range-checked at A bits) unless X is wider
     const x0_in_range = cfg.resid_bits <= cfg.act_bits;
     var max_load: usize = 0;
@@ -779,10 +798,15 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
         var c = c0;
         c.cfg = cfg.layerCfg(@intCast(l));
         const wb = cfg.layerBase(@intCast(l));
+        b.cur_layer = @intCast(l);
+        b.cur_moe = cfg.isMoeLayer(@intCast(l));
+        defer b.cur_layer = null;
         var route: ?MoeLayer = null;
         if (cfg.isStackedLayer(@intCast(l))) {
             const ab = try tf.attnBlock(b, c, @intCast(l), wb, x, l == 0 and x0_in_range);
             const ms = try moeStacked(b, c, wb, ab.rms2.y);
+            const ps = b.enter("residual");
+            defer b.scope = ps;
             x = try tf.residual(b, ab.h, ms.out);
             route = .{ .y = ab.rms2.y, .logits = ms.route.logits, .expert_of = ms.route.expert_of };
         } else {
@@ -808,6 +832,9 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
         const Ph = @as(usize, 1) << @intCast(lh);
         const T = @as(usize, 1) << @intCast(lt);
         const sl = try b.a.dupe(i32, b.wit.items[x][(T - Ph) * D ..][0 .. Ph * D]);
+        const ps = b.enter("head");
+        defer b.scope = ps;
+        b.tag("slice");
         hs = try b.add(TensorInfo.mat(lh, ld), sl);
         const ones = tf.fixesOf((@as(usize, 1) << @intCast(lt - lh)) - 1, lt - lh);
         try b.lineq(lh + ld, try b.expr(&.{ term(1, Ref.w(hs), &.{ids(0, lh + ld)}), term(-1, Ref.w(x), &.{ ones, ids(0, lh + ld) }) }, 0));
@@ -817,7 +844,11 @@ pub fn buildModel(b: *tf.Builder, desc: *const ModelDesc, ws: *const proto.Weigh
     ch.cfg = cfg.layerCfg(0);
     ch.cfg.log_t = lh;
     const gamma = try b.public(ld, desc.gain(2 * cfg.n_layers));
+    const ps_head = b.enter("rms.head");
+    defer b.scope = ps_head;
     const r = try tf.rmsnorm(b, ch, hs, gamma, false);
+    b.scope = "head";
+    b.tag("logits");
     const logits = try b.matmul(ws, r.y, cfg.lmHead());
     const P = @as(usize, 1) << @intCast(lp);
     const V = @as(usize, 1) << @intCast(cfg.log_vocab);
