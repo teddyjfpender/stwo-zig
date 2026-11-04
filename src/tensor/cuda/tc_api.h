@@ -21,6 +21,7 @@ extern "C" {
 
 typedef struct tc_ctx tc_ctx;
 typedef struct tc_sc tc_sc;
+typedef struct tc_gkr tc_gkr;
 
 typedef struct {
     uint64_t launches;
@@ -36,6 +37,9 @@ typedef struct {
     uint64_t matmuls;
     uint64_t mles;
     uint64_t gkr_layers;
+    uint64_t gkr_sessions;
+    uint64_t gkr_rounds;  /* tc_gkr_round launches */
+    uint64_t declined;    /* calls refused on shape before any device work */
 } tc_stats;
 
 /* Sumcheck term table (same layout as tc::ScTerms). */
@@ -112,6 +116,37 @@ void tc_set_commit_chunk_rows(tc_ctx *ctx, uint64_t rows);
 /* One LogUp-GKR fraction layer for many instances (one launch). Offsets are
  * in QM31 elements; out_off has n_inst + 1 entries. */
 int tc_gkr_layer(tc_ctx *ctx, const uint64_t *in_off, const uint64_t *out_off, uint32_t n_inst, const uint32_t *num, const uint32_t *den, uint64_t n_in, uint32_t *num_out, uint32_t *den_out);
+
+/* Batched LogUp-GKR on the device (accel.gkr_prove). The host keeps the
+ * transcript and gkr_prover_fast's control flow; the device keeps every
+ * layer of every instance.
+ *   tc_gkr_begin   uploads the inputs (den QM31; num: none / u32 base /
+ *                  QM31), builds all layers (one launch per layer depth for
+ *                  all instances) and writes each instance's output claim
+ *                  (num, den of its root: 8 words) to top_out.
+ *   tc_gkr_eq      prefix/suffix eq tables of the layer's ood point (one
+ *                  launch) and the layer's lambda.
+ *   tc_gkr_round   one launch over jobs (instance, layer, current log length,
+ *                  flags TC_GKR_FOLD/SUM/MASK, r for the fold): out receives
+ *                  16 words per job (SUM: e0, e2; MASK: num0, num1, den0, den1).
+ * Shapes outside the kernels' bounds return TC_DECLINED before any device
+ * work and leave the context usable. */
+enum { TC_GKR_ONES = 0, TC_GKR_BASE = 1, TC_GKR_SECURE = 2 };
+enum { TC_GKR_FOLD = 1, TC_GKR_SUM = 2, TC_GKR_MASK = 4 };
+enum { TC_DECLINED = 2, TC_GKR_MAX_JOBS = 1024 };
+typedef struct {
+    uint32_t kind;
+    uint32_t log_n;
+    const uint32_t *den;
+    const uint32_t *num;
+} tc_gkr_input;
+typedef struct {
+    uint32_t inst, layer, cur_log, flags;
+} tc_gkr_job;
+tc_gkr *tc_gkr_begin(tc_ctx *ctx, const tc_gkr_input *inputs, uint32_t n_inst, uint32_t *top_out);
+int tc_gkr_eq(tc_ctx *ctx, tc_gkr *g, const uint32_t *y, uint32_t y_len, const uint32_t lambda[4]);
+int tc_gkr_round(tc_ctx *ctx, tc_gkr *g, const tc_gkr_job *jobs, uint32_t n_jobs, const uint32_t *r, uint32_t *out);
+void tc_gkr_end(tc_ctx *ctx, tc_gkr *g);
 
 #ifdef __cplusplus
 }
