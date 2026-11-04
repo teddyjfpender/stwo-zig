@@ -30,4 +30,7 @@ The graphs are constructed cryptographic workloads, not captured production
 CPU/Keccak/fold graphs. This establishes a narrow CPU improvement and unchanged
 schedule semantics for the qualified graphs; it does not establish production
 wall time, worst-shape memory or GPU proof parity. No hardware lease was used.
-The compact receipt records source base, all samples, fingerprints and log pins.
+The compact receipt records source base, medians, fingerprints and log pins.
+Per-run samples are retained separately with their full-receipt SHA256. The
+three control fingerprints are frozen in the qualification fixture, so a
+regression shared by both current schedulers cannot silently move the oracle.

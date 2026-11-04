@@ -34,7 +34,14 @@ test "task append dispatch: validated graphs match DFS and canonical plan finger
     const B = @import("../builder/blake.zig");
     const wrappers = @import("../builder/wrappers.zig");
     const iv = @import("../builder/ivalue.zig");
-    for ([_]usize{ 1000, 25000, 250000 }) |rounds| {
+    // Frozen by the independently built pre-inline controls. Comparing only
+    // two current schedulers would miss a shared registration regression.
+    const control_fingerprints = [_][]const u8{
+        "02f180b11495964a870fccf78c2383a84e0aa2d8fc2c2cc88562757e82453575",
+        "246c4739836aa7edd5c914dc8ee00a5e05738f535a0ea793a1d5083a9302c991",
+        "03670ae8752203a2f023f08e9808e71ab893ecbe85b7927ba343e05c699ddacb",
+    };
+    for ([_]usize{ 1000, 25000, 250000 }, control_fingerprints) |rounds, control_hex| {
         var ctx = try C.Context(Q).initWithWitnessOrigins(a, 1);
         defer ctx.deinit();
         const U = wrappers.U32Wrapper(C.Var);
@@ -52,7 +59,9 @@ test "task append dispatch: validated graphs match DFS and canonical plan finger
         try std.testing.expect(try ctx.isCircuitValid());
         var reference = try Schedule.buildDfsReference(a, &ctx);
         defer reference.deinit();
-        const expected = fingerprint(reference);
+        var expected: [32]u8 = undefined;
+        _ = try std.fmt.hexToBytes(&expected, control_hex);
+        try std.testing.expectEqualSlices(u8, &expected, &fingerprint(reference));
         for (0..3) |trial| {
             var metrics = Schedule.BuildMetrics{};
             var clock = try std.time.Timer.start();

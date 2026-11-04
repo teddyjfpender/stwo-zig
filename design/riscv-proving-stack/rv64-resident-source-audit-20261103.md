@@ -128,3 +128,23 @@ control. Different count/scatter shard counts, last-chunk rejection/retry and
 scratch fallback checks pass. The integrated GKR/packing target passed24 tests
 and the focused circuit target43; source GNU entry-point checks also passed.
 See `stable-order-disjoint-cpu-candidate-v1.json`.
+
+## Qualified registration-dispatch follow-up
+
+`ba3dc9404` inlines the existing witness registration helper so gate-family
+constants specialize its dispatch. Bounds, producer coverage, seed/in-place
+skips, duplicate rejection, allocation policy and data layout stay unchanged.
+On a validated750k-task constructed CPU graph, six-sample medians were
+6.443ms to5.038ms for registration and22.949ms to21.365ms for whole planning.
+These are not captured production-node or GPU measurements. Frozen
+pre-inline task/seed/level fingerprints, independent DFS, exact replay and
+constraint checks pass with the current parallel ordering. The integrated
+qualification passed99 tests and all three GNU entry-point checks.
+
+The separate capacity audit (`codex/rv64-witness-task-capacity-audit`,
+`6cb72d79a`) does not justify a production reservation policy. Even an oracle
+that knows the final task count for free saved only a modest part of whole
+planning on the measured graph, before paying for obtaining that count.
+Production keeps its existing growth policy. See
+`rv64-witness-task-append-inline.md` and its compact receipt; the original
+per-run samples are retained with their hash outside the source tree.
