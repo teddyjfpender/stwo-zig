@@ -62,7 +62,14 @@ fn runMode(a: std.mem.Allocator, library: []const u8, manifest_path: []const u8,
             try config.validatePlan(cpuCount(item));
         }
     }
-    const budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = if (combined) try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.create(a, manifest.combined_host_bytes) else null;
+    // The budget's child is the thread-caching smp allocator, not the page
+    // allocator: with a page-allocator child every sub-256 KiB allocation is
+    // an mmap/munmap taken under the budget mutex, which serializes parallel
+    // host prep (pipelined recursion) on syscalls. Accounting is unchanged:
+    // the budget still charges every requested byte against the same limit.
+    // STWO_RV64_HOST_BUDGET_PAGE_CHILD=1 restores the page-allocator child.
+    const budget_child = if (std.process.hasEnvVarConstant("STWO_RV64_HOST_BUDGET_PAGE_CHILD")) a else std.heap.smp_allocator;
+    const budget: ?*@import("stwo_prover_engine").host_budget_allocator.SharedHostBudget = if (combined) try @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.create(budget_child, manifest.combined_host_bytes) else null;
     defer if (budget) |owner| owner.destroy();
     var recycler = Main.Recycler.init(if (budget) |owner| owner.allocator() else std.heap.smp_allocator, 1 << 30);
     defer recycler.deinit();

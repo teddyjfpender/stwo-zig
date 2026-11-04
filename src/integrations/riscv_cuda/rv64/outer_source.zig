@@ -58,19 +58,72 @@ pub const Context = struct {
     fixed_pending: ?*@import("outer_fixed.zig").Owner = null,
     fixed_nonce: u64 = 0,
     assignment: ?Assignment.Prepared = null,
+    /// Host-prepared plan for exactly `staged_graph`, built off the device lane
+    /// (see prepareHost). Consumed by the next prepareImpl for that graph.
+    staged: ?Assignment.Prepared = null,
+    staged_graph: ?*const anyopaque = null,
     mutex: std.Thread.Mutex = .{},
     pub fn init(a: std.mem.Allocator, service: *Service.Context, trace_commit: *TC.Context, composition: *RC.Context) !Context {
         return .{ .allocator = a, .service = service, .trace_commit = trace_commit, .composition = composition, .api = .{ .allocate = service.lease_allocate, .release = service.lease_release, .validate_range = service.lease_validate_range, .upload = try sym(Native.Upload, &service.library, "stwo_exec_context_memcpy_h2d_async"), .download = try sym(Native.Download, &service.library, "stwo_exec_context_memcpy_d2h_async"), .sync = try sym(Native.Sync, &service.library, "stwo_exec_context_sync"), .lane_stream = try sym(Native.LaneStream, &service.library, "stwo_exec_context_lane_stream") }, .base = try sym(BaseFn, &service.library, "stwo_circuit_base_witness_on"), .clear = try sym(Memset, &service.library, "stwo_exec_context_memset_async"), .copy = try sym(Native.CopyDevice, &service.library, "stwo_exec_context_memcpy_d2d_async"), .fractions = try sym(FractionFn, &service.library, "stwo_circuit_om31_fractions_on"), .cumulative = try sym(CumulativeFn, &service.library, "stwo_circuit_om31_cumulative_on"), .global_pairs = try sym(*const @TypeOf(Abi.stwo_rv64_global_pairs_on), &service.library, "stwo_rv64_global_pairs_on"), .identity = try sym(IdentityFn, &service.library, "stwo_circuit_om31_composition_identity"), .role = try sym(*const @TypeOf(Abi.stwo_rv64_composition_role_on), &service.library, "stwo_circuit_om31_composition_role_on") };
     }
     pub fn deinit(self: *Context) void {
         std.debug.assert(self.active == null and self.fixed_pending == null);
+        unstageHost(self);
         if (self.assignment) |*assignment| assignment.deinit();
         for (self.entries.items) |*e| e.metadata.deinit();
         self.entries.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn factory(self: *Context) Dev.Factory {
-        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit };
+        return .{ .context = self, .prepare = prepare, .prepare_from_circuit = prepareFromCircuit, .prepare_host = prepareHost, .stage_host = stageHost, .unstage_host = unstageHost };
+    }
+    /// Device-free: builds the exact Assignment.Prepared that prepareImpl
+    /// would build for this finalized graph. Reads only immutable library
+    /// symbols; never takes the active-proof mutex or touches the device.
+    fn prepareHost(raw: *anyopaque, a: std.mem.Allocator, graph: *const circuit.builder.Context(Outer.protocol.Q)) !Dev.HostPrepared {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        if (!graph.trace_only or !graph.finalized or !graph.record_gates) return error.TraceOnlyGraphRequired;
+        const prepared = try a.create(Assignment.Prepared);
+        errdefer a.destroy(prepared);
+        prepared.* = try Assignment.Prepared.init(a, graph, &self.service.library);
+        return .{ .context = prepared, .graph = graph, .destroy = destroyHost };
+    }
+    fn destroyHost(raw: *anyopaque) void {
+        const prepared: *Assignment.Prepared = @ptrCast(@alignCast(raw));
+        const a = prepared.allocator;
+        prepared.deinit();
+        a.destroy(prepared);
+    }
+    fn stageHost(raw: *anyopaque, host: Dev.HostPrepared) !void {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        if (host.destroy != destroyHost) {
+            host.destroy(host.context);
+            return error.ForeignHostPreparedAssignment;
+        }
+        const boxed: *Assignment.Prepared = @ptrCast(@alignCast(host.context));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.active != null or self.fixed_pending != null or self.staged != null) {
+            destroyHost(host.context);
+            return error.OuterProofAlreadyActive;
+        }
+        var prepared = boxed.*;
+        boxed.allocator.destroy(boxed);
+        // Kernel entry points belong to this device's library handle.
+        prepared.rebind(&self.service.library) catch |err| {
+            prepared.deinit();
+            return err;
+        };
+        self.staged = prepared;
+        self.staged_graph = host.graph;
+    }
+    fn unstageHost(raw: *anyopaque) void {
+        const self: *Context = @ptrCast(@alignCast(raw));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.staged) |*prepared| prepared.deinit();
+        self.staged = null;
+        self.staged_graph = null;
     }
     /// Explicit candidate: same numerical runtime; no host FIXED commitment.
     /// No default factory or receiver selects this path.
@@ -158,7 +211,16 @@ pub const Context = struct {
             self.assignment = previous_assignment;
         };
         if (graph) |ctx| {
-            const prepared = try Assignment.Prepared.init(a, ctx, &self.service.library);
+            // A plan staged for this exact graph replaces the identical
+            // in-lane construction; a plan staged for any other graph is a
+            // custody error, never silently substituted or ignored.
+            const prepared = if (self.staged != null) blk: {
+                if (self.staged_graph != @as(*const anyopaque, ctx)) return error.StagedAssignmentGraphMismatch;
+                const staged = self.staged.?;
+                self.staged = null;
+                self.staged_graph = null;
+                break :blk staged;
+            } else try Assignment.Prepared.init(a, ctx, &self.service.library);
             previous_assignment = self.assignment;
             self.assignment = prepared;
             owns_assignment = true;

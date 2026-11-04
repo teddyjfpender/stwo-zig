@@ -576,6 +576,7 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Repo
     const stack_bytes = 8 << 20;
     const nodes = try a.alloc(Node, plan.count);
     defer a.free(nodes);
+    if (try Pipe.Options.fromEnv(a, options)) |pipe| return runPipelined(input, options, pipe, &plan, nodes, budget);
     var shared = ParallelExecution{ .input = input, .options = options, .plan = &plan, .dispatch = .{ .queue = try Dag.Queue.init(&plan, options.lanes.len, options.max_pending_authorities) }, .nodes = nodes };
     defer for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
     var threads: [4]std.Thread = undefined;
@@ -612,5 +613,451 @@ fn runPreparedParallel(input: PreparedExecution, options: ParallelOptions) !Repo
     const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.dispatch.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
     defer a.free(scheduler);
     try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
+    return report;
+}
+
+// ===========================================================================
+// Two-stage pipelined recursion (M2a). Every node is split into
+//   prep   (host pool; no device): leaf/fold graph, exact padding, PP columns,
+//          device assignment plan/pack/hash (Factory.prepare_host);
+//   device (one lane per physical GPU, one active proof per device): FIXED
+//          precommit, authority, staged-plan handoff, device proof;
+//   finish (host pool): fresh native verification/capture, durable
+//          publication, prover-data retirement, DAG completion.
+// Node ids, ordinals, graphs and every proving operation are those of the
+// lane path; only the executing thread changes, so proof bytes are identical.
+// Device admission is unchanged (a prepared-but-not-running node owns host
+// memory only; it holds no device lease until its lane starts it).
+// ===========================================================================
+const Pipe = struct {
+    pub const Options = struct {
+        host_workers: usize,
+        prep_pool_workers: usize,
+        /// Leaves taken for prep that have not yet reached a device lane.
+        prep_ahead: usize,
+        fn envUsize(a: std.mem.Allocator, name: []const u8, default: usize) !usize {
+            const text = std.process.getEnvVarOwned(a, name) catch |err| switch (err) {
+                error.EnvironmentVariableNotFound => return default,
+                else => return err,
+            };
+            defer a.free(text);
+            return std.fmt.parseUnsigned(usize, text, 10) catch error.InvalidRecursionPipelineOption;
+        }
+        /// STWO_RV64_RECURSION_PIPELINE=0 selects the original lane path.
+        pub fn fromEnv(a: std.mem.Allocator, options: ParallelOptions) !?Options {
+            if (try envUsize(a, "STWO_RV64_RECURSION_PIPELINE", 1) == 0) return null;
+            const lanes = options.lanes.len;
+            const result = Options{
+                .host_workers = try envUsize(a, "STWO_RV64_RECURSION_HOST_WORKERS", 8),
+                .prep_pool_workers = try envUsize(a, "STWO_RV64_RECURSION_PREP_POOL_WORKERS", 24),
+                .prep_ahead = try envUsize(a, "STWO_RV64_RECURSION_PREP_AHEAD", 3 * lanes),
+            };
+            if (result.host_workers == 0 or result.host_workers > 32 or result.prep_pool_workers == 0 or result.prep_pool_workers > Pools.MAX_WORKERS or result.prep_ahead == 0) return error.InvalidRecursionPipelineOption;
+            return result;
+        }
+    };
+    const Stamps = struct { taken: u64 = 0, prep_start: u64 = 0, prep_end: u64 = 0, device_start: u64 = 0, device_end: u64 = 0, finish_start: u64 = 0, finish_end: u64 = 0 };
+    pub const Record = struct {
+        id: usize = 0,
+        kind: []const u8 = "",
+        first_leaf: usize = 0,
+        leaf_count: usize = 0,
+        lane: ?usize = null,
+        restored: bool = false,
+        variables: usize = 0,
+        stamps: Stamps = .{},
+        graph_ns: u64 = 0,
+        finalize_ns: u64 = 0,
+        columns_ns: u64 = 0,
+        host_plan_ns: u64 = 0,
+        authority_ns: u64 = 0,
+        device_prove_ns: u64 = 0,
+        verify_ns: u64 = 0,
+        publish_ns: u64 = 0,
+    };
+    const Job = struct {
+        id: usize,
+        leaf: ?Graph.Graph = null,
+        fold: ?*Bridge.Graph = null,
+        digest: [32]u8 = undefined,
+        host: ?Outer.HostPrep = null,
+        proved: ?Outer.Proved = null,
+        wrapped: ?*Outer.Wrapped = null,
+        record: Record = .{},
+        fn ctx(self: *Job) *@import("common.zig").Context {
+            if (self.leaf) |g| return g.ctx;
+            return &self.fold.?.ctx;
+        }
+        fn releaseGraph(self: *Job, a: std.mem.Allocator) void {
+            if (self.leaf) |*g| g.deinit();
+            self.leaf = null;
+            if (self.fold) |f| {
+                f.deinit();
+                a.destroy(f);
+            }
+            self.fold = null;
+        }
+        fn destroy(self: *Job, a: std.mem.Allocator) void {
+            if (self.proved) |*p| p.deinit(a);
+            if (self.host) |*h| h.deinit(a);
+            if (self.wrapped) |w| {
+                w.deinit();
+                a.destroy(w);
+            }
+            self.releaseGraph(a);
+            a.destroy(self);
+        }
+    };
+};
+const Pipelined = struct {
+    input: PreparedExecution,
+    options: ParallelOptions,
+    pipe: Pipe.Options,
+    plan: *const Dag.Plan,
+    queue: Dag.Queue,
+    nodes: []Node,
+    records: []Pipe.Record,
+    prep_pool: *Pools.WorkPool,
+    proofs: [Dag.max_nodes]?Pending = @splat(null),
+    mutex: std.Thread.Mutex = .{},
+    changed: std.Thread.Condition = .{},
+    fatal: ?anyerror = null,
+    ready: std.ArrayList(*Pipe.Job) = .empty,
+    finishing: std.ArrayList(*Pipe.Job) = .empty,
+    leaves_ahead: usize = 0,
+    peak_leaves_ahead: usize = 0,
+    peak_ready: usize = 0,
+    origin_ns: u64,
+    graph_ns: u64 = 0,
+    wrap_ns: u64 = 0,
+    fold_ns: u64 = 0,
+    restored_leaves: usize = 0,
+    restored_folds: usize = 0,
+    retired_bytes: usize = 0,
+    fn now(self: *Pipelined) u64 {
+        return self.input.timer.read() - self.origin_ns;
+    }
+    fn running(self: *const Pipelined) bool {
+        return self.fatal == null and self.queue.failure == null and self.queue.completed < self.plan.count;
+    }
+    fn stop(self: *Pipelined, err: anyerror) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.fatal == null) self.fatal = err;
+        self.changed.broadcast();
+    }
+    /// Caller holds the mutex.
+    fn failLocked(self: *Pipelined, job: *Pipe.Job, err: anyerror) void {
+        std.log.err("rv64 OM31 pipelined recursion node {d} failed: {s}", .{ job.id, @errorName(err) });
+        self.queue.fail(job.id, err);
+        self.changed.broadcast();
+    }
+    fn hostWorker(self: *Pipelined) void {
+        var binding = Pools.ScopedPoolBinding.init(self.prep_pool) catch |err| return self.stop(err);
+        defer binding.deinit();
+        const a = self.input.allocator;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (self.running()) {
+            // Finishing first: completion is what makes parents ready.
+            if (self.finishing.items.len != 0) {
+                const job = self.finishing.orderedRemove(0);
+                self.mutex.unlock();
+                const finished = self.finish(job);
+                self.mutex.lock();
+                if (finished) |retired| self.completeLocked(job, retired) else |err| {
+                    self.failLocked(job, err);
+                    self.mutex.unlock();
+                    job.destroy(a);
+                    self.mutex.lock();
+                }
+                continue;
+            }
+            const leaves = self.leaves_ahead < self.pipe.prep_ahead;
+            const next = self.queue.takeFiltered(leaves) catch |err| {
+                if (self.fatal == null) self.fatal = err;
+                self.changed.broadcast();
+                return;
+            };
+            if (next) |id| {
+                const spec = self.plan.nodes[id];
+                var children: ?[2]Pending = null;
+                if (spec.left) |left| children = .{ self.proofs[left].?, self.proofs[spec.right.?].? } else {
+                    self.leaves_ahead += 1;
+                    self.peak_leaves_ahead = @max(self.peak_leaves_ahead, self.leaves_ahead);
+                }
+                const taken = self.now();
+                self.mutex.unlock();
+                const job = a.create(Pipe.Job) catch |err| {
+                    self.mutex.lock();
+                    if (spec.left == null) self.leaves_ahead -= 1;
+                    self.queue.fail(id, err);
+                    self.changed.broadcast();
+                    continue;
+                };
+                job.* = .{ .id = id, .record = .{ .id = id, .kind = if (spec.left == null) "leaf" else "fold", .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .stamps = .{ .taken = taken } } };
+                const prepared = self.prep(job, children);
+                self.mutex.lock();
+                if (prepared) |needs_device| {
+                    if (needs_device) {
+                        self.ready.appendAssumeCapacity(job);
+                        self.peak_ready = @max(self.peak_ready, self.ready.items.len);
+                    } else {
+                        // Restored from durable bytes: no device stage.
+                        if (spec.left == null) self.leaves_ahead -= 1;
+                        self.finishing.appendAssumeCapacity(job);
+                    }
+                    self.changed.broadcast();
+                } else |err| {
+                    if (spec.left == null) self.leaves_ahead -= 1;
+                    self.failLocked(job, err);
+                    self.mutex.unlock();
+                    job.destroy(a);
+                    self.mutex.lock();
+                }
+                continue;
+            }
+            self.changed.wait(&self.mutex);
+        }
+        self.changed.broadcast();
+    }
+    /// Returns true when the node needs the device stage.
+    fn prep(self: *Pipelined, job: *Pipe.Job, children: ?[2]Pending) !bool {
+        const in = self.input;
+        const a = in.allocator;
+        job.record.stamps.prep_start = self.now();
+        var timer = try std.time.Timer.start();
+        var name_buffer: [64]u8 = undefined;
+        const name = if (children) |pair| blk: {
+            const kids = [2]Bridge.Child{ child(pair[0]), child(pair[1]) };
+            job.digest = try Bridge.expectedDigest(kids);
+            const fold = try a.create(Bridge.Graph);
+            fold.* = Bridge.buildFoldTraceOnly(a, kids) catch |err| {
+                a.destroy(fold);
+                return err;
+            };
+            job.fold = fold;
+            if (!std.mem.eql(u8, &job.digest, &fold.output_digest)) return error.RecursiveFoldDigest;
+            break :blk try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
+        } else blk: {
+            const ordinal = self.plan.nodes[job.id].first_leaf;
+            const worker = in.inventory.workers[ordinal];
+            job.leaf = if (ordinal < in.setups.len) try Graph.cpuTraceOnly(a, .{ .setup = in.setups[ordinal], .request = in.bundle.requests[ordinal], .expected = worker, .first = in.inventory.first_ids[ordinal], .manifest = in.manifest, .index = ordinal, .stage = &in.stages.stages[ordinal], .config = in.config, .encoded = &in.bundle.cpus[ordinal], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null }) else try Graph.truthTraceOnly(a, .{ .truth = in.truths[ordinal - in.setups.len], .expected = worker, .manifest = in.manifest, .config = in.config, .encoded = &in.bundle.truths[ordinal - in.setups.len], .fixed = if (in.fixed) |authority| authority.at(ordinal) else null });
+            if (!std.mem.eql(u32, job.leaf.?.words, in.words[ordinal])) return error.RecursiveLeafFrame;
+            job.digest = job.leaf.?.digest;
+            break :blk try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{ordinal});
+        };
+        job.record.graph_ns = timer.lap();
+        const encoded = try cached(a, in.dir, name, in.allow_resume);
+        defer if (encoded) |bytes| a.free(bytes);
+        if (encoded) |bytes| {
+            // Durable bytes: independent CPU reception (rebuilds PP/authority).
+            const proof = try a.create(Outer.Wrapped);
+            errdefer a.destroy(proof);
+            proof.* = try Outer.wrapGraphOrLoadWithFactory(a, job.ctx(), job.digest, bytes, @intCast(job.id), null);
+            job.wrapped = proof;
+            job.record.restored = true;
+            job.record.stamps.prep_end = self.now();
+            return false;
+        }
+        // Any lane's factory: host prep reads only immutable library symbols.
+        job.host = try Outer.prepareHost(a, job.ctx(), self.options.lanes[0].factory);
+        job.record.variables = job.ctx().circuit.n_vars;
+        job.record.finalize_ns = job.host.?.finalize_ns;
+        job.record.columns_ns = job.host.?.columns_ns;
+        job.record.host_plan_ns = job.host.?.host_plan_ns;
+        job.record.stamps.prep_end = self.now();
+        return true;
+    }
+    fn deviceLane(self: *Pipelined, lane: usize) void {
+        var binding = Pools.ScopedPoolBinding.init(self.options.lanes[lane].pool) catch |err| return self.stop(err);
+        defer binding.deinit();
+        const a = self.input.allocator;
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        while (self.running()) {
+            if (self.ready.items.len == 0) {
+                self.changed.wait(&self.mutex);
+                continue;
+            }
+            // Critical path first: the widest (highest) parent, then the
+            // lowest leaf id, matching the lane path's parent preference.
+            var best: usize = 0;
+            for (self.ready.items, 0..) |job, i| {
+                const b = self.ready.items[best];
+                if (job.record.leaf_count > b.record.leaf_count or (job.record.leaf_count == b.record.leaf_count and job.id < b.id)) best = i;
+            }
+            const job = self.ready.orderedRemove(best);
+            if (job.leaf != null) self.leaves_ahead -= 1;
+            self.changed.broadcast();
+            self.mutex.unlock();
+            const proved = self.device(job, lane);
+            self.mutex.lock();
+            if (proved) |_| {
+                self.finishing.appendAssumeCapacity(job);
+                self.changed.broadcast();
+            } else |err| {
+                self.failLocked(job, err);
+                self.mutex.unlock();
+                job.destroy(a);
+                self.mutex.lock();
+            }
+        }
+        self.changed.broadcast();
+    }
+    fn device(self: *Pipelined, job: *Pipe.Job, lane: usize) !void {
+        const a = self.input.allocator;
+        job.record.lane = lane;
+        job.record.stamps.device_start = self.now();
+        defer job.record.stamps.device_end = self.now();
+        job.proved = try Outer.proveDevice(a, job.ctx(), &job.host.?, job.digest, @intCast(job.id), self.options.lanes[lane].factory);
+        job.host.?.deinit(a);
+        job.host = null;
+        job.record.authority_ns = job.proved.?.timings.authority_ns;
+        job.record.device_prove_ns = job.proved.?.timings.prove_ns;
+    }
+    /// Returns retired prover bytes. On success the proof moves to job.wrapped.
+    fn finish(self: *Pipelined, job: *Pipe.Job) !usize {
+        const a = self.input.allocator;
+        job.record.stamps.finish_start = self.now();
+        // The parent consumes only the child's verifier metadata and proof.
+        job.releaseGraph(a);
+        var timer = try std.time.Timer.start();
+        if (job.wrapped == null) {
+            const proof = try a.create(Outer.Wrapped);
+            errdefer a.destroy(proof);
+            proof.* = try Outer.finishProved(a, &job.proved.?, job.digest);
+            job.proved = null;
+            job.wrapped = proof;
+        }
+        job.record.verify_ns = timer.lap();
+        const spec = self.plan.nodes[job.id];
+        var name_buffer: [64]u8 = undefined;
+        const name = if (spec.left == null) try std.fmt.bufPrint(&name_buffer, "leaf-{d:0>6}.proof", .{spec.first_leaf}) else try std.fmt.bufPrint(&name_buffer, "fold-{d:0>6}.proof", .{job.id});
+        const bytes = try job.wrapped.?.serialize(a);
+        defer a.free(bytes);
+        try @import("publication.zig").write(self.input.dir, name, bytes);
+        const retired = job.wrapped.?.retireProverData();
+        job.record.publish_ns = timer.read();
+        job.record.stamps.finish_end = self.now();
+        return retired;
+    }
+    /// Caller holds the mutex. Verified and durably published: release the
+    /// children only now, exactly as the lane path's publication does.
+    fn completeLocked(self: *Pipelined, job: *Pipe.Job, retired: usize) void {
+        const a = self.input.allocator;
+        const id = job.id;
+        const proof = job.wrapped.?;
+        job.wrapped = null;
+        self.proofs[id] = .{ .proof = proof, .node = id };
+        const spec = self.plan.nodes[id];
+        self.nodes[id] = .{ .first_leaf = spec.first_leaf, .leaf_count = spec.leaf_count, .left = spec.left, .right = spec.right, .authority = proof.authority.identity, .digest = proof.digest };
+        self.retired_bytes += retired;
+        const r = job.record;
+        const host_ns = (r.stamps.prep_end - r.stamps.prep_start) + (r.stamps.finish_end - r.stamps.finish_start);
+        const device_ns = r.stamps.device_end - r.stamps.device_start;
+        if (spec.left) |left| {
+            self.proofs[left].?.deinit(a);
+            self.proofs[spec.right.?].?.deinit(a);
+            self.proofs[left] = null;
+            self.proofs[spec.right.?] = null;
+            self.fold_ns += host_ns + device_ns;
+            self.restored_folds += @intFromBool(r.restored);
+        } else {
+            self.graph_ns += r.graph_ns;
+            self.wrap_ns += host_ns - r.graph_ns + device_ns;
+            self.restored_leaves += @intFromBool(r.restored);
+        }
+        self.records[id] = r;
+        self.queue.complete(id);
+        a.destroy(job);
+        self.changed.broadcast();
+    }
+};
+
+fn runPipelined(input: PreparedExecution, options: ParallelOptions, pipe: Pipe.Options, plan: *const Dag.Plan, nodes: []Node, budget: *SharedBudget) !Report {
+    const a = input.allocator;
+    const coordinator_stack = 8 << 20;
+    const helper_stack = options.lanes[0].pool.stackSize();
+    // Prep coordinators and their shared helper pool are charged to the same
+    // host budget as the lane stacks; nothing here touches device memory.
+    var stacks = try budget.reserveExternal(try std.math.add(usize, try std.math.mul(usize, pipe.host_workers, coordinator_stack), try std.math.mul(usize, pipe.prep_pool_workers - 1, helper_stack)));
+    defer stacks.deinit();
+    const prep_pool = try a.create(Pools.WorkPool);
+    defer a.destroy(prep_pool);
+    prep_pool.* = .{};
+    try prep_pool.initInPlaceWithOptions(.{ .worker_count = pipe.prep_pool_workers, .stack_size = helper_stack, .backing_allocator = a });
+    defer prep_pool.deinit();
+    const records = try a.alloc(Pipe.Record, plan.count);
+    defer a.free(records);
+    @memset(records, .{});
+    var shared = Pipelined{ .input = input, .options = options, .pipe = pipe, .plan = plan, .queue = try Dag.Queue.init(plan, options.lanes.len, options.max_pending_authorities), .nodes = nodes, .records = records, .prep_pool = prep_pool, .origin_ns = input.timer.read() };
+    try shared.ready.ensureTotalCapacity(a, plan.count);
+    defer shared.ready.deinit(a);
+    try shared.finishing.ensureTotalCapacity(a, plan.count);
+    defer shared.finishing.deinit(a);
+    defer {
+        for (shared.ready.items) |job| job.destroy(a);
+        for (shared.finishing.items) |job| job.destroy(a);
+        for (shared.proofs[0..plan.count]) |proof| if (proof) |p| p.deinit(a);
+    }
+    std.log.info("rv64 OM31 pipelined recursion: nodes={d} lanes={d} host_workers={d} prep_pool_workers={d} prep_ahead={d}", .{ plan.count, options.lanes.len, pipe.host_workers, pipe.prep_pool_workers, pipe.prep_ahead });
+    var threads: [36]std.Thread = undefined;
+    var launched: usize = 0;
+    for (options.lanes, 0..) |_, lane| {
+        threads[launched] = std.Thread.spawn(.{ .stack_size = coordinator_stack }, Pipelined.deviceLane, .{ &shared, lane }) catch |err| {
+            shared.stop(err);
+            break;
+        };
+        launched += 1;
+    }
+    if (shared.fatal == null) for (0..pipe.host_workers) |_| {
+        threads[launched] = std.Thread.spawn(.{ .stack_size = coordinator_stack }, Pipelined.hostWorker, .{&shared}) catch |err| {
+            shared.stop(err);
+            break;
+        };
+        launched += 1;
+    };
+    for (threads[0..launched]) |thread| thread.join();
+    const recursion_wall_ns = shared.now();
+    if (shared.fatal) |err| return err;
+    if (shared.queue.failure) |failure| return failure.err;
+    if (shared.queue.completed != plan.count or shared.queue.active != 0 or shared.queue.live != 1) return error.RecursiveLeafCoverage;
+    const final = shared.proofs[plan.root] orelse return error.RecursiveLeafCoverage;
+    const info = nodes[plan.root];
+    const verify_start = input.timer.read();
+    try Outer.requireDigest(final.proof.produced.outputs, info.digest);
+    var fresh = try Prove.verify(a, final.proof.authority, final.proof.produced.outputs, final.proof.produced.claims, &final.proof.produced.proof.proof);
+    defer fresh.deinit(a);
+    const metadata = try Root.check(a, input.setups, input.truths, input.bundle.requests, input.expected, input.config, input.fixed, input.bundle.stage_one_bytes, input.frames, .{});
+    const verify_ns = input.timer.read() - verify_start;
+    const bytes = try final.proof.serialize(a);
+    defer a.free(bytes);
+    try @import("publication.zig").write(input.dir, "root.proof", bytes);
+    const tree = try std.json.Stringify.valueAlloc(a, .{ .schema = 2, .nodes = nodes, .root = plan.root, .cpu_frames = input.frames.cpus, .truth_frames = input.frames.truths }, .{ .whitespace = .indent_2 });
+    defer a.free(tree);
+    try @import("publication.zig").write(input.dir, "tree.json", tree);
+    const n = input.inventory.workers.len;
+    const report = Report{ .outer_backend = "cuda_trace_only", .assignment_source = "gpu_original_circuit_dag", .gpu_new_leaf_proofs = n - shared.restored_leaves, .gpu_new_fold_proofs = n - 1 - shared.restored_folds, .leaf_proofs = n, .restored_leaves = shared.restored_leaves, .fold_proofs = n - 1, .restored_folds = shared.restored_folds, .peak_pending_authorities = shared.queue.peak, .retired_preprocessed_bytes = shared.retired_bytes, .root_node = plan.root, .root_digest = info.digest, .root_authority = info.authority, .manifest = metadata.manifest.digest, .graph_ns = shared.graph_ns, .wrap_ns = shared.wrap_ns, .fold_ns = shared.fold_ns, .root_verify_ns = verify_ns, .total_ns = input.timer.read(), .root_proof_bytes = bytes.len };
+    const report_bytes = try std.json.Stringify.valueAlloc(a, report, .{ .whitespace = .indent_2 });
+    defer a.free(report_bytes);
+    try @import("publication.zig").write(input.dir, "report.json", report_bytes);
+    // Measured per-lane device-stage occupancy (wall time a lane spends inside
+    // the device stage: precommit, authority, device proof). It is an upper
+    // bound on kernel busy time; CUDA event spans are logged separately.
+    var lane_busy = [_]u64{0} ** 4;
+    for (records) |r| if (r.lane) |lane| {
+        lane_busy[lane] += r.stamps.device_end - r.stamps.device_start;
+    };
+    var busy_total: u64 = 0;
+    for (lane_busy[0..options.lanes.len]) |b| busy_total += b;
+    const occupancy = @as(f64, @floatFromInt(busy_total)) / @as(f64, @floatFromInt(@max(1, recursion_wall_ns * options.lanes.len)));
+    const scheduler = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .candidate = true, .pipelined = true, .lanes = options.lanes.len, .pool_worker_budget = options.pool_worker_budget, .max_pending_authorities = options.max_pending_authorities, .peak_authority_slots = shared.queue.peak, .host_budget = budget.snapshot() }, .{ .whitespace = .indent_2 });
+    defer a.free(scheduler);
+    try @import("publication.zig").write(input.dir, "scheduler.json", scheduler);
+    const timeline = try std.json.Stringify.valueAlloc(a, .{ .schema = "rv64-om31-pipelined-recursion-timeline/v1", .measured = true, .scope = "ns since pipeline start; device stage = precommit+authority+device proof on that lane; occupancy is lane device-stage wall / (lanes * DAG wall), an upper bound on GPU kernel busy", .options = pipe, .lanes = options.lanes.len, .dag_wall_ns = recursion_wall_ns, .lane_device_stage_ns = lane_busy[0..options.lanes.len], .lane_device_stage_occupancy = occupancy, .peak_leaves_ahead = shared.peak_leaves_ahead, .peak_ready = shared.peak_ready, .nodes = records }, .{ .whitespace = .indent_1 });
+    defer a.free(timeline);
+    try @import("publication.zig").write(input.dir, "pipeline.json", timeline);
+    std.log.info("rv64 OM31 pipelined recursion done: dag_wall_ns={d} lane_device_stage_occupancy={d:.3}", .{ recursion_wall_ns, occupancy });
     return report;
 }
