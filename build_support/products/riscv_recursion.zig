@@ -33,7 +33,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
     const gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_gkr_circuit_test_root.zig") });
     context.b.step("test-riscv64-gkr-circuit", "Qualify shared numerical GKR verifier on real circuit wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = gkr_tests, .minimum = 9 }}));
     // M4 diet stream (measurement-only prototype).
-    const diet_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_diet_test_root.zig") });
+    const diet_gkr_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_outer_gkr_diet_test_root.zig"), .filters = &.{"outer LogUp-GKR"} });
     context.b.step("test-riscv64-outer-gkr-diet", "Measure the outer LogUp-GKR in-circuit verifier cost (M7 diet prototype)").dependOn(&context.b.addRunArtifact(diet_gkr_tests).step);
     const register_lane_tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_register_boundary_lanes_test_root.zig") });
     context.b.step("test-riscv64-register-boundary-lanes", "Qualify dynamic register endpoints and scalar provider wires").dependOn(test_filter.addSuites(context.b, &.{.{ .tests = register_lane_tests, .minimum = 7 }}));
