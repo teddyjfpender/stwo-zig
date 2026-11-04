@@ -10,13 +10,13 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 | block | column | M3 baseline | best | factor | by |
 |---|---|---:|---:|---:|---|
 | 24628607 | capture_s | 3.27 | 3.26 | 1.00x | kernels 2026-11-04 |
-| 24628607 | native_s | 7.83 | 7.38 | 1.06x | kernels 2026-11-04 |
+| 24628607 | native_s | 7.83 | 7.23 | 1.08x | kernels 2026-11-04 |
 | 24628607 | proof_bytes | 706424 | 706424 | 1.00x | kernels 2026-11-04 |
-| 24628607 | recursion_s | 27.27 | 22.33 | 1.22x | kernels 2026-11-04 |
-| 24628607 | request_s | 51.11 | 46.49 | 1.10x | kernels 2026-11-04 |
+| 24628607 | recursion_s | 27.27 | 21.97 | 1.24x | kernels 2026-11-04 |
+| 24628607 | request_s | 51.11 | 45.37 | 1.13x | kernels 2026-11-04 |
 | 24628607 | rss_peak_gib | 25.00 | 0.04 | 625.00x | kernels 2026-11-04 |
-| 24628607 | setup_s | 12.55 | 12.55 | 1.00x | m3-baseline 2026-11-04 |
-| 24628607 | verifier_s | 77.30 | 65.59 | 1.18x | kernels 2026-11-04 |
+| 24628607 | setup_s | 12.55 | 12.55 | 1.00x | kernels 2026-11-04 |
+| 24628607 | verifier_s | 77.30 | 64.39 | 1.20x | kernels 2026-11-04 |
 | 26235156 | capture_s | 2.54 | 2.54 | 1.00x | m3-baseline 2026-11-04 |
 | 26235156 | native_s | 5.16 | 4.81 | 1.07x | kernels 2026-11-04 |
 | 26235156 | proof_bytes | 748536 | 748536 | 1.00x | kernels 2026-11-04 |
@@ -42,6 +42,7 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 | 2026-11-04 | M4 | kernels | 2 | M | 46.49 | 3.30 | 12.87 | 7.79 | 22.33 | 65.6 | 0.0 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | a326cfe0c | c5: all leaf hashing on eager SoA path (Zig chain). kernel GPU-s 22.46->21.35, 0.141->0.1325 ns/LDE cell; recursion 22.3 s; byte-identical 55/55; receiver from this tree accepted |
 | 2026-11-04 | M4 | kernels | 2 | M | 49.09 | 3.38 | 12.89 | 7.82 | 24.66 | 68.5 | 23.3 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | a326cfe0c | c5 byte-identical 55/55; load ~76 (very busy pod), not a quiet timing |
 | 2026-11-04 | M4 | kernels | 2 | M | 46.83 | 3.69 | 13.24 | 7.38 | 22.34 | 67.8 | 0.0 | 33.4 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | 494c3f463 | c6: 2-pass log-24 NTT/LDE. kernel GPU-s 21.35->20.00, 0.1325->0.1218 ns/LDE cell; recursion 22.3 s; byte-identical 55/55; load ~72 |
+| 2026-11-04 | M4 | kernels | 2 | M | 45.37 | 3.43 | 12.55 | 7.23 | 21.97 | 64.4 | 23.3 | 33.3 | 706 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/24628607 | yes | 494c3f463 | c6 byte-identical 55/55; 45.4 s (M3 51.1), recursion 22.0 s (M3 27.3) at load ~52, not a quiet timing |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 51.11 | 3.27 | 12.55 | 7.83 | 27.27 | 77.3 | 25.0 | 33.3 | 706 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
 | 2026-11-04 | M4.0 | measure | 2 | M | 78.85 | 7.25 | 21.01 | 12.98 | 37.38 | 71.2 | 23.3 | 33.3 | 706 | 55446 | 228174 | 14670 | 683 | 19705 | rv64-m3-20261104/integrate/scale/24628607 | yes | bcd401ce4 | M4.0 counter+smaps census run; LOADED POD (load1 103): timings not quotable, counts/RSS valid; byte-identical to M3 baseline with shim loaded |
 
@@ -55,6 +56,7 @@ Seconds unless noted; proof KB = final proof bytes / 1000. Rows are in date then
 | 2026-11-04 | M4 | kernels | 2 | M | 32.99 | 2.98 | 8.65 | 4.89 | 16.30 | 47.1 | 24.5 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | f59262dd1 | c3 byte-identical 37/37; 33.0 s vs M3 34.28; load ~32, not a quiet timing |
 | 2026-11-04 | M4 | kernels | 2 | M | 34.85 | 2.77 | 9.36 | 5.36 | 17.20 | 46.0 | 22.4 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | f10428435 | c4 byte-identical 37/37; receiver re-run separately (first attempt hit pod disk-full); load ~36 |
 | 2026-11-04 | M4 | kernels | 2 | M | 34.26 | 2.62 | 8.79 | 5.18 | 17.48 | 45.6 | 22.3 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | a326cfe0c | c5 byte-identical 37/37; load ~34 |
+| 2026-11-04 | M4 | kernels | 2 | M | 36.76 | 3.09 | 9.90 | 5.17 | 18.42 | 48.2 | 23.9 | 33.7 | 749 | — | — | — | — | — | rv64-m3-20261104/integrate/scale/26235156 | yes | 494c3f463 | c6 byte-identical 37/37; 36.8 s at load ~36 (slower than c3's 33.0 s at load 32: host-bound recursion + noise), not a quiet timing |
 | 2026-11-04 | M3 | m3-baseline | 2 | M | 34.28 | 2.54 | 8.33 | 5.16 | 18.07 | 50.5 | 22.3 | 33.7 | 749 | — | — | — | — | — | — | yes | ff2f71cf1 | M3 baseline (summary.json); native+bundle byte-identical to v7, folds/root differ by design (fold v2) |
 
 ## 24626900
