@@ -532,6 +532,11 @@ CASES = [
          mutate=cross_format),
     dict(id="DW08-arity-relabel", family="diet-outer", expect="reject", today="m6",
          what="k-ary fold under set-v2: arity-3 fold presented at an arity-4 T_rec entry (G05 on diet)"),
+    dict(id="DW10-eq-column-forged", family="diet-outer", expect="reject", today="m6",
+         what="binding E(x) changed on one row and Pre recomputed so the boundary holds: the eq constraint (endpoints + "
+              "carry recurrence) must fail, not the boundary (review DW-R1: E was unconstrained)"),
+    dict(id="DW11-prefix-not-cyclic", family="diet-outer", expect="reject", today="m6",
+         what="Pre with Pre[0] = 0 and the target carried by the wrap row (non-cyclic edge): the cyclic target_per_row form must fail"),
     dict(id="DW09-q51-under-q108", family="diet-outer", expect="reject", today="m6",
          what="diet m3 (q51) proof verified under the diet r1 (q108) receiver policy, and vice versa"),
     # fold-v3: in-circuit T_rec membership, NS interval chain, PCD self-VK
@@ -603,7 +608,7 @@ CASE_META = {
     "NV05": ("U", "native-format"), "NV06": ("W", "native-format"), "NV07": ("W", "native-format"), "NV08": ("W", "native-format"),
     "DW01": ("R", "diet-wire"), "DW02": ("R", "diet-wire"), "DW03": ("W", "diet-wire"), "DW04": ("W", "diet-wire"),
     "DW05": ("W", "diet-wire"), "DW06": ("W", "diet-wire"), "DW07": ("R", "diet-wire"), "DW08": ("W", "diet-wire"),
-    "DW09": ("R", "diet-wire"),
+    "DW09": ("R", "diet-wire"), "DW10": ("W", "diet-wire"), "DW11": ("W", "diet-wire"),
     "F301": ("W", "fold-v3"), "F302": ("W", "fold-v3"), "F303": ("W", "fold-v3"), "F304": ("W", "fold-v3"),
     "F305": ("W", "fold-v3"), "F306": ("U", "fold-v3"), "F307": ("W", "fold-v3"), "F308": ("W", "fold-v3"),
     "RO08": ("R", "fold-v3"), "RO09": ("R", "fold-v3"), "RO10": ("R", "fold-v3"),
