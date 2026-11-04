@@ -604,3 +604,57 @@ test "metal decoder layer proof equals the CPU golden digest (ext einsums on the
     const hx = std.fmt.bytesToHex(t.digest.fullDigest(proof), .lower);
     try std.testing.expectEqualStrings("e1f73d3d222a787247fb475e6866f8e74942fbbaba24aac2d41e832a37f6fac9", &hx);
 }
+
+test "metal per-request serving batch (dense + MoE stack, LM head, greedy check) equals CPU" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 4);
+    defer pool.deinit();
+    const tf = t.transformer;
+    const cfg = t.lm.ModelCfg{ .log_t = 3, .log_d = 4, .log_heads = 1, .log_kv_heads = 0, .log_f = 5, .n_layers = 2, .log_experts = 1, .log_f_expert = 4, .log_capacity = 3, .log_vocab = 6, .log_out = 1, .weight_log_cols = 3 };
+    var pc = proto.Config{
+        .two_level = .{ .outer = .{ .log_blowup = 2, .n_queries = 12, .pow_bits = 1 }, .inner = .{ .log_blowup = 3, .n_queries = 10, .pow_bits = 1 }, .depth = 1 },
+        .gkr_threads = 2,
+        .batch_matmuls = true,
+    };
+    pc.weight_log_cols = cfg.weight_log_cols;
+    var sw = try t.lm.setupWeights(a, &pool, cfg, pc, 700);
+    defer {
+        sw.ws.deinit(a);
+        for (sw.wdata) |w| a.free(w);
+        a.free(sw.wdata);
+        a.free(sw.winfos);
+    }
+    const g = try gpu();
+    var acc = g.accel().*;
+    acc.sc_min_work = 16;
+    acc.mle_min_len = 1;
+    acc.gkr_min_log = 0;
+    var pcg = pc;
+    pcg.accel = &acc;
+    const R = 2;
+    var bs: [R]tf.Builder = undefined;
+    var views: [R][]const []const i32 = undefined;
+    var reqs: [R]t.serve.Request = undefined;
+    for (0..R) |j| {
+        bs[j] = tf.Builder.init(a, &pool);
+        const x = try model.randomInput(a, @as(usize, 1) << (cfg.log_t + cfg.log_d), 40 + j);
+        defer a.free(x);
+        _ = try t.lm.buildModel(&bs[j], cfg, &sw.ws, 3, x, null);
+        views[j] = try bs[j].witnessView(a);
+        reqs[j] = .{ .st = bs[j].statement(), .witness = views[j], .salt = t.serve.testSalt(j) };
+    }
+    defer for (0..R) |j| {
+        a.free(views[j]);
+        bs[j].deinit();
+    };
+    var b_cpu = try t.serve.proveRequests(a, &pool, pc, &sw.ws, &reqs, null);
+    defer b_cpu.deinit(a);
+    const before = g.stats;
+    var b_gpu = try t.serve.proveRequests(a, &pool, pcg, &sw.ws, &reqs, null);
+    defer b_gpu.deinit(a);
+    try std.testing.expect(g.stats.sc_rounds > before.sc_rounds);
+    try std.testing.expect(g.stats.gkr_calls > before.gkr_calls);
+    try std.testing.expectEqual(t.digest.batchDigest(b_cpu), t.digest.batchDigest(b_gpu));
+    for (0..R) |j| try t.serve.verifyRequest(a, pc, reqs[j].st, proto.weightKey(&sw.ws), &b_gpu.requests[j], &b_gpu.shared, j);
+}

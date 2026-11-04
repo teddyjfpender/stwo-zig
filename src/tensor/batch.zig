@@ -145,27 +145,32 @@ pub fn fillRegion(a: std.mem.Allocator, pool: *f.Pool, dst: []QM31, claims_in: [
     }.run);
 }
 
-inline fn m31FromI32(x: i32) M31 {
-    return f.fromI32(x);
+inline fn m31FromI32(x: anytype) M31 {
+    return f.fromI32(@as(i32, x));
 }
 
-inline fn packedFromI32(src: []const i32, at: usize) PM {
-    const v: @Vector(LANES, i32) = src[at..][0..LANES].*;
+/// LANES entries of an i32 or i8 slice as packed canonical M31 (i8 is widened).
+inline fn packedFromI32(src: anytype, at: usize) PM {
+    const Elem = @typeInfo(@TypeOf(src)).pointer.child;
+    const raw: @Vector(LANES, Elem) = src[at..][0..LANES].*;
+    const v: @Vector(LANES, i32) = raw;
     const u: PM = @bitCast(v);
     const p: PM = @splat(f.P);
     return @select(u32, v < @as(@Vector(LANES, i32), @splat(0)), u +% p, u);
 }
 
-const R0Ctx = struct {
-    F: []const i32,
-    E: []const QM31,
-    half: usize,
-    active: usize,
-    partial: [][3]QM31,
-    chunk: usize,
-};
+fn R0Ctx(comptime T: type) type {
+    return struct {
+        F: []const T,
+        E: []const QM31,
+        half: usize,
+        active: usize,
+        partial: [][3]QM31,
+        chunk: usize,
+    };
+}
 
-fn round0Chunk(c: *const R0Ctx, s: usize, e: usize) void {
+fn round0Chunk(comptime T: type, c: *const R0Ctx(T), s: usize, e: usize) void {
     var s0 = QM31.zero();
     var s2 = QM31.zero();
     var x = s;
@@ -215,17 +220,19 @@ fn round0Chunk(c: *const R0Ctx, s: usize, e: usize) void {
     c.partial[s / c.chunk] = .{ s0, QM31.zero(), s2 };
 }
 
-const F0Ctx = struct {
-    F: []const i32,
-    E: []QM31,
-    /// may alias E[half..] (see fold0Chunk's read-before-write order)
-    Fq: []QM31,
-    half: usize,
-    active: usize,
-    r: QM31,
-};
+fn F0Ctx(comptime T: type) type {
+    return struct {
+        F: []const T,
+        E: []QM31,
+        /// may alias E[half..] (see fold0Chunk's read-before-write order)
+        Fq: []QM31,
+        half: usize,
+        active: usize,
+        r: QM31,
+    };
+}
 
-fn fold0Chunk(c: *const F0Ctx, s: usize, e: usize) void {
+fn fold0Chunk(comptime T: type, c: *const F0Ctx(T), s: usize, e: usize) void {
     var x = s;
     const hi_end = if (c.active > c.half) @max(s, @min(e, c.active - c.half)) else s;
     if (LANES > 1) {
@@ -282,6 +289,21 @@ pub fn proveBaseTimesExt(
     E: []QM31,
     active_in: usize,
 ) !sc.ProveResult {
+    return proveBaseTimesExtT(i32, a, pool, tr, claim, F, E, active_in);
+}
+
+/// proveBaseTimesExt over an i32 or i8 base table (i8: the committed weight
+/// table itself, without a widened copy).
+pub fn proveBaseTimesExtT(
+    comptime T: type,
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    tr: *Transcript,
+    claim: QM31,
+    F: []const T,
+    E: []QM31,
+    active_in: usize,
+) !sc.ProveResult {
     std.debug.assert(F.len == E.len);
     const len = F.len;
     const n = f.log2Exact(len);
@@ -305,13 +327,17 @@ pub fn proveBaseTimesExt(
         const n_chunks = (work + chunk - 1) / chunk;
         const partial = try a.alloc([3]QM31, n_chunks);
         defer a.free(partial);
-        const ctx = R0Ctx{ .F = F, .E = E, .half = half, .active = active, .partial = partial, .chunk = chunk };
+        const ctx = R0Ctx(T){ .F = F, .E = E, .half = half, .active = active, .partial = partial, .chunk = chunk };
         if (n_chunks <= 1) {
-            round0Chunk(&ctx, 0, work);
+            round0Chunk(T, &ctx, 0, work);
         } else {
             var wg: std.Thread.WaitGroup = .{};
             var s: usize = 0;
-            while (s < work) : (s += chunk) pool.pool.spawnWg(&wg, round0Chunk, .{ &ctx, s, @min(work, s + chunk) });
+            while (s < work) : (s += chunk) pool.pool.spawnWg(&wg, struct {
+                fn run(c: *const R0Ctx(T), lo: usize, hi: usize) void {
+                    round0Chunk(T, c, lo, hi);
+                }
+            }.run, .{ &ctx, s, @min(work, s + chunk) });
             pool.pool.waitAndWork(&wg);
         }
         for (partial) |p| {
@@ -328,8 +354,12 @@ pub fn proveBaseTimesExt(
     // Fq lives in E's upper half: iteration x reads E[x + half] before writing
     // Fq[x] = E[half + x], and no other iteration touches that slot.
     const Fq = E[half..];
-    const fctx = F0Ctx{ .F = F, .E = E, .Fq = Fq, .half = half, .active = active, .r = r0 };
-    pool.parallelFor(work, 4096, &fctx, fold0Chunk);
+    const fctx = F0Ctx(T){ .F = F, .E = E, .Fq = Fq, .half = half, .active = active, .r = r0 };
+    pool.parallelFor(work, 4096, &fctx, struct {
+        fn run(c: *const F0Ctx(T), s: usize, e: usize) void {
+            fold0Chunk(T, c, s, e);
+        }
+    }.run);
 
     // --- rounds 1.. (generic kernels)
     var rest = try sc.proveActive(2, &T_PROD2, a, pool, tr, claim1, .{ Fq, E[0..half] }, work);
@@ -435,5 +465,49 @@ test "addEqScaled matches eqTable" {
         for (dst, 0..) |*d, i| d.* = QM31.fromU32Unchecked(@intCast(i), 1, 2, 3);
         try addEqScaled(a, &pool, dst, pts[0..n], sc_);
         for (dst, ref, 0..) |d, r, i| try std.testing.expect(d.eql(r.add(QM31.fromU32Unchecked(@intCast(i), 1, 2, 3))));
+    }
+}
+
+test "proveBaseTimesExtT(i8) equals the i32 path on the widened table" {
+    const a = std.testing.allocator;
+    var pool: f.Pool = undefined;
+    try pool.init(a, 3);
+    defer pool.deinit();
+    var prng = std.Random.DefaultPrng.init(12);
+    const rnd = prng.random();
+    for ([_]u32{ 0, 1, 3, 9, 14 }) |n| {
+        const len = @as(usize, 1) << @intCast(n);
+        for ([_]usize{ len, (len * 3 + 3) / 4, len / 2 + 1, 1 }) |active| {
+            const F8 = try a.alloc(i8, len);
+            defer a.free(F8);
+            const F = try a.alloc(i32, len);
+            defer a.free(F);
+            const E = try a.alloc(QM31, len);
+            defer a.free(E);
+            const E2 = try a.alloc(QM31, len);
+            defer a.free(E2);
+            var claim = QM31.zero();
+            for (0..len) |i| {
+                F8[i] = if (i < active) rnd.int(i8) else 0;
+                F[i] = F8[i];
+                E[i] = if (i < active) QM31.fromU32Unchecked(rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P), rnd.uintLessThan(u32, f.P)) else QM31.zero();
+                E2[i] = E[i];
+                claim = claim.add(QM31.fromBase(f.fromI32(F[i])).mul(E[i]));
+            }
+            var t1 = Transcript.initDomain("b8");
+            var t2 = Transcript.initDomain("b8");
+            var r1 = try proveBaseTimesExtT(i8, a, &pool, &t1, claim, F8, E, active);
+            defer r1.deinit(a);
+            var r2 = try proveBaseTimesExt(a, &pool, &t2, claim, F, E2, active);
+            defer r2.deinit(a);
+            try std.testing.expectEqual(r2.proof.rounds.len, r1.proof.rounds.len);
+            for (r1.proof.rounds, r2.proof.rounds) |x, y| {
+                try std.testing.expect(x.evals[0].eql(y.evals[0]));
+                try std.testing.expect(x.evals[1].eql(y.evals[1]));
+            }
+            for (r1.point, r2.point) |x, y| try std.testing.expect(x.eql(y));
+            for (r1.finals, r2.finals) |x, y| try std.testing.expect(x.eql(y));
+            try std.testing.expect(t1.draw().eql(t2.draw()));
+        }
     }
 }

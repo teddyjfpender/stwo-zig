@@ -76,6 +76,29 @@ pub fn keyProofDigest(p: @import("weight_key.zig").KeyProof) [32]u8 {
     return out;
 }
 
+/// Digest over a per-request serving batch: every request's own part (as
+/// `proofDigest`) and salt, every shared slot, and the shared weight opening.
+pub fn batchDigest(b: @import("serve.zig").Batch) [32]u8 {
+    var h = Blake2s.init(.{});
+    for (b.requests) |r| {
+        h.update(&r.salt);
+        h.update(&proofDigest(r.core));
+    }
+    for (b.shared.requests) |s| {
+        h.update(&s.digest);
+        for (s.points) |p| hashFelts(&h, p);
+        h.update(std.mem.sliceAsBytes(s.w));
+        h.update(std.mem.sliceAsBytes(s.point_of));
+        hashFelts(&h, s.values);
+    }
+    if (b.shared.reduction) |p| for (p.rounds) |rp| hashFelts(&h, rp.evals[0..p.deg]);
+    hashFelts(&h, &.{b.shared.reduced_value});
+    if (b.shared.opening) |op| hashOpening(&h, op);
+    var out: [32]u8 = undefined;
+    h.final(&out);
+    return out;
+}
+
 fn hashOpening(h: *Blake2s, op: proto.Opening) void {
     switch (op) {
         .flat => |o| hashFlat(h, o),
