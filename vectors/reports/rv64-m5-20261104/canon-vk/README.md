@@ -40,7 +40,9 @@ Distinct outer authorities (circuit VKs) per node kind, from `tree.json`:
 - Root proof: +5.5% (706,424 → 745,624 B).
 - Wall time: see the A/B below.
 
-Negative corpus on the E4 26235156 proofs: `26235156-e4-negative-corpus.json`.
+Negative corpus [M]. Both runs used donor 24628607, 0 unexpected accepts and 0 crashes:
+- E4 uniform-v1 proofs: `26235156-e4-negative-corpus.json`, **36/36**;
+- E6 named canonical profile proofs: `26235156-e6-negative-corpus.json`, **36/36**.
 
 ## Per-node host preparation (gate: ≤ 0.1 s per node)
 

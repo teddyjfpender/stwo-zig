@@ -152,7 +152,11 @@ See `vectors/reports/rv64-m5-20261104/canon-vk/README.md` (E1 parity; E2 r1 4-ar
 
 ## 7. Not done in this iteration (honest scope)
 
-- **Fold v3.** In-circuit `T_rec` membership replaces the receiver's `expectedDigest`. The node summary `NS` (binding §2) is
+- **Fold v3.** In-circuit `T_rec` membership replaces the receiver's `expectedDigest`. Already landed as tested gadgets:
+  - `vk_table.verifyMembership`;
+  - `node_summary.{foldMass, foldInterval, leafIndex, foldDepth, foldKappa}` (corpus W hooks Z04, L05, Z05, Z06).
+
+  Not yet wired into the fold circuit, because leaves are not canonical yet and the NS word layout is not frozen. The node summary `NS` (binding §2) is
   replaced by the interval chain, `κ`, `bus[R]`, `mass`, `ctr`, `steps` and `depth`. Every §9.2 receiver check moves
   in-circuit, plus the root statement §4.4. Building blocks landed: `vk_table.zig` and `S_out`.
 - **Canonical leaves `R_leaf[f, r]`.** These need canon-native's rung padding and the χ-chain native version.
