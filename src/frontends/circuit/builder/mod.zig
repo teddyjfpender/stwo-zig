@@ -18,6 +18,8 @@ pub const ivalue = @import("ivalue.zig");
 /// `crates/circuits/src/context.rs` and the primitive gates of `ops.rs`.
 pub const context = @import("context.zig");
 pub const witness_plan = @import("../witness_generation/plan.zig");
+/// CPU-only compact padding prototype; production GPU admission remains closed.
+pub const padding_plan_prototype = @import("../witness_generation/padding_plan.zig");
 /// `crates/circuits/src/ops.rs`: composite operations.
 pub const ops = @import("ops.zig");
 /// `crates/circuits/src/wrappers.rs`: M31, U16 and U32 wires.
