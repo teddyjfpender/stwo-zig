@@ -29,7 +29,10 @@ step() { name=$1; shift; echo "== $name load=$(cut -d' ' -f1 /proc/loadavg) $(da
 req 26235156; req 24628607
 step derive-26235156 $R --security-profile $P derive-vk-tables $S/26235156-request.json $(proof 26235156) $S/tables/vk-26235156.json $FIX $HOST --source-commit $COMMIT
 step derive-24628607 $R --security-profile $P derive-vk-tables $S/24628607-request.json $(proof 24628607) $S/tables/vk-24628607.json $FIX $HOST --source-commit $COMMIT
-step derive-both $R --security-profile $P derive-vk-tables $S/24628607-request.json $(proof 24628607) $S/tables/vk-both.json $FIX $HOST --merge $S/tables/vk-26235156.json
+# The merge input is pinned to the root its own derive printed (adversarial review: an unpinned merge input
+# carries other blocks' entries into vk-both unchecked, and the vk-both pin would launder them).
+ROOT156=$(python3 -c "import json;print(json.load(open('$S/out/derive-26235156.json'))['table_root'])")
+step derive-both $R --security-profile $P derive-vk-tables $S/24628607-request.json $(proof 24628607) $S/tables/vk-both.json $FIX $HOST --merge $S/tables/vk-26235156.json --table-root $ROOT156
 ROOT=$(python3 -c "import json;print(json.load(open('$S/out/derive-both.json'))['table_root'])"); echo "pin=$ROOT"
 for rep in 1 2 3; do for b in 26235156 24628607; do
 step verify-pinned-$b-r$rep $R --security-profile $P verify-root-candidate $S/$b-request.json $(proof $b) $S/tables/vk-both.json $FIX $HOST --table-root $ROOT

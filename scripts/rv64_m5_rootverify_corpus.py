@@ -224,6 +224,14 @@ RV_CASES = [
          table=coherent(forge_native("source_root"))),
     dict(id="RV30-native-forged-pinned", family="native-table", what="RV28 forgery with the receiver pinning its derived root",
          table=coherent(forge_native("fixed_root")), pin="control"),
+    # fold-v3 adversarial review: --audit must not take native keys from the
+    # table it audits. It rebuilds every component from source and requires
+    # the table's native entry under each key to be byte-identical.
+    dict(id="RV31-native-forged-audit", family="native-table", audit=True, want_error="VkNativeAuditMismatch",
+         what="RV29 source-root forgery (fully re-sealed, unpinned) under --audit: the audit's own native rebuild refuses the section",
+         table=coherent(forge_native("source_root"))),
+    dict(id="RV32-audit-control", family="native-table", audit=True, expect="accept",
+         what="unmodified table under --audit: native rebuilt from source, every used native entry byte-identical, full tree agrees"),
 ]
 
 
@@ -281,6 +289,8 @@ def run_case(case, ctx, mode):
     if mode == "rv" and case.get("pin") == "control":
         command += ["--table-root", ctx["control_table_root"]]
         result["table_root_pin"] = ctx["control_table_root"]
+    if case.get("audit"):
+        command += ["--audit"]
     started = time.monotonic()
     timed_out = False
     with open(work / "stdout", "wb") as out, open(work / "stderr", "wb") as err:
@@ -298,14 +308,20 @@ def run_case(case, ctx, mode):
         if accepted:
             same = statement(stdout) == ctx["control_statement"]
             result["verify_per_block_s"] = round(stdout["verify_per_block_ns"] / 1e9, 3)
+            if case.get("audit"):
+                result["native_audit"] = stdout.get("native_audit")
+                result["audit_agrees"] = (stdout.get("audit") or {}).get("agrees")
     except Exception:
         pass
     crashed = timed_out or returncode is None or returncode < 0 or any(m in line for line in stderr for m in N.CRASH_MARKERS)
     verdict = "accept" if accepted else ("crash" if crashed else "reject")
     if expect == "accept":
         passed = accepted and same is True
+        if case.get("audit"):
+            na = result.get("native_audit") or {}
+            passed = passed and result.get("audit_agrees") is True and na.get("matched", 0) > 0 and na.get("matched") == na.get("rebuilt")
     elif expect == "reject":
-        passed = verdict == "reject"
+        passed = verdict == "reject" and (not case.get("want_error") or case["want_error"] in "\n".join(stderr))
     else:
         passed = verdict == "reject" or (accepted and same is True)
     result.update(status="timeout" if timed_out else "ran", verdict=verdict, exit_code=returncode, wall_s=round(wall, 2),

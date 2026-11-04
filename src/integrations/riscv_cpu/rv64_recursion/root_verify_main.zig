@@ -2,7 +2,7 @@
 //! `verify-root-candidate`. Dispatched from the CPU-only receiver binary
 //! before the legacy modes; no CUDA module is imported.
 //!
-//!   [--security-profile P] derive-vk-tables CONFIG OUT TABLE_OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] [--merge TABLE] [--source-commit SHA]
+//!   [--security-profile P] derive-vk-tables CONFIG OUT TABLE_OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] [--merge TABLE [--table-root HEX]] [--source-commit SHA]
 //!   [--security-profile P] verify-root-candidate CONFIG OUT TABLE FIXED_SETUP_BYTES [RECEIVER_BYTES] [--audit] [--table-root HEX]
 //!
 //! --table-root pins the table: the receiver records the root printed by its
@@ -22,7 +22,15 @@
 //! admitted metadata, fold digests from table VKs, then ONE proof verified:
 //! recursion-om31/root.proof. No native proof and no child recursion proof is
 //! verified or read. --audit additionally runs the full-tree receiver and
-//! requires it to agree on the root digest and authority.
+//! requires it to agree on the root digest and authority. Under --audit every
+//! native component is rebuilt from source (the table's native VK section is
+//! NOT restored) and each rebuilt VK-only artifact must equal the table's entry
+//! for its key byte for byte (`VkNativeAuditMismatch`): the audit stays
+//! independent of the table and cross-checks the native section.
+//!
+//! derive --merge: the merged table's entries (leaf/fold/native, for blocks
+//! this derive does not re-check) are carried into the output; pass the merge
+//! input's own pinned root as --table-root, or the output's pin launders them.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const Om31 = @import("stwo_circuit_cpu_integration").om31;
@@ -122,7 +130,8 @@ pub fn main() !void {
     while (i < args.len) : (i += 1) {
         if (std.mem.eql(u8, args[i], "--audit") and !derive) {
             audit = true;
-        } else if (std.mem.eql(u8, args[i], "--table-root") and !derive and i + 1 < args.len) {
+        } else if (std.mem.eql(u8, args[i], "--table-root") and i + 1 < args.len) {
+            // verify: pins TABLE; derive: pins the --merge input.
             table_root_pin = args[i + 1];
             i += 1;
         } else if (std.mem.eql(u8, args[i], "--merge") and derive and i + 1 < args.len) {
@@ -133,6 +142,7 @@ pub fn main() !void {
             i += 1;
         } else return error.InvalidRootVerifyArgument;
     }
+    if (derive and table_root_pin != null and merge == null) return error.InvalidRootVerifyArgument;
     // Fresh receivers never read persisted producer setup.
     if (std.process.hasEnvVarConstant(SETUP_CACHE_ENV)) return error.PersistedSetupCacheForbiddenForReceiver;
     const fixed_setup_bytes = try std.fmt.parseUnsigned(usize, args[5], 10);
@@ -277,23 +287,32 @@ pub fn main() !void {
     const native_dir = try privateDir(arena);
     defer std.fs.cwd().deleteTree(native_dir) catch {};
     var native_written: usize = 0;
-    if (!derive) if (loaded_table) |*t| {
+    // derive and --audit rebuild every native component from source: the
+    // audit must not take its native keys from the table it is auditing.
+    const rebuild_native = derive or audit;
+    if (!rebuild_native) if (loaded_table) |*t| {
         for (t.native.items) |entry| {
             const name = try std.fmt.allocPrint(arena, "{s}/{s}.rv64-setup", .{ native_dir, std.fmt.bytesToHex(entry.key, .lower) });
             try std.fs.cwd().writeFile(.{ .sub_path = name, .data = entry.artifact });
             native_written += 1;
         }
     };
-    var setup = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, .{ .mode = if (derive) .prover else .verifier, .directory = native_dir, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = false, .max_build_threads = NATIVE_BUILD_THREADS, .store_bulk = false });
+    var setup = try SetupCache.Cache.init(a, .{ .log_blowup = pcs.fri_config.log_blowup_factor }, .{ .mode = if (rebuild_native) .prover else .verifier, .directory = native_dir, .fixed_setup_bytes = fixed_setup_bytes, .identity_only_cpu = false, .max_build_threads = NATIVE_BUILD_THREADS, .store_bulk = false });
     defer setup.deinit();
     try setup.bindRequest(request.value);
     var keys = try Keys.initResident(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches, &setup);
     defer keys.deinit();
     const native_keys_ns = timer.lap();
-    var fixed_set = if (derive) try fixedSetParallel(a, &setup.fixed, keys.cpus, keys.truths, pcs) else try FixedSet.init(a, &setup.fixed, keys.cpus, keys.truths, pcs);
+    var fixed_set = if (rebuild_native) try fixedSetParallel(a, &setup.fixed, keys.cpus, keys.truths, pcs) else try FixedSet.init(a, &setup.fixed, keys.cpus, keys.truths, pcs);
     defer fixed_set.deinit();
     const fixed_authority_ns = timer.lap();
     const native_stats = setup.stats;
+    // --audit: the rebuilt native setup must equal the table's native section
+    // on every key the block uses (a key absent from the table is counted).
+    var native_audit: ?NativeAudit = null;
+    if (audit) if (loaded_table) |*t| {
+        native_audit = try auditNative(a, &setup, native_dir, t);
+    };
 
     // Receiver-side admission (today's homes of binding note §9.2) + leaf digests.
     var manifest_digest: [32]u8 = undefined;
@@ -448,6 +467,7 @@ pub fn main() !void {
         .native_table = .{ .entries = table.native.items.len, .written = native_written, .hits = native_stats.disk_hits, .misses = native_stats.misses, .max_build_ns = native_stats.max_build_ns, .max_build_kind = native_stats.max_build_kind },
         .breakdown = .{ .self_sha_ns = self_sha_ns, .table_load_ns = table_load_ns, .image_ns = image_ns, .bundle_ns = bundle_ns, .native_keys_ns = native_keys_ns, .fixed_authority_ns = fixed_authority_ns, .admission_ns = admission_ns, .root_ns = root_ns, .root_tree_ns = report.tree_ns, .root_authority_ns = report.authority_ns, .root_decode_ns = report.decode_ns, .root_verify_ns = report.verify_ns, .bundle_wait_ns = bundle_wait_ns, .image_owner_ns = image_owner_ns, .admission = admission },
         .audit = audit_report,
+        .native_audit = native_audit,
         .receiver_sha256 = &self_sha,
     });
     // Accepted and reported: exit without tearing down process-lifetime
@@ -551,6 +571,33 @@ fn recordNative(a: std.mem.Allocator, setup: *SetupCache.Cache, dir_path: []cons
     }
     if (seen != setup.resident.count()) return error.VkDeriveNativeCoverage;
     return added;
+}
+
+const NativeAudit = struct { rebuilt: usize, matched: usize, absent_from_table: usize };
+/// --audit: persist the VK-only artifact of every native component rebuilt
+/// from source in this process and require the table's entry under the same
+/// key (when present) to be byte-identical (`VkNativeAuditMismatch`).
+fn auditNative(a: std.mem.Allocator, setup: *SetupCache.Cache, dir_path: []const u8, table: *const RV.Table) !NativeAudit {
+    try setup.persist();
+    var dir = try std.fs.cwd().openDir(dir_path, .{ .iterate = true });
+    defer dir.close();
+    var out = NativeAudit{ .rebuilt = 0, .matched = 0, .absent_from_table = 0 };
+    var it = dir.iterate();
+    while (try it.next()) |entry| {
+        const suffix = ".rv64-setup";
+        if (entry.kind != .file or !std.mem.endsWith(u8, entry.name, suffix) or entry.name.len != 64 + suffix.len) return error.VkDeriveNativeArtifact;
+        var key: [32]u8 = undefined;
+        _ = try std.fmt.hexToBytes(&key, entry.name[0..64]);
+        const bytes = try dir.readFileAlloc(a, entry.name, RV.MAX_NATIVE_ARTIFACT_BYTES);
+        defer a.free(bytes);
+        out.rebuilt += 1;
+        if (table.findNative(key)) |expected| {
+            if (!std.mem.eql(u8, expected, bytes)) return error.VkNativeAuditMismatch;
+            out.matched += 1;
+        } else out.absent_from_table += 1;
+    }
+    if (out.rebuilt != setup.resident.count()) return error.VkDeriveNativeCoverage;
+    return out;
 }
 
 const LeafRow = struct { input: RV.LeafInput, label: []const u8 };
