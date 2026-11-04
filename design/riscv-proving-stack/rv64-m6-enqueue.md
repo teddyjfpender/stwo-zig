@@ -80,6 +80,23 @@ each block).
 | 24628607 blocking calls per node | 173.5 | **122.5** |
 | launches per node | 5,167 | 5,167 (unchanged: hint-tape's lever) |
 
+Replicates of the e1 behaviour (same code path, other binaries with the e2/e3 flag off; load 17-36):
+warm 24628607 recursion 17.56 s (ab2-e2off) and 18.09 s (ab3-e3off, load 29-36); 26235156 10.93 / 11.24 s.
+
+### 3.4 Tried and reverted: resident twiddles for outer trace commits (negative) [M]
+Uploading each height's half-coset twiddles once into the outer immutable cache (borrowed under the commit's
+request scope; a first version pinned them under a constant scope and was rejected by the block-end audit,
+`ImmutableSetupStillBorrowed`, see `ab2-e2-failure-excerpt.txt`) is byte-identical and receiver-accepted, but
+measured no gain against the same binary with the path off (`ab3-e3*`: warm 607 recursion 18.27 vs 18.09 s,
+156 11.49 vs 11.24 s, load 15-36) and raised immutable-cache evictions (3,713 vs 3,331 on GPU0). Reverted.
+
+Finding for the owner of the immutable budget (resident_batch manifest `combined_immutable_device_bytes`, 2 GiB):
+the outer immutable cache THRASHES in the resident service: per GPU over 4 requests ~1,000-1,200 uploads and
+~3,000-3,700 evictions at a full 2 GiB (`GPU_RESIDENT_SETUP` lines in the ab3 producer logs). Each miss is an
+upload + host join inside `outer_source_main` (28 gaps of ~32 ms per 607 request). The 27 leaf classes x
+0.2-0.5 GB FIXED forests + 0.15-0.43 GB schedules do not fit; class-keyed canonical leaves (canon-native) or a
+larger budget are the levers.
+
 ## 4. What is not done here (precise)
 - Device transcript for the outer prove (Fiat-Shamir on the GPU or `cudaLaunchHostFunc`): not started. The PCS
   part (OODS -> DEEP -> FRI -> decommit) already runs inside one native call with the device channel
@@ -88,3 +105,6 @@ each block).
   (78%), which hint-tape replaces with ~11 fill kernels. Graph capture is worth doing after that lands.
 - Transcript parity GPU vs CPU per class: not applicable yet (no device transcript change).
 - Recursion kernel efficiency (ns per LDE cell): not touched.
+- Composition (`resident_composition.zig`, no M6 owner on the pod) has the same lane-0/one-readback pattern
+  (28 blocking calls/node, ~0.7 s of in-node host gaps per 607 request): same treatment as 3.1 recommended.
+- Gates: syncs/node 122 (gate 10), launches/node 5,167 (gate 500), GPU busy ~40% (gate 70%): NOT met.
