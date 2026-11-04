@@ -220,9 +220,13 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     const pubs_all = [_]zk.PublicTensor{ .{ .id = 0, .values = wview[0] }, .{ .id = @intCast(wview.len - 1), .values = wview[wview.len - 1] } };
     const pubs: []const zk.PublicTensor = if (public_io) &pubs_all else &.{};
     t0 = now();
-    var proof = try zk.provePublic(a, &pool, pc, st, &zw, wview, pubs, &tm);
+    // the forward pass's accumulators, as the non-hiding bench (ZK_RECOMPUTE=1 recomputes them)
+    const recompute = (try envU("ZK_RECOMPUTE", 0)) != 0;
+    var proof = try zk.provePublicWithAccumulators(a, &pool, pc, st, &zw, wview, pubs, if (recompute) null else built.accs, &tm);
     defer proof.deinit(a);
     const prove_s = secs(t0);
+    // peak RSS through the proof (rerandomizeWeights below raises the final peak)
+    const prove_rss = peakRssBytes();
     t0 = now();
     try zk.verifyPublic(a, pc, st, key, pubs, &proof);
     const verify_s = secs(t0);
@@ -253,7 +257,7 @@ fn runMlp(a: std.mem.Allocator, args: [][:0]u8) !void {
     try levelsJson(out, "witness_levels", proof.opening);
     if (proof.weight_opening) |wo| try levelsJson(out, "weight_levels", wo);
     try stagesJson(out, tm);
-    try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"rerandomize_link_s\":{d:.4},\"link_verify_s\":{d:.5},\"link_bytes\":{d},\"gkr_trees\":{d},\"gkr_layers\":{d},\"logup_bytes\":{d},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, rerand_s, link_verify_s, rr.link.byteSize(), proof.gkr_roots.len, proof.gkr_layers.len, sz.logup, budget[0], budget[1], tm.witness_table_elems, peakRssBytes() });
+    try out.print("\"proof_bytes\":{{\"sumchecks\":{d},\"witness_opening\":{d},\"weight_opening\":{d},\"total\":{d}}},\"rerandomize_link_s\":{d:.4},\"link_verify_s\":{d:.5},\"link_bytes\":{d},\"gkr_trees\":{d},\"gkr_layers\":{d},\"logup_bytes\":{d},\"weight_budget_used\":{d},\"weight_budget\":{d},\"witness_table_elems\":{d},\"prove_peak_rss_bytes\":{d},\"peak_rss_bytes\":{d}}}\n", .{ sz.sumchecks, sz.witness_opening, sz.weight_opening, sz.total, rerand_s, link_verify_s, rr.link.byteSize(), proof.gkr_roots.len, proof.gkr_layers.len, sz.logup, budget[0], budget[1], tm.witness_table_elems, prove_rss, peakRssBytes() });
 }
 
 /// tensor-bench layer <log_t> <log_d> <log_f> <log_heads> [threads] [queries] [log_blowup] [pow] [log_kv_heads] zk

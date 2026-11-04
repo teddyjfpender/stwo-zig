@@ -1798,6 +1798,25 @@ pub fn provePublic(
     public: []const PublicTensor,
     timings: *proto.Timings,
 ) !Proof {
+    return provePublicWithAccumulators(a, pool, cfg, st, zw, witness, public, null, timings);
+}
+
+/// As `provePublic`, with the integer accumulators of the matmul/hadamard ops
+/// supplied by the caller (e.g. kept from the forward pass; `accs[i]` for
+/// st.ops[i], null = recompute). Same trust model as
+/// proto.proveWithAccumulators: wrong values are refused (remainder range) or
+/// yield a proof the verifier rejects. The prover's messages are unchanged.
+pub fn provePublicWithAccumulators(
+    a: std.mem.Allocator,
+    pool: *f.Pool,
+    cfg: proto.Config,
+    st: Statement,
+    zw: ?*const ZkWeights,
+    witness: []const []const i32,
+    public: []const PublicTensor,
+    accs: ?[]const ?[]i64,
+    timings: *proto.Timings,
+) !Proof {
     // ZK mode is QM31-only (cellsFelt) and has no security levels
     if (f.IS_OM31 or cfg.security != .custom) return error.Unsupported;
     for (public) |pt| {
@@ -1813,9 +1832,15 @@ pub fn provePublic(
 
     // --- accumulators, remainders, multiplicities
     var t0 = try std.time.Instant.now();
-    const acc = try ar.alloc(?[]i64, st.ops.len);
+    const acc = try ar.alloc(?[]const i64, st.ops.len);
+    if (accs) |g| if (g.len != st.ops.len) return error.BadAccumulators;
     for (st.ops, 0..) |op, i| {
         acc[i] = null;
+        if (accs) |g| if (g[i]) |v| {
+            if (!(op == .matmul or op == .hadamard) or v.len != st.witness[opY(op)].size()) return error.BadAccumulators;
+            acc[i] = v;
+            continue;
+        };
         switch (op) {
             .matmul => |m| acc[i] = (try accel.matmulAcc(cfg.accel, ar, st.witness[m.x].log_dims[0], witness[m.x], zw.?.matrix(m.w))) orelse try proto.matmulAcc(ar, pool, st.witness[m.x], witness[m.x], zw.?.matrix(m.w)),
             .hadamard => |h| {
@@ -4603,7 +4628,7 @@ fn pinCase(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, case: u32) !H
             try verify(a, cfg, st, null, &p);
             h.update(&proofDigest(&p));
         },
-        1 => {
+        1, 3 => {
             const mc = model.Mlp{ .log_t = 3, .log_d = 5, .log_f = 6, .fused = true };
             const winfos = model.mlpWeightInfos(mc);
             var wdata: [3][]i8 = undefined;
@@ -4622,7 +4647,8 @@ fn pinCase(a: std.mem.Allocator, pool: *f.Pool, cfg: proto.Config, case: u32) !H
             const wv = try wview(a, built.witness);
             defer a.free(wv);
             const pubs = [_]PublicTensor{ .{ .id = 0, .values = wv[0] }, .{ .id = @intCast(wv.len - 1), .values = wv[wv.len - 1] } };
-            var p = try provePublic(a, pool, cfg, st, &zw, wv, &pubs, &tm);
+            // case 3: the forward pass's accumulators (must not change the proof)
+            var p = try provePublicWithAccumulators(a, pool, cfg, st, &zw, wv, &pubs, if (case == 3) built.accs else null, &tm);
             defer p.deinit(a);
             try verifyPublic(a, cfg, st, zw.key(), &pubs, &p);
             h.update(&proofDigest(&p));
@@ -4662,6 +4688,7 @@ test "zk pinned seeded hiding digests (product flat/rec, mlp virtual rec, decode
         .{ .cfg = testCfgRec(1), .case = 0, .hex = "515227e8bbb703598e82c6a9d82a78d54f1603f4d562584f95039deaccea0d3f" },
         .{ .cfg = mlp_cfg, .case = 1, .hex = "fb96502a6b11a38c86867e8856f104396632a8d6e95f4a300e944a9f83ff9921" },
         .{ .cfg = testCfg(), .case = 1, .hex = "0109242eb8ccacaeea2523ccb06146fea4c766bec4128bd1c0bc807756db3497" },
+        .{ .cfg = mlp_cfg, .case = 3, .hex = "fb96502a6b11a38c86867e8856f104396632a8d6e95f4a300e944a9f83ff9921" },
         .{ .cfg = layerCfgZk(), .case = 2, .hex = "b46709bff021a0660d8283524c1ac54b98a45bcf318349b98fafe4e63bac95f7" },
     };
     var bad = false;
