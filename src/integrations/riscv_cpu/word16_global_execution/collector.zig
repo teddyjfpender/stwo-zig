@@ -5,10 +5,13 @@ const X = A.memory.load_store_v2;
 const R = A.memory.closed_ram;
 const CPU = @import("../word16_execution/cpu_source.zig");
 const Public = @import("../word16_execution/memory/statement.zig");
+pub const StateTable = @import("ledger_table.zig").StateTable;
 pub const Ledger = struct {
     allocator: std.mem.Allocator,
     image: Public.Image,
-    states: std.AutoHashMapUnmanaged(u64, R.types.State) = .empty,
+    /// Same key set and values as the former `AutoHashMapUnmanaged(u64,
+    /// State)`; a paged radix table (ledger_table.zig). Producer hints only.
+    states: StateTable = .empty,
     initial: std.ArrayList(R.types.Cell) = .empty,
     next_epoch: u32 = 1,
     pub fn init(a: std.mem.Allocator, image: Public.Image) Ledger {
@@ -50,7 +53,9 @@ pub const Ledger = struct {
     pub fn boundaries(self: *const Ledger) !struct { initial: []R.types.Cell, terminal: []R.types.Cell } {
         const initial = try self.allocator.dupe(R.types.Cell, self.initial.items);
         errdefer self.allocator.free(initial);
-        std.mem.sort(R.types.Cell, initial, {}, less);
+        // Addresses are unique (one first touch each), so an unstable sort
+        // yields exactly the stable sort's order.
+        std.sort.pdq(R.types.Cell, initial, {}, less);
         const terminal = try self.allocator.alloc(R.types.Cell, initial.len);
         errdefer self.allocator.free(terminal);
         for (initial, terminal) |cell, *out| out.* = .{ .address = cell.address, .state = self.states.get(cell.address).? };

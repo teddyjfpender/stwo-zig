@@ -22,7 +22,8 @@ fn less(_: void, a: R.types.Cell, b: R.types.Cell) bool {
 }
 pub fn collect(a: std.mem.Allocator, image: Public.Image, records: []const CPU.MemoryRecord, epoch: u16) !Collected {
     if (records.len >= (1 << 22)) return error.MemoryEventLimit;
-    var states: std.AutoHashMapUnmanaged(u64, R.types.State) = .empty;
+    // Paged radix table: same keys/values as the former hash map (hints only).
+    var states: @import("../../word16_global_execution/ledger_table.zig").StateTable = .empty;
     defer states.deinit(a);
     var initial: std.ArrayList(R.types.Cell) = .empty;
     defer initial.deinit(a);
@@ -50,7 +51,8 @@ pub fn collect(a: std.mem.Allocator, image: Public.Image, records: []const CPU.M
     }
     const input = try initial.toOwnedSlice(a);
     errdefer a.free(input);
-    std.mem.sort(R.types.Cell, input, {}, less);
+    // Unique addresses: the unstable sort yields the stable sort's order.
+    std.sort.pdq(R.types.Cell, input, {}, less);
     const terminal = try a.alloc(R.types.Cell, input.len);
     errdefer a.free(terminal);
     for (input, terminal) |cell, *out| out.* = .{ .address = cell.address, .state = states.get(cell.address).? };

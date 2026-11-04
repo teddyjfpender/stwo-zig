@@ -25,6 +25,12 @@ pub const Stats = struct {
     peak_live_pages: u64 = 0,
     /// Consumer time spent waiting for the next segment in order.
     wait_ns: u64 = 0,
+    /// Traced segment walks (checkpoint materialise + `Walk.nextTaking` +
+    /// continuity check), summed and worst, with their retired steps:
+    /// report-only emulator throughput baseline (M7).
+    walk_ns_total: u64 = 0,
+    walk_ns_max: u64 = 0,
+    walk_retired: u64 = 0,
 };
 
 const FirstPass = struct {
@@ -51,10 +57,14 @@ const Worker = struct {
     taken: ?Walk.Taken = null,
     completed: bool = false,
     err: ?anyerror = null,
+    walk_ns: u64 = 0,
+    retired: u64 = 0,
     fn run(self: *Worker) void {
+        var timer = std.time.Timer.start() catch null;
         self.work() catch |err| {
             self.err = err;
         };
+        if (timer) |*t| self.walk_ns = t.read();
     }
     fn work(self: *Worker) !void {
         const owner = self.owner;
@@ -74,6 +84,7 @@ const Worker = struct {
         const next = owner.checkpointAt(self.index + 1) orelse return error.EthereumSegmentContinuity;
         if (!rv.checkpoint.matches(&walk.session, &dirty, next)) return error.EthereumSegmentContinuity;
         self.completed = walk.completed;
+        self.retired = taken.tape.len;
         self.taken = taken;
     }
 };
@@ -293,6 +304,9 @@ pub const Segments = struct {
         }
         self.next_index += 1;
         self.stats.segments += 1;
+        self.stats.walk_ns_total += w.walk_ns;
+        self.stats.walk_ns_max = @max(self.stats.walk_ns_max, w.walk_ns);
+        self.stats.walk_retired += w.retired;
         self.main.batches = self.next_index;
         if (w.completed) {
             self.main.completed = true;

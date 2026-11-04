@@ -10,6 +10,7 @@ const Program = @import("../../word16_execution/program.zig").Program;
 const Coverage = @import("../../word16_execution/coverage.zig");
 const Memory = @import("../../word16_execution/memory/statement.zig");
 const Collector = @import("../services/collector.zig");
+const LS = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
 pub const Options = @import("capture_prefetch.zig").Options;
 pub const MAX_INFLIGHT = @import("capture_prefetch.zig").MAX_INFLIGHT;
 pub const ScheduleStats = struct {
@@ -30,6 +31,18 @@ pub const Timing = struct {
     ledger_ns: u64 = 0,
     /// `finish` (global initial/terminal boundary cells).
     finish_ns: u64 = 0,
+};
+/// Per-segment readiness hook (M6 streaming stage 1). Called on the ordered
+/// owner's thread, strictly in index order, once a segment's narrow capture is
+/// accepted and its ledger shard (LS events with RAM predecessors) is final.
+/// `native` and `events` stay owned by the capture and immutable until
+/// `Owner.deinit`; a consumer may read them from other threads but must not
+/// block here (the ledger of the next segment waits). Scheduling only: the
+/// hook observes data and never changes it, so outputs are byte-identical
+/// with or without it.
+pub const Ready = struct {
+    context: *anyopaque,
+    call: *const fn (context: *anyopaque, index: usize, native: *const Native, events: []const LS.native.Event, at_ns: u64) void,
 };
 pub const Owner = struct {
     capture_schedule: ScheduleStats = .{},
@@ -114,6 +127,8 @@ pub const Ordered = struct {
     timing: Timing = .{},
     first_inputs_at: ?std.time.Instant = null,
     last_inputs_at: ?std.time.Instant = null,
+    /// Optional M6 hook, see `Ready`.
+    on_ready: ?Ready = null,
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, config: Request.Config, prefix_packets: u32) Ordered {
         return .{ .origin = std.time.Instant.now() catch null, .allocator = a, .image = image, .config = config, .prefix_packets = prefix_packets, .collector = Collector.Builder.init(a, Memory.fromOwner(image)), .pc = image.initial_pc, .regs = image.initial_registers };
     }
@@ -134,7 +149,15 @@ pub const Ordered = struct {
     /// `n` (also on error). Returns true once the requested prefix or the
     /// terminal packet has been consumed.
     pub fn accept(self: *Ordered, p: *const Packet.Packet, n: *Native) !bool {
+        return self.acceptWithEvents(p, n, null);
+    }
+    /// `accept` with an optional LS event array prepared off this thread
+    /// (`Collector.prepareEvents`); ownership of both `n` and `events` is
+    /// taken (also on error). Outputs are identical to `accept`.
+    pub fn acceptWithEvents(self: *Ordered, p: *const Packet.Packet, n: *Native, events: ?[]LS.native.Event) !bool {
         const a = self.allocator;
+        var prepared = events;
+        defer if (prepared) |e| a.free(e);
         if (self.admitted != self.next_index + 1) {
             n.deinit();
             a.destroy(n);
@@ -147,7 +170,7 @@ pub const Ordered = struct {
         };
         self.native.appendAssumeCapacity(n);
         const ledger_start = self.elapsed();
-        try self.collector.append(n, &p.tape);
+        try self.collector.appendWithEvents(n, &p.tape, &prepared);
         const ledger_end = self.elapsed();
         self.timing.ledger_ns += ledger_end - ledger_start;
         const now = std.time.Instant.now() catch null;
@@ -160,6 +183,7 @@ pub const Ordered = struct {
         // The ledger and service advice own all predecessor/call data.
         // MAIN/INTER generation retains its separate CPU metadata.
         n.cpu.?.releaseCaptureRecords();
+        if (self.on_ready) |ready| ready.call(ready.context, self.next_index, n, self.collector.lastEvents(), ledger_end);
         self.next_index += 1;
         if ((self.prefix_packets != 0 and self.next_index == self.prefix_packets) or (self.prefix_packets == 0 and self.pc == self.image.terminal_pc)) {
             self.done = true;

@@ -59,6 +59,9 @@ const Job = struct {
     // Outputs.
     packet: ?Packet.Packet = null,
     native: ?*Native = null,
+    /// LS event array for this batch's ledger shard, allocated and
+    /// prefaulted here in parallel (scheduling only; see `prepareEvents`).
+    events: ?[]@import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.native.Event = null,
     err: ?anyerror = null,
     thread: ?std.Thread = null,
     /// Report-only durations of admission and capture.
@@ -77,6 +80,8 @@ const Job = struct {
             self.err = err;
             return;
         };
+        // Best effort: on failure the ordered ledger allocates as before.
+        self.events = @import("../services/collector.zig").prepareEvents(self.allocator, self.native.?) catch null;
         if (timer) |*t| self.capture_ns = t.read();
     }
     fn join(self: *Job) void {
@@ -90,6 +95,7 @@ const Job = struct {
             n.deinit();
             self.allocator.destroy(n);
         }
+        if (self.events) |e| self.allocator.free(e);
         if (self.packet) |*p| p.deinit();
         self.allocator.destroy(self);
     }
@@ -189,7 +195,9 @@ const Consumer = struct {
         try self.ordered.admit(p);
         const n = job.native.?;
         job.native = null;
-        if (try self.ordered.accept(p, n)) {
+        const events = job.events;
+        job.events = null;
+        if (try self.ordered.acceptWithEvents(p, n, events)) {
             self.done = true;
             self.queue.halt();
         }
@@ -223,6 +231,8 @@ pub const Started = struct {
     prefix_packets: u32,
     walk: *Walk,
     source: Segments.Source,
+    /// Optional per-segment readiness hook (M6), set before `capture`.
+    ready: ?Capture.Ready = null,
     pub fn start(a: std.mem.Allocator, config: Request.Config, prefix_packets: u32, segment_workers: u8) !*Started {
         if (prefix_packets > 256) return error.TooManyEthereumPackets;
         var walk_config = config;
@@ -232,7 +242,7 @@ pub const Started = struct {
         errdefer a.destroy(self);
         const walk = try Walk.createWithOptions(a, walk_config, .{ .poseidon_initial_cache = false });
         errdefer walk.destroy();
-        self.* = .{ .allocator = a, .config = config, .prefix_packets = prefix_packets, .walk = walk, .source = try Segments.Source.init(a, walk, segment_workers) };
+        self.* = .{ .allocator = a, .config = config, .prefix_packets = prefix_packets, .walk = walk, .source = try Segments.Source.init(a, walk, segment_workers), .ready = null };
         errdefer self.source.deinit();
         try self.source.prime();
         return self;
@@ -246,13 +256,14 @@ pub const Started = struct {
     }
     /// Admits and captures every batch in index order. Call at most once.
     pub fn capture(self: *Started, image: *const Image.Owner, program: *const Program, inflight: u8, stats: *Stats) !Capture.Owner {
-        return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk, &self.source, stats);
+        return run(self.allocator, image, program, self.config, self.prefix_packets, inflight, self.walk, &self.source, self.ready, stats);
     }
 };
-fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, stats: *Stats) !Capture.Owner {
+fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, prefix_packets: u32, inflight: u8, walk: *Walk, source: *Segments.Source, ready: ?Capture.Ready, stats: *Stats) !Capture.Owner {
     if (inflight == 0 or inflight > MAX_INFLIGHT) return error.InvalidEthereumCaptureOptions;
     var ordered = Capture.Ordered.init(a, image, config, prefix_packets);
     defer ordered.deinit();
+    ordered.on_ready = ready;
     var queue = Queue{};
     var consumer = Consumer{ .queue = &queue, .ordered = &ordered };
     const concurrent = inflight > 1;
